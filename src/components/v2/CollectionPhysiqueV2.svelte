@@ -25,6 +25,12 @@
   dix minutes, une revalidation discrète tourne (« Mise à jour… » dans
   l'en-tête, pas d'avancement détaillé). « Effacer le cache » est à côté
   du compte.
+
+  tune-server-rust#7927 (05/11/2026) : l'écran dit l'état des pochettes
+  (téléchargements en cours, Discogs qui limite, reprise) et retente les
+  cases vides quand le cache du serveur avance. #7928 : « Chercher sur les
+  services » sur un disque absent, qui ouvre ou lance le plus proche. #7929 :
+  filtres par dossier Discogs, genre et style, avec leurs compteurs.
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
@@ -32,11 +38,13 @@
   import {
     ATTRIBUTION_DISCOGS, ETATS, FAMILLES, LIEN_DISCOGS,
     CLE_AFFICHAGE, CLE_PASTILLE,
-    aRevalider, cleErreur, clicSurDisque, codeDeRefus, compteDuJeton, effacerCache, legendeDuDisque,
+    aRevalider, messageErreurCollection, clicSurDisque, compteDuJeton, effacerCache, legendeDuDisque,
     lireCollection, lireEtat,
     lireReglages, nomService, nomValide, pastillesDuDisque, pochetteDuDisque, poserCompte, qualiteDe, synchroniser,
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
+    SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
+    pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices,
   } from '../../lib/collectionPhysique';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
@@ -63,7 +71,9 @@
   let nom = $state('');
   let format = $state<Famille | null>(null);
   let filtreEtat = $state<EtatDisque | null>(null);
-  let erreur = $state<string | null>(null);
+  let erreur = $state<unknown>(null);
+  let erreurLecture = $state<unknown>(null);
+  let compteEnregistre = $state(false);
   let chargement = $state(true);
   let occupe = $state(false);
   let minuterie: ReturnType<typeof setInterval> | null = null;
@@ -72,6 +82,14 @@
   let revalidation = $state(false);
   /** Grille par défaut, comme la Bibliothèque ; le choix est retenu. */
   let affichage = $state<Affichage>(lireChoix(CLE_AFFICHAGE, GRILLE_OU_LISTE, 'grid'));
+  /** #7929 : dossier, genre, style. */
+  let nav = $state<Navigation>({ ...SANS_NAVIGATION });
+  /** #7927 : change quand le cache de pochettes avance ; les cases vides se
+   *  retentent alors (autre adresse pour `AlbumArt`). */
+  let versionPochettes = $state(0);
+  let minuteriePochettes: ReturnType<typeof setInterval> | null = null;
+  /** #7928 : la recherche sur les services, par release. */
+  let recherches = $state<Record<number, { enCours: boolean; r: ResultatServices | null; erreur: unknown }>>({});
 
   const enCours = $derived(etat?.avancement?.en_cours === true);
   const affinageRestants = $derived(etat?.affinage_musicbrainz?.restants ?? 0);
@@ -85,9 +103,10 @@
 
   async function chargerCollection() {
     try {
-      collection = await lireCollection(format, filtreEtat);
+      collection = await lireCollection(format, filtreEtat, nav);
+      erreurLecture = null;
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreurLecture = e;
     }
   }
 
@@ -104,11 +123,37 @@
         // tourne derrière, discrètement.
         void revalider();
       } else if (etat?.avancement?.en_cours || etat?.affinage_musicbrainz?.en_cours) suivre();
+      suivrePochettes();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       chargement = false;
     }
+  }
+
+  /** #7927 : tant que des pochettes restent à télécharger (ou que Discogs
+   *  limite), relit l'état toutes les 15 s ; quand le cache avance, les
+   *  cases dont la pochette a échoué se retentent. */
+  function suivrePochettes() {
+    if (minuteriePochettes || !pochettesEnAttente(etat?.pochettes)) return;
+    let enCache = etat?.pochettes?.en_cache ?? 0;
+    minuteriePochettes = setInterval(async () => {
+      try {
+        const e = await lireEtat();
+        etat = e;
+        const n = e.pochettes?.en_cache ?? 0;
+        if (n > enCache) versionPochettes += 1;
+        enCache = n;
+        if (!pochettesEnAttente(e.pochettes)) arreterPochettes();
+      } catch {
+        arreterPochettes();
+      }
+    }, 15000);
+  }
+
+  function arreterPochettes() {
+    if (minuteriePochettes) clearInterval(minuteriePochettes);
+    minuteriePochettes = null;
   }
 
   async function revalider() {
@@ -136,7 +181,7 @@
       etat = await lireEtat();
       await chargerCollection();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -171,9 +216,10 @@
   }
 
   async function enregistrer() {
+    compteEnregistre = false;
     const n = nom.trim();
     if (n && !nomValide(n)) {
-      erreur = cleErreur('nom_invalide');
+      erreur = 'nom_invalide';
       return;
     }
     occupe = true;
@@ -183,7 +229,7 @@
       etat = await lireEtat();
       await chargerCollection();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -192,12 +238,21 @@
   async function utiliserLeJeton() {
     occupe = true;
     erreur = null;
+    erreurLecture = null;
+    compteEnregistre = false;
     try {
       reglages = await compteDuJeton();
       nom = reglages.nom_utilisateur ?? '';
+      compteEnregistre = true;
       await chargerCollection();
+      try {
+        etat = await lireEtat();
+        if (etat.avancement.en_cours || etat.affinage_musicbrainz?.en_cours) suivre();
+      } catch (e) {
+        erreurLecture = e;
+      }
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     } finally {
       occupe = false;
     }
@@ -211,7 +266,7 @@
       etat = etat ? { ...etat, avancement: { ...r.avancement, en_cours: true } } : etat;
       suivre();
     } catch (e) {
-      erreur = cleErreur(codeDeRefus(e));
+      erreur = e;
     }
   }
 
@@ -219,6 +274,34 @@
     format = f;
     filtreEtat = e;
     void chargerCollection();
+  }
+
+  function naviguer(n: Partial<Navigation>) {
+    nav = { ...nav, ...n };
+    void chargerCollection();
+  }
+
+  const parDossier = $derived(collection?.compteurs?.par_dossier ?? []);
+  const parGenre = $derived(collection?.compteurs?.par_genre ?? []);
+  const parStyle = $derived(collection?.compteurs?.par_style ?? []);
+  const nomDossier = (id: number, nomBrut: string | null) =>
+    nomBrut ?? texte('collectionPhysique.navigation.dossierNumero', { id });
+
+  async function chercher(d: Disque) {
+    recherches = { ...recherches, [d.release_id]: { enCours: true, r: null, erreur: null } };
+    try {
+      const r = await chercherSurLesServices(d.release_id);
+      recherches = { ...recherches, [d.release_id]: { enCours: false, r, erreur: null } };
+    } catch (e) {
+      recherches = { ...recherches, [d.release_id]: { enCours: false, r: null, erreur: e } };
+    }
+  }
+
+  /** Ouvre la proposition la plus proche sur la fiche de son service. */
+  function ouvrirProposition(d: Disque, s: SurUnService) {
+    vueDeRetour.set('collectionphysique');
+    ficheAlbumService.set({ service: s.service as any, id: s.id, titre: s.titre, pochette: null, artiste: s.artiste || d.artiste });
+    activeView.set('streamingalbum');
   }
 
   const toutFormat = () => filtrer(null, filtreEtat);
@@ -236,9 +319,9 @@
     let vivant = true;
     getAlbum(Number(id)).then((album) => {
       if (vivant) albumOuvert = album;
-    }).catch(() => {
+    }).catch((e) => {
       if (!vivant) return;
-      erreur = cleErreur(null);
+      erreur = e;
       fermerAlbum();
     });
     return () => { vivant = false; };
@@ -290,7 +373,7 @@
   const compteEtat = (e: EtatDisque) => collection?.compteurs?.par_etat?.[e] ?? 0;
 
   onMount(() => { void chargerTout(); });
-  onDestroy(arreterSuivi);
+  onDestroy(() => { arreterSuivi(); arreterPochettes(); });
 </script>
 
 <section class="v2-collection tune-v2" data-collection-physique>
@@ -342,13 +425,21 @@
         {#if etat.avancement.total}— {etat.avancement.fait} / {etat.avancement.total}{/if}
       </p>
     {/if}
+    {#if compteEnregistre}
+      <p class="aide" data-compte-enregistre>{$t('collectionPhysique.compteEnregistre' as any)}</p>
+    {/if}
     {#if erreur}
-      <p class="err" data-erreur>{$t(erreur as any)}</p>
+      <p class="err" data-erreur>{messageErreurCollection(erreur, (cle) => $t(cle as any) as string)}</p>
+    {:else if erreurLecture}
+      <p class="err" data-erreur>{texte('collectionPhysique.erreurLecture', { cause: messageErreurCollection(erreurLecture, (cle) => $t(cle as any) as string) })}</p>
     {:else if etat?.derniere_erreur && !enCours}
-      <p class="err" data-erreur>{$t(cleErreur(etat.derniere_erreur) as any)}</p>
+      <p class="err" data-erreur>{messageErreurCollection(etat.derniere_erreur, (cle) => $t(cle as any) as string)}</p>
     {/if}
     {#if affinageRestants > 0 && (affinageEnCours || !enCours)}
       <p class="aide" data-affinage-musicbrainz>{texte('collectionPhysique.affinageMusicbrainz', { n: affinageRestants })}</p>
+    {/if}
+    {#if messagePochettes(etat?.pochettes, (cle) => $t(cle as any) as string)}
+      <p class="aide" data-etat-pochettes>{messagePochettes(etat?.pochettes, (cle) => $t(cle as any) as string)}</p>
     {/if}
     {#if etat?.derniere_synchro}
       <p class="aide">{texte('collectionPhysique.derniere', { date: $dateEtHeure(etat.derniere_synchro * 1000) })}</p>
@@ -359,7 +450,11 @@
     {:else if collection?.statut === 'aucun_compte'}
       <div class="state">{$t('collectionPhysique.aucunCompte' as any)}</div>
     {:else if collection?.statut === 'a_synchroniser'}
-      <div class="state">{$t('collectionPhysique.aSynchroniser' as any)}</div>
+      {#if enCours}
+        <div class="state" data-premiere-lecture>{$t('collectionPhysique.collectionEnLecture' as any)}</div>
+      {:else}
+        <div class="state">{$t('collectionPhysique.aSynchroniser' as any)}</div>
+      {/if}
     {:else if collection}
       {#if collection.tronquee}<p class="aide">{$t('collectionPhysique.tronquee' as any)}</p>{/if}
       <div class="filtres" role="group" aria-label={$t('collectionPhysique.filtreFormat' as any)}>
@@ -386,12 +481,49 @@
           {/if}
         {/each}
       </div>
+      {#if parDossier.length || parGenre.length || parStyle.length}
+        <div class="filtres navigation" data-navigation>
+          {#if parDossier.length}
+            <label>{$t('collectionPhysique.navigation.dossier' as any)}
+              <select data-filtre-dossier value={nav.dossier == null ? '' : String(nav.dossier)}
+                onchange={(ev) => { const v = (ev.currentTarget as HTMLSelectElement).value; naviguer({ dossier: v === '' ? null : Number(v) }); }}>
+                <option value="">{$t('collectionPhysique.sansFiltre' as any)}</option>
+                {#each parDossier as f (f.id)}
+                  <option value={String(f.id)}>{nomDossier(f.id, f.nom)} ({f.nombre})</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
+          {#if parGenre.length}
+            <label>{$t('collectionPhysique.navigation.genre' as any)}
+              <select data-filtre-genre value={nav.genre ?? ''}
+                onchange={(ev) => { const v = (ev.currentTarget as HTMLSelectElement).value; naviguer({ genre: v || null }); }}>
+                <option value="">{$t('collectionPhysique.sansFiltre' as any)}</option>
+                {#each parGenre as g (g.nom)}
+                  <option value={g.nom}>{g.nom} ({g.nombre})</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
+          {#if parStyle.length}
+            <label>{$t('collectionPhysique.navigation.style' as any)}
+              <select data-filtre-style value={nav.style ?? ''}
+                onchange={(ev) => { const v = (ev.currentTarget as HTMLSelectElement).value; naviguer({ style: v || null }); }}>
+                <option value="">{$t('collectionPhysique.sansFiltre' as any)}</option>
+                {#each parStyle as st (st.nom)}
+                  <option value={st.nom}>{st.nom} ({st.nombre})</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
+        </div>
+      {/if}
       {#if !collection.disques.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
       {:else if affichage === 'grid'}
         <div class="grid" data-grille-collection>
           {#each collection.disques as d (d.instance_id)}
-            {@const p = pochetteDuDisque(d)}
+            {@const p = pochetteDuDisque(d, versionPochettes)}
             <div class="card" data-disque={d.release_id} data-etat-disque={d.etat}>
               <button class="cover" onclick={() => ouvrir(d)} aria-label={d.titre} data-ouvrir-disque>
                 <AlbumArt coverPath={p.coverPath} albumId={p.albumId} directe={p.directe} size={0} vignette
@@ -406,13 +538,16 @@
                 <div class="ct" title={d.titre}>{d.titre}</div>
                 <div class="ca" title={d.artiste}>{d.artiste}</div>
               </button>
+              {#if peutChercherSurLesServices(d)}
+                {@render rechercheServices(d)}
+              {/if}
             </div>
           {/each}
         </div>
       {:else}
         <ul class="list">
           {#each collection.disques as d (d.instance_id)}
-            {@const p = pochetteDuDisque(d)}
+            {@const p = pochetteDuDisque(d, versionPochettes)}
             <li class="ligne" data-disque={d.release_id} data-etat-disque={d.etat}>
               <span class="lcv">
                 <AlbumArt coverPath={p.coverPath} albumId={p.albumId} directe={p.directe} size={0} vignette
@@ -445,6 +580,9 @@
                 {:else}
                   <span class="badge {d.etat === 'a_verifier' ? 'av' : 'np'}">{$t(`collectionPhysique.etat.${d.etat}` as any)}</span>
                 {/if}
+                {#if peutChercherSurLesServices(d)}
+                  {@render rechercheServices(d)}
+                {/if}
                 {#if d.proposer_extraction}
                   <span class="q extraire" data-proposer-extraction>{$t('collectionPhysique.nonCopie' as any)}</span>
                 {/if}
@@ -460,6 +598,38 @@
     </p>
   </div>
 </section>
+
+{#snippet rechercheServices(d: Disque)}
+  {@const rech = recherches[d.release_id]}
+  <span class="recherche" data-recherche-services={d.release_id}>
+    {#if !rech}
+      <button class="mini" onclick={() => chercher(d)} data-chercher-services>{$t('collectionPhysique.recherche.bouton' as any)}</button>
+    {:else if rech.enCours}
+      <span class="q" data-recherche-en-cours>{$t('collectionPhysique.recherche.enCours' as any)}</span>
+    {:else if rech.erreur}
+      <span class="q err-mini" data-recherche-erreur>{messageErreurCollection(rech.erreur, (cle) => $t(cle as any) as string)}</span>
+      <button class="mini" onclick={() => chercher(d)}>{$t('collectionPhysique.recherche.bouton' as any)}</button>
+    {:else if rech.r?.meilleure}
+      {@const s = versSurUnService(rech.r.meilleure)}
+      <span class="q" data-recherche-meilleure={rech.r.meilleure.service}
+        title={`${rech.r.meilleure.artiste} — ${rech.r.meilleure.titre}`}>
+        {#if rech.r.meilleure.exact}{texte('collectionPhysique.recherche.trouve', { service: nomService(s.service) })}{:else}{texte('collectionPhysique.recherche.proche', { service: nomService(s.service) })}{/if}
+      </span>
+      <button class="mini" onclick={() => ouvrirProposition(d, s)} data-ouvrir-proposition>{$t('collectionPhysique.recherche.ouvrir' as any)}</button>
+      <button class="mini" onclick={() => ecouter(s)} data-ecouter-proposition>
+        {$t('v2.manquants.ecouterSur' as any).replace('{service}', nomService(s.service))}
+      </button>
+    {:else}
+      <span class="q" data-recherche-vide>
+        {#if (rech.r && rech.r.services.length > 0)}
+          {$t('collectionPhysique.recherche.rienDeProche' as any)}
+        {:else}
+          {$t('collectionPhysique.recherche.aucunService' as any)}
+        {/if}
+      </span>
+    {/if}
+  </span>
+{/snippet}
 
 {#if albumOuvert}
   <AlbumDetailV2 album={albumOuvert} onClose={fermerAlbum} />
@@ -521,6 +691,11 @@
   .mini.on{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .discogs{font-size:11px; color:var(--v2-txt3)}
   .discogs:hover{color:var(--v2-txt)}
+  .navigation label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2)}
+  .navigation select{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
+    border-radius:8px; padding:3px 8px; font:12px var(--v2-sans); max-width:220px}
+  .recherche{display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px}
+  .err-mini{color:var(--v2-danger)}
   .attribution{margin:0; padding:16px 30px 0; font-size:11px; color:var(--v2-txt3)}
   .attribution a{color:inherit}
   @media (max-width: 640px){

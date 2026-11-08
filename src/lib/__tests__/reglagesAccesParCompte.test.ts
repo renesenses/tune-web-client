@@ -112,14 +112,13 @@ afterEach(() => {
 const ecranPont = () => v2SettingsTarget.set({ tab: 'audio', section: 'bridge' } as any);
 
 describe('Réglages › Accès distant par compte', () => {
-  it('ni lien, ni QR code : l’explication, et le lien n’est pas demandé', { timeout: 60_000 }, async () => {
+  it('par compte : l’explication ET le lien, le QR code et le bouton copier (#7714)', { timeout: 60_000 }, async () => {
     const el = await monter(SettingsV2, ecranPont);
     expect(el.querySelector('[data-acces="par-compte"]'), 'explication absente').not.toBeNull();
-    expect(el.querySelector('[data-acces="qr"]')).toBeNull();
-    expect(el.querySelector('[data-acces="copier"]')).toBeNull();
-    expect(el.querySelector('[data-acces="renouveler"]')).toBeNull();
-    expect(appelsServeur.some((u) => u.endsWith('/cloud/bridge/access-link'))).toBe(false);
-    expect(el.innerHTML).not.toContain('#token=');
+    expect(el.querySelector('[data-acces="qr"]'), 'QR code absent').not.toBeNull();
+    expect(el.querySelector('[data-acces="copier"]'), 'bouton copier absent').not.toBeNull();
+    expect(el.querySelector('[data-acces="renouveler"]')).not.toBeNull();
+    expect(appelsServeur.some((u) => u.endsWith('/cloud/bridge/access-link'))).toBe(true);
   });
 
   it('sans `acces_par_compte` (serveur antérieur) : l’écran d’avant, avec son QR code', { timeout: 60_000 }, async () => {

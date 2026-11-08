@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import * as api from '../api';
 import { normaliserVerificationMaj } from '../miseAJour';
-import { estPlusRecente, comparerVersions } from '../versions';
+import { majProposee } from '../versions';
 import { tuneWS } from '../websocket';
 
 export const updateAvailable = writable(false);
@@ -30,7 +30,9 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
  * ne voyait jamais rc1 → rc2 ni rc1 → 1.0.0.
  */
 function isNewer(a: string, b: string): boolean {
-  return estPlusRecente(a, b);
+  // 01/11/2026 — une version `-dev` n'est pas « plus ancienne » qu'une rc de
+  // la même base : voir `majProposee`.
+  return majProposee(a, b) === true;
 }
 
 async function poll() {
@@ -47,8 +49,8 @@ async function poll() {
     const lat = info?.latest_version ?? null;
     if (cur) currentVersion.set(cur);
     if (lat) latestVersion.set(lat);
-    const ordre = cur && lat ? comparerVersions(cur, lat) : null;
-    const hasUpdate = ordre === null ? !!info?.update_available : ordre === -1;
+    const avis = cur && lat ? majProposee(cur, lat) : null;
+    const hasUpdate = avis === null ? !!info?.update_available : avis;
     updateAvailable.set(!!hasUpdate);
     updateInstallable.set(info ? info.installable : true);
     updateInstallHint.set(info ? info.install_hint : null);

@@ -63,6 +63,8 @@ export const ICONES_ZONE = {
   correction: 'M2 12c2-6 4-6 6 0s4 6 6 0 4-6 6 0M2 20h20',
   appairage: 'M3 11h18v11H3zM7 11V7a5 5 0 0 1 10 0v4',
   fusion: 'M5 4v7a4 4 0 0 0 4 4h10M15 11l4 4-4 4',
+  // tune-server-rust#7922 — une coche dans un écusson.
+  tuneTested: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5zM8.5 12l2.5 2.5 4.5-5',
   rattacher: 'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1',
   supprimer: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
 } as const;
@@ -107,6 +109,12 @@ export interface GestesZone {
   fusionner: () => void;
   /** tune-server-rust#6120 — rattacher la zone orpheline à une sortie ASIO. */
   rattacher?: () => void;
+  /**
+   * tune-server-rust#7922 — la fiche Tune tested de la zone. Toujours
+   * présente : c'est la fiche qui grise son bouton avant l'heure sans erreur
+   * et dit le temps restant, pas le menu.
+   */
+  tuneTested?: () => void;
   supprimer: () => void;
 }
 
@@ -122,6 +130,9 @@ export function entreesMenuZone(c: CapacitesZone, g: GestesZone): EntreeMenuZone
     { cle: 'v2.zone.openSettings', icone: ICONES_ZONE.reglages, faire: g.reglages },
     { cle: 'v2.zone.roomCorrection', icone: ICONES_ZONE.correction, faire: g.correction },
   ];
+  if (g.tuneTested) {
+    out.push({ cle: 'v2.zone.tuneTestedPropose', icone: ICONES_ZONE.tuneTested, faire: g.tuneTested });
+  }
   if (c.expert) {
     out.push({ cle: 'zone.latency', icone: ICONES_ZONE.latence, faire: g.latence });
     if (c.appairable) {

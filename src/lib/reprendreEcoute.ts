@@ -55,8 +55,9 @@ export function estUnePiste(o: LigneReprise): boolean {
 /**
  * Le sous-titre de la carte.
  *
- * Ligne album  → l'artiste, et la progression si le serveur la chiffre.
- * Ligne piste  → « artiste · album », qui dit à la fois de qui et d'où.
+ * Ligne album    → l'artiste, et la progression si le serveur la chiffre.
+ * Ligne piste    → « artiste · album », qui dit à la fois de qui et d'où.
+ * Ligne playlist → son nom (mix compris) ; ligne épisode → son podcast.
  *
  * Un album absent (mesuré : une piste sur sept) ne fabrique pas un séparateur
  * qui ne sépare rien.
@@ -66,6 +67,13 @@ export function sousTitreReprise(o: LigneReprise): string {
   if (estUnePiste(o)) {
     const album = (o?.album_title ?? '').trim();
     return [artiste, album].filter(Boolean).join(' · ');
+  }
+  // tune-server-rust#8085 — une règle par nature, qui dit ce qu'on reprend :
+  // une playlist (ou un mix) par son nom, un épisode par son podcast. Un
+  // interprète sous une playlist désignait une piste parmi d'autres, et
+  // sous un épisode il répétait le nom du podcast.
+  if (o?.context_type === 'playlist' || o?.context_type === 'podcast') {
+    return conteneurRepris(o) || (o?.context_type === 'podcast' ? artiste : (o?.title ?? '').trim());
   }
   const lus = o?.listened_tracks ?? null;
   const total = o?.track_count ?? null;

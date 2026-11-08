@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { viserDetail } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   /**
    * Le bouton « … » d'une ligne de piste, POSABLE PARTOUT — client actuel.
    *
@@ -94,6 +96,8 @@
   let tiroirChamps = $state(false);
   /** La fiche « Crédits » du titre — #1572. Bibliothèque seule. */
   let tiroirCredits = $state(false);
+  /** #7857 — le panneau « Spectrogramme ». */
+  let panneauSpectro = $state(false);
   /**
    * #4993 — le titre de service relevé AU CLIC. Pas `pisteCredits` en direct :
    * un refus (501/404) retire l'entrée, et le tiroir se refermerait avant
@@ -189,7 +193,13 @@
     // pour elle et l'envoyait dans `pendingLibraryAlbum`, où rien ne l'attend.
     // `v2/PisteActions.svelte:280` tranche déjà comme ça.
     onAllerAlbum ?? (typeof piste.album_id === 'number' && piste.album_id > 0
-      ? () => { pendingLibraryAlbum.set(piste.album_id as number); activeView.set('library'); }
+      ? () => {
+          if (get(activeView) !== 'library') {
+            const cle = cleDetailAlbum({ id: piste.album_id });
+            if (cle) viserDetail(cle);
+          }
+          pendingLibraryAlbum.set(piste.album_id as number); activeView.set('library');
+        }
       : albumDeService
         ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
         : undefined),
@@ -336,6 +346,7 @@
       onEcouterPlusTard={() => void basculerLeSas(cibleEtiquettes)}
       onChampsDuFichier={() => (tiroirChamps = true)}
       onVoirCredits={() => { creditsDuService = pisteCredits; tiroirCredits = true; }}
+      onSpectrogramme={() => (panneauSpectro = true)}
     />
   {/if}
 </div>
@@ -373,6 +384,12 @@
     <m.default
       cible={{ type: 'piste', trackId: idBibliotheque, service: idBibliotheque != null ? null : creditsDuService, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
       onClose={() => (tiroirCredits = false)} />
+  {/await}
+{/if}
+{#if panneauSpectro && idBibliotheque != null}
+  {#await import('../v2/SpectrogrammePanneau.svelte') then m}
+    <m.default trackId={idBibliotheque} titre={piste.title}
+      onClose={() => (panneauSpectro = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

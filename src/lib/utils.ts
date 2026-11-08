@@ -157,6 +157,22 @@ export function multipleDSD(sampleRate: number | null | undefined): string | nul
 }
 
 /**
+ * tune-server-rust#7725 — l'album est-il multicanal (plus de deux canaux) ?
+ *
+ * Critère À PART des paliers DSD, Hi-Res, CD et Compressé : un album DSD 5.1
+ * sort sous « DSD » ET sous « Multicanal ». Se lit dans `max_channels`, que le
+ * serveur calcule sur les pistes de l'album.
+ */
+export function estMulticanal(album: { max_channels?: number | null } | null | undefined): boolean {
+  return Number(album?.max_channels ?? 0) > 2;
+}
+
+/** L'album porte-t-il son nombre de canaux (serveur rc11 et suivants) ? */
+export function porteSesCanaux(album: { max_channels?: number | null } | null | undefined): boolean {
+  return album?.max_channels != null;
+}
+
+/**
  * Ce fichier est-il du DSD ?
  *
  * Exportée pour que le test l'APPELLE, et pour que tout écran qui a besoin de

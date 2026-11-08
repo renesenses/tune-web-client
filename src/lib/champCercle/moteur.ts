@@ -22,11 +22,13 @@
  */
 import { boucleImages } from '../boucleImages';
 import { parBudget, type Budget } from './budget';
-import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, DEG, type Orientation } from './globe';
+import { deprojeter, pointArc, projeter, vecteur, decoderPointsTerre, decoderFrontieres, parcourirPolyligne, paysSous, DEG, type Orientation } from './globe';
 import { POINTS_TERRE } from './pointsTerre';
+import { FLEUVES_TERRE } from './fleuvesTerre';
+import { COTES_TERRE, FRONTIERES_TERRE } from './frontieresTerre';
 import {
   bornerInclinaison, bornerZoom, dansLaScene, garderSous, rayonGlobe, vitesseGlisse, vueEntiere,
-  zoomIntermediaire, zoomMolette, zoomPincement, DUREE_ZOOM_MS, PAS_DOUBLE, ZOOM_MIN,
+  zoomIntermediaire, zoomMolette, zoomPincement, opaciteFrontieres, DUREE_ZOOM_MS, PAS_DOUBLE, ZOOM_MIN,
 } from './zoomGlobe';
 import { PAYS_TERRE } from './paysTerre';
 import { FORCES_PAYS, niveauPays, rayonCase, type CaseMonde, type NombrePays } from '../paysMonde';
@@ -65,11 +67,20 @@ export interface OptionsChamp {
   largeurLunes?: (id: string) => number;
   /** Le zoom du globe a changé (web#2521) : l'écran règle ses boutons + / − / « Vue entière ». */
   surZoom?: (k: number) => void;
+  /**
+   * Le pays sous le pointeur (web#2657), au survol de la souris ou sur un
+   * appui long au toucher, seulement quand les frontières sont visibles :
+   * son code ISO et où poser son nom (px), ou `null` quand il n'y en a plus.
+   */
+  surPays?: (p: { code: string; x: number; y: number } | null) => void;
 }
 
-export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string }
+export interface Couleurs { or: string; orClair: string; vert: string; vertClair: string; fil: string; fond: string; public: string; frontiere: string; cote: string; fleuve: string }
 /** `public` (rc9) : les points anonymes de la carte publique, gris bleuté, en retrait de l'or du cercle. */
-const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf' };
+/** `frontiere` (web#2657) : les frontières des pays au zoom ; l'écran la lit dans le thème. */
+const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6', cote: '#8396a0', fleuve: '#5fa8d3' };
+/** Appui long au toucher qui montre le nom du pays (web#2657). */
+const APPUI_LONG_MS = 500;
 
 type Props = { x: number; y: number; sphere: number; avatar: number; cluster: number; alpha: number };
 const CLES: (keyof Props)[] = ['x', 'y', 'sphere', 'avatar', 'cluster', 'alpha'];
@@ -142,10 +153,18 @@ export class ChampCercle {
   /** rc9 : les points ANONYMES de la carte publique (lat, lon au degré), sous le cercle. */
   private publics: [number, number][] = [];
   private terrePhase: Float32Array;
+  /** Les frontières (web#2657), décodées au premier passage du seuil de zoom seulement. */
+  private frontieres: Float32Array[] | null = null;
+  private cotes: Float32Array[] | null = null;
+  private fleuves: Float32Array[] | null = null;
+  /** Le pays annoncé à l'écran (`surPays`), pour ne le redire qu'au changement. */
+  private paysAnnonce: string | null = null;
+  private appuiLong: ReturnType<typeof setTimeout> | null = null;
   private arcPh!: Float32Array;
   // Globe
   private G: Orientation & { w: number; anim?: Anim } = { w: 0, lon0: 8 * DEG, tilt: 0.62 };
-  private glisse: { x: number; y: number; lon: number; tilt: number; bouge: boolean } | null = null;
+  // `paysTenu` : un appui long a dit le pays ; le doigt levé ne sera pas un toucher.
+  private glisse: { x: number; y: number; lon: number; tilt: number; bouge: boolean; paysTenu?: boolean } | null = null;
   private dernierGlisse = 0;
   // Zoom (web#2521) : `R = U × 0,86 × zoom`, le globe reste centré, on le TOURNE pour se déplacer.
   private zoom = ZOOM_MIN;
@@ -264,6 +283,7 @@ export class ChampCercle {
     const gw = etat.globe ? 1 : 0;
     if (duree === 0) { this.G.w = gw; this.G.anim = undefined; } else this.G.anim = { de: this.G.w, vers: gw, t0: maintenant, duree };
     this.canvas.style.touchAction = etat.globe ? 'none' : 'auto';
+    if (!etat.globe) this.annoncerPays(null);
     this.demander();
   }
 
@@ -291,9 +311,12 @@ export class ChampCercle {
   }
 
   majPointsPublics(points: readonly { lat: number; lon: number }[]) {
-    this.publics = points.map((p) => [p.lat, p.lon]);
+    this.publics = points.map((p) => [p.lat * DEG, p.lon * DEG]);
     this.demander();
   }
+
+  /** Couleurs relues dans le thème (changement de thème clair / sombre). */
+  majCouleurs(c: Partial<Couleurs>) { this.c = { ...this.c, ...c }; this.demander(); }
 
   selection(id: string | null) { this.sel = id; this.demander(); }
   survol(id: string | null) { this.hover = id; this.demander(); }
@@ -329,6 +352,7 @@ export class ChampCercle {
 
   detruire() {
     this.detruit = true;
+    this.finirAppuiLong();
     this.arreterBoucle();
     if (this.demande !== null && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(this.demande);
     this.demande = null;
@@ -492,6 +516,37 @@ export class ChampCercle {
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
     }
     ctx.globalCompositeOperation = 'source-over';
+    // web#2657 : les frontières, au-dessus de la terre et sous les points et les épingles.
+    // En deçà du seuil de zoom, rien n'est décodé ni projeté.
+    const opFrontieres = opaciteFrontieres(this.zoom);
+    if (opFrontieres > 0) {
+      this.frontieres ??= decoderFrontieres(FRONTIERES_TERRE);
+      this.cotes ??= decoderFrontieres(COTES_TERRE);
+      const [joint, bout] = [ctx.lineJoin, ctx.lineCap];
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const debut = (x: number, y: number) => ctx.moveTo(x, y);
+      const suite = (x: number, y: number) => ctx.lineTo(x, y);
+      // web#2697 : les côtes, même fondu et même découpe au limbe, d'un trait
+      // plus fin et plus léger ; les points de terre s'estompent au zoom.
+      ctx.strokeStyle = this.c.cote; ctx.lineWidth = 0.6;
+      ctx.globalAlpha = a * 0.6 * opFrontieres;
+      ctx.beginPath();
+      for (const poly of this.cotes) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
+      ctx.stroke();
+      // web#2697 : les grands fleuves, en bleu fin (même fondu, même découpe).
+      this.fleuves ??= decoderFrontieres(FLEUVES_TERRE);
+      ctx.strokeStyle = this.c.fleuve; ctx.lineWidth = 0.7;
+      ctx.globalAlpha = a * 0.7 * opFrontieres;
+      ctx.beginPath();
+      for (const poly of this.fleuves) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
+      ctx.stroke();
+      ctx.strokeStyle = this.c.frontiere; ctx.lineWidth = 0.8;
+      ctx.globalAlpha = a * 0.75 * opFrontieres;
+      ctx.beginPath();
+      for (const poly of this.frontieres) parcourirPolyligne(poly, R, cx, cy, this.G, debut, suite);
+      ctx.stroke();
+      ctx.lineJoin = joint; ctx.lineCap = bout;
+    }
     ctx.fillStyle = this.couleurPays;
     for (const cell of this.casesMonde) {
       const [x, y, z] = projeter(cell.lat * DEG, cell.lng * DEG, R, cx, cy, this.G);
@@ -738,6 +793,8 @@ export class ChampCercle {
     };
     sur('pointerdown', (e) => {
       if (this.G.w < 0.5) return;
+      this.finirAppuiLong();
+      if (e.pointerType !== 'mouse') this.annoncerPays(null);
       this.doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
       try { this.canvas.setPointerCapture(e.pointerId); } catch { /* navigateur ancien */ }
       if (this.doigts.size === 2) {
@@ -752,6 +809,17 @@ export class ChampCercle {
       }
       if (this.doigts.size > 2) return;
       this.glisse = { x: e.clientX, y: e.clientY, lon: this.G.lon0, tilt: this.G.tilt, bouge: false };
+      // Au toucher, un appui long sans bouger dit le pays sous le doigt.
+      if (e.pointerType !== 'mouse' && this.opts.surPays) {
+        const [px, py] = local(e);
+        const g = this.glisse;
+        this.appuiLong = setTimeout(() => {
+          this.appuiLong = null;
+          if (this.glisse !== g || g.bouge || this.doigts.size !== 1) return;
+          // Le nom reste tant que le doigt ne glisse pas vraiment (seuil de 4 px).
+          if (this.paysAuPoint(px, py)) g.paysTenu = true;
+        }, APPUI_LONG_MS);
+      }
     });
     sur('pointermove', (e) => {
       const d = this.doigts.get(e.pointerId);
@@ -765,10 +833,15 @@ export class ChampCercle {
         return;
       }
       const g = this.glisse;
-      if (!g) return;
+      if (!g) {
+        // Survol de la souris, sans bouton : le pays sous le curseur.
+        if (e.pointerType === 'mouse' && this.opts.surPays) { const [px, py] = local(e); this.paysAuPoint(px, py); }
+        return;
+      }
       const dx = e.clientX - g.x; const dy = e.clientY - g.y;
-      if (Math.hypot(dx, dy) > 4) g.bouge = true;
+      if (Math.hypot(dx, dy) > 4) { g.bouge = true; this.finirAppuiLong(); }
       if (!g.bouge) return;
+      this.annoncerPays(null);
       // Zoomé, le même geste tourne moins : la carte suit le doigt.
       const v = vitesseGlisse(this.zoom);
       this.G.lon0 = g.lon - dx * 0.006 * v;
@@ -778,6 +851,7 @@ export class ChampCercle {
     });
     const fin = (e: PointerEvent, annule: boolean) => {
       this.doigts.delete(e.pointerId);
+      this.finirAppuiLong();
       if (this.pince) {
         if (this.doigts.size < 2) this.pince = null;
         // Le doigt qui reste ne fait pas tourner le globe d'un coup.
@@ -793,7 +867,7 @@ export class ChampCercle {
       this.canvas.style.cursor = this.pose ? 'crosshair' : 'default';
       if (!g) return;
       this.dernierGlisse = this.maintenant();
-      if (annule || g.bouge) return;
+      if (annule || g.bouge || g.paysTenu) return;
       const [px, py] = local(e);
       // Double-clic ou double-tap : zoom ×2 sur le lieu visé (souris, doigt, stylet).
       const t = this.maintenant();
@@ -810,6 +884,28 @@ export class ChampCercle {
     };
     sur('pointerup', (e) => fin(e, false));
     sur('pointercancel', (e) => fin(e, true));
+    sur('pointerleave', (e) => { if (e.pointerType === 'mouse') this.annoncerPays(null); });
+  }
+
+  /**
+   * Le pays sous (px, py), annoncé à l'écran (web#2657) ; seulement quand les
+   * frontières sont visibles. Rend `true` si un pays a été trouvé.
+   */
+  private paysAuPoint(px: number, py: number): boolean {
+    const lieu = this.G.w >= 0.5 && opaciteFrontieres(this.zoom) > 0 ? this.lieuSous(px, py) : null;
+    const code = lieu ? paysSous(lieu, this.terre, PAYS_TERRE) : null;
+    this.annoncerPays(code, px, py);
+    return code !== null;
+  }
+
+  private annoncerPays(code: string | null, x = 0, y = 0) {
+    if (code === null && this.paysAnnonce === null) return;
+    this.paysAnnonce = code;
+    this.opts.surPays?.(code ? { code, x, y } : null);
+  }
+
+  private finirAppuiLong() {
+    if (this.appuiLong !== null) { clearTimeout(this.appuiLong); this.appuiLong = null; }
   }
 
   /** Le lieu (degrés) sous un point de l'image, ou `null` hors du globe. */
@@ -826,6 +922,7 @@ export class ChampCercle {
       this.G.lon0 = o.lon0; this.G.tilt = o.tilt;
     } else this.G.tilt = bornerInclinaison(this.G.tilt, this.zoom);
     if (avant !== this.zoom) this.opts.surZoom?.(this.zoom);
+    if (opaciteFrontieres(this.zoom) <= 0) this.annoncerPays(null);
   }
 
   /** Le zoom courant (1 = vue entière). */
@@ -879,6 +976,7 @@ export class ChampCercle {
     const avant = this.zoom;
     this.zoom = v.k; this.G.lon0 = v.lon0; this.G.tilt = v.tilt;
     if (avant !== this.zoom) this.opts.surZoom?.(this.zoom);
+    this.annoncerPays(null);
     this.dernierGlisse = this.maintenant();
     this.demander();
   }

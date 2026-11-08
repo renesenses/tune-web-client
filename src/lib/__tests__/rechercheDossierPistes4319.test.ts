@@ -83,9 +83,9 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   const v2 = readFileSync(resolve(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf-8');
 
   it('les paramètres serveur viennent de `filtresDeRechercheServeur`, dépôt distant exclu', () => {
-    expect(v2).toMatch(/const filtres = filtresDeRechercheServeur\(q, dossierPortee\);/);
-    expect(v2).toMatch(/if \(depot \|\| !filtres\) return;/);
-    expect(v2).toMatch(/return api\.getAlbumsDetailed\(filtres, limite, rang\);/);
+    expect(v2).toMatch(/filtresDeRechercheServeur\(m, dossierPortee\)/);
+    expect(v2).toMatch(/if \(depot \|\| !mots\.length\) return;/);
+    expect(v2).toMatch(/return api\.getAlbumsDetailed\(filtres!, limite, rang\);/);
   });
 
   it('une saisie périmée arrête la pagination en cours', () => {
@@ -93,8 +93,8 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   });
 
   it('la grille et les comptes appliquent la MÊME règle', () => {
-    expect(v2).toMatch(/repondALaRecherche\(a, q, \{ plier: fold, albumsDuTexte: idsTexteServeur \}\)/);
-    expect(v2).toMatch(/albumsDuTexte: idsTexteServeur,/);
+    expect(v2).toMatch(/repondALaRecherche\(a, q, \{ plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur \}\)/);
+    expect(v2).toMatch(/albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,/);
     // L'ancienne comparaison en dur, titre + artiste d'album seulement.
     expect(v2).not.toMatch(/q && !fold\(a\.title\)\.includes\(fold\(q\)\)/);
   });

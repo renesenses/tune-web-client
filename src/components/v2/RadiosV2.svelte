@@ -30,7 +30,7 @@
   import { radioGenreRayon, radioGenreLabel, type RadioGenreShelf }
     from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
-  import { estDeLAnnuaire, dernieresLues, memoriserLecture } from '../../lib/mesRadios';
+  import { estDeLAnnuaire, dernieresLues, memoriserLecture, sectionsRadio } from '../../lib/mesRadios';
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -63,9 +63,27 @@
     ongletFavoris: boolean;
     /** tune-server-rust#7466 — le pays choisi dans « Mes radios » (ISO). */
     paysChoisi?: string | null;
+    annuaire?: { q: string; pays: string | null; genre: string | null; nombre: number; defilement: number };
   }
   const contexte = loadViewContext<ContexteRadios>('radios');
-  onDestroy(() => saveViewContext('radios', { section, q, genre, ongletFavoris, paysChoisi }));
+  onDestroy(() => saveViewContext('radios', { section, q, genre, ongletFavoris, paysChoisi,
+    annuaire: { q: qAnnuaire, pays: paysAnnuaire, genre: genreAnnuaire, nombre: nombreAnnuaire,
+      defilement: section === 'annuaire' ? defilement?.scrollTop ?? defilementAnnuaire : defilementAnnuaire },
+  }));
+  let qAnnuaire = $state(contexte?.annuaire?.q ?? '');
+  let paysAnnuaire = $state<string | null>(contexte?.annuaire?.pays ?? null);
+  let genreAnnuaire = $state<string | null>(contexte?.annuaire?.genre ?? null);
+  let nombreAnnuaire = $state(contexte?.annuaire?.nombre ?? 120);
+  let defilement = $state<HTMLDivElement | undefined>(undefined);
+  let defilementAnnuaire = contexte?.annuaire?.defilement ?? 0;
+  let retourAnnuaire = contexte?.section === 'annuaire';
+  function annuaireCharge(nombre: number) {
+    nombreAnnuaire = nombre;
+    if (retourAnnuaire && defilement) {
+      defilement.scrollTop = defilementAnnuaire;
+      retourAnnuaire = false;
+    }
+  }
 
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
@@ -194,6 +212,8 @@
    * le composant est monté à neuf.)
    */
   function ouvrirSection(v: 'mes' | 'annuaire' | 'carte') {
+    if (section === 'annuaire' && v !== section) defilementAnnuaire = defilement?.scrollTop ?? 0;
+    if (v === 'annuaire' && section !== v) retourAnnuaire = true;
     if (v === 'mes' && section !== 'mes') charger(true);
     section = v;
   }
@@ -415,7 +435,7 @@
   </div>
   <PaysEcouteRadios mode="radios" />
 
-  <div class="scroll">
+  <div class="scroll" bind:this={defilement} onscroll={() => { if (section === 'annuaire') defilementAnnuaire = defilement?.scrollTop ?? defilementAnnuaire; }}>
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
     {#if section === 'mes'}
       <div class="filtres ligne">
@@ -446,6 +466,8 @@
       />
     {:else if section === 'annuaire'}
       <RadioAnnuaire
+        bind:q={qAnnuaire} bind:pays={paysAnnuaire} bind:genre={genreAnnuaire}
+        limiteInitiale={nombreAnnuaire} onCharge={annuaireCharge}
         onAjoutee={stationAjoutee}
         enDirect={ficheJouee}
         titreEnCours={titreEnCours}
@@ -475,27 +497,31 @@
           </button>
         </div>
       {/if}
-      {#if recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
+      {@const liste = favorites.length && ongletFavoris ? favorites : shown}
+      {@const sections = sectionsRadio(liste, recentes)}
+      <!-- web#2716 — « Dernières écoutées » en haut, puis « Mes radios » ; une
+           même station peut figurer dans les deux ; section vide masquée. -->
+      {#if sections.recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
         <section class="sec recentes">
           <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
           <div class="grid rangee">
-            {#each recentes as r (r.id)}
+            {#each sections.recentes as r (r.id)}
               {@render tile(r)}
             {/each}
           </div>
         </section>
       {/if}
-      {@const liste = favorites.length && ongletFavoris ? favorites : shown}
-      {#if !liste.length}
-        <div class="state">{$t('v2.radio.noMatch' as any)}</div>
-      {:else}
-        <section class="sec">
+      {#if sections.mes.length}
+        <section class="sec mesradios">
+          <h2>{$t('v2.radio.tabMine' as any)}</h2>
           <div class="grid">
-            {#each liste as r (r.id)}
+            {#each sections.mes as r (r.id)}
               {@render tile(r)}
             {/each}
           </div>
         </section>
+      {:else}
+        <div class="state">{$t('v2.radio.noMatch' as any)}</div>
       {/if}
     {/if}
   </div>

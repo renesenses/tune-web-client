@@ -265,8 +265,11 @@
    * l'OBJET, et le même album y a le même menu qu'ailleurs.
    */
 
-  const libelleQualite = (q: Qualite) =>
-    q === 'hires' ? $t('v2.disco.hires' as any) : q === 'cd' ? $t('v2.disco.cd' as any) : $t('v2.disco.lossy' as any);
+  const LIBELLES_QUALITE: Record<Qualite, string> = {
+    dsd: 'v2.disco.dsd', hires: 'v2.disco.hires', cd: 'v2.disco.cd', lossy: 'v2.disco.lossy',
+    multichannel: 'v2.disco.multichannel',
+  };
+  const libelleQualite = (q: Qualite) => $t(LIBELLES_QUALITE[q] as any);
 </script>
 
 <div class="disco">

@@ -45,8 +45,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
-  import type { OutputType, RepeatMode } from '../../lib/types';
-  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
+  import { destinationDeRetour } from '../../lib/destinationDeRetour';
+  import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
@@ -533,6 +534,28 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let configZone = $state<typeof zone | null>(null);
   /** web#2141 — la section où ouvrir la fenêtre de la zone. */
   let configSection = $state<'groupe' | null>(null);
+  /**
+   * web#2661 (moitié web de server#7937) — la fenêtre de la zone recevait
+   * une liste de groupes VIDE : « Dégrouper tout » n'apparaissait jamais et
+   * « Appliquer » créait un groupe sans défaire l'ancien. Les groupes sont
+   * relus au serveur à chaque ouverture de la fenêtre et après chaque
+   * changement de groupe ; un échec laisse la liste vide, comme avant.
+   */
+  let groupesZones = $state<ZoneGroupResponse[]>([]);
+  async function chargerGroupes() {
+    try {
+      groupesZones = await api.listGroups();
+    } catch {
+      groupesZones = [];
+    }
+  }
+  $effect(() => {
+    if (configZone) void chargerGroupes();
+  });
+  async function apresChangementDeGroupe() {
+    await chargerGroupes();
+    try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
+  }
   /**
    * web#2141 (Didier, fil 2215) — la lecture groupée n'était atteignable que
    * par un CLIC DROIT sur le bouton de zone : introuvable, et impossible au
@@ -1039,6 +1062,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // Coché, la vignette suit la même règle que l'entrée de la barre latérale
   // (même repli : radio ou page introuvable → écran Lecture en cours).
   function ouvrirDepuisVignette() {
+    if ($activeView === 'nowplaying') {
+      activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+      return;
+    }
     if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();
     else activeView.set('nowplaying');
   }
@@ -1164,7 +1191,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   <div class="transport-left">
     {#if displayTrack}
-      <div class="track-mini-clickable" onclick={ouvrirDepuisVignette} role="button" tabindex={0} aria-label="Open now playing">
+      <div class="track-mini-clickable" onclick={ouvrirDepuisVignette} role="button" tabindex={0} aria-label={$activeView === 'nowplaying' ? $t('common.back') : $t('nav.nowplaying')}>
         <!-- `album_id` n'existe pas sur le now-playing de la zone (le serveur ne
              l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
         <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
@@ -1856,11 +1883,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   <ZoneConfigModal
     zone={configZone}
     allZones={$zones}
-    groups={[]}
+    groups={groupesZones}
     section={configSection}
     onClose={() => { configZone = null; configSection = null; }}
     onDelete={async (id) => { await supprimerZoneConfirmee(id); configZone = null; configSection = null; }}
-    onGroupChanged={() => {}}
+    onGroupChanged={apresChangementDeGroupe}
     onRenamed={() => {}}
   />
 {/if}

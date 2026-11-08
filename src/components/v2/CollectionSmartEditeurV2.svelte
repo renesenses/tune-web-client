@@ -60,6 +60,8 @@
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
   import CollectionIaV2 from './CollectionIaV2.svelte';
+  import SaisieRequeteV2 from './SaisieRequeteV2.svelte';
+  import { lireErreurDeRequete, type ErreurDeRequete } from '../../lib/requeteAvancee';
 
   interface Props {
     /**
@@ -109,6 +111,7 @@
         description = c?.description ?? '';
         mode = (c?.match_mode as 'all' | 'any') ?? 'all';
         regles = lireRegles();
+        expression = typeof c?.expression === 'string' ? c.expression : '';
       })
       .catch(() => { /* on reste sur un formulaire vide plutot qu'un ecran mort */ })
       .finally(() => { chargement = false; });
@@ -171,6 +174,15 @@
   let description = $state('');
   let mode = $state<'all' | 'any'>('all');
   let regles = $state<SmartRule[]>([{ field: 'artist_name', op: 'contains', value: '' }]);
+  /**
+   * tune-server-rust#7872 — la REQUÊTE AVANCÉE de la collection
+   * (`composer:beethoven year:1960..1969 -genre:live`). Le serveur l'applique
+   * à chaque ouverture, EN PLUS des règles : un album y entre si au moins
+   * une de ses pistes y répond. Vide : la collection n'a que ses règles.
+   */
+  let expression = $state('');
+  /** Le refus de l'expression (400 `{position, attendu, message}`). */
+  let erreurExpression = $state<ErreurDeRequete | null>(null);
   /**
    * Le nombre d'albums que CHAQUE étiquette ferait entrer dans la collection
    * (tune-server-rust#5026). Pas le `count` de `/tags`, qui compte aussi les
@@ -240,7 +252,10 @@
   // #4473 — une source `catalogue:` sans artiste ni album nommé : le serveur
   // la refusera. On le dit ici, pendant qu'on peut encore corriger la règle.
   const catalogueSansCible = $derived(manqueUneCible(regles));
-  const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0 && completes.length > 0);
+  // Une expression seule suffit : elle borne la collection comme une règle.
+  const pretAEnregistrer = $derived(
+    !chargement && nom.trim().length > 0 && (completes.length > 0 || expression.trim().length > 0),
+  );
 
   /* ---------------- Aperçu ---------------- */
   let apercu = $state<number | null>(null);
@@ -250,7 +265,8 @@
   $effect(() => {
     const r = completes;
     const m = mode;
-    if (!r.length) { apercu = null; return; }
+    const ex = expression.trim();
+    if (!r.length && !ex) { apercu = null; erreurExpression = null; return; }
     const mien = ++seq;
     apercuEnCours = true;
     // Débounce : on tape dans un champ de texte, pas la peine d'interroger le
@@ -275,9 +291,11 @@
       // réponse juste coûte la liste entière. Elle est débouncée à 400 ms et
       // ne part que sur des règles complètes — c'est le prix d'un compteur qui
       // ne ment pas.
-      api.previewSmartCollection({ rules: r, match_mode: m })
-        .then((p) => { if (mien === seq) apercu = p?.total ?? 0; })
-        .catch(() => { if (mien === seq) apercu = null; })
+      api.previewSmartCollection({ rules: r, match_mode: m, expression: ex || null })
+        .then((p) => { if (mien === seq) { apercu = p?.total ?? 0; erreurExpression = null; } })
+        // #7872 — une expression mal formée (400 avec position) : pas de
+        // compte, le repère sous le champ.
+        .catch((e: any) => { if (mien === seq) { apercu = null; erreurExpression = lireErreurDeRequete(e?.corps); } })
         .finally(() => { if (mien === seq) apercuEnCours = false; });
     }, 400);
     return () => clearTimeout(minuteur);
@@ -293,6 +311,8 @@
         description: description.trim() || undefined,
         rules: completes,
         match_mode: mode,
+        // #7872 — `null` efface l'expression d'une collection modifiée.
+        expression: expression.trim() || null,
       };
       let creee: { id?: number } | null = null;
       if (id != null) await api.updateSmartCollection(id, charge);
@@ -301,7 +321,10 @@
       onSaved(creee);
       onClose();
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      // #7872 — le refus de l'expression se montre SOUS elle, avec sa position.
+      const refus = lireErreurDeRequete(e?.corps);
+      if (refus) erreurExpression = refus;
+      else notifications.error(e?.message ?? $t('common.error' as any));
     }
     travail = false;
   }
@@ -465,6 +488,13 @@
       <CollectionIaV2 {nom} {mode} regles={completes as any}
         onAppliquer={(r, m) => { regles = r as any; mode = m; }}
         onNom={(n, d) => { nom = n; if (d) description = d; }} />
+    </div>
+
+    <!-- tune-server-rust#7872 — la requête avancée, en plus des règles. -->
+    <div class="champ" data-expression-collection>
+      <span>{$t('requeteAvancee.collectionLabel' as any)}</span>
+      <p class="precision">{$t('requeteAvancee.collectionHint' as any)}</p>
+      <SaisieRequeteV2 bind:value={expression} erreur={erreurExpression} />
     </div>
 
     <!-- L'APERÇU : une règle mal posée ne se voit qu'à l'usage. On annonce ce

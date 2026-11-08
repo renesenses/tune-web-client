@@ -1,4 +1,5 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
+import { dansPeriode, type Periode } from './periodeAnnees';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -58,6 +59,11 @@ export interface FiltresBibliotheque {
   /** Fréquences d'échantillonnage cochées, en Hz. `[]` = pas de filtre. */
   frequence: number[];
   annee: number | null;
+  /**
+   * web#2695 — la PÉRIODE De / À de la frise, bornes comprises. Absente ou
+   * vide : pas de filtre. Comptée avec l'année (`sauf === 'annee'`).
+   */
+  periode?: Periode | null;
   /** Formats cochés, en MAJUSCULES. `[]` = pas de filtre. */
   format: string[];
   /** Quantifications cochées, en bits. `[]` = pas de filtre. */
@@ -135,6 +141,14 @@ export interface Outils {
    * Absent ou `null` : seule la comparaison locale compte.
    */
   albumsDuTexte?: ReadonlySet<number> | null;
+  /**
+   * #2694 — pour une saisie de PLUSIEURS mots : les albums que le serveur a
+   * trouvés pour chaque mot pris seul (clé = mot plié). Le résultat serveur de
+   * la phrase entière ne sert plus : il rendait l'union des mots (« the »
+   * attrape presque toute la bibliothèque). Chaque mot doit être satisfait,
+   * localement ou ici : c'est un ET.
+   */
+  albumsParMot?: ReadonlyMap<string, ReadonlySet<number>> | null;
 }
 
 /**
@@ -157,6 +171,7 @@ export function correspond(
   if (sauf !== 'frequence' && f.frequence.length
       && !f.frequence.includes(a.sample_rate ?? 0)) return false;
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
+  if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
   if (sauf !== 'format' && f.format.length
       && !f.format.includes(a.format?.trim().toUpperCase() ?? '')) return false;
   if (sauf !== 'profondeur' && f.profondeur.length
@@ -184,13 +199,56 @@ export function correspond(
 export function repondALaRecherche(
   a: Album,
   recherche: string,
-  o: Pick<Outils, 'plier' | 'albumsDuTexte'>,
+  o: Pick<Outils, 'plier' | 'albumsDuTexte'> & Partial<Pick<Outils, 'albumsParMot'>>,
 ): boolean {
-  if (!recherche) return true;
-  const aiguille = o.plier(recherche);
-  if (o.plier(a.title).includes(aiguille)) return true;
-  if (o.plier(a.artist_name).includes(aiguille)) return true;
-  return a.id != null && !!o.albumsDuTexte?.has(a.id);
+  const mots = motsDeRecherche(recherche, o.plier);
+  if (!mots.length) return true;
+  const champs = champsLocaux(a, o.plier);
+  // #2694 — TOUS les mots (ET). Un mot est satisfait par un champ de l'album
+  // ou par la réponse serveur de CE mot ; pour un mot unique, par la réponse
+  // serveur de la saisie (#4319).
+  return mots.every((m) => {
+    if (champs.some((c) => c.includes(m))) return true;
+    if (a.id == null) return false;
+    const ids = mots.length === 1 ? o.albumsDuTexte : o.albumsParMot?.get(m);
+    return !!ids?.has(a.id);
+  });
+}
+
+/** Les mots de la saisie : pliés, guillemets et espaces de bord ôtés, sans doublon. */
+export function motsDeRecherche(recherche: string, plier: (s: string) => string): string[] {
+  const mots = plier((recherche ?? '').replace(/"/g, '')).split(/\s+/).filter(Boolean);
+  return [...new Set(mots)];
+}
+
+/** Champs de l'album cherchés localement : titre, artiste, label. */
+function champsLocaux(a: Album, plier: (s: string) => string): string[] {
+  return [plier(a.title ?? ''), plier(a.artist_name ?? ''), plier(a.label ?? '')].filter(Boolean);
+}
+
+/**
+ * #2694 — le groupe d'un album pour une recherche active : 0 titre exactement
+ * égal à la saisie, 1 titre qui commence par elle, 2 le reste. Le tri choisi
+ * s'applique ENSUITE, à l'intérieur de chaque groupe. Saisie vide : toujours 2.
+ */
+export function rangDeRecherche(
+  a: Album, recherche: string, plier: (s: string) => string,
+): 0 | 1 | 2 {
+  const q = plier((recherche ?? '').replace(/"/g, '')).trim().replace(/\s+/g, ' ');
+  if (!q) return 2;
+  const titre = plier(a.title ?? '').trim().replace(/\s+/g, ' ');
+  if (titre === q) return 0;
+  return titre.startsWith(q) ? 1 : 2;
+}
+
+/** Remet devant les correspondances exactes puis celles de début de titre ; stable. */
+export function prioriserRecherche<T extends Album>(
+  albums: readonly T[], recherche: string, plier: (s: string) => string,
+): T[] {
+  if (!plier(recherche ?? '').trim()) return [...albums];
+  const groupes: T[][] = [[], [], []];
+  for (const a of albums) groupes[rangDeRecherche(a, recherche, plier)].push(a);
+  return [...groupes[0], ...groupes[1], ...groupes[2]];
 }
 
 /** Albums à considérer pour compter une facette donnée. */

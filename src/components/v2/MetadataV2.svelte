@@ -262,11 +262,21 @@
   const drFaites = $derived(dr ? (dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0) : 0);
   /** web#2279 — une passe a été lancée : « à graver » ne se lit plus comme
    *  avant le clic (recompté en direct, voir la grille). */
-  const passeConnue = $derived(!!dr && (dr.status === 'running' || dr.status === 'interrupted' || dr.status === 'done'));
+  const passeConnue = $derived(!!dr && (dr.status === 'running' || dr.status === 'interrupted' || dr.status === 'cancelled' || dr.status === 'done'));
   async function graverDr() {
     if (drBusy) return;
     drBusy = true;
     try { await api.lancerGravureDr(); drErr = null; }
+    catch (e: any) { drErr = e?.message ?? $t('v2.meta.drUnavail' as any); }
+    drBusy = false;
+    await chargerDr();
+  }
+  /** tune-server-rust#7719 — arrêter la gravure en cours : le serveur finit
+   *  le fichier entamé, n'écrit plus rien ensuite et passe à `cancelled`. */
+  async function arreterDr() {
+    if (drBusy) return;
+    drBusy = true;
+    try { await api.annulerGravureDr(); drErr = null; }
     catch (e: any) { drErr = e?.message ?? $t('v2.meta.drUnavail' as any); }
     drBusy = false;
     await chargerDr();
@@ -1018,11 +1028,19 @@
           <!-- Fil 2137 : une passe morte en route rendait `running` à vie, et
                le bouton restait grisé. Le serveur dit désormais `interrupted` :
                le bouton redevient cliquable et dit où elle s'est arrêtée. -->
-          <button class="go" disabled={drBusy || dr.status === 'running' || dr.a_graver === 0} onclick={graverDr}>
-            {#if dr.status === 'running'}{$t('v2.meta.drRunning' as any)}
-            {:else if dr.status === 'interrupted'}{$t('v2.meta.drInterrupted' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}
-            {:else}{$t('v2.meta.drEngraveBtn' as any)}{/if}
-          </button>
+          <span>
+            <button class="go" disabled={drBusy || dr.status === 'running' || dr.a_graver === 0} onclick={graverDr}>
+              {#if dr.status === 'running'}{$t('v2.meta.drRunning' as any)}
+              {:else if dr.status === 'interrupted'}{$t('v2.meta.drInterrupted' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}
+              {:else if dr.status === 'cancelled'}{$t('v2.meta.drCancelled' as any).replace('{done}', $formatNombre(drFaites)).replace('{total}', $formatNombre(dr.total ?? 0))}
+              {:else}{$t('v2.meta.drEngraveBtn' as any)}{/if}
+            </button>
+            <!-- tune-server-rust#7719 : sur 500 000 pistes la passe dure des
+                 heures ; on peut l'arrêter entre deux pistes. -->
+            {#if dr.status === 'running'}
+              <button class="lnk sm" data-dr="arreter" disabled={drBusy} onclick={arreterDr}>{$t('v2.meta.drStop' as any)}</button>
+            {/if}
+          </span>
         </div>
         <div class="drgrid">
           <!-- web#2279 (fil 2349) — pendant ou après une passe, « à graver » est

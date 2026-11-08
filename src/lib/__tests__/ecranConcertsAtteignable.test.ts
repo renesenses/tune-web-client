@@ -69,10 +69,13 @@ describe('écran Concerts — le chaînage complet', () => {
 
 describe('écran Concerts — ce qu il refuse et ce qu il propose', () => {
   it("traite le refus d'offre comme un refus, pas comme une panne", () => {
-    // Sans cela, un compte gratuit voit une erreur rouge incompréhensible au
-    // lieu d'apprendre que la fonction existe et ce qu'elle coûte.
+    // Sans cela, un serveur d'avant (rc10) qui refuse encore afficherait une
+    // erreur rouge incompréhensible au lieu de dire qu'il faut le mettre à jour.
     expect(ECRAN).toContain('refusConcerts');
-    expect(ECRAN).toContain("$t('concerts.premiumRequis')");
+    expect(ECRAN).toContain("$t('concerts.serveurAMettreAJour')");
+    // tune-server-rust#7865 : plus aucune mention Premium sur l'écran.
+    expect(ECRAN).not.toContain('premiumRequis');
+    expect(ECRAN).not.toContain('mozaiklabs.fr/pricing');
   });
 
   it('offre les trois crans du périmètre, jamais un choix binaire', () => {

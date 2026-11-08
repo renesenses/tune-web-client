@@ -27,7 +27,8 @@
   import { refreshCirclePlugin } from '../../lib/circle';
   import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
-  import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
+  import EtatGreffonsV2 from './EtatGreffonsV2.svelte';
+import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { sonderCrosstalk } from '../../lib/stores/crosstalk';
   import { NOMS_GREFFONS_SDK } from '../../lib/greffonEntreeAudio';
@@ -41,7 +42,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
-  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap']);
+  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -377,6 +378,11 @@
                 {#if p.name === 'channel-remap' && isActive(p)}
                   <button class="lnk ouvrir-reaffectation" onclick={() => activeView.set('reaffectation')}>{$t('v2.plug.nativeSettings' as any)}</button>
                 {/if}
+                <!-- tune-server-rust#7614 — greffon payant et facultatif : ses
+                     réglages par zone s'ouvrent depuis sa carte. -->
+                {#if p.name === 'upsampler' && isActive(p)}
+                  <button class="lnk ouvrir-surechantillonnage" onclick={() => activeView.set('surechantillonnage')}>{$t('v2.plug.nativeSettings' as any)}</button>
+                {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
                 {/if}
@@ -482,6 +488,8 @@
         {/each}
       </div>
     {/if}
+
+    <EtatGreffonsV2 />
   </div>
 </section>
 

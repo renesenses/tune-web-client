@@ -128,17 +128,17 @@ const fr: Record<string, string> = lFr as any;
 const LOCAL_CLES = [
   'common.play', 'v2.pa.next', 'queue.addToQueue', 'library.playSimilar', 'library.otherVersions',
   'nowplaying.addToPlaylist', 'library.goToArtist', 'library.goToAlbum', 'v2.later.add', 'v2.cover.tags',
-  'trackTags.title', 'credits.see', 'ban.ban',
+  'trackTags.title', 'credits.see', 'spectro.menu', 'ban.ban',
 ];
 /** Ce que le SERVEUR ne sait pas encore rendre pour ce service. */
 const ABSENTS_PAR_SERVICE: Record<string, string[]> = {
-  qobuz: [],
-  tidal: ['credits.see'],
-  deezer: ['credits.see'],
-  spotify: ['library.playSimilar', 'credits.see'],
-  youtube: ['library.playSimilar', 'credits.see'],
-  bandcamp: ['library.playSimilar', 'credits.see'],
-  amazon: ['library.playSimilar', 'credits.see'],
+  qobuz: ['spectro.menu'],
+  tidal: ['credits.see', 'spectro.menu'],
+  deezer: ['credits.see', 'spectro.menu'],
+  spotify: ['library.playSimilar', 'credits.see', 'spectro.menu'],
+  youtube: ['library.playSimilar', 'credits.see', 'spectro.menu'],
+  bandcamp: ['library.playSimilar', 'credits.see', 'spectro.menu'],
+  amazon: ['library.playSimilar', 'credits.see', 'spectro.menu'],
 };
 const attendu = (absents: string[]) => LOCAL_CLES.filter((c) => !absents.includes(c)).map((c) => fr[c]);
 function nettoyer() {
@@ -150,7 +150,7 @@ function nettoyer() {
 }
 
 describe('#1534 — le menu d’un titre de service, service par service', () => {
-  it('la référence : un titre de bibliothèque a ses treize entrées dans les deux menus', () => {
+  it('la référence : un titre de bibliothèque a ses quatorze entrées dans les deux menus', () => {
     expect(LOCAL_CLES.every((c) => typeof fr[c] === 'string' && fr[c].length > 0)).toBe(true);
     expect(libelles(menuV2(BIBLIO))).toEqual(attendu([]));
     nettoyer();

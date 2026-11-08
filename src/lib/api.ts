@@ -10,6 +10,7 @@ import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
 import type { ApercuFavorisRadio } from './favorisRadioQobuz';
+import { familleDePiece } from './piecesRapportBogue';
 import { profileHeader } from './profileHeader';
 import { corpsJson, fusionnerEntetes } from './fusionEntetes';
 import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
@@ -41,6 +42,9 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
   // ne l'est pas. Un état de réglage, pas une panne.
   spotify_playback_disabled: 'playback.errorSpotifyDisabled',
+  // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
+  // (403). Repli quand le serveur n'a pas envoyé sa phrase.
+  parental_explicit_refused: 'playback.errorParentalExplicit',
 };
 
 /**
@@ -62,7 +66,11 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
  * Le serveur la rend déjà dans la langue de l'interface (`Accept-Language`,
  * posé par `acceptLang()` sur chaque requête).
  */
-const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>(['zone_output_unavailable']);
+const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
+  'zone_output_unavailable',
+  // tune-server-rust#8088 — refus du contrôle parental, phrase traduite par le serveur.
+  'parental_explicit_refused',
+]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
  *  (metadata labels, errors, …) match the app's chosen language. */
@@ -114,7 +122,9 @@ import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
 import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './ecritureFichiers';
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
+import { messageRefusParental } from './refusParental';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
+import { adresseCatalogue, type FiltresCatalogue } from './catalogueExport';
 import {
   RefusSauvegarde,
   codeDuRefus as codeDuRefusSauvegarde,
@@ -663,9 +673,16 @@ export async function fetchJSON<T>(
         ...((err.corps as Record<string, unknown> | undefined) ?? {}),
         code: err.code,
       });
+      // #7974 / #8046 — lecture refusée par le contrôle parental (hors des
+      // plages, budget épuisé) : la phrase de l'interface, jamais le code brut.
+      const refusParental = messageRefusParental(err.code, err.corps);
       if (refusStrict) {
         err.message = refusStrict;
         notifications.error(refusStrict, 10000);
+        err.dejaAnnonce = true;
+      } else if (refusParental) {
+        err.message = refusParental;
+        notifications.error(refusParental, 10000);
         err.dejaAnnonce = true;
       } else if (
         err.code
@@ -863,6 +880,19 @@ export function getZone(id: number) {
 
 export function getDefaultZone(): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`);
+}
+
+/** tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services », par profil. */
+export function getBibliothequeEtendue(profileId: number): Promise<{ enabled: boolean }> {
+  // Sans bandeau : un serveur d'avant #7780 répond 404, le défaut (activé) tient.
+  return fetchJSON(`${BASE}/profiles/${profileId}/settings/bibliotheque-etendue`, undefined, undefined, true);
+}
+
+export function setBibliothequeEtendue(profileId: number, enabled: boolean): Promise<{ enabled: boolean }> {
+  return fetchJSON(`${BASE}/profiles/${profileId}/settings/bibliotheque-etendue`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
@@ -1383,6 +1413,35 @@ export function reinitialiserCompatibiliteRenderer(id: number) {
   );
 }
 
+/**
+ * tune-server-rust#7922 — proposer l'appareil de la zone pour Tune tested.
+ * Le `GET` dit le temps sans erreur, le seuil d'une heure et l'aperçu exact
+ * de l'envoi ; le `POST` l'envoie au site. Sans bandeau : la fenêtre dit
+ * elle-même un refus, par son code nommé (`messageDeRefus`).
+ */
+export function getTuneTestedProposition(id: number) {
+  return fetchJSON<import('./tuneTestedProposition').EtatTuneTested>(
+    `${BASE}/zones/${id}/tune-tested`, undefined, undefined, true,
+  );
+}
+
+/**
+ * `apercu` est l'aperçu montré à l'utilisateur : le serveur refuse
+ * (`tune_tested_preview_changed`, avec le nouveau) s'il ne correspond plus à
+ * ce qui partirait, si bien que rien n'est envoyé qui n'a pas été vu.
+ */
+export function proposerTuneTested(
+  id: number,
+  apercu: import('./tuneTestedProposition').ApercuTuneTested,
+) {
+  return fetchJSON<{ status: string; already_proposed: boolean }>(
+    `${BASE}/zones/${id}/tune-tested`,
+    { method: 'POST', body: JSON.stringify({ preview: apercu }) },
+    undefined,
+    true,
+  );
+}
+
 export function changeZoneOutput(id: number, outputType: string, outputDeviceId?: string | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -1550,6 +1609,17 @@ export function submitAirplayPairPin(deviceId: string, pin: string) {
   return fetchJSON<{ ok: boolean }>(
     `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-pin`,
     { method: 'POST', body: JSON.stringify({ pin }) },
+  );
+}
+
+/** Abandonne la saisie du code (fenêtre fermée sans code) : le serveur lève
+ *  l'attente et la lecture revient au jumelage transitoire
+ *  (tune-server-rust#8060). Un serveur plus ancien rend 404 : l'attente y
+ *  expire seule, l'appelant ignore l'erreur. */
+export function cancelAirplayPairing(deviceId: string) {
+  return fetchJSON<{ ok: boolean; cancelled: boolean; status: string }>(
+    `${BASE}/outputs/${encodeURIComponent(deviceId)}/airplay/pair-cancel`,
+    { method: 'POST' },
   );
 }
 
@@ -3397,6 +3467,9 @@ export interface PagePistesServeur {
   comptes: Map<string, number> | null;
   /** « Toutes les sources » : chaque piste une fois. */
   totalToutesSources: number | null;
+  /** #7619 — `next_cursor` du serveur : de quoi demander la page d'après par
+   *  `after`. `null` : dernière page, ou serveur sans curseur (offset). */
+  curseurSuivant?: string | null;
 }
 
 export async function getPagePistes(opts: {
@@ -3408,11 +3481,14 @@ export async function getPagePistes(opts: {
   limit: number;
   offset: number;
   counts?: boolean;
+  /** #7619 — le `next_cursor` de la page précédente : remplace `offset`. */
+  after?: string | null;
   signal?: AbortSignal;
 }): Promise<PagePistesServeur | null> {
   const params = new URLSearchParams();
   params.set('limit', String(opts.limit));
-  params.set('offset', String(opts.offset));
+  if (opts.after) params.set('after', opts.after);
+  else params.set('offset', String(opts.offset));
   // `order` part TOUJOURS : c'est lui qui ouvre la page triée côté serveur,
   // et sa présence dans la réponse qui dit que le serveur l'a comprise.
   params.set('order', opts.order ?? 'asc');
@@ -3431,6 +3507,7 @@ export async function getPagePistes(opts: {
     total: raw.total,
     comptes,
     totalToutesSources: typeof raw.total_all_sources === 'number' ? raw.total_all_sources : null,
+    curseurSuivant: typeof raw.next_cursor === 'string' && raw.next_cursor ? raw.next_cursor : null,
   };
 }
 
@@ -3523,7 +3600,76 @@ export function getTopArtists(limit = 20) {
 }
 
 export function getLibraryStats() {
-  return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
+  // web#2653 — `distributions` (tune-server-rust#7849) : absente d'un serveur
+  // plus ancien, `null` si sa lecture a échoué. Lue par `lireRepartitions`.
+  return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
+}
+
+// --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
+
+export type TypeNote = 'artist' | 'album' | 'track';
+
+export interface NotePersonnelle {
+  item_type: TypeNote;
+  item_id: number;
+  texte_md: string;
+  maj_le: string;
+}
+
+/**
+ * Le serveur connaît-il `/library/notes` ? Sondé UNE fois par la liste (un
+ * 404 sur une note précise ne distingue pas « pas de note » de « route
+ * inconnue »). Un échec réseau n'est pas mémorisé : on resondera.
+ */
+let notesSondage: Promise<boolean> | null = null;
+export function notesDisponibles(): Promise<boolean> {
+  if (!notesSondage) {
+    notesSondage = fetchJSON<any>(`${BASE}/library/notes?limit=1`, undefined, undefined, true)
+      .then((r) => Array.isArray(r?.notes))
+      .catch((e: ApiError) => {
+        if (e?.status === 404 || e?.status === 405) return false;
+        notesSondage = null;
+        throw e;
+      });
+  }
+  return notesSondage;
+}
+
+/** Pour les témoins : oublie le sondage. */
+export function oublierSondageNotes(): void {
+  notesSondage = null;
+}
+
+export function listerNotes(opts: { item_type?: TypeNote; q?: string; limit?: number } = {}) {
+  const p = new URLSearchParams();
+  if (opts.item_type) p.set('item_type', opts.item_type);
+  if (opts.q) p.set('q', opts.q);
+  if (opts.limit) p.set('limit', String(opts.limit));
+  const qs = p.toString();
+  return fetchJSON<{ count: number; notes: NotePersonnelle[] }>(`${BASE}/library/notes${qs ? `?${qs}` : ''}`);
+}
+
+/** Une note, ou `null` s'il n'y en a pas (404). */
+export async function lireNote(type: TypeNote, id: number): Promise<NotePersonnelle | null> {
+  try {
+    return await fetchJSON<NotePersonnelle>(`${BASE}/library/notes/${type}/${id}`, undefined, undefined, true);
+  } catch (e) {
+    if ((e as ApiError)?.status === 404) return null;
+    throw e;
+  }
+}
+
+/** Crée ou remplace une note ; un texte vide la supprime (`null`). */
+export async function ecrireNote(type: TypeNote, id: number, texte_md: string): Promise<NotePersonnelle | null> {
+  const r = await fetchJSON<any>(`${BASE}/library/notes/${type}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ texte_md }),
+  });
+  return r && typeof r.texte_md === 'string' ? (r as NotePersonnelle) : null;
+}
+
+export function supprimerNote(type: TypeNote, id: number) {
+  return fetchJSON<{ deleted: boolean }>(`${BASE}/library/notes/${type}/${id}`, { method: 'DELETE' });
 }
 
 /**
@@ -4008,11 +4154,11 @@ export function getTagSmartCollections(tagId: number) {
 // --- Smart Playlists ---
 
 export function getAlbumBio(albumId: number) {
-  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/albums/${albumId}/bio`);
+  return fetchJSON<{ bio: string | null; source: string | null; release_id?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/albums/${albumId}/bio`);
 }
 
 export function getArtistBio(artistId: number) {
-  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null }>(`${BASE}/library/artists/${artistId}/bio`);
+  return fetchJSON<{ bio: string | null; source?: string | null; bio_provenance?: import('./library/attributionBio').BioProvenance | null; bio_segments?: import('./library/bioSegments').BioSegment[]; repli?: { raison?: string; langue_demandee?: string | null; langue_disponible?: string | null } | null }>(`${BASE}/library/artists/${artistId}/bio`);
 }
 
 export function getArtistTimeline(artistId: number) {
@@ -4275,6 +4421,28 @@ export function importAutoEqPreset(body: { text: string; name?: string; zone_id?
 }
 
 /**
+ * tune-server-rust#6385 — `POST /eq/import/preview` : le fichier (AutoEq
+ * ParametricEQ, Equalizer APO ou OPRA) analysé comme pour l'import, SANS rien
+ * enregistrer. L'écran montre les bandes avant que l'utilisateur les applique.
+ * Un refus rend 400 avec un `code` stable (`unrecognized_line`,
+ * `too_many_bands`…) et `line` ou `band` : voir `eqImportPeq.ts`.
+ * 404 : serveur antérieur, sans aperçu.
+ */
+export interface EqImportApercu extends Omit<EqAutoEqImport, 'preset'> {
+  format: 'parametric_eq' | 'opra';
+  bands: EqBand[];
+  max_bands: number;
+  name?: string | null;
+}
+
+export function previewEqImport(body: { text: string; name?: string }): Promise<EqImportApercu> {
+  return fetchJSON<EqImportApercu>(`${BASE}/eq/import/preview`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * tune-server-rust#6388 — la base AutoEq en ligne, lue par le SERVEUR
  * (`GET /eq/autoeq/search`, `POST /eq/autoeq/import`). Un résultat est un
  * couple casque × source de mesure ; `path` est ce que l'import attend.
@@ -4515,6 +4683,13 @@ export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs>
   return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
 }
 
+/** `GET /audio-plugins/` pour le panneau « État des greffons » : SANS bandeau,
+ *  l'appelant masque le panneau sur tout échec (403 compris). */
+export async function getEtatGreffonsSansBandeau(): Promise<EtatGreffonsAudioNatifs> {
+  const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins/`, undefined, undefined, true);
+  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+}
+
 /** La version installée d'un greffon natif tiers, lue SANS bandeau : la
  *  liste est réservée à l'administrateur, et un paquet posé à la main n'a pas
  *  de version. `null` quand on ne peut pas la savoir. */
@@ -4620,6 +4795,28 @@ export function setReglageGreffonNatif(
     method: 'PUT',
     body: JSON.stringify(settings),
   });
+}
+
+/** `POST /audio-plugins/{id}/diagnostics` — ce que le greffon CALCULE pour
+ *  ce réglage (`diagnostics`, champs propres au greffon), sans rien
+ *  enregistrer ni jouer. 404 (serveur ou greffon inconnu), 409 (greffon non
+ *  chargé), 400 (réglage refusé) : l'appelant n'affiche alors rien — lu
+ *  sans bandeau. */
+export interface DiagnosticsGreffonNatif {
+  plugin: string;
+  diagnostics: unknown;
+}
+
+export function getDiagnosticsGreffonNatif(
+  id: string,
+  settings: Record<string, unknown>,
+): Promise<DiagnosticsGreffonNatif> {
+  return fetchJSON<DiagnosticsGreffonNatif>(
+    `${racineGreffonNatif(id)}/diagnostics`,
+    { method: 'POST', body: JSON.stringify(settings) },
+    undefined,
+    true,
+  );
 }
 
 export async function listProfilsGreffonNatif(id: string): Promise<ProfilGreffonNatif[]> {
@@ -5988,6 +6185,28 @@ export function getAlbumBooklets(albumId: number) {
   );
 }
 
+/** tune-server-rust#8077 — les apports Qobuz d'un album de la bibliothèque (calculés à la demande). */
+export function getApportsQobuz(albumId: number) {
+  return fetchJSON<import('./apportsQobuz').ApportsQobuz>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz`, undefined, undefined, true,
+  );
+}
+
+/** tune-server-rust#8077 — retire TOUS les apports Qobuz de l'album (champs et crédits). */
+export function retirerApportsQobuz(albumId: number) {
+  return fetchJSON<{ statut: string; champs_retires: number; credits_retires: number }>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz`, { method: 'DELETE' },
+  );
+}
+
+/** tune-server-rust#8077 — applique un rapprochement Qobuz « à confirmer ». */
+export function confirmerApportsQobuz(albumId: number, serviceAlbumId: string) {
+  return fetchJSON<import('./apportsQobuz').ApportsQobuz>(
+    `${BASE}/library/albums/${albumId}/apports-qobuz/confirmer`,
+    { method: 'POST', body: JSON.stringify({ service_album_id: serviceAlbumId }) },
+  );
+}
+
 export function getStreamingAlbumBooklets(service: string, albumId: string) {
   return fetchJSON<Array<{ name: string; url: string }>>(
     `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/booklets`,
@@ -6202,6 +6421,13 @@ export async function getStreamingArtistAlbumsAll(
 
 export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
+}
+
+/** tune-server-rust#7822 — les mixes personnels du compte (TIDAL : My Daily
+ *  Discovery, My Mix 1 à 8…), lisibles comme des playlists de service.
+ *  `sansBandeau` : la rangée s'efface d'elle-même si la route échoue. */
+export function getStreamingMixes(service: string) {
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/mixes`, undefined, undefined, true);
 }
 
 /**
@@ -6437,8 +6663,13 @@ export interface ReponseEcritureFavoriService {
 export function getProfileStreamingFavorites(
   profileId: number,
   type?: StreamingItemType,
+  /** tune-server-rust#7780 — `bibliotheque` : liste vide si le réglage est désactivé. */
+  pour?: 'bibliotheque',
 ): Promise<StreamingFavorite[]> {
-  const q = type ? `?item_type=${type}` : '';
+  const params = new URLSearchParams();
+  if (type) params.set('item_type', type);
+  if (pour) params.set('pour', pour);
+  const q = params.toString() ? `?${params}` : '';
   // rc4 — l'en-tête `X-Tune-Favoris-Miroir` dit l'état du miroir (rafraîchi
   // par le serveur à cette lecture même). Absent d'un serveur ancien : `null`.
   return fetchJSON<StreamingFavorite[]>(
@@ -6865,6 +7096,26 @@ export function getPlaylistsDuProfil(profileId: number, limit = 1) {
     undefined,
     true,
   );
+}
+
+/**
+ * web#2635 — TOUTES les playlists d'un profil (`GET /playlists/all`), pour
+ * retrouver celles que le scan a importées sous le profil 1, quel que soit le
+ * profil du navigateur. `X-Profile-Id` posé ici, comme `getPlaylistsDuProfil`.
+ */
+export function getToutesPlaylistsDuProfil(profileId: number) {
+  return fetchJSON<Playlist[]>(
+    `${BASE}/playlists/all`,
+    { headers: { 'X-Profile-Id': String(profileId) } },
+  );
+}
+
+/** web#2635 — supprime une playlist d'un profil donné (`DELETE /playlists/{id}`). */
+export function deletePlaylistDuProfil(id: number, profileId: number) {
+  return fetchVoid(`${BASE}/playlists/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Profile-Id': String(profileId) },
+  });
 }
 
 /**
@@ -8162,6 +8413,17 @@ export function subscribePodcast(podcast: { title: string; feed_url: string; aut
   return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify(podcast) });
 }
 
+/**
+ * tune-server-rust#7819 — s'abonner par la seule adresse du flux : le serveur
+ * lit le flux et en tire le titre, l'auteur, l'image et la description. Ses
+ * refus portent un code stable (`podcast_adresse_invalide`,
+ * `podcast_flux_injoignable`, `podcast_pas_un_flux`) que l'écran traduit ;
+ * `sansBandeau` : l'écran dit lui-même l'échec, à côté du champ.
+ */
+export function ajouterPodcastParAdresse(feedUrl: string): Promise<any> {
+  return fetchJSON(`${BASE}/podcasts/subscriptions`, { method: 'POST', body: JSON.stringify({ feed_url: feedUrl }) }, undefined, true);
+}
+
 export function unsubscribePodcast(id: number): Promise<void> {
   return fetchVoid(`${BASE}/podcasts/subscriptions/${id}`, { method: 'DELETE' });
 }
@@ -8230,7 +8492,7 @@ export function getSmartCollectionAlbums(id: number) {
 }
 // NB: the server's PreviewRequest expects `max_limit` (same field name as
 // create/update), not `max_albums`.
-export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_limit?: number }) {
+export function previewSmartCollection(payload: { rules: any[]; match_mode?: string; sort_by?: string; sort_order?: string; max_limit?: number; /** tune-server-rust#7872 */ expression?: string | null }) {
   return fetchJSON<import('./types').SmartCollectionPreview>(`${BASE}/library/smart-collections/preview`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -8315,6 +8577,8 @@ export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' 
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
+/** Catalogue imprimable, avec les filtres en cours de la Bibliothèque (web#2622). */
+export function exportCatalogue(f: FiltresCatalogue) { return downloadCsv(adresseCatalogue(f), 'catalogue.html'); }
 
 // --- Audiophile Mode ---
 
@@ -10168,19 +10432,26 @@ export interface BugReportEnvoye {
   /** Captures que le FORUM dit avoir rangées. `null`/absent sur un service
    *  antérieur à #4564 : on n'invente alors aucun chiffre. */
   images?: number | null;
+  /** #7920 — journaux que le site dit avoir rangés, s'il en rend le compte. */
+  attachments?: number | null;
 }
 
 /**
- * Bornes des captures, alignées sur celles du serveur
- * (`BUG_REPORT_MAX_IMAGES`, `BUG_REPORT_MAX_IMAGE_BYTES`) et, au bout de la
- * chaîne, sur celles du forum. Exportées pour que l'écran REFUSE avec la même
+ * Bornes des captures et des journaux, alignées sur celles du serveur
+ * (`BUG_REPORT_MAX_*`) et, au bout de la chaîne, sur celles du forum. Elles
+ * vivent dans `piecesRapportBogue.ts`, où l'écran les applique avec la même
  * règle au lieu d'en écrire une seconde, qui divergerait.
  */
-export const BUG_REPORT_MAX_IMAGES = 3;
-export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+export {
+  BUG_REPORT_MAX_IMAGES,
+  BUG_REPORT_MAX_IMAGE_BYTES,
+  BUG_REPORT_MAX_ATTACHMENTS,
+  BUG_REPORT_MAX_ATTACHMENT_BYTES,
+} from './piecesRapportBogue';
 
 export async function submitBugReport(
   description: string,
+  /** Captures et journaux (#7920) : chacun part sous son champ. */
   images: File[] = [],
   /** Le résumé du diagnostic de l'assistant : joint SEULEMENT si `joindre`. */
   resumeIa: { texte: string | null; joindre: boolean } = { texte: null, joindre: false },
@@ -10202,7 +10473,11 @@ export async function submitBugReport(
   const form = new FormData();
   form.append('description', description.trim());
   if (joindre) { form.append('resume_ia', resumeIa.texte!.trim()); form.append('joindre_resume_ia', 'true'); }
-  for (const f of images) form.append('images[]', f, f.name);
+  // #7920 — les journaux sous `attachments[]`, les images sous `images[]`.
+  for (const f of images) {
+    const champ = familleDePiece(f.name) === 'journal' ? 'attachments[]' : 'images[]';
+    form.append(champ, f, f.name);
+  }
 
   const token = getToken();
   const headers: Record<string, string> = {
@@ -10831,8 +11106,10 @@ export function listMetadataProposals(
 export interface GravureDrEtat {
   /** `interrupted` (fil 2137) : la passe est morte en route (redémarrage,
    *  panne) ; les compteurs sont ceux de son dernier jalon. Un serveur plus
-   *  ancien ne le renvoie jamais : il laissait un `running` périmé. */
-  status: 'idle' | 'running' | 'done' | 'interrupted';
+   *  ancien ne le renvoie jamais : il laissait un `running` périmé.
+   *  `cancelled` (tune-server-rust#7719) : arrêtée à la demande, entre deux
+   *  pistes ; les compteurs sont ceux du moment de l'arrêt. */
+  status: 'idle' | 'running' | 'done' | 'interrupted' | 'cancelled';
   a_graver: number;
   hors_format: number;
   dans_les_fichiers: number;
@@ -10848,6 +11125,12 @@ export function getGravureDr(): Promise<GravureDrEtat> {
 /** 202 accepté ; 409 si la passe tourne déjà. */
 export function lancerGravureDr(): Promise<{ status: string; total: number; hors_format: number }> {
   return apiPost('/library/dr/gravure', {});
+}
+/** tune-server-rust#7719 — arrêter la passe en cours, avant le fichier
+ *  suivant. `cancelled: false` si aucune passe ne tournait ; 404 sur un
+ *  serveur qui ne connaît pas encore la route. */
+export function annulerGravureDr(): Promise<{ cancelled: boolean }> {
+  return apiPost('/library/dr/gravure/cancel', {});
 }
 
 /** Phase 5 UPnP : l'album existe-t-il aussi ailleurs (local ↔ serveur UPnP) ? */

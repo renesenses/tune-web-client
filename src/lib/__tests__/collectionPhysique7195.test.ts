@@ -546,3 +546,76 @@ describe('#2624 — revenir à la collection physique', () => {
     expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
   });
 });
+
+describe('#2624 point 1 — identité et lecture ont des résultats distincts', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('confirme le compte, suit une première lecture 200/a_synchroniser puis affiche la collection', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const fetchInitial = globalThis.fetch;
+    let identifie = false;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes('/reglages/identite')) {
+        identifie = true;
+        avancement = { en_cours: true, etape: 'liste', fait: 0, total: 0 };
+      }
+      if (u.includes('/collection-physique/collection') && identifie && avancement.en_cours) {
+        // Forme exacte de GET collection avant liste_lue_le : HTTP 200.
+        return reponse({ statut: 'a_synchroniser', nom_utilisateur: 'exemple', disques: [], compteurs: { total: 0 }, attribution: COLLECTION.attribution });
+      }
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! });
+    await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click();
+    await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]'), 'le compte enregistré ne doit pas sembler avoir échoué').not.toBeNull();
+    expect(hote!.querySelector('[data-premiere-lecture]'), 'la première lecture est en cours, pas un refus').not.toBeNull();
+    expect(hote!.querySelector('[data-erreur]')).toBeNull();
+    avancement = { en_cours: false, etape: null, fait: 3, total: 3 };
+    await vi.advanceTimersByTimeAsync(3000); await laisserTourner();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
+    expect(hote!.querySelector('[data-premiere-lecture]')).toBeNull();
+  });
+
+  it('un refus de relecture garde le compte confirmé, expose le statut et disparaît après succès', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const fetchInitial = globalThis.fetch;
+    let identifie = false;
+    let refus = true;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes('/reglages/identite')) { identifie = true; avancement = { en_cours: true, etape: 'liste', fait: 0, total: 0 }; }
+      if (u.includes('/collection-physique/collection') && identifie && refus) return reponse({ error: 'nouveau_refus' }, 502);
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! }); await laisserTourner();
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click(); await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]')).not.toBeNull();
+    const message = hote!.querySelector('[data-erreur]')?.textContent ?? '';
+    expect(message, 'un code inconnu doit nommer sa cause').toContain('nouveau_refus');
+    expect(message).toContain('502');
+    expect(message).not.toContain(fr['collectionPhysique.erreur.generique']);
+    refus = false; avancement = { en_cours: false, etape: null, fait: 3, total: 3 };
+    await vi.advanceTimersByTimeAsync(3000); await laisserTourner();
+    expect(hote!.querySelector('[data-erreur]'), 'la relecture réussie doit retirer son ancienne erreur').toBeNull();
+    expect(hote!.querySelectorAll('[data-disque]')).toHaveLength(3);
+  });
+
+  it('un vrai refus d’écriture du compte reste un échec précis, sans confirmation mensongère', async () => {
+    const fetchInitial = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
+      if (String(url).includes('/reglages/identite')) return reponse({ error: 'collection_physique.ecriture' }, 500);
+      return fetchInitial(url, init);
+    }));
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote! }); await laisserTourner();
+    const lectures = appels.filter(a => a.includes('/collection-physique/collection')).length;
+    (hote!.querySelector('[data-compte-du-jeton]') as HTMLButtonElement).click(); await laisserTourner();
+    expect(hote!.querySelector('[data-compte-enregistre]')).toBeNull();
+    const message = hote!.querySelector('[data-erreur]')?.textContent ?? '';
+    expect(message).not.toContain(fr['collectionPhysique.erreur.generique']);
+    expect(message).toMatch(/enregistr|écri/i);
+    expect(appels.filter(a => a.includes('/collection-physique/collection'))).toHaveLength(lectures);
+  });
+});

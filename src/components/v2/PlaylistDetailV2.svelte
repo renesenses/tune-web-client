@@ -36,6 +36,11 @@
   import { notifications } from '../../lib/stores/notifications';
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
+  import RemplacerIndisponibleModale from './RemplacerIndisponibleModale.svelte';
+  import {
+    aDesIndisponibles, peutRemplacer, remplacer, reparer,
+    type CandidatRemplacement, type CiblePlaylist, type IssueRemplacement, type RapportReparation,
+  } from '../../lib/remplacementIndisponibles';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
@@ -357,6 +362,97 @@
     }
   }
 
+  /* ---------------- Titres indisponibles (tune-server-rust#8066) ---------------- */
+  /**
+   * « Remplacer l'indisponible » et « Réparer la playlist » : un album retiré
+   * puis republié par le service laisse des titres grisés. Le serveur cherche
+   * la nouvelle référence sur le même service ; un seul candidat sûr est pris
+   * directement, sinon la modale fait choisir. Seulement là où l'on peut
+   * écrire : playlist Tune, ou playlist du service dont on est propriétaire.
+   */
+  const ciblePlaylist = $derived<CiblePlaylist | null>(
+    item.kind === 'local'
+      ? item.pl.id != null ? { kind: 'local', playlistId: item.pl.id } : null
+      : { kind: 'streaming', service: item.service, playlistId: String(item.pl.source_id) },
+  );
+  const reparable = $derived(ciblePlaylist != null && aDesIndisponibles(tracks, editable));
+  let remplacement = $state<{ piste: Track; rang: number; candidats: CandidatRemplacement[] } | null>(null);
+  let rapport = $state<RapportReparation | null>(null);
+  let remplacementEnCours = $state(false);
+  let reparationEnCours = $state(false);
+
+  function traiterIssue(issue: IssueRemplacement, t: Track, rang: number) {
+    if (issue.etat === 'remplace') {
+      remplacement = null;
+      notifications.success($tr('v2.pl.replaceDone' as any).replace('{title}', t.title ?? ''));
+      load();
+      onChanged?.();
+    } else if (issue.etat === 'choix') {
+      remplacement = { piste: t, rang, candidats: issue.candidats };
+    } else if (issue.etat === 'aucun') {
+      notifications.info($tr('v2.pl.replaceNone' as any).replace('{title}', t.title ?? ''), 5000);
+    } else {
+      notifications.error(issue.message || $tr('v2.pl.replaceError' as any));
+    }
+  }
+
+  async function remplacerIndisponible(t: Track) {
+    const cible = ciblePlaylist;
+    if (!cible || remplacementEnCours) return;
+    const rang = rangReel(t);
+    remplacementEnCours = true;
+    try {
+      traiterIssue(await remplacer(cible, t, rang), t, rang);
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+    } finally {
+      remplacementEnCours = false;
+    }
+  }
+
+  async function choisirRemplacant(c: CandidatRemplacement) {
+    const r = remplacement;
+    const cible = ciblePlaylist;
+    if (!r || !cible) return;
+    try {
+      traiterIssue(await remplacer(cible, r.piste, r.rang, c.source_id), r.piste, r.rang);
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+    }
+  }
+
+  async function reparerPlaylist() {
+    const cible = ciblePlaylist;
+    if (!cible || reparationEnCours) return;
+    reparationEnCours = true;
+    try {
+      const r = await reparer(cible);
+      if ('refus' in r) {
+        notifications.error(r.refus || $tr('v2.pl.replaceNotEditable' as any).replace('{service}', item.kind === 'streaming' ? item.service : ''));
+      } else {
+        rapport = r;
+        if (r.replaced.length) { load(); onChanged?.(); }
+      }
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+    } finally {
+      reparationEnCours = false;
+    }
+  }
+
+  /** Une ligne « à choisir » du rapport ouvre sa liste de candidats. Les
+   *  remplacements gardent les rangs : le rang du rapport désigne encore la
+   *  bonne ligne après rechargement. */
+  function choisirDepuisRapport(l: RapportReparation['to_choose'][number]) {
+    const rang = Number(item.kind === 'local' ? l.position : l.index);
+    const t = item.kind === 'local'
+      ? tracks.find((x) => (x as any).entry_id === l.entry_id)
+      : tracks[rang];
+    if (!t) return;
+    rapport = null;
+    remplacement = { piste: t, rang, candidats: l.candidates ?? [] };
+  }
+
   /** Un déplacement est en cours : on n'en accepte pas un second par-dessus. */
   let deplacement = $state(false);
 
@@ -490,6 +586,15 @@
           </button>
         {/if}
 
+        <!-- tune-server-rust#8066 — « Réparer la playlist » : seulement s'il y a
+             des titres indisponibles là où l'on peut écrire. -->
+        {#if reparable}
+          <button class="ghost sm reparer" data-reparer-playlist onclick={reparerPlaylist} disabled={reparationEnCours}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>
+            {$tr((reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair') as any)}
+          </button>
+        {/if}
+
         <!-- Une playlist de SERVICE ne s'édite pas, sauf celle dont
              l'utilisateur est propriétaire (#2098) : on peut alors en retirer
              des titres — ni renommer, ni supprimer, ni réordonner. -->
@@ -578,7 +683,7 @@
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p))}
+              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p)) || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
@@ -605,6 +710,12 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
         {/if}
+        {#if !edition && peutRemplacer(_t, editable)}
+          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
+            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
+          </button>
+        {/if}
         {#if edition && isLocal}
           <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
@@ -628,6 +739,13 @@
     {/if}
   </div>
 </div>
+
+{#if remplacement}
+  <RemplacerIndisponibleModale titreDisparu={remplacement.piste.title ?? ''} candidats={remplacement.candidats}
+    choisir={choisirRemplacant} onClose={() => (remplacement = null)} />
+{:else if rapport}
+  <RemplacerIndisponibleModale {rapport} choisirPour={choisirDepuisRapport} onClose={() => (rapport = null)} />
+{/if}
 
 <!-- Le PANNEAU partagé, chargé à la demande — celui des vignettes. -->
 {#if etiquettesOuvertes && cibleEtiquettes}

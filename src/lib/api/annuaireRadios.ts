@@ -94,7 +94,7 @@ export interface FiltresAnnuaireRadios {
   genre?: string | null;
   offset?: number;
   limit?: number;
-  /** Critères de tune-server-rust#7466 (`codec`, `bitrate_min`, `lossless`,
+  /** Critères de tune-server-rust#7466 (`codec`, `quality_min` (#7718), `lossless`,
    *  `hires`, `metadata_plus`, `favorites_only`) : voir `lib/radioFiltres`. */
   criteres?: Record<string, string>;
 }

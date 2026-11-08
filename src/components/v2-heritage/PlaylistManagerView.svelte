@@ -2378,9 +2378,6 @@
       </div>
 
     {:else}
-    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
-         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
-    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Filter Chips (original playlists tab) -->
     <div class="filter-chips">
       {#each filterChips as chip}
@@ -2413,6 +2410,11 @@
         <BasculeAffichage modes={LISTE_ET_DEUX_GRILLES} valeur={affichage} onChanger={changerAffichage} iconeDeDestination />
       </span>
     </div>
+    <!-- web#2700 : la section Tune Circle se pose SOUS les pastilles. Rendue avant elles, la liste de cercle les repoussait
+         sous la dernière playlist ; les pastilles restent juste sous le titre et les onglets. -->
+    <!-- web#2452 : les playlists Tune Circle (partagées avec moi, et que je partage) ; absente sans compte relié ni cercle.
+         Elle se choisit par la pastille « Tune Circle » de la rangée des filtres ; « Toutes » = les playlists de l'utilisateur. -->
+    <PlaylistsCercleSection filtre={searchQuery} visible={activeFilter === 'circle'} onexiste={(b) => { cercleExiste = b; if (!b && activeFilter === 'circle') activeFilter = 'all'; }} />
     <!-- Le bouton de MODE « Fusionner » a disparu : on sélectionne d'abord,
          par le coin d'une carte, et la barre d'actions apparaît ensuite.
          Voir le commentaire de `mergeSelected`. -->

@@ -66,13 +66,24 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { currentProfileId } from '../../lib/stores/profile';
+  import { bibliothequeEtendueActive, chargerReglageEtendue, changerReglageEtendue } from '../../lib/bibliothequeEtendue';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
+  import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  import {
+    CLE_IMPORT_PLAYLISTS_SCAN,
+    PROFIL_DES_PLAYLISTS_DU_SCAN,
+    importPlaylistsScanDepuisConfig,
+    playlistsImporteesAuScan,
+    retirerPlaylists,
+  } from '../../lib/playlistsDuScan';
+  import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
@@ -206,6 +217,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    */
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
@@ -217,6 +229,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // La règle vit dans `lib/tuneTested.ts`, pour qu'un test l'APPELLE au lieu
   // de relire ce fichier.
   const tuneTestedDe = (z: any): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
+  // #2698 — la fenêtre de proposition, ouvrable À TOUT MOMENT depuis la zone.
+  let ficheTuneTested = $state<{ id: number; nom: string; teste: boolean } | null>(null);
   /**
    * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
    *
@@ -440,8 +454,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }).catch(() => { podcastRewind = null; });
   });
   async function savePodcastRewind(raw: string) {
-    const value = Number(raw);
-    if (raw.trim() === '' || !Number.isInteger(value) || value < 0 || value > 300) return;
+    const value = reculPodcastSaisi(raw);
+    if (value === null) return;
     const before = podcastRewind;
     podcastRewindBusy = true;
     try {
@@ -1148,7 +1162,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
-        if (brEnabled && !brAccesParCompte) chargerLienPont();
+        if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
   });
@@ -1167,7 +1181,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const st: any = await api.apiFetch('/cloud/bridge/status').catch(() => null);
         if (st) brAccesParCompte = !!st.acces_par_compte;
         brToken = brAccesParCompte ? '' : d?.bridge_token || '';
-        if (!brAccesParCompte) await chargerLienPont();
+        await chargerLienPont();
       }
     } catch (e: any) {
       notifications.error(e?.message ?? 'Erreur');
@@ -2241,6 +2255,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // actif, comme le serveur (le comportement d'avant).
   let coffretsAuto = $state(true);
   let coffretsAutoErr = $state<string | null>(null);
+  // web#2635 — import des .m3u/.pls au scan, et retrait des playlists importées.
+  let importPlaylistsScan = $state(true);
+  let importPlaylistsScanErr = $state<string | null>(null);
+  let retraitScanEnCours = $state(false);
+  let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
   let lrclibOn = $state(false);
@@ -2506,6 +2525,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
       ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
+      importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
@@ -2800,6 +2820,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       coffretsAutoErr = get(t)('settings.errSaveFailed');
     }
   }
+  // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
+  // par profil, activé par défaut ; remplace le bouton de la Bibliothèque.
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid != null) void chargerReglageEtendue(pid);
+  });
+  async function setBibliothequeEtendue(v: boolean) {
+    const pid = get(currentProfileId);
+    if (pid == null) return;
+    try { await changerReglageEtendue(pid, v); }
+    catch { libErr = get(t)('settings.errSaveFailed'); }
+  }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
     try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
@@ -2835,6 +2867,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ecritureFichiersOn = before;
       ecritureFichiersErr = get(t)('settings.errSaveFailed');
     }
+  }
+  /** web#2635 — même patron que `setEcritureFichiers`. */
+  async function setImportPlaylistsScan(v: boolean) {
+    const before = importPlaylistsScan; importPlaylistsScan = v; importPlaylistsScanErr = null;
+    try {
+      await api.updateConfig({ [CLE_IMPORT_PLAYLISTS_SCAN]: v });
+    } catch {
+      importPlaylistsScan = before;
+      importPlaylistsScanErr = get(t)('settings.errSaveFailed');
+    }
+  }
+  /**
+   * web#2635 — retire les playlists importées au scan. Aucune route groupée
+   * côté serveur : on liste celles du profil propriétaire (1) et on les
+   * supprime une à une. Seules celles qui portent la description du scan
+   * partent ; les playlists créées dans Tune ne sont jamais touchées.
+   */
+  async function retirerPlaylistsDuScan() {
+    if (retraitScanEnCours) return;
+    retraitScanMsg = null;
+    let cibles;
+    try {
+      cibles = playlistsImporteesAuScan(await api.getToutesPlaylistsDuProfil(PROFIL_DES_PLAYLISTS_DU_SCAN));
+    } catch (e) {
+      retraitScanMsg = { ok: false, texte: get(t)('common.error' as any) + motifOuRien(e) };
+      return;
+    }
+    if (cibles.length === 0) {
+      retraitScanMsg = { ok: true, texte: get(t)('settings.removeScanPlaylistsNone' as any) };
+      return;
+    }
+    const n = String(cibles.length);
+    if (!(await dialogs.confirm(get(t)('settings.removeScanPlaylistsConfirm' as any).replace('{n}', n), { danger: true }))) return;
+    retraitScanEnCours = true;
+    const bilan = await retirerPlaylists(cibles, (id) => api.deletePlaylistDuProfil(id, PROFIL_DES_PLAYLISTS_DU_SCAN));
+    const parties = new Set(bilan.retirees);
+    magasinPlaylists.update((l) => l.filter((p) => p.id == null || !parties.has(p.id)));
+    retraitScanEnCours = false;
+    let texte = get(t)('settings.removeScanPlaylistsDone' as any).replace('{n}', String(bilan.retirees.length));
+    if (bilan.echecs > 0) texte += ' ' + get(t)('settings.removeScanPlaylistsFailed' as any).replace('{n}', String(bilan.echecs));
+    retraitScanMsg = { ok: bilan.echecs === 0, texte };
   }
   /** Même patron que `setEcritureFichiers` ; la valeur vaut au prochain démarrage. */
   async function setScanDemarrage(v: boolean) {
@@ -4402,7 +4475,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span>{$t('settings.podcastRewind' as any)}</span>
                     <span class="hint">{$t('settings.podcastRewindHint' as any)}</span>
                   </div>
-                  <input class="txt num" type="number" min="0" max="300" step="1"
+                  <input class="txt num" type="number" min={RECUL_PODCAST_MIN} max={RECUL_PODCAST_MAX} step="1"
                     value={podcastRewind} disabled={podcastRewindBusy}
                     aria-label={$t('settings.podcastRewind' as any)}
                     onchange={(e) => savePodcastRewind(e.currentTarget.value)} />
@@ -5927,7 +6000,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
-                        {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
+                        {#if tuneTestedDe(z)}<BadgeTuneTested appareil={tuneTestedDe(z)} />{/if}
                         <!--
                           VERROU DE VOLUME (#2395, #2506) — rebranché après la
                           phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
@@ -5938,6 +6011,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           affirmé : un « non verrouillé » faux coûte du matériel.
                         -->
                         <BadgeVerrouVolumeZone zoneId={z.id} />
+                        {#if z.id != null}
+                          <button type="button" class="tt-proposer" data-testid="proposer-tune-tested"
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
+                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {/if}
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
@@ -6538,6 +6616,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </details>
                 {/if}
               {/if}
+              <!-- tune-server-rust#7780 — remplace le bouton « Bibliothèque + favoris ». -->
+              <div class="row" data-bibliotheque-etendue>
+                <div class="lbl">
+                  <span>{$t('settings.extendedLibrary' as any)}</span>
+                  <span class="hint">{$t('settings.extendedLibraryHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$bibliothequeEtendueActive}
+                    onchange={(e) => setBibliothequeEtendue((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <AuditIntegrite />
@@ -6806,6 +6896,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
+              <!-- web#2635 (laguespa, fil 2510) : le réglage serveur
+                   `scan_import_playlists` n'était affiché nulle part. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.scanImportPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.scanImportPlaylistsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle={CLE_IMPORT_PLAYLISTS_SCAN} checked={importPlaylistsScan}
+                    onchange={(e) => setImportPlaylistsScan((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if importPlaylistsScanErr}<div class="errline">{importPlaylistsScanErr}</div>{/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.removeScanPlaylists' as any)}</span>
+                  <span class="hint">{$t('settings.removeScanPlaylistsHint' as any)}</span>
+                </div>
+                <button class="lnk danger" data-action="retirer-playlists-scan" disabled={retraitScanEnCours}
+                  onclick={retirerPlaylistsDuScan}>{$t('settings.removeScanPlaylists' as any)}</button>
+              </div>
+              {#if retraitScanMsg}
+                <div class={retraitScanMsg.ok ? 'okbox' : 'errline'} role="status">{retraitScanMsg.texte}</div>
+              {/if}
               <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
                    ici depuis la carte « Bibliothèque » (décision du 23/10). -->
               <SacdIsoStatus />
@@ -7549,7 +7664,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 {#if brAccesParCompte}
                   <ReglagesAccesParCompte />
-                {:else if brLien}
+                {/if}
+                {#if brLien}
                   <div class="row">
                     <div class="lbl">
                       <span>{$t('settings.remoteLink' as any)}</span>
@@ -8216,6 +8332,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   />
 {/if}
 
+{#if ficheTuneTested}
+  <ProposerTuneTested zoneId={ficheTuneTested.id} nom={ficheTuneTested.nom} dejaTeste={ficheTuneTested.teste} onClose={() => (ficheTuneTested = null)} />
+{/if}
+
 <input type="file" accept="image/*" bind:this={champPhotoZone} onchange={photoZoneChoisie}
   style="display:none" aria-hidden="true" tabindex="-1" />
 
@@ -8314,6 +8434,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
+  .tt-proposer{margin-left:auto; align-self:center; background:transparent; border:1px solid var(--v2-line2);
+    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 11.5px var(--v2-sans); cursor:pointer}
+  .tt-proposer:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}

@@ -3,9 +3,13 @@ import { estRefusPremium } from './premiumRefus';
 import { COMPTE_NON_RELIE, MODULE_NON_POSSEDE } from './refusModuleSortie';
 
 /**
- * Ce que le greffon Concerts refuse, ramené aux deux phrases que l'écran sait
- * dire (tune-server-rust#2363, décision de Bertrand du 25/09/2026 : pas de
- * version réduite, un compte gratuit reçoit un refus clair).
+ * Ce que le greffon Concerts refuse (tune-server-rust#2363).
+ *
+ * Depuis tune-server-rust#7865 (Bertrand, 04/11/2026), les concerts ne sont
+ * plus Premium : un serveur à jour ne refuse plus rien. Seul un serveur
+ * d'avant (rc10) renvoie encore ces refus, et l'écran lui dit alors de se
+ * mettre à jour, sans mention Premium ni lien vers l'offre. Les deux raisons
+ * restent distinguées pour le panneau et les essais.
  *
  * Le serveur garde toutes les routes du greffon par `ModuleRefusal`
  * (`premium_guard.rs`) — corps `{"error":"module_required","code":…}` — ou par
