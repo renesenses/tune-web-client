@@ -1,3 +1,4 @@
+import { notifierErreur } from './notifierErreur';
 import { get } from 'svelte/store';
 import { notifications } from './stores/notifications';
 import { t } from './i18n';
@@ -41,7 +42,7 @@ export async function runAsyncOp<T>(opts: AsyncOpOptions<T>): Promise<T | undefi
     return result;
   } catch (e: any) {
     notifications.dismiss(tid);
-    notifications.error(`${opts.errorPrefix ?? get(t)('common.errorLabel' as any)} : ${e?.message || e}`);
+    notifierErreur(opts.errorPrefix ?? get(t)('common.errorLabel' as any), e);
     return undefined;
   } finally {
     opts.setRunning?.(false);

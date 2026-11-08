@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Arbre des RAYONS de collections — tune-server-rust#4853.
@@ -95,7 +96,7 @@
     try {
       await geste();
     } catch (e: any) {
-      notifications.error(`${$t('v2.rayons.error' as any)} : ${e?.message ?? ''}`);
+      notifierErreur($t('v2.rayons.error' as any), e);
     }
     await onChange?.();
   }

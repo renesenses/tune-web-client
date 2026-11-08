@@ -34,7 +34,7 @@ const EXTS = ['.svelte', '.ts', '.js'];
 /** Noms propres affichés tels quels dans toutes les langues. */
 const MARQUES = ['Last.fm', 'Tune', 'TIDAL', 'Qobuz', 'Deezer', 'Spotify', 'OAAT', 'AirPlay', 'UPnP', 'DLNA', 'HTTP', 'API'];
 
-const APPEL = /notifications\s*\.\s*error\s*\(/g;
+const APPEL = /(?:notifications\s*\.\s*error|\bnotifierErreur)\s*\(/g;
 /** Un repli littéral : `e?.message ?? 'Erreur'`, `x || "Failed"`. */
 const REPLI = /(\?\?|\|\|)\s*(['"`])/g;
 const MOT = /\p{L}{2,}/u;

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Réveils — nouveau client (direction Levente).
    *
@@ -107,7 +108,7 @@
     } catch (e) {
       // L'écran d'origine avalait cette erreur : une liste vide se lisait
       // « aucun réveil », alors que le serveur n'avait pas répondu.
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     chargement = false;
   }
@@ -191,7 +192,7 @@
       await charger();
     } catch (e) {
       // Le formulaire RESTE ouvert : la saisie n'est pas perdue.
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     enregistrement = false;
   }
@@ -207,7 +208,7 @@
       });
       await charger();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -223,7 +224,7 @@
       await api.fetchJSON(`${api.BASE}/alarms/${r.id}`, { method: 'DELETE' });
       await charger();
     } catch (e) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

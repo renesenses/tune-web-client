@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Écran « Étiquettes » — le groupe Sélections de la barre latérale.
    *
@@ -333,7 +334,7 @@
       await charger();
       if (ouverte?.id === tag.id) ouverte = { ...ouverte, name: nom };
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
   async function supprimer(tag: UserTag) {
@@ -344,7 +345,7 @@
       if (ouverte?.id === tag.id) ouverte = null;
       await charger();
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -372,7 +373,7 @@
       saisie = '';
       await charger();
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     creation = false;
   }
@@ -408,7 +409,7 @@
     } catch (e: any) {
       etiquettes = avant;
       annonce = '';
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

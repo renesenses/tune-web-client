@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { onMount } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import * as api from '../../lib/api';
@@ -35,7 +36,7 @@
         knownGenres = [];
       }
     } catch (e: any) {
-      notifications.error(`${$t('genreTree.loadError')} : ${e?.message || e}`);
+      notifierErreur($t('genreTree.loadError'), e);
     }
     loading = false;
   }
@@ -47,7 +48,7 @@
       originalJson = JSON.stringify(tree);
       notifications.success($t('genreTree.saved'));
     } catch (e: any) {
-      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
+      notifierErreur($t('genreTree.saveError'), e);
     }
     saving = false;
   }
@@ -70,7 +71,7 @@
       await api.putGenreTree(tree);
       originalJson = JSON.stringify(tree);
     } catch (e: any) {
-      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
+      notifierErreur($t('genreTree.saveError'), e);
     }
   }
 
@@ -114,7 +115,7 @@
       );
       await load();
     } catch (e: any) {
-      notifications.error(`${$t('genreTree.saveError')} : ${e?.message || e}`);
+      notifierErreur($t('genreTree.saveError'), e);
       input.value = oldName;
     }
     saving = false;
@@ -155,7 +156,7 @@
       // Tags + server-side tree changed — reload from scratch.
       await load();
     } catch (e: any) {
-      notifications.error(`${$t('genreTree.renameGenreError')} : ${e?.message || e}`);
+      notifierErreur($t('genreTree.renameGenreError'), e);
     }
     renaming = null;
   }

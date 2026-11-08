@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
@@ -1039,7 +1040,7 @@ import { ICONES } from '../../lib/menuPiste';
       oublierStationDeLecture(np);
       relectureStation++;
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       gesteMesRadios = false;
     }

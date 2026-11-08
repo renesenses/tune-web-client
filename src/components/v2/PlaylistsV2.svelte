@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { get } from 'svelte/store';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
@@ -633,7 +634,7 @@
     } catch (e: any) {
       const impossible = motifSauvegardeImpossible(e);
       if (impossible) sauvegardeImpossible = impossible;
-      else notifications.error(errText(e) ?? $t('common.error' as any));
+      else notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     restauration = null;
   }

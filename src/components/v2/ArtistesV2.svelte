@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Onglet « Artistes » de la Bibliothèque — refait.
    *
@@ -354,7 +355,7 @@
         context_id: String(a.id),
       });
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

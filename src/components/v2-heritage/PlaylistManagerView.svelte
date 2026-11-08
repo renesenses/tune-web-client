@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
@@ -449,7 +450,7 @@
       // retour en arrière.
       if (selectedPlaylist?.id === id) selectedPlaylist = { ...selectedPlaylist, name: propre };
     } catch (err: any) {
-      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+      notifierErreur($tr('common.serverUnreachable'), err, { motifSeul: true });
     }
   }
 
@@ -780,7 +781,7 @@
       };
       mergeSelected = new Set([...mergeSelected].filter((c) => c !== mergeKey(item.service, id)));
     } catch (err: any) {
-      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+      notifierErreur($tr('common.serverUnreachable'), err, { motifSeul: true });
     }
     suppressionEnCours = null;
   }
@@ -892,7 +893,7 @@
       playlistsStore.set(list);
     } catch (e: any) {
       console.error('Quick transfer error:', e);
-      if (!noterRefusTransfert(e)) notifications.error(e.message || $tr('v2.pl.transferFailed' as any));
+      if (!noterRefusTransfert(e)) notifierErreur($tr('v2.pl.transferFailed' as any), e, { motifSeul: true });
     }
     qtTransferring = false;
   }
@@ -1390,7 +1391,7 @@
     try {
       await playAndSync(zone.id, { playlist_id: playlistId });
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 
@@ -1410,7 +1411,7 @@
       const n = await lireListeAleatoire(detailTracks, gestesDeZone(zone.id));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
     melangeEnCours = false;
   }
@@ -1457,7 +1458,7 @@
     try {
       await playAndSync(zone.id, { source: source as any, streaming_playlist_id: pl.source_id, start_index: startIndex });
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
   }
 

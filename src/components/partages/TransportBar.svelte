@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
@@ -516,7 +517,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       currentZoneId.set(id);
       $selecteurZoneOuvert = false;
     } catch (err: any) {
-      notifications.error(err?.message || String(err));
+      notifierErreur($t('common.errorLabel' as any), err, { motifSeul: true });
     } finally {
       rattachement = false;
     }
@@ -645,7 +646,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       $selecteurZoneOuvert = false;
       showTransferDropdown = false;
     } catch (err: any) {
-      notifications.error(err?.message || String(err));
+      notifierErreur($t('common.errorLabel' as any), err, { motifSeul: true });
     } finally {
       transferringTo = null;
     }

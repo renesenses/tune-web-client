@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -253,7 +254,7 @@
       const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     }
     melangeEnCours = false;
   }
@@ -404,7 +405,7 @@
     try {
       traiterIssue(await remplacer(cible, t, rang), t, rang);
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
     } finally {
       remplacementEnCours = false;
     }
@@ -417,7 +418,7 @@
     try {
       traiterIssue(await remplacer(cible, r.piste, r.rang, c.source_id), r.piste, r.rang);
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
     }
   }
 
@@ -434,7 +435,7 @@
         if (r.replaced.length) { load(); onChanged?.(); }
       }
     } catch (e) {
-      notifications.error(errText(e) ?? $tr('v2.pl.replaceError' as any));
+      notifierErreur($tr('v2.pl.replaceError' as any), e, { motifSeul: true });
     } finally {
       reparationEnCours = false;
     }
@@ -490,7 +491,7 @@
       onChanged?.();
     } catch (e) {
       tracks = avant;
-      notifications.error(errText(e) ?? $tr('common.error'));
+      notifierErreur($tr('common.error'), e, { motifSeul: true });
     } finally {
       deplacement = false;
     }

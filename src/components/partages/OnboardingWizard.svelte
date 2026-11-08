@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
@@ -313,7 +314,7 @@
       });
       await loadMusicRoots();
     } catch (e: any) {
-      notifications.error(e?.message || String(e));
+      notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true });
     }
     removingDir = null;
   }
@@ -347,7 +348,7 @@
       $streamingServicesStore = await api.getStreamingServices();
     } catch (e: any) {
       console.error('Toggle service error:', e);
-      notifications.error(e?.message || String(e));
+      notifierErreur(get(t)('common.errorLabel' as any), e, { motifSeul: true });
     }
   }
 

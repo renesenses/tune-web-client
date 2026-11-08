@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Étiquettes d'un objet : voir, ajouter, retirer.
    *
@@ -82,7 +83,7 @@
       // Étiquettes, au lieu de s'empiler au bout jusqu'au prochain chargement.
       posees = selonOrdre([...posees, tag], toutes);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }
@@ -95,7 +96,7 @@
       await retirerEtiquette(tag.id, laCible);
       posees = posees.filter((x) => x.id !== tag.id);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }
@@ -124,7 +125,7 @@
         saisie = '';
       }
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { plafondDuCurseur } from '../../lib/limitesVolume';
   import { volumeCommandable, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -132,7 +133,7 @@
       zones.update((zs) => zs.map((x) => (x.id === zid ? maj : x)));
       notifications.success($t('zone.outputChanged' as any));
     } catch (err: any) {
-      notifications.error(err?.message || $t('zone.changeOutputError' as any));
+      notifierErreur($t('zone.changeOutputError' as any), err, { motifSeul: true });
     } finally {
       sortieEnCours = null;
     }
@@ -154,7 +155,7 @@
       zones.set(await api.getZones().catch(() => []));
       notifications.success($t('zone.allZonesDeleted' as any));
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       toutSupprimerEnCours = false;
     }
@@ -176,7 +177,7 @@
       if (typeof rtt !== 'number') throw new Error(entree?.status ?? 'probe_failed');
       latences = { ...latences, [zid]: rtt };
     } catch (err: any) {
-      notifications.error(`${$t('zone.latency' as any)} : ${err?.message ?? ''}`);
+      notifierErreur($t('zone.latency' as any), err);
     } finally {
       mesureLatence = null;
     }

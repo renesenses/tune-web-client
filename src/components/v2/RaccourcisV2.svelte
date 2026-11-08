@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Écran des raccourcis, au thème du nouveau client.
@@ -61,7 +62,7 @@
       await updateShortcut(edite, { name: nom.trim(), icon: icone });
       edite = null;
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
     travail = false;
   }
@@ -74,7 +75,7 @@
     try {
       await removeShortcut(sc.id);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 
@@ -92,7 +93,7 @@
       // identifiants : elle remplace le magasin tel quel.
       await reorderShortcuts(copie);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
   }
 

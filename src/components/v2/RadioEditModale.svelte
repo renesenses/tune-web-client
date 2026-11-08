@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { notifierErreur } from '../../lib/notifierErreur';
   /**
    * Modifier une station de radio.
    *
@@ -69,7 +70,7 @@
       await api.deleteRadio(id);
       onDeleted?.(id);
     } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       travail = false;
     }
@@ -95,7 +96,7 @@
       onSaved?.(maj);
       notifications.success($t('radio.coverUploaded' as any));
     } catch (err: any) {
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     } finally {
       televersement = false;
     }
@@ -140,7 +141,7 @@
       onClose();
     } catch (err: any) {
       // On NE ferme pas : fermer sur échec ferait croire à un enregistrement.
-      notifications.error(err?.message ?? $t('common.error' as any));
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
     travail = false;
   }
