@@ -4523,6 +4523,8 @@ export default {
   "v2.pod.playOutputRefused": "Boxa a refuzat episodul: redarea nu a pornit.",
   "v2.pod.playOutputNotFound": "Boxa acestei zone nu a fost încă detectată. Reîncercați peste câteva secunde.",
   "v2.pod.playFailed": "Episodul nu poate fi redat.",
+  "v2.pod.fromStart": "De la început",
+  "v2.pod.resumeAt": "Reia de la {pos}",
   "v2.sup.stAnswered": "cu răspuns",
   "v2.sup.stResolved": "rezolvat",
   "v2.sup.team": "Echipa Tune",

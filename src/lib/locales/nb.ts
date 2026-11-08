@@ -4398,6 +4398,8 @@ export default {
   "v2.pod.playOutputRefused": "Høyttaleren avviste episoden: avspillingen startet ikke.",
   "v2.pod.playOutputNotFound": "Høyttaleren i denne sonen er ikke oppdaget ennå. Prøv igjen om noen sekunder.",
   "v2.pod.playFailed": "Kunne ikke spille episoden.",
+  "v2.pod.fromStart": "Fra begynnelsen",
+  "v2.pod.resumeAt": "Fortsetter ved {pos}",
   "v2.sup.stAnswered": "besvart",
   "v2.sup.stResolved": "løst",
   "v2.sup.team": "Tune-teamet",

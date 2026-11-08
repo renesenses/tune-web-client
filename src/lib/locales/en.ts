@@ -4543,6 +4543,8 @@ export default {
   "v2.pod.playOutputRefused": "The speaker refused the episode: playback did not start.",
   "v2.pod.playOutputNotFound": "This zone's speaker has not been discovered yet. Try again in a few seconds.",
   "v2.pod.playFailed": "Could not play the episode.",
+  "v2.pod.fromStart": "From the beginning",
+  "v2.pod.resumeAt": "Resumes at {pos}",
   "v2.sup.stAnswered": "answered",
   "v2.sup.stResolved": "resolved",
   "v2.sup.team": "Tune team",

@@ -4477,6 +4477,8 @@ export default {
   "v2.pod.playOutputRefused": "A hangszóró elutasította az epizódot: a lejátszás nem indult el.",
   "v2.pod.playOutputNotFound": "Ennek a zónának a hangszóróját még nem észlelte a rendszer. Próbálja újra néhány másodperc múlva.",
   "v2.pod.playFailed": "Az epizód nem játszható le.",
+  "v2.pod.fromStart": "Az elejétől",
+  "v2.pod.resumeAt": "Folytatás itt: {pos}",
   "v2.sup.stAnswered": "megválaszolva",
   "v2.sup.stResolved": "megoldva",
   "v2.sup.team": "Tune csapat",

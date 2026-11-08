@@ -4545,6 +4545,8 @@ export default {
   "v2.pod.playOutputRefused": "L'enceinte a refusé l'épisode : la lecture n'a pas démarré.",
   "v2.pod.playOutputNotFound": "L'enceinte de cette zone n'est pas encore détectée. Réessayez dans quelques secondes.",
   "v2.pod.playFailed": "Impossible de lire l'épisode.",
+  "v2.pod.fromStart": "Depuis le début",
+  "v2.pod.resumeAt": "Reprise à {pos}",
   "v2.sup.stAnswered": "réponse reçue",
   "v2.sup.stResolved": "résolu",
   "v2.sup.team": "Équipe Tune",

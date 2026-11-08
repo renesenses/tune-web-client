@@ -4396,6 +4396,8 @@ export default {
   "v2.pod.playOutputRefused": "Głośnik odrzucił odcinek: odtwarzanie nie rozpoczęło się.",
   "v2.pod.playOutputNotFound": "Głośnik tej strefy nie został jeszcze wykryty. Spróbuj ponownie za kilka sekund.",
   "v2.pod.playFailed": "Nie udało się odtworzyć odcinka.",
+  "v2.pod.fromStart": "Od początku",
+  "v2.pod.resumeAt": "Wznowienie od {pos}",
   "v2.sup.stAnswered": "odpowiedź otrzymana",
   "v2.sup.stResolved": "rozwiązane",
   "v2.sup.team": "Zespół Tune",
