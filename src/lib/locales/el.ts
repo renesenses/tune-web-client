@@ -6873,5 +6873,7 @@ export default {
   "login.unexpectedResponse": "Μη αναμενόμενη απάντηση από τον διακομιστή.",
   "login.networkError": "Σφάλμα δικτύου.",
   "login.errorStatus": "Σφάλμα {status}",
+  "v2.ambiance.acousticEnableError": "Δεν ήταν δυνατή η ενεργοποίηση της ακουστικής ανάλυσης",
+  "v2.pl.transferFailed": "Η μεταφορά απέτυχε",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

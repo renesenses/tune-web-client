@@ -7028,6 +7028,8 @@ export default {
   "login.unexpectedResponse": "服务器返回了意外的响应。",
   "login.networkError": "网络错误。",
   "login.errorStatus": "错误 {status}",
+  "v2.ambiance.acousticEnableError": "无法启用声学分析",
+  "v2.pl.transferFailed": "传输失败",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

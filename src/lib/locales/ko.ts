@@ -7028,6 +7028,8 @@ export default {
   "login.unexpectedResponse": "서버에서 예기치 않은 응답이 왔습니다.",
   "login.networkError": "네트워크 오류입니다.",
   "login.errorStatus": "오류 {status}",
+  "v2.ambiance.acousticEnableError": "음향 분석을 활성화할 수 없습니다",
+  "v2.pl.transferFailed": "전송하지 못했습니다",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

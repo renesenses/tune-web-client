@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 const RACINE = resolve(__dirname, '../../..');
 
 const FAUTIF = `<script lang="ts">
+  // Internes partagés entre les sous-modules api/*. (un faux début de bloc)
   import { notifications } from '../lib/stores/notifications';
   notifications.error('Failed to load OAAT groups');
   notifications.error("Enregistrement impossible");
@@ -20,6 +21,7 @@ const FAUTIF = `<script lang="ts">
   notifications.error(
     'Network error: server unreachable'
   );
+  try { x(); } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
 </script>
 `;
 
@@ -32,6 +34,8 @@ const PROPRE = `<script lang="ts">
   notifications.error(\`Last.fm : \${e?.message ?? e}\`);
   notifications.error(\`\${s.name} — \${r.validation_message}\`);
   notifications.error(res.error);
+  notifications.error(e?.message ?? $t('common.errorLabel'));
+  fetch('http://exemple'); notifications.error(e?.message || \`\${$t('a.b')}\`);
   notifications.success('Hello world');
 </script>
 `;
@@ -55,10 +59,11 @@ beforeAll(() => {
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('garde : pas de littéral dans notifications.error', () => {
-  it('rougit sur les quatre formes en dur et les nomme', () => {
+  it('rougit sur les cinq formes en dur et les nomme', () => {
     const r = garde('fautif');
     expect(r.status).toBe(1);
-    expect(r.stderr).toContain('4 message(s)');
+    expect(r.stderr).toContain('5 message(s)');
+    expect(r.stderr).toMatch(/Fautif\.svelte:\d+  Erreur/);
     expect(r.stderr).toContain('Failed to load OAAT groups');
     expect(r.stderr).toContain('Enregistrement impossible');
     expect(r.stderr).toContain('Lecture impossible');

@@ -19,6 +19,9 @@
  * Remplacement : `notifications.error($t('cle'))`, avec la clé dans les
  * quinze langues (le troisième contrôle de check-i18n exige la parité).
  *
+ * Le REPLI est lu aussi : `notifications.error(e?.message ?? 'Erreur')`
+ * affiche « Erreur » à un Japonais dès que l'exception n'a pas de message.
+ *
  * `I18N_RACINE` déplace la racine balayée, pour la contre-épreuve
  * (`src/lib/__tests__/gardeNotificationsLitterales.test.ts`).
  */
@@ -31,7 +34,9 @@ const EXTS = ['.svelte', '.ts', '.js'];
 /** Noms propres affichés tels quels dans toutes les langues. */
 const MARQUES = ['Last.fm', 'Tune', 'TIDAL', 'Qobuz', 'Deezer', 'Spotify', 'OAAT', 'AirPlay', 'UPnP', 'DLNA', 'HTTP', 'API'];
 
-const APPEL = /notifications\s*\.\s*error\s*\(\s*(['"`])/g;
+const APPEL = /notifications\s*\.\s*error\s*\(/g;
+/** Un repli littéral : `e?.message ?? 'Erreur'`, `x || "Failed"`. */
+const REPLI = /(\?\?|\|\|)\s*(['"`])/g;
 const MOT = /\p{L}{2,}/u;
 
 function* walk(dir) {
@@ -49,10 +54,14 @@ function* walk(dir) {
 /** Remplace les commentaires par des espaces (les lignes restent alignées). */
 function sansCommentaires(text) {
   const blanc = (m) => m.replace(/[^\n]/g, ' ');
+  // Les commentaires de ligne d'abord : `// sous-modules api/*.` ouvrirait
+  // sinon un faux commentaire de bloc qui avale le fichier jusqu'au prochain
+  // `*/`. Un `//` n'en ouvre un qu'en début de ligne ou après un blanc ou une
+  // ponctuation de code — pas dans `'http://…'`.
   return text
+    .replace(/(^|[\s;{}(),])\/\/[^\n]*/gm, (m, p) => p + blanc(m.slice(p.length)))
     .replace(/\/\*[\s\S]*?\*\//g, blanc)
-    .replace(/<!--[\s\S]*?-->/g, blanc)
-    .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, (m, p) => p + blanc(m.slice(p.length)));
+    .replace(/<!--[\s\S]*?-->/g, blanc);
 }
 
 /** Lit le littéral qui commence à `i` (sur le guillemet) ; rend sa partie fixe. */
@@ -88,15 +97,44 @@ function fautif(fixe) {
   return MOT.test(reste);
 }
 
+/** Les arguments de l'appel ouvert en `i` (juste après la parenthèse). */
+function arguments_(src, i) {
+  let prof = 1;
+  let j = i;
+  while (j < src.length && prof > 0) {
+    const c = src[j];
+    if (c === "'" || c === '"' || c === '`') {
+      // saute le littéral
+      let k = j + 1;
+      while (k < src.length && src[k] !== c) k += src[k] === '\\' ? 2 : 1;
+      j = k + 1;
+      continue;
+    }
+    if (c === '(') prof++;
+    else if (c === ')') prof--;
+    j++;
+  }
+  return src.slice(i, j - 1);
+}
+
 const fautes = [];
 for (const file of walk(RACINE)) {
   const src = sansCommentaires(readFileSync(file, 'utf8'));
   for (const m of src.matchAll(APPEL)) {
-    const debut = m.index + m[0].length - 1;
-    const fixe = partieFixe(src, debut);
-    if (!fautif(fixe)) continue;
+    const args = arguments_(src, m.index + m[0].length);
     const ligne = src.slice(0, m.index).split('\n').length;
-    fautes.push(`${relative('.', file)}:${ligne}  ${fixe.trim().slice(0, 90)}`);
+    const signaler = (fixe) => fautes.push(`${relative('.', file)}:${ligne}  ${fixe.trim().slice(0, 90)}`);
+    // 1. le message lui-même est un littéral
+    const tete = args.match(/^\s*/)[0].length;
+    if (/['"`]/.test(args[tete] ?? '')) {
+      const fixe = partieFixe(args, tete);
+      if (fautif(fixe)) { signaler(fixe); continue; }
+    }
+    // 2. un repli littéral derrière `??` ou `||`
+    for (const r of args.matchAll(REPLI)) {
+      const fixe = partieFixe(args, r.index + r[0].length - 1);
+      if (fautif(fixe)) { signaler(fixe); break; }
+    }
   }
 }
 

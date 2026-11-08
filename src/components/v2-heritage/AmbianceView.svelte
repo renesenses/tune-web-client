@@ -57,7 +57,7 @@
         $t('v2.ambiance.analysisOn' as any),
       );
     } catch (e: any) {
-      notifications.error(e?.message || "Impossible d'activer l'analyse acoustique");
+      notifications.error(e?.message || $t('v2.ambiance.acousticEnableError' as any));
     }
     enabling = false;
   }

@@ -6987,6 +6987,8 @@ export default {
   "login.unexpectedResponse": "Váratlan válasz a szervertől.",
   "login.networkError": "Hálózati hiba.",
   "login.errorStatus": "Hiba: {status}",
+  "v2.ambiance.acousticEnableError": "Az akusztikai elemzés nem kapcsolható be",
+  "v2.pl.transferFailed": "Az átvitel nem sikerült",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

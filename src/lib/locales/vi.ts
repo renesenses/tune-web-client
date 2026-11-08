@@ -6880,5 +6880,7 @@ export default {
   "login.unexpectedResponse": "Phản hồi không mong đợi từ máy chủ.",
   "login.networkError": "Lỗi mạng.",
   "login.errorStatus": "Lỗi {status}",
+  "v2.ambiance.acousticEnableError": "Không thể bật phân tích âm học",
+  "v2.pl.transferFailed": "Chuyển không thành công",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

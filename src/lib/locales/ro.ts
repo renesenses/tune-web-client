@@ -7028,6 +7028,8 @@ export default {
   "login.unexpectedResponse": "Răspuns neașteptat de la server.",
   "login.networkError": "Eroare de rețea.",
   "login.errorStatus": "Eroare {status}",
+  "v2.ambiance.acousticEnableError": "Analiza acustică nu a putut fi activată",
+  "v2.pl.transferFailed": "Transferul a eșuat",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

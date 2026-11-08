@@ -7050,6 +7050,8 @@ export default {
   "login.unexpectedResponse": "Réponse inattendue du serveur.",
   "login.networkError": "Erreur réseau.",
   "login.errorStatus": "Erreur {status}",
+  "v2.ambiance.acousticEnableError": "Impossible d'activer l'analyse acoustique",
+  "v2.pl.transferFailed": "Transfert impossible",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

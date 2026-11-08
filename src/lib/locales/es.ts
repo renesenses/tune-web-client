@@ -7028,6 +7028,8 @@ export default {
   "login.unexpectedResponse": "Respuesta inesperada del servidor.",
   "login.networkError": "Error de red.",
   "login.errorStatus": "Error {status}",
+  "v2.ambiance.acousticEnableError": "No se pudo activar el análisis acústico",
+  "v2.pl.transferFailed": "No se pudo transferir",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

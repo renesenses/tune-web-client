@@ -6873,5 +6873,7 @@ export default {
   "login.unexpectedResponse": "Nieoczekiwana odpowiedź serwera.",
   "login.networkError": "Błąd sieci.",
   "login.errorStatus": "Błąd {status}",
+  "v2.ambiance.acousticEnableError": "Nie udało się włączyć analizy akustycznej",
+  "v2.pl.transferFailed": "Przeniesienie nie powiodło się",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

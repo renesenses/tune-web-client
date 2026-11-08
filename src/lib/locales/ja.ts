@@ -7028,6 +7028,8 @@ export default {
   "login.unexpectedResponse": "サーバーから予期しない応答がありました。",
   "login.networkError": "ネットワークエラー。",
   "login.errorStatus": "エラー {status}",
+  "v2.ambiance.acousticEnableError": "音響解析を有効にできませんでした",
+  "v2.pl.transferFailed": "転送できませんでした",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

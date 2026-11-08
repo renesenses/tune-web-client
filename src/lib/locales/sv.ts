@@ -7027,4 +7027,6 @@ export default {
   "login.unexpectedResponse": "Oväntat svar från servern.",
   "login.networkError": "Nätverksfel.",
   "login.errorStatus": "Fel {status}",
+  "v2.ambiance.acousticEnableError": "Det gick inte att aktivera akustisk analys",
+  "v2.pl.transferFailed": "Överföringen misslyckades",
 } as const;
