@@ -859,12 +859,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function effacerPeriode() { periode = SANS_PERIODE; }
   /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
   const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
+  /** Comme `periodeAppliquee`, mais avec la période en cours de glisser (compteur). */
+  const periodeAffichee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periodeVue));
+  // web#2732 — l'adresse n'est écrite que 300 ms après le DERNIER changement :
+  // Chrome limite replaceState (~100 appels / 10 s) et gèle l'onglet au-delà.
   $effect(() => {
     const p = periode;
     if (depot || typeof window === 'undefined' || !window.history) return;
-    const voulu = ecrirePeriode(window.location.search, p);
-    if (voulu === window.location.search) return;
-    window.history.replaceState(window.history.state, '', window.location.pathname + voulu + window.location.hash);
+    const t = setTimeout(() => {
+      const voulu = ecrirePeriode(window.location.search, p);
+      if (voulu === window.location.search) return;
+      window.history.replaceState(window.history.state, '', window.location.pathname + voulu + window.location.hash);
+    }, 300);
+    return () => clearTimeout(t);
   });
   // En quittant l'écran, l'adresse de la vue suivante ne garde pas la période ;
   // l'entrée de la Bibliothèque, elle, la garde pour le Précédent.
@@ -962,7 +969,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // ── web#2695 — les deux POIGNÉES de la période sur la frise ─────────────
   let barsEl = $state<HTMLDivElement | null>(null);
   let poigneeTiree: 'de' | 'a' | null = null;
-  const bornes = $derived(bornesPeriode(periode));
+  // web#2732 — pendant le glisser, seule `periodeTiree` (locale) bouge ; la grille
+  // ne voit `periode` qu'au relâchement. `periodeVue` pilote poignées et compteur.
+  let periodeTiree = $state<Periode | null>(null);
+  const periodeVue = $derived(periodeTiree ?? periode);
+  const bornes = $derived(bornesPeriode(periodeVue));
   const borneDansFrise = (v: number) => Math.min(histogram.maxYear, Math.max(histogram.min, v));
   const valeurDe = $derived.by(() => borneDansFrise(bornes.de ?? histogram.min));
   const valeurA = $derived.by(() => borneDansFrise(bornes.a ?? histogram.maxYear));
@@ -982,17 +993,42 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     e.stopPropagation();
     poserBorne(cote, v);
   }
+  let imageTiree = 0;
+  let anTire: number | null = null;
+  function majTiree() {
+    imageTiree = 0;
+    if (!poigneeTiree || anTire == null) return;
+    const an = anTire;
+    periodeTiree = poigneeTiree === 'de'
+      ? { de: Math.min(an, valeurA), a: bornes.a }
+      : { de: bornes.de, a: Math.max(an, valeurDe) };
+  }
   function poigneeSaisie(e: PointerEvent, cote: 'de' | 'a') {
     e.preventDefault();
     poigneeTiree = cote;
+    anTire = null;
     try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* pointeur déjà relâché */ }
   }
   function poigneeGlisse(e: PointerEvent) {
     if (!poigneeTiree || !barsEl) return;
     const r = barsEl.getBoundingClientRect();
-    poserBorne(poigneeTiree, anneeSousLePointeur(e.clientX - r.left, r.width, histogram.min, histogram.bars.length));
+    anTire = anneeSousLePointeur(e.clientX - r.left, r.width, histogram.min, histogram.bars.length);
+    if (typeof requestAnimationFrame !== 'function') { majTiree(); return; }
+    if (!imageTiree) imageTiree = requestAnimationFrame(majTiree);
   }
-  function poigneeLachee() { poigneeTiree = null; }
+  function poigneeLachee() {
+    if (imageTiree && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(imageTiree);
+    imageTiree = 0;
+    if (poigneeTiree && anTire != null) {
+      majTiree();
+      const fin = periodeTiree;
+      periodeTiree = null;
+      if (fin) periode = fin;
+    }
+    periodeTiree = null;
+    anTire = null;
+    poigneeTiree = null;
+  }
   /** Position d'une borne sur la frise : début de l'année « De », fin de l'année « À ». */
   const pctBorne = (an: number, fin: boolean) =>
     histogram.bars.length ? ((an - histogram.min + (fin ? 1 : 0)) / histogram.bars.length) * 100 : 0;
@@ -1238,12 +1274,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       const y = albumYear(a);
       if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
     }
-    if (!counts.size) return { bars: [] as { year: number; n: number }[], max: 0, min: 0, maxYear: 0 };
+    if (!counts.size) return { bars: [] as { year: number; n: number }[], max: 0, min: 0, maxYear: 0, total: 0 };
     const years = [...counts.keys()].sort((x, z) => x - z);
     const min = years[0], maxYear = years[years.length - 1];
     const bars: { year: number; n: number }[] = [];
     for (let y = min; y <= maxYear; y++) bars.push({ year: y, n: counts.get(y) ?? 0 });
-    return { bars, max: Math.max(...counts.values()), min, maxYear };
+    let total = 0;
+    for (const n of counts.values()) total += n;
+    return { bars, max: Math.max(...counts.values()), min, maxYear, total };
   });
 
   /** Repères de décennie sous la frise, alignés sur les barres. */
@@ -1630,9 +1668,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
   /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
-  const nPeriode = $derived(periodeAppliquee ? src.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
+  // web#2732 — lu dans l'histogramme (une barre par année), sans repasser sur `src`.
+  const nPeriode = $derived(periodeAffichee ? histogram.bars.reduce((n, b) => n + (dansPeriode(b.year, periodeVue) ? b.n : 0), 0) : 0);
   /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
-  const nSansAnnee = $derived(periodeAppliquee ? src.length - couvertureAnnees(src, modeAnnee) : 0);
+  const nSansAnnee = $derived(periodeAffichee ? src.length - histogram.total : 0);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
@@ -3504,7 +3543,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
           onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
       </label>
-      {#if periodeAppliquee}
+      {#if periodeAffichee}
         <span class="periode-n" aria-live="polite">{$tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))}</span>
         {#if nSansAnnee > 0}
           <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
@@ -3550,7 +3589,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              (dix ans), Début / Fin. À la souris ou au doigt : on les tire. -->
         {#each poignees as { cote, val, fin } (cote)}
           <span class="poignee poignee-{cote}" role="slider" tabindex="0"
-            class:posee={periodeAppliquee}
+            class:posee={periodeAffichee}
             aria-label={$tr((cote === 'de' ? 'v2.lib.periodStart' : 'v2.lib.periodEnd') as any)}
             aria-valuemin={histogram.min} aria-valuemax={histogram.maxYear} aria-valuenow={val}
             aria-orientation="horizontal"
