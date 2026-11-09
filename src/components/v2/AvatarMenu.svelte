@@ -18,7 +18,8 @@
   import { t } from '../../lib/i18n';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
-  import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
+  import { tabLabel } from '../../lib/v2Settings';
+  import { searchReglages, masqueAuNiveau, type ReglageHit } from '../../lib/reglagesIndex';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
   import { ssoDisponible } from '../../lib/bridge';
@@ -285,15 +286,16 @@
   function setTheme(t: V2Theme) {
     preferences.update((p) => ({ ...p, v2Theme: t }));
   }
-  // Recherche de réglages : lit la MÊME carte que l'écran Réglages v2
-  // (lib/v2Settings), donc l'index ne peut pas diverger de l'écran réel.
+  // Recherche de réglages : lit le MÊME index que la recherche de l'écran
+  // Réglages (lib/reglagesIndex, #2735), réglage par réglage — l'index et
+  // l'écran ne peuvent pas diverger, un test vérifie chaque ancre.
   // On résout les clés i18n pour chercher sur les libellés affichés — un
   // utilisateur tape « me suivre », pas « settings.followMe ».
   let q = $state('');
-  const hits = $derived<V2SettingsHit[]>(searchSettings(q, (k) => $t(k as any)));
+  const hits = $derived<ReglageHit[]>(searchReglages(q, (k) => $t(k as any), 8));
 
-  function openSetting(h: V2SettingsHit) {
-    v2SettingsTarget.set({ tab: h.tab.id, section: h.section.id });
+  function openSetting(h: ReglageHit) {
+    v2SettingsTarget.set({ tab: h.tab.id, section: h.section.id, reglage: h.reglage.id });
     activeView.set('settings');
     q = '';
     close();
@@ -438,10 +440,10 @@
       {#if q.trim().length >= 2}
         <div class="hits">
           {#if hits.length}
-            {#each hits as h (h.tab.id + '/' + h.section.id)}
-              <button class="hit" onclick={() => openSetting(h)}>
+            {#each hits as h (h.reglage.id)}
+              <button class="hit" onclick={() => openSetting(h)} title={h.chemin.join(' › ')}>
                 <span class="hl" use:bulleTexte>{h.label}</span>
-                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}</span>
+                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · {$t(LEVEL_LABEL_KEYS[h.niveau] as any)}{/if}</span>
               </button>
             {/each}
           {:else}
