@@ -37,8 +37,10 @@ describe('fiche album v2', () => {
     expect(i).toBeGreaterThan(-1);
     const bloc = ALBUM.slice(i, ALBUM.indexOf('{/if}\n', ALBUM.indexOf('<ReportButton entity="cover"', i)));
     expect(bloc).toContain('<AlbumRating albumId={album.id} />');
-    expect(bloc).toContain('onclick={reidentifier}');
     expect(bloc).toContain('<ReportButton entity="cover"');
+    // web#2736 — « Ré-identifier » est une entrée du menu « … » (groupe
+    // Bibliothèque), sous la même garde : un album de NOTRE bibliothèque.
+    expect(ALBUM).toMatch(/if \(album\.id != null && !depot\) l\.push\(\{ groupe: biblio,\s*cle: reidentification \? 'library\.reidentifying' : 'library\.reidentify'[^\n]*\n\s*faire: \(\) => void reidentifier\(\)/);
   });
   it('la ré-identification rend chaque verdict, y compris décevant', () => {
     // Depuis les menus d'objets (26/09/2026), la fiche et le menu « … » d'un

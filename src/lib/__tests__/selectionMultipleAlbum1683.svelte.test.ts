@@ -32,6 +32,7 @@ import {
   SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
   restreindre, toutOuRien,
 } from '../selectionPistes';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -111,7 +112,8 @@ function poser(props: Record<string, unknown>) {
   flushSync();
 }
 
-const boutonSelection = () => hote?.querySelector<HTMLButtonElement>('[data-selection-album]') ?? null;
+// web#2736 — « Sélectionner des pistes » est une entrée du menu « … » de la fiche.
+const boutonSelection = () => (hote ? entreeDuMenu(hote, '[data-selection-album]') : null);
 const cases = () => Array.from(hote?.querySelectorAll<HTMLInputElement>('input[data-case-piste]') ?? []);
 const caseDe = (id: number) => hote!.querySelector<HTMLInputElement>(`input[data-case-piste="${id}"]`)!;
 const barre = (attr: string) => hote!.querySelector<HTMLButtonElement>(`.barre-selection [${attr}]`)!;

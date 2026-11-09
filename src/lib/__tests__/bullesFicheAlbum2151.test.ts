@@ -17,6 +17,7 @@ import { locale } from '../i18n';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
+import { entreesDuMenu, MENU_LECTURE, MENU_PLUS } from './aides/menuFiche';
 
 const fr = dictionnaire('fr');
 const ALBUM = { id: 959, title: 'Akalé Wubé', artist_name: 'Akalé Wubé', year: 2010 } as Album;
@@ -70,9 +71,19 @@ async function ouvrir(): Promise<HTMLElement> {
   return hote;
 }
 
-const libelle = (b: HTMLButtonElement) => (b.textContent ?? '').replace(/\s+/g, ' ').trim();
+const libelle = (b: HTMLElement) => (b.textContent ?? '').replace(/\s+/g, ' ').trim();
+/**
+ * web#2736 — l'en-tête ne garde que Lecture (et sa flèche), Aléatoire, Favori
+ * et « … » ; les autres gestes sont des ENTRÉES de menu, qui portent la même
+ * bulle (`title`). Le témoin lit l'en-tête, puis chacun des deux menus.
+ */
+const gestes = (h: HTMLElement): HTMLElement[] => [
+  ...h.querySelectorAll<HTMLElement>('.actions button'),
+  ...entreesDuMenu(h, MENU_LECTURE),
+  ...entreesDuMenu(h, MENU_PLUS),
+];
 const bouton = (h: HTMLElement, texte: string) =>
-  [...h.querySelectorAll<HTMLButtonElement>('.actions button')].find((b) => libelle(b) === texte);
+  gestes(h).find((b) => libelle(b) === texte || b.getAttribute('aria-label') === texte);
 
 describe('#2151 — chaque bouton de la fiche album a une bulle qui dit ce qu’il fait', () => {
   it('🔴 les quatre boutons nommés par Didier ont leur bulle', { timeout: 60_000 }, async () => {
@@ -80,7 +91,7 @@ describe('#2151 — chaque bouton de la fiche album a une bulle qui dit ce qu’
     for (const [cle, tip] of [
       ['v2.album.shuffle', 'v2.album.shuffleTip'],
       ['v2.album.playNext', 'v2.album.playNextTip'],
-      ['v2.album.addQueue', 'v2.album.addQueueTip'],
+      ['v2.menu.addToQueue', 'v2.album.addQueueTip'],
       ['library.reidentify', 'v2.album.reidentifyTip'],
     ]) {
       const b = bouton(h, fr[cle]);
@@ -92,12 +103,16 @@ describe('#2151 — chaque bouton de la fiche album a une bulle qui dit ce qu’
 
   it('🔴 aucune bulle ne recopie le libellé de son bouton', { timeout: 60_000 }, async () => {
     const h = await ouvrir();
-    const boutons = [...h.querySelectorAll<HTMLButtonElement>('.actions button')].filter((b) => libelle(b));
+    // web#2736 — Aléatoire et Favori sont des boutons d'icône seule : leur nom
+    // est leur `aria-label`. Les deux boutons qui OUVRENT un menu (« … » et la
+    // flèche de Lecture) n'ont pas de geste propre à décrire.
+    const nom = (b: HTMLElement) => libelle(b) || (b.hasAttribute('aria-haspopup') ? '' : b.getAttribute('aria-label') ?? '');
+    const boutons = gestes(h).filter((b) => nom(b));
     expect(boutons.length, 'rangées d’actions vides — témoin sans objet').toBeGreaterThanOrEqual(8);
     for (const b of boutons) {
       const titre = (b.getAttribute('title') ?? '').trim();
-      expect(titre, `« ${libelle(b)} » sans bulle`).not.toBe('');
-      expect(titre, `la bulle de « ${libelle(b)} » recopie son libellé`).not.toBe(libelle(b));
+      expect(titre, `« ${nom(b)} » sans bulle`).not.toBe('');
+      expect(titre, `la bulle de « ${nom(b)} » recopie son libellé`).not.toBe(nom(b));
     }
   });
 
