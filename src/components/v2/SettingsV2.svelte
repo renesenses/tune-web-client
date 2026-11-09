@@ -154,6 +154,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
+  import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -7442,6 +7443,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if st.username}<em>{st.username}</em>{/if}
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
                       </div>
+
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — Spotify Connect d'abord : pour
+                             seulement écouter, aucun compte développeur. -->
+                        <SpotifyConnectInvite onActive={(etat) => { spc = etat; }} />
+                      {/if}
 
                       <!-- #762 : le geste qui manquait. Sans lui, un service
                            arrivé désactivé le restait à vie — et « Se
