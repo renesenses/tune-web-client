@@ -6922,5 +6922,12 @@ export default {
   "reglages.termes.compteMozaiklabs": "λογαριασμός, σύνδεση, σύνδεση λογαριασμού",
   "reglages.termes.telemetrie": "στατιστικά χρήσης, απόρρητο, ανώνυμα δεδομένα, συγκατάθεση",
   "reglages.termes.licenceActiver": "κλειδί άδειας, αγορά, συνδρομή, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Βοήθεια: {libelle}",
+  "reglages.fiche.volume": "Ένταση",
+  "reglages.fiche.qualite": "Ποιότητα",
+  "reglages.fiche.avance": "Για προχωρημένους",
+  "reglages.fiche.avanceResume": "διόρθωση απολαβής, μετατόπιση στίχων, τίτλος ραδιοφώνου μέσω DLNA, δημοσίευση στο δίκτυο",
+  "reglages.fiche.appareilResume": "μάρκα, μοντέλο, φωτογραφία, Tune tested",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

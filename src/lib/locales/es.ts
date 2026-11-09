@@ -7077,6 +7077,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "cuenta, inicio de sesión, iniciar sesión, vincular cuenta",
   "reglages.termes.telemetrie": "estadísticas de uso, privacidad, datos anónimos, consentimiento",
   "reglages.termes.licenceActiver": "clave de licencia, comprar, suscripción, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Ayuda: {libelle}",
+  "reglages.fiche.volume": "Volumen",
+  "reglages.fiche.qualite": "Calidad",
+  "reglages.fiche.avance": "Avanzado",
+  "reglages.fiche.avanceResume": "corrección de ganancia, desfase de letras, título de radio por DLNA, publicar en la red",
+  "reglages.fiche.appareilResume": "marca, modelo, foto, Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

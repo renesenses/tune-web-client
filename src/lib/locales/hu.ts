@@ -7036,6 +7036,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "fiók, bejelentkezés, fiók összekapcsolása",
   "reglages.termes.telemetrie": "használati statisztika, adatvédelem, névtelen adatok, hozzájárulás",
   "reglages.termes.licenceActiver": "licenckulcs, vásárlás, előfizetés, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Súgó: {libelle}",
+  "reglages.fiche.volume": "Hangerő",
+  "reglages.fiche.qualite": "Minőség",
+  "reglages.fiche.avance": "Speciális",
+  "reglages.fiche.avanceResume": "erősítés-korrekció, dalszöveg-eltolás, rádiócím DLNA-n, közzététel a hálózaton",
+  "reglages.fiche.appareilResume": "márka, modell, fénykép, Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

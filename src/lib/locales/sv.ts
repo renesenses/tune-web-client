@@ -7076,4 +7076,11 @@ export default {
   "reglages.termes.compteMozaiklabs": "konto, logga in, koppla konto",
   "reglages.termes.telemetrie": "användningsstatistik, integritet, anonyma data, samtycke",
   "reglages.termes.licenceActiver": "licensnyckel, köpa, prenumeration, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Hjälp: {libelle}",
+  "reglages.fiche.volume": "Volym",
+  "reglages.fiche.qualite": "Kvalitet",
+  "reglages.fiche.avance": "Avancerat",
+  "reglages.fiche.avanceResume": "förstärkningsjustering, textförskjutning, radiotitel via DLNA, publicera i nätverket",
+  "reglages.fiche.appareilResume": "märke, modell, foto, Tune tested",
 } as const;

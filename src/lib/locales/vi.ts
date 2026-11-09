@@ -6929,5 +6929,12 @@ export default {
   "reglages.termes.compteMozaiklabs": "tài khoản, đăng nhập, liên kết tài khoản",
   "reglages.termes.telemetrie": "thống kê sử dụng, quyền riêng tư, dữ liệu ẩn danh, đồng ý",
   "reglages.termes.licenceActiver": "khóa giấy phép, mua, gói đăng ký, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Trợ giúp: {libelle}",
+  "reglages.fiche.volume": "Âm lượng",
+  "reglages.fiche.qualite": "Chất lượng",
+  "reglages.fiche.avance": "Nâng cao",
+  "reglages.fiche.avanceResume": "tinh chỉnh độ lợi, lệch lời bài hát, tên đài qua DLNA, công bố trên mạng",
+  "reglages.fiche.appareilResume": "hãng, mẫu, ảnh, Tune tested",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

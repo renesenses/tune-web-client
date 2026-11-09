@@ -177,7 +177,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-debit-max', section: 'perZone', labelKey: 'settings.maxSampleRate', descKey: 'settings.maxSampleRateHint', techniques: ['kHz', 'sample rate'], min: 'intermediate' },
   { id: 'zone-decalage-paroles', section: 'perZone', labelKey: 'settings.lyricsOffset', techniques: ['lyrics'], min: 'intermediate' },
   { id: 'zone-volume-fixe', section: 'perZone', labelKey: 'v2.lbl.fixedVolume', techniques: ['100'], min: 'intermediate' },
-  { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoLocalOnly', techniques: ['mono', 'downmix'], min: 'intermediate' },
+  { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
   { id: 'zone-publier-upnp', section: 'perZone', labelKey: 'devices.upnpRenderer', descKey: 'devices.upnpRendererHint', techniques: ['UPnP', 'DLNA', 'MediaRenderer'], min: 'intermediate' },
   { id: 'zone-bitperfect-strict', section: 'perZone', labelKey: 'bitperfect.strictLabel', descKey: 'bitperfect.strictHelp', termesKey: 'reglages.termes.zoneBitperfectStrict', techniques: ['bit-perfect', 'PURE'], min: 'intermediate' },
   { id: 'zone-titre-radio-dlna', section: 'perZone', labelKey: 'radioDidl.label', descKey: 'radioDidl.help', techniques: ['DLNA', 'DIDL', 'ICY'], min: 'intermediate' },

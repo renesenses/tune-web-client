@@ -6922,5 +6922,12 @@ export default {
   "reglages.termes.compteMozaiklabs": "konto, logg inn, koble konto",
   "reglages.termes.telemetrie": "bruksstatistikk, personvern, anonyme data, samtykke",
   "reglages.termes.licenceActiver": "lisensnøkkel, kjøpe, abonnement, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Hjelp: {libelle}",
+  "reglages.fiche.volume": "Volum",
+  "reglages.fiche.qualite": "Kvalitet",
+  "reglages.fiche.avance": "Avansert",
+  "reglages.fiche.avanceResume": "forsterkningsjustering, tekstforskyvning, radiotittel via DLNA, publiser på nettverket",
+  "reglages.fiche.appareilResume": "merke, modell, bilde, Tune tested",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

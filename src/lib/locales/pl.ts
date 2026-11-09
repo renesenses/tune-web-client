@@ -6922,5 +6922,12 @@ export default {
   "reglages.termes.compteMozaiklabs": "konto, logowanie, zaloguj, połącz konto",
   "reglages.termes.telemetrie": "statystyki użycia, prywatność, dane anonimowe, zgoda",
   "reglages.termes.licenceActiver": "klucz licencyjny, kup, subskrypcja, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Pomoc: {libelle}",
+  "reglages.fiche.volume": "Głośność",
+  "reglages.fiche.qualite": "Jakość",
+  "reglages.fiche.avance": "Zaawansowane",
+  "reglages.fiche.avanceResume": "korekta wzmocnienia, przesunięcie tekstu, tytuł radia przez DLNA, publikacja w sieci",
+  "reglages.fiche.appareilResume": "marka, model, zdjęcie, Tune tested",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

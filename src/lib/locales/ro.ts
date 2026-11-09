@@ -7077,6 +7077,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "cont, autentificare, conectare, asociere cont",
   "reglages.termes.telemetrie": "statistici de utilizare, confidențialitate, date anonime, consimțământ",
   "reglages.termes.licenceActiver": "cheie de licență, cumpărare, abonament, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "Ajutor: {libelle}",
+  "reglages.fiche.volume": "Volum",
+  "reglages.fiche.qualite": "Calitate",
+  "reglages.fiche.avance": "Avansat",
+  "reglages.fiche.avanceResume": "corecție de câștig, decalaj versuri, titlu radio prin DLNA, publicare în rețea",
+  "reglages.fiche.appareilResume": "marcă, model, fotografie, Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

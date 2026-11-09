@@ -189,6 +189,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import RechercheReglagesV2 from './RechercheReglagesV2.svelte';
   import { reglageParId, masqueAuNiveau, niveauDuReglage, ongletDuReglage, type Reglage } from '../../lib/reglagesIndex';
   import PluginsV2 from './PluginsV2.svelte';
+  import AideInfo from './AideInfo.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
   import VuMetreCanal from '../partages/VuMetreCanal.svelte';
@@ -350,6 +351,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // compacte (clé `cleZone`). Rien d'ouvert par défaut : la liste se lit d'un
   // coup d'œil, les détails s'ouvrent au clic.
   let zoneOuverte = $state<string | null>(null);
+  /**
+   * #2735 — les sections repliées de la fiche d'appareil (Avancé, Correction
+   * de pièce, Appareil) GARDENT leur état : d'une zone à l'autre et d'une
+   * visite à l'autre, dans ce navigateur. Repliées par défaut.
+   */
+  const CLE_REPLIS_FICHE = 'tune-fiche-appareil-replis';
+  type ReplisFiche = { avance: boolean; fir: boolean; appareil: boolean };
+  function lireReplisFiche(): ReplisFiche {
+    const defaut: ReplisFiche = { avance: false, fir: false, appareil: false };
+    try {
+      const brut = JSON.parse(localStorage.getItem(CLE_REPLIS_FICHE) ?? 'null');
+      if (brut && typeof brut === 'object') {
+        for (const k of Object.keys(defaut) as (keyof ReplisFiche)[]) if (brut[k] === true) defaut[k] = true;
+      }
+    } catch { /* stockage indisponible : repliées */ }
+    return defaut;
+  }
+  let replisFiche = $state<ReplisFiche>(lireReplisFiche());
+  $effect(() => {
+    const v = JSON.stringify(replisFiche);
+    try { localStorage.setItem(CLE_REPLIS_FICHE, v); } catch { /* ignore */ }
+  });
   function ouvrirZone(cle: string | null) {
     zoneOuverte = cle;
     if (cle) tick().then(() => amenerSousEntete(document.querySelector(`[data-carte-zone="${cle}"]`)));
@@ -445,10 +468,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // #1427 — « Correction de pièce » du menu de zone : le bloc FIR de la
       // fiche, pas le haut de la fiche (DSD, débit, canaux… le précèdent).
       const bloc = target.bloc;
-      tick().then(() => amenerSousEntete(
-        (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
-          ?? document.getElementById(`zc-${target.zone}`),
-      ));
+      tick().then(() => {
+        const el = (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
+          ?? document.getElementById(`zc-${target.zone}`);
+        // #2735 — le bloc FIR vit dans la section repliée « Correction de pièce ».
+        if (el) ouvrirLesReplis(el);
+        amenerSousEntete(el);
+      });
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
@@ -4381,6 +4407,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * la page (serveur sans la fonction, zone non choisie) retombe sur sa carte.
    */
   const DUREE_SURBRILLANCE_MS = 2200;
+  /** Ouvre toute section repliée (`<details>`) qui contient l'élément visé,
+   *  sinon le réglage serait atteint… et invisible. Celles de la fiche
+   *  d'appareil passent par `replisFiche`, pour que leur état tienne. */
+  function ouvrirLesReplis(el: HTMLElement) {
+    for (let d = el.closest('details'); d; d = d.parentElement?.closest('details') ?? null) {
+      const cle = d.getAttribute('data-repli') as keyof ReplisFiche | null;
+      if (cle && cle in replisFiche) replisFiche[cle] = true;
+      d.open = true;
+    }
+  }
   function allerAuReglage(r: Reglage) {
     tabId = ongletDuReglage(r);
     highlight = null;
@@ -4395,6 +4431,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const el = racine?.querySelector<HTMLElement>(`[data-reglage="${r.id}"]`)
         ?? racine?.querySelector<HTMLElement>(`[data-section="${r.section}"]`);
       if (!el) return;
+      ouvrirLesReplis(el);
       amenerSousEntete(el);
       el.classList.remove('reglage-eclaire');
       void el.offsetWidth; // relance l'animation si on revient au même réglage
@@ -6068,6 +6105,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if cleZone(z) === zoneOuverte}
                     <div class="zc" id={`zc-${z.id}`} data-carte-zone={cleZone(z)} role="region"
                       aria-label={$t('v2.dev.detailTitle' as any).replace('{name}', z.name)} class:hl={cibleZone === z.id}>
+                      <!--
+                        #2735 — FICHE D'APPAREIL réorganisée (Bertrand, 09/11/2026,
+                        capture de l'Eversolo DMP-A8 : « écran beaucoup trop
+                        chargé »), sur le modèle des fiches d'Apple :
+                          VOLUME / QUALITÉ / CANAUX en vue ;
+                          ▸ Avancé, ▸ Correction de pièce, ▸ Appareil repliés ;
+                          l'aide derrière ⓘ (AideInfo) ;
+                          un réglage SANS EFFET pour ce type de sortie est caché,
+                          plus expliqué (sortie mono hors sortie locale, canaux
+                          verrouillés par le serveur, limites refusées).
+                        Les sections repliées gardent leur état (`replisFiche`),
+                        et la recherche ouvre celle qui porte le réglage visé.
+                        Les gardes de niveau sont celles d'avant, réglage par
+                        réglage : rien ne descend ni ne monte de niveau.
+                      -->
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
@@ -6077,40 +6129,114 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              auraient divergé. -->
                         {#if tuneTestedDe(z)}<BadgeTuneTested appareil={tuneTestedDe(z)} />{/if}
                         <!--
-                          VERROU DE VOLUME (#2395, #2506) — rebranché après la
-                          phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
-                          Lecture seule : il dit ce qui s'applique VRAIMENT à
-                          cette zone (valeur résolue par le serveur) et d'où le
-                          réglage vient — général hérité, ou surcharge propre à
-                          la zone. Il se tait tant que le serveur n'a rien
-                          affirmé : un « non verrouillé » faux coûte du matériel.
+                          VERROU DE VOLUME (#2395, #2506) — lecture seule : ce qui
+                          s'applique VRAIMENT à cette zone, et d'où ça vient. Il se
+                          tait tant que le serveur n'a rien affirmé.
                         -->
                         <BadgeVerrouVolumeZone zoneId={z.id} />
-                        {#if z.id != null}
-                          <button data-reglage="zone-tune-tested" type="button" class="tt-proposer" data-testid="proposer-tune-tested"
-                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
-                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {#if z.image_path}
+                          <span class="zch-photo"><AlbumArt coverPath={z.image_path} albumId={null} size={40} alt={z.name} /></span>
                         {/if}
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
                         <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
                       {/if}
-                      <!--
-                        NIVEAU ESSENTIEL — Bertrand, 23/09/2026 : le choix de la
-                        disposition multicanal doit être VISIBLE en mode
-                        Essentiel. La section « Réglages par zone » descend donc
-                        à `beginner` (voir `lib/v2Settings`), mais PAS tout ce
-                        qu'elle contient : DSD, débit maximal, gain, FIR,
-                        éditeur d'appareil sont rangés `expert` ou
-                        `intermediate` par l'écran actuel (`lib/settingLevels`)
-                        et le restent ici. Deux gardes de niveau encadrent le
-                        bloc CANAUX, qui reste à sa place — avec ce qui traite
-                        le son — plutôt que d'être copié dans une section à
-                        part : un réglage à deux endroits finit par diverger.
-                      -->
+
+                      <!-- ── VOLUME ───────────────────────────────────────── -->
                       {#if voit('intermediate', s.id)}
-                      <div class="zr">
+                      <div class="zgrp" data-groupe-fiche="volume">
+                        <h4 class="zgt">{$t('reglages.fiche.volume' as any)}</h4>
+                        <!-- tune-server-rust#6541 — limites tenues par le SERVEUR.
+                             Refusées (mode PURE, volume fixe) : elles n'ont pas
+                             cours, la ligne disparaît (#2735). -->
+                        {#if serveurConnaitLesLimites(z) && !refusDeLimite(z) && courseDb(z)}
+                          <!-- web#7517 — sortie à course en dB : limites en dB. -->
+                          <div class="trim limites-volume" data-reglage="zone-limites-volume">
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="6"
+                                  value={texteLimiteDb(z.volume_limit_safety_device_db)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitSafety' as any)}
+                                  onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">dB</span>
+                              </span>
+                            </label>
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="6"
+                                  value={texteLimiteDb(z.volume_limit_comfort_device_db)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitComfort' as any)}
+                                  onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">dB</span>
+                                <AideInfo libelle={$t('devices.volumeLimitSafety' as any)}
+                                  texte={$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))} />
+                              </span>
+                            </label>
+                            {#if fondDesZones(zonesDeLimites(z))}
+                              <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
+                            {/if}
+                          </div>
+                        {:else if serveurConnaitLesLimites(z) && !refusDeLimite(z)}
+                          <div class="trim limites-volume" data-reglage="zone-limites-volume">
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="5"
+                                  value={pourcentDeLimite(z.volume_limit_safety)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitSafety' as any)}
+                                  onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">%</span>
+                              </span>
+                            </label>
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="5"
+                                  value={pourcentDeLimite(z.volume_limit_comfort)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitComfort' as any)}
+                                  onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">%</span>
+                                <AideInfo libelle={$t('devices.volumeLimitSafety' as any)} texte={$t('devices.volumeLimitHint' as any)} />
+                              </span>
+                            </label>
+                          </div>
+                        {/if}
+                        <div class="fz-ligne">
+                          <label class="zf chk" data-reglage="zone-volume-fixe">
+                            <input type="checkbox" checked={z.fixed_volume ?? false}
+                              onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
+                            <span>{$t('v2.lbl.fixedVolume' as any)}</span>
+                          </label>
+                          <AideInfo libelle={$t('v2.lbl.fixedVolume' as any)}
+                            texte={emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)).map((p) => p.texte).join('')} />
+                        </div>
+                        {#if fvAsk === z.id}
+                          <div class="fvbox">
+                            <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                            <div class="inline">
+                              <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
+                                onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
+                              <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>{$t('v2.meta.confirm' as any)}</button>
+                              <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+
+                      <!-- ── QUALITÉ ──────────────────────────────────────── -->
+                      <div class="zgrp" data-groupe-fiche="qualite">
+                        <h4 class="zgt">{$t('reglages.fiche.qualite' as any)}</h4>
                         <label class="zf" data-reglage="zone-dsd">
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
@@ -6132,6 +6258,123 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
                           </select>
                         </label>
+                        <!--
+                          BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.
+                          Masqué quand la zone ne publie pas `strict_bitperfect` :
+                          un vieux serveur l'ignorerait.
+                        -->
+                        {#if typeof z.strict_bitperfect === 'boolean'}
+                          <div class="strict-bloc fz-ligne" data-reglage="zone-bitperfect-strict">
+                            <label class="zf chk strict-bitperfect">
+                              <input type="checkbox" checked={z.strict_bitperfect}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                              <span>{$t('bitperfect.strictLabel' as any)}</span>
+                            </label>
+                            <AideInfo libelle={$t('bitperfect.strictLabel' as any)} texte={$t('bitperfect.strictHelp' as any)} />
+                          </div>
+                        {/if}
+                      </div>
+                      {/if}
+
+                      <!--
+                        ── CANAUX ── chantier « multicanal », Bertrand 19/09/2026 ;
+                        visible en Essentiel (23/09). On lit le STATUT DU SERVEUR
+                        (`channel_layout_status`) sans redériver la règle. Quand
+                        le serveur verrouille le choix (`unavailable`), le
+                        sélecteur n'aurait aucun effet : il est caché (#2735).
+                        Le motif reste lu par CODE (`reason`) pour l'avertissement
+                        « au-delà de l'appareil », qui, lui, laisse le choix.
+                      -->
+                      {#if (z.channel_layouts_offered ?? []).length && !canauxVerrouilles(z.channel_layout_status)}
+                        <div class="zgrp" data-groupe-fiche="canaux">
+                          <div class="canaux fz-ligne" data-reglage="zone-canaux">
+                            <span class="tl zgt">{$t('zoneConfig.channelsTitle' as any)}</span>
+                            <span class="fz-ctl">
+                              <select class="sel sm"
+                                disabled={z.id == null}
+                                value={z.channel_layout ?? ''}
+                                aria-label={$t('zoneConfig.channelsTitle' as any)}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
+                                <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
+                                {#each z.channel_layouts_offered ?? [] as d (d.id)}
+                                  <option value={d.id}>{$t(('zoneConfig.channels_' + d.id) as any)}</option>
+                                {/each}
+                              </select>
+                              <!-- Fils 1914/1913 — sur un renderer réseau, Tune réduit
+                                   une piste multicanale au nombre choisi, n'ajoute
+                                   jamais de canal, et l'appareil garde le dernier mot.
+                                   Le serveur décide (`portee`). -->
+                              {#if z.channel_layout_status?.portee === 'plafond_reseau'}
+                                <AideInfo libelle={$t('zoneConfig.channelsTitle' as any)} classeBulle="canaux-reseau" texte={$t('zoneConfig.channelsNetworkCeiling' as any)} />
+                              {/if}
+                              <!-- « Au-delà de ce qu'annonce le pilote » : un
+                                   AVERTISSEMENT, le choix reste ouvert. -->
+                              {#if z.channel_layout_status?.unavailable}
+                                <AideInfo libelle={$t('zoneConfig.channelsTitle' as any)} texte={$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)} />
+                              {/if}
+                            </span>
+                          </div>
+                          <!-- Ce que la zone SORT vraiment (`effective`), quand ça ne
+                               coïncide pas avec le choix. Un id inconnu retombe sur
+                               l'id brut plutôt que sur la clé. -->
+                          {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
+                            {@const eff = z.channel_layout_status.effective}
+                            {@const cle = 'zoneConfig.channels_' + eff}
+                            <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
+                          {/if}
+                          <!-- Sortie mono : le serveur ne l'applique que sur une
+                               sortie locale. Ailleurs elle serait sans effet :
+                               cachée (#2735), au lieu de l'ancienne phrase
+                               « le réglage est enregistré, mais il ne changera
+                               rien ici ». -->
+                          {#if voit('intermediate', s.id) && (z.output_type ?? '') === 'local'}
+                            <div class="fz-ligne">
+                              <label class="zf chk" data-reglage="zone-mono">
+                                <input type="checkbox" checked={z.mono_downmix ?? false}
+                                  onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                                <span>{$t('zoneConfig.monoTitle' as any)}</span>
+                              </label>
+                              <AideInfo libelle={$t('zoneConfig.monoTitle' as any)} texte={$t('zoneConfig.monoDesc' as any)} />
+                            </div>
+                          {/if}
+                        </div>
+                      {:else if voit('intermediate', s.id) && (z.output_type ?? '') === 'local'}
+                        <div class="zgrp" data-groupe-fiche="canaux">
+                          <div class="fz-ligne">
+                            <label class="zf chk" data-reglage="zone-mono">
+                              <input type="checkbox" checked={z.mono_downmix ?? false}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                              <span>{$t('zoneConfig.monoTitle' as any)}</span>
+                            </label>
+                            <AideInfo libelle={$t('zoneConfig.monoTitle' as any)} texte={$t('zoneConfig.monoDesc' as any)} />
+                          </div>
+                        </div>
+                      {/if}
+
+                      {#if voit('intermediate', s.id)}
+                      <!-- ── ▸ AVANCÉ ──────────────────────────────────────── -->
+                      <details class="zsec" data-repli="avance" bind:open={replisFiche.avance}>
+                        <summary>
+                          <span class="zsec-t">{$t('reglages.fiche.avance' as any)}</span>
+                          <span class="zsec-r">{$t('reglages.fiche.avanceResume' as any)}</span>
+                        </summary>
+                        <div class="trim" data-reglage="zone-gain">
+                          <span class="tl">{$t('devices.gainTrim' as any)}</span>
+                          <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
+                            disabled={z.fixed_volume || z.id == null}
+                            aria-label={$t('devices.gainTrim' as any)}
+                            oninput={(e) => { trims = { ...trims, [z.id ?? -1]: Number((e.currentTarget as HTMLInputElement).value) }; }}
+                            onchange={() => setZoneField(z, () => api.updateZoneGainTrim(z.id as number, trimDe(z)))} />
+                          <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
+                          {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
+                          <AideInfo libelle={$t('devices.gainTrim' as any)} texte={$t('devices.gainTrimHint' as any)} />
+                        </div>
+                        <!-- tune-server-rust#6739 — sur une sortie à volume
+                             matériel, le serveur IGNORE un trim positif. Avertissement
+                             sur la VALEUR saisie : il reste en clair. -->
+                        {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
+                          <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
+                        {/if}
                         <label class="zf" data-reglage="zone-decalage-paroles">
                           <span>{$t('settings.lyricsOffset' as any)}</span>
                           <select class="sel sm" value={String(z.lyrics_offset_ms ?? 0)}
@@ -6140,370 +6383,114 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each OFFSETS as ms (ms)}<option value={String(ms)}>{ms === 0 ? $t('v2.set.none' as any) : `+${ms / 1000} s`}</option>{/each}
                           </select>
                         </label>
-                        <label class="zf chk" data-reglage="zone-volume-fixe">
-                          <input type="checkbox" checked={z.fixed_volume ?? false}
-                            onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
-                          <span>{$t('v2.lbl.fixedVolume' as any)}</span>
-                        </label>
-                        <label class="zf chk" data-reglage="zone-mono">
-                          <input type="checkbox" checked={z.mono_downmix ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('zoneConfig.monoTitle' as any)}</span>
-                        </label>
-                      </div>
-
-                      <!--
-                        Sortie mono : VISIBLE sur toutes les zones, et l'écran dit
-                        quand elle n'agira pas (Bertrand, 04/09/2026).
-
-                        Le serveur accepte, persiste et republie `mono_downmix`
-                        pour n'importe quelle zone, mais ne l'applique que sur une
-                        sortie locale. Le taire là où il est inerte le rendrait
-                        introuvable : sur cette installation, une seule zone est
-                        locale et c'est un puits. Le montrer sans rien dire serait
-                        pire — c'est le defaut que le serveur a lui-même corrigé
-                        avec #3254, en publiant des codes de raison.
-
-                        La règle reprise est celle du client actuel :
-                        `output_type !== 'local'`. Le serveur en pose une seconde,
-                        le mode PURE, que la fiche de zone ne publie pas — on ne
-                        l'affirme donc pas ici plutôt que de la deviner.
-                      -->
-                      {#if (z.output_type ?? '') !== 'local'}
-                        <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
-                      {/if}
-
-                      <!--
-                        PUBLIER LA ZONE SUR LE RÉSEAU —
-                        renesenses/tune-server-rust#4626, étape 1 arbitrée par
-                        Bertrand le 22/09/2026 : « rendre visible ce qui
-                        existe ».
-
-                        La publication MediaRenderer par zone est livrée depuis
-                        #1750 (`zone_{id}_upnp_renderer`, PATCH /zones/{id}) et
-                        n'était annoncée NULLE PART : la case s'appelait
-                        « Renderer UPnP » et vivait sans une ligne d'aide,
-                        sixième et avant-dernière d'une rangée de six réglages
-                        (trois listes, trois cases). Un testeur qui cherchait
-                        exactement cette fonction (fil forum 1867) ne l'a pas
-                        trouvée et l'a demandée comme une nouveauté.
-
-                        Deux changements, aucun sur le comportement : le
-                        libellé dit ce que la case FAIT plutôt que le protocole
-                        qu'elle emploie, et elle sort de la rangée pour prendre
-                        sa ligne d'aide — même gabarit que « Bit-perfect
-                        strict » juste en dessous.
-                      -->
-                      <div class="publi-bloc" data-reglage="zone-publier-upnp">
-                        <label class="zf chk publier-zone">
-                          <input type="checkbox" checked={z.upnp_renderer ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('devices.upnpRenderer' as any)}</span>
-                        </label>
-                        <p class="monote">{$t('devices.upnpRendererHint' as any)}</p>
-                        <!--
-                          Ce que le serveur fait VRAIMENT quand on décoche, dit
-                          là où on décoche. Mesuré sur `origin/main` le
-                          22/09/2026 et déjà écrit dans
-                          `docs/UPNP-RENDERER.md` §4 : l'annonce s'arrête net et
-                          la façade rend 404, mais AUCUN `ssdp:byebye` n'est
-                          émis — le point de contrôle garde son entrée en cache
-                          jusqu'à l'expiration du `max-age`, 1800 s.
-
-                          Ne s'affiche que quand la case est cochée : c'est
-                          l'instant d'avant le décochage, le seul où cette
-                          phrase sert. La taire coûterait un ticket « j'ai
-                          décoché et je la vois encore » — le même défaut que
-                          #3254 a corrigé en publiant ses motifs.
-                        -->
-                        {#if z.upnp_renderer}
-                          <p class="monote">{$t('devices.upnpRendererStopHint' as any)}</p>
-                        {/if}
-                      </div>
-
-                      <!--
-                        BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
-                        option 3 de Bertrand. Par défaut, une sortie qui ne lit
-                        pas la fréquence de la source la reçoit CONVERTIE, et le
-                        chemin du signal le dit (« PURE dégradé — 192 → 96 kHz »).
-                        Coché, Tune refuse de jouer plutôt que de convertir.
-
-                        Masqué quand la zone ne publie pas `strict_bitperfect` :
-                        un vieux serveur l'ignorerait, et un interrupteur sans
-                        effet ment.
-                      -->
-                      {#if typeof z.strict_bitperfect === 'boolean'}
-                        <div class="strict-bloc" data-reglage="zone-bitperfect-strict">
-                          <label class="zf chk strict-bitperfect">
-                            <input type="checkbox" checked={z.strict_bitperfect}
-                              onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                            <span>{$t('bitperfect.strictLabel' as any)}</span>
-                          </label>
-                          <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
-                        </div>
-                      {/if}
-
-                      <!--
-                        TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
-                        Pour les lecteurs qui ignorent l'ICY (Hifi Rose RS250A,
-                        fil 1529) : réémettre le DIDL du morceau en cours.
-                        Désactivé par défaut : l'ICY suffit à la plupart des
-                        lecteurs, et cette option ajoute une commande réseau à
-                        chaque morceau. Proposé seulement sur une zone DLNA et
-                        si le serveur publie le champ.
-                      -->
-                      {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
-                        <div class="radio-didl-bloc" data-reglage="zone-titre-radio-dlna">
-                          <label class="zf radio-didl">
-                            <span>{$t('radioDidl.label' as any)}</span>
-                            <select value={z.dlna_radio_title}
-                              onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
-                              <option value="off">{$t('radioDidl.off' as any)}</option>
-                              <option value="next">{$t('radioDidl.next' as any)}</option>
-                              <option value="reload">{$t('radioDidl.reload' as any)}</option>
-                            </select>
-                          </label>
-                          <p class="monote">{$t('radioDidl.help' as any)}</p>
-                        </div>
-                      {/if}
-                      {/if}
-
-                      <!--
-                        CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
-                        « dans les réglages de l'appareil, permettre la sélection
-                        du nombre de canaux », pour des utilisateurs en 5.1 que
-                        personne chez nous ne peut observer.
-
-                        🔴 On lit le STATUT DU SERVEUR (`channel_layout_status`)
-                        au lieu de redériver la règle ici. Le bloc mono juste
-                        au-dessus, lui, la redérive (`output_type !== 'local'`)
-                        et son propre commentaire admet qu'il ignore la seconde
-                        contrainte du serveur. Deux règles pour un même fait
-                        finissent par diverger ; le serveur est la seule qui
-                        décide de ce que le son subit.
-
-                        `unavailable` vaut vrai MÊME quand rien n'est déclaré :
-                        c'est ce qui doit verrouiller le sélecteur.
-                      -->
-                      {#if (z.channel_layouts_offered ?? []).length}
-                        <div class="canaux" data-reglage="zone-canaux">
-                          <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
-                          <select class="sel"
-                            disabled={z.id == null || canauxVerrouilles(z.channel_layout_status)}
-                            value={z.channel_layout ?? ''}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
-                            {#each z.channel_layouts_offered ?? [] as d (d.id)}
-                              <option value={d.id}>{$t(('zoneConfig.channels_' + d.id) as any)}</option>
-                            {/each}
-                          </select>
-                        </div>
-                        <!-- Pourquoi il est verrouillé, dans la langue de
-                             l'utilisateur. On lit le CODE (`reason`), pas la
-                             phrase (`detail`) : `detail` arrive en français
-                             quelle que soit la langue de l'interface — vu sur
-                             une installation anglaise le 20/09/2026. Le serveur
-                             le dit lui-même de ses codes : « destinés à la
-                             machine ; le client les traduit ». -->
-                        {#if z.channel_layout_status?.unavailable}
-                          <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
-                        {/if}
-                        <!-- Fils 1914/1913 — sur un renderer réseau, le choix est
-                             OUVERT mais n'agit pas comme sur une carte locale :
-                             Tune réduit une piste multicanale au nombre choisi,
-                             n'ajoute jamais de canal, et l'appareil garde le
-                             dernier mot s'il annonce moins. On le dit, sinon
-                             « 7.1 » passerait pour une promesse. Le serveur
-                             décide (`portee`), l'écran ne redérive rien. -->
-                        {#if z.channel_layout_status?.portee === 'plafond_reseau'}
-                          <p class="monote canaux-reseau">{$t('zoneConfig.channelsNetworkCeiling' as any)}</p>
-                        {/if}
-                        <!-- Ce que la zone SORT vraiment (`effective`), quand
-                             ça ne coïncide pas avec ce qui est choisi : un
-                             5.1 demandé que l'appareil ramène en stéréo, ou
-                             « Suivre l'appareil » qui a tranché pour lui.
-                             Jamais affiché quand c'est identique — la ligne
-                             ne répéterait que le sélecteur. Le libellé passe
-                             par les clés `zoneConfig.channels_<id>` du
-                             sélecteur ; un id inconnu — serveur plus récent —
-                             retombe sur l'id brut plutôt que sur la clé. -->
-                        {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
-                          {@const eff = z.channel_layout_status.effective}
-                          {@const cle = 'zoneConfig.channels_' + eff}
-                          <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
-                        {/if}
-                      {/if}
-
-                      {#if voit('intermediate', s.id)}
-                      <div class="trim" data-reglage="zone-gain">
-                        <span class="tl">{$t('devices.gainTrim' as any)}</span>
-                        <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
-                          disabled={z.fixed_volume || z.id == null}
-                          aria-label={$t('devices.gainTrim' as any)}
-                          oninput={(e) => { trims = { ...trims, [z.id ?? -1]: Number((e.currentTarget as HTMLInputElement).value) }; }}
-                          onchange={() => setZoneField(z, () => api.updateZoneGainTrim(z.id as number, trimDe(z)))} />
-                        <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
-                        {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
-                      </div>
-                      <!-- tune-server-rust#6739 (fil 2366/2375, tweeter détruit) —
-                           sur une sortie à volume matériel (tout sauf `local`),
-                           le serveur IGNORE un trim positif : il ne dépasse
-                           jamais la consigne envoyée à l'appareil. On le dit. -->
-                      {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
-                        <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
-                      {/if}
-                      <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
-
-                      <!-- tune-server-rust#6541 — limites de volume (fil 2335).
-                           Tenues par le SERVEUR pour tous les clients ; ici on
-                           ne fait que les régler. Vide = aucune limite. -->
-                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
-                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
-                      {:else if serveurConnaitLesLimites(z) && courseDb(z)}
-                      <!-- web#7517 — sortie à course en dB : limites en dB,
-                           bande vert / orange / rouge comme sur le curseur. -->
-                      <div class="trim limites-volume" data-reglage="zone-limites-volume">
-                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="6"
-                          value={texteLimiteDb(z.volume_limit_safety_device_db)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">dB</span>
-                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="6"
-                          value={texteLimiteDb(z.volume_limit_comfort_device_db)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">dB</span>
-                      </div>
-                      {#if fondDesZones(zonesDeLimites(z))}
-                        <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
-                      {/if}
-                      <p class="monote">{$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))}</p>
-                      {:else if serveurConnaitLesLimites(z)}
-                      <div class="trim limites-volume" data-reglage="zone-limites-volume">
-                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="5"
-                          value={pourcentDeLimite(z.volume_limit_safety)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">%</span>
-                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="5"
-                          value={pourcentDeLimite(z.volume_limit_comfort)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">%</span>
-                      </div>
-                      <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
-                      {/if}
-
-                      <!--
-                        #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
-
-                        GgB (fil 1671, 21/09/2026) : « Il y a une raison
-                        particulière a la disparition de la prise en compte des
-                        fichiers FIR (wav) dans les paramètres de la zone ? » Le
-                        bloc n'a jamais été porté ici : le seul accès livré était
-                        un clic droit sur la pastille de zone de la barre de
-                        lecture — non annoncé, et sans équivalent tactile. Or
-                        c'est ICI que mène « Ouvrir les réglages » de la roue
-                        crantée d'une zone, et c'est ici qu'on le cherche.
-
-                        Il est placé avec ce qui traite le SON (DSD, débit,
-                        canaux, gain), avant la photo et l'éditeur d'appareil qui
-                        décrivent le matériel.
-
-                        Aucune condition sur le type de sortie : le serveur
-                        applique l'IR aux lecteurs réseau aussi.
-                      -->
-                      <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
-
-                      <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
-                           l'appareil est déjà identifié par sa marque et son
-                           modèle. Pas en tête de carte : la carte est longue
-                           (DSD, débit, canaux, gain…) et la vignette n'a de
-                           sens qu'à côté de ce qu'elle illustre.
-                           L'emplacement existe TOUJOURS, même sans photo —
-                           sinon l'affordance disparaît là où on en a besoin. -->
-                      <div class="zphoto" data-reglage="zone-photo">
-                        <button class="zpv" onclick={() => choisirImageZone(z)}
-                          aria-label={$t('v2.zone.changeImage' as any)} title={$t('v2.zone.changeImage' as any)}>
-                          {#if z.image_path}
-                            <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
-                          {:else}
-                            <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
-                          {/if}
-                          <span class="zpveil">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                              stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-                          </span>
-                        </button>
-                        <div class="zpt">
-                          <span class="tl">{$t('v2.zone.deviceImage' as any)}</span>
-                          <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
-                          {#if z.image_path}
-                            <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
-                          {/if}
-                          <!-- #2109 — proposer la photo au catalogue communautaire.
-                               Un geste À PART, précédé d'un accord lu ; jamais
-                               « partagée » avant l'approbation : l'état affiché
-                               reste « en attente ». -->
-                          {#if propositionPossible(z)}
-                            {#if z.image_share_status === 'pending'}
-                              <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
-                            {:else}
-                              <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
-                                onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
-                            {/if}
-                          {/if}
-                        </div>
-                      </div>
-                      <div data-reglage="zone-appareil" class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
-
-                      {#if z.id != null && propositions[z.id]}
-                        {@const p = propositions[z.id]!}
-                        <div class="warn">
-                          <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
-                          <span class="mono">{resumeProposition(p)}</span>
-                          <div class="inline" style="margin-top:8px">
-                            <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
-                            <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                        <!-- TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
+                             Zone DLNA seulement, et si le serveur publie le champ. -->
+                        {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
+                          <div class="radio-didl-bloc fz-ligne" data-reglage="zone-titre-radio-dlna">
+                            <label class="zf radio-didl">
+                              <span>{$t('radioDidl.label' as any)}</span>
+                              <select class="sel sm" value={z.dlna_radio_title}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
+                                <option value="off">{$t('radioDidl.off' as any)}</option>
+                                <option value="next">{$t('radioDidl.next' as any)}</option>
+                                <option value="reload">{$t('radioDidl.reload' as any)}</option>
+                              </select>
+                            </label>
+                            <AideInfo libelle={$t('radioDidl.label' as any)} texte={$t('radioDidl.help' as any)} />
                           </div>
+                        {/if}
+                        <!-- PUBLIER LA ZONE SUR LE RÉSEAU — tune-server-rust#4626.
+                             Cochée, l'aide dit aussi ce que DÉCOCHER fera (pas de
+                             `ssdp:byebye`, docs/UPNP-RENDERER.md §4). -->
+                        <div class="publi-bloc fz-ligne" data-reglage="zone-publier-upnp">
+                          <label class="zf chk publier-zone">
+                            <input type="checkbox" checked={z.upnp_renderer ?? false}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                            <span>{$t('devices.upnpRenderer' as any)}</span>
+                          </label>
+                          <AideInfo libelle={$t('devices.upnpRenderer' as any)}
+                            texte={$t('devices.upnpRendererHint' as any) + (z.upnp_renderer ? ' ' + $t('devices.upnpRendererStopHint' as any) : '')} />
                         </div>
+                        <!-- Renderers réseau SEULEMENT : ce qu'on envoie sur le fil. -->
+                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                          <details class="radv" data-reglage="zone-renderer">
+                            <summary>{$t('devices.rendererConfig' as any)}</summary>
+                            <RendererConfig zone={z} />
+                          </details>
+                        {/if}
+                      </details>
+
+                      <!-- ── ▸ CORRECTION DE PIÈCE (FIR) ── #1427, à sa place.
+                           Aucune condition sur le type de sortie : le serveur
+                           applique l'IR aux lecteurs réseau aussi. -->
+                      <details class="zsec zsec-fir" data-repli="fir" bind:open={replisFiche.fir}>
+                        <summary><span class="zsec-t">{$t('zoneConfig.firTitle' as any)}</span></summary>
+                        <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
+                      </details>
                       {/if}
 
-                      <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
-                           qu'on envoie sur le fil (protocole, conteneur, profondeur).
-                           Une sortie locale ne négocie rien — le bloc n'y aurait pas
-                           de sens, et `probeRendererCapabilities` n'a rien à interroger. -->
-                      {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                        <details class="radv" data-reglage="zone-renderer">
-                          <summary>{$t('devices.rendererConfig' as any)}</summary>
-                          <RendererConfig zone={z} />
-                        </details>
-                      {/if}
+                      <!-- ── ▸ APPAREIL : marque, modèle, photo, Tune tested ── -->
+                      <details class="zsec" data-repli="appareil" bind:open={replisFiche.appareil}>
+                        <summary>
+                          <span class="zsec-t">{$t('zoneConfig.deviceTitle' as any)}</span>
+                          <span class="zsec-r">{$t('reglages.fiche.appareilResume' as any)}</span>
+                        </summary>
+                        {#if voit('intermediate', s.id)}
+                          <div data-reglage="zone-appareil" class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
+                          <!-- Réglages proposés pour ce modèle : sous l'éditeur d'appareil. -->
+                          {#if z.id != null && propositions[z.id]}
+                            {@const p = propositions[z.id]!}
+                            <div class="warn">
+                              <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
+                              <span class="mono">{resumeProposition(p)}</span>
+                              <div class="inline" style="margin-top:8px">
+                                <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
+                                <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                              </div>
+                            </div>
+                          {/if}
 
-                      {#if fvAsk === z.id}
-                        <div class="fvbox">
-                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
-                          <div class="inline">
-                            <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
-                              onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
-                            <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>{$t('v2.meta.confirm' as any)}</button>
-                            <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
+                          <!-- #1394 — la photo de l'appareil. L'emplacement existe
+                               TOUJOURS, même sans photo. -->
+                          <div class="zphoto" data-reglage="zone-photo">
+                            <button class="zpv" onclick={() => choisirImageZone(z)}
+                              aria-label={$t('v2.zone.changeImage' as any)} title={$t('v2.zone.changeImage' as any)}>
+                              {#if z.image_path}
+                                <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
+                              {:else}
+                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                              {/if}
+                              <span class="zpveil">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                  stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                              </span>
+                            </button>
+                            <div class="zpt">
+                              <span class="tl">{$t('v2.zone.deviceImage' as any)}</span>
+                              <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
+                              {#if z.image_path}
+                                <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
+                              {/if}
+                              <!-- #2109 — proposer la photo au catalogue communautaire :
+                                   un geste à part, précédé d'un accord lu. -->
+                              {#if propositionPossible(z)}
+                                {#if z.image_share_status === 'pending'}
+                                  <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
+                                {:else}
+                                  <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
+                                    onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
+                                {/if}
+                              {/if}
+                            </div>
                           </div>
-                        </div>
-                      {/if}
-                      {/if}
+                        {/if}
+                        {#if z.id != null}
+                          <button data-reglage="zone-tune-tested" type="button" class="tt-proposer" data-testid="proposer-tune-tested"
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
+                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {/if}
+                      </details>
+
                     </div>
                     {/if}
                   {/each}
@@ -8555,42 +8542,51 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
-  .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
-  .zf{display:flex; flex-direction:column; gap:5px}
-  .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:10px var(--v2-mono); line-height:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  /* web#2089 (Didier, fil 2222) — les cases « Volume fixe » et « Sortie mono »
-     s'alignaient sur le BAS de la rangée (`align-self:flex-end`) : la note DoP
-     sous le sélecteur DSD (#1876) allongeait la colonne, et les cases
-     descendaient au niveau de la note. Elles s'alignent désormais sur les
-     SÉLECTEURS : intitulé (14 px) + écart (5 px) au-dessus, la hauteur d'un
-     `.sel.sm` (32 px), quelle que soit la hauteur des colonnes voisines. */
-  .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
-  .zr > .zf.chk{align-self:flex-start; padding-bottom:0; margin-top:19px; height:32px}
+  /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
+     par réglage, le libellé à gauche en casse normale, le contrôle à droite,
+     l'aide derrière ⓘ. Remplace la rangée `.zr` (intitulés en capitales collés
+     aux champs, liste « titre radio » étirée sur toute la largeur). */
+  .zch-photo{margin-left:auto; align-self:center; width:40px; height:40px; border-radius:8px; overflow:hidden; flex:0 0 auto}
+  .zgrp{margin-top:14px; border-top:1px solid var(--v2-line); padding-top:6px}
+  .zgt{font:600 10.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
+  .zf{display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:7px 0; min-width:0}
+  .zf .dsd-dop{flex-basis:100%; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
+  .zf > span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf.chk{justify-content:flex-start; gap:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
+  .zf.chk span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .fz-ligne{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .fz-ligne > .zf{flex:1 1 auto}
+  .fz-ctl{display:inline-flex; align-items:center; gap:8px; flex:0 0 auto}
+  .fz{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0}
+  .zsec{margin-top:12px; border-top:1px solid var(--v2-line); padding-top:10px}
+  .zsec > summary{cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .zsec > summary::-webkit-details-marker{display:none}
+  .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
+  .zsec[open] > summary::before{content:'▾'}
+  .zsec-t{font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .zsec-r{font-size:11.5px; color:var(--v2-txt3)}
+  /* Le titre du composant partagé répète celui du repli : on le tait ici. */
+  .zsec-fir :global(.fir-tl){display:none}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
   /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
      gabarit que « Bit-perfect strict » ci-dessous. */
-  .publi-bloc{margin-top:10px}
-  .publi-bloc .zf.chk{align-self:auto; padding-bottom:0}
   .publi-bloc .monote{margin-top:4px}
   /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
-  .strict-bloc{margin-top:10px}
-  .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}
   .strict-bloc .monote{margin-top:4px}
-  .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
+  .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
-  .canaux{display:flex; align-items:center; gap:10px; margin-top:8px}
-  .canaux .tl{font-size:12.5px; color:var(--v2-txt2); min-width:96px}
+  .canaux{padding:3px 0}
   .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
+  .limites-volume{flex-direction:column; align-items:stretch; gap:0; margin-top:2px}
+  .limites-volume .tl{font:12.5px var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
   .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
   .limites-volume .tv{min-width:0}
   .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}

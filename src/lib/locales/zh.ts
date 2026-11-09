@@ -7077,6 +7077,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "账户, 登录, 关联账户",
   "reglages.termes.telemetrie": "使用统计, 隐私, 匿名数据, 同意",
   "reglages.termes.licenceActiver": "许可证密钥, 购买, 订阅, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "帮助：{libelle}",
+  "reglages.fiche.volume": "音量",
+  "reglages.fiche.qualite": "音质",
+  "reglages.fiche.avance": "高级",
+  "reglages.fiche.avanceResume": "增益微调、歌词偏移、通过 DLNA 发送电台标题、在网络上发布",
+  "reglages.fiche.appareilResume": "品牌、型号、照片、Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

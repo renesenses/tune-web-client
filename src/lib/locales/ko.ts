@@ -7077,6 +7077,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "계정, 로그인, 계정 연결",
   "reglages.termes.telemetrie": "사용 통계, 개인정보, 익명 데이터, 동의",
   "reglages.termes.licenceActiver": "라이선스 키, 구매, 구독, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "도움말: {libelle}",
+  "reglages.fiche.volume": "볼륨",
+  "reglages.fiche.qualite": "음질",
+  "reglages.fiche.avance": "고급",
+  "reglages.fiche.avanceResume": "게인 보정, 가사 오프셋, DLNA 라디오 제목, 네트워크에 게시",
+  "reglages.fiche.appareilResume": "브랜드, 모델, 사진, Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

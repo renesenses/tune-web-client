@@ -7077,6 +7077,13 @@ export default {
   "reglages.termes.compteMozaiklabs": "アカウント, サインイン, ログイン, アカウント連携",
   "reglages.termes.telemetrie": "利用統計, プライバシー, 匿名データ, 同意",
   "reglages.termes.licenceActiver": "ライセンスキー, 購入, サブスクリプション, Premium",
+  // #2735 — fiche d’appareil : groupes, replis, aide ⓘ.
+  "reglages.aideDe": "ヘルプ：{libelle}",
+  "reglages.fiche.volume": "音量",
+  "reglages.fiche.qualite": "音質",
+  "reglages.fiche.avance": "詳細",
+  "reglages.fiche.avanceResume": "ゲイン補正、歌詞のずれ、DLNA でラジオのタイトル、ネットワークに公開",
+  "reglages.fiche.appareilResume": "メーカー、モデル、写真、Tune tested",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
