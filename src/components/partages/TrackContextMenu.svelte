@@ -89,6 +89,8 @@
     onVoirCredits?: () => void;
     /** #7857 — le panneau « Spectrogramme » (bibliothèque seule). */
     onSpectrogramme?: () => void;
+    /** #8160 — la « Fiche technique » de la piste (bibliothèque seule). */
+    onFicheTechnique?: () => void;
     /**
      * « Écouter plus tard » (web#1653) — le sas d'écoute.
      *
@@ -117,6 +119,7 @@
     onChampsDuFichier,
     onVoirCredits,
     onSpectrogramme,
+    onFicheTechnique,
     onEcouterPlusTard,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
@@ -137,6 +140,7 @@
       champsDuFichier: onChampsDuFichier,
       voirCredits: onVoirCredits,
       spectrogramme: onSpectrogramme,
+      ficheTechnique: onFicheTechnique,
     }),
   );
   /**
