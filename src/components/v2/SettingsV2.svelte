@@ -72,6 +72,9 @@
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
+  import VerificationSpotify from './spotify/VerificationSpotify.svelte';
+  import ClientIdEtRetourSpotify from './spotify/ClientIdEtRetourSpotify.svelte';
+  import { analyserClientIdSpotify, CODES_CLIENT_ID_INVALIDE } from '../../lib/saisieClientIdSpotify';
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
@@ -98,7 +101,7 @@
   import { decrireScanCourant, refusScanConcurrent } from '../../lib/scanDetenteur';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
-  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
+  import { clientIdEnPlace, cleEtapeSpotify, clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
@@ -1990,18 +1993,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let clientIdSaisi = $state('');
   let clientIdRetour = $state<RetourClientId | null>(null);
   async function enregistrerClientIdSpotify() {
-    const client_id = clientIdSaisi.trim();
-    if (!client_id) return;
+    // tune-server-rust#8198 — pas exactement 32 caractères hexadécimaux (ou
+    // l'adresse du tableau de bord, dont l'identifiant N'EST PAS le Client
+    // ID) : refusé ICI, rien ne part. Voir `lib/saisieClientIdSpotify`.
+    const analyse = analyserClientIdSpotify(clientIdSaisi);
+    if (analyse.etat === 'vide') return;
+    // tune-server-rust#8198 — une connexion ouverte AVANT ce Save porte
+    // l'ancien client_id dans son lien : Spotify la refuserait. Quel que soit
+    // le résultat, on l'abandonne (lien, sondage, adresse collée).
+    stopPoll('spotify');
+    deviceFlow = { ...deviceFlow, spotify: undefined };
+    spotifyRappelColle = '';
+    if (analyse.etat !== 'ok') {
+      clientIdRetour = { etat: 'refuse', message: get(t)('v2.spotify.cid.invalide' as any) };
+      return;
+    }
+    const client_id = analyse.clientId;
     svcBusy = 'spotify';
     svcErr = { ...svcErr, spotify: null };
     clientIdRetour = null;
     try {
-      clientIdRetour = lireRetourClientId(await api.saveServiceToken('spotify', { client_id }));
+      const r: any = await api.saveServiceToken('spotify', { client_id });
+      clientIdRetour = lireRetourClientId(r);
+      if (CODES_CLIENT_ID_INVALIDE.includes(r?.code)) {
+        clientIdRetour = { ...clientIdRetour, message: get(t)('v2.spotify.cid.invalide' as any) };
+      }
     } catch (e: any) {
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
       clientIdRetour = { etat: 'refuse', message: motif };
     }
-    if (clientIdRetour.etat === 'enregistre') {
+    if (clientIdEnPlace(clientIdRetour.etat)) {
       clientIdSaisi = '';
       spotifyClientIdManque = false;
       // Le service se déclare actif dès qu'il a un Client ID : relire son état.
@@ -3735,6 +3756,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** Pastille d'état — reprise telle quelle du client actuel. */
   function stkDot(s: any): { color: string; label: string } {
     if (s.kind === 'no_auth') return { color: '#22c55e', label: get(t)('serviceTokens.statusAvailable') };
+    // tune-server-rust#8198 — Client ID enregistré, compte pas encore connecté.
+    const etapeSpotify = cleEtapeSpotify(s);
+    if (etapeSpotify) return { color: '#eab308', label: get(t)(etapeSpotify as any) };
     if (!s.configured) return { color: 'transparent', label: get(t)('serviceTokens.statusNotConfigured') };
     if (s.valid === true) return { color: '#22c55e', label: get(t)('serviceTokens.statusValid') };
     if (s.valid === false) return { color: '#ef4444', label: get(t)('serviceTokens.statusInvalid') };
@@ -3786,7 +3810,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let spotifyModifClientId = $state(false);
   async function enregistrerClientIdDepuisJetons() {
     await enregistrerClientIdSpotify();
-    if (clientIdRetour?.etat === 'enregistre') {
+    if (clientIdEnPlace(clientIdRetour?.etat)) {
       spotifyModifClientId = false;
       await loadTokens();
     }
@@ -5863,10 +5887,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               </label>
                             </div>
                             <div class="inline">
-                              <button class="lnk" data-enregistrer-client-id disabled={svcBusy === 'spotify' || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <!-- tune-server-rust#8198 — une connexion en attente garde `svcBusy` posé
+                                   tout du long : elle ne doit pas empêcher de corriger le Client ID. -->
+                              <button class="lnk" data-enregistrer-client-id disabled={(svcBusy === 'spotify' && !deviceFlow.spotify) || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
                               <button class="lnk" onclick={() => { spotifyModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
                             </div>
-                            {#if clientIdRetour && clientIdRetour.etat !== 'enregistre'}
+                            {#if clientIdRetour && !clientIdEnPlace(clientIdRetour.etat)}
                               <p class="hint bad">{$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{clientIdRetour.message ? ` : ${clientIdRetour.message}` : ''}</p>
                             {/if}
                           {:else}
@@ -5881,6 +5907,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           {/if}
                         </div>
                       {/if}
+                      <!-- tune-server-rust#8198 — début du Client ID, adresse de retour
+                           à déclarer et retour de « Enregistrer », au même endroit. -->
+                      <ClientIdEtRetourSpotify ligne={sv} uriSecours={spotifyRedirect.uri} retour={clientIdRetour} />
                     {/if}
 
                     {#if sv.help_url}
@@ -7561,9 +7590,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/if}
 
                       {#if name === 'spotify' && clientIdRetour}
-                        <div class={clientIdRetour.etat === 'enregistre' ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
+                        <div class={clientIdEnPlace(clientIdRetour.etat) ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
                           {$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{#if clientIdRetour.message} — {clientIdRetour.message}{/if}
                         </div>
+                      {/if}
+
+                      {#if name === 'spotify'}
+                        <!-- tune-server-rust#8198 — vérificateur de configuration ;
+                             masqué sur un serveur qui ne le connaît pas (404). -->
+                        <VerificationSpotify connecte={!!st.authenticated} />
                       {/if}
 
                       {#if name === 'deezer' && arlRetour}

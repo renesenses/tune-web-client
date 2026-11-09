@@ -23,6 +23,7 @@ import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
+import { cleCodeSpotify } from './messagesSpotify';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -708,6 +709,12 @@ export async function fetchJSON<T>(
           notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
+      } else if (cleCodeSpotify(err.code)) {
+        // tune-server-rust#8198 — un refus de connexion Spotify : la phrase
+        // traduite qui dit quoi faire, à la place du texte du serveur
+        // (français sans accents). Pas de bandeau : l'écran qui a lancé la
+        // connexion l'affiche à sa place.
+        err.message = get(t)(cleCodeSpotify(err.code) as any);
       } else if (key) {
         const traduit = get(t)(key as any);
         notifications.error(traduit);
