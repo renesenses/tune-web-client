@@ -410,11 +410,11 @@
           <button class="lnk fermer-sources" onclick={() => { rechercheSources++; sources = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
         </div>
         {#if sources.etat === 'cours'}
-          <p class="note sources-encours">{$t('v2.circle.sources.searching' as any).replace('{query}', sources.termes)}</p>
+          <p class="note sources-encours" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', sources.termes)}</p>
         {:else if sources.etat === 'erreur'}
-          <p class="note sources-erreur" role="alert">{$t('v2.circle.sources.error' as any)}</p>
+          <p class="note sources-erreur" role="alert" use:bulleTexte>{$t('v2.circle.sources.error' as any)}</p>
         {:else if sources.resultats.length === 0}
-          <p class="note sources-aucun">{$t('v2.circle.sources.none' as any).replace('{query}', sources.termes)}</p>
+          <p class="note sources-aucun" use:bulleTexte>{$t('v2.circle.sources.none' as any).replace('{query}', sources.termes)}</p>
         {:else}
           <ul class="sources-liste">
             {#each sources.resultats as r, i (i)}
