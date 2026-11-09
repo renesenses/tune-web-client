@@ -6017,7 +6017,9 @@ export function authenticateStreaming(
   service: string,
   // `callback_url` — #2680 : l'adresse de rappel Spotify collée depuis un
   // autre poste, où le rappel 127.0.0.1 ne peut pas aboutir.
-  body?: { username?: string; password?: string; callback_url?: string },
+  // `origine` — tune-server-rust#8198 : l'adresse de cette page, envoyée
+  // quand le retour par mozaiklabs.fr est actif (`lib/relaisSpotify`).
+  body?: { username?: string; password?: string; callback_url?: string; origine?: string },
 ) {
   return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
     method: 'POST',

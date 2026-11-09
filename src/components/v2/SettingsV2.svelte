@@ -108,6 +108,9 @@
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
+  import AssistantSpotify from './spotify/AssistantSpotify.svelte';
+  import RelaisSpotify from './spotify/RelaisSpotify.svelte';
+  import { avecOrigineSpotify, relaisSpotify } from '../../lib/relaisSpotify';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
@@ -1819,7 +1822,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     svcErr = { ...svcErr, [name]: null };
     try {
       const c = cred[name];
-      const body = corpsDAuthentification(name, c);
+      // tune-server-rust#8198 — relais actif : Spotify reçoit aussi `origine`.
+      const body = avecOrigineSpotify(name, corpsDAuthentification(name, c));
       const res = await api.authenticateStreaming(name, body);
       // Le mot de passe ne survit pas a la reponse, quelle qu'elle soit.
       if (cred[name]) cred = { ...cred, [name]: { user: cred[name].user, pass: '' } };
@@ -7453,6 +7457,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span>{$t('v2.set.svcActive' as any)}</span>
                       </label>
 
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — assistant pas à pas (4 écrans). -->
+                        <AssistantSpotify uriServeur={spotifyRedirect.uri} clientIdManque={spotifyClientIdManque} />
+                      {/if}
+
                       {#if st.authenticated}
                         <button class="lnk danger" onclick={() => disconnectSvc(name)}>{$t('settings.signOut' as any)}</button>
 
@@ -7465,7 +7474,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
-                        {#if name === 'spotify' && !spotifyRappelIci}
+                        {#if name === 'spotify' && $relaisSpotify.actif}
+                          <!-- tune-server-rust#8198 — relais actif : Spotify revient
+                               seul sur Tune, le sondage voit la connexion. Le
+                               champ de collage reste, replié, en secours. -->
+                          <details class="sredir" data-spotify-repli>
+                            <summary>{$t('v2.spotify.relais.repli' as any)}</summary>
+                            <span>{$t('v2.spotify.relais.repliTexte' as any)}</span>
+                            <div class="sredir-colle">
+                              <input class="txt" type="text" bind:value={spotifyRappelColle}
+                                placeholder="…/api/v1/streaming/spotify/retour?code=…&state=…"
+                                aria-label={$t('v2.spotify.relais.repliTexte' as any)} />
+                              <button class="lnk" disabled={!spotifyRappelColle.trim()} onclick={validerRappelSpotify}>{$t('v2.set.spotifyPasteSubmit' as any)}</button>
+                            </div>
+                          </details>
+                        {:else if name === 'spotify' && !spotifyRappelIci}
                           <!-- #2680 — Tune sur une autre machine : le rappel
                                127.0.0.1 ne s'ouvre pas ici, son adresse porte
                                le code, le serveur l'en extrait. -->
@@ -7572,7 +7595,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </div>
                       {/if}
 
-                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — retour par mozaiklabs.fr, désactivé par défaut. -->
+                        <RelaisSpotify />
+                      {/if}
+
+                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri && !$relaisSpotify.actif}
                         <!-- #2680 — l'URI à recopier À L'IDENTIQUE dans
                              l'application Spotify de l'utilisateur. -->
                         {@const cleRefus = cleDuRefus(spotifyRedirect.refus)}
