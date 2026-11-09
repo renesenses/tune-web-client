@@ -4920,6 +4920,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Spara",
   "v2.set.spotifyClientIdHint": "Inget Spotify Client ID på den här servern. Skapa din app i Spotifys instrumentpanel, ange där omdirigerings-URI:n som visas nedan och klistra sedan in dess Client ID här.",
   "v2.set.spotifyClientIdDashboard": "Öppna Spotifys instrumentpanel",
+  "v2.set.spotifyGuideLink": "Guide för Spotify-anslutning",
   "v2.set.spotifyClientIdSaved": "Client ID sparat: du kan nu logga in",
   "v2.set.spotifyClientIdRejected": "Client ID avvisat",
   "v2.set.spotifyClientIdEnv": "Client ID bestäms av servern (TUNE_SPOTIFY_CLIENT_ID)",

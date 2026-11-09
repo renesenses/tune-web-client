@@ -4785,6 +4785,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Zapisz",
   "v2.set.spotifyClientIdHint": "Brak Client ID Spotify na tym serwerze. Utwórz swoją aplikację w panelu Spotify, zadeklaruj w niej pokazany poniżej URI przekierowania, a następnie wklej tutaj jej Client ID.",
   "v2.set.spotifyClientIdDashboard": "Otwórz panel Spotify",
+  "v2.set.spotifyGuideLink": "Przewodnik połączenia ze Spotify",
   "v2.set.spotifyClientIdSaved": "Client ID zapisany: możesz się teraz zalogować",
   "v2.set.spotifyClientIdRejected": "Client ID odrzucony",
   "v2.set.spotifyClientIdEnv": "Client ID narzucony przez serwer (TUNE_SPOTIFY_CLIENT_ID)",

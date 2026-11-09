@@ -4921,6 +4921,7 @@ export default {
   "v2.set.spotifyClientIdSave": "保存",
   "v2.set.spotifyClientIdHint": "このサーバーには Spotify の Client ID がありません。Spotify ダッシュボードでアプリを作成し、下に表示されるリダイレクト URI を登録してから、その Client ID をここに貼り付けてください。",
   "v2.set.spotifyClientIdDashboard": "Spotify ダッシュボードを開く",
+  "v2.set.spotifyGuideLink": "Spotify 接続ガイド",
   "v2.set.spotifyClientIdSaved": "Client ID を保存しました。サインインできます",
   "v2.set.spotifyClientIdRejected": "Client ID が拒否されました",
   "v2.set.spotifyClientIdEnv": "Client ID はサーバーで指定されています（TUNE_SPOTIFY_CLIENT_ID）",

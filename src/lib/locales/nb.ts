@@ -4787,6 +4787,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Lagre",
   "v2.set.spotifyClientIdHint": "Ingen Spotify-klient-ID på denne serveren. Opprett appen din i Spotify-panelet, oppgi omdirigerings-URI-en som vises nedenfor der, og lim deretter inn klient-ID-en her.",
   "v2.set.spotifyClientIdDashboard": "Åpne Spotify-panelet",
+  "v2.set.spotifyGuideLink": "Veiledning for Spotify-tilkobling",
   "v2.set.spotifyClientIdSaved": "Klient-ID lagret: du kan nå logge inn",
   "v2.set.spotifyClientIdRejected": "Klient-ID avvist",
   "v2.set.spotifyClientIdEnv": "Klient-ID satt av serveren (TUNE_SPOTIFY_CLIENT_ID)",

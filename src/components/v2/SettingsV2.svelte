@@ -100,6 +100,7 @@
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
+  import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -7581,6 +7582,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <code>{spotifyRedirect.uri}</code>
                           {#if cleRefus}<span class="sredir-refus">{$t(cleRefus as any)}</span>{/if}
                         </div>
+                      {/if}
+
+                      {#if name === 'spotify'}
+                        <!-- Guide pas à pas du site : Client ID, URI de
+                             redirection, page 127.0.0.1 qui ne se charge pas. -->
+                        <a class="lnk" data-guide-spotify href={urlGuideSpotify($locale)} target="_blank" rel="noopener">{$t('v2.set.spotifyGuideLink' as any)}</a>
                       {/if}
 
                       {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}

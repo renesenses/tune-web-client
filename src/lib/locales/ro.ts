@@ -4921,6 +4921,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Salvează",
   "v2.set.spotifyClientIdHint": "Niciun Client ID Spotify pe acest server. Creați aplicația în tabloul de bord Spotify, declarați acolo URI-ul de redirecționare afișat mai jos, apoi lipiți aici Client ID-ul ei.",
   "v2.set.spotifyClientIdDashboard": "Deschide tabloul de bord Spotify",
+  "v2.set.spotifyGuideLink": "Ghid de conectare la Spotify",
   "v2.set.spotifyClientIdSaved": "Client ID salvat: acum vă puteți conecta",
   "v2.set.spotifyClientIdRejected": "Client ID respins",
   "v2.set.spotifyClientIdEnv": "Client ID impus de server (TUNE_SPOTIFY_CLIENT_ID)",

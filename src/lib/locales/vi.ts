@@ -4789,6 +4789,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Lưu",
   "v2.set.spotifyClientIdHint": "Máy chủ này chưa có Client ID Spotify. Hãy tạo ứng dụng của bạn trong Spotify dashboard, khai báo trong đó redirect URI hiển thị bên dưới, rồi dán Client ID của ứng dụng vào đây.",
   "v2.set.spotifyClientIdDashboard": "Mở Spotify dashboard",
+  "v2.set.spotifyGuideLink": "Hướng dẫn kết nối Spotify",
   "v2.set.spotifyClientIdSaved": "Đã lưu Client ID: giờ bạn có thể đăng nhập",
   "v2.set.spotifyClientIdRejected": "Client ID bị từ chối",
   "v2.set.spotifyClientIdEnv": "Client ID do máy chủ thiết lập (TUNE_SPOTIFY_CLIENT_ID)",
