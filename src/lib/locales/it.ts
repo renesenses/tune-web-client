@@ -5543,6 +5543,16 @@ export default {
   "v2.circle.listen.notShared": "Questo brano non è più condiviso con te.",
   "v2.circle.listen.revoked": "Questo ascolto non è più autorizzato.",
   "v2.circle.listen.noZone": "Scegli una zona per avviare l'ascolto.",
+  "v2.circle.listen.closed": "Solo consultazione: l'ascolto presso un contatto non è aperto. Da qui non si può avviare la riproduzione; cerca l'album o il brano nelle tue fonti.",
+  "v2.circle.listen.closedClick": "Riproduzione impossibile qui: l'ascolto presso un contatto non è aperto. Usa «Cerca nelle mie fonti» per trovarlo da te.",
+  "v2.circle.sources.search": "Cerca nelle mie fonti",
+  "v2.circle.sources.searchAria": "Cerca «{query}» nelle mie fonti",
+  "v2.circle.sources.searching": "Ricerca di «{query}» nelle tue fonti…",
+  "v2.circle.sources.title": "Nelle mie fonti: «{query}»",
+  "v2.circle.sources.none": "Nessun risultato per «{query}» nella tua libreria né nei tuoi servizi collegati.",
+  "v2.circle.sources.error": "La ricerca nelle tue fonti non è riuscita. Riprova.",
+  "v2.circle.sources.playAria": "Riproduci «{title}» ({source})",
+  "v2.circle.sources.local": "La mia libreria",
   "v2.circle.listen.dismiss": "Chiudi",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)
