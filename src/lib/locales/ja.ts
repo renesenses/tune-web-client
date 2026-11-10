@@ -1676,6 +1676,8 @@ export default {
   "settings.cloudRetryIn": "自動再試行まで",
   "report.action": "報告",
   "report.chooseReason": "報告の理由",
+  "report.target.artistImage": "アーティスト写真",
+  "report.target.bio": "バイオグラフィー",
   "report.sentShared": "コミュニティに報告しました",
   "report.sentLocal": "報告を保存しました",
   "report.failed": "報告に失敗しました",
@@ -2577,6 +2579,11 @@ export default {
   "profiles.active": "使用中",
   "profiles.photoChoose": "写真を選ぶ",
   "parental.title": "ペアレンタルコントロール",
+  "parental.guide.intro": "子どものプロフィールの再生を見守ります：再生できる時間帯、1日または1週間の再生時間の上限、露骨な表現を含むコンテンツの非表示、ブロックするアーティスト、リストに限定したラジオとポッドキャスト。",
+  "parental.guide.notAdmin": "これらのルールを設定できるのは管理者プロフィールだけです。アバターメニューから管理者プロフィールに切り替えてから、ここに戻ってください。",
+  "parental.guide.noChild": "見守る対象のプロフィールがありません。まず「プロフィール」セクションで子どものプロフィールを作成してから、ここに戻ってください。管理者プロフィールは対象にできません。",
+  "parental.guide.choose": "見守るプロフィール",
+  "parental.guide.choosePlaceholder": "プロフィールを選択…",
   "parental.hideExplicit": "露骨な表現を含むコンテンツを非表示",
   "parental.hideExplicitHint": "サービスまたはタグで Explicit と示されたコンテンツだけが非表示になります。表示のない曲はそのまま表示されます。",
   "playback.errorParentalExplicit": "このコンテンツは Explicit と示されています。このプロフィールのペアレンタルコントロールにより再生できません。",
@@ -7047,6 +7054,20 @@ export default {
   "login.errorStatus": "エラー {status}",
   "v2.ambiance.acousticEnableError": "音響解析を有効にできませんでした",
   "v2.pl.transferFailed": "転送できませんでした",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "サインイン",
+  "login.identifierPlaceholder": "メールアドレスまたはユーザー名",
+  "login.passwordPlaceholder": "パスワード",
+  "login.signingIn": "サインイン中…",
+  "login.or": "または",
+  "login.ssoButton": "mozaiklabs.fr でサインイン",
+  "login.noAccount": "アカウントをお持ちでないですか？",
+  "login.usernamePlaceholder": "ユーザー名",
+  "login.emailPlaceholder": "メールアドレス",
+  "login.registering": "アカウントを作成中…",
+  "login.haveAccount": "すでにアカウントをお持ちですか？",
+  "nowplaying.eqPureNotice": "このゾーンでは PURE モードが有効です。信号は処理されずにそのまま送られます。PURE モードが有効な間、下のプリセットは効果がありません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

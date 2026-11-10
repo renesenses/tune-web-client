@@ -87,6 +87,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
         keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
+      // web#2771 : le contrôle parental n'avait d'accès que sous une ligne de
+      // Profils, et seulement dans le bon cas. Il a sa section, au niveau
+      // débutant, et se trouve par la recherche.
+      { id: 'parental',   titleKey: 'parental.title', from: 'profiles', min: 'beginner',
+        keywords: ['contrôle parental', 'parental', 'enfant', 'enfants', 'parental controls', 'kids', 'child', 'horaires', 'budget', "temps d'écoute", 'explicite', 'explicit'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
       // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
       // fournisseur, son plafond. Gratuit, dès le niveau débutant.

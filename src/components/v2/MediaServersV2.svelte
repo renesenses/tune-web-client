@@ -857,7 +857,7 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 2px; color:var(--v2-txt3); font-size:14px}
   .recharge{display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--v2-txt3); font-size:13px}
   .recharge .spin{position:static}

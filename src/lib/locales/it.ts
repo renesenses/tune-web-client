@@ -1680,6 +1680,8 @@ export default {
   "settings.cloudRetryIn": "Nuovo tentativo automatico tra",
   "report.action": "Segnala",
   "report.chooseReason": "Motivo della segnalazione",
+  "report.target.artistImage": "Foto dell'artista",
+  "report.target.bio": "Biografia",
   "report.sentShared": "Segnalazione inviata alla comunità",
   "report.sentLocal": "Segnalazione salvata",
   "report.failed": "Segnalazione non riuscita",
@@ -2581,6 +2583,11 @@ export default {
   "profiles.active": "Attivo",
   "profiles.photoChoose": "Scegli una foto",
   "parental.title": "Controllo parentale",
+  "parental.guide.intro": "Supervisiona l'ascolto di un profilo bambino: fasce orarie, budget di ascolto giornaliero o settimanale, contenuti espliciti nascosti, artisti bloccati, radio e podcast limitati a un elenco.",
+  "parental.guide.notAdmin": "Solo un profilo amministratore può impostare queste regole. Passa a un profilo amministratore dal menu dell'avatar, poi torna qui.",
+  "parental.guide.noChild": "Nessun profilo da supervisionare. Crea prima il profilo del bambino nella sezione Profili, poi torna qui. Un profilo amministratore non può essere supervisionato.",
+  "parental.guide.choose": "Profilo da supervisionare",
+  "parental.guide.choosePlaceholder": "Scegli un profilo…",
   "parental.hideExplicit": "Nascondi i contenuti espliciti",
   "parental.hideExplicitHint": "Vengono nascosti solo i contenuti contrassegnati come espliciti dal servizio o da un tag: un brano senza contrassegno resta visibile.",
   "playback.errorParentalExplicit": "Questo contenuto è contrassegnato come esplicito: il controllo parentale di questo profilo non ne consente la riproduzione.",
@@ -7047,6 +7054,20 @@ export default {
   "login.errorStatus": "Errore {status}",
   "v2.ambiance.acousticEnableError": "Impossibile attivare l'analisi acustica",
   "v2.pl.transferFailed": "Trasferimento non riuscito",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Accedi",
+  "login.identifierPlaceholder": "Email o nome utente",
+  "login.passwordPlaceholder": "Password",
+  "login.signingIn": "Accesso in corso…",
+  "login.or": "oppure",
+  "login.ssoButton": "Accedi con mozaiklabs.fr",
+  "login.noAccount": "Non hai ancora un account?",
+  "login.usernamePlaceholder": "Nome utente",
+  "login.emailPlaceholder": "Email",
+  "login.registering": "Creazione dell'account…",
+  "login.haveAccount": "Hai già un account?",
+  "nowplaying.eqPureNotice": "Modalità PURE attiva su questa zona: il segnale è trasmesso intatto, senza alcuna elaborazione. I preset qui sotto non avranno effetto finché la modalità PURE è attiva.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

@@ -1680,6 +1680,8 @@ export default {
   "settings.cloudRetryIn": "自动重试倒计时",
   "report.action": "举报",
   "report.chooseReason": "举报原因",
+  "report.target.artistImage": "艺人照片",
+  "report.target.bio": "简介",
   "report.sentShared": "举报已发送至社区",
   "report.sentLocal": "举报已保存",
   "report.failed": "举报失败",
@@ -2581,6 +2583,11 @@ export default {
   "profiles.active": "当前",
   "profiles.photoChoose": "选择照片",
   "parental.title": "家长控制",
+  "parental.guide.intro": "管理儿童配置文件的收听：可收听时段、每日或每周收听时长上限、隐藏露骨内容、屏蔽艺人、仅允许列表中的电台和播客。",
+  "parental.guide.notAdmin": "只有管理员配置文件可以设置这些规则。请从头像菜单切换到管理员配置文件，然后回到这里。",
+  "parental.guide.noChild": "没有可管理的配置文件。请先在“配置文件”部分创建孩子的配置文件，然后回到这里。管理员配置文件不能被管理。",
+  "parental.guide.choose": "要管理的配置文件",
+  "parental.guide.choosePlaceholder": "选择配置文件…",
   "parental.hideExplicit": "隐藏露骨内容",
   "parental.hideExplicitHint": "只隐藏由服务或标签标记为露骨的内容：没有标记的曲目仍然可见。",
   "playback.errorParentalExplicit": "此内容被标记为露骨：此个人资料的家长控制不允许播放。",
@@ -7047,6 +7054,20 @@ export default {
   "login.errorStatus": "错误 {status}",
   "v2.ambiance.acousticEnableError": "无法启用声学分析",
   "v2.pl.transferFailed": "传输失败",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "登录",
+  "login.identifierPlaceholder": "邮箱或用户名",
+  "login.passwordPlaceholder": "密码",
+  "login.signingIn": "正在登录…",
+  "login.or": "或",
+  "login.ssoButton": "使用 mozaiklabs.fr 登录",
+  "login.noAccount": "还没有账户？",
+  "login.usernamePlaceholder": "用户名",
+  "login.emailPlaceholder": "邮箱",
+  "login.registering": "正在创建账户…",
+  "login.haveAccount": "已有账户？",
+  "nowplaying.eqPureNotice": "此区域已启用 PURE 模式：信号原样传输，不经任何处理。PURE 模式启用期间，下方的预设不会生效。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
