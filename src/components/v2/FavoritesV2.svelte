@@ -1536,7 +1536,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}

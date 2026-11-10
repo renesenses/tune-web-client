@@ -1729,7 +1729,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   .acoustic.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
 
   .hint{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
     padding:70px 30px; color:var(--v2-txt2)}
@@ -1782,7 +1782,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   */
   .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
   .arow::-webkit-scrollbar{height:8px}
-  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:999px}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
   /* Carrée comme un album — voir `ArtistesV2`. */
   /* #1341 — la vignette des têtes d'affiche est un BOUTON : les remises à

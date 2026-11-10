@@ -8428,7 +8428,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .body{flex:1; min-height:0; display:flex; padding:0 30px}
   .pane{flex:1; overflow-y:auto; padding:16px 4px 40px; display:flex; flex-direction:column; gap:14px}
-  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
   .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
