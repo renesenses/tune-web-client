@@ -1119,15 +1119,16 @@
             {$tr('artist.identityDetachedNote' as any)}
           </span>
         {/if}
-        {#if local.image_path}
-          <ReportButton entity="artist_image" entityId={local.id!}
-            mbid={local.musicbrainz_id ?? undefined}
-            reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
-        {/if}
-        {#if bio}
-          <ReportButton entity="bio" entityId={local.id!}
-            mbid={local.musicbrainz_id ?? undefined}
-            reasons={['incorrect', 'wrong_entity', 'offensive']} />
+        <!-- tune-server-rust#7996 : UN drapeau pour la photo et la bio (il y en
+             avait deux côte à côte) ; le menu nomme la donnée signalée. -->
+        {@const cibles = [
+          ...(local.image_path ? [{ entity: 'artist_image' as const, entityId: local.id!, mbid: local.musicbrainz_id ?? undefined,
+            titreKey: 'report.target.artistImage', reasons: ['wrong_entity', 'incorrect', 'poor_quality', 'offensive'] }] : []),
+          ...(bio ? [{ entity: 'bio' as const, entityId: local.id!, mbid: local.musicbrainz_id ?? undefined,
+            titreKey: 'report.target.bio', reasons: ['incorrect', 'wrong_entity', 'offensive'] }] : []),
+        ]}
+        {#if cibles.length}
+          <ReportButton {cibles} />
         {/if}
       {/if}
     {/snippet}
