@@ -2296,6 +2296,8 @@ export default {
   "settings.cloudRetryIn": "Αυτόματη νέα προσπάθεια σε",
   "report.action": "Αναφορά",
   "report.chooseReason": "Λόγος αναφοράς",
+  "report.target.artistImage": "Φωτογραφία καλλιτέχνη",
+  "report.target.bio": "Βιογραφία",
   "report.sentShared": "Η αναφορά στάλθηκε στην κοινότητα",
   "report.sentLocal": "Η αναφορά αποθηκεύτηκε",
   "report.failed": "Η αναφορά απέτυχε",

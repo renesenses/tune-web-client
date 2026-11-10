@@ -2296,6 +2296,8 @@ export default {
   "settings.cloudRetryIn": "Automatyczna ponowna próba za",
   "report.action": "Zgłoś",
   "report.chooseReason": "Powód zgłoszenia",
+  "report.target.artistImage": "Zdjęcie wykonawcy",
+  "report.target.bio": "Biografia",
   "report.sentShared": "Zgłoszenie wysłane do społeczności",
   "report.sentLocal": "Zgłoszenie zapisane",
   "report.failed": "Zgłoszenie nie powiodło się",

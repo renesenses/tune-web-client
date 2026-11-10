@@ -2443,6 +2443,8 @@ export default {
   "settings.cloudRetryIn": "Automatic retry in",
   "report.action": "Report",
   "report.chooseReason": "Report reason",
+  "report.target.artistImage": "Artist photo",
+  "report.target.bio": "Biography",
   "report.sentShared": "Report sent to the community",
   "report.sentLocal": "Report saved",
   "report.failed": "Report failed",

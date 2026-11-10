@@ -1680,6 +1680,8 @@ export default {
   "settings.cloudRetryIn": "Automatischer neuer Versuch in",
   "report.action": "Melden",
   "report.chooseReason": "Grund der Meldung",
+  "report.target.artistImage": "Künstlerfoto",
+  "report.target.bio": "Biografie",
   "report.sentShared": "Meldung an die Community gesendet",
   "report.sentLocal": "Meldung gespeichert",
   "report.failed": "Meldung fehlgeschlagen",

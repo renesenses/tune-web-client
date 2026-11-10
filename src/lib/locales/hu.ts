@@ -1808,6 +1808,8 @@ export default {
   "settings.cloudRetryIn": "Automatikus újrapróbálkozás ennyi idő múlva:",
   "report.action": "Jelentés",
   "report.chooseReason": "A jelentés oka",
+  "report.target.artistImage": "Az előadó fotója",
+  "report.target.bio": "Életrajz",
   "report.sentShared": "A jelentés elment a közösségnek",
   "report.sentLocal": "A jelentés mentve",
   "report.failed": "A jelentés nem sikerült",

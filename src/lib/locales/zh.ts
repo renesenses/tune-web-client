@@ -1680,6 +1680,8 @@ export default {
   "settings.cloudRetryIn": "自动重试倒计时",
   "report.action": "举报",
   "report.chooseReason": "举报原因",
+  "report.target.artistImage": "艺人照片",
+  "report.target.bio": "简介",
   "report.sentShared": "举报已发送至社区",
   "report.sentLocal": "举报已保存",
   "report.failed": "举报失败",

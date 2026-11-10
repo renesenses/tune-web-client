@@ -1663,6 +1663,8 @@ export default {
   "settings.cloudRetryIn": "Automatiskt nytt försök om",
   "report.action": "Rapportera",
   "report.chooseReason": "Orsak till rapporten",
+  "report.target.artistImage": "Artistfoto",
+  "report.target.bio": "Biografi",
   "report.sentShared": "Rapport skickad till communityn",
   "report.sentLocal": "Rapport sparad",
   "report.failed": "Rapporteringen misslyckades",
