@@ -28,7 +28,11 @@
 
 <p class="hint" data-parental-intro>{$t('parental.guide.intro' as any)}</p>
 
-{#if !actif || actif.is_admin !== true}
+<!-- Profils pas encore chargés : on ne conclut rien (sinon « non
+     administrateur » s'afficherait un instant à tort). -->
+{#if !actif}
+  <!-- rien -->
+{:else if actif.is_admin !== true}
   <p class="guide" data-parental-guide="non-admin">{$t('parental.guide.notAdmin' as any)}</p>
 {:else if !encadrables.length}
   <p class="guide" data-parental-guide="sans-profil">{$t('parental.guide.noChild' as any)}</p>

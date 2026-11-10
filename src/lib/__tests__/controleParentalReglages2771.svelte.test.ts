@@ -87,6 +87,12 @@ describe('web#2771 — le guide, selon le cas', () => {
     expect(hote.querySelector('select')).toBeNull();
   });
 
+  it('profils pas encore chargés : aucun message de guide (pas de « non administrateur » à tort)', async () => {
+    await monter([], 1);
+    expect(hote.querySelector('[data-parental-guide]')).toBeNull();
+    expect(hote.querySelector('[data-parental-intro]')).not.toBeNull();
+  });
+
   it('administrateur sans profil à encadrer : dit de créer le profil de l’enfant', async () => {
     await monter([ADMIN, ADMIN2], 1);
     expect(hote.querySelector('[data-parental-guide="sans-profil"]')?.textContent).toBe(FR['parental.guide.noChild']);
