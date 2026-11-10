@@ -160,7 +160,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
-    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
+    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant, estEtatCoquille,
   } from '../../lib/historiqueCoquille';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
@@ -2095,9 +2095,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
        * — puis s'ouvre tout seul quand la donnée arrive. Vérifier l'existence
        * ici perdrait le genre pour qui arrive sur une bibliothèque froide.
        */
+      // tune-server-rust#8145 — venu d'une autre vue (la page d'un artiste) :
+      // le Retour de cette valeur y ramène.
+      const depuis = typeof d.depuis === 'string' && d.depuis !== 'library' ? d.depuis : null;
       tick()
         .then(() => {
           facetteOuverte = valeur;
+          facetteVenueDe = depuis && valeur ? { valeur, vue: depuis } : null;
           return tick();
         })
         .then(() => {
@@ -2177,6 +2181,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
   }
   $effect(() => { void tab; void q; facetteOuverte = null; });
+  $effect(() => { void tab; void q; facetteVenueDe = null; });
+  /**
+   * tune-server-rust#8145 (second point) — « quand on fait retour, on revient
+   * sur l'onglet Label général et non sur l'artiste ». La valeur ouverte par
+   * `tune:v2-facette` depuis une AUTRE vue retient cette vue : son Retour
+   * recule d'un cran dans l'historique (l'entrée empilée par le changement de
+   * vue), comme le Précédent du navigateur, au lieu de montrer la liste.
+   */
+  let facetteVenueDe: { valeur: string; vue: string } | null = null;
 
   /**
    * web#2622 (tune-server-rust#7671) — « Exporter le catalogue » : le serveur
@@ -2216,8 +2229,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ouvrirFacette(cle: string) {
     if (flisteEl) positionsListeFacettes.set(tab, flisteEl.scrollTop);
     facetteOuverte = cle;
+    facetteVenueDe = null;
+  }
+  /** #8145 — la valeur venue d'une autre vue : son Retour recule vers elle. */
+  function reculerVersLaVueDOrigine(): boolean {
+    const venue = facetteVenueDe;
+    facetteVenueDe = null;
+    if (!venue || facetteOuverte !== venue.valeur) return false;
+    if (!estEtatCoquille(history.state) || history.state.vue !== 'library') return false;
+    history.back();
+    return true;
   }
   function fermerFacette() {
+    if (reculerVersLaVueDOrigine()) return;
     positionARetablir = positionsListeFacettes.get(tab) ?? null;
     facetteOuverte = null;
   }
