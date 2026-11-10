@@ -135,7 +135,7 @@
       <button
         class="eq-preset"
         class:active={current === preset.cle}
-        disabled={locked || greffonAbsent}
+        disabled={locked}
         title={locked ? $t('nowplaying.eqPremium') : undefined}
         onclick={() => onSelect(preset.cle)}
       >

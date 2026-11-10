@@ -19,7 +19,7 @@ import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import NowPlaying from '../../components/partages/NowPlaying.svelte';
 import { zones, currentZoneId } from '../stores/zones';
-import { activeView } from '../stores/navigation';
+import { activeView, mobileNowPlayingOpen } from '../stores/navigation';
 import { licenseState } from '../stores/license';
 import { locale } from '../i18n';
 
@@ -84,6 +84,7 @@ afterEach(() => {
   hote?.remove();
   hote = null;
   zones.set([]);
+  mobileNowPlayingOpen.set(false);
   licenseState.update((s) => ({ ...s, loaded: false, tier: 'free' }));
   vi.unstubAllGlobals();
 });
@@ -129,5 +130,47 @@ describe('web#2387 — l’égaliseur de l’écran de lecture ne dépend pas de
     avis!.querySelector<HTMLButtonElement>('button')!.click();
     flushSync();
     expect(get(activeView)).toBe('plugins');
+  });
+
+  it('🔴 voie mobile (calque) : le lien « Extensions » referme le calque', async () => {
+    refusGreffon = true;
+    mobileNowPlayingOpen.set(true);
+    const h = await ouvrirPanneauEq();
+    h.querySelectorAll<HTMLButtonElement>('.eq-preset')[1].click();
+    await respirer();
+    flushSync();
+    h.querySelector<HTMLButtonElement>('[data-testid="eq-greffon-absent"] button')!.click();
+    flushSync();
+    expect(get(activeView)).toBe('plugins');
+    expect(get(mobileNowPlayingOpen), 'le calque recouvrirait les Extensions').toBe(false);
+  });
+
+  it('🔴 pas définitif : préréglages cliquables, un clic après installation efface l’avis', async () => {
+    refusGreffon = true;
+    const h = await ouvrirPanneauEq();
+    h.querySelectorAll<HTMLButtonElement>('.eq-preset')[1].click();
+    await respirer();
+    flushSync();
+    expect(h.querySelector('[data-testid="eq-greffon-absent"]')).not.toBeNull();
+    const prereglages = [...h.querySelectorAll<HTMLButtonElement>('.eq-preset')];
+    expect(prereglages.every((b) => !b.disabled), 'préréglages désactivés pour de bon').toBe(true);
+    refusGreffon = false; // le greffon vient d'être installé
+    prereglages[2].click();
+    await respirer();
+    flushSync();
+    expect(h.querySelector('[data-testid="eq-greffon-absent"]'), 'l’avis survit à une écriture réussie').toBeNull();
+  });
+
+  it('réouvrir le panneau repart d’un état neuf', async () => {
+    refusGreffon = true;
+    const h = await ouvrirPanneauEq();
+    h.querySelectorAll<HTMLButtonElement>('.eq-preset')[1].click();
+    await respirer();
+    flushSync();
+    const bouton = [...h.querySelectorAll<HTMLButtonElement>('.np-credits-btn')].find((b) => (b.textContent ?? '').trim() === 'EQ')!;
+    bouton.click(); flushSync();
+    bouton.click(); flushSync();
+    await respirer();
+    expect(h.querySelector('[data-testid="eq-greffon-absent"]')).toBeNull();
   });
 });
