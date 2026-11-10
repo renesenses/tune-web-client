@@ -60,7 +60,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear, vueAvantGrandEcran, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear, vueAvantGrandEcran, mobileNowPlayingOpen, origineGrandEcran } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
@@ -1733,10 +1733,10 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       document.documentElement.requestFullscreen?.()?.catch(() => {});
     } catch {}
-    // web#2761 — on part TOUJOURS de « Lecture en cours », même ouvert en
-    // calque par-dessus une autre vue : la sortie y ramène, en vue de plein
-    // droit, et le calque se referme (sinon il recouvrirait ce retour).
-    vueAvantGrandEcran.set('nowplaying');
+    // web#2761 — la porte dit d'où l'on part : la vue de dessous et le calque
+    // s'il est ouvert, ou « Lecture en cours » en vue de plein droit. Le calque
+    // s'efface pendant le Grand écran ; la sortie le rouvre.
+    vueAvantGrandEcran.set(origineGrandEcran($mobileNowPlayingOpen ? $activeView : 'nowplaying', $mobileNowPlayingOpen));
     mobileNowPlayingOpen.set(false);
     activeView.set('tv');
   }
@@ -1754,7 +1754,13 @@ import { ICONES } from '../../lib/menuPiste';
        Grand écran par un clic laisse `previousView = 'tv'`, et ce bouton
        remontait donc le mode que l'utilisateur venait de quitter. La table de
        `destinationDeRetour` tranche le cas de CHAQUE vue. -->
-  <button class="np-back-btn" onclick={() => activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }))} title={$t('nowplaying.back')}>
+  <button class="np-back-btn" onclick={() => {
+    // web#2761 — en CALQUE, Retour referme le calque : la vue d'en dessous est
+    // déjà là. Changer de vue laissait le calque ouvert, et après un Grand
+    // écran `previousView` vaut `'tv'`, qui renvoyait à la Bibliothèque.
+    if ($mobileNowPlayingOpen && $activeView !== 'nowplaying') { mobileNowPlayingOpen.set(false); return; }
+    activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+  }} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
