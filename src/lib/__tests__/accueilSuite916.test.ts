@@ -135,14 +135,14 @@ describe('4. RecommendationsSection lit /home/recommendations', () => {
   });
 });
 
-describe('5. les radios de l’accueil : raison et « Pas pour moi »', () => {
+describe('5. les radios de l’accueil : la raison (pas encore « Pas pour moi »)', () => {
   it('disent pourquoi, en français et en anglais', () => {
     expect(texteRaison({ type: 'radio_favorite' }, tFr)).toBe('Dans vos radios favorites');
     expect(texteRaison({ type: 'radio_ecoutee' }, tFr)).toBe('Écoutée récemment');
     expect(texteRaison({ type: 'radio_ecoutee', ecoute_le: 1791806400 }, tEn, 'en')).toBe('Played on Oct 12, 2026');
   });
 
-  it('la bande des radios reprend la raison et désigne la station', async () => {
+  it('la bande des radios reprend la raison, sans offrir « Pas pour moi » (serveur rc12 : pas de type radio)', async () => {
     serveur([
       ['/home/radio-picks', [
         { id: 7, name: 'FIP', url: 'https://exemple.test/fip', is_favorite: true, raison: { type: 'radio_favorite' } },
@@ -150,8 +150,9 @@ describe('5. les radios de l’accueil : raison et « Pas pour moi »', () => {
     ]);
     const [el] = await widgetParId('radios-artistes')!.charger(ctx);
     expect(el.raison).toEqual({ type: 'radio_favorite' });
-    expect(el.suggestion).toBe(true);
-    expect(cibleDeSuggestion(el)).toMatchObject({ item_type: 'radio', source: 'local', item_id: '7' });
+    // Le serveur promu refuse `item_type: radio` (400) : aucune cible, aucun menu.
+    expect(el.suggestion).toBeFalsy();
+    expect(cibleDeSuggestion(el)).toBeNull();
     expect(cibleArtiste(el), 'une radio n’a pas d’artiste à écarter').toBeNull();
   });
 

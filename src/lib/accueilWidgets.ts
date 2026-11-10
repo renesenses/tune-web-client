@@ -1800,11 +1800,18 @@ export const WIDGETS: Widget[] = [
             // aurait joue un album au hasard.
             const el = versElement(o, i, 'rad', { genre: 'aucun' });
             // web#916 (décision du 13/10/2026) — « Dans vos radios favorites » /
-            // « Écoutée le … » (raison du serveur), et « Pas pour moi » : le
-            // serveur ne la repropose plus à ce profil.
+            // « Écoutée le … » (raison du serveur).
+            //
+            // ⚠️ PAS de « Pas pour moi » sur une radio pour la rc12 : le serveur
+            // promu (tune-server-rust#8334) ne range que `album`, `artist` et
+            // `playlist` (`suggestions_ecartees::normaliser`) ; un écart de
+            // radio y rend 400. Le côté serveur n'existe qu'en brouillon non
+            // testé (`feat/accueil-radios-b209c13`, cc2455e82). La vignette
+            // n'est donc pas marquée `suggestion` : ni menu, ni geste voué à
+            // l'échec. Le reste (`radioId`, `entreesPochette`) attend ce serveur.
             const pourquoi = { ...el, raison: raisonDe(o) };
             return o?.id != null
-              ? { ...pourquoi, jouer: (z: number) => api.playRadio(o.id, z), radioId: Number(o.id), suggestion: true }
+              ? { ...pourquoi, jouer: (z: number) => api.playRadio(o.id, z) }
               : pourquoi;
           }),
       ),
