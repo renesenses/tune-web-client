@@ -97,7 +97,7 @@ afterEach(async () => {
 });
 
 describe('tune-server-rust#4176 — la pastille PURE dit quand il n\'y a rien à contourner', () => {
-  it('🔴 PURE allumé, rien à contourner : bouclier creux et info-bulle qui le dit', { timeout: DELAI }, async () => {
+  it('🔴 PURE allumé, rien à contourner : info-bulle qui le dit, bouclier plein (#7932)', { timeout: DELAI }, async () => {
     zoneEnLecture(PURE_SANS_OBJET);
     audiophileEnabled.set(true);
     monte = mount(TransportBar, { target: hote, props: {} as any });
@@ -108,7 +108,9 @@ describe('tune-server-rust#4176 — la pastille PURE dit quand il n\'y a rien à
     expect(b, 'pastille PURE absente').not.toBeNull();
     expect(b!.classList.contains('sans-objet'), 'la pastille ne dit pas « rien à contourner » — #4176').toBe(true);
     expect(b!.getAttribute('title')).toBe(fr['audiophile.pureNothingToBypass']);
-    expect(b!.querySelector('svg')!.getAttribute('fill')).toBe('none');
+    // tune-server-rust#7932 — le bouclier ne se vide plus : seules les sorties
+    // exclusives publient cette étape, le vider faisait croire à PURE éteint.
+    expect(b!.querySelector('svg')!.getAttribute('fill')).toBe('currentColor');
   });
 
   it('PURE allumé qui contourne un égaliseur : pastille pleine, comme avant', { timeout: DELAI }, async () => {

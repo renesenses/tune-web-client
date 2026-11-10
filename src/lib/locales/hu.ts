@@ -1808,6 +1808,8 @@ export default {
   "settings.cloudRetryIn": "Automatikus újrapróbálkozás ennyi idő múlva:",
   "report.action": "Jelentés",
   "report.chooseReason": "A jelentés oka",
+  "report.target.artistImage": "Az előadó fotója",
+  "report.target.bio": "Életrajz",
   "report.sentShared": "A jelentés elment a közösségnek",
   "report.sentLocal": "A jelentés mentve",
   "report.failed": "A jelentés nem sikerült",
@@ -2642,6 +2644,11 @@ export default {
   "profiles.active": "Aktív",
   "profiles.photoChoose": "Fénykép választása",
   "parental.title": "Szülői felügyelet",
+  "parental.guide.intro": "Felügyelje egy gyermekprofil zenehallgatását: hallgatási idősávok, napi vagy heti hallgatási keret, rejtett explicit tartalmak, letiltott előadók, listára korlátozott rádiók és podcastok.",
+  "parental.guide.notAdmin": "Ezeket a szabályokat csak rendszergazdai profil állíthatja be. Váltson rendszergazdai profilra az avatar menüjében, majd térjen vissza ide.",
+  "parental.guide.noChild": "Nincs felügyelhető profil. Először hozza létre a gyermek profilját a Profilok részben, majd térjen vissza ide. Rendszergazdai profil nem felügyelhető.",
+  "parental.guide.choose": "Felügyelendő profil",
+  "parental.guide.choosePlaceholder": "Válasszon profilt…",
   "parental.hideExplicit": "Szókimondó tartalmak elrejtése",
   "parental.hideExplicitHint": "Csak a szolgáltatás vagy egy címke által szókimondónak jelölt tartalmak rejtődnek el: a jelölés nélküli szám látható marad.",
   "playback.errorParentalExplicit": "Ez a tartalom szókimondónak van jelölve: a profil szülői felügyelete nem engedi a lejátszását.",
@@ -6997,6 +7004,20 @@ export default {
   "login.errorStatus": "Hiba: {status}",
   "v2.ambiance.acousticEnableError": "Az akusztikai elemzés nem kapcsolható be",
   "v2.pl.transferFailed": "Az átvitel nem sikerült",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Bejelentkezés",
+  "login.identifierPlaceholder": "E-mail vagy felhasználónév",
+  "login.passwordPlaceholder": "Jelszó",
+  "login.signingIn": "Bejelentkezés…",
+  "login.or": "vagy",
+  "login.ssoButton": "Bejelentkezés a mozaiklabs.fr-rel",
+  "login.noAccount": "Még nincs fiókja?",
+  "login.usernamePlaceholder": "Felhasználónév",
+  "login.emailPlaceholder": "E-mail",
+  "login.registering": "Fiók létrehozása…",
+  "login.haveAccount": "Már van fiókja?",
+  "nowplaying.eqPureNotice": "A PURE mód be van kapcsolva ennél a zónánál: a jel érintetlenül, feldolgozás nélkül halad át. Az alábbi előbeállításoknak nincs hatásuk, amíg a PURE mód be van kapcsolva.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

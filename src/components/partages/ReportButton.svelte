@@ -1,3 +1,22 @@
+<script module lang="ts">
+  import type { ReportEntity as Entite } from '../../lib/api';
+  /**
+   * tune-server-rust#7996 (Didier, forum) : « Est-ce utile d'avoir deux
+   * drapeaux signaler sur la page d'un artiste ? » — la photo et la bio en
+   * avaient chacune un, côte à côte. Une page qui signale PLUSIEURS données
+   * passe `cibles` : un seul drapeau, et le menu range les motifs sous le nom
+   * de chaque donnée. Sans `cibles`, rien ne change.
+   */
+  export interface CibleSignalement {
+    entity: Entite;
+    entityId?: number;
+    mbid?: string;
+    /** Clé i18n du nom de la donnée, en tête de son groupe de motifs. */
+    titreKey: string;
+    reasons: string[];
+  }
+</script>
+
 <script lang="ts">
   // Geste « Signaler » unique pour toute donnée enrichie (pochette, image ou
   // bio d'artiste, crédit…). Un drapeau + un choix de raison ; l'appel part sur
@@ -9,7 +28,8 @@
   import { notifications } from '../../lib/stores/notifications';
 
   interface Props {
-    entity: ReportEntity;
+    entity?: ReportEntity;
+    cibles?: CibleSignalement[];
     entityId?: number;
     mbid?: string;
     field?: string;
@@ -22,6 +42,7 @@
   }
   let {
     entity,
+    cibles,
     entityId,
     mbid,
     field,
@@ -34,11 +55,21 @@
   let open = $state(false);
   let sending = $state(false);
 
-  async function send(reason: string) {
+  /** Les groupes du menu : `cibles`, ou la seule donnée décrite par les props. */
+  const groupes = $derived<{ entity: ReportEntity; entityId?: number; mbid?: string; titreKey: string | null; reasons: string[] }[]>(
+    cibles?.length
+      ? cibles
+      : entity ? [{ entity, entityId, mbid, titreKey: null, reasons }] : [],
+  );
+
+  async function send(g: (typeof groupes)[number], reason: string) {
     open = false;
     sending = true;
     try {
-      const res = await api.reportMetadata({ entity, entity_id: entityId, mbid, field, value, reason });
+      const res = await api.reportMetadata({
+        entity: g.entity, entity_id: g.entityId, mbid: g.mbid,
+        ...(cibles?.length ? {} : { field, value }), reason,
+      });
       notifications.success(
         res.pushed ? $tr('report.sentShared') : $tr('report.sentLocal')
       );
@@ -51,6 +82,7 @@
   }
 </script>
 
+{#if groupes.length}
 <div class="report-wrap">
   <button
     class="report-btn"
@@ -71,14 +103,20 @@
     <div class="report-backdrop" onclick={() => (open = false)}></div>
     <div class="report-menu">
       <div class="report-menu-title">{$tr('report.chooseReason')}</div>
-      {#each reasons as reason}
-        <button class="report-menu-item" onclick={() => send(reason)}>
-          {$tr(`report.reason.${reason}` as any)}
-        </button>
+      {#each groupes as g (g.entity)}
+        {#if g.titreKey && groupes.length > 1}
+          <div class="report-menu-groupe" data-report-groupe={g.entity}>{$tr(g.titreKey as any)}</div>
+        {/if}
+        {#each g.reasons as reason}
+          <button class="report-menu-item" onclick={() => send(g, reason)}>
+            {$tr(`report.reason.${reason}` as any)}
+          </button>
+        {/each}
       {/each}
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
   .report-wrap { position: relative; display: inline-flex; }
@@ -122,6 +160,13 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--tune-text-muted);
+  }
+
+  .report-menu-groupe {
+    padding: 8px 8px 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text);
   }
 
   .report-menu-item {

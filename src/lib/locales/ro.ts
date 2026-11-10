@@ -1686,6 +1686,8 @@ export default {
   "settings.cloudRetryIn": "Reîncercare automată peste",
   "report.action": "Raportează",
   "report.chooseReason": "Motivul raportării",
+  "report.target.artistImage": "Fotografia artistului",
+  "report.target.bio": "Biografie",
   "report.sentShared": "Raport trimis comunității",
   "report.sentLocal": "Raport salvat",
   "report.failed": "Raportare eșuată",
@@ -2584,6 +2586,11 @@ export default {
   "profiles.active": "Activ",
   "profiles.photoChoose": "Alege o fotografie",
   "parental.title": "Control parental",
+  "parental.guide.intro": "Supravegheați ascultarea unui profil de copil: intervale orare, buget de ascultare zilnic sau săptămânal, conținut explicit ascuns, artiști blocați, radiouri și podcasturi limitate la o listă.",
+  "parental.guide.notAdmin": "Doar un profil de administrator poate stabili aceste reguli. Comutați pe un profil de administrator din meniul avatarului, apoi reveniți aici.",
+  "parental.guide.noChild": "Niciun profil de supravegheat. Creați mai întâi profilul copilului în secțiunea Profiluri, apoi reveniți aici. Un profil de administrator nu poate fi supravegheat.",
+  "parental.guide.choose": "Profil de supravegheat",
+  "parental.guide.choosePlaceholder": "Alegeți un profil…",
   "parental.hideExplicit": "Ascunde conținutul explicit",
   "parental.hideExplicitHint": "Se ascunde doar conținutul marcat ca explicit de serviciu sau de o etichetă: o piesă fără marcaj rămâne vizibilă.",
   "playback.errorParentalExplicit": "Acest conținut este marcat ca explicit: controlul parental al acestui profil nu permite redarea lui.",
@@ -7038,6 +7045,20 @@ export default {
   "login.errorStatus": "Eroare {status}",
   "v2.ambiance.acousticEnableError": "Analiza acustică nu a putut fi activată",
   "v2.pl.transferFailed": "Transferul a eșuat",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Conectare",
+  "login.identifierPlaceholder": "E-mail sau nume de utilizator",
+  "login.passwordPlaceholder": "Parolă",
+  "login.signingIn": "Se conectează…",
+  "login.or": "sau",
+  "login.ssoButton": "Conectare cu mozaiklabs.fr",
+  "login.noAccount": "Nu ai încă un cont?",
+  "login.usernamePlaceholder": "Nume de utilizator",
+  "login.emailPlaceholder": "E-mail",
+  "login.registering": "Se creează contul…",
+  "login.haveAccount": "Ai deja un cont?",
+  "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

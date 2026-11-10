@@ -571,7 +571,7 @@
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}

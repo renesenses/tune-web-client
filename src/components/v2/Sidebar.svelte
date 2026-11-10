@@ -1227,7 +1227,7 @@
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
-  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
