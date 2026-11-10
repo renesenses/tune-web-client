@@ -82,6 +82,7 @@
   }
 </script>
 
+{#if groupes.length}
 <div class="report-wrap">
   <button
     class="report-btn"
@@ -115,6 +116,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
   .report-wrap { position: relative; display: inline-flex; }

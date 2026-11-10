@@ -73,6 +73,12 @@ describe('tune-server-rust#7996 — un seul drapeau sur la page artiste', () => 
     expect(api.reportMetadata).toHaveBeenCalledWith({ entity: 'bio', entity_id: 42, mbid: 'mb-1', reason: 'incorrect' });
   });
 
+  it('ni `entity` ni `cibles` : aucun drapeau (pas de menu vide)', () => {
+    composant = mount(ReportButton as any, { target: hote, props: { cibles: [] } });
+    flushSync();
+    expect(hote.querySelectorAll('.report-btn')).toHaveLength(0);
+  });
+
   it('une seule donnée : pas d’intertitre de groupe', () => {
     ouvrir({ cibles: [CIBLES[1]] });
     expect(hote.querySelectorAll('[data-report-groupe]')).toHaveLength(0);
