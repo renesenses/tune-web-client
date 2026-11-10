@@ -1676,6 +1676,8 @@ export default {
   "settings.cloudRetryIn": "自動再試行まで",
   "report.action": "報告",
   "report.chooseReason": "報告の理由",
+  "report.target.artistImage": "アーティスト写真",
+  "report.target.bio": "バイオグラフィー",
   "report.sentShared": "コミュニティに報告しました",
   "report.sentLocal": "報告を保存しました",
   "report.failed": "報告に失敗しました",

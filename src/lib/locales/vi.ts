@@ -2298,6 +2298,8 @@ export default {
   "settings.cloudRetryIn": "Tự động thử lại sau",
   "report.action": "Báo cáo",
   "report.chooseReason": "Lý do báo cáo",
+  "report.target.artistImage": "Ảnh nghệ sĩ",
+  "report.target.bio": "Tiểu sử",
   "report.sentShared": "Đã gửi báo cáo tới cộng đồng",
   "report.sentLocal": "Đã lưu báo cáo",
   "report.failed": "Báo cáo thất bại",

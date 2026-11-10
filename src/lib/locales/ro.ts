@@ -1686,6 +1686,8 @@ export default {
   "settings.cloudRetryIn": "Reîncercare automată peste",
   "report.action": "Raportează",
   "report.chooseReason": "Motivul raportării",
+  "report.target.artistImage": "Fotografia artistului",
+  "report.target.bio": "Biografie",
   "report.sentShared": "Raport trimis comunității",
   "report.sentLocal": "Raport salvat",
   "report.failed": "Raportare eșuată",

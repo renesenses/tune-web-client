@@ -2296,6 +2296,8 @@ export default {
   "settings.cloudRetryIn": "Nytt forsøk automatisk om",
   "report.action": "Rapporter",
   "report.chooseReason": "Årsak til rapporten",
+  "report.target.artistImage": "Artistbilde",
+  "report.target.bio": "Biografi",
   "report.sentShared": "Rapport sendt til fellesskapet",
   "report.sentLocal": "Rapport lagret",
   "report.failed": "Rapporteringen mislyktes",

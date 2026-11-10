@@ -2446,6 +2446,8 @@ export default {
   "settings.cloudRetryIn": "Nouvel essai automatique dans",
   "report.action": "Signaler",
   "report.chooseReason": "Motif du signalement",
+  "report.target.artistImage": "Photo de l’artiste",
+  "report.target.bio": "Biographie",
   "report.sentShared": "Signalement envoyé à la communauté",
   "report.sentLocal": "Signalement enregistré",
   "report.failed": "Échec du signalement",

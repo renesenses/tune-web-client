@@ -1660,6 +1660,8 @@ export default {
   "settings.cloudRetryIn": "자동 재시도 예정:",
   "report.action": "신고",
   "report.chooseReason": "신고 사유",
+  "report.target.artistImage": "아티스트 사진",
+  "report.target.bio": "약력",
   "report.sentShared": "커뮤니티에 신고했습니다",
   "report.sentLocal": "신고를 저장했습니다",
   "report.failed": "신고에 실패했습니다",
