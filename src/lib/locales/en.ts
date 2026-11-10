@@ -2443,6 +2443,8 @@ export default {
   "settings.cloudRetryIn": "Automatic retry in",
   "report.action": "Report",
   "report.chooseReason": "Report reason",
+  "report.target.artistImage": "Artist photo",
+  "report.target.bio": "Biography",
   "report.sentShared": "Report sent to the community",
   "report.sentLocal": "Report saved",
   "report.failed": "Report failed",
@@ -3276,6 +3278,11 @@ export default {
   "profiles.active": "Active",
   "profiles.photoChoose": "Choose a photo",
   "parental.title": "Parental controls",
+  "parental.guide.intro": "Supervise a child profile's listening: listening hours, daily or weekly listening budget, hidden explicit content, blocked artists, radios and podcasts limited to a list.",
+  "parental.guide.notAdmin": "Only an administrator profile can set these rules. Switch to an administrator profile from the avatar menu, then come back here.",
+  "parental.guide.noChild": "No profile to supervise. First create the child's profile in the Profiles section, then come back here. An administrator profile cannot be supervised.",
+  "parental.guide.choose": "Profile to supervise",
+  "parental.guide.choosePlaceholder": "Choose a profile…",
   "parental.hideExplicit": "Hide explicit content",
   "parental.hideExplicitHint": "Only content marked explicit by the service or by a tag is hidden: a track without a marking stays visible.",
   "playback.errorParentalExplicit": "This content is marked explicit: this profile’s parental controls do not allow playing it.",
@@ -7058,6 +7065,20 @@ export default {
   "login.errorStatus": "Error {status}",
   "v2.ambiance.acousticEnableError": "Could not enable acoustic analysis",
   "v2.pl.transferFailed": "Transfer failed",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Sign in",
+  "login.identifierPlaceholder": "Email or username",
+  "login.passwordPlaceholder": "Password",
+  "login.signingIn": "Signing in…",
+  "login.or": "or",
+  "login.ssoButton": "Sign in with mozaiklabs.fr",
+  "login.noAccount": "No account yet?",
+  "login.usernamePlaceholder": "Username",
+  "login.emailPlaceholder": "Email",
+  "login.registering": "Creating account…",
+  "login.haveAccount": "Already have an account?",
+  "nowplaying.eqPureNotice": "PURE mode is on for this zone: the signal is passed through untouched, with no processing. The presets below will have no effect while PURE mode is on.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

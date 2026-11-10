@@ -126,18 +126,18 @@
     </div>
 
     {#if mode === 'login'}
-      <h2>Se connecter</h2>
+      <h2>{$t('login.signIn' as any)}</h2>
       <form class="login-form" onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
         <input
           type="text"
-          placeholder="Email ou identifiant"
+          placeholder={$t('login.identifierPlaceholder' as any)}
           bind:value={loginEmail}
           autocomplete="username"
           class="login-input"
         />
         <input
           type="password"
-          placeholder="Mot de passe"
+          placeholder={$t('login.passwordPlaceholder' as any)}
           bind:value={loginPassword}
           autocomplete="current-password"
           class="login-input"
@@ -146,12 +146,12 @@
           <div class="login-error">{error}</div>
         {/if}
         <button type="submit" class="login-btn" disabled={loading}>
-          {loading ? 'Connexion...' : 'Se connecter'}
+          {loading ? $t('login.signingIn' as any) : $t('login.signIn' as any)}
         </button>
       </form>
 
       <div class="login-divider">
-        <span>ou</span>
+        <span>{$t('login.or' as any)}</span>
       </div>
 
       {#if !SSO}
@@ -163,14 +163,14 @@
           <polyline points="10 17 15 12 10 7" />
           <line x1="15" y1="12" x2="3" y2="12" />
         </svg>
-        Connexion avec mozaiklabs.fr
+        {$t('login.ssoButton' as any)}
       </button>
       {/if}
 
       <p class="login-switch">
-        Pas encore de compte ?
+        {$t('login.noAccount' as any)}
         <button class="login-link" onclick={() => { mode = 'register'; error = ''; }}>
-          Creer un compte
+          {$t('login.createAccount')}
         </button>
       </p>
 
@@ -179,21 +179,21 @@
       <form class="login-form" onsubmit={(e) => { e.preventDefault(); handleRegister(); }}>
         <input
           type="text"
-          placeholder="Nom d'utilisateur"
+          placeholder={$t('login.usernamePlaceholder' as any)}
           bind:value={regUsername}
           autocomplete="username"
           class="login-input"
         />
         <input
           type="email"
-          placeholder="Email"
+          placeholder={$t('login.emailPlaceholder' as any)}
           bind:value={regEmail}
           autocomplete="email"
           class="login-input"
         />
         <input
           type="password"
-          placeholder="Mot de passe"
+          placeholder={$t('login.passwordPlaceholder' as any)}
           bind:value={regPassword}
           autocomplete="new-password"
           class="login-input"
@@ -202,14 +202,14 @@
           <div class="login-error">{error}</div>
         {/if}
         <button type="submit" class="login-btn" disabled={loading}>
-          {loading ? 'Inscription...' : 'Creer un compte'}
+          {loading ? $t('login.registering' as any) : $t('login.createAccount')}
         </button>
       </form>
 
       <p class="login-switch">
-        Deja un compte ?
+        {$t('login.haveAccount' as any)}
         <button class="login-link" onclick={() => { mode = 'login'; error = ''; }}>
-          Se connecter
+          {$t('login.signIn' as any)}
         </button>
       </p>
     {/if}

@@ -1062,7 +1062,7 @@
   /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
   .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
-  .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .tbl::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);
