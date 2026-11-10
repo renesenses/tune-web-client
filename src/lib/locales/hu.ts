@@ -4940,9 +4940,14 @@ export default {
   "settings.creditsStarted": "Közreműködők: a keresés elindult {n} kiadásra (másodpercenként egy kérés).",
   "settings.creditsNoCandidate": "Közreműködők: nincs feldolgozandó kiadás. Csak a MusicBrainzen már azonosított albumok kaphatnak közreműködőket.",
   "settings.creditsAlreadyRunning": "A közreműködők keresése már folyamatban van.",
-  "v2.disco.collaborations": "Együttműködések",
   "v2.disco.withArtist": "{artist} közreműködésével",
   "v2.disco.covers": "Feldolgozások",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "Diszkográfia",
+  "v2.disco.appearsOn": "Közreműködik",
+  "v2.disco.writing": "Szerzői és produceri munkák",
+  "v2.disco.performingCount": "Előadó: {albums} album · {tracks} szám",
+  "v2.disco.writingCount": "Szerző: {albums} album · {tracks} szám",
   "v2.album.creditedOnly": "Számok, amelyekben {artist} közreműködőként szerepel",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "Átvitelek",

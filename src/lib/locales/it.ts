@@ -4986,9 +4986,14 @@ export default {
   "settings.creditsStarted": "Crediti: ricerca avviata per {n} pubblicazioni (una richiesta al secondo).",
   "settings.creditsNoCandidate": "Crediti: nessuna pubblicazione da elaborare. Solo gli album già identificati su MusicBrainz possono ricevere i crediti.",
   "settings.creditsAlreadyRunning": "La ricerca dei crediti è già in corso.",
-  "v2.disco.collaborations": "Collaborazioni",
   "v2.disco.withArtist": "Con {artist}",
   "v2.disco.covers": "Cover",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "Discografia",
+  "v2.disco.appearsOn": "Appare su",
+  "v2.disco.writing": "Scrittura e produzione",
+  "v2.disco.performingCount": "Interprete: {albums} album · {tracks} brani",
+  "v2.disco.writingCount": "Scrittura: {albums} album · {tracks} brani",
   "v2.album.creditedOnly": "Brani in cui {artist} è accreditato",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "Trasferimenti",

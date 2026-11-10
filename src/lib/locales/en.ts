@@ -5006,9 +5006,14 @@ export default {
   "settings.creditsStarted": "Credits: lookup started for {n} releases (one request per second).",
   "settings.creditsNoCandidate": "Credits: no release to process. Only albums already identified on MusicBrainz can get their credits.",
   "settings.creditsAlreadyRunning": "Credits are already being looked up.",
-  "v2.disco.collaborations": "Collaborations",
   "v2.disco.withArtist": "With {artist}",
   "v2.disco.covers": "Covers",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "Discography",
+  "v2.disco.appearsOn": "Appears on",
+  "v2.disco.writing": "Writing and production",
+  "v2.disco.performingCount": "Performer: {albums} albums · {tracks} tracks",
+  "v2.disco.writingCount": "Writing: {albums} albums · {tracks} tracks",
   "v2.album.creditedOnly": "Tracks crediting {artist}",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "Transfers",

@@ -4986,9 +4986,14 @@ export default {
   "settings.creditsStarted": "크레딧: {n}개 릴리스 검색을 시작했습니다(초당 요청 1회).",
   "settings.creditsNoCandidate": "크레딧: 처리할 릴리스가 없습니다. MusicBrainz에서 이미 식별된 앨범만 크레딧을 받을 수 있습니다.",
   "settings.creditsAlreadyRunning": "크레딧을 이미 검색하고 있습니다.",
-  "v2.disco.collaborations": "협업",
   "v2.disco.withArtist": "{artist}와(과) 함께",
   "v2.disco.covers": "커버",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "디스코그래피",
+  "v2.disco.appearsOn": "참여 작품",
+  "v2.disco.writing": "작곡 및 프로듀싱",
+  "v2.disco.performingCount": "연주: 앨범 {albums}장 · 트랙 {tracks}곡",
+  "v2.disco.writingCount": "작곡: 앨범 {albums}장 · 트랙 {tracks}곡",
   "v2.album.creditedOnly": "{artist}이(가) 크레딧된 곡",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "전송",

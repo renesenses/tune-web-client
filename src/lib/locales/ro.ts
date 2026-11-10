@@ -4986,9 +4986,14 @@ export default {
   "settings.creditsStarted": "Credite: căutare pornită pentru {n} ediții (o cerere pe secundă).",
   "settings.creditsNoCandidate": "Credite: nicio ediție de procesat. Doar albumele deja identificate pe MusicBrainz își pot primi creditele.",
   "settings.creditsAlreadyRunning": "Creditele sunt deja în curs de căutare.",
-  "v2.disco.collaborations": "Colaborări",
   "v2.disco.withArtist": "Cu {artist}",
   "v2.disco.covers": "Preluări",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "Discografie",
+  "v2.disco.appearsOn": "Apare pe",
+  "v2.disco.writing": "Compoziție și producție",
+  "v2.disco.performingCount": "Interpret: {albums} albume · {tracks} piese",
+  "v2.disco.writingCount": "Compoziție: {albums} albume · {tracks} piese",
   "v2.album.creditedOnly": "Piese în care {artist} este creditat",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "Transferuri",

@@ -4985,9 +4985,14 @@ export default {
   "settings.creditsStarted": "Medverkande: sökning startad för {n} utgåvor (en förfrågan per sekund).",
   "settings.creditsNoCandidate": "Medverkande: ingen utgåva att bearbeta. Bara album som redan identifierats på MusicBrainz kan få sina medverkande.",
   "settings.creditsAlreadyRunning": "Medverkande söks redan.",
-  "v2.disco.collaborations": "Samarbeten",
   "v2.disco.withArtist": "Med {artist}",
   "v2.disco.covers": "Covers",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "Diskografi",
+  "v2.disco.appearsOn": "Medverkar på",
+  "v2.disco.writing": "Låtskrivande och produktion",
+  "v2.disco.performingCount": "Medverkande: {albums} album · {tracks} spår",
+  "v2.disco.writingCount": "Låtskrivande: {albums} album · {tracks} spår",
   "v2.album.creditedOnly": "Spår där {artist} medverkar",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "Överföringar",
