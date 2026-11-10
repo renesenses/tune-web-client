@@ -34,6 +34,7 @@
   import {
     enTranches,
     nomDObjet,
+    titresDuTiroir,
     artisteDObjet,
     pochetteDObjet,
     serviceDePlaylist,
@@ -431,6 +432,8 @@
           {:else}
             {@const lot = tranche.entrees}
             {@const nom = nomDObjet(tranche.type, lot)}
+            <!-- web#2748 — la ligne de la STATION ne redit pas, dans le tiroir, le nom de l'en-tête. -->
+            {@const titres = titresDuTiroir(tranche.type, lot, nom)}
             {@const ouvert = deplies.has(tranche.cle)}
             {@const fiche = fiches.get(tranche.cle) ?? null}
             {@const vignette = fiche?.pochette
@@ -511,7 +514,7 @@
               </span>
               <!-- Le compte occupe la colonne de la barre d'actions, calé à
                    droite comme elle (`.act`). -->
-              <span class="ocompte-cell"><span class="ocompte">{lot.length}</span></span>
+              <span class="ocompte-cell"><span class="ocompte">{titres.length}</span></span>
               <!-- Et l'instant occupe la colonne du suffixe, avec la MÊME
                    structure que les lignes de piste : `.quand`, puis la place
                    du cœur radio. Sans ce second élément l'instant se collerait
@@ -522,17 +525,17 @@
             {#if ouvert}
               <div class="tiroir">
                 <ListePistesV2
-                  pistes={lot.map((x) => x.track)}
+                  pistes={titres.map((x) => x.track)}
                   numerotation="aucune"
                   pochetteEnTableau
-                  onLire={(_p, i) => rejouer(lot[i])}
-                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
+                  onLire={(_p, i) => rejouer(titres[i])}
+                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + titres[i].playedAt}
                   apres={suffixeObjet}
-                  coeurDe={(_p, i) => coeurRadio(lot[i])}
+                  coeurDe={(_p, i) => coeurRadio(titres[i])}
                   largeurApres="164px"
                 />
                 {#snippet suffixeObjet(_p: any, i: number)}
-                  {@render colonnes(lot[i])}
+                  {@render colonnes(titres[i])}
                 {/snippet}
               </div>
             {/if}
