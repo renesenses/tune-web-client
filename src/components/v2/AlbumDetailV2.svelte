@@ -1775,7 +1775,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
            seulement : la page du label est celle de la Bibliothèque. -->
       {#if creditsPossibles && labelDe(albumAffiche)}
         {@const nomLabel = labelDe(albumAffiche)!}
-        <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
+        <!-- tune-server-rust#8145 — le nom est LU AVANT `onClose()` : la
+             fermeture vide `albumAffiche`, et `nomLabel` relu après valait
+             `null` (TypeError, « il ne se passe rien »). -->
+        <button type="button" class="lien-label" data-lien-label onclick={() => { const nom = nomLabel; onClose(); void ouvrirLabelDansLaBibliotheque(nom); }}>
           {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
         </button>
       {/if}
