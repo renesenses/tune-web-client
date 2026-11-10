@@ -6883,5 +6883,19 @@ export default {
   "login.errorStatus": "Σφάλμα {status}",
   "v2.ambiance.acousticEnableError": "Δεν ήταν δυνατή η ενεργοποίηση της ακουστικής ανάλυσης",
   "v2.pl.transferFailed": "Η μεταφορά απέτυχε",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Σύνδεση",
+  "login.identifierPlaceholder": "Email ή όνομα χρήστη",
+  "login.passwordPlaceholder": "Κωδικός πρόσβασης",
+  "login.signingIn": "Σύνδεση…",
+  "login.or": "ή",
+  "login.ssoButton": "Σύνδεση με mozaiklabs.fr",
+  "login.noAccount": "Δεν έχετε λογαριασμό;",
+  "login.usernamePlaceholder": "Όνομα χρήστη",
+  "login.emailPlaceholder": "Email",
+  "login.registering": "Δημιουργία λογαριασμού…",
+  "login.haveAccount": "Έχετε ήδη λογαριασμό;",
+  "nowplaying.eqPureNotice": "Η λειτουργία PURE είναι ενεργή σε αυτή τη ζώνη: το σήμα μεταδίδεται ανέπαφο, χωρίς καμία επεξεργασία. Οι προεπιλογές παρακάτω δεν θα έχουν αποτέλεσμα όσο η λειτουργία PURE είναι ενεργή.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

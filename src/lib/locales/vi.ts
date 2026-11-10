@@ -6890,5 +6890,19 @@ export default {
   "login.errorStatus": "Lỗi {status}",
   "v2.ambiance.acousticEnableError": "Không thể bật phân tích âm học",
   "v2.pl.transferFailed": "Chuyển không thành công",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Đăng nhập",
+  "login.identifierPlaceholder": "Email hoặc tên người dùng",
+  "login.passwordPlaceholder": "Mật khẩu",
+  "login.signingIn": "Đang đăng nhập…",
+  "login.or": "hoặc",
+  "login.ssoButton": "Đăng nhập bằng mozaiklabs.fr",
+  "login.noAccount": "Chưa có tài khoản?",
+  "login.usernamePlaceholder": "Tên người dùng",
+  "login.emailPlaceholder": "Email",
+  "login.registering": "Đang tạo tài khoản…",
+  "login.haveAccount": "Đã có tài khoản?",
+  "nowplaying.eqPureNotice": "Chế độ PURE đang bật cho vùng này: tín hiệu được truyền nguyên vẹn, không qua xử lý nào. Các cài đặt sẵn bên dưới sẽ không có tác dụng khi chế độ PURE đang bật.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

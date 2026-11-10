@@ -7037,4 +7037,18 @@ export default {
   "login.errorStatus": "Fel {status}",
   "v2.ambiance.acousticEnableError": "Det gick inte att aktivera akustisk analys",
   "v2.pl.transferFailed": "Överföringen misslyckades",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Logga in",
+  "login.identifierPlaceholder": "E-post eller användarnamn",
+  "login.passwordPlaceholder": "Lösenord",
+  "login.signingIn": "Loggar in…",
+  "login.or": "eller",
+  "login.ssoButton": "Logga in med mozaiklabs.fr",
+  "login.noAccount": "Inget konto än?",
+  "login.usernamePlaceholder": "Användarnamn",
+  "login.emailPlaceholder": "E-post",
+  "login.registering": "Skapar konto…",
+  "login.haveAccount": "Har du redan ett konto?",
+  "nowplaying.eqPureNotice": "PURE-läget är på för den här zonen: signalen skickas orörd, utan någon bearbetning. Förinställningarna nedan har ingen effekt så länge PURE-läget är på.",
 } as const;
