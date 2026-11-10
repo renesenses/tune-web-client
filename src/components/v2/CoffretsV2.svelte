@@ -139,7 +139,7 @@
      qui dépasse, la vue porte donc le sien. */
   .coffrets{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
   .coffrets::-webkit-scrollbar{width:9px}
-  .coffrets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .coffrets::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
   .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
   .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
