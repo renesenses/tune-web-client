@@ -666,15 +666,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return t === key;
   }
   function matches(a: Album): boolean {
-    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
-    // facettes cochées le sont toutes les deux (ET) — #898.
-    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
-    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
+    return matchesHorsAnnee(a);
+  }
+  /** Tous les filtres SAUF l'année et la période : c'est la population que
+   *  la frise décrit (web#2734), elle ne peut pas dépendre de ce que la frise
+   *  elle-même filtre. */
+  function matchesHorsAnnee(a: Album): boolean {
+    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
+    // facettes cochées le sont toutes les deux (ET) — #898.
+    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
+    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
@@ -1229,12 +1235,39 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { vivant = false; };
   });
 
+  /**
+   * web#2734 — la population que la frise décrit : les albums de la VALEUR
+   * OUVERTE (un genre, une année, un label) quand il y en a une, sinon `src`.
+   *
+   * L'histogramme se calculait toujours sur `src` — toute la bibliothèque, ou
+   * la portée dossier. Dans un genre ouvert, la hauteur des barres se
+   * rapportait donc à une autre population que la grille : sur le .18, le
+   * genre ouvert en 1970–1979 montrait des barres presque invisibles, écrasées
+   * par les années les mieux fournies de TOUTE la collection. Les compteurs
+   * (année, période, sans année) suivent la même population.
+   *
+   * On repart de `facetteOuverte` et des filtres HORS année, pas de
+   * `groupeOuvert.albums` : ce dernier est déjà filtré par l'année survolée
+   * et la période, et une frise qui ne compterait que ce qu'elle filtre
+   * s'effacerait elle-même.
+   */
+  const populationFrise: Album[] = $derived.by(() => {
+    const valeur = facetteOuverte;
+    if (valeur == null || tab === 'albums' || tab === 'tracks' || tab === 'artists' || sourcePropre) return src;
+    const base = src.filter(matchesHorsAnnee);
+    if (tab === 'genres') {
+      return grouperParGenre(base, FACET_EMPTY.genres).find((g) => memeFacette(g.key, valeur))?.albums ?? [];
+    }
+    return base.filter((a) => memeFacette(facetOf(a, tab) ?? FACET_EMPTY[tab], valeur));
+  });
+
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
-   *  chez quelqu'un dont la collection commence en 1985. */
+   *  chez quelqu'un dont la collection commence en 1985. Dans une valeur
+   *  ouverte, de ses albums (web#2734). */
   const histogram = $derived.by(() => {
     const counts = new Map<number, number>();
-    for (const a of src) {
+    for (const a of populationFrise) {
       const y = albumYear(a);
       if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
     }
@@ -1257,7 +1290,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : src.filter((a) => albumYear(a) === fYear).length);
+  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre.
@@ -1629,10 +1662,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
-  /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
-  const nPeriode = $derived(periodeAppliquee ? src.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
+  /** Albums de la période dans la population de la frise (mode retenu), comme `yearCount`. */
+  const nPeriode = $derived(periodeAppliquee ? populationFrise.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
   /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
-  const nSansAnnee = $derived(periodeAppliquee ? src.length - couvertureAnnees(src, modeAnnee) : 0);
+  const nSansAnnee = $derived(periodeAppliquee ? populationFrise.length - couvertureAnnees(populationFrise, modeAnnee) : 0);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
