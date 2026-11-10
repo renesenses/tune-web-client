@@ -1279,12 +1279,39 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { vivant = false; logosEnPause = false; };
   });
 
+  /**
+   * web#2734 — la population que la frise décrit : les albums de la VALEUR
+   * OUVERTE (un genre, une année, un label) quand il y en a une, sinon `src`.
+   *
+   * L'histogramme se calculait toujours sur `src` — toute la bibliothèque, ou
+   * la portée dossier. Dans un genre ouvert, la hauteur des barres se
+   * rapportait donc à une autre population que la grille : sur le .18, le
+   * genre ouvert en 1970–1979 montrait des barres presque invisibles, écrasées
+   * par les années les mieux fournies de TOUTE la collection. Les compteurs
+   * (année, période, sans année) suivent la même population.
+   *
+   * On repart de `facetteOuverte` et de `src`, pas de `groupeOuvert.albums` :
+   * ce dernier est déjà filtré par l'année survolée et la période, et une
+   * frise qui ne compterait que ce qu'elle filtre s'effacerait elle-même.
+   * Comme hors valeur ouverte, les autres filtres (qualité, format, recherche)
+   * ne réduisent pas la frise : elle décrit la collection, ici celle du genre.
+   */
+  const populationFrise: Album[] = $derived.by(() => {
+    const valeur = facetteOuverte;
+    if (valeur == null || tab === 'albums' || tab === 'tracks' || tab === 'artists' || sourcePropre) return src;
+    if (tab === 'genres') {
+      return grouperParGenre(src, FACET_EMPTY.genres).find((g) => memeFacette(g.key, valeur))?.albums ?? [];
+    }
+    return src.filter((a) => memeFacette(facetOf(a, tab) ?? FACET_EMPTY[tab], valeur));
+  });
+
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
-   *  chez quelqu'un dont la collection commence en 1985. */
+   *  chez quelqu'un dont la collection commence en 1985. Dans une valeur
+   *  ouverte, de ses albums (web#2734). */
   const histogram = $derived.by(() => {
     const counts = new Map<number, number>();
-    for (const a of src) {
+    for (const a of populationFrise) {
       const y = albumYear(a);
       if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
     }
@@ -1309,7 +1336,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : src.filter((a) => albumYear(a) === fYear).length);
+  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre.
@@ -1681,11 +1708,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
-  /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
-  // web#2732 — lu dans l'histogramme (une barre par année), sans repasser sur `src`.
+  /** Albums de la période dans la population de la frise (mode retenu), comme `yearCount`. */
+  // web#2732 — lu dans l'histogramme (une barre par année), sans repasser sur la population.
   const nPeriode = $derived(periodeAffichee ? histogram.bars.reduce((n, b) => n + (dansPeriode(b.year, periodeVue) ? b.n : 0), 0) : 0);
-  /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
-  const nSansAnnee = $derived(periodeAffichee ? src.length - histogram.total : 0);
+  /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit (web#2734 : dans la population de la frise). */
+  const nSansAnnee = $derived(periodeAffichee ? populationFrise.length - histogram.total : 0);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
