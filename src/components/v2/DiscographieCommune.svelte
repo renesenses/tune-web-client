@@ -614,7 +614,7 @@
   /* Lot 2 (web#2639) — les quatre sections de la page, un cran au-dessus des
      sous-sections `.titre-connexes` (types de sortie) et des groupes
      `.titre-groupe` (« Avec … », compilations). */
-  .bloc + .bloc { margin-top: 34px; }
+  .bloc ~ .bloc { margin-top: 34px; }
   .titre-section {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
     font: 600 15px var(--v2-sans); color: var(--v2-txt);
