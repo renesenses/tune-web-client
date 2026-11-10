@@ -2462,17 +2462,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
      fenêtre, jusqu'à ~1750 px de barre : le bouton de transfert, le curseur de
      volume et la zone sortent de l'écran, sans défilement possible.
 
-     Le secondaire part AVANT les commandes : libellé de zone (la pastille
-     redevient un carré, l'infobulle garde le nom), écarts et curseur resserrés.
-     Les cadrans, eux, restent. Au-delà de 1800 px de barre, rien ne change. */
+     Le secondaire part AVANT les commandes : écarts et curseur resserrés,
+     boutons de pas masqués. Les cadrans, eux, restent. Au-delà de 1800 px de
+     barre, rien ne change.
+
+     🔴 #2747 — FabienM (rc11, fil 2723) : « le nom de la zone active
+     n'apparaît plus, seule l'icône générique reste ; ça marchait en rc9 ».
+     C'était cette requête : elle MASQUAIT le libellé de zone sur toute la
+     plage 1200-1800 px, c'est-à-dire sur la plupart des écrans de bureau
+     dès que les VU-mètres sont allumés. Le libellé reste désormais, tronqué
+     (la pastille est bornée, l'infobulle garde le nom complet), et c'est la
+     colonne de droite qui prend la largeur de son contenu
+     (`minmax(max-content, 1fr)` ci-dessous) au lieu d'un quart fixe : elle
+     ne peut plus sortir de la fenêtre, le centre se resserre à sa place. */
   @container tbar (min-width: 1200px) and (max-width: 1800px) {
-    .transport-bar.vu .zone-chip-label {
-      display: none;
-    }
     .transport-bar.vu .zone-icon-btn {
-      max-width: 32px;
-      padding: 0;
-      justify-content: center;
+      max-width: 150px;
     }
     .transport-bar.vu .transport-right {
       gap: 8px;
@@ -2486,6 +2491,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     .transport-bar.vu .transport-right :global(.step-btn) {
       display: none;
     }
+  }
+
+  /* #2747 — la colonne de droite (cadran + pile d'icônes, insécable depuis
+     #1712) vaut AU MOINS sa largeur de contenu : c'est ce quart fixe qui
+     débordait de la fenêtre (#2555), pas le libellé de zone. */
+  .transport-bar.vu {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(max-content, 1fr);
   }
 
   .transport-bar.vu .transport-right {
