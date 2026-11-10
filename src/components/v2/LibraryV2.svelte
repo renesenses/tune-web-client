@@ -666,21 +666,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return t === key;
   }
   function matches(a: Album): boolean {
+    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
+    // facettes cochées le sont toutes les deux (ET) — #898.
+    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
+    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
-    return matchesHorsAnnee(a);
-  }
-  /** Tous les filtres SAUF l'année et la période : c'est la population que
-   *  la frise décrit (web#2734), elle ne peut pas dépendre de ce que la frise
-   *  elle-même filtre. */
-  function matchesHorsAnnee(a: Album): boolean {
-    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
-    // facettes cochées le sont toutes les deux (ET) — #898.
-    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
-    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
@@ -1246,19 +1240,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * par les années les mieux fournies de TOUTE la collection. Les compteurs
    * (année, période, sans année) suivent la même population.
    *
-   * On repart de `facetteOuverte` et des filtres HORS année, pas de
-   * `groupeOuvert.albums` : ce dernier est déjà filtré par l'année survolée
-   * et la période, et une frise qui ne compterait que ce qu'elle filtre
-   * s'effacerait elle-même.
+   * On repart de `facetteOuverte` et de `src`, pas de `groupeOuvert.albums` :
+   * ce dernier est déjà filtré par l'année survolée et la période, et une
+   * frise qui ne compterait que ce qu'elle filtre s'effacerait elle-même.
+   * Comme hors valeur ouverte, les autres filtres (qualité, format, recherche)
+   * ne réduisent pas la frise : elle décrit la collection, ici celle du genre.
    */
   const populationFrise: Album[] = $derived.by(() => {
     const valeur = facetteOuverte;
     if (valeur == null || tab === 'albums' || tab === 'tracks' || tab === 'artists' || sourcePropre) return src;
-    const base = src.filter(matchesHorsAnnee);
     if (tab === 'genres') {
-      return grouperParGenre(base, FACET_EMPTY.genres).find((g) => memeFacette(g.key, valeur))?.albums ?? [];
+      return grouperParGenre(src, FACET_EMPTY.genres).find((g) => memeFacette(g.key, valeur))?.albums ?? [];
     }
-    return base.filter((a) => memeFacette(facetOf(a, tab) ?? FACET_EMPTY[tab], valeur));
+    return src.filter((a) => memeFacette(facetOf(a, tab) ?? FACET_EMPTY[tab], valeur));
   });
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
