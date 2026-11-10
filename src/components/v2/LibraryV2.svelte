@@ -145,7 +145,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
-  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, logosEnAttente, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
   import type { LabelImageCredit } from '../../lib/api';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
@@ -1222,11 +1222,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let logosLabels = $state.raw<Map<string, string>>(new Map());
   // tune-server-rust#7089 — la source et la licence connue de chaque logo.
   let creditsLabels = $state.raw<Map<string, LabelImageCredit>>(new Map());
+  /** web#2790 — « Logos en attente : l'enrichissement est en pause » : la
+   *  passe des logos est portée par l'Enrichissement ; suspendu, un label
+   *  sans logo n'en aura pas, et l'onglet le dit. Relu avec les logos, à
+   *  chaque entrée dans l'onglet ; faux dès que la pause est levée ou que
+   *  tous les labels ont leur logo. */
+  let logosEnPause = $state(false);
   $effect(() => {
     if (tab !== 'labels' || depot) return;
     let vivant = true;
-    api.getLibraryLabels().then((l) => { if (vivant) { logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l); } });
-    return () => { vivant = false; };
+    api.getLibraryLabels().then(async (l) => {
+      if (!vivant) return;
+      logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l);
+      // Une panne de l'instantané (serveur ancien, réseau) se tait : pas de ligne.
+      const taches = await api.getBackgroundTasks().catch(() => null);
+      if (vivant) logosEnPause = logosEnAttente(l, taches);
+    });
+    return () => { vivant = false; logosEnPause = false; };
   });
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
@@ -3723,6 +3735,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              genres précédents. -->
         {#if groupeOuvert == null}
           <div class="fliste" bind:this={flisteEl}>
+            {#if tab === 'labels' && !depot && logosEnPause && groups.length}
+              <!-- web#2790 — en tête de la liste comme de la grille, sur
+                   toute la largeur : les logos manquants attendent la
+                   reprise de l'Enrichissement. -->
+              <p class="lgpause" role="status">{$tr('v2.labels.logosEnPause' as any)}</p>
+            {/if}
             {#if !groups.length}
               <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
             {:else if !(tab === 'labels' && vueLabels === 'grid')}
@@ -4442,6 +4460,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .lgmono{font-size:34px; font-weight:600; letter-spacing:.02em; color:var(--v2-txt2)}
   .lgnom{font-size:14px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lgn{font-size:12px; color:var(--v2-txt3, var(--v2-txt2))}
+  /* web#2790 — la ligne « Logos en attente » : discrète, même ton que les
+     notes de l'écran (`.state`), sur toute la largeur de la liste ou de la grille. */
+  .lgpause{grid-column:1 / -1; margin:0 0 4px; font-size:13px; color:var(--v2-txt3, var(--v2-txt2))}
   .fl:hover{background:var(--v2-hover)}
   .flnom{display:flex; align-items:center; gap:10px; flex:1; min-width:0;
     padding:10px 12px; border:0; background:transparent; cursor:pointer;
