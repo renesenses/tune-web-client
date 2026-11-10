@@ -3051,6 +3051,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 </script>
 
 
+{#snippet logosEnPauseNote()}
+  <!-- web#2790 — en tête de la liste comme de la grille des labels, sur
+       toute la largeur : les logos manquants attendent la reprise de
+       l'Enrichissement. Un snippet, pour ne pas allonger l'ouverture de
+       `.fliste` que `retoursFilV1_0609.test.ts` lit par fenêtre. -->
+  {#if tab === 'labels' && !depot && logosEnPause && groups.length}
+    <p class="lgpause" role="status">{$tr('v2.labels.logosEnPause' as any)}</p>
+  {/if}
+{/snippet}
+
 {#snippet passerelleServices()}
   <!-- web#2142 — chercher le même texte chez les services connectés. -->
   {#if !depot && q.trim() && servicesPourRecherche.length}
@@ -3735,12 +3745,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              genres précédents. -->
         {#if groupeOuvert == null}
           <div class="fliste" bind:this={flisteEl}>
-            {#if tab === 'labels' && !depot && logosEnPause && groups.length}
-              <!-- web#2790 — en tête de la liste comme de la grille, sur
-                   toute la largeur : les logos manquants attendent la
-                   reprise de l'Enrichissement. -->
-              <p class="lgpause" role="status">{$tr('v2.labels.logosEnPause' as any)}</p>
-            {/if}
+            {@render logosEnPauseNote()}
             {#if !groups.length}
               <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
             {:else if !(tab === 'labels' && vueLabels === 'grid')}
