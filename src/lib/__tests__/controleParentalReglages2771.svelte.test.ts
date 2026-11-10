@@ -83,24 +83,24 @@ describe('web#2771 — le guide, selon le cas', () => {
 
   it('profil actif NON administrateur : dit comment faire, sans panneau de règles', async () => {
     await monter([ADMIN, ENFANT], 2);
-    expect(hote.querySelector('[data-parental-guide="non-admin"]')?.textContent).toBe(FR['parental.guide.notAdmin']);
+    expect(hote.querySelector('[data-parental-guide-non-admin]')?.textContent).toBe(FR['parental.guide.notAdmin']);
     expect(hote.querySelector('select')).toBeNull();
   });
 
   it('profils pas encore chargés : aucun message de guide (pas de « non administrateur » à tort)', async () => {
     await monter([], 1);
-    expect(hote.querySelector('[data-parental-guide]')).toBeNull();
+    expect(hote.querySelector('[data-parental-guide-non-admin], [data-parental-guide-sans-profil], [data-parental-guide-choisir]')).toBeNull();
     expect(hote.querySelector('[data-parental-intro]')).not.toBeNull();
   });
 
   it('administrateur sans profil à encadrer : dit de créer le profil de l’enfant', async () => {
     await monter([ADMIN, ADMIN2], 1);
-    expect(hote.querySelector('[data-parental-guide="sans-profil"]')?.textContent).toBe(FR['parental.guide.noChild']);
+    expect(hote.querySelector('[data-parental-guide-sans-profil]')?.textContent).toBe(FR['parental.guide.noChild']);
   });
 
   it('administrateur avec un enfant : choisir le profil ouvre ses règles ici même', async () => {
     await monter([ADMIN, ADMIN2, ENFANT], 1);
-    const sel = hote.querySelector<HTMLSelectElement>('[data-parental-guide="choisir"] select')!;
+    const sel = hote.querySelector<HTMLSelectElement>('[data-parental-guide-choisir] select')!;
     const options = [...sel.options].map((o) => o.textContent);
     // Seul le profil encadrable est proposé : ni soi-même, ni un autre administrateur.
     expect(options).toEqual([FR['parental.guide.choosePlaceholder'], 'Léa']);

@@ -20,6 +20,8 @@
   import PolitiqueParentaleV2 from './PolitiqueParentaleV2.svelte';
 
   const nomDe = (p: Profile) => p.display_name?.trim() || p.name || '';
+  // Profils pas encore chargés (`actif` inconnu) : le guide ne conclut rien,
+  // sinon « non administrateur » s'afficherait un instant à tort.
   const actif = $derived($profiles.find((x) => x.id === $currentProfileId));
   const encadrables = $derived($visibleProfiles.filter((p) => peutSuperviser(actif, p)));
   let choisi = $state<number | null>(null);
@@ -28,16 +30,13 @@
 
 <p class="hint" data-parental-intro>{$t('parental.guide.intro' as any)}</p>
 
-<!-- Profils pas encore chargés : on ne conclut rien (sinon « non
-     administrateur » s'afficherait un instant à tort). -->
 {#if !actif}
-  <!-- rien -->
 {:else if actif.is_admin !== true}
-  <p class="guide" data-parental-guide="non-admin">{$t('parental.guide.notAdmin' as any)}</p>
+  <p class="guide" data-parental-guide-non-admin>{$t('parental.guide.notAdmin' as any)}</p>
 {:else if !encadrables.length}
-  <p class="guide" data-parental-guide="sans-profil">{$t('parental.guide.noChild' as any)}</p>
+  <p class="guide" data-parental-guide-sans-profil>{$t('parental.guide.noChild' as any)}</p>
 {:else}
-  <label class="choix" data-parental-guide="choisir">
+  <label class="choix" data-parental-guide-choisir>
     <span>{$t('parental.guide.choose' as any)}</span>
     <select class="sel" bind:value={choisi}>
       <option value={null}>{$t('parental.guide.choosePlaceholder' as any)}</option>
