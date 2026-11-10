@@ -1636,8 +1636,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
 
     <!-- tune-server-rust#4176 — PURE allumé sans rien à contourner : la
-         pastille le DIT (bouclier creux, info-bulle), au lieu de s'allumer
-         comme si elle changeait le son. Lu sur le chemin du signal. -->
+         pastille le DIT (info-bulle, libellé atténué). Lu sur le chemin du
+         signal.
+         tune-server-rust#7932 — le bouclier, lui, reste PLEIN tant que PURE
+         est allumé : l'étape « rien à contourner » n'est publiée que par les
+         sorties exclusives (WASAPI exclusif, ASIO, ALSA natif), jamais par le
+         WASAPI partagé. Le vider faisait croire à PURE éteint sur les seuls
+         pilotes exclusifs, 1 à 2 s après le début de la lecture. -->
     <button
       class="audiophile-btn signal-shield-btn"
       class:active={$audiophileEnabled}
@@ -1649,7 +1654,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         ? $t('audiophile.pureNothingToBypass' as any)
         : $audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
     >
-      <svg viewBox="0 0 24 26" fill={$audiophileEnabled && !pureRienAContourner ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+      <svg viewBox="0 0 24 26" fill={$audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
         <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
       </svg>
       {#if $audiophileEnabled}
@@ -3211,8 +3216,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     color: inherit;
     pointer-events: none;
   }
-  /* tune-server-rust#4176 — PURE armé, rien à contourner : bouclier creux et
-     libellé atténué, le signal était déjà intact. */
+  /* tune-server-rust#4176 — PURE armé, rien à contourner : libellé atténué,
+     le signal était déjà intact. Le bouclier reste plein (#7932). */
   .signal-shield-btn.sans-objet .audiophile-label {
     opacity: 0.7;
   }
