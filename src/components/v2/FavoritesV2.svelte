@@ -13,6 +13,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { completerAlbumsDePistes } from '../../lib/albumDesEcoutes';
   import { urlNavigateur } from '../../lib/bridge';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -143,6 +144,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
+  /** web#2749 — le dernier chargement ; une complétion plus ancienne ne s'applique pas. */
+  let tourAlbumsFavoris = 0;
   let artists = $state<Artist[]>([]);
   /**
    * Playlists et collections en favori. Bertrand, 05/09/2026 : « il manque les
@@ -245,6 +248,18 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       albums = fusion.albums;
       tracks = fusion.tracks;
       artists = fusion.artists;
+      /*
+       * 🔴 web#2749 (FabienM, fil 2723, point 10) — un Titre favori d'un
+       * service n'a que le TITRE de son album (`versPiste` : le favori de
+       * service ne porte pas d'identifiant d'album). La colonne Album restait
+       * du texte et « Aller à l'album » manquait au menu. L'album se demande
+       * à la piste chez son service, comme dans l'Historique (web#2209).
+       */
+      // Un tableau `$state` est un proxy : on compare des tours, pas des tableaux.
+      const tour = ++tourAlbumsFavoris;
+      void completerAlbumsDePistes(fusion.tracks, api.getStreamingTrack).then((maj) => {
+        if (maj && tour === tourAlbumsFavoris) tracks = maj;
+      });
       /*
        * 🔴 LE QUATRIÈME SEAU — #3822, moitié « lecture ».
        *
@@ -1521,7 +1536,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}

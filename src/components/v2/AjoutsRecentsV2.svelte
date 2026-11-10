@@ -176,7 +176,7 @@
      l'ascenseur occupe désormais le bord droit. */
   .recents{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
   .recents::-webkit-scrollbar{width:9px}
-  .recents::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .recents::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
   .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
   .fenetres{display:flex; gap:6px}

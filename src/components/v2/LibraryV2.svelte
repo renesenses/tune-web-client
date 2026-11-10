@@ -4440,7 +4440,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      `.facets` qui défile dessous. `.body` étant une rangée flex, sans elle le
      Retour se rangerait à GAUCHE de la grille. */
   .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
-  .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
@@ -4538,7 +4538,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   /* Affichage liste : même données, densité maximale. */
   .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
-  .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s;
@@ -4592,7 +4592,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   /* Onglet Titres. */
   .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
-  .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .trk{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px; width:100%;
     padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
   /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
@@ -4614,7 +4614,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .yinter .yn{font:600 11px var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
-  .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /*
     #929 — LE CARROUSEL : UNE BANDE, ET L'ALBUM DU MILIEU EN GRAND.
 
@@ -4644,7 +4644,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .carrou{flex:1; min-height:0; display:flex; align-items:center; gap:var(--ccg);
     overflow-x:auto; overflow-y:hidden; padding:0 var(--ccp); scrollbar-width:thin; outline:none}
   .carrou::-webkit-scrollbar{height:9px}
-  .carrou::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .carrou::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* Le focus se voit : l'action rend la rangée atteignable au clavier, et une
      cible de tabulation invisible est une cible perdue. */
   .carrou:focus-visible{box-shadow:inset 0 0 0 2px var(--v2-acc1); border-radius:var(--v2-r-card)}

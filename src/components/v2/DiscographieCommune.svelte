@@ -349,7 +349,9 @@
         </section>
       {/if}
       {#if sectionsSortie.albums.length}
-        <section data-section="albums-principaux">
+        <!-- web#2665 — `connexes` porte l'écart au-dessus du titre : sans lui,
+             « Albums principaux » se collait aux pochettes des Lives. -->
+        <section class="connexes" data-section="albums-principaux">
           <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
           <div class="gr">
             {#each sectionsSortie.albums as e (e.cle)}
