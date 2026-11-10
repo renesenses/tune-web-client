@@ -1480,6 +1480,7 @@ export default {
   "v2.nav.shortcuts": "Lối tắt",
   "v2.nav.artisteIntrouvable": "Không tìm thấy “{nom}” trên {service} — đây là kết quả tìm kiếm.",
   "v2.nav.serviceInjoignable": "{service} không phản hồi — đây là kết quả tìm kiếm cho “{nom}”.",
+  "v2.nav.artisteSansFiche": "“{nom}” không có trang trong thư viện — đây là kết quả tìm kiếm.",
   "v2.nav.allShortcuts": "Tất cả lối tắt",
   "v2.nav.selections": "Tuyển chọn",
   "v2.nav.tags": "Nhãn",

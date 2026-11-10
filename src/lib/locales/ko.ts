@@ -2795,6 +2795,7 @@ export default {
   "v2.nav.shortcuts": "바로가기",
   "v2.nav.artisteIntrouvable": "“{nom}”을(를) {service}에서 찾을 수 없습니다 — 검색 결과를 표시합니다.",
   "v2.nav.serviceInjoignable": "{service}이(가) 응답하지 않았습니다 — “{nom}”의 검색 결과를 표시합니다.",
+  "v2.nav.artisteSansFiche": "“{nom}”은(는) 라이브러리에 페이지가 없습니다. 검색 결과를 표시합니다.",
   "v2.nav.allShortcuts": "모든 바로가기",
   "v2.nav.selections": "선곡",
   "v2.nav.tags": "태그",

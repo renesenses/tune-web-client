@@ -2749,6 +2749,7 @@ export default {
   "v2.nav.shortcuts": "Gyorsindítók",
   "v2.nav.artisteIntrouvable": "A(z) „{nom}” nem található a(z) {service} szolgáltatásban – itt vannak a keresési eredmények.",
   "v2.nav.serviceInjoignable": "A(z) {service} nem válaszolt – itt vannak a(z) „{nom}” keresési eredményei.",
+  "v2.nav.artisteSansFiche": "„{nom}” nem szerepel a könyvtárban – itt vannak a keresési találatok.",
   "v2.nav.allShortcuts": "Összes gyorsindító",
   "v2.nav.selections": "Válogatások",
   "v2.nav.tags": "Címkék",

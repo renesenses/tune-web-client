@@ -2795,6 +2795,7 @@ export default {
   "v2.nav.shortcuts": "Scorciatoie",
   "v2.nav.artisteIntrouvable": "«{nom}» non è stato trovato su {service}: ecco i risultati della ricerca.",
   "v2.nav.serviceInjoignable": "{service} non ha risposto: ecco i risultati della ricerca per «{nom}».",
+  "v2.nav.artisteSansFiche": "«{nom}» non ha una scheda nella libreria: ecco i risultati della ricerca.",
   "v2.nav.allShortcuts": "Tutte le scorciatoie",
   "v2.nav.selections": "Selezioni",
   "v2.nav.tags": "Etichette",

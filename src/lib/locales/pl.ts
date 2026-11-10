@@ -1478,6 +1478,7 @@ export default {
   "v2.nav.shortcuts": "Skróty",
   "v2.nav.artisteIntrouvable": "Nie znaleziono „{nom}” w {service} — oto wyniki wyszukiwania.",
   "v2.nav.serviceInjoignable": "{service} nie odpowiada — oto wyniki wyszukiwania dla „{nom}”.",
+  "v2.nav.artisteSansFiche": "„{nom}” nie ma strony w bibliotece — oto wyniki wyszukiwania.",
   "v2.nav.allShortcuts": "Wszystkie skróty",
   "v2.nav.selections": "Wybrane",
   "v2.nav.tags": "Tagi",

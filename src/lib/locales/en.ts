@@ -1623,6 +1623,7 @@ export default {
   "v2.nav.shortcuts": "Shortcuts",
   "v2.nav.artisteIntrouvable": "“{nom}” was not found on {service} — here are the search results.",
   "v2.nav.serviceInjoignable": "{service} did not respond — here are the search results for “{nom}”.",
+  "v2.nav.artisteSansFiche": "“{nom}” has no page in the library — here are the search results.",
   "v2.nav.allShortcuts": "All shortcuts",
   "v2.nav.selections": "Selections",
   "v2.nav.tags": "Tags",

@@ -1478,6 +1478,7 @@ export default {
   "v2.nav.shortcuts": "Snarveier",
   "v2.nav.artisteIntrouvable": "«{nom}» ble ikke funnet på {service} — her er søkeresultatene.",
   "v2.nav.serviceInjoignable": "{service} svarte ikke — her er søkeresultatene for «{nom}».",
+  "v2.nav.artisteSansFiche": "«{nom}» har ingen side i biblioteket – her er søkeresultatene.",
   "v2.nav.allShortcuts": "Alle snarveier",
   "v2.nav.selections": "Utvalg",
   "v2.nav.tags": "Tagger",

@@ -21,6 +21,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
 
   /**
    * `vue` — la bascule grille/liste de la Bibliothèque agit ICI aussi.
@@ -143,7 +145,7 @@
         <button class="ligne" onclick={() => onOuvrir(a as Album)}>
           <span class="vign"><AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} /></span>
           <span class="ltitre" use:bulleTexte>{a.title ?? ''}</span>
-          <span class="lartiste" use:bulleTexte>{a.artist_name ?? ''}</span>
+          <span class="lartiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
         </button>
       {/each}
     </div>
@@ -153,7 +155,7 @@
         <button class="carte" onclick={() => onOuvrir(a as Album)}>
           <AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} />
           <span class="titre" use:bulleTexte>{a.title ?? ''}</span>
-          {#if a.artist_name}<span class="artiste" use:bulleTexte>{a.artist_name}</span>{/if}
+          {#if a.artist_name}<span class="artiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name, artiste: artisteDAlbum(a) }} /></span>{/if}
         </button>
       {/each}
     </div>

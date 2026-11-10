@@ -1478,6 +1478,7 @@ export default {
   "v2.nav.shortcuts": "Συντομεύσεις",
   "v2.nav.artisteIntrouvable": "Το “{nom}” δεν βρέθηκε στο {service} — ορίστε τα αποτελέσματα αναζήτησης.",
   "v2.nav.serviceInjoignable": "Το {service} δεν απάντησε — ορίστε τα αποτελέσματα αναζήτησης για “{nom}”.",
+  "v2.nav.artisteSansFiche": "Το «{nom}» δεν έχει σελίδα στη βιβλιοθήκη — ορίστε τα αποτελέσματα αναζήτησης.",
   "v2.nav.allShortcuts": "Όλες οι συντομεύσεις",
   "v2.nav.selections": "Επιλογές",
   "v2.nav.tags": "Ετικέτες",

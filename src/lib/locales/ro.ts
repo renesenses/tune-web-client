@@ -2795,6 +2795,7 @@ export default {
   "v2.nav.shortcuts": "Scurtături",
   "v2.nav.artisteIntrouvable": "„{nom}” nu a fost găsit pe {service} — iată rezultatele căutării.",
   "v2.nav.serviceInjoignable": "{service} nu a răspuns — iată rezultatele căutării pentru „{nom}”.",
+  "v2.nav.artisteSansFiche": "„{nom}” nu are o pagină în bibliotecă — iată rezultatele căutării.",
   "v2.nav.allShortcuts": "Toate scurtăturile",
   "v2.nav.selections": "Selecții",
   "v2.nav.tags": "Etichete",
