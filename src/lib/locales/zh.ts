@@ -4984,9 +4984,14 @@ export default {
   "settings.creditsStarted": "演职人员：已开始查找 {n} 张发行版（每秒一个请求）。",
   "settings.creditsNoCandidate": "演职人员：没有需要处理的发行版。只有已在 MusicBrainz 上识别的专辑才能获得演职人员信息。",
   "settings.creditsAlreadyRunning": "演职人员已在查找中。",
-  "v2.disco.collaborations": "合作",
   "v2.disco.withArtist": "与 {artist} 合作",
   "v2.disco.covers": "翻唱",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "唱片目录",
+  "v2.disco.appearsOn": "参与作品",
+  "v2.disco.writing": "创作与制作",
+  "v2.disco.performingCount": "演奏：{albums} 张专辑 · {tracks} 首曲目",
+  "v2.disco.writingCount": "创作：{albums} 张专辑 · {tracks} 首曲目",
   "v2.album.creditedOnly": "署名 {artist} 的曲目",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "传输",

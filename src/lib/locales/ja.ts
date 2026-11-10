@@ -4984,9 +4984,14 @@ export default {
   "settings.creditsStarted": "クレジット：{n} 件のリリースの検索を開始しました（毎秒 1 リクエスト）。",
   "settings.creditsNoCandidate": "クレジット：処理するリリースがありません。MusicBrainz で識別済みのアルバムのみクレジットを取得できます。",
   "settings.creditsAlreadyRunning": "クレジットはすでに検索中です。",
-  "v2.disco.collaborations": "コラボレーション",
   "v2.disco.withArtist": "{artist} と共演",
   "v2.disco.covers": "カバー",
+  // Lot 2 (web#2639) — page artiste en quatre sections et compteurs de l'en-tête
+  "v2.disco.discography": "ディスコグラフィ",
+  "v2.disco.appearsOn": "参加作品",
+  "v2.disco.writing": "作曲・プロデュース",
+  "v2.disco.performingCount": "演奏：{albums} アルバム · {tracks} 曲",
+  "v2.disco.writingCount": "作曲：{albums} アルバム · {tracks} 曲",
   "v2.album.creditedOnly": "{artist} がクレジットされている曲",
   // Greffon « Playlists converter » (tune-server-rust#4715) — onglets du gestionnaire de playlists
   "plconv.ongletTransferts": "転送",

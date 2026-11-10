@@ -2711,9 +2711,33 @@ export interface AlbumsArtisteSections {
    * connaît pas (v0.9.163).
    */
   collaborations?: GroupeCollaborations[];
-  /** Les disques d'autrui où il est crédité comme AUTEUR (par année). */
+  /**
+   * Section « Reprises » : les disques d'autrui où il n'a aucun rôle audible
+   * et où il est crédité comme AUTEUR (par année). Inchangée par le lot 2.
+   */
   covers?: Album[];
+  /**
+   * Lot 2 (web#2639, tune-server-rust#7767) — section « Écriture et
+   * production » : les disques hors de sa discographie où il est compositeur,
+   * parolier, arrangeur, producteur, ingénieur ou mixeur, qu'il y joue ou non.
+   * Même forme que `covers` (`focus_track_ids`, `credit_roles`). Absente :
+   * serveur antérieur, ou rien. 🔴 Pas de repli sur `covers` : « Reprises »
+   * garde sa propre section.
+   */
+  writing?: Album[];
+  /**
+   * Lot 2 — les compteurs « interprète / écriture » de l'en-tête, sur TOUTE
+   * la bibliothèque (discographie comprise). Absente devant un serveur
+   * antérieur : le client ne les recalcule pas à partir des listes, qui
+   * excluent la discographie et ne disent rien des pistes.
+   */
+  credit_counts?: CompteursCredits;
 }
+
+/** Un compteur de l'en-tête : albums et pistes distincts. */
+export interface CompteurCredits { albums: number; tracks: number }
+/** Les deux compteurs de l'en-tête de la page artiste (lot 2). */
+export interface CompteursCredits { performing: CompteurCredits; writing: CompteurCredits }
 
 /** Une sous-section « Avec {artiste} » des Collaborations. */
 export interface GroupeCollaborations {
@@ -2741,6 +2765,9 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
     appearances: o.appearances,
     collaborations: o.collaborations,
     covers: o.covers,
+    // Lot 2 — recopiées telles quelles : ABSENTE reste absente.
+    writing: o.writing,
+    credit_counts: o.credit_counts,
   };
 }
 
