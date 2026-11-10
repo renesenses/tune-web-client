@@ -5509,6 +5509,16 @@ export default {
   "v2.circle.listen.notShared": "Ezt a számot már nem osztják meg Önnel.",
   "v2.circle.listen.revoked": "Ez a hallgatás már nem engedélyezett.",
   "v2.circle.listen.noZone": "Válasszon zónát a hallgatás indításához.",
+  "v2.circle.listen.closed": "Csak megtekintés: a kapcsolatnál való hallgatás nincs megnyitva. Innen nem indítható lejátszás; keresd az albumot vagy a számot a saját forrásaidban.",
+  "v2.circle.listen.closedClick": "A lejátszás itt nem lehetséges: a kapcsolatnál való hallgatás nincs megnyitva. A „Keresés a forrásaimban” gombbal megtalálhatod nálad.",
+  "v2.circle.sources.search": "Keresés a forrásaimban",
+  "v2.circle.sources.searchAria": "„{query}” keresése a forrásaimban",
+  "v2.circle.sources.searching": "„{query}” keresése a forrásaidban…",
+  "v2.circle.sources.title": "A forrásaimban: „{query}”",
+  "v2.circle.sources.none": "Nincs találat a(z) „{query}” kifejezésre a könyvtáradban és a csatlakoztatott szolgáltatásokban.",
+  "v2.circle.sources.error": "A forrásaidban végzett keresés sikertelen. Próbáld újra.",
+  "v2.circle.sources.playAria": "„{title}” lejátszása ({source})",
+  "v2.circle.sources.local": "Saját könyvtáram",
   "v2.circle.listen.dismiss": "Bezárás",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

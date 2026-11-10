@@ -5577,6 +5577,16 @@ export default {
   "v2.circle.listen.notShared": "Ce titre n'est plus partagé avec vous.",
   "v2.circle.listen.revoked": "Cette écoute n'est plus autorisée.",
   "v2.circle.listen.noZone": "Choisissez une zone pour lancer l'écoute.",
+  "v2.circle.listen.closed": "Consultation seulement : l'écoute chez un contact n'est pas ouverte. Vous ne pouvez pas lancer la lecture d'ici ; cherchez l'album ou la piste dans vos propres sources.",
+  "v2.circle.listen.closedClick": "Lecture impossible ici : l'écoute chez un contact n'est pas ouverte. Utilisez « Chercher dans mes sources » pour le trouver chez vous.",
+  "v2.circle.sources.search": "Chercher dans mes sources",
+  "v2.circle.sources.searchAria": "Chercher « {query} » dans mes sources",
+  "v2.circle.sources.searching": "Recherche de « {query} » dans vos sources…",
+  "v2.circle.sources.title": "Dans mes sources : « {query} »",
+  "v2.circle.sources.none": "Aucun résultat pour « {query} » dans votre bibliothèque ni dans vos services connectés.",
+  "v2.circle.sources.error": "La recherche dans vos sources a échoué. Réessayez.",
+  "v2.circle.sources.playAria": "Lire « {title} » ({source})",
+  "v2.circle.sources.local": "Ma bibliothèque",
   "v2.circle.listen.dismiss": "Fermer",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

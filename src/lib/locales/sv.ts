@@ -5554,6 +5554,16 @@ export default {
   "v2.circle.listen.notShared": "Det här spåret delas inte längre med dig.",
   "v2.circle.listen.revoked": "Den här lyssningen är inte längre tillåten.",
   "v2.circle.listen.noZone": "Välj en zon för att börja lyssna.",
+  "v2.circle.listen.closed": "Endast visning: lyssning hos en kontakt är inte öppen. Du kan inte starta uppspelning härifrån; sök efter albumet eller låten i dina egna källor.",
+  "v2.circle.listen.closedClick": "Uppspelning går inte här: lyssning hos en kontakt är inte öppen. Använd ”Sök i mina källor” för att hitta den hos dig.",
+  "v2.circle.sources.search": "Sök i mina källor",
+  "v2.circle.sources.searchAria": "Sök efter ”{query}” i mina källor",
+  "v2.circle.sources.searching": "Söker efter ”{query}” i dina källor …",
+  "v2.circle.sources.title": "I mina källor: ”{query}”",
+  "v2.circle.sources.none": "Inga träffar för ”{query}” i ditt bibliotek eller dina anslutna tjänster.",
+  "v2.circle.sources.error": "Sökningen i dina källor misslyckades. Försök igen.",
+  "v2.circle.sources.playAria": "Spela ”{title}” ({source})",
+  "v2.circle.sources.local": "Mitt bibliotek",
   "v2.circle.listen.dismiss": "Stäng",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

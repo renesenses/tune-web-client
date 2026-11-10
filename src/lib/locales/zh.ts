@@ -5555,6 +5555,16 @@ export default {
   "v2.circle.listen.notShared": "此曲目已不再与您共享。",
   "v2.circle.listen.revoked": "此次收听已不再被允许。",
   "v2.circle.listen.noZone": "请选择一个区域以开始收听。",
+  "v2.circle.listen.closed": "仅供浏览：尚未开放在联系人处收听。无法从这里开始播放；请在您自己的音源中查找该专辑或曲目。",
+  "v2.circle.listen.closedClick": "此处无法播放：尚未开放在联系人处收听。请使用“在我的音源中搜索”在您这边查找。",
+  "v2.circle.sources.search": "在我的音源中搜索",
+  "v2.circle.sources.searchAria": "在我的音源中搜索“{query}”",
+  "v2.circle.sources.searching": "正在您的音源中搜索“{query}”…",
+  "v2.circle.sources.title": "我的音源：“{query}”",
+  "v2.circle.sources.none": "在您的资料库和已连接的服务中没有找到“{query}”。",
+  "v2.circle.sources.error": "在您的音源中搜索失败。请重试。",
+  "v2.circle.sources.playAria": "播放“{title}”（{source}）",
+  "v2.circle.sources.local": "我的资料库",
   "v2.circle.listen.dismiss": "关闭",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)
