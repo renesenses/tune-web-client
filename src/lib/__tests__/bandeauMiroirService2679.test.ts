@@ -21,9 +21,11 @@ import { locale } from '../i18n';
 
 vi.setConfig({ testTimeout: 60_000 });
 
-const MOTIF = 'HTTP 401 — jeton Qobuz expiré';
+// Le motif tel que le serveur le compose : en français (favorites_mirror.rs).
+const MOTIF = 'réconciliation interrompue : HTTP 401 — jeton Qobuz expiré';
 let detail: unknown = null;
 let lecturesDetail = 0;
+let enteteMiroir: string | null = 'echec';
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
@@ -42,10 +44,11 @@ beforeEach(() => {
     },
   };
   lecturesDetail = 0;
+  enteteMiroir = 'echec';
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     const u = String(url);
     const h = new Map([['content-type', 'application/json']]);
-    if (/\/favorites\/streaming(\?|$)/.test(u)) h.set('x-tune-favoris-miroir', 'echec');
+    if (enteteMiroir !== null && /\/favorites\/streaming(\?|$)/.test(u)) h.set('x-tune-favoris-miroir', enteteMiroir);
     return {
       ok: true, status: 200, statusText: 'OK',
       headers: { get: (k: string) => h.get(k.toLowerCase()) ?? null },
@@ -104,12 +107,25 @@ describe('web#2679 — le bandeau d’échec nomme le service et son motif', () 
     const h = await poser();
     const texte = h.querySelector('[data-testid="miroir-favoris-etat"]')?.textContent ?? '';
     expect(texte).toContain('The last refresh of Qobuz favourites failed');
-    expect(texte).toContain('Reason:');
+    // #2417 : la phrase visible est traduite ; le brut du serveur n'est que
+    // dans le « Détails » REPLIÉ.
+    const motif = h.querySelector<HTMLDetailsElement>('[data-testid="miroir-favoris-motif"]');
+    expect(motif, 'motif absent').not.toBeNull();
+    expect(motif!.open, 'le texte brut du serveur doit rester replié').toBe(false);
+    expect(motif!.querySelector('summary')?.textContent ?? '').toContain('the service did not keep up');
+    expect(motif!.querySelector('summary')?.textContent ?? '', 'du français dans la phrase visible (#2417)').not.toMatch(/réconciliation|interrompue/);
   });
 
   it('le détail n’est lu que s’il y a un échec à expliquer', async () => {
     await poser();
-    expect(lecturesDetail).toBeGreaterThan(0);
+    expect(lecturesDetail, 'échec : le détail doit être lu').toBeGreaterThan(0);
+  });
+
+  it.each(['ok', 'en_attente', 'aucun', null])('état %s : AUCUNE lecture du détail', async (etat) => {
+    enteteMiroir = etat;
+    const h = await poser();
+    expect(lecturesDetail, `détail lu hors échec (${etat})`).toBe(0);
+    expect(h.querySelector('[data-testid="miroir-favoris-motif"]')).toBeNull();
   });
 
   it('servicesEnEchec : seuls les `echec`, motif vide → null', () => {

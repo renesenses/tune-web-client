@@ -485,7 +485,7 @@ export default {
   "v2.fav.miroirEnAttente": "Alcuni preferiti dei servizi attendono ancora il loro servizio. Tune riproverà.",
   "v2.fav.miroirEchec": "L’ultimo aggiornamento dei preferiti dei servizi non è riuscito. L’elenco potrebbe non essere aggiornato.",
   "v2.fav.miroirEchecService": "L’ultimo aggiornamento dei preferiti di {services} non è riuscito. L’elenco potrebbe non essere aggiornato.",
-  "v2.fav.miroirMotif": "Motivo:",
+  "v2.fav.miroirMotif": "il servizio non ha risposto. Dettagli",
   'playlist.source': 'Sorgente',
   "playlist.importedMatched": "{count} brani su {total} trovati nella libreria e importati.",
   "playlist.importNoneMatched": "Nessun brano di questa playlist esiste nella libreria locale — la playlist non è stata creata. I brani in streaming non possono ancora essere copiati in una playlist locale.",

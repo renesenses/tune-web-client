@@ -540,7 +540,7 @@ export default {
   "v2.fav.miroirEnAttente": "Noen tjenestefavoritter venter fortsatt på tjenesten sin. Tune prøver igjen.",
   "v2.fav.miroirEchec": "Siste oppdatering av tjenestefavorittene mislyktes. Listen kan være utdatert.",
   "v2.fav.miroirEchecService": "Siste oppdatering av favorittene fra {services} mislyktes. Listen kan være utdatert.",
-  "v2.fav.miroirMotif": "Årsak:",
+  "v2.fav.miroirMotif": "tjenesten fulgte ikke med. Detaljer",
   "playlist.source": "Kilde",
   "playlist.importedMatched": "{count} av {total} spor ble funnet i biblioteket og importert.",
   "playlist.importNoneMatched": "Ingen av sporene i denne spillelisten finnes i det lokale biblioteket — spillelisten ble ikke opprettet. Strømmespor kan ennå ikke kopieres som de er til en lokal spilleliste.",

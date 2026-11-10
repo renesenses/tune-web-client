@@ -178,7 +178,7 @@ export default {
   "v2.fav.miroirEnAttente": "Néhány szolgáltatáskedvenc még a szolgáltatására vár. A Tune újra próbálja.",
   "v2.fav.miroirEchec": "A szolgáltatáskedvencek legutóbbi frissítése nem sikerült. A lista elavult lehet.",
   "v2.fav.miroirEchecService": "A(z) {services} kedvenceinek legutóbbi frissítése nem sikerült. A lista elavult lehet.",
-  "v2.fav.miroirMotif": "Ok:",
+  "v2.fav.miroirMotif": "a szolgáltatás nem követte. Részletek",
   "radio.importResult": "{imported} importálva, {skipped} kihagyva",
   "podcasts.noEpisodesFound": "Nem található műsor",
   'player.showWaveform': 'Hullámforma megjelenítése',

@@ -972,7 +972,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {:else if echecsMiroir.length > 0}
         {$t('v2.fav.miroirEchecService' as any).replace('{services}', echecsMiroir.map((e) => nomService(e.service)).join(', '))}
         {#each echecsMiroir.filter((e) => e.erreur) as e (e.service)}
-          <span class="miroir-motif" data-testid="miroir-favoris-motif">{nomService(e.service)} — {$t('v2.fav.miroirMotif' as any)} {e.erreur}</span>
+          <!-- #2417 : le motif du serveur est rédigé en français
+               (favorites_mirror.rs) ; l'écran dit une phrase traduite, le
+               texte brut reste lisible, replié, pour le diagnostic. -->
+          <details class="miroir-motif" data-testid="miroir-favoris-motif">
+            <summary>{nomService(e.service)} — {$t('v2.fav.miroirMotif' as any)}</summary>
+            <code>{e.erreur}</code>
+          </details>
         {/each}
       {:else}
         {$t('v2.fav.miroirEchec' as any)}
@@ -1562,6 +1568,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
   .miroir-motif{display:block; margin-top:2px; overflow-wrap:anywhere}
+  .miroir-motif summary{cursor:pointer}
+  .miroir-motif code{display:block; margin-top:2px; font-size:11px}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}

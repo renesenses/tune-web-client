@@ -485,7 +485,7 @@ export default {
   "v2.fav.miroirEnAttente": "Einige Dienst-Favoriten warten noch auf ihren Dienst. Tune versucht es erneut.",
   "v2.fav.miroirEchec": "Die letzte Aktualisierung der Dienst-Favoriten ist fehlgeschlagen. Die Liste ist eventuell nicht aktuell.",
   "v2.fav.miroirEchecService": "Die letzte Aktualisierung der Favoriten von {services} ist fehlgeschlagen. Die Liste ist eventuell nicht aktuell.",
-  "v2.fav.miroirMotif": "Grund:",
+  "v2.fav.miroirMotif": "der Dienst hat nicht mitgehalten. Details",
   'playlist.source': 'Quelle',
   "playlist.importedMatched": "{count} von {total} Titeln in der Bibliothek gefunden und importiert.",
   "playlist.importNoneMatched": "Keiner der Titel dieser Playlist existiert in der lokalen Bibliothek — die Playlist wurde nicht erstellt. Streaming-Titel können noch nicht direkt in eine lokale Playlist kopiert werden.",

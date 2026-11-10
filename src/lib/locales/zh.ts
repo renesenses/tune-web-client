@@ -485,7 +485,7 @@ export default {
   "v2.fav.miroirEnAttente": "部分服务收藏仍在等待其服务同步。Tune 将重试。",
   "v2.fav.miroirEchec": "上次刷新服务收藏失败。列表可能不是最新的。",
   "v2.fav.miroirEchecService": "上次刷新 {services} 收藏失败。列表可能不是最新的。",
-  "v2.fav.miroirMotif": "原因：",
+  "v2.fav.miroirMotif": "该服务未能同步。详情",
   'playlist.source': '来源',
   "playlist.importedMatched": "在音乐库中找到并导入了 {total} 首中的 {count} 首。",
   "playlist.importNoneMatched": "此播放列表中的曲目在本地音乐库中不存在——未创建播放列表。流媒体曲目暂时无法直接复制到本地播放列表。",

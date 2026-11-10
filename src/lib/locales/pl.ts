@@ -540,7 +540,7 @@ export default {
   "v2.fav.miroirEnAttente": "Część ulubionych z usług nadal czeka na swoją usługę. Tune spróbuje ponownie.",
   "v2.fav.miroirEchec": "Ostatnie odświeżenie ulubionych z usług nie powiodło się. Lista może być nieaktualna.",
   "v2.fav.miroirEchecService": "Ostatnie odświeżenie ulubionych z {services} nie powiodło się. Lista może być nieaktualna.",
-  "v2.fav.miroirMotif": "Przyczyna:",
+  "v2.fav.miroirMotif": "usługa nie nadążyła. Szczegóły",
   "playlist.source": "Źródło",
   "playlist.importedMatched": "Znaleziono w bibliotece i zaimportowano utwory: {count} z {total}.",
   "playlist.importNoneMatched": "Żaden z utworów tej playlisty nie istnieje w lokalnej bibliotece — playlista nie została utworzona. Utworów ze streamingu nie można jeszcze kopiować w niezmienionej postaci do lokalnej playlisty.",
