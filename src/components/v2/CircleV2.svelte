@@ -793,6 +793,57 @@
 
       <section class="bloc cercles" aria-labelledby="circle-cercles">
         <h2 id="circle-cercles">{$t('v2.circle.circles' as any)}</h2>
+        <!-- #8153 : les invitations en attente, avec Accepter et Refuser, EN TÊTE de la liste
+             des cercles (décision de Bertrand du 11/11) : invitations, mes cercles, puis
+             les cercles dont je suis membre. -->
+        {#if connecte.received.length > 0}
+          <div class="sous-bloc recues" role="group" aria-labelledby="circle-recues">
+            <h3 id="circle-recues">{$t('v2.circle.received' as any)}</h3>
+            <ul>
+              {#each connecte.received as inv (inv.id)}
+                <li class="ligne invitation-recue">
+                  <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
+                  <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
+                  <span class="gestes">
+                    <button class="go accepter" disabled={occupe !== null}
+                      onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
+                      {$t('v2.circle.accept' as any)}
+                    </button>
+                    <button class="lnk refuser" disabled={occupe !== null}
+                      onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
+                      {$t('v2.circle.decline' as any)}
+                    </button>
+                    {#if blocage === true}
+                      <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
+                        data-bloquer={inv.id}
+                        aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
+                        aria-expanded={aBloquer === inv.id}
+                        onclick={() => demanderBlocage(inv.id)}>
+                        {$t('v2.circle.block.action' as any)}
+                      </button>
+                    {/if}
+                  </span>
+                  {#if blocage === true && aBloquer === inv.id}
+                    <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
+                      <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
+                      <span class="gestes">
+                        <button class="risque confirmer-bloquer" disabled={occupe !== null}
+                          data-confirmer-blocage={inv.id}
+                          onclick={() => bloquer(inv.id, inv.name_or_email)}>
+                          {$t('v2.circle.block.confirmAction' as any)}
+                        </button>
+                        <button class="lnk annuler-bloquer" disabled={occupe !== null}
+                          onclick={() => annulerBlocage(inv.id)}>
+                          {$t('v2.circle.block.cancel' as any)}
+                        </button>
+                      </span>
+                    </div>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
         <p class="note">{$t('v2.circle.circlesHint' as any)}</p>
         <form class="rangee creer-cercle" onsubmit={creer}>
           <label class="sr" for="circle-nouveau">{$t('v2.circle.newCircleLabel' as any)}</label>
@@ -939,55 +990,6 @@
                 <p class="note cercle-de">{$t('v2.circle.msg.circleOf' as any).replace('{name}', m.owner_name)}</p>
               </article>
             {/each}
-          </div>
-        {/if}
-        <!-- #8153 : les invitations en attente, avec Accepter et Refuser, dans la liste des cercles. -->
-        {#if connecte.received.length > 0}
-          <div class="sous-bloc recues" role="group" aria-labelledby="circle-recues">
-            <h3 id="circle-recues">{$t('v2.circle.received' as any)}</h3>
-            <ul>
-              {#each connecte.received as inv (inv.id)}
-                <li class="ligne invitation-recue">
-                  <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
-                  <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
-                  <span class="gestes">
-                    <button class="go accepter" disabled={occupe !== null}
-                      onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
-                      {$t('v2.circle.accept' as any)}
-                    </button>
-                    <button class="lnk refuser" disabled={occupe !== null}
-                      onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
-                      {$t('v2.circle.decline' as any)}
-                    </button>
-                    {#if blocage === true}
-                      <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
-                        data-bloquer={inv.id}
-                        aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
-                        aria-expanded={aBloquer === inv.id}
-                        onclick={() => demanderBlocage(inv.id)}>
-                        {$t('v2.circle.block.action' as any)}
-                      </button>
-                    {/if}
-                  </span>
-                  {#if blocage === true && aBloquer === inv.id}
-                    <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
-                      <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
-                      <span class="gestes">
-                        <button class="risque confirmer-bloquer" disabled={occupe !== null}
-                          data-confirmer-blocage={inv.id}
-                          onclick={() => bloquer(inv.id, inv.name_or_email)}>
-                          {$t('v2.circle.block.confirmAction' as any)}
-                        </button>
-                        <button class="lnk annuler-bloquer" disabled={occupe !== null}
-                          onclick={() => annulerBlocage(inv.id)}>
-                          {$t('v2.circle.block.cancel' as any)}
-                        </button>
-                      </span>
-                    </div>
-                  {/if}
-                </li>
-              {/each}
-            </ul>
           </div>
         {/if}
       </section>

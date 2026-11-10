@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
-// tune-server-rust#8153 : la liste des cercles montre mes cercles, les cercles
-// dont je suis membre (« Cercle de {propriétaire} ») et les invitations en
-// attente (Accepter, Refuser). Scénario : A crée un cercle et invite B ; B voit
+// tune-server-rust#8153 : la liste des cercles montre, dans cet ordre, les
+// invitations en attente (Accepter, Refuser), mes cercles et les cercles dont
+// je suis membre (« Cercle de {propriétaire} »). Scénario : A crée un cercle et invite B ; B voit
 // l'invitation, l'accepte, puis voit le cercle et peut y écrire.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
@@ -131,7 +131,7 @@ describe('#8153 : la liste des cercles', () => {
     expect(get(demandeConversation)).toEqual({ cercle: 12 });
   });
 
-  it('mes cercles, ceux dont je suis membre et les invitations sont dans la même section, dans cet ordre', async () => {
+  it('les invitations EN TÊTE, puis mes cercles, puis ceux dont je suis membre, dans la même section', async () => {
     mesCercles = [{ id: 5, name: 'Jazz', member_ids: [] }];
     accepte = true; // membre de « Famille »…
     invitationEnAttente = true; // …et une invitation encore en attente.
@@ -144,8 +144,12 @@ describe('#8153 : la liste des cercles', () => {
     expect(mien!.querySelector('.renommer')).not.toBeNull();
     expect(texte(membre!.querySelector('.cercle-nom'))).toBe('Famille');
     expect(invitation).not.toBeNull();
+    // Décision de Bertrand (11/11) : invitations, mes cercles, membre.
+    expect(invitation!.compareDocumentPosition(mien!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(mien!.compareDocumentPosition(membre!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(membre!.compareDocumentPosition(invitation!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // En tête : au-dessus même du formulaire de création de cercle.
+    const creer = s.querySelector('form.creer-cercle');
+    expect(invitation!.compareDocumentPosition(creer!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Plus de section séparée hors de la liste.
     expect(el.querySelectorAll('.cercles-invite')).toHaveLength(1);
     expect(el.querySelectorAll('.recues')).toHaveLength(1);
