@@ -126,6 +126,7 @@
     cibleDeSuggestion,
     clesEcartees,
     ecarter,
+    ecartsDisponibles,
     estEcartee,
     retablir,
     type SuggestionEcartee,
@@ -1003,6 +1004,8 @@
 
   /** Les deux gestes du menu « … » d'une suggestion — rien hors des suggestions. */
   function gestesSuggestion(e: Element) {
+    // Serveur sans la route (antérieur à web#916) : aucun geste offert.
+    if (!$ecartsDisponibles) return {};
     const c = cibleDeSuggestion(e);
     const a = cibleArtiste(e);
     return {

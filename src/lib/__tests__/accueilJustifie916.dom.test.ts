@@ -32,6 +32,8 @@ const RECOMMANDATIONS = [
 ];
 
 let ecartees: any[] = [];
+/** Faux : le serveur ne connaît pas `/home/dismissed-suggestions` (antérieur à web#916). */
+let routeEcarts = true;
 let journal: { url: string; methode: string; corps: any }[] = [];
 
 function poserLeServeur() {
@@ -43,6 +45,18 @@ function poserLeServeur() {
       const corps = init?.body ? JSON.parse(String(init.body)) : null;
       journal.push({ url: u, methode, corps });
       let rep: any = [];
+      if (!routeEcarts && u.includes('/home/dismissed-suggestions')) {
+        return {
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          headers: new Map([['content-type', 'text/plain']]),
+          json: async () => {
+            throw new Error('not json');
+          },
+          text: async () => 'Not Found',
+        } as unknown as Response;
+      }
       if (u.includes('/home/recommendations')) rep = RECOMMANDATIONS;
       else if (u.endsWith('/home/dismissed-suggestions/restore')) {
         ecartees = ecartees.filter((e) => !(e.item_type === corps.item_type && e.item_id === corps.item_id));
@@ -92,6 +106,7 @@ const entree = (cle: string) =>
 
 beforeEach(() => {
   ecartees = [];
+  routeEcarts = true;
   journal = [];
   suggestionsEcartees.set([]);
   currentProfileId.set(1);
@@ -153,6 +168,20 @@ describe("web#916 — l'accueil dit pourquoi, et entend « Pas pour moi »", () 
     expect(titres(page), '« Annuler » doit rendre la vignette').toEqual(['Bitches Brew', 'Au hasard']);
     const restore = journal.find((j) => j.url.endsWith('/home/dismissed-suggestions/restore'));
     expect(restore?.corps).toEqual({ item_type: 'album', source: 'local', item_id: '12' });
+  });
+
+  it('un serveur sans la route : l’accueil s’affiche, le menu ne propose pas « Pas pour moi »', async () => {
+    routeEcarts = false;
+    const page = await accueil();
+    expect(titres(page), 'la rangée doit s’afficher malgré le 404').toEqual(['Bitches Brew', 'Au hasard']);
+    const coin = cartes(page)[0].querySelector<HTMLButtonElement>('.pa button.coin.bl');
+    if (coin) {
+      coin.click();
+      flushSync();
+    }
+    expect(entree('v2.dismiss.notForMe'), 'geste voué à l’échec proposé').toBeNull();
+    expect(entree('v2.dismiss.notForMeArtist')).toBeNull();
+    expect(journal.some((j) => j.methode === 'POST')).toBe(false);
   });
 
   it('« Ne plus me proposer cet artiste » écarte l’artiste, par son nom', async () => {

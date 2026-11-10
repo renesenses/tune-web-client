@@ -107,13 +107,25 @@ export function estEcartee(el: Element, cles: Set<string>): boolean {
   return !!a && cles.has(cleEcart(a));
 }
 
+/**
+ * Le serveur sait-il ranger un « Pas pour moi » ? Faux tant que
+ * `GET /home/dismissed-suggestions` n'a pas répondu : un serveur antérieur à
+ * web#916 (route absente, 404) ne doit pas se voir offrir un geste qui
+ * échouerait à coup sûr. L'accueil ne propose les deux entrées du menu que
+ * lorsqu'il est vrai.
+ */
+export const ecartsDisponibles = writable<boolean>(false);
+
 /** Relit la liste du profil actif. Un échec garde la copie telle quelle. */
 export async function chargerSuggestionsEcartees(): Promise<void> {
   try {
     const r = await api.getSuggestionsEcartees();
     suggestionsEcartees.set(Array.isArray(r?.items) ? r.items : []);
+    ecartsDisponibles.set(true);
   } catch {
-    // Un serveur antérieur ne connaît pas la route : rien n'est écarté.
+    // Un serveur antérieur ne connaît pas la route : rien n'est écarté, et
+    // « Pas pour moi » n'est pas proposé.
+    ecartsDisponibles.set(false);
   }
 }
 
