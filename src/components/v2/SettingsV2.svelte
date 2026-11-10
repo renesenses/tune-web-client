@@ -26,7 +26,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { natifServiEnDop } from '../../lib/transportDsd';
+  import { diagnosticDsd } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -6062,8 +6062,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->
-                          {#if natifServiEnDop(z)}
-                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t('v2.set.dsdNativeServedAsDop' as any)}</small>
+                          <!-- #2513 — et POURQUOI (`dsd_transport_reason`, server#7372) :
+                               capacité encore inconnue, sortie non ASIO, pilote sans DSD. -->
+                          {#if diagnosticDsd(z)?.genre === 'dop'}
+                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t(diagnosticDsd(z)!.cle as any)}</small>
+                          {:else if diagnosticDsd(z)?.genre === 'inconnue'}
+                            <small class="dsd-dop dsd-inconnue" data-dsd-transport="capacite_non_sondee">{$t(diagnosticDsd(z)!.cle as any)}</small>
                           {/if}
                         </label>
                         <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>

@@ -641,7 +641,16 @@ export interface Zone {
    * `dop_active`, détecté sur les octets pendant la lecture. Absent des
    * serveurs qui ne le publient pas : l'interface n'affirme alors rien.
    */
-  dsd_transport?: string;
+  dsd_transport?: string | null;
+  /**
+   * #2513 (tune-server-rust#7372) — le motif du diagnostic `dsd_transport` :
+   * `capacite_non_sondee` (capacité native encore inconnue, `dsd_transport`
+   * vaut alors `null`), `sortie_non_asio` ou `pilote_sans_dsd` (cause connue
+   * du repli DoP), `null` quand il n'y a rien à expliquer.
+   */
+  dsd_transport_reason?: 'capacite_non_sondee' | 'sortie_non_asio' | 'pilote_sans_dsd' | string | null;
+  /** `output_capability` : capacité de la sortie, pas transport réel de la piste. */
+  dsd_transport_scope?: string | null;
   /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
    *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
   lyrics_offset_ms?: number;
