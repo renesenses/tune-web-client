@@ -60,7 +60,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear, vueAvantGrandEcran, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
@@ -1733,6 +1733,11 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       document.documentElement.requestFullscreen?.()?.catch(() => {});
     } catch {}
+    // web#2761 — on part TOUJOURS de « Lecture en cours », même ouvert en
+    // calque par-dessus une autre vue : la sortie y ramène, en vue de plein
+    // droit, et le calque se referme (sinon il recouvrirait ce retour).
+    vueAvantGrandEcran.set('nowplaying');
+    mobileNowPlayingOpen.set(false);
     activeView.set('tv');
   }
 

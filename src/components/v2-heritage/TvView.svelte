@@ -11,7 +11,7 @@
   import { get } from 'svelte/store';
   import { currentZone } from '../../lib/stores/zones';
   import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../../lib/stores/nowPlaying';
-  import { activeView, previousView } from '../../lib/stores/navigation';
+  import { activeView, previousView, vueAvantGrandEcran } from '../../lib/stores/navigation';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import {
     fetchTrackLyrics,
@@ -159,7 +159,11 @@
     arreterGardePleinEcran?.();
     arreterGardePleinEcran = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    activeView.set(destinationDeRetour(get(previousView), { depuis: 'tv', repli: 'nowplaying' }));
+    // web#2761 — la vue posée par la porte d'entrée prime : `previousView`
+    // ne voit pas « Lecture en cours » ouvert en calque.
+    const origine = get(vueAvantGrandEcran);
+    vueAvantGrandEcran.set(null);
+    activeView.set(destinationDeRetour(origine ?? get(previousView), { depuis: 'tv', repli: 'nowplaying' }));
   }
   // Listener en capture (cf. onMount) : preventDefault + stopPropagation
   // court-circuitent le mapping global de lib/keyboard.ts (sinon les flèches

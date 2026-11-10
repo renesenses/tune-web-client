@@ -196,7 +196,7 @@
   import TableauDeBordV2 from './TableauDeBordV2.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
-  import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { mobileNowPlayingOpen, vueAvantGrandEcran } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   // « Demander à l'assistant » (chantier assistant-ia, `/ai/query`) : le
   // bouton n'existe que si l'assistant est prêt ; les réglages sont sondés
@@ -582,6 +582,9 @@
    * désormais au même écran. Deux copies divergeraient au premier correctif.
    */
   function modeTv() {
+    // web#2761 — la porte dit d'où l'on part ; calque ouvert = « Lecture en cours ».
+    vueAvantGrandEcran.set($mobileNowPlayingOpen ? 'nowplaying' : $activeView);
+    mobileNowPlayingOpen.set(false);
     entrerEnModeGrandEcran((vue) => activeView.set(vue));
   }
 

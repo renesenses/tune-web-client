@@ -182,6 +182,18 @@ export function clearViewContext(view: View): void {
 // Optional tab to open when navigating to settings (consumed once by SettingsView)
 export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);
+
+/**
+ * web#2761 — LA VUE D'OÙ L'ON EST ENTRÉ DANS LE GRAND ÉCRAN, posée par la porte.
+ *
+ * Alex (rc11) : Échap ou un clic ramenait aux Playlists. « Lecture en cours »
+ * s'ouvre aussi en CALQUE (`mobileNowPlayingOpen`) par-dessus la vue
+ * courante, sans changer `activeView` : son bouton Grand écran laissait donc
+ * `previousView` sur la vue d'en dessous, et la sortie y renvoyait. Chaque
+ * porte dit désormais d'où elle part ; `TvView` le lit à la sortie et le
+ * consomme. `null` : sortie à l'ancienne, sur `previousView`.
+ */
+export const vueAvantGrandEcran = writable<View | null>(null);
 export const pendingSearchQuery = writable<string>('');
 
 // One-shot: an absolute folder path handed from the Répertoires (browse) view's
