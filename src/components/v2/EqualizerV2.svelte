@@ -1158,7 +1158,7 @@
   .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
   .restart{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:12.5px;
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
@@ -1228,7 +1228,7 @@
   .board{display:flex; align-items:flex-end; gap:4px; padding:18px 16px 10px; border-radius:14px;
     border:1px solid var(--v2-line); background:var(--v2-surface2); overflow-x:auto}
   .board.off{opacity:.4}
-  .board::-webkit-scrollbar{height:8px}.board::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .board::-webkit-scrollbar{height:8px}.board::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .band{display:flex; flex-direction:column; align-items:center; gap:8px; flex:1 1 0; min-width:34px}
   .band .g{font:10px var(--v2-mono); color:var(--v2-acc2); min-height:13px}
   .band .f{font:9.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}

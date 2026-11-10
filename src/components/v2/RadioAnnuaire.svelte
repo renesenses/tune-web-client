@@ -24,9 +24,11 @@
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
+  import { memoriserTous, compteTous, type MemoTous } from '../../lib/totalTousLesGenres';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
@@ -62,12 +64,21 @@
   /** tune-server-rust#7466 — les critères de « Plus de filtres ». */
   const criteres = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
   const cleCriteres = $derived(JSON.stringify(criteres));
+  /** web#2693 — « Tous » suit les filtres actifs (genre mis à part). */
+  const cleSansGenre = $derived(JSON.stringify([q, pays, cleCriteres]));
+  let memoTous = $state<MemoTous | null>(null);
+  const totalTous = $derived(compteTous(memoTous, cleSansGenre));
 
   let jeton = 0;
   let premiereLecture = true;
   onDestroy(() => { jeton += 1; });
   async function charger(suite = false) {
     const moi = ++jeton;
+    // web#2693 — les filtres de CETTE requête, figés avant le premier `await` :
+    // relus à la réponse, ils pourraient déjà être ceux de la suivante (pause
+    // de frappe de 250 ms), et le mémo de « Tous » prendrait un faux total.
+    const cleDeLaRequete = JSON.stringify([q, pays, cleCriteres]);
+    const genreDeLaRequete = genre;
     chargement = true;
     erreur = null;
     try {
@@ -84,6 +95,7 @@
         nouvelles.push(...r.items);
       } while (nouvelles.length < cible && r.items.length > 0 && debut + nouvelles.length < r.total);
       page = r;
+      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total);
       items = suite ? [...items, ...nouvelles] : nouvelles;
       premiereLecture = false;
       await tick();
@@ -182,7 +194,7 @@
   {#if genresAffiches.length}
     <RadioChipsGenres
       genres={genresAffiches}
-      choisi={genre} total={page?.stations ?? 0} onChoisir={(c) => (genre = c)} />
+      choisi={genre} total={totalTous} onChoisir={(c) => (genre = c)} />
   {/if}
 
   {#if erreur}
@@ -206,13 +218,14 @@
               onVoir={() => (enFiche = f)}
               libelleVoir={$t('v2.radio.view' as any)}
               onLire={() => ecouter(f)}
-              onOuvrir={() => ecouter(f)}
+              onOuvrir={() => (enFiche = f)}
               nom={f.name}
             >
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />
             </PochetteActions>
           </span>
-          <span class="nm" use:bulleTexte>{f.name}</span>
+          <!-- web#2770 (lot 4) — « ouvrir » et le nom OUVRENT la fiche ; la lecture reste sur ▶. -->
+          <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: f.name, ouvrir: () => (enFiche = f) }} /></span>
           {#if enDirect === f.external_id && titreEnCours}
             <span class="encours" use:bulleTexte>{titreEnCours}</span>
           {:else}
