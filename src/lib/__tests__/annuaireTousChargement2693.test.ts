@@ -14,6 +14,9 @@
 // Le témoin MONTE l'annuaire, le serveur répondant à la demande du test.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
+// `vi.mock` est remonté en tête par Vitest : l'import statique reçoit le faux serveur.
+import RadioAnnuaire from '../../components/v2/RadioAnnuaire.svelte';
+import { preferences } from '../stores/preferences';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -25,8 +28,6 @@ vi.mock('../api', async (orig) => ({
   getAnnuaireRadios: (params: any) => new Promise<Reponse>((repondre) => { enAttente.push({ params, repondre }); }),
 }));
 
-const { default: RadioAnnuaire } = await import('../../components/v2/RadioAnnuaire.svelte');
-const { preferences } = await import('../stores/preferences');
 
 const reponse = (total: number): Reponse => ({
   items: [], total, stations: 1119, genres: [{ key: 'news', count: 40 }, { key: 'rock', count: 300 }], countries: [],
