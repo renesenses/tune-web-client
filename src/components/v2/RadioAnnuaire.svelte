@@ -24,6 +24,7 @@
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
@@ -217,13 +218,14 @@
               onVoir={() => (enFiche = f)}
               libelleVoir={$t('v2.radio.view' as any)}
               onLire={() => ecouter(f)}
-              onOuvrir={() => ecouter(f)}
+              onOuvrir={() => (enFiche = f)}
               nom={f.name}
             >
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />
             </PochetteActions>
           </span>
-          <span class="nm" use:bulleTexte>{f.name}</span>
+          <!-- web#2770 (lot 4) — « ouvrir » et le nom OUVRENT la fiche ; la lecture reste sur ▶. -->
+          <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: f.name, ouvrir: () => (enFiche = f) }} /></span>
           {#if enDirect === f.external_id && titreEnCours}
             <span class="encours" use:bulleTexte>{titreEnCours}</span>
           {:else}

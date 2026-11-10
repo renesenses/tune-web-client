@@ -85,7 +85,8 @@ describe('web#2473 / serveur#7052 — contexte de Radio au retour', () => {
     await monterRadios();
     onglets()[1].click();
     await respirer();
-    const station = hote.querySelector<HTMLButtonElement>('.fiche .ouvrir');
+    // web#2770 (lot 4) : la lecture est sur ▶ (`.centre`) ; la pochette ouvre la fiche.
+    const station = hote.querySelector<HTMLButtonElement>('.fiche .centre');
     expect(station, 'aucune station affichée, le témoin ne mesure rien').not.toBeNull();
     station!.click();
     await respirer();

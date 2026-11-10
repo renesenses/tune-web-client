@@ -18,6 +18,8 @@
   import { t as tr } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import { EVT_COFFRET_DEFAIT } from '../../lib/coffretAuto';
   import { objetAlbum } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -108,7 +110,7 @@
           <button class="ligne" data-coffret={c.id} onclick={() => onOuvrir(c)}>
             <span class="vign"><AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} /></span>
             <span class="ltitre" use:bulleTexte>{c.title ?? ''}</span>
-            <span class="lartiste" use:bulleTexte>{c.artist_name ?? ''}</span>
+            <span class="lartiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: c.artist_name ?? '', artiste: artisteDAlbum(c) }} /></span>
             <span class="ldisques">{disques(c)}</span>
           </button>
           <span class="menu-ligne"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
@@ -124,7 +126,7 @@
             <span class="titre" use:bulleTexte>{c.title ?? ''}</span>
             <!-- Toujours posée, vide s'il n'y a pas d'artiste : « N disques »
                  reste sur la même ligne d'une carte à l'autre. -->
-            <span class="artiste" use:bulleTexte>{c.artist_name ?? ''}</span>
+            <span class="artiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: c.artist_name ?? '', artiste: artisteDAlbum(c) }} /></span>
             <span class="disques">{disques(c)}</span>
           </button>
           <span class="menu-carte"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>

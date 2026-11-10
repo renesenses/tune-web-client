@@ -3,8 +3,13 @@
    * La mini-barre de lecture, au-dessus des onglets, hors de l'onglet
    * Écouter (maquette A4/A5) : ce qui joue, la file, lecture/pause. Un clic
    * sur la piste ramène à Écouter.
+   *
+   * web#2770 (lot 1) — l'artiste et l'album de la deuxième ligne sont des
+   * LIENS (`LienEntite`) : la fiche de l'artiste, l'album de la zone (demandé
+   * au serveur, #1361). Le reste du bouton garde son geste.
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
+  import LienEntite from '../../partages/LienEntite.svelte';
   import { activeView } from '../../../lib/stores/navigation';
   import { currentZone } from '../../../lib/stores/zones';
   import { currentTrack, playbackState, seekPositionMs } from '../../../lib/stores/nowPlaying';
@@ -12,6 +17,8 @@
   import { feuilleMini } from '../../../lib/vueMini';
   import { t } from '../../../lib/i18n';
   import { bulleTexte } from '../../../lib/infobulleTexte';
+  import { artisteDePisteEcoutee } from '../../../lib/lienEntite';
+  import { ouvrirAlbumDeLaZoneCourante } from '../../../lib/lienLectureEnCours';
 
   const piste = $derived($currentTrack);
   const enLecture = $derived($playbackState === 'playing');
@@ -26,7 +33,7 @@
       source={piste?.source ?? null} size={40} alt={piste?.title ?? ''} /></span>
     <span class="tx">
       <span class="t1" use:bulleTexte>{piste?.title ?? $t('mini.rienEnLecture' as any)}</span>
-      {#if piste?.artist_name}<span class="t2" use:bulleTexte>{piste.artist_name}{piste.album_title ? ` · ${piste.album_title}` : ''}</span>{/if}
+      {#if piste?.artist_name}<span class="t2" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: piste.artist_name, artiste: artisteDePisteEcoutee(piste) }} />{#if piste.album_title} · {#if piste.source === 'radio'}<LienEntite entite={{ type: 'radio', nom: piste.album_title, ouvrir: null }} />{:else}<LienEntite entite={{ type: 'album', nom: piste.album_title, ouvrir: () => void ouvrirAlbumDeLaZoneCourante() }} />{/if}{/if}</span>{/if}
     </span>
   </button>
   <button class="act" onclick={() => feuilleMini.set('file')} aria-label={$t('nav.queue' as any)} data-ouvrir-file>

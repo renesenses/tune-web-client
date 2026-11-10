@@ -22,6 +22,10 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import LienEntite from './LienEntite.svelte';
+  import RadioFicheModale from './RadioFicheModale.svelte';
+  import { artisteDePisteEcoutee } from '../../lib/lienEntite';
+  import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
@@ -1062,6 +1066,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // web#1845 : réglage « Lecture en cours ouvre l'album ou la playlist ».
   // Coché, la vignette suit la même règle que l'entrée de la barre latérale
   // (même repli : radio ou page introuvable → écran Lecture en cours).
+  /** web#2770 — la fiche de la station qui joue, depuis la barre (#2398 l'a sur Lecture en cours). */
+  let ficheStationOuverte = $state(false);
+
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
       activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
@@ -1203,16 +1210,26 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               <span class="live-badge"><span class="live-dot"></span>LIVE</span>
             {/if}
           </span>
+          <!-- web#2770 (lot 1) — l'artiste, l'album et la station sont des
+               LIENS (`LienEntite`), posés DANS le bloc qui ouvre Lecture en
+               cours : chacun arrête la propagation, le reste du bloc garde
+               son geste. L'album de la zone se demande au serveur (#1361). -->
           <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
-              {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
-                ? displayTrack.artist_name
-                : displayTrack.album_title || 'Live Radio'}
+              {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
+                <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name, artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {:else}
+                <LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Live Radio', ouvrir: () => (ficheStationOuverte = true) }} />
+              {/if}
               <span class="radio-station-sep">·</span>
-              <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
+              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Radio', ouvrir: () => (ficheStationOuverte = true) }} />
             {:else}
-              {displayTrack.artist_name ?? ''}
+              <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {#if displayTrack.album_title}
+                <span class="radio-station-sep">·</span>
+                <LienEntite classe="mini-lien" entite={{ type: 'album', nom: displayTrack.album_title, ouvrir: () => void ouvrirAlbumDeLaZoneCourante() }} />
+              {/if}
             {/if}
           </span>
           <!--
@@ -1898,6 +1915,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   />
 {/if}
 
+<!-- web#2770 — la fiche de la station qui joue, ouverte par son nom dans la barre. -->
+{#if ficheStationOuverte && displayTrack && displayTrack.source === 'radio'}
+  <RadioFicheModale np={displayTrack} onClose={() => (ficheStationOuverte = false)} />
+{/if}
+
 <style>
   .tb-crete { display: flex; align-items: center; margin-right: 6px; }
   /* Posé en absolu sur le bord haut : la barre est une grille, un enfant dans
@@ -2069,6 +2091,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     align-items: center;
     gap: 5px;
   }
+  /* web#2770 — chaque lien s'élide pour lui-même dans la ligne flexible. */
+  .mini-artist :global(.mini-lien) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
      d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
