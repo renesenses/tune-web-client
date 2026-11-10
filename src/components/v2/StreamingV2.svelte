@@ -2064,7 +2064,7 @@
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   /* #6231 — ce que fait la saisie dans un genre : catalogue, ou simple filtre. */
   .note-genre{margin:4px 0 12px; font-size:12px; color:var(--v2-txt2)}
@@ -2176,7 +2176,7 @@
      déjà, il ne l'appliquait qu'aux résultats de recherche. */
   .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
   .arow::-webkit-scrollbar{height:8px}
-  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:999px}
   /* La grille d'artistes des RESULTATS de recherche : elle va a la ligne.
      `.arow` va desormais a la ligne elle aussi (#1382) — elle reste distincte
      par sa gouttiere et sa largeur libre, la ou `.agrid` colonne a pas fixe

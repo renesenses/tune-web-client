@@ -105,6 +105,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
@@ -199,6 +200,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
   import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
+  import AnnonceUpnpServeurV2 from './AnnonceUpnpServeurV2.svelte';
   import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
@@ -4798,6 +4800,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
+            {:else if s.id === 'parental'}
+              <ControleParentalV2 />
             {:else if s.id === 'interface'}
               <div class="row">
                 <div class="lbl">
@@ -5668,6 +5672,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'aes67Experimental'}
               <SortieAes67ExperimentaleV2 />
+            {:else if s.id === 'serveurUpnp'}
+              <AnnonceUpnpServeurV2 />
 
             {:else if s.id === 'aes67'}
               <SortieAes67V2 />
@@ -8428,7 +8434,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .body{flex:1; min-height:0; display:flex; padding:0 30px}
   .pane{flex:1; overflow-y:auto; padding:16px 4px 40px; display:flex; flex-direction:column; gap:14px}
-  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
   .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}

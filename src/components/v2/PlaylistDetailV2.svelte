@@ -23,7 +23,8 @@
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
@@ -281,6 +282,14 @@
       // lecture en cours » — cliquer Lire relançait le morceau du moment.
       // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
       // charge les pistes deux lignes plus haut.
+      //
+      // web#2687 — playlist MIXTE (titres « Indisponible » / « À paraître ») :
+      // `streaming_playlist_id` mettrait toute la liste en file. On envoie la
+      // liste nous-mêmes, sans les titres grisés, dans le contexte de la playlist.
+      if (pistesVues.some(pisteIndisponible)) {
+        void lireListeDepuis(pistesVues, startIndex, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+        return;
+      }
       playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(signalerEchecLecture);
     }
   }

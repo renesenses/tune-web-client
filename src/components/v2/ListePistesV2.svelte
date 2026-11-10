@@ -346,6 +346,13 @@
      */
     lectureSeule?: boolean;
     /**
+     * #7224 — en `lectureSeule`, un clic sur le titre ne doit pas être MUET.
+     * Fourni, le titre reste focalisable (`aria-disabled`, pas `disabled`) et
+     * appelle ce rappel — l'écran explique pourquoi rien ne se lance.
+     * Absent : le titre reste désactivé, comme avant.
+     */
+    onClicLectureSeule?: ((piste: Track, index: number) => void) | null;
+    /**
      * 🔴 LA SÉLECTION MULTIPLE — web#1683, point 3 — OPT-IN.
      *
      * `selection` non nulle pose une CASE À COCHER en tête de chaque ligne
@@ -425,7 +432,7 @@
     onGesteDisque = null,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
-    lectureSeule = false,
+    lectureSeule = false, onClicLectureSeule = null,
     selection = null, onCocher = null,
     virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
     tri = null, triables = null, onTrier = null,
@@ -819,11 +826,13 @@
   const surcharges = $derived($surchargesBannissement);
   const bannieDe = (p: Track) => !lectureSeule && estBannie(p, surcharges);
   /** Lecture seule : le titre ne lance rien, et le dit (désactivé). */
-  const inerte = $derived(lectureSeule ? { disabled: true } : {});
+  const inerte = $derived(lectureSeule
+    ? (onClicLectureSeule ? { 'aria-disabled': 'true' as const } : { disabled: true })
+    : {});
   async function lireDelibere(p: Track, i: number) {
     if (pisteIndisponible(p)) return;
     if (estIntrouvable(p)) return;
-    if (lectureSeule) return;
+    if (lectureSeule) { onClicLectureSeule?.(p, i); return; }
     if (!(await confirmerLectureBannie(p))) return;
     onLire(p, i);
   }
@@ -1062,7 +1071,7 @@
   /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
   .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
-  .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .tbl::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);

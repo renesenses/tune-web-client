@@ -45,6 +45,15 @@ export function labelPrincipal(albums: readonly ({ label?: string | null } | nul
  * la Recherche (`tune:v2-facette`, écouté par `LibraryV2`).
  */
 export async function ouvrirLabelDansLaBibliotheque(nom: string): Promise<void> {
+  return ouvrirFacetteDansLaBibliotheque('labels', nom);
+}
+
+/**
+ * web#2770 — le même chemin pour TOUTE facette de la Bibliothèque (genre,
+ * label, année) : la vue d'abord, puis l'événement que `LibraryV2` écoute une
+ * fois monté. Sans le `tick()`, l'événement partirait avant l'écouteur.
+ */
+export async function ouvrirFacetteDansLaBibliotheque(onglet: 'genres' | 'labels' | 'years', nom: string): Promise<void> {
   const valeur = nom.trim();
   if (!valeur) return;
   // tune-server-rust#8145 — la fiche d'album de la Bibliothèque se referme
@@ -59,7 +68,7 @@ export async function ouvrirLabelDansLaBibliotheque(nom: string): Promise<void> 
   await tick();
   window.dispatchEvent(
     new CustomEvent('tune:v2-facette', {
-      detail: { onglet: 'labels', valeur, ...(depuis !== 'library' ? { depuis } : {}) },
+      detail: { onglet, valeur, ...(depuis !== 'library' ? { depuis } : {}) },
     }),
   );
 }
