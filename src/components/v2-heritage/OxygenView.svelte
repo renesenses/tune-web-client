@@ -38,6 +38,13 @@
     sample_rate: { label: 'oxygen.col.sampleRate', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
     bit_depth: { label: 'oxygen.col.bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
     disc_subtitle: { label: 'oxygen.col.discSubtitle', get: t => t.disc_subtitle ?? '' },
+    // #2762 — servis par `/library/tracks` depuis tune-server-rust#8325 ;
+    // ABSENTS d'une piste qui n'en porte pas, ou d'un serveur plus ancien :
+    // la cellule reste vide.
+    conductor: { label: 'oxygen.col.conductor', get: t => t.conductor ?? '' },
+    ensemble: { label: 'oxygen.col.ensemble', get: t => t.ensemble ?? '' },
+    work: { label: 'oxygen.col.work', get: t => t.work ?? '' },
+    movement: { label: 'oxygen.col.movement', get: t => t.movement ?? '' },
     // Champs deja portes par `Track`, donc deja dans la charge utile de la
     // liste : les exposer en colonne ne coute rien de plus au serveur.
     // L'inspecteur les affichait deja ; seule la table les ignorait, et un
@@ -109,7 +116,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
   // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
   // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
   //
@@ -215,6 +222,8 @@
   const FACET_PARAM: Record<string, string> = {
     genre: 'genre', label: 'label', year: 'year', original_year: 'original_year',
     artist: 'artist', composer: 'composer', format: 'format',
+    // #2762 — chef, ensemble, œuvre (tune-server-rust#8325).
+    conductor: 'conductor', ensemble: 'ensemble', work: 'work',
     sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
     mood: 'mood', source: 'source_media', rating: 'rating',
     collection: 'collection', favorite: 'favorite', playlist: 'playlist',

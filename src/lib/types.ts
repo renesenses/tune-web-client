@@ -260,6 +260,13 @@ export interface Track {
    *  d'un disque (mouvements, bonus, ensembles), là où `disc_subtitle` nomme le
    *  disque entier. Absent de la réponse quand la piste n'en porte pas (#2130). */
   grouping?: string | null;
+  /** #2762 — chef(s), ensemble(s) / orchestre(s), œuvre et mouvement, joints
+   *  par « ; », servis par `/library/tracks` (tune-server-rust#8325). ABSENTS
+   *  quand la piste n'en porte pas, ou d'un serveur plus ancien. */
+  conductor?: string | null;
+  ensemble?: string | null;
+  work?: string | null;
+  movement?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;

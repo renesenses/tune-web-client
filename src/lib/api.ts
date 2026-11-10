@@ -3307,6 +3307,10 @@ export async function getFilteredTracks(opts: {
   source?: FacetParam;
   label?: FacetParam;
   composer?: FacetParam;
+  /** #2762 — chef, ensemble / orchestre, œuvre (tune-server-rust#8325). */
+  conductor?: FacetParam;
+  ensemble?: FacetParam;
+  work?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3344,7 +3348,8 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
     'all_of',
