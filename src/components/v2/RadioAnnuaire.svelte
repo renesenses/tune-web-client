@@ -66,13 +66,18 @@
   /** web#2693 — « Tous » suit les filtres actifs (genre mis à part). */
   const cleSansGenre = $derived(JSON.stringify([q, pays, cleCriteres]));
   let memoTous = $state<MemoTous | null>(null);
-  const totalTous = $derived(compteTous(memoTous, cleSansGenre, genre, page?.total));
+  const totalTous = $derived(compteTous(memoTous, cleSansGenre));
 
   let jeton = 0;
   let premiereLecture = true;
   onDestroy(() => { jeton += 1; });
   async function charger(suite = false) {
     const moi = ++jeton;
+    // web#2693 — les filtres de CETTE requête, figés avant le premier `await` :
+    // relus à la réponse, ils pourraient déjà être ceux de la suivante (pause
+    // de frappe de 250 ms), et le mémo de « Tous » prendrait un faux total.
+    const cleDeLaRequete = JSON.stringify([q, pays, cleCriteres]);
+    const genreDeLaRequete = genre;
     chargement = true;
     erreur = null;
     try {
@@ -89,7 +94,7 @@
         nouvelles.push(...r.items);
       } while (nouvelles.length < cible && r.items.length > 0 && debut + nouvelles.length < r.total);
       page = r;
-      memoTous = memoriserTous(memoTous, JSON.stringify([q, pays, cleCriteres]), genre, r.total);
+      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total);
       items = suite ? [...items, ...nouvelles] : nouvelles;
       premiereLecture = false;
       await tick();

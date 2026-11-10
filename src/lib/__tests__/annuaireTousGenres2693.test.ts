@@ -9,18 +9,23 @@ const reponse = { total: 271, stations: 1119 };
 
 describe('web#2693 — le compte de « Tous » suit les filtres actifs', () => {
   it('sans genre : le total filtré, pas le relevé entier', () => {
-    expect(compteTous(null, 'k', null, reponse.total)).toBe(271);
+    expect(compteTous(memoriserTous(null, 'k', null, reponse.total), 'k')).toBe(271);
+  });
+
+  it('sans genre, filtres changés, réponse pas encore là : nombre inconnu', () => {
+    const memo = memoriserTous(null, 'k', null, 271);
+    expect(compteTous(memo, 'autre')).toBeNull();
   });
 
   it('genre choisi : garde le total sans genre des mêmes filtres', () => {
     const memo = memoriserTous(null, 'k', null, 271);
     const apres = memoriserTous(memo, 'k', 'news', 40);
-    expect(compteTous(apres, 'k', 'news', 40)).toBe(271);
+    expect(compteTous(apres, 'k')).toBe(271);
   });
 
   it('autres filtres changés pendant qu’un genre est choisi : nombre inconnu, pas un faux', () => {
     const memo = memoriserTous(null, 'k', null, 271);
-    expect(compteTous(memo, 'autre', 'news', 12)).toBeNull();
+    expect(compteTous(memo, 'autre')).toBeNull();
   });
 
   it('l’annuaire ne passe plus `stations` (tous filtres levés) à la puce « Tous »', () => {

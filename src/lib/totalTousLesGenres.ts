@@ -12,6 +12,11 @@
  * est choisi, la réponse ne le donne plus ; on garde celui de la dernière
  * réponse sans genre pour les mêmes filtres (`cle`). Inconnu → `null` : la
  * puce s'affiche sans nombre plutôt qu'avec un faux.
+ *
+ * Sans genre non plus, on ne lit pas le `total` de la page affichée : pendant
+ * un chargement, c'est celui de la réponse PRÉCÉDENTE (« Tous (40) » juste
+ * après avoir quitté le genre Info, ou l'ancien total après un changement de
+ * recherche ou de pays). Seul le mémo des filtres en cours fait foi.
  */
 export interface MemoTous { cle: string; n: number }
 
@@ -21,7 +26,6 @@ export function memoriserTous(memo: MemoTous | null, cle: string, genre: string 
 }
 
 /** Le nombre à afficher dans « Tous », ou `null` s'il n'est pas connu. */
-export function compteTous(memo: MemoTous | null, cle: string, genre: string | null | undefined, total: number | null | undefined): number | null {
-  if (!genre) return total ?? null;
+export function compteTous(memo: MemoTous | null, cle: string): number | null {
   return memo && memo.cle === cle ? memo.n : null;
 }
