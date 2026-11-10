@@ -2795,6 +2795,7 @@ export default {
   "v2.nav.shortcuts": "Accesos directos",
   "v2.nav.artisteIntrouvable": "«{nom}» no se encuentra en {service}: estos son los resultados de la búsqueda.",
   "v2.nav.serviceInjoignable": "{service} no ha respondido: estos son los resultados de la búsqueda de «{nom}».",
+  "v2.nav.artisteSansFiche": "«{nom}» no tiene ficha en la biblioteca: aquí están los resultados de búsqueda.",
   "v2.nav.allShortcuts": "Todos los accesos directos",
   "v2.nav.selections": "Selecciones",
   "v2.nav.tags": "Etiquetas",

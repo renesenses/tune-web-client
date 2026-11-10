@@ -136,6 +136,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -3874,8 +3876,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                    <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
-                    <span class="ly">{albumYear(a) ?? ''}</span>
+                    <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+                    <span class="ly"><LienEntite entite={{ type: 'annee', annee: albumYear(a) ?? null }} /></span>
                     {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
@@ -3902,7 +3904,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                     </div>
                     <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
-                      <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                      <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
                       <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
                     </button>
                   </div>
@@ -4059,7 +4061,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
-        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
@@ -4079,8 +4081,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
       <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact />{#if estAlbumDeServiceEtendu(a)}<span class="prov inline">{libelleProvenance(provenanceDe(a))}</span>{/if}</span>
-      <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
-      <span class="ly">{albumYear(a) ?? ''}</span>
+      <!-- web#2770 (lot 3) — l'artiste et l'année sont des liens À PART, dans
+           le bouton qui ouvre l'album : chacun arrête la propagation. -->
+      <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+      <span class="ly"><LienEntite entite={{ type: 'annee', annee: albumYear(a) ?? null }} /></span>
       <!--
         🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
         est actif, vides s'il n'y a rien à y mettre.
@@ -4115,7 +4119,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
-        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>

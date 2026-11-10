@@ -1626,6 +1626,7 @@ export default {
   "v2.nav.shortcuts": "Raccourcis",
   "v2.nav.artisteIntrouvable": "« {nom} » est introuvable chez {service} — voici les résultats de recherche.",
   "v2.nav.serviceInjoignable": "{service} n’a pas répondu — voici les résultats de recherche pour « {nom} ».",
+  "v2.nav.artisteSansFiche": "« {nom} » n’a pas de fiche dans la bibliothèque — voici les résultats de recherche.",
   "v2.nav.allShortcuts": "Tous les raccourcis",
   "v2.nav.selections": "Sélections",
   "v2.nav.tags": "Étiquettes",

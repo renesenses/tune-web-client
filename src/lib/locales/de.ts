@@ -2795,6 +2795,7 @@ export default {
   "v2.nav.shortcuts": "Verknüpfungen",
   "v2.nav.artisteIntrouvable": "„{nom}“ wurde bei {service} nicht gefunden – hier sind die Suchergebnisse.",
   "v2.nav.serviceInjoignable": "{service} hat nicht geantwortet – hier sind die Suchergebnisse für „{nom}“.",
+  "v2.nav.artisteSansFiche": "„{nom}“ hat keine Seite in der Bibliothek – hier sind die Suchergebnisse.",
   "v2.nav.allShortcuts": "Alle Verknüpfungen",
   "v2.nav.selections": "Auswahlen",
   "v2.nav.tags": "Etiketten",

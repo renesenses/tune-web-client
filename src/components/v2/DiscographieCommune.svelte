@@ -33,6 +33,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -480,7 +481,8 @@
     </div>
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
-      <span class="ca" use:bulleTexte>{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+      <!-- web#2770 (lot 3) — l'année mène aux albums de cette année. -->
+      <span class="ca" use:bulleTexte><LienEntite entite={{ type: 'annee', annee: al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? null }} /></span>
       {#if origine && al.credit_roles?.length}
         <!-- Ce que l'artiste fait sur ce disque, tel que MusicBrainz le nomme
              (`guitar`, `vocals`, `composer`…) — comme le tiroir des crédits

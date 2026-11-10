@@ -2794,6 +2794,7 @@ export default {
   "v2.nav.shortcuts": "Genvägar",
   "v2.nav.artisteIntrouvable": "”{nom}” hittades inte på {service} – här är sökresultaten.",
   "v2.nav.serviceInjoignable": "{service} svarade inte – här är sökresultaten för ”{nom}”.",
+  "v2.nav.artisteSansFiche": "”{nom}” har ingen sida i biblioteket – här är sökresultaten.",
   "v2.nav.allShortcuts": "Alla genvägar",
   "v2.nav.selections": "Urval",
   "v2.nav.tags": "Etiketter",

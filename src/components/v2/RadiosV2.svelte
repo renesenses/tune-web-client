@@ -35,6 +35,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
@@ -580,7 +581,7 @@
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
-        onOuvrir={() => play(r)}
+        onOuvrir={r.id != null ? () => (enFiche = r) : () => play(r)}
         nom={r.name}
       >
         <!-- #6516 — le logo de la fiche d'annuaire quand la station n'en a pas. -->
@@ -588,7 +589,9 @@
       </PochetteActions>
     </span>
     <span class="nm-ligne">
-      <span class="nm" use:bulleTexte>{r.name}</span>
+      <!-- web#2770 (lot 4) — « ouvrir » OUVRE la fiche de la station, il ne
+           la lance plus ; le nom est ce lien. La lecture reste sur ▶. -->
+      <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: r.name, ouvrir: r.id != null ? () => (enFiche = r) : null }} /></span>
       <!-- web#2443 — la station a une clé radio-metadata.fr. -->
       {#if aMetadataPlus(r)}<BadgeMetadataPlus />{/if}
     </span>
