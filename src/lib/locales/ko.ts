@@ -7038,6 +7038,20 @@ export default {
   "login.errorStatus": "오류 {status}",
   "v2.ambiance.acousticEnableError": "음향 분석을 활성화할 수 없습니다",
   "v2.pl.transferFailed": "전송하지 못했습니다",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "로그인",
+  "login.identifierPlaceholder": "이메일 또는 사용자 이름",
+  "login.passwordPlaceholder": "비밀번호",
+  "login.signingIn": "로그인 중…",
+  "login.or": "또는",
+  "login.ssoButton": "mozaiklabs.fr로 로그인",
+  "login.noAccount": "아직 계정이 없으신가요?",
+  "login.usernamePlaceholder": "사용자 이름",
+  "login.emailPlaceholder": "이메일",
+  "login.registering": "계정 만드는 중…",
+  "login.haveAccount": "이미 계정이 있으신가요?",
+  "nowplaying.eqPureNotice": "이 존에서 PURE 모드가 켜져 있습니다. 신호는 아무 처리 없이 그대로 전달됩니다. PURE 모드가 켜져 있는 동안 아래 프리셋은 효과가 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

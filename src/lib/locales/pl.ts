@@ -6883,5 +6883,19 @@ export default {
   "login.errorStatus": "Błąd {status}",
   "v2.ambiance.acousticEnableError": "Nie udało się włączyć analizy akustycznej",
   "v2.pl.transferFailed": "Przeniesienie nie powiodło się",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Zaloguj się",
+  "login.identifierPlaceholder": "E-mail lub nazwa użytkownika",
+  "login.passwordPlaceholder": "Hasło",
+  "login.signingIn": "Logowanie…",
+  "login.or": "lub",
+  "login.ssoButton": "Zaloguj się przez mozaiklabs.fr",
+  "login.noAccount": "Nie masz jeszcze konta?",
+  "login.usernamePlaceholder": "Nazwa użytkownika",
+  "login.emailPlaceholder": "E-mail",
+  "login.registering": "Tworzenie konta…",
+  "login.haveAccount": "Masz już konto?",
+  "nowplaying.eqPureNotice": "Tryb PURE jest włączony w tej strefie: sygnał jest przesyłany bez zmian, bez żadnego przetwarzania. Poniższe ustawienia wstępne nie będą działać, dopóki tryb PURE jest włączony.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

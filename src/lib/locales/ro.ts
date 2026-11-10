@@ -7038,6 +7038,20 @@ export default {
   "login.errorStatus": "Eroare {status}",
   "v2.ambiance.acousticEnableError": "Analiza acustică nu a putut fi activată",
   "v2.pl.transferFailed": "Transferul a eșuat",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Conectare",
+  "login.identifierPlaceholder": "E-mail sau nume de utilizator",
+  "login.passwordPlaceholder": "Parolă",
+  "login.signingIn": "Se conectează…",
+  "login.or": "sau",
+  "login.ssoButton": "Conectare cu mozaiklabs.fr",
+  "login.noAccount": "Nu ai încă un cont?",
+  "login.usernamePlaceholder": "Nume de utilizator",
+  "login.emailPlaceholder": "E-mail",
+  "login.registering": "Se creează contul…",
+  "login.haveAccount": "Ai deja un cont?",
+  "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

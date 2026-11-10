@@ -6997,6 +6997,20 @@ export default {
   "login.errorStatus": "Hiba: {status}",
   "v2.ambiance.acousticEnableError": "Az akusztikai elemzés nem kapcsolható be",
   "v2.pl.transferFailed": "Az átvitel nem sikerült",
+
+  // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
+  "login.signIn": "Bejelentkezés",
+  "login.identifierPlaceholder": "E-mail vagy felhasználónév",
+  "login.passwordPlaceholder": "Jelszó",
+  "login.signingIn": "Bejelentkezés…",
+  "login.or": "vagy",
+  "login.ssoButton": "Bejelentkezés a mozaiklabs.fr-rel",
+  "login.noAccount": "Még nincs fiókja?",
+  "login.usernamePlaceholder": "Felhasználónév",
+  "login.emailPlaceholder": "E-mail",
+  "login.registering": "Fiók létrehozása…",
+  "login.haveAccount": "Már van fiókja?",
+  "nowplaying.eqPureNotice": "A PURE mód be van kapcsolva ennél a zónánál: a jel érintetlenül, feldolgozás nélkül halad át. Az alábbi előbeállításoknak nincs hatásuk, amíg a PURE mód be van kapcsolva.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
