@@ -103,7 +103,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
-  import { retenirAlbumOuvert, oublierAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
+  import { retenirAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
@@ -1887,7 +1887,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * effets de montage, dont celui de `$listResetNonce` qui referme la fiche
    * et l'oublie. La grille est ramenée sur lui dès que la liste est là.
    */
-  const repriseAlbum = reprendreAlbumOuvert();
+  const repriseAlbum = reprendreAlbumOuvert(untrack(() => $detailOuvert));
   let repriseFaite = false;
   $effect(() => {
     const g = gridEl;
@@ -2569,7 +2569,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       opened = a;
       // #2743 — retenir où est l'album, pour le retrouver après un démontage.
       if (tab === 'albums' && a.id != null) {
-        retenirAlbumOuvert(a.id, (nu ? cases : affiches).findIndex((x) => x?.id === a.id));
+        retenirAlbumOuvert(a.id, (nu ? cases : affiches).findIndex((x) => x?.id === a.id), cleDetailAlbum(a));
       }
       // On pose la CLÉ, jamais l'objet : `history.state` refuse les proxies
       // Svelte (en-tête de `lib/historiqueCoquille.ts`).
@@ -2583,7 +2583,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function fermerCalqueAlbum() {
     opened = null;
     cleCalqueEmpilee = null;
-    oublierAlbumOuvert();
+    // Relecture #2764 : PAS d'oubli ici. Changer de vue (vers « Lecture en
+    // cours ») remet `detailOuvert` à nul et referme ce calque AVANT le
+    // démontage : l'album retenu y périssait. C'est la clé de l'entrée
+    // atteinte au remontage (`reprendreAlbumOuvert`) qui décide.
   }
 
   /**

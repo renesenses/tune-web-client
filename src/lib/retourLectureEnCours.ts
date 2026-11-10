@@ -19,7 +19,7 @@
  * exactement comme le Précédent du navigateur, qui marchait déjà.
  */
 import { get } from 'svelte/store';
-import { activeView, previousView, type View } from './stores/navigation';
+import { activeView, mobileNowPlayingOpen, previousView, type View } from './stores/navigation';
 import { destinationDeRetour } from './destinationDeRetour';
 import { estEtatCoquille } from './historiqueCoquille';
 import { reculerAvecIntention } from './historiqueNavigation';
@@ -39,7 +39,10 @@ export function decisionRetourLectureEnCours(
   longueurHistorique: number,
 ): DecisionRetour {
   const vers = destinationDeRetour(precedente, { depuis: 'nowplaying', repli: 'library' });
-  const entreeDeLecture = estEtatCoquille(etatCourant) && etatCourant.vue === 'nowplaying';
+  // Relecture de #2764 : seulement une entrée que la coquille a EMPILÉE elle-même
+  // (`empilee`) — l'entrée de démarrage est remplacée, et la reculer, avec un
+  // `history.length > 1` venu d'ailleurs (lien du forum), sortirait de Tune.
+  const entreeDeLecture = estEtatCoquille(etatCourant) && etatCourant.vue === 'nowplaying' && etatCourant.empilee === true;
   if (entreeDeLecture && precedente != null && vers === precedente && longueurHistorique > 1) {
     return { action: 'reculer' };
   }
@@ -47,9 +50,18 @@ export function decisionRetourLectureEnCours(
 }
 
 /** Le geste du bouton Retour (et de la vignette de la barre, sur cet écran). */
+/**
+ * web#2761 — « Lecture en cours » ouvert en CALQUE (`mobileNowPlayingOpen`)
+ * par-dessus une vue : Retour referme le calque, la vue d'en dessous est déjà
+ * là. Rien n'est empilé pour le calque, il n'y a rien à reculer.
+ */
 export function retourDepuisLectureEnCours(
   fenetre: Pick<Window, 'history'> | undefined = typeof window !== 'undefined' ? window : undefined,
 ): void {
+  if (get(mobileNowPlayingOpen) && get(activeView) !== 'nowplaying') {
+    mobileNowPlayingOpen.set(false);
+    return;
+  }
   const d = decisionRetourLectureEnCours(
     get(previousView),
     fenetre?.history.state,

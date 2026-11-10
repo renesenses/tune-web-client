@@ -13,24 +13,35 @@
  */
 export interface AlbumRetenu {
   albumId: number;
+  /** La clé de la fiche dans l'historique (`cleDetailAlbum`, `album:55`). */
+  cle?: string | null;
   /** Rang dans la liste affichée au moment de l'ouverture (repli en pages). */
   index: number;
 }
 
 let retenu: AlbumRetenu | null = null;
 
-export function retenirAlbumOuvert(albumId: number, index: number): void {
-  retenu = index >= 0 ? { albumId, index } : null;
+export function retenirAlbumOuvert(albumId: number, index: number, cle: string | null = null): void {
+  retenu = index >= 0 ? { albumId, index, cle } : null;
 }
 
 export function oublierAlbumOuvert(): void {
   retenu = null;
 }
 
-/** Lu au montage, et consommé : un seul retour en profite. */
-export function reprendreAlbumOuvert(): AlbumRetenu | null {
+/**
+ * Lu au montage, et consommé : un seul remontage en profite, quel qu'il soit.
+ *
+ * Relecture de #2764 : la reprise n'a lieu QUE si l'écran remonte sur l'entrée
+ * de cette fiche — le Retour de « Lecture en cours » recule et la coquille
+ * repose `detailOuvert = album:<id>`. Un retour par la barre latérale (fiche
+ * → autre vue → Bibliothèque) remonte à la racine, `detailOuvert` nul : la
+ * grille ne saute pas sur l'ancien album (#3843).
+ */
+export function reprendreAlbumOuvert(detailCourant: string | null | undefined): AlbumRetenu | null {
   const r = retenu;
   retenu = null;
+  if (!r || !r.cle || r.cle !== detailCourant) return null;
   return r;
 }
 

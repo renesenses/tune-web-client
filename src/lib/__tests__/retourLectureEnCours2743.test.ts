@@ -95,9 +95,13 @@ describe('web#2743 — le Retour de « Lecture en cours » rend l’écran quitt
 });
 
 describe('web#2743 — quand reculer', () => {
-  const lecture = { tune: 'v2', vue: 'nowplaying', detail: null };
+  const lecture = { tune: 'v2', vue: 'nowplaying', detail: null, empilee: true };
   it('recule depuis l’entrée de lecture quand la vue de retour est la précédente', () => {
     expect(decisionRetourLectureEnCours('library', lecture, 3)).toEqual({ action: 'reculer' });
+  });
+  it('🔴 relecture #2764 — entrée de DÉMARRAGE (remplacée, non empilée) : jamais de recul, même avec un historique venu d’ailleurs', () => {
+    const demarrage = { tune: 'v2', vue: 'nowplaying', detail: null };
+    expect(decisionRetourLectureEnCours('home', demarrage, 4)).toEqual({ action: 'aller', vers: 'home' });
   });
   it('change de vue sans entrée de la coquille (démarrage, entrée étrangère)', () => {
     expect(decisionRetourLectureEnCours('library', null, 3)).toEqual({ action: 'aller', vers: 'library' });
@@ -111,12 +115,16 @@ describe('web#2743 — quand reculer', () => {
 
 describe('web#2743 — la grille de la Bibliothèque retrouve l’album', () => {
   it('retient l’album ouvert, le rend une fois, l’oublie à la fermeture', () => {
-    retenirAlbumOuvert(55, 812);
-    expect(reprendreAlbumOuvert()).toEqual({ albumId: 55, index: 812 });
-    expect(reprendreAlbumOuvert()).toBeNull();
-    retenirAlbumOuvert(55, 812);
+    retenirAlbumOuvert(55, 812, 'album:55');
+    expect(reprendreAlbumOuvert('album:55')).toEqual({ albumId: 55, index: 812, cle: 'album:55' });
+    expect(reprendreAlbumOuvert('album:55')).toBeNull();
+    retenirAlbumOuvert(55, 812, 'album:55');
     oublierAlbumOuvert();
-    expect(reprendreAlbumOuvert()).toBeNull();
+    expect(reprendreAlbumOuvert('album:55')).toBeNull();
+    // Relecture #2764 : remonté à la racine (barre latérale), pas de reprise — et oublié.
+    retenirAlbumOuvert(55, 812, 'album:55');
+    expect(reprendreAlbumOuvert(null)).toBeNull();
+    expect(reprendreAlbumOuvert('album:55')).toBeNull();
   });
   it('rang : celui de l’album dans la liste remontée, sinon le rang retenu en pages', () => {
     const liste = [{ id: 1 }, { id: 2 }, { id: 55 }];
@@ -180,5 +188,28 @@ describe('web#2743 — le bouton Retour de NowPlaying, monté', () => {
     await attendre(120);
     expect(get(activeView)).toBe('streaming');
     expect(get(ongletCourant), 'l’accueil Qobuz au lieu des favoris (#2743)').toBe('favorites');
+  }, 60_000);
+
+  it('🔴 relecture #2764 — démarrage DIRECT sur Lecture en cours (lien du forum) : Retour ne sort pas de Tune', async () => {
+    debrancher?.();
+    // Une page d'avant Tune dans l'onglet (le forum), puis Tune démarre sur `#nowplaying`.
+    history.pushState({ forum: 1 }, '', '/forum');
+    history.pushState(null, '', '/#nowplaying');
+    activeView.set('home');
+    debrancher = brancherHistoriqueCoquille({ vueDeDemarrage: 'nowplaying' });
+    await attendre();
+    expect(get(activeView)).toBe('nowplaying');
+    expect(history.length).toBeGreaterThan(1);
+    const recul = vi.spyOn(history, 'back');
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(NowPlaying, { target: hote, props: {} as never }) as Record<string, unknown>;
+    flushSync();
+    await attendre();
+    hote.querySelector<HTMLButtonElement>('.np-back-btn')!.click();
+    await attendre(120);
+    expect(recul, 'history.back() : Retour sort de Tune vers la page d’avant').not.toHaveBeenCalled();
+    expect(get(activeView)).not.toBe('nowplaying');
+    recul.mockRestore();
   }, 60_000);
 });
