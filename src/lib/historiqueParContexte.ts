@@ -271,9 +271,14 @@ export function nomDObjet(
  * l'écoute de la station : c'est son affichage DANS le tiroir qui fait doublon.
  *
  * On écarte donc, dans un conteneur RADIO seulement, les lignes sans artiste
- * dont le titre est le nom de la station. Si rien d'autre ne reste (station
- * écoutée sans titre annoncé), on garde la ligne : un tiroir vide ne dirait
- * plus quand la station a joué.
+ * dont le titre est le nom de la station — mais SESSION PAR SESSION. Un même
+ * conteneur réunit toutes les écoutes de la station, quel que soit le jour
+ * (`regrouperParContexte`), et le carnet des titres est propre à chaque
+ * navigateur : lundi écouté sans titre annoncé (ou depuis un autre appareil),
+ * mardi avec titres. Une ligne de station n'est écartée que si au moins un
+ * titre annoncé tombe dans SA session : de son `playedAt` jusqu'à la ligne de
+ * station suivante (exclue). Une session sans titre garde sa ligne : sans
+ * elle, le tiroir et le compte oublieraient que la station a joué ce jour-là.
  */
 export function titresDuTiroir<E extends EntreeDatee>(type: string, entrees: readonly E[], nom: string | null): E[] {
   if (String(type).toLowerCase() !== 'radio') return entrees as E[];
@@ -285,11 +290,26 @@ export function titresDuTiroir<E extends EntreeDatee>(type: string, entrees: rea
     if (n) noms.add(n);
   }
   if (!noms.size) return entrees as E[];
-  const titres = entrees.filter((e) => {
+  const estStation = (e: E) => {
     const t = e.track as { title?: unknown; artist_name?: unknown } | undefined;
-    return !(noms.has(norme(t?.title)) && !norme(t?.artist_name));
-  });
-  return titres.length ? titres : (entrees as E[]);
+    return noms.has(norme(t?.title)) && !norme(t?.artist_name);
+  };
+  const instant = (e: E) => {
+    const t = Date.parse(e.playedAt);
+    return Number.isFinite(t) ? t : NaN;
+  };
+  const debuts = entrees.filter(estStation).map(instant).filter((t) => !Number.isNaN(t)).sort((a, b) => a - b);
+  const instantsTitres = entrees.filter((e) => !estStation(e)).map(instant).filter((t) => !Number.isNaN(t));
+  const aDesTitres = (e: E) => {
+    const debut = instant(e);
+    if (Number.isNaN(debut)) return false;
+    // La session finit à la ligne de station SUIVANTE (strictement plus tardive).
+    const fin = debuts.find((t) => t > debut) ?? Infinity;
+    return instantsTitres.some((t) => t >= debut && t < fin);
+  };
+  const ecartees = new Set(entrees.filter((e) => estStation(e) && aDesTitres(e)));
+  if (!ecartees.size) return entrees as E[];
+  return entrees.filter((e) => !ecartees.has(e));
 }
 
 /**

@@ -49,6 +49,22 @@ describe('web#2748 — le tiroir d’une radio', () => {
     expect(titres.length).toBeGreaterThan(0);
   });
 
+  it('🔴 deux sessions de la même station, une sans titre : la ligne de la session sans titre reste', () => {
+    // Lundi : BBC 6 écoutée sans titre annoncé (ou depuis un autre appareil —
+    // le carnet est par navigateur). Mardi : même station, titres annoncés.
+    const lundi = { ...station, playedAt: '2026-11-09T08:00:00Z' };
+    const mardi = { ...station, playedAt: '2026-11-10T09:00:00Z' };
+    const { objet, titres } = tiroirRadio([
+      titre('Idioteque', 'Radiohead', '2026-11-10T09:05:00Z'),
+      mardi,
+      lundi,
+    ]);
+    expect(objet.entrees, 'les deux jours tombent dans le même conteneur').toHaveLength(3);
+    expect(titres, 'la session de mardi, qui a un titre, perd sa ligne de station').not.toContain(mardi);
+    expect(titres, 'la session de lundi, sans titre, garde la sienne').toContain(lundi);
+    expect(titres).toHaveLength(2);
+  });
+
   it('un titre qui porte le nom de la station MAIS un artiste reste listé', () => {
     const { titres } = tiroirRadio([titre('BBC Radio 6 Music', 'Un Groupe', '2026-11-09T16:20:00Z'), station]);
     expect(titres.map((e) => (e.track as any).artist_name)).toEqual(['Un Groupe']);
