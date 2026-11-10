@@ -541,6 +541,8 @@ export default {
   "favorites.miroirEnAttente": "Mục yêu thích vẫn được giữ trong Tune; {service} chưa đồng bộ theo ({motif}). Tune sẽ thử lại.",
   "v2.fav.miroirEnAttente": "Một số mục yêu thích của dịch vụ vẫn đang chờ dịch vụ phản hồi. Tune sẽ thử lại.",
   "v2.fav.miroirEchec": "Lần làm mới gần nhất của mục yêu thích dịch vụ đã thất bại. Danh sách có thể chưa được cập nhật.",
+  "v2.fav.miroirEchecService": "Lần làm mới gần nhất của mục yêu thích {services} đã thất bại. Danh sách có thể chưa được cập nhật.",
+  "v2.fav.miroirMotif": "Lý do:",
   "playlist.source": "Nguồn",
   "playlist.importedMatched": "Đã tìm thấy và nhập {count}/{total} bài hát trong thư viện.",
   "playlist.importNoneMatched": "Không có bài hát nào của danh sách phát này trong thư viện cục bộ — danh sách phát chưa được tạo. Hiện chưa thể sao chép nguyên trạng các bài hát streaming vào một danh sách phát cục bộ.",

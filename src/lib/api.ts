@@ -6684,6 +6684,17 @@ export function getProfileStreamingFavorites(
   );
 }
 
+/**
+ * web#2679 — l'état du miroir PAR SERVICE (`tune-server-rust#5997`) : de quoi
+ * nommer, dans le bandeau d'échec, le service qui n'a pas suivi et pourquoi.
+ * Sans bandeau d'erreur : ce n'est qu'un complément d'information.
+ */
+export function getEtatMiroirFavorisParService(
+  profileId: number,
+): Promise<{ services?: Record<string, { statut?: string; erreur?: string | null }> }> {
+  return fetchJSON(`${BASE}/profiles/${profileId}/favorites/streaming/miroir`, undefined, undefined, true);
+}
+
 export function addProfileStreamingFavorite(
   profileId: number,
   fav: {

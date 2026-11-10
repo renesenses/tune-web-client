@@ -484,6 +484,8 @@ export default {
   "favorites.miroirEnAttente": "お気に入りは Tune に保存されました。{service} はまだ反映していません（{motif}）。Tune が再試行します。",
   "v2.fav.miroirEnAttente": "一部のサービスのお気に入りがまだサービスへの反映待ちです。Tune が再試行します。",
   "v2.fav.miroirEchec": "サービスのお気に入りの前回の更新に失敗しました。一覧が古い可能性があります。",
+  "v2.fav.miroirEchecService": "{services} のお気に入りの前回の更新に失敗しました。一覧が古い可能性があります。",
+  "v2.fav.miroirMotif": "理由:",
   'playlist.source': 'ソース',
   "playlist.importedMatched": "{total} 曲中 {count} 曲がライブラリで見つかり、インポートされました。",
   "playlist.importNoneMatched": "このプレイリストの曲はローカルライブラリに存在しないため、プレイリストは作成されませんでした。ストリーミング曲はまだローカルプレイリストにコピーできません。",

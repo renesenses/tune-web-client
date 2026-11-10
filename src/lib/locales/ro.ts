@@ -490,6 +490,8 @@ export default {
   "favorites.miroirEnAttente": "Favoritul a rămas în Tune; {service} nu a urmat încă ({motif}). Tune va reîncerca.",
   "v2.fav.miroirEnAttente": "Unele favorite ale serviciilor își așteaptă încă serviciul. Tune va reîncerca.",
   "v2.fav.miroirEchec": "Ultima reîmprospătare a favoritelor serviciilor a eșuat. Lista poate fi depășită.",
+  "v2.fav.miroirEchecService": "Ultima reîmprospătare a favoritelor {services} a eșuat. Lista poate fi depășită.",
+  "v2.fav.miroirMotif": "Motiv:",
   'playlist.source': 'Sursă',
   "playlist.importedMatched": "{count} din {total} piese găsite în bibliotecă și importate.",
   "playlist.importNoneMatched": "Nicio piesă din acest playlist nu există în biblioteca locală — playlistul nu a fost creat. Piesele de streaming nu pot fi încă copiate într-un playlist local.",

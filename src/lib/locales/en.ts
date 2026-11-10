@@ -577,6 +577,8 @@ export default {
   "favorites.miroirEnAttente": "Favourite kept in Tune; {service} has not followed yet ({motif}). Tune will retry.",
   "v2.fav.miroirEnAttente": "Some service favourites are still waiting for their service. Tune will retry.",
   "v2.fav.miroirEchec": "The last refresh of service favourites failed. The list may be out of date.",
+  "v2.fav.miroirEchecService": "The last refresh of {services} favourites failed. The list may be out of date.",
+  "v2.fav.miroirMotif": "Reason:",
   'playlist.source': 'Source',
   "playlist.importedMatched": "{count} of {total} tracks found in the library and imported.",
   "playlist.importNoneMatched": "None of this playlist's tracks exist in the local library — the playlist was not created. Streaming tracks cannot yet be copied as-is into a local playlist.",
