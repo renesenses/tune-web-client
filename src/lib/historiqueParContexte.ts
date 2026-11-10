@@ -258,6 +258,41 @@ export function nomDObjet(
 }
 
 /**
+ * Les TITRES qu'un objet déplié liste — web#2748 (FabienM, fil 2723, point 8).
+ *
+ * « Une radio jouée apparaît bien comme conteneur, avec à l'intérieur les
+ * titres joués. Mais le nom de la radio y figure aussi comme une ligne. »
+ *
+ * Mesuré sur le .18 le 10/11/2026 : `/library/history` note l'écoute de la
+ * STATION (`source = 'radio'`, `title` = nom de la station, sans artiste) ;
+ * les titres annoncés par la station viennent du carnet de ce navigateur. Les
+ * deux tombent dans le même conteneur (même flux), et la ligne de la station
+ * redisait le nom que porte déjà l'en-tête. Le serveur n'a pas tort de noter
+ * l'écoute de la station : c'est son affichage DANS le tiroir qui fait doublon.
+ *
+ * On écarte donc, dans un conteneur RADIO seulement, les lignes sans artiste
+ * dont le titre est le nom de la station. Si rien d'autre ne reste (station
+ * écoutée sans titre annoncé), on garde la ligne : un tiroir vide ne dirait
+ * plus quand la station a joué.
+ */
+export function titresDuTiroir<E extends EntreeDatee>(type: string, entrees: readonly E[], nom: string | null): E[] {
+  if (String(type).toLowerCase() !== 'radio') return entrees as E[];
+  const norme = (v: unknown) => (typeof v === 'string' ? v.trim().toLocaleLowerCase() : '');
+  const noms = new Set<string>();
+  if (norme(nom)) noms.add(norme(nom));
+  for (const e of entrees) {
+    const n = norme(contexteDeLEcoute(e.track, e.contexte)?.nom);
+    if (n) noms.add(n);
+  }
+  if (!noms.size) return entrees as E[];
+  const titres = entrees.filter((e) => {
+    const t = e.track as { title?: unknown; artist_name?: unknown } | undefined;
+    return !(noms.has(norme(t?.title)) && !norme(t?.artist_name));
+  });
+  return titres.length ? titres : (entrees as E[]);
+}
+
+/**
  * L'ARTISTE d'un objet — #988, point 11 de FabienM : « Menu Historique :
  * manque l'artiste de l'album joué. »
  *
