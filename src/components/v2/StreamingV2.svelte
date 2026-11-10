@@ -72,6 +72,7 @@
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
+  import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -387,6 +388,9 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
+  let favSuiteEnCours = $state(false);
+  let seqFavoris = 0;
   /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
   function allerA(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -702,6 +706,10 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // tune-server-rust#8040 — tout nouveau chargement périme la chaîne des
+    // favoris encore en vol (sa suite comme son « prêt »), quelle que soit
+    // la vue qui prend la place.
+    const mien = ++seqFavoris;
     // web#2587 — rien à charger pour un service dont la session a expiré.
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
@@ -762,15 +770,21 @@
       // Les trois natures de favoris partent ensemble : elles vivent sur le
       // meme ecran, et les separer encore ferait trois allers-retours pour
       // une seule question — « qu'est-ce que j'ai aime ? ».
-      Promise.allSettled([
-        api.getStreamingFavorites(svc, 'albums'),
-        api.getStreamingFavorites(svc, 'artists'),
-        api.getStreamingFavorites(svc, 'tracks'),
-      ]).then(([a, ar, tr]) => {
-        favAlbums = a.status === 'fulfilled' ? ((a.value as any)?.albums ?? []) : [];
-        favArtists = ar.status === 'fulfilled' ? ((ar.value as any)?.artists ?? []) : [];
-        favTracks = tr.status === 'fulfilled' ? ((tr.value as any)?.tracks ?? []) : [];
-      }).finally(done);
+      // tune-server-rust#8040 — la PREMIÈRE page de chaque nature s'affiche
+      // dès qu'elle arrive ; la suite se charge ensuite, sans geste, et
+      // remplace la page. Un chargement dépassé par un changement de service
+      // ou d'onglet n'écrit plus rien.
+      favSuiteEnCours = true;
+      chargerFavorisProgressifs(
+        (type, page) => api.getStreamingFavorites(svc, type, page),
+        (type, items) => {
+          if (mien !== seqFavoris) return;
+          if (type === 'albums') favAlbums = items;
+          else if (type === 'artists') favArtists = items;
+          else favTracks = items;
+        },
+        () => { if (mien === seqFavoris) done(); },
+      ).finally(() => { if (mien === seqFavoris) favSuiteEnCours = false; });
     }
   });
 
@@ -1791,6 +1805,9 @@
         <div class="state">{$t('v2.str.noFavoritesInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {:else if !favAlbumsVus.length && !favArtistsVus.length && !favTracksVus.length}
         <div class="state">{$t('v2.common.noResult' as any)}</div>
+      {:else if favSuiteEnCours}
+        <!-- tune-server-rust#8040 — la première page est là ; la suite arrive. -->
+        <div class="state" aria-live="polite">{$t('v2.stream.loadingMore' as any)}</div>
       {/if}
     {/if}
   </div>
