@@ -3893,6 +3893,30 @@ export function browseDirectory(path: string) {
 
 // --- Media Servers (UPnP/DLNA) ---
 
+/**
+ * Annonce du serveur multimédia UPnP/DLNA de Tune (web#2784, Alex).
+ *
+ * `GET /upnp/config` rend `{ enabled, friendly_name }` ; `POST /upnp/config`
+ * accepte l'un ou l'autre champ, ou les deux. Le serveur ne lit ces réglages
+ * qu'au démarrage (`spawn_upnp_advertiser`, tune-server-rust rc11) : la
+ * bascule, comme le renommage, prend effet au redémarrage de Tune.
+ */
+export interface UpnpServerConfig {
+  enabled: boolean;
+  friendly_name: string;
+}
+
+export function getUpnpServerConfig(): Promise<UpnpServerConfig> {
+  return fetchJSON<UpnpServerConfig>(`${BASE}/upnp/config`);
+}
+
+export function setUpnpServerConfig(patch: Partial<UpnpServerConfig>): Promise<UpnpServerConfig> {
+  return fetchJSON<UpnpServerConfig>(`${BASE}/upnp/config`, {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function getMediaServers(signal?: AbortSignal): Promise<import('./types').MediaServer[]> {
   const data = await fetchJSON<any>(`${BASE}/network/media-servers`, signal ? { signal } : undefined);
   return Array.isArray(data) ? data : data.items ?? [];
