@@ -60,11 +60,11 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear, vueAvantGrandEcran, mobileNowPlayingOpen, origineGrandEcran } from '../../lib/stores/navigation';
+  import { activeView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear, vueAvantGrandEcran, mobileNowPlayingOpen, origineGrandEcran } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
@@ -1753,14 +1753,11 @@ import { ICONES } from '../../lib/menuPiste';
   <!-- #1134 : la vue d'avant n'est pas toujours une destination. Sortir du
        Grand écran par un clic laisse `previousView = 'tv'`, et ce bouton
        remontait donc le mode que l'utilisateur venait de quitter. La table de
-       `destinationDeRetour` tranche le cas de CHAQUE vue. -->
-  <button class="np-back-btn" onclick={() => {
-    // web#2761 — en CALQUE, Retour referme le calque : la vue d'en dessous est
-    // déjà là. Changer de vue laissait le calque ouvert, et après un Grand
-    // écran `previousView` vaut `'tv'`, qui renvoyait à la Bibliothèque.
-    if ($mobileNowPlayingOpen && $activeView !== 'nowplaying') { mobileNowPlayingOpen.set(false); return; }
-    activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
-  }} title={$t('nowplaying.back')}>
+       `destinationDeRetour` tranche le cas de CHAQUE vue.
+       #2743 : quand on vient de cette vue, on RECULE (onglet et fiche
+       reviennent avec l'entrée) — voir `lib/retourLectureEnCours`.
+       #2761 : en CALQUE, Retour referme le calque (même module). -->
+  <button class="np-back-btn" onclick={() => retourDepuisLectureEnCours()} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait

@@ -103,6 +103,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
+  import { retenirAlbumOuvert, oublierAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
@@ -1878,6 +1879,32 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     await tick();
   }
 
+  /**
+   * 🔴 web#2743 — LE RETOUR RETROUVE L'ALBUM. « Lecture en cours » démonte cet
+   * écran ; remontée, la grille repartait de la première pochette. L'album
+   * dont la fiche était ouverte est retenu hors du composant
+   * (`lib/positionBibliotheque`) et lu ICI, à l'initialisation — avant les
+   * effets de montage, dont celui de `$listResetNonce` qui referme la fiche
+   * et l'oublie. La grille est ramenée sur lui dès que la liste est là.
+   */
+  const repriseAlbum = reprendreAlbumOuvert();
+  let repriseFaite = false;
+  $effect(() => {
+    const g = gridEl;
+    const liste = nu ? cases : affiches;
+    if (repriseFaite || !repriseAlbum || !g || tab !== 'albums' || display === 'carousel') return;
+    const i = rangDeReprise(repriseAlbum, liste, nu);
+    if (i == null) return;
+    repriseFaite = true;
+    untrack(() => {
+      void (async () => {
+        if (nu && clef) await demanderPage(clef, Math.floor(i / TAILLE_PAGE));
+        await monterJusqua(i);
+        sauterVersAncre(g, `[data-i="${i}"]`);
+      })().catch(() => {});
+    });
+  });
+
   /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
   const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
   /** Les comptes des menus ne valent que sur la liste entière. */
@@ -2540,6 +2567,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ouvrirCalqueAlbum(a: Album) {
     untrack(() => {
       opened = a;
+      // #2743 — retenir où est l'album, pour le retrouver après un démontage.
+      if (tab === 'albums' && a.id != null) {
+        retenirAlbumOuvert(a.id, (nu ? cases : affiches).findIndex((x) => x?.id === a.id));
+      }
       // On pose la CLÉ, jamais l'objet : `history.state` refuse les proxies
       // Svelte (en-tête de `lib/historiqueCoquille.ts`).
       const cle = cleDetailAlbum(a);
@@ -2552,6 +2583,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function fermerCalqueAlbum() {
     opened = null;
     cleCalqueEmpilee = null;
+    oublierAlbumOuvert();
   }
 
   /**
