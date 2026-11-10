@@ -46,7 +46,7 @@ import { ICONES } from '../../lib/menuPiste';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
   import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
-  import { isPremium, licenseState } from '../../lib/stores/license';
+  import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
@@ -431,7 +431,7 @@ import { ICONES } from '../../lib/menuPiste';
   });
 
   // Le serveur refuse l'ecriture de l'egaliseur hors Premium
-  // (`require_premium(…, Feature::DspEq)` -> 402). `$isPremium` permet de le
+  // (`require_premium(…, Feature::DspEq)` -> 402). `isPremium` permet de le
   // dire AVANT le clic, mais il est lu au demarrage et peut mentir : licence
   // active sur un autre serveur, fonction absente du palier, statut jamais
   // recharge. L'autorite reste donc la reponse du serveur — un 402 recu
@@ -439,8 +439,16 @@ import { ICONES } from '../../lib/menuPiste';
   // `loaded` compte : avant que `loadLicense()` ait repondu, l'etat par defaut
   // est `tier: 'free'`. S'en servir tel quel montrerait le cadenas a un abonne
   // pendant le chargement — on aurait remplace un silence par un mensonge.
+  //
+  // 🔴 web#2387 — L'ÉGALISEUR EST GRATUIT. `LicenseManager::check_feature`
+  // accorde toujours `Feature::DspEq` : le cadenas ne se pose plus d'après
+  // `isPremium` (un abonné dont le serveur n'a pas pu revalider la licence le
+  // voyait), seulement sur un refus RÉEL du serveur. Ce qui ferme vraiment
+  // l'écriture, c'est le greffon absent ou inactif : `409 plugin_unavailable`,
+  // dit comme l'écran Égaliseur, avec le chemin des Extensions.
   let eqRefusePremium = $state(false);
-  let eqLocked = $derived(($licenseState.loaded && !$isPremium) || eqRefusePremium);
+  let eqLocked = $derived(eqRefusePremium);
+  let eqGreffonAbsent = $state(false);
 
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
@@ -474,7 +482,12 @@ import { ICONES } from '../../lib/menuPiste';
       eqBands = bands;
       eqEnabled = true;
       eqRefusePremium = false;
+      eqGreffonAbsent = false;
     } catch (e) {
+      if (estGreffonEqAbsent(e)) {
+        eqGreffonAbsent = true;
+        return;
+      }
       // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
       // console : le panneau se verrouille et affiche ce qu'il refuse.
       if (estRefusPremium(e)) {
@@ -2182,7 +2195,7 @@ import { ICONES } from '../../lib/menuPiste';
             />
           {/if}
           {#if showEq}
-            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} />
+            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} greffonAbsent={eqGreffonAbsent} onOuvrirExtensions={() => activeView.set('plugins')} />
             {#if eqPorteeLive === false && playState === 'playing'}
               <!-- `false` hors lecture veut seulement dire « rien ne joue » :
                    la note n'y aurait rien à annoncer. En lecture, elle dit ce
