@@ -41,7 +41,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
-  import { completerAlbumsDeService } from '../../lib/albumDesEcoutes';
+  import { completerAlbumsDeService, appliquerAlbumsConnus } from '../../lib/albumDesEcoutes';
   import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
   import { ouvertureArtisteDuLot } from '../../lib/lienArtisteDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
@@ -113,13 +113,31 @@
   const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
 
   let serveur = $state<HistoryEntry[]>([]);
-  /** web#2209 — le dernier passage de `completerAlbumsDeService` ; un plus ancien ne s'applique pas. */
-  let tourAlbums = 0;
+  /**
+   * web#2209 / web#2749 — les albums de service obtenus depuis le dernier
+   * rendu : chaque nouvelle réponse relance la dérivation des écoutes.
+   */
+  let albumsObtenus = $state(0);
   let favorisRadio = $state(new Set<string>());
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
 
-  const entrees = $derived(fusionnerHistorique($playbackHistory, serveur));
+  const fusion = $derived(fusionnerHistorique($playbackHistory, serveur));
+  /**
+   * 🔴 web#2749 (FabienM, fil 2723, point 3) — la complétion de l'album de
+   * service passe sur la FUSION, pas sur les seules lignes du serveur : une
+   * écoute notée par ce navigateur (celle qui porte l'étiquette de qualité)
+   * gardait sinon un nom d'album inerte et pas d'« Aller à l'album ».
+   */
+  const entrees = $derived((void albumsObtenus, appliquerAlbumsConnus(fusion)));
+  $effect(() => {
+    const base = fusion;
+    let vivant = true;
+    void completerAlbumsDeService(base, api.getStreamingTrack).then((maj) => {
+      if (maj && vivant) albumsObtenus += 1;
+    });
+    return () => { vivant = false; };
+  });
 
   /**
    * 🔴 #904 / #903 — l'écran en DEUX niveaux.
@@ -216,12 +234,8 @@
           const lues = entreesDepuisServeur(response?.items ?? []);
           serveur = lues;
           // web#2209 — l'album CHEZ LE SERVICE d'un titre lancé hors de son
-          // album : le lien de la colonne Album et « Aller à l'album » en
-          // dépendent. Demandé à la piste elle-même, borné et mémorisé.
-          const tour = ++tourAlbums;
-          void completerAlbumsDeService(lues, api.getStreamingTrack).then((maj) => {
-            if (maj && active && tour === tourAlbums && requestedGeneration === generation) serveur = maj;
-          });
+          // album est demandé à la piste elle-même (borné, mémorisé), sur la
+          // fusion local + serveur : voir `entrees` plus haut (web#2749).
         }
       } catch {
         // Keep the last successful snapshot on a transient network failure.
