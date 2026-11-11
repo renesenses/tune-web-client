@@ -179,6 +179,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-tune-tested', section: 'perZone', labelKey: 'v2.zone.tuneTestedPropose', techniques: ['Tune Tested'] },
   { id: 'zone-dsd', section: 'perZone', label: 'DSD', techniques: ['DSD', 'DoP', 'PCM'], min: 'intermediate' },
   { id: 'zone-debit-max', section: 'perZone', labelKey: 'settings.maxSampleRate', descKey: 'settings.maxSampleRateHint', techniques: ['kHz', 'sample rate'], min: 'intermediate' },
+  { id: 'zone-frequence-fixe', section: 'perZone', labelKey: 'settings.fixedSampleRate', descKey: 'settings.fixedSampleRateHint', techniques: ['kHz', 'sample rate', 'SRC', 'PCM'], min: 'intermediate' },
   { id: 'zone-decalage-paroles', section: 'perZone', labelKey: 'settings.lyricsOffset', techniques: ['lyrics'], min: 'intermediate' },
   { id: 'zone-volume-fixe', section: 'perZone', labelKey: 'v2.lbl.fixedVolume', techniques: ['100'], min: 'intermediate' },
   { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
