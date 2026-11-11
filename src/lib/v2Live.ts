@@ -69,6 +69,7 @@ import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
 import { estEcouteRevoquee } from './circle';
+import { estDepartMuetAirplay2, texteDepartMuetAirplay2 } from './departMuetAirplay2';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
@@ -507,6 +508,12 @@ export function demarrerTransportV2(): () => void {
     }
 
     if (type === 'zone.playback_error' || type === 'playback.error') {
+      // tune-server-rust#8402 — AirPlay 2 parti à 0 % (volume fixe ou PURE
+      // verrouillé) : un avertissement, dit même dans la fenêtre de grâce.
+      if (estDepartMuetAirplay2(event?.data)) {
+        notifications.info(texteDepartMuetAirplay2(event.data), 12000);
+        return;
+      }
       const zoneId = event?.data?.zone_id as number | null | undefined;
       // La fenêtre de grâce, telle que la v1 la tient (#1146) : pendant les
       // trente secondes qui suivent un Lire, une erreur PASSAGÈRE est le

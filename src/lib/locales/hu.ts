@@ -6398,6 +6398,8 @@ export default {
   "erreursServeur.details": "Részletek",
   "toast.erreursRepliees": "{n} régebbi hiba összecsukva",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
+  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2: ennek a zónának rögzített a hangereje, ezért a lejátszás 0%-on indult a füle és a hangszórói védelmében. Növelje a hangerőt az eszközön.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: ennek a zónának a hangerejét a PURE zárolja, ezért a lejátszás 0%-on indult a füle és a hangszórói védelmében. Növelje a hangerőt az eszközön vagy a Tune-ban.",
   "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
   "v2.dev.listAria": "Eszközök és zónák",
   "v2.dev.filterLabel": "Eszközök szűrése",

@@ -6461,6 +6461,8 @@ export default {
   "erreursServeur.details": "Détails",
   "toast.erreursRepliees": "{n} erreurs plus anciennes repliées",
   "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",
+  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2 : cette zone est en volume fixe, la lecture a donc démarré à 0 % pour protéger vos oreilles et vos enceintes. Montez le volume sur l'appareil.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2 : le volume de cette zone est verrouillé par PURE, la lecture a donc démarré à 0 % pour protéger vos oreilles et vos enceintes. Montez le volume sur l'appareil ou dans Tune.",
   "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
   "v2.dev.listAria": "Appareils et zones",
   "v2.dev.filterLabel": "Filtrer les appareils",

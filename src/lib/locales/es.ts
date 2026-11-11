@@ -6439,6 +6439,8 @@ export default {
   "erreursServeur.details": "Detalles",
   "toast.erreursRepliees": "{n} errores anteriores plegados",
   "erreursServeur.track_decode_failed": "No se ha podido decodificar la pista.",
+  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2: esta zona usa un volumen fijo, así que la reproducción empezó al 0 % para proteger tus oídos y tus altavoces. Sube el volumen en el dispositivo.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: el volumen de esta zona está bloqueado por PURE, así que la reproducción empezó al 0 % para proteger tus oídos y tus altavoces. Sube el volumen en el dispositivo o en Tune.",
   "v2.pl.serviceNoPlaylists": "{s} no ofrece listas de reproducción.",
   "v2.dev.listAria": "Dispositivos y zonas",
   "v2.dev.filterLabel": "Filtrar dispositivos",

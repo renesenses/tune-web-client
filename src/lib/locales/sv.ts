@@ -6438,6 +6438,8 @@ export default {
   "erreursServeur.details": "Detaljer",
   "toast.erreursRepliees": "{n} äldre fel hopfällda",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
+  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2: den här zonen har fast volym, så uppspelningen startade på 0 % för att skydda dina öron och högtalare. Höj volymen på enheten.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volymen i den här zonen är låst av PURE, så uppspelningen startade på 0 % för att skydda dina öron och högtalare. Höj volymen på enheten eller i Tune.",
   "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
   "v2.dev.listAria": "Enheter och zoner",
   "v2.dev.filterLabel": "Filtrera enheter",
