@@ -3659,7 +3659,7 @@ export default {
   "v2.zone.pickZone": "ゾーンを選択…",
   "v2.zone.leftChannel": "左チャンネル",
   "v2.zone.rightChannel": "右チャンネル",
-  "v2.fav.allSources": "すべて",
+  "v2.fav.allSources": "すべてのソース",
   "v2.fav.sourceLibrary": "ライブラリ",
   "v2.fav.sortBy": "並べ替え",
   "v2.fav.sortRecent": "追加が新しい順",

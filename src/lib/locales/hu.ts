@@ -3613,7 +3613,7 @@ export default {
   "v2.zone.pickZone": "Válasszon zónát…",
   "v2.zone.leftChannel": "bal csatorna",
   "v2.zone.rightChannel": "jobb csatorna",
-  "v2.fav.allSources": "Mind",
+  "v2.fav.allSources": "Minden forrás",
   "v2.fav.sourceLibrary": "Könyvtár",
   "v2.fav.sortBy": "Rendezés:",
   "v2.fav.sortRecent": "Nemrég hozzáadva",

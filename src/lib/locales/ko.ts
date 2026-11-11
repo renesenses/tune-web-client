@@ -3659,7 +3659,7 @@ export default {
   "v2.zone.pickZone": "존 선택…",
   "v2.zone.leftChannel": "왼쪽 채널",
   "v2.zone.rightChannel": "오른쪽 채널",
-  "v2.fav.allSources": "전체",
+  "v2.fav.allSources": "모든 소스",
   "v2.fav.sourceLibrary": "라이브러리",
   "v2.fav.sortBy": "정렬 기준",
   "v2.fav.sortRecent": "최근 추가순",

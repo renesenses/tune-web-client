@@ -3658,7 +3658,7 @@ export default {
   "v2.zone.pickZone": "Välj en zon…",
   "v2.zone.leftChannel": "vänster kanal",
   "v2.zone.rightChannel": "höger kanal",
-  "v2.fav.allSources": "Alla",
+  "v2.fav.allSources": "Alla källor",
   "v2.fav.sourceLibrary": "Bibliotek",
   "v2.fav.sortBy": "Sortera efter",
   "v2.fav.sortRecent": "Nyligen tillagt",

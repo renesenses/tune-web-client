@@ -3659,7 +3659,7 @@ export default {
   "v2.zone.pickZone": "Alegeți o zonă…",
   "v2.zone.leftChannel": "canalul stâng",
   "v2.zone.rightChannel": "canalul drept",
-  "v2.fav.allSources": "Toate",
+  "v2.fav.allSources": "Toate sursele",
   "v2.fav.sourceLibrary": "Bibliotecă",
   "v2.fav.sortBy": "Sortează după",
   "v2.fav.sortRecent": "Adăugate recent",

@@ -3676,7 +3676,7 @@ export default {
   "v2.zone.leftChannel": "left channel",
   "v2.zone.rightChannel": "right channel",
   // v2 — Favourites: source filters and sorting
-  "v2.fav.allSources": "All",
+  "v2.fav.allSources": "All sources",
   "v2.fav.sourceLibrary": "Library",
   "v2.fav.sortBy": "Sort by",
   "v2.fav.sortRecent": "Recently added",

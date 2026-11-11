@@ -3540,7 +3540,7 @@ export default {
   "v2.zone.pickZone": "Chọn một vùng phát…",
   "v2.zone.leftChannel": "kênh trái",
   "v2.zone.rightChannel": "kênh phải",
-  "v2.fav.allSources": "Tất cả",
+  "v2.fav.allSources": "Tất cả nguồn",
   "v2.fav.sourceLibrary": "Thư viện",
   "v2.fav.sortBy": "Sắp xếp theo",
   "v2.fav.sortRecent": "Mới thêm gần đây",

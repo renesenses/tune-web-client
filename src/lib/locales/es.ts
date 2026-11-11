@@ -3659,7 +3659,7 @@ export default {
   "v2.zone.pickZone": "Elegir una zona…",
   "v2.zone.leftChannel": "canal izquierdo",
   "v2.zone.rightChannel": "canal derecho",
-  "v2.fav.allSources": "Todas",
+  "v2.fav.allSources": "Todas las fuentes",
   "v2.fav.sourceLibrary": "Biblioteca",
   "v2.fav.sortBy": "Ordenar por",
   "v2.fav.sortRecent": "Añadido recientemente",
