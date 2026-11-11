@@ -2015,7 +2015,15 @@ import { ICONES } from '../../lib/menuPiste';
                  survol. -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}</button>
+            <!-- web#2847 (FabienM, fil 2723) — deux gestes, deux zones : le
+                 titre ouvre l'album, l'année « (AAAA) » filtre la Bibliothèque.
+                 L'année vivait DANS le bouton de l'album : même zone de survol
+                 et de soulignement, un clic en fin de titre tombait sur
+                 l'année. Elle est désormais sa VOISINE, hors du bouton. -->
+            <div class="track-album-ligne">
+              <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
+              {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
+            </div>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -3351,6 +3359,26 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: var(--space-xs);
   }
 
+  /* web#2847 — la ligne porte le titre (bouton) et l'année (lien), côte à
+     côte : le titre se tronque, l'année reste entière et hors du bouton.
+     Même police que le titre, que l'année hérite. */
+  .track-album-ligne {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3em;
+    min-width: 0;
+    max-width: 100%;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--tune-text-muted);
+    margin-bottom: var(--space-xs);
+  }
+  .track-album-ligne .track-album {
+    min-width: 0;
+    flex: 0 1 auto;
+    margin-bottom: 0;
+  }
+
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
@@ -3918,7 +3946,8 @@ import { ICONES } from '../../lib/menuPiste';
       font-size: 16px;
     }
 
-    .track-album {
+    .track-album,
+    .track-album-ligne {
       font-size: 13px;
     }
   }
@@ -4655,9 +4684,13 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: 2px;
   }
 
-  :global([data-kiosk]) .track-album {
+  :global([data-kiosk]) .track-album,
+  :global([data-kiosk]) .track-album-ligne {
     font-size: 12px;
     margin-bottom: 2px;
+  }
+  :global([data-kiosk]) .track-album-ligne .track-album {
+    margin-bottom: 0;
   }
 
   :global([data-kiosk]) .inline-credits {
