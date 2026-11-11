@@ -21,7 +21,7 @@
  * de #3843 (un clic de barre latérale depuis un autre écran repart de la
  * racine) reste vraie partout ailleurs.
  */
-import type { View } from './stores/navigation';
+import { activeView, type View } from './stores/navigation';
 import type { StreamingGenre } from './types';
 
 /** Les vues d'où l'on « revient » au service plutôt que d'y « aller ». */
@@ -46,10 +46,18 @@ export interface MemoireStreaming {
   defilement: number;
 }
 
-let memoire: MemoireStreaming | null = null;
-
 const estDePassage = (v: View | null | undefined): boolean =>
   v != null && (VUES_DE_PASSAGE as readonly string[]).includes(v);
+
+let memoire: MemoireStreaming | null = null;
+
+// Relecture : streaming → Lecture en cours → Bibliothèque → Lecture en cours →
+// barre latérale « Qobuz » est une arrivée DEPUIS AILLEURS (#3843). Toute vue
+// autre que le service et la vue de passage oublie la page retenue.
+activeView.subscribe((v) => {
+  if (v !== 'streaming' && !estDePassage(v)) memoire = null;
+});
+
 
 /** À l'instant où l'on quitte l'écran du service, vers `vers`. */
 export function retenirAuDepart(vers: View | null, etat: MemoireStreaming | null): void {

@@ -193,4 +193,19 @@ describe('web#2828 — retour sur le service après « Lecture en cours »', () 
     await laisserFaire(30);
     expect(filDeGenre()).toBe('');
   });
+
+  it('relecture : passé par un autre écran entre-temps, la page n\'est plus reprise', async () => {
+    await entrerPar('qobuz');
+    await cliquer('nav.subs > button', get(t)('common.genres' as any));
+    await cliquer('.chips .chip', 'Jazz');
+    await quitterVers('nowplaying');
+    activeView.set('library');
+    activeView.set('nowplaying');
+    ongletCourant.set(null);
+    detailOuvert.set(null);
+
+    await entrerPar('qobuz');
+    await laisserFaire(30);
+    expect(filDeGenre()).toBe('');
+  });
 });
