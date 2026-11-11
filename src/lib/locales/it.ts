@@ -3627,7 +3627,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "ASIO è selezionato: usa la zona ASIO",
   "v2.zone.piloteLocal": "Driver audio usato da questa zona",
-  "v2.zone.asioSansZone": "Il DAC ASIO «{name}» non ha alcuna zona: le zone locali riproducono tramite WASAPI e il DSD viene convertito in PCM.",
+  "v2.zone.asioSansZone": "Il DAC ASIO «{name}» non ha alcuna zona: senza di essa nulla suona tramite ASIO, e il DSD riprodotto su una zona WASAPI viene convertito in PCM.",
   "v2.zone.creerZoneAsio": "Crea la zona ASIO",
   "v2.zone.openNowPlaying": "Apri la riproduzione in corso su questa zona",
   "v2.zone.openSettings": "Impostazioni di questa zona",

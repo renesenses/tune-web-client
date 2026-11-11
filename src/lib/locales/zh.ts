@@ -3627,7 +3627,7 @@ export default {
   "v2.zone.badgeOffline": "离线",
   "v2.zone.horsBackendAsio": "已选择 ASIO：请使用 ASIO 区域",
   "v2.zone.piloteLocal": "此区域使用的音频驱动",
-  "v2.zone.asioSansZone": "ASIO DAC「{name}」没有任何区域：本地区域通过 WASAPI 播放，DSD 会被转换为 PCM。",
+  "v2.zone.asioSansZone": "ASIO DAC「{name}」没有任何区域：没有它就无法通过 ASIO 播放，在 WASAPI 区域播放的 DSD 会被转换为 PCM。",
   "v2.zone.creerZoneAsio": "创建 ASIO 区域",
   "v2.zone.openNowPlaying": "打开此区域的正在播放",
   "v2.zone.openSettings": "此区域的设置",

@@ -3506,7 +3506,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "Wybrano ASIO: użyj strefy ASIO",
   "v2.zone.piloteLocal": "Sterownik audio używany przez tę strefę",
-  "v2.zone.asioSansZone": "DAC ASIO „{name}” nie ma żadnej strefy: strefy lokalne grają przez WASAPI, a DSD jest tam konwertowane na PCM.",
+  "v2.zone.asioSansZone": "DAC ASIO „{name}” nie ma żadnej strefy: bez niej nic nie gra przez ASIO, a DSD odtwarzane w strefie WASAPI jest konwertowane na PCM.",
   "v2.zone.creerZoneAsio": "Utwórz strefę ASIO",
   "v2.zone.openNowPlaying": "Otwórz odtwarzanie w tej strefie",
   "v2.zone.openSettings": "Ustawienia tej strefy",

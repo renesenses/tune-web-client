@@ -3506,7 +3506,7 @@ export default {
   "v2.zone.badgeOffline": "Εκτός σύνδεσης",
   "v2.zone.horsBackendAsio": "Έχει επιλεγεί ASIO: χρησιμοποιήστε τη ζώνη ASIO",
   "v2.zone.piloteLocal": "Πρόγραμμα οδήγησης ήχου που χρησιμοποιεί αυτή η ζώνη",
-  "v2.zone.asioSansZone": "Ο ASIO DAC «{name}» δεν έχει ζώνη: οι τοπικές ζώνες παίζουν μέσω WASAPI και το DSD μετατρέπεται εκεί σε PCM.",
+  "v2.zone.asioSansZone": "Ο ASIO DAC «{name}» δεν έχει ζώνη: χωρίς αυτήν τίποτα δεν παίζει μέσω ASIO, και το DSD σε ζώνη WASAPI μετατρέπεται σε PCM.",
   "v2.zone.creerZoneAsio": "Δημιουργία ζώνης ASIO",
   "v2.zone.openNowPlaying": "Άνοιγμα του «Παίζει τώρα» σε αυτή τη ζώνη",
   "v2.zone.openSettings": "Ρυθμίσεις αυτής της ζώνης",

@@ -3626,7 +3626,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "ASIO är valt: använd ASIO-zonen",
   "v2.zone.piloteLocal": "Ljuddrivrutin som används av den här zonen",
-  "v2.zone.asioSansZone": "ASIO-DAC:n ”{name}” har ingen zon: dina lokala zoner spelar via WASAPI, och DSD konverteras där till PCM.",
+  "v2.zone.asioSansZone": "ASIO-DAC:n ”{name}” har ingen zon: utan den spelas inget via ASIO, och DSD som spelas på en WASAPI-zon konverteras till PCM.",
   "v2.zone.creerZoneAsio": "Skapa ASIO-zonen",
   "v2.zone.openNowPlaying": "Öppna Spelas nu för den här zonen",
   "v2.zone.openSettings": "Inställningar för den här zonen",

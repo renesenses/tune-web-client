@@ -3508,7 +3508,7 @@ export default {
   "v2.zone.badgeOffline": "Ngoại tuyến",
   "v2.zone.horsBackendAsio": "ASIO đang được chọn: hãy dùng vùng phát ASIO",
   "v2.zone.piloteLocal": "Trình điều khiển âm thanh vùng phát này dùng",
-  "v2.zone.asioSansZone": "DAC ASIO “{name}” chưa có vùng phát nào: các vùng phát cục bộ đang phát qua WASAPI, và DSD bị chuyển thành PCM.",
+  "v2.zone.asioSansZone": "DAC ASIO “{name}” chưa có vùng phát nào: thiếu vùng này thì không gì phát qua ASIO, và DSD phát trên vùng WASAPI bị chuyển thành PCM.",
   "v2.zone.creerZoneAsio": "Tạo vùng phát ASIO",
   "v2.zone.openNowPlaying": "Mở Đang phát trên vùng phát này",
   "v2.zone.openSettings": "Cài đặt của vùng phát này",

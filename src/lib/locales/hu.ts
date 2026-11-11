@@ -3581,7 +3581,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "Az ASIO van kiválasztva: használja az ASIO zónát",
   "v2.zone.piloteLocal": "A zóna által használt hangillesztő",
-  "v2.zone.asioSansZone": "A(z) „{name}” ASIO DAC-hoz nem tartozik zóna: a helyi zónák WASAPI-n szólnak, és a DSD ott PCM-re alakul.",
+  "v2.zone.asioSansZone": "A(z) „{name}” ASIO DAC-hoz nem tartozik zóna: nélküle semmi sem szól ASIO-n, és a WASAPI zónán lejátszott DSD PCM-re alakul.",
   "v2.zone.creerZoneAsio": "ASIO zóna létrehozása",
   "v2.zone.openNowPlaying": "A most játszott megnyitása ezen a zónán",
   "v2.zone.openSettings": "Ennek a zónának a beállításai",

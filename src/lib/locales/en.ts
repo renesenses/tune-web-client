@@ -3643,7 +3643,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "ASIO is selected: use the ASIO zone",
   "v2.zone.piloteLocal": "Audio driver used by this zone",
-  "v2.zone.asioSansZone": "The ASIO DAC “{name}” has no zone: your local zones play through WASAPI, and DSD is converted to PCM there.",
+  "v2.zone.asioSansZone": "The ASIO DAC “{name}” has no zone: without one, nothing plays through ASIO, and DSD played on a WASAPI zone is converted to PCM.",
   "v2.zone.creerZoneAsio": "Create the ASIO zone",
   "v2.zone.openNowPlaying": "Open Now Playing on this zone",
   "v2.zone.openSettings": "Settings for this zone",

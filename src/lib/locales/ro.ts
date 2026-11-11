@@ -3627,7 +3627,7 @@ export default {
   "v2.zone.badgeOffline": "Offline",
   "v2.zone.horsBackendAsio": "ASIO este selectat: folosiți zona ASIO",
   "v2.zone.piloteLocal": "Driverul audio folosit de această zonă",
-  "v2.zone.asioSansZone": "DAC-ul ASIO „{name}” nu are nicio zonă: zonele locale redau prin WASAPI, iar DSD este convertit acolo în PCM.",
+  "v2.zone.asioSansZone": "DAC-ul ASIO „{name}” nu are nicio zonă: fără ea nimic nu se redă prin ASIO, iar DSD redat pe o zonă WASAPI este convertit în PCM.",
   "v2.zone.creerZoneAsio": "Creați zona ASIO",
   "v2.zone.openNowPlaying": "Deschide redarea curentă pe această zonă",
   "v2.zone.openSettings": "Setările acestei zone",
