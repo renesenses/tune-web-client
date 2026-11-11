@@ -6511,6 +6511,7 @@ export default {
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
   "avisServeur.pure_resumed_at_position": "PURE váltás: folytatás innen: {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: ennek a zónának a hangerejét a PURE zárolja, ezért a lejátszás 0%-on indult a füle és a hangszórói védelmében. Növelje a hangerőt az eszközön vagy a Tune-ban.",
+  "erreursServeur.track_file_damaged": "„{title}”: a fájl sérült, ettől a ponttól: {position}. A Tune átugrotta a szám hátralévő részét.",
   "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
   "v2.dev.listAria": "Eszközök és zónák",
   "v2.dev.filterLabel": "Eszközök szűrése",

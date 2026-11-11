@@ -6551,6 +6551,7 @@ export default {
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
   "avisServeur.pure_resumed_at_position": "PURE-växling: återupptaget vid {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volymen i den här zonen är låst av PURE, så uppspelningen startade på 0 % för att skydda dina öron och högtalare. Höj volymen på enheten eller i Tune.",
+  "erreursServeur.track_file_damaged": "”{title}”: filen är skadad från {position}. Tune hoppade över resten av spåret.",
   "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
   "v2.dev.listAria": "Enheter och zoner",
   "v2.dev.filterLabel": "Filtrera enheter",

@@ -6552,6 +6552,7 @@ export default {
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",
   "avisServeur.pure_resumed_at_position": "Comutare PURE: reluat la {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volumul acestei zone este blocat de PURE, așa că redarea a pornit la 0% pentru a vă proteja urechile și boxele. Măriți volumul pe dispozitiv sau în Tune.",
+  "erreursServeur.track_file_damaged": "„{title}”: fișierul este deteriorat începând de la {position}. Tune a sărit peste restul piesei.",
   "v2.pl.serviceNoPlaylists": "{s} nu oferă liste de redare.",
   "v2.dev.listAria": "Dispozitive și zone",
   "v2.dev.filterLabel": "Filtrează dispozitivele",
