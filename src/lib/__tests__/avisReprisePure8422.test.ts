@@ -101,4 +101,11 @@ describe('#8422 — « Bascule PURE : reprise à 2:31 »', () => {
     expect(texteAvisServeur({ code: 'inconnu_8422', message: 'Avis brut' })).toBe('Avis brut');
     expect(texteAvisServeur({})).toBeNull();
   });
+
+  it('au-delà d’une heure, la position mise en forme par le serveur', () => {
+    locale.set('en');
+    expect(
+      texteAvisServeur({ code: 'pure_resumed_at_position', position_ms: 3_725_000, position: '1:02:05' }),
+    ).toContain('1:02:05');
+  });
 });

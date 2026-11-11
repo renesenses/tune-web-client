@@ -18,6 +18,7 @@ export interface AvisServeur {
   code?: unknown;
   message?: unknown;
   position_ms?: unknown;
+  position?: unknown;
 }
 
 export function texteAvisServeur(data: AvisServeur | null | undefined): string | null {
@@ -26,8 +27,13 @@ export function texteAvisServeur(data: AvisServeur | null | undefined): string |
     const cle = `avisServeur.${code}`;
     const traduit = get(t)(cle);
     if (traduit && traduit !== cle) {
-      const ms = typeof data?.position_ms === 'number' ? data.position_ms : 0;
-      return traduit.replace('{position}', formatTime(ms));
+      // La position déjà mise en forme par le serveur (« 1:02:05 » au-delà
+      // d'une heure), sinon celle des millisecondes.
+      const position =
+        typeof data?.position === 'string' && data.position.trim()
+          ? data.position.trim()
+          : formatTime(typeof data?.position_ms === 'number' ? data.position_ms : 0);
+      return traduit.replace('{position}', position);
     }
   }
   const brut = typeof data?.message === 'string' ? data.message.trim() : '';
