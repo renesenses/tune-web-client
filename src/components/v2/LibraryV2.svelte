@@ -2,6 +2,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
+  import StatsBibliothequeV2 from './StatsBibliothequeV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -97,7 +98,7 @@
   import { preferences } from '../../lib/stores/preferences';
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, porteSesCanaux, type QualityTier } from '../../lib/utils';
+  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
@@ -114,7 +115,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
@@ -144,7 +145,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
+  import { lireChoix, ecrireChoix, lireNombre, lireTexte } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
@@ -343,7 +344,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // `$derived.by` : `nu` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.
   const regroupement = $derived.by(() =>
-    depot || nu ? { albums: srcBrute, versions: new Map<number, number>() } : regrouperAlbums(srcBrute, membresOeuvres),
+    depot || nu ? { albums: srcBrute, versions: new Map<number, number>(), canaux: new Map<number, number[]>() } : regrouperAlbums(srcBrute, membresOeuvres),
   );
   const srcBibliotheque: Album[] = $derived(regroupement.albums);
   const nbVersions = (a: Album): number => (a.id == null ? 0 : regroupement.versions.get(a.id) ?? 0);
@@ -557,8 +558,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * Comme ses voisins, le filtre est appliqué SUR PLACE : la bibliothèque est
    * déjà chargée. La sélection reste partagée entre Albums, Artistes et
    * Pistes ; les comptes portent sur les éléments de l'onglet courant.
+   *
+   * web#2836 — le choix est RETENU d'une visite à l'autre (comme la fiche
+   * artiste, #1874) : lu au montage, écrit à chaque changement. Stockage
+   * indisponible = « Toutes les sources ».
    */
-  let fProvenance = $state<string | null>(null);
+  let fProvenance = $state<string | null>(relireProvenance(lireTexte(CLE_SOURCE_BIBLIOTHEQUE)));
+  $effect(() => { ecrireChoix(CLE_SOURCE_BIBLIOTHEQUE, fProvenance ?? ''); });
 
   /**
    * Les noms que les serveurs s'annoncent, par UDN.
@@ -574,12 +580,34 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let nomsServeurs = $state<Record<string, string>>({});
   let sourcesIntegrees = $state<string[]>([]);
+  /** web#2836 — la liste des serveurs indexés est arrivée (ou ne viendra pas). */
+  let sourcesIntegreesLues = $state(false);
   $effect(() => {
     let alive = true;
     Promise.resolve().then(() => api.getUpnpLibrarySources()).then(({ items }) => {
-      if (alive) sourcesIntegrees = [...new Set(items.map(s => `upnp:${s.udn}`))];
-    }).catch(() => { /* older servers still expose album provenance */ });
+      if (alive) { sourcesIntegrees = [...new Set(items.map(s => `upnp:${s.udn}`))]; sourcesIntegreesLues = true; }
+    }).catch(() => { /* older servers still expose album provenance */ if (alive) sourcesIntegreesLues = true; });
     return () => { alive = false; };
+  });
+
+  /**
+   * web#2836 — une source RETENUE qui n'existe plus (serveur UPnP retiré)
+   * vaut « Toutes les sources », vérifié UNE fois, dès que la bibliothèque et
+   * la liste des serveurs sont là. Un choix fait entre-temps à la main n'est
+   * pas touché.
+   */
+  let provenanceAVerifier: string | null = untrack(() => fProvenance);
+  $effect(() => {
+    const cle = provenanceAVerifier;
+    if (cle == null) return;
+    if (fProvenance !== cle) { provenanceAVerifier = null; return; }
+    const verdict = verdictProvenanceRetenue(cle, {
+      presentes: enCharge ? null : src.map(provenanceDe),
+      serveurs: sourcesIntegreesLues ? sourcesIntegrees : null,
+    });
+    if (verdict === 'attendre') return;
+    provenanceAVerifier = null;
+    if (verdict === 'oublier') fProvenance = null;
   });
   $effect(() => {
     let vivant = true;
@@ -1514,6 +1542,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function badgeListe(a: Album): string | null {
     return badge(a) ?? formatDeFichier(a.format);
   }
+  /**
+   * tune-web-client#2731 (Rhorn, fil 2713) — « 2.0 », « 5.1 » à côté du
+   * badge DSD / Hi-Res de la pochette : laquelle des deux éditions d'un SACD
+   * est la multicanale. Lu dans `max_channels` ; une carte regroupée dit les
+   * canaux de TOUTES ses versions (« 2.0/5.1 »). Rien quand ils sont
+   * inconnus ; la règle vit dans `canauxDePochette` (lib/utils).
+   */
+  function canauxCarte(a: Album): string | null {
+    const nombres = (a.id != null ? regroupement.canaux.get(a.id) : undefined) ?? [a.max_channels];
+    return canauxDePochette(badge(a), nombres);
+  }
 
   // ── Onglets de la bibliotheque (brouillon v3 : Albums, Artists, Tracks,
   //    Genres, Years, Labels) ──────────────────────────────────────────────
@@ -1558,6 +1597,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   const ongletDeLaCoquille = (o: string | null): Tab | null =>
     TABS.some((t2) => t2.id === o) ? (o as Tab) : null;
+  /**
+   * web#2782 — « Statistiques » est un onglet de la page, comme les autres :
+   * il ne quitte plus la Bibliothèque (il ouvrait la vue `statsbibliotheque`,
+   * seule, sans barre d'onglets ni retour). Un clic sur un autre onglet, ou
+   * sur une barre filtrante des statistiques, le referme.
+   */
+  let statsOuvertes = $state(false);
   let tabChoisi = $state<Tab>(
     // Lu UNE fois, au montage : c'est l'onglet d'arrivée, pas un suivi.
     untrack(() => (depot ? null : ongletDeLaCoquille($ongletCourant))) ?? lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'),
@@ -1582,7 +1628,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // Un raccourci (ou un Précédent) qui repose l'onglet alors que l'écran est monté.
   $effect(() => {
     const voulu = depot ? null : ongletDeLaCoquille($ongletCourant);
-    untrack(() => { if (voulu && voulu !== tabChoisi) tabChoisi = voulu; });
+    untrack(() => { if (voulu && voulu !== tabChoisi) { statsOuvertes = false; tabChoisi = voulu; } });
   });
 
   /**
@@ -2893,6 +2939,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (f == null) return;
     pendingLibraryFiltre.set(null);
     untrack(() => {
+      statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
       else fRate = [f.frequence];
@@ -3215,18 +3262,25 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <!-- `data-onglet` : l'onglet se nomme dans le DOM. #929 s'en sert
                pour prouver que le carrousel ne fuit pas hors de la vue Albums,
                sans dépendre du libellé traduit ni de la position. -->
-          <button class="tab" data-onglet={t.id} class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
+          <button class="tab" data-onglet={t.id} class:active={tab === t.id && !statsOuvertes} onclick={() => { statsOuvertes = false; tabChoisi = t.id; }}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
     <!-- web#2653 — les répartitions de la bibliothèque (pas sur un dépôt
          distant : elles décrivent CE serveur). -->
     {#if !depot}
-      <button class="tab" data-stats-bibliotheque-ouvrir onclick={() => activeView.set('statsbibliotheque')}
+      <button class="tab" data-stats-bibliotheque-ouvrir class:active={statsOuvertes} aria-pressed={statsOuvertes} onclick={() => (statsOuvertes = true)}
         title={$tr('statsBibliotheque.ouvrirTip' as any)}>{$tr('statsBibliotheque.ouvrir' as any)}</button>
     {/if}
     </div>
   </header>
+  <!-- web#2782 — les Statistiques s'affichent DANS la page, sous la même barre
+       d'onglets ; le reste de la page est seulement masqué (`display:none`),
+       pas démonté : ses `bind:this` et son défilement survivent. -->
+  {#if statsOuvertes && !depot}
+    <StatsBibliothequeV2 embarquee />
+  {/if}
+  <div class="contenu-lib" style:display={statsOuvertes && !depot ? 'none' : 'contents'}>
 
   <!-- La ligne de filtres existe a TOUS les niveaux : chez Levente le champ
        de recherche vit dans la page, a cote des filtres. (La Recherche
@@ -4048,7 +4102,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                       </PochetteActions>
-                      {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
+                      {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
                     </div>
                     <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
@@ -4175,6 +4229,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {/if}
     {/if}
   </div>
+  </div>
 
   <!--
     #4800 — LES TROIS DESSINS D'UN ALBUM, UNE SEULE FOIS.
@@ -4203,7 +4258,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
         </PochetteActions>
-        {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
+        {#if showBadges}{#key badge(a)}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/key}{/if}
         {#if estAlbumDeServiceEtendu(a)}<span class="prov" title={$tr('v2.lib.extendedFavorite' as any)}>{libelleProvenance(provenanceDe(a))}</span>{/if}
         {#if nbVersions(a) > 1}<span class="nver">{$tr('v2.lib.versionsCount' as any).replace('{n}', String(nbVersions(a)))}</span>{/if}
       </div>
@@ -4263,7 +4318,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
         </PochetteActions>
-        {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
+        {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
@@ -4836,6 +4891,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint); pointer-events:none}
   .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}
+  /* #2731 — les canaux, dans le même badge que DSD / Hi-Res, après un filet. */
+  .cnx{margin-left:4px; padding-left:4px; border-left:1px solid currentColor}
+  /* Seul dans le badge (multicanal sans DSD / Hi-Res) : pas de filet. Classe
+     posée par le gabarit — `:first-child` ignore le texte « DSD » qui précède. */
+  .cnx.seul{margin-left:0; padding-left:0; border-left:0}
   .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* Troisieme ligne d'une vignette : la provenance et la qualite, puis la

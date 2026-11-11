@@ -347,9 +347,10 @@
     lectureSeule?: boolean;
     /**
      * #7224 — en `lectureSeule`, un clic sur le titre ne doit pas être MUET.
-     * Fourni, le titre reste focalisable (`aria-disabled`, pas `disabled`) et
-     * appelle ce rappel — l'écran explique pourquoi rien ne se lance.
-     * Absent : le titre reste désactivé, comme avant.
+     * Fourni, le titre est un bouton actif qui appelle ce rappel (le catalogue
+     * d'un contact y lance l'équivalent trouvé dans MES sources) ; la ligne
+     * reste en lecture seule pour tout le reste. Absent : le titre reste
+     * désactivé, comme avant.
      */
     onClicLectureSeule?: ((piste: Track, index: number) => void) | null;
     /**
@@ -825,9 +826,9 @@
    */
   const surcharges = $derived($surchargesBannissement);
   const bannieDe = (p: Track) => !lectureSeule && estBannie(p, surcharges);
-  /** Lecture seule : le titre ne lance rien, et le dit (désactivé). */
+  /** Lecture seule : le titre ne lance rien (désactivé), sauf rappel `onClicLectureSeule`. */
   const inerte = $derived(lectureSeule
-    ? (onClicLectureSeule ? { 'aria-disabled': 'true' as const } : { disabled: true })
+    ? (onClicLectureSeule ? {} : { disabled: true })
     : {});
   async function lireDelibere(p: Track, i: number) {
     if (pisteIndisponible(p)) return;

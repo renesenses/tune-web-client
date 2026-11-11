@@ -10,6 +10,9 @@
   et Fréquence (`pendingLibraryFiltre`). Il n'y a pas de filtre par décennie
   ni par rôle : ces barres ne sont pas cliquables.
 
+  web#2782 — `embarquee` : l'écran est rendu DANS la Bibliothèque, sous sa
+  barre d'onglets (l'onglet « Statistiques ») ; il n'y porte pas de titre.
+
   Serveur plus ancien (clé absente) ou lecture échouée côté serveur (`null`) :
   l'écran le dit, sans planter. La logique est dans
   `lib/repartitionsBibliotheque`, testée sans Svelte.
@@ -30,6 +33,8 @@
     by_decade: 'statsBibliotheque.decennies',
     by_credit_role: 'statsBibliotheque.roles',
   };
+
+  let { embarquee = false }: { embarquee?: boolean } = $props();
 
   let etat = $state<'chargement' | 'pret' | 'indisponible' | 'erreur'>('chargement');
   let repartitions = $state<Repartitions | null>(null);
@@ -65,29 +70,34 @@
     try { return new Intl.NumberFormat($locale).format(n); } catch { return String(n); }
   }
 
+  const texteTotaux = $derived(totaux
+    ? $t('statsBibliotheque.totaux' as any)
+      .replace('{tracks}', nombre(totaux.tracks))
+      .replace('{albums}', nombre(totaux.albums))
+      .replace('{artists}', nombre(totaux.artists))
+    : null);
+
   function filtrer(f: FiltreBibliotheque) {
     pendingLibraryFiltre.set(f);
     activeView.set('library');
   }
 </script>
 
-<section class="v2-stats-biblio tune-v2" data-stats-bibliotheque>
-  <header class="v2-top">
-    <div class="v2-titres">
-      <h1>{$t('statsBibliotheque.titre' as any)}</h1>
-    </div>
-    {#if totaux}
-      <div class="v2-actions">
-        <div class="meta">
-          {$t('statsBibliotheque.totaux' as any)
-            .replace('{tracks}', nombre(totaux.tracks))
-            .replace('{albums}', nombre(totaux.albums))
-            .replace('{artists}', nombre(totaux.artists))}
-        </div>
+<section class="v2-stats-biblio tune-v2" class:embarquee data-stats-bibliotheque>
+  {#if !embarquee}
+    <header class="v2-top">
+      <div class="v2-titres">
+        <h1>{$t('statsBibliotheque.titre' as any)}</h1>
       </div>
-    {/if}
-  </header>
+      {#if texteTotaux}
+        <div class="v2-actions">
+          <div class="meta">{texteTotaux}</div>
+        </div>
+      {/if}
+    </header>
+  {/if}
   <div class="scroll">
+    {#if embarquee && texteTotaux}<div class="meta solo">{texteTotaux}</div>{/if}
     {#if etat === 'chargement'}
       <p class="etat">{$t('v2.common.loading' as any)}</p>
     {:else if etat === 'erreur'}
@@ -139,7 +149,9 @@
 <style>
   .v2-stats-biblio{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+  .v2-stats-biblio.embarquee{flex:1; min-height:0; height:auto}
   .meta{margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta.solo{padding:8px 30px 0}
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .etat{margin:0; padding:16px 30px; color:var(--v2-txt3); font-size:13px; max-width:760px}
   .etat.err{color:var(--v2-danger)}

@@ -1342,6 +1342,12 @@ import { ICONES } from '../../lib/menuPiste';
 
   // ─── Queue Bottom Sheet ──────────────────────────────────────────────
   let queueSheetState = $state<QueueSheetState>('collapsed');
+  // web#2796 — une radio joue sans fin : la file d'attente n'a rien à y
+  // montrer (ni panneau, ni « À suivre »). Ouverte avant la radio, elle se
+  // referme ; aucun geste ne la rouvre tant que la radio joue.
+  $effect(() => {
+    if (isRadio && queueSheetState !== 'collapsed') queueSheetState = 'collapsed';
+  });
   let sheetDragStartY = $state(0);
   let sheetDragCurrentY = $state(0);
   let sheetDragging = $state(false);
@@ -1570,7 +1576,7 @@ import { ICONES } from '../../lib/menuPiste';
     npWheelLastTs = now;
 
     // Only react to downward scrolls while collapsed with a non-empty queue.
-    if (dy <= 0 || queueSheetState !== 'collapsed' || $queueTracks.length === 0) {
+    if (dy <= 0 || isRadio || queueSheetState !== 'collapsed' || $queueTracks.length === 0) {
       if (dy <= 0) npWheelAccum = 0; // upward scroll cancels the pending peek
       return;
     }
@@ -2009,7 +2015,15 @@ import { ICONES } from '../../lib/menuPiste';
                  survol. -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}</button>
+            <!-- web#2847 (FabienM, fil 2723) — deux gestes, deux zones : le
+                 titre ouvre l'album, l'année « (AAAA) » filtre la Bibliothèque.
+                 L'année vivait DANS le bouton de l'album : même zone de survol
+                 et de soulignement, un clic en fin de titre tombait sur
+                 l'année. Elle est désormais sa VOISINE, hors du bouton. -->
+            <div class="track-album-ligne">
+              <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
+              {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
+            </div>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -2211,6 +2225,8 @@ import { ICONES } from '../../lib/menuPiste';
               {syncedLines}
               {karaokeMode}
               positionMs={isRadio ? positionRadio : null}
+              decalageMs={zone?.lyrics_offset_ms ?? 0}
+              enLecture={isEffectivePlaying}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
@@ -2559,12 +2575,12 @@ import { ICONES } from '../../lib/menuPiste';
         {/if}
 
         <!-- web#1800 : la file dépliée sur place, sous la barre d'avancement. -->
-        {#if fileSousLaBarre && queueSheetState !== 'collapsed' && $queueTracks.length > 0}
+        {#if !isRadio && fileSousLaBarre && queueSheetState !== 'collapsed' && $queueTracks.length > 0}
           {@render feuilleFile()}
         {/if}
 
         <!-- Up Next (only when sheet is collapsed) -->
-        {#if $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
+        {#if !isRadio && $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
           <div class="up-next">
             <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
@@ -2657,7 +2673,7 @@ import { ICONES } from '../../lib/menuPiste';
       referme déjà.
     -->
     <!-- web#1800 : file dépliée sous la barre, ni voile ni feuille ici. -->
-    {#if !fileSousLaBarre}
+    {#if !fileSousLaBarre && !isRadio}
       {#if queueSheetState === 'expanded'}
         <div class="qs-backdrop" onclick={closeQueueSheet}></div>
       {/if}
@@ -3343,6 +3359,26 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: var(--space-xs);
   }
 
+  /* web#2847 — la ligne porte le titre (bouton) et l'année (lien), côte à
+     côte : le titre se tronque, l'année reste entière et hors du bouton.
+     Même police que le titre, que l'année hérite. */
+  .track-album-ligne {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3em;
+    min-width: 0;
+    max-width: 100%;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--tune-text-muted);
+    margin-bottom: var(--space-xs);
+  }
+  .track-album-ligne .track-album {
+    min-width: 0;
+    flex: 0 1 auto;
+    margin-bottom: 0;
+  }
+
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
@@ -3823,7 +3859,8 @@ import { ICONES } from '../../lib/menuPiste';
     max-width: 100%;
     margin-bottom: var(--space-xs);
   }
-  .track-info.center .radio-station-ligne {
+  .track-info.center .radio-station-ligne,
+  .track-info.center .track-album-ligne {
     justify-content: center;
   }
   /* web#2550 — le logo de la station, petit, devant son nom. */
@@ -3910,7 +3947,8 @@ import { ICONES } from '../../lib/menuPiste';
       font-size: 16px;
     }
 
-    .track-album {
+    .track-album,
+    .track-album-ligne {
       font-size: 13px;
     }
   }
@@ -4647,9 +4685,13 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: 2px;
   }
 
-  :global([data-kiosk]) .track-album {
+  :global([data-kiosk]) .track-album,
+  :global([data-kiosk]) .track-album-ligne {
     font-size: 12px;
     margin-bottom: 2px;
+  }
+  :global([data-kiosk]) .track-album-ligne .track-album {
+    margin-bottom: 0;
   }
 
   :global([data-kiosk]) .inline-credits {
