@@ -4396,6 +4396,7 @@ export default {
   "settings.extendedLibraryHint": "Biblioteket visar även dina favoriter från anslutna tjänster (Qobuz, Tidal …); med filtret Källa väljer du en tjänst.",
   "v2.lib.extendedFavorite": "Favoritalbum från tjänsten",
   "v2.lib.versionsCount": "{n} versioner",
+  "v2.lib.channelsCount": "Kanaler: {n}",
   "v2.album.versions": "Versioner ({n})",
   "v2.album.preferredVersion": "Föredragen version",
   "v2.album.setPreferredVersion": "Föredra den här versionen",

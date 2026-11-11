@@ -4397,6 +4397,7 @@ export default {
   "settings.extendedLibraryHint": "ライブラリに、接続中のサービス（Qobuz、Tidal など）のお気に入りも表示します。「ソース」フィルターでサービスを選べます。",
   "v2.lib.extendedFavorite": "サービスのお気に入りアルバム",
   "v2.lib.versionsCount": "{n} バージョン",
+  "v2.lib.channelsCount": "チャンネル: {n}",
   "v2.album.versions": "バージョン ({n})",
   "v2.album.preferredVersion": "優先バージョン",
   "v2.album.setPreferredVersion": "このバージョンを優先",

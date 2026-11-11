@@ -4351,6 +4351,7 @@ export default {
   "settings.extendedLibraryHint": "A Könyvtár a csatlakoztatott szolgáltatások (Qobuz, Tidal…) kedvenceit is mutatja; a Forrás szűrővel kiválaszthatsz egy szolgáltatást.",
   "v2.lib.extendedFavorite": "A szolgáltatás kedvenc albuma",
   "v2.lib.versionsCount": "{n} változat",
+  "v2.lib.channelsCount": "Csatornák: {n}",
   "v2.album.versions": "Változatok ({n})",
   "v2.album.preferredVersion": "Előnyben részesített változat",
   "v2.album.setPreferredVersion": "Ennek a változatnak az előnyben részesítése",

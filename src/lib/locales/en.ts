@@ -4417,6 +4417,7 @@ export default {
   "settings.extendedLibraryHint": "The Library also shows your favorites from connected services (Qobuz, Tidal…); the Source filter lets you pick a service.",
   "v2.lib.extendedFavorite": "Favorite album from the service",
   "v2.lib.versionsCount": "{n} versions",
+  "v2.lib.channelsCount": "Channels: {n}",
   "v2.album.versions": "Versions ({n})",
   "v2.album.preferredVersion": "Preferred version",
   "v2.album.setPreferredVersion": "Prefer this version",
