@@ -38,10 +38,14 @@ describe('tri des albums d’une collection', () => {
   // et collections » — la collection INTELLIGENTE a désormais le sien, trié
   // côté client (sa route ne prend pas `?sort=`), la manuelle garde le serveur.
   it('une collection intelligente a son propre sélecteur, la manuelle garde le tri serveur', () => {
-    const i = vue.indexOf('<label class="tricol">', vue.indexOf('<div class="v2-actions fa">'));
+    // web#2736 — les deux sélecteurs sont réunis dans UN menu « Trier ▾ » :
+    // ses entrées suivent la sorte de la collection ouverte.
+    const i = vue.indexOf('function entreesTri(');
     expect(i).toBeGreaterThan(-1);
-    expect(vue.slice(i - 80, i)).toMatch(/\{#if ouverte\.sorte === 'smart'\}/);
-    expect(vue).toMatch(/\{:else\}\s*<label class="tricol">/);
+    const corps = vue.slice(i, vue.indexOf('\n  }\n', i));
+    expect(corps).toMatch(/if \(ouverte\?\.sorte === 'smart'\) \{\s*for \(const k of TRIS_SMART\)/);
+    expect(corps).toMatch(/\} else \{\s*for \(const k of TRIS_ALBUMS\)[^\n]*\n\s*faire: \(\) => changerTri\(k, sensAlbums\)/);
+    expect(vue.slice(vue.indexOf('<div class="v2-actions fa">'))).toContain('entrees={entreesTri}');
     expect(vue).toMatch(/trierAlbums\(albums, triSmart === 'regles' \? 'pertinence' : triSmart, sensSmart\)/);
   });
 

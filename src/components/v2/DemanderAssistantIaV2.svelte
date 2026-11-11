@@ -12,7 +12,7 @@
    * La coquille ne monte ce panneau que si l'assistant est prêt
    * (`assistantIaPret`).
    */
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import { currentZone } from '../../lib/stores/zones';
   import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
@@ -24,6 +24,9 @@
     lireCitation, ajouterCitation, texteCout, textePlafond, QUESTION_MAX, type GenreCite,
   } from '../../lib/assistantIaDialogue';
   import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
+  import {
+    voixActivee, relireAvantEnvoi, demarrerDictee, CLE_ECHEC, type Dictee,
+  } from '../../lib/commandeVocale';
 
   let { onClose }: { onClose: () => void } = $props();
 
@@ -65,6 +68,43 @@
     ouvrirFicheArtisteLocale(id, nom, $activeView);
     onClose();
   }
+
+  // ── Commande vocale (Réglages › Tune Voice AI) ────────────────────────
+  // Le bouton micro n'apparaît que si l'utilisateur l'a activée. Un appui
+  // démarre la dictée : le texte reconnu s'écrit en direct dans le champ, et
+  // la fin de la parole envoie la question — sauf « Relire avant l'envoi ».
+  const voix = voixActivee();
+  const relire = relireAvantEnvoi();
+  let dictee = $state<Dictee | null>(null);
+  let echecVoix = $state('');
+  let champ = $state<HTMLTextAreaElement | null>(null);
+
+  function micro() {
+    if (dictee) { dictee.arreter(); return; }
+    echecVoix = '';
+    dictee = demarrerDictee($locale, {
+      texte: (txt) => { question = txt; },
+      fin: (txt) => {
+        dictee = null;
+        question = txt;
+        // Une question déjà en route : le texte attend dans le champ.
+        if (relire || occupe) champ?.focus();
+        else void poser();
+      },
+      echec: (e) => {
+        dictee = null;
+        echecVoix = $t(CLE_ECHEC[e] as any);
+      },
+    });
+  }
+
+  // Fermer le panneau en pleine dictée l'annule. `dictee` est un $state, et
+  // Svelte ne le relit pas de façon fiable au démontage : on lit la
+  // reconnaissance par une référence ordinaire.
+  $effect(() => {
+    const d = dictee;
+    return () => d?.annuler();
+  });
 
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') onClose();
@@ -141,8 +181,30 @@
 
     <form onsubmit={poser}>
       <!-- svelte-ignore a11y_autofocus -->
-      <textarea bind:value={question} rows="2" maxlength={QUESTION_MAX} autofocus onkeydown={entree}
-        placeholder={$t('assistantIa.ask.placeholder' as any)} data-ia-question></textarea>
+      <div class="saisie">
+        <textarea bind:this={champ} bind:value={question} rows="2" maxlength={QUESTION_MAX} autofocus onkeydown={entree}
+          placeholder={$t('assistantIa.ask.placeholder' as any)} data-ia-question></textarea>
+        {#if voix}
+          <button type="button" class="micro" class:actif={dictee !== null} disabled={occupe}
+            aria-pressed={dictee !== null}
+            aria-label={$t((dictee ? 'voice.stop' : 'voice.start') as any)}
+            title={$t((dictee ? 'voice.stop' : 'voice.start') as any)}
+            onclick={micro} data-ia-micro>
+            <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3" />
+              <path d="M5 10v1a7 7 0 0 0 14 0v-1" />
+              <line x1="12" y1="18" x2="12" y2="22" />
+            </svg>
+          </button>
+        {/if}
+      </div>
+      {#if dictee}
+        <p class="note ecoute" aria-live="polite" data-ia-ecoute>{$t((relire ? 'voice.listeningReview' : 'voice.listening') as any)}</p>
+      {/if}
+      {#if echecVoix}
+        <p class="err" role="alert" data-ia-echec-voix>{echecVoix}</p>
+      {/if}
       <div class="pied">
         {#if $conversationIa.length}
           <button type="button" class="sec" disabled={occupe} onclick={oublierConversationIa}>{$t('assistantIa.ask.new' as any)}</button>
@@ -189,6 +251,21 @@
     border: 1px solid var(--v2-line2); border-radius: 6px; background: var(--v2-surface2);
     color: var(--v2-txt); font-size: 12px; padding: 2px 8px; cursor: pointer;
   }
+  .saisie { display: flex; align-items: stretch; gap: 10px; margin-top: 10px; }
+  .saisie textarea { margin-top: 0; flex: 1; }
+  /* Gros et franc : la commande vocale sert d'abord à qui tape mal. */
+  .micro {
+    flex: none; width: 64px; min-height: 64px; border-radius: 14px; cursor: pointer;
+    border: 2px solid var(--v2-acc1); background: transparent; color: var(--v2-acc1);
+    display: grid; place-items: center;
+  }
+  .micro:hover { background: var(--v2-surface2); }
+  .micro.actif { background: var(--v2-acc1); color: var(--v2-on-acc); animation: pouls 1.2s ease-in-out infinite; }
+  .micro:disabled { opacity: 0.5; cursor: default; }
+  .micro:focus-visible { outline: 3px solid var(--v2-acc1); outline-offset: 2px; }
+  @keyframes pouls { 50% { opacity: 0.75; } }
+  @media (prefers-reduced-motion: reduce) { .micro.actif { animation: none; } }
+  .ecoute { color: var(--v2-acc1); font-weight: 600; }
   textarea {
     width: 100%; box-sizing: border-box; background: var(--v2-bg); margin-top: 10px;
     border: 1px solid var(--v2-line2); border-radius: 8px; color: var(--v2-txt);

@@ -65,8 +65,13 @@
      * `AlbumDetailV2.allerArtiste`).
      */
     avantDeNaviguer?: () => void;
+    /**
+     * web#2736 — rendu À PLAT, sans tiroir : l'onglet « Crédits » de la fiche
+     * album. Même lecture, mêmes blocs, même enrichissement.
+     */
+    enLigne?: boolean;
   }
-  let { cible, onClose, avantDeNaviguer }: Props = $props();
+  let { cible, onClose, avantDeNaviguer, enLigne = false }: Props = $props();
 
   // Relevée une fois : le tiroir s'ouvre pour UN titre ou UN album.
   const c = untrack(() => cible);
@@ -135,6 +140,9 @@
   const titreTiroir = $derived($t(c.type === 'piste' ? 'credits.trackTitle' : 'credits.albumTitle'));
 </script>
 
+{#if enLigne}
+  <div class="en-ligne">{@render corps()}</div>
+{:else}
 <TiroirLateral titre={titreTiroir} {onClose} porte>
   {#snippet entete()}
     {#if c.titre}<p class="objet">{c.titre}</p>{/if}
@@ -145,6 +153,11 @@
       </p>
     {/if}
   {/snippet}
+  {@render corps()}
+</TiroirLateral>
+{/if}
+
+{#snippet corps()}
   <div class="corps" data-credits={c.type}>
     {#if etat === 'chargement'}
       <p class="etat">{$t('v2.common.loading')}</p>
@@ -200,7 +213,7 @@
       {/each}
     {/if}
   </div>
-</TiroirLateral>
+{/snippet}
 
 <style>
   .objet { margin: 4px 0 0; font-size: 14px; color: var(--tune-text); }
@@ -212,6 +225,8 @@
     flex: 1; overflow-y: auto; padding: 12px 20px 20px;
     display: flex; flex-direction: column; gap: 20px;
   }
+  .en-ligne .corps { padding: 4px 0 0; overflow: visible; max-width: 760px; }
+  .en-ligne .role { text-align: left; }
   .etat { padding: 12px; color: var(--tune-text-muted); font-size: 13px; text-align: center; }
   .etat.err { color: #ef4444; }
   .vide { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 8px; text-align: center; }

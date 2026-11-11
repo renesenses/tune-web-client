@@ -6669,8 +6669,21 @@ export function getStreamingPlaylist(service: string, id: string) {
   );
 }
 
-export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`)
+/**
+ * Les favoris d'un type chez le service.
+ *
+ * tune-server-rust#8040 — `page` demande UNE page (`?limit=&offset=`) : la
+ * réponse porte alors `total`, `limit` et `offset` à côté de la liste. Sans
+ * `page`, la liste entière, comme avant ; un serveur antérieur ignore les
+ * paramètres et rend la liste entière sans `total`.
+ */
+export function getStreamingFavorites(
+  service: string,
+  type: 'tracks' | 'albums' | 'artists',
+  page?: { limit: number; offset: number },
+) {
+  const requete = page ? `?limit=${page.limit}&offset=${page.offset}` : '';
+  return fetchJSON<Record<string, any>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}${requete}`)
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {
@@ -6777,6 +6790,17 @@ export function getProfileStreamingFavorites(
     false,
     (h) => etatMiroirFavoris.set(lireEtatMiroir(h?.get?.('X-Tune-Favoris-Miroir'))),
   );
+}
+
+/**
+ * web#2679 — l'état du miroir PAR SERVICE (`tune-server-rust#5997`) : de quoi
+ * nommer, dans le bandeau d'échec, le service qui n'a pas suivi et pourquoi.
+ * Sans bandeau d'erreur : ce n'est qu'un complément d'information.
+ */
+export function getEtatMiroirFavorisParService(
+  profileId: number,
+): Promise<{ services?: Record<string, { statut?: string; erreur?: string | null }> }> {
+  return fetchJSON(`${BASE}/profiles/${profileId}/favorites/streaming/miroir`, undefined, undefined, true);
 }
 
 export function addProfileStreamingFavorite(
@@ -8495,7 +8519,7 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
   return data.episodes || data;
 }
 
-export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number }): Promise<any> {
+export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number; seek_ms?: number }): Promise<any> {
   // tune-server-rust#6468 — un refus de la sortie est un 502/503 avec un `code`
   // stable. Sans bandeau global : l'écran Podcasts porte l'échec dans son
   // propre bandeau, traduit (`lectureEpisode.ts`), au lieu d'un

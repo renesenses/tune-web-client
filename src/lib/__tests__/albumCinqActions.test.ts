@@ -88,7 +88,8 @@ describe('les cinq actions de la fiche album', () => {
   ])('%s est présente', (cle) => { expect(src).toContain(cle); });
 
   it('le cœur reste la cinquième', () => {
-    expect(src).toContain('class="ghost coeur"');
+    // web#2736 — un bouton d'icône seule (`carre`), à côté de Lecture et Aléatoire.
+    expect(src).toContain('class="ghost carre coeur"');
   });
 
   it("aucune n'est masquée parce que l'album vient d'un service", () => {
@@ -127,6 +128,9 @@ describe('les cinq actions de la fiche album', () => {
   });
 
   it('un double clic ne double pas la file', () => {
-    expect(src).toContain('disabled={fileOccupee}');
+    // web#2736 — les deux gestes sont sous la flèche du bouton Lecture : leurs
+    // entrées sont grisées (`aria-disabled`, sans effet) pendant la requête.
+    expect(src).toContain('ensuite={{ faire: lireEnsuite, desactive: fileOccupee');
+    expect(src).toContain('file={{ faire: addQueue, desactive: fileOccupee');
   });
 });

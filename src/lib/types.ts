@@ -1623,6 +1623,12 @@ export interface RadioStation {
     /** Les flux publiés de la fiche, le principal d'abord (#7177). */
     streams?: FluxRadio[];
   } | null;
+  /**
+   * web#2795 — la station de l'annuaire a été modifiée CHEZ SOI (nom, logo ou
+   * flux) : le relevé de l'annuaire ne la touche plus, et « Revenir à la fiche
+   * de l'annuaire » efface la surcharge. Absent d'un serveur antérieur.
+   */
+  surcharge_locale?: boolean;
 }
 
 /**

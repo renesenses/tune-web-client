@@ -146,7 +146,7 @@
   }
 </script>
 
-<div class="arret-programme" data-arret-programme>
+<div class="arret-programme" data-arret-programme data-reglage="arret-programme">
   {#if chargement}
     <p class="hint">…</p>
   {:else if !disponible}

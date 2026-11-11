@@ -10,7 +10,7 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import { get } from 'svelte/store';
-  import { untrack } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
@@ -48,6 +48,9 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import { langueBioDe, AUCUNE_LANGUE, type LangueBio } from '../../lib/library/langueBio';
   import { provenanceDe, type BioProvenance } from '../../lib/library/attributionBio';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
+  import BoutonMenuV2 from './BoutonMenuV2.svelte';
+  import type { EntreeMenu } from '../../lib/menuPiste';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
@@ -342,7 +345,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   const creditsDeService = $derived(
     depot || bandcamp ? null : creditsAlbumDeServiceDe(service, sidDistant, $servicesCreditsRefuses),
   );
-  let creditsOuverts = $state(false);
   /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
   let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
 
@@ -402,10 +404,14 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   const lignesCollection = $derived(
     lignesMenuEnRayons(entreesCollection, rayonsCollection, $tr('v2.rayons.unfiled' as any)),
   );
-  async function basculerMenuCollection(e: MouseEvent) {
-    e.stopPropagation();
-    if (menuCollectionOuvert) { menuCollectionOuvert = false; return; }
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  /**
+   * web#2736 — le menu s'ouvre depuis l'entrée « Ajouter à › Collection » du
+   * menu « … » : il se pose sous CE bouton, et le focus entre dans la liste
+   * (le menu « … » s'est refermé en rendant le focus à son bouton).
+   */
+  async function ouvrirMenuCollection() {
+    const r = boutonPlus?.getBoundingClientRect();
+    if (!r) return;
     ancreCollection = { top: r.top, bottom: r.bottom, right: r.right };
     const [cibles, rayons] = await Promise.all([
       chargerCollectionsCibles(),
@@ -414,7 +420,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     collectionsCibles = cibles;
     rayonsCollection = rayons;
     menuCollectionOuvert = true;
+    await tick();
+    elementsCollection()[0]?.focus();
   }
+  const elementsCollection = () =>
+    Array.from(document.querySelectorAll<HTMLElement>('.coll-menu [role="menuitem"]'));
   function fermerMenuCollection() { menuCollectionOuvert = false; }
   /** Un défilement de la PAGE ferme le menu : posé en `fixed` aux coordonnées
    *  du bouton, il resterait figé loin de lui. Mais le menu défile lui-même
@@ -427,7 +437,14 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     menuCollectionOuvert = false;
   }
   function auClavierCollection(e: KeyboardEvent) {
-    if (e.key === 'Escape') menuCollectionOuvert = false;
+    if (!menuCollectionOuvert) return;
+    if (e.key === 'Escape') { menuCollectionOuvert = false; boutonPlus?.focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const l = elementsCollection();
+    if (!l.length) return;
+    e.preventDefault();
+    const i = l.indexOf(document.activeElement as HTMLElement);
+    l[(i + (e.key === 'ArrowDown' ? 1 : -1) + l.length) % l.length]?.focus();
   }
   function choisirCollection(e: MouseEvent, faire: () => void) {
     e.stopPropagation();
@@ -442,6 +459,70 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     quitterLaFiche();
     activeView.set('collections');
   }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     web#2736 — MOINS DE BOUTONS (Bertrand, 09/11/2026).
+
+     L'en-tête comptait une vingtaine de boutons. Il en garde trois et un menu :
+
+         [ ▶ Lecture | ▾ ]  [ ⤮ ]  [ ♡ ]  [ … ]
+
+     « Lire ensuite » et « Ajouter à la file » passent sous la flèche du bouton
+     Lecture (`BoutonLectureV2`) ; tout le reste dans « … », par groupes.
+     AUCUN geste ne disparaît : chacun garde sa garde d'avant — une entrée qui
+     ne s'applique pas à CET album est absente, pas grisée — et son attribut
+     `data-*`. Crédits, Bio et Présentation deviennent des onglets au-dessus
+     des pistes (voir `onglet`).
+     ══════════════════════════════════════════════════════════════════════ */
+  let boutonPlus = $state<HTMLElement | null>(null);
+  function entreesPlus(): EntreeMenu[] {
+    const l: EntreeMenu[] = [];
+    const ajout = 'v2.menu.addTo', infos = 'v2.menu.info', biblio = 'v2.menu.library';
+    // ▸ Ajouter à — #2096 : pas pour un dépôt distant, ses pistes ne se désignent pas ici.
+    if (!depot && tracks.length) l.push({ groupe: ajout, cle: 'v2.menu.toPlaylist', bulle: 'v2.album.addToPlaylistTip',
+      faire: () => (playlistAlbum = true), attrs: { 'data-album-playlist': true, 'aria-haspopup': 'dialog' } });
+    // Un album de la BIBLIOTHÈQUE seulement : voir « Ajouter à une collection ».
+    if (album.id != null && !depot) l.push({ groupe: ajout, cle: 'v2.menu.toCollection', bulle: 'v2.album.addToCollectionTip',
+      faire: () => void ouvrirMenuCollection(), attrs: { 'data-album-collection': true, 'aria-haspopup': 'menu' } });
+    // web#2202 — « Écouter plus tard », AVANT les étiquettes.
+    if (dansLeSas !== null) l.push({ groupe: ajout, cle: dansLeSas ? 'v2.later.remove' : 'v2.later.add',
+      bulle: dansLeSas ? 'v2.later.albumRemoveTip' : 'v2.later.albumAddTip', active: dansLeSas,
+      // Clé calculée : `check-francais-v2` lirait « plus » dans le littéral.
+      faire: () => void basculerLeSas(cibleEtiquettes), attrs: { [`data-ecouter-plus-tard`]: true } });
+    if (cibleEtiquettes) l.push({ groupe: ajout, cle: 'v2.cover.tags', bulle: 'v2.album.tagsTip',
+      faire: () => (etiquettesOuvertes = true), attrs: { 'data-etiquettes-album': true, 'aria-haspopup': 'dialog' } });
+    // ▸ Infos — l'assistant IA : mêmes albums que « Modifier ».
+    if (edition && !enEdition && album.id != null) {
+      l.push({ groupe: infos, cle: 'assistantIa.album.button', bulle: 'assistantIa.album.tip',
+        faire: () => (suggestionsIa = true), attrs: { 'data-suggestions-ia-album': true } });
+      l.push({ groupe: infos, cle: 'assistantIa.notes.button', bulle: 'assistantIa.notes.tip',
+        faire: () => (notesIa = true), attrs: { 'data-notes-ia-album': true } });
+    }
+    // #6481 — le livret s'ouvre dans un nouvel onglet.
+    for (const lv of livrets) l.push({ groupe: infos, cle: 'v2.album.booklet',
+      suffixe: livrets.length > 1 && lv.nom ? lv.nom.replace(/\.pdf$/i, '') : undefined,
+      faire: () => void window.open(lv.url, '_blank', 'noopener,noreferrer'), attrs: { 'data-livret': lv.url } });
+    // ▸ Bibliothèque
+    if (selectionPossible && !enEdition && ordreSelection.length > 0) l.push({ groupe: biblio,
+      cle: enSelection ? 'v2.selection.done' : 'v2.selection.start', bulle: 'v2.selection.startTip', active: enSelection,
+      faire: () => { onglet = 'pistes'; if (enSelection) quitterSelection(); else enSelection = true; },
+      attrs: { 'data-selection-album': true } });
+    if (edition && !enEdition) l.push({ groupe: biblio, cle: 'v2.edition.modify', bulle: 'v2.edition.modifyTip',
+      faire: () => { onglet = 'pistes'; enEdition = true; }, attrs: { 'data-modifier-album': true } });
+    if (album.id != null && !depot) l.push({ groupe: biblio,
+      cle: reidentification ? 'library.reidentifying' : 'library.reidentify', desactive: reidentification, bulle: 'v2.album.reidentifyTip',
+      faire: () => void reidentifier(), attrs: { 'data-reidentifier-album': true } });
+    // Le dossier n'existe que pour un album LOCAL dont les pistes portent un chemin.
+    if (dossier) {
+      l.push({ groupe: biblio, cle: 'v2.album.locate', bulle: 'v2.album.locateTip', faire: localiser, attrs: { 'data-localiser-album': true } });
+      if (revelable) l.push({ groupe: biblio, cle: 'v2.album.reveal', bulle: 'v2.album.revealTip',
+        faire: () => void ouvrirDansLExplorateur(), attrs: { 'data-reveler-album': true } });
+    }
+    if (coffretDefaisable()) l.push({ groupe: biblio, cle: 'v2.album.boxUndo', desactive: defaireEnCours, bulle: 'v2.album.boxUndoTip',
+      faire: () => void defaireCoffret(), attrs: { 'data-defaire-coffret': true } });
+    return l;
+  }
+
 
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
@@ -1498,6 +1579,48 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   }
 
   /**
+   * Les ONGLETS sous l'en-tête : Pistes | Crédits | Bio | Présentation. Chacun
+   * garde la garde de son ancien bouton ; le contenu se lit au premier choix
+   * de l'onglet, comme il se lisait au clic (la route de la bio sort sur le
+   * réseau, voir `basculerBio`).
+   */
+  type Onglet = 'pistes' | 'credits' | 'bio' | 'presentation';
+  let onglet = $state<Onglet>('pistes');
+  const LIBELLES_ONGLETS: Record<Onglet, string> = {
+    pistes: 'v2.menu.tabTracks',
+    credits: 'artist.credits',
+    bio: 'library.notesBio',
+    presentation: 'v2.album.presentation',
+  };
+  const onglets = $derived<Onglet[]>([
+    'pistes',
+    ...(creditsPossibles || creditsDeService || onglet === 'credits' ? ['credits' as const] : []),
+    ...(album.id != null ? ['bio' as const] : []),
+    ...(presentationCible || presentation?.etat === 'refus' ? ['presentation' as const] : []),
+  ]);
+  // Une autre fiche : on revient aux pistes.
+  $effect(() => { void album; untrack(() => (onglet = 'pistes')); });
+  function choisirOnglet(o: Onglet) {
+    onglet = o;
+    if (o === 'credits') creditsServiceOuvert = creditsPossibles ? null : creditsDeService;
+    if (o === 'bio' && !bioOuverte) void basculerBio();
+    if (o === 'presentation' && !presentationOuverte) void basculerPresentation();
+  }
+  /** ← / → / Début / Fin d'un onglet à l'autre (motif « tabs » de l'ARIA APG). */
+  function clavierOnglets(e: KeyboardEvent) {
+    const i = onglets.indexOf(onglet);
+    let j = -1;
+    if (e.key === 'ArrowRight') j = (i + 1) % onglets.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + onglets.length) % onglets.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = onglets.length - 1;
+    if (j < 0) return;
+    e.preventDefault();
+    choisirOnglet(onglets[j]);
+    void tick().then(() => document.getElementById(`album-onglet-${onglets[j]}`)?.focus());
+  }
+
+  /**
    * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
    * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
    * pas de lien actif pour rediriger vers la page de l'artiste. »
@@ -1821,168 +1944,46 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
           {#if erreurPreference}<p role="alert">{erreurPreference}</p>{/if}
         </div>
       {/if}
+      <!-- web#2736 — trois boutons et un menu. Les bulles disent ce que le
+           bouton FAIT (#2151, Didier, fil 2258). Les gestes valent pour les
+           QUATRE origines (Bertrand, 06/09/2026) : chaque piste porte sa paire
+           `source` + `source_id`, et la route de file accepte `tracks[]`. -->
       <div class="actions">
-        <!-- #2151 (Didier, fil 2258) — chaque bouton de la fiche a une bulle qui
-             dit ce qu'il FAIT, pas son libellé recopié. -->
-        <button class="play" onclick={() => playAlbum(0)} title={$tr('v2.album.playTip' as any)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('v2.album.play' as any)}
+        <BoutonLectureV2 onLire={() => playAlbum(0)} cle="v2.album.play" cleBulle="v2.album.playTip"
+          ensuite={{ faire: lireEnsuite, desactive: fileOccupee, bulle: 'v2.album.playNextTip' }}
+          file={{ faire: addQueue, desactive: fileOccupee, bulle: 'v2.album.addQueueTip' }} />
+        <button class="ghost carre" onclick={shuffle} title={$tr('v2.album.shuffleTip' as any)}
+          aria-label={$tr('v2.album.shuffle' as any)} data-aleatoire-album>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>
         </button>
-        <!-- 🔴 Les CINQ actions valent pour les QUATRE origines.
-             Elles étaient masquées dès qu'un album venait d'un service, au
-             motif qu'elles « travaillent sur des identifiants de pistes
-             LOCALES ». L'album n'a effectivement pas d'`id` — mais chaque
-             piste porte sa paire `source` + `source_id`, et la route de file
-             accepte `tracks[]`. Un album Qobuz n'offrait que deux boutons sur
-             cinq (Bertrand, 06/09/2026). -->
-        <button class="ghost" onclick={shuffle} title={$tr('v2.album.shuffleTip' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$tr('v2.album.shuffle' as any)}
-        </button>
-        <button class="ghost" onclick={lireEnsuite} disabled={fileOccupee} title={$tr('v2.album.playNextTip' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
-        </button>
-        <button class="ghost" onclick={addQueue} disabled={fileOccupee} title={$tr('v2.album.addQueueTip' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.album.addQueue' as any)}
-        </button>
-        <!-- #2096 (FabienM, fil 2236, point 7) — l'album ENTIER dans une
-             playlist, la même fenêtre que pour un titre. Pas pour un album
-             d'un dépôt Tune distant : ses pistes ne se désignent pas ici. -->
-        {#if !depot && tracks.length}
-          <button class="ghost" data-album-playlist onclick={() => (playlistAlbum = true)}
-            title={$tr('v2.album.addToPlaylistTip' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 11h11M4 16h7M18 13v6M15 16h6"/></svg>{$tr('playlist.addToPlaylist')}
-          </button>
-        {/if}
         <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE (`id` local, ou
-             référence de service — Bandcamp compris depuis #1409, désigné par
-             l'URL de sa page comme sur sa vignette). Un bouton absent ne
-             promet rien. -->
-        <!-- Le dossier n'existe que pour un album LOCAL, et seulement si ses
-             pistes portent un chemin : le bouton n'apparaît qu'alors. -->
-        {#if dossier}
-          <button class="ghost" onclick={localiser}
-            title={$tr('v2.album.locateTip' as any)} aria-label={$tr('v2.album.locate' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            {$tr('v2.album.locate' as any)}
-          </button>
-          {#if revelable}
-            <button class="ghost reveler" onclick={ouvrirDansLExplorateur}
-              title={$tr('v2.album.revealTip' as any)} aria-label={$tr('v2.album.reveal' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-              {$tr('v2.album.reveal' as any)}
-            </button>
-          {/if}
-        {/if}
-        <!-- #6481 — le livret s'ouvre dans un nouvel onglet. -->
-        {#each livrets as l (l.url)}
-          <a class="ghost livret" href={l.url} target="_blank" rel="noopener noreferrer"
-            title={l.nom || $tr('v2.album.booklet' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
-            {livrets.length > 1 && l.nom ? l.nom.replace(/\.pdf$/i, '') : $tr('v2.album.booklet' as any)}
-          </a>
-        {/each}
-        {#if coffretDefaisable()}
-          <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
-            title={$tr('v2.album.boxUndoTip' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
-            {$tr('v2.album.boxUndo' as any)}
-          </button>
-        {/if}
+             référence de service — Bandcamp compris depuis #1409). Un bouton
+             absent ne promet rien. -->
         {#if album.id != null || refService}
-          <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+          <button class="ghost carre coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}
             title={$tr(enFavori ? 'favorites.removeAlbum' : 'v2.album.favoriteTip' as any)}
             aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
-            <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+            <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         {/if}
-        <!-- web#2202 — « Écouter plus tard », AVANT les étiquettes : celles-ci
-             et « Ajouter à une collection » restent côte à côte. -->
-        {#if dansLeSas !== null}
-          <button class="ghost" data-ecouter-plus-tard aria-pressed={dansLeSas}
-            onclick={() => void basculerLeSas(cibleEtiquettes)}
-            title={$tr((dansLeSas ? 'v2.later.albumRemoveTip' : 'v2.later.albumAddTip') as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            {$tr((dansLeSas ? 'v2.later.remove' : 'v2.later.add') as any)}
-          </button>
-        {/if}
-        <!-- ÉTIQUETTES — même niveau visuel que les autres (`ghost`), et
-             ABSENT quand l'album n'est pas désignable (dépôt distant, album
-             sans identifiant ni paire) : voir `cibleEtiquettes`. Un bouton
-             absent ne promet rien, un bouton qui échoue à l'usage si. -->
-        {#if cibleEtiquettes}
-          <button class="ghost" onclick={() => (etiquettesOuvertes = true)}
-            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
-            title={$tr('v2.album.tagsTip' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
-            {$tr('v2.cover.tags' as any)}
-          </button>
-        {/if}
-        <!-- AJOUTER À UNE COLLECTION — même garde que le bloc local : un
-             album de la BIBLIOTHÈQUE. Voir l'en-tête du `<script>`. -->
-        {#if album.id != null && !depot}
-          <button class="ghost" onclick={basculerMenuCollection}
-            aria-haspopup="menu" aria-expanded={menuCollectionOuvert}
-            title={$tr('v2.album.addToCollectionTip' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM12 10v6M9 13h6"/></svg>
-            {$tr('v2.album.addToCollection' as any)}
-          </button>
-        {/if}
-        {#if creditsPossibles || creditsDeService}
-          <button class="ghost" data-credits-album
-            onclick={() => { creditsServiceOuvert = creditsPossibles ? null : creditsDeService; creditsOuverts = true; }}
-            aria-haspopup="dialog" aria-expanded={creditsOuverts}
-            title={$tr('v2.album.creditsTip' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            {$tr('artist.credits' as any)}
-          </button>
-        {/if}
+        <BoutonMenuV2 entrees={entreesPlus} etiquette={$tr('v2.cover.more' as any)} largeur={248}>
+          {#snippet declencheur(p)}
+            <button class="ghost carre plus" bind:this={boutonPlus} {...p} data-menu-album
+              aria-label={$tr('v2.cover.more' as any)} title={$tr('v2.cover.more' as any)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+          {/snippet}
+        </BoutonMenuV2>
       </div>
-      <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
-           la bibliothèque. -->
+      <!-- La note sur 5 et le signalement de la pochette : des réglages de
+           l'album, pas des gestes — ils restent à vue. Album LOCAL seulement. -->
       {#if album.id != null && !depot}
         <div class="actions local">
           <AlbumRating albumId={album.id} />
-          <button class="ghost" onclick={reidentifier} disabled={reidentification}
-            title={$tr('v2.album.reidentifyTip' as any)}>
-            {reidentification ? $tr('library.reidentifying') : $tr('library.reidentify')}
-          </button>
           {#if album.cover_path}
-            <ReportButton entity="cover" entityId={album.id}
+            <ReportButton entity="cover" entityId={album.id} compact
               reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} />
-          {/if}
-          <!-- Le mode « Modifier » : seulement si le serveur sert la fiche
-               d'édition (voir `edition`). -->
-          <!-- #1683 — la sélection multiple : sous la garde du mode Modifier
-               (album de la BIBLIOTHÈQUE), et seulement quand il y a des
-               pistes à cocher. -->
-          {#if selectionPossible && !enEdition && ordreSelection.length > 0}
-            <button class="ghost" data-selection-album aria-pressed={enSelection}
-              onclick={() => (enSelection ? quitterSelection() : (enSelection = true))}
-              title={$tr('v2.selection.startTip' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>
-              {$tr((enSelection ? 'v2.selection.done' : 'v2.selection.start') as any)}
-            </button>
-          {/if}
-          {#if edition && !enEdition}
-            <button class="ghost" data-modifier-album onclick={() => (enEdition = true)}
-              aria-expanded={enEdition} title={$tr('v2.edition.modifyTip' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-              {$tr('v2.edition.modify' as any)}
-            </button>
-          {/if}
-          <!-- Assistant IA, étape 1 — mêmes albums que « Modifier » : ceux de
-               la BIBLIOTHÈQUE, que l'assistant peut enrichir. -->
-          {#if edition && !enEdition}
-            <button class="ghost" data-suggestions-ia-album onclick={() => (suggestionsIa = true)}
-              title={$tr('assistantIa.album.tip' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg>
-              {$tr('assistantIa.album.button' as any)}
-            </button>
-            <button class="ghost" data-notes-ia-album onclick={() => (notesIa = true)}
-              title={$tr('assistantIa.notes.tip' as any)}>
-              {$tr('assistantIa.notes.button' as any)}
-            </button>
           {/if}
         </div>
       {/if}
@@ -1998,57 +1999,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
        geste qui le retire. Album LOCAL seulement. -->
   {#if album.id != null && !depot}
     <ApportsQobuzAlbum albumId={album.id} />
-  {/if}
-
-  <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
-       pour la raison du bouton : la route sort sur le réseau. -->
-  {#if album.id != null}
-    <div class="bio">
-      <button class="bio-toggle" onclick={basculerBio} aria-expanded={bioOuverte}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        {bioOuverte ? $tr('library.hideNotes') : $tr('library.notesBio')}
-      </button>
-      {#if bioOuverte}
-        {#if bioChargement}
-          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
-        {:else if bioErreur}
-          <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
-        {:else if bio}
-          <ClampedText lines={4} resetKey={bio}>
-            <p class="bio-text" lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
-          </ClampedText>
-          <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
-          <AttributionBio provenance={bioProvenance} />
-        {:else}
-          <p class="bio-state">{$tr('library.noAlbumNote')}</p>
-        {/if}
-      {/if}
-    </div>
-  {/if}
-
-  <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
-       balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
-       (501) retire le bouton des fiches suivantes ; celle-ci dit pourquoi. -->
-  {#if presentationCible || presentation?.etat === 'refus'}
-    <div class="bio">
-      <button class="bio-toggle" onclick={basculerPresentation} aria-expanded={presentationOuverte}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        {presentationOuverte ? $tr('v2.album.hidePresentation' as any) : $tr('v2.album.presentation' as any)}
-      </button>
-      {#if presentationOuverte}
-        {#if presentationChargement}
-          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
-        {:else if presentation?.etat === 'texte'}
-          <ClampedText lines={4} resetKey={presentation.texte}>
-            <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{#if segmentsPresentation}<TexteDeBio segments={segmentsPresentation} />{:else}{presentation.texte}{/if}</p>
-          </ClampedText>
-        {:else if presentation?.etat === 'erreur'}
-          <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
-        {:else if presentation}
-          <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
-        {/if}
-      {/if}
-    </div>
   {/if}
 
   <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
@@ -2071,7 +2021,79 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       onChange={() => (rechargement += 1)} />
   {/if}
 
-  <div class="tracks">
+  <!-- web#2736 — Pistes | Crédits | Bio | Présentation. Un onglet n'existe
+       que si son ancien bouton existait : pas de « Présentation » sur un album
+       de la bibliothèque, pas de « Bio » sur un album de service. Seul, l'onglet
+       Pistes ne s'affiche pas. -->
+  {#if onglets.length > 1}
+    <div class="onglets" role="tablist" aria-label={$tr('v2.menu.tabsLabel' as any)}>
+      {#each onglets as o (o)}
+        <button type="button" role="tab" class="onglet" class:actif={onglet === o}
+          id="album-onglet-{o}" aria-controls="album-panneau-{o}"
+          aria-selected={onglet === o} tabindex={onglet === o ? 0 : -1}
+          data-onglet-album={o} data-credits-album={o === 'credits' ? '' : undefined}
+          onclick={() => choisirOnglet(o)} onkeydown={clavierOnglets}>{$tr(LIBELLES_ONGLETS[o] as any)}</button>
+      {/each}
+    </div>
+  {/if}
+
+  {#if onglet === 'credits'}
+    <!-- #1572 — les crédits de l'album : la même fiche que celle d'un titre,
+         agrégée sur le disque, ici À PLAT dans l'onglet. Un nom crédité
+         referme la fiche avant d'ouvrir la page de l'artiste. -->
+    <div class="panneau" role="tabpanel" id="album-panneau-credits" aria-labelledby="album-onglet-credits">
+      {#if (creditsPossibles && album.id != null) || creditsServiceOuvert}
+        {#key `${album.id ?? ''}:${creditsServiceOuvert?.albumId ?? ''}`}
+          {#await import('../partages/CreditsTiroir.svelte') then m}
+            <m.default enLigne
+              cible={{ type: 'album', albumId: creditsServiceOuvert ? null : album.id, service: creditsServiceOuvert, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+              avantDeNaviguer={quitterLaFiche}
+              onClose={() => {}} />
+          {/await}
+        {/key}
+      {/if}
+    </div>
+  {:else if onglet === 'bio'}
+    <!-- Présentation de l'album (#3586) : lue au premier choix de l'onglet, la
+         route sort sur le réseau (voir `basculerBio`). -->
+    <div class="panneau bio" role="tabpanel" id="album-panneau-bio" aria-labelledby="album-onglet-bio" data-panneau-bio>
+      {#if bioChargement}
+        <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+      {:else if bioErreur}
+        <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
+      {:else if bio}
+        <ClampedText lines={4} resetKey={bio}>
+          <p class="bio-text" lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
+        </ClampedText>
+        <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
+        <AttributionBio provenance={bioProvenance} />
+      {:else if bio !== null}
+        <p class="bio-state">{$tr('library.noAlbumNote')}</p>
+      {/if}
+    </div>
+  {:else if onglet === 'presentation'}
+    <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
+         balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
+         (501) retire l'onglet des fiches suivantes ; celle-ci dit pourquoi. -->
+    <div class="panneau bio" role="tabpanel" id="album-panneau-presentation" aria-labelledby="album-onglet-presentation" data-panneau-presentation>
+      {#if presentationChargement}
+        <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+      {:else if presentation?.etat === 'texte'}
+        <ClampedText lines={4} resetKey={presentation.texte}>
+          <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{#if segmentsPresentation}<TexteDeBio segments={segmentsPresentation} />{:else}{presentation.texte}{/if}</p>
+        </ClampedText>
+      {:else if presentation?.etat === 'erreur'}
+        <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
+      {:else if presentation}
+        <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
+      {/if}
+    </div>
+  {/if}
+
+  <div class="tracks" hidden={onglet !== 'pistes'}
+    role={onglets.length > 1 ? 'tabpanel' : undefined}
+    id={onglets.length > 1 ? 'album-panneau-pistes' : undefined}
+    aria-labelledby={onglets.length > 1 ? 'album-onglet-pistes' : undefined}>
     {#if enEdition && edition && album.id != null}
       <EditionAlbumV2 albumId={album.id} donnees={edition}
         onFermer={() => (enEdition = false)}
@@ -2189,17 +2211,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       onClose={() => (playlistSelection = false)} />
   {/await}
 {/if}
-<!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
-     agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
-     page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
-{#if creditsOuverts && ((creditsPossibles && album.id != null) || creditsServiceOuvert)}
-  {#await import('../partages/CreditsTiroir.svelte') then m}
-    <m.default
-      cible={{ type: 'album', albumId: creditsServiceOuvert ? null : album.id, service: creditsServiceOuvert, titre: album.title, artiste: nomArtiste, pistes: tracks }}
-      avantDeNaviguer={quitterLaFiche}
-      onClose={() => (creditsOuverts = false)} />
-  {/await}
-{/if}
 <!-- Le menu « Ajouter à une collection » : une entrée par collection
      MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
      racine et posé en `fixed` : la fiche défile. -->
@@ -2310,18 +2321,32 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      ligne unique. */
   .actions{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:8px}
   .actions.local{flex-wrap:wrap; align-items:center}
-  .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
+  .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
-  .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  a.ghost.livret{text-decoration:none}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
      règle que sur les lignes de piste. */
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .coeur:disabled{opacity:.55; cursor:default}
-  .play svg,.ghost svg{width:16px; height:16px}
+  .ghost svg{width:16px; height:16px}
+  /* web#2736 — les boutons d'icône seule : carrés, même hauteur que Lecture. */
+  .ghost.carre{width:44px; padding:0; justify-content:center; flex:0 0 auto}
+  .ghost[aria-expanded="true"]{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .ghost:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+
+  /* web#2736 — Pistes | Crédits | Bio | Présentation. Au téléphone, la rangée
+     défile d'elle-même plutôt que de pousser la fiche hors du cadre. */
+  .onglets{display:flex; gap:4px; margin:14px 0 10px; border-bottom:1px solid var(--v2-line2);
+    overflow-x:auto; scrollbar-width:none}
+  .onglet{flex:0 0 auto; padding:9px 14px; border:0; border-bottom:2px solid transparent; margin-bottom:-1px;
+    background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .onglet:hover{color:var(--v2-txt)}
+  .onglet.actif{color:var(--v2-txt); border-bottom-color:var(--v2-acc2)}
+  .onglet:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
+  .panneau{padding:6px 0 20px}
+  .tracks[hidden]{display:none}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   /* #4767 — la pastille de focus : visible sans crier, au-dessus de la liste
@@ -2365,11 +2390,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      l'interface actuelle : la route sort sur le réseau quand la notice
      manque, cf. `basculerBio`. */
   .mes-notes-album{max-width:760px}
-  .bio{margin:18px 0 4px; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
-  .bio-toggle{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
-    border-radius:10px; padding:6px 12px; font-family:var(--v2-sans); font-size:13px}
-  .bio-toggle:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .bio{margin:0; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}

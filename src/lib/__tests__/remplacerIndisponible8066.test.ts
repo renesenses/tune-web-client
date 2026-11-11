@@ -12,6 +12,7 @@ import lFr from '../locales/fr';
 import { notifications } from '../stores/notifications';
 import { aDesIndisponibles, issueDe, peutRemplacer, pourcent } from '../remplacementIndisponibles';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { entreeDuMenu } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -86,7 +87,8 @@ async function ouvrir(item: any, titre: string) {
 }
 const ouvrirLocale = () => ouvrir({ kind: 'local', pl: { id: 5, name: 'Ma liste', track_count: 3 } }, 'Teardrop');
 const boutonsRemplacer = () => [...hote!.querySelectorAll<HTMLButtonElement>('button[data-remplacer-indisponible]')];
-const boutonReparer = () => hote!.querySelector<HTMLButtonElement>('button[data-reparer-playlist]');
+// web#2736 — une entrée du menu « … » de la fiche playlist.
+const boutonReparer = () => entreeDuMenu(hote!, '[data-reparer-playlist]');
 const modale = () => document.querySelector<HTMLElement>('[role="dialog"][data-remplacer-indisponible]');
 const posts = () => requetes.filter((r) => r.method === 'POST');
 
