@@ -6548,6 +6548,7 @@ export default {
   "erreursServeur.details": "세부 정보",
   "toast.erreursRepliees": "이전 오류 {n}개 접힘",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
+  "avisServeur.pure_resumed_at_position": "PURE 전환: {position}부터 재개",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: 이 존의 볼륨은 PURE로 잠겨 있으므로 귀와 스피커를 보호하기 위해 0%에서 재생을 시작했습니다. 기기나 Tune에서 볼륨을 올리세요.",
   "v2.pl.serviceNoPlaylists": "{s}은(는) 재생목록을 제공하지 않습니다.",
   "v2.dev.listAria": "장치 및 존",
