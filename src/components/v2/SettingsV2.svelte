@@ -134,6 +134,10 @@
   import { retablirLargeurs } from '../../lib/largeursColonnes';
   import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
+  import {
+    raisonIndisponible, CLE_RAISON, voixActivee, ecrireVoixActivee,
+    relireAvantEnvoi, ecrireRelireAvantEnvoi,
+  } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
@@ -1685,22 +1689,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // au navigateur. On DEMANDE l'autorisation a l'activation et on retombe a
   // faux si elle est refusee — sinon la case reste cochee pour une fonction
   // qui ne peut pas marcher.
+  //
+  // rc12 : la case restait « activée » sur une adresse http du réseau local
+  // (le navigateur y refuse le micro, `navigator.mediaDevices` n'existe même
+  // pas) ou dans Firefox (pas de reconnaissance vocale) : la fonction ne
+  // pouvait pas marcher et rien ne le disait. La raison s'affiche désormais
+  // sous l'interrupteur, qui reste éteint.
+  const voiceRaison = raisonIndisponible();
   let voiceOn = $state(false);
+  let voiceRelire = $state(false);
   $effect(() => {
-    try { voiceOn = localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { voiceOn = false; }
+    voiceOn = voiceRaison === null && voixActivee();
+    voiceRelire = relireAvantEnvoi();
   });
   async function setVoice(v: boolean) {
+    if (v && voiceRaison) { voiceOn = false; return; }
     voiceOn = v;
-    try { localStorage.setItem('tune_voice_ai_enabled', String(v)); } catch { /* ignore */ }
+    ecrireVoixActivee(v);
     if (!v) return;
     try {
-      await navigator.mediaDevices?.getUserMedia({ audio: true });
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('mediaDevices');
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // On ne garde pas le micro ouvert : la dictée le rouvrira elle-même.
+      flux.getTracks().forEach((p) => p.stop());
       notifications.success($t('settings.micAuthorized' as any));
     } catch {
       notifications.error($t('settings.micDenied' as any));
       voiceOn = false;
-      try { localStorage.setItem('tune_voice_ai_enabled', 'false'); } catch { /* ignore */ }
+      ecrireVoixActivee(false);
     }
+  }
+  function setVoiceRelire(v: boolean) {
+    voiceRelire = v;
+    ecrireRelireAvantEnvoi(v);
   }
 
   // ── Interface ──────────────────────────────────────────────────────────
@@ -4651,10 +4672,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.voiceCommandHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" checked={voiceOn} onchange={(e) => setVoice((e.currentTarget as HTMLInputElement).checked)} />
+                  <input type="checkbox" checked={voiceOn} disabled={voiceRaison !== null}
+                    aria-describedby={voiceRaison ? 'voice-raison' : undefined}
+                    onchange={(e) => setVoice((e.currentTarget as HTMLInputElement).checked)} data-voice-switch />
                   <span class="slider"></span>
                 </label>
               </div>
+              {#if voiceRaison}
+                <p class="hint err" id="voice-raison" role="note" data-voice-raison>{$t(CLE_RAISON[voiceRaison] as any)}</p>
+              {:else if voiceOn}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('voice.review' as any)}</span>
+                    <span class="hint">{$t('voice.reviewHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={voiceRelire} onchange={(e) => setVoiceRelire((e.currentTarget as HTMLInputElement).checked)} data-voice-relire />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
 
             {:else if s.id === 'displayPrefs'}
               <!-- LA MATRICE. Première ligne : les modes. Première colonne :
