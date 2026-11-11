@@ -7237,6 +7237,7 @@ export default {
   "login.registering": "アカウントを作成中…",
   "login.haveAccount": "すでにアカウントをお持ちですか？",
   "nowplaying.eqPureNotice": "このゾーンでは PURE モードが有効です。信号は処理されずにそのまま送られます。PURE モードが有効な間、下のプリセットは効果がありません。",
+  "zone.pauseThisZone": "{name} を一時停止",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

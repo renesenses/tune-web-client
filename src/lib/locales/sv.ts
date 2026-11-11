@@ -7236,4 +7236,5 @@ export default {
   "login.registering": "Skapar konto…",
   "login.haveAccount": "Har du redan ett konto?",
   "nowplaying.eqPureNotice": "PURE-läget är på för den här zonen: signalen skickas orörd, utan någon bearbetning. Förinställningarna nedan har ingen effekt så länge PURE-läget är på.",
+  "zone.pauseThisZone": "Pausa {name}",
 } as const;

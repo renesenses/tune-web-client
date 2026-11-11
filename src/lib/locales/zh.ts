@@ -7237,6 +7237,7 @@ export default {
   "login.registering": "正在创建账户…",
   "login.haveAccount": "已有账户？",
   "nowplaying.eqPureNotice": "此区域已启用 PURE 模式：信号原样传输，不经任何处理。PURE 模式启用期间，下方的预设不会生效。",
+  "zone.pauseThisZone": "暂停 {name}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

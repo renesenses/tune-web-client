@@ -13,7 +13,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
-  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
   import { upNextCount } from '../../lib/stores/queue';
@@ -732,6 +732,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     await stopAndSync(zone.id);
   }
 
+  /** web#2823 — pause d'UNE zone de la liste, sans changer la zone pilotée. */
+  async function mettreZoneEnPause(id: number | null) {
+    if (id == null) return;
+    try {
+      await pauseAndSync(id);
+    } catch (err) {
+      notifierErreur($t('common.errorLabel' as any), err, { motifSeul: true });
+    }
+  }
+
   async function doubleClicLecture() {
     await arreter();
   }
@@ -1138,13 +1148,30 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                   <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
                 {:else if z.online === false}
                   <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
-                {:else if z.state === 'playing'}
-                  <span class="zone-playing-indicator">
-                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
-                  </span>
                 {/if}
               </span>
             </button>
+            <!--
+              web#2823 (fil 2766) — le ▶ vert « en lecture » se lisait « cliquez
+              pour lire ». À sa place, un VRAI bouton pause, sur chaque zone qui
+              joue : il coupe CETTE zone (le son d'une autre pièce) sans la
+              piloter. Bouton frère du corps de la rangée — un bouton ne
+              s'imbrique pas dans un bouton — et `stopPropagation` : le clic ne
+              remonte ni au fond du sélecteur ni à la barre. Zone en pause ou
+              arrêtée : pas de bouton.
+            -->
+            {#if z.id !== null && z.online !== false && z.recovery_started_at == null && z.state === 'playing'}
+              <button
+                type="button"
+                class="zone-popover-pause"
+                data-pause-zone={z.id}
+                aria-label={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                title={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                onclick={(e) => { e.stopPropagation(); void mettreZoneEnPause(z.id); }}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              </button>
+            {/if}
             <!--
               #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
               point 1). Elle et le bouton dédié « Transférer la lecture vers… »
@@ -2953,11 +2980,29 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     border-radius: var(--radius-sm);
   }
 
-  .zone-playing-indicator {
-    color: var(--tune-success);
+  /* web#2823 — le bouton pause d'une zone qui joue, à droite de la rangée. */
+  .zone-popover-pause {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    align-self: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--tune-success);
+    cursor: pointer;
+  }
+  .zone-popover-pause:hover {
+    background: var(--tune-surface-hover);
+  }
+  .zone-popover-pause:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 1px;
   }
 
   /* Recovery / Offline states */
