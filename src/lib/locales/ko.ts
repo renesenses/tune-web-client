@@ -7076,6 +7076,8 @@ export default {
   "v2.lib.periodTo": "끝",
   "v2.lib.periodClear": "지우기",
   "v2.lib.periodCount": "기간 내 앨범: {n}",
+  "v2.lib.periodCountFiltered": "기간 내 앨범: 현재 필터로 {n}개 (필터 없이 {total}개)",
+  "library.removeFilter": "{f} 필터 해제",
   "v2.lib.periodNoYear": "연도 없는 앨범 제외: {n}",
   "v2.lib.periodStart": "기간 시작",
   "v2.lib.periodEnd": "기간 끝",

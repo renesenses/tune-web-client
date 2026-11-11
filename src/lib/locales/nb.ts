@@ -6921,6 +6921,8 @@ export default {
   "v2.lib.periodTo": "Til",
   "v2.lib.periodClear": "Fjern",
   "v2.lib.periodCount": "Album i perioden: {n}",
+  "v2.lib.periodCountFiltered": "Album i perioden: {n} med gjeldende filtre ({total} uten)",
+  "library.removeFilter": "Fjern filteret {f}",
   "v2.lib.periodNoYear": "Album uten år utelatt: {n}",
   "v2.lib.periodStart": "Start på perioden",
   "v2.lib.periodEnd": "Slutt på perioden",

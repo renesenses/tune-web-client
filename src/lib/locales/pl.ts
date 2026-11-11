@@ -6921,6 +6921,8 @@ export default {
   "v2.lib.periodTo": "Do",
   "v2.lib.periodClear": "Wyczyść",
   "v2.lib.periodCount": "Albumy w okresie: {n}",
+  "v2.lib.periodCountFiltered": "Albumy w okresie: {n} z bieżącymi filtrami ({total} bez nich)",
+  "library.removeFilter": "Usuń filtr {f}",
   "v2.lib.periodNoYear": "Wykluczone albumy bez roku: {n}",
   "v2.lib.periodStart": "Początek okresu",
   "v2.lib.periodEnd": "Koniec okresu",

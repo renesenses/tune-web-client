@@ -7076,6 +7076,8 @@ export default {
   "v2.lib.periodTo": "終了",
   "v2.lib.periodClear": "クリア",
   "v2.lib.periodCount": "期間内のアルバム：{n}",
+  "v2.lib.periodCountFiltered": "期間内のアルバム：現在の絞り込みで {n}（絞り込みなしで {total}）",
+  "library.removeFilter": "絞り込み「{f}」を解除",
   "v2.lib.periodNoYear": "年のないアルバムを除外：{n}",
   "v2.lib.periodStart": "期間の開始",
   "v2.lib.periodEnd": "期間の終了",

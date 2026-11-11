@@ -7075,6 +7075,8 @@ export default {
   "v2.lib.periodTo": "Till",
   "v2.lib.periodClear": "Rensa",
   "v2.lib.periodCount": "Album i perioden: {n}",
+  "v2.lib.periodCountFiltered": "Album i perioden: {n} med nuvarande filter ({total} utan)",
+  "library.removeFilter": "Ta bort filtret {f}",
   "v2.lib.periodNoYear": "Album utan år uteslutna: {n}",
   "v2.lib.periodStart": "Periodens början",
   "v2.lib.periodEnd": "Periodens slut",

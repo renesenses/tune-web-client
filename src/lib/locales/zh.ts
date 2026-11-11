@@ -7076,6 +7076,8 @@ export default {
   "v2.lib.periodTo": "到",
   "v2.lib.periodClear": "清除",
   "v2.lib.periodCount": "该时间段内的专辑：{n}",
+  "v2.lib.periodCountFiltered": "该时间段内的专辑：当前筛选下 {n} 张（不筛选 {total} 张）",
+  "library.removeFilter": "移除筛选条件 {f}",
   "v2.lib.periodNoYear": "已排除无年份的专辑：{n}",
   "v2.lib.periodStart": "时间段开始",
   "v2.lib.periodEnd": "时间段结束",

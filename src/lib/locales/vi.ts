@@ -6928,6 +6928,8 @@ export default {
   "v2.lib.periodTo": "Đến",
   "v2.lib.periodClear": "Xóa",
   "v2.lib.periodCount": "Album trong khoảng thời gian: {n}",
+  "v2.lib.periodCountFiltered": "Album trong khoảng thời gian: {n} với bộ lọc hiện tại ({total} khi không lọc)",
+  "library.removeFilter": "Bỏ bộ lọc {f}",
   "v2.lib.periodNoYear": "Đã loại album không có năm: {n}",
   "v2.lib.periodStart": "Bắt đầu khoảng thời gian",
   "v2.lib.periodEnd": "Kết thúc khoảng thời gian",

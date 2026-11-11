@@ -699,13 +699,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function matches(a: Album): boolean {
     // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
     // facettes cochées le sont toutes les deux (ET) — #898.
-    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
-    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
+    return matchesHorsAnnees(a);
+  }
+  /** Tous les critères de `matches` SAUF l'année et la période : ce que le
+   *  compteur de la période doit croiser pour parler de la grille (tune-server-rust#8162). */
+  function matchesHorsAnnees(a: Album): boolean {
+    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
+    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
@@ -1811,6 +1816,52 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
       || paysChoisi != null,
   );
+
+  /**
+   * tune-server-rust#8162 — « Albums dans la période : 156 » au-dessus d'une
+   * grille vide (filtre Multicanal posé, 1970–1979). La frise décrit la
+   * collection et ne se réduit pas aux autres filtres (voir `populationFrise`) ;
+   * le compteur, lui, se lit comme le nombre d'albums affichés. Quand un autre
+   * filtre ou une recherche est posé, il donne donc les DEUX nombres : avec les
+   * filtres actuels, et sans. `null` : aucun autre filtre, le compteur seul suffit.
+   */
+  const nPeriodeFiltre = $derived(
+    periodeAffichee && (filtreActif || q.trim() !== '')
+      ? populationFrise.reduce((n, a) => n + (dansPeriode(albumYear(a), periodeVue) && matchesHorsAnnees(a) ? 1 : 0), 0)
+      : null,
+  );
+
+  /**
+   * tune-server-rust#8162 — une liste vide NOMME les filtres qui la vident et
+   * propose de retirer chacun, au lieu d'un « aucun album ne correspond » muet
+   * qui laisse chercher lequel. Mêmes libellés que les puces de la barre.
+   */
+  const retraitsFiltres = $derived.by(() => {
+    const r: { cle: string; libelle: string; retirer: () => void }[] = [];
+    const t = (k: string) => $tr(k as any);
+    if (fQuality.length) {
+      const noms = fQuality.map((k) => { const it = QUALITIES.find((x) => x.key === k); return it ? (it.cle ? t(it.cle) : it.label) : k; });
+      r.push({ cle: 'quality', libelle: `${t('v2.tcol.quality')} · ${noms.join(', ')}`, retirer: () => (fQuality = []) });
+    }
+    if (fRate.length) {
+      r.push({ cle: 'rate', libelle: `${t('v2.tcol.sampleRate')} · ${fRate.map((v) => RATES.find((x) => x.v === v)?.l ?? v).join(', ')}`, retirer: () => (fRate = []) });
+    }
+    if (fFormat.length) r.push({ cle: 'format', libelle: `${t('v2.tcol.format')} · ${fFormat.join(', ')}`, retirer: () => (fFormat = []) });
+    if (fDepth.length) r.push({ cle: 'depth', libelle: `${t('v2.tcol.bitDepth')} · ${fDepth.join(', ')}-bit`, retirer: () => (fDepth = []) });
+    if (fDrMin != null || fDrMax != null) {
+      r.push({ cle: 'dr', libelle: `${t('library.drRange')} · ${fDrMin ?? ''}–${fDrMax ?? ''}`, retirer: () => { fDrMin = null; fDrMax = null; } });
+    }
+    if (fCompilation != null) r.push({ cle: 'compilation', libelle: t('v2.lib.compilations'), retirer: () => (fCompilation = null) });
+    if (fIncomplets) r.push({ cle: 'incomplete', libelle: t('v2.lib.incomplete'), retirer: () => (fIncomplets = false) });
+    if (fProvenance) r.push({ cle: 'source', libelle: `${t('v2.lib.source')} · ${libelleProvenance(fProvenance)}`, retirer: () => (fProvenance = null) });
+    if (paysChoisi) r.push({ cle: 'country', libelle: `${t('v2.lib.map.chip')} · ${nomPays(paysChoisi.code, $locale)}`, retirer: () => (paysChoisi = null) });
+    if (fYear != null) r.push({ cle: 'year', libelle: String(fYear), retirer: () => (fYear = null) });
+    if (periodeAppliquee) {
+      r.push({ cle: 'period', libelle: `${t('v2.lib.periodLabel')} · ${periode.de ?? ''}–${periode.a ?? ''}`, retirer: effacerPeriode });
+    }
+    if (q.trim()) r.push({ cle: 'search', libelle: `« ${q.trim()} »`, retirer: () => (q = '') });
+    return r;
+  });
 
   /**
    * Un geste qui exige toute la bibliothèque À L'ÉCRAN — voir la liste
@@ -3235,6 +3286,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/if}
 {/snippet}
 
+{#snippet retraitsDesFiltres()}
+  <!-- tune-server-rust#8162 — la liste vide dit quels filtres la vident, et les retire un par un. -->
+  {#if retraitsFiltres.length}
+    <span class="gestes-vide" data-retraits-filtres>
+      {#each retraitsFiltres as rf (rf.cle)}
+        <button class="chip" data-retirer-filtre={rf.cle} onclick={rf.retirer}>{$tr('library.removeFilter' as any).replace('{f}', rf.libelle)}</button>
+      {/each}
+    </span>
+  {/if}
+{/snippet}
+
 {#snippet passerelleServices()}
   <!-- web#2142 — chercher le même texte chez les services connectés. -->
   {#if !depot && q.trim() && servicesPourRecherche.length}
@@ -3708,7 +3770,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
       </label>
       {#if periodeAffichee}
-        <span class="periode-n" aria-live="polite">{$tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))}</span>
+        <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
+          ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
+          : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
         {#if nSansAnnee > 0}
           <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
         {/if}
@@ -4152,7 +4216,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else if display === 'list'}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render retraitsDesFiltres()}{@render passerelleServices()}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}
@@ -4196,7 +4260,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           repères, et `jump()` sait désormais viser aussi en largeur.
         -->
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render retraitsDesFiltres()}{@render passerelleServices()}</div>
         {:else}
         <div class="carrou" use:defilementHorizontal bind:this={gridEl}
              use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
@@ -4211,7 +4275,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
       {:else}
         {#if !affiches.length}
-          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render passerelleServices()}</div>
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}{@render retraitsDesFiltres()}{@render passerelleServices()}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
           {#each affichesVisibles as a, i (cleCarteAlbum(a))}
