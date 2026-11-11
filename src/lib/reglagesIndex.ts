@@ -74,6 +74,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'pays-ecoute-radios', section: 'radiosCountry', labelKey: 'v2.radio.listeningCountry', descKey: 'v2.radio.countryHint' },
   { id: 'profils', section: 'profiles', labelKey: 'settings.tabProfiles', descKey: 'profiles.hint', composant: 'ProfilsV2.svelte' },
   { id: 'version-jouee', section: 'profiles', labelKey: 'profiles.versionRule.title', descKey: 'profiles.versionRule.hint', composant: 'ReglageVersionJouee.svelte' },
+  { id: 'controle-parental', section: 'parental', labelKey: 'parental.title', composant: 'ControleParentalV2.svelte' },
   { id: 'commande-vocale', section: 'voice', labelKey: 'settings.voiceCommand', descKey: 'settings.voiceCommandHint' },
   { id: 'assistant-ia', section: 'assistantIa', labelKey: 'assistantIa.title', descKey: 'assistantIa.intro' },
 
@@ -103,6 +104,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'hqplayer-adresse', section: 'hqplayer', labelKey: 'settings.hqplayerIp', techniques: ['HQPlayer', 'IP', '4321'] },
   { id: 'hqplayer-etat', section: 'hqplayer', labelKey: 'settings.testConnection', techniques: ['HQPlayer'] },
   { id: 'aes67-experimental', section: 'aes67Experimental', labelKey: 'aes67.experimental.label', descKey: 'aes67.experimental.hint', techniques: ['AES67', 'Dante', 'Ravenna', 'RTP', 'PTP'] },
+  { id: 'serveur-upnp', section: 'serveurUpnp', labelKey: 'upnpServeur.label', descKey: 'upnpServeur.hint', techniques: ['UPnP', 'DLNA'] },
   { id: 'aes67-etat', section: 'aes67', labelKey: 'aes67.title', descKey: 'aes67.intro', techniques: ['AES67', 'PTP', 'SAP', 'SDP'] },
   { id: 'acces-distant', section: 'bridge', labelKey: 'settings.remoteAccess', descKey: 'settings.remoteAccessHint', termesKey: 'reglages.termes.accesDistant', techniques: ['Tune Bridge', 'relay'] },
   { id: 'lien-distant', section: 'bridge', labelKey: 'settings.remoteLink', descKey: 'settings.remoteLinkHint', techniques: ['QR'] },

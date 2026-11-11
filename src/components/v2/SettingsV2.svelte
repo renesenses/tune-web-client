@@ -5786,7 +5786,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'aes67Experimental'}
               <div data-reglage="aes67-experimental"><SortieAes67ExperimentaleV2 /></div>
             {:else if s.id === 'serveurUpnp'}
-              <AnnonceUpnpServeurV2 />
+              <div data-reglage="serveur-upnp"><AnnonceUpnpServeurV2 /></div>
 
             {:else if s.id === 'aes67'}
               <div data-reglage="aes67-etat"><SortieAes67V2 /></div>
