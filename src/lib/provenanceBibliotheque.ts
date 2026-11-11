@@ -87,3 +87,49 @@ export function estSourceDeBibliotheque(source: string | null | undefined): bool
 export function estDeBibliotheque(x: { id?: unknown; source?: unknown } | null | undefined): boolean {
   return x?.id != null && estSourceDeBibliotheque(x.source == null ? null : String(x.source));
 }
+
+/**
+ * LE FILTRE « SOURCE » DE LA BIBLIOTHÈQUE, RETENU — web#2836 (Didier, fil 2753,
+ * rc11) : « Local » choisi, un détour par Streaming › Qobuz, et la Bibliothèque
+ * revenait à « Toutes les sources ».
+ *
+ * Même règle que la fiche artiste (#1874, `CLE_SOURCE_FICHE`) : une préférence
+ * d'AFFICHAGE, dans le navigateur (`preferencesEcran`), lue au montage et
+ * écrite à chaque changement. Clé distincte : les deux écrans ne filtrent pas
+ * la même chose (une clé unique ici, un ensemble de pastilles là-bas).
+ */
+export const CLE_SOURCE_BIBLIOTHEQUE = 'v2.lib.source';
+
+/**
+ * La source relue. Vide, illisible ou démesurée (valeur d'une autre version,
+ * stockage trafiqué) rend `null` = « Toutes les sources » : un filtre qu'on ne
+ * sait pas relire ne doit pas vider la Bibliothèque.
+ */
+export function relireProvenance(texte: string | null | undefined): string | null {
+  const v = texte?.trim();
+  return v && v.length <= 200 ? v : null;
+}
+
+/**
+ * Ce qu'on fait d'une source RETENUE, une fois la Bibliothèque connue.
+ *
+ * - seul un serveur UPnP précis (`upnp:<udn>`) peut disparaître : retiré
+ *   depuis, il vaut « Toutes les sources » — `oublier` — plutôt qu'une grille
+ *   vide sur une entrée « 0 » ;
+ * - tout le reste est GARDÉ : `local` et `upnp` sont des entrées fixes du
+ *   menu, et une source de service (`qobuz`…) n'arrive dans la grille
+ *   qu'avec les favoris de service, chargés à part et plus tard — l'oublier
+ *   avant serait perdre le choix au retour de Streaming › Qobuz ;
+ * - tant que la bibliothèque (`presentes`) et la liste des serveurs indexés
+ *   (`serveurs`) ne sont pas arrivées : `attendre`. `serveurs` vaut `[]`
+ *   quand le serveur Tune ne sait pas la donner.
+ */
+export function verdictProvenanceRetenue(
+  cle: string,
+  connues: { presentes: readonly string[] | null; serveurs: readonly string[] | null },
+): 'garder' | 'oublier' | 'attendre' {
+  if (!cle.startsWith('upnp:')) return 'garder';
+  if (connues.presentes?.includes(cle) || connues.serveurs?.includes(cle)) return 'garder';
+  if (connues.presentes == null || connues.serveurs == null) return 'attendre';
+  return 'oublier';
+}

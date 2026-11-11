@@ -265,6 +265,25 @@ export function mesureEnCours(liste: readonly Avancement[] | null | undefined, z
   return (liste ?? []).find((m) => m.zone_id === zoneId && !ETATS_FINAUX.has(m.etat)) ?? null;
 }
 
+/**
+ * #8490 — l'avertissement de fréquence sous le choix du micro, ou rien.
+ *
+ * - `{hz}` paraît DEUX fois dans `v2.room.micRate` : `replace` n'en remplaçait
+ *   que la première (« réglez-le à {hz} Hz » chez Xavier Joly, 11/11) ;
+ * - `frequence_courante` absente veut dire que le serveur n'a pas pu LIRE le
+ *   format du micro (UMIK-1 en S24_3LE, #8489), pas qu'il capte à une autre
+ *   fréquence : on le dit tel quel au lieu de « ne capte pas à 48000 Hz ».
+ */
+export function avertissementFrequenceMicro(
+  micro: EntreeMicro | null | undefined,
+  requise: number,
+  tr: (cle: string) => string,
+): string | null {
+  if (!micro || micro.mesurable) return null;
+  if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
+  return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
+}
+
 /** Les vrais micros : une entrée virtuelle (Loopback, BlackHole) ne capte pas la pièce. */
 export const micros = (m: Microphones | null | undefined): EntreeMicro[] => (m?.entrees ?? []).filter((e) => !e.virtuelle);
 
