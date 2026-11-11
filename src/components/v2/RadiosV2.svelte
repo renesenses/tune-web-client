@@ -35,6 +35,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
@@ -589,7 +590,9 @@
       </PochetteActions>
     </span>
     <span class="nm-ligne">
-      <span class="nm" use:bulleTexte>{r.name}</span>
+      <!-- web#2770 (lot 4) — « ouvrir » OUVRE la fiche de la station, il ne
+           la lance plus ; le nom est ce lien. La lecture reste sur ▶. -->
+      <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: r.name, ouvrir: r.id != null ? () => (enFiche = r) : null }} /></span>
       <!-- web#2443 — la station a une clé radio-metadata.fr. -->
       {#if aMetadataPlus(r)}<BadgeMetadataPlus />{/if}
     </span>
@@ -623,7 +626,7 @@
     font-family:var(--v2-sans); overflow:hidden}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
   .sec{padding:8px 30px 18px}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}

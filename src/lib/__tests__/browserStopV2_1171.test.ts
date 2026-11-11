@@ -154,6 +154,7 @@ describe('arrêt navigateur sous le transport V2', () => {
     const reponse = differee<any>(); vi.mocked(api.playRadio).mockReturnValue(reponse.promise);
     demarrer(); const cible = document.createElement('div'); document.body.append(cible);
     ecran = mount(RadiosV2, { target: cible }); flushSync();
+    // web#2770 (lot 4) : la lecture d'une station est sur ▶ (`.centre`), la pochette ouvre sa fiche.
     await vi.waitFor(() => expect(cible.querySelector('button.centre')).not.toBeNull());
     (cible.querySelector('button.centre') as HTMLButtonElement).click();
     expect(api.playRadio).toHaveBeenCalledWith(71, A.id);

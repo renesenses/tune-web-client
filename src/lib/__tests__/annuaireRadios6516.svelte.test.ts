@@ -136,6 +136,7 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     mocks.playRadio.mockResolvedValue({ zone_id: 3, radio: 'FIP', output_sent: true });
     await ouvrirAnnuaire();
     const fiches = hote.querySelectorAll('.fiche');
+    // web#2770 (lot 4) : la lecture est sur ▶ (`.centre`) ; la pochette (`.ouvrir`) ouvre la FICHE.
     fiches[1].querySelector<HTMLButtonElement>('.centre')!.click();
     await respirer();
     expect(mocks.jouerDepuisAnnuaire).toHaveBeenCalledWith('S002479', 3);

@@ -1106,7 +1106,7 @@
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
   .sec{padding:6px 30px 20px}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}

@@ -1280,7 +1280,7 @@
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* Onglet « Compilations » (#1172). */
   .cpbar{display:flex; gap:8px; align-items:center; margin:0 0 14px}
   .cpq{flex:1 1 auto; min-width:0; height:34px; padding:0 12px; border-radius:var(--v2-r-pill);
