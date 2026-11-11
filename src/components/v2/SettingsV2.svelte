@@ -2400,7 +2400,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       if (reglagesDetruits) return;
       try {
         const c: any = await api.getConfig();
-        if (!reglagesDetruits) appliquerConsentements(c);
+        if (reglagesDetruits) return;
+        appliquerConsentements(c);
+        // Le serveur répond de nouveau : le reste de l'onglet (dossiers,
+        // options d'analyse) se relit aussi, et l'erreur d'en haut s'efface.
+        if (libErr === get(t)('settings.errConfigUnavailable')) libErr = null;
+        void refreshLibrary();
       } catch {
         relireConsentementsPlusTard();
       }
