@@ -6,7 +6,7 @@
 // l'étape porte « Activer le récepteur ». Champs lus dans
 // `tune-core/src/streaming/spotify_connect.rs` (`status`), lot rc12.
 //
-// Contre-épreuve : sans le bloc `data-reglage="spotify-liaison"` de
+// Contre-épreuve : sans le bloc `data-spotify-liaison` de
 // `SettingsV2.svelte`, les tests 🔴 tombent.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
@@ -69,7 +69,7 @@ async function monter() {
   flushSync();
   await attendre();
 }
-const etape = () => hote!.querySelector<HTMLElement>('[data-reglage="spotify-liaison"]');
+const etape = () => hote!.querySelector<HTMLElement>('[data-spotify-liaison]');
 const ETAPE = (fr as Record<string, string>)['playback.errorSpotifyLinkRequired'].replace('{device}', 'Tune — Salon');
 const BOUTON = (fr as Record<string, string>)['settings.enableReceiver'];
 

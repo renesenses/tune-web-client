@@ -45,10 +45,6 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
-  // web#2804 (tune-server-rust#8154) — Spotify attend que l'appareil de Tune
-  // soit choisi une fois dans son application. Repli quand le serveur n'a pas
-  // envoyé sa phrase ; traité à part plus bas (`annoncerLiaisonSpotify`).
-  spotify_liaison_connect_requise: 'playback.errorSpotifyLinkRequired',
 };
 
 /**
@@ -9397,10 +9393,16 @@ export function annoncerLiaisonSpotify(message: unknown, corps: unknown, url: st
   notifications.withAction(texte, tr('settings.enableReceiver' as any), () => {
     void (async () => {
       try {
-        await fetchJSON(`${BASE}/spotify-connect/enable`, {
+        const r = await fetchJSON<{ error?: unknown }>(`${BASE}/spotify-connect/enable`, {
           method: 'POST',
           body: JSON.stringify(corpsActivationRecepteur(zoneDeLaRoute(url))),
         });
+        // Le serveur rend 200 avec `error` quand le récepteur n'a pas démarré
+        // (`enable_connect`) : pas de faux succès.
+        if (typeof r?.error === 'string' && r.error.trim() !== '') {
+          notifications.error(r.error, 10000);
+          return;
+        }
         notifications.success(tr('playback.spotifyReceiverEnabled' as any).replace('{device}', refus.appareil), 10000);
       } catch {
         // `fetchJSON` a déjà dit pourquoi l'activation a échoué.

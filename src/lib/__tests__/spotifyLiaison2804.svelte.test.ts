@@ -94,6 +94,17 @@ describe('web#2804 — le 409 de la lecture', () => {
     expect(ok?.message).toContain('« Tune — Salon »');
   });
 
+  it('🔴 récepteur qui ne démarre pas (200 + `error`) : l’erreur, pas un faux succès', async () => {
+    reponse = () => ({ statut: 409, corps: refus({ receiver_active: false }) });
+    await api.play(7, { track_id: 1 }).catch(() => {});
+    const n = derniere();
+    reponse = (a) => a.url.endsWith('/spotify-connect/enable') ? { statut: 200, corps: { enabled: false, active: false, error: 'librespot introuvable' } } : { statut: 404 };
+    n!.action!.run();
+    await respirer();
+    expect(derniere()?.level).toBe('error');
+    expect(derniere()?.message).toBe('librespot introuvable');
+  });
+
   it('🔴 sans phrase du serveur : le repli traduit, avec l’appareil', async () => {
     locale.set('en');
     reponse = () => ({ statut: 409, corps: refus({ message: undefined }) });

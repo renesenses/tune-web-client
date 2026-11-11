@@ -6193,7 +6193,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <!-- web#2804 (tune-server-rust#8154) — l'étape unique : tant que
                        Spotify n'a pas vu l'appareil de Tune choisi une fois dans
                        son application, la lecture bute sur un 409. -->
-                  <div class="row" data-reglage="spotify-liaison" data-etape={etapeLiaison(spc)}>
+                  <div class="row" data-spotify-liaison data-etape={etapeLiaison(spc)}>
                     <div class="lbl"><span class="hint">{$t('playback.errorSpotifyLinkRequired' as any).replace('{device}', lireRefusLiaison(spc).appareil)}</span></div>
                     {#if etapeLiaison(spc) === 'activer'}
                       <button class="lnk" type="button" disabled={spcBusy} onclick={() => toggleSpc(true)}>{$t('settings.enableReceiver' as any)}</button>
