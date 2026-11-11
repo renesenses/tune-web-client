@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "세부 정보",
   "toast.erreursRepliees": "이전 오류 {n}개 접힘",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",
+  "avisServeur.pure_resumed_at_position": "PURE 전환: {position}부터 재개",
   "v2.pl.serviceNoPlaylists": "{s}은(는) 재생목록을 제공하지 않습니다.",
   "v2.dev.listAria": "장치 및 존",
   "v2.dev.filterLabel": "장치 필터",

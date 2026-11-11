@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} ältere Fehler eingeklappt",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
+  "avisServeur.pure_resumed_at_position": "PURE-Umschaltung: Wiedergabe ab {position} fortgesetzt",
   "v2.pl.serviceNoPlaylists": "{s} stellt keine Playlists bereit.",
   "v2.dev.listAria": "Geräte und Zonen",
   "v2.dev.filterLabel": "Geräte filtern",

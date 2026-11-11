@@ -6498,6 +6498,7 @@ export default {
   "erreursServeur.details": "Detaljer",
   "toast.erreursRepliees": "{n} äldre fel hopfällda",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",
+  "avisServeur.pure_resumed_at_position": "PURE-växling: återupptaget vid {position}",
   "v2.pl.serviceNoPlaylists": "{s} tillhandahåller inga spellistor.",
   "v2.dev.listAria": "Enheter och zoner",
   "v2.dev.filterLabel": "Filtrera enheter",

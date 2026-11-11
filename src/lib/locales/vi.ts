@@ -6351,6 +6351,7 @@ export default {
   "erreursServeur.details": "Chi tiết",
   "toast.erreursRepliees": "Đã thu gọn {n} lỗi cũ hơn",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
+  "avisServeur.pure_resumed_at_position": "Chuyển PURE: tiếp tục phát tại {position}",
   "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
   "v2.dev.listAria": "Thiết bị và vùng",
   "v2.dev.filterLabel": "Lọc thiết bị",

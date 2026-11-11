@@ -6344,6 +6344,7 @@ export default {
   "erreursServeur.details": "Detaljer",
   "toast.erreursRepliees": "{n} eldre feil skjult",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
+  "avisServeur.pure_resumed_at_position": "PURE-veksling: gjenopptatt ved {position}",
   "v2.pl.serviceNoPlaylists": "{s} tilbyr ikke spillelister.",
   "v2.dev.listAria": "Enheter og soner",
   "v2.dev.filterLabel": "Filtrer enheter",

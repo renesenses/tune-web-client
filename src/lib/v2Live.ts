@@ -68,6 +68,7 @@ import { niveauApresAlerte } from './santeServeur';
 import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
+import { texteAvisServeur } from './avisServeur';
 import { estEcouteRevoquee } from './circle';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
@@ -502,6 +503,16 @@ export function demarrerTransportV2(): () => void {
     // et jamais tue par la fenêtre de grâce (c'est définitif).
     if (estEcouteRevoquee(event)) {
       notifications.error(get(t)('v2.circle.listen.revoked' as any), 8000);
+      void rechargerZones();
+      return;
+    }
+
+    // tune-server-rust#8422 — un avis (« Bascule PURE : reprise à 2:31 »),
+    // pas une erreur : bandeau d'information, jamais tu par la fenêtre de
+    // grâce, et la zone se relit (la relance a changé son flux).
+    if (type === 'zone.notice') {
+      const texte = texteAvisServeur(event?.data);
+      if (texte) notifications.info(texte, 6000);
       void rechargerZones();
       return;
     }

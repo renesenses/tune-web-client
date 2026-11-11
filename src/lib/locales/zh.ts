@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "详情",
   "toast.erreursRepliees": "已折叠 {n} 条较早的错误",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",
+  "avisServeur.pure_resumed_at_position": "PURE 切换：从 {position} 继续播放",
   "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
   "v2.dev.listAria": "设备和分区",
   "v2.dev.filterLabel": "筛选设备",

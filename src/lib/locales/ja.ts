@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "詳細",
   "toast.erreursRepliees": "古いエラー {n} 件を折りたたみました",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
+  "avisServeur.pure_resumed_at_position": "PURE 切り替え：{position} から再開",
   "v2.pl.serviceNoPlaylists": "{s} はプレイリストを提供していません。",
   "v2.dev.listAria": "デバイスとゾーン",
   "v2.dev.filterLabel": "デバイスを絞り込む",

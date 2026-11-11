@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "Detalii",
   "toast.erreursRepliees": "{n} erori mai vechi restrânse",
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",
+  "avisServeur.pure_resumed_at_position": "Comutare PURE: reluat la {position}",
   "v2.pl.serviceNoPlaylists": "{s} nu oferă liste de redare.",
   "v2.dev.listAria": "Dispozitive și zone",
   "v2.dev.filterLabel": "Filtrează dispozitivele",

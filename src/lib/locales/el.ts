@@ -6344,6 +6344,7 @@ export default {
   "erreursServeur.details": "Λεπτομέρειες",
   "toast.erreursRepliees": "{n} παλαιότερα σφάλματα συμπτύχθηκαν",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",
+  "avisServeur.pure_resumed_at_position": "Εναλλαγή PURE: συνέχιση στο {position}",
   "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
   "v2.dev.listAria": "Συσκευές και ζώνες",
   "v2.dev.filterLabel": "Φιλτράρισμα συσκευών",

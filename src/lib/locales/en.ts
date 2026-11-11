@@ -6519,6 +6519,7 @@ export default {
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} older errors collapsed",
   "erreursServeur.track_decode_failed": "The track could not be decoded.",
+  "avisServeur.pure_resumed_at_position": "PURE switch: resumed at {position}",
   "v2.pl.serviceNoPlaylists": "{s} does not provide playlists.",
   "v2.dev.listAria": "Devices and zones",
   "v2.dev.filterLabel": "Filter devices",

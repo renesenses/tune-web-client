@@ -6458,6 +6458,7 @@ export default {
   "erreursServeur.details": "Részletek",
   "toast.erreursRepliees": "{n} régebbi hiba összecsukva",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",
+  "avisServeur.pure_resumed_at_position": "PURE váltás: folytatás innen: {position}",
   "v2.pl.serviceNoPlaylists": "A(z) {s} nem kínál lejátszási listákat.",
   "v2.dev.listAria": "Eszközök és zónák",
   "v2.dev.filterLabel": "Eszközök szűrése",

@@ -6499,6 +6499,7 @@ export default {
   "erreursServeur.details": "Detalles",
   "toast.erreursRepliees": "{n} errores anteriores plegados",
   "erreursServeur.track_decode_failed": "No se ha podido decodificar la pista.",
+  "avisServeur.pure_resumed_at_position": "Cambio PURE: reanudado en {position}",
   "v2.pl.serviceNoPlaylists": "{s} no ofrece listas de reproducción.",
   "v2.dev.listAria": "Dispositivos y zonas",
   "v2.dev.filterLabel": "Filtrar dispositivos",

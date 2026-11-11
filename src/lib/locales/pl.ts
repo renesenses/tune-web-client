@@ -6344,6 +6344,7 @@ export default {
   "erreursServeur.details": "Szczegóły",
   "toast.erreursRepliees": "Zwinięto starsze błędy: {n}",
   "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",
+  "avisServeur.pure_resumed_at_position": "Przełączenie PURE: wznowiono od {position}",
   "v2.pl.serviceNoPlaylists": "{s} nie udostępnia playlist.",
   "v2.dev.listAria": "Urządzenia i strefy",
   "v2.dev.filterLabel": "Filtruj urządzenia",
