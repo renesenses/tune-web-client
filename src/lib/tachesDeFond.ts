@@ -228,6 +228,33 @@ const LIBELLES_TACHES: Record<string, string> = {
 };
 
 /**
+ * web#2760 — la SOUS-PHASE d'une tâche (`progress.detail`) est une phrase du
+ * serveur, en français : « Fetching credits… — Crédits 16/150 » dans une
+ * interface anglaise (Alex, rc11). Les valeurs que le serveur écrit
+ * (`update_progress(…, "Crédits")` et ses voisines) passent par une clé ;
+ * un nom propre inconnu (« MusicBrainz », « LRCLIB ») reste tel quel.
+ * Sans traducteur, le texte du serveur, comme avant.
+ */
+const LIBELLES_PHASES: Record<string, string> = {
+  'crédits': 'app.task.phase.credits',
+  'fichiers': 'app.task.phase.files',
+  'fichiers .lrc': 'app.task.phase.lrcFiles',
+  'métadonnées': 'app.task.phase.metadata',
+  'étiquettes': 'app.task.phase.tags',
+  'compositeur': 'app.task.phase.composer',
+  'compilations': 'app.task.phase.compilations',
+  'albums': 'app.task.phase.albums',
+  'labels': 'app.task.phase.labels',
+};
+
+export function libellePhase(detail: string | null | undefined, traduire?: (cle: string) => string): string {
+  const brut = (detail ?? '').trim();
+  if (!brut || !traduire) return brut;
+  const cle = LIBELLES_PHASES[brut.normalize('NFC').toLowerCase()];
+  return cle ? traduire(cle) : brut;
+}
+
+/**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
  * tourne — c'est ce `null` qui referme le bandeau.
  *
@@ -253,7 +280,8 @@ export function libelleBanniereEnrichissement(
   // tune-core tourne avant le premier `write_progress`, le registre rend alors
   // 0/0, et afficher « 0/0 » se lit comme un arrêt.
   const p = premiere.progress;
-  const avancement = p && p.total > 0 ? ` — ${p.detail} ${p.processed}/${p.total}` : '';
+  const phase = p ? libellePhase(p.detail, traduire) : '';
+  const avancement = p && p.total > 0 ? ` — ${phase ? `${phase} ` : ''}${p.processed}/${p.total}` : '';
 
   const surnumeraires = taches.length > 1 ? ` (+${taches.length - 1})` : '';
 

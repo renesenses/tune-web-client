@@ -73,8 +73,10 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   }
   if (!a.name) return;
   // Un nom seul : la fiche locale s'il y a une correspondance EXACTE, sinon
-  // l'onglet Artistes — jamais un approchant.
-  const trouve = await artisteLocalParNom(a.name);
+  // la Recherche — jamais un approchant. `candidats` (web#2770) : les noms à
+  // essayer dans l'ordre, quand le lien est une PARTIE d'un nom composé
+  // (« Simon » puis « Simon & Garfunkel »).
+  const trouve = await artisteLocalParNom(a.name, Array.isArray(a.candidats) ? a.candidats : undefined);
   if (trouve !== null) {
     // Le nom RETENU, pas celui reçu : la fiche de « Daft Punk feat. Pharrell
     // Williams » est celle de Daft Punk, et c'est ce nom-là qu'elle affiche.
@@ -99,9 +101,19 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
     await ouvrirArtisteDeServiceParNom({ service, nom: a.name }, depuis);
     return;
   }
+  /**
+   * web#2770 — PLUS DE LIEN MORT DÉGUISÉ. Sans correspondance exacte, le clic
+   * rouvrait la Bibliothèque « dans son dernier état » — l'inventaire du 10/11
+   * le nomme « lien à moitié mort » : rien ne dit à l'auditeur pourquoi il est
+   * là. Même geste que le repli de service (#956) : la Recherche sur ce nom,
+   * et un message qui le dit.
+   */
+  notifications.info(get(t)('v2.nav.artisteSansFiche').replace('{nom}', a.name));
+  setSearchCriteria({ q: a.name, source: null });
+  pendingSearchQuery.set(a.name);
   vueDeRetour.set(depuis);
   ficheAlbumDeRetour.set(null);
-  activeView.set('library');
+  activeView.set('search');
 }
 
 /**
@@ -128,8 +140,10 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
  */
 export async function artisteLocalParNom(
   nom: string | null | undefined,
+  candidats?: readonly string[],
 ): Promise<{ id: number; nom: string } | null> {
-  for (const candidat of nomsDeRechercheArtiste(nom)) {
+  const noms = candidats?.length ? candidats.map((c) => c.trim()).filter(Boolean) : nomsDeRechercheArtiste(nom);
+  for (const candidat of noms) {
     let reponse: any;
     try {
       reponse = await api.searchLibrary(candidat, ARTISTES_A_LIRE);

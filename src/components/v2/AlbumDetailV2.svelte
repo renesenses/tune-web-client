@@ -65,7 +65,8 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeDepuis, pistesJouables } from '../../lib/lectureEnMasse';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import type { GesteDisque } from '../../lib/lectureDisque';
   import { notifications } from '../../lib/stores/notifications';
   import { cleEchecRevelation, revelationDisponible, revelerDossierAlbum } from '../../lib/revelerDossier';
@@ -1278,6 +1279,16 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
     if (service && sidDistant) {
+      // web#2687 — album MIXTE (titres « Indisponible » / « À paraître ») :
+      // `streaming_album_id` mettrait toute la liste en file. On envoie la
+      // liste nous-mêmes, sans les titres grisés, dans le même contexte d'album.
+      if (tracks.some(pisteIndisponible)) {
+        lireListeDepuis(tracks, startIndex, {
+          lire: (corps: any) => playAndSync(zid, { ...corps, ...contexteAlbum() }),
+          enfiler: (corps: any) => api.addToQueue(zid, { ...corps, ...contexteAlbum() }),
+        }).catch(signalerEchecLecture);
+        return;
+      }
       playAndSync(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(signalerEchecLecture);
       return;
     }
@@ -1340,7 +1351,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     // designable par sa paire `source` + `source_id`. La premiere joue, les
     // autres s'empilent en UNE requete.
     if (service || bandcamp) {
-      const l = melanger(tracks);
+      // web#2687 — les titres grisés n'entrent pas dans la file mélangée.
+      const l = melanger(pistesJouables(tracks));
+      if (!l.length) return;
       // #6469 — la suite mélangée s'enfile derrière : la tête ne rejoue pas
       // l'album dans l'ordre.
       const tete = l.length > 1 ? corpsDeTeteDeListe(l[0]) : corpsDeLecture(l[0]);
@@ -1898,7 +1911,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
            seulement : la page du label est celle de la Bibliothèque. -->
       {#if creditsPossibles && labelDe(albumAffiche)}
         {@const nomLabel = labelDe(albumAffiche)!}
-        <button type="button" class="lien-label" data-lien-label onclick={() => { onClose(); void ouvrirLabelDansLaBibliotheque(nomLabel); }}>
+        <!-- tune-server-rust#8145 — le nom est LU AVANT `onClose()` : la
+             fermeture vide `albumAffiche`, et `nomLabel` relu après valait
+             `null` (TypeError, « il ne se passe rien »). -->
+        <button type="button" class="lien-label" data-lien-label onclick={() => { const nom = nomLabel; onClose(); void ouvrirLabelDansLaBibliotheque(nom); }}>
           {$tr('v2.label.autresArtistes' as any).replace('{label}', nomLabel)}
         </button>
       {/if}

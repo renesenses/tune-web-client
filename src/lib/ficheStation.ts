@@ -164,12 +164,33 @@ const AUCUNE: StationDeLecture = { fiche: null, mienne: null, annuaire: null };
 export async function stationDeLecture(np: Lecture): Promise<StationDeLecture> {
   const miennes = (await api.getRadios({ limit: 500 })) ?? [];
   const r = trouverStation(miennes, np);
-  if (r) return { fiche: ficheDeStation(r), mienne: r, annuaire: null };
+  if (r) {
+    const fiche = ficheDeStation(r);
+    // web#2550 (rc10, alec_eiffel, fil 2560) : sa station de « Mes radios »
+    // n'avait plus de logo (ni le sien, ni celui de l'annuaire attaché —
+    // tune-server-rust#7493, « logos manquants dans Mes radios ») : rien à
+    // montrer à côté du nom, alors que l'annuaire public en a un. Repli sur
+    // la fiche d'annuaire du même nom, pour le logo SEULEMENT.
+    if (!fiche.logo) fiche.logo = await logoDAnnuaire(r.name || np?.album_title || '');
+    return { fiche, mienne: r, annuaire: null };
+  }
   const nom = np?.album_title ?? '';
   if (!nom) return AUCUNE;
   const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
   const f = a.items.find((x) => fold(x.name) === fold(nom)) ?? null;
   return { fiche: f ? ficheDeAnnuaire(f) : null, mienne: null, annuaire: f };
+}
+
+/** Le logo de la fiche d'annuaire de ce nom exact, ou `null` (jamais d'échec). */
+async function logoDAnnuaire(nom: string): Promise<string | null> {
+  if (!nom.trim()) return null;
+  try {
+    const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
+    const f = a?.items?.find((x) => fold(x.name) === fold(nom));
+    return (f?.logo_url ?? '').trim() || null;
+  } catch {
+    return null;
+  }
 }
 
 /** La fiche de la station qui joue. `null` : inconnue. */
