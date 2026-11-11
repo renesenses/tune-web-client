@@ -30,6 +30,7 @@ import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import type { Track } from '../types';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -218,8 +219,8 @@ describe('(c) #4889 — le réordonnancement parle en RANGS', () => {
     });
     await attendreQue(() => (hote!.textContent ?? '').includes('Titre Bandcamp'), 'la ligne Bandcamp affichée');
     // Mode édition, puis « descendre » sur la ligne Bandcamp (rang 1).
-    [...hote!.querySelectorAll<HTMLButtonElement>('button')]
-      .find((b) => (b.textContent ?? '').trim() === fr['v2.pl.edit'])!.click();
+    // web#2736 — « Éditer » est une entrée du menu « … » de la fiche playlist.
+    entreeParLibelle(hote!, fr['v2.pl.edit'])!.click();
     await souffler();
     const descendre = [...hote!.querySelectorAll<HTMLButtonElement>(`button[aria-label="${fr['playlist.moveDown']}"]`)];
     expect(descendre.length, 'une flèche par ligne, ligne de service comprise').toBe(3);

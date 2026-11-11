@@ -57,7 +57,7 @@ function poser(album: Album = ALBUM): HTMLDivElement {
   return hote;
 }
 
-/** Le bouton « Notes / Bio », par son libellé — celui de l'interface actuelle. */
+/** L'onglet « Notes / Bio » (web#2736), par son libellé — celui de l'interface actuelle. */
 function bouton(el: HTMLElement): HTMLButtonElement | null {
   return (
     [...el.querySelectorAll('button')].find((b) =>
@@ -136,9 +136,8 @@ describe('la fiche album porte enfin une présentation', () => {
     bouton(el)!.click();
     await attendre();
     // Replié…
-    [...el.querySelectorAll('button')]
-      .find((b) => (b.textContent ?? '').includes(fr['library.hideNotes']))!
-      .click();
+    // web#2736 — « Notes / Bio » est un onglet : on le quitte pour « Pistes ».
+    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
     await attendre();
     // …puis rouvert.
     bouton(el)!.click();
@@ -153,9 +152,8 @@ describe('la fiche album porte enfin une présentation', () => {
     bouton(el)!.click();
     await attendre();
     expect(el.textContent).toContain('Une notice.');
-    [...el.querySelectorAll('button')]
-      .find((b) => (b.textContent ?? '').includes(fr['library.hideNotes']))!
-      .click();
+    // web#2736 — « Notes / Bio » est un onglet : on le quitte pour « Pistes ».
+    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
     await attendre();
     expect(el.textContent).not.toContain('Une notice.');
   });

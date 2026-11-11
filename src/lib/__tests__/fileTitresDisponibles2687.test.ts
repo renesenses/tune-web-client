@@ -109,7 +109,7 @@ describe('web#2687 — la vraie fiche d’un album Qobuz mixte', () => {
 
   it('🔴 « Lire » : plus de `streaming_album_id`, seuls les titres disponibles partent, en contexte d’album', async () => {
     const el = await ouvrir(MIXTE);
-    el.querySelector<HTMLButtonElement>('button.play')!.click();
+    el.querySelector<HTMLButtonElement>('[data-bouton-lecture] button.bl-lire')!.click();
     for (let i = 0; i < 6; i++) await respirer();
     expect(corpsLus()).toHaveLength(1);
     expect(corpsLus()[0].streaming_album_id).toBeUndefined();
@@ -130,7 +130,7 @@ describe('web#2687 — la vraie fiche d’un album Qobuz mixte', () => {
 
   it('témoin : album entièrement disponible → `streaming_album_id`, comme avant', async () => {
     const el = await ouvrir([q('a', 1, true), q('c', 2)]);
-    el.querySelector<HTMLButtonElement>('button.play')!.click();
+    el.querySelector<HTMLButtonElement>('[data-bouton-lecture] button.bl-lire')!.click();
     for (let i = 0; i < 6; i++) await respirer();
     expect(corpsLus()[0]).toMatchObject({ streaming_album_id: 'alb-1', source: 'qobuz', start_index: 0 });
     expect(api.addToQueue).not.toHaveBeenCalled();
