@@ -113,10 +113,14 @@ body {
    `auto` (not `thin`) so the Firefox bar is wide enough to grab, matching the
    14px ::-webkit bar Chrome gets — `thin` left Firefox with a too-narrow,
    hard-to-catch scrollbar on the albums/artists/genres lists (Bilou, #1143).
-   scrollbar-width is Firefox-only, so this does not affect Chrome/Safari. */
+   scrollbar-width is Firefox-only, so this does not affect Chrome/Safari.
+   web#2773 : Chrome 121+ applique AUSSI `scrollbar-color`, et dès qu'il est
+   posé il IGNORE les `::-webkit-scrollbar-thumb` — ce blanc à 35 % était donc
+   le vrai pouce de toutes les vues, invisible sur un thème clair. Les thèmes
+   v2 clairs définissent `--v2-scrollthumb` ; les sombres gardent ce blanc. */
 * {
   scrollbar-width: auto;
-  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  scrollbar-color: var(--v2-scrollthumb, rgba(255, 255, 255, 0.35)) transparent;
 }
 
 ::-webkit-scrollbar {

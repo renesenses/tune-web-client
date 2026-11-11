@@ -261,6 +261,18 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/streaming/services');
   });
 
+  it('getStreamingFavorites() demande UNE page avec ?limit=&offset= (tune-server-rust#8040)', async () => {
+    mockFetch({ tracks: [], total: 0, limit: 50, offset: 0 });
+    await api.getStreamingFavorites('tidal', 'tracks', { limit: 50, offset: 0 });
+    expect(fetchCalls[0].url).toBe('/api/v1/streaming/tidal/favorites/tracks?limit=50&offset=0');
+  });
+
+  it('getStreamingFavorites() sans page demande la liste entière, comme avant', async () => {
+    mockFetch({ tracks: [] });
+    await api.getStreamingFavorites('tidal', 'tracks');
+    expect(fetchCalls[0].url).toBe('/api/v1/streaming/tidal/favorites/tracks');
+  });
+
   it('getConfig() calls /api/v1/system/config', async () => {
     mockFetch({ music_dirs: ['/music'] });
     await api.getConfig();

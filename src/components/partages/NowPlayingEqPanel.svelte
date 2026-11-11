@@ -85,11 +85,7 @@
     <!-- En mode PURE, load_eq_processor n'est jamais construit : le PCM atteint
          la sortie intact. Laisser cliquer un préréglage qui ne fera rien, sans
          rien dire, c'était le signalement de Bilou. -->
-    <p class="eq-pure-notice">
-      Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun
-      traitement. Les préréglages ci-dessous resteront donc sans effet tant que
-      le mode PURE est activé.
-    </p>
+    <p class="eq-pure-notice">{$t('nowplaying.eqPureNotice' as any)}</p>
   {/if}
 
   {#if hasCurve}

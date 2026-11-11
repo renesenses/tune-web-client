@@ -468,7 +468,7 @@
      l'offsetParent de la liste, ce qui rend `offsetTop` lisible sans
      recalcul de mise en page (#1126). */
   .scroll{flex:1; position:relative; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
   .sec{padding:6px 30px 20px}
   .sec h2{font-size:16px; font-weight:700; padding-bottom:12px}

@@ -59,9 +59,11 @@ import { ICONES } from '../../lib/menuPiste';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
-  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear } from '../../lib/stores/navigation';
-  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../../lib/stores/library';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum } from '../../lib/stores/navigation';
+  import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { artisteDePisteEcoutee } from '../../lib/lienEntite';
+  import LienEntite from './LienEntite.svelte';
   import { gestesNavigationService, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
@@ -579,10 +581,11 @@ import { ICONES } from '../../lib/menuPiste';
       // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son
       // numéro. On le résout, et on ne retombe sur la recherche que s'il est
       // introuvable.
-      try {
-        const match = (await api.searchLibrary(dest.nom))?.artists?.[0];
-        if (match?.id) { await ouvrirFicheArtiste(match.id, match.name ?? dest.nom); return; }
-      } catch { /* on retombe sur la recherche */ }
+      //
+      // web#2770 — par CORRESPONDANCE EXACTE (`artisteLocalParNom`), plus le
+      // premier résultat de la recherche : « Air » ouvrait « Airbourne ».
+      const trouve = await artisteLocalParNom(dest.nom);
+      if (trouve) { await ouvrirFicheArtiste(trouve.id, trouve.nom); return; }
       ouvrirRecherche(dest.nom, null);
       return;
     }
@@ -718,13 +721,8 @@ import { ICONES } from '../../lib/menuPiste';
     }
   }
 
-  function navigateToYear(year: number | undefined) {
-    if (!year) return;
-    yearFilter.set(year);          // contrat du client ACTUEL (`LibraryView`)
-    pendingLibraryYear.set(year);  // contrat du NOUVEAU (`v2/LibraryV2`)
-    libraryTab.set('albums');
-    activeView.set('library');
-  }
+  // web#2770 — `navigateToYear` est parti dans `lib/lienEntite` (`ouvrirAnnee`) :
+  // l'année est un `LienEntite`, comme partout.
 
   async function enrichCurrentTrackCredits() {
     const tr = normalizedTrack;
@@ -852,8 +850,11 @@ import { ICONES } from '../../lib/menuPiste';
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
-  let inlineCredits = $derived.by(() => {
-    if (npCredits.length === 0) return '';
+  //
+  // web#2770 — STRUCTURÉ, plus une chaîne : chaque nom devient un lien dans le
+  // balisage. `inlineCredits` (le texte) ne sert plus qu'à l'infobulle.
+  let creditsEnLigne = $derived.by((): { role: string; membres: TrackCredit[]; reste: boolean }[] => {
+    if (npCredits.length === 0) return [];
     const unique = dedupCredits(npCredits);
     // Show primary roles: performer, composer, conductor (skip engineer etc.)
     const primaryRoles = ['performer', 'composer', 'conductor', 'arranger', 'lyricist'];
@@ -861,19 +862,18 @@ import { ICONES } from '../../lib/menuPiste';
     const credits = primary.length > 0 ? primary : unique.slice(0, 6);
     // Group by role
     const groups = Object.groupBy(credits, c => c.role);
-    const parts: string[] = [];
+    const parts: { role: string; membres: TrackCredit[]; reste: boolean }[] = [];
     for (const [role, members] of Object.entries(groups)) {
       if (!members) continue;
-      const names = members.slice(0, 3).map(m => {
-        let name = m.artist_name;
-        if (m.instrument) name += ` (${m.instrument})`;
-        return name;
-      });
-      if (members.length > 3) names.push('...');
-      parts.push(`${formatRole(role)}: ${names.join(', ')}`);
+      parts.push({ role, membres: members.slice(0, 3), reste: members.length > 3 });
     }
-    return parts.join(' · ');
+    return parts;
   });
+  let inlineCredits = $derived(
+    creditsEnLigne
+      .map((g) => `${formatRole(g.role)}: ${g.membres.map((m) => (m.instrument ? `${m.artist_name} (${m.instrument})` : m.artist_name)).concat(g.reste ? ['...'] : []).join(', ')}`)
+      .join(' · '),
+  );
 
   const _detailTr: Record<string, string> = {
     'Renderer fetches audio directly from source — zero processing': 'signal.directUrlDetail',
@@ -1977,12 +1977,20 @@ import { ICONES } from '../../lib/menuPiste';
             {/if}
           </div>
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-artist truncate clickable" title={displayTrack.artist_name} onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
+            <!-- web#2770 — l'artiste est un `LienEntite` : un lien par artiste
+                 (« A & B »), la cible de `destinationArtiste` (local, service,
+                 nom seul) par `artisteDePisteEcoutee`. -->
+            <p class="track-artist truncate" title={displayTrack.artist_name}>
+              <LienEntite entite={{ type: 'artiste', nom: displayTrack.artist_name, artiste: artisteDePisteEcoutee(displayTrack) }} />
+            </p>
           {/if}
-          {#if !isRadio && inlineCredits}
-            <p class="inline-credits" title={inlineCredits}>{inlineCredits}</p>
+          {#if !isRadio && creditsEnLigne.length}
+            <!-- web#2770 — compositeur, chef, interprètes : chaque nom est un
+                 lien (identifiant de `artists` quand le crédit en a un, sinon
+                 le nom, par correspondance exacte puis la Recherche). -->
+            <p class="inline-credits" title={inlineCredits}>
+              {#each creditsEnLigne as g, gi (g.role)}{#if gi > 0}<span class="inline-credits-sep"> · </span>{/if}{formatRole(g.role)}: {#each g.membres as m, mi (mi)}{#if mi > 0}, {/if}<LienEntite entite={{ type: 'personne', nom: m.artist_name, artiste: m.artist_id ? { id: m.artist_id, name: m.artist_name, source: 'local' } : { name: m.artist_name } }} />{#if m.instrument} ({m.instrument}){/if}{/each}{#if g.reste}, …{/if}{/each}
+            </p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
             <!-- web#1870 — « comment aller sur l'album du morceau joué » (Lionel,
@@ -1993,7 +2001,7 @@ import { ICONES } from '../../lib/menuPiste';
                  survol. -->
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</button>
+            <button type="button" class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}</button>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -2557,7 +2565,7 @@ import { ICONES } from '../../lib/menuPiste';
                   <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
                     <span class="up-next-title truncate" title={nextTrack.title}>{nextTrack.title}</span>
-                    <span class="up-next-artist truncate" title={nextTrack.artist_name ?? ''}>{nextTrack.artist_name ?? ''}</span>
+                    <span class="up-next-artist truncate" title={nextTrack.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: nextTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(nextTrack) }} /></span>
                   </div>
                   <ServiceBadge source={nextTrack.source} compact />
                   {#if nextTrack.format}
@@ -2769,7 +2777,7 @@ import { ICONES } from '../../lib/menuPiste';
             <div class="qs-track-info">
               <span class="qs-track-title truncate" title={queueTrack.title || $t('nowplaying.unknownTrack')}>{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
               {#if queueTrack.artist_name}
-                <span class="qs-track-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
+                <span class="qs-track-artist truncate" title={queueTrack.artist_name}><LienEntite entite={{ type: 'artiste', nom: queueTrack.artist_name, artiste: artisteDePisteEcoutee(queueTrack) }} /></span>
               {/if}
               <MetadataChips track={queueTrack} fields={$displayFields} />
             </div>
@@ -2815,7 +2823,8 @@ import { ICONES } from '../../lib/menuPiste';
       <div class="lightbox-caption" onclick={(e) => e.stopPropagation()}>
         <span class="lightbox-title">{displayTrack.title}</span>
         {#if displayTrack.artist_name}
-          <span class="lightbox-artist">{displayTrack.artist_name}</span>
+          <!-- web#2770 — l'artiste de la légende est un lien ; la visionneuse se referme avant de partir. -->
+          <span class="lightbox-artist"><LienEntite entite={{ type: 'artiste', nom: displayTrack.artist_name, ouvrir: () => { showLightbox = false; void ouvrirArtisteDepuis(artisteDePisteEcoutee(displayTrack), get(activeView)); } }} /></span>
         {/if}
         {#if displayTrack.album_title}
           <span class="lightbox-album">{displayTrack.album_title}</span>
@@ -3315,25 +3324,9 @@ import { ICONES } from '../../lib/menuPiste';
     text-decoration: underline;
   }
 
-  .track-artist.clickable {
-    cursor: pointer;
-    transition: color 0.15s ease-out;
-  }
-
-  .track-artist.clickable:hover {
-    color: var(--tune-accent);
-    text-decoration: underline;
-  }
-
-  .track-year.clickable {
-    cursor: pointer;
-    transition: color 0.15s ease-out;
-  }
-
-  .track-year.clickable:hover {
-    color: var(--tune-accent);
-    text-decoration: underline;
-  }
+  /* web#2770 — l'artiste, l'année et les crédits sont des `LienEntite` : le
+     soulignement et la couleur au survol viennent du composant. */
+  .inline-credits-sep { color: var(--tune-text-muted); }
 
   .track-album {
     font-family: var(--font-body);
