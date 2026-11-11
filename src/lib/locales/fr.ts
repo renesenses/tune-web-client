@@ -7286,6 +7286,7 @@ export default {
   "login.registering": "Inscription…",
   "login.haveAccount": "Déjà un compte ?",
   "nowplaying.eqPureNotice": "Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun traitement. Les préréglages ci-dessous resteront donc sans effet tant que le mode PURE est activé.",
+  "zone.pauseThisZone": "Mettre {name} en pause",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

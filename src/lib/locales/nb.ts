@@ -7109,5 +7109,6 @@ export default {
   "login.registering": "Oppretter konto…",
   "login.haveAccount": "Har du allerede en konto?",
   "nowplaying.eqPureNotice": "PURE-modus er på for denne sonen: signalet sendes urørt, uten noen behandling. Forhåndsinnstillingene nedenfor har ingen virkning så lenge PURE-modus er på.",
+  "zone.pauseThisZone": "Sett {name} på pause",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

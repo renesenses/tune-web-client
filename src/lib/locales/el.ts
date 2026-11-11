@@ -7109,5 +7109,6 @@ export default {
   "login.registering": "Δημιουργία λογαριασμού…",
   "login.haveAccount": "Έχετε ήδη λογαριασμό;",
   "nowplaying.eqPureNotice": "Η λειτουργία PURE είναι ενεργή σε αυτή τη ζώνη: το σήμα μεταδίδεται ανέπαφο, χωρίς καμία επεξεργασία. Οι προεπιλογές παρακάτω δεν θα έχουν αποτέλεσμα όσο η λειτουργία PURE είναι ενεργή.",
+  "zone.pauseThisZone": "Παύση {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

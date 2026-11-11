@@ -7264,6 +7264,7 @@ export default {
   "login.registering": "Se creează contul…",
   "login.haveAccount": "Ai deja un cont?",
   "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
+  "zone.pauseThisZone": "Pune {name} pe pauză",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
