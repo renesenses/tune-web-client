@@ -4192,6 +4192,8 @@ export default {
   "v2.album.locate": "Finn på disken",
   "v2.album.booklet": "Hefte (PDF)",
   "v2.album.qobuz.title": "Tillegg fra Qobuz",
+  "v2.album.qobuz.collapse": "Skjul",
+  "v2.album.qobuz.expand": "Utvid",
   "v2.album.qobuz.source": "Kilde: Qobuz",
   "v2.album.qobuz.label": "Plateselskap",
   "v2.album.qobuz.releaseDate": "Utgivelsesdato",

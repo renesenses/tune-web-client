@@ -4318,6 +4318,8 @@ export default {
   "v2.album.locate": "Visa på disken",
   "v2.album.booklet": "Häfte (PDF)",
   "v2.album.qobuz.title": "Kompletteringar från Qobuz",
+  "v2.album.qobuz.collapse": "Fäll ihop",
+  "v2.album.qobuz.expand": "Fäll ut",
   "v2.album.qobuz.source": "Källa: Qobuz",
   "v2.album.qobuz.label": "Skivbolag",
   "v2.album.qobuz.releaseDate": "Utgivningsdatum",

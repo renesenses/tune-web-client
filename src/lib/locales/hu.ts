@@ -4273,6 +4273,8 @@ export default {
   "v2.album.locate": "Megkeresés a lemezen",
   "v2.album.booklet": "Kísérőfüzet (PDF)",
   "v2.album.qobuz.title": "Qobuz-kiegészítések",
+  "v2.album.qobuz.collapse": "Összecsukás",
+  "v2.album.qobuz.expand": "Kibontás",
   "v2.album.qobuz.source": "Forrás: Qobuz",
   "v2.album.qobuz.label": "Kiadó",
   "v2.album.qobuz.releaseDate": "Megjelenés dátuma",

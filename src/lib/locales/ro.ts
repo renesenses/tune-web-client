@@ -4319,6 +4319,8 @@ export default {
   "v2.album.locate": "Localizează pe disc",
   "v2.album.booklet": "Broșură (PDF)",
   "v2.album.qobuz.title": "Completări Qobuz",
+  "v2.album.qobuz.collapse": "Restrânge",
+  "v2.album.qobuz.expand": "Extinde",
   "v2.album.qobuz.source": "Sursă: Qobuz",
   "v2.album.qobuz.label": "Casă de discuri",
   "v2.album.qobuz.releaseDate": "Data lansării",

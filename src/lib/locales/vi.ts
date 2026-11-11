@@ -4196,6 +4196,8 @@ export default {
   "v2.album.locate": "Định vị trên ổ đĩa",
   "v2.album.booklet": "Tập sách nhỏ (PDF)",
   "v2.album.qobuz.title": "Bổ sung từ Qobuz",
+  "v2.album.qobuz.collapse": "Thu gọn",
+  "v2.album.qobuz.expand": "Mở rộng",
   "v2.album.qobuz.source": "Nguồn: Qobuz",
   "v2.album.qobuz.label": "Hãng đĩa",
   "v2.album.qobuz.releaseDate": "Ngày phát hành",

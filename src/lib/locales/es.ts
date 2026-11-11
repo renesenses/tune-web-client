@@ -4319,6 +4319,8 @@ export default {
   "v2.album.locate": "Localizar en el disco",
   "v2.album.booklet": "Libreto (PDF)",
   "v2.album.qobuz.title": "Complementos de Qobuz",
+  "v2.album.qobuz.collapse": "Plegar",
+  "v2.album.qobuz.expand": "Desplegar",
   "v2.album.qobuz.source": "Fuente: Qobuz",
   "v2.album.qobuz.label": "Sello",
   "v2.album.qobuz.releaseDate": "Fecha de lanzamiento",

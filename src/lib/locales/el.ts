@@ -4194,6 +4194,8 @@ export default {
   "v2.album.locate": "Εντοπισμός στον δίσκο",
   "v2.album.booklet": "Ένθετο (PDF)",
   "v2.album.qobuz.title": "Συμπληρώσεις από το Qobuz",
+  "v2.album.qobuz.collapse": "Σύμπτυξη",
+  "v2.album.qobuz.expand": "Ανάπτυξη",
   "v2.album.qobuz.source": "Πηγή: Qobuz",
   "v2.album.qobuz.label": "Δισκογραφική",
   "v2.album.qobuz.releaseDate": "Ημερομηνία κυκλοφορίας",
