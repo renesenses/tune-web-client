@@ -4581,6 +4581,8 @@ export default {
   "v2.pod.playOutputRefused": "音箱拒绝了该剧集：播放未开始。",
   "v2.pod.playOutputNotFound": "尚未发现此区域的音箱。请几秒后重试。",
   "v2.pod.playFailed": "无法播放该剧集。",
+  "v2.pod.fromStart": "从头开始",
+  "v2.pod.resumeAt": "从 {pos} 继续",
   "v2.sup.stAnswered": "已回复",
   "v2.sup.stResolved": "已解决",
   "v2.sup.team": "Tune 团队",

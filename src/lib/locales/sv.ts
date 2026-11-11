@@ -4580,6 +4580,8 @@ export default {
   "v2.pod.playOutputRefused": "Högtalaren avvisade avsnittet: uppspelningen startade inte.",
   "v2.pod.playOutputNotFound": "Högtalaren i den här zonen har inte upptäckts ännu. Försök igen om några sekunder.",
   "v2.pod.playFailed": "Det går inte att spela upp avsnittet.",
+  "v2.pod.fromStart": "Från början",
+  "v2.pod.resumeAt": "Fortsätter vid {pos}",
   "v2.sup.stAnswered": "besvarad",
   "v2.sup.stResolved": "löst",
   "v2.sup.team": "Tune-teamet",

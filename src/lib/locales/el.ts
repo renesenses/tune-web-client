@@ -4456,6 +4456,8 @@ export default {
   "v2.pod.playOutputRefused": "Το ηχείο απέρριψε το επεισόδιο: η αναπαραγωγή δεν ξεκίνησε.",
   "v2.pod.playOutputNotFound": "Το ηχείο αυτής της ζώνης δεν έχει εντοπιστεί ακόμη. Δοκιμάστε ξανά σε λίγα δευτερόλεπτα.",
   "v2.pod.playFailed": "Δεν ήταν δυνατή η αναπαραγωγή του επεισοδίου.",
+  "v2.pod.fromStart": "Από την αρχή",
+  "v2.pod.resumeAt": "Συνέχεια από {pos}",
   "v2.sup.stAnswered": "απαντήθηκε",
   "v2.sup.stResolved": "επιλύθηκε",
   "v2.sup.team": "Ομάδα Tune",

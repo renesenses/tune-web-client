@@ -4581,6 +4581,8 @@ export default {
   "v2.pod.playOutputRefused": "Der Lautsprecher hat die Folge abgelehnt: Die Wiedergabe wurde nicht gestartet.",
   "v2.pod.playOutputNotFound": "Der Lautsprecher dieser Zone wurde noch nicht erkannt. Versuchen Sie es in einigen Sekunden erneut.",
   "v2.pod.playFailed": "Die Folge kann nicht abgespielt werden.",
+  "v2.pod.fromStart": "Von Anfang an",
+  "v2.pod.resumeAt": "Weiter bei {pos}",
   "v2.sup.stAnswered": "beantwortet",
   "v2.sup.stResolved": "gelöst",
   "v2.sup.team": "Tune-Team",

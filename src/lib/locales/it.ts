@@ -4581,6 +4581,8 @@ export default {
   "v2.pod.playOutputRefused": "Il diffusore ha rifiutato l'episodio: la riproduzione non è partita.",
   "v2.pod.playOutputNotFound": "Il diffusore di questa zona non è ancora stato rilevato. Riprova tra qualche secondo.",
   "v2.pod.playFailed": "Impossibile riprodurre l'episodio.",
+  "v2.pod.fromStart": "Dall'inizio",
+  "v2.pod.resumeAt": "Riprende da {pos}",
   "v2.sup.stAnswered": "risposto",
   "v2.sup.stResolved": "risolto",
   "v2.sup.team": "Team Tune",

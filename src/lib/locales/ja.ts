@@ -4581,6 +4581,8 @@ export default {
   "v2.pod.playOutputRefused": "スピーカーがエピソードを拒否しました。再生は開始されていません。",
   "v2.pod.playOutputNotFound": "このゾーンのスピーカーはまだ検出されていません。数秒後にもう一度お試しください。",
   "v2.pod.playFailed": "エピソードを再生できません。",
+  "v2.pod.fromStart": "最初から",
+  "v2.pod.resumeAt": "{pos} から再開",
   "v2.sup.stAnswered": "返信あり",
   "v2.sup.stResolved": "解決済み",
   "v2.sup.team": "Tune チーム",

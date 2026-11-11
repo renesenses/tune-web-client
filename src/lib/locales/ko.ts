@@ -4581,6 +4581,8 @@ export default {
   "v2.pod.playOutputRefused": "스피커가 에피소드를 거부했습니다. 재생이 시작되지 않았습니다.",
   "v2.pod.playOutputNotFound": "이 존의 스피커가 아직 감지되지 않았습니다. 몇 초 후에 다시 시도하세요.",
   "v2.pod.playFailed": "에피소드를 재생할 수 없습니다.",
+  "v2.pod.fromStart": "처음부터",
+  "v2.pod.resumeAt": "{pos}부터 이어서",
   "v2.sup.stAnswered": "답변됨",
   "v2.sup.stResolved": "해결됨",
   "v2.sup.team": "Tune 팀",

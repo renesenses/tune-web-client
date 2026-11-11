@@ -4458,6 +4458,8 @@ export default {
   "v2.pod.playOutputRefused": "Loa đã từ chối tập này: không bắt đầu phát.",
   "v2.pod.playOutputNotFound": "Chưa phát hiện được loa của vùng này. Vui lòng thử lại sau vài giây.",
   "v2.pod.playFailed": "Không thể phát tập này.",
+  "v2.pod.fromStart": "Từ đầu",
+  "v2.pod.resumeAt": "Tiếp tục từ {pos}",
   "v2.sup.stAnswered": "đã trả lời",
   "v2.sup.stResolved": "đã giải quyết",
   "v2.sup.team": "Đội ngũ Tune",
