@@ -137,6 +137,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -146,7 +148,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
-  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
+  import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, logosEnAttente, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
   import type { LabelImageCredit } from '../../lib/api';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
@@ -159,7 +161,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
   import {
-    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant,
+    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant, estEtatCoquille,
   } from '../../lib/historiqueCoquille';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
@@ -860,12 +862,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function effacerPeriode() { periode = SANS_PERIODE; }
   /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
   const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
+  /** Comme `periodeAppliquee`, mais avec la période en cours de glisser (compteur). */
+  const periodeAffichee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periodeVue));
+  // web#2732 — l'adresse n'est écrite que 300 ms après le DERNIER changement :
+  // Chrome limite replaceState (~100 appels / 10 s) et gèle l'onglet au-delà.
   $effect(() => {
     const p = periode;
     if (depot || typeof window === 'undefined' || !window.history) return;
-    const voulu = ecrirePeriode(window.location.search, p);
-    if (voulu === window.location.search) return;
-    window.history.replaceState(window.history.state, '', window.location.pathname + voulu + window.location.hash);
+    const t = setTimeout(() => {
+      const voulu = ecrirePeriode(window.location.search, p);
+      if (voulu === window.location.search) return;
+      window.history.replaceState(window.history.state, '', window.location.pathname + voulu + window.location.hash);
+    }, 300);
+    return () => clearTimeout(t);
   });
   // En quittant l'écran, l'adresse de la vue suivante ne garde pas la période ;
   // l'entrée de la Bibliothèque, elle, la garde pour le Précédent.
@@ -963,7 +972,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // ── web#2695 — les deux POIGNÉES de la période sur la frise ─────────────
   let barsEl = $state<HTMLDivElement | null>(null);
   let poigneeTiree: 'de' | 'a' | null = null;
-  const bornes = $derived(bornesPeriode(periode));
+  // web#2732 — pendant le glisser, seule `periodeTiree` (locale) bouge ; la grille
+  // ne voit `periode` qu'au relâchement. `periodeVue` pilote poignées et compteur.
+  let periodeTiree = $state<Periode | null>(null);
+  const periodeVue = $derived(periodeTiree ?? periode);
+  const bornes = $derived(bornesPeriode(periodeVue));
   const borneDansFrise = (v: number) => Math.min(histogram.maxYear, Math.max(histogram.min, v));
   const valeurDe = $derived.by(() => borneDansFrise(bornes.de ?? histogram.min));
   const valeurA = $derived.by(() => borneDansFrise(bornes.a ?? histogram.maxYear));
@@ -983,17 +996,42 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     e.stopPropagation();
     poserBorne(cote, v);
   }
+  let imageTiree = 0;
+  let anTire: number | null = null;
+  function majTiree() {
+    imageTiree = 0;
+    if (!poigneeTiree || anTire == null) return;
+    const an = anTire;
+    periodeTiree = poigneeTiree === 'de'
+      ? { de: Math.min(an, valeurA), a: bornes.a }
+      : { de: bornes.de, a: Math.max(an, valeurDe) };
+  }
   function poigneeSaisie(e: PointerEvent, cote: 'de' | 'a') {
     e.preventDefault();
     poigneeTiree = cote;
+    anTire = null;
     try { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* pointeur déjà relâché */ }
   }
   function poigneeGlisse(e: PointerEvent) {
     if (!poigneeTiree || !barsEl) return;
     const r = barsEl.getBoundingClientRect();
-    poserBorne(poigneeTiree, anneeSousLePointeur(e.clientX - r.left, r.width, histogram.min, histogram.bars.length));
+    anTire = anneeSousLePointeur(e.clientX - r.left, r.width, histogram.min, histogram.bars.length);
+    if (typeof requestAnimationFrame !== 'function') { majTiree(); return; }
+    if (!imageTiree) imageTiree = requestAnimationFrame(majTiree);
   }
-  function poigneeLachee() { poigneeTiree = null; }
+  function poigneeLachee() {
+    if (imageTiree && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(imageTiree);
+    imageTiree = 0;
+    if (poigneeTiree && anTire != null) {
+      majTiree();
+      const fin = periodeTiree;
+      periodeTiree = null;
+      if (fin) periode = fin;
+    }
+    periodeTiree = null;
+    anTire = null;
+    poigneeTiree = null;
+  }
   /** Position d'une borne sur la frise : début de l'année « De », fin de l'année « À ». */
   const pctBorne = (an: number, fin: boolean) =>
     histogram.bars.length ? ((an - histogram.min + (fin ? 1 : 0)) / histogram.bars.length) * 100 : 0;
@@ -1223,28 +1261,69 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let logosLabels = $state.raw<Map<string, string>>(new Map());
   // tune-server-rust#7089 — la source et la licence connue de chaque logo.
   let creditsLabels = $state.raw<Map<string, LabelImageCredit>>(new Map());
+  /** web#2790 — « Logos en attente : l'enrichissement est en pause » : la
+   *  passe des logos est portée par l'Enrichissement ; suspendu, un label
+   *  sans logo n'en aura pas, et l'onglet le dit. Relu avec les logos, à
+   *  chaque entrée dans l'onglet ; faux dès que la pause est levée ou que
+   *  tous les labels ont leur logo. */
+  let logosEnPause = $state(false);
   $effect(() => {
     if (tab !== 'labels' || depot) return;
     let vivant = true;
-    api.getLibraryLabels().then((l) => { if (vivant) { logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l); } });
-    return () => { vivant = false; };
+    api.getLibraryLabels().then(async (l) => {
+      if (!vivant) return;
+      logosLabels = carteDesLogos(l); creditsLabels = carteDesCredits(l);
+      // Une panne de l'instantané (serveur ancien, réseau) se tait : pas de ligne.
+      const taches = await api.getBackgroundTasks().catch(() => null);
+      if (vivant) logosEnPause = logosEnAttente(l, taches);
+    });
+    return () => { vivant = false; logosEnPause = false; };
+  });
+
+  /**
+   * web#2734 — la population que la frise décrit : les albums de la VALEUR
+   * OUVERTE (un genre, une année, un label) quand il y en a une, sinon `src`.
+   *
+   * L'histogramme se calculait toujours sur `src` — toute la bibliothèque, ou
+   * la portée dossier. Dans un genre ouvert, la hauteur des barres se
+   * rapportait donc à une autre population que la grille : sur le .18, le
+   * genre ouvert en 1970–1979 montrait des barres presque invisibles, écrasées
+   * par les années les mieux fournies de TOUTE la collection. Les compteurs
+   * (année, période, sans année) suivent la même population.
+   *
+   * On repart de `facetteOuverte` et de `src`, pas de `groupeOuvert.albums` :
+   * ce dernier est déjà filtré par l'année survolée et la période, et une
+   * frise qui ne compterait que ce qu'elle filtre s'effacerait elle-même.
+   * Comme hors valeur ouverte, les autres filtres (qualité, format, recherche)
+   * ne réduisent pas la frise : elle décrit la collection, ici celle du genre.
+   */
+  const populationFrise: Album[] = $derived.by(() => {
+    const valeur = facetteOuverte;
+    if (valeur == null || tab === 'albums' || tab === 'tracks' || tab === 'artists' || sourcePropre) return src;
+    if (tab === 'genres') {
+      return grouperParGenre(src, FACET_EMPTY.genres).find((g) => memeFacette(g.key, valeur))?.albums ?? [];
+    }
+    return src.filter((a) => memeFacette(facetOf(a, tab) ?? FACET_EMPTY[tab], valeur));
   });
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
-   *  chez quelqu'un dont la collection commence en 1985. */
+   *  chez quelqu'un dont la collection commence en 1985. Dans une valeur
+   *  ouverte, de ses albums (web#2734). */
   const histogram = $derived.by(() => {
     const counts = new Map<number, number>();
-    for (const a of src) {
+    for (const a of populationFrise) {
       const y = albumYear(a);
       if (y != null) counts.set(y, (counts.get(y) ?? 0) + 1);
     }
-    if (!counts.size) return { bars: [] as { year: number; n: number }[], max: 0, min: 0, maxYear: 0 };
+    if (!counts.size) return { bars: [] as { year: number; n: number }[], max: 0, min: 0, maxYear: 0, total: 0 };
     const years = [...counts.keys()].sort((x, z) => x - z);
     const min = years[0], maxYear = years[years.length - 1];
     const bars: { year: number; n: number }[] = [];
     for (let y = min; y <= maxYear; y++) bars.push({ year: y, n: counts.get(y) ?? 0 });
-    return { bars, max: Math.max(...counts.values()), min, maxYear };
+    let total = 0;
+    for (const n of counts.values()) total += n;
+    return { bars, max: Math.max(...counts.values()), min, maxYear, total };
   });
 
   /** Repères de décennie sous la frise, alignés sur les barres. */
@@ -1258,7 +1337,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : src.filter((a) => albumYear(a) === fYear).length);
+  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre.
@@ -1630,10 +1709,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
-  /** Albums de la période dans la collection (mode retenu), comme `yearCount`. */
-  const nPeriode = $derived(periodeAppliquee ? src.filter((a) => dansPeriode(albumYear(a), periode)).length : 0);
-  /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit. */
-  const nSansAnnee = $derived(periodeAppliquee ? src.length - couvertureAnnees(src, modeAnnee) : 0);
+  /** Albums de la période dans la population de la frise (mode retenu), comme `yearCount`. */
+  // web#2732 — lu dans l'histogramme (une barre par année), sans repasser sur la population.
+  const nPeriode = $derived(periodeAffichee ? histogram.bars.reduce((n, b) => n + (dansPeriode(b.year, periodeVue) ? b.n : 0), 0) : 0);
+  /** Albums SANS année dans le mode retenu : une période les écarte, l'écran le dit (web#2734 : dans la population de la frise). */
+  const nSansAnnee = $derived(periodeAffichee ? populationFrise.length - histogram.total : 0);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
@@ -2042,9 +2122,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
        * — puis s'ouvre tout seul quand la donnée arrive. Vérifier l'existence
        * ici perdrait le genre pour qui arrive sur une bibliothèque froide.
        */
+      // tune-server-rust#8145 — venu d'une autre vue (la page d'un artiste) :
+      // le Retour de cette valeur y ramène.
+      const depuis = typeof d.depuis === 'string' && d.depuis !== 'library' ? d.depuis : null;
       tick()
         .then(() => {
           facetteOuverte = valeur;
+          facetteVenueDe = depuis && valeur ? { valeur, vue: depuis } : null;
           return tick();
         })
         .then(() => {
@@ -2124,6 +2208,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return tab === 'genres' ? cleGenre(cle) === cleGenre(valeur) : cle === valeur;
   }
   $effect(() => { void tab; void q; facetteOuverte = null; });
+  $effect(() => { void tab; void q; facetteVenueDe = null; });
+  /**
+   * tune-server-rust#8145 (second point) — « quand on fait retour, on revient
+   * sur l'onglet Label général et non sur l'artiste ». La valeur ouverte par
+   * `tune:v2-facette` depuis une AUTRE vue retient cette vue : son Retour
+   * recule d'un cran dans l'historique (l'entrée empilée par le changement de
+   * vue), comme le Précédent du navigateur, au lieu de montrer la liste.
+   */
+  let facetteVenueDe: { valeur: string; vue: string } | null = null;
 
   /**
    * web#2622 (tune-server-rust#7671) — « Exporter le catalogue » : le serveur
@@ -2163,8 +2256,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ouvrirFacette(cle: string) {
     if (flisteEl) positionsListeFacettes.set(tab, flisteEl.scrollTop);
     facetteOuverte = cle;
+    facetteVenueDe = null;
+  }
+  /** #8145 — la valeur venue d'une autre vue : son Retour recule vers elle. */
+  function reculerVersLaVueDOrigine(): boolean {
+    const venue = facetteVenueDe;
+    facetteVenueDe = null;
+    if (!venue || facetteOuverte !== venue.valeur) return false;
+    if (!estEtatCoquille(history.state) || history.state.vue !== 'library') return false;
+    history.back();
+    return true;
   }
   function fermerFacette() {
+    if (reculerVersLaVueDOrigine()) return;
     positionARetablir = positionsListeFacettes.get(tab) ?? null;
     facetteOuverte = null;
   }
@@ -3074,6 +3178,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 </script>
 
 
+{#snippet logosEnPauseNote()}
+  <!-- web#2790 — en tête de la liste comme de la grille des labels, sur
+       toute la largeur : les logos manquants attendent la reprise de
+       l'Enrichissement. Un snippet, pour ne pas allonger l'ouverture de
+       `.fliste` que `retoursFilV1_0609.test.ts` lit par fenêtre. -->
+  {#if tab === 'labels' && !depot && logosEnPause && groups.length}
+    <p class="lgpause" role="status">{$tr('v2.labels.logosEnPause' as any)}</p>
+  {/if}
+{/snippet}
+
 {#snippet passerelleServices()}
   <!-- web#2142 — chercher le même texte chez les services connectés. -->
   {#if !depot && q.trim() && servicesPourRecherche.length}
@@ -3539,7 +3653,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
           onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
       </label>
-      {#if periodeAppliquee}
+      {#if periodeAffichee}
         <span class="periode-n" aria-live="polite">{$tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))}</span>
         {#if nSansAnnee > 0}
           <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
@@ -3585,7 +3699,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              (dix ans), Début / Fin. À la souris ou au doigt : on les tire. -->
         {#each poignees as { cote, val, fin } (cote)}
           <span class="poignee poignee-{cote}" role="slider" tabindex="0"
-            class:posee={periodeAppliquee}
+            class:posee={periodeAffichee}
             aria-label={$tr((cote === 'de' ? 'v2.lib.periodStart' : 'v2.lib.periodEnd') as any)}
             aria-valuemin={histogram.min} aria-valuemax={histogram.maxYear} aria-valuenow={val}
             aria-orientation="horizontal"
@@ -3758,6 +3872,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              genres précédents. -->
         {#if groupeOuvert == null}
           <div class="fliste" bind:this={flisteEl}>
+            {@render logosEnPauseNote()}
             {#if !groups.length}
               <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
             {:else if !(tab === 'labels' && vueLabels === 'grid')}
@@ -3909,8 +4024,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                    <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
-                    <span class="ly">{albumYear(a) ?? ''}</span>
+                    <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+                    <span class="ly"><LienEntite entite={{ type: 'annee', annee: albumYear(a) ?? null }} /></span>
                     {#if showBadges}<span class="lb">{#if badgeListe(a)}<span class="bdg flat">{badgeListe(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq" use:bulleTexte>{tech(a)}</span>{/if}
                   </button>
@@ -3937,7 +4052,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                     </div>
                     <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
-                      <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                      <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
                       <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
                     </button>
                   </div>
@@ -4094,7 +4209,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
-        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
@@ -4114,8 +4229,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            colonne decalerait toutes les autres, et seule une poignee de
            lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
       <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact />{#if estAlbumDeServiceEtendu(a)}<span class="prov inline">{libelleProvenance(provenanceDe(a))}</span>{/if}</span>
-      <span class="la" use:bulleTexte>{a.artist_name ?? ''}</span>
-      <span class="ly">{albumYear(a) ?? ''}</span>
+      <!-- web#2770 (lot 3) — l'artiste et l'année sont des liens À PART, dans
+           le bouton qui ouvre l'album : chacun arrête la propagation. -->
+      <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+      <span class="ly"><LienEntite entite={{ type: 'annee', annee: albumYear(a) ?? null }} /></span>
       <!--
         🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
         est actif, vides s'il n'y a rien à y mettre.
@@ -4150,7 +4267,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       </div>
       <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
-        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
         {#if showTech}<div class="cq" use:bulleTexte>{tech(a)}</div>{/if}
       </button>
@@ -4436,7 +4553,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      `.facets` qui défile dessous. `.body` étant une rangée flex, sans elle le
      Retour se rangerait à GAUCHE de la grille. */
   .facette-ouverte{flex:1; min-width:0; min-height:0; display:flex; flex-direction:column}
-  .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
@@ -4477,6 +4594,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .lgmono{font-size:34px; font-weight:600; letter-spacing:.02em; color:var(--v2-txt2)}
   .lgnom{font-size:14px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lgn{font-size:12px; color:var(--v2-txt3, var(--v2-txt2))}
+  /* web#2790 — la ligne « Logos en attente » : discrète, même ton que les
+     notes de l'écran (`.state`), sur toute la largeur de la liste ou de la grille. */
+  .lgpause{grid-column:1 / -1; margin:0 0 4px; font-size:13px; color:var(--v2-txt3, var(--v2-txt2))}
   .fl:hover{background:var(--v2-hover)}
   .flnom{display:flex; align-items:center; gap:10px; flex:1; min-width:0;
     padding:10px 12px; border:0; background:transparent; cursor:pointer;
@@ -4534,7 +4654,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   /* Affichage liste : même données, densité maximale. */
   .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
-  .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s;
@@ -4588,7 +4708,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   /* Onglet Titres. */
   .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
-  .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .trk{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px; width:100%;
     padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
   /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
@@ -4610,7 +4730,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .yinter .yn{font:600 11px var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
-  .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /*
     #929 — LE CARROUSEL : UNE BANDE, ET L'ALBUM DU MILIEU EN GRAND.
 
@@ -4640,7 +4760,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .carrou{flex:1; min-height:0; display:flex; align-items:center; gap:var(--ccg);
     overflow-x:auto; overflow-y:hidden; padding:0 var(--ccp); scrollbar-width:thin; outline:none}
   .carrou::-webkit-scrollbar{height:9px}
-  .carrou::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .carrou::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* Le focus se voit : l'action rend la rangée atteignable au clavier, et une
      cible de tabulation invisible est une cible perdue. */
   .carrou:focus-visible{box-shadow:inset 0 0 0 2px var(--v2-acc1); border-radius:var(--v2-r-card)}

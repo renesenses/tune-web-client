@@ -97,7 +97,7 @@ const titresDe = (racine: Element | null) =>
 describe('#4651 — la fiche artiste', () => {
   it('la grille principale ne montre plus « Pass Them By » ; « Apparitions » le montre (#1839)', () => {
     const h = poser({ locaux: [], services: [QOBUZ, TIDAL, YOUTUBE], nomArtiste: 'Agnes Obel' });
-    const principale = h.querySelector('.disco > .gr');
+    const principale = h.querySelector('[data-section="discographie"] > .gr'); // web#2639
     const connexes = h.querySelector('[data-section="apparitions"]');
     expect(titresDe(principale)).not.toContain('Pass Them By');
     expect(titresDe(principale)).not.toContain('Trojan');

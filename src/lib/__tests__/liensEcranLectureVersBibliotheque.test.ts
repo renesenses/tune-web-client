@@ -268,13 +268,15 @@ describe('toute sortie de l’écran de lecture vers la Bibliothèque nourrit le
 
   it('la garde voit bien les sorties — sinon elle est verte pour rien', () => {
     // Elles étaient QUATRE au 09/09/2026, TROIS depuis #1494 (la fiche
-    // artiste part sur la page commune). La borne basse suffit : ce qui
-    // compte est qu'aucune ne soit muette, pas leur nombre exact.
+    // artiste part sur la page commune), DEUX depuis web#2770 (l'année est un
+    // `LienEntite` : `lib/lienEntite.ouvrirAnnee`, gardé par
+    // `lienEntite2770.test.ts`). La borne basse suffit : ce qui compte est
+    // qu'aucune ne soit muette, pas leur nombre exact.
     expect(
       releve.length,
       'aucun `activeView.set(\'library\')` trouvé : fichier déplacé, ou ' +
         'la navigation a changé de forme et cette garde ne mesure plus rien',
-    ).toBeGreaterThanOrEqual(3);
+    ).toBeGreaterThanOrEqual(2);
   });
 
   it('🔴 aucune n’oublie de poser sa cible', () => {

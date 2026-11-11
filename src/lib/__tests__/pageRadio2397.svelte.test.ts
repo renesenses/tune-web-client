@@ -139,7 +139,7 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
       .find((t) => t.querySelector('.nm')?.textContent === nom)!
-      .querySelector('button.ouvrir') as HTMLButtonElement).click();
+      .querySelector('button.centre') as HTMLButtonElement).click();
     lancer('FIP'); await respirer();
     lancer('Radio Maison'); await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
@@ -193,14 +193,14 @@ describe('Dernières lues', () => {
 describe('badge « Live » sur le logo', () => {
   it('🔴 aucun badge pendant la lecture, ni sur Mes radios ni sur Annuaire', async () => {
     await monter();
-    (hote.querySelector('.grid .st button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelector('.grid .st button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.st.live'), 'la tuile ne joue pas').not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();
     onglet(1).click();
     await respirer();
     mocks.jouerDepuisAnnuaire.mockResolvedValue({ zone_id: 3 });
-    (hote.querySelectorAll('.fiche')[1].querySelector('button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelectorAll('.fiche')[1].querySelector('button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.fiche.live')).not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();
