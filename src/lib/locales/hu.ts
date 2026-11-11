@@ -3944,6 +3944,8 @@ export default {
   "volume.stepDown": "Hangerő csökkentése egy lépéssel",
   "volume.stepUp": "Hangerő növelése egy lépéssel",
   "volume.limitedBySafety": "Elérte a biztonsági határt: a Tune ebben a zónában nem megy feljebb.",
+  "volume.groupMaster": "Csoport: {n} zóna",
+  "volume.groupMasterHint": "A csúszka az egész csoport hangerejét állítja; a fix hangerejű zónák nem változnak.",
   "volume.zonesLegend": "Zöld: a komfort alatt. Narancs: a komfort és a biztonság között. Piros: a biztonság felett.",
   "volume.stepFailed": "A hangerőlépés nem lett alkalmazva.",
   "volume.dbEntryHint": "Írja be a kívánt értéket, például -20,5. 0 dB = teljes kivezérlés.",

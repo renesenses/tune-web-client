@@ -3990,6 +3990,8 @@ export default {
   "volume.stepDown": "Lautstärke einen Schritt leiser",
   "volume.stepUp": "Lautstärke einen Schritt lauter",
   "volume.limitedBySafety": "Sicherheitsgrenze erreicht: Tune geht in dieser Zone nicht höher.",
+  "volume.groupMaster": "Gruppe: {n} Zonen",
+  "volume.groupMasterHint": "Der Regler steuert die Lautstärke der ganzen Gruppe; Zonen mit fester Lautstärke bleiben unverändert.",
   "volume.zonesLegend": "Grün: unter Komfort. Orange: zwischen Komfort und Sicherheit. Rot: oberhalb der Sicherheit.",
   "volume.stepFailed": "Der Lautstärkeschritt wurde nicht angewendet.",
   "volume.dbEntryHint": "Gewünschten Wert eingeben, zum Beispiel -20,5. 0 dB = Vollaussteuerung.",

@@ -11,6 +11,9 @@
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
+  // tune-server-rust#8445 — zone groupée : le curseur règle le volume MAÎTRE.
+  import { reglerVolume, reglerVolumeDb, zoneGroupee } from '../../lib/volumeDeGroupe';
+  import MentionGroupe from './MentionGroupe.svelte';
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
   import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
@@ -114,8 +117,8 @@
     if (isBrowserZone(zone)) browserSetVolume(lineaire, zone);
     // Une sortie à grille reçoit un cran valable. Sans plage annoncée,
     // conserver le dB exact, sans aller-retour supplémentaire de flottant.
-    if (plageVolumeSortie(zone)) await api.setVolume(zone.id, lineaire);
-    else await api.setVolumeDb(zone.id, lu.db);
+    if (plageVolumeSortie(zone)) await reglerVolume(zone.id, lineaire);
+    else await reglerVolumeDb(zone.id, lu.db);
   }
 
   function toucheSaisie(e: KeyboardEvent) {
@@ -168,7 +171,7 @@
   function envoyerVolume(zoneId: number, val: number, contexte: number) {
     if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return Promise.resolve();
     return envoyerVolumeOuReverrouiller(zoneId, val, {
-      envoyer: api.setVolume,
+      envoyer: reglerVolume,
       relireVerrou: refreshAudiophile,
       verrouille: isVolumeLocked,
       direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
@@ -198,13 +201,15 @@
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
     if (!zone?.id || !volumeAutorise) return;
-    if (plageVolumeSortie(zone) || !serveurConnaitLesLimites(zone) || isBrowserZone(zone)) {
+    // #8445 — zone groupée : le pas serveur (`volume/step`) ne vaut que pour
+    // une zone ; le pas se calcule ici et part en volume maître.
+    if (plageVolumeSortie(zone) || !serveurConnaitLesLimites(zone) || isBrowserZone(zone) || zoneGroupee(zone.id)) {
       // web#2292 — borné par la sécurité de la zone, pas seulement par 100 %.
       const next = cibleDuPas(zone, vol, direction);
       if (next === vol) return;
       if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, next);
       applyVolume(next);
-      await api.setVolume(zone.id, next);
+      await reglerVolume(zone.id, next);
       return;
     }
     try {
@@ -325,6 +330,7 @@
     <span class="volume-value">{volumeDisplay(vol)}</span>
   {/if}
   {/if}
+  <MentionGroupe zoneId={zone?.id} />
   <DeviceVolumeObservation {zone} />
 </div>
 

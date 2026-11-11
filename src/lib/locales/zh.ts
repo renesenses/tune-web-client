@@ -3990,6 +3990,8 @@ export default {
   "volume.stepDown": "音量降低一级",
   "volume.stepUp": "音量升高一级",
   "volume.limitedBySafety": "已达到安全上限：Tune 不会在此区域继续调高音量。",
+  "volume.groupMaster": "组：{n} 个区域",
+  "volume.groupMasterHint": "滑块调节整个组的音量；固定音量的区域不变。",
   "volume.zonesLegend": "绿色：低于舒适。橙色：舒适与安全之间。红色：超过安全。",
   "volume.stepFailed": "音量调节未生效。",
   "volume.dbEntryHint": "输入所需数值，例如 -20.5。0 dB 为满刻度。",

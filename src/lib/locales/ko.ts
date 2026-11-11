@@ -3990,6 +3990,8 @@ export default {
   "volume.stepDown": "볼륨 한 단계 낮추기",
   "volume.stepUp": "볼륨 한 단계 높이기",
   "volume.limitedBySafety": "안전 한도에 도달했습니다: 이 존에서는 더 높이지 않습니다.",
+  "volume.groupMaster": "그룹: {n}개 존",
+  "volume.groupMasterHint": "슬라이더로 그룹 전체의 볼륨을 조절합니다. 고정 볼륨 존은 바뀌지 않습니다.",
   "volume.zonesLegend": "초록: 편안함 미만. 주황: 편안함과 안전 사이. 빨강: 안전 초과.",
   "volume.stepFailed": "볼륨 단계가 적용되지 않았습니다.",
   "volume.dbEntryHint": "원하는 값을 입력하세요. 예: -20.5. 0 dB가 최대 레벨입니다.",

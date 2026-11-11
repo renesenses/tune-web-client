@@ -4012,6 +4012,8 @@ export default {
   "volume.stepDown": "Baisser le volume d'un pas",
   "volume.stepUp": "Monter le volume d'un pas",
   "volume.limitedBySafety": "Limite de sécurité atteinte : Tune ne montera pas plus haut sur cette zone.",
+  "volume.groupMaster": "Groupe : {n} zones",
+  "volume.groupMasterHint": "Le curseur règle le volume de tout le groupe ; les zones en volume fixe ne bougent pas.",
   "volume.zonesLegend": "Vert : sous le confort. Orange : entre confort et sécurité. Rouge : au-delà de la sécurité.",
   "volume.stepFailed": "Le pas de volume n'a pas été appliqué.",
   "volume.dbEntryHint": "Tapez la valeur voulue, par exemple -20,5. 0 dB = pleine échelle.",

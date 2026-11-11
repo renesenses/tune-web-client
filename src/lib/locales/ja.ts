@@ -3990,6 +3990,8 @@ export default {
   "volume.stepDown": "音量を1段階下げる",
   "volume.stepUp": "音量を1段階上げる",
   "volume.limitedBySafety": "安全上限に達しました：このゾーンではこれ以上音量を上げません。",
+  "volume.groupMaster": "グループ：{n} ゾーン",
+  "volume.groupMasterHint": "スライダーでグループ全体の音量を調整します。固定音量のゾーンは変わりません。",
   "volume.zonesLegend": "緑：快適未満。オレンジ：快適と安全の間。赤：安全超過。",
   "volume.stepFailed": "音量ステップは適用されませんでした。",
   "volume.dbEntryHint": "希望する値を入力してください（例: -20.5）。0 dB がフルスケールです。",
