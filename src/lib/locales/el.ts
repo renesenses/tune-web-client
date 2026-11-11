@@ -3527,7 +3527,7 @@ export default {
   "v2.zone.pickZone": "Επιλέξτε ζώνη…",
   "v2.zone.leftChannel": "αριστερό κανάλι",
   "v2.zone.rightChannel": "δεξί κανάλι",
-  "v2.fav.allSources": "Όλες",
+  "v2.fav.allSources": "Όλες οι πηγές",
   "v2.fav.sourceLibrary": "Βιβλιοθήκη",
   "v2.fav.sortBy": "Ταξινόμηση κατά",
   "v2.fav.sortRecent": "Προστέθηκαν πρόσφατα",

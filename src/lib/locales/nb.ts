@@ -3527,7 +3527,7 @@ export default {
   "v2.zone.pickZone": "Velg en sone…",
   "v2.zone.leftChannel": "venstre kanal",
   "v2.zone.rightChannel": "høyre kanal",
-  "v2.fav.allSources": "Alle",
+  "v2.fav.allSources": "Alle kilder",
   "v2.fav.sourceLibrary": "Bibliotek",
   "v2.fav.sortBy": "Sorter etter",
   "v2.fav.sortRecent": "Nylig lagt til",

@@ -3648,7 +3648,7 @@ export default {
   "v2.zone.pickZone": "选择一个区域…",
   "v2.zone.leftChannel": "左声道",
   "v2.zone.rightChannel": "右声道",
-  "v2.fav.allSources": "全部",
+  "v2.fav.allSources": "所有来源",
   "v2.fav.sourceLibrary": "音乐库",
   "v2.fav.sortBy": "排序方式",
   "v2.fav.sortRecent": "最近添加",
