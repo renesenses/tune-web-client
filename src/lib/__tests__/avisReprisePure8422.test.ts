@@ -62,7 +62,7 @@ const AVIS = {
     code: 'pure_resumed_at_position',
     position_ms: 151_400,
     position: '2:31',
-    message: 'Bascule PURE : reprise à 2:31',
+    message: 'PURE switch: resumed at 2:31',
     fatal: false,
   },
 };

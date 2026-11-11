@@ -7,7 +7,7 @@
  * fois : `{ code: 'pure_resumed_at_position', position_ms, position, message }`.
  *
  * Le texte se dit dans la langue de l'interface (`avisServeur.<code>`) ; un
- * code inconnu du client retombe sur le `message` du serveur (français), un
+ * code inconnu du client retombe sur le `message` du serveur (anglais, garde #7077), un
  * avis sans rien de lisible n'affiche rien.
  */
 import { get } from 'svelte/store';
