@@ -5654,8 +5654,7 @@ export default {
   "v2.circle.listen.notShared": "이 트랙은 더 이상 공유되지 않습니다.",
   "v2.circle.listen.revoked": "이 듣기는 더 이상 허용되지 않습니다.",
   "v2.circle.listen.noZone": "듣기를 시작할 존을 선택하세요.",
-  "v2.circle.listen.closed": "보기 전용: 연락처 쪽에서 듣기는 열려 있지 않습니다. 여기서는 재생을 시작할 수 없습니다. 앨범이나 곡을 내 소스에서 찾아보세요.",
-  "v2.circle.listen.closedClick": "여기서는 재생할 수 없습니다: 연락처 쪽에서 듣기는 열려 있지 않습니다. '내 소스에서 검색'으로 내 쪽에서 찾아보세요.",
+  "v2.circle.listen.closed": "보기 전용: 연락처 쪽에서 듣기는 열려 있지 않습니다. 앨범이나 곡을 클릭하면 내 소스(라이브러리, 그다음 연결된 서비스)에서 같은 항목을 재생합니다.",
   "v2.circle.sources.search": "내 소스에서 검색",
   "v2.circle.sources.searchAria": "'{query}'을(를) 내 소스에서 검색",
   "v2.circle.sources.searching": "'{query}'을(를) 내 소스에서 검색하는 중…",
@@ -5664,6 +5663,9 @@ export default {
   "v2.circle.sources.error": "소스 검색에 실패했습니다. 다시 시도하세요.",
   "v2.circle.sources.playAria": "'{title}' 재생 ({source})",
   "v2.circle.sources.local": "내 라이브러리",
+  "v2.circle.sources.playing": "{source}에서 '{title}' 재생 중.",
+  "v2.circle.sources.notFound": "'{query}'을(를) 라이브러리와 연결된 서비스에서 찾을 수 없습니다. '내 소스에서 검색'으로 비슷한 결과를 볼 수 있습니다.",
+  "v2.circle.sources.playEquivalentAria": "내 소스에서 '{query}' 재생",
   "v2.circle.listen.dismiss": "닫기",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

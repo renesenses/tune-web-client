@@ -5654,8 +5654,7 @@ export default {
   "v2.circle.listen.notShared": "Dieser Titel wird nicht mehr mit Ihnen geteilt.",
   "v2.circle.listen.revoked": "Dieses Anhören ist nicht mehr erlaubt.",
   "v2.circle.listen.noZone": "Wählen Sie eine Zone, um das Anhören zu starten.",
-  "v2.circle.listen.closed": "Nur ansehen: Das Hören bei einem Kontakt ist nicht freigegeben. Von hier aus lässt sich nichts abspielen; suchen Sie das Album oder den Titel in Ihren eigenen Quellen.",
-  "v2.circle.listen.closedClick": "Wiedergabe hier nicht möglich: Das Hören bei einem Kontakt ist nicht freigegeben. Mit „In meinen Quellen suchen“ finden Sie es bei sich.",
+  "v2.circle.listen.closed": "Nur ansehen: Das Hören bei einem Kontakt ist nicht freigegeben. Ein Klick auf ein Album oder einen Titel spielt die Entsprechung aus Ihren Quellen ab (Ihre Bibliothek, dann Ihre verbundenen Dienste).",
   "v2.circle.sources.search": "In meinen Quellen suchen",
   "v2.circle.sources.searchAria": "„{query}“ in meinen Quellen suchen",
   "v2.circle.sources.searching": "Suche nach „{query}“ in Ihren Quellen …",
@@ -5664,6 +5663,9 @@ export default {
   "v2.circle.sources.error": "Die Suche in Ihren Quellen ist fehlgeschlagen. Versuchen Sie es erneut.",
   "v2.circle.sources.playAria": "„{title}“ abspielen ({source})",
   "v2.circle.sources.local": "Meine Bibliothek",
+  "v2.circle.sources.playing": "„{title}“ wird von {source} abgespielt.",
+  "v2.circle.sources.notFound": "„{query}“ wurde weder in Ihrer Bibliothek noch in Ihren verbundenen Diensten gefunden. „In meinen Quellen suchen“ zeigt ähnliche Ergebnisse.",
+  "v2.circle.sources.playEquivalentAria": "„{query}“ aus meinen Quellen abspielen",
   "v2.circle.listen.dismiss": "Schließen",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

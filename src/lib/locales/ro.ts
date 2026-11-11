@@ -5654,8 +5654,7 @@ export default {
   "v2.circle.listen.notShared": "Această piesă nu mai este partajată cu tine.",
   "v2.circle.listen.revoked": "Această ascultare nu mai este permisă.",
   "v2.circle.listen.noZone": "Alege o zonă pentru a începe ascultarea.",
-  "v2.circle.listen.closed": "Doar consultare: ascultarea la un contact nu este deschisă. De aici nu se poate porni redarea; caută albumul sau piesa în propriile surse.",
-  "v2.circle.listen.closedClick": "Redarea nu este posibilă aici: ascultarea la un contact nu este deschisă. Folosește „Caută în sursele mele” ca să o găsești la tine.",
+  "v2.circle.listen.closed": "Doar consultare: ascultarea la un contact nu este deschisă. Un clic pe un album sau o piesă redă echivalentul din sursele tale (biblioteca ta, apoi serviciile conectate).",
   "v2.circle.sources.search": "Caută în sursele mele",
   "v2.circle.sources.searchAria": "Caută „{query}” în sursele mele",
   "v2.circle.sources.searching": "Se caută „{query}” în sursele tale…",
@@ -5664,6 +5663,9 @@ export default {
   "v2.circle.sources.error": "Căutarea în sursele tale a eșuat. Încearcă din nou.",
   "v2.circle.sources.playAria": "Redă „{title}” ({source})",
   "v2.circle.sources.local": "Biblioteca mea",
+  "v2.circle.sources.playing": "Se redă „{title}” din {source}.",
+  "v2.circle.sources.notFound": "„{query}” nu a fost găsit în biblioteca ta și nici în serviciile conectate. „Caută în sursele mele” arată rezultate apropiate.",
+  "v2.circle.sources.playEquivalentAria": "Redă „{query}” din sursele mele",
   "v2.circle.listen.dismiss": "Închide",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

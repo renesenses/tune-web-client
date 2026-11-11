@@ -5654,8 +5654,7 @@ export default {
   "v2.circle.listen.notShared": "このトラックは共有されなくなりました。",
   "v2.circle.listen.revoked": "この再生は許可されなくなりました。",
   "v2.circle.listen.noZone": "再生するゾーンを選択してください。",
-  "v2.circle.listen.closed": "閲覧のみ：連絡先の元での再生は開放されていません。ここから再生を始めることはできません。アルバムや曲はご自身のソースから探してください。",
-  "v2.circle.listen.closedClick": "ここでは再生できません：連絡先の元での再生は開放されていません。「自分のソースで検索」で手元にあるか探せます。",
+  "v2.circle.listen.closed": "閲覧のみ：連絡先の元での再生は開放されていません。アルバムや曲をクリックすると、ご自身のソース（ライブラリ、次に接続中のサービス）にある同じものを再生します。",
   "v2.circle.sources.search": "自分のソースで検索",
   "v2.circle.sources.searchAria": "「{query}」を自分のソースで検索",
   "v2.circle.sources.searching": "「{query}」をあなたのソースで検索中…",
@@ -5664,6 +5663,9 @@ export default {
   "v2.circle.sources.error": "ソース内の検索に失敗しました。もう一度お試しください。",
   "v2.circle.sources.playAria": "「{title}」を再生（{source}）",
   "v2.circle.sources.local": "マイライブラリ",
+  "v2.circle.sources.playing": "{source} から「{title}」を再生しています。",
+  "v2.circle.sources.notFound": "「{query}」はライブラリにも接続中のサービスにも見つかりませんでした。「自分のソースで検索」で近い結果を表示できます。",
+  "v2.circle.sources.playEquivalentAria": "マイソースから「{query}」を再生",
   "v2.circle.listen.dismiss": "閉じる",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

@@ -5654,8 +5654,7 @@ export default {
   "v2.circle.listen.notShared": "Esta pista ya no se comparte contigo.",
   "v2.circle.listen.revoked": "Esta escucha ya no está autorizada.",
   "v2.circle.listen.noZone": "Elige una zona para empezar a escuchar.",
-  "v2.circle.listen.closed": "Solo consulta: la escucha en casa de un contacto no está abierta. No se puede iniciar la reproducción desde aquí; busca el álbum o la pista en tus propias fuentes.",
-  "v2.circle.listen.closedClick": "Reproducción imposible aquí: la escucha en casa de un contacto no está abierta. Usa «Buscar en mis fuentes» para encontrarlo en las tuyas.",
+  "v2.circle.listen.closed": "Solo consulta: la escucha en casa de un contacto no está abierta. Un clic en un álbum o una pista reproduce su equivalente desde tus fuentes (tu biblioteca y luego tus servicios conectados).",
   "v2.circle.sources.search": "Buscar en mis fuentes",
   "v2.circle.sources.searchAria": "Buscar «{query}» en mis fuentes",
   "v2.circle.sources.searching": "Buscando «{query}» en tus fuentes…",
@@ -5664,6 +5663,9 @@ export default {
   "v2.circle.sources.error": "La búsqueda en tus fuentes ha fallado. Inténtalo de nuevo.",
   "v2.circle.sources.playAria": "Reproducir «{title}» ({source})",
   "v2.circle.sources.local": "Mi biblioteca",
+  "v2.circle.sources.playing": "Reproduciendo «{title}» desde {source}.",
+  "v2.circle.sources.notFound": "«{query}» no se encuentra en tu biblioteca ni en tus servicios conectados. «Buscar en mis fuentes» muestra resultados parecidos.",
+  "v2.circle.sources.playEquivalentAria": "Reproducir «{query}» desde mis fuentes",
   "v2.circle.listen.dismiss": "Cerrar",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)
