@@ -590,7 +590,7 @@
      panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
   .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
   .profils::-webkit-scrollbar{width:7px}
-  .profils::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .profils::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
     border-radius:9px; background:transparent; cursor:pointer; text-align:left;
     color:var(--v2-txt2); font-family:inherit; font-size:13px}
@@ -627,7 +627,7 @@
   .sfield input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .sfield input::-webkit-search-cancel-button{-webkit-appearance:none}
   .hits{display:flex; flex-direction:column; gap:1px; max-height:190px; overflow-y:auto; padding:0 2px}
-  .hits::-webkit-scrollbar{width:7px}.hits::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .hits::-webkit-scrollbar{width:7px}.hits::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .hit{display:flex; align-items:baseline; justify-content:space-between; gap:10px; width:100%; padding:8px;
     border:0; border-radius:8px; background:transparent; cursor:pointer; text-align:left; color:var(--v2-txt2)}
   .hit:hover{background:var(--v2-hover); color:var(--v2-txt)}

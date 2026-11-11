@@ -57,7 +57,8 @@ describe('#1193 — la colonne ARTISTE renvoie à la fiche de l’artiste', () =
     await ouvrirArtisteDepuis(artisteDePiste({ artist_name: 'Air' }), 'playlists');
     expect(get(pendingLibraryArtist)).toBeNull();
     expect(get(ficheArtisteService)).toBeNull();
-    expect(get(activeView)).toBe('library');
+    // web#2770 : sans fiche, la Recherche sur ce nom — plus la Bibliothèque.
+    expect(get(activeView)).toBe('search');
   });
 
   it('le tableau PARTAGÉ porte le lien — donc playlist, favoris, album et bibliothèque', () => {

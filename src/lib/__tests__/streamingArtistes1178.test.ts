@@ -125,8 +125,9 @@ describe('Streaming : ouvrir un artiste puis revenir', () => {
     }
     (cartes[0].querySelector('button.an') as HTMLButtonElement).click();
     flushSync();
-    // #1194 : le nom seul retombe sur la bibliothèque, jamais sur une fiche de service.
-    await vi.waitFor(() => expect(get(activeView)).toBe('library'));
+    // #1194 : le nom seul ne fabrique jamais une fiche de service ; depuis
+    // web#2770 il retombe sur la Recherche (plus la Bibliothèque nue).
+    await vi.waitFor(() => expect(get(activeView)).toBe('search'));
     expect(get(ficheArtisteService)).toBeNull();
     expect(requetes.some((u) => /\/streaming\/[^/]+\/artists\//.test(u))).toBe(false);
   });

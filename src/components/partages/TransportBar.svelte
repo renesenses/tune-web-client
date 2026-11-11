@@ -22,6 +22,10 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import LienEntite from './LienEntite.svelte';
+  import RadioFicheModale from './RadioFicheModale.svelte';
+  import { artisteDePisteEcoutee } from '../../lib/lienEntite';
+  import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
@@ -1062,6 +1066,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // web#1845 : réglage « Lecture en cours ouvre l'album ou la playlist ».
   // Coché, la vignette suit la même règle que l'entrée de la barre latérale
   // (même repli : radio ou page introuvable → écran Lecture en cours).
+  /** web#2770 — la fiche de la station qui joue, depuis la barre (#2398 l'a sur Lecture en cours). */
+  let ficheStationOuverte = $state(false);
+
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
       activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
@@ -1203,16 +1210,26 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               <span class="live-badge"><span class="live-dot"></span>LIVE</span>
             {/if}
           </span>
+          <!-- web#2770 (lot 1) — l'artiste, l'album et la station sont des
+               LIENS (`LienEntite`), posés DANS le bloc qui ouvre Lecture en
+               cours : chacun arrête la propagation, le reste du bloc garde
+               son geste. L'album de la zone se demande au serveur (#1361). -->
           <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
-              {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
-                ? displayTrack.artist_name
-                : displayTrack.album_title || 'Live Radio'}
+              {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
+                <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name, artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {:else}
+                <LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Live Radio', ouvrir: () => (ficheStationOuverte = true) }} />
+              {/if}
               <span class="radio-station-sep">·</span>
-              <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
+              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Radio', ouvrir: () => (ficheStationOuverte = true) }} />
             {:else}
-              {displayTrack.artist_name ?? ''}
+              <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {#if displayTrack.album_title}
+                <span class="radio-station-sep">·</span>
+                <LienEntite classe="mini-lien" entite={{ type: 'album', nom: displayTrack.album_title, ouvrir: () => void ouvrirAlbumDeLaZoneCourante() }} />
+              {/if}
             {/if}
           </span>
           <!--
@@ -1636,8 +1653,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
 
     <!-- tune-server-rust#4176 — PURE allumé sans rien à contourner : la
-         pastille le DIT (bouclier creux, info-bulle), au lieu de s'allumer
-         comme si elle changeait le son. Lu sur le chemin du signal. -->
+         pastille le DIT (info-bulle, libellé atténué). Lu sur le chemin du
+         signal.
+         tune-server-rust#7932 — le bouclier, lui, reste PLEIN tant que PURE
+         est allumé : l'étape « rien à contourner » n'est publiée que par les
+         sorties exclusives (WASAPI exclusif, ASIO, ALSA natif), jamais par le
+         WASAPI partagé. Le vider faisait croire à PURE éteint sur les seuls
+         pilotes exclusifs, 1 à 2 s après le début de la lecture. -->
     <button
       class="audiophile-btn signal-shield-btn"
       class:active={$audiophileEnabled}
@@ -1649,7 +1671,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         ? $t('audiophile.pureNothingToBypass' as any)
         : $audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
     >
-      <svg viewBox="0 0 24 26" fill={$audiophileEnabled && !pureRienAContourner ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+      <svg viewBox="0 0 24 26" fill={$audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
         <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
       </svg>
       {#if $audiophileEnabled}
@@ -1893,6 +1915,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   />
 {/if}
 
+<!-- web#2770 — la fiche de la station qui joue, ouverte par son nom dans la barre. -->
+{#if ficheStationOuverte && displayTrack && displayTrack.source === 'radio'}
+  <RadioFicheModale np={displayTrack} onClose={() => (ficheStationOuverte = false)} />
+{/if}
+
 <style>
   .tb-crete { display: flex; align-items: center; margin-right: 6px; }
   /* Posé en absolu sur le bord haut : la barre est une grille, un enfant dans
@@ -2064,6 +2091,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     align-items: center;
     gap: 5px;
   }
+  /* web#2770 — chaque lien s'élide pour lui-même dans la ligne flexible. */
+  .mini-artist :global(.mini-lien) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
      d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
@@ -2462,17 +2491,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
      fenêtre, jusqu'à ~1750 px de barre : le bouton de transfert, le curseur de
      volume et la zone sortent de l'écran, sans défilement possible.
 
-     Le secondaire part AVANT les commandes : libellé de zone (la pastille
-     redevient un carré, l'infobulle garde le nom), écarts et curseur resserrés.
-     Les cadrans, eux, restent. Au-delà de 1800 px de barre, rien ne change. */
+     Le secondaire part AVANT les commandes : écarts et curseur resserrés,
+     boutons de pas masqués. Les cadrans, eux, restent. Au-delà de 1800 px de
+     barre, rien ne change.
+
+     🔴 #2747 — FabienM (rc11, fil 2723) : « le nom de la zone active
+     n'apparaît plus, seule l'icône générique reste ; ça marchait en rc9 ».
+     C'était cette requête : elle MASQUAIT le libellé de zone sur toute la
+     plage 1200-1800 px, c'est-à-dire sur la plupart des écrans de bureau
+     dès que les VU-mètres sont allumés. Le libellé reste désormais, tronqué
+     (la pastille est bornée, l'infobulle garde le nom complet), et c'est la
+     colonne de droite qui prend la largeur de son contenu
+     (`minmax(max-content, 1fr)` ci-dessous) au lieu d'un quart fixe : elle
+     ne peut plus sortir de la fenêtre, le centre se resserre à sa place. */
   @container tbar (min-width: 1200px) and (max-width: 1800px) {
-    .transport-bar.vu .zone-chip-label {
-      display: none;
-    }
     .transport-bar.vu .zone-icon-btn {
-      max-width: 32px;
-      padding: 0;
-      justify-content: center;
+      max-width: 150px;
     }
     .transport-bar.vu .transport-right {
       gap: 8px;
@@ -2486,6 +2520,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     .transport-bar.vu .transport-right :global(.step-btn) {
       display: none;
     }
+  }
+
+  /* #2747 — la colonne de droite (cadran + pile d'icônes, insécable depuis
+     #1712) vaut AU MOINS sa largeur de contenu : c'est ce quart fixe qui
+     débordait de la fenêtre (#2555), pas le libellé de zone. */
+  .transport-bar.vu {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(max-content, 1fr);
   }
 
   .transport-bar.vu .transport-right {
@@ -3199,8 +3240,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     color: inherit;
     pointer-events: none;
   }
-  /* tune-server-rust#4176 — PURE armé, rien à contourner : bouclier creux et
-     libellé atténué, le signal était déjà intact. */
+  /* tune-server-rust#4176 — PURE armé, rien à contourner : libellé atténué,
+     le signal était déjà intact. Le bouclier reste plein (#7932). */
   .signal-shield-btn.sans-objet .audiophile-label {
     opacity: 0.7;
   }

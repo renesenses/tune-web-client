@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
@@ -26,7 +27,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { natifServiEnDop } from '../../lib/transportDsd';
+  import { diagnosticDsd } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -105,6 +106,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
@@ -203,6 +205,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
   import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
+  import AnnonceUpnpServeurV2 from './AnnonceUpnpServeurV2.svelte';
   import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
@@ -1165,6 +1168,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // si l'utilisateur ne le copie pas maintenant, il est perdu.
   let brEnabled = $state(false);
   let brConnected = $state(false);
+  let brMessage = $state<MessageDuPont | null>(null);
   let brServerId = $state('');
   let brUrl = $state('');
   let brToken = $state('');
@@ -1210,9 +1214,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
+        brMessage = messageDuPont(d);
         if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
+  });
+  // #7714 — « Déconnecté » se relit toutes les 10 s tant que le pont est
+  // activé : le serveur se reconnecte seul, l'écran doit le voir sans
+  // rechargement, et dire entre-temps pourquoi il attend.
+  $effect(() => {
+    if (!relirePont({ enabled: brEnabled, connected: brConnected })) return;
+    const minuteur = setInterval(() => {
+      api.apiFetch('/cloud/bridge/status')
+        .then((d: any) => {
+          brConnected = !!d?.connected;
+          brMessage = messageDuPont(d);
+        })
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(minuteur);
   });
   async function toggleBridge() {
     brBusy = true;
@@ -4893,6 +4913,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
+            {:else if s.id === 'parental'}
+              <ControleParentalV2 />
             {:else if s.id === 'interface'}
               <div class="row" data-reglage="theme">
                 <div class="lbl">
@@ -5763,6 +5785,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'aes67Experimental'}
               <div data-reglage="aes67-experimental"><SortieAes67ExperimentaleV2 /></div>
+            {:else if s.id === 'serveurUpnp'}
+              <AnnonceUpnpServeurV2 />
 
             {:else if s.id === 'aes67'}
               <div data-reglage="aes67-etat"><SortieAes67V2 /></div>
@@ -6246,8 +6270,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->
-                          {#if natifServiEnDop(z)}
-                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t('v2.set.dsdNativeServedAsDop' as any)}</small>
+                          <!-- #2513 — et POURQUOI (`dsd_transport_reason`, server#7372) :
+                               capacité encore inconnue, sortie non ASIO, pilote sans DSD. -->
+                          {#if diagnosticDsd(z)?.genre === 'dop'}
+                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t(diagnosticDsd(z)!.cle as any)}</small>
+                          {:else if diagnosticDsd(z)?.genre === 'inconnue'}
+                            <small class="dsd-dop dsd-inconnue" data-dsd-transport="capacite_non_sondee">{$t(diagnosticDsd(z)!.cle as any)}</small>
                           {/if}
                         </label>
                         <label class="zf" title={$t('settings.maxSampleRateHint' as any)} data-reglage="zone-debit-max">
@@ -7778,7 +7806,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/if}
                 {#if !brConnected}
-                  <p class="warn">{$t('settings.restartToReachRelay' as any)}</p>
+                  {@const m = brMessage ?? { cle: 'settings.restartToReachRelay' }}
+                  <p class="warn" data-pont="cause">{$t(m.cle as any).replace('{raison}', m.raison ?? '')}</p>
                 {/if}
               {/if}
 
@@ -8471,7 +8500,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .body{flex:1; min-height:0; display:flex; padding:0 30px}
   .pane{flex:1; overflow-y:auto; padding:16px 4px 40px; display:flex; flex-direction:column; gap:14px}
-  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
   .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
