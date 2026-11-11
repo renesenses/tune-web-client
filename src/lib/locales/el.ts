@@ -4856,6 +4856,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Αποθήκευση",
   "v2.set.spotifyClientIdHint": "Δεν υπάρχει Client ID του Spotify σε αυτόν τον διακομιστή. Δημιουργήστε την εφαρμογή σας στον πίνακα ελέγχου του Spotify, δηλώστε εκεί το URI ανακατεύθυνσης που εμφανίζεται παρακάτω και, στη συνέχεια, επικολλήστε εδώ το Client ID της.",
   "v2.set.spotifyClientIdDashboard": "Άνοιγμα του πίνακα ελέγχου του Spotify",
+  "v2.set.spotifyGuideLink": "Οδηγός σύνδεσης Spotify",
   "v2.set.spotifyClientIdSaved": "Το Client ID αποθηκεύτηκε: μπορείτε τώρα να συνδεθείτε",
   "v2.set.spotifyClientIdRejected": "Το Client ID απορρίφθηκε",
   "v2.set.spotifyClientIdEnv": "Το Client ID ορίζεται από τον διακομιστή (TUNE_SPOTIFY_CLIENT_ID)",

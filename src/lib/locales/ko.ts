@@ -4990,6 +4990,7 @@ export default {
   "v2.set.spotifyClientIdSave": "저장",
   "v2.set.spotifyClientIdHint": "이 서버에 Spotify Client ID가 없습니다. Spotify 대시보드에서 앱을 만들고 아래에 표시된 리디렉션 URI를 등록한 다음, 그 Client ID를 여기에 붙여 넣으세요.",
   "v2.set.spotifyClientIdDashboard": "Spotify 대시보드 열기",
+  "v2.set.spotifyGuideLink": "Spotify 연결 가이드",
   "v2.set.spotifyClientIdSaved": "Client ID가 저장되었습니다. 이제 로그인할 수 있습니다",
   "v2.set.spotifyClientIdRejected": "Client ID가 거부되었습니다",
   "v2.set.spotifyClientIdEnv": "서버에서 지정한 Client ID (TUNE_SPOTIFY_CLIENT_ID)",

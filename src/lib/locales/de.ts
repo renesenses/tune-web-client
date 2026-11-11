@@ -4990,6 +4990,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Speichern",
   "v2.set.spotifyClientIdHint": "Auf diesem Server ist keine Spotify-Client-ID hinterlegt. Erstellen Sie Ihre App im Spotify-Dashboard, tragen Sie dort die unten angezeigte Redirect-URI ein und fügen Sie dann hier ihre Client-ID ein.",
   "v2.set.spotifyClientIdDashboard": "Spotify-Dashboard öffnen",
+  "v2.set.spotifyGuideLink": "Anleitung zur Spotify-Verbindung",
   "v2.set.spotifyClientIdSaved": "Client-ID gespeichert: Sie können sich jetzt anmelden",
   "v2.set.spotifyClientIdRejected": "Client-ID abgelehnt",
   "v2.set.spotifyClientIdEnv": "Client-ID vom Server vorgegeben (TUNE_SPOTIFY_CLIENT_ID)",

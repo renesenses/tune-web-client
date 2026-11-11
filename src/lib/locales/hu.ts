@@ -4944,6 +4944,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Mentés",
   "v2.set.spotifyClientIdHint": "Ezen a szerveren nincs Spotify Client ID. Hozza létre az alkalmazást a Spotify irányítópultján, adja meg benne az alább látható átirányítási URI-t, majd illessze be ide a Client ID-ját.",
   "v2.set.spotifyClientIdDashboard": "Spotify irányítópult megnyitása",
+  "v2.set.spotifyGuideLink": "Spotify-csatlakoztatási útmutató",
   "v2.set.spotifyClientIdSaved": "Client ID mentve: most már bejelentkezhet",
   "v2.set.spotifyClientIdRejected": "Client ID elutasítva",
   "v2.set.spotifyClientIdEnv": "A Client ID-t a szerver határozza meg (TUNE_SPOTIFY_CLIENT_ID)",

@@ -4990,6 +4990,7 @@ export default {
   "v2.set.spotifyClientIdSave": "保存",
   "v2.set.spotifyClientIdHint": "此服务器上没有 Spotify Client ID。请在 Spotify 控制台中创建应用，在其中声明下方显示的重定向 URI，然后将其 Client ID 粘贴到此处。",
   "v2.set.spotifyClientIdDashboard": "打开 Spotify 控制台",
+  "v2.set.spotifyGuideLink": "Spotify 连接指南",
   "v2.set.spotifyClientIdSaved": "Client ID 已保存：现在可以登录",
   "v2.set.spotifyClientIdRejected": "Client ID 被拒绝",
   "v2.set.spotifyClientIdEnv": "Client ID 由服务器指定（TUNE_SPOTIFY_CLIENT_ID）",

@@ -4990,6 +4990,7 @@ export default {
   "v2.set.spotifyClientIdSave": "Guardar",
   "v2.set.spotifyClientIdHint": "No hay ningún Client ID de Spotify en este servidor. Cree su aplicación en el panel de Spotify, declare en ella la URI de redirección que se muestra abajo y pegue aquí su Client ID.",
   "v2.set.spotifyClientIdDashboard": "Abrir el panel de Spotify",
+  "v2.set.spotifyGuideLink": "Guía de conexión de Spotify",
   "v2.set.spotifyClientIdSaved": "Client ID guardado: ya puede iniciar sesión",
   "v2.set.spotifyClientIdRejected": "Client ID rechazado",
   "v2.set.spotifyClientIdEnv": "Client ID impuesto por el servidor (TUNE_SPOTIFY_CLIENT_ID)",
