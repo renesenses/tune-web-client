@@ -149,7 +149,9 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 
-  it('la rangée se masque quand une recherche est en cours', async () => {
+  // web#2783 (lot rc12, décision du 10/11) : la rangée est SÉPARÉE de la
+  // liste filtrée ; une recherche dans « Mes radios » ne la masque plus.
+  it('la rangée reste affichée quand une recherche est en cours (#2783)', async () => {
     memoriserLecture(7);
     await monter();
     expect(hote.querySelector('.recentes')).not.toBeNull();
@@ -157,7 +159,7 @@ describe('Dernières lues', () => {
     champ.value = 'maison';
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     await respirer();
-    expect(hote.querySelector('.recentes')).toBeNull();
+    expect(hote.querySelector('.recentes')).not.toBeNull();
   });
 
   it('dernieresLues : le serveur (last_played_at) prime sur la mémoire locale', () => {

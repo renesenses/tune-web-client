@@ -223,6 +223,14 @@
   /** Dernières stations lues — la première rangée de « Mes radios ». */
   let lectures = $state(0);
   const recentes = $derived.by(() => { void lectures; return dernieresLues(radios); });
+  /**
+   * web#2783 — « Dernières écoutées » est SÉPARÉE de la liste filtrée et de
+   * l'annuaire : une rangée tout en haut, avant les choix Mes radios /
+   * Annuaire / Carte, la même dans les trois, sans dépendre des filtres ni de
+   * l'onglet Favoris. Une ligne au plus ; « Voir plus » déplie le reste.
+   */
+  const recentesUniques = $derived(sectionsRadio([], recentes).recentes);
+  let recentesDepliees = $state(false);
 
   /**
    * Genres réellement présents, comptés — pas une liste figée qui
@@ -426,6 +434,23 @@
     </div>
   </header>
 
+  {#if recentesUniques.length}
+    <section class="sec recentes" class:depliee={recentesDepliees}>
+      <div class="sec-tete">
+        <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+        <button class="v2-btn plus" aria-expanded={recentesDepliees}
+          onclick={() => (recentesDepliees = !recentesDepliees)}>
+          {$t((recentesDepliees ? 'common.showLess' : 'common.showMore') as any)}
+        </button>
+      </div>
+      <div class="grid" class:rangee={!recentesDepliees}>
+        {#each recentesUniques as r (r.id)}
+          {@render tile(r)}
+        {/each}
+      </div>
+    </section>
+  {/if}
+
   <!-- #6516 — la liste personnelle, ou l'annuaire complet. -->
   <div class="sections" role="tablist">
     <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
@@ -501,18 +526,9 @@
       {/if}
       {@const liste = favorites.length && ongletFavoris ? favorites : shown}
       {@const sections = sectionsRadio(liste, recentes)}
-      <!-- web#2716 — « Dernières écoutées » en haut, puis « Mes radios » ; une
-           même station peut figurer dans les deux ; section vide masquée. -->
-      {#if sections.recentes.length && !q && !genre && !paysChoisi && !retenuesParCriteres}
-        <section class="sec recentes">
-          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
-          <div class="grid rangee">
-            {#each sections.recentes as r (r.id)}
-              {@render tile(r)}
-            {/each}
-          </div>
-        </section>
-      {/if}
+      <!-- web#2716 — une même station peut figurer dans « Dernières écoutées »
+           et dans « Mes radios ». web#2783 : la première est rendue plus
+           haut, hors de la liste filtrée. -->
       {#if sections.mes.length}
         <section class="sec mesradios">
           <h2>{$t('v2.radio.tabMine' as any)}</h2>
@@ -616,7 +632,11 @@
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
   /* « Dernières lues » : UNE seule rangée, quelle que soit la largeur. */
   .rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
-  .recentes{padding-bottom:4px}
+  .recentes{padding-bottom:4px; flex:none}
+  .sec-tete{display:flex; align-items:baseline; gap:12px}
+  .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:11.5px}
+  /* Dépliée, la rangée ne prend jamais tout l'écran : la liste reste visible. */
+  .recentes.depliee .grid{max-height:45vh; overflow-y:auto}
   .filtres{padding:4px 30px 10px}
   .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
