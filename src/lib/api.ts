@@ -6625,8 +6625,21 @@ export function getStreamingPlaylist(service: string, id: string) {
   );
 }
 
-export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`)
+/**
+ * Les favoris d'un type chez le service.
+ *
+ * tune-server-rust#8040 — `page` demande UNE page (`?limit=&offset=`) : la
+ * réponse porte alors `total`, `limit` et `offset` à côté de la liste. Sans
+ * `page`, la liste entière, comme avant ; un serveur antérieur ignore les
+ * paramètres et rend la liste entière sans `total`.
+ */
+export function getStreamingFavorites(
+  service: string,
+  type: 'tracks' | 'albums' | 'artists',
+  page?: { limit: number; offset: number },
+) {
+  const requete = page ? `?limit=${page.limit}&offset=${page.offset}` : '';
+  return fetchJSON<Record<string, any>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}${requete}`)
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {
