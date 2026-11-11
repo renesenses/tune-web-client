@@ -2981,7 +2981,7 @@ export default {
   "v2.home.wFavCollections": "收藏的合集",
   "v2.home.wFavSmartCollections": "收藏的智能合集",
   "v2.home.wRecommendations": "推荐",
-  "v2.home.wArtistRadios": "艺人电台",
+  "v2.home.wArtistRadios": "收藏和最近的电台",
   "v2.home.wPodcasts": "您的播客",
   "v2.home.wQobuz": "Qobuz 精选",
   "v2.home.sAlbums": "张专辑",

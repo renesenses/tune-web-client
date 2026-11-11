@@ -1760,6 +1760,9 @@ export const WIDGETS: Widget[] = [
       utiles(liste(await api.getHomeRecommendations()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'rec'))),
   },
   {
+    // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit
+    // ce que sert `/home/radio-picks` : stations en favori, puis les dernières
+    // écoutées — pas des « radios d'artistes » (aligné sur tune-remote-flutter#236).
     id: 'radios-artistes',
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',

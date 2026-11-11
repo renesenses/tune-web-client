@@ -2981,7 +2981,7 @@ export default {
   "v2.home.wFavCollections": "お気に入りのコレクション",
   "v2.home.wFavSmartCollections": "お気に入りのスマートコレクション",
   "v2.home.wRecommendations": "おすすめ",
-  "v2.home.wArtistRadios": "アーティストラジオ",
+  "v2.home.wArtistRadios": "お気に入りと最近のラジオ",
   "v2.home.wPodcasts": "あなたのポッドキャスト",
   "v2.home.wQobuz": "Qobuz セレクション",
   "v2.home.sAlbums": "アルバム",

@@ -2935,7 +2935,7 @@ export default {
   "v2.home.wFavCollections": "Kedvenc gyűjtemények",
   "v2.home.wFavSmartCollections": "Kedvenc okos gyűjtemények",
   "v2.home.wRecommendations": "Ajánlások",
-  "v2.home.wArtistRadios": "Előadói rádiók",
+  "v2.home.wArtistRadios": "Kedvenc és legutóbbi rádiók",
   "v2.home.wPodcasts": "Az Ön podcastjai",
   "v2.home.wQobuz": "Qobuz-válogatás",
   "v2.home.sAlbums": "album",

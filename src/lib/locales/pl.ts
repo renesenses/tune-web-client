@@ -1663,7 +1663,7 @@ export default {
   "v2.home.wFavCollections": "Ulubione kolekcje",
   "v2.home.wFavSmartCollections": "Ulubione inteligentne kolekcje",
   "v2.home.wRecommendations": "Rekomendacje",
-  "v2.home.wArtistRadios": "Radia wykonawców",
+  "v2.home.wArtistRadios": "Ulubione i ostatnie radia",
   "v2.home.wPodcasts": "Twoje podcasty",
   "v2.home.wQobuz": "Wybór Qobuz",
   "v2.home.sAlbums": "albumy",

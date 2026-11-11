@@ -1663,7 +1663,7 @@ export default {
   "v2.home.wFavCollections": "Αγαπημένες συλλογές",
   "v2.home.wFavSmartCollections": "Αγαπημένες έξυπνες συλλογές",
   "v2.home.wRecommendations": "Προτάσεις",
-  "v2.home.wArtistRadios": "Ραδιόφωνα καλλιτεχνών",
+  "v2.home.wArtistRadios": "Αγαπημένοι και πρόσφατοι σταθμοί",
   "v2.home.wPodcasts": "Τα podcast σας",
   "v2.home.wQobuz": "Επιλογές Qobuz",
   "v2.home.sAlbums": "άλμπουμ",

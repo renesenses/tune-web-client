@@ -1809,7 +1809,7 @@ export default {
   "v2.home.wFavCollections": "Favourite collections",
   "v2.home.wFavSmartCollections": "Favourite smart collections",
   "v2.home.wRecommendations": "Recommendations",
-  "v2.home.wArtistRadios": "Artist radios",
+  "v2.home.wArtistRadios": "Favorite & recent radios",
   "v2.home.wPodcasts": "Your podcasts",
   "v2.home.wQobuz": "Qobuz picks",
   "v2.home.sAlbums": "albums",

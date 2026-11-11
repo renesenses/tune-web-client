@@ -1665,7 +1665,7 @@ export default {
   "v2.home.wFavCollections": "Bộ sưu tập yêu thích",
   "v2.home.wFavSmartCollections": "Bộ sưu tập thông minh yêu thích",
   "v2.home.wRecommendations": "Gợi ý",
-  "v2.home.wArtistRadios": "Radio nghệ sĩ",
+  "v2.home.wArtistRadios": "Radio yêu thích và gần đây",
   "v2.home.wPodcasts": "Podcast của bạn",
   "v2.home.wQobuz": "Tuyển chọn Qobuz",
   "v2.home.sAlbums": "album",

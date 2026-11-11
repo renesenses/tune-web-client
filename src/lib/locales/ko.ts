@@ -2981,7 +2981,7 @@ export default {
   "v2.home.wFavCollections": "즐겨찾는 컬렉션",
   "v2.home.wFavSmartCollections": "즐겨찾는 스마트 컬렉션",
   "v2.home.wRecommendations": "추천",
-  "v2.home.wArtistRadios": "아티스트 라디오",
+  "v2.home.wArtistRadios": "즐겨찾기 및 최근 라디오",
   "v2.home.wPodcasts": "나의 팟캐스트",
   "v2.home.wQobuz": "Qobuz 선곡",
   "v2.home.sAlbums": "앨범",

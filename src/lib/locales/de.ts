@@ -2981,7 +2981,7 @@ export default {
   "v2.home.wFavCollections": "Lieblingssammlungen",
   "v2.home.wFavSmartCollections": "Lieblings-Smart-Sammlungen",
   "v2.home.wRecommendations": "Empfehlungen",
-  "v2.home.wArtistRadios": "Künstlerradios",
+  "v2.home.wArtistRadios": "Favoriten- und zuletzt gehörte Radios",
   "v2.home.wPodcasts": "Ihre Podcasts",
   "v2.home.wQobuz": "Qobuz-Auswahl",
   "v2.home.sAlbums": "Alben",
