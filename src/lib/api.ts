@@ -895,6 +895,50 @@ export function setBibliothequeEtendue(profileId: number, enabled: boolean): Pro
   });
 }
 
+/**
+ * tune-server-rust#8213 — arrêt programmé à heure fixe, certains jours.
+ * `action` : `stop_playback` (défaut) arrête la musique ; `poweroff` arrête
+ * la musique puis éteint la machine, sur Tune OS seulement — le serveur dit
+ * si c'est possible par `poweroff_available` et refuse ailleurs (400
+ * `poweroff_unavailable`).
+ */
+export type ActionArretProgramme = 'stop_playback' | 'poweroff';
+
+export interface ArretProgramme {
+  enabled: boolean;
+  /** `HH:MM`, heure locale du serveur. */
+  time: string;
+  /** 7 caractères `0`/`1`, lundi en tête. */
+  days_of_week: string;
+  /** `null` = toutes les zones. */
+  zone_ids: number[] | null;
+  /** Absent sur un serveur d'avant l'option : arrêt de la lecture. */
+  action?: ActionArretProgramme;
+}
+
+export interface EtatArretProgramme {
+  scheduled_stop: ArretProgramme | null;
+  next_stop_at: string | null;
+  /** Absent sur un serveur d'avant l'option : `false`. */
+  poweroff_available?: boolean;
+}
+
+export function getArretProgramme(): Promise<EtatArretProgramme> {
+  // Sans bandeau : un serveur d'avant #8213 répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/scheduled-stop`, undefined, undefined, true);
+}
+
+export function setArretProgramme(reglage: ArretProgramme): Promise<EtatArretProgramme> {
+  return fetchJSON(`${BASE}/system/settings/scheduled-stop`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
+export function supprimerArretProgramme(): Promise<EtatArretProgramme> {
+  return fetchJSON(`${BASE}/system/settings/scheduled-stop`, { method: 'DELETE' }, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
@@ -10847,6 +10891,16 @@ export function getApplianceStatus(): Promise<ApplianceStatus> {
  */
 export function applianceShutdown(): Promise<{ status: string }> {
   return applianceFetch('/appliance/shutdown', {});
+}
+
+/**
+ * Redémarrer la MACHINE — appliance Tune OS uniquement (tune-server-rust#8213).
+ * À ne pas confondre avec `restartServer()`, qui relance le seul processus.
+ * Mêmes gardes serveur que `applianceShutdown()` : administrateur, 404 hors
+ * appliance.
+ */
+export function applianceReboot(): Promise<{ status: string }> {
+  return applianceFetch('/appliance/reboot', {});
 }
 
 export function applianceWifiScan(): Promise<{ networks: ApplianceWifiNetwork[] }> {

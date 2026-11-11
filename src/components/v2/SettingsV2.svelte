@@ -191,6 +191,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { activeView } from '../../lib/stores/navigation';
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -3561,6 +3562,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
 
+  /**
+   * Redémarrer la MACHINE — appliance Tune OS uniquement
+   * (tune-server-rust#8213). Même schéma que `eteindreLaMachine` : la coupure
+   * réseau est attendue, une réponse d'erreur rend le bouton.
+   */
+  let redemarrageMachineEnCours = $state(false);
+  async function redemarrerLaMachine() {
+    if (!(await dialogs.confirm(get(t)('diagnostics.confirmReboot' as any), { danger: true }))) return;
+    redemarrageMachineEnCours = true;
+    try {
+      await api.applianceReboot();
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
+    }
+  }
+
   /* --- Appliance Tune OS : stockage (docs/DATA-RELOCATION.md) -------------
    *
    * Porté de l'ancienne interface, seul écran qui le montrait : où vivent les
@@ -4662,6 +4680,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'scheduledStop'}
+              <ArretProgrammeV2 />
             {:else if s.id === 'radiosCountry'}
               <div data-reglage="pays-ecoute-radios"><PaysEcouteRadios /></div>
 
@@ -7487,6 +7507,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if isAppliance === true}
                   <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
+                  </button>
+                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours} onclick={redemarrerLaMachine}>
+                    {redemarrageMachineEnCours ? $t('diagnostics.rebooting' as any) : $t('diagnostics.reboot' as any)}
                   </button>
                 {/if}
                 <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici

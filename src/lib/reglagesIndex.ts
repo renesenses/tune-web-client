@@ -54,6 +54,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'commandes-ecran-verrouille', section: 'playback', labelKey: 'settings.controlesEcranVerrouille', descKey: 'settings.controlesEcranVerrouilleHint' },
   { id: 'recul-podcast', section: 'playback', labelKey: 'settings.podcastRewind', descKey: 'settings.podcastRewindHint', techniques: ['podcast'] },
   { id: 'file-aleatoire-max', section: 'playback', labelKey: 'settings.shuffleMaxTracks', descKey: 'settings.shuffleMaxTracksHint', termesKey: 'reglages.termes.fileAleatoireMax', techniques: ['shuffle', '500'] },
+  // ── Général › Arrêt programmé (tune-server-rust#8213, web #2802) ───
+  { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },
   // ── Général › Interface ──────────────────────────────────────────────
   { id: 'theme', section: 'interface', labelKey: 'settings.theme', descKey: 'settings.themePalettesHint', termesKey: 'reglages.termes.theme' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
@@ -230,6 +232,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'nouveautes', section: 'about', labelKey: 'whatsnew.title', techniques: ['changelog', 'release notes'] },
   { id: 'doc-api', section: 'about', labelKey: 'settings.apiDocs', techniques: ['API', 'REST'], min: 'expert' },
   { id: 'actions-serveur', section: 'health', labelKey: 'settings.restartServer', techniques: ['restart', 'reboot'] },
+  // tune-server-rust#8213 : redémarrer la MACHINE (appliance Tune OS seulement).
+  { id: 'redemarrer-machine', section: 'health', labelKey: 'diagnostics.reboot', descKey: 'diagnostics.confirmReboot', techniques: ['reboot', 'Tune OS'] },
   { id: 'journaux-diagnostic', section: 'health', labelKey: 'settings.downloadLogs', descKey: 'settings.downloadDiagTitle', techniques: ['logs'] },
   { id: 'niveau-journaux', section: 'health', labelKey: 'settings.logLevel', descKey: 'v2.maint.logLevelHint', techniques: ['debug', 'trace', 'info', 'warn', 'logs'], min: 'expert' },
   { id: 'renvoi-nettoyage', section: 'health', labelKey: 'diagnostics.cleanupServer', descKey: 'settings.cleanupMovedHint' },
