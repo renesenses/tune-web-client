@@ -39,6 +39,7 @@
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
+  import { sortiesAsioAAvertir, type SortieAsioSansZone } from '../../lib/zoneHorsBackend';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
@@ -314,6 +315,26 @@
     if (liste === null) { error = $t('v2.zone.unreachable' as any); return; }
     error = null;
     chargerDoublons();
+    chargerAsioSansZone();
+  }
+
+  /*
+   * tune-server-rust#7806 — un DAC ASIO présent sans zone (fil 2248 : le
+   * Denafrips enregistré, aucune zone, toutes les lectures DSD parties sur
+   * « This Computer » en WASAPI, converties en PCM). L'écran le dit, et
+   * propose la zone : `POST /zones` sur ce `device_id`, la route de création
+   * ordinaire (une zone supprimée y est ressuscitée).
+   */
+  let asioSansZone = $state<SortieAsioSansZone[]>([]);
+  async function chargerAsioSansZone() {
+    asioSansZone = await api.getSortiesAsioSansZone();
+  }
+  // À l'ouverture de l'écran (la liste des zones, elle, vient du magasin), puis
+  // après chaque geste (`refresh`). L'effet ne lit RIEN de ce qu'il écrit.
+  $effect(() => { chargerAsioSansZone(); });
+  const asioAAvertir = $derived(sortiesAsioAAvertir(asioSansZone, $zones));
+  function creerZoneAsio(s: SortieAsioSansZone) {
+    act(() => api.createZone(s.name, 'local', s.device_id));
   }
 
   // DUP-1 : deux zones pour un même appareil. Le diagnostic les nomme (phase
@@ -617,6 +638,13 @@
        incompatibles et avait fait conclure à un abonné Premium que la
        fonction n'existait pas. On prévient, on ne masque pas. -->
   <OutputModuleBanner instantane={instantaneFournisseurs} />
+
+  {#each asioAAvertir as s (s.device_id)}
+    <div class="asio-sans-zone" role="status" data-asio-sans-zone={s.device_id}>
+      <span>{$t('v2.zone.asioSansZone' as any).replace('{name}', s.name)}</span>
+      <button class="v2-btn" disabled={busy} onclick={() => creerZoneAsio(s)}>{$t('v2.zone.creerZoneAsio' as any)}</button>
+    </div>
+  {/each}
 
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
@@ -1063,4 +1091,9 @@
   .sortie{max-width:160px; height:24px; border-radius:7px; border:1px solid var(--v2-line2);
     background:transparent; color:var(--v2-txt2); font:11px var(--v2-sans)}
 .vol input:disabled, .cvol input:disabled { opacity: 0.45; cursor: not-allowed; }
+  /* tune-server-rust#7806 — DAC ASIO sans zone. */
+  .asio-sans-zone{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
+    color:var(--v2-txt); font-size:13px}
+  .asio-sans-zone span{flex:1 1 240px}
 </style>

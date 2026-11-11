@@ -235,6 +235,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
+  import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
   $effect(() => {
@@ -6226,6 +6227,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
                         {#if zoneTypeLabel(z.output_type)}<span class="zt proto">{zoneTypeLabel(z.output_type)}</span>{/if}
+                        <!-- tune-server-rust#7806 — pilote réel (WASAPI / ASIO) d'une zone locale Windows. -->
+                        <BadgeHorsBackend zone={z} />
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
