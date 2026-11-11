@@ -1237,6 +1237,13 @@ export function updateZoneDsdMode(id: number, dsdMode: string) {
   });
 }
 
+export function updateZoneFixedSampleRate(id: number, rate: number | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ fixed_sample_rate: rate }),
+  });
+}
+
 export function updateZoneMaxSampleRate(id: number, rate: number | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

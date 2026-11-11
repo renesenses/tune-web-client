@@ -7257,6 +7257,9 @@ export default {
   "login.registering": "Konto wird erstellt…",
   "login.haveAccount": "Bereits ein Konto?",
   "nowplaying.eqPureNotice": "PURE-Modus ist für diese Zone aktiv: Das Signal wird unverändert und ohne Verarbeitung übertragen. Die Voreinstellungen unten bleiben wirkungslos, solange der PURE-Modus aktiv ist.",
+  "settings.fixedSampleRate": "Feste Ausgangsabtastrate",
+  "settings.fixedSampleRateOff": "Aus",
+  "settings.fixedSampleRateHint": "Gilt ab dem nächsten Titel, auch für andere Abtastratenfamilien. In PURE und strengem Bit-perfect-Modus inaktiv.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

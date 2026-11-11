@@ -7279,6 +7279,9 @@ export default {
   "login.registering": "Inscription…",
   "login.haveAccount": "Déjà un compte ?",
   "nowplaying.eqPureNotice": "Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun traitement. Les préréglages ci-dessous resteront donc sans effet tant que le mode PURE est activé.",
+  "settings.fixedSampleRate": "Fréquence de sortie fixe",
+  "settings.fixedSampleRateOff": "Désactivée",
+  "settings.fixedSampleRateHint": "À la piste suivante, même pour une source d’une autre famille. Inactive en mode PURE ou bit-perfect strict.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

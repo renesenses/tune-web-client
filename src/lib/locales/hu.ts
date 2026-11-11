@@ -7216,6 +7216,9 @@ export default {
   "login.registering": "Fiók létrehozása…",
   "login.haveAccount": "Már van fiókja?",
   "nowplaying.eqPureNotice": "A PURE mód be van kapcsolva ennél a zónánál: a jel érintetlenül, feldolgozás nélkül halad át. Az alábbi előbeállításoknak nincs hatásuk, amíg a PURE mód be van kapcsolva.",
+  "settings.fixedSampleRate": "Rögzített kimeneti mintavételi frekvencia",
+  "settings.fixedSampleRateOff": "Kikapcsolva",
+  "settings.fixedSampleRateHint": "A következő számtól, más frekvenciacsalád esetén is. PURE vagy szigorú bit-perfect módban inaktív.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

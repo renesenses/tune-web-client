@@ -7109,5 +7109,8 @@ export default {
   "login.registering": "Đang tạo tài khoản…",
   "login.haveAccount": "Đã có tài khoản?",
   "nowplaying.eqPureNotice": "Chế độ PURE đang bật cho vùng này: tín hiệu được truyền nguyên vẹn, không qua xử lý nào. Các cài đặt sẵn bên dưới sẽ không có tác dụng khi chế độ PURE đang bật.",
+  "settings.fixedSampleRate": "Tần số lấy mẫu đầu ra cố định",
+  "settings.fixedSampleRateOff": "Tắt",
+  "settings.fixedSampleRateHint": "Áp dụng từ bài tiếp theo, kể cả nguồn thuộc họ tần số khác. Không hoạt động trong chế độ PURE hoặc bit-perfect nghiêm ngặt.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

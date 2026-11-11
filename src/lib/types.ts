@@ -657,6 +657,7 @@ export interface Zone {
   dlna_native_flac?: boolean;
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
+  fixed_sample_rate?: number | null;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
@@ -835,6 +836,7 @@ export interface Zone {
 export interface DeviceQuirks {
   dlna_no_extra_headers?: boolean;
   max_sample_rate?: number | null;
+  fixed_sample_rate?: number | null;
   force_mime?: string | null;
   force_16bit?: boolean;
   no_gapless?: boolean;

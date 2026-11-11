@@ -7257,6 +7257,9 @@ export default {
   "login.registering": "アカウントを作成中…",
   "login.haveAccount": "すでにアカウントをお持ちですか？",
   "nowplaying.eqPureNotice": "このゾーンでは PURE モードが有効です。信号は処理されずにそのまま送られます。PURE モードが有効な間、下のプリセットは効果がありません。",
+  "settings.fixedSampleRate": "固定出力サンプリング周波数",
+  "settings.fixedSampleRateOff": "オフ",
+  "settings.fixedSampleRateHint": "次の曲から適用され、別系統の周波数の音源にも対応します。PURE または厳密なビットパーフェクトモードでは無効です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

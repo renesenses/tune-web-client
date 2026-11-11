@@ -7257,6 +7257,9 @@ export default {
   "login.registering": "正在创建账户…",
   "login.haveAccount": "已有账户？",
   "nowplaying.eqPureNotice": "此区域已启用 PURE 模式：信号原样传输，不经任何处理。PURE 模式启用期间，下方的预设不会生效。",
+  "settings.fixedSampleRate": "固定输出采样率",
+  "settings.fixedSampleRateOff": "关闭",
+  "settings.fixedSampleRateHint": "从下一首开始生效，也适用于其他采样率系列的音源。在 PURE 或严格位完美模式下不生效。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

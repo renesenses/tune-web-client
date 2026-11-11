@@ -7277,6 +7277,9 @@ export default {
   "login.registering": "Creating account…",
   "login.haveAccount": "Already have an account?",
   "nowplaying.eqPureNotice": "PURE mode is on for this zone: the signal is passed through untouched, with no processing. The presets below will have no effect while PURE mode is on.",
+  "settings.fixedSampleRate": "Fixed output sample rate",
+  "settings.fixedSampleRateOff": "Off",
+  "settings.fixedSampleRateHint": "Applies to the next track, including sources from another rate family. Inactive in PURE or strict bit-perfect mode.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

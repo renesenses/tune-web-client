@@ -7257,6 +7257,9 @@ export default {
   "login.registering": "Se creează contul…",
   "login.haveAccount": "Ai deja un cont?",
   "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
+  "settings.fixedSampleRate": "Frecvență de ieșire fixă",
+  "settings.fixedSampleRateOff": "Dezactivată",
+  "settings.fixedSampleRateHint": "De la piesa următoare, inclusiv pentru altă familie de frecvențe. Inactivă în PURE sau bit-perfect strict.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -6364,6 +6364,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
                           </select>
                         </label>
+                        {#if z.fixed_sample_rate !== undefined}
+                          <label class="zf" data-reglage="zone-frequence-fixe" title={$t('settings.fixedSampleRateHint' as any)}>
+                            <span>{$t('settings.fixedSampleRate' as any)}</span>
+                            <select class="sel sm" value={String(z.fixed_sample_rate ?? 0)}
+                              onchange={(e) => { const v = Number(e.currentTarget.value);
+                                setZoneField(z, () => api.updateZoneFixedSampleRate(z.id as number, v > 0 ? v : null)); }}>
+                              <option value="0">{$t('settings.fixedSampleRateOff' as any)}</option>
+                              {#each [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000] as rate (rate)}
+                                <option value={String(rate)}>{rate / 1000} kHz</option>
+                              {/each}
+                            </select>
+                            <small>{$t('settings.fixedSampleRateHint' as any)}</small>
+                          </label>
+                        {/if}
                         <!--
                           BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.
                           Masqué quand la zone ne publie pas `strict_bitperfect` :
