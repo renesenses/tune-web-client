@@ -45,7 +45,9 @@
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
-  import { activeView } from '../../lib/stores/navigation';
+  import { activeView, previousView } from '../../lib/stores/navigation';
+  import { retenirAuDepart, reprendreAuRetour, type MemoireStreaming } from '../../lib/memoireStreaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -304,6 +306,13 @@
   $effect(() => {
     const svc = active;
     svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
+    // web#2828 — le fil de genres quitté pour « Lecture en cours » se repose
+    // APRÈS la remise à zéro du service, sinon elle l'effacerait aussitôt.
+    const r = genresARestaurer;
+    if (r && r.active === svc) {
+      genresARestaurer = null;
+      genrePath = r.genrePath; subGenres = r.subGenres; genreId = r.genreId;
+    }
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
     let vivant = true;
@@ -545,6 +554,7 @@
       // d'Alain (fil 1671) ne ramenait jamais sur son service. Un souhait
       // intenable (service déconnecté depuis) retombe sur le premier onglet.
       active = ongletDeRestitution(services, bandcampLive, get(activeStreamingService));
+      reprendrePageQuittee();
     }).finally(() => { loading = false; });
   });
 
@@ -959,6 +969,53 @@
       fermerCalquePlaylist();
     });
   });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE POUR « LECTURE EN COURS » — web#2828.
+   *
+   * Ronin22 (ASR, rc11) : Qobuz › Genres › un genre › un album › Lecture, puis
+   * « Lecture en cours », puis retour sur Qobuz → accueil du service. Quitter
+   * la vue DÉTRUIT cet écran ; tout ce qui suit est du `$state` local, perdu.
+   *
+   * On le retient À L'INSTANT où la vue change — l'abonnement est synchrone,
+   * avant que la coquille ne referme quoi que ce soit — et on le rejoue au
+   * remontage, une fois l'onglet de service connu. La règle (vue de passage,
+   * même service, une seule fois) est dans `lib/memoireStreaming`.
+   */
+  let genresARestaurer: MemoireStreaming | null = null;
+  const vuePrecedenteAuMontage = get(previousView);
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueAuMontage) return;
+      retenirAuDepart(v, active ? $state.snapshot({
+        active, sub, genrePath, subGenres, genreId,
+        fiche, ficheService, ficheBc, fichePlaylist,
+        defilement: zoneDefilante?.scrollTop ?? 0,
+      }) as MemoireStreaming : null);
+    });
+  });
+  function reprendrePageQuittee() {
+    const r = reprendreAuRetour(vuePrecedenteAuMontage, active);
+    if (!r) return;
+    sub = r.sub as Sub;
+    if (r.genrePath.length) genresARestaurer = r;
+    if (r.fiche) {
+      const a = r.fiche as any;
+      ouvrirCalqueAlbum(a);
+      fiche = a;
+      ficheService = r.ficheService;
+    } else if (r.ficheBc) {
+      const a = r.ficheBc as any;
+      ouvrirCalqueAlbum(a);
+      ficheBc = a;
+    } else if (r.fichePlaylist) {
+      const p = r.fichePlaylist as any;
+      ouvrirCalquePlaylist(p, p?.source ?? active);
+    }
+    restaurerQuandPret(r.defilement, () => zoneDefilante, { essaisMax: 180 });
+  }
 
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
