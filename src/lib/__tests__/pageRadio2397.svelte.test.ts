@@ -99,14 +99,16 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
     expect(estDeLAnnuaire({ annuaire: { external_id: null } })).toBe(false);
   });
 
-  it('🔴 FIP (annuaire) : « Retirer », pas « Modifier » ; la station maison : l’inverse', async () => {
+  // web#2795 (décision du 11/11) : FIP se modifie de nouveau, en surcharge
+  // locale ; « Retirer » reste propre à l'annuaire.
+  it('🔴 FIP (annuaire) : « Retirer » et « Modifier » ; la station maison : « Modifier » seul', async () => {
     await monter();
     const tuiles = [...hote.querySelectorAll('.grid .st')];
     const fip = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'FIP')!;
     const maison = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'Radio Maison')!;
     const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) => b.getAttribute('title'));
     expect(titres(fip)).toContain('Retirer de Mes radios');
-    expect(titres(fip)).not.toContain('Modifier');
+    expect(titres(fip)).toContain('Modifier');
     expect(titres(maison)).toContain('Modifier');
     expect(titres(maison)).not.toContain('Retirer de Mes radios');
   });
