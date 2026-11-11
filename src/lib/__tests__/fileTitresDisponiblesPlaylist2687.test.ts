@@ -59,7 +59,7 @@ async function lire() {
     item: { kind: 'streaming', service: 'qobuz', pl: { source_id: '11', name: 'Soul', track_count: pistes.length } } as any,
     onClose: () => {} } });
   await attendreQue(() => (hote!.textContent ?? '').includes('Lovely Day'), 'les titres affichés');
-  hote!.querySelector<HTMLButtonElement>('button.play')!.click();
+  hote!.querySelector<HTMLButtonElement>('[data-bouton-lecture] button.bl-lire')!.click();
 }
 const lectures = () => requetes.filter((r) => r.method === 'POST' && /\/zones\/1\/play(\?|$)/.test(r.url));
 const ajouts = () => requetes.filter((r) => r.method === 'POST' && /\/zones\/1\/queue\/add(\?|$)/.test(r.url));

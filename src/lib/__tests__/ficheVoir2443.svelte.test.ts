@@ -88,12 +88,14 @@ afterEach(() => {
 });
 
 describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la saisie manuelle', () => {
-  it('🔴 FIP (annuaire) : Voir et Retirer, pas Modifier', async () => {
+  // web#2795 (décision du 11/11) : « Modifier » revient sur une station de
+  // l'annuaire, en surcharge locale ; l'œil garde son coin.
+  it('🔴 FIP (annuaire) : Voir et Retirer, et Modifier (surcharge locale, web#2795)', async () => {
     await monter(RadiosV2);
     const t = titres(tuile('FIP'));
     expect(t).toContain('Voir');
     expect(t).toContain('Retirer de Mes radios');
-    expect(t).not.toContain('Modifier');
+    expect(t).toContain('Modifier');
     expect(tuile('FIP').querySelector('button.coin.tr')?.getAttribute('title')).toBe('Voir');
   });
 

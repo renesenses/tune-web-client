@@ -167,6 +167,18 @@ export function choisirFluxPrefere(radioId: number, streamUrl: string) {
 }
 
 /**
+ * `POST /radios/directory/revert/{radio}` — web#2795 : « Revenir à la fiche de
+ * l'annuaire ». La surcharge locale est effacée ; la station reprend le nom, le
+ * logo et le flux de sa fiche. 409 pour une station sans fiche liée.
+ */
+export function revenirALaFiche(radioId: number) {
+  return fetchJSON<RadioStation>(
+    `${BASE}/radios/directory/revert/${radioId}`,
+    { method: 'POST' },
+  );
+}
+
+/**
  * `POST /radios/directory/{id}/play/{zone}` — écoute sans rien ajouter.
  *
  * `streamUrl` (tune-server-rust#7587) : le flux choisi sur la fiche, parmi

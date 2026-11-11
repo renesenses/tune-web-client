@@ -32,7 +32,6 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
     // un écran qui fonctionne et qui n'est pas celui qui a été dessiné.
     for (const [classe, marqueur] of [
       ['tl', 'basculerFavori'],
-      ['tr', 'onEditer'],
       ['br', 'panneauOuvert = !panneauOuvert'],
     ] as const) {
       const bloc = new RegExp(`class="coin ${classe}"[\\s\\S]{0,1600}?</button>`).exec(src);
@@ -42,6 +41,11 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
         `le coin .${classe} ne porte plus « ${marqueur} » : les actions ont changé de place.`,
       ).toBe(true);
     }
+    // web#2795 — le crayon est en haut à droite (`tr`) quand il est seul ; à
+    // côté de l'œil et de « retirer » (station de l'annuaire), il se range à
+    // leur gauche (`tr2`, `tr3`). Son coin est donc calculé, `tr` d'abord.
+    expect(/class="coin \{coinEditer\}"[\s\S]{0,600}?onEditer/.test(src), 'le crayon a disparu').toBe(true);
+    expect(src).toMatch(/coinEditer = \$derived\(\['tr', 'tr2', 'tr3'\]/);
     // 🔴 Le coin bas-gauche ne porte plus `disabled` : depuis le 26/09/2026 il
     // est ABSENT quand le catalogue ne rend rien, pas grisé. Ce qu'il porte,
     // c'est l'ouverture du menu.

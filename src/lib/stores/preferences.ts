@@ -448,6 +448,15 @@ export interface Preferences {
    */
   ouvrirFileAuDefilement: boolean;
   /**
+   * « Barres de défilement larges » — web#2798, Michel (fil 2748, 11/11/2026),
+   * qui souffre de tremblements : l'ascenseur était trop étroit pour être
+   * saisi. Coché, la feuille `tune-theme.css` pose un ascenseur de 20 px au
+   * pouce contrasté (Chrome, Edge, Safari) ; Firefox, qui n'accepte pas de
+   * largeur en pixels, garde sa barre `auto` au pouce contrasté. DÉCOCHÉ par
+   * défaut : personne ne voit son affichage changer sans l'avoir demandé.
+   */
+  ascenseursLarges: boolean;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -579,6 +588,8 @@ const defaults: Preferences = {
   // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
   // demandé.
   ouvrirFileAuDefilement: false,
+  // web#2798 : DÉCOCHÉ — l'ascenseur large se demande dans Réglages.
+  ascenseursLarges: false,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -987,6 +998,7 @@ export const preferences = createPreferences();
 // The FOUC script in index.html handles the very first paint, but this ensures
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
+appliquerAscenseursLarges(loadPrefs().ascenseursLarges === true);
 
 const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
 
@@ -1202,4 +1214,15 @@ export function applyTheme(theme: ThemeMode) {
   }
   // Also persist the theme value for external consumers
   try { localStorage.setItem('tune-theme', theme); } catch { /* ignore */ }
+}
+
+/**
+ * web#2798 : pose (ou retire) `data-ascenseurs-larges` sur `<html>`. La feuille
+ * `tune-theme.css` en tire l'ascenseur large. Appelée au chargement du module
+ * (pas d'ascenseur fin le temps du premier rendu) et par la coquille v2 à
+ * chaque changement du réglage.
+ */
+export function appliquerAscenseursLarges(actif: boolean) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.toggleAttribute('data-ascenseurs-larges', actif);
 }
