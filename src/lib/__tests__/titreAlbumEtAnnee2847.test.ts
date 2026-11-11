@@ -110,3 +110,11 @@ describe('web#2847 — titre de l’album et année : deux gestes, deux zones', 
     expect(get(activeView)).toBe('library');
   });
 });
+
+describe('web#2847 — mise en page de la ligne titre + année', () => {
+  it('en disposition centrée (téléphone), la ligne reste centrée comme l’artiste et le titre', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/components/partages/NowPlaying.svelte', 'utf-8');
+    expect(src).toMatch(/\.track-info\.center \.track-album-ligne[^{]*\{[^}]*justify-content:\s*center/);
+  });
+});

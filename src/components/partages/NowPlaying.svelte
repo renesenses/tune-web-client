@@ -3859,7 +3859,8 @@ import { ICONES } from '../../lib/menuPiste';
     max-width: 100%;
     margin-bottom: var(--space-xs);
   }
-  .track-info.center .radio-station-ligne {
+  .track-info.center .radio-station-ligne,
+  .track-info.center .track-album-ligne {
     justify-content: center;
   }
   /* web#2550 — le logo de la station, petit, devant son nom. */
