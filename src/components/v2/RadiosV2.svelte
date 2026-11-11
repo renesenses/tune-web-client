@@ -575,7 +575,7 @@
         favoriExterne={r.id != null
           ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
           : null}
-        onEditer={r.id != null && !estDeLAnnuaire(r) ? () => (enEdition = r) : null}
+        onEditer={r.id != null ? () => (enEdition = r) : null}
         onVoir={r.id != null && estDeLAnnuaire(r) ? () => (enFiche = r) : null}
         libelleVoir={$t('v2.radio.view' as any)}
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
@@ -594,6 +594,9 @@
       <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: r.name, ouvrir: r.id != null ? () => (enFiche = r) : null }} /></span>
       <!-- web#2443 — la station a une clé radio-metadata.fr. -->
       {#if aMetadataPlus(r)}<BadgeMetadataPlus />{/if}
+      <!-- web#2795 — repère discret : la station de l'annuaire est modifiée
+           chez soi (nom, logo ou flux). -->
+      {#if r.surcharge_locale}<span class="surch" role="img" aria-label={$t('v2.radio.overridden' as any)} title={$t('v2.radio.overridden' as any)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/></svg></span>{/if}
     </span>
     {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
     {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
@@ -611,6 +614,8 @@
   /* #6516 — Mes radios / Annuaire. */
   .sections{display:flex; gap:8px; padding:0 30px 10px}
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  .surch{display:inline-flex; flex:none; color:var(--v2-txt3)}
+  .surch svg{width:11px; height:11px}
   .encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
   /* « Dernières lues » : UNE seule rangée, quelle que soit la largeur. */
