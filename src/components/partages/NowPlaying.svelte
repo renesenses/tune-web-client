@@ -64,7 +64,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
-  import { gestesNavigationService, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
