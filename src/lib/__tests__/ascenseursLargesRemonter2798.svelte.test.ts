@@ -80,7 +80,9 @@ describe('web#2798 — la feuille dessine un ascenseur large dans Chrome, Edge e
 
   it('retire `scrollbar-color` en mode large (sinon Chrome 121+ ignore les ::-webkit-scrollbar)', () => {
     expect(supports, 'bloc @supports selector(::-webkit-scrollbar) introuvable').not.toBe('');
-    expect(supports).toMatch(/html\[data-ascenseurs-larges\]\s*\*\s*\{\s*scrollbar-color\s*:\s*auto\s*;/);
+    // `<html>` lui-même ET ses descendants : `<html>` porte le scrollbar-color
+    // de `*` et de `[data-theme=…]`, et son ascenseur est celui du document.
+    expect(supports).toMatch(/html\[data-ascenseurs-larges\],\s*html\[data-ascenseurs-larges\]\s*\*\s*\{\s*scrollbar-color\s*:\s*auto\s*;/);
   });
 
   it('largeur ≥ 16 px, en !important contre les 9 px posés par les vues', () => {
@@ -98,7 +100,7 @@ describe('web#2798 — la feuille dessine un ascenseur large dans Chrome, Edge e
 
   it('Firefox (hors @supports) garde un `scrollbar-color` contrasté, sans toucher à scrollbar-width', () => {
     const horsSupports = css.replace(/@supports[\s\S]*?\n\}/g, '');
-    const m = /html\[data-ascenseurs-larges\]\s*\*\s*\{([^}]*)\}/.exec(horsSupports);
+    const m = /html\[data-ascenseurs-larges\],\s*html\[data-ascenseurs-larges\]\s*\*\s*\{([^}]*)\}/.exec(horsSupports);
     expect(m?.[1]).toMatch(/scrollbar-color\s*:\s*var\(--v2-scrollthumb/);
     expect(css).not.toMatch(/data-ascenseurs-larges\][^{]*\{[^}]*scrollbar-width/);
   });
@@ -136,6 +138,28 @@ describe('web#2798 — bouton « Remonter en haut »', () => {
     expect(el.scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
     expect(el.scrollTop).toBe(0);
     expect(bouton()).toBeNull();
+  });
+
+  it('défilement doux : le bouton reste pendant l’animation, sans clignoter, puis s’efface', () => {
+    const el = liste(600, 6000);
+    el.scrollTo = vi.fn() as any; // l'animation n'a pas encore bougé la liste
+    defiler(el, 3000);
+    bouton()!.click();
+    flushSync();
+    expect(bouton(), 'retiré puis réaffiché au scroll suivant = clignotement').not.toBeNull();
+    defiler(el, 1500);
+    expect(bouton()).not.toBeNull();
+    defiler(el, 0);
+    expect(bouton()).toBeNull();
+  });
+
+  it('au clavier, le focus revient à la liste (pas sur <body>)', () => {
+    const el = liste(600, 6000);
+    defiler(el, 3000);
+    bouton()!.focus();
+    bouton()!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    flushSync();
+    expect(document.activeElement).toBe(el);
   });
 
   it('revenir en haut à la main l’efface aussi', () => {

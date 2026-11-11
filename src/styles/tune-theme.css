@@ -287,15 +287,20 @@ body {
      on y garde `scrollbar-color`, avec un pouce contrasté et une piste
      visible. Sur macOS, « Afficher les barres de défilement : Toujours »
      (Réglages Système > Apparence) évite la barre en surimpression.
+   `<html>` lui-même est visé (pas seulement ses descendants) : il porte le
+   `scrollbar-color` de `*` et de `[data-theme=…]`, et son ascenseur est
+   celui du document.
    Les barres volontairement masquées (`scrollbar-width:none`) le restent :
    on ne touche jamais à `scrollbar-width`.
    ========================================================================== */
+html[data-ascenseurs-larges],
 html[data-ascenseurs-larges] * {
   scrollbar-color: var(--v2-scrollthumb, var(--v2-txt2, #8E9AA8))
     color-mix(in srgb, var(--v2-txt2, #8E9AA8) 18%, transparent);
 }
 
 @supports selector(::-webkit-scrollbar) {
+  html[data-ascenseurs-larges],
   html[data-ascenseurs-larges] * {
     scrollbar-color: auto;
   }

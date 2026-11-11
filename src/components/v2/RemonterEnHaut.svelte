@@ -15,7 +15,11 @@
   let bas = $state(96);
 
   function placer(el: Element) {
-    const r = el.getBoundingClientRect();
+    // Le document lui-même : son rect est celui de la page défilée, pas de
+    // la fenêtre. On se cale sur la fenêtre, au-dessus de la barre de transport.
+    const r = el === document.scrollingElement
+      ? { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight - 96 }
+      : el.getBoundingClientRect();
     const p = positionBouton(r, { largeur: window.innerWidth, hauteur: window.innerHeight });
     droite = p.droite; bas = p.bas;
   }
@@ -31,7 +35,7 @@
     }
   }
 
-  function remonter() {
+  function remonter(e: MouseEvent) {
     const el = cible;
     if (!el) return;
     const doux = !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -40,7 +44,16 @@
     } else {
       el.scrollTop = 0;
     }
-    cible = null;
+    // Défilement doux : on NE retire PAS le bouton ici. Les `scroll` de
+    // l'animation le retirent quand la liste passe sous le seuil ; le retirer
+    // tout de suite le ferait clignoter (réapparition à chaque `scroll`).
+    if (!doitAfficher(el)) cible = null;
+    // Au clavier (`detail === 0`), le bouton va disparaître : le focus irait
+    // sur <body>. On le rend à la liste elle-même.
+    if (e.detail === 0 && el instanceof HTMLElement && el !== document.scrollingElement) {
+      if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+      el.focus({ preventScroll: true });
+    }
   }
 
   onMount(() => {

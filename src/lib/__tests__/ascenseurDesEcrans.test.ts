@@ -66,6 +66,8 @@ const PAS_DES_ECRANS = new Set([
   'TransportBar', 'NowPlaying', 'DialogContainer', 'GlobalSearchBar',
   'ToastContainer', 'SessionExpireeOverlay', 'AvatarMenu', 'Sidebar',
   'BottomTabBar', 'MenuZone', 'MenuPisteV2',
+  // web#2798 : le bouton « Remonter en haut », flottant, pas un écran.
+  'RemonterEnHaut',
 ]);
 
 /** Les écrans montés par la coquille, déduits de ses `import`. */
