@@ -7004,6 +7004,8 @@ export default {
   "upsampling.constraint.notInstalled": "적용하려면 확장 기능에서 '업샘플링' 플러그인을 설치하세요.",
   "upsampling.constraint.pure": "이 영역은 PURE 모드가 켜져 있어 업샘플링이 우회됩니다.",
   "upsampling.constraint.machineTest": "기기가 아직 측정되지 않았습니다. 적용하려면 저장하거나 다시 측정하세요.",
+  "upsampling.constraint.zoneNotSupported": "이 존은 이 기기의 로컬 출력을 사용하지 않으므로 업샘플링이 적용되지 않습니다.",
+  "upsampling.constraint.strictBitPerfect": "이 존에서 Bit-perfect strict가 켜져 있습니다. 모든 샘플링 레이트 변환을 거부하므로 업샘플링이 적용되지 않습니다. 업샘플링하려면 존 설정에서 끄세요.",
   "upsampling.filter.polyvalent": "범용 (아포다이징, 선형 위상)",
   "upsampling.filter.polyvalent-pm": "범용, 최소 위상",
   "upsampling.filter.precision": "정밀 (긴 sinc, 선형 위상)",

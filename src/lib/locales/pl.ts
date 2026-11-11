@@ -6849,6 +6849,8 @@ export default {
   "upsampling.constraint.notInstalled": "Zainstaluj wtyczkę „Nadpróbkowanie” w Rozszerzeniach, aby ją zastosować.",
   "upsampling.constraint.pure": "Tryb PURE jest włączony w tej strefie: nadpróbkowanie jest pomijane.",
   "upsampling.constraint.machineTest": "Komputer nie został jeszcze zmierzony: zapisz lub zmierz ponownie, aby zastosować.",
+  "upsampling.constraint.zoneNotSupported": "Ta strefa nie korzysta z lokalnego wyjścia komputera: nadpróbkowanie jej nie dotyczy.",
+  "upsampling.constraint.strictBitPerfect": "W tej strefie włączony jest ścisły bit-perfect: odrzuca każdą konwersję częstotliwości, więc nadpróbkowanie nie działa. Wyłącz go w ustawieniach strefy, aby nadpróbkowywać.",
   "upsampling.filter.polyvalent": "Uniwersalny (apodyzujący, faza liniowa)",
   "upsampling.filter.polyvalent-pm": "Uniwersalny, faza minimalna",
   "upsampling.filter.precision": "Precyzyjny (długi sinc, faza liniowa)",

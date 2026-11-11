@@ -7004,6 +7004,8 @@ export default {
   "upsampling.constraint.notInstalled": "请在“扩展”中安装“升频”插件以应用它。",
   "upsampling.constraint.pure": "此区域已开启 PURE 模式：升频被绕过。",
   "upsampling.constraint.machineTest": "本机尚未测量：请保存或重新测量以应用。",
+  "upsampling.constraint.zoneNotSupported": "此区域不使用本机的本地输出：升频不适用。",
+  "upsampling.constraint.strictBitPerfect": "此区域已开启 Bit-perfect strict：它拒绝任何采样率转换，因此升频不会生效。请在区域设置中关闭它以启用升频。",
   "upsampling.filter.polyvalent": "通用（切趾，线性相位）",
   "upsampling.filter.polyvalent-pm": "通用，最小相位",
   "upsampling.filter.precision": "精确（长 sinc，线性相位）",

@@ -6856,6 +6856,8 @@ export default {
   "upsampling.constraint.notInstalled": "Hãy cài tiện ích “Tăng tần số lấy mẫu” trong Tiện ích mở rộng để áp dụng.",
   "upsampling.constraint.pure": "Chế độ PURE đang bật ở vùng này: tăng tần số lấy mẫu bị bỏ qua.",
   "upsampling.constraint.machineTest": "Máy chưa được đo: hãy lưu hoặc đo lại để áp dụng.",
+  "upsampling.constraint.zoneNotSupported": "Vùng này không phát qua đầu ra cục bộ của máy: tăng tần số lấy mẫu không áp dụng.",
+  "upsampling.constraint.strictBitPerfect": "Bit-perfect nghiêm ngặt đang bật cho vùng này: nó từ chối mọi chuyển đổi tần số, nên tăng tần số lấy mẫu không được áp dụng. Hãy tắt nó trong cài đặt vùng để tăng tần số lấy mẫu.",
   "upsampling.filter.polyvalent": "Đa năng (apodizing, pha tuyến tính)",
   "upsampling.filter.polyvalent-pm": "Đa năng, pha tối thiểu",
   "upsampling.filter.precision": "Chính xác (sinc dài, pha tuyến tính)",

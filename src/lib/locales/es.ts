@@ -7004,6 +7004,8 @@ export default {
   "upsampling.constraint.notInstalled": "Instale el complemento «Sobremuestreo» en Extensiones para aplicarlo.",
   "upsampling.constraint.pure": "El modo PURE está activo en esta zona: el sobremuestreo se omite.",
   "upsampling.constraint.machineTest": "El equipo aún no se ha medido: guarde o vuelva a medir para aplicarlo.",
+  "upsampling.constraint.zoneNotSupported": "Esta zona no sale por la salida local del equipo: el sobremuestreo no se le aplica.",
+  "upsampling.constraint.strictBitPerfect": "El bit-perfect strict está activado en esta zona: rechaza toda conversión de frecuencia, así que el sobremuestreo no se aplica. Desactívelo en los ajustes de la zona para sobremuestrear.",
   "upsampling.filter.polyvalent": "Polivalente (apodizante, fase lineal)",
   "upsampling.filter.polyvalent-pm": "Polivalente, fase mínima",
   "upsampling.filter.precision": "Precisión (sinc largo, fase lineal)",
