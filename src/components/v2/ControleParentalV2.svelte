@@ -28,7 +28,7 @@
   const profilChoisi = $derived(encadrables.find((p) => p.id === choisi) ?? null);
 </script>
 
-<p class="hint" data-parental-intro>{$t('parental.guide.intro' as any)}</p>
+<p class="hint" data-parental-intro data-reglage="controle-parental">{$t('parental.guide.intro' as any)}</p>
 
 {#if !actif}
 {:else if actif.is_admin !== true}

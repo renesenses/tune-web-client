@@ -252,6 +252,7 @@
 
   {#if enFiche}
     <RadioFicheModale annuaire={enFiche} onClose={() => (enFiche = null)}
+      onLue={({ annuaireId }) => { if (annuaireId) onJoue?.(annuaireId); }}
       onChange={(st) => onAjoutee?.(st)} />
   {/if}
 
