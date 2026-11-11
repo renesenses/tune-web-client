@@ -121,9 +121,11 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
     expect([...d.querySelectorAll('.genres li')].length).toBe(2);
     expect(d.querySelector<HTMLAnchorElement>('a.site')!.href).toBe('https://www.fip.fr/');
     expect(d.querySelector<HTMLAnchorElement>('a.site')!.rel).toContain('noopener');
-    const choix = [...d.querySelectorAll<HTMLInputElement>('input[type=radio]')];
-    expect(choix.map((c) => c.value)).toEqual([AAC, MP3]);
-    expect(choix[0].checked).toBe(true);
+    // Flux classés par qualité (AAC 192 avant MP3 128), le flux par défaut marqué.
+    const flux = [...d.querySelectorAll('.flux li')];
+    expect(flux.map((l) => l.querySelector('.url')?.textContent)).toEqual([AAC, MP3]);
+    expect(flux[0].classList.contains('actuel')).toBe(true);
+    expect(flux[0].querySelector('.prin')?.textContent).toBe('par défaut');
   });
 
   it('🔴 choisir un autre flux l’enregistre et met la tuile à jour', async () => {
@@ -131,12 +133,16 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
     await monter(RadiosV2);
     (tuile('FIP').querySelector('button.coin.tr') as HTMLButtonElement).click();
     await respirer();
-    const mp3 = dialogue()!.querySelector<HTMLInputElement>(`input[value="${MP3}"]`)!;
-    mp3.checked = true;
-    mp3.dispatchEvent(new Event('change', { bubbles: true }));
+    mocks.playRadio.mockResolvedValue({});
+    const mp3 = [...dialogue()!.querySelectorAll<HTMLButtonElement>('.flux li')]
+      .find((l) => l.querySelector('.url')?.textContent === MP3)!;
+    mp3.querySelector<HTMLButtonElement>('button.flux-lire')!.click();
     await respirer();
     expect(mocks.choisirFluxPrefere).toHaveBeenCalledWith(7, MP3);
-    expect(dialogue()!.querySelector<HTMLInputElement>(`input[value="${MP3}"]`)!.checked).toBe(true);
+    expect(mocks.playRadio).toHaveBeenCalledWith(7, 3);
+    const apres = [...dialogue()!.querySelectorAll('.flux li')]
+      .find((l) => l.querySelector('.url')?.textContent === MP3)!;
+    expect(apres.classList.contains('actuel')).toBe(true);
     expect(tuile('FIP').querySelector('.tk')?.textContent).toContain('MP3');
   });
 });
@@ -155,14 +161,14 @@ describe('Annuaire : l’œil et le badge', () => {
     await respirer();
     const d = dialogue()!;
     expect(d.querySelector('h2')?.textContent).toBe('Radio Sans Cle');
-    // Pas dans « Mes radios » : le flux se lit, il ne se choisit pas.
-    expect(d.querySelector('input[type=radio]')).toBeNull();
+    // Pas dans « Mes radios » : un seul flux, lisible par la route de l'annuaire.
+    expect(d.querySelectorAll('.flux li').length).toBe(1);
   });
 
   it('une fiche déjà dans Mes radios se relit là pour choisir son flux', async () => {
     await monter(RadioFicheModale, { annuaire: ANNUAIRE.items[0], onClose: () => {} });
     expect(mocks.getRadios).toHaveBeenCalled();
-    expect(dialogue()!.querySelectorAll('input[type=radio]').length).toBe(2);
+    expect(dialogue()!.querySelectorAll('.flux li').length).toBe(2);
   });
 });
 

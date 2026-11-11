@@ -60,13 +60,13 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum } from '../../lib/stores/navigation';
+  import { activeView, pendingSearchQuery, pendingLibraryAlbum, vueAvantGrandEcran, mobileNowPlayingOpen, origineGrandEcran } from '../../lib/stores/navigation';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
   import { gestesNavigationService, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
@@ -1750,6 +1750,11 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       document.documentElement.requestFullscreen?.()?.catch(() => {});
     } catch {}
+    // web#2761 — la porte dit d'où l'on part : la vue de dessous et le calque
+    // s'il est ouvert, ou « Lecture en cours » en vue de plein droit. Le calque
+    // s'efface pendant le Grand écran ; la sortie le rouvre.
+    vueAvantGrandEcran.set(origineGrandEcran($mobileNowPlayingOpen ? $activeView : 'nowplaying', $mobileNowPlayingOpen));
+    mobileNowPlayingOpen.set(false);
     activeView.set('tv');
   }
 
@@ -1765,8 +1770,11 @@ import { ICONES } from '../../lib/menuPiste';
   <!-- #1134 : la vue d'avant n'est pas toujours une destination. Sortir du
        Grand écran par un clic laisse `previousView = 'tv'`, et ce bouton
        remontait donc le mode que l'utilisateur venait de quitter. La table de
-       `destinationDeRetour` tranche le cas de CHAQUE vue. -->
-  <button class="np-back-btn" onclick={() => activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }))} title={$t('nowplaying.back')}>
+       `destinationDeRetour` tranche le cas de CHAQUE vue.
+       #2743 : quand on vient de cette vue, on RECULE (onglet et fiche
+       reviennent avec l'entrée) — voir `lib/retourLectureEnCours`.
+       #2761 : en CALQUE, Retour referme le calque (même module). -->
+  <button class="np-back-btn" onclick={() => retourDepuisLectureEnCours()} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait

@@ -539,6 +539,7 @@
     <RadioFicheModale
       station={enFiche}
       onClose={() => (enFiche = null)}
+      onLue={({ idMienne }) => { if (idMienne != null) { playingId = idMienne; lectures += 1; } ficheJouee = null; }}
       onChange={(maj) => { radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)); }}
     />
   {/if}
