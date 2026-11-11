@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "최대 지연",
   "v2.cfp.itdSmoothing": "지연 평활화",
   "v2.cfp.ms": "Mid/Side 매트릭스",
-  "v2.cfp.msHint": "Mid/Side 매트릭스를 기반으로 한 크로스피드 변형입니다. 센터(Mid)는 그대로 두며, 자체 게인과 자체 지연을 가집니다. 실험적: 청취 테스트용입니다. 기본값은 꺼짐.",
+  "v2.cfp.msHint": "Mid/Side 매트릭스를 기반으로 한 크로스피드 변형입니다. 센터(Mid)는 그대로 두고, 채널 간 차이(Side)에는 별도의 설정이 있습니다. 실험적: 청취 테스트용입니다. 기본값은 꺼짐.",
   "v2.cfp.msSideGain": "Side 감쇠",
   "v2.cfp.msDelay": "Side 지연",
   "v2.cfp.msAdaptive": "치우침에 따른 지연",

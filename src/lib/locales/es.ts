@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "Retardo máximo",
   "v2.cfp.itdSmoothing": "Suavizado del retardo",
   "v2.cfp.ms": "Matriz Mid/Side",
-  "v2.cfp.msHint": "Variante de la vía cruzada basada en la matriz Mid/Side: el centro (Mid) queda intacto, con su propia ganancia y su propio retardo. Experimental: para escuchar. Desactivado por defecto.",
+  "v2.cfp.msHint": "Variante de la vía cruzada basada en la matriz Mid/Side: el centro (Mid) queda intacto, la diferencia entre canales (Side) tiene sus propios ajustes. Experimental: para escuchar. Desactivado por defecto.",
   "v2.cfp.msSideGain": "Atenuación del Side",
   "v2.cfp.msDelay": "Retardo del Side",
   "v2.cfp.msAdaptive": "Retardo según el descentrado",

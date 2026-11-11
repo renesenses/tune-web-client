@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "最大遅延",
   "v2.cfp.itdSmoothing": "遅延の平滑化",
   "v2.cfp.ms": "Mid/Side マトリクス",
-  "v2.cfp.msHint": "Mid/Side マトリクスによるクロスフィードの別方式です。センター（Mid）はそのままで、独自のゲインと遅延を持ちます。実験的：試聴用です。既定はオフ。",
+  "v2.cfp.msHint": "Mid/Side マトリクスによるクロスフィードの別方式です。センター（Mid）はそのままで、チャンネル間の差（Side）に専用の設定があります。実験的：試聴用です。既定はオフ。",
   "v2.cfp.msSideGain": "Side の減衰",
   "v2.cfp.msDelay": "Side の遅延",
   "v2.cfp.msAdaptive": "偏りに応じた遅延",

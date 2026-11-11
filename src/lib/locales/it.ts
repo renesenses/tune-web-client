@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "Ritardo massimo",
   "v2.cfp.itdSmoothing": "Livellamento del ritardo",
   "v2.cfp.ms": "Matrice Mid/Side",
-  "v2.cfp.msHint": "Variante della via incrociata basata sulla matrice Mid/Side: il centro (Mid) resta intatto, con guadagno e ritardo propri. Sperimentale: da ascoltare. Disattivato per impostazione predefinita.",
+  "v2.cfp.msHint": "Variante della via incrociata basata sulla matrice Mid/Side: il centro (Mid) resta intatto, la differenza tra i canali (Side) ha regolazioni proprie. Sperimentale: da ascoltare. Disattivato per impostazione predefinita.",
   "v2.cfp.msSideGain": "Attenuazione del Side",
   "v2.cfp.msDelay": "Ritardo del Side",
   "v2.cfp.msAdaptive": "Ritardo secondo il decentramento",

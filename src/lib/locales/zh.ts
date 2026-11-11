@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "最大延迟",
   "v2.cfp.itdSmoothing": "延迟平滑",
   "v2.cfp.ms": "Mid/Side 矩阵",
-  "v2.cfp.msHint": "基于 Mid/Side 矩阵的交叉馈送变体：中置（Mid）保持不变，具有独立的增益和延迟。实验性：供试听使用。默认关闭。",
+  "v2.cfp.msHint": "基于 Mid/Side 矩阵的交叉馈送变体：中置（Mid）保持不变，声道间的差（Side）有独立设置。实验性：供试听使用。默认关闭。",
   "v2.cfp.msSideGain": "Side 衰减",
   "v2.cfp.msDelay": "Side 延迟",
   "v2.cfp.msAdaptive": "按偏离程度延迟",

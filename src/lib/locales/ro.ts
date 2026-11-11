@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "Întârziere maximă",
   "v2.cfp.itdSmoothing": "Netezirea întârzierii",
   "v2.cfp.ms": "Matrice Mid/Side",
-  "v2.cfp.msHint": "O variantă a căii încrucișate bazată pe matricea Mid/Side: centrul (Mid) rămâne intact, cu propriul câștig și propria întârziere. Experimental: de ascultat. Dezactivat implicit.",
+  "v2.cfp.msHint": "O variantă a căii încrucișate bazată pe matricea Mid/Side: centrul (Mid) rămâne intact, diferența dintre canale (Side) are propriile reglaje. Experimental: de ascultat. Dezactivat implicit.",
   "v2.cfp.msSideGain": "Atenuarea Side",
   "v2.cfp.msDelay": "Întârzierea Side",
   "v2.cfp.msAdaptive": "Întârziere după descentrare",

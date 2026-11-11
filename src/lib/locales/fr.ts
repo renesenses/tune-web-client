@@ -5908,7 +5908,7 @@ export default {
   "v2.cfp.itdTauMax": "Retard maximal",
   "v2.cfp.itdSmoothing": "Lissage du retard",
   "v2.cfp.ms": "Matriçage Mid/Side",
-  "v2.cfp.msHint": "Variante de la voie croisée par matriçage Mid/Side : le centre (Mid) reste intact, avec son propre gain et son propre retard. Expérimental : à écouter. Éteint par défaut.",
+  "v2.cfp.msHint": "Variante de la voie croisée par matriçage Mid/Side : le centre (Mid) reste intact, l'écart entre les voies (Side) a ses propres réglages. Expérimental : à écouter. Éteint par défaut.",
   "v2.cfp.msSideGain": "Atténuation du Side",
   "v2.cfp.msDelay": "Retard du Side",
   "v2.cfp.msAdaptive": "Retard selon le décentrage",

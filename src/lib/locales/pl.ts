@@ -5738,7 +5738,7 @@ export default {
   "v2.cfp.itdTauMax": "Maksymalne opóźnienie",
   "v2.cfp.itdSmoothing": "Wygładzanie opóźnienia",
   "v2.cfp.ms": "Macierz Mid/Side",
-  "v2.cfp.msHint": "Wariant crossfeedu oparty na matrycy Mid/Side: środek (Mid) pozostaje nietknięty, z własnym wzmocnieniem i własnym opóźnieniem. Eksperymentalny: do odsłuchu testowego. Domyślnie wyłączony.",
+  "v2.cfp.msHint": "Wariant crossfeedu oparty na matrycy Mid/Side: środek (Mid) pozostaje nietknięty, różnica między kanałami (Side) ma własne ustawienia. Eksperymentalny: do odsłuchu testowego. Domyślnie wyłączony.",
   "v2.cfp.msSideGain": "Tłumienie Side",
   "v2.cfp.msDelay": "Opóźnienie Side",
   "v2.cfp.msAdaptive": "Opóźnienie zależne od odsunięcia od centrum",

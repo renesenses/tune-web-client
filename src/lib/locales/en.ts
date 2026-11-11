@@ -5906,7 +5906,7 @@ export default {
   "v2.cfp.itdTauMax": "Maximum delay",
   "v2.cfp.itdSmoothing": "Delay smoothing",
   "v2.cfp.ms": "Mid/Side matrix",
-  "v2.cfp.msHint": "A crossfeed variant built on Mid/Side matrixing: the centre (Mid) stays intact, with its own gain and delay. Experimental: for listening tests. Off by default.",
+  "v2.cfp.msHint": "A crossfeed variant built on Mid/Side matrixing: the centre (Mid) stays intact, the difference between channels (Side) has its own settings. Experimental: for listening tests. Off by default.",
   "v2.cfp.msSideGain": "Side attenuation",
   "v2.cfp.msDelay": "Side delay",
   "v2.cfp.msAdaptive": "Delay follows off-centre position",

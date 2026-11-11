@@ -5740,7 +5740,7 @@ export default {
   "v2.cfp.itdTauMax": "Maksimal forsinkelse",
   "v2.cfp.itdSmoothing": "Utjevning av forsinkelse",
   "v2.cfp.ms": "Mid/Side-matrise",
-  "v2.cfp.msHint": "En crossfeed-variant basert på Mid/Side-matrisen: midten (Mid) forblir intakt, med egen forsterkning og egen forsinkelse. Eksperimentell: for lyttetester. Av som standard.",
+  "v2.cfp.msHint": "En crossfeed-variant basert på Mid/Side-matrisen: midten (Mid) forblir intakt, differansen mellom kanalene (Side) har egne innstillinger. Eksperimentell: for lyttetester. Av som standard.",
   "v2.cfp.msSideGain": "Side-demping",
   "v2.cfp.msDelay": "Side-forsinkelse",
   "v2.cfp.msAdaptive": "Forsinkelsen følger posisjonen utenfor midten",

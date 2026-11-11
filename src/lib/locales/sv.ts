@@ -5885,7 +5885,7 @@ export default {
   "v2.cfp.itdTauMax": "Största fördröjning",
   "v2.cfp.itdSmoothing": "Utjämning av fördröjningen",
   "v2.cfp.ms": "Mid/Side-matris",
-  "v2.cfp.msHint": "En variant av korsmatningen byggd på Mid/Side-matrisen: mitten (Mid) lämnas orörd, med egen förstärkning och egen fördröjning. Experimentell: för lyssningstester. Av som standard.",
+  "v2.cfp.msHint": "En variant av korsmatningen byggd på Mid/Side-matrisen: mitten (Mid) lämnas orörd, skillnaden mellan kanalerna (Side) har egna inställningar. Experimentell: för lyssningstester. Av som standard.",
   "v2.cfp.msSideGain": "Dämpning av Side",
   "v2.cfp.msDelay": "Fördröjning av Side",
   "v2.cfp.msAdaptive": "Fördröjning efter avvikelse från mitten",

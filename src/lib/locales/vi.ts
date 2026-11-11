@@ -5743,7 +5743,7 @@ export default {
   "v2.cfp.itdTauMax": "Độ trễ tối đa",
   "v2.cfp.itdSmoothing": "Làm mượt độ trễ",
   "v2.cfp.ms": "Ma trận Mid/Side",
-  "v2.cfp.msHint": "Một biến thể crossfeed dựa trên ma trận Mid/Side: phần giữa (Mid) được giữ nguyên, với mức khuếch đại và độ trễ riêng. Thử nghiệm: dùng để thử nghe. Mặc định tắt.",
+  "v2.cfp.msHint": "Một biến thể crossfeed dựa trên ma trận Mid/Side: phần giữa (Mid) được giữ nguyên, phần khác biệt giữa các kênh (Side) có thiết lập riêng. Thử nghiệm: dùng để thử nghe. Mặc định tắt.",
   "v2.cfp.msSideGain": "Mức giảm Side",
   "v2.cfp.msDelay": "Độ trễ Side",
   "v2.cfp.msAdaptive": "Độ trễ theo mức lệch tâm",

@@ -5886,7 +5886,7 @@ export default {
   "v2.cfp.itdTauMax": "Maximale Verzögerung",
   "v2.cfp.itdSmoothing": "Glättung der Verzögerung",
   "v2.cfp.ms": "Mid/Side-Matrix",
-  "v2.cfp.msHint": "Eine Crossfeed-Variante auf Basis der Mid/Side-Matrix: Die Mitte (Mid) bleibt unberührt, mit eigener Verstärkung und eigener Verzögerung. Experimentell: zum Probehören. Standardmäßig aus.",
+  "v2.cfp.msHint": "Eine Crossfeed-Variante auf Basis der Mid/Side-Matrix: Die Mitte (Mid) bleibt unberührt, die Differenz der Kanäle (Side) hat eigene Einstellungen. Experimentell: zum Probehören. Standardmäßig aus.",
   "v2.cfp.msSideGain": "Absenkung des Side",
   "v2.cfp.msDelay": "Verzögerung des Side",
   "v2.cfp.msAdaptive": "Verzögerung nach Außermittigkeit",

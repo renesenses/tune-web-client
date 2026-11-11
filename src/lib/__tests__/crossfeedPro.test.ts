@@ -167,8 +167,8 @@ describe('Crossfeed Pro : retard adaptatif et Mid/Side s’excluent (greffon#15)
   });
 });
 
-// Demande de Thierry du 11/11 (fil 2534) : un seul mode actif entre normal,
-// multibande et Mid/Side ; garde de phase prolongée (greffon ≥ 0.5.0).
+// Retour testeur du 11/11 : un seul mode actif entre normal, multibande et
+// Mid/Side ; garde de phase prolongée (greffon ≥ 0.5.0).
 describe('Crossfeed Pro : la voie croisée, une seule à la fois', () => {
   it('la voie lue suit l’ordre du greffon : Mid/Side, puis multibande, puis standard', async () => {
     const { voieCrossfeedPro } = await import('../crossfeedPro');

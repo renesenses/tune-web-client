@@ -5840,7 +5840,7 @@ export default {
   "v2.cfp.itdTauMax": "Legnagyobb késleltetés",
   "v2.cfp.itdSmoothing": "A késleltetés simítása",
   "v2.cfp.ms": "Mid/Side mátrix",
-  "v2.cfp.msHint": "Mid/Side mátrixra épülő áthallás-változat: a közép (Mid) érintetlen marad, saját erősítéssel és saját késleltetéssel. Kísérleti: meghallgatásra. Alapból kikapcsolva.",
+  "v2.cfp.msHint": "Mid/Side mátrixra épülő áthallás-változat: a közép (Mid) érintetlen marad, a csatornák különbsége (Side) saját beállításokat kap. Kísérleti: meghallgatásra. Alapból kikapcsolva.",
   "v2.cfp.msSideGain": "A Side csillapítása",
   "v2.cfp.msDelay": "A Side késleltetése",
   "v2.cfp.msAdaptive": "Késleltetés a középtől való eltérés szerint",
