@@ -58,8 +58,10 @@ describe('#4651 — la règle', () => {
     ]);
   });
 
-  it('un homonyme sous un autre identifiant reste dans la discographie', () => {
-    expect(estDeLArtiste(al({ artist_id: '999', artist_name: 'AGNES OBEL' }), '551325', 'Agnes Obel')).toBe(true);
+  // tune-server-rust#8478 renverse cette règle : un homonyme sous un autre
+  // identifiant est un AUTRE artiste (« Cannons », « Moonchild »).
+  it('un homonyme sous un autre identifiant passe sous « Apparitions » (#8478)', () => {
+    expect(estDeLArtiste(al({ artist_id: '999', artist_name: 'AGNES OBEL' }), '551325', 'Agnes Obel')).toBe(false);
   });
 
   it('sans identifiant résolu, le nom seul décide', () => {
