@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
@@ -1121,6 +1122,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // si l'utilisateur ne le copie pas maintenant, il est perdu.
   let brEnabled = $state(false);
   let brConnected = $state(false);
+  let brMessage = $state<MessageDuPont | null>(null);
   let brServerId = $state('');
   let brUrl = $state('');
   let brToken = $state('');
@@ -1166,9 +1168,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
+        brMessage = messageDuPont(d);
         if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
+  });
+  // #7714 — « Déconnecté » se relit toutes les 10 s tant que le pont est
+  // activé : le serveur se reconnecte seul, l'écran doit le voir sans
+  // rechargement, et dire entre-temps pourquoi il attend.
+  $effect(() => {
+    if (!relirePont({ enabled: brEnabled, connected: brConnected })) return;
+    const minuteur = setInterval(() => {
+      api.apiFetch('/cloud/bridge/status')
+        .then((d: any) => {
+          brConnected = !!d?.connected;
+          brMessage = messageDuPont(d);
+        })
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(minuteur);
   });
   async function toggleBridge() {
     brBusy = true;
@@ -7741,7 +7759,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/if}
                 {#if !brConnected}
-                  <p class="warn">{$t('settings.restartToReachRelay' as any)}</p>
+                  {@const m = brMessage ?? { cle: 'settings.restartToReachRelay' }}
+                  <p class="warn" data-pont="cause">{$t(m.cle as any).replace('{raison}', m.raison ?? '')}</p>
                 {/if}
               {/if}
 
