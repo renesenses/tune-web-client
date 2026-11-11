@@ -22,7 +22,7 @@
     ECART_LIBELLE_PX, LIBELLES_CANAUX, policeLibelleCanal,
     PALETTE_CRETE_SOMBRE, paletteCreteDepuis,
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
-    type EtatPpm, type StyleCreteMetre,
+    type EtatPpm, type StyleCreteMetre, type Surcharge,
   } from '../../lib/peakMetre';
   import { retombeAuRepos, tempsDeDessiner } from '../../lib/cadenceCreteMetre';
   import { boucleImages } from '../../lib/boucleImages';
@@ -148,6 +148,14 @@
     return COULEURS.vert;
   }
 
+  /** Rouge = écrêtage réel ; `source` (#7100) = crête du disque, en neutre. */
+  function couleurDuTemoin(etat: Surcharge): string {
+    if (etat === 'rouge') return COULEURS.rouge;
+    if (etat === 'ambre') return COULEURS.ambre;
+    if (etat === 'source') return COULEURS.ppm;
+    return COULEURS.eteint;
+  }
+
   function dessiner(ctx: CanvasRenderingContext2D, l: number, h: number) {
     ctx.clearRect(0, 0, l, h);
     if (style === 'off') return;
@@ -157,6 +165,8 @@
     const vivant = fraicheur(niv, maintenant) && joue;
     const cretes = vivant ? [niv.peak_left_db, niv.peak_right_db] : [PLANCHER_DB, PLANCHER_DB];
     const overs = vivant ? [niv.over_left, niv.over_right] : [false, false];
+    // #7100 — la crête de la SOURCE au plein : témoin neutre, pas le rouge.
+    const sources = vivant ? [niv.source_over_left, niv.source_over_right] : [null, null];
 
     for (let ch = 0; ch < 2; ch++) {
       barres[ch] = suivreLaCrete(barres[ch], cretes[ch], BAR_RELEASE);
@@ -173,22 +183,22 @@
     ctx.save();
     ctx.translate(x0, 0);
     const utileL = Math.max(0, l - x0);
-    if (style === 'lamps') dessinerLampes(ctx, utileL, h, cretes, overs);
-    else dessinerBargraphe(ctx, utileL, h, cretes, overs);
+    if (style === 'lamps') dessinerLampes(ctx, utileL, h, cretes, overs, sources);
+    else dessinerBargraphe(ctx, utileL, h, cretes, overs, sources);
     ctx.restore();
   }
 
   /** Deux témoins compacts — le seul visuel que la barre de lecture accepte. */
-  function dessinerLampes(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[]) {
+  function dessinerLampes(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[], sources: (boolean | null)[]) {
     // Le rayon reste ici — le CENTRE des voies, lui, vient de la géométrie
     // partagée : c'est ce qui garantit que `L` et `R` tombent en face.
     const r = Math.min(h / 2 - 1, 5);
     for (let ch = 0; ch < 2; ch++) {
-      const etat = surcharge(cretes[ch], overs[ch]);
+      const etat = surcharge(cretes[ch], overs[ch], sources[ch]);
       ctx.beginPath();
       ctx.arc(r + 1, centreDeLaVoie(ch, h), r, 0, Math.PI * 2);
       ctx.fillStyle =
-        etat === 'rouge' ? COULEURS.rouge : etat === 'ambre' ? COULEURS.ambre : COULEURS.eteint;
+        couleurDuTemoin(etat);
       ctx.fill();
     }
     // Une barre de niveau minuscule à droite du témoin : sans elle, deux
@@ -205,7 +215,7 @@
   }
 
   /** DAT PCM-7030 et IEC 268-18 : même format horizontal, échelles distinctes. */
-  function dessinerBargraphe(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[]) {
+  function dessinerBargraphe(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[], sources: (boolean | null)[]) {
     const largeurOver = 26;
     const utile = Math.max(0, l - largeurOver - 6);
     const hb = Math.max(3, (h - 6) / 2);
@@ -232,9 +242,9 @@
       }
 
       // OVER à droite, comme sur l'appareil d'origine.
-      const etat = surcharge(cretes[ch], overs[ch]);
+      const etat = surcharge(cretes[ch], overs[ch], sources[ch]);
       ctx.fillStyle =
-        etat === 'rouge' ? COULEURS.rouge : etat === 'ambre' ? COULEURS.ambre : COULEURS.eteint;
+        couleurDuTemoin(etat);
       ctx.fillRect(utile + 6, y, largeurOver, hb);
     }
   }
