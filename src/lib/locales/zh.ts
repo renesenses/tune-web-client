@@ -4319,6 +4319,8 @@ export default {
   "v2.album.locate": "在磁盘中定位",
   "v2.album.booklet": "小册子 (PDF)",
   "v2.album.qobuz.title": "Qobuz 补充信息",
+  "v2.album.qobuz.collapse": "折叠",
+  "v2.album.qobuz.expand": "展开",
   "v2.album.qobuz.source": "来源：Qobuz",
   "v2.album.qobuz.label": "厂牌",
   "v2.album.qobuz.releaseDate": "发行日期",

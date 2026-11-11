@@ -4319,6 +4319,8 @@ export default {
   "v2.album.locate": "디스크에서 찾기",
   "v2.album.booklet": "부클릿 (PDF)",
   "v2.album.qobuz.title": "Qobuz 보완 정보",
+  "v2.album.qobuz.collapse": "접기",
+  "v2.album.qobuz.expand": "펼치기",
   "v2.album.qobuz.source": "출처: Qobuz",
   "v2.album.qobuz.label": "레이블",
   "v2.album.qobuz.releaseDate": "발매일",

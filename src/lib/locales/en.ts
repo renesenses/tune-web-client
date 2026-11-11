@@ -4339,6 +4339,8 @@ export default {
   "v2.album.locate": "Locate on disk",
   "v2.album.booklet": "Booklet (PDF)",
   "v2.album.qobuz.title": "Qobuz additions",
+  "v2.album.qobuz.collapse": "Collapse",
+  "v2.album.qobuz.expand": "Expand",
   "v2.album.qobuz.source": "Source: Qobuz",
   "v2.album.qobuz.label": "Label",
   "v2.album.qobuz.releaseDate": "Release date",

@@ -4319,6 +4319,8 @@ export default {
   "v2.album.locate": "ディスク上で表示",
   "v2.album.booklet": "ブックレット (PDF)",
   "v2.album.qobuz.title": "Qobuz からの補完",
+  "v2.album.qobuz.collapse": "折りたたむ",
+  "v2.album.qobuz.expand": "展開",
   "v2.album.qobuz.source": "出典: Qobuz",
   "v2.album.qobuz.label": "レーベル",
   "v2.album.qobuz.releaseDate": "発売日",
