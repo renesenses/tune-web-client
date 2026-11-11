@@ -56,6 +56,9 @@ preparerLocale(get(preferences).language ?? 'en').then(async () => {
   // tune-server-rust#4908 — commandes de l'écran verrouillé, si le réglage
   // est allumé (éteint par défaut).
   void import('./lib/mediaSessionInstallee').then((m) => m.installerSessionMedia());
+  // tune-server-rust#8531 — dans le widget de bureau, la zone affichée est
+  // signalée à la fenêtre : les touches média du clavier la visent.
+  void import('./lib/zoneWidgetInstallee').then((m) => m.installerSignalZoneWidget());
 });
 // rc10 : service worker propre à chaque build, et comparaison du build chargé
 // avec celui que sert le serveur — voir `lib/versionInterface.ts`.
