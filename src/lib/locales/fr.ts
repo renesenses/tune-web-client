@@ -5678,8 +5678,7 @@ export default {
   "v2.circle.listen.notShared": "Ce titre n'est plus partagé avec vous.",
   "v2.circle.listen.revoked": "Cette écoute n'est plus autorisée.",
   "v2.circle.listen.noZone": "Choisissez une zone pour lancer l'écoute.",
-  "v2.circle.listen.closed": "Consultation seulement : l'écoute chez un contact n'est pas ouverte. Vous ne pouvez pas lancer la lecture d'ici ; cherchez l'album ou la piste dans vos propres sources.",
-  "v2.circle.listen.closedClick": "Lecture impossible ici : l'écoute chez un contact n'est pas ouverte. Utilisez « Chercher dans mes sources » pour le trouver chez vous.",
+  "v2.circle.listen.closed": "Consultation seulement : l'écoute chez un contact n'est pas ouverte. Un clic sur un album ou une piste lance son équivalent depuis vos sources (votre bibliothèque, puis vos services connectés).",
   "v2.circle.sources.search": "Chercher dans mes sources",
   "v2.circle.sources.searchAria": "Chercher « {query} » dans mes sources",
   "v2.circle.sources.searching": "Recherche de « {query} » dans vos sources…",
@@ -5688,6 +5687,9 @@ export default {
   "v2.circle.sources.error": "La recherche dans vos sources a échoué. Réessayez.",
   "v2.circle.sources.playAria": "Lire « {title} » ({source})",
   "v2.circle.sources.local": "Ma bibliothèque",
+  "v2.circle.sources.playing": "Lecture de « {title} » depuis {source}.",
+  "v2.circle.sources.notFound": "« {query} » est introuvable dans votre bibliothèque et vos services connectés. « Chercher dans mes sources » montre les résultats proches.",
+  "v2.circle.sources.playEquivalentAria": "Lire « {query} » depuis mes sources",
   "v2.circle.listen.dismiss": "Fermer",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)

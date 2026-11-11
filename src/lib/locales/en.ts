@@ -5676,8 +5676,7 @@ export default {
   "v2.circle.listen.notShared": "This track is no longer shared with you.",
   "v2.circle.listen.revoked": "This listening session is no longer allowed.",
   "v2.circle.listen.noZone": "Choose a zone to start listening.",
-  "v2.circle.listen.closed": "Browse only: listening at a contact's is not open. You cannot start playback from here; look for the album or track in your own sources.",
-  "v2.circle.listen.closedClick": "Playback is not possible here: listening at a contact's is not open. Use \"Search my sources\" to find it on your side.",
+  "v2.circle.listen.closed": "Browse only: listening at a contact's is not open. Clicking an album or a track plays its equivalent from your sources (your library, then your connected services).",
   "v2.circle.sources.search": "Search my sources",
   "v2.circle.sources.searchAria": "Search my sources for \"{query}\"",
   "v2.circle.sources.searching": "Searching your sources for \"{query}\"…",
@@ -5686,6 +5685,9 @@ export default {
   "v2.circle.sources.error": "The search in your sources failed. Try again.",
   "v2.circle.sources.playAria": "Play \"{title}\" ({source})",
   "v2.circle.sources.local": "My library",
+  "v2.circle.sources.playing": "Playing “{title}” from {source}.",
+  "v2.circle.sources.notFound": "“{query}” was not found in your library or your connected services. “Search my sources” shows close results.",
+  "v2.circle.sources.playEquivalentAria": "Play “{query}” from my sources",
   "v2.circle.listen.dismiss": "Close",
   // Mode « Modifier » de la fiche album (25/09/2026)
   // Sélection multiple de la fiche album (web#1683)
