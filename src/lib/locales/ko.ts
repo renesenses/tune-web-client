@@ -3800,6 +3800,8 @@ export default {
   "v2.meta.boxCompose": "박스 세트로 합치기",
   "v2.meta.boxOrder": "선택한 순서가 디스크 순서입니다.",
   "v2.meta.boxDisc": "디스크 {n}",
+  "v2.meta.boxName": "박스 세트 이름",
+  "v2.meta.boxDiscRange": "디스크 {a}–{b}",
   "v2.meta.boxDone": "{count}장의 디스크를 “{title}”(으)로 합쳤습니다.",
   "v2.meta.boxTitle": "분리된 박스세트",
   "v2.meta.boxDiscs": "디스크 {n}장, 각각 별개의 앨범",

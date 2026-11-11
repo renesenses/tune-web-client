@@ -3679,6 +3679,8 @@ export default {
   "v2.meta.boxCompose": "Συγχώνευση σε κασετίνα",
   "v2.meta.boxOrder": "Η σειρά με την οποία τους επιλέγετε είναι η σειρά των δίσκων.",
   "v2.meta.boxDisc": "Δίσκος {n}",
+  "v2.meta.boxName": "Όνομα κασετίνας",
+  "v2.meta.boxDiscRange": "Δίσκοι {a}–{b}",
   "v2.meta.boxDone": "{count} δίσκοι συγχωνεύτηκαν με τίτλο “{title}”.",
   "v2.meta.boxTitle": "Διασπασμένες κασετίνες",
   "v2.meta.boxDiscs": "{n} δίσκοι, ένα άλμπουμ ο καθένας",

@@ -3754,6 +3754,8 @@ export default {
   "v2.meta.boxCompose": "Egyesítés díszdobozzá",
   "v2.meta.boxOrder": "A bejelölés sorrendje a lemezek sorrendje.",
   "v2.meta.boxDisc": "{n}. lemez",
+  "v2.meta.boxName": "A díszdoboz neve",
+  "v2.meta.boxDiscRange": "{a}–{b}. lemez",
   "v2.meta.boxDone": "{count} lemez egyesítve „{title}” néven.",
   "v2.meta.boxTitle": "Szétesett díszdobozok",
   "v2.meta.boxDiscs": "{n} lemez, egyenként külön album",

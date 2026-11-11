@@ -3799,6 +3799,8 @@ export default {
   "v2.meta.boxCompose": "Slå ihop till en box",
   "v2.meta.boxOrder": "Ordningen du bockar för är skivornas ordning.",
   "v2.meta.boxDisc": "Skiva {n}",
+  "v2.meta.boxName": "Boxens namn",
+  "v2.meta.boxDiscRange": "Skiva {a}–{b}",
   "v2.meta.boxDone": "{count} skivor sammanslagna under ”{title}”.",
   "v2.meta.boxTitle": "Uppdelade boxar",
   "v2.meta.boxDiscs": "{n} skivor, ett album var",

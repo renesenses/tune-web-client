@@ -3821,6 +3821,8 @@ export default {
   "v2.meta.boxCompose": "Réunir en coffret",
   "v2.meta.boxOrder": "L'ordre dans lequel vous cochez est l'ordre des disques.",
   "v2.meta.boxDisc": "Disque {n}",
+  "v2.meta.boxName": "Nom du coffret",
+  "v2.meta.boxDiscRange": "Disques {a} à {b}",
   "v2.meta.boxDone": "{count} disques réunis sous « {title} ».",
   "v2.meta.boxTitle": "Coffrets éclatés",
   "v2.meta.boxDiscs": "{n} disques, un album chacun",

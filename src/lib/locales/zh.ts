@@ -3800,6 +3800,8 @@ export default {
   "v2.meta.boxCompose": "合并为套装",
   "v2.meta.boxOrder": "勾选的顺序即为碟片顺序。",
   "v2.meta.boxDisc": "碟片 {n}",
+  "v2.meta.boxName": "套装名称",
+  "v2.meta.boxDiscRange": "碟片 {a}–{b}",
   "v2.meta.boxDone": "已将 {count} 张碟片合并为“{title}”。",
   "v2.meta.boxTitle": "被拆分的套装",
   "v2.meta.boxDiscs": "{n} 张碟片，各自成为一张专辑",

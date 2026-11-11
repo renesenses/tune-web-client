@@ -3800,6 +3800,8 @@ export default {
   "v2.meta.boxCompose": "Riunire in un cofanetto",
   "v2.meta.boxOrder": "L’ordine in cui li spunti è l’ordine dei dischi.",
   "v2.meta.boxDisc": "Disco {n}",
+  "v2.meta.boxName": "Nome del cofanetto",
+  "v2.meta.boxDiscRange": "Dischi {a}–{b}",
   "v2.meta.boxDone": "{count} dischi riuniti sotto «{title}».",
   "v2.meta.boxTitle": "Cofanetti divisi",
   "v2.meta.boxDiscs": "{n} dischi, un album ciascuno",

@@ -3800,6 +3800,8 @@ export default {
   "v2.meta.boxCompose": "ボックスセットに結合",
   "v2.meta.boxOrder": "チェックした順序がディスクの順序になります。",
   "v2.meta.boxDisc": "ディスク {n}",
+  "v2.meta.boxName": "ボックスセット名",
+  "v2.meta.boxDiscRange": "ディスク {a}–{b}",
   "v2.meta.boxDone": "{count} 枚のディスクを「{title}」として結合しました。",
   "v2.meta.boxTitle": "分割されたボックスセット",
   "v2.meta.boxDiscs": "{n} 枚のディスク、それぞれが 1 アルバム",

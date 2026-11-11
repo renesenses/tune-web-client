@@ -3679,6 +3679,8 @@ export default {
   "v2.meta.boxCompose": "Slå sammen til boksett",
   "v2.meta.boxOrder": "Rekkefølgen du velger dem i, er rekkefølgen på platene.",
   "v2.meta.boxDisc": "Plate {n}",
+  "v2.meta.boxName": "Navn på boksettet",
+  "v2.meta.boxDiscRange": "Plate {a}–{b}",
   "v2.meta.boxDone": "{count} plater slått sammen under «{title}».",
   "v2.meta.boxTitle": "Delte boksett",
   "v2.meta.boxDiscs": "{n} plater, ett album hver",
