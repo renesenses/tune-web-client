@@ -1682,7 +1682,7 @@ export default {
   "v2.home.wFavCollections": "Favorittsamlinger",
   "v2.home.wFavSmartCollections": "Favoritter blant smarte samlinger",
   "v2.home.wRecommendations": "Anbefalinger",
-  "v2.home.wArtistRadios": "Artistradioer",
+  "v2.home.wArtistRadios": "Favoritt- og nylige radioer",
   "v2.home.wPodcasts": "Podkastene dine",
   "v2.home.wQobuz": "Qobuz-utvalg",
   "v2.home.sAlbums": "album",

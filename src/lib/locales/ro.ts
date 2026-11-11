@@ -3012,7 +3012,7 @@ export default {
   "v2.home.wFavCollections": "Colecții favorite",
   "v2.home.wFavSmartCollections": "Colecții inteligente favorite",
   "v2.home.wRecommendations": "Recomandări",
-  "v2.home.wArtistRadios": "Radiouri de artiști",
+  "v2.home.wArtistRadios": "Radiouri favorite și recente",
   "v2.home.wPodcasts": "Podcasturile dumneavoastră",
   "v2.home.wQobuz": "Selecție Qobuz",
   "v2.home.sAlbums": "albume",

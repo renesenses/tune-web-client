@@ -3012,7 +3012,7 @@ export default {
   "v2.home.wFavCollections": "Colecciones favoritas",
   "v2.home.wFavSmartCollections": "Colecciones inteligentes favoritas",
   "v2.home.wRecommendations": "Recomendaciones",
-  "v2.home.wArtistRadios": "Radios de artistas",
+  "v2.home.wArtistRadios": "Radios favoritas y recientes",
   "v2.home.wPodcasts": "Sus pódcast",
   "v2.home.wQobuz": "Selección Qobuz",
   "v2.home.sAlbums": "álbumes",

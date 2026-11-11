@@ -3011,7 +3011,7 @@ export default {
   "v2.home.wFavCollections": "Favoritsamlingar",
   "v2.home.wFavSmartCollections": "Smarta favoritsamlingar",
   "v2.home.wRecommendations": "Rekommendationer",
-  "v2.home.wArtistRadios": "Artistradio",
+  "v2.home.wArtistRadios": "Favorit- och senaste radiokanaler",
   "v2.home.wPodcasts": "Dina poddar",
   "v2.home.wQobuz": "Qobuz-urval",
   "v2.home.sAlbums": "album",
