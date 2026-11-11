@@ -25,6 +25,7 @@
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
   import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
   import ManquantsV2 from './ManquantsV2.svelte';
+  import PistesDouteuses from './PistesDouteuses.svelte';
   import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
   import { t } from '../../lib/i18n';
@@ -1194,6 +1195,8 @@
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
       <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+
+      <PistesDouteuses pistes={doubtful} />
 
       {#if dGroupes.length}
         <div class="cpacts">
