@@ -6284,7 +6284,6 @@ export default {
   "erreursServeur.details": "Λεπτομέρειες",
   "toast.erreursRepliees": "{n} παλαιότερα σφάλματα συμπτύχθηκαν",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",
-  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2: αυτή η ζώνη έχει σταθερή ένταση, γι' αυτό η αναπαραγωγή ξεκίνησε στο 0% για να προστατέψει τα αυτιά και τα ηχεία σας. Αυξήστε την ένταση στη συσκευή.",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: η ένταση αυτής της ζώνης είναι κλειδωμένη από το PURE, γι' αυτό η αναπαραγωγή ξεκίνησε στο 0% για να προστατέψει τα αυτιά και τα ηχεία σας. Αυξήστε την ένταση στη συσκευή ή στο Tune.",
   "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
   "v2.dev.listAria": "Συσκευές και ζώνες",

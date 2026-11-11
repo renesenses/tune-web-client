@@ -508,7 +508,7 @@ export function demarrerTransportV2(): () => void {
     }
 
     if (type === 'zone.playback_error' || type === 'playback.error') {
-      // tune-server-rust#8402 — AirPlay 2 parti à 0 % (volume fixe ou PURE
+      // tune-server-rust#8402 — AirPlay 2 parti à 0 % (PURE
       // verrouillé) : un avertissement, dit même dans la fenêtre de grâce.
       if (estDepartMuetAirplay2(event?.data)) {
         notifications.info(texteDepartMuetAirplay2(event.data), 12000);

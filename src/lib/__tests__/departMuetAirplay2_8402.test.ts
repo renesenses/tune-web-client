@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 //
-// tune-server-rust#8402 (décision du 11/11/2026) — une zone AirPlay 2 en
-// volume fixe ou en PURE verrouillé ouvre sa session à 0 %. Le serveur le dit
+// tune-server-rust#8402 (décisions du 11/11/2026) — une zone AirPlay 2 en
+// PURE verrouillé ouvre sa session à 0 % (le volume fixe garde ses 100 %). Le serveur le dit
 // par un `zone.playback_error` NON fatal, juste après le Lire : l'écran doit
 // l'afficher, traduit, même dans la fenêtre de grâce qui tait les échecs
 // passagers.
 //
 // Contre-épreuve : retirer la branche `estDepartMuetAirplay2` de `v2Live.ts`
-// fait rougir les deux cas (la grâce affiche « chargement » à la place).
+// fait rougir le test (la grâce affiche « chargement » à la place).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { demarrerTransportV2 } from '../v2Live';
@@ -67,13 +67,6 @@ describe('#8402 — AirPlay 2 parti à 0 % : dit, traduit, en information', () =
   it('PURE verrouillé : sur l’appareil ou dans Tune', async () => {
     const recues = await recevoir('airplay2_start_volume_zero_pure');
     const n = recues.find((x) => x.message === fr['erreursServeur.airplay2_start_volume_zero_pure']);
-    expect(n, JSON.stringify(recues)).toBeTruthy();
-    expect(n!.level).toBe('info');
-  });
-
-  it('volume fixe : sur l’appareil', async () => {
-    const recues = await recevoir('airplay2_start_volume_zero_fixed');
-    const n = recues.find((x) => x.message === fr['erreursServeur.airplay2_start_volume_zero_fixed']);
     expect(n, JSON.stringify(recues)).toBeTruthy();
     expect(n!.level).toBe('info');
   });

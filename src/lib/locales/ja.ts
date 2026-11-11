@@ -6439,7 +6439,6 @@ export default {
   "erreursServeur.details": "詳細",
   "toast.erreursRepliees": "古いエラー {n} 件を折りたたみました",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",
-  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2：このゾーンは固定音量のため、耳とスピーカーを守るために 0% で再生を開始しました。デバイス側で音量を上げてください。",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：このゾーンの音量は PURE でロックされているため、耳とスピーカーを守るために 0% で再生を開始しました。デバイスまたは Tune で音量を上げてください。",
   "v2.pl.serviceNoPlaylists": "{s} はプレイリストを提供していません。",
   "v2.dev.listAria": "デバイスとゾーン",

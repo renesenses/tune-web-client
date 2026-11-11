@@ -6439,7 +6439,6 @@ export default {
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} ältere Fehler eingeklappt",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",
-  "erreursServeur.airplay2_start_volume_zero_fixed": "AirPlay 2: Diese Zone hat eine feste Lautstärke, daher startete die Wiedergabe zum Schutz Ihrer Ohren und Lautsprecher bei 0 %. Erhöhen Sie die Lautstärke am Gerät.",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: Die Lautstärke dieser Zone ist durch PURE gesperrt, daher startete die Wiedergabe zum Schutz Ihrer Ohren und Lautsprecher bei 0 %. Erhöhen Sie die Lautstärke am Gerät oder in Tune.",
   "v2.pl.serviceNoPlaylists": "{s} stellt keine Playlists bereit.",
   "v2.dev.listAria": "Geräte und Zonen",

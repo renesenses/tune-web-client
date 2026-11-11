@@ -3,17 +3,16 @@ import { t } from './i18n';
 import { lireEvenementErreur } from './messageServeur';
 
 /**
- * tune-server-rust#8402 (décision du 11/11/2026) — une zone AirPlay 2 en
- * volume fixe ou en PURE verrouillé ouvre sa session à 0 %, plus à 100 %. Le
- * serveur le dit par un `zone.playback_error` NON fatal, avec l'un de ces
- * codes. La zone JOUE : c'est un avertissement, pas un échec.
+ * tune-server-rust#8402 (décisions du 11/11/2026) — une zone AirPlay 2 en PURE
+ * verrouillé ouvre sa session à 0 %, plus à 100 % (le volume fixe garde ses
+ * 100 %). Le serveur le dit par un `zone.playback_error` NON fatal, avec ce
+ * code. La zone JOUE : c'est un avertissement, pas un échec.
  *
  * Il arrive dans la seconde qui suit un Lire, donc en pleine fenêtre de grâce
  * (#1146), qui le taisait comme un échec passager : il passe avant elle, en
  * information, traduit (`erreursServeur.<code>`).
  */
 export const CODES_DEPART_MUET_AIRPLAY2 = new Set<string>([
-  'airplay2_start_volume_zero_fixed',
   'airplay2_start_volume_zero_pure',
 ]);
 
