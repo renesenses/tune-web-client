@@ -692,7 +692,9 @@
         resoudreArtiste: async (svc, nom) =>
           (await api.federatedSearch(nom, [svc], 5))?.services?.[svc]?.artists ?? [],
         albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbumsAll(svc, id),
-      }),
+      // #8478 — ce que la fiche tient déjà (service d'origine, bibliothèque)
+      // départage les homonymes qu'un autre service rend sous le même nom.
+      }, [...albums, ...(localDejaCharge ? locaux : [])].map((x) => x.title)),
     ]);
     if (mien !== jeton) return;
     if (!localDejaCharge && loc.status === 'fulfilled') {

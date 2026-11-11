@@ -23,7 +23,7 @@
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
-    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
+    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
@@ -508,17 +508,6 @@
           albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} vignette alt={al.title}
           fallbackInitials={al.title?.slice(0, 1)} />
       </PochetteActions>
-      <div class="pastilles">
-        {#each e.sources as s (s)}
-          {#if s === BIBLIOTHEQUE}
-            <span class="biblio" title={$t('v2.disco.library' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
-            </span>
-          {:else}
-            <ServiceBadge source={s} compact />
-          {/if}
-        {/each}
-      </div>
     </div>
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
@@ -531,6 +520,25 @@
         <span class="roles" title={al.credit_roles.join(', ')}>{al.credit_roles.join(' · ')}</span>
       {/if}
     </button>
+    <!-- tune-web-client#2829 (Ronin22, ASR #169) — une étiquette par
+         plateforme, avec sa résolution, sous la vignette (hors pochette,
+         comme #1136) : le même album chez Qobuz et Spotify est UNE vignette
+         qui dit ce que chacun sert. -->
+    <div class="versions">
+      {#each versionsEntree(e) as v (v.source)}
+        {@const res = v.resolution ?? (v.qualite === 'lossy' ? $t('v2.disco.lossy' as any) : null)}
+        <span class="version" data-source={v.source} title={res ? `${v.source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : v.source} · ${res}` : null}>
+          {#if v.source === BIBLIOTHEQUE}
+            <span class="biblio" title={$t('v2.disco.library' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
+            </span>
+          {:else}
+            <ServiceBadge source={v.source} compact />
+          {/if}
+          {#if res}<span class="res">{res}</span>{/if}
+        </span>
+      {/each}
+    </div>
   </div>
 {/snippet}
 
@@ -587,17 +595,18 @@
   .carte { display: flex; flex-direction: column; content-visibility: auto; contain-intrinsic-size: auto 210px; }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* SOUS les icônes de coin de `PochetteActions` (z-index 1) : au survol, ce
-     sont elles qui doivent se lire. */
-  .pastilles {
-    position: absolute; left: 6px; bottom: 6px; z-index: 0;
-    display: flex; gap: 4px; align-items: center; pointer-events: none;
+  /* #2829 — les étiquettes plateforme + résolution, sous le titre. */
+  .versions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 5px; }
+  .version {
+    display: inline-flex; align-items: center; gap: 4px;
+    font: 10px var(--v2-mono); color: var(--v2-txt3); white-space: nowrap;
   }
+  .version .res { color: var(--v2-txt2); }
   .biblio {
-    display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
-    background: rgba(18, 18, 20, 0.82); color: #fff;
+    display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--v2-line2); color: var(--v2-txt);
   }
-  .biblio svg { width: 11px; height: 11px; }
+  .biblio svg { width: 10px; height: 10px; }
   .meta {
     display: block; width: 100%; border: 0; background: transparent; padding: 0;
     text-align: left; color: inherit; font: inherit; cursor: pointer;
