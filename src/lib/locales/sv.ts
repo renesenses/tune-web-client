@@ -455,6 +455,8 @@ export default {
   "favorites.miroirEnAttente": "Favoriten finns kvar i Tune; {service} har inte följt med än ({motif}). Tune försöker igen.",
   "v2.fav.miroirEnAttente": "Några tjänstfavoriter väntar fortfarande på sin tjänst. Tune försöker igen.",
   "v2.fav.miroirEchec": "Den senaste uppdateringen av tjänstfavoriter misslyckades. Listan kan vara inaktuell.",
+  "v2.fav.miroirEchecService": "Den senaste uppdateringen av favoriterna från {services} misslyckades. Listan kan vara inaktuell.",
+  "v2.fav.miroirMotif": "tjänsten hängde inte med. Detaljer",
   'playlist.source': 'Källa',
   "playlist.importedMatched": "{count} av {total} spår hittades i biblioteket och importerades.",
   "playlist.importNoneMatched": "Inget av spellistans spår finns i det lokala biblioteket – spellistan skapades inte. Streamingspår kan ännu inte kopieras som de är till en lokal spellista.",

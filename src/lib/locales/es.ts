@@ -484,6 +484,8 @@ export default {
   "favorites.miroirEnAttente": "Favorito guardado en Tune; {service} aún no lo ha seguido ({motif}). Tune lo reintentará.",
   "v2.fav.miroirEnAttente": "Algunos favoritos de servicio aún esperan a su servicio. Tune lo reintentará.",
   "v2.fav.miroirEchec": "La última actualización de los favoritos de servicio falló. La lista puede estar desfasada.",
+  "v2.fav.miroirEchecService": "La última actualización de los favoritos de {services} falló. La lista puede estar desfasada.",
+  "v2.fav.miroirMotif": "el servicio no ha respondido. Detalles",
   'playlist.source': 'Fuente',
   "playlist.importedMatched": "{count} de {total} pistas encontradas en la biblioteca e importadas.",
   "playlist.importNoneMatched": "Ninguna pista de esta lista existe en la biblioteca local — la lista no se creó. Las pistas de streaming aún no se pueden copiar tal cual a una lista local.",
