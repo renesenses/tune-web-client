@@ -350,6 +350,72 @@ describe('Crossfeed Pro — matriçage Mid/Side (EXPÉRIMENTAL, greffon ≥ 0.4.
   });
 });
 
+describe('Crossfeed Pro — voie croisée exclusive et garde de phase (greffon 0.5.0)', () => {
+  const versionLue = () => appels.some((a) => /\/api\/v1\/audio-plugins\/?$/.test(a.url));
+
+  it('🔴 trois voies, une seule active ; Mid/Side choisi = PUT avec Mid/Side seul, dosage et retard grisés', async () => {
+    hote.version = '0.5.0';
+    hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
+      settings: { ...DEFAUTS_CROSSFEED_PRO, enabled: true, experimental_itd: true } } };
+    await monter(() => versionLue() && !!q('[data-cfp="voie"] [data-voie="mid_side"]'));
+    const actifs = () => Array.from(cible!.querySelectorAll('[data-cfp="voie"] button.on')).map((b) => b.getAttribute('data-voie'));
+    expect(actifs()).toEqual(['itd']);
+    q<HTMLButtonElement>('[data-voie="mid_side"]')!.click();
+    await jusqua(() => puts().length > 0);
+    expect(puts()[0].corps).toMatchObject({ experimental_mid_side: true, experimental_itd: false });
+    await jusqua(() => actifs()[0] === 'mid_side');
+    expect(actifs()).toEqual(['mid_side']);
+    expect(q('[data-cfp="amount"]')!.closest('.row')!.classList.contains('off')).toBe(true);
+    expect(q('[data-cfp="delay_ms"]')!.closest('.row')!.classList.contains('off')).toBe(true);
+    q<HTMLButtonElement>('[data-voie="standard"]')!.click();
+    await jusqua(() => puts().length > 1);
+    expect(puts()[1].corps).toMatchObject({ experimental_mid_side: false, experimental_itd: false });
+  });
+
+  it('🔴 garde de phase : curseur jusqu’à 200 ms avec 0.5.0, 50 ms avec 0.4.0', async () => {
+    hote.version = '0.5.0';
+    await monter(() => versionLue() && !!q('[data-cfp="phase_guard_ms"]') && q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.max === '200');
+    expect(q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.max).toBe('200');
+    unmount(monte!); monte = null; cible!.innerHTML = ''; appels = [];
+    hote.version = '0.4.0';
+    await monter(() => versionLue() && !!q('[data-cfp="phase_guard_ms"]'));
+    expect(q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.max).toBe('50');
+  });
+
+  it('🔴 zone jamais réglée, greffon 0.5.0 : coupe-bas allumé et garde à 100 ms, et c’est ce qui part au PUT', async () => {
+    hote.version = '0.5.0';
+    await monter(() => versionLue() && !!q<HTMLInputElement>('[data-cfp="low_cut"]')?.checked);
+    expect(q<HTMLInputElement>('[data-cfp="low_cut"]')!.checked).toBe(true);
+    expect(q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.value).toBe('100');
+    q<HTMLInputElement>('[data-cfp="enabled"]')!.click();
+    await jusqua(() => puts().length > 0);
+    expect(puts()[0].corps).toMatchObject({ enabled: true, low_cut: true, phase_guard_ms: 100 });
+  });
+
+  it('🔴 zone jamais réglée, greffon 0.4.0 : les défauts communs (coupe-bas éteint, 30 ms)', async () => {
+    hote.version = '0.4.0';
+    await monter(() => versionLue() && !!q('[data-cfp="low_cut"]'));
+    await jusqua(() => false, 200);
+    expect(q<HTMLInputElement>('[data-cfp="low_cut"]')!.checked).toBe(false);
+    expect(q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.value).toBe('30');
+  });
+
+  it('🔴 zone DÉJÀ réglée, greffon 0.5.0 : ses réglages ne bougent pas', async () => {
+    hote.version = '0.5.0';
+    hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
+      settings: { ...DEFAUTS_CROSSFEED_PRO, enabled: true, low_cut: false, phase_guard_ms: 40 } } };
+    await monter(() => versionLue() && !!q('[data-cfp="low_cut"]'));
+    await jusqua(() => false, 200);
+    expect(q<HTMLInputElement>('[data-cfp="low_cut"]')!.checked).toBe(false);
+    expect(q<HTMLInputElement>('[data-cfp="phase_guard_ms"]')!.value).toBe('40');
+    expect(puts()).toHaveLength(0);
+  });
+
+  it('le libellé du coupe-bas ne porte plus de fréquence', () => {
+    expect(texte('v2.cfp.lowCut')).not.toMatch(/Hz/);
+  });
+});
+
 describe('Crossfeed Pro — profils nommés', () => {
   it('🔴 enregistrer puis charger un profil : POST {name, settings}, puis PUT de ses réglages', async () => {
     hote.lecture = { status: 200, corps: { plugin: 'crossfeed-pro', zone_id: ZONE, active: true,
