@@ -269,6 +269,64 @@ body {
 }
 
 /* ==========================================================================
+   « Barres de défilement larges » — web#2798 (Michel, fil 2748, 11/11/2026)
+   Réglages > Interface. `<html data-ascenseurs-larges>` est posé par
+   `appliquerAscenseursLarges` (stores/preferences.ts).
+
+   Pourquoi deux branches : depuis Chrome 121, dès qu'un élément porte un
+   `scrollbar-color` (la règle `*` plus haut, web#2773), Chrome IGNORE tous
+   les `::-webkit-scrollbar` — les 14 px globaux comme les 9 px des vues ne
+   s'appliquaient plus, et l'ascenseur était celui du système, étroit.
+   `scrollbar-width` ne connaît que auto/thin/none : aucune largeur en px.
+   - Chrome, Edge, Safari (`@supports selector(::-webkit-scrollbar)`) : on
+     RETIRE `scrollbar-color` pour rendre la main aux `::-webkit-scrollbar`,
+     puis on pose 20 px, un pouce contrasté d'au moins 56 px de haut et une
+     piste visible. `!important` : les vues posent `width:9px` sur leurs
+     propres conteneurs, plus spécifiques que cette règle.
+   - Firefox (pas de `::-webkit-scrollbar`) : sa largeur maximale est `auto` ;
+     on y garde `scrollbar-color`, avec un pouce contrasté et une piste
+     visible. Sur macOS, « Afficher les barres de défilement : Toujours »
+     (Réglages Système > Apparence) évite la barre en surimpression.
+   Les barres volontairement masquées (`scrollbar-width:none`) le restent :
+   on ne touche jamais à `scrollbar-width`.
+   ========================================================================== */
+html[data-ascenseurs-larges] * {
+  scrollbar-color: var(--v2-scrollthumb, var(--v2-txt2, #8E9AA8))
+    color-mix(in srgb, var(--v2-txt2, #8E9AA8) 18%, transparent);
+}
+
+@supports selector(::-webkit-scrollbar) {
+  html[data-ascenseurs-larges] * {
+    scrollbar-color: auto;
+  }
+
+  html[data-ascenseurs-larges] ::-webkit-scrollbar {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  html[data-ascenseurs-larges] ::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--v2-txt2, #8E9AA8) 18%, transparent) !important;
+    border-radius: 10px !important;
+  }
+
+  html[data-ascenseurs-larges] ::-webkit-scrollbar-thumb {
+    background: var(--v2-scrollthumb, var(--v2-txt2, #8E9AA8)) !important;
+    background-clip: padding-box !important;
+    border: 3px solid transparent !important;
+    border-radius: 10px !important;
+    min-height: 56px !important;
+    min-width: 56px !important;
+  }
+
+  html[data-ascenseurs-larges] ::-webkit-scrollbar-thumb:hover,
+  html[data-ascenseurs-larges] ::-webkit-scrollbar-thumb:active {
+    background: var(--v2-txt, #FFFFFF) !important;
+    background-clip: padding-box !important;
+  }
+}
+
+/* ==========================================================================
    Kiosk mode — optimized for 800x480 RPi touchscreen (cog/WPE WebKit)
    Activated via ?kiosk=true URL parameter which sets [data-kiosk] on <html>
    ========================================================================== */

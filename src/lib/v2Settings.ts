@@ -79,7 +79,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // touche — la file d'attente, l'aléatoire — et par le chiffre lui-même.
       { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner',
         keywords: ['lecture', 'volume', 'aléatoire', 'shuffle', 'file d\'attente', 'limite', '500', 'titres'] },
-      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist'] },
+      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist', 'défilement', 'ascenseur', 'barre de défilement', 'scrollbar', 'accessibilité'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;

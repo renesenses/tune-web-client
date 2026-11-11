@@ -4856,6 +4856,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              <!-- web#2798 — Michel (fil 2748, 11/11/2026), qui souffre de
+                   tremblements : un ascenseur large et contrasté, facile à
+                   saisir. Appliqué par la coquille (`data-ascenseurs-larges`),
+                   dessiné par `tune-theme.css`. Décoché par défaut. -->
+              <div class="row" data-reglage-ascenseurs-larges>
+                <div class="lbl">
+                  <span>{$t('settings.wideScrollbars' as any)}</span>
+                  <span class="hint">{$t('settings.wideScrollbarsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ascenseursLarges === true}
+                    aria-label={$t('settings.wideScrollbars' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ascenseursLarges: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
                    pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
