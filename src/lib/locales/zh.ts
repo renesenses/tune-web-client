@@ -6515,6 +6515,7 @@ export default {
   "erreursServeur.details": "详情",
   "toast.erreursRepliees": "已折叠 {n} 条较早的错误",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：此区域的音量已被 PURE 锁定，为保护您的听力和音箱，播放从 0% 开始。请在设备上或在 Tune 中调高音量。",
   "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
   "v2.dev.listAria": "设备和分区",
   "v2.dev.filterLabel": "筛选设备",

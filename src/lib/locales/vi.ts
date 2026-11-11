@@ -6367,6 +6367,7 @@ export default {
   "erreursServeur.details": "Chi tiết",
   "toast.erreursRepliees": "Đã thu gọn {n} lỗi cũ hơn",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: âm lượng của vùng này bị PURE khóa, nên phát nhạc đã bắt đầu ở 0% để bảo vệ tai và loa của bạn. Hãy tăng âm lượng trên thiết bị hoặc trong Tune.",
   "v2.pl.serviceNoPlaylists": "{s} không cung cấp danh sách phát.",
   "v2.dev.listAria": "Thiết bị và vùng",
   "v2.dev.filterLabel": "Lọc thiết bị",

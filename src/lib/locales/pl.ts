@@ -6360,6 +6360,7 @@ export default {
   "erreursServeur.details": "Szczegóły",
   "toast.erreursRepliees": "Zwinięto starsze błędy: {n}",
   "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: głośność tej strefy jest zablokowana przez PURE, dlatego odtwarzanie rozpoczęło się od 0%, aby chronić Twój słuch i głośniki. Zwiększ głośność na urządzeniu lub w Tune.",
   "v2.pl.serviceNoPlaylists": "{s} nie udostępnia playlist.",
   "v2.dev.listAria": "Urządzenia i strefy",
   "v2.dev.filterLabel": "Filtruj urządzenia",

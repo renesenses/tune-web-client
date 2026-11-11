@@ -6535,6 +6535,7 @@ export default {
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} older errors collapsed",
   "erreursServeur.track_decode_failed": "The track could not be decoded.",
+  "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: this zone's volume is locked by PURE, so playback started at 0% to protect your ears and speakers. Turn the volume up on the device or in Tune.",
   "v2.pl.serviceNoPlaylists": "{s} does not provide playlists.",
   "v2.dev.listAria": "Devices and zones",
   "v2.dev.filterLabel": "Filter devices",
