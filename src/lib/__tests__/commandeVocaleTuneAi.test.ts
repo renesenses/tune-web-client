@@ -155,6 +155,57 @@ describe('Tune AI : bouton micro', () => {
     expect($('[data-ia-echec-voix]')?.textContent).toBe(dictionnaire('fr')['voice.noSpeech']);
   });
 
+  it('« Arrêter la dictée » envoie ce qui a été reconnu', async () => {
+    localStorage.setItem('tune_voice_ai_enabled', 'true');
+    await ouvrirAssistant();
+    $<HTMLButtonElement>('[data-ia-micro]')!.click();
+    flushSync();
+    FausseReco.derniere!.dire('mets du Barbara');
+    flushSync();
+    expect($('[data-ia-micro]')!.getAttribute('aria-pressed')).toBe('true');
+    $<HTMLButtonElement>('[data-ia-micro]')!.click();
+    await attendre();
+    expect(posees).toEqual(['mets du Barbara']);
+    expect($('[data-ia-micro]')!.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('fin sans aucun résultat (Safari) : « rien entendu », rien envoyé', async () => {
+    localStorage.setItem('tune_voice_ai_enabled', 'true');
+    await ouvrirAssistant();
+    $<HTMLButtonElement>('[data-ia-micro]')!.click();
+    FausseReco.derniere!.onend!();
+    await attendre();
+    expect(posees).toEqual([]);
+    expect($('[data-ia-echec-voix]')?.textContent).toBe(dictionnaire('fr')['voice.noSpeech']);
+  });
+
+  it('interruption par le navigateur (`aborted`) : le bouton se libère et l’échec est dit', async () => {
+    localStorage.setItem('tune_voice_ai_enabled', 'true');
+    await ouvrirAssistant();
+    $<HTMLButtonElement>('[data-ia-micro]')!.click();
+    FausseReco.derniere!.dire('joue');
+    FausseReco.derniere!.echouer('aborted');
+    await attendre();
+    expect(posees).toEqual([]);
+    expect($('[data-ia-micro]')!.getAttribute('aria-pressed')).toBe('false');
+    expect($('[data-ia-echec-voix]')?.textContent).toBe(dictionnaire('fr')['voice.failed']);
+  });
+
+  it('fermer le panneau en pleine dictée l’annule, sans envoi', async () => {
+    localStorage.setItem('tune_voice_ai_enabled', 'true');
+    await ouvrirAssistant();
+    $<HTMLButtonElement>('[data-ia-micro]')!.click();
+    flushSync();
+    const reco = FausseReco.derniere!;
+    const annule = vi.spyOn(reco, 'abort');
+    reco.dire('quelque chose');
+    unmount(monte!);
+    monte = null;
+    await attendre();
+    expect(annule).toHaveBeenCalled();
+    expect(posees).toEqual([]);
+  });
+
   it('navigateur sans reconnaissance vocale (Firefox) : propose Chrome, Edge ou Safari', async () => {
     vi.stubGlobal('webkitSpeechRecognition', undefined);
     localStorage.setItem('tune_voice_ai_enabled', 'true');

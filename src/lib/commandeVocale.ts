@@ -163,8 +163,9 @@ export function demarrerDictee(locale: string, r: RappelsDictee, w: FenetreVocal
     if (!annulee) r.texte(texte);
   };
   rec.onerror = (e) => {
-    // `aborted` suit notre propre `annuler()` : ce n'est pas un échec à dire.
-    if (e.error === 'aborted') { annulee = true; return; }
+    // `aborted` qui suit notre propre `annuler()` n'est pas un échec à dire ;
+    // venu du navigateur seul (onglet masqué, autre dictée), il en est un.
+    if (e.error === 'aborted' && annulee) return;
     erreur = echecDepuisCode(e.error);
   };
   rec.onend = () => {

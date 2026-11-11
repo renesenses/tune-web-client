@@ -87,7 +87,8 @@
       fin: (txt) => {
         dictee = null;
         question = txt;
-        if (relire) champ?.focus();
+        // Une question déjà en route : le texte attend dans le champ.
+        if (relire || occupe) champ?.focus();
         else void poser();
       },
       echec: (e) => {
@@ -97,7 +98,13 @@
     });
   }
 
-  $effect(() => () => dictee?.annuler());
+  // Fermer le panneau en pleine dictée l'annule. `dictee` est un $state, et
+  // Svelte ne le relit pas de façon fiable au démontage : on lit la
+  // reconnaissance par une référence ordinaire.
+  $effect(() => {
+    const d = dictee;
+    return () => d?.annuler();
+  });
 
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') onClose();
@@ -253,7 +260,7 @@
     display: grid; place-items: center;
   }
   .micro:hover { background: var(--v2-surface2); }
-  .micro.actif { background: var(--v2-acc1); color: var(--v2-bg); animation: pouls 1.2s ease-in-out infinite; }
+  .micro.actif { background: var(--v2-acc1); color: var(--v2-on-acc); animation: pouls 1.2s ease-in-out infinite; }
   .micro:disabled { opacity: 0.5; cursor: default; }
   .micro:focus-visible { outline: 3px solid var(--v2-acc1); outline-offset: 2px; }
   @keyframes pouls { 50% { opacity: 0.75; } }
