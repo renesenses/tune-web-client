@@ -26,6 +26,13 @@
      * le signalement de Daniel POUCHON (fil 1364, #2419).
      */
     locked?: boolean;
+    /**
+     * web#2387 — le greffon `equalizer` n'est pas installé (ou inactif) : le
+     * serveur a répondu `409 plugin_unavailable`. Le panneau le dit et mène
+     * aux Extensions, comme l'écran Égaliseur.
+     */
+    greffonAbsent?: boolean;
+    onOuvrirExtensions?: () => void;
   }
   let {
     current,
@@ -34,6 +41,8 @@
     bands = [],
     enabled = true,
     locked = false,
+    greffonAbsent = false,
+    onOuvrirExtensions,
   }: Props = $props();
 
   // Échelle d'affichage. Le serveur accepte ±12 dB (EqualizerView : MIN_GAIN /
@@ -60,6 +69,15 @@
     <p class="eq-premium-notice">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>{$t('nowplaying.eqPremium')}</span>
+    </p>
+  {/if}
+
+  {#if greffonAbsent}
+    <p class="eq-greffon-notice" data-testid="eq-greffon-absent">
+      <span>{$t('v2.eq.pluginNotInstalled' as any)}</span>
+      {#if onOuvrirExtensions}
+        <button type="button" class="eq-greffon-lien" onclick={onOuvrirExtensions}>{$t('v2.nav.plugins' as any)}</button>
+      {/if}
     </p>
   {/if}
 
@@ -204,6 +222,25 @@
     max-width: 48ch;
   }
   .eq-premium-notice svg { flex: none; }
+  .eq-greffon-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-width: 48ch;
+  }
+  .eq-greffon-lien {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--tune-accent, #f0b429);
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+  }
   .eq-preset.active {
     background: var(--tune-accent, #f0b429);
     color: #1a1a1a;

@@ -34,12 +34,23 @@ export function normaliserTexteLibre(saisie: string): string {
   return fold(saisie.replace(/"/g, '').trim());
 }
 
-/** Vrai quand l'un des `CHAMPS_DU_TEXTE_LIBRE` de la piste CONTIENT la saisie
- *  (sous-chaîne littérale : `_` et `%` n'y sont pas des jokers, pas plus que
- *  côté serveur). Une saisie vide laisse tout passer. */
+/** Les MOTS d'un texte, casse et accents repliés : coupé à tout ce qui n'est
+ *  ni lettre ni chiffre, comme l'index du serveur (`mots_du_texte_libre`). */
+export function motsDuTexte(texte: string | null | undefined): string[] {
+  return fold(texte).split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+}
+
+/** Vrai quand CHAQUE mot de la saisie est le DÉBUT d'un mot de l'un des
+ *  `CHAMPS_DU_TEXTE_LIBRE` de la piste (ET entre les mots, OU entre les
+ *  champs) — tune-server-rust#7619, décision du 01/11/2026 : la recherche
+ *  trouve par début de mot, comme `condition_texte_libre` côté serveur. Le
+ *  milieu d'un mot ne trouve plus rien (« ahler » ne trouve pas Mahler) ; la
+ *  ponctuation sépare les mots, elle n'est jamais un joker. Une saisie sans
+ *  mot laisse tout passer. */
 export function pisteRepondAuTexteLibre(piste: Track, saisie: string): boolean {
-  const q = normaliserTexteLibre(saisie);
-  if (!q) return true;
+  const mots = motsDuTexte(saisie);
+  if (mots.length === 0) return true;
   const champs = piste as unknown as Record<string, string | null | undefined>;
-  return CHAMPS_DU_TEXTE_LIBRE.some((c) => fold(champs[c] ?? '').includes(q));
+  const motsDesChamps = CHAMPS_DU_TEXTE_LIBRE.flatMap((c) => motsDuTexte(champs[c]));
+  return mots.every((m) => motsDesChamps.some((w) => w.startsWith(m)));
 }

@@ -115,9 +115,18 @@
     ? groupesAffiches.length === 0
     : locales.length === 0 && flux.length === 0));
 
+  // #2548 — les événements de lecture peuvent republier la même piste.
+  // Dépendre de ses valeurs évite un nouveau chargement à chaque objet reçu.
+  const titreCible = $derived(parTitre?.titre ?? null);
+  const artisteCible = $derived(parTitre?.artiste ?? null);
+  const sourceCible = $derived(parTitre?.source ?? null);
+  const idCible = $derived(parTitre?.source_id ?? null);
+
   $effect(() => {
     const id = trackId;
-    const cible = parTitre;
+    const cible = titreCible != null && artisteCible != null
+      ? { titre: titreCible, artiste: artisteCible, source: sourceCible, source_id: idCible }
+      : null;
     let vivant = true;
     chargement = true; erreur = false; groupes = null;
     if (id != null) {
