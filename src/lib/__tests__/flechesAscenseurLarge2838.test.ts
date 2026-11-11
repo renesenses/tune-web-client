@@ -37,15 +37,17 @@ describe('web#2838 — flèches de l’ascenseur large (Chromium Windows / Linux
   });
 
   it.each([
-    [':vertical:decrement', 'haut'],
-    [':vertical:increment', 'bas'],
-    [':horizontal:decrement', 'gauche'],
-    [':horizontal:increment', 'droite'],
-  ])('flèche %s (%s) dessinée aux couleurs du thème', (sens) => {
+    [':vertical:decrement', 'haut', ['to top left', 'to top right']],
+    [':vertical:increment', 'bas', ['to bottom left', 'to bottom right']],
+    [':horizontal:decrement', 'gauche', ['to top left', 'to bottom left']],
+    [':horizontal:increment', 'droite', ['to top right', 'to bottom right']],
+  ])('flèche %s (%s) dessinée aux couleurs du thème, dans le bon sens', (sens, _nom, coins) => {
     const m = regle(sens);
     expect(m, `bouton ${sens} sans flèche`).toBeDefined();
     const degrades = m!.match(/linear-gradient\([^)]*var\(--v2-txt2[^)]*\)[^)]*\)/g) ?? [];
     expect(degrades.length).toBe(2);
+    // Le sens de la flèche tient aux coins des deux demi-triangles.
+    expect(degrades.map((d) => /linear-gradient\(\s*(to [a-z]+ [a-z]+)/.exec(d)?.[1])).toEqual(coins);
     expect(m!).toMatch(/background-size\s*:/);
     expect(m!).toMatch(/background-position\s*:/);
   });
