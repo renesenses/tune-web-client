@@ -81,7 +81,7 @@
   }
 
   function basculerJour(j: number) {
-    fJours = fJours.includes(j) ? fJours.filter((d) => d !== j) : [...fJours, j].sort();
+    fJours = fJours.includes(j) ? fJours.filter((d) => d !== j) : [...fJours, j].sort((a, b) => a - b);
   }
 
   function basculerZone(id: number) {
@@ -129,6 +129,7 @@
       const etat = await api.supprimerArretProgramme();
       if (!vivant) return;
       appliquer(etat);
+      notifications.success($t('common.saved' as any));
     } catch (e) {
       if (vivant) notifierErreur($t('common.error' as any), e, { motifSeul: true });
     }
