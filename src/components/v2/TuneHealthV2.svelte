@@ -57,6 +57,10 @@
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
   import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
+  import { carteEmpreintes, carteDeFondCiblee, TRAITEMENT_EMPREINTES } from '../../lib/carteEmpreintes';
+  import { dureeLisible } from '../../lib/analysesDeFond';
+  import { tick } from 'svelte';
+  import { get } from 'svelte/store';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -317,6 +321,9 @@
    */
   function boutonSurLaCarte(c: Card): boolean {
     if (!pausePossible || !c.traitement) return false;
+    // tune-server-rust#8346 — les empreintes se suspendent aussi AU REPOS :
+    // qui n'en veut pas les coupe avant la prochaine passe, pas pendant.
+    if (c.traitement === TRAITEMENT_EMPREINTES) return true;
     return c.etat === 'running' || !!pauses[c.traitement];
   }
 
@@ -549,6 +556,32 @@
     // passage réglé (tune-server-rust#5169).
     const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
     rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+
+    // ── Empreintes audio (tune-server-rust#8346) ──────────────────────────
+    // Deuxième rang de la cascade, entre ReplayGain et la plage dynamique.
+    // C'est la passe que l'on voit rééchantillonner en 11 kHz dans le
+    // journal : la carte dit à quoi elle sert et porte sa pause. Pas de
+    // carte face à un serveur qui ne publie pas `fingerprints` dans `pausable`.
+    const fp = carteEmpreintes(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    if (fp) {
+      const reste = fp.resteSecondes !== null
+        ? $t('v2.nav.bgAnalysisEta' as any).replace('{d}', dureeLisible(fp.resteSecondes, (k) => $t(k as any)))
+        : null;
+      out.push({
+        id: 'fp', traitement: TRAITEMENT_EMPREINTES,
+        titre: $t('v2.health.running.task.fingerprints' as any),
+        sous: $t('v2.health.cardFpSub' as any),
+        etat: fp.etat,
+        ligne: fp.total !== undefined
+          ? $t('v2.health.fpLine' as any)
+              .replace('{n}', $formatNombre(fp.fait ?? 0))
+              .replace('{t}', $formatNombre(fp.total)) + (reste ? ' · ' + reste : '')
+          : $t('v2.health.fpIdle' as any),
+        fait: fp.fait,
+        total: fp.total,
+        detail: $t('v2.health.fpPauseHint' as any),
+      });
+    }
 
     const drc = await Promise.allSettled([api.getCompletenessStats()]);
     if (drc[0].status === 'fulfilled' && drc[0].value?.with_dynamic_range !== undefined) {
@@ -785,6 +818,23 @@
     refreshing = false;
   }
 
+  /**
+   * tune-server-rust#8346 — l'indicateur d'activité de la barre latérale
+   * ouvre cet écran SUR la carte de la passe qui tourne : c'est là qu'est sa
+   * pause. Lue et vidée une fois, quand la carte existe.
+   */
+  $effect(() => { if ($carteDeFondCiblee && !loading) void amenerLaCarteCiblee(); });
+  async function amenerLaCarteCiblee() {
+    const cible = get(carteDeFondCiblee);
+    if (!cible) return;
+    carteDeFondCiblee.set(null);
+    if (!cards.some((c) => c.traitement === cible)) return;
+    await tick();
+    const el = document.querySelector<HTMLElement>(`article[data-traitement="${cible}"]`);
+    el?.scrollIntoView?.({ block: 'center' });
+    el?.focus({ preventScroll: true });
+  }
+
   $effect(() => { collect(); });
 
   // #1518 — les chiffres de l'analyse arrivent par `library.scan.progress`.
@@ -963,7 +1013,7 @@
         {#each cards as c (c.id)}
           {@const p = pct(c)}
           {@const enPause = !!(c.traitement && pauses[c.traitement])}
-          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}">
+          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
             <div class="chead">
               <div>
                 <h2>{c.titre}</h2>

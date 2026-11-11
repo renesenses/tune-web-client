@@ -238,6 +238,7 @@
   import {
     analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond,
   } from '../../lib/analysesDeFond';
+  import { carteDeFondCiblee } from '../../lib/carteEmpreintes';
   import { tuneWS } from '../../lib/websocket';
   import { abonnerPropositionChargementCd } from '../../lib/propositionChargementCd';
   import { notifications } from '../../lib/stores/notifications';
@@ -415,8 +416,10 @@
     return () => clearInterval(minuterie);
   });
   const libelleFond = $derived(libelleAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any)));
-  /** L'écran qui détaille chaque tâche de fond : État du serveur. */
+  /** L'écran qui détaille chaque tâche de fond : État du serveur, amené sur
+   *  la carte de la passe en cours, celle qui porte sa pause (tune-server-rust#8346). */
   function ouvrirEtatDuServeur() {
+    carteDeFondCiblee.set(get(analyseDeFond)?.tache ?? null);
     go('diagnostics');
   }
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
