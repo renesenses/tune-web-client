@@ -107,21 +107,17 @@ describe('v2 — la sortie mono reste atteignable, et dit quand elle n’agit pa
     expect(settings).toContain("z.mono_downmix");
   });
 
-  it('il est proposé sur TOUTES les zones, pas seulement les locales', () => {
-    // Le cacher hors sortie locale le rendrait introuvable : sur une
-    // installation ou tout sort par le reseau, il ne s'afficherait jamais.
+  // #2735 — décision de Bertrand du 09/11/2026 (fiche d'appareil) : un
+  // réglage SANS EFFET pour ce type de sortie est caché, et non plus
+  // expliqué. Elle remplace la règle du 04/09 (« visible sur toutes les
+  // zones, avec la phrase qui dit qu'il n'agira pas »).
+  it('il n’est proposé QUE sur les sorties locales, les seules où il agit', () => {
     const bloc = settings.slice(0, settings.indexOf('api.updateZoneMonoDownmix'));
-    const dernieres = bloc.slice(-600);
-    expect(
-      /\{#if[^}]*output_type[^}]*\}[^]*$/.test(dernieres),
-      'le réglage est enfermé dans une garde sur le type de sortie',
-    ).toBe(false);
+    expect(bloc.slice(-700)).toMatch(/\{:?(?:#if|else if)[^}]*\(z\.output_type \?\? ''\) === 'local'\}/);
   });
 
-  it('l’écran dit pourquoi il n’agira pas hors sortie locale', () => {
-    // Sans cette phrase, l'interrupteur MENT : accepte, persiste, sans effet.
-    expect(settings).toContain("zoneConfig.monoLocalOnly");
-    expect(settings).toMatch(/output_type \?\? ''\) !== 'local'/);
+  it('la fiche ne porte plus la phrase « ne changera rien ici »', () => {
+    expect(settings).not.toContain('zoneConfig.monoLocalOnly');
   });
 });
 
