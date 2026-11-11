@@ -46,7 +46,7 @@ import { ICONES } from '../../lib/menuPiste';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
   import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
-  import { isPremium, licenseState } from '../../lib/stores/license';
+  import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
@@ -64,7 +64,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
-  import { gestesNavigationService } from '../../lib/stores/navigation';
+  import { gestesNavigationService, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
@@ -412,6 +412,7 @@ import { ICONES } from '../../lib/menuPiste';
     const id = zone?.id;
     // Une autre zone : ce que le serveur disait de la précédente ne vaut rien ici.
     eqPorteeLive = null;
+    eqGreffonAbsent = false;
     if (id == null) { eqBands = []; eqEnabled = true; return; }
     api.getEq(id)
       .then((r) => {
@@ -432,17 +433,28 @@ import { ICONES } from '../../lib/menuPiste';
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
 
-  // Le serveur refuse l'ecriture de l'egaliseur hors Premium
-  // (`require_premium(…, Feature::DspEq)` -> 402). `$isPremium` permet de le
-  // dire AVANT le clic, mais il est lu au demarrage et peut mentir : licence
-  // active sur un autre serveur, fonction absente du palier, statut jamais
-  // recharge. L'autorite reste donc la reponse du serveur — un 402 recu
-  // verrouille le panneau a son tour (#2419).
-  // `loaded` compte : avant que `loadLicense()` ait repondu, l'etat par defaut
-  // est `tier: 'free'`. S'en servir tel quel montrerait le cadenas a un abonne
-  // pendant le chargement — on aurait remplace un silence par un mensonge.
+  // 🔴 web#2387 — L'ÉGALISEUR EST GRATUIT. `LicenseManager::check_feature`
+  // accorde toujours `Feature::DspEq` : le cadenas ne se pose plus d'après
+  // l'état de licence du client (un abonné dont le serveur n'avait pas pu
+  // revalider la licence le voyait), seulement sur un refus RÉEL du serveur —
+  // un 402 reçu verrouille le panneau (#2419, filet gardé). Ce qui ferme
+  // vraiment l'écriture, c'est le greffon absent ou inactif :
+  // `409 plugin_unavailable`, dit comme l'écran Égaliseur, avec le chemin des
+  // Extensions. Ce constat n'est pas définitif : les préréglages restent
+  // cliquables (un clic après installation réussit et l'efface), et il est
+  // oublié au changement de zone et à la réouverture du panneau.
   let eqRefusePremium = $state(false);
-  let eqLocked = $derived(($licenseState.loaded && !$isPremium) || eqRefusePremium);
+  let eqLocked = $derived(eqRefusePremium);
+  let eqGreffonAbsent = $state(false);
+  // Réouvrir le panneau repart d'un état neuf : le greffon a pu être installé.
+  $effect(() => { if (showEq) eqGreffonAbsent = false; });
+  /** Le lien « Extensions » du panneau. Sur la voie mobile, l'écran est un
+   *  CALQUE (`mobileNowPlayingOpen`, ShellV2) : il se referme, sinon il
+   *  recouvrirait les Extensions. */
+  function ouvrirExtensionsEq() {
+    mobileNowPlayingOpen.set(false);
+    activeView.set('plugins');
+  }
 
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
@@ -476,7 +488,12 @@ import { ICONES } from '../../lib/menuPiste';
       eqBands = bands;
       eqEnabled = true;
       eqRefusePremium = false;
+      eqGreffonAbsent = false;
     } catch (e) {
+      if (estGreffonEqAbsent(e)) {
+        eqGreffonAbsent = true;
+        return;
+      }
       // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
       // console : le panneau se verrouille et affiche ce qu'il refuse.
       if (estRefusPremium(e)) {
@@ -2190,7 +2207,7 @@ import { ICONES } from '../../lib/menuPiste';
             />
           {/if}
           {#if showEq}
-            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} />
+            <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} greffonAbsent={eqGreffonAbsent} onOuvrirExtensions={ouvrirExtensionsEq} />
             {#if eqPorteeLive === false && playState === 'playing'}
               <!-- `false` hors lecture veut seulement dire « rien ne joue » :
                    la note n'y aurait rien à annoncer. En lecture, elle dit ce
