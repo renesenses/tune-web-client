@@ -52,8 +52,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
-  import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
+  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
@@ -1072,7 +1072,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
-      activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+      // #2743 — même Retour que le bouton de l'écran : reculer rend l'onglet et la fiche.
+      retourDepuisLectureEnCours();
       return;
     }
     if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();

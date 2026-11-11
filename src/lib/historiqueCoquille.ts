@@ -77,6 +77,14 @@ export interface EtatCoquille {
    * la vue n'en déclare pas : les entrées des autres écrans gardent leur forme.
    */
   onglet?: string;
+  /**
+   * web#2743 (relecture de #2764) — l'entrée a été EMPILÉE par cette coquille
+   * (`pushState`), au-dessus d'une autre des nôtres. Absent de l'entrée de
+   * démarrage, toujours REMPLACÉE : en reculer sortirait de Tune (lien venu
+   * du forum, `#nowplaying` en vue de démarrage). Conservé par les
+   * réécritures de l'entrée (onglet, fermeture de fiche).
+   */
+  empilee?: true;
 }
 
 /**
@@ -423,6 +431,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
+    const courant = historique.state as unknown;
+    if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
   };
