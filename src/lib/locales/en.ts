@@ -7277,6 +7277,7 @@ export default {
   "login.registering": "Creating account…",
   "login.haveAccount": "Already have an account?",
   "nowplaying.eqPureNotice": "PURE mode is on for this zone: the signal is passed through untouched, with no processing. The presets below will have no effect while PURE mode is on.",
+  "zone.pauseThisZone": "Pause {name}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

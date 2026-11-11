@@ -357,6 +357,26 @@ export async function stopAndSync(zoneId: number): Promise<Zone> {
   return zone;
 }
 
+/**
+ * METTRE EN PAUSE une zone précise, et reporter l'état (web#2823).
+ *
+ * La liste des zones porte un bouton pause sur chaque zone qui joue : on coupe
+ * le son d'une autre pièce sans la piloter. La zone pilotée ne change donc pas,
+ * et c'est la zone VISÉE qui reçoit la commande, pas `currentZoneId`.
+ * Sans `syncZone`, la zone resterait « playing » dans le magasin et le bouton
+ * ne disparaîtrait qu'au prochain relevé.
+ */
+export async function pauseAndSync(zoneId: number): Promise<Zone> {
+  const zone = await api.pause(zoneId);
+  syncZone(zone);
+  // Une zone navigateur jouée par CET onglet : l'élément audio s'arrête aussi.
+  if (estZoneJouableIci(zone)) {
+    const { browserPause } = await getBrowserAudio();
+    browserPause();
+  }
+  return zone;
+}
+
 export async function resumeAndSync(zoneId: number): Promise<Zone> {
   const zone = await api.resume(zoneId);
   checkPlayError(zone);

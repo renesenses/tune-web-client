@@ -7102,5 +7102,6 @@ export default {
   "login.registering": "Tworzenie konta…",
   "login.haveAccount": "Masz już konto?",
   "nowplaying.eqPureNotice": "Tryb PURE jest włączony w tej strefie: sygnał jest przesyłany bez zmian, bez żadnego przetwarzania. Poniższe ustawienia wstępne nie będą działać, dopóki tryb PURE jest włączony.",
+  "zone.pauseThisZone": "Wstrzymaj {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
