@@ -306,6 +306,8 @@
   $effect(() => {
     const svc = active;
     svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
+    // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
+    if (!svc || svc === BANDCAMP) return;
     // web#2828 — le fil de genres quitté pour « Lecture en cours » se repose
     // APRÈS la remise à zéro du service, sinon elle l'effacerait aussitôt.
     const r = genresARestaurer;
@@ -313,8 +315,6 @@
       genresARestaurer = null;
       genrePath = r.genrePath; subGenres = r.subGenres; genreId = r.genreId;
     }
-    // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
-    if (!svc || svc === BANDCAMP) return;
     let vivant = true;
     api.getStreamingGenres(svc)
       .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })

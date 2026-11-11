@@ -58,7 +58,6 @@ activeView.subscribe((v) => {
   if (v !== 'streaming' && !estDePassage(v)) memoire = null;
 });
 
-
 /** À l'instant où l'on quitte l'écran du service, vers `vers`. */
 export function retenirAuDepart(vers: View | null, etat: MemoireStreaming | null): void {
   memoire = estDePassage(vers) && etat && etat.active ? etat : null;
