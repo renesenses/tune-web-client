@@ -49,6 +49,7 @@
     basculerItd,
     midSideDisponible,
     bornePhaseGuard,
+    defautsSelonVersion,
     voieCrossfeedPro,
     choisirVoie,
     type VoieCrossfeedPro,
@@ -101,6 +102,8 @@
   /** La version du greffon installé, quand l'hôte la dit (administrateur,
    *  paquet du catalogue) ; sinon `null`. */
   let versionGreffon = $state<string | null>(null);
+  /** La zone n'a encore rien enregistré (voir `defautsSelonVersion`). */
+  let jamaisReglee = $state(false);
   /** Matriçage Mid/Side (EXPÉRIMENTAL, greffon ≥ 0.4.0, mode Tune seulement). */
   const msDispo = $derived(midSideDisponible(versionGreffon, r));
   const midSide = $derived(valeurMidSide(r, 'experimental_mid_side'));
@@ -128,6 +131,7 @@
       .then((d) => {
         publierPresence(presenceDepuis(d));
         r = reglagesCrossfeedPro(d?.settings);
+        jamaisReglee = d?.settings == null;
         error = null;
       })
       .catch((e) => {
@@ -140,6 +144,17 @@
 
   $effect(() => {
     void api.versionGreffonNatif(CROSSFEED_PRO_ID).then((v) => { versionGreffon = v; });
+  });
+
+  /** Zone jamais réglée : tant que rien n'est écrit, elle prend les défauts
+   *  de la version installée (greffon ≥ 0.5.0 : coupe-bas allumé, garde à
+   *  100 ms). Une zone déjà réglée garde ses réglages. */
+  $effect(() => {
+    const d = defautsSelonVersion(versionGreffon);
+    if (jamaisReglee && d) {
+      jamaisReglee = false;
+      r = { ...r, ...d };
+    }
   });
 
   async function chargerProfils() {
@@ -172,6 +187,7 @@
     timer = setTimeout(() => { timer = null; void save(); }, 300);
   }
   async function save() {
+    jamaisReglee = false;
     const zid = zoneRequise();
     if (zid == null || verrouille) return;
     // Borné AVANT l'envoi : l'écran montre la valeur réellement appliquée.

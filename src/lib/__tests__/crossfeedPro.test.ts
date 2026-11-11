@@ -209,3 +209,12 @@ describe('Crossfeed Pro : borne de la garde de phase selon la version', () => {
     expect(bornePhaseGuard(null, r).max).toBe(200);
   });
 });
+
+describe('Crossfeed Pro : défauts d’une zone jamais réglée selon la version', () => {
+  it('greffon ≥ 0.5.0 : coupe-bas allumé et garde à 100 ms ; plus ancien ou inconnu : rien', async () => {
+    const { defautsSelonVersion } = await import('../crossfeedPro');
+    expect(defautsSelonVersion('0.5.0')).toEqual({ low_cut: true, phase_guard_ms: 100 });
+    expect(defautsSelonVersion('0.4.0')).toBeNull();
+    expect(defautsSelonVersion(null)).toBeNull();
+  });
+});

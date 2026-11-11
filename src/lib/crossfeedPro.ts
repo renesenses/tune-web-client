@@ -404,6 +404,18 @@ export function bornePhaseGuard(version: string | null | undefined, r: Pick<Regl
   return accepte ? b : { ...b, max: MAX_GARDE_AVANT };
 }
 
+/**
+ * Les défauts d'une zone JAMAIS réglée quand le greffon installé est 0.5.0 ou
+ * plus : coupe-bas allumé et garde de phase à 100 ms (défauts du greffon
+ * depuis 0.5.0). `null` si la version est inconnue ou plus ancienne : les
+ * défauts communs (`DEFAUTS_CROSSFEED_PRO`) restent, valables pour toutes les
+ * versions. Une zone déjà réglée garde ses réglages.
+ */
+export function defautsSelonVersion(version: string | null | undefined): Partial<ReglagesCrossfeedPro> | null {
+  if (!version || versionAuMoins(version, VERSION_GARDE_LONGUE) !== true) return null;
+  return { low_cut: true, phase_guard_ms: 100 };
+}
+
 // ─── La voie croisée en service : une seule à la fois ───────────────────────
 
 /** Les trois façons de construire la voie croisée en mode Tune ; elles
