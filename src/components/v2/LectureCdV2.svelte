@@ -36,6 +36,11 @@
    * progression suit `cd.memoire.*` en direct (et la relecture de `/etat`) ;
    * une fois prêt, « Lire le disque » se sert dans la mémoire. Rien ne part
    * tout seul : c'est l'utilisateur qui lance la lecture.
+   *
+   * tune-server-rust#8514 : une fois le disque entier en mémoire, les CRC
+   * AccurateRip calculés au chargement s'affichent (détail repliable), et
+   * « Enregistrer dans la bibliothèque » (`ExtractionCdV2`, `memoirePrete`)
+   * verse les pistes déjà lues sans relire le CD.
    */
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
@@ -45,7 +50,7 @@
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd, numeroPisteCdEnCours,
     getMemoireCd, reglerMemoireCd, vueChargementCd,
-    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement,
+    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement, accurateRipDuChargement,
     type EtatLecteurCd, type DisqueCd, type MemoireCd,
   } from '../../lib/lectureCd';
   import { tuneWS } from '../../lib/websocket';
@@ -81,6 +86,8 @@
   const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
   /** #6596 — où en est le chargement du disque affiché. */
   const etatCharg = $derived(etatChargementCd(etat?.chargement, disque?.disc_id));
+  /** #8514 — les CRC AccurateRip du chargement, une fois le disque prêt. */
+  const crcChargement = $derived(accurateRipDuChargement(etat?.chargement, disque?.disc_id));
   let chargementDemande = $state(false);
   let erreurChargement = $state<string | null>(null);
 
@@ -324,6 +331,18 @@
               </span>
             </div>
           {/if}
+          {#if crcChargement.length}
+            <!-- #8514 : AccurateRip calculé dès le chargement. -->
+            <details class="accuraterip-chargement note">
+              <summary>{$t('v2.cd.memAccurateRip' as any).replace('{n}', String(crcChargement.length))}</summary>
+              <ol>
+                {#each crcChargement as a (a.piste)}
+                  <li><span class="num">{a.piste}</span> {$t('v2.cd.rip.crc' as any).replace('{crc1}', a.v1).replace('{crc2}', a.v2)}</li>
+                {/each}
+              </ol>
+              <small>{$t('v2.cd.rip.accurateRip' as any)}</small>
+            </details>
+          {/if}
           <div class="actions">
             <button class="go lire-disque" disabled={$currentZoneId == null || occupe !== null} onclick={() => jouer()}>
               {occupe === 'disque' ? '…' : $t('v2.cd.playDisc' as any)}
@@ -334,7 +353,7 @@
               <span class="note">{$t('v2.cd.toZone' as any).replace('{zone}', $currentZone.name)}</span>
             {/if}
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
-            <ExtractionCdV2 {disque} />
+            <ExtractionCdV2 {disque} memoirePrete={etatCharg === 'pret'} />
             {#if possedeNonCopie}
               <span class="note collection-non-copie" data-collection-non-copie>{$t('collectionPhysique.cdNonCopie' as any)}</span>
             {/if}
@@ -432,5 +451,8 @@
   .chargement small{margin-left:4px; color:var(--v2-txt3)}
   .charger{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .charger-memoire{padding:0; font-weight:600}
+  .accuraterip-chargement summary{cursor:pointer}
+  .accuraterip-chargement ol{list-style:none; margin:4px 0 2px; padding:0; font:10.5px var(--v2-mono)}
+  .accuraterip-chargement .num{display:inline-block; width:20px; text-align:right; color:var(--v2-txt3)}
   .memoire{display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px}
 </style>
