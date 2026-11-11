@@ -10,6 +10,8 @@
    * choisit — et son curseur apparaît.
    */
   import VolumeControl from '../../partages/VolumeControl.svelte';
+  import VolumeFixe from '../../partages/VolumeFixe.svelte';
+  import { volumeFixe } from '../../../lib/capacitesVolumeSortie';
   import { zones, currentZoneId, switchZone } from '../../../lib/stores/zones';
   import { zoneTypeLabel, zoneDeviceName } from '../../../lib/zoneIdentity';
   import { gainDeLaZone } from '../../../lib/courbeDeVolume';
@@ -42,6 +44,8 @@
       <div class="detail" use:bulleTexte>{[zoneDeviceName(z), z.current_track?.title].filter(Boolean).join(' · ')}</div>
       {#if choisie}
         <VolumeControl enDb />
+      {:else if volumeFixe(z)}
+        <VolumeFixe />
       {:else if volumeLu(z)}
         <div class="vol-lu">{volumeLu(z)}</div>
       {/if}

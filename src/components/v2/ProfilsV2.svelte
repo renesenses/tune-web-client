@@ -121,7 +121,7 @@
   }
 </script>
 
-<p class="hint">{$t('profiles.hint')}</p>
+<p class="hint" data-reglage="profils">{$t('profiles.hint')}</p>
 
 <!-- web#1672 : « Default » est masqué dès qu'un profil personnel existe
      (`visibleProfiles`), et n'a JAMAIS de Supprimer — le serveur le refuse en

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { currentZone } from '../../lib/stores/zones';
   import { zoneVolume } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import VolumeFixe from './VolumeFixe.svelte';
   import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { notifications } from '../../lib/stores/notifications';
@@ -30,6 +31,7 @@
   // #6700 — la sourdine est l'état `muted` de la zone, pas un volume à zéro.
   let isMuted = $derived(zone?.muted === true);
   let idZoneVolume = $derived(zone?.id ?? null);
+  let fixe = $derived(volumeFixe(zone));
   let volumeAutorise = $derived(!$volumeLocked && volumeCommandable(zone));
   let sourdineAutorisee = $derived(!$volumeLocked && sourdineCommandable(zone));
   // web#7517 — une sortie qui annonce une course en dB (device_volume_range) a
@@ -252,6 +254,10 @@
       </svg>
     {/if}
   </button>
+  {#if fixe}
+    <!-- web#2809 — volume fixe : rien à régler, la mention remplace le curseur. -->
+    <VolumeFixe />
+  {:else}
   {#if boutonsPas}
   <button
     class="step-btn"
@@ -317,6 +323,7 @@
     />
   {:else}
     <span class="volume-value">{volumeDisplay(vol)}</span>
+  {/if}
   {/if}
   <DeviceVolumeObservation {zone} />
 </div>

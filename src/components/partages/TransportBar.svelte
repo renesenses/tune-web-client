@@ -1,6 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -43,6 +43,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
@@ -51,8 +52,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
-  import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
+  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
@@ -1071,7 +1072,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
-      activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+      // #2743 — même Retour que le bouton de l'écran : reculer rend l'onglet et la fiche.
+      retourDepuisLectureEnCours();
       return;
     }
     if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();
@@ -1538,6 +1540,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             </svg>
           {/if}
         </button>
+        {#if volumeFixe($currentZone)}
+          <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+          <VolumeFixe />
+        {:else}
         <input
           type="range"
           class="mobile-volume-slider"
@@ -1556,6 +1562,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        {/if}
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}

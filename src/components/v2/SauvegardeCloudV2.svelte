@@ -174,7 +174,7 @@
   }
 </script>
 
-<div class="sc">
+<div class="sc" data-reglage="sauvegarde-cloud">
   <p class="hint">{tr('cloudBackup.intro')}</p>
 
   {#if chargement && !etat}

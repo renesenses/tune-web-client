@@ -182,6 +182,29 @@ export function clearViewContext(view: View): void {
 // Optional tab to open when navigating to settings (consumed once by SettingsView)
 export const settingsInitialTab = writable<string | null>(null);
 export const mobileNowPlayingOpen = writable(false);
+
+/**
+ * web#2761 — D'OÙ L'ON EST ENTRÉ DANS LE GRAND ÉCRAN, posé par la porte.
+ *
+ * Alex (rc11) : Échap ou un clic ramenait aux Playlists. « Lecture en cours »
+ * s'ouvre aussi en CALQUE (`mobileNowPlayingOpen`) par-dessus la vue
+ * courante, sans changer `activeView` : la sortie, qui lisait `previousView`,
+ * rendait la vue d'en dessous SANS le calque. Chaque porte dit maintenant
+ * d'où elle part — la vue, et si « Lecture en cours » y était ouvert en
+ * calque — et `TvView` rétablit exactement cela, puis l'oublie. `null` :
+ * sortie à l'ancienne, sur `previousView`.
+ */
+export interface OrigineGrandEcran {
+  vue: View;
+  /** « Lecture en cours » était ouvert en calque sur `vue`. */
+  calque: boolean;
+}
+export const vueAvantGrandEcran = writable<OrigineGrandEcran | null>(null);
+
+/** L'origine à retenir, vue de la porte : vue courante, calque ouvert ou non. */
+export function origineGrandEcran(vue: View, calqueOuvert: boolean): OrigineGrandEcran {
+  return calqueOuvert && vue !== 'nowplaying' && vue !== 'tv' ? { vue, calque: true } : { vue, calque: false };
+}
 export const pendingSearchQuery = writable<string>('');
 
 // One-shot: an absolute folder path handed from the Répertoires (browse) view's
