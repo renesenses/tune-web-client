@@ -1342,6 +1342,12 @@ import { ICONES } from '../../lib/menuPiste';
 
   // ─── Queue Bottom Sheet ──────────────────────────────────────────────
   let queueSheetState = $state<QueueSheetState>('collapsed');
+  // web#2796 — une radio joue sans fin : la file d'attente n'a rien à y
+  // montrer (ni panneau, ni « À suivre »). Ouverte avant la radio, elle se
+  // referme ; aucun geste ne la rouvre tant que la radio joue.
+  $effect(() => {
+    if (isRadio && queueSheetState !== 'collapsed') queueSheetState = 'collapsed';
+  });
   let sheetDragStartY = $state(0);
   let sheetDragCurrentY = $state(0);
   let sheetDragging = $state(false);
@@ -1570,7 +1576,7 @@ import { ICONES } from '../../lib/menuPiste';
     npWheelLastTs = now;
 
     // Only react to downward scrolls while collapsed with a non-empty queue.
-    if (dy <= 0 || queueSheetState !== 'collapsed' || $queueTracks.length === 0) {
+    if (dy <= 0 || isRadio || queueSheetState !== 'collapsed' || $queueTracks.length === 0) {
       if (dy <= 0) npWheelAccum = 0; // upward scroll cancels the pending peek
       return;
     }
@@ -2559,12 +2565,12 @@ import { ICONES } from '../../lib/menuPiste';
         {/if}
 
         <!-- web#1800 : la file dépliée sur place, sous la barre d'avancement. -->
-        {#if fileSousLaBarre && queueSheetState !== 'collapsed' && $queueTracks.length > 0}
+        {#if !isRadio && fileSousLaBarre && queueSheetState !== 'collapsed' && $queueTracks.length > 0}
           {@render feuilleFile()}
         {/if}
 
         <!-- Up Next (only when sheet is collapsed) -->
-        {#if $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
+        {#if !isRadio && $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
           <div class="up-next">
             <span class="up-next-label">{$t('nowplaying.upNext')}</span>
             <div class="up-next-list">
@@ -2657,7 +2663,7 @@ import { ICONES } from '../../lib/menuPiste';
       referme déjà.
     -->
     <!-- web#1800 : file dépliée sous la barre, ni voile ni feuille ici. -->
-    {#if !fileSousLaBarre}
+    {#if !fileSousLaBarre && !isRadio}
       {#if queueSheetState === 'expanded'}
         <div class="qs-backdrop" onclick={closeQueueSheet}></div>
       {/if}
