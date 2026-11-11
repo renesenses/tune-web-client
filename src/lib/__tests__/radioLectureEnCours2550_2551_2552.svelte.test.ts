@@ -153,6 +153,29 @@ describe('web#2550 — Lecture en cours : le logo de la station à côté de son
     expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
   });
 
+  /**
+   * 🔴 web#2550 rouverte (rc10, capture d'alec_eiffel sur TSF Jazz) : badge
+   * Metadata+ présent, logo absent. Sa station de « Mes radios » a perdu son
+   * logo (tune-server-rust#7493) — ni `logo_url`, ni celui de l'annuaire
+   * attaché. L'annuaire public, lui, en a un : il sert de repli.
+   * Contre-épreuve : sans le repli de `stationDeLecture`, rien n'est affiché.
+   */
+  it('🔴 station de « Mes radios » SANS logo (rc10) : le logo de l’annuaire du même nom', async () => {
+    miennes = [{ ...FIP_MIENNE, logo_url: null, annuaire: { radio_metadata_key: 'fip' } }];
+    const h = await poser(RADIO);
+    const logo = h.querySelector('.radio-station-ligne [data-logo-station]');
+    expect(logo, 'Mes radios sans logo : rien à côté du nom (#2550, rc10)').not.toBeNull();
+    expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
+  });
+
+  it('sans logo nulle part : rien, et l’écran tient', async () => {
+    miennes = [{ ...FIP_MIENNE, logo_url: null }];
+    annuaire = [{ ...FIP_ANNUAIRE, logo_url: null }];
+    const h = await poser(RADIO);
+    expect(h.querySelector('[data-logo-station]')).toBeNull();
+    expect(h.querySelector('.radio-station-name')?.textContent).toContain('FIP');
+  });
+
   it('CONTRE-ÉPREUVE : la pochette affichée EST le logo, il ne se répète pas', async () => {
     miennes = [FIP_MIENNE];
     const h = await poser({ ...RADIO, cover_path: LOGO });

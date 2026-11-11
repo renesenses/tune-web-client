@@ -18,7 +18,13 @@
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import PochetteActions from './PochetteActions.svelte';
+
+  /** web#2770 (lot 4) — la fiche de la station : « ouvrir » et le nom y mènent, la lecture reste sur ▶. */
+  let enFiche = $state<EntreeRadio | null>(null);
+  const aUneFiche = (e: EntreeRadio) => !!(e.station || e.fiche);
 
   let { entrees, reste = 0 }: { entrees: EntreeRadio[]; reste?: number } = $props();
 
@@ -86,13 +92,13 @@
         <PochetteActions
           favoriExterne={{ actif: e.favori, basculer: () => basculerFavori(e) }}
           onLire={() => ecouter(e)}
-          onOuvrir={() => ecouter(e)}
+          onOuvrir={aUneFiche(e) ? () => (enFiche = e) : () => ecouter(e)}
           nom={e.nom}
         >
           <AlbumArt coverPath={e.logo} albumId={null} size={0} alt={e.nom} fallbackInitials={e.nom?.slice(0, 1)} />
         </PochetteActions>
       </span>
-      <span class="nm" use:bulleTexte>{e.nom}</span>
+      <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: e.nom, ouvrir: aUneFiche(e) ? () => (enFiche = e) : null }} /></span>
       <span class="gn" use:bulleTexte>{sousTitre(e)}</span>
       <span class="pied">
         {#if e.codec}<span class="tk">{e.codec}{e.bitrate ? ` ${e.bitrate}` : ''}</span>{/if}
@@ -109,6 +115,10 @@
 </div>
 {#if reste > 0}
   <p class="reste">{$t('v2.rech.radiosMore' as any).replace('{n}', String(reste))}</p>
+{/if}
+
+{#if enFiche}
+  <RadioFicheModale station={enFiche.station ?? null} annuaire={enFiche.fiche ?? null} onClose={() => (enFiche = null)} />
 {/if}
 
 <style>

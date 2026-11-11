@@ -32,6 +32,7 @@
   import { t } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import type { PorteEcoutes } from '../../lib/ecoutesCommunaute';
+  import type { CompteursCredits } from '../../lib/api';
 
   interface Props {
     /** Le nom affiché. */
@@ -59,6 +60,14 @@
      * `community_listens` donne « Miles Davis (43 100) ». Rien sans le champ.
      */
     ecoutes?: PorteEcoutes | null;
+    /**
+     * Lot 2 (web#2639) — les compteurs « interprète / écriture » que sert
+     * `credit_counts` (tune-server-rust#7767), sur toute la bibliothèque.
+     * `null` devant un serveur antérieur : rien n'est affiché, et rien n'est
+     * recalculé ici. Un compteur à zéro n'est pas montré non plus — « Écriture :
+     * 0 album » n'apprend rien (choix conservateur, à trancher par Bertrand).
+     */
+    compteurs?: CompteursCredits | null;
   }
   let {
     nom,
@@ -69,7 +78,11 @@
     onRetour,
     actions,
     ecoutes = null,
+    compteurs = null,
   }: Props = $props();
+
+  const ligneCompteur = (cle: string, c: { albums: number; tracks: number }) =>
+    $t(cle as any).replace('{albums}', String(c.albums)).replace('{tracks}', String(c.tracks));
 
   /**
    * web#2191 (fil 2274) — « Pour 'Artistes', "<" toujours accessible en
@@ -108,6 +121,12 @@
     <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
     {#if provenance}<span class="prov">{provenance}</span>{/if}
     {#if sousTitre}<span class="cpt">{sousTitre}</span>{/if}
+    {#if compteurs && (compteurs.performing?.tracks || compteurs.writing?.tracks)}
+      <span class="cpt credits" data-compteurs>
+        {#if compteurs.performing?.tracks}<span data-compteur="performing">{ligneCompteur('v2.disco.performingCount', compteurs.performing)}</span>{/if}
+        {#if compteurs.writing?.tracks}<span data-compteur="writing">{ligneCompteur('v2.disco.writingCount', compteurs.writing)}</span>{/if}
+      </span>
+    {/if}
     {#if actions}
       <div class="gestes">{@render actions()}</div>
     {/if}
@@ -153,5 +172,6 @@
   .prov{display:block; font:11px var(--v2-mono); color:var(--v2-txt3);
     text-transform:uppercase; letter-spacing:.06em}
   .cpt{display:block; font:11px var(--v2-mono); color:var(--v2-txt3); margin-top:3px}
+  .credits{display:flex; flex-wrap:wrap; gap:4px 14px}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
 </style>

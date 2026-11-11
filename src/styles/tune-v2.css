@@ -138,6 +138,11 @@
   --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#FFFFFF; --v2-bg2:#F6F8FA; --v2-surface:#FFFFFF; --v2-surface2:#F1F4F7;
   --v2-line:#E4E9EE; --v2-line2:#D2DAE2;
+  /* Pouce des barres de défilement (web#2773) : `--v2-line2` (#D2DAE2) se
+     perdait sur le fond blanc. Contraste ≥ 3:1 (élément d'interface) sur
+     fond, fond 2, surface et surface de choix. Défini dans les seuls thèmes
+     clairs : les sombres gardent leur pouce d'avant. */
+  --v2-scrollthumb:#808C98;
   --v2-txt:#0C1620; --v2-txt2:#56646F; --v2-txt3:#646E78;
   --v2-acc1:#007C66; --v2-acc2:#008199; --v2-acc-tint:#00695A; --v2-on-acc:#FFFFFF;
   --v2-hover:#EDF1F5; --v2-active1:#E6F5F1; --v2-active2:#DEEFEB;
@@ -168,6 +173,7 @@
   --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#EDEFF2; --v2-bg2:#E6E9ED; --v2-surface:#FFFFFF; --v2-surface2:#E2E6EB;
   --v2-line:#D6DBE1; --v2-line2:#C2C9D1;
+  --v2-scrollthumb:#737F8B; /* web#2773, voir Clair / Blanc */
   --v2-txt:#141C24; --v2-txt2:#515C67; --v2-txt3:#5F6770;
   --v2-acc1:#356C88; --v2-acc2:#427D96; --v2-acc-tint:#1F4A5C; --v2-on-acc:#FFFFFF;
   --v2-hover:#E4E8ED; --v2-active1:#DBE3EA; --v2-active2:#D3DCE4;

@@ -66,8 +66,11 @@ describe('fiche artiste v2', () => {
     expect(ARTISTE).toMatch(/\{#if editionComplete\}\s*<ArtistEditModal/);
   });
   it('image et bio se signalent', () => {
-    expect(ARTISTE).toContain('<ReportButton entity="artist_image"');
-    expect(ARTISTE).toContain('<ReportButton entity="bio"');
+    // tune-server-rust#7996 : un seul drapeau, dont le menu porte les deux
+    // données (`cibles`) — voir drapeauUniquePageArtiste7996.svelte.test.ts.
+    expect(ARTISTE).toContain('<ReportButton {cibles} />');
+    expect(ARTISTE).toContain("entity: 'artist_image' as const");
+    expect(ARTISTE).toContain("entity: 'bio' as const");
   });
 });
 

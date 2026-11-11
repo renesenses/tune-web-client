@@ -172,6 +172,13 @@
   /** #4767 (crédits, #4862) — mêmes règles, lues dans `track_credits`. */
   let collaborations = $state<api.GroupeCollaborations[]>([]);
   let reprises = $state<Album[]>([]);
+  /**
+   * Lot 2 (web#2639, tune-server-rust#7767) — « Écriture et production »
+   * (`writing`) et les compteurs de l'en-tête (`credit_counts`). Absents
+   * devant un serveur antérieur : pas de section, pas de compteurs.
+   */
+  let ecriture = $state<Album[]>([]);
+  let compteurs = $state<api.CompteursCredits | null>(null);
   /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
   let artisteFocus = $state<FocusArtiste | null>(null);
   /**
@@ -442,6 +449,8 @@
     apparitions = [];
     collaborations = [];
     reprises = [];
+    ecriture = [];
+    compteurs = null;
     // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
     // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
     // affiché sous celui-ci.
@@ -532,6 +541,8 @@
     apparitions = [];
     collaborations = [];
     reprises = [];
+    ecriture = [];
+    compteurs = null;
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
@@ -564,6 +575,10 @@
       apparitions = (d.value?.appearances ?? []) as Album[];
       collaborations = d.value?.collaborations ?? [];
       reprises = (d.value?.covers ?? []) as Album[];
+      // Lot 2 — `writing` absente = pas de section (jamais un repli sur
+      // `covers`) ; `credit_counts` absente = pas de compteurs.
+      ecriture = (d.value?.writing ?? []) as Album[];
+      compteurs = d.value?.credit_counts ?? null;
     }
     chargement = false;
     void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste), langueBioDe(artiste));
@@ -1042,6 +1057,7 @@
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
+    compteurs={estLocal ? compteurs : null}
     onRetour={retour}>
     {#snippet actions()}
       <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
@@ -1119,15 +1135,16 @@
             {$tr('artist.identityDetachedNote' as any)}
           </span>
         {/if}
-        {#if local.image_path}
-          <ReportButton entity="artist_image" entityId={local.id!}
-            mbid={local.musicbrainz_id ?? undefined}
-            reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
-        {/if}
-        {#if bio}
-          <ReportButton entity="bio" entityId={local.id!}
-            mbid={local.musicbrainz_id ?? undefined}
-            reasons={['incorrect', 'wrong_entity', 'offensive']} />
+        <!-- tune-server-rust#7996 : UN drapeau pour la photo et la bio (il y en
+             avait deux côte à côte) ; le menu nomme la donnée signalée. -->
+        {@const cibles = [
+          ...(local.image_path ? [{ entity: 'artist_image' as const, entityId: local.id!, mbid: local.musicbrainz_id ?? undefined,
+            titreKey: 'report.target.artistImage', reasons: ['wrong_entity', 'incorrect', 'poor_quality', 'offensive'] }] : []),
+          ...(bio ? [{ entity: 'bio' as const, entityId: local.id!, mbid: local.musicbrainz_id ?? undefined,
+            titreKey: 'report.target.bio', reasons: ['incorrect', 'wrong_entity', 'offensive'] }] : []),
+        ]}
+        {#if cibles.length}
+          <ReportButton {cibles} />
         {/if}
       {/if}
     {/snippet}
@@ -1230,14 +1247,14 @@
          disque à lui — musicien de séance, compositeur, ingénieur — n'a que
          celles-là, et c'est précisément le profil que la passe des crédits
          fait apparaître. -->
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || reprises.length}
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || ecriture.length || reprises.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge} {rangeeSources}
         nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
-        {compilations} {apparitions} {collaborations} {reprises}
+        {compilations} {apparitions} {collaborations} {ecriture} {reprises}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}
