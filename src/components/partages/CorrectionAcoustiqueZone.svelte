@@ -153,7 +153,7 @@
   La correction de pièce vaut pour TOUTE zone : une zone, un appareil, un FIR.
   Aucune condition sur `output_type` — voir l'en-tête du script.
 -->
-<div class="fir">
+<div class="fir" data-reglage="zone-correction-piece">
   <h3 class="fir-tl">{$t('zoneConfig.firTitle')}</h3>
   <!--
     🔴 #1481 — CE QUE L'ÉCRAN ACCEPTE, écrit sur l'écran.
