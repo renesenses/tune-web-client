@@ -3273,6 +3273,8 @@ export default {
   "v2.scan.skipNoMeta": "Inga läsbara metadata",
   "v2.scan.skipUnsupported": "Format som inte stöds",
   "v2.scan.skipDuplicate": "Dubbletter",
+  "v2.scan.skipUnchanged": "Oförändrade sedan förra skanningen, listas inte",
+  "v2.scan.skippedBreakdown": "Hoppades över — {d}",
   "settings.addFolder": "Lägg till en mapp",
   "folderBrowser.drives": "Enheter",
   "folderBrowser.loading": "Läser in…",

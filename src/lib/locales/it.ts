@@ -3274,6 +3274,8 @@ export default {
   "v2.scan.skipNoMeta": "Nessun metadato leggibile",
   "v2.scan.skipUnsupported": "Formato non supportato",
   "v2.scan.skipDuplicate": "Duplicati",
+  "v2.scan.skipUnchanged": "Invariati dalla scansione precedente, non elencati",
+  "v2.scan.skippedBreakdown": "Ignorati — {d}",
   "settings.addFolder": "Aggiungi una cartella",
   "folderBrowser.drives": "Unità",
   "folderBrowser.loading": "Caricamento…",

@@ -3274,6 +3274,8 @@ export default {
   "v2.scan.skipNoMeta": "无可读元数据",
   "v2.scan.skipUnsupported": "不支持的格式",
   "v2.scan.skipDuplicate": "重复项",
+  "v2.scan.skipUnchanged": "自上次扫描以来未更改，不列出",
+  "v2.scan.skippedBreakdown": "已跳过 — {d}",
   "settings.addFolder": "添加文件夹",
   "folderBrowser.drives": "驱动器",
   "folderBrowser.loading": "正在加载…",

@@ -2093,6 +2093,8 @@ export default {
   "v2.scan.skipNoMeta": "Sans métadonnées lisibles",
   "v2.scan.skipUnsupported": "Format non pris en charge",
   "v2.scan.skipDuplicate": "Doublons",
+  "v2.scan.skipUnchanged": "Inchangés depuis le scan précédent, non listés",
+  "v2.scan.skippedBreakdown": "Ignorés — {d}",
   "settings.addFolder": "Ajouter un dossier",
   "folderBrowser.drives": "Lecteurs",
   "folderBrowser.loading": "Chargement…",

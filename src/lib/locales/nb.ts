@@ -1944,6 +1944,8 @@ export default {
   "v2.scan.skipNoMeta": "Ingen lesbare metadata",
   "v2.scan.skipUnsupported": "Format som ikke støttes",
   "v2.scan.skipDuplicate": "Duplikater",
+  "v2.scan.skipUnchanged": "Uendret siden forrige skanning, ikke listet",
+  "v2.scan.skippedBreakdown": "Hoppet over — {d}",
   "settings.addFolder": "Legg til en mappe",
   "folderBrowser.drives": "Stasjoner",
   "folderBrowser.loading": "Laster…",

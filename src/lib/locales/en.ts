@@ -2090,6 +2090,8 @@ export default {
   "v2.scan.skipNoMeta": "No readable metadata",
   "v2.scan.skipUnsupported": "Unsupported format",
   "v2.scan.skipDuplicate": "Duplicates",
+  "v2.scan.skipUnchanged": "Unchanged since the previous scan, not listed",
+  "v2.scan.skippedBreakdown": "Skipped — {d}",
   "settings.addFolder": "Add a folder",
   "folderBrowser.drives": "Drives",
   "folderBrowser.loading": "Loading…",

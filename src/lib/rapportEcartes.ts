@@ -86,3 +86,38 @@ export function listeTronquee(r: unknown): boolean {
 export function aDesEcarts(r: unknown): boolean {
   return groupesEcartes(r).length > 0 || motifsDesFeuilles(r).length > 0;
 }
+
+/** Un motif d'« ignoré », et combien de fichiers il couvre. */
+export interface DecompteIgnore {
+  cle: string;
+  /** La clé i18n du libellé. */
+  titre: string;
+  nombre: number;
+}
+
+/**
+ * tune-server-rust#8261 — « le dernier scan indique 63 titres skipped ??
+ * Serait-ce possible de savoir lesquels ? et pourquoi » (jfpaquet, fil 2736).
+ *
+ * Le nombre d'« ignorés » additionne quatre motifs que le serveur compte à
+ * part (`routes/system/scan.rs`) : inchangés, doublons, sans métadonnées,
+ * format non pris en charge. Seuls les trois derniers ont une liste de
+ * chemins ; les INCHANGÉS n'en ont pas — et l'écran ne les comptait nulle
+ * part : sur un dossier ajouté puis relu, « 63 ignorés » pouvait n'ouvrir
+ * aucune liste, ou une liste plus courte, sans rien pour combler l'écart.
+ *
+ * Le décompte par motif, zéros retirés, dans l'ordre où il se lit : d'abord
+ * ce qui est sans gravité (inchangés), puis ce qui demande un regard.
+ */
+export function decompteIgnores(r: unknown): DecompteIgnore[] {
+  const rep = (r ?? {}) as Record<string, unknown>;
+  const n = (k: string) => { const v = Number(rep[k]); return Number.isFinite(v) && v > 0 ? v : 0; };
+  return [
+    { cle: 'skipped_unchanged', titre: 'v2.scan.skipUnchanged' },
+    { cle: 'skipped_duplicate', titre: 'v2.scan.skipDuplicate' },
+    { cle: 'skipped_no_metadata', titre: 'v2.scan.skipNoMeta' },
+    { cle: 'skipped_unsupported', titre: 'v2.scan.skipUnsupported' },
+  ]
+    .map((d) => ({ ...d, nombre: n(d.cle) }))
+    .filter((d) => d.nombre > 0);
+}
