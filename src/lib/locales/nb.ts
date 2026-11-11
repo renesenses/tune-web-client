@@ -6961,6 +6961,7 @@ export default {
   "v2.room.micChannel": "Mikrofonkanal",
   "v2.room.micIntro": "En USB-målemikrofon koblet til serveren tar opp sveip som spilles i sonen: bassrespons, etterklangstid og deretter en foreslått korreksjon.",
   "v2.room.micRate": "Denne mikrofonen tar ikke opp med {hz} Hz: sett den til {hz} Hz før målingen.",
+  "v2.room.micFormatUnknown": "Tune kunne ikke lese opptaksformatet til denne mikrofonen: målingen kan bli avvist. Koble den til på nytt eller velg en annen inngang.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Aksial",
   "v2.room.modeOblique": "Skrå",

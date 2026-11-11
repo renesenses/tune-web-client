@@ -7116,6 +7116,7 @@ export default {
   "v2.room.micChannel": "Canal del micrófono",
   "v2.room.micIntro": "Un micrófono de medición USB conectado al servidor capta barridos reproducidos en la zona: respuesta en graves, tiempo de reverberación y luego una corrección propuesta.",
   "v2.room.micRate": "Este micrófono no capta a {hz} Hz: ajústelo a {hz} Hz antes de medir.",
+  "v2.room.micFormatUnknown": "Tune no ha podido leer el formato de captura de este micrófono: la medición podría rechazarse. Vuelva a conectarlo o elija otra entrada.",
   "v2.room.microphone": "Micrófono",
   "v2.room.modeAxial": "Axial",
   "v2.room.modeOblique": "Oblicuo",

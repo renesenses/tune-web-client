@@ -7136,6 +7136,7 @@ export default {
   "v2.room.micChannel": "Microphone channel",
   "v2.room.micIntro": "A USB measurement microphone connected to the server records sweeps played in the zone: bass response, reverberation time, then a proposed correction.",
   "v2.room.micRate": "This microphone is not capturing at {hz} Hz: set it to {hz} Hz before measuring.",
+  "v2.room.micFormatUnknown": "Tune could not read this microphone's capture format: the measurement may be refused. Reconnect it or choose another input.",
   "v2.room.microphone": "Microphone",
   "v2.room.modeAxial": "Axial",
   "v2.room.modeOblique": "Oblique",

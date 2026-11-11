@@ -7115,6 +7115,7 @@ export default {
   "v2.room.micChannel": "Mikrofonkanal",
   "v2.room.micIntro": "En USB-mätmikrofon ansluten till servern spelar in svep som spelas i zonen: basrespons, efterklangstid och sedan en föreslagen korrigering.",
   "v2.room.micRate": "Den här mikrofonen spelar inte in i {hz} Hz: ställ in den på {hz} Hz före mätningen.",
+  "v2.room.micFormatUnknown": "Tune kunde inte läsa mikrofonens inspelningsformat: mätningen kan nekas. Anslut den igen eller välj en annan ingång.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Axiell",
   "v2.room.modeOblique": "Oblik",

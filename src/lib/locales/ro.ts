@@ -7116,6 +7116,7 @@ export default {
   "v2.room.micChannel": "Canalul microfonului",
   "v2.room.micIntro": "Un microfon de măsurare USB conectat la server captează baleiajele redate în zonă: răspunsul în bas, timpul de reverberație, apoi o corecție propusă.",
   "v2.room.micRate": "Acest microfon nu captează la {hz} Hz: setați-l la {hz} Hz înainte de măsurare.",
+  "v2.room.micFormatUnknown": "Tune nu a putut citi formatul de captură al acestui microfon: măsurarea ar putea fi refuzată. Reconectați-l sau alegeți altă intrare.",
   "v2.room.microphone": "Microfon",
   "v2.room.modeAxial": "Axial",
   "v2.room.modeOblique": "Oblic",

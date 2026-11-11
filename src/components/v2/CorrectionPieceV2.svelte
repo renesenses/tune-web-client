@@ -27,7 +27,7 @@
     SUIVI,
     PIECE_DEFAUT, SURFACES_DEFAUT, SURFACES, QUALITES, LIBELLES_SURFACES, LIBELLES_QUALITES, LIBELLES_TYPES_MODE,
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
-    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, micros, mesureEnCours, rt60De, lireErreur,
+    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, micros, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
     lireResultat, proposerMesure, enregistrerProfilMesure,
@@ -533,9 +533,9 @@
               <input type="file" accept=".txt,.cal,.frd" data-room="etalonnage-fichier" onchange={deposer} disabled={enCours} />
             </label>
           </div>
-          {#if micro && !micro.mesurable}
+          {#if avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
             <div class="hint faux" data-room="frequence">
-              {$t('v2.room.micRate' as any).replace('{hz}', String(microphones.frequence_requise))}
+              {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
             </div>
           {/if}
           <div class="actions">
