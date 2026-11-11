@@ -2,6 +2,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
+  import StatsBibliothequeV2 from './StatsBibliothequeV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -1558,6 +1559,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   const ongletDeLaCoquille = (o: string | null): Tab | null =>
     TABS.some((t2) => t2.id === o) ? (o as Tab) : null;
+  /**
+   * web#2782 — « Statistiques » est un onglet de la page, comme les autres :
+   * il ne quitte plus la Bibliothèque (il ouvrait la vue `statsbibliotheque`,
+   * seule, sans barre d'onglets ni retour). Un clic sur un autre onglet, ou
+   * sur une barre filtrante des statistiques, le referme.
+   */
+  let statsOuvertes = $state(false);
   let tabChoisi = $state<Tab>(
     // Lu UNE fois, au montage : c'est l'onglet d'arrivée, pas un suivi.
     untrack(() => (depot ? null : ongletDeLaCoquille($ongletCourant))) ?? lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'),
@@ -1582,7 +1590,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // Un raccourci (ou un Précédent) qui repose l'onglet alors que l'écran est monté.
   $effect(() => {
     const voulu = depot ? null : ongletDeLaCoquille($ongletCourant);
-    untrack(() => { if (voulu && voulu !== tabChoisi) tabChoisi = voulu; });
+    untrack(() => { if (voulu && voulu !== tabChoisi) { statsOuvertes = false; tabChoisi = voulu; } });
   });
 
   /**
@@ -2893,6 +2901,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (f == null) return;
     pendingLibraryFiltre.set(null);
     untrack(() => {
+      statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
       else fRate = [f.frequence];
@@ -3215,18 +3224,25 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <!-- `data-onglet` : l'onglet se nomme dans le DOM. #929 s'en sert
                pour prouver que le carrousel ne fuit pas hors de la vue Albums,
                sans dépendre du libellé traduit ni de la position. -->
-          <button class="tab" data-onglet={t.id} class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
+          <button class="tab" data-onglet={t.id} class:active={tab === t.id && !statsOuvertes} onclick={() => { statsOuvertes = false; tabChoisi = t.id; }}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
     <!-- web#2653 — les répartitions de la bibliothèque (pas sur un dépôt
          distant : elles décrivent CE serveur). -->
     {#if !depot}
-      <button class="tab" data-stats-bibliotheque-ouvrir onclick={() => activeView.set('statsbibliotheque')}
+      <button class="tab" data-stats-bibliotheque-ouvrir class:active={statsOuvertes} aria-pressed={statsOuvertes} onclick={() => (statsOuvertes = true)}
         title={$tr('statsBibliotheque.ouvrirTip' as any)}>{$tr('statsBibliotheque.ouvrir' as any)}</button>
     {/if}
     </div>
   </header>
+  <!-- web#2782 — les Statistiques s'affichent DANS la page, sous la même barre
+       d'onglets ; le reste de la page est seulement masqué (`display:none`),
+       pas démonté : ses `bind:this` et son défilement survivent. -->
+  {#if statsOuvertes && !depot}
+    <StatsBibliothequeV2 embarquee />
+  {/if}
+  <div class="contenu-lib" style:display={statsOuvertes && !depot ? 'none' : 'contents'}>
 
   <!-- La ligne de filtres existe a TOUS les niveaux : chez Levente le champ
        de recherche vit dans la page, a cote des filtres. (La Recherche
@@ -4174,6 +4190,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         {/if}
       {/if}
     {/if}
+  </div>
   </div>
 
   <!--
