@@ -3899,6 +3899,8 @@ export default {
   "volume.stepDown": "Zmniejsz głośność o jeden krok",
   "volume.stepUp": "Zwiększ głośność o jeden krok",
   "volume.limitedBySafety": "Osiągnięto limit bezpieczeństwa: Tune nie zwiększy już głośności w tej strefie.",
+  "volume.groupMaster": "Grupa stref: {n}",
+  "volume.groupMasterHint": "Suwak ustawia głośność całej grupy; strefy ze stałą głośnością się nie zmieniają.",
   "volume.zonesLegend": "Zielony: poniżej komfortu. Pomarańczowy: między komfortem a bezpieczeństwem. Czerwony: powyżej bezpieczeństwa.",
   "volume.stepFailed": "Krok głośności nie został zastosowany.",
   "volume.dbEntryHint": "Wpisz żądaną wartość, na przykład -20,5. 0 dB = pełna skala.",

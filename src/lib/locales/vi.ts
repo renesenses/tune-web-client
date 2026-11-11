@@ -3901,6 +3901,8 @@ export default {
   "volume.stepDown": "Giảm âm lượng một bước",
   "volume.stepUp": "Tăng âm lượng một bước",
   "volume.limitedBySafety": "Đã đạt giới hạn an toàn: Tune sẽ không tăng thêm ở vùng này.",
+  "volume.groupMaster": "Nhóm: {n} vùng",
+  "volume.groupMasterHint": "Thanh trượt chỉnh âm lượng của cả nhóm; các vùng âm lượng cố định không thay đổi.",
   "volume.zonesLegend": "Xanh lá: dưới mức thoải mái. Cam: giữa thoải mái và an toàn. Đỏ: vượt mức an toàn.",
   "volume.stepFailed": "Bước âm lượng chưa được áp dụng.",
   "volume.dbEntryHint": "Nhập giá trị bạn muốn, ví dụ -20.5. 0 dB = toàn thang.",

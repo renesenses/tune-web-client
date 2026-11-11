@@ -2,6 +2,7 @@
   import { cibleDuPas } from '../../lib/limitesVolume';
   import { volumeCommandable, plageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { isVolumeLocked } from '../../lib/stores/audiophile';
+  import { reglerVolume } from '../../lib/volumeDeGroupe';
   import { bulleTexte } from '../../lib/infobulleTexte';
   // Mode « Grand écran » façon tvOS : afficheur plein viewport (pochette géante,
   // typo XXL lisible à 3 m, paroles synchronisées), aucun contrôle visible —
@@ -179,7 +180,7 @@
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'up') : Math.min(1, Math.round((vol + 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       case 'ArrowDown': {
@@ -187,7 +188,7 @@
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') : Math.max(0, Math.round((vol - 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       case 'ArrowRight':

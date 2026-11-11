@@ -4020,6 +4020,8 @@ export default {
   "volume.stepDown": "Sänk volymen ett steg",
   "volume.stepUp": "Höj volymen ett steg",
   "volume.limitedBySafety": "Säkerhetsgränsen nådd: Tune höjer inte mer i den här zonen.",
+  "volume.groupMaster": "Grupp: {n} zoner",
+  "volume.groupMasterHint": "Reglaget styr volymen för hela gruppen; zoner med fast volym ändras inte.",
   "volume.zonesLegend": "Grönt: under komfort. Orange: mellan komfort och säkerhet. Rött: över säkerhet.",
   "volume.stepFailed": "Volymsteget tillämpades inte.",
   "volume.dbEntryHint": "Skriv önskat värde, till exempel -20,5. 0 dB = full skala.",

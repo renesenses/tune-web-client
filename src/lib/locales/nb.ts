@@ -3899,6 +3899,8 @@ export default {
   "volume.stepDown": "Volum ned ett trinn",
   "volume.stepUp": "Volum opp ett trinn",
   "volume.limitedBySafety": "Sikkerhetsgrensen er nådd: Tune går ikke høyere på denne sonen.",
+  "volume.groupMaster": "Gruppe: {n} soner",
+  "volume.groupMasterHint": "Glidebryteren styrer volumet for hele gruppen; soner med fast volum endres ikke.",
   "volume.zonesLegend": "Grønt: under komfort. Oransje: mellom komfort og sikkerhet. Rødt: over sikkerhet.",
   "volume.stepFailed": "Volumtrinnet ble ikke utført.",
   "volume.dbEntryHint": "Skriv inn ønsket verdi, for eksempel -20,5. 0 dB = full skala.",

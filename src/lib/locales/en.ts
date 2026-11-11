@@ -4041,6 +4041,8 @@ export default {
   "volume.stepDown": "Volume down one step",
   "volume.stepUp": "Volume up one step",
   "volume.limitedBySafety": "Safety limit reached: Tune will not go higher on this zone.",
+  "volume.groupMaster": "Group: {n} zones",
+  "volume.groupMasterHint": "The slider sets the volume of the whole group; fixed-volume zones do not change.",
   "volume.zonesLegend": "Green: below comfort. Orange: between comfort and safety. Red: beyond safety.",
   "volume.stepFailed": "The volume step was not applied.",
   "volume.dbEntryHint": "Type the value you want, for example -20.5. 0 dB = full scale.",

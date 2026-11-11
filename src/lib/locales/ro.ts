@@ -4021,6 +4021,8 @@ export default {
   "volume.stepDown": "Scade volumul cu un pas",
   "volume.stepUp": "Crește volumul cu un pas",
   "volume.limitedBySafety": "Limita de siguranță a fost atinsă: Tune nu va urca mai sus în această zonă.",
+  "volume.groupMaster": "Grup: {n} zone",
+  "volume.groupMasterHint": "Cursorul reglează volumul întregului grup; zonele cu volum fix nu se modifică.",
   "volume.zonesLegend": "Verde: sub confort. Portocaliu: între confort și siguranță. Roșu: peste siguranță.",
   "volume.stepFailed": "Pasul de volum nu a fost aplicat.",
   "volume.dbEntryHint": "Introduceți valoarea dorită, de exemplu -20,5. 0 dB = scala completă.",
