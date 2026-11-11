@@ -791,6 +791,8 @@ export default {
   "pairing.success": "Sammenkoblet!",
   "pairing.error": "Sammenkoblingen mislyktes",
   "volume.title": "Volum (M for å dempe)",
+  "volume.fixed": "Fast volum",
+  "volume.fixedHint": "Volumet styres av enheten (bit-perfect). Endres i soneinnstillingene.",
   "settings.database": "Database",
   "settings.dbEngine": "Motor",
   "nav.favorites": "Favoritter",

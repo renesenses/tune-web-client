@@ -751,6 +751,8 @@ export default {
 
   // Volume
   'volume.title': 'Volum (M pentru mut)',
+  'volume.fixed': 'Volum fix',
+  'volume.fixedHint': 'Volumul este ținut de dispozitiv (bit-perfect). Se schimbă în setările zonei.',
 
   // Database
   'settings.database': 'Bază de date',

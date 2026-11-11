@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': '音量（Mでミュート）',
+  'volume.fixed': '固定音量',
+  'volume.fixedHint': '音量はデバイス側で固定されています（ビットパーフェクト）。ゾーン設定で変更できます。',
 
   // Database
   'settings.database': 'データベース',

@@ -791,6 +791,8 @@ export default {
   "pairing.success": "Sparowano!",
   "pairing.error": "Parowanie nie powiodło się",
   "volume.title": "Głośność (M, aby wyciszyć)",
+  "volume.fixed": "Stała głośność",
+  "volume.fixedHint": "Głośność ustala urządzenie (bit-perfect). Zmienisz ją w ustawieniach strefy.",
   "settings.database": "Baza danych",
   "settings.dbEngine": "Silnik",
   "nav.favorites": "Ulubione",

@@ -729,6 +729,8 @@ export default {
 
   // Volume
   'volume.title': 'Volym (M för att tysta)',
+  'volume.fixed': 'Fast volym',
+  'volume.fixedHint': 'Volymen hålls av enheten (bit-perfect). Ändras i zoninställningarna.',
 
   // Database
   'settings.database': 'Databas',

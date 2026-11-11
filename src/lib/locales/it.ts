@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': 'Volume (M per disattivare)',
+  'volume.fixed': 'Volume fisso',
+  'volume.fixedHint': 'Volume gestito dal dispositivo (bit-perfect). Si cambia nelle impostazioni della zona.',
 
   // Database
   'settings.database': 'Database',

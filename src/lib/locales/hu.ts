@@ -828,6 +828,8 @@ export default {
   "pairing.error": "A párosítás nem sikerült",
   // Hangerő
   "volume.title": "Hangerő (M a némításhoz)",
+  "volume.fixed": "Rögzített hangerő",
+  "volume.fixedHint": "A hangerőt az eszköz kezeli (bit-perfect). A zóna beállításaiban módosítható.",
   // Adatbázis
   "settings.database": "Adatbázis",
   "settings.dbEngine": "Motor",

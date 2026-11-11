@@ -793,6 +793,8 @@ export default {
   "pairing.success": "Đã ghép đôi!",
   "pairing.error": "Ghép đôi thất bại",
   "volume.title": "Âm lượng (M để tắt tiếng)",
+  "volume.fixed": "Âm lượng cố định",
+  "volume.fixedHint": "Âm lượng do thiết bị giữ (bit-perfect). Thay đổi trong cài đặt vùng.",
   "settings.database": "Cơ sở dữ liệu",
   "settings.dbEngine": "Công cụ",
   "nav.favorites": "Yêu thích",

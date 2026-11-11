@@ -858,6 +858,8 @@ export default {
 
   // Volume
   'volume.title': 'Volume (M pour couper)',
+  'volume.fixed': 'Volume fixe',
+  'volume.fixedHint': 'Volume tenu par l’appareil (bit-perfect). Il se change dans les réglages de la zone.',
 
   // Database
   'settings.database': 'Base de données',

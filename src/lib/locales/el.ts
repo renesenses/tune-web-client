@@ -791,6 +791,8 @@ export default {
   "pairing.success": "Η σύζευξη ολοκληρώθηκε!",
   "pairing.error": "Η σύζευξη απέτυχε",
   "volume.title": "Ένταση (M για σίγαση)",
+  "volume.fixed": "Σταθερή ένταση",
+  "volume.fixedHint": "Η ένταση ορίζεται από τη συσκευή (bit-perfect). Αλλάζει στις ρυθμίσεις της ζώνης.",
   "settings.database": "Βάση δεδομένων",
   "settings.dbEngine": "Μηχανή",
   "nav.favorites": "Αγαπημένα",

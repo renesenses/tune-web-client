@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': '볼륨 (M으로 음소거)',
+  'volume.fixed': '고정 볼륨',
+  'volume.fixedHint': '볼륨은 기기에서 고정됩니다(비트퍼펙트). 존 설정에서 변경할 수 있습니다.',
 
   // Database
   'settings.database': '데이터베이스',
