@@ -1755,7 +1755,7 @@ import { ICONES } from '../../lib/menuPiste';
        remontait donc le mode que l'utilisateur venait de quitter. La table de
        `destinationDeRetour` tranche le cas de CHAQUE vue. -->
   <button class="np-back-btn" onclick={() => {
-    // web#2761 — en CALQUE, Retour referme le calque : la vue d'en dessous est
+    // web#2761 — en CALQUE, Retour referme le calque : la vue du dessous est
     // déjà là. Changer de vue laissait le calque ouvert, et après un Grand
     // écran `previousView` vaut `'tv'`, qui renvoyait à la Bibliothèque.
     if ($mobileNowPlayingOpen && $activeView !== 'nowplaying') { mobileNowPlayingOpen.set(false); return; }
