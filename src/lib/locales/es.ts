@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': 'Volumen (M para silenciar)',
+  'volume.fixed': 'Volumen fijo',
+  'volume.fixedHint': 'Volumen fijado por el dispositivo (bit-perfect). Se cambia en los ajustes de la zona.',
 
   // Database
   'settings.database': 'Base de datos',

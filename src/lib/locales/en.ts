@@ -855,6 +855,8 @@ export default {
 
   // Volume
   'volume.title': 'Volume (M to mute)',
+  'volume.fixed': 'Fixed volume',
+  'volume.fixedHint': 'Volume held by the device (bit-perfect). Change it in the zone settings.',
 
   // Database
   'settings.database': 'Database',

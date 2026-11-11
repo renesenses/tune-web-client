@@ -1,6 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -43,6 +43,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
@@ -1538,6 +1539,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             </svg>
           {/if}
         </button>
+        {#if volumeFixe($currentZone)}
+          <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+          <VolumeFixe />
+        {:else}
         <input
           type="range"
           class="mobile-volume-slider"
@@ -1556,6 +1561,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        {/if}
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}

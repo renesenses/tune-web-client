@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': '音量（M 静音）',
+  'volume.fixed': '固定音量',
+  'volume.fixedHint': '音量由设备保持（比特完美）。可在区域设置中更改。',
 
   // Database
   'settings.database': '数据库',

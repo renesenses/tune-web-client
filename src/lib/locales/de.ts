@@ -745,6 +745,8 @@ export default {
 
   // Volume
   'volume.title': 'Lautstärke (M zum Stummschalten)',
+  'volume.fixed': 'Feste Lautstärke',
+  'volume.fixedHint': 'Lautstärke wird vom Gerät gehalten (bit-perfect). Änderbar in den Zoneneinstellungen.',
 
   // Database
   'settings.database': 'Datenbank',
