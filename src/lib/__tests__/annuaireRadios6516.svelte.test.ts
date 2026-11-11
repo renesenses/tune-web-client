@@ -131,7 +131,7 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     expect(noms).toContain('Radio Paradise: Main Mix');
   });
 
-  it('🔴 un clic écoute : la fiche hors de « Mes radios » passe par l’annuaire, l’autre par sa station', async () => {
+  it('🔴 le bouton lecture écoute : la fiche hors de « Mes radios » passe par l’annuaire, l’autre par sa station', async () => {
     mocks.jouerDepuisAnnuaire.mockResolvedValue({ zone_id: 3, radio: 'x', output_sent: true });
     mocks.playRadio.mockResolvedValue({ zone_id: 3, radio: 'FIP', output_sent: true });
     await ouvrirAnnuaire();
