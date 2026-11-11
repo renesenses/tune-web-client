@@ -2358,12 +2358,63 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
-  let lrclibOn = $state(false);
+  let lrclibOn = $state<boolean | null>(null);
   let lrclibErr = $state<string | null>(null);
   // « Écrire les modifications dans les fichiers audio » — décoché par défaut
   // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
-  let ecritureFichiersOn = $state(false);
+  let ecritureFichiersOn = $state<boolean | null>(null);
   let ecritureFichiersErr = $state<string | null>(null);
+  /**
+   * tune-server-rust#8521 (Tades, fil 2726) — « décochés quand je redémarre,
+   * il arrive que cela marche ».
+   *
+   * Les deux cases partaient DÉCOCHÉES (`false`) et ne changeaient qu'une fois
+   * `GET /system/config` lu. Si cette lecture échouait — serveur en train de
+   * redémarrer (503 du répondeur de démarrage), injoignable un instant —,
+   * elles restaient décochées : l'écran affirmait « désactivé » sur un réglage
+   * qu'il n'avait pas lu, et la seule erreur s'affichait loin de là, sous les
+   * dossiers de musique. Rien ne relisait ensuite.
+   *
+   * `null` = pas encore lu : la case est GRISÉE, jamais décochée. Une lecture
+   * en échec le dit dans la carte même, et se retente toutes les
+   * `RELECTURE_CONSENTEMENTS_MS` jusqu'à ce que le serveur réponde.
+   */
+  let consentementsIllisibles = $state(false);
+  const RELECTURE_CONSENTEMENTS_MS = 3000;
+  const RELECTURES_CONSENTEMENTS_MAX = 100;
+  let relectureConsentements: ReturnType<typeof setTimeout> | null = null;
+  let relecturesConsentements = 0;
+  let reglagesDetruits = false;
+  function appliquerConsentements(c: any) {
+    lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
+    ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+    consentementsIllisibles = false;
+  }
+  function relireConsentementsPlusTard() {
+    consentementsIllisibles = true;
+    if (reglagesDetruits || relectureConsentements) return;
+    if (relecturesConsentements >= RELECTURES_CONSENTEMENTS_MAX) return;
+    relecturesConsentements++;
+    relectureConsentements = setTimeout(async () => {
+      relectureConsentements = null;
+      if (reglagesDetruits) return;
+      try {
+        const c: any = await api.getConfig();
+        if (reglagesDetruits) return;
+        appliquerConsentements(c);
+        // Le serveur répond de nouveau : le reste de l'onglet (dossiers,
+        // options d'analyse) se relit aussi, et l'erreur d'en haut s'efface.
+        if (libErr === get(t)('settings.errConfigUnavailable')) libErr = null;
+        void refreshLibrary();
+      } catch {
+        relireConsentementsPlusTard();
+      }
+    }, RELECTURE_CONSENTEMENTS_MS);
+  }
+  $effect(() => () => {
+    reglagesDetruits = true;
+    if (relectureConsentements) clearTimeout(relectureConsentements);
+  });
   // « Analyser la bibliothèque au démarrage ». `null` : le serveur ne publie
   // pas le réglage (version antérieure), l'interrupteur ne s'affiche pas.
   let scanDemarrage = $state<boolean | null>(null);
@@ -2618,13 +2669,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
-      lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
-      ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      appliquerConsentements(c);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
       dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
-    } catch { libErr = get(t)('settings.errConfigUnavailable'); }
+    } catch {
+      libErr = get(t)('settings.errConfigUnavailable');
+      relireConsentementsPlusTard();
+    }
     try {
       const sch: any = await api.getScanSchedule();
       schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
@@ -5256,7 +5309,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn}
+                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn === true}
+                    disabled={ecritureFichiersOn === null}
                     onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
@@ -5270,12 +5324,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn}
+                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn === true}
+                    disabled={lrclibOn === null}
                     onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
               </div>
               {#if lrclibErr}<div class="errline">{lrclibErr}</div>{/if}
+              <!-- tune-server-rust#8521 — réglages pas encore lus : on le dit
+                   ICI, pas seulement sous les dossiers de musique. -->
+              {#if consentementsIllisibles}<div class="errline" data-temoin="consentements-illisibles">{$t('settings.errConfigUnavailable')}</div>{/if}
               {#if voit('intermediate', s.id)}
                 <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
               {/if}
