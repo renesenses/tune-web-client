@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "Wird gespeichert",
   "v2.cd.save.done": "In der Bibliothek gespeichert",
   "v2.cd.save.err.notLoaded": "Die Disc ist nicht mehr vollständig im Speicher: Laden Sie sie erneut oder rippen Sie sie.",
+  "v2.cd.save.err.lostSectors": "Einige Sektoren waren beim Laden unlesbar: Rippen Sie die Disc stattdessen vom Laufwerk.",
   "v2.cd.memAccurateRip": "AccurateRip beim Laden berechnet ({n} Titel)",
   "v2.cd.rip.folder": "Ordner: {dossier}",
   "v2.cd.rip.scanWaiting": "Wird zur Bibliothek hinzugefügt…",

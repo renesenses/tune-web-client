@@ -37,8 +37,9 @@
    * une fois prêt, « Lire le disque » se sert dans la mémoire. Rien ne part
    * tout seul : c'est l'utilisateur qui lance la lecture.
    *
-   * tune-server-rust#8514 : une fois le disque entier en mémoire, les CRC
-   * AccurateRip calculés au chargement s'affichent (détail repliable), et
+   * tune-server-rust#8514 : les CRC AccurateRip calculés au chargement
+   * s'affichent piste par piste dès qu'elles sont entières (détail
+   * repliable) ; une fois le disque entier en mémoire,
    * « Enregistrer dans la bibliothèque » (`ExtractionCdV2`, `memoirePrete`)
    * verse les pistes déjà lues sans relire le CD.
    */
@@ -86,7 +87,7 @@
   const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
   /** #6596 — où en est le chargement du disque affiché. */
   const etatCharg = $derived(etatChargementCd(etat?.chargement, disque?.disc_id));
-  /** #8514 — les CRC AccurateRip du chargement, une fois le disque prêt. */
+  /** #8514 — les CRC AccurateRip du chargement, piste par piste. */
   const crcChargement = $derived(accurateRipDuChargement(etat?.chargement, disque?.disc_id));
   let chargementDemande = $state(false);
   let erreurChargement = $state<string | null>(null);

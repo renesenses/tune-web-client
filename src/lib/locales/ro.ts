@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "Se salvează",
   "v2.cd.save.done": "Salvat în bibliotecă",
   "v2.cd.save.err.notLoaded": "Discul nu mai este complet în memorie: încărcați-l din nou sau extrageți-l.",
+  "v2.cd.save.err.lostSectors": "Unele sectoare nu au putut fi citite la încărcare: extrageți mai bine discul din unitate.",
   "v2.cd.memAccurateRip": "AccurateRip calculat la încărcare ({n} piese)",
   "v2.cd.rip.folder": "Dosar: {dossier}",
   "v2.cd.rip.scanWaiting": "Se adaugă în bibliotecă…",

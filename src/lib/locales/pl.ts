@@ -5134,6 +5134,7 @@ export default {
   "v2.cd.save.running": "Zapisywanie",
   "v2.cd.save.done": "Zapisano w bibliotece",
   "v2.cd.save.err.notLoaded": "Płyta nie jest już w całości w pamięci: wczytaj ją ponownie lub zgraj.",
+  "v2.cd.save.err.lostSectors": "Podczas wczytywania niektórych sektorów nie udało się odczytać: zgraj płytę bezpośrednio z napędu.",
   "v2.cd.memAccurateRip": "AccurateRip obliczony przy wczytywaniu (utwory: {n})",
   "v2.cd.rip.folder": "Folder: {dossier}",
   "v2.cd.rip.scanWaiting": "Dodawanie do biblioteki…",

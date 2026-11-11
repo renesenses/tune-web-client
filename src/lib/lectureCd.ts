@@ -84,14 +84,15 @@ export interface AccurateRipPisteCd {
 
 /**
  * tune-server-rust#8514 — les CRC AccurateRip calculés au chargement du
- * disque affiché, s'il est entièrement en mémoire ; `[]` sinon (autre
- * disque, chargement en cours ou arrêté, serveur antérieur).
+ * disque affiché, piste par piste dès qu'une piste est entière (pendant le
+ * chargement aussi) ; `[]` pour un autre disque, un chargement arrêté
+ * (éjecté, rendu, en échec) ou un serveur antérieur.
  */
 export function accurateRipDuChargement(
   c: ChargementCd | null | undefined,
   discId: string | null | undefined,
 ): AccurateRipPisteCd[] {
-  if (etatChargementCd(c, discId) !== 'pret' || !Array.isArray(c?.accuraterip)) return [];
+  if (!vueChargementCd(c, discId) || !Array.isArray(c?.accuraterip)) return [];
   return c!.accuraterip.filter((a) => a && typeof a.piste === 'number' && typeof a.v1 === 'string');
 }
 

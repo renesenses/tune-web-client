@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "저장 중",
   "v2.cd.save.done": "라이브러리에 저장됨",
   "v2.cd.save.err.notLoaded": "디스크가 더 이상 메모리에 완전히 있지 않습니다. 다시 불러오거나 리핑하세요.",
+  "v2.cd.save.err.lostSectors": "불러오는 동안 읽지 못한 섹터가 있습니다. 드라이브에서 직접 리핑하세요.",
   "v2.cd.memAccurateRip": "불러올 때 AccurateRip 계산됨 ({n}개 트랙)",
   "v2.cd.rip.folder": "폴더: {dossier}",
   "v2.cd.rip.scanWaiting": "보관함에 추가하는 중…",

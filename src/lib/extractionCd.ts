@@ -14,7 +14,8 @@
  * bibliothèque » le disque déjà ENTIER en mémoire, sans relire le CD (même
  * nommage, mêmes balises et pochette, même scan) ; l'état porte alors
  * `source: 'memoire'`. Refus `409 memoire_incomplete` si le disque n'est
- * pas (ou plus) entièrement en mémoire.
+ * pas (ou plus) entièrement en mémoire, `409 memoire_secteurs_perdus` si
+ * des secteurs sont restés illisibles au chargement (à extraire du lecteur).
  *   GET    /extractions           → { extractions: [état…] } (la plus récente d'abord)
  *   GET    /extractions/{id}      → état · 404 extraction_inconnue
  *   DELETE /extractions/{id}      → 202 état (encore en_cours) · 404 extraction_inconnue · 409 extraction_terminee
@@ -188,6 +189,7 @@ export const CLES_REFUS: Record<string, string> = {
   extraction_terminee: 'v2.cd.rip.err.alreadyFinished',
   admin_requis: 'v2.cd.rip.err.adminRequired',
   memoire_incomplete: 'v2.cd.save.err.notLoaded',
+  memoire_secteurs_perdus: 'v2.cd.save.err.lostSectors',
   // Codes de l'`erreur` d'une extraction en échec.
   disque_retire: 'v2.cd.rip.err.discRemoved',
   lecture: 'v2.cd.rip.err.read',

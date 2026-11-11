@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "保存中",
   "v2.cd.save.done": "ライブラリに保存しました",
   "v2.cd.save.err.notLoaded": "ディスクがメモリに完全には残っていません。再度読み込むか、リッピングしてください。",
+  "v2.cd.save.err.lostSectors": "読み込み時に読めないセクターがありました。ドライブからリッピングしてください。",
   "v2.cd.memAccurateRip": "読み込み時にAccurateRipを計算済み（{n} トラック）",
   "v2.cd.rip.folder": "フォルダ: {dossier}",
   "v2.cd.rip.scanWaiting": "ライブラリに追加しています…",

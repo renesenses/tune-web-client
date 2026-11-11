@@ -5294,6 +5294,7 @@ export default {
   "v2.cd.save.running": "Saving",
   "v2.cd.save.done": "Saved to library",
   "v2.cd.save.err.notLoaded": "The disc is no longer fully in memory: load it again or rip it.",
+  "v2.cd.save.err.lostSectors": "Some sectors could not be read during loading: rip the disc from the drive instead.",
   "v2.cd.memAccurateRip": "AccurateRip computed on load ({n} tracks)",
   "v2.cd.rip.folder": "Folder: {dossier}",
   "v2.cd.rip.scanWaiting": "Adding to the library…",

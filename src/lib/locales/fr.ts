@@ -5296,6 +5296,7 @@ export default {
   "v2.cd.save.running": "Enregistrement en cours",
   "v2.cd.save.done": "Enregistrement terminé",
   "v2.cd.save.err.notLoaded": "Le disque n'est plus entièrement en mémoire : chargez-le de nouveau ou extrayez-le.",
+  "v2.cd.save.err.lostSectors": "Des secteurs sont restés illisibles au chargement : extrayez plutôt le disque depuis le lecteur.",
   "v2.cd.memAccurateRip": "AccurateRip calculé au chargement ({n} pistes)",
   "v2.cd.rip.folder": "Dossier : {dossier}",
   "v2.cd.rip.scanWaiting": "Ajout à la bibliothèque…",

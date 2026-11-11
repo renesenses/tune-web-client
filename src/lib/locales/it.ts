@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "Salvataggio in corso",
   "v2.cd.save.done": "Salvato nella libreria",
   "v2.cd.save.err.notLoaded": "Il disco non è più interamente in memoria: caricalo di nuovo o estrailo.",
+  "v2.cd.save.err.lostSectors": "Alcuni settori sono risultati illeggibili durante il caricamento: estrai invece il disco dall'unità.",
   "v2.cd.memAccurateRip": "AccurateRip calcolato al caricamento ({n} tracce)",
   "v2.cd.rip.folder": "Cartella: {dossier}",
   "v2.cd.rip.scanWaiting": "Aggiunta alla libreria…",

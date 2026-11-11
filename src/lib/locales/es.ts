@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "Guardando",
   "v2.cd.save.done": "Guardado en la biblioteca",
   "v2.cd.save.err.notLoaded": "El disco ya no está completo en memoria: vuelva a cargarlo o extráigalo.",
+  "v2.cd.save.err.lostSectors": "Algunos sectores no se pudieron leer durante la carga: extraiga el disco desde la unidad.",
   "v2.cd.memAccurateRip": "AccurateRip calculado al cargar ({n} pistas)",
   "v2.cd.rip.folder": "Carpeta: {dossier}",
   "v2.cd.rip.scanWaiting": "Añadiendo a la biblioteca…",

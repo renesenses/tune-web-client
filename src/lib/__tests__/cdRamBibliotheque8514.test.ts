@@ -187,9 +187,17 @@ describe('#8514 — AccurateRip au chargement', () => {
     expect(lignes).toEqual(CRC.map((c) => `${c.piste} ${fr['v2.cd.rip.crc'].replace('{crc1}', c.v1).replace('{crc2}', c.v2)}`));
   });
 
-  it('contre-épreuve : chargement en cours, ou d’un autre disque, ou serveur antérieur : rien', async () => {
+  it('pendant le chargement : les pistes déjà entières ont leurs CRC, sans attendre la fin', async () => {
+    charge = chargement({ fin: null, pourcentage: 40, pistes_chargees: [1], accuraterip: [CRC[0]] });
+    const el = await poser();
+    const d = el.querySelector('.accuraterip-chargement');
+    expect(texte(d!.querySelector('summary'))).toBe(fr['v2.cd.memAccurateRip'].replace('{n}', '1'));
+    expect(el.querySelector('button.enregistrer-memoire'), 'pas encore entier : pas d’enregistrement').toBeNull();
+  });
+
+  it('contre-épreuve : chargement d’un autre disque, arrêté, ou serveur antérieur : rien', async () => {
     for (const c of [
-      chargement({ fin: null, pourcentage: 40 }),
+      chargement({ fin: 'ejecte' }),
       chargement({ disc_id: 'autre' }),
       chargement({ accuraterip: undefined }),
     ]) {
@@ -203,7 +211,8 @@ describe('#8514 — AccurateRip au chargement', () => {
 
   it('accurateRipDuChargement : seulement le disque affiché, entièrement chargé', () => {
     expect(accurateRipDuChargement(chargement(), DISQUE.disc_id)).toEqual(CRC);
-    expect(accurateRipDuChargement(chargement({ fin: null }), DISQUE.disc_id)).toEqual([]);
+    expect(accurateRipDuChargement(chargement({ fin: null, accuraterip: [CRC[0]] }), DISQUE.disc_id)).toEqual([CRC[0]]);
+    expect(accurateRipDuChargement(chargement({ fin: 'echec' }), DISQUE.disc_id)).toEqual([]);
     expect(accurateRipDuChargement(chargement({ fin: 'libere' }), DISQUE.disc_id)).toEqual([]);
     expect(accurateRipDuChargement(chargement(), 'autre')).toEqual([]);
     expect(accurateRipDuChargement(null, DISQUE.disc_id)).toEqual([]);
@@ -267,6 +276,17 @@ describe('#8514 — « Enregistrer dans la bibliothèque » sans relire le disqu
     await laisserFaire();
     expect(texte(feuille()!.querySelector('.err'))).toBe(fr['v2.cd.save.err.notLoaded']);
     expect(cleRefus('memoire_incomplete')).toBe('v2.cd.save.err.notLoaded');
+    expect(cleRefus('memoire_secteurs_perdus')).toBe('v2.cd.save.err.lostSectors');
+  });
+
+  it('refus `memoire_secteurs_perdus` : dit d’extraire depuis le lecteur', async () => {
+    refusLancement = { status: 409, corps: { error: 'memoire_secteurs_perdus', message: 'x', secteurs_perdus: 2 } };
+    const el = await poser();
+    (el.querySelector('button.enregistrer-memoire') as HTMLButtonElement).click();
+    await laisserFaire();
+    (feuille()!.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }));
+    await laisserFaire();
+    expect(texte(feuille()!.querySelector('.err'))).toBe(fr['v2.cd.save.err.lostSectors']);
   });
 
   it('aides pures : corps et source', () => {
@@ -281,7 +301,8 @@ describe('#8514 — « Enregistrer dans la bibliothèque » sans relire le disqu
 
   it('les textes existent dans les quinze catalogues', () => {
     const cles = ['v2.cd.save.action', 'v2.cd.save.sheetTitle', 'v2.cd.save.hint', 'v2.cd.save.start',
-      'v2.cd.save.running', 'v2.cd.save.done', 'v2.cd.save.err.notLoaded', 'v2.cd.memAccurateRip'];
+      'v2.cd.save.running', 'v2.cd.save.done', 'v2.cd.save.err.notLoaded', 'v2.cd.save.err.lostSectors',
+      'v2.cd.memAccurateRip'];
     const catalogues = { fr, en, de, es, it: it_, hu, ja, ko, ro, sv, vi: vi_, el: el_, nb: nb_, pl: pl_, zh };
     expect(Object.keys(catalogues)).toHaveLength(15);
     for (const [l, cat] of Object.entries(catalogues)) {

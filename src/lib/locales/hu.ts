@@ -5228,6 +5228,7 @@ export default {
   "v2.cd.save.running": "Mentés folyamatban",
   "v2.cd.save.done": "Elmentve a könyvtárba",
   "v2.cd.save.err.notLoaded": "A lemez már nincs teljesen a memóriában: töltse be újra, vagy rippelje.",
+  "v2.cd.save.err.lostSectors": "Betöltéskor néhány szektor olvashatatlan maradt: inkább rippelje a lemezt a meghajtóról.",
   "v2.cd.memAccurateRip": "AccurateRip a betöltéskor kiszámítva ({n} szám)",
   "v2.cd.rip.folder": "Mappa: {dossier}",
   "v2.cd.rip.scanWaiting": "Hozzáadás a könyvtárhoz…",

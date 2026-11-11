@@ -5274,6 +5274,7 @@ export default {
   "v2.cd.save.running": "正在保存",
   "v2.cd.save.done": "已保存到资料库",
   "v2.cd.save.err.notLoaded": "光盘已不再完整地保留在内存中：请重新载入或抓轨。",
+  "v2.cd.save.err.lostSectors": "载入时有扇区无法读取：请改为从光驱抓轨。",
   "v2.cd.memAccurateRip": "载入时已计算 AccurateRip（{n} 条音轨）",
   "v2.cd.rip.folder": "文件夹:{dossier}",
   "v2.cd.rip.scanWaiting": "正在添加到资料库…",

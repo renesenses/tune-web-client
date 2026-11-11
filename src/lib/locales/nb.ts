@@ -5136,6 +5136,7 @@ export default {
   "v2.cd.save.running": "Lagrer",
   "v2.cd.save.done": "Lagret i biblioteket",
   "v2.cd.save.err.notLoaded": "Platen er ikke lenger helt i minnet: last den inn på nytt eller rip den.",
+  "v2.cd.save.err.lostSectors": "Noen sektorer kunne ikke leses under innlasting: rip heller platen fra stasjonen.",
   "v2.cd.memAccurateRip": "AccurateRip beregnet ved innlasting ({n} spor)",
   "v2.cd.rip.folder": "Mappe: {dossier}",
   "v2.cd.rip.scanWaiting": "Legger til i biblioteket…",

@@ -5273,6 +5273,7 @@ export default {
   "v2.cd.save.running": "Sparar",
   "v2.cd.save.done": "Sparad i biblioteket",
   "v2.cd.save.err.notLoaded": "Skivan finns inte längre helt i minnet: läs in den igen eller rippa den.",
+  "v2.cd.save.err.lostSectors": "Vissa sektorer kunde inte läsas vid inläsningen: rippa hellre skivan från enheten.",
   "v2.cd.memAccurateRip": "AccurateRip beräknat vid inläsning ({n} spår)",
   "v2.cd.rip.folder": "Mapp: {dossier}",
   "v2.cd.rip.scanWaiting": "Läggs till i biblioteket…",

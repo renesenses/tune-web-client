@@ -5138,6 +5138,7 @@ export default {
   "v2.cd.save.running": "Đang lưu",
   "v2.cd.save.done": "Đã lưu vào thư viện",
   "v2.cd.save.err.notLoaded": "Đĩa không còn đầy đủ trong bộ nhớ: hãy nạp lại hoặc trích xuất đĩa.",
+  "v2.cd.save.err.lostSectors": "Một số sector không đọc được khi nạp: hãy trích xuất đĩa trực tiếp từ ổ đĩa.",
   "v2.cd.memAccurateRip": "Đã tính AccurateRip khi nạp ({n} bài)",
   "v2.cd.rip.folder": "Thư mục: {dossier}",
   "v2.cd.rip.scanWaiting": "Đang thêm vào thư viện…",
