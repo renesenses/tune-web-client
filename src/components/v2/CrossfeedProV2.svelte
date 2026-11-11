@@ -135,6 +135,7 @@
         error = null;
       })
       .catch((e) => {
+        jamaisReglee = false;
         const p = presenceDepuis(null, e);
         publierPresence(p);
         error = p === 'inconnue' ? $t('v2.cfp.errLoad' as any) : null;
@@ -211,10 +212,12 @@
     void save();
   }
   function regler(cle: CurseurCrossfeedPro | CurseurMidSide, e: Event) {
+    jamaisReglee = false;
     r = { ...r, [cle]: Number((e.currentTarget as HTMLInputElement).value) };
     queueSave();
   }
   function reglerCoupure(e: Event) {
+    jamaisReglee = false;
     r = { ...r, head_shadow_hz: coupureDePosition(Number((e.currentTarget as HTMLInputElement).value), bCoupure) };
     queueSave();
   }
