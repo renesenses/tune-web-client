@@ -12,6 +12,7 @@
  * connaît pas la route rend une carte vide, et la grille tient en monogrammes.
  */
 import type { LabelImageCredit, LibraryLabel } from './api';
+import { pausesParTraitement, type InstantaneTachesDeFond } from './tachesDeFond';
 
 /** La clé d'un nom de label : espaces resserrés, minuscules. LA MÊME que
  *  celle du serveur (`cle_de_label`, tune-core/src/library/logos_labels.rs) :
@@ -29,6 +30,23 @@ export function carteDesLogos(labels: readonly LibraryLabel[] | null | undefined
     }
   }
   return carte;
+}
+
+/**
+ * web#2790 (tune-server-rust#7414, Benjithom, fil 2643) — les logos
+ * ATTENDENT-ils ? La passe automatique des logos (source web) est portée par
+ * le traitement de fond « Enrichissement » : suspendu, elle ne tourne pas, et
+ * un monogramme ne dit pas pourquoi. Vrai quand `GET /system/background-tasks`
+ * donne `enrichment` en pause ET qu'au moins un label n'a pas de logo. Un
+ * serveur qui ne publie pas la pause, ou une liste vide, rend faux : on
+ * n'affirme pas une attente qu'on ne sait pas.
+ */
+export function logosEnAttente(
+  labels: readonly LibraryLabel[] | null | undefined,
+  instantane: InstantaneTachesDeFond | null | undefined,
+): boolean {
+  if (!pausesParTraitement(instantane)['enrichment']) return false;
+  return (labels ?? []).some((l) => l && typeof l.name === 'string' && !(typeof l.image_url === 'string' && l.image_url));
 }
 
 /** L'adresse du logo de ce label, ou `null` : alors, le monogramme. */

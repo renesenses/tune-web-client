@@ -29,6 +29,7 @@ import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
+import { artisteDAlbum } from './lienEntite';
 import { estAParaitre } from './albumAParaitre';
 import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
 import {
@@ -158,6 +159,13 @@ export interface Element {
    * à la fiche du service, sans rapprochement par le nom.
    */
   artisteObjet?: any;
+  /**
+   * web#2770 — l'artiste du SOUS-TITRE d'un album, prêt pour
+   * `ouvrirArtisteDepuis` (`artisteDAlbum`) : la deuxième ligne de la
+   * vignette devient un lien à part, dans le bouton qui ouvre l'album. Absent
+   * quand le sous-titre n'est pas un artiste (auteur d'un podcast, station).
+   */
+  artisteDuSous?: any;
   /**
    * Un objet d'un AUTRE écran à rouvrir précisément, quand `ouvrir` vaut
    * `cible` — playlist locale, playlist intelligente, collection, collection
@@ -553,7 +561,17 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     aParaitre,
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
+    ...artisteDuSousDe(o, service, opts.genre ?? 'album'),
   };
+}
+
+/** web#2770 — l'artiste du sous-titre d'un album ou d'une piste, ou rien. */
+function artisteDuSousDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun'): Partial<Element> {
+  if (genre === 'playlist') return {};
+  const nom = champ(o, 'artist_name', 'artist');
+  if (!nom) return {};
+  const artiste = artisteDAlbum({ artist_name: nom, artist_id: o?.artist_id ?? null, source: service });
+  return artiste ? { artisteDuSous: artiste } : {};
 }
 
 /**
@@ -1138,6 +1156,33 @@ function gestePisteTop(t: api.DashboardData['top_tracks'][number]): Element['jou
 }
 
 /**
+ * web#2770 (lot 4) — l'ALBUM d'une piste de classement, quand le serveur
+ * l'envoie (`album_id` sur `TopTrackEntry`, PR serveur séparée du chantier) :
+ * la ligne l'ouvre, et la lecture garde son bouton. Sans lui, rien ne change.
+ */
+function ficheDePisteTop(t: api.DashboardData['top_tracks'][number]): Partial<Element> {
+  const idAlbum = idLocalValide((t as any)?.album_id);
+  if (idAlbum == null || idLocalValide(t.track_id) == null) return {};
+  return { ouvrir: 'album', fiche: ficheDAlbumDePiste(t, idAlbum) };
+}
+
+/** La fiche (`Element.fiche`) de l'album LOCAL `idAlbum` d'une piste. */
+function ficheDAlbumDePiste(o: any, idAlbum: number): Element['fiche'] {
+  return {
+    id: idAlbum,
+    source_id: null,
+    source: null,
+    title: champ(o, 'album_title', 'album') ?? '',
+    artist_name: champ(o, 'artist_name', 'artist') ?? '',
+    cover_path: champ(o, 'cover_path', 'cover_url') ?? null,
+    year: null,
+    format: null,
+    sample_rate: null,
+    bit_depth: null,
+  };
+}
+
+/**
  * LES REPLIS DU WIDGET « VOS FAVORIS » — #1509.
  *
  * Un artiste ou une piste favori, tels que `chargerFavorisFusionnes` les
@@ -1239,16 +1284,25 @@ function elementArtisteDuSeau(o: any, i: number): Element {
   };
 }
 
-/** Une PISTE favorite : un clic la JOUE (`ouvrir: 'lire'`). */
-function elementPisteDuSeau(o: any, i: number): Element {
+/**
+ * Une PISTE favorite : un clic OUVRE son album quand il est connu (web#2770,
+ * lot 4 : « clic = navigation, jamais lecture ») — l'`album_id` d'une piste
+ * de la bibliothèque. Une piste de service n'a pas d'identifiant d'album ici
+ * (web#2749 le demande au service, écran par écran) : elle garde la lecture,
+ * mieux qu'une vignette morte.
+ */
+export function elementPisteDuSeau(o: any, i: number): Element {
   const el = elementPisteFavorite(o, i);
   const local = idLocalValide(o?.id);
   const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
   const sid = champ(o, 'source_id');
+  const idAlbum = local != null ? idLocalValide(o?.album_id) : null;
   return {
     ...el,
     id: `ftrk${i}-${champ(o, 'id', 'source_id') ?? ''}`,
-    ouvrir: el.jouer ? 'lire' : null,
+    ...(idAlbum != null
+      ? { ouvrir: 'album' as const, fiche: ficheDAlbumDePiste(o, idAlbum) }
+      : { ouvrir: el.jouer ? ('lire' as const) : null }),
     favoriLocal: local != null ? { trackId: local } : null,
     favoriDistant: svc && sid ? { itemType: 'track', serviceId: sid } : null,
     etiquette: null,
@@ -2044,6 +2098,7 @@ export const WIDGETS: Widget[] = [
         cover: t.cover_path ?? null,
         colonne: 'titres' as const,
         jouer: gestePisteTop(t),
+        ...ficheDePisteTop(t),
       }));
       return utiles([...artistes, ...albums, ...titres]);
     },

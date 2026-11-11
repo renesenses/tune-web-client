@@ -85,6 +85,7 @@
   import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   // 🔴 #1108 — le calque PLAYLIST. `AlbumDetailV2` ne sait pas afficher une
@@ -1411,7 +1412,11 @@
     </div>
     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
       <span class="ct" title={el.titre}>{el.titre}</span>
-      {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+      <!-- web#2770 (lot 3) — l'artiste sous la vignette est un lien à part
+           (`artisteDuSous`) ; un sous-titre qui n'est pas un artiste reste
+           texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
+           pas distribué, ce serait un lien mort. -->
+      {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
       <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
       {#if el.raison}
         {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
@@ -1836,7 +1841,7 @@
                               <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} vignette alt="" /></span>
                               <span class="txt">
                                 <span class="t" use:bulleTexte>{el.titre}</span>
-                                {#if el.sous}<span class="s" use:bulleTexte>{el.sous}</span>{/if}
+                                {#if el.sous}<span class="s" use:bulleTexte>{#if el.artisteDuSous && (el.ouvrir || el.jouer)}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
                               </span>
                             </button>
                             {#if el.ouvrir && el.jouer}

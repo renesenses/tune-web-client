@@ -2711,9 +2711,33 @@ export interface AlbumsArtisteSections {
    * connaît pas (v0.9.163).
    */
   collaborations?: GroupeCollaborations[];
-  /** Les disques d'autrui où il est crédité comme AUTEUR (par année). */
+  /**
+   * Section « Reprises » : les disques d'autrui où il n'a aucun rôle audible
+   * et où il est crédité comme AUTEUR (par année). Inchangée par le lot 2.
+   */
   covers?: Album[];
+  /**
+   * Lot 2 (web#2639, tune-server-rust#7767) — section « Écriture et
+   * production » : les disques hors de sa discographie où il est compositeur,
+   * parolier, arrangeur, producteur, ingénieur ou mixeur, qu'il y joue ou non.
+   * Même forme que `covers` (`focus_track_ids`, `credit_roles`). Absente :
+   * serveur antérieur, ou rien. 🔴 Pas de repli sur `covers` : « Reprises »
+   * garde sa propre section.
+   */
+  writing?: Album[];
+  /**
+   * Lot 2 — les compteurs « interprète / écriture » de l'en-tête, sur TOUTE
+   * la bibliothèque (discographie comprise). Absente devant un serveur
+   * antérieur : le client ne les recalcule pas à partir des listes, qui
+   * excluent la discographie et ne disent rien des pistes.
+   */
+  credit_counts?: CompteursCredits;
 }
+
+/** Un compteur de l'en-tête : albums et pistes distincts. */
+export interface CompteurCredits { albums: number; tracks: number }
+/** Les deux compteurs de l'en-tête de la page artiste (lot 2). */
+export interface CompteursCredits { performing: CompteurCredits; writing: CompteurCredits }
 
 /** Une sous-section « Avec {artiste} » des Collaborations. */
 export interface GroupeCollaborations {
@@ -2741,6 +2765,9 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
     appearances: o.appearances,
     collaborations: o.collaborations,
     covers: o.covers,
+    // Lot 2 — recopiées telles quelles : ABSENTE reste absente.
+    writing: o.writing,
+    credit_counts: o.credit_counts,
   };
 }
 
@@ -3892,6 +3919,30 @@ export function browseDirectory(path: string) {
 }
 
 // --- Media Servers (UPnP/DLNA) ---
+
+/**
+ * Annonce du serveur multimédia UPnP/DLNA de Tune (web#2784, Alex).
+ *
+ * `GET /upnp/config` rend `{ enabled, friendly_name }` ; `POST /upnp/config`
+ * accepte l'un ou l'autre champ, ou les deux. Le serveur ne lit ces réglages
+ * qu'au démarrage (`spawn_upnp_advertiser`, tune-server-rust rc11) : la
+ * bascule, comme le renommage, prend effet au redémarrage de Tune.
+ */
+export interface UpnpServerConfig {
+  enabled: boolean;
+  friendly_name: string;
+}
+
+export function getUpnpServerConfig(): Promise<UpnpServerConfig> {
+  return fetchJSON<UpnpServerConfig>(`${BASE}/upnp/config`);
+}
+
+export function setUpnpServerConfig(patch: Partial<UpnpServerConfig>): Promise<UpnpServerConfig> {
+  return fetchJSON<UpnpServerConfig>(`${BASE}/upnp/config`, {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
 
 export async function getMediaServers(signal?: AbortSignal): Promise<import('./types').MediaServer[]> {
   const data = await fetchJSON<any>(`${BASE}/network/media-servers`, signal ? { signal } : undefined);
@@ -6574,8 +6625,21 @@ export function getStreamingPlaylist(service: string, id: string) {
   );
 }
 
-export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
-  return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`)
+/**
+ * Les favoris d'un type chez le service.
+ *
+ * tune-server-rust#8040 — `page` demande UNE page (`?limit=&offset=`) : la
+ * réponse porte alors `total`, `limit` et `offset` à côté de la liste. Sans
+ * `page`, la liste entière, comme avant ; un serveur antérieur ignore les
+ * paramètres et rend la liste entière sans `total`.
+ */
+export function getStreamingFavorites(
+  service: string,
+  type: 'tracks' | 'albums' | 'artists',
+  page?: { limit: number; offset: number },
+) {
+  const requete = page ? `?limit=${page.limit}&offset=${page.offset}` : '';
+  return fetchJSON<Record<string, any>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}${requete}`)
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {

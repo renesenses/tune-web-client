@@ -44,6 +44,9 @@
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -519,6 +522,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
   const vStations = $derived(stations.filter((r) => match(r.name) || match(r.genre)));
+
+  /** web#2770 — la fiche de la station ouverte par son nom (`RadioFicheModale`). */
+  let ficheStation = $state<any>(null);
 
   /** Lancer une station depuis l'écran Favoris, comme depuis l'écran Radios. */
   async function lireStation(r: any) {
@@ -1000,8 +1006,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct" title={a.title}>{a.title}</span>
-              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+              <!-- web#2770 (lot 3) — le titre ouvre l'album (seule la pochette
+                   le faisait), l'artiste ouvre sa fiche. -->
+              <span class="ct" title={a.title}><LienEntite entite={{ type: 'album', nom: a.title, ouvrir: () => { ouvrirCalqueAlbum(a); opened = a; } }} /></span>
+              <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
             </div>
           {/each}
         </div>
@@ -1284,8 +1292,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                      à défaut. Il reste hors du bouton de lecture pour ne pas
                      changer la cible du clic ni la place du cœur. -->
                 <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} vignette alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
+                <!-- web#2770 (lot 4) — le NOM ouvre la fiche de la station ;
+                     la lecture reste au bouton qui l'entoure. -->
                 <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
-                  <span class="stnom">{r.name}</span>
+                  <span class="stnom"><LienEntite entite={{ type: 'radio', nom: r.name, ouvrir: () => (ficheStation = r) }} /></span>
                   {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
                 </button>
                 <button class="sfav on" disabled={retraitStation === r.id}
@@ -1418,6 +1428,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   {/if}
 </section>
 
+<!-- web#2770 — la fiche d'une station favorite, ouverte par son nom. -->
+{#if ficheStation}
+  <RadioFicheModale station={ficheStation} onClose={() => (ficheStation = null)}
+    onChange={(st) => { stations = stations.map((x) => (x.id === st.id ? st : x)); ficheStation = st; }} />
+{/if}
+
 <style>
   .rf-titre{font:700 12px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3);
     text-transform:uppercase; padding:14px 30px 8px}
@@ -1536,7 +1552,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}

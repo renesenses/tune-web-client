@@ -131,31 +131,61 @@ export async function ouvrirLienLectureEnCours(): Promise<void> {
     }
 
     // L'album de ce qui joue — la route de #1361. 404 = aucun album connu.
-    const ac = await api.getZoneCurrentAlbum(zid).catch(() => null);
-    if (!toujoursLa()) return;
-    if (ac?.kind === 'library' && ac.album_id) {
-      const n = Number(ac.album_id);
-      if (Number.isFinite(n) && n > 0) {
-        pendingLibraryAlbum.set(n);
-        activeView.set('library');
-        return;
-      }
-    }
-    const gestes = get(gestesNavigationService);
-    if (ac?.kind === 'streaming' && ac.album_id && gestes) {
-      const piste = zone?.current_track ?? null;
-      gestes.ouvrirAlbum({
-        service: ac.service,
-        albumId: String(ac.album_id),
-        titre: piste?.album_title ?? '',
-        pochette: piste?.cover_path ?? null,
-        artiste: piste?.artist_name ?? null,
-        artisteId: ac.artist_id ?? null,
-      });
-      return;
-    }
+    if (await ouvrirAlbumEnCours(zid, zone?.current_track ?? null, toujoursLa)) return;
   } catch {
     /* le repli ci-dessous */
   }
   ecran();
+}
+
+/**
+ * Ouvre l'ALBUM de ce qui joue dans la zone `zid`, tel que le serveur le
+ * tranche (`GET /zones/{id}/album-en-cours`, #1361) : la fiche de la
+ * bibliothèque, ou celle du service. Rend `false` quand aucun album n'est
+ * connu (404 : radio, flux, piste sans identifiant) — l'appelant choisit
+ * alors son repli.
+ *
+ * web#2770 — partagé par le nom d'album de la barre de lecture et de la
+ * mini-barre (lot 1), qui n'ont pas `album_id` : le now-playing de la zone ne
+ * l'envoie pas.
+ */
+export async function ouvrirAlbumEnCours(
+  zid: number,
+  piste: { album_title?: string | null; cover_path?: string | null; artist_name?: string | null } | null,
+  toujoursLa: () => boolean = () => true,
+): Promise<boolean> {
+  const ac = await api.getZoneCurrentAlbum(zid).catch(() => null);
+  if (!toujoursLa()) return true;
+  if (ac?.kind === 'library' && ac.album_id) {
+    const n = Number(ac.album_id);
+    if (Number.isFinite(n) && n > 0) {
+      pendingLibraryAlbum.set(n);
+      activeView.set('library');
+      return true;
+    }
+  }
+  const gestes = get(gestesNavigationService);
+  if (ac?.kind === 'streaming' && ac.album_id && gestes) {
+    gestes.ouvrirAlbum({
+      service: ac.service,
+      albumId: String(ac.album_id),
+      titre: piste?.album_title ?? '',
+      pochette: piste?.cover_path ?? null,
+      artiste: piste?.artist_name ?? null,
+      artisteId: ac.artist_id ?? null,
+    });
+    return true;
+  }
+  return false;
+}
+
+/** Le geste du nom d'album de la barre de lecture : l'album de la zone
+ *  courante ; sans album connu, l'écran Lecture en cours. */
+export async function ouvrirAlbumDeLaZoneCourante(): Promise<void> {
+  const zid = get(currentZoneId);
+  const zone = zid == null ? null : (get(zones).find((z) => z.id === zid) ?? null);
+  const piste = zone?.current_track ?? null;
+  if (zid == null || !piste || piste.source === 'radio') { activeView.set('nowplaying'); return; }
+  const ouvert = await ouvrirAlbumEnCours(zid, piste).catch(() => false);
+  if (!ouvert) activeView.set('nowplaying');
 }
