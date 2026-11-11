@@ -7105,5 +7105,6 @@ export default {
   "settings.fixedSampleRate": "Σταθερή συχνότητα δειγματοληψίας εξόδου",
   "settings.fixedSampleRateOff": "Ανενεργή",
   "settings.fixedSampleRateHint": "Από το επόμενο κομμάτι, ακόμη και για άλλη οικογένεια συχνοτήτων. Ανενεργή σε PURE ή αυστηρό bit-perfect.",
+  "zone.pauseThisZone": "Παύση {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

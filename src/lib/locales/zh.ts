@@ -7260,6 +7260,7 @@ export default {
   "settings.fixedSampleRate": "固定输出采样率",
   "settings.fixedSampleRateOff": "关闭",
   "settings.fixedSampleRateHint": "从下一首开始生效，也适用于其他采样率系列的音源。在 PURE 或严格位完美模式下不生效。",
+  "zone.pauseThisZone": "暂停 {name}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

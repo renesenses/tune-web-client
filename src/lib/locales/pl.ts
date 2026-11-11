@@ -7105,5 +7105,6 @@ export default {
   "settings.fixedSampleRate": "Stała częstotliwość próbkowania wyjścia",
   "settings.fixedSampleRateOff": "Wyłączona",
   "settings.fixedSampleRateHint": "Od następnego utworu, także z innej rodziny częstotliwości. Nieaktywna w PURE lub ścisłym trybie bit-perfect.",
+  "zone.pauseThisZone": "Wstrzymaj {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

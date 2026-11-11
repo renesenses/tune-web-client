@@ -7260,6 +7260,7 @@ export default {
   "settings.fixedSampleRate": "Frecuencia de salida fija",
   "settings.fixedSampleRateOff": "Desactivada",
   "settings.fixedSampleRateHint": "Se aplica a la siguiente pista, incluso de otra familia de frecuencias. Inactiva en PURE o bit-perfect estricto.",
+  "zone.pauseThisZone": "Pausar {name}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

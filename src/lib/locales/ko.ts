@@ -7260,6 +7260,7 @@ export default {
   "settings.fixedSampleRate": "고정 출력 샘플링 주파수",
   "settings.fixedSampleRateOff": "끄기",
   "settings.fixedSampleRateHint": "다음 곡부터 다른 주파수 계열의 음원에도 적용됩니다. PURE 또는 엄격한 비트 퍼펙트 모드에서는 비활성화됩니다.",
+  "zone.pauseThisZone": "{name} 일시정지",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

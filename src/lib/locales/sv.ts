@@ -7259,4 +7259,5 @@ export default {
   "settings.fixedSampleRate": "Fast utgångssamplingsfrekvens",
   "settings.fixedSampleRateOff": "Av",
   "settings.fixedSampleRateHint": "Gäller från nästa spår, även för andra frekvensfamiljer. Inaktiv i PURE eller strikt bit-perfect-läge.",
+  "zone.pauseThisZone": "Pausa {name}",
 } as const;

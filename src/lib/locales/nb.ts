@@ -7105,5 +7105,6 @@ export default {
   "settings.fixedSampleRate": "Fast samplingsfrekvens for utgang",
   "settings.fixedSampleRateOff": "Av",
   "settings.fixedSampleRateHint": "Gjelder fra neste spor, også for andre frekvensfamilier. Inaktiv i PURE eller streng bit-perfect-modus.",
+  "zone.pauseThisZone": "Sett {name} på pause",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

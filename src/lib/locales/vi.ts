@@ -7112,5 +7112,6 @@ export default {
   "settings.fixedSampleRate": "Tần số lấy mẫu đầu ra cố định",
   "settings.fixedSampleRateOff": "Tắt",
   "settings.fixedSampleRateHint": "Áp dụng từ bài tiếp theo, kể cả nguồn thuộc họ tần số khác. Không hoạt động trong chế độ PURE hoặc bit-perfect nghiêm ngặt.",
+  "zone.pauseThisZone": "Tạm dừng {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

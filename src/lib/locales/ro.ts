@@ -7260,6 +7260,7 @@ export default {
   "settings.fixedSampleRate": "Frecvență de ieșire fixă",
   "settings.fixedSampleRateOff": "Dezactivată",
   "settings.fixedSampleRateHint": "De la piesa următoare, inclusiv pentru altă familie de frecvențe. Inactivă în PURE sau bit-perfect strict.",
+  "zone.pauseThisZone": "Pune {name} pe pauză",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -7219,6 +7219,7 @@ export default {
   "settings.fixedSampleRate": "Rögzített kimeneti mintavételi frekvencia",
   "settings.fixedSampleRateOff": "Kikapcsolva",
   "settings.fixedSampleRateHint": "A következő számtól, más frekvenciacsalád esetén is. PURE vagy szigorú bit-perfect módban inaktív.",
+  "zone.pauseThisZone": "{name} szüneteltetése",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

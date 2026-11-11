@@ -7260,6 +7260,7 @@ export default {
   "settings.fixedSampleRate": "Feste Ausgangsabtastrate",
   "settings.fixedSampleRateOff": "Aus",
   "settings.fixedSampleRateHint": "Gilt ab dem nächsten Titel, auch für andere Abtastratenfamilien. In PURE und strengem Bit-perfect-Modus inaktiv.",
+  "zone.pauseThisZone": "{name} pausieren",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

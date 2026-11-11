@@ -7280,6 +7280,7 @@ export default {
   "settings.fixedSampleRate": "Fixed output sample rate",
   "settings.fixedSampleRateOff": "Off",
   "settings.fixedSampleRateHint": "Applies to the next track, including sources from another rate family. Inactive in PURE or strict bit-perfect mode.",
+  "zone.pauseThisZone": "Pause {name}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
