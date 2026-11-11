@@ -34,6 +34,7 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { titrePisteCd, type DisqueCd } from '../../lib/lectureCd';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { resumeAr, texteVerdictAr, verificationAr } from '../../lib/verificationAr';
   import {
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
@@ -70,6 +71,8 @@
   let album = $state('');
   let titres = $state<Record<number, string>>({});
   let ecraser = $state(false);
+  /** #8522 — décalage du lecteur (échantillons), si le serveur le règle. */
+  let decalage = $state(0);
   /** #8514 — la feuille enregistre depuis la mémoire. */
   let modeMemoire = $state(false);
 
@@ -165,6 +168,7 @@
     album = disque.titre ?? '';
     titres = Object.fromEntries(disque.pistes.map((p) => [p.numero, titrePisteCd(p, disque, pisteN)]));
     ecraser = false;
+    decalage = reglages.decalage_lecteur ?? 0;
     erreurFeuille = null;
     feuille = true;
   }
@@ -181,8 +185,12 @@
     erreurFeuille = null;
     try {
       // Le choix devient le défaut : mémorisé côté serveur, pour tous les clients.
-      if (format !== reglages.format || (destination && destination !== reglages.destination)) {
-        reglages = await putReglagesExtraction({ format, destination });
+      // #8522 — le décalage ne part que si le serveur le connaît et qu'il change.
+      const decalageChange = reglages.decalage_lecteur !== undefined && Number(decalage) !== reglages.decalage_lecteur;
+      if (format !== reglages.format || (destination && destination !== reglages.destination) || decalageChange) {
+        reglages = await putReglagesExtraction(decalageChange
+          ? { format, destination, decalage_lecteur: Math.trunc(Number(decalage)) }
+          : { format, destination });
       }
       const e = await lancerExtraction(corpsLancement(
         { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser, depuisMemoire: modeMemoire },
@@ -254,6 +262,8 @@
     attenteScan = null;
   }
 
+  const tr = (cle: string) => $t(cle as any);
+  const verifSuivi = $derived(verificationAr(suivi?.accuraterip));
   const pct = (x: number) => `${Math.max(0, Math.min(100, Math.round(x || 0)))} %`;
   const illisibles = $derived(suivi ? secteursIllisibles(suivi) : 0);
 
@@ -309,6 +319,9 @@
           <span class="titre" use:bulleTexte>{p.titre}</span>
           <span class="etat">{$t(`v2.cd.rip.st.${p.statut}` as any)}</span>
           <span class="pc">{pct(p.pourcentage)}</span>
+          {#if p.verification}
+            <span class="verdict-ar" data-ar={p.verification.statut}>{texteVerdictAr(p.verification, tr)}</span>
+          {/if}
           {#if p.secteurs_illisibles > 0}
             <span class="illisibles">{$t('v2.cd.rip.unreadable' as any).replace('{n}', String(p.secteurs_illisibles))}</span>
           {/if}
@@ -321,6 +334,9 @@
         </li>
       {/each}
     </ol>
+    {#if verifSuivi}
+      <div class="note resume-ar" data-base={verifSuivi.base}>{resumeAr(verifSuivi, tr)}</div>
+    {/if}
     {#if suivi.statut !== 'en_cours'}
       {#if expert && suivi.pistes.some((p) => p.accuraterip_v1 || p.accuraterip_v2)}
         <div class="note">{$t('v2.cd.rip.accurateRip' as any)}</div>
@@ -400,6 +416,15 @@
           </label>
         {/if}
 
+        {#if reglages.decalage_lecteur !== undefined}
+          <label>
+            <span>{$t('v2.cd.rip.driveOffset' as any)}</span>
+            <input class="decalage" type="number" step="1" min={-(reglages.decalage_max ?? 2940)} max={reglages.decalage_max ?? 2940}
+              bind:value={decalage} />
+            <small>{$t('v2.cd.rip.driveOffsetHint' as any)}</small>
+          </label>
+        {/if}
+
         <label class="choix"><input type="checkbox" class="ecraser" bind:checked={ecraser} /> {$t('v2.cd.rip.overwrite' as any)}</label>
 
         {#if erreurFeuille}<div class="err" role="alert">{erreurFeuille}</div>{/if}
@@ -449,6 +474,9 @@
   .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:11.5px}
   .piste-suivi .pc{font-family:var(--v2-mono)}
   .illisibles{color:var(--v2-danger); font-size:11.5px; flex-basis:100%; padding-left:30px}
+  .verdict-ar{font-size:11.5px; color:var(--v2-txt2)}
+  .verdict-ar[data-ar=verifie]{color:var(--v2-acc-tint)}
+  .verdict-ar[data-ar=different]{color:var(--v2-danger)}
   .crc,.relectures{font:10.5px var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
   .fin{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .dossier{overflow-wrap:anywhere}
