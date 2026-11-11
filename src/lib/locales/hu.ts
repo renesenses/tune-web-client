@@ -6974,6 +6974,8 @@ export default {
   "upsampling.constraint.notInstalled": "Az alkalmazáshoz telepítse a „Felülmintavételezés” bővítményt a Bővítmények között.",
   "upsampling.constraint.pure": "Ezen a zónán be van kapcsolva a PURE mód: a felülmintavételezés kimarad.",
   "upsampling.constraint.machineTest": "A gép még nincs mérve: mentsen vagy mérje újra az alkalmazáshoz.",
+  "upsampling.constraint.zoneNotSupported": "Ez a zóna nem a gép helyi kimenetén szól: a felülmintavételezés nem vonatkozik rá.",
+  "upsampling.constraint.strictBitPerfect": "Ezen a zónán be van kapcsolva a Bit-perfect strict: minden frekvenciaátalakítást elutasít, ezért a felülmintavételezés nem érvényesül. Kapcsolja ki a zóna beállításaiban a felülmintavételezéshez.",
   "upsampling.filter.polyvalent": "Univerzális (apodizáló, lineáris fázis)",
   "upsampling.filter.polyvalent-pm": "Univerzális, minimálfázis",
   "upsampling.filter.precision": "Precíziós (hosszú sinc, lineáris fázis)",

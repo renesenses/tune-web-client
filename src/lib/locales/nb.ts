@@ -6860,6 +6860,8 @@ export default {
   "upsampling.constraint.notInstalled": "Installer programtillegget «Oppsampling» under Utvidelser for å bruke det.",
   "upsampling.constraint.pure": "PURE-modus er på for denne sonen: oppsamplingen omgås.",
   "upsampling.constraint.machineTest": "Maskinen er ikke målt ennå: lagre eller mål på nytt for å bruke den.",
+  "upsampling.constraint.zoneNotSupported": "Denne sonen spiller ikke via maskinens lokale utgang: oppsampling gjelder ikke for den.",
+  "upsampling.constraint.strictBitPerfect": "Streng bit-perfect er på for denne sonen: den nekter all konvertering av samplingsfrekvens, så oppsampling brukes ikke. Slå den av i soneinnstillingene for å oppsample.",
   "upsampling.filter.polyvalent": "Allsidig (apodiserende, lineær fase)",
   "upsampling.filter.polyvalent-pm": "Allsidig, minimumsfase",
   "upsampling.filter.precision": "Presisjon (lang sinc, lineær fase)",

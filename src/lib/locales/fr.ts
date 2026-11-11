@@ -7037,6 +7037,8 @@ export default {
   "upsampling.constraint.notInstalled": "Installez le greffon « Suréchantillonnage » dans Extensions pour l'appliquer.",
   "upsampling.constraint.pure": "Le mode PURE est allumé sur cette zone : le suréchantillonnage est contourné.",
   "upsampling.constraint.machineTest": "La machine n'a pas encore été mesurée : enregistrez ou remesurez pour l'appliquer.",
+  "upsampling.constraint.zoneNotSupported": "Cette zone ne sort pas sur la sortie locale de la machine : le suréchantillonnage ne s'y applique pas.",
+  "upsampling.constraint.strictBitPerfect": "Le bit-perfect strict est activé sur cette zone : il refuse toute conversion de fréquence, le suréchantillonnage ne s'applique donc pas. Désactivez-le dans les réglages de la zone pour suréchantillonner.",
   "upsampling.filter.polyvalent": "Polyvalent (apodisant, phase linéaire)",
   "upsampling.filter.polyvalent-pm": "Polyvalent, phase minimale",
   "upsampling.filter.precision": "Précision (sinc long, phase linéaire)",

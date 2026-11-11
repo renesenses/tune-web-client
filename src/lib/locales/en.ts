@@ -7035,6 +7035,8 @@ export default {
   "upsampling.constraint.notInstalled": "Install the “Upsampling” plugin in Extensions to apply it.",
   "upsampling.constraint.pure": "PURE mode is on for this zone: upsampling is bypassed.",
   "upsampling.constraint.machineTest": "The machine has not been measured yet: save or measure again to apply it.",
+  "upsampling.constraint.zoneNotSupported": "This zone does not play through the machine's local output: upsampling does not apply to it.",
+  "upsampling.constraint.strictBitPerfect": "Bit-perfect strict is on for this zone: it refuses any sample-rate conversion, so upsampling does not apply. Turn it off in the zone settings to upsample.",
   "upsampling.filter.polyvalent": "All-round (apodizing, linear phase)",
   "upsampling.filter.polyvalent-pm": "All-round, minimum phase",
   "upsampling.filter.precision": "Precision (long sinc, linear phase)",

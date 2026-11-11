@@ -7014,6 +7014,8 @@ export default {
   "upsampling.constraint.notInstalled": "Installera tillägget ”Uppsampling” under Tillägg för att använda det.",
   "upsampling.constraint.pure": "PURE-läget är på för den här zonen: uppsamplingen kringgås.",
   "upsampling.constraint.machineTest": "Datorn är inte uppmätt ännu: spara eller mät igen för att använda den.",
+  "upsampling.constraint.zoneNotSupported": "Den här zonen spelar inte via datorns lokala utgång: uppsampling gäller inte för den.",
+  "upsampling.constraint.strictBitPerfect": "Bit-perfect strict är på för den här zonen: det vägrar all konvertering av samplingsfrekvens, så uppsampling tillämpas inte. Stäng av det i zoninställningarna för att uppsampla.",
   "upsampling.filter.polyvalent": "Allround (apodiserande, linjär fas)",
   "upsampling.filter.polyvalent-pm": "Allround, minimifas",
   "upsampling.filter.precision": "Precision (lång sinc, linjär fas)",

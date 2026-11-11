@@ -7015,6 +7015,8 @@ export default {
   "upsampling.constraint.notInstalled": "Installieren Sie das Plugin „Upsampling“ unter Erweiterungen, um es anzuwenden.",
   "upsampling.constraint.pure": "Der PURE-Modus ist für diese Zone aktiv: Das Upsampling wird umgangen.",
   "upsampling.constraint.machineTest": "Der Rechner wurde noch nicht gemessen: Speichern oder neu messen, um es anzuwenden.",
+  "upsampling.constraint.zoneNotSupported": "Diese Zone gibt nicht über den lokalen Ausgang des Rechners aus: Upsampling gilt für sie nicht.",
+  "upsampling.constraint.strictBitPerfect": "Bit-perfect strict ist für diese Zone aktiviert: Es verweigert jede Abtastratenwandlung, daher wird kein Upsampling angewendet. Deaktivieren Sie es in den Zoneneinstellungen, um hochzurechnen.",
   "upsampling.filter.polyvalent": "Universal (apodisierend, linearphasig)",
   "upsampling.filter.polyvalent-pm": "Universal, minimalphasig",
   "upsampling.filter.precision": "Präzision (langer Sinc, linearphasig)",

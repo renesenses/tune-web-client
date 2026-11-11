@@ -7015,6 +7015,8 @@ export default {
   "upsampling.constraint.notInstalled": "Instalați pluginul „Supraeșantionare” din Extensii pentru a-l aplica.",
   "upsampling.constraint.pure": "Modul PURE este activ pe această zonă: supraeșantionarea este ocolită.",
   "upsampling.constraint.machineTest": "Mașina nu a fost încă măsurată: salvați sau remăsurați pentru a o aplica.",
+  "upsampling.constraint.zoneNotSupported": "Această zonă nu folosește ieșirea locală a mașinii: supraeșantionarea nu se aplică.",
+  "upsampling.constraint.strictBitPerfect": "Bit-perfect strict este activat pe această zonă: refuză orice conversie de frecvență, deci supraeșantionarea nu se aplică. Dezactivați-l în setările zonei pentru a supraeșantiona.",
   "upsampling.filter.polyvalent": "Polivalent (apodizant, fază liniară)",
   "upsampling.filter.polyvalent-pm": "Polivalent, fază minimă",
   "upsampling.filter.precision": "Precizie (sinc lung, fază liniară)",

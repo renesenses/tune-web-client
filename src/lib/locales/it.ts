@@ -7015,6 +7015,8 @@ export default {
   "upsampling.constraint.notInstalled": "Installa il plugin «Sovracampionamento» in Estensioni per applicarlo.",
   "upsampling.constraint.pure": "La modalità PURE è attiva su questa zona: il sovracampionamento è escluso.",
   "upsampling.constraint.machineTest": "La macchina non è ancora stata misurata: salva o rimisura per applicarlo.",
+  "upsampling.constraint.zoneNotSupported": "Questa zona non usa l'uscita locale della macchina: il sovracampionamento non si applica.",
+  "upsampling.constraint.strictBitPerfect": "Il bit-perfect strict è attivo su questa zona: rifiuta ogni conversione di frequenza, quindi il sovracampionamento non si applica. Disattivalo nelle impostazioni della zona per sovracampionare.",
   "upsampling.filter.polyvalent": "Polivalente (apodizzante, fase lineare)",
   "upsampling.filter.polyvalent-pm": "Polivalente, fase minima",
   "upsampling.filter.precision": "Precisione (sinc lungo, fase lineare)",

@@ -7015,6 +7015,8 @@ export default {
   "upsampling.constraint.notInstalled": "適用するには「拡張機能」で「アップサンプリング」プラグインをインストールしてください。",
   "upsampling.constraint.pure": "このゾーンは PURE モードが有効です。アップサンプリングはバイパスされます。",
   "upsampling.constraint.machineTest": "マシンはまだ計測されていません。適用するには保存するか再計測してください。",
+  "upsampling.constraint.zoneNotSupported": "このゾーンはこのマシンのローカル出力を使用していないため、アップサンプリングは適用されません。",
+  "upsampling.constraint.strictBitPerfect": "このゾーンでは Bit-perfect strict が有効です。サンプルレート変換をすべて拒否するため、アップサンプリングは適用されません。アップサンプリングするにはゾーン設定でオフにしてください。",
   "upsampling.filter.polyvalent": "汎用（アポダイジング、直線位相）",
   "upsampling.filter.polyvalent-pm": "汎用、最小位相",
   "upsampling.filter.precision": "高精度（長い sinc、直線位相）",
