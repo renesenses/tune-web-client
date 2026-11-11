@@ -232,6 +232,8 @@ const LIBELLES_TACHES: Record<string, string> = {
   write_tags: 'app.task.writeMetadata',
   edit_by_filter_files: 'app.task.writeMetadata',
   rescan_metadata: 'app.task.readMetadata',
+  // tune-server-rust#8325 — la relecture unique des balises classiques.
+  relecture_classique: 'app.task.readClassical',
   compositeur_depuis_credits: 'app.task.composers',
   lyrics_fetch: 'app.task.lyrics',
   lyrics_write: 'app.task.writeLyrics',
