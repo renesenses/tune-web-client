@@ -6383,6 +6383,7 @@ export default {
   "toast.erreursRepliees": "{n} eldre feil skjult",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volumet i denne sonen er låst av PURE, så avspillingen startet på 0 % for å beskytte ørene og høyttalerne dine. Skru opp volumet på enheten eller i Tune.",
+  "erreursServeur.track_file_damaged": "«{title}»: filen er skadet fra {position}. Tune hoppet over resten av sporet.",
   "v2.pl.serviceNoPlaylists": "{s} tilbyr ikke spillelister.",
   "v2.dev.listAria": "Enheter og soner",
   "v2.dev.filterLabel": "Filtrer enheter",
