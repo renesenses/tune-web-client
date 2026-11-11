@@ -45,6 +45,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
+  // web#2804 (tune-server-rust#8154) — Spotify attend que l'appareil de Tune
+  // soit choisi une fois dans son application. Repli quand le serveur n'a pas
+  // envoyé sa phrase ; traité à part plus bas (`annoncerLiaisonSpotify`).
+  spotify_liaison_connect_requise: 'playback.errorSpotifyLinkRequired',
 };
 
 /**
@@ -123,6 +127,7 @@ import { estRefusEcriture, messageRefusEcriture, CODE_REFUS_ECRITURE } from './e
 import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { messageRefusParental } from './refusParental';
+import { CODE_LIAISON_SPOTIFY, lireRefusLiaison, zoneDeLaRoute } from './spotifyLiaison';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 import { adresseCatalogue, type FiltresCatalogue } from './catalogueExport';
 import {
@@ -676,7 +681,12 @@ export async function fetchJSON<T>(
       // #7974 / #8046 — lecture refusée par le contrôle parental (hors des
       // plages, budget épuisé) : la phrase de l'interface, jamais le code brut.
       const refusParental = messageRefusParental(err.code, err.corps);
-      if (refusStrict) {
+      if (err.code === CODE_LIAISON_SPOTIFY) {
+        // web#2804 — la liaison Spotify Connect requise : la phrase du serveur
+        // (ou son repli traduit) et, récepteur éteint, le bouton qui l'allume.
+        err.message = annoncerLiaisonSpotify(err.message, err.corps, url);
+        err.dejaAnnonce = true;
+      } else if (refusStrict) {
         err.message = refusStrict;
         notifications.error(refusStrict, 10000);
         err.dejaAnnonce = true;
@@ -9359,6 +9369,51 @@ export function proposerLeRearmement(
     })();
   });
   return true;
+}
+
+/**
+ * web#2804 (tune-server-rust#8154) — annoncer le 409
+ * `spotify_liaison_connect_requise` et rendre la phrase affichée.
+ *
+ * La phrase est celle du serveur (traduite, nommée) quand il l'a envoyée ;
+ * sinon le repli de l'interface, avec le même appareil. Quand le serveur dit
+ * `receiver_active: false`, le toast porte « Activer le récepteur » : il allume
+ * le récepteur sur la zone qui jouait, puis rappelle l'étape à faire dans
+ * Spotify. Sans ce champ (serveur plus ancien), pas de bouton.
+ */
+export function annoncerLiaisonSpotify(message: unknown, corps: unknown, url: string): string {
+  const refus = lireRefusLiaison(corps);
+  const tr = get(t);
+  const duServeur = typeof message === 'string' && message.trim() !== '' && !estMessageGenerique(message)
+    ? message
+    : null;
+  const texte = duServeur ?? tr((refus.recepteurEteint
+    ? 'playback.errorSpotifyLinkRequiredReceiverOff'
+    : 'playback.errorSpotifyLinkRequired') as any).replace('{device}', refus.appareil);
+  if (!refus.recepteurEteint) {
+    notifications.error(texte, 10000);
+    return texte;
+  }
+  notifications.withAction(texte, tr('settings.enableReceiver' as any), () => {
+    void (async () => {
+      try {
+        await fetchJSON(`${BASE}/spotify-connect/enable`, {
+          method: 'POST',
+          body: JSON.stringify(corpsActivationRecepteur(zoneDeLaRoute(url))),
+        });
+        notifications.success(tr('playback.spotifyReceiverEnabled' as any).replace('{device}', refus.appareil), 10000);
+      } catch {
+        // `fetchJSON` a déjà dit pourquoi l'activation a échoué.
+      }
+    })();
+  });
+  return texte;
+}
+
+/** Le corps de `POST /spotify-connect/enable` : la zone qui jouait, si on la
+ *  connaît ; sinon rien, et le serveur garde la sienne (zone 1 par défaut). */
+function corpsActivationRecepteur(zone: number | null): Record<string, number> {
+  return zone == null ? {} : { zone_id: zone };
 }
 
 export function rearmAsioWarmScan() {
