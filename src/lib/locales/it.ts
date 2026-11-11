@@ -7114,6 +7114,7 @@ export default {
   "v2.room.micChannel": "Canale del microfono",
   "v2.room.micIntro": "Un microfono di misura USB collegato al server registra sweep riprodotti nella zona: risposta in basso, tempo di riverbero, poi una correzione proposta.",
   "v2.room.micRate": "Questo microfono non registra a {hz} Hz: impostalo a {hz} Hz prima della misura.",
+  "v2.room.micFormatUnknown": "Tune non è riuscito a leggere il formato di acquisizione di questo microfono: la misura potrebbe essere rifiutata. Ricollegalo o scegli un altro ingresso.",
   "v2.room.microphone": "Microfono",
   "v2.room.modeAxial": "Assiale",
   "v2.room.modeOblique": "Obliquo",

@@ -7136,6 +7136,7 @@ export default {
   "v2.room.micChannel": "Voie du micro",
   "v2.room.micIntro": "Un micro de mesure USB branché sur le serveur capte des balayages joués dans la zone : réponse dans le grave, temps de réverbération, puis correction proposée.",
   "v2.room.micRate": "Ce micro ne capte pas à {hz} Hz : réglez-le à {hz} Hz avant la mesure.",
+  "v2.room.micFormatUnknown": "Tune n'a pas pu lire le format de capture de ce micro : la mesure risque d'être refusée. Rebranchez-le ou choisissez une autre entrée.",
   "v2.room.microphone": "Micro",
   "v2.room.modeAxial": "Axial",
   "v2.room.modeOblique": "Oblique",

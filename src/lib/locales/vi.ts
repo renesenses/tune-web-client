@@ -6966,6 +6966,7 @@ export default {
   "v2.room.micChannel": "Kênh micro",
   "v2.room.micIntro": "Micro đo USB cắm vào máy chủ thu tín hiệu quét phát trong vùng: đáp tuyến âm trầm, thời gian âm vang, rồi đề xuất hiệu chỉnh.",
   "v2.room.micRate": "Micro này không thu ở {hz} Hz: hãy đặt {hz} Hz trước khi đo.",
+  "v2.room.micFormatUnknown": "Tune không đọc được định dạng thu của micro này: phép đo có thể bị từ chối. Hãy cắm lại hoặc chọn đầu vào khác.",
   "v2.room.microphone": "Micro",
   "v2.room.modeAxial": "Trục",
   "v2.room.modeOblique": "Xiên",

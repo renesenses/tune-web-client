@@ -7114,6 +7114,7 @@ export default {
   "v2.room.micChannel": "麦克风声道",
   "v2.room.micIntro": "连接到服务器的 USB 测量麦克风录下在该区域播放的扫频：低频响应、混响时间，然后给出建议的校正。",
   "v2.room.micRate": "此麦克风未以 {hz} Hz 采集：测量前请设为 {hz} Hz。",
+  "v2.room.micFormatUnknown": "Tune 无法读取此麦克风的采集格式：测量可能被拒绝。请重新连接或选择其他输入。",
   "v2.room.microphone": "麦克风",
   "v2.room.modeAxial": "轴向",
   "v2.room.modeOblique": "斜向",

@@ -437,6 +437,40 @@ describe('web#2706 — mesure au micro', () => {
     expect(q('[data-room="mesurer"]')).toBeNull();
   });
 
+  // #8490 (Xavier Joly, 11/11) : « réglez-le à {hz} Hz » — `replace` ne
+  // remplaçait que le premier des deux {hz} ; et un format ILLISIBLE
+  // (frequence_courante absente, UMIK-1 en S24_3LE #8489) était présenté
+  // comme une mauvaise fréquence.
+  it('#8490 — micro à une autre fréquence : les deux {hz} sont remplacés', async () => {
+    hote.microphones = { status: 200, corps: { pile: 'alsa', frequence_requise: 48000, etalonnages: [], entrees: [
+      { nom: 'UMIK-1', id: 'umik', canaux: 2, frequence_courante: 44100, virtuelle: false, mesurable: false },
+    ] } };
+    await ongletMicro();
+    await jusqua(() => !!q('[data-room="frequence"]'));
+    const avert = q('[data-room="frequence"]')!.textContent!.trim();
+    expect(avert).not.toContain('{hz}');
+    expect(avert).toBe(texte('v2.room.micRate').replaceAll('{hz}', '48000'));
+    expect(avert.match(/48000/g)).toHaveLength(2);
+  });
+
+  it('#8490 — format du micro illisible : pas de « ne capte pas à 48000 Hz », la vraie cause', async () => {
+    hote.microphones = { status: 200, corps: { pile: 'alsa', frequence_requise: 48000, etalonnages: [], entrees: [
+      { nom: 'UMIK-1', id: 'umik', canaux: 0, frequence_courante: null, virtuelle: false, mesurable: false },
+    ] } };
+    await ongletMicro();
+    await jusqua(() => !!q('[data-room="frequence"]'));
+    const avert = q('[data-room="frequence"]')!.textContent!.trim();
+    expect(avert).toBe(texte('v2.room.micFormatUnknown'));
+    expect(avert).not.toContain('48000');
+    expect(avert).not.toBe('v2.room.micFormatUnknown');
+  });
+
+  it('#8490 — micro à 48 kHz : aucun avertissement', async () => {
+    await ongletMicro();
+    await jusqua(() => !!q('[data-room="mesurer"]'));
+    expect(q('[data-room="frequence"]')).toBeNull();
+  });
+
   it('capture indisponible (503) : même message, et la cause du serveur', async () => {
     hote.microphones = { status: 503, corps: { error: 'capture_indisponible', message: 'aucun périphérique de capture' } };
     await ongletMicro();

@@ -7114,6 +7114,7 @@ export default {
   "v2.room.micChannel": "마이크 채널",
   "v2.room.micIntro": "서버에 연결된 USB 측정 마이크가 존에서 재생한 스윕을 녹음합니다: 저역 응답, 잔향 시간, 그리고 제안 보정.",
   "v2.room.micRate": "이 마이크는 {hz} Hz로 녹음하지 않습니다: 측정 전에 {hz} Hz로 설정하세요.",
+  "v2.room.micFormatUnknown": "Tune이 이 마이크의 녹음 형식을 읽지 못했습니다: 측정이 거부될 수 있습니다. 다시 연결하거나 다른 입력을 선택하세요.",
   "v2.room.microphone": "마이크",
   "v2.room.modeAxial": "축 모드",
   "v2.room.modeOblique": "사선 모드",
