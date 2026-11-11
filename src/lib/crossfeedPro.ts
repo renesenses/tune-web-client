@@ -68,7 +68,9 @@ export const BORNES_CROSSFEED_PRO: Record<CurseurCrossfeedPro, Borne> = {
   delay_ms: { min: 0, max: 1, pas: 0.05 },
   head_shadow_hz: { min: 100, max: 20000, pas: 10 },
   head_shadow_slope_db_oct: { min: 3, max: 6, pas: 0.5 },
-  phase_guard_ms: { min: 20, max: 50, pas: 1 },
+  // 200 ms depuis le greffon 0.5.0 (50 avant) : la borne du CURSEUR suit la
+  // version installée, voir `bornePhaseGuard`.
+  phase_guard_ms: { min: 20, max: 200, pas: 1 },
   itd_tau_max_us: { min: 500, max: 1000, pas: 10 },
   itd_smoothing_ms: { min: 100, max: 200, pas: 5 },
 };
@@ -381,4 +383,47 @@ export function midSideDisponible(version: string | null | undefined, settings: 
   if (settings && typeof settings === 'object' && 'experimental_mid_side' in settings) return true;
   if (!version) return true;
   return versionAuMoins(version, VERSION_MID_SIDE) !== false;
+}
+
+// ─── Garde de phase : borne selon la version (greffon ≥ 0.5.0) ──────────────
+
+/** Version du greffon à partir de laquelle la constante de la garde de phase
+ *  va jusqu'à 200 ms (50 ms avant). */
+export const VERSION_GARDE_LONGUE = '0.5.0';
+const MAX_GARDE_AVANT = 50;
+
+/**
+ * La borne du curseur de la garde de phase. Un greffon plus ancien que 0.5.0
+ * refuse une constante au-delà de 50 ms (400 `invalid_plugin_settings`) : on
+ * ne propose 200 ms que si l'on SAIT que le greffon l'accepte — version lue et
+ * au moins 0.5.0, ou zone qui a déjà enregistré plus de 50 ms.
+ */
+export function bornePhaseGuard(version: string | null | undefined, r: Pick<ReglagesCrossfeedPro, 'phase_guard_ms'>): Borne {
+  const b = BORNES_CROSSFEED_PRO.phase_guard_ms;
+  const accepte = r.phase_guard_ms > MAX_GARDE_AVANT || (!!version && versionAuMoins(version, VERSION_GARDE_LONGUE) === true);
+  return accepte ? b : { ...b, max: MAX_GARDE_AVANT };
+}
+
+// ─── La voie croisée en service : une seule à la fois ───────────────────────
+
+/** Les trois façons de construire la voie croisée en mode Tune ; elles
+ *  s'excluent (greffon#15). */
+export type VoieCrossfeedPro = 'standard' | 'itd' | 'mid_side';
+
+/** La voie que le greffon fait tourner pour ces réglages : le Mid/Side passe
+ *  avant le retard adaptatif, qui passe avant le standard (même ordre que le
+ *  greffon). */
+export function voieCrossfeedPro(r: ReglagesCrossfeedPro): VoieCrossfeedPro {
+  if (valeurMidSide(r, 'experimental_mid_side')) return 'mid_side';
+  if (r.experimental_itd) return 'itd';
+  return 'standard';
+}
+
+/** Choisir la voie : elle seule reste allumée. Le Mid/Side allumé reçoit ses
+ *  sous-réglages par défaut s'il n'en a pas ; un réglage qui ne connaît pas le
+ *  Mid/Side (greffon antérieur à 0.4.0) n'en reçoit aucun champ. */
+export function choisirVoie(r: ReglagesCrossfeedPro, v: VoieCrossfeedPro): ReglagesCrossfeedPro {
+  if (v === 'mid_side') return { ...DEFAUTS_MID_SIDE, ...r, experimental_mid_side: true, experimental_itd: false };
+  const ms = 'experimental_mid_side' in r ? { experimental_mid_side: false } : {};
+  return { ...r, ...ms, experimental_itd: v === 'itd' };
 }

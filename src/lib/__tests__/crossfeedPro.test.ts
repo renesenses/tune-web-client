@@ -166,3 +166,46 @@ describe('Crossfeed Pro : retard adaptatif et Mid/Side s’excluent (greffon#15)
     expect((r as any).experimental_mid_side).toBe(false);
   });
 });
+
+// Demande de Thierry du 11/11 (fil 2534) : un seul mode actif entre normal,
+// multibande et Mid/Side ; garde de phase prolongée (greffon ≥ 0.5.0).
+describe('Crossfeed Pro : la voie croisée, une seule à la fois', () => {
+  it('la voie lue suit l’ordre du greffon : Mid/Side, puis multibande, puis standard', async () => {
+    const { voieCrossfeedPro } = await import('../crossfeedPro');
+    expect(voieCrossfeedPro(reglagesCrossfeedPro({}))).toBe('standard');
+    expect(voieCrossfeedPro(reglagesCrossfeedPro({ experimental_itd: true }))).toBe('itd');
+    expect(voieCrossfeedPro(reglagesCrossfeedPro({ experimental_itd: true, experimental_mid_side: true }))).toBe('mid_side');
+  });
+  it('choisir une voie éteint les deux autres', async () => {
+    const { choisirVoie, voieCrossfeedPro } = await import('../crossfeedPro');
+    const base = reglagesCrossfeedPro({ experimental_itd: true, experimental_mid_side: false });
+    const ms = choisirVoie(base, 'mid_side');
+    expect(ms).toMatchObject({ experimental_mid_side: true, experimental_itd: false, ms_side_gain_db: -6 });
+    const std = choisirVoie(ms, 'standard');
+    expect(std).toMatchObject({ experimental_mid_side: false, experimental_itd: false });
+    expect(voieCrossfeedPro(std)).toBe('standard');
+    expect(choisirVoie(ms, 'itd')).toMatchObject({ experimental_mid_side: false, experimental_itd: true });
+  });
+  it('un réglage qui ne connaît pas le Mid/Side n’en reçoit aucun champ hors Mid/Side', async () => {
+    const { choisirVoie } = await import('../crossfeedPro');
+    const r = choisirVoie(reglagesCrossfeedPro({}), 'itd');
+    expect('experimental_mid_side' in r).toBe(false);
+  });
+});
+
+describe('Crossfeed Pro : borne de la garde de phase selon la version', () => {
+  it('200 ms avec un greffon ≥ 0.5.0, 50 ms avant ou version inconnue', async () => {
+    const { bornePhaseGuard } = await import('../crossfeedPro');
+    const r = reglagesCrossfeedPro({});
+    expect(bornePhaseGuard('0.5.0', r).max).toBe(200);
+    expect(bornePhaseGuard('0.6.1', r).max).toBe(200);
+    expect(bornePhaseGuard('0.4.0', r).max).toBe(50);
+    expect(bornePhaseGuard(null, r).max).toBe(50);
+  });
+  it('une valeur enregistrée au-delà de 50 ms prouve le greffon récent, et n’est pas rabotée à la lecture', async () => {
+    const { bornePhaseGuard } = await import('../crossfeedPro');
+    const r = reglagesCrossfeedPro({ phase_guard_ms: 120 });
+    expect(r.phase_guard_ms).toBe(120);
+    expect(bornePhaseGuard(null, r).max).toBe(200);
+  });
+});
