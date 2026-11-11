@@ -238,7 +238,7 @@ describe('le contrat, et ce qui le distingue des voisins', () => {
     expect(bloc).toContain('api.composerCoffret(cfChoisis, cfTitre)');
   });
 
-  it('les six clés existent dans les ONZE langues', () => {
+  it('les clés existent dans les QUINZE langues', () => {
     const cles = ['v2.meta.tabCoffret', 'v2.meta.boxIntro', 'v2.meta.boxCompose',
                   'v2.meta.boxOrder', 'v2.meta.boxDisc', 'v2.meta.boxDone',
                   'v2.meta.boxName', 'v2.meta.boxDiscRange'];
