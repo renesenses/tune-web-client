@@ -4395,6 +4395,7 @@ export default {
   "settings.extendedLibraryHint": "보관함에 연결된 서비스(Qobuz, Tidal 등)의 즐겨찾기도 표시합니다. 소스 필터로 서비스를 고를 수 있습니다.",
   "v2.lib.extendedFavorite": "서비스의 즐겨찾기 앨범",
   "v2.lib.versionsCount": "{n}개 버전",
+  "v2.lib.channelsCount": "채널: {n}",
   "v2.album.versions": "버전 ({n})",
   "v2.album.preferredVersion": "선호 버전",
   "v2.album.setPreferredVersion": "이 버전을 선호",

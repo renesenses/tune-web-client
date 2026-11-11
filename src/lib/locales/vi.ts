@@ -4272,6 +4272,7 @@ export default {
   "settings.extendedLibraryHint": "Thư viện hiển thị cả mục yêu thích từ các dịch vụ đã kết nối (Qobuz, Tidal…); bộ lọc Nguồn cho phép chọn một dịch vụ.",
   "v2.lib.extendedFavorite": "Album yêu thích từ dịch vụ",
   "v2.lib.versionsCount": "{n} phiên bản",
+  "v2.lib.channelsCount": "Kênh: {n}",
   "v2.album.versions": "Phiên bản ({n})",
   "v2.album.preferredVersion": "Phiên bản ưu tiên",
   "v2.album.setPreferredVersion": "Ưu tiên phiên bản này",

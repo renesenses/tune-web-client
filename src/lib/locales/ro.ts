@@ -4395,6 +4395,7 @@ export default {
   "settings.extendedLibraryHint": "Biblioteca arată și favoritele tale din serviciile conectate (Qobuz, Tidal…); filtrul Sursă permite alegerea unui serviciu.",
   "v2.lib.extendedFavorite": "Album favorit din serviciu",
   "v2.lib.versionsCount": "{n} versiuni",
+  "v2.lib.channelsCount": "Canale: {n}",
   "v2.album.versions": "Versiuni ({n})",
   "v2.album.preferredVersion": "Versiunea preferată",
   "v2.album.setPreferredVersion": "Preferă această versiune",

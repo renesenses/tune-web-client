@@ -4395,6 +4395,7 @@ export default {
   "settings.extendedLibraryHint": "资料库同时显示你在已连接服务（Qobuz、Tidal 等）中的收藏；可用“来源”筛选选择某个服务。",
   "v2.lib.extendedFavorite": "来自服务的收藏专辑",
   "v2.lib.versionsCount": "{n} 个版本",
+  "v2.lib.channelsCount": "声道：{n}",
   "v2.album.versions": "版本（{n}）",
   "v2.album.preferredVersion": "首选版本",
   "v2.album.setPreferredVersion": "首选此版本",

@@ -4270,6 +4270,7 @@ export default {
   "settings.extendedLibraryHint": "Η Βιβλιοθήκη δείχνει επίσης τα αγαπημένα σας από τις συνδεδεμένες υπηρεσίες (Qobuz, Tidal…)· το φίλτρο Πηγή επιτρέπει την επιλογή υπηρεσίας.",
   "v2.lib.extendedFavorite": "Αγαπημένο άλμπουμ από την υπηρεσία",
   "v2.lib.versionsCount": "{n} εκδόσεις",
+  "v2.lib.channelsCount": "Κανάλια: {n}",
   "v2.album.versions": "Εκδόσεις ({n})",
   "v2.album.preferredVersion": "Προτιμώμενη έκδοση",
   "v2.album.setPreferredVersion": "Προτίμηση αυτής της έκδοσης",
