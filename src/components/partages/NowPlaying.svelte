@@ -2211,6 +2211,8 @@ import { ICONES } from '../../lib/menuPiste';
               {syncedLines}
               {karaokeMode}
               positionMs={isRadio ? positionRadio : null}
+              decalageMs={zone?.lyrics_offset_ms ?? 0}
+              enLecture={isEffectivePlaying}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
