@@ -85,6 +85,40 @@ export interface EtatCoquille {
    * réécritures de l'entrée (onglet, fermeture de fiche).
    */
   empilee?: true;
+  /**
+   * Fil 2694 (relecture de #2926) — l'IDENTIFIANT de l'entrée, pour les vues
+   * dont l'écran retient la page quittée (`VUES_A_PAGE`). Une page n'est
+   * rendue par Précédent/Suivant que sur l'entrée même qu'on avait quittée :
+   * deux visites du même service sont deux entrées, et la racine reste la
+   * racine. Absent ailleurs : les autres entrées gardent leur forme.
+   */
+  page?: string;
+}
+
+/** Fil 2694 — les vues dont les entrées portent un identifiant de page. */
+const VUES_A_PAGE: readonly string[] = ['streaming'];
+let compteurPages = 0;
+function nouvellePage(): string {
+  compteurPages += 1;
+  return `${Date.now().toString(36)}-${compteurPages}`;
+}
+
+/** Fil 2694 — l'identifiant de l'entrée d'historique COURANTE, s'il y en a un. */
+export function pageCourante(): string | null {
+  if (typeof window === 'undefined') return null;
+  const e = window.history.state;
+  return estEtatCoquille(e) && typeof e.page === 'string' ? e.page : null;
+}
+
+/**
+ * Fil 2694 — l'identifiant de l'entrée QUITTÉE au dernier changement de vue.
+ * Au moment où l'écran qui part s'en aperçoit, la coquille a déjà écrit
+ * l'entrée d'arrivée (ou le `popstate` l'a déjà rendue) : elle la retient donc
+ * juste avant.
+ */
+let pageQuitteeAuChangement: string | null = null;
+export function pageQuittee(): string | null {
+  return pageQuitteeAuChangement;
 }
 
 /**
@@ -183,11 +217,66 @@ function retenirOngletPour(vue: string | null): void {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* COMMENT ON EST ARRIVÉ SUR L'ÉCRAN — web, fil 2694 (Ilan)             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 🔴 « Quand on revient en arrière, par exemple après avoir cliqué sur un
+ * artiste depuis un album, revenir à l'endroit précédent et non à la racine
+ * de Tidal » — Ilan, fil 2694 (ancien utilisateur de Roon, client web).
+ *
+ * Un écran v2 est DÉTRUIT quand on change de vue (`ShellV2`, `{#if}`) : sa
+ * sous-page (genre ouvert, recherche, « Voir tout », défilement) est un
+ * `$state` local, perdu. Pour la lui rendre, l'écran remonté doit savoir
+ * s'il est un RETOUR (bouton Retour d'une page, Précédent/Suivant du
+ * navigateur) ou une ARRIVÉE délibérée (barre latérale, raccourci, lien) —
+ * la règle de #3843 veut qu'une arrivée reparte de la racine.
+ *
+ * - `historique` : l'entrée a été atteinte par Précédent/Suivant (`popstate`) ;
+ * - `retour`     : le Retour d'une page (`revenirA`, `vueEnRetour`) ;
+ * - `geste`      : tout autre changement de vue.
+ *
+ * Tenu par un abonnement de MODULE, posé avant ceux de la coquille : il voit
+ * chaque changement de vue, coquille branchée ou non.
+ */
+export type TypeArrivee = 'historique' | 'retour' | 'geste';
+let arrivee: TypeArrivee = 'geste';
+let arriveeAnnoncee: { vue: string; type: TypeArrivee } | null = null;
+activeView.subscribe((v) => {
+  arrivee = arriveeAnnoncee && arriveeAnnoncee.vue === v ? arriveeAnnoncee.type : 'geste';
+  arriveeAnnoncee = null;
+});
+
+/** Comment la vue COURANTE a été atteinte. À lire au montage de l'écran. */
+export function typeArrivee(): TypeArrivee {
+  return arrivee;
+}
+
+function poserVue(vue: View, type: TypeArrivee): void {
+  arriveeAnnoncee = { vue: String(vue), type };
+  try {
+    activeView.set(vue);
+  } finally {
+    // Vue inchangée : aucun abonné n'a consommé l'annonce, elle ne doit pas
+    // déteindre sur le changement suivant.
+    arriveeAnnoncee = null;
+  }
+}
+
+/**
+ * Changer de vue AU TITRE D'UN RETOUR, sans rien d'autre : le Retour d'une
+ * page qui ne passe pas par `revenirA` (page Label, fiche album de service).
+ */
+export function vueEnRetour(vue: View): void {
+  poserVue(vue, 'retour');
+}
+
 /** Le Retour d'une page : aller à `vue` et y reposer l'onglet retenu. */
 export function revenirA(vue: View): void {
   const r = ongletRetenu;
   ongletRetenu = null;
-  activeView.set(vue);
+  poserVue(vue, 'retour');
   // Après le changement de vue, qui remet l'onglet à `null` : l'entrée neuve
   // est réécrite avec lui, et l'écran le lit à son montage.
   if (r && r.vue === vue) ongletCourant.set(r.onglet);
@@ -222,6 +311,22 @@ export function fermerDetailEnReculant(
 /** Refermer sans reculer (clic ailleurs, changement d'onglet). */
 export function fermerDetail(): void {
   detailOuvert.set(null);
+}
+
+/**
+ * Fil 2694 — REPOSER un niveau de détail sur l'entrée COURANTE, sans en
+ * empiler une : c'est la restauration d'un écran rendu par un retour, pas un
+ * pas de plus. Empiler ici ferait qu'un Précédent suivant ne bougerait pas de
+ * l'écran (l'entrée d'avant montre la même page).
+ */
+let detailEnRemplacement = false;
+export function reposerDetail(cle: string): void {
+  detailEnRemplacement = true;
+  try {
+    detailOuvert.set(String(cle));
+  } finally {
+    detailEnRemplacement = false;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -429,12 +534,21 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
    */
   let enRestauration = false;
 
+  /** Fil 2694 — l'entrée sur laquelle on se trouve, telle qu'on la connaît. */
+  let pageConnue: string | null = null;
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
     const courant = historique.state as unknown;
     if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
+    // Fil 2694 — une entrée neuve reçoit son identifiant ; une réécriture de
+    // la même vue le garde.
+    if (VUES_A_PAGE.includes(etat.vue)) {
+      etat.page = !pousser && estEtatCoquille(courant) && courant.vue === etat.vue && typeof courant.page === 'string'
+        ? courant.page : nouvellePage();
+    }
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
+    pageConnue = etat.page ?? null;
   };
 
   /**
@@ -504,6 +618,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // est alors COMPOSÉE, elle porte la clé dès sa naissance, et le parcours ne
     // coûte qu'un cran au lieu de deux. Voir `allerAuDetail`.
     const vise = consommerVuePourEntree();
+    pageQuitteeAuChangement = estEtatCoquille(historique.state) ? (historique.state.page ?? null) : null;
     enRestauration = true;
     detailOuvert.set(vise);
     // web#1790 — l'onglet appartient à la vue qu'on quitte.
@@ -518,6 +633,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // Une transition composée est en cours : l'entrée porte déjà ce que
     // l'écran d'arrivée est en train de reposer. Ni push, ni replace.
     if (transitionAbsorbe(detail)) return;
+    // Fil 2694 — une restauration réécrit l'entrée courante (`reposerDetail`).
+    if (detailEnRemplacement) { ecrire(false, get(activeView), detail); return; }
     // `opPourFiche` porte la règle d'intention, tracée dans Chrome sur .18 et
     // gardée par `retourHistoriqueFiche.test.ts` : ouverture → empiler ;
     // fermeture à la main → réécrire l'entrée courante ; fermeture PAR UN
@@ -541,12 +658,17 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // fermetures suivantes redeviennent des réécritures.
     finDuRetourProgrammatique();
     const etat = e.state;
+    // `history.state` est DÉJÀ l'entrée atteinte : l'entrée quittée est celle
+    // qu'on connaissait.
+    pageQuitteeAuChangement = pageConnue;
+    pageConnue = estEtatCoquille(etat) ? (etat.page ?? null) : null;
     if (!estEtatCoquille(etat)) return;
     enRestauration = true;
     try {
       // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
       ongletCourant.set(etat.onglet ?? null);
-      activeView.set(etat.vue as View);
+      // Fil 2694 — l'écran remonté sait qu'il est atteint par l'historique.
+      poserVue(etat.vue as View, 'historique');
       detailOuvert.set(etat.detail);
     } finally {
       enRestauration = false;
