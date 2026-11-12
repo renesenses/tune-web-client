@@ -77,7 +77,13 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
   taille?.observe(el);
   calculer();
   return {
-    update(n: Options) { o = n; planifier(); },
+    update(n: Options) {
+      o = n;
+      // Les données peuvent grandir après un filtre ou l’arrivée des favoris.
+      // Rendre leur nouvelle tranche dans ce cycle, sans attendre une frame.
+      calculer();
+      planifier();
+    },
     destroy() {
       detruit = true;
       cancelAnimationFrame(trame);
