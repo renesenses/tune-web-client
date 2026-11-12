@@ -3256,6 +3256,8 @@ export default {
   "settings.writeTagsHint": "Modifică fișierele importate. Nebifat, se completează doar baza de date.",
   "settings.facetValuesHint": "0 = toate. Peste câteva sute, coloana devine ilizibilă.",
   "settings.spotifyReceiverHint": "Receptorul transformă O zonă într-un difuzor Spotify.",
+  "settings.spotifyNameChangeHint": "Schimbarea numelui face să apară un dispozitiv nou în aplicația Spotify.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect nu a putut reda în zona expusă: nu mai există. Alegeți alta (dezactivați receptorul, alegeți, reactivați-l).",
   "settings.noZoneCreateOne": "Nicio zonă. Creați una în ecranul Zone.",
   "settings.noAcousticModule": "Acest server nu include modulul acustic.",
   "settings.serverPathHint": "Cale absolută văzută de SERVER, nu de acest browser.",

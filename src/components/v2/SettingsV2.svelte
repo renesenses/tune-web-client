@@ -4097,13 +4097,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (on) {
         if (spcZone == null) { spcErr = get(t)('settings.errPickZoneToExpose'); spcBusy = false; return; }
-        await api.enableSpotifyConnect(spcZone, spcName.trim() || null);
+        // '' : nom par défaut (« Tune ») ; le serveur garde le nom choisi.
+        await api.enableSpotifyConnect(spcZone, spcName.trim());
       } else {
         await api.disableSpotifyConnect();
       }
       spc = await api.getSpotifyConnectStatus();
     } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
     spcBusy = false;
+  }
+  // tune-server-rust#8570 — le nom se change à tout moment : récepteur actif,
+  // le serveur relance librespot sous le nouveau nom.
+  async function renommerSpc() {
+    if (!spc?.enabled) return;
+    const nom = spcName.trim();
+    if (nom === (spc.device_name ?? '')) return;
+    spcBusy = true; spcErr = null;
+    try {
+      await api.enableSpotifyConnect(spc.zone_id ?? spcZone ?? 1, nom);
+      spc = await api.getSpotifyConnectStatus();
+      spcName = spc?.device_name ?? nom;
+    } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    spcBusy = false;
+  }
+  // tune-server-rust#8565 — la session lancée depuis l'application Spotify
+  // n'a pas pu jouer : un code connu est traduit, un motif de sortie passe.
+  function erreurDeSessionSpc(code: string): string {
+    return code === 'exposed_zone_missing' ? get(t)('settings.spotifySessionZoneMissing' as any) : code;
   }
   // #6018 — « Lecture Spotify (expérimental) », désactivée par défaut.
   async function toggleSpotifyLecture(on: boolean) {
@@ -6306,11 +6326,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {#each $zones as z (z.id)}<option value={String(z.id)}>{z.name}</option>{/each}
                     </select>
                   </div>
-                  <div class="row" data-reglage="spotify-nom">
-                    <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
-                      <span class="hint">{$t('settings.blankForDefaultName' as any)}</span></div>
-                    <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
-                  </div>
+                {/if}
+                <!-- tune-server-rust#8570 — modifiable à tout moment. -->
+                <div class="row" data-reglage="spotify-nom">
+                  <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
+                    <span class="hint">{$t('settings.blankForDefaultName' as any)}</span>
+                    <span class="hint">{$t('settings.spotifyNameChangeHint' as any)}</span></div>
+                  <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName}
+                    disabled={spcBusy} onchange={renommerSpc} />
+                </div>
+                {#if spc?.enabled && spc?.session_error}
+                  <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
                 <div class="row" data-reglage="spotify-lecture-experimentale">
                   <div class="lbl">

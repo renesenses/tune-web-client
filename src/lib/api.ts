@@ -6211,6 +6211,10 @@ export interface SpotifyConnectStatus {
   error?: string;
   /** #6018 — « Lecture Spotify (expérimental) » : désactivée par défaut. */
   lecture_experimentale?: boolean;
+  /** tune-server-rust#8565 — pourquoi la dernière session lancée depuis
+   *  l'application Spotify n'a pas joué dans la zone exposée (code stable,
+   *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
+  session_error?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {

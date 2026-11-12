@@ -3256,6 +3256,8 @@ export default {
   "settings.writeTagsHint": "가져온 파일을 수정합니다. 체크하지 않으면 데이터베이스만 채워집니다.",
   "settings.facetValuesHint": "0 = 전체. 수백 개를 넘으면 열을 읽기 어려워집니다.",
   "settings.spotifyReceiverHint": "리시버는 하나의 존을 Spotify 스피커로 바꿉니다.",
+  "settings.spotifyNameChangeHint": "이름을 바꾸면 Spotify 앱에 새 기기로 나타납니다.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect가 노출된 존에서 재생하지 못했습니다. 해당 존이 더 이상 없습니다. 다른 존을 선택하세요(리시버를 끄고, 선택한 뒤, 다시 켜기).",
   "settings.noZoneCreateOne": "존이 없습니다. 존 화면에서 만드세요.",
   "settings.noAcousticModule": "이 서버에는 음향 모듈이 포함되어 있지 않습니다.",
   "settings.serverPathHint": "이 브라우저가 아니라 서버가 보는 절대 경로입니다.",

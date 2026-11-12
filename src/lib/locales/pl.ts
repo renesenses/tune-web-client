@@ -1915,6 +1915,8 @@ export default {
   "settings.writeTagsHint": "Modyfikuje zaimportowane pliki. Po odznaczeniu uzupełniana jest tylko baza danych.",
   "settings.facetValuesHint": "0 = wszystkie. Powyżej kilkuset wartości kolumna staje się nieczytelna.",
   "settings.spotifyReceiverHint": "Odbiornik zamienia JEDNĄ strefę w głośnik Spotify.",
+  "settings.spotifyNameChangeHint": "Zmiana nazwy sprawia, że w aplikacji Spotify pojawia się nowe urządzenie.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect nie mógł odtwarzać w udostępnionej strefie: już nie istnieje. Wybierz inną (wyłącz odbiornik, wybierz, włącz ponownie).",
   "settings.noZoneCreateOne": "Brak stref. Utwórz jedną na ekranie Strefy.",
   "settings.noAcousticModule": "Ten serwer nie zawiera modułu akustycznego.",
   "settings.serverPathHint": "Ścieżka bezwzględna widziana przez SERWER, a nie przez tę przeglądarkę.",

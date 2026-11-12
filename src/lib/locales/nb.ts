@@ -1915,6 +1915,8 @@ export default {
   "settings.writeTagsHint": "Endrer importerte filer. Uten avkrysning fylles bare databasen ut.",
   "settings.facetValuesHint": "0 = alle. Over noen hundre blir kolonnen uleselig.",
   "settings.spotifyReceiverHint": "Mottakeren gjør ÉN sone om til en Spotify-høyttaler.",
+  "settings.spotifyNameChangeHint": "Når du endrer navnet, dukker en ny enhet opp i Spotify-appen.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect kunne ikke spille i den eksponerte sonen: den finnes ikke lenger. Velg en annen (slå av mottakeren, velg, slå den på igjen).",
   "settings.noZoneCreateOne": "Ingen sone. Opprett en på Soner-skjermen.",
   "settings.noAcousticModule": "Denne serveren leveres ikke med akustikkmodulen.",
   "settings.serverPathHint": "Absolutt sti slik SERVEREN ser den, ikke denne nettleseren.",

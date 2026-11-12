@@ -3256,6 +3256,8 @@ export default {
   "settings.writeTagsHint": "修改导入的文件。不勾选时，只填充数据库。",
   "settings.facetValuesHint": "0 = 全部。超过几百项后，该列将难以阅读。",
   "settings.spotifyReceiverHint": "接收器会把一个区域变成 Spotify 音箱。",
+  "settings.spotifyNameChangeHint": "更改名称后，Spotify 应用中会出现一个新设备。",
+  "settings.spotifySessionZoneMissing": "Spotify Connect 无法在公开的区域播放：该区域已不存在。请另选一个区域（关闭接收器，选择后重新开启）。",
   "settings.noZoneCreateOne": "没有区域。请在「区域」界面创建一个。",
   "settings.noAcousticModule": "此服务器未包含声学模块。",
   "settings.serverPathHint": "服务器看到的绝对路径，而非此浏览器看到的路径。",

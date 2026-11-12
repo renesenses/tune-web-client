@@ -1917,6 +1917,8 @@ export default {
   "settings.writeTagsHint": "Sửa đổi các tệp được nhập. Nếu bỏ chọn, chỉ cơ sở dữ liệu được cập nhật.",
   "settings.facetValuesHint": "0 = tất cả. Quá vài trăm giá trị, cột sẽ trở nên khó đọc.",
   "settings.spotifyReceiverHint": "Bộ thu biến MỘT vùng phát thành loa Spotify.",
+  "settings.spotifyNameChangeHint": "Đổi tên sẽ làm xuất hiện một thiết bị mới trong ứng dụng Spotify.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect không thể phát trong vùng được chia sẻ: vùng đó không còn tồn tại. Hãy chọn vùng khác (tắt bộ thu, chọn, rồi bật lại).",
   "settings.noZoneCreateOne": "Chưa có vùng phát nào. Hãy tạo một vùng phát trong màn hình Vùng phát.",
   "settings.noAcousticModule": "Máy chủ này không đi kèm mô-đun phân tích âm học.",
   "settings.serverPathHint": "Đường dẫn tuyệt đối theo góc nhìn của MÁY CHỦ, không phải của trình duyệt này.",

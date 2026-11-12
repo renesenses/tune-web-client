@@ -2061,6 +2061,8 @@ export default {
   "settings.writeTagsHint": "Modifies imported files. Unchecked, only the database is filled in.",
   "settings.facetValuesHint": "0 = all. Beyond a few hundred, the column becomes unreadable.",
   "settings.spotifyReceiverHint": "The receiver turns ONE zone into a Spotify speaker.",
+  "settings.spotifyNameChangeHint": "Changing the name makes a new device appear in the Spotify app.",
+  "settings.spotifySessionZoneMissing": "Spotify Connect could not play in the exposed zone: it no longer exists. Pick another zone (turn the receiver off, choose, turn it back on).",
   "settings.noZoneCreateOne": "No zone. Create one in the Zones screen.",
   "settings.noAcousticModule": "This server does not ship the acoustic module.",
   "settings.serverPathHint": "Absolute path as seen by the SERVER, not by this browser.",

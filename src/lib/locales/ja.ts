@@ -3256,6 +3256,8 @@ export default {
   "settings.writeTagsHint": "取り込んだファイルを変更します。チェックしない場合はデータベースのみが更新されます。",
   "settings.facetValuesHint": "0 = すべて。数百を超えると列が読みにくくなります。",
   "settings.spotifyReceiverHint": "レシーバーは 1 つのゾーンを Spotify スピーカーに変えます。",
+  "settings.spotifyNameChangeHint": "名前を変えると、Spotify アプリに新しいデバイスとして表示されます。",
+  "settings.spotifySessionZoneMissing": "Spotify Connect は公開ゾーンで再生できませんでした。そのゾーンはもう存在しません。別のゾーンを選んでください（レシーバーをオフにし、選んでから再びオン）。",
   "settings.noZoneCreateOne": "ゾーンがありません。ゾーン画面で作成してください。",
   "settings.noAcousticModule": "このサーバーには音響モジュールが含まれていません。",
   "settings.serverPathHint": "このブラウザではなく、サーバーから見た絶対パスです。",
