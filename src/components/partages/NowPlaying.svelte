@@ -1848,6 +1848,16 @@ import { ICONES } from '../../lib/menuPiste';
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artwork-clickable" onclick={() => { if (!ytActive) showLightbox = true; }}>
             <AlbumArt coverPath={displayTrack.cover_path} albumId={albumIdOf(displayTrack)} size={isWide ? 420 : 440} alt={displayTrack.title} />
+            <!-- web#2550 (décision de Bertrand du 12/11/2026, rc12) — quand la
+                 pochette du morceau a pris la place du logo de la station, le
+                 logo reste là EN PETIT, dans un coin de la pochette (option 1
+                 d'alec_eiffel, fil 2560). Il quitte la ligne du nom : un seul
+                 logo à l'écran. -->
+            {#if isRadio && logoStation}
+              <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
+                <AlbumArt coverPath={logoStation} albumId={null} size={64} alt={displayTrack.album_title || 'Radio'} />
+              </span>
+            {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -1974,13 +1984,6 @@ import { ICONES } from '../../lib/menuPiste';
             <!-- #2398 — le nom de la station ouvre sa fiche (description, site). -->
             <!-- web#2443 — plus grand, et le badge « Metadata+ » à côté. -->
             <div class="radio-station-ligne">
-              <!-- web#2550 — le logo de la station à côté de son nom, quand la
-                   pochette du morceau a pris sa place. -->
-              {#if logoStation}
-                <span class="radio-station-logo" data-logo-station>
-                  <AlbumArt coverPath={logoStation} albumId={null} size={28} alt={displayTrack.album_title || 'Radio'} />
-                </span>
-              {/if}
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
@@ -3884,13 +3887,6 @@ import { ICONES } from '../../lib/menuPiste';
     justify-content: center;
   }
   /* web#2550 — le logo de la station, petit, devant son nom. */
-  .radio-station-logo {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    overflow: hidden;
-  }
   /* web#2551 — ajouter à « Mes radios » ou en retirer. */
   .np-mes-radios {
     flex-shrink: 0;
@@ -4376,6 +4372,27 @@ import { ICONES } from '../../lib/menuPiste';
     position: relative;
     width: 100%;
     height: 100%;
+  }
+
+  /* web#2550 — le logo de la station, en petit, dans le coin haut gauche de
+     la pochette du morceau (le bas porte déjà la loupe et l'œil). */
+  .np-logo-coin {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: clamp(36px, 16%, 64px);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+  .np-logo-coin :global(.album-art) {
+    width: 100% !important;
+    height: 100% !important;
+    box-shadow: none !important;
   }
 
   .artwork-zoom-hint {
