@@ -14,6 +14,11 @@
    *   fois). Si le flux se tait (repli en relecture HTTP), la route est relue.
    * - L'état final propose d'ouvrir l'album une fois le scan passé
    *   (`library.scan.completed`).
+   * - tune-server-rust#8514 : le disque ENTIER en mémoire (`memoirePrete`)
+   *   offre « Enregistrer dans la bibliothèque » : la même feuille (format,
+   *   dossier cible, pistes, balises), sans la vérification, et
+   *   `depuis_memoire: true` — le serveur verse les pistes déjà lues sans
+   *   relire le CD, puis lance le scan.
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -32,11 +37,12 @@
   import {
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
-    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu,
+    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu, depuisMemoire,
     type ReglagesExtraction, type EtatExtraction, type FormatExtraction, type VerificationExtraction,
   } from '../../lib/extractionCd';
 
-  let { disque }: { disque: DisqueCd } = $props();
+  /** `memoirePrete` (#8514) : le disque affiché est entier en mémoire. */
+  let { disque, memoirePrete = false }: { disque: DisqueCd; memoirePrete?: boolean } = $props();
 
   /** Relecture de secours quand aucun évènement n'est venu depuis ce délai. */
   const SILENCE_MS = 5000;
@@ -64,6 +70,8 @@
   let album = $state('');
   let titres = $state<Record<number, string>>({});
   let ecraser = $state(false);
+  /** #8514 — la feuille enregistre depuis la mémoire. */
+  let modeMemoire = $state(false);
 
   let fini = false;
   let dernierEvenement = 0;
@@ -146,8 +154,9 @@
   });
 
   // ─── Feuille de lancement ────────────────────────────────────────────────
-  function ouvrirFeuille() {
+  function ouvrirFeuille(depuisLaMemoire = false) {
     if (!reglages) return;
+    modeMemoire = depuisLaMemoire;
     format = reglages.formats.includes(reglages.format) ? reglages.format : 'flac';
     destination = reglages.destination ?? reglages.emplacements[0] ?? '';
     verification = 'doute';
@@ -176,7 +185,7 @@
         reglages = await putReglagesExtraction({ format, destination });
       }
       const e = await lancerExtraction(corpsLancement(
-        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser },
+        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser, depuisMemoire: modeMemoire },
         disque,
       ));
       feuille = false;
@@ -256,7 +265,13 @@
 <svelte:window onkeydown={auClavier} />
 
 {#if reglages}
-  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={ouvrirFeuille}>
+  {#if memoirePrete}
+    <!-- #8514 : le disque est déjà en mémoire, rien à relire. -->
+    <button class="go enregistrer-memoire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(true)}>
+      {$t('v2.cd.save.action' as any)}
+    </button>
+  {/if}
+  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(false)}>
     {$t('v2.cd.rip.action' as any)}
   </button>
 {/if}
@@ -265,8 +280,8 @@
   <div class="suivi" data-statut={suivi.statut} aria-live="polite">
     <div class="tete">
       <strong class="statut">
-        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : 'v2.cd.rip.running') as any)}
-        {:else if suivi.statut === 'terminee'}{$t('v2.cd.rip.done' as any)}
+        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : depuisMemoire(suivi) ? 'v2.cd.save.running' : 'v2.cd.rip.running') as any)}
+        {:else if suivi.statut === 'terminee'}{$t((depuisMemoire(suivi) ? 'v2.cd.save.done' : 'v2.cd.rip.done') as any)}
         {:else if suivi.statut === 'annulee'}{$t('v2.cd.rip.cancelled' as any)}
         {:else}{$t('v2.cd.rip.failed' as any)}{/if}
       </strong>
@@ -327,9 +342,11 @@
 
 {#if feuille && reglages}
   <div class="fond tune-v2" role="presentation" use:portail onclick={() => { if (!travail) feuille = false; }}>
-    <div class="panneau feuille-extraction" role="dialog" aria-modal="true" aria-label={$t('v2.cd.rip.sheetTitle' as any)}
+    <div class="panneau feuille-extraction" class:memoire={modeMemoire} role="dialog" aria-modal="true"
+      aria-label={$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}
       onclick={(e) => e.stopPropagation()}>
-      <h2>{$t('v2.cd.rip.sheetTitle' as any)}</h2>
+      <h2>{$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}</h2>
+      {#if modeMemoire}<p class="note indice-memoire">{$t('v2.cd.save.hint' as any)}</p>{/if}
       <button class="fermer" aria-label={$t('common.close' as any)} disabled={travail} onclick={() => (feuille = false)}>×</button>
       <form onsubmit={lancer}>
         <fieldset class="ligne">
@@ -373,13 +390,15 @@
           </ol>
         </fieldset>
 
-        <label>
-          <span>{$t('v2.cd.rip.verification' as any)}</span>
-          <select class="verification" bind:value={verification}>
-            <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
-            <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
-          </select>
-        </label>
+        {#if !modeMemoire}
+          <label>
+            <span>{$t('v2.cd.rip.verification' as any)}</span>
+            <select class="verification" bind:value={verification}>
+              <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
+              <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
+            </select>
+          </label>
+        {/if}
 
         <label class="choix"><input type="checkbox" class="ecraser" bind:checked={ecraser} /> {$t('v2.cd.rip.overwrite' as any)}</label>
 
@@ -388,7 +407,7 @@
         <div class="pied">
           <button type="button" class="sec" disabled={travail} onclick={() => (feuille = false)}>{$t('common.cancel' as any)}</button>
           <button type="submit" class="pri lancer" disabled={travail || !choisies.length || !destination}>
-            {travail ? '…' : $t('v2.cd.rip.start' as any)}
+            {travail ? '…' : $t((modeMemoire ? 'v2.cd.save.start' : 'v2.cd.rip.start') as any)}
           </button>
         </div>
       </form>
@@ -405,6 +424,7 @@
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .extraire{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2)}
+  .indice-memoire{margin:-6px 0 12px}
   .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 12.5px var(--v2-sans)}
   .sec{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt)}
   .pri{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

@@ -63,10 +63,37 @@ export interface ChargementCd {
   octets_fichier: number;
   secteurs_perdus: number;
   /**
+   * tune-server-rust#8514 — les CRC AccurateRip v1 et v2 (hexadécimal) de
+   * chaque piste ENTIÈRE en mémoire, calculés au chargement ; absent d'un
+   * serveur antérieur.
+   */
+  accuraterip?: AccurateRipPisteCd[];
+  /**
    * `null` tant que le chargement avance ; `termine` = prêt ; `ejecte` ou
    * `echec` (#6596) = le chargement n'a pas abouti ; `libere` = rendu.
    */
   fin: 'termine' | 'ejecte' | 'libere' | 'echec' | null;
+}
+
+/** tune-server-rust#8514 — les CRC AccurateRip d'une piste chargée. */
+export interface AccurateRipPisteCd {
+  piste: number;
+  v1: string;
+  v2: string;
+}
+
+/**
+ * tune-server-rust#8514 — les CRC AccurateRip calculés au chargement du
+ * disque affiché, piste par piste dès qu'une piste est entière (pendant le
+ * chargement aussi) ; `[]` pour un autre disque, un chargement arrêté
+ * (éjecté, rendu, en échec) ou un serveur antérieur.
+ */
+export function accurateRipDuChargement(
+  c: ChargementCd | null | undefined,
+  discId: string | null | undefined,
+): AccurateRipPisteCd[] {
+  if (!vueChargementCd(c, discId) || !Array.isArray(c?.accuraterip)) return [];
+  return c!.accuraterip.filter((a) => a && typeof a.piste === 'number' && typeof a.v1 === 'string');
 }
 
 /** tune-server-rust#6043 — `GET /ext/cd/memoire`. */

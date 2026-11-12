@@ -7,8 +7,15 @@
  *   GET    /lecteurs              → { plateforme_prise_en_charge, lecteurs: [{ chemin, presence, extraction_en_cours }] }
  *   GET    /extraction/reglages   → { formats, format, verifications, destination, destination_source, emplacements }
  *   PUT    /extraction/reglages   { format?, destination? } → même forme ; 400 corps_invalide · format_non_pris_en_charge · refus de destination
- *   POST   /extractions           { format?, destination?, pistes?, verification?, ecraser?, artiste?, album?, titres? }
+ *   POST   /extractions           { format?, destination?, pistes?, verification?, ecraser?, artiste?, album?, titres?, depuis_memoire? }
  *                                 → 202 état · 400 · 404 aucun_lecteur · 409 · 502 lecture_toc
+ *
+ * tune-server-rust#8514 — `depuis_memoire: true` : « Enregistrer dans la
+ * bibliothèque » le disque déjà ENTIER en mémoire, sans relire le CD (même
+ * nommage, mêmes balises et pochette, même scan) ; l'état porte alors
+ * `source: 'memoire'`. Refus `409 memoire_incomplete` si le disque n'est
+ * pas (ou plus) entièrement en mémoire, `409 memoire_secteurs_perdus` si
+ * des secteurs sont restés illisibles au chargement (à extraire du lecteur).
  *   GET    /extractions           → { extractions: [état…] } (la plus récente d'abord)
  *   GET    /extractions/{id}      → état · 404 extraction_inconnue
  *   DELETE /extractions/{id}      → 202 état (encore en_cours) · 404 extraction_inconnue · 409 extraction_terminee
@@ -57,6 +64,8 @@ export interface EtatExtraction {
   format: FormatExtraction;
   verification: VerificationExtraction;
   lecteur: string;
+  /** tune-server-rust#8514 — absent d'un serveur antérieur (= `lecteur`). */
+  source?: 'lecteur' | 'memoire';
   disc_id: string;
   metadonnees: 'musicbrainz' | 'repli';
   artiste: string;
@@ -83,6 +92,8 @@ export interface DemandeExtraction {
   artiste?: string;
   album?: string;
   titres?: Record<string, string>;
+  /** tune-server-rust#8514 — verser le disque déjà chargé en mémoire. */
+  depuis_memoire?: boolean;
 }
 
 const CD = `${BASE}/ext/cd`;
@@ -177,6 +188,8 @@ export const CLES_REFUS: Record<string, string> = {
   extraction_inconnue: 'v2.cd.rip.err.unknownRip',
   extraction_terminee: 'v2.cd.rip.err.alreadyFinished',
   admin_requis: 'v2.cd.rip.err.adminRequired',
+  memoire_incomplete: 'v2.cd.save.err.notLoaded',
+  memoire_secteurs_perdus: 'v2.cd.save.err.lostSectors',
   // Codes de l'`erreur` d'une extraction en échec.
   disque_retire: 'v2.cd.rip.err.discRemoved',
   lecture: 'v2.cd.rip.err.read',
@@ -199,6 +212,8 @@ export interface SaisieLancement {
   /** Titre saisi, par numéro de piste. */
   titres: Record<number, string>;
   ecraser?: boolean;
+  /** tune-server-rust#8514 — enregistrer depuis la mémoire, sans relire le CD. */
+  depuisMemoire?: boolean;
 }
 
 export interface DisqueSource {
@@ -213,10 +228,11 @@ export interface DisqueSource {
  * pistes ne partent que si la sélection n'est pas le disque entier.
  */
 export function corpsLancement(s: SaisieLancement, d: DisqueSource): DemandeExtraction {
-  const corps: DemandeExtraction = {
-    format: s.format,
-    verification: s.verification,
-  };
+  // #8514 — depuis la mémoire, rien n'est relu : la vérification n'a pas
+  // d'objet.
+  const corps: DemandeExtraction = s.depuisMemoire
+    ? { format: s.format, depuis_memoire: true }
+    : { format: s.format, verification: s.verification };
   if (s.destination) corps.destination = s.destination;
   const toutes = d.pistes.map((p) => p.numero);
   const choisies = toutes.filter((n) => s.pistes.includes(n));
@@ -256,6 +272,11 @@ export function appliquerEvenement(
   // Un évènement en retard ne fait pas revenir un état final à `en_cours`.
   if (suivi && suivi.statut !== 'en_cours' && e.statut === 'en_cours') return null;
   return e;
+}
+
+/** tune-server-rust#8514 — l'état vient-il d'un enregistrement depuis la mémoire ? */
+export function depuisMemoire(e: EtatExtraction | null | undefined): boolean {
+  return e?.source === 'memoire';
 }
 
 /** Secteurs illisibles cumulés : du silence a remplacé de la musique. */
