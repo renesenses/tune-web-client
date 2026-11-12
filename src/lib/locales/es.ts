@@ -7502,6 +7502,14 @@ export default {
   "login.haveAccount": "¿Ya tienes cuenta?",
   "nowplaying.eqPureNotice": "El modo PURE está activo en esta zona: la señal se transmite intacta, sin ningún procesamiento. Los preajustes de abajo no tendrán efecto mientras el modo PURE esté activo.",
   "zone.pauseThisZone": "Pausar {name}",
+  "pareFeu.titre": "El cortafuegos de Windows filtra Tune en esta red",
+  "pareFeu.corps": "La red activa está clasificada como {profils} y la regla de cortafuegos de Tune no la cubre. Por eso se bloquean la detección de dispositivos UPnP/DLNA y el acceso desde un teléfono: un dispositivo puede aparecer solo como AirPlay o no recibir nada.",
+  "pareFeu.etapePrive": "Ponga la red en Privada: Configuración de Windows ▸ Red e Internet ▸ propiedades de la red ▸ Perfil de red: Privada.",
+  "pareFeu.etapeAutoriser": "O permita Tune en esta red: Seguridad de Windows ▸ Firewall y protección de red ▸ Permitir una aplicación a través del firewall ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Después reinicie Tune.",
+  "pareFeu.profilDomaine": "Dominio",
+  "pareFeu.profilPrive": "Privada",
+  "pareFeu.profilPublic": "Pública",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

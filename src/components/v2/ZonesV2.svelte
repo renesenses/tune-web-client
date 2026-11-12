@@ -58,6 +58,7 @@
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
+  import AlertePareFeu from './AlertePareFeu.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -638,6 +639,12 @@
        incompatibles et avait fait conclure à un abonné Premium que la
        fonction n'existait pas. On prévient, on ne masque pas. -->
   <OutputModuleBanner instantane={instantaneFournisseurs} />
+
+  <!-- tune-server-rust#7371 — le pare-feu de Windows filtre Tune sur le réseau
+       actif (réseau Public hors de la règle « Tune ») : un appareil DLNA n'est
+       alors jamais découvert. Hors du bloc « aucune zone », pour la même raison
+       que le bandeau ci-dessus. -->
+  <AlertePareFeu />
 
   {#each asioAAvertir as s (s.device_id)}
     <div class="asio-sans-zone" role="status" data-asio-sans-zone={s.device_id}>

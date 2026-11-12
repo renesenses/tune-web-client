@@ -7502,6 +7502,14 @@ export default {
   "login.haveAccount": "이미 계정이 있으신가요?",
   "nowplaying.eqPureNotice": "이 존에서 PURE 모드가 켜져 있습니다. 신호는 아무 처리 없이 그대로 전달됩니다. PURE 모드가 켜져 있는 동안 아래 프리셋은 효과가 없습니다.",
   "zone.pauseThisZone": "{name} 일시정지",
+  "pareFeu.titre": "Windows 방화벽이 이 네트워크에서 Tune을 차단하고 있습니다",
+  "pareFeu.corps": "활성 네트워크가 {profils}(으)로 분류되어 있으며 Tune의 방화벽 규칙이 이를 포함하지 않습니다. 따라서 UPnP/DLNA 기기 검색과 휴대폰에서의 접근이 차단됩니다. 기기가 AirPlay로만 표시되거나 아무것도 받지 못할 수 있습니다.",
+  "pareFeu.etapePrive": "네트워크를 개인으로 설정하세요: Windows 설정 ▸ 네트워크 및 인터넷 ▸ 네트워크 속성 ▸ 네트워크 프로필: 개인.",
+  "pareFeu.etapeAutoriser": "또는 이 네트워크에서 Tune을 허용하세요: Windows 보안 ▸ 방화벽 및 네트워크 보호 ▸ 방화벽을 통해 앱 허용 ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "그런 다음 Tune을 다시 시작하세요.",
+  "pareFeu.profilDomaine": "도메인",
+  "pareFeu.profilPrive": "개인",
+  "pareFeu.profilPublic": "공용",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

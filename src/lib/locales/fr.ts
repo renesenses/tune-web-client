@@ -7524,6 +7524,14 @@ export default {
   "login.haveAccount": "Déjà un compte ?",
   "nowplaying.eqPureNotice": "Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun traitement. Les préréglages ci-dessous resteront donc sans effet tant que le mode PURE est activé.",
   "zone.pauseThisZone": "Mettre {name} en pause",
+  "pareFeu.titre": "Le pare-feu de Windows filtre Tune sur ce réseau",
+  "pareFeu.corps": "Le réseau actif est classé {profils}, et la règle de pare-feu de Tune ne le couvre pas. La découverte des appareils UPnP/DLNA et l'accès depuis un téléphone sont donc bloqués : un appareil peut n'apparaître qu'en AirPlay, ou ne rien recevoir.",
+  "pareFeu.etapePrive": "Passez le réseau en Privé : Paramètres Windows ▸ Réseau et Internet ▸ propriétés du réseau ▸ Profil réseau : Privé.",
+  "pareFeu.etapeAutoriser": "Ou autorisez Tune pour ce réseau : Sécurité Windows ▸ Pare-feu et protection du réseau ▸ Autoriser une application via le pare-feu ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Redémarrez ensuite Tune.",
+  "pareFeu.profilDomaine": "Domaine",
+  "pareFeu.profilPrive": "Privé",
+  "pareFeu.profilPublic": "Public",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

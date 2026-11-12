@@ -7502,6 +7502,14 @@ export default {
   "login.haveAccount": "すでにアカウントをお持ちですか？",
   "nowplaying.eqPureNotice": "このゾーンでは PURE モードが有効です。信号は処理されずにそのまま送られます。PURE モードが有効な間、下のプリセットは効果がありません。",
   "zone.pauseThisZone": "{name} を一時停止",
+  "pareFeu.titre": "Windows ファイアウォールがこのネットワークで Tune を遮断しています",
+  "pareFeu.corps": "アクティブなネットワークは {profils} に分類されており、Tune のファイアウォール規則の対象外です。そのため UPnP/DLNA 機器の検出とスマートフォンからのアクセスがブロックされます。機器が AirPlay としてしか表示されない、または何も受信しないことがあります。",
+  "pareFeu.etapePrive": "ネットワークをプライベートに設定します: Windows の設定 ▸ ネットワークとインターネット ▸ ネットワークのプロパティ ▸ ネットワーク プロファイル: プライベート。",
+  "pareFeu.etapeAutoriser": "または、このネットワークで Tune を許可します: Windows セキュリティ ▸ ファイアウォールとネットワーク保護 ▸ ファイアウォールによるアプリケーションの許可 ▸ tune-server.exe。",
+  "pareFeu.etapeRedemarrer": "その後、Tune を再起動してください。",
+  "pareFeu.profilDomaine": "ドメイン",
+  "pareFeu.profilPrive": "プライベート",
+  "pareFeu.profilPublic": "パブリック",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

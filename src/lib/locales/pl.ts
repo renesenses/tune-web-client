@@ -7347,5 +7347,13 @@ export default {
   "login.haveAccount": "Masz już konto?",
   "nowplaying.eqPureNotice": "Tryb PURE jest włączony w tej strefie: sygnał jest przesyłany bez zmian, bez żadnego przetwarzania. Poniższe ustawienia wstępne nie będą działać, dopóki tryb PURE jest włączony.",
   "zone.pauseThisZone": "Wstrzymaj {name}",
+  "pareFeu.titre": "Zapora systemu Windows filtruje Tune w tej sieci",
+  "pareFeu.corps": "Aktywna sieć jest sklasyfikowana jako {profils}, a reguła zapory Tune jej nie obejmuje. Wykrywanie urządzeń UPnP/DLNA i dostęp z telefonu są więc zablokowane: urządzenie może pojawiać się tylko jako AirPlay albo nic nie odbierać.",
+  "pareFeu.etapePrive": "Ustaw sieć jako Prywatną: Ustawienia systemu Windows ▸ Sieć i Internet ▸ właściwości sieci ▸ Profil sieciowy: Prywatna.",
+  "pareFeu.etapeAutoriser": "Albo zezwól na Tune w tej sieci: Zabezpieczenia Windows ▸ Zapora i ochrona sieci ▸ Zezwalaj aplikacji na dostęp przez zaporę ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Następnie uruchom ponownie Tune.",
+  "pareFeu.profilDomaine": "Domena",
+  "pareFeu.profilPrive": "Prywatna",
+  "pareFeu.profilPublic": "Publiczna",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
