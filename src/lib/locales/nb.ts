@@ -2044,7 +2044,7 @@ export default {
   "v2.accueilVide.added": "Mappe lagt til: skanningen har startet, albumene dine dukker opp etter hvert.",
   "v2.accueilVide.settings": "Administrer plasseringer",
   "settings.removeFolderButton": "Fjern fra biblioteket",
-  "settings.directoryOrderHint": "Ved lik kvalitet avgjør rekkefølgen på mappene hvilken kopi som foretrekkes. Et valg for et enkelt album har forrang.",
+  "settings.directoryOrderHint": "Når samme album ligger i flere mapper, spiller Tune først den beste kvaliteten; ved lik kvalitet brukes kopien fra mappen som står øverst. Pilene ↑ ↓ endrer denne rekkefølgen. En mappe valgt på albumsiden har forrang.",
   "settings.backgroundAnalysisFolder": "Bakgrunnsanalyse",
   "settings.backgroundAnalysisFolderAria": "Analyser {path} i bakgrunnen",
   "settings.backgroundAnalysisFoldersHint": "Fjern avkrysningen for en mappe for å utelate den fra bakgrunnsanalysen: ReplayGain, dynamikkområde, fingeravtrykk og stemninger. Verdier som allerede er målt, beholdes, og mappen blir værende i biblioteket.",

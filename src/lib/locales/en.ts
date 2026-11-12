@@ -2190,7 +2190,7 @@ export default {
   "v2.accueilVide.added": "Folder added: the scan has started, your albums will appear as it goes.",
   "v2.accueilVide.settings": "Manage locations",
   "settings.removeFolderButton": "Remove from library",
-  "settings.directoryOrderHint": "At equal quality, folder order breaks ties between copies. A choice for an individual album takes priority.",
+  "settings.directoryOrderHint": "When the same album is in several folders, Tune plays the best quality first; at equal quality, it uses the copy from the folder placed highest. Use the ↑ ↓ arrows to change this order. A folder chosen on an album's page takes priority.",
   "settings.backgroundAnalysisFolder": "Background analysis",
   "settings.backgroundAnalysisFolderAria": "Analyze {path} in the background",
   "settings.backgroundAnalysisFoldersHint": "Uncheck a folder to leave it out of background analysis: ReplayGain, dynamic range, fingerprints and moods. Values already measured are kept, and the folder stays in the library.",

@@ -5802,6 +5802,8 @@ export function estimateMusicDir(path: string): Promise<EstimationDossier> {
 /** Effective reading order of configured music directories (#1688 / server #4907). */
 export interface MusicDirectoryOrder {
   ordre: string[];
+  /** tune-server-rust#7876 — `ordre` dans l'écriture de `GET /system/config` (absent avant). */
+  ordre_affiche?: string[];
   music_dirs: string[];
   regle: string[];
 }

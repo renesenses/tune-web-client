@@ -2044,7 +2044,7 @@ export default {
   "v2.accueilVide.added": "Folder dodany: analiza się rozpoczęła, Twoje albumy będą pojawiać się na bieżąco.",
   "v2.accueilVide.settings": "Zarządzaj lokalizacjami",
   "settings.removeFolderButton": "Usuń z biblioteki",
-  "settings.directoryOrderHint": "Przy równej jakości kolejność folderów rozstrzyga między kopiami. Wybór dla pojedynczego albumu ma pierwszeństwo.",
+  "settings.directoryOrderHint": "Gdy ten sam album znajduje się w kilku folderach, Tune odtwarza najpierw najlepszą jakość; przy równej jakości używa kopii z folderu umieszczonego najwyżej. Strzałki ↑ ↓ zmieniają tę kolejność. Folder wybrany na stronie albumu ma pierwszeństwo.",
   "settings.backgroundAnalysisFolder": "Analizy w tle",
   "settings.backgroundAnalysisFolderAria": "Analizuj {path} w tle",
   "settings.backgroundAnalysisFoldersHint": "Odznacz folder, aby wyłączyć go z analiz w tle: ReplayGain, zakresu dynamiki, odcisków i nastrojów. Wartości już zmierzone są zachowywane, a folder pozostaje w bibliotece.",

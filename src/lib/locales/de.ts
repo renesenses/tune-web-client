@@ -3384,7 +3384,7 @@ export default {
   "v2.accueilVide.added": "Ordner hinzugefügt: Die Analyse läuft, Ihre Alben erscheinen nach und nach.",
   "v2.accueilVide.settings": "Speicherorte verwalten",
   "settings.removeFolderButton": "Aus der Bibliothek entfernen",
-  "settings.directoryOrderHint": "Bei gleicher Qualität entscheidet die Ordnerreihenfolge. Die Auswahl für ein einzelnes Album hat Vorrang.",
+  "settings.directoryOrderHint": "Liegt dasselbe Album in mehreren Ordnern, spielt Tune zuerst die beste Qualität; bei gleicher Qualität nimmt es die Kopie aus dem am höchsten stehenden Ordner. Mit den Pfeilen ↑ ↓ ändern Sie diese Reihenfolge. Ein auf der Albumseite gewählter Ordner hat Vorrang.",
   "settings.backgroundAnalysisFolder": "Hintergrundanalyse",
   "settings.backgroundAnalysisFolderAria": "{path} im Hintergrund analysieren",
   "settings.backgroundAnalysisFoldersHint": "Deaktivieren Sie einen Ordner, um ihn von der Hintergrundanalyse auszunehmen: ReplayGain, Dynamikumfang, Fingerabdrücke und Stimmungen. Bereits gemessene Werte bleiben erhalten, und der Ordner bleibt in der Bibliothek.",

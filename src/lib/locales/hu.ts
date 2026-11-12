@@ -3338,7 +3338,7 @@ export default {
   "v2.accueilVide.added": "Mappa hozzáadva: az elemzés elindult, az albumok fokozatosan jelennek meg.",
   "v2.accueilVide.settings": "Helyek kezelése",
   "settings.removeFolderButton": "Eltávolítás a könyvtárból",
-  "settings.directoryOrderHint": "Azonos minőségnél a mappák sorrendje dönt. Az albumhoz megadott választás elsőbbséget élvez.",
+  "settings.directoryOrderHint": "Ha ugyanaz az album több mappában is megvan, a Tune először a legjobb minőséget játssza le; azonos minőségnél a legfelül álló mappa példányát használja. A ↑ ↓ nyilakkal módosíthatja ezt a sorrendet. Az album oldalán választott mappa elsőbbséget élvez.",
   "settings.backgroundAnalysisFolder": "Háttérelemzés",
   "settings.backgroundAnalysisFolderAria": "{path} elemzése a háttérben",
   "settings.backgroundAnalysisFoldersHint": "Vegye ki a pipát egy mappa mellől, hogy kimaradjon a háttérelemzésből: ReplayGain, dinamikatartomány, ujjlenyomatok és hangulatok. A már mért értékek megmaradnak, és a mappa a könyvtárban marad.",

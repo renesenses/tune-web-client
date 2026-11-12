@@ -3383,7 +3383,7 @@ export default {
   "v2.accueilVide.added": "Mappen har lagts till: analysen har startat, dina album dyker upp efter hand.",
   "v2.accueilVide.settings": "Hantera platser",
   "settings.removeFolderButton": "Ta bort från biblioteket",
-  "settings.directoryOrderHint": "Vid samma kvalitet avgör mapparnas ordning. Ett val för ett enskilt album har företräde.",
+  "settings.directoryOrderHint": "När samma album finns i flera mappar spelar Tune först den bästa kvaliteten; vid samma kvalitet används kopian från mappen som står överst. Pilarna ↑ ↓ ändrar ordningen. En mapp som valts på albumsidan har företräde.",
   "settings.backgroundAnalysisFolder": "Bakgrundsanalys",
   "settings.backgroundAnalysisFolderAria": "Analysera {path} i bakgrunden",
   "settings.backgroundAnalysisFoldersHint": "Avmarkera en mapp för att undanta den från bakgrundsanalysen: ReplayGain, dynamiskt omfång, fingeravtryck och stämningar. Redan uppmätta värden behålls och mappen finns kvar i biblioteket.",

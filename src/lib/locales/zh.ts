@@ -3384,7 +3384,7 @@ export default {
   "v2.accueilVide.added": "文件夹已添加:扫描已开始,专辑会陆续出现。",
   "v2.accueilVide.settings": "管理位置",
   "settings.removeFolderButton": "从音乐库移除",
-  "settings.directoryOrderHint": "音质相同时，按文件夹顺序选择；单张专辑的选择优先。",
+  "settings.directoryOrderHint": "同一张专辑位于多个文件夹时，Tune 优先播放音质最好的版本；音质相同时，使用排在最上面的文件夹中的副本。使用 ↑ ↓ 箭头调整此顺序。在专辑页面中选择的文件夹优先。",
   "settings.backgroundAnalysisFolder": "后台分析",
   "settings.backgroundAnalysisFolderAria": "在后台分析 {path}",
   "settings.backgroundAnalysisFoldersHint": "取消勾选某个文件夹，即可将其排除在后台分析之外：ReplayGain、动态范围、指纹和氛围。已测得的数值会保留，文件夹仍留在资料库中。",

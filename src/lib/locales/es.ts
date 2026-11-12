@@ -3384,7 +3384,7 @@ export default {
   "v2.accueilVide.added": "Carpeta añadida: el análisis ha comenzado, sus álbumes irán apareciendo.",
   "v2.accueilVide.settings": "Gestionar ubicaciones",
   "settings.removeFolderButton": "Quitar de la biblioteca",
-  "settings.directoryOrderHint": "A igual calidad, decide el orden de las carpetas. La elección de un álbum tiene prioridad.",
+  "settings.directoryOrderHint": "Cuando el mismo álbum está en varias carpetas, Tune reproduce primero la mejor calidad; a igual calidad, usa la copia de la carpeta situada más arriba. Las flechas ↑ ↓ cambian este orden. Una carpeta elegida en la ficha de un álbum tiene prioridad.",
   "settings.backgroundAnalysisFolder": "Análisis en segundo plano",
   "settings.backgroundAnalysisFolderAria": "Analizar {path} en segundo plano",
   "settings.backgroundAnalysisFoldersHint": "Desmarque una carpeta para excluirla del análisis en segundo plano: ReplayGain, rango dinámico, huellas y ambientes. Los valores ya medidos se conservan y la carpeta sigue en la biblioteca.",

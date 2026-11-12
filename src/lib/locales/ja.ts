@@ -3384,7 +3384,7 @@ export default {
   "v2.accueilVide.added": "フォルダーを追加しました。スキャンが始まり、アルバムが順に表示されます。",
   "v2.accueilVide.settings": "場所を管理",
   "settings.removeFolderButton": "ライブラリから削除",
-  "settings.directoryOrderHint": "同じ音質の場合はフォルダーの順序で選びます。アルバムごとの選択が優先されます。",
+  "settings.directoryOrderHint": "同じアルバムが複数のフォルダーにある場合、Tune は最も高音質のものを優先して再生し、音質が同じなら一番上にあるフォルダーのコピーを使います。↑ ↓ の矢印でこの順序を変更できます。アルバムのページで選んだフォルダーが優先されます。",
   "settings.backgroundAnalysisFolder": "バックグラウンド解析",
   "settings.backgroundAnalysisFolderAria": "{path} をバックグラウンドで解析",
   "settings.backgroundAnalysisFoldersHint": "チェックを外したフォルダーはバックグラウンド解析（ReplayGain、ダイナミックレンジ、フィンガープリント、ムード）の対象外になります。測定済みの値は残り、フォルダーはライブラリに残ります。",
