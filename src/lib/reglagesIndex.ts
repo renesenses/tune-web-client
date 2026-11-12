@@ -209,6 +209,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'cadence-animations', section: 'displayPrefs', labelKey: 'settings.animationRate', descKey: 'settings.animationRateHint', techniques: ['CPU', 'GPU', 'fps'] },
   { id: 'ouvrir-file-defilement', section: 'displayPrefs', labelKey: 'settings.openQueueOnScroll', descKey: 'settings.openQueueOnScrollHint' },
   { id: 'disposition-file', section: 'displayPrefs', labelKey: 'settings.queuePlacement', descKey: 'settings.queuePlacementHint', termesKey: 'reglages.termes.dispositionFile' },
+  // ── Affichage › Accueil : suggestions écartées (web#916) ─────────────
+  { id: 'suggestions-ecartees', section: 'dismissedSuggestions', labelKey: 'v2.dismiss.settingsTitle', descKey: 'v2.dismiss.settingsIntro', composant: 'SuggestionsEcarteesV2.svelte' },
 
   // ── Extensions ───────────────────────────────────────────────────────
   { id: 'extensions', section: 'plugins', labelKey: 'settings.tabExtensions', techniques: ['plugins'] },

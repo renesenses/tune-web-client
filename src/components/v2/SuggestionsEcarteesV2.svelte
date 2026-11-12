@@ -61,7 +61,7 @@
   }
 </script>
 
-<div class="v2-ecartees">
+<div class="v2-ecartees" data-reglage="suggestions-ecartees">
   <p class="intro">{$t('v2.dismiss.settingsIntro' as any)}</p>
   {#if chargement && !$suggestionsEcartees.length}
     <p class="etat">…</p>
