@@ -735,8 +735,15 @@
    * (même issue) joint désormais `release_date` et `original_date` aux albums
    * d'une collection intelligente. Face à un serveur plus ancien, la clé
    * retombe sur l'année (`trierAlbums`), elle trie donc toujours quelque chose.
+   *
+   * tune-server-rust#7903 (Didier, fil 2656) — « Ordre d'ajout dans Tune » :
+   * le tri utile d'une collection des derniers albums ajoutés. Le serveur
+   * joint `added_at` (la date d'ajout de la Bibliothèque) aux albums de la
+   * collection. « Date de sortie » RESTE : elle n'est pas propre à cette
+   * liste (Bibliothèque, dossiers de collections, recherche et fiche artiste
+   * la proposent aussi, web#2206), et Jean Valjean l'a demandée partout.
    */
-  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date', 'random'] as const;
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year', 'release_date', 'added_at', 'random'] as const;
   type TriSmart = (typeof TRIS_SMART)[number];
   let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
   let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
@@ -744,7 +751,7 @@
   $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
   const LIBELLES_SMART: Record<TriSmart, string> = {
     regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
-    release_date: 'library.sortReleaseDate', random: 'library.sortRandom',
+    release_date: 'library.sortReleaseDate', added_at: 'library.sortAddedDate', random: 'library.sortRandom',
   };
   /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
   const albumsVus = $derived(
