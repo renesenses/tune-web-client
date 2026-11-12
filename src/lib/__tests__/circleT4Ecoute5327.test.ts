@@ -190,7 +190,7 @@ describe('T4 — sans Premium : aucun bouton, aucun appel', () => {
     expect(el.querySelectorAll('.pistes-album .titre .ttxt')).toHaveLength(2);
     expect(el.querySelector('button.lire-album')).toBeNull();
     expect(el.querySelector('button.lire-piste')).toBeNull();
-    // Le titre ne lance toujours rien.
+    // Le titre ne demande jamais l'écoute chez le contact (#7224 : il cherche l'équivalent chez MOI).
     (el.querySelector('.pistes-album button.titre') as HTMLButtonElement).click();
     await laisserFaire();
     expect(ecoutes()).toEqual([]);

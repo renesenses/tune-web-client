@@ -30,6 +30,7 @@ import { currentProfileId, favoriteStreamingKeys, streamingFavKey } from '../sto
 // Le panneau est monté par un `{#await import(...)}` : l'importer à la
 // COLLECTE, comme le banc de #1357 (garde #1333).
 import '../../components/v2/EtiquettesPanneau.svelte';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -104,9 +105,8 @@ function monterFiche(album: Album, props: Record<string, unknown>) {
   monte = mount(AlbumDetailV2, { target: hote!, props: { album, onClose: () => {}, ...props } });
 }
 const coeur = () => hote!.querySelector('button.coeur') as HTMLButtonElement | null;
-const boutonEtiquettes = () => [...hote!.querySelectorAll('button')].find(
-  (b) => b.textContent?.trim() === ETIQUETTES,
-) as HTMLButtonElement | undefined;
+// web#2736 — une entrée du menu « … » de la fiche, cherchée par son libellé.
+const boutonEtiquettes = () => (entreeParLibelle(hote!, ETIQUETTES) ?? undefined) as HTMLButtonElement | undefined;
 
 describe('#1409 — fiche d’un album Bandcamp : la clé du SERVEUR, pas celle de l’onglet', () => {
   it('🔴 les étiquettes sont demandées sous `bandcamp`, jamais sous `__bandcamp__`', async () => {

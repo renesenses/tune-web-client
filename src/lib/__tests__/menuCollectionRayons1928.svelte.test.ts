@@ -30,6 +30,7 @@ import { t } from '../i18n';
 import { activeView } from '../stores/navigation';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -139,8 +140,9 @@ afterEach(() => {
 
 function bouton(): HTMLButtonElement | null {
   // web#2151 — la bulle du bouton décrit son geste ; elle ne recopie plus le libellé.
+  // web#2736 — c'est une entrée du menu « … » de la fiche (« Ajouter à › Collection »).
   const libelle = get(t)('v2.album.addToCollectionTip' as any);
-  return hote?.querySelector<HTMLButtonElement>(`.actions button[title="${libelle}"]`) ?? null;
+  return (hote ? entreeDuMenu(hote, `[role="menuitem"][title="${libelle}"]`) : null) as HTMLButtonElement | null;
 }
 const panneau = () => document.body.querySelector<HTMLElement>('.coll-menu');
 const entrees = () => Array.from(panneau()?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);

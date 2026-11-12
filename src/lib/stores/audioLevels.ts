@@ -15,6 +15,15 @@ export interface AudioLevels {
    */
   over_left: boolean;
   over_right: boolean;
+  /**
+   * #7100 — la SOURCE touche la pleine échelle (trois échantillons
+   * consécutifs, avant tout gain). Information neutre : la crête du disque,
+   * pas un écrêtage de la sortie. Sa présence dit aussi que `over_*` décrit
+   * l'écrêtage RÉEL après traitement. `null` = serveur antérieur, dont
+   * `over_*` décrit encore la source.
+   */
+  source_over_left: boolean | null;
+  source_over_right: boolean | null;
   rms_left: number;
   rms_right: number;
   spectrum: number[];
@@ -117,6 +126,8 @@ const defaultLevels: AudioLevels = {
   peak_left_db: -96,
   over_left: false,
   over_right: false,
+  source_over_left: null,
+  source_over_right: null,
   peak_right_db: -96,
   rms_left: 0,
   rms_right: 0,
@@ -210,6 +221,8 @@ export function handleAudioLevelsEvent(data: any) {
     peak_right_db: data.peak_right_db ?? -96,
     over_left: data.over_left === true,
     over_right: data.over_right === true,
+    source_over_left: typeof data.source_over_left === 'boolean' ? data.source_over_left : null,
+    source_over_right: typeof data.source_over_right === 'boolean' ? data.source_over_right : null,
     rms_left: data.rms_left ?? 0,
     rms_right: data.rms_right ?? 0,
     spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],

@@ -47,6 +47,31 @@ export interface EntreeMenuPiste {
   plein?: boolean;
   faire: () => void;
 }
+/**
+ * web#2736 — une entrée du MÊME menu, quand il sert d'en-tête de fiche (album,
+ * collection, playlist) : les gestes y sont rangés par groupes, et une entrée
+ * peut porter les `data-*` sur lesquels s'appuient les épreuves, un état
+ * (case cochée d'un tri) ou une désactivation passagère (requête en cours).
+ * Une `EntreeMenuPiste` en est une : les menus de piste ne changent pas.
+ */
+export interface EntreeMenu extends Omit<EntreeMenuPiste, 'icone'> {
+  icone?: string;
+  /** Clé i18n de l'intertitre du groupe. Les entrées d'un groupe se suivent. */
+  groupe?: string;
+  /** Attributs posés sur l'entrée — `data-*` des épreuves, `aria-haspopup`. */
+  attrs?: Record<string, string | boolean>;
+  /** Grisée le temps d'une requête : elle reste lisible, elle ne fait rien. */
+  desactive?: boolean;
+  danger?: boolean;
+  /** Défini : l'entrée est un choix exclusif (`menuitemradio`), coché ou non. */
+  coche?: boolean;
+  /** Défini : l'entrée est une bascule (`menuitemcheckbox`) — « Écouter plus tard ». */
+  active?: boolean;
+  /** Clé i18n de l'infobulle : ce que l'entrée FAIT (#2151), pas son libellé. */
+  bulle?: string;
+  /** Texte qui suit le libellé traduit (nom d'un livret). Jamais une phrase. */
+  suffixe?: string;
+}
 /** Les tracés, dans une boîte 24×24. */
 export const ICONES = {
   play: 'M8 5v14l11-7z',

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
@@ -26,7 +27,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { natifServiEnDop } from '../../lib/transportDsd';
+  import { diagnosticDsd } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -80,6 +81,8 @@
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  // tune-server-rust#8261 — les « ignorés » du dernier scan, motif par motif.
+  import { decompteIgnores } from '../../lib/rapportEcartes';
   import { CLE_DEDOUBLONNAGE_PAR_RACINE, dedoublonnageParRacineDepuisConfig } from '../../lib/dedoublonnageParRacine';
   import {
     CLE_IMPORT_PLAYLISTS_SCAN,
@@ -90,7 +93,7 @@
   } from '../../lib/playlistsDuScan';
   import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
-  import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { aDesEcarts, aDesDossiersIllisibles, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
   import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
@@ -103,11 +106,13 @@
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
   import { clientIdEnPlace, cleEtapeSpotify, clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
+  import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
@@ -134,6 +139,10 @@
   import { retablirLargeurs } from '../../lib/largeursColonnes';
   import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
+  import {
+    raisonIndisponible, CLE_RAISON, voixActivee, ecrireVoixActivee,
+    relireAvantEnvoi, ecrireRelireAvantEnvoi,
+  } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
@@ -157,6 +166,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
+  import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
+  import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -186,9 +197,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { activeView } from '../../lib/stores/navigation';
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
+  // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
+  import RechercheReglagesV2 from './RechercheReglagesV2.svelte';
+  import { reglageParId, masqueAuNiveau, niveauDuReglage, ongletDuReglage, type Reglage } from '../../lib/reglagesIndex';
   import PluginsV2 from './PluginsV2.svelte';
+  import AideInfo from './AideInfo.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
   import VuMetreCanal from '../partages/VuMetreCanal.svelte';
@@ -202,6 +218,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
   import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
+  import AnnonceUpnpServeurV2 from './AnnonceUpnpServeurV2.svelte';
   import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
@@ -326,7 +343,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
-  const tabs = $derived(V2_SETTINGS.filter((t2) => atLeast(level, t2.min)));
+  /**
+   * #2735 — section ouverte « malgré le niveau » : un réglage trouvé par la
+   * recherche et masqué au niveau choisi s'affiche quand même, avec un mot
+   * qui le dit. Le forçage tombe dès qu'on change d'onglet ou de niveau :
+   * il montre UN réglage demandé, il ne relève pas le niveau.
+   */
+  let sectionForcee = $state<string | null>(null);
+  let reglageForce = $state<Reglage | null>(null);
+  $effect(() => { void level; sectionForcee = null; reglageForce = null; });
+  const tabs = $derived(V2_SETTINGS.filter((t2) => atLeast(level, t2.min)
+    || (sectionForcee !== null && t2.sections.some((x) => x.id === sectionForcee))));
+  /** Garde de niveau À L'INTÉRIEUR d'une carte : levée pour la section forcée. */
+  function voit(min: SettingsLevel, sectionId: string): boolean {
+    return atLeast(level, min) || sectionForcee === sectionId;
+  }
 
   let tabId = $state<V2SettingsTabId>('general');
   let highlight = $state<string | null>(null);
@@ -336,6 +367,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // compacte (clé `cleZone`). Rien d'ouvert par défaut : la liste se lit d'un
   // coup d'œil, les détails s'ouvrent au clic.
   let zoneOuverte = $state<string | null>(null);
+  /**
+   * #2735 — les sections repliées de la fiche d'appareil (Avancé, Correction
+   * de pièce, Appareil) GARDENT leur état : d'une zone à l'autre et d'une
+   * visite à l'autre, dans ce navigateur. Repliées par défaut.
+   */
+  const CLE_REPLIS_FICHE = 'tune-fiche-appareil-replis';
+  type ReplisFiche = { avance: boolean; fir: boolean; appareil: boolean };
+  function lireReplisFiche(): ReplisFiche {
+    const defaut: ReplisFiche = { avance: false, fir: false, appareil: false };
+    try {
+      const brut = JSON.parse(localStorage.getItem(CLE_REPLIS_FICHE) ?? 'null');
+      if (brut && typeof brut === 'object') {
+        for (const k of Object.keys(defaut) as (keyof ReplisFiche)[]) if (brut[k] === true) defaut[k] = true;
+      }
+    } catch { /* stockage indisponible : repliées */ }
+    return defaut;
+  }
+  let replisFiche = $state<ReplisFiche>(lireReplisFiche());
+  $effect(() => {
+    const v = JSON.stringify(replisFiche);
+    try { localStorage.setItem(CLE_REPLIS_FICHE, v); } catch { /* ignore */ }
+  });
   function ouvrirZone(cle: string | null) {
     zoneOuverte = cle;
     if (cle) tick().then(() => amenerSousEntete(document.querySelector(`[data-carte-zone="${cle}"]`)));
@@ -424,14 +477,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // pas dans la page et le geste n'aboutit nulle part.
     if (target.zone != null) zoneOuverte = cleZone({ id: target.zone, name: '' });
     v2SettingsTarget.set(null);
+    // #2735 — la recherche du menu avatar vise un RÉGLAGE, pas seulement sa carte.
+    const vise = target.reglage ? reglageParId(target.reglage) : undefined;
+    if (vise) { allerAuReglage(vise); return; }
     if (target.zone != null) {
       // #1427 — « Correction de pièce » du menu de zone : le bloc FIR de la
       // fiche, pas le haut de la fiche (DSD, débit, canaux… le précèdent).
       const bloc = target.bloc;
-      tick().then(() => amenerSousEntete(
-        (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
-          ?? document.getElementById(`zc-${target.zone}`),
-      ));
+      tick().then(() => {
+        const el = (bloc === 'fir' ? document.getElementById(`fir-${target.zone}`) : null)
+          ?? document.getElementById(`zc-${target.zone}`);
+        // #2735 — le bloc FIR vit dans la section repliée « Correction de pièce ».
+        if (el) ouvrirLesReplis(el);
+        amenerSousEntete(el);
+      });
     } else if (target.section) {
       // #1670 — la carte visée est mise en avant ET amenée à l'écran : une
       // carte surlignée hors du cadre ne se voit pas plus qu'une carte muette.
@@ -441,9 +500,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
-  const sections = $derived((tab?.sections ?? []).filter((s) => atLeast(level, s.min) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  const sections = $derived((tab?.sections ?? []).filter((s) => (atLeast(level, s.min) || s.id === sectionForcee) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
   // Le greffon absent n'est pas une section « masquée par le niveau » : on ne le compte pas.
-  const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min)).length);
+  const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min) && s.id !== sectionForcee).length);
 
   // ── Sections REELLEMENT portees ────────────────────────────────────────
   // Chacune s'adosse a la meme API/au meme store que l'ecran actuel : le
@@ -1122,6 +1181,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // si l'utilisateur ne le copie pas maintenant, il est perdu.
   let brEnabled = $state(false);
   let brConnected = $state(false);
+  let brMessage = $state<MessageDuPont | null>(null);
   let brServerId = $state('');
   let brUrl = $state('');
   let brToken = $state('');
@@ -1167,9 +1227,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         brEnabled = !!d?.enabled; brConnected = !!d?.connected;
         brServerId = d?.server_id || ''; brUrl = d?.access_url || ''; brToken = '';
         brAccesParCompte = !!d?.acces_par_compte;
+        brMessage = messageDuPont(d);
         if (brEnabled) chargerLienPont();
       })
       .catch(() => {});   // route absente sur un serveur anterieur
+  });
+  // #7714 — « Déconnecté » se relit toutes les 10 s tant que le pont est
+  // activé : le serveur se reconnecte seul, l'écran doit le voir sans
+  // rechargement, et dire entre-temps pourquoi il attend.
+  $effect(() => {
+    if (!relirePont({ enabled: brEnabled, connected: brConnected })) return;
+    const minuteur = setInterval(() => {
+      api.apiFetch('/cloud/bridge/status')
+        .then((d: any) => {
+          brConnected = !!d?.connected;
+          brMessage = messageDuPont(d);
+        })
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(minuteur);
   });
   async function toggleBridge() {
     brBusy = true;
@@ -1620,22 +1696,39 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // au navigateur. On DEMANDE l'autorisation a l'activation et on retombe a
   // faux si elle est refusee — sinon la case reste cochee pour une fonction
   // qui ne peut pas marcher.
+  //
+  // rc12 : la case restait « activée » sur une adresse http du réseau local
+  // (le navigateur y refuse le micro, `navigator.mediaDevices` n'existe même
+  // pas) ou dans Firefox (pas de reconnaissance vocale) : la fonction ne
+  // pouvait pas marcher et rien ne le disait. La raison s'affiche désormais
+  // sous l'interrupteur, qui reste éteint.
+  const voiceRaison = raisonIndisponible();
   let voiceOn = $state(false);
+  let voiceRelire = $state(false);
   $effect(() => {
-    try { voiceOn = localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { voiceOn = false; }
+    voiceOn = voiceRaison === null && voixActivee();
+    voiceRelire = relireAvantEnvoi();
   });
   async function setVoice(v: boolean) {
+    if (v && voiceRaison) { voiceOn = false; return; }
     voiceOn = v;
-    try { localStorage.setItem('tune_voice_ai_enabled', String(v)); } catch { /* ignore */ }
+    ecrireVoixActivee(v);
     if (!v) return;
     try {
-      await navigator.mediaDevices?.getUserMedia({ audio: true });
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('mediaDevices');
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // On ne garde pas le micro ouvert : la dictée le rouvrira elle-même.
+      flux.getTracks().forEach((p) => p.stop());
       notifications.success($t('settings.micAuthorized' as any));
     } catch {
       notifications.error($t('settings.micDenied' as any));
       voiceOn = false;
-      try { localStorage.setItem('tune_voice_ai_enabled', 'false'); } catch { /* ignore */ }
+      ecrireVoixActivee(false);
     }
+  }
+  function setVoiceRelire(v: boolean) {
+    voiceRelire = v;
+    ecrireRelireAvantEnvoi(v);
   }
 
   // ── Interface ──────────────────────────────────────────────────────────
@@ -2289,12 +2382,63 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
-  let lrclibOn = $state(false);
+  let lrclibOn = $state<boolean | null>(null);
   let lrclibErr = $state<string | null>(null);
   // « Écrire les modifications dans les fichiers audio » — décoché par défaut
   // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
-  let ecritureFichiersOn = $state(false);
+  let ecritureFichiersOn = $state<boolean | null>(null);
   let ecritureFichiersErr = $state<string | null>(null);
+  /**
+   * tune-server-rust#8521 (Tades, fil 2726) — « décochés quand je redémarre,
+   * il arrive que cela marche ».
+   *
+   * Les deux cases partaient DÉCOCHÉES (`false`) et ne changeaient qu'une fois
+   * `GET /system/config` lu. Si cette lecture échouait — serveur en train de
+   * redémarrer (503 du répondeur de démarrage), injoignable un instant —,
+   * elles restaient décochées : l'écran affirmait « désactivé » sur un réglage
+   * qu'il n'avait pas lu, et la seule erreur s'affichait loin de là, sous les
+   * dossiers de musique. Rien ne relisait ensuite.
+   *
+   * `null` = pas encore lu : la case est GRISÉE, jamais décochée. Une lecture
+   * en échec le dit dans la carte même, et se retente toutes les
+   * `RELECTURE_CONSENTEMENTS_MS` jusqu'à ce que le serveur réponde.
+   */
+  let consentementsIllisibles = $state(false);
+  const RELECTURE_CONSENTEMENTS_MS = 3000;
+  const RELECTURES_CONSENTEMENTS_MAX = 100;
+  let relectureConsentements: ReturnType<typeof setTimeout> | null = null;
+  let relecturesConsentements = 0;
+  let reglagesDetruits = false;
+  function appliquerConsentements(c: any) {
+    lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
+    ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+    consentementsIllisibles = false;
+  }
+  function relireConsentementsPlusTard() {
+    consentementsIllisibles = true;
+    if (reglagesDetruits || relectureConsentements) return;
+    if (relecturesConsentements >= RELECTURES_CONSENTEMENTS_MAX) return;
+    relecturesConsentements++;
+    relectureConsentements = setTimeout(async () => {
+      relectureConsentements = null;
+      if (reglagesDetruits) return;
+      try {
+        const c: any = await api.getConfig();
+        if (reglagesDetruits) return;
+        appliquerConsentements(c);
+        // Le serveur répond de nouveau : le reste de l'onglet (dossiers,
+        // options d'analyse) se relit aussi, et l'erreur d'en haut s'efface.
+        if (libErr === get(t)('settings.errConfigUnavailable')) libErr = null;
+        void refreshLibrary();
+      } catch {
+        relireConsentementsPlusTard();
+      }
+    }, RELECTURE_CONSENTEMENTS_MS);
+  }
+  $effect(() => () => {
+    reglagesDetruits = true;
+    if (relectureConsentements) clearTimeout(relectureConsentements);
+  });
   // « Analyser la bibliothèque au démarrage ». `null` : le serveur ne publie
   // pas le réglage (version antérieure), l'interrupteur ne s'affiche pas.
   let scanDemarrage = $state<boolean | null>(null);
@@ -2549,13 +2693,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
-      lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
-      ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      appliquerConsentements(c);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
       dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
-    } catch { libErr = get(t)('settings.errConfigUnavailable'); }
+    } catch {
+      libErr = get(t)('settings.errConfigUnavailable');
+      relireConsentementsPlusTard();
+    }
     try {
       const sch: any = await api.getScanSchedule();
       schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
@@ -3403,7 +3549,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let niveauEnCours = $state(false);
   let niveauMsg = $state<{ ok: boolean; texte: string } | null>(null);
   $effect(() => {
-    if (!sections.some((x) => x.id === 'health') || !atLeast(level, 'expert')) return;
+    if (!sections.some((x) => x.id === 'health') || !voit('expert', 'health')) return;
     api.getLogLevel()
       .then((r) => { niveauJournaux = r?.level ?? 'info'; })
       .catch(() => { niveauJournaux = null; });   // serveur antérieur : pas de sélecteur
@@ -3490,6 +3636,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const msg = errText(e);
       // `null` : coupure de transport générique, attendue pendant l'extinction.
       if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
+    }
+  }
+
+  /**
+   * Redémarrer la MACHINE — appliance Tune OS uniquement
+   * (tune-server-rust#8213). Même schéma que `eteindreLaMachine` : la coupure
+   * réseau est attendue, une réponse d'erreur rend le bouton.
+   */
+  let redemarrageMachineEnCours = $state(false);
+  async function redemarrerLaMachine() {
+    if (!(await dialogs.confirm(get(t)('diagnostics.confirmReboot' as any), { danger: true }))) return;
+    redemarrageMachineEnCours = true;
+    try {
+      await api.applianceReboot();
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
     }
   }
 
@@ -4376,7 +4539,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; }
+  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; }
+
+  /**
+   * #2735 — aller à UN réglage : ouvrir son onglet (et sa section, si le
+   * niveau la masque), le faire défiler sous l'en-tête et le surligner un
+   * instant. L'ancre est `data-reglage` ; un réglage conditionnel absent de
+   * la page (serveur sans la fonction, zone non choisie) retombe sur sa carte.
+   */
+  const DUREE_SURBRILLANCE_MS = 2200;
+  /** Ouvre toute section repliée (`<details>`) qui contient l'élément visé,
+   *  sinon le réglage serait atteint… et invisible. Celles de la fiche
+   *  d'appareil passent par `replisFiche`, pour que leur état tienne. */
+  function ouvrirLesReplis(el: HTMLElement) {
+    for (let d = el.closest('details'); d; d = d.parentElement?.closest('details') ?? null) {
+      const cle = d.getAttribute('data-repli') as keyof ReplisFiche | null;
+      if (cle && cle in replisFiche) replisFiche[cle] = true;
+      d.open = true;
+    }
+  }
+  function allerAuReglage(r: Reglage) {
+    tabId = ongletDuReglage(r);
+    highlight = null;
+    const masque = masqueAuNiveau(r, level);
+    sectionForcee = masque ? r.section : null;
+    reglageForce = masque ? r : null;
+    // Les réglages d'une zone vivent dans sa fiche : sans fiche ouverte, on
+    // ouvre la première, sinon l'ancre n'existe pas.
+    if (r.section === 'perZone' && zoneOuverte == null && $zones.length) zoneOuverte = cleZone($zones[0]);
+    tick().then(() => {
+      const racine = document.querySelector('.v2-settings .pane');
+      const el = racine?.querySelector<HTMLElement>(`[data-reglage="${r.id}"]`)
+        ?? racine?.querySelector<HTMLElement>(`[data-section="${r.section}"]`);
+      if (!el) return;
+      ouvrirLesReplis(el);
+      amenerSousEntete(el);
+      el.classList.remove('reglage-eclaire');
+      void el.offsetWidth; // relance l'animation si on revient au même réglage
+      el.classList.add('reglage-eclaire');
+      setTimeout(() => el.classList.remove('reglage-eclaire'), DUREE_SURBRILLANCE_MS);
+    });
+  }
 
   /** #5065, étape 3 — une case « Afficher dans la barre » par type de
    *  source : décider une case ne décide qu'elle. */
@@ -4423,6 +4626,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       <div class="v2-eyebrow">{$t('settings.configSection' as any)}</div>
       <h1>{$t('settings.titleV2' as any)}</h1>
     </div>
+    <!-- #2735 — chercher UN réglage, toujours visible en tête de la
+         navigation ; ⌘F / Ctrl+F et « / » y mènent. -->
+    <RechercheReglagesV2 niveau={level} onchoisir={allerAuReglage} />
   </header>
 
   <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}">
@@ -4461,9 +4667,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <h3>{title(s)}</h3>
               {#if s.danger}<span class="danger-tag" data-zone-danger>{$t('settings.dangerZone' as any)}</span>{/if}
             </div>
+            {#if reglageForce && reglageForce.section === s.id}
+              <!-- #2735 — le réglage cherché est masqué au niveau choisi : on
+                   l'affiche quand même, et on le dit. -->
+              <p class="force-niveau" role="note" data-force-niveau>{$t('reglages.recherche.afficheMalgreNiveau' as any)
+                .replace('{niveau}', $t(LEVEL_LABEL_KEYS[niveauDuReglage(reglageForce)] as any))}</p>
+            {/if}
 
             {#if s.id === 'playback'}
-              <div class="row">
+              <div class="row" data-reglage="verrou-volume">
                 <div class="lbl">
                   <span>{$t('audiophile.lockVolume' as any)}</span>
                   <span class="hint">{$t('audiophile.lockVolumeHelp' as any)}</span>
@@ -4487,7 +4699,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
-              <div class="row">
+              <div class="row" data-reglage="boucle-defaut">
                 <div class="lbl">
                   <span>{$t('settings.loopByDefault' as any)}</span>
                   <span class="hint">{$t('settings.loopByDefaultHint' as any)}</span>
@@ -4499,7 +4711,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <!-- tune-server-rust#4908 — commandes de l'écran verrouillé. -->
-              <div class="row">
+              <div class="row" data-reglage="commandes-ecran-verrouille">
                 <div class="lbl">
                   <span>{$t('settings.controlesEcranVerrouille' as any)}</span>
                   <span class="hint">{$t('settings.controlesEcranVerrouilleHint' as any)}</span>
@@ -4511,7 +4723,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               {#if podcastRewind !== null}
-                <div class="row">
+                <div class="row" data-reglage="recul-podcast">
                   <div class="lbl">
                     <span>{$t('settings.podcastRewind' as any)}</span>
                     <span class="hint">{$t('settings.podcastRewindHint' as any)}</span>
@@ -4528,7 +4740,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    les recopier ici figerait le champ le jour où il élargit sa
                    plage. -->
               {#if fileAleatoire !== null}
-                <div class="row">
+                <div class="row" data-reglage="file-aleatoire-max">
                   <div class="lbl">
                     <span>{$t('settings.shuffleMaxTracks' as any)}</span>
                     <span class="hint">{$t('settings.shuffleMaxTracksHint' as any)}</span>
@@ -4548,25 +4760,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'scheduledStop'}
+              <ArretProgrammeV2 />
             {:else if s.id === 'radiosCountry'}
-              <PaysEcouteRadios />
+              <div data-reglage="pays-ecoute-radios"><PaysEcouteRadios /></div>
 
             {:else if s.id === 'voice'}
-              <div class="row">
+              <div class="row" data-reglage="commande-vocale">
                 <div class="lbl">
                   <span>{$t('settings.voiceCommand' as any)}</span>
                   <span class="hint">{$t('settings.voiceCommandHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" checked={voiceOn} onchange={(e) => setVoice((e.currentTarget as HTMLInputElement).checked)} />
+                  <input type="checkbox" checked={voiceOn} disabled={voiceRaison !== null}
+                    aria-describedby={voiceRaison ? 'voice-raison' : undefined}
+                    onchange={(e) => setVoice((e.currentTarget as HTMLInputElement).checked)} data-voice-switch />
                   <span class="slider"></span>
                 </label>
               </div>
+              {#if voiceRaison}
+                <p class="hint err" id="voice-raison" role="note" data-voice-raison>{$t(CLE_RAISON[voiceRaison] as any)}</p>
+              {:else if voiceOn}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('voice.review' as any)}</span>
+                    <span class="hint">{$t('voice.reviewHint' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={voiceRelire} onchange={(e) => setVoiceRelire((e.currentTarget as HTMLInputElement).checked)} data-voice-relire />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/if}
 
             {:else if s.id === 'displayPrefs'}
               <!-- LA MATRICE. Première ligne : les modes. Première colonne :
                    les métadonnées. Une case à chaque intersection. -->
-              <div class="row rowcol">
+              <div class="row rowcol" data-reglage="colonnes-pistes">
                 <div class="lbl">
                   <span>{$t('settings.trackColumns' as any)}</span>
                   <span class="hint">{$t('settings.trackColumnsHint' as any)}</span>
@@ -4620,7 +4850,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    c'est cette matrice. Les poignées des en-têtes règlent une
                    colonne d'un écran ; ce bouton rend à TOUS les écrans
                    (album, playlist, Titres) leur largeur automatique. -->
-              <div class="row">
+              <div class="row" data-reglage="retablir-largeurs">
                 <div class="lbl">
                   <span>{$t('settings.colWidthsReset' as any)}</span>
                   <span class="hint">{$t('settings.colWidthsResetHint' as any)}</span>
@@ -4632,7 +4862,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
                    portée (tous les écrans) que les largeurs. -->
-              <div class="row">
+              <div class="row" data-reglage="retablir-ordre-colonnes">
                 <div class="lbl">
                   <span>{$t('settings.colOrderReset' as any)}</span>
                   <span class="hint">{$t('settings.colOrderResetHint' as any)}</span>
@@ -4647,7 +4877,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    pochettes accolées, ce n'est pas ma préférence. J'aimais
                    beaucoup l'écran collection de l'ancienne version, épuré,
                    compact » (Gros Bidon, forum 1671, 05/09/2026). -->
-              <div class="row">
+              <div class="row" data-reglage="collections-mosaique">
                 <div class="lbl">
                   <span>{$t('settings.collectionsMosaic' as any)}</span>
                   <span class="hint">{$t('settings.collectionsMosaicHint' as any)}</span>
@@ -4668,7 +4898,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    devient un CHOIX, décoché par défaut — l'écran de qui n'a
                    rien demandé ne bouge pas. L'infobulle nomme les deux gestes
                    qui existent déjà, puisque c'est ce qu'aucun écran ne disait. -->
-              <div class="row">
+              <div class="row" data-reglage="bouton-stop">
                 <div class="lbl">
                   <span>{$t('settings.showStopButton' as any)}</span>
                   <span class="hint">{$t('settings.showStopButtonHint' as any)}</span>
@@ -4685,7 +4915,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- web#1861 — Levente Toth (fil 2068) : pouvoir masquer le
                    bouton lune de la barre de transport, « comme les
                    VU-mètres ». Coché par défaut : le bouton est là aujourd'hui. -->
-              <div class="row">
+              <div class="row" data-reglage="minuteur-sommeil">
                 <div class="lbl">
                   <span>{$t('settings.showSleepTimer' as any)}</span>
                   <span class="hint">{$t('settings.showSleepTimerHint' as any)}</span>
@@ -4703,7 +4933,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    toutes les sources connues dans la barre, grisées quand
                    elles sont indisponibles, et une case par TYPE. Par défaut,
                    seuls les types présents sur la machine sont cochés. -->
-              <div class="row">
+              <div class="row" data-reglage="sources-barre">
                 <div class="lbl">
                   <span>{$t('settings.sidebarSources' as any)}</span>
                   <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
@@ -4748,7 +4978,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    sélecteur, lui, ne change pas, et un choix déjà enregistré
                    reste intact (fusion `{ ...defaults, ...raw }` de
                    `loadPrefs`, gardée par ordreAutresVersions4368.test.ts). -->
-              <div class="row">
+              <div class="row" data-reglage="ordre-autres-versions">
                 <div class="lbl">
                   <span>{$t('settings.versionsOrder' as any)}</span>
                   <span class="hint">{$t('settings.versionsOrderHint' as any)}</span>
@@ -4770,7 +5000,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    tranche le 23/09/2026 : trois crans, défaut inchangé.
                    Le libellé de chaque cran porte son gain : un cran qui ne dit
                    pas ce qu'il rapporte ne se choisit pas. -->
-              <div class="row">
+              <div class="row" data-reglage="cadence-animations">
                 <div class="lbl">
                   <span>{$t('settings.animationRate' as any)}</span>
                   <span class="hint">{$t('settings.animationRateHint' as any)}</span>
@@ -4788,7 +5018,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    molette ouvrait la file toute seule. Le geste devient un
                    CHOIX, décoché par défaut ; le bouton de la file ne change
                    pas. -->
-              <div class="row">
+              <div class="row" data-reglage="ouvrir-file-defilement">
                 <div class="lbl">
                   <span>{$t('settings.openQueueOnScroll' as any)}</span>
                   <span class="hint">{$t('settings.openQueueOnScrollHint' as any)}</span>
@@ -4822,8 +5052,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
+            {:else if s.id === 'parental'}
+              <ControleParentalV2 />
             {:else if s.id === 'interface'}
-              <div class="row">
+              <div class="row" data-reglage="theme">
                 <div class="lbl">
                   <span>{$t('settings.theme' as any)}</span>
                   <span class="hint">{$t('settings.themePalettesHint' as any)}</span>
@@ -4847,7 +5079,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
                    Rien tant que le serveur ne porte pas le greffon. -->
               {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
-                <div class="row row-mon-theme">
+                <div class="row row-mon-theme" data-reglage="theme-perso">
                   <div class="lbl">
                     <span>{$t('monTheme.titre' as any)}</span>
                     <span class="hint">{$t('monTheme.hint' as any)}</span>
@@ -4856,11 +5088,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              <!-- web#2798 — Michel (fil 2748, 11/11/2026), qui souffre de
+                   tremblements : un ascenseur large et contrasté, facile à
+                   saisir. Appliqué par la coquille (`data-ascenseurs-larges`),
+                   dessiné par `tune-theme.css`. Décoché par défaut. -->
+              <div class="row" data-reglage-ascenseurs-larges>
+                <div class="lbl">
+                  <span>{$t('settings.wideScrollbars' as any)}</span>
+                  <span class="hint">{$t('settings.wideScrollbarsHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ascenseursLarges === true}
+                    aria-label={$t('settings.wideScrollbars' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ascenseursLarges: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
                    pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
                    bouger. -->
-              <div class="row">
+              <div class="row" data-reglage="crete-metre">
                 <div class="lbl">
                   <span>{$t('v2.set.peakMeter' as any)}</span>
                   <span class="hint">{$t('v2.set.peakMeterHint' as any)}</span>
@@ -4882,7 +5133,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
                    comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
-              <div class="row" data-visualiseur-barre>
+              <div class="row" data-visualiseur-barre data-reglage="visualiseur-barre">
                 <div class="lbl">
                   <span>{$t('v2.set.barViz' as any)}</span>
                   <span class="hint">{$t('v2.set.barVizHint' as any)}</span>
@@ -4904,7 +5155,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                    L'aperçu vit, pour la même raison qu'au-dessus : « cadrans à
                    aiguille » ne dit rien tant qu'on ne les a pas vus bouger. -->
-              <div class="row">
+              <div class="row" data-reglage="barre-vu-metres">
                 <div class="lbl">
                   <span>{$t('v2.set.barVu' as any)}</span>
                   <span class="hint">{$t('v2.set.barVuHint' as any)}</span>
@@ -4923,7 +5174,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
-              <div class="row">
+              <div class="row" data-reglage="langue">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'en'}
                   onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
@@ -4934,7 +5185,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </select>
               </div>
 
-              <div class="row">
+              <div class="row" data-reglage="ecran-demarrage">
                 <div class="lbl">
                     <span>{$t('settings.startupView' as any)}</span>
                     <span class="hint">{$t('v2.hint.startupView' as any)}</span>
@@ -4972,7 +5223,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    des autres réglages de navigation. -->
               <OrdreBarreLateraleV2 />
 
-              <div class="row">
+              <div class="row" data-reglage="zone-defaut">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>
                     <span class="hint">{$t('v2.hint.defaultZone' as any)}</span>
@@ -4987,8 +5238,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </select>
               </div>
 
-              {#if atLeast(level, 'intermediate')}
-                <div class="row">
+              {#if voit('intermediate', s.id)}
+                <div class="row" data-reglage="affichage-volume">
                   <div class="lbl">
                     <span>{$t('settings.volumeDisplay' as any)}</span>
                     <span class="hint">{$t('v2.hint.volumeDisplay' as any)}</span>
@@ -5002,7 +5253,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <!-- web#2292 (fil 2366) — boutons − et + autour du curseur de
                      volume, au pas d'un point. Désactivés par défaut. -->
-                <div class="row">
+                <div class="row" data-reglage="boutons-volume">
                   <div class="lbl">
                     <span>{$t('settings.volumeStepButtons' as any)}</span>
                     <span class="hint">{$t('settings.volumeStepButtonsHint' as any)}</span>
@@ -5015,8 +5266,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <!-- Niveau EXPERT seulement : la ligne technique n'existe pas
                      en dessous, proposer de l'afficher n'aurait aucun effet. -->
-                {#if atLeast(level, 'expert')}
-                  <div class="row">
+                {#if voit('expert', s.id)}
+                  <div class="row" data-reglage="ligne-technique-album">
                     <div class="lbl">
                       <span>{$t('settings.albumTechLine' as any)}</span>
                       <span class="hint">{$t('settings.albumTechLineHint' as any)}</span>
@@ -5029,7 +5280,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/if}
                 <!-- #1892 — tous niveaux : les lignes de piste sont partout. -->
-                <div class="row">
+                <div class="row" data-reglage="actions-piste-reduites">
                   <div class="lbl">
                     <span>{$t('settings.trackActionsReduced' as any)}</span>
                     <span class="hint">{$t('settings.trackActionsReducedHint' as any)}</span>
@@ -5040,7 +5291,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="infobulles">
                   <div class="lbl">
                     <span>{$t('settings.tooltips' as any)}</span>
                     <span class="hint">{$t('settings.tooltipsHint' as any)}</span>
@@ -5070,7 +5321,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               </p>
               <p class="hint">{$t('v2.set.zonesHint' as any)}</p>
-              <div class="inline" style="margin-top:12px">
+              <div class="inline" style="margin-top:12px" data-reglage="appareils-resume">
                 <button class="lnk" onclick={() => activeView.set('zonemanager')}>{$t('settings.openZones' as any)}</button>
                 <button class="lnk" onclick={() => (tabId = 'audio')}>{$t('settings.goToAudio' as any)}</button>
               </div>
@@ -5079,13 +5330,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Bertrand, 05/10/2026 : « Écrire les tags dans les fichiers :
                    inactif par défaut ! » Décochée, une modification ne va
                    qu'en base ; les fichiers audio ne sont pas touchés. -->
-              <div class="row">
+              <div class="row" data-reglage="ecriture-fichiers">
                 <div class="lbl">
                   <span>{$t('settings.fileWrites' as any)}</span>
                   <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn}
+                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn === true}
+                    disabled={ecritureFichiersOn === null}
                     onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
@@ -5093,24 +5345,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if ecritureFichiersErr}<div class="errline">{ecritureFichiersErr}</div>{/if}
               <!-- #4051 : la carte descend au niveau débutant pour cette case
                    (#2859) ; le renvoi vers le Studio reste Avancé. -->
-              <div class="row">
+              <div class="row" data-reglage="paroles-lrclib">
                 <div class="lbl">
                   <span>{$t('settings.lyricsLrclib' as any)}</span>
                   <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn}
+                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn === true}
+                    disabled={lrclibOn === null}
                     onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
               </div>
               {#if lrclibErr}<div class="errline">{lrclibErr}</div>{/if}
-              {#if atLeast(level, 'intermediate')}
+              <!-- tune-server-rust#8521 — réglages pas encore lus : on le dit
+                   ICI, pas seulement sous les dossiers de musique. -->
+              {#if consentementsIllisibles}<div class="errline" data-temoin="consentements-illisibles">{$t('settings.errConfigUnavailable')}</div>{/if}
+              {#if voit('intermediate', s.id)}
                 <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
               {/if}
 
             {:else if s.id === 'enrichment'}
-              <div class="row">
+              <div class="row" data-reglage="enrichir-metadonnees">
                 <div class="lbl">
                   <span>{$t('settings.enrichMetadata' as any)}</span>
                   <span class="hint">{$t('settings.enrichMetadataHint' as any)}</span>
@@ -5124,7 +5380,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="hint">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(enrichDone)).replace('{total}', $formatNombre(enrichTotal))}</div>
               {/if}
 
-              <div class="row">
+              <div class="row" data-reglage="portraits-artistes">
                 <div class="lbl">
                   <span>{$t('v2.lbl.artistPortraits' as any)}</span>
                   <span class="hint">
@@ -5139,7 +5395,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
-              <div class="row" data-recherche-pochettes>
+              <div class="row" data-recherche-pochettes data-reglage="pochettes-manquantes">
                 <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span>
                   <span class="hint">{$t('settings.searchMissingCoversHint' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
@@ -5177,7 +5433,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
                    crédits par disque (`POST /system/enrich-credits`, #4862). -->
-              <div class="row">
+              <div class="row" data-reglage="types-sortie">
                 <div class="lbl">
                   <span>{$t('settings.releaseTypes' as any)}</span>
                   <span class="hint">{$t('settings.releaseTypesHint' as any)}</span>
@@ -5186,7 +5442,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t((releaseTypesOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
                 </button>
               </div>
-              <div class="row">
+              <div class="row" data-reglage="credits">
                 <div class="lbl">
                   <span>{$t('settings.credits' as any)}</span>
                   <span class="hint">{$t('settings.creditsHint' as any)}</span>
@@ -5203,7 +5459,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
               <!-- tune-server-rust#5868 — absente face à un serveur sans le bloc `acoustid`. -->
               {#if acoustid}
-                <div class="row" data-acoustid="lancer">
+                <div class="row" data-acoustid="lancer" data-reglage="acoustid-lancer">
                   <div class="lbl">
                     <span>{$t('acoustid.launch' as any)}</span>
                     <span class="hint">{$t('acoustid.launchHint' as any)}</span>
@@ -5218,9 +5474,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if acoustidErr}<div class="errline" data-acoustid="refus">{acoustidErr}</div>{/if}
               {/if}
               <!-- tune-server-rust#4805 lot 2 (d'après MetaRust) : BPM et propositions Discogs, à la main. -->
-              <PassesMetarustV2 />
+              <div data-reglage="passes-metarust"><PassesMetarustV2 /></div>
               <!-- tune-server-rust#4805 (13/10) : reprise de nuit des albums refusés par MusicBrainz. -->
-              <IdentificationNuitV2 />
+              <div data-reglage="identification-nuit"><IdentificationNuitV2 /></div>
 
             {:else if s.id === 'ingest'}
               {#if !ingest}
@@ -5229,7 +5485,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">
                   {$t('v2.hint.ingestRule' as any)}
                 </p>
-                <div class="row">
+                <div class="row" data-reglage="rangement-mode">
                   <div class="lbl">
                     <span>{$t('settings.ingestMode' as any)}</span>
                     <span class="hint">{$t('v2.hint.ingestMode' as any)}</span>
@@ -5239,7 +5495,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>{$t('ingest.move' as any)}</button>
                   </div>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="rangement-conflit">
                   <div class="lbl">
                     <span>{$t('settings.ingestConflict' as any)}</span>
                     <span class="hint">{$t('settings.ingestConflictHint' as any)}</span>
@@ -5250,7 +5506,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={ingest.conflict_policy === 'overwrite'} onclick={() => saveIngest({ conflict_policy: 'overwrite' })}>{$t('settings.ingestOverwrite' as any)}</button>
                   </div>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="rangement-dossier-cible">
                   <div class="lbl">
                     <span>{$t('v2.lbl.targetFolder' as any)}</span>
                     <span class="hint">{$t('v2.set.emptyMeansDefault' as any).replace('{d}',
@@ -5260,7 +5516,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     value={ingest.dest_root ?? ''}
                     onchange={(e) => saveIngest({ dest_root: (e.currentTarget as HTMLInputElement).value.trim() || null })} />
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="rangement-modele">
                   <div class="lbl">
                     <span>{$t('ingest.template' as any)}</span>
                     <span class="hint">{$t('settings.defaultValueColon' as any)} <code>{ingest.default_template}</code></span>
@@ -5268,7 +5524,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <input class="txt wide" type="text" value={ingest.template ?? ''}
                     onchange={(e) => saveIngest({ template: (e.currentTarget as HTMLInputElement).value })} />
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="rangement-ecrire-tags">
                   <div class="lbl">
                     <span>{$t('settings.writeTags' as any)}</span>
                     <span class="hint">{$t('settings.writeTagsHint' as any)}</span>
@@ -5284,7 +5540,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'oxygen'}
-              <div class="row">
+              <div class="row" data-reglage="vue-oxygen">
                 <div class="lbl">
                   <span>{$t('v2.lbl.oxygenView' as any)}</span>
                   <span class="hint">{$t('settings.facetsNavHint' as any)}</span>
@@ -5296,7 +5552,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if $preferences.oxygenEnabled}
-                <div class="row">
+                <div class="row" data-reglage="valeurs-facettes">
                   <div class="lbl">
                     <span>{$t('oxygen.facetValues' as any)}</span>
                     <span class="hint">{$t('settings.facetValuesHint' as any)}</span>
@@ -5308,7 +5564,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'push'}
-              <div class="row">
+              <div class="row" data-reglage="notifications-push">
                 <div class="lbl">
                   <span>{$t('v2.lbl.notifications' as any)}</span>
                   <span class="hint">{$t('v2.set.pushHint' as any)}</span>
@@ -5327,7 +5583,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    des modules de sortie promettent, dans onze langues, qu'on
                    relie son compte « dans Réglages ▸ Système ▸ Cloud ». Il n'y
                    avait rien. Aucun libellé neuf : ceux du menu de l'avatar. -->
-              <div class="row" data-sso="compte">
+              <div class="row" data-sso="compte" data-reglage="compte-mozaiklabs">
                 <div class="lbl">
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
@@ -5350,7 +5606,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    pour un serveur relié à un compte, et seulement si le serveur
                    publie la clé. Désactivé par défaut. -->
               {#if ssoConnecte && ecoutesCompte !== null}
-                <div class="row" data-ecoutes="compte">
+                <div class="row" data-ecoutes="compte" data-reglage="ecoutes-cloud">
                   <div class="lbl">
                     <span>{$t('settings.cloudListens' as any)}</span>
                     <span class="hint">{$t('settings.cloudListensHint' as any)}</span>
@@ -5370,7 +5626,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- tune-server-rust#6545 — notes et écoutes de la communauté :
                    consentement séparé de « Mes écoutes », désactivé par défaut. -->
               {#if ssoConnecte && partageCommunaute !== null}
-                <div class="row" data-partage="communaute">
+                <div class="row" data-partage="communaute" data-reglage="partage-communaute">
                   <div class="lbl">
                     <span>{$t('settings.communityShare' as any)}</span>
                     <span class="hint">{$t('settings.communityShareHint' as any)}</span>
@@ -5390,7 +5646,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    défaut. Aucun compte n'est nécessaire : le serveur ne
                    s'identifie que par son installation. -->
               {#if mesuresRecues !== null}
-                <div class="row" data-mesures="recevoir">
+                <div class="row" data-mesures="recevoir" data-reglage="mesures-recevoir">
                   <div class="lbl">
                     <span>{$t('settings.communityMeasuresReceive' as any)}</span>
                     <span class="hint">{$t('settings.communityMeasuresReceiveHint' as any)}</span>
@@ -5405,7 +5661,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
               {#if mesuresEnvoyees !== null}
-                <div class="row" data-mesures="contribuer">
+                <div class="row" data-mesures="contribuer" data-reglage="mesures-contribuer">
                   <div class="lbl">
                     <span>{$t('settings.communityMeasuresContribute' as any)}</span>
                     <span class="hint">{$t('settings.communityMeasuresContributeHint' as any)}</span>
@@ -5423,7 +5679,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Consentement à la télémétrie — porté de l'ancien écran
                    (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
               {#if telCharge}
-                <div class="row">
+                <div class="row" data-reglage="telemetrie">
                   <div class="lbl">
                     <span>{$t('settings.telemetry' as any)}</span>
                     <span class="hint">{$t('settings.telemetryHint' as any)}</span>
@@ -5455,7 +5711,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    à la phase 5. Libellé de la synchro repris de l'ancien
                    écran ; celui de la contribution vient du SERVEUR, tel quel. -->
               {#if partageCharge}
-                <div class="row" data-partage="sync">
+                <div class="row" data-partage="sync" data-reglage="synchro-communautaire">
                   <div class="lbl">
                     <span>{$t('settings.communitySync' as any)}</span>
                     <span class="hint">{$t('settings.communitySyncHint' as any)}</span>
@@ -5472,7 +5728,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
                 {#if contribution}
-                  <div class="row" data-partage="contribution">
+                  <div class="row" data-partage="contribution" data-reglage="contribution-communautaire">
                     <div class="lbl">
                       <span>{contribution.libelle ?? $t('settings.communityContribution' as any)}</span>
                       {#if contribution.description}<span class="hint">{contribution.description}</span>{/if}
@@ -5494,7 +5750,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'import'}
               <!-- Phase 5 (web#1257) : import Roon / Plex, aperçu puis confirmation. -->
-              <ImportLecteurV2 />
+              <div data-reglage="import-autre-lecteur"><ImportLecteurV2 /></div>
 
             {:else if s.id === 'database'}
               <div class="rows">
@@ -5517,7 +5773,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
               <!-- Sauvegardes : créer, lister, RESTAURER. -->
-              <div class="row">
+              <div class="row" data-reglage="sauvegardes-base">
                 <div class="lbl"><span>{$t('maintenance.backupRestore' as any)}</span></div>
                 <button class="lnk" disabled={backupBusy || !sauvegardesDisponibles} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
               </div>
@@ -5539,7 +5795,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               <!-- Export / import de la base entière. -->
-              <div class="acts" style="margin-top:14px">
+              <div class="acts" style="margin-top:14px" data-reglage="export-import-base">
                 <button class="lnk" onclick={exportDatabase}>{$t('settings.exportDatabase' as any)}</button>
                 <button class="lnk" disabled={dbImporting} onclick={() => dbImportInput?.click()}>
                   {dbImporting ? $t('settings.importInProgress' as any) : $t('settings.importFile' as any)}
@@ -5549,7 +5805,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if dbImportResult}<p class="hint" class:errline={!dbImportResult.ok}>{dbImportResult.texte}</p>{/if}
 
               <!-- Index de recherche. -->
-              <div class="row" style="margin-top:14px">
+              <div class="row" style="margin-top:14px" data-reglage="index-recherche">
                 <div class="lbl">
                   <span>{$t('settings.searchIndex' as any)}</span>
                   <span class="hint">{$t('settings.rebuildIndexHint' as any)}</span>
@@ -5564,7 +5820,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    l'ancien écran. Offerte seulement sur SQLite : c'est le
                    seul sens que le serveur sait faire. -->
               {#if dbEngine === 'sqlite'}
-                <div class="row" style="margin-top:14px">
+                <div class="row" style="margin-top:14px" data-reglage="migration-postgres">
                   <div class="lbl">
                     <span>{$t('settings.migrateToPostgres' as any)}</span>
                     <span class="hint">{$t('v2.db.migrateHint' as any)}</span>
@@ -5588,7 +5844,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'dataLoc'}
-              <div class="rows">
+              <div class="rows" data-reglage="emplacement-donnees">
                 <div class="kv"><span>{$t('settings.dataLocation' as any)}</span><b class="mono">{dataLoc ?? '—'}</b></div>
               </div>
               <p class="hint">{$t('settings.dataLocationHint' as any)}</p>
@@ -5644,7 +5900,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
                 <!-- Installer Tune OS sur un disque interne : EFFACE le disque. -->
                 {#if dataDisks.some((d) => !d.is_boot && d.tran !== 'usb')}
-                  <div class="danger-box">
+                  <div class="danger-box" data-reglage="installer-tune-os">
                     <p><b>{$t('settings.installTitle' as any)}</b> — {$t('settings.installHint' as any)}</p>
                     {#if installDone}
                       <p>{$t('settings.installDone' as any)}</p>
@@ -5671,7 +5927,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <p class="hint">
                 {$t('v2.hint.csvExport' as any)}
               </p>
-              <div class="inline" style="margin-top:12px">
+              <div class="inline" style="margin-top:12px" data-reglage="export-csv">
                 <button class="lnk" disabled={csvBusy !== null} onclick={() => exportCsv('albums')}>
                   {csvBusy === 'albums' ? 'Export…' : 'Albums (CSV)'}
                 </button>
@@ -5688,16 +5944,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <SauvegardeCloudV2 />
 
             {:else if s.id === 'apiKeys'}
-              <ClesApiV2 />
+              <div data-reglage="cles-api-personnelles"><ClesApiV2 /></div>
 
             {:else if s.id === 'aes67Experimental'}
-              <SortieAes67ExperimentaleV2 />
+              <div data-reglage="aes67-experimental"><SortieAes67ExperimentaleV2 /></div>
+            {:else if s.id === 'serveurUpnp'}
+              <div data-reglage="serveur-upnp"><AnnonceUpnpServeurV2 /></div>
 
             {:else if s.id === 'aes67'}
-              <SortieAes67V2 />
+              <div data-reglage="aes67-etat"><SortieAes67V2 /></div>
 
             {:else if s.id === 'assistantIa'}
-              <AssistantIaReglagesV2 />
+              <div data-reglage="assistant-ia"><AssistantIaReglagesV2 /></div>
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
@@ -5707,7 +5965,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    instantané complet) est adossée à la licence : le dire ICI
                    plutôt que de le laisser deviner. -->
               <p class="hint">{#each emphaseParts($t('settings.configBackupPremium' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
-              <div class="inline" style="margin-top:12px">
+              <div class="inline" style="margin-top:12px" data-reglage="config-export-restauration">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
                   {cfgBusy ? $t('common.loading' as any) : $t('settings.exportConfig' as any)}
                 </button>
@@ -5774,7 +6032,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
             {:else if s.id === 'accessFrom'}
-              <p class="hint">
+              <p class="hint" data-reglage="adresses-acces">
                 {$t('v2.hint.lanAddresses' as any)}
               </p>
               {#if !serverUrls.length}
@@ -5794,14 +6052,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- L'écran des Extensions, monté ICI. Même geste que la
                    Bibliothèque dans les Serveurs multimédia : on rend le
                    composant, on ne le recopie pas. -->
-              <PluginsV2 />
+              <div data-reglage="extensions"><PluginsV2 /></div>
 
             {:else if s.id === 'tokens'}
               <!-- tune-server-rust#5868 — la clé AcoustID, réglage serveur
                    caviardé : champ TOUJOURS vide. Absente sans le bloc, et si
                    le serveur la sert un jour dans la liste des jetons. -->
               {#if acoustid && !(Array.isArray(stk) && stk.some((x) => x?.id === 'acoustid'))}
-                <div class="svc" data-acoustid="cle">
+                <div class="svc" data-acoustid="cle" data-reglage="acoustid-cle">
                   <div class="svchead">
                     <span class="svcdot" style:background={acoustid.api_key_configured ? '#22c55e' : 'transparent'}></span>
                     <span class="svcname">{NOM_ACOUSTID}</span>
@@ -5826,7 +6084,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <a class="lnk" href="https://acoustid.org/new-application" target="_blank" rel="noopener noreferrer">{$t('serviceTokens.howToGetToken' as any)}</a>
                 </div>
               {/if}
-              <p class="hint">
+              <p class="hint" data-reglage="jetons-services">
                 {$t('v2.lbl.theTokens' as any)} <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> {$t('v2.smart.and' as any)}
                 <b>ListenBrainz</b> {$t('v2.hint.tokensUse' as any)}
               </p>
@@ -5917,7 +6175,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/if}
 
                     {#if sv.id === 'lastfm' && sv.configured}
-                      <div class="svcsub">
+                      <div class="svcsub" data-reglage="scrobble-lastfm">
                         {#if sv.scrobble_authenticated}
                           <div class="kv">
                             <span>{sv.lastfm_username ? `${$t('serviceTokens.connected' as any)} : ${sv.lastfm_username}` : $t('serviceTokens.accountConnected' as any)}</span>
@@ -5951,7 +6209,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">
                   {$t('v2.hint.spotifyConnect' as any)}
                 </p>
-                <div class="row">
+                <div class="row" data-reglage="spotify-recepteur">
                   <div class="lbl">
                     <span>{$t('settings.enableReceiver' as any)}</span>
                     {#if spc?.active}<span class="hint">{#if spc.device_name}{$t('v2.set.receiverActiveAs' as any).replace('{nom}', spc.device_name)}{:else}{$t('v2.set.receiverActive' as any)}{/if}</span>{/if}
@@ -5962,8 +6220,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if etapeLiaison(spc) !== 'masquee'}
+                  <!-- web#2804 (tune-server-rust#8154) — l'étape unique : tant que
+                       Spotify n'a pas vu l'appareil de Tune choisi une fois dans
+                       son application, la lecture bute sur un 409. -->
+                  <div class="row" data-spotify-liaison data-etape={etapeLiaison(spc)}>
+                    <div class="lbl"><span class="hint">{$t('playback.errorSpotifyLinkRequired' as any).replace('{device}', lireRefusLiaison(spc).appareil)}</span></div>
+                    {#if etapeLiaison(spc) === 'activer'}
+                      <button class="lnk" type="button" disabled={spcBusy} onclick={() => toggleSpc(true)}>{$t('settings.enableReceiver' as any)}</button>
+                    {/if}
+                  </div>
+                {/if}
                 {#if !spc?.enabled}
-                  <div class="row">
+                  <div class="row" data-reglage="spotify-zone-exposee">
                     <div class="lbl"><span>{$t('settings.exposedZone' as any)}</span>
                       <span class="hint">{$t('settings.spotifyReceiverHint' as any)}</span></div>
                     <select class="sel" value={String(spcZone ?? '')}
@@ -5972,13 +6241,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {#each $zones as z (z.id)}<option value={String(z.id)}>{z.name}</option>{/each}
                     </select>
                   </div>
-                  <div class="row">
+                  <div class="row" data-reglage="spotify-nom">
                     <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
                       <span class="hint">{$t('settings.blankForDefaultName' as any)}</span></div>
                     <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
                   </div>
                 {/if}
-                <div class="row">
+                <div class="row" data-reglage="spotify-lecture-experimentale">
                   <div class="lbl">
                     <span>{$t('v2.set.spotifyPlaybackExperimental' as any)}</span>
                     <span class="hint">{$t('v2.set.spotifyPlaybackWarning' as any)}</span>
@@ -5993,13 +6262,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'sauvegardeReglages'}
-              <SauvegardeReglagesV2 />
+              <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
               {:else}
                 <p class="hint">{$t('v2.set.devialetAirWarning' as any)}</p>
-                <div class="row">
+                <div class="row" data-reglage="devialet-air">
                   <div class="lbl">
                     <span>{$t('v2.set.devialetAirEnable' as any)}</span>
                     <span class="hint">{$t('v2.set.devialetAirDiscoveryHint' as any)}</span>
@@ -6010,7 +6279,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="devialet-air-source">
                   <div class="lbl">
                     <span>{$t('v2.set.devialetAirSource' as any)}</span>
                     <span class="hint">{$t('v2.set.devialetAirSourceHint' as any).replace('{n}', String(air.source_index_default))}</span>
@@ -6039,6 +6308,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if cleZone(z) === zoneOuverte}
                     <div class="zc" id={`zc-${z.id}`} data-carte-zone={cleZone(z)} role="region"
                       aria-label={$t('v2.dev.detailTitle' as any).replace('{name}', z.name)} class:hl={cibleZone === z.id}>
+                      <!--
+                        #2735 — FICHE D'APPAREIL réorganisée (Bertrand, 09/11/2026,
+                        capture de l'Eversolo DMP-A8 : « écran beaucoup trop
+                        chargé »), sur le modèle des fiches d'Apple :
+                          VOLUME / QUALITÉ / CANAUX en vue ;
+                          ▸ Avancé, ▸ Correction de pièce, ▸ Appareil repliés ;
+                          l'aide derrière ⓘ (AideInfo) ;
+                          un réglage SANS EFFET pour ce type de sortie est caché,
+                          plus expliqué (sortie mono hors sortie locale, canaux
+                          verrouillés par le serveur, limites refusées).
+                        Les sections repliées gardent leur état (`replisFiche`),
+                        et la recherche ouvre celle qui porte le réglage visé.
+                        Les gardes de niveau sont celles d'avant, réglage par
+                        réglage : rien ne descend ni ne monte de niveau.
+                      -->
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
@@ -6048,41 +6332,115 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              auraient divergé. -->
                         {#if tuneTestedDe(z)}<BadgeTuneTested appareil={tuneTestedDe(z)} />{/if}
                         <!--
-                          VERROU DE VOLUME (#2395, #2506) — rebranché après la
-                          phase 5, qui l'a emporté avec `DevicesSettings.svelte`.
-                          Lecture seule : il dit ce qui s'applique VRAIMENT à
-                          cette zone (valeur résolue par le serveur) et d'où le
-                          réglage vient — général hérité, ou surcharge propre à
-                          la zone. Il se tait tant que le serveur n'a rien
-                          affirmé : un « non verrouillé » faux coûte du matériel.
+                          VERROU DE VOLUME (#2395, #2506) — lecture seule : ce qui
+                          s'applique VRAIMENT à cette zone, et d'où ça vient. Il se
+                          tait tant que le serveur n'a rien affirmé.
                         -->
                         <BadgeVerrouVolumeZone zoneId={z.id} />
-                        {#if z.id != null}
-                          <button type="button" class="tt-proposer" data-testid="proposer-tune-tested"
-                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
-                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {#if z.image_path}
+                          <span class="zch-photo"><AlbumArt coverPath={z.image_path} albumId={null} size={40} alt={z.name} /></span>
                         {/if}
                       </div>
                       {#if jumelleDeProtocole(z, $zones)}
                         {@const j = jumelleDeProtocole(z, $zones)!}
                         <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
                       {/if}
-                      <!--
-                        NIVEAU ESSENTIEL — Bertrand, 23/09/2026 : le choix de la
-                        disposition multicanal doit être VISIBLE en mode
-                        Essentiel. La section « Réglages par zone » descend donc
-                        à `beginner` (voir `lib/v2Settings`), mais PAS tout ce
-                        qu'elle contient : DSD, débit maximal, gain, FIR,
-                        éditeur d'appareil sont rangés `expert` ou
-                        `intermediate` par l'écran actuel (`lib/settingLevels`)
-                        et le restent ici. Deux gardes de niveau encadrent le
-                        bloc CANAUX, qui reste à sa place — avec ce qui traite
-                        le son — plutôt que d'être copié dans une section à
-                        part : un réglage à deux endroits finit par diverger.
-                      -->
-                      {#if atLeast(level, 'intermediate')}
-                      <div class="zr">
-                        <label class="zf">
+
+                      <!-- ── VOLUME ───────────────────────────────────────── -->
+                      {#if voit('intermediate', s.id)}
+                      <div class="zgrp" data-groupe-fiche="volume">
+                        <h4 class="zgt">{$t('reglages.fiche.volume' as any)}</h4>
+                        <!-- tune-server-rust#6541 — limites tenues par le SERVEUR.
+                             Refusées (mode PURE, volume fixe) : elles n'ont pas
+                             cours, la ligne disparaît (#2735). -->
+                        {#if serveurConnaitLesLimites(z) && !refusDeLimite(z) && courseDb(z)}
+                          <!-- web#7517 — sortie à course en dB : limites en dB. -->
+                          <div class="trim limites-volume" data-reglage="zone-limites-volume">
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="6"
+                                  value={texteLimiteDb(z.volume_limit_safety_device_db)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitSafety' as any)}
+                                  onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">dB</span>
+                              </span>
+                            </label>
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="6"
+                                  value={texteLimiteDb(z.volume_limit_comfort_device_db)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitComfort' as any)}
+                                  onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">dB</span>
+                                <AideInfo libelle={$t('devices.volumeLimitSafety' as any)}
+                                  texte={$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))} />
+                              </span>
+                            </label>
+                            {#if fondDesZones(zonesDeLimites(z))}
+                              <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
+                            {/if}
+                          </div>
+                        {:else if serveurConnaitLesLimites(z) && !refusDeLimite(z)}
+                          <div class="trim limites-volume" data-reglage="zone-limites-volume">
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="5"
+                                  value={pourcentDeLimite(z.volume_limit_safety)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitSafety' as any)}
+                                  onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">%</span>
+                              </span>
+                            </label>
+                            <label class="fz">
+                              <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
+                              <span class="fz-ctl">
+                                <input type="text" inputmode="decimal" class="lim" size="5"
+                                  value={pourcentDeLimite(z.volume_limit_comfort)}
+                                  placeholder={$t('devices.volumeLimitNone' as any)}
+                                  disabled={z.id == null}
+                                  aria-label={$t('devices.volumeLimitComfort' as any)}
+                                  onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
+                                <span class="tv">%</span>
+                                <AideInfo libelle={$t('devices.volumeLimitSafety' as any)} texte={$t('devices.volumeLimitHint' as any)} />
+                              </span>
+                            </label>
+                          </div>
+                        {/if}
+                        <div class="fz-ligne">
+                          <label class="zf chk" data-reglage="zone-volume-fixe">
+                            <input type="checkbox" checked={z.fixed_volume ?? false}
+                              onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
+                            <span>{$t('v2.lbl.fixedVolume' as any)}</span>
+                          </label>
+                          <AideInfo libelle={$t('v2.lbl.fixedVolume' as any)}
+                            texte={emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)).map((p) => p.texte).join('')} />
+                        </div>
+                        {#if fvAsk === z.id}
+                          <div class="fvbox">
+                            <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+                            <div class="inline">
+                              <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
+                                onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
+                              <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>{$t('v2.meta.confirm' as any)}</button>
+                              <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
+                            </div>
+                          </div>
+                        {/if}
+                      </div>
+
+                      <!-- ── QUALITÉ ──────────────────────────────────────── -->
+                      <div class="zgrp" data-groupe-fiche="qualite">
+                        <h4 class="zgt">{$t('reglages.fiche.qualite' as any)}</h4>
+                        <label class="zf" data-reglage="zone-dsd">
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
@@ -6091,11 +6449,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->
-                          {#if natifServiEnDop(z)}
-                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t('v2.set.dsdNativeServedAsDop' as any)}</small>
+                          <!-- #2513 — et POURQUOI (`dsd_transport_reason`, server#7372) :
+                               capacité encore inconnue, sortie non ASIO, pilote sans DSD. -->
+                          {#if diagnosticDsd(z)?.genre === 'dop'}
+                            <small class="dsd-dop" data-dsd-transport="natif_servi_en_dop">{$t(diagnosticDsd(z)!.cle as any)}</small>
+                          {:else if diagnosticDsd(z)?.genre === 'inconnue'}
+                            <small class="dsd-dop dsd-inconnue" data-dsd-transport="capacite_non_sondee">{$t(diagnosticDsd(z)!.cle as any)}</small>
                           {/if}
                         </label>
-                        <label class="zf" title={$t('settings.maxSampleRateHint' as any)}>
+                        <label class="zf" title={$t('settings.maxSampleRateHint' as any)} data-reglage="zone-debit-max">
                           <span>{$t('settings.maxSampleRate' as any)}</span>
                           <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
                             onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
@@ -6103,7 +6465,124 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
                           </select>
                         </label>
-                        <label class="zf">
+                        <!--
+                          BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.
+                          Masqué quand la zone ne publie pas `strict_bitperfect` :
+                          un vieux serveur l'ignorerait.
+                        -->
+                        {#if typeof z.strict_bitperfect === 'boolean'}
+                          <div class="strict-bloc fz-ligne" data-reglage="zone-bitperfect-strict">
+                            <label class="zf chk strict-bitperfect">
+                              <input type="checkbox" checked={z.strict_bitperfect}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                              <span>{$t('bitperfect.strictLabel' as any)}</span>
+                            </label>
+                            <AideInfo libelle={$t('bitperfect.strictLabel' as any)} texte={$t('bitperfect.strictHelp' as any)} />
+                          </div>
+                        {/if}
+                      </div>
+                      {/if}
+
+                      <!--
+                        ── CANAUX ── chantier « multicanal », Bertrand 19/09/2026 ;
+                        visible en Essentiel (23/09). On lit le STATUT DU SERVEUR
+                        (`channel_layout_status`) sans redériver la règle. Quand
+                        le serveur verrouille le choix (`unavailable`), le
+                        sélecteur n'aurait aucun effet : il est caché (#2735).
+                        Le motif reste lu par CODE (`reason`) pour l'avertissement
+                        « au-delà de l'appareil », qui, lui, laisse le choix.
+                      -->
+                      {#if (z.channel_layouts_offered ?? []).length && !canauxVerrouilles(z.channel_layout_status)}
+                        <div class="zgrp" data-groupe-fiche="canaux">
+                          <div class="canaux fz-ligne" data-reglage="zone-canaux">
+                            <span class="tl zgt">{$t('zoneConfig.channelsTitle' as any)}</span>
+                            <span class="fz-ctl">
+                              <select class="sel sm"
+                                disabled={z.id == null}
+                                value={z.channel_layout ?? ''}
+                                aria-label={$t('zoneConfig.channelsTitle' as any)}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
+                                <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
+                                {#each z.channel_layouts_offered ?? [] as d (d.id)}
+                                  <option value={d.id}>{$t(('zoneConfig.channels_' + d.id) as any)}</option>
+                                {/each}
+                              </select>
+                              <!-- Fils 1914/1913 — sur un renderer réseau, Tune réduit
+                                   une piste multicanale au nombre choisi, n'ajoute
+                                   jamais de canal, et l'appareil garde le dernier mot.
+                                   Le serveur décide (`portee`). -->
+                              {#if z.channel_layout_status?.portee === 'plafond_reseau'}
+                                <AideInfo libelle={$t('zoneConfig.channelsTitle' as any)} classeBulle="canaux-reseau" texte={$t('zoneConfig.channelsNetworkCeiling' as any)} />
+                              {/if}
+                              <!-- « Au-delà de ce qu'annonce le pilote » : un
+                                   AVERTISSEMENT, le choix reste ouvert. -->
+                              {#if z.channel_layout_status?.unavailable}
+                                <AideInfo libelle={$t('zoneConfig.channelsTitle' as any)} texte={$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)} />
+                              {/if}
+                            </span>
+                          </div>
+                          <!-- Ce que la zone SORT vraiment (`effective`), quand ça ne
+                               coïncide pas avec le choix. Un id inconnu retombe sur
+                               l'id brut plutôt que sur la clé. -->
+                          {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
+                            {@const eff = z.channel_layout_status.effective}
+                            {@const cle = 'zoneConfig.channels_' + eff}
+                            <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
+                          {/if}
+                          <!-- Sortie mono : le serveur ne l'applique que sur une
+                               sortie locale. Ailleurs elle serait sans effet :
+                               cachée (#2735), au lieu de l'ancienne phrase
+                               « le réglage est enregistré, mais il ne changera
+                               rien ici ». -->
+                          {#if voit('intermediate', s.id) && (z.output_type ?? '') === 'local'}
+                            <div class="fz-ligne">
+                              <label class="zf chk" data-reglage="zone-mono">
+                                <input type="checkbox" checked={z.mono_downmix ?? false}
+                                  onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                                <span>{$t('zoneConfig.monoTitle' as any)}</span>
+                              </label>
+                              <AideInfo libelle={$t('zoneConfig.monoTitle' as any)} texte={$t('zoneConfig.monoDesc' as any)} />
+                            </div>
+                          {/if}
+                        </div>
+                      {:else if voit('intermediate', s.id) && (z.output_type ?? '') === 'local'}
+                        <div class="zgrp" data-groupe-fiche="canaux">
+                          <div class="fz-ligne">
+                            <label class="zf chk" data-reglage="zone-mono">
+                              <input type="checkbox" checked={z.mono_downmix ?? false}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                              <span>{$t('zoneConfig.monoTitle' as any)}</span>
+                            </label>
+                            <AideInfo libelle={$t('zoneConfig.monoTitle' as any)} texte={$t('zoneConfig.monoDesc' as any)} />
+                          </div>
+                        </div>
+                      {/if}
+
+                      {#if voit('intermediate', s.id)}
+                      <!-- ── ▸ AVANCÉ ──────────────────────────────────────── -->
+                      <details class="zsec" data-repli="avance" bind:open={replisFiche.avance}>
+                        <summary>
+                          <span class="zsec-t">{$t('reglages.fiche.avance' as any)}</span>
+                          <span class="zsec-r">{$t('reglages.fiche.avanceResume' as any)}</span>
+                        </summary>
+                        <div class="trim" data-reglage="zone-gain">
+                          <span class="tl">{$t('devices.gainTrim' as any)}</span>
+                          <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
+                            disabled={z.fixed_volume || z.id == null}
+                            aria-label={$t('devices.gainTrim' as any)}
+                            oninput={(e) => { trims = { ...trims, [z.id ?? -1]: Number((e.currentTarget as HTMLInputElement).value) }; }}
+                            onchange={() => setZoneField(z, () => api.updateZoneGainTrim(z.id as number, trimDe(z)))} />
+                          <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
+                          {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
+                          <AideInfo libelle={$t('devices.gainTrim' as any)} texte={$t('devices.gainTrimHint' as any)} />
+                        </div>
+                        <!-- tune-server-rust#6739 — sur une sortie à volume
+                             matériel, le serveur IGNORE un trim positif. Avertissement
+                             sur la VALEUR saisie : il reste en clair. -->
+                        {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
+                          <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
+                        {/if}
+                        <label class="zf" data-reglage="zone-decalage-paroles">
                           <span>{$t('settings.lyricsOffset' as any)}</span>
                           <select class="sel sm" value={String(z.lyrics_offset_ms ?? 0)}
                             onchange={(e) => { const ms = Number((e.currentTarget as HTMLSelectElement).value);
@@ -6111,370 +6590,114 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each OFFSETS as ms (ms)}<option value={String(ms)}>{ms === 0 ? $t('v2.set.none' as any) : `+${ms / 1000} s`}</option>{/each}
                           </select>
                         </label>
-                        <label class="zf chk">
-                          <input type="checkbox" checked={z.fixed_volume ?? false}
-                            onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
-                          <span>{$t('v2.lbl.fixedVolume' as any)}</span>
-                        </label>
-                        <label class="zf chk">
-                          <input type="checkbox" checked={z.mono_downmix ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('zoneConfig.monoTitle' as any)}</span>
-                        </label>
-                      </div>
-
-                      <!--
-                        Sortie mono : VISIBLE sur toutes les zones, et l'écran dit
-                        quand elle n'agira pas (Bertrand, 04/09/2026).
-
-                        Le serveur accepte, persiste et republie `mono_downmix`
-                        pour n'importe quelle zone, mais ne l'applique que sur une
-                        sortie locale. Le taire là où il est inerte le rendrait
-                        introuvable : sur cette installation, une seule zone est
-                        locale et c'est un puits. Le montrer sans rien dire serait
-                        pire — c'est le defaut que le serveur a lui-même corrigé
-                        avec #3254, en publiant des codes de raison.
-
-                        La règle reprise est celle du client actuel :
-                        `output_type !== 'local'`. Le serveur en pose une seconde,
-                        le mode PURE, que la fiche de zone ne publie pas — on ne
-                        l'affirme donc pas ici plutôt que de la deviner.
-                      -->
-                      {#if (z.output_type ?? '') !== 'local'}
-                        <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
-                      {/if}
-
-                      <!--
-                        PUBLIER LA ZONE SUR LE RÉSEAU —
-                        renesenses/tune-server-rust#4626, étape 1 arbitrée par
-                        Bertrand le 22/09/2026 : « rendre visible ce qui
-                        existe ».
-
-                        La publication MediaRenderer par zone est livrée depuis
-                        #1750 (`zone_{id}_upnp_renderer`, PATCH /zones/{id}) et
-                        n'était annoncée NULLE PART : la case s'appelait
-                        « Renderer UPnP » et vivait sans une ligne d'aide,
-                        sixième et avant-dernière d'une rangée de six réglages
-                        (trois listes, trois cases). Un testeur qui cherchait
-                        exactement cette fonction (fil forum 1867) ne l'a pas
-                        trouvée et l'a demandée comme une nouveauté.
-
-                        Deux changements, aucun sur le comportement : le
-                        libellé dit ce que la case FAIT plutôt que le protocole
-                        qu'elle emploie, et elle sort de la rangée pour prendre
-                        sa ligne d'aide — même gabarit que « Bit-perfect
-                        strict » juste en dessous.
-                      -->
-                      <div class="publi-bloc">
-                        <label class="zf chk publier-zone">
-                          <input type="checkbox" checked={z.upnp_renderer ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('devices.upnpRenderer' as any)}</span>
-                        </label>
-                        <p class="monote">{$t('devices.upnpRendererHint' as any)}</p>
-                        <!--
-                          Ce que le serveur fait VRAIMENT quand on décoche, dit
-                          là où on décoche. Mesuré sur `origin/main` le
-                          22/09/2026 et déjà écrit dans
-                          `docs/UPNP-RENDERER.md` §4 : l'annonce s'arrête net et
-                          la façade rend 404, mais AUCUN `ssdp:byebye` n'est
-                          émis — le point de contrôle garde son entrée en cache
-                          jusqu'à l'expiration du `max-age`, 1800 s.
-
-                          Ne s'affiche que quand la case est cochée : c'est
-                          l'instant d'avant le décochage, le seul où cette
-                          phrase sert. La taire coûterait un ticket « j'ai
-                          décoché et je la vois encore » — le même défaut que
-                          #3254 a corrigé en publiant ses motifs.
-                        -->
-                        {#if z.upnp_renderer}
-                          <p class="monote">{$t('devices.upnpRendererStopHint' as any)}</p>
-                        {/if}
-                      </div>
-
-                      <!--
-                        BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
-                        option 3 de Bertrand. Par défaut, une sortie qui ne lit
-                        pas la fréquence de la source la reçoit CONVERTIE, et le
-                        chemin du signal le dit (« PURE dégradé — 192 → 96 kHz »).
-                        Coché, Tune refuse de jouer plutôt que de convertir.
-
-                        Masqué quand la zone ne publie pas `strict_bitperfect` :
-                        un vieux serveur l'ignorerait, et un interrupteur sans
-                        effet ment.
-                      -->
-                      {#if typeof z.strict_bitperfect === 'boolean'}
-                        <div class="strict-bloc">
-                          <label class="zf chk strict-bitperfect">
-                            <input type="checkbox" checked={z.strict_bitperfect}
-                              onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                            <span>{$t('bitperfect.strictLabel' as any)}</span>
-                          </label>
-                          <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
-                        </div>
-                      {/if}
-
-                      <!--
-                        TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
-                        Pour les lecteurs qui ignorent l'ICY (Hifi Rose RS250A,
-                        fil 1529) : réémettre le DIDL du morceau en cours.
-                        Désactivé par défaut : l'ICY suffit à la plupart des
-                        lecteurs, et cette option ajoute une commande réseau à
-                        chaque morceau. Proposé seulement sur une zone DLNA et
-                        si le serveur publie le champ.
-                      -->
-                      {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
-                        <div class="radio-didl-bloc">
-                          <label class="zf radio-didl">
-                            <span>{$t('radioDidl.label' as any)}</span>
-                            <select value={z.dlna_radio_title}
-                              onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
-                              <option value="off">{$t('radioDidl.off' as any)}</option>
-                              <option value="next">{$t('radioDidl.next' as any)}</option>
-                              <option value="reload">{$t('radioDidl.reload' as any)}</option>
-                            </select>
-                          </label>
-                          <p class="monote">{$t('radioDidl.help' as any)}</p>
-                        </div>
-                      {/if}
-                      {/if}
-
-                      <!--
-                        CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
-                        « dans les réglages de l'appareil, permettre la sélection
-                        du nombre de canaux », pour des utilisateurs en 5.1 que
-                        personne chez nous ne peut observer.
-
-                        🔴 On lit le STATUT DU SERVEUR (`channel_layout_status`)
-                        au lieu de redériver la règle ici. Le bloc mono juste
-                        au-dessus, lui, la redérive (`output_type !== 'local'`)
-                        et son propre commentaire admet qu'il ignore la seconde
-                        contrainte du serveur. Deux règles pour un même fait
-                        finissent par diverger ; le serveur est la seule qui
-                        décide de ce que le son subit.
-
-                        `unavailable` vaut vrai MÊME quand rien n'est déclaré :
-                        c'est ce qui doit verrouiller le sélecteur.
-                      -->
-                      {#if (z.channel_layouts_offered ?? []).length}
-                        <div class="canaux">
-                          <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
-                          <select class="sel"
-                            disabled={z.id == null || canauxVerrouilles(z.channel_layout_status)}
-                            value={z.channel_layout ?? ''}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
-                            {#each z.channel_layouts_offered ?? [] as d (d.id)}
-                              <option value={d.id}>{$t(('zoneConfig.channels_' + d.id) as any)}</option>
-                            {/each}
-                          </select>
-                        </div>
-                        <!-- Pourquoi il est verrouillé, dans la langue de
-                             l'utilisateur. On lit le CODE (`reason`), pas la
-                             phrase (`detail`) : `detail` arrive en français
-                             quelle que soit la langue de l'interface — vu sur
-                             une installation anglaise le 20/09/2026. Le serveur
-                             le dit lui-même de ses codes : « destinés à la
-                             machine ; le client les traduit ». -->
-                        {#if z.channel_layout_status?.unavailable}
-                          <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
-                        {/if}
-                        <!-- Fils 1914/1913 — sur un renderer réseau, le choix est
-                             OUVERT mais n'agit pas comme sur une carte locale :
-                             Tune réduit une piste multicanale au nombre choisi,
-                             n'ajoute jamais de canal, et l'appareil garde le
-                             dernier mot s'il annonce moins. On le dit, sinon
-                             « 7.1 » passerait pour une promesse. Le serveur
-                             décide (`portee`), l'écran ne redérive rien. -->
-                        {#if z.channel_layout_status?.portee === 'plafond_reseau'}
-                          <p class="monote canaux-reseau">{$t('zoneConfig.channelsNetworkCeiling' as any)}</p>
-                        {/if}
-                        <!-- Ce que la zone SORT vraiment (`effective`), quand
-                             ça ne coïncide pas avec ce qui est choisi : un
-                             5.1 demandé que l'appareil ramène en stéréo, ou
-                             « Suivre l'appareil » qui a tranché pour lui.
-                             Jamais affiché quand c'est identique — la ligne
-                             ne répéterait que le sélecteur. Le libellé passe
-                             par les clés `zoneConfig.channels_<id>` du
-                             sélecteur ; un id inconnu — serveur plus récent —
-                             retombe sur l'id brut plutôt que sur la clé. -->
-                        {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
-                          {@const eff = z.channel_layout_status.effective}
-                          {@const cle = 'zoneConfig.channels_' + eff}
-                          <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
-                        {/if}
-                      {/if}
-
-                      {#if atLeast(level, 'intermediate')}
-                      <div class="trim">
-                        <span class="tl">{$t('devices.gainTrim' as any)}</span>
-                        <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
-                          disabled={z.fixed_volume || z.id == null}
-                          aria-label={$t('devices.gainTrim' as any)}
-                          oninput={(e) => { trims = { ...trims, [z.id ?? -1]: Number((e.currentTarget as HTMLInputElement).value) }; }}
-                          onchange={() => setZoneField(z, () => api.updateZoneGainTrim(z.id as number, trimDe(z)))} />
-                        <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
-                        {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
-                      </div>
-                      <!-- tune-server-rust#6739 (fil 2366/2375, tweeter détruit) —
-                           sur une sortie à volume matériel (tout sauf `local`),
-                           le serveur IGNORE un trim positif : il ne dépasse
-                           jamais la consigne envoyée à l'appareil. On le dit. -->
-                      {#if !z.fixed_volume && trimDe(z) > 0 && (z.output_type ?? 'local') !== 'local'}
-                        <p class="monote trim-materiel">{$t('devices.gainTrimPositiveIgnoredHardware' as any)}</p>
-                      {/if}
-                      <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
-
-                      <!-- tune-server-rust#6541 — limites de volume (fil 2335).
-                           Tenues par le SERVEUR pour tous les clients ; ici on
-                           ne fait que les régler. Vide = aucune limite. -->
-                      {#if serveurConnaitLesLimites(z) && refusDeLimite(z)}
-                      <p class="monote">{$t((cleTexteRefus(refusDeLimite(z)) ?? 'devices.volumeLimitRefusedFixed') as any)}</p>
-                      {:else if serveurConnaitLesLimites(z) && courseDb(z)}
-                      <!-- web#7517 — sortie à course en dB : limites en dB,
-                           bande vert / orange / rouge comme sur le curseur. -->
-                      <div class="trim limites-volume">
-                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="6"
-                          value={texteLimiteDb(z.volume_limit_safety_device_db)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">dB</span>
-                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="6"
-                          value={texteLimiteDb(z.volume_limit_comfort_device_db)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolumeDb(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">dB</span>
-                      </div>
-                      {#if fondDesZones(zonesDeLimites(z))}
-                        <div class="bande-zones-volume" style={`background: ${fondDesZones(zonesDeLimites(z))}`} title={$t('volume.zonesLegend' as any)}></div>
-                      {/if}
-                      <p class="monote">{$t('devices.volumeLimitHintDb' as any).replace('{min}', String(courseDb(z)?.min_db)).replace('{max}', String(courseDb(z)?.max_db))}</p>
-                      {:else if serveurConnaitLesLimites(z)}
-                      <div class="trim limites-volume">
-                        <span class="tl">{$t('devices.volumeLimitSafety' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="5"
-                          value={pourcentDeLimite(z.volume_limit_safety)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitSafety' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'safety', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">%</span>
-                        <span class="tl">{$t('devices.volumeLimitComfort' as any)}</span>
-                        <input type="text" inputmode="decimal" class="lim" size="5"
-                          value={pourcentDeLimite(z.volume_limit_comfort)}
-                          placeholder={$t('devices.volumeLimitNone' as any)}
-                          disabled={z.id == null}
-                          aria-label={$t('devices.volumeLimitComfort' as any)}
-                          onchange={(e) => enregistrerLimiteVolume(z, 'comfort', (e.currentTarget as HTMLInputElement).value, e.currentTarget as HTMLInputElement)} />
-                        <span class="tv">%</span>
-                      </div>
-                      <p class="monote">{$t('devices.volumeLimitHint' as any)}</p>
-                      {/if}
-
-                      <!--
-                        #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
-
-                        GgB (fil 1671, 21/09/2026) : « Il y a une raison
-                        particulière a la disparition de la prise en compte des
-                        fichiers FIR (wav) dans les paramètres de la zone ? » Le
-                        bloc n'a jamais été porté ici : le seul accès livré était
-                        un clic droit sur la pastille de zone de la barre de
-                        lecture — non annoncé, et sans équivalent tactile. Or
-                        c'est ICI que mène « Ouvrir les réglages » de la roue
-                        crantée d'une zone, et c'est ici qu'on le cherche.
-
-                        Il est placé avec ce qui traite le SON (DSD, débit,
-                        canaux, gain), avant la photo et l'éditeur d'appareil qui
-                        décrivent le matériel.
-
-                        Aucune condition sur le type de sortie : le serveur
-                        applique l'IR aux lecteurs réseau aussi.
-                      -->
-                      <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
-
-                      <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
-                           l'appareil est déjà identifié par sa marque et son
-                           modèle. Pas en tête de carte : la carte est longue
-                           (DSD, débit, canaux, gain…) et la vignette n'a de
-                           sens qu'à côté de ce qu'elle illustre.
-                           L'emplacement existe TOUJOURS, même sans photo —
-                           sinon l'affordance disparaît là où on en a besoin. -->
-                      <div class="zphoto">
-                        <button class="zpv" onclick={() => choisirImageZone(z)}
-                          aria-label={$t('v2.zone.changeImage' as any)} title={$t('v2.zone.changeImage' as any)}>
-                          {#if z.image_path}
-                            <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
-                          {:else}
-                            <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
-                          {/if}
-                          <span class="zpveil">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                              stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-                          </span>
-                        </button>
-                        <div class="zpt">
-                          <span class="tl">{$t('v2.zone.deviceImage' as any)}</span>
-                          <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
-                          {#if z.image_path}
-                            <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
-                          {/if}
-                          <!-- #2109 — proposer la photo au catalogue communautaire.
-                               Un geste À PART, précédé d'un accord lu ; jamais
-                               « partagée » avant l'approbation : l'état affiché
-                               reste « en attente ». -->
-                          {#if propositionPossible(z)}
-                            {#if z.image_share_status === 'pending'}
-                              <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
-                            {:else}
-                              <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
-                                onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
-                            {/if}
-                          {/if}
-                        </div>
-                      </div>
-                      <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
-
-                      {#if z.id != null && propositions[z.id]}
-                        {@const p = propositions[z.id]!}
-                        <div class="warn">
-                          <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
-                          <span class="mono">{resumeProposition(p)}</span>
-                          <div class="inline" style="margin-top:8px">
-                            <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
-                            <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                        <!-- TITRE RADIO PAR DLNA — renesenses/tune-server-rust#2991.
+                             Zone DLNA seulement, et si le serveur publie le champ. -->
+                        {#if typeof z.dlna_radio_title === 'string' && z.output_type === 'dlna'}
+                          <div class="radio-didl-bloc fz-ligne" data-reglage="zone-titre-radio-dlna">
+                            <label class="zf radio-didl">
+                              <span>{$t('radioDidl.label' as any)}</span>
+                              <select class="sel sm" value={z.dlna_radio_title}
+                                onchange={(e) => setZoneField(z, () => api.updateZoneDlnaRadioTitle(z.id as number, (e.currentTarget as HTMLSelectElement).value as 'off' | 'next' | 'reload'))}>
+                                <option value="off">{$t('radioDidl.off' as any)}</option>
+                                <option value="next">{$t('radioDidl.next' as any)}</option>
+                                <option value="reload">{$t('radioDidl.reload' as any)}</option>
+                              </select>
+                            </label>
+                            <AideInfo libelle={$t('radioDidl.label' as any)} texte={$t('radioDidl.help' as any)} />
                           </div>
+                        {/if}
+                        <!-- PUBLIER LA ZONE SUR LE RÉSEAU — tune-server-rust#4626.
+                             Cochée, l'aide dit aussi ce que DÉCOCHER fera (pas de
+                             `ssdp:byebye`, docs/UPNP-RENDERER.md §4). -->
+                        <div class="publi-bloc fz-ligne" data-reglage="zone-publier-upnp">
+                          <label class="zf chk publier-zone">
+                            <input type="checkbox" checked={z.upnp_renderer ?? false}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                            <span>{$t('devices.upnpRenderer' as any)}</span>
+                          </label>
+                          <AideInfo libelle={$t('devices.upnpRenderer' as any)}
+                            texte={$t('devices.upnpRendererHint' as any) + (z.upnp_renderer ? ' ' + $t('devices.upnpRendererStopHint' as any) : '')} />
                         </div>
+                        <!-- Renderers réseau SEULEMENT : ce qu'on envoie sur le fil. -->
+                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                          <details class="radv" data-reglage="zone-renderer">
+                            <summary>{$t('devices.rendererConfig' as any)}</summary>
+                            <RendererConfig zone={z} />
+                          </details>
+                        {/if}
+                      </details>
+
+                      <!-- ── ▸ CORRECTION DE PIÈCE (FIR) ── #1427, à sa place.
+                           Aucune condition sur le type de sortie : le serveur
+                           applique l'IR aux lecteurs réseau aussi. -->
+                      <details class="zsec zsec-fir" data-repli="fir" bind:open={replisFiche.fir}>
+                        <summary><span class="zsec-t">{$t('zoneConfig.firTitle' as any)}</span></summary>
+                        <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
+                      </details>
                       {/if}
 
-                      <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
-                           qu'on envoie sur le fil (protocole, conteneur, profondeur).
-                           Une sortie locale ne négocie rien — le bloc n'y aurait pas
-                           de sens, et `probeRendererCapabilities` n'a rien à interroger. -->
-                      {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                        <details class="radv">
-                          <summary>{$t('devices.rendererConfig' as any)}</summary>
-                          <RendererConfig zone={z} />
-                        </details>
-                      {/if}
+                      <!-- ── ▸ APPAREIL : marque, modèle, photo, Tune tested ── -->
+                      <details class="zsec" data-repli="appareil" bind:open={replisFiche.appareil}>
+                        <summary>
+                          <span class="zsec-t">{$t('zoneConfig.deviceTitle' as any)}</span>
+                          <span class="zsec-r">{$t('reglages.fiche.appareilResume' as any)}</span>
+                        </summary>
+                        {#if voit('intermediate', s.id)}
+                          <div data-reglage="zone-appareil" class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
+                          <!-- Réglages proposés pour ce modèle : sous l'éditeur d'appareil. -->
+                          {#if z.id != null && propositions[z.id]}
+                            {@const p = propositions[z.id]!}
+                            <div class="warn">
+                              <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
+                              <span class="mono">{resumeProposition(p)}</span>
+                              <div class="inline" style="margin-top:8px">
+                                <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
+                                <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                              </div>
+                            </div>
+                          {/if}
 
-                      {#if fvAsk === z.id}
-                        <div class="fvbox">
-                          <p>{#each emphaseParts($t((isLocalZone(z) ? 'settings.fixedVolumeWarningLocal' : 'settings.fixedVolumeWarning') as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
-                          <div class="inline">
-                            <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
-                              onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
-                            <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>{$t('v2.meta.confirm' as any)}</button>
-                            <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
+                          <!-- #1394 — la photo de l'appareil. L'emplacement existe
+                               TOUJOURS, même sans photo. -->
+                          <div class="zphoto" data-reglage="zone-photo">
+                            <button class="zpv" onclick={() => choisirImageZone(z)}
+                              aria-label={$t('v2.zone.changeImage' as any)} title={$t('v2.zone.changeImage' as any)}>
+                              {#if z.image_path}
+                                <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
+                              {:else}
+                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                              {/if}
+                              <span class="zpveil">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                  stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                              </span>
+                            </button>
+                            <div class="zpt">
+                              <span class="tl">{$t('v2.zone.deviceImage' as any)}</span>
+                              <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
+                              {#if z.image_path}
+                                <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
+                              {/if}
+                              <!-- #2109 — proposer la photo au catalogue communautaire :
+                                   un geste à part, précédé d'un accord lu. -->
+                              {#if propositionPossible(z)}
+                                {#if z.image_share_status === 'pending'}
+                                  <p class="zpattente">{$t('v2.zone.photoSharePending' as any)}</p>
+                                {:else}
+                                  <button class="v2-btn sm" disabled={propositionPhotoEnCours === z.id}
+                                    onclick={() => proposerPhotoZone(z)}>{$t('v2.zone.photoShare' as any)}</button>
+                                {/if}
+                              {/if}
+                            </div>
                           </div>
-                        </div>
-                      {/if}
-                      {/if}
+                        {/if}
+                        {#if z.id != null}
+                          <button data-reglage="zone-tune-tested" type="button" class="tt-proposer" data-testid="proposer-tune-tested"
+                            onclick={() => (ficheTuneTested = { id: z.id as number, nom: z.name, teste: !!tuneTestedDe(z) })}
+                          >{$t('v2.zone.tuneTestedPropose' as any)}</button>
+                        {/if}
+                      </details>
+
                     </div>
                     {/if}
                   {/each}
@@ -6486,7 +6709,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if clapAvailable === false}
                 <p class="hint">{$t('settings.noAcousticModule' as any)}</p>
               {:else}
-                <div class="row">
+                <div class="row" data-reglage="analyse-acoustique">
                   <div class="lbl">
                     <span>{$t('settings.acousticAnalysis' as any)}</span>
                     <span class="hint">{$t('settings.acousticAnalysisHelp' as any)}</span>
@@ -6498,7 +6721,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
                 {#if clapOn}
-                  <div class="row">
+                  <div class="row" data-reglage="cadence-analyse-acoustique">
                     <div class="lbl">
                       <span>{$t('acoustic.throttle' as any)}</span>
                       <span class="hint">
@@ -6537,7 +6760,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- web#2324 — décision de Bertrand (23/10) : « Analyser la
                    bibliothèque » EN TÊTE de Réglages › Bibliothèque. Le bloc
                    ISO SACD est descendu dans « Options de scan ». -->
-              <div class="row" data-analyse-bibliotheque>
+              <div class="row" data-analyse-bibliotheque data-reglage="analyser-bibliotheque">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
                   <span class="hint">{$t('settings.scanModesHint' as any)}</span>
@@ -6629,6 +6852,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     .replace('{a}', $formatNombre(scanReport.inserted ?? 0))
                     .replace('{m}', $formatNombre(scanReport.updated ?? 0))
                     .replace('{i}', $formatNombre(scanReport.skipped ?? 0))}
+                  {#if decompteIgnores(scanReport).length}
+                    <!-- tune-server-rust#8261 — « 63 ignorés : lesquels, et pourquoi ? » Les inchangés n'ont pas de liste : leur nombre comble l'écart. -->
+                    <span class="hint decompte" data-decompte-ignores>{$t('v2.scan.skippedBreakdown' as any).replace('{d}', decompteIgnores(scanReport).map((d) => `${$t(d.titre as any)} (${$formatNombre(d.nombre)})`).join(' · '))}</span>
+                  {/if}
                   {#if scanReport.failed_paths?.length}
                     <b>{$t('v2.set.scanFailedPaths' as any).replace('{n}', String(scanReport.failed_paths.length))}</b>
                   {/if}
@@ -6653,6 +6880,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each motifsDesFeuilles(scanReport) as m (m.motif)}
                       <p class="hint">{m.motif} — {$formatNombre(m.nombre)}</p>
                     {/each}
+                    {#if aDesDossiersIllisibles(scanReport)}
+                      <!-- tune-server-rust#8177 — un dossier refusé se règle par un geste, on le dit. -->
+                      <p class="hint" data-dossiers-illisibles>{$t('v2.scan.dirsUnreadableHint' as any)}</p>
+                    {/if}
                     {#each groupesEcartes(scanReport) as g (g.cle)}
                       <p class="ecartes-titre">{$t(g.titre as any)} ({$formatNombre(g.chemins.length)})</p>
                       <ul class="ecartes-liste">
@@ -6663,7 +6894,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
               <!-- tune-server-rust#7780 — remplace le bouton « Bibliothèque + favoris ». -->
-              <div class="row" data-bibliotheque-etendue>
+              <div class="row" data-bibliotheque-etendue data-reglage="bibliotheque-etendue">
                 <div class="lbl">
                   <span>{$t('settings.extendedLibrary' as any)}</span>
                   <span class="hint">{$t('settings.extendedLibraryHint' as any)}</span>
@@ -6676,17 +6907,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
-              <AuditIntegrite />
+              <div data-reglage="audit-integrite"><AuditIntegrite /></div>
               <!-- tune-server-rust#4201 — l'état de la bibliothèque UPnP
                    synchronisée (dernier bilan persisté de chaque source). -->
-              <EtatImportUpnp />
+              <div data-reglage="etat-import-upnp"><EtatImportUpnp /></div>
 
             {:else if s.id === 'musicDirs'}
               <!-- Fil 2171 — le sélecteur est LE geste d'ajout : un vrai bouton,
                    qui va jusqu'à l'ajout (comptage et confirmation compris).
                    En rc3 il n'était qu'un lien « Parcourir… » qui remplissait
                    le champ, et il restait à cliquer « Ajouter ». -->
-              <div class="row">
+              <div class="row" data-reglage="ajouter-dossier">
                 <div class="lbl">
                   <span>{$t('settings.addFolder' as any)}</span>
                   <span class="hint">{$t('settings.serverPathHint' as any)}</span>
@@ -6694,7 +6925,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <BoutonAjouterDossier disabled={dirBusy}
                   onAjoute={async (dirs) => { musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
               </div>
-              <div class="row">
+              <div class="row" data-reglage="ajouter-chemin">
                 <div class="lbl"><span class="hint">{$t('settings.addFolderManualHint' as any)}</span></div>
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
@@ -6702,14 +6933,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
-              <div class="inline" style="margin-top:8px">
+              <div class="inline" style="margin-top:8px" data-reglage="partage-smb">
                 <button class="lnk" onclick={() => (showSmbWizard = true)}>{$t('settings.addSmbShare' as any)}</button>
               </div>
               {#if musicDirs.length}
                 {#if directoryOrder !== null && musicDirs.length > 1}
                   <p class="hint directory-order-hint">{$t('settings.directoryOrderHint' as any)}</p>
                 {/if}
-                <div class="dirs">
+                <div class="dirs" data-reglage="dossiers-declares">
                   {#each displayedMusicDirs as d, index (d)}
                     <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
                       class:avec-analyse={analysisExcluded !== null}>
@@ -6742,7 +6973,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                            analyses de fond (ReplayGain, plage dynamique, empreintes,
                            CLAP). Cochée par défaut : rien n'est exclu. -->
                       {#if analysisExcluded !== null}
-                        <label class="dir-analyse" title={$t('settings.backgroundAnalysisFoldersHint' as any)}>
+                        <label class="dir-analyse" title={$t('settings.backgroundAnalysisFoldersHint' as any)} data-reglage="analyse-fond-dossier">
                           <input type="checkbox" checked={!analysisExcluded.includes(d)} disabled={dirBusy}
                             aria-label={$t('settings.backgroundAnalysisFolderAria' as any).replace('{path}', d)}
                             onchange={(e) => setAnalyseDuDossier(d, (e.currentTarget as HTMLInputElement).checked)} />
@@ -6794,7 +7025,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
                 {#if clapGenresInclus !== null && clapGenresExclus !== null}
-                  <div class="clap-genres">
+                  <div class="clap-genres" data-reglage="genres-clap">
                     <span class="clap-genres-titre">{$t('settings.clapGenresTitle' as any)}</span>
                     <label>
                       <span>{$t('settings.clapGenresIncluded' as any)}</span>
@@ -6824,7 +7055,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Délai de relecture des partages réseau (#5792, fil 2148).
                    Les bornes sont celles que le serveur publie. -->
               {#if sondeReseau !== null}
-                <div class="row sonde-reseau">
+                <div class="row sonde-reseau" data-reglage="sonde-reseau">
                   <div class="lbl">
                     <span>{$t('settings.networkPollInterval' as any)}</span>
                     <span class="hint">{$t('settings.networkPollIntervalHint' as any)}</span>
@@ -6846,7 +7077,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Partages réseau et leur état réel (#2069). Masquée s'il n'y en
                    a aucun, ou si le serveur ne publie pas la route. -->
               {#if smbMounts.length}
-                <div class="devlist smb">
+                <div class="devlist smb" data-reglage="partages-reseau">
                   <span class="hint">{$t('settings.smbMountsTitle' as any)}</span>
                   {#each smbMounts as m (m.server + '/' + m.share)}
                     {@const e = etatPartage(m)}
@@ -6877,7 +7108,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- tune-server-rust#6917 : la règle des copies identiques sous
                    deux dossiers de musique (disque dur et NAS), dite et
                    réglable AVANT de lancer le nettoyage. -->
-              <div class="row">
+              <div class="row" data-reglage="dedoublonnage-meme-racine">
                 <div class="lbl">
                   <span>{$t('settings.dedupSameRootOnly' as any)}</span>
                   <span class="hint">{$t('settings.dedupSameRootOnlyHint' as any)}</span>
@@ -6893,7 +7124,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <p class="hint" data-etat-dedup-racine>
                 {dedupMemeRacine ? $t('settings.dedupSameRootOnlyStateOn' as any) : $t('settings.dedupSameRootOnlyStateOff' as any)}
               </p>
-              <div class="row">
+              <div class="row" data-reglage="nettoyer-bibliotheque">
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
                   <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
@@ -6916,7 +7147,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->
-              <div class="row">
+              <div class="row" data-reglage="vider-bibliotheque">
                 <div class="lbl">
                   <span>{$t('settings.clearLibrary')}</span>
                   <span class="hint">{$t('settings.clearLibraryV2Hint' as any)}</span>
@@ -6934,7 +7165,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
             {:else if s.id === 'scanOpts'}
-              <div class="row">
+              <div class="row" data-reglage="separer-qualites">
                 <div class="lbl">
                   <span>{$t('settings.qualitySplit' as any)}</span>
                   <span class="hint">{$t('settings.qualitySplitHint' as any)}</span>
@@ -6949,7 +7180,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- tune-server-rust#6554 (fil 2294) : APRÈS la phrase « nécessite
                    une analyse complète », qui ne vaut pas pour lui — l'onglet
                    Coffrets suit tout de suite, sans rescan. -->
-              <div class="row">
+              <div class="row" data-reglage="coffrets-auto">
                 <div class="lbl">
                   <span>{$t('settings.autoBoxSets' as any)}</span>
                   <span class="hint">{$t('settings.autoBoxSetsHint' as any)}</span>
@@ -6963,7 +7194,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if coffretsAutoErr}<div class="errline">{coffretsAutoErr}</div>{/if}
               <!-- web#2635 (laguespa, fil 2510) : le réglage serveur
                    `scan_import_playlists` n'était affiché nulle part. -->
-              <div class="row">
+              <div class="row" data-reglage="importer-playlists-scan">
                 <div class="lbl">
                   <span>{$t('settings.scanImportPlaylists' as any)}</span>
                   <span class="hint">{$t('settings.scanImportPlaylistsHint' as any)}</span>
@@ -6975,7 +7206,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if importPlaylistsScanErr}<div class="errline">{importPlaylistsScanErr}</div>{/if}
-              <div class="row">
+              <div class="row" data-reglage="retirer-playlists-scan">
                 <div class="lbl">
                   <span>{$t('settings.removeScanPlaylists' as any)}</span>
                   <span class="hint">{$t('settings.removeScanPlaylistsHint' as any)}</span>
@@ -6988,11 +7219,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               <!-- web#2324 — l'état de l'outil ISO SACD (disques DST), descendu
                    ici depuis la carte « Bibliothèque » (décision du 23/10). -->
-              <SacdIsoStatus />
+              <div data-reglage="iso-sacd"><SacdIsoStatus /></div>
 
             {:else if s.id === 'scanSched'}
               {#if scanDemarrage !== null}
-                <div class="row">
+                <div class="row" data-reglage="analyse-demarrage">
                   <div class="lbl">
                     <span>{$t('settings.scanOnStartup' as any)}</span>
                     <span class="hint">{$t('settings.scanOnStartupHint' as any)}</span>
@@ -7005,7 +7236,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if scanDemarrageErr}<div class="errline">{scanDemarrageErr}</div>{/if}
               {/if}
-              <div class="row">
+              <div class="row" data-reglage="analyse-programmee">
                 <div class="lbl">
                   <span>{$t('v2.lbl.autoAnalysis' as any)}</span>
                   <span class="hint">{$t('settings.scanScheduleHint' as any)}</span>
@@ -7016,7 +7247,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if schedOn}
-                <div class="row">
+                <div class="row" data-reglage="heure-analyse">
                   <div class="lbl"><span>{$t('v2.lbl.time' as any)}</span></div>
                   <input class="txt time" type="time" bind:value={schedTime} onchange={saveSchedule} disabled={schedBusy} />
                 </div>
@@ -7057,7 +7288,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
               {#if updateInfo?.update_available}
-                <div class="okbox">
+                <div class="okbox" data-reglage="version-mises-a-jour">
                   {$t('settings.updateAvailable' as any)} : <b>v{updateInfo.latest_version}</b>
                   (v{updateInfo.current_version ?? serverVersion})
                 </div>
@@ -7119,7 +7350,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if updDmg}<div class="okbox">{updDmg}</div>{/if}
                 {#if updDone}<div class="okbox">{$t('settings.updateDoneReloading' as any)}</div>{/if}
               {:else}
-                <div class="rows">
+                <div class="rows" data-reglage="version-mises-a-jour">
                   <div class="kv">
                     <span>{$t('settings.updates' as any)}</span>
                     <b>{updateInfo ? '\u2713 ' + $t('settings.upToDate' as any) : '\u2026'}</b>
@@ -7134,10 +7365,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- Phase 5 (web#1257) : « Quoi de neuf » et documentation de
                    l'API, portés de l'ancienne interface. -->
-              <div class="inline">
+              <div class="inline" data-reglage="nouveautes">
                 <button class="lnk" aria-expanded={notesOuvertes} onclick={basculerNotes}>{$t('whatsnew.title' as any)}</button>
-                {#if atLeast(level, 'expert')}
-                  <button class="lnk" aria-expanded={apiDocsOuverte} onclick={basculerApiDocs}>{$t('settings.apiDocs' as any)}</button>
+                {#if voit('expert', s.id)}
+                  <button data-reglage="doc-api" class="lnk" aria-expanded={apiDocsOuverte} onclick={basculerApiDocs}>{$t('settings.apiDocs' as any)}</button>
                 {/if}
               </div>
               {#if notesOuvertes}
@@ -7171,7 +7402,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               {/if}
-              {#if apiDocsOuverte && atLeast(level, 'expert')}
+              {#if apiDocsOuverte && voit('expert', s.id)}
                 <div class="notes" role="region" aria-label={$t('settings.apiDocs' as any)}>
                   {#if apiDocsEnCours}
                     <p class="hint">{$t('common.loading' as any)}</p>
@@ -7217,7 +7448,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.licenseViaAccount' as any)}
                 </div>
               {:else if lic.loaded && lic.tier === 'free' && !lic.licenseKey}
-                <div class="row" data-retrouver-par-le-compte>
+                <div data-reglage="licence-compte" class="row" data-retrouver-par-le-compte>
                   <div class="lbl"><span class="hint">{$t('settings.licenseFindByAccount' as any)}</span></div>
                   <button class="lnk" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'cloud' })}
                     >{$t('settings.licenseOpenAccount' as any)}</button>
@@ -7314,19 +7545,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
               {#if lic.licenseKey}
-                <div class="row">
+                <div class="row" data-reglage="licence-revalider">
                   <div class="lbl"><span>{$t('settings.validate' as any)}</span></div>
                   <button class="lnk" disabled={licValidating || licCooldown} onclick={validateLic}>
                     {licValidating ? $t('settings.validating' as any) : $t('settings.validate' as any)}
                   </button>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="licence-liberer">
                   <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
                     <span class="hint">{$t('settings.releaseLicenseHint' as any)}</span></div>
                   <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>{$t('settings.disable' as any)}</button>
                 </div>
               {:else}
-                <div class="row">
+                <div class="row" data-reglage="licence-activer">
                   <div class="lbl"><span>{$t((lic.premiumSource === 'account' ? 'settings.activateLicenseOptional' : 'settings.activateLicense') as any)}</span>
                     <span class="hint">{$t('settings.licenceKeyByEmail' as any)}</span></div>
                   <div class="inline">
@@ -7375,7 +7606,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    server », « Download logs » et « Download diagnostics »
                    se touchaient (testeur Alex, rc8). Flex + gap, comme le
                    reste des réglages. -->
-              <div class="actions-serveur" data-actions-serveur>
+              <div class="actions-serveur" data-actions-serveur data-reglage="actions-serveur">
                 <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
@@ -7386,10 +7617,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
+                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours} onclick={redemarrerLaMachine}>
+                    {redemarrageMachineEnCours ? $t('diagnostics.rebooting' as any) : $t('diagnostics.reboot' as any)}
+                  </button>
                 {/if}
                 <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
                      comme dans la coquille actuelle. -->
-                <button class="lnk" disabled={journauxEnCours} onclick={telechargerLesJournaux}>
+                <button class="lnk" disabled={journauxEnCours} onclick={telechargerLesJournaux} data-reglage="journaux-diagnostic">
                   {$t('settings.downloadLogs' as any)}
                 </button>
                 <button class="lnk" disabled={diagnosticEnCours} onclick={telechargerLeDiagnostic}
@@ -7401,8 +7635,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
                    serveur, rapport d'analyse — portés de l'ancienne interface.
                    Le nettoyage vit depuis #2354 dans Bibliothèque. -->
-              {#if atLeast(level, 'expert') && niveauJournaux !== null}
-                <div class="row">
+              {#if voit('expert', s.id) && niveauJournaux !== null}
+                <div class="row" data-reglage="niveau-journaux">
                   <div class="lbl">
                     <span>{$t('settings.logLevel' as any)}</span>
                     <span class="hint">{$t('v2.maint.logLevelHint' as any)}</span>
@@ -7420,7 +7654,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    version, pour qui le cherche encore ici. Même niveau
                    (intermédiaire) que la section d'arrivée : le lien ne
                    mène jamais à une section masquée. -->
-              <div class="row" data-renvoi-nettoyage>
+              <div class="row" data-renvoi-nettoyage data-reglage="renvoi-nettoyage">
                 <div class="lbl">
                   <span>{$t('diagnostics.cleanupServer' as any)}</span>
                   <span class="hint">{$t('settings.cleanupMovedHint' as any)}</span>
@@ -7429,7 +7663,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.cleanupMovedGo' as any)}
                 </button>
               </div>
-              <div class="row">
+              <div class="row" data-reglage="effacer-rapport-analyse">
                 <div class="lbl">
                   <span>{$t('v2.maint.clearScanReport' as any)}</span>
                   <span class="hint">{$t('v2.maint.clearScanReportHint' as any)}</span>
@@ -7444,7 +7678,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if !Object.keys(svcs).length}
                 <p class="hint">{$t('settings.noServiceConfigured' as any)}</p>
               {:else}
-                <div class="svclist">
+                <div class="svclist" data-reglage="services-streaming">
                   {#each Object.entries(svcs) as [name, st] (name)}
                     {@const flow = deviceFlow[name]}
                     <div class="svc">
@@ -7471,6 +7705,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if st.username}<em>{st.username}</em>{/if}
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
                       </div>
+
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — Spotify Connect d'abord : pour
+                             seulement écouter, aucun compte développeur. -->
+                        <SpotifyConnectInvite onActive={(etat) => { spc = etat; }} />
+                      {/if}
 
                       <!-- #762 : le geste qui manquait. Sans lui, un service
                            arrivé désactivé le restait à vie — et « Se
@@ -7618,6 +7858,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </div>
                       {/if}
 
+                      {#if name === 'spotify'}
+                        <!-- Guide pas à pas du site : Client ID, URI de
+                             redirection, page 127.0.0.1 qui ne se charge pas. -->
+                        <a class="lnk" data-guide-spotify href={urlGuideSpotify($locale)} target="_blank" rel="noopener">{$t('v2.set.spotifyGuideLink' as any)}</a>
+                      {/if}
+
                       {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}
                     </div>
                   {/each}
@@ -7625,7 +7871,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
               <!-- Lecture YouTube : le module yt-dlp, installé par le serveur. -->
-              <div class="row">
+              <div class="row" data-reglage="youtube-lecture">
                 <div class="lbl">
                   <span>{$t('settings.youtubePlaybackTitle' as any)}</span>
                   <span class="hint">{$t('settings.youtubePlaybackHelp' as any)}</span>
@@ -7641,7 +7887,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
               <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
-              <div class="row">
+              <div class="row" data-reglage="youtube-pays-tendances">
                 <div class="lbl">
                   <span>{$t('settings.youtubeChartsCountryTitle' as any)}</span>
                   <span class="hint">{$t('settings.youtubeChartsCountryHelp' as any)}</span>
@@ -7655,6 +7901,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'wifi'}
+              <div data-reglage="wifi">
               {#if isAppliance === false}
                 <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
               {:else if isAppliance === null}
@@ -7707,9 +7954,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" onclick={scanWifi} disabled={wifiScanning}>{$t('settings.wifiScan' as any)}</button>
                 </div>
               {/if}
+              </div>
 
             {:else if s.id === 'bridge'}
-              <div class="row">
+              <div class="row" data-reglage="acces-distant">
                 <div class="lbl">
                   <span>{$t('settings.remoteAccess' as any)}</span>
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
@@ -7737,7 +7985,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <ReglagesAccesParCompte />
                 {/if}
                 {#if brLien}
-                  <div class="row">
+                  <div class="row" data-reglage="lien-distant">
                     <div class="lbl">
                       <span>{$t('settings.remoteLink' as any)}</span>
                       <span class="hint">{$t('settings.remoteLinkHint' as any)}</span>
@@ -7749,7 +7997,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="brqr" data-acces="qr" aria-label={$t('settings.remoteLinkQr' as any)} role="img">
                     {@html brQr}
                   </div>
-                  <div class="row">
+                  <div class="row" data-reglage="renouveler-lien">
                     <div class="lbl">
                       <span class="hint">{$t('settings.remoteLinkRenewHint' as any)}</span>
                     </div>
@@ -7766,7 +8014,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/if}
                 {#if !brConnected}
-                  <p class="warn">{$t('settings.restartToReachRelay' as any)}</p>
+                  {@const m = brMessage ?? { cle: 'settings.restartToReachRelay' }}
+                  <p class="warn" data-pont="cause">{$t(m.cle as any).replace('{raison}', m.raison ?? '')}</p>
                 {/if}
               {/if}
 
@@ -7790,7 +8039,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
-              <div class="row">
+              <div class="row" data-reglage="serveurs-pairs">
                 <div class="lbl">
                   <span>{$t('settings.peerAdd' as any)}</span>
                   <span class="hint">{$t('settings.peerAddHint' as any)}</span>
@@ -7807,7 +8056,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- tune-server-rust#4626 — jouer sur les sorties d'un autre
                    serveur Tune (ce serveur est le MAÎTRE). -->
-              <div class="subhead">
+              <div class="subhead" data-reglage="utiliser-agent">
                 <span>{$t('settings.agentUseTitle' as any)}</span>
                 <button class="lnk" onclick={chargerAgentTune}>{$t('settings.refresh' as any)}</button>
               </div>
@@ -7851,7 +8100,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- tune-server-rust#4626 — prêter les sorties de CE serveur
                    (ce serveur est l'AGENT). -->
-              <div class="subhead">
+              <div class="subhead" data-reglage="preter-sorties">
                 <span>{$t('settings.agentLendTitle' as any)}</span>
                 <button class="lnk" onclick={afficherCodeAgent}>{$t('settings.agentShowCode' as any)}</button>
               </div>
@@ -7884,7 +8133,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'squeezebox'}
-              <div class="row">
+              <div class="row" data-reglage="squeezebox-actif">
                 <div class="lbl">
                   <span>{$t('settings.squeezeboxEnabled' as any)}</span>
                   <span class="hint">{$t('settings.squeezeboxHint' as any)}</span>
@@ -7898,7 +8147,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    Assistant voit. Hors du `{#if sbEnabled}` : les deux
                    réglages sont indépendants, et c'est justement celui-ci
                    qu'un utilisateur veut éteindre sans rien activer. -->
-              <div class="row">
+              <div class="row" data-reglage="annonce-slimproto">
                 <div class="lbl">
                   <span>{$t('settings.slimprotoAnnonce' as any)}</span>
                   <span class="hint">{$t('settings.slimprotoAnnonceHint' as any)}</span>
@@ -7916,7 +8165,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
               {#if sbEnabled}
-                <div class="row">
+                <div class="row" data-reglage="serveur-lms">
                   <div class="lbl">
                     <span>{$t('settings.squeezeboxLmsHost' as any)}</span>
                     {#if sbStatus?.lms_discovered && sbStatus?.lms_host}
@@ -7932,7 +8181,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </button>
                   </div>
                 </div>
-                <div class="subhead">
+                <div class="subhead" data-reglage="lecteurs-squeezebox">
                   <span>{$t('settings.squeezeboxPlayers' as any)}</span>
                   <button class="lnk" onclick={discoverSqueezebox} disabled={sbLoading}>
                     {sbLoading ? $t('settings.squeezeboxRefreshing' as any) : $t('settings.squeezeboxRefresh' as any)}
@@ -7967,7 +8216,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'hqplayer'}
-              <div class="row">
+              <div class="row" data-reglage="hqplayer-actif">
                 <div class="lbl">
                   <span>{$t('settings.enableHqplayer' as any)}</span>
                   <span class="hint">{$t('settings.hqplayerHint' as any)}</span>
@@ -7978,7 +8227,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
               {#if hqEnabled}
-                <div class="row">
+                <div class="row" data-reglage="hqplayer-adresse">
                   <div class="lbl"><span>{$t('settings.hqplayerIp' as any)}</span></div>
                   <div class="inline">
                     <input class="txt" type="text" placeholder="192.168.1.100" bind:value={hqHost} disabled={hqSaving}
@@ -7989,7 +8238,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </button>
                   </div>
                 </div>
-                <div class="row">
+                <div class="row" data-reglage="hqplayer-etat">
                   <div class="lbl">
                     <span>{$t('settings.status' as any)}</span>
                     {#if hqReachable === true}
@@ -8017,7 +8266,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Bilan de sante : trois compteurs qui disent d'un coup d'oeil
                    si la chaine est jouable. Les valeurs viennent des memes
                    stores que le reste de l'ecran, donc jamais desynchronisees. -->
-              <div class="diag">
+              <div class="diag" data-reglage="diagnostic-audio">
                 <div class="dl">
                   <span class="di" class:ok={$zones.length > 0}>{$zones.length > 0 ? '✓' : '!'}</span>
                   <span class="dlab">{$t('settings.playbackZones' as any)}</span>
@@ -8041,7 +8290,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'dsd'}
-              <div class="row">
+              <div class="row" data-reglage="dsd-reseau">
                 <div class="lbl">
                   <span>{$t('settings.dsdNetworkLabel' as any)}</span>
                   <span class="hint">{$t('settings.dsdNetworkHint' as any)}</span>
@@ -8053,7 +8302,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'dspProgressif'}
-              <div class="row">
+              <div class="row" data-reglage="dsp-progressif">
                 <div class="lbl">
                   <span>{$t('settings.dspProgressifLabel' as any)}</span>
                   <span class="hint">{$t('settings.dspProgressifHint' as any)}</span>
@@ -8065,7 +8314,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'eqBands'}
-              <div class="row">
+              <div class="row" data-reglage="bandes-egaliseur">
                 <div class="lbl">
                   <span>{$t('settings.eqBandsLabel' as any)}</span>
                   <span class="hint">{$t('settings.eqBandsHint' as any)}</span>
@@ -8078,12 +8327,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'netDevices'}
-              <div class="acts">
+              <div class="acts" data-reglage="vider-appareils">
                 <button class="lnk" onclick={showAllNet}>{$t('settings.showAll' as any)}</button>
                 <button class="lnk" onclick={hideAllNet}>{$t('settings.hideAll' as any)}</button>
                 <button class="lnk danger" onclick={clearDevices}>{$t('settings.clearDevices' as any)}</button>
               </div>
-              <div class="devlist">
+              <div class="devlist" data-reglage="appareils-reseau">
                 {#each $devices as d (d.id)}
                   {@const pid = `net:${d.id}`}
                   {@const isAir = d.type === 'airplay' || d.type === 'airplay2'}
@@ -8124,7 +8373,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sendspin'}
               <p class="hint">{$t('settings.sendspinIntro' as any)}</p>
-              <div class="devlist">
+              <div class="devlist" data-reglage="enceintes-sendspin">
                 {#each enceintesSs as e (e.cle)}
                   <div class="dev ign">
                     <span class="dn" use:bulleTexte>{e.nom}</span>
@@ -8143,7 +8392,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'ignoredDevices'}
               <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
-              <div class="devlist">
+              <div class="devlist" data-reglage="appareils-ignores">
                 {#each ignoredDevices as d (d.device_id)}
                   <div class="dev ign">
                     <span class="dn" use:bulleTexte>{libelleAppareilIgnore(d)}</span>
@@ -8159,8 +8408,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'localAudio'}
-              {#if atLeast(level, 'expert')}
-                <div class="row">
+              {#if voit('expert', s.id)}
+                <div class="row" data-reglage="backend-audio">
                   <div class="lbl">
                     <span>{$t('settings.audioBackend' as any)}</span>
                     <!-- L'aide parle d'ASIO : on la tait là où ASIO n'existe pas. -->
@@ -8179,7 +8428,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
                 {#if modeWasapiPertinent(backendChoix, audioBackend)}
-                  <div class="row">
+                  <div class="row" data-reglage="mode-wasapi">
                     <div class="lbl">
                     <span>{$t('settings.wasapiMode' as any)}</span>
                     <span class="hint">{$t('v2.hint.wasapiMode' as any)}</span>
@@ -8192,8 +8441,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
 
-              {#if atLeast(level, 'intermediate')}
-                <div class="row">
+              {#if voit('intermediate', s.id)}
+                <div class="row" data-reglage="replaygain">
                   <div class="lbl">
                     <span>{$t('settings.replayGain' as any)}</span>
                     <span class="hint">{$t('settings.replayGainHint' as any)}</span>
@@ -8204,8 +8453,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
                   </div>
                 </div>
-                {#if rgMode !== 'off' && atLeast(level, 'expert')}
-                  <div class="row">
+                {#if rgMode !== 'off' && voit('expert', s.id)}
+                  <div class="row" data-reglage="replaygain-preampli">
                     <div class="lbl">
                     <span>{$t('settings.replayGainPreamp' as any)}</span>
                     <span class="hint">{$t('v2.hint.replayGainPreamp' as any)}</span>
@@ -8216,7 +8465,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/each}
                     </div>
                   </div>
-                  <div class="row">
+                  <div class="row" data-reglage="replaygain-anti-ecretage">
                     <div class="lbl">
                     <span>{$t('settings.replayGainPreventClipping' as any)}</span>
                     <span class="hint">{$t('v2.hint.replayGainPreventClipping' as any)}</span>
@@ -8227,7 +8476,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </label>
                   </div>
                 {/if}
-                <div class="row">
+                <div class="row" data-reglage="replaygain-source">
                   <div class="lbl">
                     <span>{$t('settings.replaygainSource' as any)}</span>
                     <span class="hint">{rgAnalysis ? $t('settings.replaygainSourceTagsAnalysis' as any) : $t('settings.replaygainSourceTagsOnly' as any)}</span>
@@ -8238,7 +8487,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
                 {#if bgSpeed !== null}
-                  <div class="row">
+                  <div class="row" data-reglage="vitesse-analyses">
                     <div class="lbl">
                       <span>{$t('settings.analysisSpeed' as any)}</span>
                       <span class="hint">{$t('settings.analysisSpeedHint' as any)}</span>
@@ -8252,7 +8501,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
                      vitesse réglée quand la température est illisible. -->
-                {#if levBridage !== null && atLeast(level, 'expert')}
+                {#if levBridage !== null && voit('expert', s.id)}
                   <div class="row" data-reglage="lever-bridage">
                     <div class="lbl">
                       <span>{$t('settings.analysisUnthrottle' as any)}</span>
@@ -8267,7 +8516,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {/if}
                 {#if remesure}
-                  <div class="row" data-remesure="lancer">
+                  <div class="row" data-remesure="lancer" data-reglage="remesure-replaygain">
                     <div class="lbl">
                       <span>{$t('settings.rgReanalyze' as any)}</span>
                       <span class="hint">{$t('settings.rgReanalyzeHint' as any)}</span>
@@ -8285,7 +8534,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               {/if}
 
-              <div class="devlist">
+              <div class="devlist" data-reglage="sorties-locales-visibles">
                 {#each audioDevices as d (d.id)}
                   {@const pid = `audio:${d.id}`}
                   <label class="dev">
@@ -8298,7 +8547,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/each}
               </div>
 
-              <div class="foot">
+              <div class="foot" data-reglage="zone-navigateur">
                 <span class="hint">{$t('settings.playHereHint' as any)}</span>
                 <button class="lnk" onclick={createBrowserZoneHere} disabled={creatingBrowserZone}>
                   {creatingBrowserZone ? $t('v2.set.creating' as any) : $t('settings.createBrowserZone' as any)}
@@ -8314,7 +8563,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'zoneAutoCreate'}
-              <div class="row">
+              <div class="row" data-reglage="creation-auto-zones">
                 <div class="lbl">
                   <span>{$t('settings.zoneAutoCreateLabel' as any)}</span>
                   <span class="hint">{$t('settings.zoneAutoCreateHint' as any)}</span>
@@ -8331,7 +8580,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'searchExact'}
-              <div class="row">
+              <div class="row" data-reglage="recherche-exacte">
                 <div class="lbl">
                   <span>{$t('settings.searchExactLabel' as any)}</span>
                   <span class="hint">{$t('settings.searchExactHint' as any)}</span>
@@ -8348,7 +8597,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    leur nom de tri (nom de famille), le nom affiché restant le
                    même. Le nom de tri vient des balises ARTISTSORT /
                    ALBUMARTISTSORT, lues au scan, ou de « Modifier l'artiste ». -->
-              <div class="row">
+              <div class="row" data-reglage="tri-artistes">
                 <div class="lbl">
                   <span>{$t('settings.artistSortLabel' as any)}</span>
                   <span class="hint">{$t('settings.artistSortHint' as any)}</span>
@@ -8363,7 +8612,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'followMe'}
               <!-- Section réellement portée : même store que l'écran actuel,
                    donc le réglage est partagé, pas dupliqué. -->
-              <div class="row">
+              <div class="row" data-reglage="me-suivre">
                 <div class="lbl">
                   <span>{$t('settings.followMeLabel' as any)}</span>
                   <span class="hint">{$t('settings.followMeHint' as any)}</span>
@@ -8378,7 +8627,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- #2244 — plage MAC reconnue et marque de chaque appareil, et
                    la table entière (tune-server-rust#6546). Serveur ancien :
                    le composant se tait. -->
-              <PlagesMacV2 appareils={$devices} />
+              <div data-reglage="plages-mac"><PlagesMacV2 appareils={$devices} /></div>
             {/if}
           </section>
         {/each}
@@ -8459,13 +8708,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   .body{flex:1; min-height:0; display:flex; padding:0 30px}
   .pane{flex:1; overflow-y:auto; padding:16px 4px 40px; display:flex; flex-direction:column; gap:14px}
-  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
   .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #2735 — le réglage atteint par la recherche s'éclaire un instant. La
+     classe est posée par script (allerAuReglage) : d'où :global. Sans
+     animation quand l'utilisateur la refuse — le halo reste, fixe. */
+  .pane :global(.reglage-eclaire){border-radius:10px; animation:reglage-eclaire 2.2s ease-out both}
+  @keyframes reglage-eclaire{
+    0%,40%{box-shadow:0 0 0 3px var(--v2-focus); background:var(--v2-hover)}
+    100%{box-shadow:0 0 0 3px transparent; background:transparent}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .pane :global(.reglage-eclaire){animation:none; box-shadow:0 0 0 3px var(--v2-focus)}
+  }
+  .force-niveau{margin-top:8px; font-size:12.5px; color:var(--v2-txt2); border-left:3px solid var(--v2-acc2); padding:4px 10px}
   /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
      un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
      bordure et étiquette de danger, séparée des deux autres outils. */
@@ -8518,42 +8779,51 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
-  .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
-  .zf{display:flex; flex-direction:column; gap:5px}
-  .zf .dsd-dop{max-width:220px; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:10px var(--v2-mono); line-height:14px; letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  /* web#2089 (Didier, fil 2222) — les cases « Volume fixe » et « Sortie mono »
-     s'alignaient sur le BAS de la rangée (`align-self:flex-end`) : la note DoP
-     sous le sélecteur DSD (#1876) allongeait la colonne, et les cases
-     descendaient au niveau de la note. Elles s'alignent désormais sur les
-     SÉLECTEURS : intitulé (14 px) + écart (5 px) au-dessus, la hauteur d'un
-     `.sel.sm` (32 px), quelle que soit la hauteur des colonnes voisines. */
-  .zf.chk{flex-direction:row; align-items:center; gap:8px; align-self:flex-end; padding-bottom:8px; cursor:pointer}
-  .zr > .zf.chk{align-self:flex-start; padding-bottom:0; margin-top:19px; height:32px}
+  /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
+     par réglage, le libellé à gauche en casse normale, le contrôle à droite,
+     l'aide derrière ⓘ. Remplace la rangée `.zr` (intitulés en capitales collés
+     aux champs, liste « titre radio » étirée sur toute la largeur). */
+  .zch-photo{margin-left:auto; align-self:center; width:40px; height:40px; border-radius:8px; overflow:hidden; flex:0 0 auto}
+  .zgrp{margin-top:14px; border-top:1px solid var(--v2-line); padding-top:6px}
+  .zgt{font:600 10.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
+  .zf{display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:7px 0; min-width:0}
+  .zf .dsd-dop{flex-basis:100%; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
+  .zf > span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf.chk{justify-content:flex-start; gap:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
+  .zf.chk span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .fz-ligne{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .fz-ligne > .zf{flex:1 1 auto}
+  .fz-ctl{display:inline-flex; align-items:center; gap:8px; flex:0 0 auto}
+  .fz{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:7px 0}
+  .zsec{margin-top:12px; border-top:1px solid var(--v2-line); padding-top:10px}
+  .zsec > summary{cursor:pointer; list-style:none; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .zsec > summary::-webkit-details-marker{display:none}
+  .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
+  .zsec[open] > summary::before{content:'▾'}
+  .zsec-t{font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .zsec-r{font-size:11.5px; color:var(--v2-txt3)}
+  /* Le titre du composant partagé répète celui du repli : on le tait ici. */
+  .zsec-fir :global(.fir-tl){display:none}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
   /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
      gabarit que « Bit-perfect strict » ci-dessous. */
-  .publi-bloc{margin-top:10px}
-  .publi-bloc .zf.chk{align-self:auto; padding-bottom:0}
   .publi-bloc .monote{margin-top:4px}
   /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
-  .strict-bloc{margin-top:10px}
-  .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}
   .strict-bloc .monote{margin-top:4px}
-  .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
+  .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
-  .canaux{display:flex; align-items:center; gap:10px; margin-top:8px}
-  .canaux .tl{font-size:12.5px; color:var(--v2-txt2); min-width:96px}
+  .canaux{padding:3px 0}
   .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
+  .limites-volume{flex-direction:column; align-items:stretch; gap:0; margin-top:2px}
+  .limites-volume .tl{font:12.5px var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
   .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
   .limites-volume .tv{min-width:0}
   .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}
@@ -8615,6 +8885,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .okbox .decompte{display:block; margin-top:4px}
 
   /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
      centaines d'entrées : elle défile chez elle, sans pousser le reste de

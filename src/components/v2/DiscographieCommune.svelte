@@ -23,7 +23,7 @@
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
-    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
+    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
@@ -33,6 +33,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -71,6 +72,14 @@
      */
     collaborations?: GroupeCollaborations[];
     reprises?: Album[];
+    /**
+     * Lot 2 (web#2639, tune-server-rust#7767) — « Écriture et production » :
+     * les disques hors de sa discographie où l'artiste est compositeur,
+     * parolier, arrangeur, producteur, ingénieur ou mixeur (`writing`). Même
+     * forme que `reprises` ; absente devant un serveur antérieur, et la
+     * section n'est alors pas rendue — jamais remplie depuis `reprises`.
+     */
+    ecriture?: Album[];
     /** Le filtre « Source » de la Bibliothèque : la pastille cochée à l'ouverture. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -89,7 +98,7 @@
      */
     rangeeSources?: boolean;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [] }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -118,6 +127,7 @@
   // artistes que les services rangent sous lui (#4651) : une seule section.
   const apparitionsToutes = $derived(fusionnerDiscographie(apparitions, partage.connexes));
   const reprisesToutes = $derived(fusionnerDiscographie(reprises, []));
+  const ecritureToutes = $derived(fusionnerDiscographie(ecriture, []));
   const collaborationsToutes = $derived(
     (collaborations ?? []).map((g, i) => ({
       cle: `${g?.artist_id ?? ''}|${g?.artist_name ?? ''}|${i}`,
@@ -131,7 +141,7 @@
   // `compterProvenances`. Elles filtrent TOUTES les sections de la fiche.
   const provenances = $derived(
     compterProvenances([
-      toutes, compilationsToutes, apparitionsToutes, reprisesToutes,
+      toutes, compilationsToutes, apparitionsToutes, reprisesToutes, ecritureToutes,
       ...collaborationsToutes.map((g) => g.entrees),
     ]),
   );
@@ -255,6 +265,14 @@
   );
   const collaborationsCompte = $derived(collaborationsTriees.reduce((n, g) => n + g.entrees.length, 0));
   const reprisesTriees = $derived(trier(garder(reprisesToutes), triAlbums, sensAlbums));
+  const ecritureTriees = $derived(trier(garder(ecritureToutes), triAlbums, sensAlbums));
+  /*
+   * Lot 2 (web#2639) — la page se lit en QUATRE sections : Discographie,
+   * « Apparaît sur » (apparitions et collaborations, compilations en
+   * sous-groupe), « Écriture et production » et Reprises. Le compte d'une
+   * section est la somme des listes RENDUES : rien d'autre ne le porte.
+   */
+  const apparaitSurCompte = $derived(apparitionsTriees.length + collaborationsCompte + compilationsTriees.length);
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
@@ -329,6 +347,13 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
+    <!-- Lot 2 (web#2639) — section 1 sur 4 : la discographie de l'artiste
+         (albums, EP, singles, lives, comme avant). Le titre n'est posé que
+         s'il y a quelque chose dessous ; les sous-sections de type de sortie
+         (#5616, #6464) gardent leur forme, un cran plus bas. -->
+    {#if triees.length}
+    <section class="bloc" data-section="discographie">
+    <h3 class="titre-section">{$t('v2.disco.discography' as any)} <span class="cpt">{triees.length}</span></h3>
     {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
@@ -349,7 +374,9 @@
         </section>
       {/if}
       {#if sectionsSortie.albums.length}
-        <section data-section="albums-principaux">
+        <!-- web#2665 — `connexes` porte l'écart au-dessus du titre : sans lui,
+             « Albums principaux » se collait aux pochettes des Lives. -->
+        <section class="connexes" data-section="albums-principaux">
           <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
           <div class="gr">
             {#each sectionsSortie.albums as e (e.cle)}
@@ -380,47 +407,36 @@
         </section>
       {/if}
     {/if}
+    </section>
+    {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
   {/if}
 
-  <!-- #4767 — les deux sections que FabienM demande d'après Roon. Rendues
-       SEULEMENT quand elles portent quelque chose : une section vide ne
-       s'explique pas, et le serveur ne renvoie même pas la clé. Le compte est
-       la longueur de la liste rendue — rien d'autre ne le porte, donc rien ne
-       peut diverger. Ouvrir une de ces vignettes focalise la fiche d'album
-       sur l'artiste de la page. -->
-  {#if compilationsTriees.length}
-    <section class="connexes" data-section="compilations">
-      <h3 class="titre-connexes">{$t('v2.disco.compilations' as any)} <span class="cpt">{compilationsTriees.length}</span></h3>
-      <div class="gr">
-        {#each compilationsTriees as e (e.cle)}
-          {@render carte(e, 'compilations')}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  {#if apparitionsTriees.length}
-    <section class="connexes" data-section="apparitions">
-      <h3 class="titre-connexes">{$t('v2.disco.appearances' as any)} <span class="cpt">{apparitionsTriees.length}</span></h3>
-      <div class="gr">
-        {#each apparitionsTriees as e (e.cle)}
-          {@render carte(e, 'apparitions')}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  <!-- #4767 (crédits) — mêmes règles : rendues seulement quand elles portent
-       quelque chose. Ouvrir une de ces vignettes focalise la fiche d'album sur
-       les pistes où l'artiste est CRÉDITÉ (`focus_track_ids`). -->
-  {#if collaborationsCompte}
-    <section class="connexes" data-section="collaborations">
-      <h3 class="titre-connexes">{$t('v2.disco.collaborations' as any)} <span class="cpt">{collaborationsCompte}</span></h3>
+  <!-- Lot 2 (web#2639) — section 2 sur 4, « Apparaît sur » : les sections
+       #4767 de FabienM (apparitions, compilations) et les collaborations de
+       #4862 (« Avec {artiste} »), réunies sous un seul titre ; les
+       compilations en sous-groupe. Rendue SEULEMENT quand elle porte quelque
+       chose : une section vide ne s'explique pas, et le serveur ne renvoie
+       même pas la clé. Ouvrir une de ces vignettes focalise la fiche d'album
+       sur l'artiste de la page (par artiste de piste pour les apparitions et
+       les compilations, par pistes CRÉDITÉES — `focus_track_ids` — pour les
+       collaborations). -->
+  {#if apparaitSurCompte}
+    <section class="bloc" data-section="appears-on">
+      <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {#if apparitionsTriees.length}
+        <div class="groupe" data-section="apparitions">
+          <div class="gr">
+            {#each apparitionsTriees as e (e.cle)}
+              {@render carte(e, 'apparitions')}
+            {/each}
+          </div>
+        </div>
+      {/if}
       {#each collaborationsTriees as g (g.cle)}
-        <div class="groupe" data-groupe={g.nom}>
+        <div class="groupe" data-section="collaborations" data-groupe={g.nom}>
           <h4 class="titre-groupe">{$t('v2.disco.withArtist' as any).replace('{artist}', g.nom)}</h4>
           <div class="gr">
             {#each g.entrees as e (e.cle)}
@@ -429,12 +445,40 @@
           </div>
         </div>
       {/each}
+      {#if compilationsTriees.length}
+        <div class="groupe" data-section="compilations">
+          <h4 class="titre-groupe">{$t('v2.disco.compilations' as any)} <span class="cpt">{compilationsTriees.length}</span></h4>
+          <div class="gr">
+            {#each compilationsTriees as e (e.cle)}
+              {@render carte(e, 'compilations')}
+            {/each}
+          </div>
+        </div>
+      {/if}
     </section>
   {/if}
 
+  <!-- Lot 2 (web#2639) — section 3 sur 4, « Écriture et production » : la
+       clé `writing` du serveur (tune-server-rust#7767). Absente devant un
+       serveur antérieur, et la section avec elle : elle ne se remplit JAMAIS
+       depuis `reprises`, qui garde sa propre section. Ouvrir une vignette
+       focalise la fiche d'album sur les pistes où l'artiste est CRÉDITÉ. -->
+  {#if ecritureTriees.length}
+    <section class="bloc" data-section="ecriture">
+      <h3 class="titre-section">{$t('v2.disco.writing' as any)} <span class="cpt">{ecritureTriees.length}</span></h3>
+      <div class="gr">
+        {#each ecritureTriees as e (e.cle)}
+          {@render carte(e, 'ecriture')}
+        {/each}
+      </div>
+    </section>
+  {/if}
+
+  <!-- Section 4 sur 4, « Reprises » (#4862) : inchangée — ses œuvres
+       enregistrées par d'autres, sans rôle audible sur le disque. -->
   {#if reprisesTriees.length}
-    <section class="connexes" data-section="reprises">
-      <h3 class="titre-connexes">{$t('v2.disco.covers' as any)} <span class="cpt">{reprisesTriees.length}</span></h3>
+    <section class="bloc" data-section="reprises">
+      <h3 class="titre-section">{$t('v2.disco.covers' as any)} <span class="cpt">{reprisesTriees.length}</span></h3>
       <div class="gr">
         {#each reprisesTriees as e (e.cle)}
           {@render carte(e, 'reprises')}
@@ -464,21 +508,11 @@
           albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} vignette alt={al.title}
           fallbackInitials={al.title?.slice(0, 1)} />
       </PochetteActions>
-      <div class="pastilles">
-        {#each e.sources as s (s)}
-          {#if s === BIBLIOTHEQUE}
-            <span class="biblio" title={$t('v2.disco.library' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
-            </span>
-          {:else}
-            <ServiceBadge source={s} compact />
-          {/if}
-        {/each}
-      </div>
     </div>
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
-      <span class="ca" use:bulleTexte>{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+      <!-- web#2770 (lot 3) — l'année mène aux albums de cette année. -->
+      <span class="ca" use:bulleTexte><LienEntite entite={{ type: 'annee', annee: al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? null }} /></span>
       {#if origine && al.credit_roles?.length}
         <!-- Ce que l'artiste fait sur ce disque, tel que MusicBrainz le nomme
              (`guitar`, `vocals`, `composer`…) — comme le tiroir des crédits
@@ -486,6 +520,25 @@
         <span class="roles" title={al.credit_roles.join(', ')}>{al.credit_roles.join(' · ')}</span>
       {/if}
     </button>
+    <!-- tune-web-client#2829 (Ronin22, ASR #169) — une étiquette par
+         plateforme, avec sa résolution, sous la vignette (hors pochette,
+         comme #1136) : le même album chez Qobuz et Spotify est UNE vignette
+         qui dit ce que chacun sert. -->
+    <div class="versions">
+      {#each versionsEntree(e) as v (v.source)}
+        {@const res = v.resolution ?? (v.qualite === 'lossy' ? $t('v2.disco.lossy' as any) : null)}
+        <span class="version" data-source={v.source} title={res ? `${v.source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : v.source} · ${res}` : null}>
+          {#if v.source === BIBLIOTHEQUE}
+            <span class="biblio" title={$t('v2.disco.library' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
+            </span>
+          {:else}
+            <ServiceBadge source={v.source} compact />
+          {/if}
+          {#if res}<span class="res">{res}</span>{/if}
+        </span>
+      {/each}
+    </div>
   </div>
 {/snippet}
 
@@ -542,17 +595,18 @@
   .carte { display: flex; flex-direction: column; content-visibility: auto; contain-intrinsic-size: auto 210px; }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* SOUS les icônes de coin de `PochetteActions` (z-index 1) : au survol, ce
-     sont elles qui doivent se lire. */
-  .pastilles {
-    position: absolute; left: 6px; bottom: 6px; z-index: 0;
-    display: flex; gap: 4px; align-items: center; pointer-events: none;
+  /* #2829 — les étiquettes plateforme + résolution, sous le titre. */
+  .versions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 5px; }
+  .version {
+    display: inline-flex; align-items: center; gap: 4px;
+    font: 10px var(--v2-mono); color: var(--v2-txt3); white-space: nowrap;
   }
+  .version .res { color: var(--v2-txt2); }
   .biblio {
-    display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
-    background: rgba(18, 18, 20, 0.82); color: #fff;
+    display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--v2-line2); color: var(--v2-txt);
   }
-  .biblio svg { width: 11px; height: 11px; }
+  .biblio svg { width: 10px; height: 10px; }
   .meta {
     display: block; width: 100%; border: 0; background: transparent; padding: 0;
     text-align: left; color: inherit; font: inherit; cursor: pointer;
@@ -568,6 +622,15 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .connexes { margin-top: 28px; }
+  /* Lot 2 (web#2639) — les quatre sections de la page, un cran au-dessus des
+     sous-sections `.titre-connexes` (types de sortie) et des groupes
+     `.titre-groupe` (« Avec … », compilations). */
+  .bloc ~ .bloc { margin-top: 34px; }
+  .titre-section {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
+    font: 600 15px var(--v2-sans); color: var(--v2-txt);
+  }
+  .bloc > .connexes:first-of-type { margin-top: 0; }
   .roles {
     display: block; margin-top: 2px;
     font: 10.5px var(--v2-sans); color: var(--v2-txt3);

@@ -21,6 +21,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
 
   /**
    * `vue` — la bascule grille/liste de la Bibliothèque agit ICI aussi.
@@ -143,7 +145,7 @@
         <button class="ligne" onclick={() => onOuvrir(a as Album)}>
           <span class="vign"><AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} /></span>
           <span class="ltitre" use:bulleTexte>{a.title ?? ''}</span>
-          <span class="lartiste" use:bulleTexte>{a.artist_name ?? ''}</span>
+          <span class="lartiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
         </button>
       {/each}
     </div>
@@ -153,7 +155,7 @@
         <button class="carte" onclick={() => onOuvrir(a as Album)}>
           <AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} />
           <span class="titre" use:bulleTexte>{a.title ?? ''}</span>
-          {#if a.artist_name}<span class="artiste" use:bulleTexte>{a.artist_name}</span>{/if}
+          {#if a.artist_name}<span class="artiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name, artiste: artisteDAlbum(a) }} /></span>{/if}
         </button>
       {/each}
     </div>
@@ -176,7 +178,7 @@
      l'ascenseur occupe désormais le bord droit. */
   .recents{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
   .recents::-webkit-scrollbar{width:9px}
-  .recents::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .recents::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
   .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
   .fenetres{display:flex; gap:6px}

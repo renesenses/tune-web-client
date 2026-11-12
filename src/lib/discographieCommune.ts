@@ -230,6 +230,69 @@ export function qualiteDe(ex: Exemplaire): Qualite | null {
 }
 
 /**
+ * La résolution d'un exemplaire, telle qu'on l'écrit sur une étiquette :
+ * « 24/96 », « 16/44.1 » (bits / kHz), « DSD » — ou `null` quand le service ne
+ * la dit pas (Spotify, Deezer…) : on n'affiche pas ce qu'on ne sait pas.
+ * Mêmes champs que `qualiteDe`, sous ses deux formes.
+ */
+export function resolutionDe(ex: Exemplaire): string | null {
+  const al = ex.album as Album & { quality?: unknown };
+  const q = al.quality && typeof al.quality === 'object'
+    ? (al.quality as { codec?: string; sample_rate?: number; bit_depth?: number })
+    : null;
+  const bits = Number(al.bit_depth ?? q?.bit_depth ?? 0);
+  const freq = Number(al.sample_rate ?? q?.sample_rate ?? 0);
+  const codec = String(al.format ?? q?.codec ?? '').toLowerCase();
+  if (estDuDSD(codec)) return 'DSD';
+  if (!(bits > 0) || !(freq > 0)) return null;
+  const khz = freq >= 1000 ? freq / 1000 : freq;
+  return `${bits}/${Number.isInteger(khz) ? khz : khz.toFixed(1)}`;
+}
+
+/** Une étiquette de vignette : la plateforme, et ce qu'elle sert (#2829). */
+export interface VersionSource {
+  source: string;
+  qualite: Qualite | null;
+  resolution: string | null;
+}
+
+const RANG_QUALITE: Record<Qualite, number> = { dsd: 4, hires: 3, cd: 2, lossy: 1, multichannel: 0 };
+const debitDe = (ex: Exemplaire) => {
+  const al = ex.album as Album & { quality?: unknown };
+  const q = al.quality && typeof al.quality === 'object'
+    ? (al.quality as { sample_rate?: number; bit_depth?: number })
+    : null;
+  return Number(al.bit_depth ?? q?.bit_depth ?? 0) * Number(al.sample_rate ?? q?.sample_rate ?? 0);
+};
+
+/**
+ * LES ÉTIQUETTES D'UNE VIGNETTE — tune-web-client#2829 (Ronin22, ASR #169).
+ *
+ * Un album présent chez plusieurs services est UNE vignette (#4330) ; elle
+ * dit, pour chaque plateforme, la résolution qu'on y trouve. Une plateforme =
+ * une étiquette, dans l'ordre de la vignette (`e.sources`) ; quand une source
+ * tient plusieurs exemplaires (local et serveur UPnP sous « bibliothèque »),
+ * l'étiquette porte le meilleur.
+ */
+export function versionsEntree(e: EntreeDiscographie): VersionSource[] {
+  return e.sources.map((source) => {
+    const exs = e.exemplaires.filter((x) => x.source === source);
+    let meilleur: Exemplaire | null = null;
+    let rangMeilleur = -1;
+    for (const ex of exs) {
+      const q = qualiteDe(ex);
+      const r = (q ? RANG_QUALITE[q] : 0) * 1e9 + debitDe(ex);
+      if (r > rangMeilleur) { rangMeilleur = r; meilleur = ex; }
+    }
+    return {
+      source,
+      qualite: meilleur ? qualiteDe(meilleur) : null,
+      resolution: meilleur ? resolutionDe(meilleur) : null,
+    };
+  });
+}
+
+/**
  * L'exemplaire relève-t-il de cette qualité ? Multicanal se lit à part
  * (`max_channels`, servi par la bibliothèque seulement), les paliers par
  * `qualiteDe`.

@@ -69,18 +69,22 @@ function completer(t: any): any {
 }
 
 /**
- * Les écoutes, avec l'album de service de celles qui n'en avaient pas.
+ * Les PISTES, avec l'album de service de celles qui n'en avaient pas.
  * `null` quand rien n'a changé (l'appelant garde son tableau).
+ *
+ * web#2749 — la forme générale : les Titres favoris d'un service n'ont pas
+ * d'album non plus (`/profiles/{id}/favorites/streaming` ne rend que le titre
+ * de l'album), et leur colonne Album restait du texte.
  */
-export async function completerAlbumsDeService(
-  entrees: readonly HistoryEntry[],
+export async function completerAlbumsDePistes<T>(
+  pistes: readonly T[],
   lire: LirePiste,
   { plafond = 40, parallele = 3 }: { plafond?: number; parallele?: number } = {},
-): Promise<HistoryEntry[] | null> {
+): Promise<T[] | null> {
   const aDemander: { service: string; id: string; k: string }[] = [];
   const vues = new Set<string>();
-  for (const e of entrees) {
-    const t = e.track as any;
+  for (const p of pistes) {
+    const t = p as any;
     if (!albumAResoudre(t)) continue;
     const k = cle(t);
     if (memoire.has(k) || vues.has(k)) continue;
@@ -104,6 +108,41 @@ export async function completerAlbumsDeService(
   await Promise.all(Array.from({ length: Math.min(parallele, aDemander.length) }, ouvrier));
 
   let change = false;
+  const sortie = pistes.map((p) => {
+    if (!albumAResoudre(p)) return p;
+    const t = completer(p);
+    if (t === p) return p;
+    change = true;
+    return t as T;
+  });
+  return change ? sortie : null;
+}
+
+/**
+ * Les écoutes, avec l'album de service de celles qui n'en avaient pas.
+ * `null` quand rien n'a changé (l'appelant garde son tableau).
+ */
+export async function completerAlbumsDeService(
+  entrees: readonly HistoryEntry[],
+  lire: LirePiste,
+  options: { plafond?: number; parallele?: number } = {},
+): Promise<HistoryEntry[] | null> {
+  const pistes = await completerAlbumsDePistes(entrees.map((e) => e.track), lire, options);
+  if (!pistes) return null;
+  return entrees.map((e, i) => (pistes[i] === e.track ? e : { ...e, track: pistes[i] }));
+}
+
+/**
+ * web#2749 — les écoutes, avec les albums DÉJÀ obtenus, sans aucune demande.
+ *
+ * L'Historique affiche la fusion du magasin LOCAL et du serveur
+ * (`fusionnerHistorique`). La complétion ne passait que sur les lignes du
+ * serveur : une écoute notée par ce navigateur — celle qui porte l'étiquette
+ * de qualité, puisqu'elle vient du `NowPlaying` de la zone — gardait un nom
+ * d'album inerte. Rend le même tableau quand rien ne change.
+ */
+export function appliquerAlbumsConnus(entrees: readonly HistoryEntry[]): HistoryEntry[] {
+  let change = false;
   const sortie = entrees.map((e) => {
     if (!albumAResoudre(e.track)) return e;
     const t = completer(e.track);
@@ -111,5 +150,5 @@ export async function completerAlbumsDeService(
     change = true;
     return { ...e, track: t };
   });
-  return change ? sortie : null;
+  return change ? sortie : (entrees as HistoryEntry[]);
 }
