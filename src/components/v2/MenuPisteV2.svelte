@@ -34,6 +34,9 @@
   import { styleMenuAncre, LARGEUR_MENU } from '../../lib/ancrageMenu';
   import { t } from '../../lib/i18n';
   import type { EntreeMenu as Entree } from '../../lib/menuPiste';
+  import { preferences } from '../../lib/stores/preferences';
+  import { menusCompletsEffectifs } from '../../lib/menuPiste';
+  import { tick } from 'svelte';
 
   interface Props {
     /** Position ÉCRAN du bouton qui a ouvert le menu. */
@@ -90,9 +93,28 @@
    * Les entrées par GROUPE, dans leur ordre : un intertitre à chaque changement
    * de `groupe`. Un menu de piste n'en a aucun et reste une simple liste.
    */
+  /**
+   * rc12 — « Plus… » (go de Bertrand du 12/11/2026). Les entrées marquées
+   * `secondaire` attendent sous une dernière entrée « Plus… », qui les déplie
+   * EN PLACE (le menu ne se referme pas) et met le focus sur la première.
+   * « Menus complets » (Réglages › Interface, par défaut : à l'Expert) : tout
+   * d'emblée, comme avant.
+   */
+  let deplie = $state(false);
+  const complets = $derived(menusCompletsEffectifs($preferences));
+  const cachees = $derived(deplie || complets ? 0 : entrees.filter((e) => e.secondaire).length);
+  const visibles = $derived(cachees ? entrees.filter((e) => !e.secondaire) : entrees);
+  async function deplier(ev: MouseEvent) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    const n = visibles.length;
+    deplie = true;
+    await tick();
+    items()[n]?.focus();
+  }
   const groupes = $derived.by(() => {
     const g: { titre: string | null; entrees: Entree[] }[] = [];
-    for (const e of entrees) {
+    for (const e of visibles) {
       const titre = e.groupe ?? null;
       const dernier = g[g.length - 1];
       if (dernier && dernier.titre === titre) dernier.entrees.push(e);
@@ -115,7 +137,7 @@
    *
    * Les intertitres comptent pour une ligne chacun (web#2736).
    */
-  const style = $derived(styleMenuAncre(ancre, entrees.length + intertitres, window, largeur) + `;width:${largeur}px`);
+  const style = $derived(styleMenuAncre(ancre, visibles.length + (cachees ? 1 : 0) + intertitres, window, largeur) + `;width:${largeur}px`);
 
   function lancer(e: MouseEvent, entree: Entree) {
     e.stopPropagation();
@@ -162,6 +184,14 @@
         {/each}
       </div>
     {/each}
+    {#if cachees}
+      <div class="groupe" role="none">
+        <button class="item plus" role="menuitem" aria-expanded="false" data-menu-plus title={$t('v2.cover.more' as any)} onclick={deplier}>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+          {$t('v2.menu.moreActions' as any)}
+        </button>
+      </div>
+    {/if}
   </div>
 </div>
 

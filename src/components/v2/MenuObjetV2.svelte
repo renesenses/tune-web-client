@@ -36,6 +36,9 @@
   import { portail } from '../../lib/portail';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { cibleEtiquetteObjet, entreesObjet, objetAUnMenu, pistesDe, type ObjetMenu } from '../../lib/gestesObjet';
+  import { preferences } from '../../lib/stores/preferences';
+  import { get } from 'svelte/store';
+  import { CLES_CARTE_HORS_ESSENTIEL } from '../../lib/menuPiste';
   import { chargerSas } from '../../lib/ecouterPlusTard';
   import type { EntreePochette, GestesPochette, SousEntreePochette } from '../../lib/actionsPochette';
   import { notifications } from '../../lib/stores/notifications';
@@ -87,11 +90,14 @@
     return g;
   }
   function calculer(traduire: (k: string) => string): EntreePochette[] {
-    return entreesObjet(objet, traduire, {
+    const l = entreesObjet(objet, traduire, {
       gestes: { ...gestesDuComposant(), ...gestes },
       rafraichir,
       dansCollectionManuelle,
     });
+    // rc12 — au niveau Essentiel, les outils d'expert de la carte (réidentifier,
+    // localiser le dossier) ne sont pas proposés ; ils reviennent dès Avancé.
+    return get(preferences).settingsLevel === 'beginner' ? l.filter((e) => !CLES_CARTE_HORS_ESSENTIEL.has(e.cle)) : l;
   }
 
   /**
