@@ -82,7 +82,7 @@ describe('web#2534 — le label dans Lecture en cours', () => {
     await vi.waitFor(() => { flushSync(); expect(racine.querySelector('[data-np-label]')).not.toBeNull(); });
     const ligne = racine.querySelector('[data-np-label]')!;
     expect(ligne.textContent).toContain('Mute');
-    const lien = ligne.querySelector('button, a') as HTMLElement;
+    const lien = ligne.querySelector('[role="link"]') as HTMLElement;
     expect(lien, 'le label n’est pas un lien').not.toBeNull();
     lien.click();
     await vi.waitFor(() => expect(facettes).toHaveLength(1), { timeout: 3000 });
