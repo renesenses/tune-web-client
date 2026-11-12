@@ -51,7 +51,7 @@
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
-  import type { PaysDeLaBibliotheque } from '../../lib/bibliothequePays';
+  import { filtreDuPays, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
@@ -541,6 +541,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let carteOuverte = $state(false);
   let paysChoisi = $state<PaysDeLaBibliotheque | null>(null);
+  /** #2800 — pays de l'artiste (défaut) ou de l'édition, gardé quand la carte se referme. */
+  let sourcePays = $state<SourcePays>('artiste');
   let idsPays = $state<Set<number> | null>(null);
   $effect(() => {
     const p = paysChoisi;
@@ -548,7 +550,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     idsPays = null;
     if (!p || depot) return;
     let perime = false;
-    const filtres: Record<string, api.FacetParam> = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
+    // #2800 — `artist_country=<code>` (pays de l'artiste) ou `country=<valeurs>` (édition).
+    const filtres: Record<string, api.FacetParam> = d ? { ...filtreDuPays(p), folder: d } : filtreDuPays(p);
     idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed(filtres, limite, rang))
       .then((ids) => { if (!perime) idsPays = ids; })
       .catch(() => {
@@ -3761,7 +3764,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   </div>
 
   {#if carteOuverte && showFilters && !depot}
-    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null}
+    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
       onChoisir={(p) => (paysChoisi = p)} />
   {/if}
 
