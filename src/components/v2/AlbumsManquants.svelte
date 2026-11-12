@@ -138,7 +138,10 @@
 
 <style>
   .manquants { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
-  .manquants h3 { margin: 0; }
+  /* web#2665 — le titre gardait la taille d'un <h3> nu (1,17 em, gras), plus
+     gros que les autres titres de la fiche : même style que `.titre-connexes`
+     de `DiscographieCommune`. */
+  .manquants h3 { margin: 0; font: 600 13px var(--v2-sans); color: var(--v2-txt2); }
   .gestes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
   .ghost {
     padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;

@@ -33,6 +33,7 @@ import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -114,8 +115,8 @@ async function ouvrirFiche(editable: boolean | undefined) {
   });
   await attendreQue(() => (hote!.textContent ?? '').includes('Lovely Day'), 'les titres affichés');
 }
-const boutonEditer = () => [...hote!.querySelectorAll<HTMLButtonElement>('button')]
-  .find((b) => (b.textContent ?? '').trim() === fr['v2.pl.edit']);
+// web#2736 — « Éditer » est une entrée du menu « … » de la fiche playlist.
+const boutonEditer = () => entreeParLibelle(hote!, fr['v2.pl.edit']) ?? undefined;
 const croix = () => [...hote!.querySelectorAll<HTMLButtonElement>('button.retrait-service')];
 
 describe('#2098 — retirer un titre d’une playlist Qobuz personnelle', () => {

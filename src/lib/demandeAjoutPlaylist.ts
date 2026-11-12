@@ -14,7 +14,13 @@ export interface DemandeAjoutPlaylist {
   /** Le nom de l'album, pour le bandeau d'erreur. */
   nom: string;
   /** Les pistes, dans l'ordre de l'album. */
-  pistes: () => Promise<Track[]>;
+  pistes?: () => Promise<Track[]>;
+  /**
+   * web#2806 — des stations de « Mes radios » (leur `id`), à la place des
+   * pistes : elles partent en `radio_ids` (tune-server-rust#8412), vers une
+   * playlist Tune seulement.
+   */
+  radioIds?: number[];
 }
 
 export const demandeAjoutPlaylist = writable<DemandeAjoutPlaylist | null>(null);

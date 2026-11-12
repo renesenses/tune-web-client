@@ -19,7 +19,8 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
-  import { champsRadioAEnvoyer } from '../../lib/champsRadio';
+  import { champsRadioAEnvoyer, champsSurchargeAEnvoyer } from '../../lib/champsRadio';
+  import { estDeLAnnuaire } from '../../lib/mesRadios';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
@@ -56,6 +57,32 @@
   let travail = $state(false);
 
   const creation = $derived(radio.id == null);
+
+  /*
+   * web#2795 (décision de Bertrand, 11/11) — une station de l'ANNUAIRE se
+   * modifie de nouveau, mais CHEZ SOI : le nom affiché, le logo et le flux. La
+   * fiche de l'annuaire n'est jamais modifiée et son relevé n'écrase pas la
+   * surcharge ; « Revenir à la fiche de l'annuaire » l'efface. Le genre, le
+   * pays et le site restent ceux de la fiche ; retirer la station se fait par
+   * « Retirer de Mes radios », sur sa vignette.
+   */
+  const surcharge = $derived(!creation && estDeLAnnuaire(radio));
+
+  async function revenirALaFiche() {
+    const id = radio.id;
+    if (id == null || travail) return;
+    travail = true;
+    try {
+      const maj = await api.revenirALaFiche(id);
+      onSaved?.(maj);
+      notifications.success($t('v2.radio.revertedToDirectory' as any));
+      onClose();
+    } catch (err: any) {
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
+    } finally {
+      travail = false;
+    }
+  }
 
   /** Supprimer la station — porté de l'ancien écran Radios, seul à le permettre. */
   async function supprimer() {
@@ -135,7 +162,9 @@
         ? await api.createRadio(saisi)
         : await api.updateRadio(
             radio.id as number,
-            champsRadioAEnvoyer(saisi, { stream_url: radio.stream_url }),
+            surcharge
+              ? champsSurchargeAEnvoyer(saisi, { stream_url: radio.stream_url })
+              : champsRadioAEnvoyer(saisi, { stream_url: radio.stream_url }),
           );
       onSaved?.(maj);
       onClose();
@@ -164,10 +193,12 @@
       <!-- Le FLUX est ce qui fait la station : sans lui il n'y a rien à
            écouter, d'où `required` comme sur le nom. -->
       <label><span>{$t('v2.radio.stream' as any)}</span><input bind:value={flux} required type="url" /></label>
-      <div class="deux">
-        <label><span>{$t('v2.radio.genre' as any)}</span><input bind:value={genre} /></label>
-        <label><span>{$t('v2.radio.country' as any)}</span><input bind:value={pays} /></label>
-      </div>
+      {#if !surcharge}
+        <div class="deux">
+          <label><span>{$t('v2.radio.genre' as any)}</span><input bind:value={genre} /></label>
+          <label><span>{$t('v2.radio.country' as any)}</span><input bind:value={pays} /></label>
+        </div>
+      {/if}
       <label><span>{$t('v2.radio.logo' as any)}</span><input bind:value={logo} type="url" /></label>
       {#if !creation}
         <label class="fichier">
@@ -175,10 +206,17 @@
           <input type="file" accept="image/*" onchange={televerserPochette} disabled={televersement} />
         </label>
       {/if}
-      <label><span>{$t('v2.radio.site' as any)}</span><input bind:value={site} type="url" /></label>
+      {#if surcharge}
+        <p class="aide">{$t('v2.radio.overrideHint' as any)}</p>
+      {:else}
+        <label><span>{$t('v2.radio.site' as any)}</span><input bind:value={site} type="url" /></label>
+      {/if}
 
       <div class="pied">
-        {#if !creation}
+        {#if surcharge && radio.surcharge_locale}
+          <button type="button" class="sec" disabled={travail} onclick={revenirALaFiche}>{$t('v2.radio.revertToDirectory' as any)}</button>
+          <span class="pousse"></span>
+        {:else if !creation && !surcharge}
           <button type="button" class="sec danger" disabled={travail} onclick={supprimer}>{$t('common.delete' as any)}</button>
           <span class="pousse"></span>
         {/if}
@@ -207,6 +245,8 @@
   input{width:100%; box-sizing:border-box; background:var(--v2-bg); border:1px solid var(--v2-line2);
     border-radius:8px; color:var(--v2-txt); font:inherit; font-size:13.5px; padding:8px 10px}
   input:focus{outline:2px solid var(--v2-acc1); outline-offset:-1px}
+  .aide{margin:2px 0 4px; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
+  .pied{flex-wrap:wrap}
   .deux{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   .pied{display:flex; justify-content:flex-end; gap:8px; margin-top:16px}
   .pied button{border-radius:8px; font:600 13px var(--v2-sans); padding:8px 14px; cursor:pointer}

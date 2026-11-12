@@ -6,12 +6,12 @@
   import { t } from '../../lib/i18n';
   interface Genre { cle: string; libelle: string; n: number }
   let { genres, choisi, total, onChoisir }: {
-    genres: Genre[]; choisi: string | null; total: number; onChoisir: (cle: string | null) => void;
+    genres: Genre[]; choisi: string | null; total: number | null; onChoisir: (cle: string | null) => void;
   } = $props();
 </script>
 
 <div class="chips">
-  <button class="chip" class:active={!choisi} onclick={() => onChoisir(null)}>{$t('v2.radio.allGenres' as any)} ({total})</button>
+  <button class="chip" class:active={!choisi} onclick={() => onChoisir(null)}>{$t('v2.radio.allGenres' as any)}{total == null ? '' : ` (${total})`}</button>
   {#each genres as g (g.cle)}
     <button class="chip" class:active={choisi === g.cle}
       onclick={() => onChoisir(choisi === g.cle ? null : g.cle)}>{g.libelle} <span>{g.n}</span></button>

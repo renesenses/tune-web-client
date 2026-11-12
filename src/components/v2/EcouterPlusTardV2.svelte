@@ -49,6 +49,8 @@
   import { gestesObjet, objetAlbum, objetPlaylist } from '../../lib/gestesObjet';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import PisteActions from './PisteActions.svelte';
@@ -353,7 +355,7 @@
                titre et une playlist de service n'ont pas d'écran où aller. -->
           {#snippet texteCarte()}
             <span class="ct" title={e.titre}>{e.titre}</span>
-            <span class="ca" title={e.artiste}>{e.artiste || $t(LIBELLE_GENRE_SAS[e.genre] as any)}</span>
+            <span class="ca" title={e.artiste}>{#if e.artiste}<LienEntite entite={{ type: 'artiste', nom: e.artiste, artiste: artisteDAlbum(e.ligne) }} />{:else}{$t(LIBELLE_GENRE_SAS[e.genre] as any)}{/if}</span>
           {/snippet}
           {#if e.genre === 'album' || (e.genre === 'playlist' && locale)}
             <button class="meta" onclick={() => (e.genre === 'album' ? ouvrirAlbum(e.ligne) : ouvrirListe(e.ligne))}>
@@ -379,7 +381,7 @@
             <span class="ct" title={e.titre}>{e.titre}</span>
             <span class="ca" use:bulleTexte>
               <span class="genre">{$t(LIBELLE_GENRE_SAS[e.genre] as any)}</span>
-              {#if e.artiste}<span title={e.artiste}> · {e.artiste}</span>{/if}
+              {#if e.artiste}<span title={e.artiste}> · <LienEntite entite={{ type: 'artiste', nom: e.artiste, artiste: artisteDAlbum(e.ligne) }} /></span>{/if}
             </span>
           {/snippet}
           {#if e.genre === 'playlist' && !locale}

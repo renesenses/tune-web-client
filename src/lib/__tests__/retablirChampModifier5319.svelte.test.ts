@@ -20,6 +20,7 @@ import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import type { EditionReponse } from '../editionAlbum';
 import lFr from '../locales/fr';
+import { entreeDuMenu } from './aides/menuFiche';
 
 const FR = lFr as Record<string, string>;
 
@@ -111,8 +112,9 @@ async function ouvrirEdition() {
   document.body.appendChild(hote);
   monte = mount(AlbumDetailV2, { target: hote, props: { onClose: () => {}, album: LOCAL } as any });
   flushSync();
-  expect(await jusqua(() => !!q('[data-modifier-album]')), 'pas de bouton « Modifier »').toBe(true);
-  q<HTMLButtonElement>('[data-modifier-album]')!.click();
+  // web#2736 — « Modifier » est une entrée du menu « … » de la fiche.
+  expect(await jusqua(() => !!(hote && entreeDuMenu(hote, '[data-modifier-album]'))), 'pas de bouton « Modifier »').toBe(true);
+  entreeDuMenu(hote!, '[data-modifier-album]')!.click();
   expect(await jusqua(() => !!q('.edition'))).toBe(true);
 }
 

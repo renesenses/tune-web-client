@@ -448,6 +448,15 @@ export interface Preferences {
    */
   ouvrirFileAuDefilement: boolean;
   /**
+   * « Barres de défilement larges » — web#2798, Michel (fil 2748, 11/11/2026),
+   * qui souffre de tremblements : l'ascenseur était trop étroit pour être
+   * saisi. Coché, la feuille `tune-theme.css` pose un ascenseur de 20 px au
+   * pouce contrasté (Chrome, Edge, Safari) ; Firefox, qui n'accepte pas de
+   * largeur en pixels, garde sa barre `auto` au pouce contrasté. DÉCOCHÉ par
+   * défaut : personne ne voit son affichage changer sans l'avoir demandé.
+   */
+  ascenseursLarges: boolean;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -552,11 +561,11 @@ const defaults: Preferences = {
   visualiseurBarre: true,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
-  // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
-  // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
-  // explicite fait toujours foi, et la migration `legacySettingsLevel()`
-  // ci-dessous continue de primer sur ce defaut.
-  settingsLevel: 'expert',
+  // ESSENTIEL pour une installation NEUVE (Bertrand, 09/11/2026, #2735) —
+  // remplace l'Expert par défaut du 27/08. Voir `NIVEAU_NOUVELLE_INSTALLATION`
+  // et `NIVEAU_INSTALLATION_EXISTANTE` : une installation qui a déjà des
+  // préférences garde son niveau, ou l'ancien défaut si elle n'en porte pas.
+  settingsLevel: 'beginner',
   avatarImage: '',
   avatarCompte: '',
   // #4368 : le GROUPEMENT PAR SOURCE est le défaut depuis le 23/09/2026. Le
@@ -579,6 +588,8 @@ const defaults: Preferences = {
   // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
   // demandé.
   ouvrirFileAuDefilement: false,
+  // web#2798 : DÉCOCHÉ — l'ascenseur large se demande dans Réglages.
+  ascenseursLarges: false,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -601,6 +612,24 @@ const defaults: Preferences = {
  *  écrasait silencieusement `defaults.settingsLevel` : changer le défaut
  *  n'avait alors aucun effet, ni sur une installation neuve ni sur des
  *  préférences sans niveau valide. */
+/**
+ * #2735 — décision de Bertrand du 09/11/2026 : une installation NEUVE ouvre
+ * les Réglages au niveau Essentiel ; le sélecteur Essentiel / Avancé / Expert
+ * reste là, et la recherche trouve les réglages des niveaux supérieurs.
+ *
+ * « Jamais choisi » et « Expert choisi » NE SE DISTINGUENT PAS dans le
+ * stockage : les préférences s'écrivent en bloc, défauts compris, si bien
+ * qu'une installation qui n'a jamais touché au sélecteur porte `expert`
+ * (l'ancien défaut) exactement comme celle qui l'a choisi. La seule frontière
+ * sûre est donc l'EXISTENCE de préférences enregistrées :
+ *   - aucune, ni dans ce navigateur ni sur le serveur → Essentiel ;
+ *   - un blob enregistré → son niveau tel quel ; et s'il n'en porte aucun de
+ *     valide, l'ancien défaut Expert, pour ne pas changer le niveau d'une
+ *     installation existante.
+ */
+export const NIVEAU_NOUVELLE_INSTALLATION: SettingsLevel = 'beginner';
+export const NIVEAU_INSTALLATION_EXISTANTE: SettingsLevel = 'expert';
+
 function legacySettingsLevel(): SettingsLevel | null {
   try {
     const flag = localStorage.getItem('tune_settings_advanced');
@@ -719,9 +748,10 @@ function lirePrefs(stored: string | null): Preferences {
       }
       // Niveau d'affichage (#1617) : valeur invalide ou absente → défaut
       // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
+      // #2735 : un blob enregistré sans niveau valide est une installation
+      // EXISTANTE — elle garde l'ancien défaut, pas celui des neuves.
       if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
-        const legacy = legacySettingsLevel();
-        if (legacy) p.settingsLevel = legacy;
+        p.settingsLevel = legacySettingsLevel() ?? NIVEAU_INSTALLATION_EXISTANTE;
       }
       // Thème du client v2 : une valeur inconnue (préférence écrite par une
       // version ultérieure, ou blob corrompu) retombe sur le défaut plutôt que
@@ -782,8 +812,8 @@ function lirePrefs(stored: string | null): Preferences {
   } catch { /* ignore */ }
   const p = { ...defaults };
   adoptLegacyAlbumSort(p);
-  const legacy = legacySettingsLevel();
-  if (legacy) p.settingsLevel = legacy;
+  // #2735 : rien d'enregistré ici — installation neuve, sauf ancien réglage.
+  p.settingsLevel = legacySettingsLevel() ?? NIVEAU_NOUVELLE_INSTALLATION;
   return p;
 }
 
@@ -968,6 +998,7 @@ export const preferences = createPreferences();
 // The FOUC script in index.html handles the very first paint, but this ensures
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
+appliquerAscenseursLarges(loadPrefs().ascenseursLarges === true);
 
 const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
 
@@ -1151,7 +1182,14 @@ async function relireDuServeur() {
         });
         if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));
       } else {
-        preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
+        // #2735 : un navigateur neuf face à un serveur qui a DÉJÀ des
+        // préférences, c'est une installation existante — son niveau, ou
+        // l'ancien défaut s'il n'en porte pas. Un blob vide ne compte pas.
+        const niveauServeur: Partial<Preferences> = Object.keys(blobServeur).length === 0
+          || isSettingsLevel(server.settingsLevel)
+          ? {}
+          : { settingsLevel: legacySettingsLevel() ?? NIVEAU_INSTALLATION_EXISTANTE };
+        preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...niveauServeur, ...resoudreLangue([server]) }));
       }
       dejaRelu = true;
     }
@@ -1176,4 +1214,15 @@ export function applyTheme(theme: ThemeMode) {
   }
   // Also persist the theme value for external consumers
   try { localStorage.setItem('tune-theme', theme); } catch { /* ignore */ }
+}
+
+/**
+ * web#2798 : pose (ou retire) `data-ascenseurs-larges` sur `<html>`. La feuille
+ * `tune-theme.css` en tire l'ascenseur large. Appelée au chargement du module
+ * (pas d'ascenseur fin le temps du premier rendu) et par la coquille v2 à
+ * chaque changement du réglage.
+ */
+export function appliquerAscenseursLarges(actif: boolean) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.toggleAttribute('data-ascenseurs-larges', actif);
 }

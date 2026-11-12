@@ -99,14 +99,16 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
     expect(estDeLAnnuaire({ annuaire: { external_id: null } })).toBe(false);
   });
 
-  it('🔴 FIP (annuaire) : « Retirer », pas « Modifier » ; la station maison : l’inverse', async () => {
+  // web#2795 (décision du 11/11) : FIP se modifie de nouveau, en surcharge
+  // locale ; « Retirer » reste propre à l'annuaire.
+  it('🔴 FIP (annuaire) : « Retirer » et « Modifier » ; la station maison : « Modifier » seul', async () => {
     await monter();
     const tuiles = [...hote.querySelectorAll('.grid .st')];
     const fip = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'FIP')!;
     const maison = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'Radio Maison')!;
     const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) => b.getAttribute('title'));
     expect(titres(fip)).toContain('Retirer de Mes radios');
-    expect(titres(fip)).not.toContain('Modifier');
+    expect(titres(fip)).toContain('Modifier');
     expect(titres(maison)).toContain('Modifier');
     expect(titres(maison)).not.toContain('Retirer de Mes radios');
   });
@@ -139,7 +141,7 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
       .find((t) => t.querySelector('.nm')?.textContent === nom)!
-      .querySelector('button.ouvrir') as HTMLButtonElement).click();
+      .querySelector('button.centre') as HTMLButtonElement).click();
     lancer('FIP'); await respirer();
     lancer('Radio Maison'); await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
@@ -149,7 +151,9 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 
-  it('la rangée se masque quand une recherche est en cours', async () => {
+  // web#2783 (lot rc12, décision du 10/11) : la rangée est SÉPARÉE de la
+  // liste filtrée ; une recherche dans « Mes radios » ne la masque plus.
+  it('la rangée reste affichée quand une recherche est en cours (#2783)', async () => {
     memoriserLecture(7);
     await monter();
     expect(hote.querySelector('.recentes')).not.toBeNull();
@@ -157,7 +161,7 @@ describe('Dernières lues', () => {
     champ.value = 'maison';
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     await respirer();
-    expect(hote.querySelector('.recentes')).toBeNull();
+    expect(hote.querySelector('.recentes')).not.toBeNull();
   });
 
   it('dernieresLues : le serveur (last_played_at) prime sur la mémoire locale', () => {
@@ -193,14 +197,14 @@ describe('Dernières lues', () => {
 describe('badge « Live » sur le logo', () => {
   it('🔴 aucun badge pendant la lecture, ni sur Mes radios ni sur Annuaire', async () => {
     await monter();
-    (hote.querySelector('.grid .st button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelector('.grid .st button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.st.live'), 'la tuile ne joue pas').not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();
     onglet(1).click();
     await respirer();
     mocks.jouerDepuisAnnuaire.mockResolvedValue({ zone_id: 3 });
-    (hote.querySelectorAll('.fiche')[1].querySelector('button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelectorAll('.fiche')[1].querySelector('button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.fiche.live')).not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();

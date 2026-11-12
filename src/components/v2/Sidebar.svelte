@@ -238,6 +238,7 @@
   import {
     analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond,
   } from '../../lib/analysesDeFond';
+  import { carteDeFondCiblee } from '../../lib/carteEmpreintes';
   import { tuneWS } from '../../lib/websocket';
   import { abonnerPropositionChargementCd } from '../../lib/propositionChargementCd';
   import { notifications } from '../../lib/stores/notifications';
@@ -415,8 +416,10 @@
     return () => clearInterval(minuterie);
   });
   const libelleFond = $derived(libelleAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any)));
-  /** L'écran qui détaille chaque tâche de fond : État du serveur. */
+  /** L'écran qui détaille chaque tâche de fond : État du serveur, amené sur
+   *  la carte de la passe en cours, celle qui porte sa pause (tune-server-rust#8346). */
   function ouvrirEtatDuServeur() {
+    carteDeFondCiblee.set(get(analyseDeFond)?.tache ?? null);
     go('diagnostics');
   }
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
@@ -1227,7 +1230,7 @@
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
-  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}

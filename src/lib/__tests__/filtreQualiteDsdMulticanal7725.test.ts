@@ -106,8 +106,8 @@ describe('#7725 — libellés, dans toutes les langues', () => {
     nb: lNb, pl: lPl, ro: lRo, sv: lSv, vi: lVi, zh: lZh,
   };
 
-  it('la pastille « tout » de la rangée Source reste « Toutes » (décision du 04/11)', () => {
-    expect(lFr['v2.fav.allSources']).toBe('Toutes');
+  it('la pastille « tout » de la rangée Source dit « Toutes les sources » (#2774, décision du 10/11)', () => {
+    expect(lFr['v2.fav.allSources']).toBe('Toutes les sources');
   });
 
   it.each(Object.keys(langues))('%s porte les libellés DSD, Multicanal et « tout »', (l) => {

@@ -166,11 +166,31 @@ export function choisirFluxPrefere(radioId: number, streamUrl: string) {
   );
 }
 
-/** `POST /radios/directory/{id}/play/{zone}` — écoute sans rien ajouter. */
-export function jouerDepuisAnnuaire(externalId: string, zoneId: number) {
+/**
+ * `POST /radios/directory/revert/{radio}` — web#2795 : « Revenir à la fiche de
+ * l'annuaire ». La surcharge locale est effacée ; la station reprend le nom, le
+ * logo et le flux de sa fiche. 409 pour une station sans fiche liée.
+ */
+export function revenirALaFiche(radioId: number) {
+  return fetchJSON<RadioStation>(
+    `${BASE}/radios/directory/revert/${radioId}`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * `POST /radios/directory/{id}/play/{zone}` — écoute sans rien ajouter.
+ *
+ * `streamUrl` (tune-server-rust#7587) : le flux choisi sur la fiche, parmi
+ * ceux qu'elle publie (422 `flux_hors_fiche` sinon). Absent : le serveur
+ * choisit seul, et la requête part sans corps, comme avant.
+ */
+export function jouerDepuisAnnuaire(externalId: string, zoneId: number, streamUrl?: string | null) {
   return fetchJSON<RadioPlayResult>(
     `${BASE}/radios/directory/${encodeURIComponent(externalId)}/play/${zoneId}`,
-    { method: 'POST' },
+    streamUrl
+      ? { method: 'POST', body: JSON.stringify({ stream_url: streamUrl }) }
+      : { method: 'POST' },
   );
 }
 

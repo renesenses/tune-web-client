@@ -1,7 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { plafondDuCurseur } from '../../lib/limitesVolume';
-  import { volumeCommandable, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, volumeFixe, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Zones — nouveau client (direction Levente).
@@ -33,6 +33,7 @@
   import '../../styles/tune-v2.css';
   import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, vignetteDeZone, type VueZones } from '../../lib/vueZones';
   import EtatZone from './EtatZone.svelte';
+  import VolumeFixe from '../partages/VolumeFixe.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
@@ -737,11 +738,16 @@
             {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+              {#if volumeFixe(z)}
+                <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+                <VolumeFixe />
+              {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
               <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+              {/if}
               <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
           </div>
@@ -780,11 +786,16 @@
 
             <span class="vol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+              {#if volumeFixe(z)}
+                <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+                <VolumeFixe />
+              {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
               <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+              {/if}
             </span>
 
             {#if showExpert}
@@ -941,7 +952,7 @@
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:8px}
 
@@ -1009,6 +1020,8 @@
     border-top:1px solid var(--v2-line)}
   .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
   .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
+  /* web#2809 — la mention tient la place du curseur : le menu reste à droite. */
+  .cvol :global(.volume-fixe), .vol :global(.volume-fixe){flex:1; min-width:0}
   .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
 
