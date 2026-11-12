@@ -214,6 +214,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  // web#916 — « Accueil : suggestions écartées », le revers de « Pas pour moi ».
+  import SuggestionsEcarteesV2 from './SuggestionsEcarteesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
@@ -4773,6 +4775,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </label>
                 </div>
               {/if}
+
+            {:else if s.id === 'dismissedSuggestions'}
+              <SuggestionsEcarteesV2 />
 
             {:else if s.id === 'displayPrefs'}
               <!-- LA MATRICE. Première ligne : les modes. Première colonne :

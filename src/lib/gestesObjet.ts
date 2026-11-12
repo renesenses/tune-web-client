@@ -950,7 +950,8 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
  */
 export function objetAUnMenu(o: ObjetMenu, gestes: GestesPochette = {}): boolean {
   // web#2806 — une station de « Mes radios » a UNE entrée : « Ajouter à une playlist ».
-  if (o.type === 'radio') return o.id != null;
+  // web#916 — et la radio que l'accueil suggère : « Pas pour moi ».
+  if (o.type === 'radio') return o.id != null || !!gestes.pasPourMoi;
   if (o.type === 'podcast') return false;
   if (o.type === 'label') return !!o.nom;
   return o.id != null || deService(o) || !!gestes.ouvrir || ouvrirParDefaut(o) != null;
