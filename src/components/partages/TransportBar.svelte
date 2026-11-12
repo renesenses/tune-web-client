@@ -1339,7 +1339,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
-      <span class="progress-time">{formatTime(positionAfficheeMs)}</span>
+      <!-- Hors glisser, le compteur EST `seekPositionMs` : la carte de la
+           zone courante lit le même nombre (synchroProgressionSevy). -->
+      <span class="progress-time">{#if glisse}{formatTime(positionGlisseMs)}{:else}{formatTime($seekPositionMs)}{/if}</span>
       <div class="progress-track" class:onde={!!onde} bind:this={pisteProgressionEl} onclick={handleProgressSeek} onmousedown={handleProgressMouseDown} ontouchstart={handleProgressTouchStart} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={positionAfficheeMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
         {#if onde}
           <OndeProgression points={onde} progress={progressPercent} />
