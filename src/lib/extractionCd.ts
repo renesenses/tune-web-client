@@ -28,6 +28,7 @@
  */
 import { BASE, fetchJSON, type ApiError } from './api';
 import type { SearchResult } from './types';
+import type { VerdictAr, VerificationAr } from './verificationAr';
 
 export type FormatExtraction = 'flac' | 'wav';
 export type VerificationExtraction = 'doute' | 'toujours';
@@ -41,6 +42,9 @@ export interface ReglagesExtraction {
   destination: string | null;
   destination_source: 'reglage' | 'defaut' | 'aucune';
   emplacements: string[];
+  /** tune-server-rust#8522 — décalage du lecteur (échantillons) ; absent d'un serveur antérieur. */
+  decalage_lecteur?: number;
+  decalage_max?: number;
 }
 
 export interface PisteExtraction {
@@ -54,6 +58,8 @@ export interface PisteExtraction {
   secteurs_illisibles: number;
   accuraterip_v1: string | null;
   accuraterip_v2: string | null;
+  /** tune-server-rust#8522 — le verdict AccurateRip de la piste. */
+  verification?: VerdictAr | null;
   fichier: string | null;
   erreur: unknown;
 }
@@ -80,6 +86,8 @@ export interface EtatExtraction {
   fin: number | null;
   erreur: { code: string; message: string } | null;
   scan: 'lance' | 'deja_en_cours' | 'indisponible' | 'non_lance' | null;
+  /** tune-server-rust#8522 — la vérification AccurateRip du disque. */
+  accuraterip?: VerificationAr | null;
   pistes: PisteExtraction[];
 }
 
@@ -103,7 +111,9 @@ export function getReglagesExtraction(): Promise<ReglagesExtraction> {
   return fetchJSON<ReglagesExtraction>(`${CD}/extraction/reglages`, undefined, undefined, true);
 }
 
-export function putReglagesExtraction(r: { format?: FormatExtraction; destination?: string }): Promise<ReglagesExtraction> {
+export function putReglagesExtraction(
+  r: { format?: FormatExtraction; destination?: string; decalage_lecteur?: number },
+): Promise<ReglagesExtraction> {
   return fetchJSON<ReglagesExtraction>(
     `${CD}/extraction/reglages`,
     { method: 'PUT', body: JSON.stringify(r) },
@@ -188,6 +198,7 @@ export const CLES_REFUS: Record<string, string> = {
   extraction_inconnue: 'v2.cd.rip.err.unknownRip',
   extraction_terminee: 'v2.cd.rip.err.alreadyFinished',
   admin_requis: 'v2.cd.rip.err.adminRequired',
+  decalage_invalide: 'v2.cd.rip.err.badOffset',
   memoire_incomplete: 'v2.cd.save.err.notLoaded',
   memoire_secteurs_perdus: 'v2.cd.save.err.lostSectors',
   // Codes de l'`erreur` d'une extraction en échec.
