@@ -205,32 +205,32 @@
   .fq-fond{position:fixed; inset:0; z-index:900; background:var(--v2-scrim); display:grid; place-items:center; padding:20px}
   .fq-modale{display:flex; flex-direction:column; gap:10px; width:min(640px,100%); max-height:min(80vh,760px); padding:20px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); color:var(--v2-txt)}
-  .fq-modale h2{font-size:16px; font-weight:700}
-  .fq-sub{color:var(--v2-txt2); font-size:12.5px}
-  .fq-erreur{color:var(--v2-danger); font-size:12.5px}
-  .fq-detail{color:var(--v2-txt2); font-size:11.5px; overflow-wrap:anywhere}
+  .fq-modale h2{font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .fq-sub{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .fq-erreur{color:var(--v2-danger); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .fq-detail{color:var(--v2-txt2); font-size:calc(11.5px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
   .fq-lignes{display:flex; flex-direction:column; gap:2px; overflow:auto; min-height:0; flex:1}
   .fq-ligne{display:flex; align-items:flex-start; gap:10px; padding:7px 4px; border-bottom:1px solid var(--v2-line)}
   .fq-ligne.ecartee .fq-texte{opacity:.55}
   .fq-ligne input[type="checkbox"]{margin-top:3px}
   .fq-texte{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1}
-  .fq-capte{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .fq-station{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
-  .fq-trouve{font-size:12px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .fq-capte{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .fq-station{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .fq-trouve{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .fq-texte select{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:6px; color:var(--v2-txt);
-    font:inherit; font-size:12px; padding:3px 6px; max-width:100%}
-  .fq-badge{flex:none; font:600 10.5px var(--v2-mono); color:var(--v2-acc1); border:1px solid var(--v2-acc1);
+    font:inherit; font-size:calc(12px * var(--v2-txt-echelle, 1)); padding:3px 6px; max-width:100%}
+  .fq-badge{flex:none; font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); border:1px solid var(--v2-acc1);
     border-radius:var(--v2-r-pill); padding:2px 7px; white-space:nowrap}
   .fq-badge.manque{color:var(--v2-danger); border-color:var(--v2-danger)}
-  .fq-nom{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--v2-txt2)}
+  .fq-nom{display:flex; flex-direction:column; gap:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .fq-nom select{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
-    color:var(--v2-txt); font:inherit; font-size:13.5px; padding:8px 10px}
+    color:var(--v2-txt); font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:8px 10px}
   .fq-nom input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
-    color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 11px}
+    color:var(--v2-txt); font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:9px 11px}
   .fq-pied{display:flex; justify-content:flex-end; gap:8px}
   .fq-btn{display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
-    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); padding:7px 13px}
+    color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 13px}
   .fq-btn:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .fq-btn.accent{border-color:transparent; background:var(--v2-acc1); color:var(--v2-on-acc)}
   .fq-btn:disabled{opacity:.5; cursor:default}

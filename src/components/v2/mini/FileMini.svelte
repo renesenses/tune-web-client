@@ -226,9 +226,9 @@
   .file{display:flex; flex-direction:column; min-width:0; min-height:0; height:100%; overflow-x:hidden;
     font-family:var(--v2-sans); color:var(--v2-txt)}
   .tete{position:relative; flex:0 0 auto; min-width:0; display:flex; align-items:center; gap:4px; padding:2px 6px 6px 14px}
-  .tete h3{flex:1; min-width:0; margin:0; font-size:13px; font-weight:500; color:var(--v2-txt2);
+  .tete h3{flex:1; min-width:0; margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:500; color:var(--v2-txt2);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tete .nom{font-size:15px; font-weight:700; color:var(--v2-txt)}
+  .tete .nom{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; color:var(--v2-txt)}
   .rond{flex:0 0 auto; width:32px; height:32px; display:grid; place-items:center; border:0; border-radius:50%;
     background:none; color:var(--v2-txt2); cursor:pointer}
   .rond svg{width:16px; height:16px}
@@ -237,8 +237,8 @@
     border-radius:10px; background:var(--v2-active1); box-shadow:inset 3px 0 0 var(--v2-acc1)}
   .en-cours .t1{color:var(--v2-acc1)}
   .cv40{flex:0 0 40px; width:40px; height:40px}
-  .fmt{font:500 10px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .erreur, .vide{padding:12px 14px; font-size:12.5px; color:var(--v2-txt2)}
+  .fmt{font:500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .erreur, .vide{padding:12px 14px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .defile{flex:1; min-width:0; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain}
   .liste{list-style:none; margin:0; padding-left:0; padding-right:0; min-width:0; box-sizing:border-box}
   .ligne{position:relative; min-width:0; height:56px; display:flex; align-items:center; gap:2px; padding:0 4px 0 2px; box-sizing:border-box}
@@ -251,14 +251,14 @@
     padding:0; color:inherit; cursor:pointer; text-align:left}
   .cv{flex:0 0 38px; width:38px; height:38px; border-radius:4px; overflow:hidden}
   .tx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
-  .t1{font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .t2{font-size:11.5px; color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .du{flex:0 0 auto; font:500 11px var(--v2-mono); color:var(--v2-txt3); padding-left:4px}
+  .t1{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .t2{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .du{flex:0 0 auto; font:500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); padding-left:4px}
   .plus{flex:0 0 36px; height:44px; display:grid; place-items:center; border:0; background:none; color:var(--v2-txt2); cursor:pointer}
   .plus svg{width:16px; height:16px}
   .menu{position:absolute; right:8px; top:46px; z-index:3; min-width:170px; display:flex; flex-direction:column;
     padding:4px; border-radius:10px; background:var(--v2-surface); border:1px solid var(--v2-line2); box-shadow:var(--v2-sh-lg)}
   .menu button{border:0; background:none; text-align:left; padding:9px 12px; border-radius:6px;
-    color:var(--v2-txt); font:500 13px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt); font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .menu button:hover{background:var(--v2-hover)}
 </style>

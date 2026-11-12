@@ -66,11 +66,11 @@
     border-bottom: 1px solid var(--tune-border, rgba(255, 255, 255, 0.1));
   }
   .se-motif strong {
-    font-size: 15px;
+    font-size: calc(15px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
   .se-motif span {
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     opacity: 0.75;
   }
   /* `min-height: 0` : `.login-view` se dimensionne en `height: 100%` et défile

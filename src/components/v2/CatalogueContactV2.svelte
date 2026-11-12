@@ -657,26 +657,26 @@
 <style>
   .catalogue-contact{display:flex; flex-direction:column; gap:12px}
   .tete{display:flex; flex-direction:column; gap:4px; align-items:flex-start}
-  .titre-catalogue{font-size:17px; font-weight:700; margin:0; overflow-wrap:anywhere}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .titre-catalogue{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .vide{margin:0}
-  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .onglets{display:flex; gap:6px; flex-wrap:wrap}
   .onglet{height:30px; padding:0 14px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .onglet[aria-selected="true"]{background:var(--v2-acc-soft); color:var(--v2-txt); border-color:var(--v2-line)}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .champ{height:34px; padding:0 12px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt); font:13px var(--v2-sans); min-width:0; flex:1 1 220px}
-  .filtre-artiste{font-size:12.5px; color:var(--v2-txt2)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px; text-align:left}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0; flex:1 1 220px}
+  .filtre-artiste{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px; text-align:left}
   .onglet:focus-visible,.champ:focus-visible,.lnk:focus-visible,.album-contact:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   ul{list-style:none; margin:0; padding:0}
   .albums{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:14px}
   .album-contact{display:flex; flex-direction:column; gap:4px; width:100%; border:0; background:transparent; color:var(--v2-txt);
-    cursor:pointer; padding:0; text-align:left; font:13px var(--v2-sans); min-width:0}
+    cursor:pointer; padding:0; text-align:left; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
   .pochette{display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
   .album-nom{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .album-contact .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
@@ -686,41 +686,41 @@
   .album-tete{display:flex; gap:14px; align-items:center}
   .album-tete .pochette{width:96px; flex:none}
   .album-infos{min-width:0}
-  .album-titre{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .album-titre{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
   .plus{align-self:flex-start}
   .rayon-tete{display:flex; flex-direction:column; gap:2px; align-items:flex-start}
-  .titre-rayon{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .titre-rayon{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
   .rayons-contact{display:flex; flex-direction:column; gap:6px}
-  .titre-rayons{font-size:13px; font-weight:700; margin:0; color:var(--v2-txt2)}
+  .titre-rayons{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; color:var(--v2-txt2)}
   .liste-rayons{display:flex; gap:8px; flex-wrap:wrap}
   .rayon-contact{display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:220px; min-width:0; padding:8px 12px;
     border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface); color:var(--v2-txt);
-    font:600 12.5px var(--v2-sans); cursor:pointer; text-align:left}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; text-align:left}
   .rayon-contact:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .rayon-contact .nom-rayon{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .references{display:flex; flex-direction:column}
-  .reference{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px}
+  .reference{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .ref-texte{display:flex; flex-direction:column; min-width:0}
   .ref-titre{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
-  .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .service{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .lire-piste,.lire-album,.lire-equivalent{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
+    background:var(--v2-surface); color:var(--v2-txt); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .lire-album,.lire-equivalent-album{margin-top:6px}
   .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
   .lire-piste:focus-visible,.lire-album:focus-visible,.lire-equivalent:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .ecoute-fermee{margin:0; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font-size:12.5px}
+    color:var(--v2-txt); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .chercher-sources{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
+    background:var(--v2-surface); color:var(--v2-txt); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .chercher-album,.chercher-album-carte,.lire-equivalent-carte{margin-top:6px}
   .lire-equivalent-carte{margin-right:6px}
   .chercher-sources:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .sources-trouvees{display:flex; flex-direction:column; gap:6px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}
   .sources-tete{display:flex; justify-content:space-between; align-items:center; gap:10px}
-  .sources-titre{font-size:13px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .sources-titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
   .sources-liste{display:flex; flex-direction:column}
-  .source-resultat{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px}
+  .source-resultat{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 </style>

@@ -1081,12 +1081,12 @@ let reculS = $state(RECUL_DEFAUT_S);
 
 <style>
   .pays{background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); padding:8px 12px; cursor:pointer}
+    color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 12px; cursor:pointer}
   .sec-tete{display:flex; align-items:baseline; gap:10px}
-  .sec-pays{font:10px var(--v2-mono); color:var(--v2-txt3)}
+  .sec-pays{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .puces{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 14px}
   .puces button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    cursor:pointer; font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   .puces button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puces button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -1096,54 +1096,54 @@ let reculS = $state(RECUL_DEFAUT_S);
     scrollbar-width:thin}
   .rangee{position:relative; flex:0 0 176px}
   .rang{position:absolute; top:8px; left:8px; z-index:2; padding:2px 7px; border-radius:var(--v2-r-pill);
-    background:rgba(18,18,20,.82); color:#fff; font:700 11px var(--v2-mono)}
+    background:rgba(18,18,20,.82); color:#fff; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .suite{margin-top:4px}
   .sub:disabled{opacity:.35; cursor:default}
   /* Le second niveau se distingue du premier : plus discret, il se lit comme
      un affinage et non comme un choix concurrent. */
   .sections{display:flex; gap:2px; padding:0 0 10px; border-bottom:1px solid var(--v2-line); margin-bottom:16px}
   .sections button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 13px var(--v2-sans); padding:8px 14px 12px}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px 12px}
   .sections button:hover{color:var(--v2-txt)}
   .sections button.on{color:var(--v2-txt)}
   .sections button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px;
     border-radius:2px; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
   .puces.sous{margin-top:-6px}
-  .puces.sous button{font-size:11.5px; padding:5px 10px; border-style:dashed}
+  .puces.sous button{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); padding:5px 10px; border-style:dashed}
   .puces.sous button.on{border-style:solid}
   .err-inline{display:flex; align-items:center; gap:12px; color:var(--v2-danger)}
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}
+    border-radius:var(--v2-r-pill); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:5px 12px; cursor:pointer}
   .relancer:hover{color:var(--v2-txt)}
   .rech{display:flex; gap:8px; margin-bottom:16px}
   .rech input{flex:1; min-width:0; background:var(--v2-surface2); border:1px solid var(--v2-line2);
-    border-radius:10px; color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 12px}
+    border-radius:10px; color:var(--v2-txt); font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:9px 12px}
   .rech button{border:0; border-radius:10px; background:var(--v2-acc1); color:var(--v2-on-acc);
-    font:600 13px var(--v2-sans); padding:9px 16px; cursor:pointer}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:9px 16px; cursor:pointer}
   .rech button:disabled{opacity:.5; cursor:default}
   .ajout-rss{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans); padding:5px 12px; cursor:pointer}
+    border-radius:var(--v2-r-pill); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:5px 12px; cursor:pointer}
   .ajout-rss:hover, .ajout-rss.on{color:var(--v2-txt)}
   .ajout-rss-form{margin:0 30px 8px}
-  .ajout-rss-err{margin:0 30px 12px; font-size:13px}
+  .ajout-rss-err{margin:0 30px 12px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
 
   .v2-pod{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
   .tabs{display:flex; gap:4px}
   .tabs button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
   .tabs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; color:var(--v2-txt); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
   .sec{padding:6px 30px 20px}
-  .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
+  .sec h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px; padding:0 30px}
   .pc{position:relative; display:flex; flex-direction:column}
   .sec .grid{padding:0}
@@ -1151,8 +1151,8 @@ let reculS = $state(RECUL_DEFAUT_S);
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .pc:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .au{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .au{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .sub{position:absolute; top:8px; right:8px; z-index:2; width:30px; height:30px; border-radius:50%; cursor:pointer;
     border:0; background:rgba(0,0,0,.5); color:#fff; display:grid; place-items:center; opacity:0; transition:.16s}
   .pc:hover .sub, .sub.on{opacity:1}
@@ -1167,11 +1167,11 @@ let reculS = $state(RECUL_DEFAUT_S);
   .dhead{display:flex; gap:28px; padding:4px 0 24px}
   .dart{width:180px; height:180px; flex:0 0 auto; border-radius:8px; overflow:hidden; box-shadow:var(--v2-sh-lg)}
   .dmeta{display:flex; flex-direction:column; gap:10px; padding-top:6px; min-width:0}
-  .dmeta h1{font-size:30px; font-weight:800; line-height:1.1}
-  .dau{font-size:15px; color:var(--v2-txt2)}
+  .dmeta h1{font-size:calc(30px * var(--v2-txt-echelle, 1)); font-weight:800; line-height:1.1}
+  .dau{font-size:calc(15px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .dact{margin-top:6px}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:9px 18px; font:600 13px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:9px 18px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 
   .eps{display:flex; flex-direction:column; gap:1px}
@@ -1182,9 +1182,9 @@ let reculS = $state(RECUL_DEFAUT_S);
   .prog{display:flex; align-items:center; gap:10px; margin-top:4px}
   .pbar{flex:0 0 90px; height:3px; border-radius:2px; background:var(--v2-hover); overflow:hidden}
   .pbar i{display:block; height:100%; background:var(--v2-acc1)}
-  .prog small{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .prog small{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .depuis{flex:none; border:1px solid var(--v2-acc2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    padding:6px 12px; border-radius:var(--v2-r-pill); font:12px var(--v2-sans)}
+    padding:6px 12px; border-radius:var(--v2-r-pill); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .depuis:hover{color:var(--v2-acc1)}
   .ep:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ep.live{color:var(--v2-acc1)}
@@ -1192,18 +1192,18 @@ let reculS = $state(RECUL_DEFAUT_S);
     border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .ep:hover .ei{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .ei svg{width:11px; height:11px; margin-left:1px}
-  .et{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:3px;
+  .et{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:3px;
     overflow:hidden; text-overflow:ellipsis}
-  .et em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
-  .ed{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .et em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
+  .ed{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .rf-stations,.rf-recherche{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px}
   .rf-stations button,.rf-recherche button{padding:5px 11px; border-radius:999px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+    background:transparent; color:var(--v2-txt2); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .rf-stations button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
   .rf-recherche input{flex:1; min-width:180px; height:30px; padding:0 10px; border-radius:8px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .rf-emissions{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; margin-bottom:18px}
   .rf-emissions button{display:flex; flex-direction:column; gap:2px; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-line);
-    background:var(--v2-surface2); color:var(--v2-txt); text-align:left; cursor:pointer; font-size:13px}
-  .rf-emissions span{font-size:11px; color:var(--v2-txt3)}
+    background:var(--v2-surface2); color:var(--v2-txt); text-align:left; cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .rf-emissions span{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 </style>

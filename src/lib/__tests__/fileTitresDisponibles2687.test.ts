@@ -18,6 +18,7 @@ import { locale } from '../i18n';
 import lFrBrut from '../locales/fr';
 import { lireListeDepuis, pistesJouables, planDeLecture } from '../lectureEnMasse';
 import { corpsDeFileListe } from '../pisteFile';
+import { entreeDuMenu, MENU_LECTURE } from './aides/menuFiche';
 import type { Album, Track } from '../types';
 
 vi.mock('../api', async (orig) => ({
@@ -119,8 +120,9 @@ describe('web#2687 — la vraie fiche d’un album Qobuz mixte', () => {
 
   it('🔴 « Aléatoire » : la file mélangée ne contient aucun titre grisé', async () => {
     const el = await ouvrir(MIXTE);
-    const alea = [...el.querySelectorAll<HTMLButtonElement>('button.ghost')]
-      .find((b) => b.title === lFr['v2.album.shuffleTip']);
+    // rc12 : « Lecture aléatoire » est sous la flèche du bouton Lecture.
+    const alea = entreeDuMenu(el, '[data-aleatoire-album]', MENU_LECTURE);
+    expect(alea?.title).toBe(lFr['v2.album.shuffleTip']);
     expect(alea, 'bouton « Aléatoire » introuvable').toBeTruthy();
     alea!.click();
     for (let i = 0; i < 6; i++) await respirer();

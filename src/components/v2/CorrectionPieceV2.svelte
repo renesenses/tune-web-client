@@ -591,11 +591,11 @@
   .v2-room{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; max-width:860px}
-  .badge{font:600 10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; vertical-align:middle;
+  .badge{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; vertical-align:middle;
     padding:3px 8px; border-radius:var(--v2-r-pill); color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .state{padding:16px 0; color:var(--v2-txt3)}
-  .err,.warn,.ok{padding:11px 14px; border-radius:10px; font-size:12.5px; line-height:1.5; margin-bottom:14px;
+  .err,.warn,.ok{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:14px;
     display:flex; flex-direction:column; gap:4px}
   .err{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .warn{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
@@ -605,32 +605,32 @@
 
   .onglets{display:flex; gap:6px; margin:4px 0 14px}
   .onglets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12.5px var(--v2-sans); padding:8px 16px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 16px; border-radius:var(--v2-r-pill)}
   .onglets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:14px 20px 18px;
     margin:0; min-width:0; display:flex; flex-direction:column; gap:10px}
   .card.voile{opacity:.45; pointer-events:none; user-select:none}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:62ch; margin:0}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:62ch; margin:0}
   .hint.faux{color:var(--v2-danger)}
-  .intro{font-size:12.5px; color:var(--v2-txt2)}
+  .intro{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .dims,.surfaces{display:flex; flex-wrap:wrap; gap:12px 18px}
-  .dim,.surf{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--v2-txt2)}
+  .dim,.surf{display:flex; flex-direction:column; gap:5px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .dim{flex-direction:row; align-items:center; gap:8px}
   .dim input{width:78px}
   input[type=number],select{background:var(--v2-bg); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:8px; padding:6px 8px; font:12.5px var(--v2-sans)}
+    border-radius:8px; padding:6px 8px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   input.faux{border-color:var(--v2-danger)}
-  .unite{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .unite{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-  .resume{font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .modes{border-collapse:collapse; font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .modes th{font:10px var(--v2-mono); text-transform:uppercase; letter-spacing:.06em; color:var(--v2-txt3); text-align:left; padding:4px 16px 4px 0}
+  .resume{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .modes{border-collapse:collapse; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .modes th{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.06em; color:var(--v2-txt3); text-align:left; padding:4px 16px 4px 0}
   .modes td{padding:4px 16px 4px 0; border-top:1px solid var(--v2-line)}
   .modes tr.fort td{color:var(--v2-txt)}
-  .avert{margin:0; padding-left:18px; font-size:11.5px; line-height:1.5; color:var(--v2-txt3)}
-  .avancement{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12.5px}
+  .avert{margin:0; padding-left:18px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
+  .avancement{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .avancement progress{width:220px; accent-color:var(--v2-acc1)}
-  .val{font:12px var(--v2-mono); color:var(--v2-txt2)}
+  .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   @media (max-width: 640px){ .scroll{padding:6px 16px 40px} }
 </style>

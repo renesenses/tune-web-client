@@ -121,25 +121,25 @@
 
 <style>
   .bloc{display:flex; flex-direction:column; gap:8px}
-  .bloc h2{font-size:15px; font-weight:700; margin:0}
+  .bloc h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
   .notifs-tete{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .notifs-compte{font:600 12px var(--v2-sans); color:var(--v2-acc1)}
+  .notifs-compte{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1)}
   .notifs-liste{list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:2px}
   .notif-ligne{display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%; text-align:left;
-    border:0; background:transparent; color:var(--v2-txt2); font:400 13px var(--v2-sans); padding:6px 8px; border-radius:6px; cursor:pointer}
+    border:0; background:transparent; color:var(--v2-txt2); font:400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 8px; border-radius:6px; cursor:pointer}
   .notif-ligne:hover{background:var(--v2-line)}
   .notif.non-lue .notif-ligne{color:var(--v2-txt); font-weight:600}
   .notif.non-lue .notif-texte::before{content:''; display:inline-block; width:7px; height:7px; border-radius:50%;
     background:var(--v2-acc1); margin-right:8px; vertical-align:middle}
   .notif-texte{min-width:0; overflow-wrap:anywhere}
   .notif-date{flex:none}
-  .note{font:400 12px var(--v2-sans); color:var(--v2-txt3); margin:4px 0}
+  .note{font:400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); margin:4px 0}
   .alerte{color:var(--v2-danger)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc2); font:600 12px var(--v2-sans); cursor:pointer; padding:2px 0}
+  .lnk{border:0; background:transparent; color:var(--v2-acc2); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; padding:2px 0}
   .lnk:disabled,.notif-ligne:disabled{opacity:.5; cursor:not-allowed}
   .notifs-reglages{display:flex; flex-direction:column; gap:8px; margin-top:8px}
   .interrupteur{display:inline-flex; align-items:center; gap:10px; border:0; background:transparent; color:var(--v2-txt);
-    font:600 13px var(--v2-sans); cursor:pointer; padding:2px 0; align-self:flex-start}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; padding:2px 0; align-self:flex-start}
   .interrupteur:disabled{opacity:.35; cursor:not-allowed}
   .piste-interrupteur{position:relative; width:34px; height:20px; border-radius:10px; background:var(--v2-line2); flex:none; transition:background .15s}
   .bouton-interrupteur{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--v2-surface); transition:left .15s}

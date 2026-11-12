@@ -123,13 +123,13 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 14px var(--v2-sans); }
+  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .liste { list-style: none; margin: 0; padding: 0 30px; display: flex; flex-direction: column; gap: 3px; }
   .liste li { display: flex; align-items: center; gap: 8px; min-width: 0; border-radius: 10px; }
   .liste li:hover { background: var(--v2-hover); }
   .rang {
-    flex: 0 0 22px; text-align: right; font: 500 12px var(--v2-sans);
+    flex: 0 0 22px; text-align: right; font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color: var(--v2-txt3); font-variant-numeric: tabular-nums;
   }
   .corps {
@@ -142,7 +142,7 @@
   .vign { flex: 0 0 36px; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; }
   .txt { min-width: 0; display: flex; flex-direction: column; }
   .t {
-    font: 500 14px var(--v2-sans); color: var(--v2-txt);
+    font: 500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   /* web#2770 — le ▶ d'une ligne qui OUVRE : la lecture ne se perd pas. */
@@ -154,7 +154,7 @@
   .lire:hover { color: var(--v2-acc1); background: var(--v2-surface2); }
   .art {
     flex: 0 0 auto; max-width: 38%; padding: 0 8px 0 0; border: 0; background: none;
-    font: 400 12px var(--v2-sans); color: var(--v2-txt2); cursor: pointer;
+    font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); cursor: pointer;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
   }
   .art:hover { color: var(--v2-acc1); }

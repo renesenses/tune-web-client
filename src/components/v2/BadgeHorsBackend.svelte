@@ -28,8 +28,8 @@
 
 <style>
   /* Même pastille que `.rc.warn` de ZonesV2 (#1006), dont le style est scopé. */
-  .hb{font:10px var(--v2-mono); padding:2px 8px; border-radius:999px;
+  .hb{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:2px 8px; border-radius:999px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); white-space:nowrap}
   .hb.pilote{color:var(--v2-txt2); border-color:var(--v2-line2)}
-  .hbnote{font-size:11px; font-family:var(--v2-sans); color:var(--v2-txt2); flex-basis:100%}
+  .hbnote{font-size:calc(11px * var(--v2-txt-echelle, 1)); font-family:var(--v2-sans); color:var(--v2-txt2); flex-basis:100%}
 </style>

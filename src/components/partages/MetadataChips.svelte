@@ -78,7 +78,7 @@
     align-items: center;
     gap: 3px;
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     white-space: nowrap;
     overflow: hidden;

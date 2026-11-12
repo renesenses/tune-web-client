@@ -292,8 +292,8 @@
 <style>
   .carte-pays{margin:8px 0 14px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
   header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h3{margin:0 0 4px;font-size:14px}
-  .agrandir{border:1px solid var(--v2-line2);background:none;color:var(--v2-txt2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+  header h3{margin:0 0 4px;font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .agrandir{border:1px solid var(--v2-line2);background:none;color:var(--v2-txt2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:calc(14px * var(--v2-txt-echelle, 1));line-height:1}
   .agrandir:hover{background:var(--v2-hover)}
   .agrandir:focus-visible{outline:2px solid var(--v2-focus);outline-offset:2px}
   /* #2710 — compacte : une vignette en haut à gauche, jamais plus large que
@@ -307,28 +307,28 @@
   .compacte .liste h4{display:none}
   .compacte .liste ul{max-height:200px}
   .sources{display:inline-flex;gap:2px;margin:2px 0 6px;padding:2px;border:1px solid var(--v2-line2);border-radius:6px}
-  .sources button{border:0;border-radius:4px;background:none;color:var(--v2-txt2);font:inherit;font-size:12px;padding:3px 8px;cursor:pointer}
+  .sources button{border:0;border-radius:4px;background:none;color:var(--v2-txt2);font:inherit;font-size:calc(12px * var(--v2-txt-echelle, 1));padding:3px 8px;cursor:pointer}
   .sources button:hover{background:var(--v2-hover)}
   .sources button.on{background:var(--v2-acc-tint);color:var(--v2-acc2)}
   .sources button:focus-visible{outline:2px solid var(--v2-focus);outline-offset:2px}
-  .note{margin:4px 0;font-size:12px;color:var(--v2-txt2)}
-  .etat{margin:10px 0;font-size:13px;color:var(--v2-txt2)}
+  .note{margin:4px 0;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
+  .etat{margin:10px 0;font-size:calc(13px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
   .corps{display:flex;gap:16px;align-items:flex-start}
   .globe{flex:1 1 320px;min-width:0;max-width:420px;display:flex;flex-direction:column;align-items:center}
   canvas{display:block;cursor:grab;touch-action:none;border-radius:50%}
   canvas:active{cursor:grabbing}
   canvas:focus-visible,.liste button:focus-visible{outline:2px solid var(--v2-focus);outline-offset:3px}
-  .survol{min-height:1.4em;margin:6px 0 2px;font-size:12px;color:var(--v2-txt2);text-align:center}
-  .legende{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--v2-txt3)}
+  .survol{min-height:1.4em;margin:6px 0 2px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);text-align:center}
+  .legende{display:flex;align-items:center;gap:4px;font-size:calc(11px * var(--v2-txt-echelle, 1));color:var(--v2-txt3)}
   .teinte{display:inline-block;width:14px;height:10px;border-radius:2px;background:var(--v2-acc2);flex:none}
   .liste{flex:1 1 220px;min-width:0}
-  .liste h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--v2-txt2)}
+  .liste h4{margin:0 0 6px;font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt2)}
   .liste ul{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto}
-  .liste button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+  .liste button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;font-size:calc(13px * var(--v2-txt-echelle, 1));text-align:left;cursor:pointer}
   .liste button:hover{background:var(--v2-hover)}
   .liste button.on{background:var(--v2-acc-tint);color:var(--v2-acc2)}
   .liste .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .liste em{font-style:normal;font-size:12px;color:var(--v2-txt3)}
+  .liste em{font-style:normal;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt3)}
   /* Téléphone : le globe au-dessus, la liste dessous, toute la largeur. */
   @media (max-width: 640px){
     .corps{flex-direction:column;align-items:stretch}
