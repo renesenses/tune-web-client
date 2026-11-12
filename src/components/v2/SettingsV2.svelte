@@ -25,7 +25,7 @@
    */
   import { t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
-  import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
+  import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { diagnosticDsd } from '../../lib/transportDsd';
@@ -4110,12 +4110,54 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .then((r) => { air = r; })
       .catch(() => { air = null; });
   });
-  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number }) {
+  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
     airBusy = true; airErr = null;
     try {
       air = await api.setDevialetAirReglages(corps);
-    } catch (e: any) { airErr = e?.message ?? get(t)('settings.errActionFailed'); }
-    airBusy = false;
+      return true;
+    } catch (e: any) {
+      // tune-server-rust#7205 — les deux refus de la course, dans la langue de l'écran.
+      const code = e?.code ?? (e?.corps as { error?: unknown } | undefined)?.error;
+      airErr = code === 'volume_range_invalid' ? texteCourseAir('v2.set.devialetAirRangeInvalid')
+        : code === 'volume_range_below_limit' ? get(t)('v2.set.devialetAirRangeBelowLimit' as any)
+        : e?.message ?? get(t)('settings.errActionFailed');
+      return false;
+    } finally {
+      airBusy = false;
+    }
+  }
+  /**
+   * tune-server-rust#7205 (discussion #7458, rc12) — la course du curseur de
+   * volume Devialet en dB d'ampli : bas et haut entre le plancher et le
+   * plafond (−80 et −10 dB), plafond infranchissable. Un serveur qui ne
+   * publie pas `volume_min_db` / `volume_max_db` n'a pas ces champs.
+   */
+  let airBas = $state('');
+  let airHaut = $state('');
+  let airCourseLue = $state<string | null>(null);
+  $effect(() => {
+    const cle = air && typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'
+      ? `${air.volume_min_db}|${air.volume_max_db}` : null;
+    if (cle === airCourseLue) return;
+    airCourseLue = cle;
+    if (cle && air) { airBas = texteLimiteDb(air.volume_min_db); airHaut = texteLimiteDb(air.volume_max_db); }
+  });
+  const airPlancher = $derived(air?.volume_floor_db ?? -80);
+  function texteCourseAir(cle: string): string {
+    return get(t)(cle as any)
+      .replaceAll('{floor}', String(airPlancher))
+      .replaceAll('{ceiling}', String(air?.volume_ceiling_db ?? -10))
+      .replaceAll('{gap}', String(ECART_MINIMAL_COURSE_DB));
+  }
+  const airCourseSaisie = $derived(air ? saisieCourse(airBas, airHaut, airPlancher, air.volume_ceiling_db) : null);
+  const airCourseChangee = $derived(!!airCourseSaisie && !('refus' in airCourseSaisie)
+    && (airCourseSaisie.min !== air?.volume_min_db || airCourseSaisie.max !== air?.volume_max_db));
+  async function enregistrerCourseAir() {
+    const c = airCourseSaisie;
+    if (!c || 'refus' in c) { airErr = texteCourseAir('v2.set.devialetAirRangeInvalid'); return; }
+    if (await reglerDevialetAir({ volume_min_db: c.min, volume_max_db: c.max })) {
+      notifications.success(get(t)('common.saved' as any));
+    }
   }
 
   // ── Base de donnees / exports ─────────────────────────────────────────
@@ -6345,8 +6387,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </select>
                 </div>
+                {#if typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'}
+                  <div class="row" data-reglage="devialet-air-course">
+                    <div class="lbl">
+                      <span>{$t('v2.set.devialetAirRange' as any)}</span>
+                      <span class="hint">{texteCourseAir('v2.set.devialetAirRangeHint')}</span>
+                    </div>
+                    <div class="course-air">
+                      <label>{$t('v2.set.devialetAirRangeMin' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-bas bind:value={airBas} disabled={airBusy} />
+                      </label>
+                      <label>{$t('v2.set.devialetAirRangeMax' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-haut bind:value={airHaut} disabled={airBusy} />
+                      </label>
+                      <button class="v2-btn sm" data-course-enregistrer disabled={airBusy || !airCourseChangee}
+                        onclick={enregistrerCourseAir}>{$t('common.save' as any)}</button>
+                    </div>
+                  </div>
+                  {#if airCourseSaisie && 'refus' in airCourseSaisie}
+                    <div class="errline" data-course-refus>{texteCourseAir('v2.set.devialetAirRangeInvalid')}</div>
+                  {/if}
+                {/if}
                 <p class="hint">{$t('v2.set.devialetAirLimits' as any).replace('{db}', String(air.volume_ceiling_db)).replace('{khz}', String(air.max_sample_rate / 1000))}</p>
-                {#if airErr}<div class="errline">{airErr}</div>{/if}
+                {#if airErr}<div class="errline" data-air-erreur>{airErr}</div>{/if}
               {/if}
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
@@ -9040,6 +9103,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .danger-box p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
   .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600}
   .rng{flex:0 0 auto; width:200px; accent-color:var(--v2-acc1)}
+  .course-air{display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 12px}
+  .course-air label{display:flex; flex-direction:column; gap:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .course-air .txt{width:84px}
   .sel{flex:0 0 auto; height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
     background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}

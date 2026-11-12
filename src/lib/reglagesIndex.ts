@@ -202,6 +202,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'sauvegarde-reglages-appareils', section: 'sauvegardeReglages', labelKey: 'v2.dev.backupTitle', descKey: 'v2.dev.backupIntro', techniques: ['backup', 'JSON'] },
   { id: 'devialet-air', section: 'devialetAir', labelKey: 'v2.set.devialetAirEnable', descKey: 'v2.set.devialetAirDiscoveryHint', techniques: ['Devialet', 'AIR', 'D200', 'D400'] },
   { id: 'devialet-air-source', section: 'devialetAir', labelKey: 'v2.set.devialetAirSource', techniques: ['Devialet'] },
+  { id: 'devialet-air-course', section: 'devialetAir', labelKey: 'v2.set.devialetAirRange', techniques: ['Devialet', 'dB'] },
 
   // ── Affichage ────────────────────────────────────────────────────────
   { id: 'colonnes-pistes', section: 'displayPrefs', labelKey: 'settings.trackColumns', descKey: 'settings.trackColumnsHint' },

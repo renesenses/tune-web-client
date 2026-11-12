@@ -6347,6 +6347,11 @@ export interface DevialetAirReglages {
   source_index_max: number;
   volume_ceiling_db: number;
   max_sample_rate: number;
+  /** #6918 — la course du curseur en dB (bas, haut) et son plancher ; absents
+   *  d'un serveur antérieur : l'écran ne propose pas de les régler. */
+  volume_floor_db?: number;
+  volume_min_db?: number;
+  volume_max_db?: number;
 }
 
 export function getDevialetAirReglages() {
@@ -6354,7 +6359,7 @@ export function getDevialetAirReglages() {
 }
 
 /** Chaque champ est facultatif : seul ce qui est passé change. */
-export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
   return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
     method: 'POST',
     body: JSON.stringify(corps),
