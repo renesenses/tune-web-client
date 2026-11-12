@@ -11269,6 +11269,27 @@ export function defaireCoffretManuel(id: number) {
   );
 }
 /**
+ * tune-server-rust#8571 (fil 2763) — les albums d'un coffret composé à la
+ * main, dans l'ordre de ses disques. 409 `pas_un_coffret_manuel` ou
+ * `ordre_indisponible` (coffret qui ne retient plus l'album de chaque
+ * disque). N'existe que si la fiche d'édition annonce `ordre_coffret`.
+ */
+export function getOrdreCoffret(id: number) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`);
+}
+/**
+ * tune-server-rust#8571 — RÉORDONNE les albums d'un coffret composé à la
+ * main : `membres` cite chaque `membre` de `getOrdreCoffret` une fois, dans
+ * l'ordre voulu. Les disques sont renumérotés à la suite. Rend le nouvel
+ * ordre ; 422 `ordre_invalide` sur une liste incomplète.
+ */
+export function reordonnerCoffret(id: number, membres: number[]) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`, {
+    method: 'PUT',
+    body: JSON.stringify({ membres }),
+  });
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier
