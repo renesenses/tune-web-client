@@ -78,6 +78,8 @@
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  // tune-server-rust#8261 — les « ignorés » du dernier scan, motif par motif.
+  import { decompteIgnores } from '../../lib/rapportEcartes';
   import { CLE_DEDOUBLONNAGE_PAR_RACINE, dedoublonnageParRacineDepuisConfig } from '../../lib/dedoublonnageParRacine';
   import {
     CLE_IMPORT_PLAYLISTS_SCAN,
@@ -6821,6 +6823,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     .replace('{a}', $formatNombre(scanReport.inserted ?? 0))
                     .replace('{m}', $formatNombre(scanReport.updated ?? 0))
                     .replace('{i}', $formatNombre(scanReport.skipped ?? 0))}
+                  {#if decompteIgnores(scanReport).length}
+                    <!-- tune-server-rust#8261 — « 63 ignorés : lesquels, et pourquoi ? » Les inchangés n'ont pas de liste : leur nombre comble l'écart. -->
+                    <span class="hint decompte" data-decompte-ignores>{$t('v2.scan.skippedBreakdown' as any).replace('{d}', decompteIgnores(scanReport).map((d) => `${$t(d.titre as any)} (${$formatNombre(d.nombre)})`).join(' · '))}</span>
+                  {/if}
                   {#if scanReport.failed_paths?.length}
                     <b>{$t('v2.set.scanFailedPaths' as any).replace('{n}', String(scanReport.failed_paths.length))}</b>
                   {/if}
@@ -8844,6 +8850,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .okbox .decompte{display:block; margin-top:4px}
 
   /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
      centaines d'entrées : elle défile chez elle, sans pousser le reste de

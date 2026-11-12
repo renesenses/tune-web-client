@@ -3280,6 +3280,8 @@ export default {
   "v2.scan.skipNoMeta": "読み取れるメタデータなし",
   "v2.scan.skipUnsupported": "非対応の形式",
   "v2.scan.skipDuplicate": "重複",
+  "v2.scan.skipUnchanged": "前回のスキャンから変更なし・一覧なし",
+  "v2.scan.skippedBreakdown": "スキップ — {d}",
   "settings.addFolder": "フォルダを追加",
   "folderBrowser.drives": "ドライブ",
   "folderBrowser.loading": "読み込み中…",

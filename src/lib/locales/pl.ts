@@ -1950,6 +1950,8 @@ export default {
   "v2.scan.skipNoMeta": "Brak czytelnych metadanych",
   "v2.scan.skipUnsupported": "Nieobsługiwany format",
   "v2.scan.skipDuplicate": "Duplikaty",
+  "v2.scan.skipUnchanged": "Bez zmian od poprzedniego skanowania, bez listy",
+  "v2.scan.skippedBreakdown": "Pominięte — {d}",
   "settings.addFolder": "Dodaj folder",
   "folderBrowser.drives": "Dyski",
   "folderBrowser.loading": "Ładowanie…",

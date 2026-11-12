@@ -3280,6 +3280,8 @@ export default {
   "v2.scan.skipNoMeta": "읽을 수 있는 메타데이터 없음",
   "v2.scan.skipUnsupported": "지원하지 않는 형식",
   "v2.scan.skipDuplicate": "중복",
+  "v2.scan.skipUnchanged": "이전 스캔 이후 변경 없음, 목록 없음",
+  "v2.scan.skippedBreakdown": "건너뜀 — {d}",
   "settings.addFolder": "폴더 추가",
   "folderBrowser.drives": "드라이브",
   "folderBrowser.loading": "불러오는 중…",

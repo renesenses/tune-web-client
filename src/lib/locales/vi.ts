@@ -1952,6 +1952,8 @@ export default {
   "v2.scan.skipNoMeta": "Không có siêu dữ liệu đọc được",
   "v2.scan.skipUnsupported": "Định dạng không được hỗ trợ",
   "v2.scan.skipDuplicate": "Bản trùng lặp",
+  "v2.scan.skipUnchanged": "Không đổi từ lần quét trước, không liệt kê",
+  "v2.scan.skippedBreakdown": "Bỏ qua — {d}",
   "settings.addFolder": "Thêm thư mục",
   "folderBrowser.drives": "Ổ đĩa",
   "folderBrowser.loading": "Đang tải…",

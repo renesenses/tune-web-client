@@ -3280,6 +3280,8 @@ export default {
   "v2.scan.skipNoMeta": "Fără metadate lizibile",
   "v2.scan.skipUnsupported": "Format neacceptat",
   "v2.scan.skipDuplicate": "Duplicate",
+  "v2.scan.skipUnchanged": "Neschimbate de la scanarea anterioară, nelistate",
+  "v2.scan.skippedBreakdown": "Ignorate — {d}",
   "settings.addFolder": "Adaugă un dosar",
   "folderBrowser.drives": "Unități",
   "folderBrowser.loading": "Se încarcă…",

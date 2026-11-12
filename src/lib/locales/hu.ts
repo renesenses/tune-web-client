@@ -3234,6 +3234,8 @@ export default {
   "v2.scan.skipNoMeta": "Nincs olvasható metaadat",
   "v2.scan.skipUnsupported": "Nem támogatott formátum",
   "v2.scan.skipDuplicate": "Duplikátumok",
+  "v2.scan.skipUnchanged": "Az előző vizsgálat óta változatlan, nincs listázva",
+  "v2.scan.skippedBreakdown": "Kihagyva — {d}",
   "settings.addFolder": "Mappa hozzáadása",
   "folderBrowser.drives": "Meghajtók",
   "folderBrowser.loading": "Betöltés…",

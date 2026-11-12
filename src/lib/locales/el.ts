@@ -1950,6 +1950,8 @@ export default {
   "v2.scan.skipNoMeta": "Χωρίς αναγνώσιμα μεταδεδομένα",
   "v2.scan.skipUnsupported": "Μη υποστηριζόμενη μορφή",
   "v2.scan.skipDuplicate": "Διπλότυπα",
+  "v2.scan.skipUnchanged": "Αμετάβλητα από την προηγούμενη σάρωση, δεν παρατίθενται",
+  "v2.scan.skippedBreakdown": "Παραλείφθηκαν — {d}",
   "settings.addFolder": "Προσθήκη φακέλου",
   "folderBrowser.drives": "Μονάδες δίσκου",
   "folderBrowser.loading": "Φόρτωση…",
