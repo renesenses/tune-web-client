@@ -32,6 +32,7 @@ import { t } from '../i18n';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import {
   SUIVI, SURFACES, zoneCorrectionPiece, entreeSimulation, placementType, presenceCalibration, coteHorsBornes,
+  positionHorsPiece, positionDuMode, demandeCorrection, expertBorne, ENCEINTES_MAX,
   PIECE_DEFAUT, SURFACES_DEFAUT,
 } from '../correctionPiece';
 import CorrectionPieceV2 from '../../components/v2/CorrectionPieceV2.svelte';
@@ -61,10 +62,16 @@ const SIMULATION = {
   rt60_sabine_s: 0.48,
   f_schroeder_hz: 196,
   modes: [
-    { frequence_hz: 34.3, type: 'axial', indices: [1, 0, 0], q: 9.1, t60_s: 0.92, couplage: -0.81 },
+    // `couplage` = Σ ψ(enceinte)·ψ(auditeur), de −N à +N pour N enceintes
+    // (tune-server-rust#8332) : deux enceintes ici.
+    { frequence_hz: 34.3, type: 'axial', indices: [1, 0, 0], q: 9.1, t60_s: 0.92, couplage: -1.62 },
     { frequence_hz: 42.875, type: 'axial', indices: [0, 1, 0], q: 8.2, t60_s: 0.88, couplage: 0.05 },
     { frequence_hz: 54.9, type: 'tangentiel', indices: [1, 1, 0], q: 11.3, t60_s: 0.71, couplage: 0.62 },
   ],
+  bornes_correction: {
+    prudentes: { bandes_defaut: 3, coupe_defaut_db: 4.0, bandes_max: 4, coupe_max_db: 6.0 },
+    expert: { bandes_defaut: 3, coupe_defaut_db: 4.0, bandes_max: 10, coupe_max_db: 12.0 },
+  },
   reponse: { freqs_hz: FREQS, db: FREQS.map((f) => (Math.abs(f - 42) < 6 ? 8 : 0)) },
   avertissements: ['estimation sans micro : pièce rectangulaire, murs idéalisés et enceintes ponctuelles ; à confirmer par une mesure au micro'],
 };
@@ -95,6 +102,8 @@ interface Hote {
   microphones: { status: number; corps: unknown };
   etats: string[];
   mesures: unknown[];
+  /** web#2803 : un refus de `/simulations/{id}/correction` (422 correction_refusee). */
+  refusCorrection: { status: number; corps: unknown } | null;
 }
 let hote: Hote;
 let appels: Appel[];
@@ -117,6 +126,7 @@ function simulerHote() {
     if (u.endsWith('/api/v1/plugins')) return reponse(200, hote.plugins);
     if (u.endsWith(`${EXT}/simulations`) && method === 'POST') return reponse(hote.simulation.status, hote.simulation.corps);
     const sc = /\/(simulations|mesures)\/([^/]+)\/correction$/.exec(u);
+    if (sc && method === 'POST' && hote.refusCorrection) return reponse(hote.refusCorrection.status, hote.refusCorrection.corps);
     if (sc && method === 'POST') return reponse(200, proposition(decodeURIComponent(sc[2])));
     const sp = /\/(simulations|mesures)\/([^/]+)\/correction\/profil$/.exec(u);
     if (sp && method === 'POST') {
@@ -171,6 +181,7 @@ beforeEach(() => {
     },
     etats: ['balayage', 'analyse', 'terminee'],
     mesures: [],
+    refusCorrection: null,
   };
   SUIVI.intervalleMs = 5;
   simulerHote();
@@ -538,5 +549,168 @@ describe('web#2706 — textes', () => {
       const d = dictionnaire(l);
       for (const k of cles) expect(d[k], `${l} : ${k}`).toBeTruthy();
     }
+  });
+});
+
+// ─── web#2803 — positions, mode expert, nœud / ventre (serveur #8332, #8410) ──
+
+describe('web#2803 — positions saisies', () => {
+  it('🔴 les positions saisies partent dans POST /simulations, à la place de la disposition type', async () => {
+    await monter();
+    saisir('[data-position="auditeur"] input[data-axe="x"]', '3.1');
+    saisir('[data-position="auditeur"] input[data-axe="y"]', '2');
+    saisir('[data-position="enceinte-1"] input[data-axe="y"]', '3');
+    (q('[data-room="ajouter-enceinte"]') as HTMLButtonElement).click();
+    flushSync();
+    expect(cible!.querySelectorAll('[data-position^="enceinte-"]')).toHaveLength(3);
+    (q('[data-room="simuler"]') as HTMLButtonElement).click();
+    await jusqua(() => appelsA(`${EXT}/simulations`).length > 0);
+    const [sim] = appelsA(`${EXT}/simulations`);
+    const type = placementType(PIECE_DEFAUT);
+    expect(sim.corps.auditeur).toEqual({ x: 3.1, y: 2, z: type.auditeur.z });
+    expect(sim.corps.enceintes).toHaveLength(3);
+    expect(sim.corps.enceintes[0]).toEqual(type.enceintes[0]);
+    expect(sim.corps.enceintes[1]).toEqual({ ...type.enceintes[1], y: 3 });
+  });
+
+  it('sans saisie, les positions suivent les dimensions ; « Rétablir » y revient', async () => {
+    await monter();
+    saisir('input[data-dim="longueur_m"]', '8');
+    const xAuditeur = () => Number((q('[data-position="auditeur"] input[data-axe="x"]') as HTMLInputElement).value);
+    expect(xAuditeur()).toBe(placementType({ ...PIECE_DEFAUT, longueur_m: 8 }).auditeur.x);
+    expect(q('[data-room="placement-type"]')).toBeNull();
+    saisir('[data-position="auditeur"] input[data-axe="x"]', '2');
+    expect(q('[data-room="placement-type"]')).not.toBeNull();
+    (q('[data-room="placement-type"]') as HTMLButtonElement).click();
+    flushSync();
+    expect(xAuditeur()).toBe(placementType({ ...PIECE_DEFAUT, longueur_m: 8 }).auditeur.x);
+  });
+
+  it('🔴 une position hors de la pièce est signalée et n’envoie rien', async () => {
+    await monter();
+    saisir('[data-position="enceinte-0"] input[data-axe="y"]', '4.5'); // largeur 4 m
+    expect(q('[data-room="position-hors"]')).not.toBeNull();
+    expect((q('[data-room="simuler"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(positionHorsPiece({ auditeur: { x: 1, y: 1, z: 1 }, enceintes: [{ x: 1, y: 4.5, z: 1 }] }, PIECE_DEFAUT))
+      .toEqual({ qui: 0, axe: 'y' });
+    expect(positionHorsPiece(placementType(PIECE_DEFAUT), PIECE_DEFAUT)).toBeNull();
+  });
+
+  it('une à quatre enceintes : « Ajouter » disparaît à quatre, « Retirer » à une', async () => {
+    await monter();
+    for (let i = 0; i < 2; i++) { (q('[data-room="ajouter-enceinte"]') as HTMLButtonElement).click(); flushSync(); }
+    expect(cible!.querySelectorAll('[data-position^="enceinte-"]')).toHaveLength(ENCEINTES_MAX);
+    expect(q('[data-room="ajouter-enceinte"]')).toBeNull();
+    for (let i = 0; i < 3; i++) { (q('[data-room="retirer-enceinte"]') as HTMLButtonElement).click(); flushSync(); }
+    expect(cible!.querySelectorAll('[data-position^="enceinte-"]')).toHaveLength(1);
+    expect(q('[data-room="retirer-enceinte"]')).toBeNull();
+  });
+
+  it('le refus 400 du serveur s’affiche avec sa cause', async () => {
+    hote.simulation = { status: 400, corps: { error: 'simulation_invalide', message: 'enceinte 1 hors de la pièce' } };
+    await monter();
+    (q('[data-room="simuler"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="cause"]'));
+    expect(q('[data-room="cause"]')!.textContent).toContain('hors de la pièce');
+  });
+});
+
+describe('web#2803 — mode expert', () => {
+  async function simulee() {
+    await monter();
+    (q('[data-room="simuler"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="proposition"]'));
+  }
+
+  it('replié, non coché par défaut : la demande reste prudente', async () => {
+    await simulee();
+    const d = q('[data-room="expert"]') as HTMLDetailsElement;
+    expect(d, 'le mode expert n’est pas proposé').not.toBeNull();
+    expect(d.open).toBe(false);
+    expect((q('[data-room="expert-actif"]') as HTMLInputElement).checked).toBe(false);
+    expect(d.textContent).toContain(texte('v2.room.expertWarning'));
+    expect(appelsA(`${EXT}/simulations/sim-1/correction`)[0].corps).toEqual({ cible: { type: 'plate' } });
+  });
+
+  it('🔴 coché : bornes lues dans la simulation, défauts envoyés avec expert: true', async () => {
+    await simulee();
+    const c = q('[data-room="expert-actif"]') as HTMLInputElement;
+    c.checked = true;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 2);
+    expect(appelsA(`${EXT}/simulations/sim-1/correction`)[1].corps)
+      .toEqual({ cible: { type: 'plate' }, bandes_max: 3, coupe_max_db: 4, expert: true });
+    const bandes = q('[data-room="expert-bandes"]') as HTMLInputElement;
+    expect(bandes.max).toBe('10');
+    expect((q('[data-room="expert-coupe"]') as HTMLInputElement).max).toBe('12');
+
+    saisir('[data-room="expert-bandes"]', '8', 'change');
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 3);
+    saisir('[data-room="expert-coupe"]', '15', 'change'); // au-delà : ramené à 12
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 4);
+    expect(appelsA(`${EXT}/simulations/sim-1/correction`)[3].corps)
+      .toEqual({ cible: { type: 'plate' }, bandes_max: 8, coupe_max_db: 12, expert: true });
+
+    // « Appliquer » enregistre le profil avec le même réglage.
+    await jusqua(() => !!q('[data-room="appliquer"]') && !(q('[data-room="appliquer"]') as HTMLButtonElement).disabled);
+    (q('[data-room="appliquer"]') as HTMLButtonElement).click();
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction/profil`).length > 0);
+    expect(appelsA(`${EXT}/simulations/sim-1/correction/profil`)[0].corps)
+      .toEqual({ cible: { type: 'plate' }, bandes_max: 8, coupe_max_db: 12, expert: true, zone_id: ZONE });
+  });
+
+  it('le refus 422 s’affiche avec sa cause', async () => {
+    await simulee();
+    hote.refusCorrection = { status: 422, corps: { error: 'correction_refusee', message: 'bandes_max 12 : entre 1 et 10 sur une estimation sans micro en mode expert' } };
+    const c = q('[data-room="expert-actif"]') as HTMLInputElement;
+    c.checked = true;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    await jusqua(() => !!q('[data-room="cause"]'));
+    expect(q('[data-room="cause"]')!.textContent).toContain('mode expert');
+  });
+
+  it('serveur sans `bornes_correction` : pas de mode expert', async () => {
+    const { bornes_correction: _, ...ancienne } = SIMULATION;
+    hote.simulation = { status: 201, corps: ancienne };
+    await simulee();
+    expect(q('[data-room="expert"]')).toBeNull();
+  });
+
+  it('les bornes sont tenues : 1 … bandes_max, 0 … coupe_max_db', () => {
+    const b = SIMULATION.bornes_correction.expert;
+    expect(demandeCorrection('harman', null)).toEqual({ cible: { type: 'harman' } });
+    expect(expertBorne({ bandes_max: 0, coupe_max_db: -3 }, b)).toEqual({ bandes_max: 1, coupe_max_db: 0 });
+    expect(expertBorne({ bandes_max: 99, coupe_max_db: 99 }, b)).toEqual({ bandes_max: 10, coupe_max_db: 12 });
+    expect(expertBorne({ bandes_max: NaN, coupe_max_db: NaN }, b)).toEqual({ bandes_max: 3, coupe_max_db: 4 });
+  });
+});
+
+describe('web#2803 — nœud ou ventre à la place d’écoute', () => {
+  it('|couplage| / nombre d’enceintes : < 0,2 nœud, ≥ 0,5 ventre', () => {
+    const m = (couplage: number) => ({ ...SIMULATION.modes[0], couplage } as any);
+    expect(positionDuMode(m(-1.62), 2)).toBe('ventre');
+    expect(positionDuMode(m(0.62), 2)).toBe('entre');
+    expect(positionDuMode(m(0.05), 2)).toBe('noeud');
+    expect(positionDuMode(m(0.62), 1)).toBe('ventre');
+  });
+
+  it('🔴 chaque mode affiché porte son libellé', async () => {
+    await monter();
+    (q('[data-room="simuler"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="modes"]'));
+    const lignes = [...cible!.querySelectorAll('[data-room="modes"] tbody tr')] as HTMLElement[];
+    expect(lignes.map((l) => l.dataset.couplage)).toEqual(['ventre', 'noeud', 'entre']);
+    expect(lignes[1].textContent).toContain(texte('v2.room.modeNode'));
+    expect(lignes[2].textContent).toContain(texte('v2.room.modePartial'));
+  });
+});
+
+describe('web#2803 — les textes existent dans les quinze langues', () => {
+  const CLES = ['positionsTitle', 'positionsHelp', 'listener', 'speakerN', 'addSpeaker', 'removeSpeaker', 'resetPlacement',
+    'positionOutside', 'topView', 'expertTitle', 'expertWarning', 'expertBands', 'expertCut', 'modeNode', 'modePartial'];
+  it.each(ONZE_LANGUES)('%s', (code) => {
+    const d = dictionnaire(code);
+    for (const c of CLES) expect(d[`v2.room.${c}`], `${code} : v2.room.${c}`).toBeTruthy();
+    expect(d['v2.room.speakerN']).toContain('{n}');
   });
 });
