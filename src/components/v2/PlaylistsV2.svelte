@@ -1083,10 +1083,10 @@
   /* web#2805 — « Tous / Par vous / Par <service> », les puces de Streaming. */
   .auteur{display:flex; gap:7px; flex-wrap:wrap; padding:0 30px 12px}
   .auteur .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill)}
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill)}
   .auteur .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .auteur .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .auteur .chip .n{font:11px var(--v2-mono); opacity:.75}
+  .auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
      pas celui d'une alerte : rien n'est en panne. */
   .sans-pl{margin:6px 30px 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
