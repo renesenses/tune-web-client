@@ -53,7 +53,8 @@ describe('lecture aléatoire des playlists', () => {
 
   it('la fiche d’une playlist intelligente a son bouton', () => {
     const fiche = lire('src/components/v2-heritage/SmartPlaylistsView.svelte');
-    expect(fiche).toMatch(/<button class="edit-btn" onclick=\{playShuffle\}/);
+    // rc12 : sous la flèche du bouton Lecture partagé.
+    expect(fiche).toMatch(/aleatoire=\{\{ faire: playShuffle,/);
     expect(fiche).toMatch(/await lireListeAleatoire\(spTracks,/);
   });
 });

@@ -41,13 +41,13 @@
   .panneau{position:relative; width:min(460px,100%); display:flex; flex-direction:column; gap:10px;
     background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-card); padding:20px 22px 22px; font-family:var(--v2-sans)}
-  h2{font-size:17px; font-weight:700; margin-bottom:6px}
+  h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin-bottom:6px}
   .fermer{position:absolute; top:12px; right:12px; width:28px; height:28px; border:0; border-radius:8px;
-    background:transparent; color:var(--v2-txt3); font-size:20px; line-height:1; cursor:pointer}
+    background:transparent; color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .fermer:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .choix{display:flex; flex-direction:column; gap:3px; text-align:left; text-decoration:none; cursor:pointer;
     background:var(--v2-bg); color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:10px; padding:12px 14px}
   .choix:hover{border-color:var(--v2-acc1)}
-  .choix b{font:600 13.5px var(--v2-sans)}
-  .choix span{font:12px var(--v2-sans); color:var(--v2-txt2)}
+  .choix b{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .choix span{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
 </style>

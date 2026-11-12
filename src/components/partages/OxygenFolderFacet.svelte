@@ -50,7 +50,7 @@
 <style>
   .folder { display: flex; flex-direction: column; }
   .crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; padding: 2px 6px 8px; }
-  .crumb { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 12px; padding: 2px 5px; border-radius: 5px; cursor: pointer; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crumb { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); padding: 2px 5px; border-radius: 5px; cursor: pointer; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .crumb:hover { color: var(--tune-text); background: var(--tune-surface-hover); }
   .crumb.active { color: var(--tune-accent); font-weight: 600; }
   .crumb.home { display: inline-flex; align-items: center; padding: 3px 5px; }
@@ -60,8 +60,8 @@
   .val:hover { background: var(--tune-surface-hover); color: var(--tune-text); }
   .ficon { flex: none; color: var(--tune-text-muted); }
   .val:hover .ficon { color: var(--tune-accent); }
-  .vl { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
-  .vc { font-size: 10.5px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .vl { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .vc { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   .chev { flex: none; color: var(--tune-text-muted); }
-  .fnote { font-size: 12px; color: var(--tune-text-muted); padding: 4px 8px 8px; }
+  .fnote { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); padding: 4px 8px 8px; }
 </style>

@@ -14,7 +14,7 @@ function fautes(style: string): string[] {
   for (const sel of ['section', 'h3', 'p', 'th, td']) {
     const re = new RegExp(`(?:^|\\n)\\s*${sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`);
     const corps = style.match(re)?.[1] ?? '';
-    const px = corps.match(/font-size:\s*([\d.]+)px/)?.[1] ?? corps.match(/font:[^;]*?([\d.]+)px/)?.[1];
+    const px = corps.match(/font-size:\s*(?:calc\()?([\d.]+)px/)?.[1] ?? corps.match(/font:[^;]*?([\d.]+)px/)?.[1];
     if (!px) f.push(`${sel} sans taille`);
     else if (+px > MAX_PX) f.push(`${sel} à ${px}px`);
   }
@@ -29,9 +29,9 @@ describe('web#2656 — l’audit d’intégrité a la taille de police de la pag
   it('contre-épreuve : le style d’avant échoue', () => {
     const avant = STYLE
       .replace(/section \{[^}]*\}/, 'section { margin-block: 16px; }')
-      .replace(/h3 \{[^}]*\}/, 'h3 { font: 600 14px var(--v2-sans); color: var(--v2-txt); }')
+      .replace(/h3 \{[^}]*\}/, 'h3 { font: 600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }')
       .replace(/\n  p \{[^}]*\}/, '\n  p { color: var(--v2-txt2); margin-block: 8px; }')
-      .replace('th, td { font-size: 12px; ', 'th, td { ');
+      .replace('th, td { font-size: calc(12px * var(--v2-txt-echelle, 1)); ', 'th, td { ');
     expect(fautes(avant)).toEqual(['section sans taille', 'h3 à 14px', 'p sans taille', 'th, td sans taille']);
   });
 });

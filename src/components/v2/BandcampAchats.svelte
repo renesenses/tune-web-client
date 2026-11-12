@@ -120,23 +120,23 @@
   .bandeau{display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin:14px 0; padding:16px 18px;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); background:var(--v2-bg2)}
   .bandeau.perimee{border-color:var(--v2-warn, #c9a227)}
-  .bandeau p{margin:0; font-size:14px; color:var(--v2-txt)}
-  .bandeau .sub{font-size:12.5px; line-height:1.6; color:var(--v2-txt2)}
+  .bandeau p{margin:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
+  .bandeau .sub{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2)}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
   .txt{height:36px; min-width:260px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); padding:0 14px; font:13px var(--v2-mono)}
+    color:var(--v2-txt); padding:0 14px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus); outline:0}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:0 14px; height:36px; font:13px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:0 14px; height:36px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .lnk.petit{height:28px; padding:0 10px; font-size:12px}
+  .lnk.petit{height:28px; padding:0 10px; font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .ligne{display:flex; align-items:center; gap:12px; margin:10px 0}
-  .ok{color:var(--v2-ok, #4caf7d); font-size:12.5px}
-  .err{color:var(--v2-danger, #d9534f); font-size:12.5px}
+  .ok{color:var(--v2-ok, #4caf7d); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .err{color:var(--v2-danger, #d9534f); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .dl{margin:10px 0 18px}
-  .dl h3{margin:0 0 8px; font:600 13px var(--v2-sans); color:var(--v2-txt2); text-transform:uppercase; letter-spacing:.04em}
+  .dl h3{margin:0 0 8px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); text-transform:uppercase; letter-spacing:.04em}
   .dl ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
-  .dl li{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--v2-txt)}
+  .dl li{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
   .qui{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .et{color:var(--v2-txt2); font-size:12.5px}
+  .et{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
 </style>

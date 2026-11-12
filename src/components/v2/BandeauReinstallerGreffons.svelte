@@ -100,15 +100,15 @@
 {/if}
 
 <style>
-  .bri,.bri-err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:12.5px}
+  .bri,.bri-err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .bri{border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .bri p{margin:0; flex:1; min-width:16ch}
   .bri-actions{display:flex; gap:8px; flex:0 0 auto}
-  .bri-ok{height:30px; padding:0 14px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12px var(--v2-sans);
+  .bri-ok{height:30px; padding:0 14px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .bri-non{height:30px; padding:0 14px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .bri-ok:disabled,.bri-non:disabled{opacity:.45; cursor:default}
   .bri-err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .bri-err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+  .bri-err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 </style>

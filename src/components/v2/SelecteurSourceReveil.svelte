@@ -104,13 +104,13 @@
 
 <style>
   .selecteur { display: flex; flex-direction: column; gap: 6px; }
-  .choisi { font: 400 13px var(--v2-sans); color: var(--v2-txt); }
-  .indice { margin: 0; font: 400 12px var(--v2-sans); color: var(--v2-txt2); }
+  .choisi { font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  .indice { margin: 0; font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .resultats { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; border: 1px solid var(--v2-line2); border-radius: 8px; }
   .ligne-res { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
   .ligne-res:hover, .ligne-res:focus-visible { background: var(--v2-line2); }
   .ligne-res img, .sans-pochette { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: var(--v2-line2); flex: 0 0 auto; }
   .txt { display: flex; flex-direction: column; min-width: 0; }
-  .txt b { font: 600 13px var(--v2-sans); }
-  .txt span { font: 400 12px var(--v2-sans); color: var(--v2-txt2); }
+  .txt b { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
+  .txt span { font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 </style>

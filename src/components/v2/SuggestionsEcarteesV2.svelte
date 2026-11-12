@@ -91,8 +91,8 @@
 
 <style>
   .v2-ecartees{display:flex; flex-direction:column; gap:6px}
-  .intro{margin:0; font-size:12.5px; color:var(--v2-txt3); max-width:720px}
-  .etat{margin:0; color:var(--v2-txt3); font-size:12.5px}
+  .intro{margin:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:720px}
+  .etat{margin:0; color:var(--v2-txt3); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .liste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
   .ligne{display:grid; grid-template-columns:40px minmax(0,1fr) auto; align-items:center; gap:12px;
     padding:6px 8px; border-radius:9px; color:var(--v2-txt2)}
@@ -100,10 +100,10 @@
   .cv{width:40px; height:40px; border-radius:6px; overflow:hidden}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .ti{min-width:0; display:flex; flex-direction:column; gap:2px}
-  .tt{min-width:0; font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3);
+  .tt{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lnk{background:none; border:0; padding:4px 6px; font:500 12px var(--v2-sans); color:var(--v2-acc1); cursor:pointer}
+  .lnk{background:none; border:0; padding:4px 6px; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1); cursor:pointer}
   .lnk:hover{text-decoration:underline}
   .lnk:disabled{opacity:.5; cursor:default}
 </style>

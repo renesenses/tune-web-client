@@ -91,14 +91,14 @@
 <style>
   .rfa{display:flex; flex-direction:column; gap:8px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
-  .bascule .n{font:700 9.5px var(--v2-mono); margin-left:4px; padding:0 5px; border-radius:var(--v2-r-pill);
+  .bascule .n{font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); margin-left:4px; padding:0 5px; border-radius:var(--v2-r-pill);
     background:var(--v2-acc2); color:var(--v2-on-acc)}
-  .total{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .lien{background:none; border:0; padding:0; cursor:pointer; color:var(--v2-acc2); font:600 11.5px var(--v2-sans)}
+  .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .lien{background:none; border:0; padding:0; cursor:pointer; color:var(--v2-acc2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lien:hover{text-decoration:underline}
   .corps{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 11.5px var(--v2-sans); max-width:220px}
-  .case{display:inline-flex; align-items:center; gap:6px; font:600 11.5px var(--v2-sans); color:var(--v2-txt2); cursor:pointer}
+    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
+  .case{display:inline-flex; align-items:center; gap:6px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); cursor:pointer}
   @media (max-width: 640px){ .choix{max-width:none; flex:1} }
 </style>

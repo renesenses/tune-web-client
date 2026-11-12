@@ -234,8 +234,8 @@
     padding: 20px 22px 22px;
     font-family: var(--v2-sans);
   }
-  header h2 { font-size: 17px; font-weight: 700; }
-  .objet { color: var(--v2-txt2); font-size: 13px; margin-top: 2px; }
+  header h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; }
+  .objet { color: var(--v2-txt2); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin-top: 2px; }
   .fermer {
     position: absolute;
     top: 12px;
@@ -246,20 +246,20 @@
     border-radius: 8px;
     background: transparent;
     color: var(--v2-txt3);
-    font-size: 20px;
+    font-size: calc(20px * var(--v2-txt-echelle, 1));
     line-height: 1;
     cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
   section { margin-top: 18px; }
   h3 {
-    font: 600 11px var(--v2-mono);
+    font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--v2-txt3);
     margin-bottom: 8px;
   }
-  .etat { color: var(--v2-txt3); font-size: 13px; }
+  .etat { color: var(--v2-txt3); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .puces { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; padding: 0; }
   .puce {
     --c: var(--v2-acc1);
@@ -271,7 +271,7 @@
     border-radius: var(--v2-r-pill);
     background: color-mix(in srgb, var(--c) 14%, transparent);
     color: var(--v2-txt);
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--v2-txt-echelle, 1));
   }
   .puce.ajoutable { cursor: pointer; }
   .puce.ajoutable:hover { background: color-mix(in srgb, var(--c) 26%, transparent); }
@@ -280,7 +280,7 @@
     background: transparent;
     color: var(--v2-txt2);
     cursor: pointer;
-    font-size: 15px;
+    font-size: calc(15px * var(--v2-txt-echelle, 1));
     line-height: 1;
     padding: 0 1px;
   }
@@ -294,7 +294,7 @@
     border-radius: 8px;
     color: var(--v2-txt);
     font: inherit;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     padding: 7px 9px;
   }
   .creer button {
@@ -302,7 +302,7 @@
     border-radius: 8px;
     background: var(--v2-surface2);
     color: var(--v2-txt);
-    font: 600 13px var(--v2-sans);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding: 7px 12px;
     cursor: pointer;
   }
