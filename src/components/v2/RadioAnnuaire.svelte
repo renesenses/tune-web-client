@@ -172,11 +172,16 @@
    * l'écran « Mes radios » (#7523 : elle dit que la station reste ici).
    * La fiche perd son badge « Dans mes radios » et retrouve « Ajouter ».
    */
+  // Anti double clic : une station en cours de retrait (question ouverte ou
+  // appel en vol) ne relance ni une seconde question ni un second DELETE.
+  const enRetrait = new Set<string>();
+
   async function retirer(f: FicheAnnuaireRadio) {
     const id = f.my_radio_id;
-    if (id == null) return;
-    if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), f.name, true), { danger: true }))) return;
+    if (id == null || enRetrait.has(f.external_id)) return;
+    enRetrait.add(f.external_id);
     try {
+      if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), f.name, true), { danger: true }))) return;
       await api.deleteRadio(id);
       items = items.map((x) => x.external_id === f.external_id
         ? { ...x, my_radio_id: null, my_radio_favorite: false }
@@ -185,6 +190,8 @@
       onRetiree?.(id);
     } catch (e: any) {
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      enRetrait.delete(f.external_id);
     }
   }
 

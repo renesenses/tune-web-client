@@ -128,6 +128,19 @@ describe('#7522 — l’annuaire montre et retire ce qui est dans « Mes radios 
     expect(hote.querySelectorAll('.fiche')[0].querySelector('.dedans')).not.toBeNull();
   });
 
+  it('🔴 double clic sur Retirer : une seule question, un seul deleteRadio', async () => {
+    await ouvrirAnnuaire();
+    const b = boutonRetirer(hote.querySelectorAll('.fiche')[0])!;
+    b.click();
+    b.click();
+    await respirer();
+    const d = get(dialogs);
+    expect(d, 'le second clic ouvre une seconde question').toHaveLength(1);
+    dialogs.settle(d[0].id, true);
+    await respirer();
+    expect(mocks.deleteRadio).toHaveBeenCalledTimes(1);
+  });
+
   it('le badge reste à l’échelle du texte (réglage « Taille du texte »)', () => {
     const src = readFileSync(resolve(__dirname, '../../components/v2/RadioAnnuaire.svelte'), 'utf8');
     expect(src).toMatch(/\.dedans\{[^}]*calc\(9\.5px \* var\(--v2-txt-echelle, 1\)\)/);
