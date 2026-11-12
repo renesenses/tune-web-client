@@ -79,11 +79,24 @@ function completer(t: any): any {
 export async function completerAlbumsDePistes<T>(
   pistes: readonly T[],
   lire: LirePiste,
-  { plafond = 40, parallele = 3 }: { plafond?: number; parallele?: number } = {},
+  { plafond = 40, parallele = 3, ordre }: { plafond?: number; parallele?: number; ordre?: readonly unknown[] } = {},
 ): Promise<T[] | null> {
   const aDemander: { service: string; id: string; k: string }[] = [];
   const vues = new Set<string>();
-  for (const p of pistes) {
+  /*
+   * web#2759 — `ordre` : les pistes telles que l'écran les MONTRE (tri et
+   * filtre compris). Elles sont demandées d'abord, pour que le plafond tombe
+   * sur ce que l'on voit et non sur l'ordre de la fusion. Comparées par
+   * `service:source_id` : l'écran tient des proxys `$state`, pas nos objets.
+   */
+  const parCle = new Map<string, T>();
+  for (const p of pistes) if (albumAResoudre(p)) parCle.set(cle(p), p);
+  const prioritaires: T[] = [];
+  for (const o of ordre ?? []) {
+    const p = albumAResoudre(o) ? parCle.get(cle(o)) : undefined;
+    if (p !== undefined) prioritaires.push(p);
+  }
+  for (const p of [...prioritaires, ...pistes]) {
     const t = p as any;
     if (!albumAResoudre(t)) continue;
     const k = cle(t);

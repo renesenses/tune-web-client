@@ -6761,6 +6761,12 @@ export interface StreamingFavorite {
   title?: string | null;
   artist?: string | null;
   album?: string | null;
+  /**
+   * web#2759 — l'identifiant de l'album chez le service (page d'album pour
+   * Bandcamp), pour un favori PISTE. Pas encore servi par le serveur au
+   * 12/11/2026 : lu s'il arrive, sinon `undefined`.
+   */
+  album_id_service?: string | null;
   cover_url?: string | null;
   /**
    * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).

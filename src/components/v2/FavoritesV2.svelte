@@ -262,7 +262,16 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        */
       // Un tableau `$state` est un proxy : on compare des tours, pas des tableaux.
       const tour = ++tourAlbumsFavoris;
-      void completerAlbumsDePistes(fusion.tracks, api.getStreamingTrack).then((maj) => {
+      /*
+       * web#2759 — plus de plafond de 40 : au-delà, seuls les 40 premiers de
+       * la FUSION recevaient leur lien, pas ceux affichés après tri. Toutes
+       * les pistes sont demandées (une fois par session, `albumDesEcoutes`
+       * mémorise), dans l'ordre de l'écran (`vTracks`) d'abord.
+       */
+      void completerAlbumsDePistes(fusion.tracks, api.getStreamingTrack, {
+        plafond: fusion.tracks.length,
+        ordre: vTracks,
+      }).then((maj) => {
         if (maj && tour === tourAlbumsFavoris) tracks = maj;
       });
       /*
