@@ -45,7 +45,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
-  import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
+  import { fluxAjoutable, logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -1031,6 +1031,16 @@ import { ICONES } from '../../lib/menuPiste';
   const logoStation = $derived(logoAuNomDeLaStation(stationEnCours?.fiche?.logo, track?.cover_path));
   /** web#2551 — la station dans « Mes radios » : son identifiant, ou `null`. */
   const idDansMesRadios = $derived(stationEnCours?.mienne?.id ?? stationEnCours?.annuaire?.my_radio_id ?? null);
+  /**
+   * tune-server-rust#7547 — le bouton « Mes radios » est offert dès que la
+   * station est connue (« Mes radios », annuaire) OU que son flux peut y
+   * entrer tel quel ; seulement une fois la station lue.
+   */
+  const mesRadiosOffert = $derived(
+    stationEnCours != null && npStation != null
+      && (idDansMesRadios != null || stationEnCours.annuaire != null
+        || (fluxAjoutable(npStation.source_id) != null && !!(npStation.album_title ?? '').trim())),
+  );
 
   /**
    * web#2551 (alec_eiffel, fil 2562 ; go de Bertrand le 30/10/2026) : ajouter
@@ -1055,6 +1065,11 @@ import { ICONES } from '../../lib/menuPiste';
         notifications.success($t('v2.radio.removed' as any).replace('{name}', nom));
       } else if (s.annuaire) {
         await api.ajouterDepuisAnnuaire(s.annuaire.external_id, false);
+        notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
+      } else if (fluxAjoutable(np.source_id) && nom.trim()) {
+        // tune-server-rust#7547 — station inconnue de l'annuaire : elle entre
+        // dans « Mes radios » par son flux, comme « Nouvelle station ».
+        await api.createRadio({ name: nom.trim(), stream_url: fluxAjoutable(np.source_id)! });
         notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
       } else {
         return;
@@ -1969,7 +1984,7 @@ import { ICONES } from '../../lib/menuPiste';
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
-              {#if idDansMesRadios != null || stationEnCours?.annuaire}
+              {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
                   aria-pressed={dedans}
