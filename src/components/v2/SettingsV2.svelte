@@ -162,6 +162,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SmbWizard from '../partages/SmbWizard.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
+  import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -6188,6 +6189,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if etapeLiaison(spc) !== 'masquee'}
+                  <!-- web#2804 (tune-server-rust#8154) — l'étape unique : tant que
+                       Spotify n'a pas vu l'appareil de Tune choisi une fois dans
+                       son application, la lecture bute sur un 409. -->
+                  <div class="row" data-spotify-liaison data-etape={etapeLiaison(spc)}>
+                    <div class="lbl"><span class="hint">{$t('playback.errorSpotifyLinkRequired' as any).replace('{device}', lireRefusLiaison(spc).appareil)}</span></div>
+                    {#if etapeLiaison(spc) === 'activer'}
+                      <button class="lnk" type="button" disabled={spcBusy} onclick={() => toggleSpc(true)}>{$t('settings.enableReceiver' as any)}</button>
+                    {/if}
+                  </div>
+                {/if}
                 {#if !spc?.enabled}
                   <div class="row" data-reglage="spotify-zone-exposee">
                     <div class="lbl"><span>{$t('settings.exposedZone' as any)}</span>
