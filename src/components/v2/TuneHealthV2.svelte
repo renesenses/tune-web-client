@@ -47,6 +47,7 @@
     freinesParLaLecture,
     FREIN_SCAN,
     serveurSaitSuspendre,
+    libelleProgression,
     type InstantaneTachesDeFond,
     type PrioriteDr,
     type RattrapageRapportsDr,
@@ -976,7 +977,7 @@
                     <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
                   {/if}
                   {#if l.avancement}
-                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: l.avancement.detail, fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
+                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: libelleProgression(l.avancement, (k) => $t(k as any)), fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
                   {/if}
                 </li>
               {/each}
