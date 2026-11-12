@@ -7509,4 +7509,6 @@ export default {
   "pareFeu.profilDomaine": "Domän",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Offentligt",
+  "transport.queueCountOne": "Kö · 1 spår",
+  "transport.queueCount": "Kö · {count} spår",
 } as const;

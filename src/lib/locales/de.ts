@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "Domäne",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Öffentlich",
+  "transport.queueCountOne": "Warteschlange · 1 Titel",
+  "transport.queueCount": "Warteschlange · {count} Titel",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

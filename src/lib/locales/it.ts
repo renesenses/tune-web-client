@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "Dominio",
   "pareFeu.profilPrive": "Privata",
   "pareFeu.profilPublic": "Pubblica",
+  "transport.queueCountOne": "Coda · 1 brano",
+  "transport.queueCount": "Coda · {count} brani",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

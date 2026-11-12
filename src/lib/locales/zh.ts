@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "域",
   "pareFeu.profilPrive": "专用",
   "pareFeu.profilPublic": "公用",
+  "transport.queueCountOne": "播放队列 · 1 首",
+  "transport.queueCount": "播放队列 · {count} 首",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

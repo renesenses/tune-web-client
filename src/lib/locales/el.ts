@@ -7355,5 +7355,7 @@ export default {
   "pareFeu.profilDomaine": "Τομέας",
   "pareFeu.profilPrive": "Ιδιωτικό",
   "pareFeu.profilPublic": "Δημόσιο",
+  "transport.queueCountOne": "Ουρά · 1 κομμάτι",
+  "transport.queueCount": "Ουρά · {count} κομμάτια",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

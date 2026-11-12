@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "도메인",
   "pareFeu.profilPrive": "개인",
   "pareFeu.profilPublic": "공용",
+  "transport.queueCountOne": "대기열 · 1곡",
+  "transport.queueCount": "대기열 · {count}곡",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

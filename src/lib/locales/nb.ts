@@ -7355,5 +7355,7 @@ export default {
   "pareFeu.profilDomaine": "Domene",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Offentlig",
+  "transport.queueCountOne": "Kø · 1 spor",
+  "transport.queueCount": "Kø · {count} spor",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

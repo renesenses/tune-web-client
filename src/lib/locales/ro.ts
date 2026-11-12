@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "Domeniu",
   "pareFeu.profilPrive": "Privată",
   "pareFeu.profilPublic": "Publică",
+  "transport.queueCountOne": "Coadă · 1 piesă",
+  "transport.queueCount": "Coadă · piese: {count}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

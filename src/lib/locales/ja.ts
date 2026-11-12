@@ -7510,6 +7510,8 @@ export default {
   "pareFeu.profilDomaine": "ドメイン",
   "pareFeu.profilPrive": "プライベート",
   "pareFeu.profilPublic": "パブリック",
+  "transport.queueCountOne": "キュー · 1 曲",
+  "transport.queueCount": "キュー · {count} 曲",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

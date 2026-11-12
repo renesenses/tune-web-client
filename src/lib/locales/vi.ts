@@ -7362,5 +7362,7 @@ export default {
   "pareFeu.profilDomaine": "Miền",
   "pareFeu.profilPrive": "Riêng tư",
   "pareFeu.profilPublic": "Công cộng",
+  "transport.queueCountOne": "Hàng đợi · 1 bài",
+  "transport.queueCount": "Hàng đợi · {count} bài",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];
