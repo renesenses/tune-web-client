@@ -154,6 +154,35 @@ export function ordonnerFluxParQualite(flux: readonly FluxRadio[]): FluxRadio[] 
     .map(({ f }) => f);
 }
 
+/**
+ * Le flux que la fiche coche « par défaut ». Pure.
+ *
+ * web#2801 (tune-server-rust#8122) : la fiche cochait le flux PRINCIPAL. Pour
+ * BBC Radio 6 Music écoutée de France, le principal est réservé au
+ * Royaume-Uni : la fiche montrait comme défaut un flux qui ne joue pas, alors
+ * que le serveur (rc11, #8111) en choisit un autre.
+ *
+ *  1. une station de « Mes radios » garde son flux enregistré (`fluxActuel`) ;
+ *  2. sinon le flux marqué `par_defaut` par le serveur (rc12) ;
+ *  3. serveur qui pose les drapeaux mais n'en marque aucun : le premier flux
+ *     de la liste qui n'est pas interdit dans le pays, sinon aucun ;
+ *  4. serveur ancien (aucun drapeau) : le principal, sinon le premier.
+ *
+ * `flux` : la liste telle que la fiche l'affiche (`ordonnerFluxParQualite`),
+ * pour que « le premier » soit celui du haut.
+ */
+export function fluxParDefautDeFiche(
+  flux: readonly FluxRadio[],
+  fluxActuel?: string | null,
+): string | null {
+  if (fluxActuel && flux.some((f) => f.url === fluxActuel)) return fluxActuel;
+  const marque = flux.find((f) => f.par_defaut === true);
+  if (marque) return marque.url;
+  const serveurRecent = flux.some((f) => typeof f.par_defaut === 'boolean');
+  if (serveurRecent) return flux.find((f) => f.autorise !== false)?.url ?? null;
+  return (flux.find((f) => f.primary) ?? flux[0])?.url ?? null;
+}
+
 /** Un flux est-il lu en HLS (transport segmenté) plutôt qu'en direct ? Pure. */
 export function estHls(f: FluxRadio): boolean {
   return f.hls === true || (f.codec ?? '').trim().toUpperCase() === 'HLS' || /\.m3u8(\?|$)/i.test(f.url);

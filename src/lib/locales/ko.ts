@@ -6255,6 +6255,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "재생할 스트림을 선택하세요.",
   "v2.radio.fiche.default": "기본",
+  "v2.radio.fiche.notInCountry": "해당 국가에서는 이용할 수 없음",
+  "v2.radio.fiche.countryUnknown": "일부 국가로 제한됨: 설정 › 일반에서 청취 국가를 지정하세요.",
   "v2.radio.dir.offline": "디렉터리 로컬 사본(오프라인)",
   "v2.radio.dir.playFailed": "재생할 수 없음: {name}",
   "v2.radio.dir.clear": "지우기",

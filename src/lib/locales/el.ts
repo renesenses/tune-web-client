@@ -6106,6 +6106,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Επιλέξτε μια ροή για να την ακούσετε.",
   "v2.radio.fiche.default": "προεπιλογή",
+  "v2.radio.fiche.notInCountry": "Μη διαθέσιμο στη χώρα σας",
+  "v2.radio.fiche.countryUnknown": "Περιορίζεται σε ορισμένες χώρες: ορίστε τη χώρα ακρόασης στις Ρυθμίσεις › Γενικά.",
   "v2.radio.dir.offline": "Τοπικό αντίγραφο του καταλόγου (εκτός σύνδεσης)",
   "v2.radio.dir.playFailed": "Αδύνατη η αναπαραγωγή: {name}",
   "v2.radio.dir.clear": "Απαλοιφή",

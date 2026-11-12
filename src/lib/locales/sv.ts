@@ -6254,6 +6254,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Välj en ström att lyssna på.",
   "v2.radio.fiche.default": "standard",
+  "v2.radio.fiche.notInCountry": "Inte tillgänglig i ditt land",
+  "v2.radio.fiche.countryUnknown": "Begränsad till vissa länder: ange lyssningslandet under Inställningar › Allmänt.",
   "v2.radio.dir.offline": "Lokal kopia av katalogen (offline)",
   "v2.radio.dir.playFailed": "Kan inte spela: {name}",
   "v2.radio.dir.clear": "Rensa",

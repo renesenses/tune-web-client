@@ -1672,6 +1672,18 @@ export interface FluxRadio {
   hls?: boolean;
   /** Le flux principal de la fiche. */
   primary?: boolean;
+  /**
+   * web#2801 (tune-server-rust#7515, rc12) — le flux que le serveur joue si
+   * l'auditeur n'en choisit aucun ; jamais un flux réservé à d'autres pays.
+   * Au plus un par fiche. Absent d'un serveur plus ancien.
+   */
+  par_defaut?: boolean;
+  /**
+   * web#2801 — `true` : libre ou ouvert au pays d'écoute ; `false` : réservé
+   * à d'autres pays (ou invalide) ; `null` : restreint alors que le pays
+   * d'écoute n'est pas renseigné. Absent d'un serveur plus ancien.
+   */
+  autorise?: boolean | null;
 }
 
 export interface RadioImportResult {

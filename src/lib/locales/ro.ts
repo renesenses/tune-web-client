@@ -6255,6 +6255,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Alege un flux pentru a-l asculta.",
   "v2.radio.fiche.default": "implicit",
+  "v2.radio.fiche.notInCountry": "Indisponibil în țara dvs.",
+  "v2.radio.fiche.countryUnknown": "Restricționat la anumite țări: setați țara de ascultare în Setări › General.",
   "v2.radio.dir.offline": "Copie locală a directorului (offline)",
   "v2.radio.dir.playFailed": "Redare imposibilă: {name}",
   "v2.radio.dir.clear": "Șterge",
