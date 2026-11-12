@@ -28,17 +28,16 @@
  *     à l'écran y reste jusqu'à ce que sa version neuve arrive. Chaque écran
  *     monté redemande ce qu'il montre (`rafraichirPagesPerimees`, et
  *     `listeEntierePerimee` pour la liste entière).
- *  4. `offsetDeLettre` — le rail A–Z sans route serveur : le serveur ne rend
- *     pas de borne par lettre. On la trouve par DICHOTOMIE sur `offset` avec
- *     `limit=1`, soit ⌈log₂ 9 427⌉ = 14 requêtes d'un album, mises en cache
- *     par lettre. Une route `GET /library/albums/lettres` la rendrait en une.
+ *  4. `offsetDeLettre` — les repères A–Z de la première page évitent les
+ *     requêtes en cascade. Les anciens serveurs gardent le repli par
+ *     dichotomie sur `offset`, avec `limit=1` et cache par lettre.
  *
  * ## Pourquoi le serveur ne fait pas tout
  *
  * `GET /library/albums` filtre par format, qualité, compilation et tranche de
  * DR, mais PAS par fréquence, profondeur, source, année ni texte ; il ne
  * compte aucune facette (son `total` est toujours celui de la bibliothèque
- * visible entière) et ne rend ni histogramme des années ni bornes par lettre.
+ * visible entière) et ne rend pas d’histogramme des années.
  * Tant que ces routes n'existent pas, les écrans qui en dépendent chargent la
  * liste entière — à la demande, pas à l'ouverture.
  */
@@ -69,6 +68,8 @@ export interface EtatPagine {
   /** L'effectif de la bibliothèque visible, dès la première réponse. */
   total: number | null;
   pages: ReadonlyMap<number, readonly Album[]>;
+  /** Repères de la même liste et de la même génération que les pages. */
+  reperesAlphabetiques?: Readonly<Record<string, number>>;
   enVol: ReadonlySet<number>;
   erreur: string | null;
   /**
@@ -119,7 +120,7 @@ export const listeEntierePerimee: Readable<boolean> = { subscribe: listePerimee.
 /** Les pages tombent, mais pas le total : la grille garde sa hauteur. */
 function reinitialiser(clef: string, total: number | null): void {
   albumsPagines.update((e) => ({
-    ...e, clef, total, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), perimees: new Set(),
+    ...e, clef, total, reperesAlphabetiques: undefined, pages: new Map(), enVol: new Set(), erreur: null, echecs: new Map(), perimees: new Set(),
   }));
 }
 
@@ -140,6 +141,8 @@ export const DELAI_APRES_ECHEC_MAX_MS = 30_000;
  * est réservé aux demandes qui viennent d'un GESTE ou d'un événement (écran
  * ouvert, tri changé, fin de scan), jamais d'une écriture dans ce magasin.
  */
+const demandesEnVol = new Map<string, Promise<api.PageAlbums>>();
+
 export async function demanderPage(
   c: ClefDeListe, index: number, options: { forcer?: boolean } = {},
 ): Promise<void> {
@@ -149,16 +152,23 @@ export async function demanderPage(
     reinitialiser(clef, etat.total);
     etat = get(albumsPagines);
   }
-  if (index < 0 || etat.enVol.has(index)) return;
+  if (index < 0) return;
+  const demande = `${etat.generation}|${clef}|${index}`;
+  if (etat.enVol.has(index)) {
+    await demandesEnVol.get(demande)?.catch(() => undefined);
+    return;
+  }
   if (etat.pages.has(index) && !etat.perimees.has(index)) return;
   const echec = etat.echecs.get(index);
   if (echec && !options.forcer && Date.now() < echec.jusqua) return;
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
   try {
-    const page = await api.getAlbumsPagines({
+    const requete = api.getAlbumsPagines({
       limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
     });
+    demandesEnVol.set(demande, requete);
+    const page = await requete;
     albumsPagines.update((e) => {
       const enVol = new Set(e.enVol); enVol.delete(index);
       // Une réponse d'une autre liste ou d'une génération passée ne s'écrit pas.
@@ -169,7 +179,8 @@ export async function demanderPage(
       const total = page.total ?? (page.items.length < TAILLE_PAGE ? index * TAILLE_PAGE + page.items.length : e.total);
       const echecs = new Map(e.echecs); echecs.delete(index);
       const perimees = new Set(e.perimees); perimees.delete(index);
-      return { ...e, pages, enVol, total, erreur: null, echecs, perimees };
+      return { ...e, pages, enVol, total, erreur: null, echecs, perimees,
+        reperesAlphabetiques: page.reperesAlphabetiques ?? e.reperesAlphabetiques };
     });
   } catch (err: any) {
     albumsPagines.update((e) => {
@@ -181,6 +192,8 @@ export async function demanderPage(
       echecs.set(index, { tentatives, jusqua: Date.now() + delai });
       return { ...e, enVol, erreur: String(err?.message ?? err), echecs };
     });
+  } finally {
+    demandesEnVol.delete(demande);
   }
 }
 
@@ -220,7 +233,8 @@ const lettresConnues = new Map<string, Promise<number | null>>();
  * Le PREMIER offset dont l'initiale (`initiale(album)`, celle du rail) vaut
  * au moins `lettre`, dans la liste `c`. `null` si la liste est vide.
  *
- * Dichotomie sur `offset` avec `limit=1` : 14 requêtes d'un album pour 9 427,
+ * Les repères fournis par la page répondent sans nouvelle requête. Repli
+ * pour les anciens serveurs : dichotomie avec `limit=1`, 14 requêtes pour 9 427,
  * mises en cache par liste et par lettre jusqu'à la prochaine invalidation.
  * Les pages déjà en cache répondent sans requête. Suppose que l'initiale
  * croît le long de la liste — vrai des tris par titre et par artiste, les
@@ -230,15 +244,28 @@ export function offsetDeLettre(
   c: ClefDeListe, lettre: string, initiale: (a: Album) => string,
 ): Promise<number | null> {
   const clef = clefDeListe(c);
-  const cle = `${get(generation)}|${clef}|${rangLettre(lettre)}`;
+  const generationDemandee = get(generation);
+  const cle = `${generationDemandee}|${clef}|${rangLettre(lettre)}`;
   const connu = lettresConnues.get(cle);
   if (connu) return connu;
   const p = (async () => {
-    if (get(albumsPagines).clef !== clef || get(albumsPagines).total == null) await demanderPage(c, 0);
-    const total = get(albumsPagines).total;
+    const avant = get(albumsPagines);
+    if (avant.clef !== clef || avant.total == null || avant.perimees.size > 0 || avant.enVol.has(0)) {
+      await demanderPage(c, 0, { forcer: true });
+    }
+    const etat = get(albumsPagines);
+    // Un scan peut avoir invalidé la page pendant son chargement.
+    if (etat.clef !== clef || etat.generation !== generationDemandee) return null;
+    const total = etat.total;
     if (!total) return null;
     const cible = rangLettre(lettre);
     if (cible === 0) return 0;
+    if (etat.reperesAlphabetiques) {
+      const reperes = Object.entries(etat.reperesAlphabetiques)
+        .filter(([initiale]) => rangLettre(initiale) >= cible)
+        .sort(([a], [b]) => rangLettre(a) - rangLettre(b));
+      return reperes[0]?.[1] ?? total - 1;
+    }
     const rangA = async (k: number): Promise<number> => {
       const page = get(albumsPagines).pages.get(Math.floor(k / TAILLE_PAGE));
       const a = page ? page[k % TAILLE_PAGE] : (await api.getAlbumsPagines({
@@ -313,6 +340,7 @@ export function invaliderBibliotheque(): void {
   lettresConnues.clear();
   albumsPagines.update((e) => ({
     ...e, enVol: new Set(), erreur: null, echecs: new Map(), generation: e.generation + 1,
+    reperesAlphabetiques: undefined,
     perimees: new Set(e.pages.keys()),
   }));
   if (get(albums).length) listePerimee.set(true);
@@ -362,6 +390,7 @@ export function mettreAJourAlbum(maj: Partial<Album> & { id: number | null }): v
 
 /** Pour les témoins : tout à zéro, comme au premier chargement du module. */
 export function _remiseAZeroPourTests(): void {
+  demandesEnVol.clear();
   albumsPagines.set(etatInitial());
   generation.set(0);
   listePerimee.set(false);

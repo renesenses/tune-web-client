@@ -2535,6 +2535,7 @@ export interface PageAlbums {
   total: number | null;
   /** Renseignée en tri aléatoire seulement (#3074). */
   seed?: number;
+  reperesAlphabetiques?: Record<string, number>;
 }
 export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
   const p = new URLSearchParams();
@@ -2549,7 +2550,13 @@ export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums
   const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
   amorcerPochettes(Array.isArray(raw) ? raw : raw?.items);
   if (Array.isArray(raw)) return { items: raw, total: null };
+  const index = raw?.reperes_alphabetiques;
+  const reperesAlphabetiques = index && typeof index === 'object' && !Array.isArray(index)
+    && Object.entries(index).every(([lettre, offset]) => /^[A-Z#]$/.test(lettre)
+      && Number.isInteger(offset) && (offset as number) >= 0 && (offset as number) < raw.total)
+    ? index as Record<string, number> : undefined;
   return {
+    reperesAlphabetiques,
     items: Array.isArray(raw?.items) ? raw.items : [],
     total: typeof raw?.total === 'number' ? raw.total : null,
     seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
