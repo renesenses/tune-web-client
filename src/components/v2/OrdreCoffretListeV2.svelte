@@ -120,8 +120,8 @@
         ondragend={finGlisse}>
         <span class="poignee" aria-hidden="true" title={avec('v2.box.drag', e)}>⋮⋮</span>
         <span class="cfordre-nom">
-          <span class="cfordre-titre">{e.titre || '—'}</span>
-          {#if e.detail}<span class="cfordre-detail">{e.detail}</span>{/if}
+          <span class="cfordre-titre" title={e.titre}>{e.titre || '—'}</span>
+          {#if e.detail}<span class="cfordre-detail" title={e.detail}>{e.detail}</span>{/if}
         </span>
         <span class="cfordre-disques">{libelleDisques(i)}</span>
         <button type="button" class="fl" data-sens="haut" disabled={desactive || i === 0}
