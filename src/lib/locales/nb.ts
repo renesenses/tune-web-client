@@ -7371,6 +7371,8 @@ export default {
   "pareFeu.profilDomaine": "Domene",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Offentlig",
+  "transport.queueCountOne": "Kø · 1 spor",
+  "transport.queueCount": "Kø · {count} spor",
   "v2.radio.removeConfirmDirectory": "Fjerne «{name}» fra Mine radioer? Stasjonen er fortsatt tilgjengelig i Katalogen: du kan finne den der og legge den til igjen.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

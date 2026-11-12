@@ -7526,6 +7526,8 @@ export default {
   "pareFeu.profilDomaine": "Dominio",
   "pareFeu.profilPrive": "Privata",
   "pareFeu.profilPublic": "Pubblica",
+  "transport.queueCountOne": "Coda · 1 brano",
+  "transport.queueCount": "Coda · {count} brani",
   "v2.radio.removeConfirmDirectory": "Rimuovere «{name}» da Le mie radio? La stazione resta disponibile nell'Elenco: potrai ritrovarla lì e aggiungerla di nuovo.",
 } as const;
 

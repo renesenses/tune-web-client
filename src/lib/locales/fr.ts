@@ -7548,6 +7548,8 @@ export default {
   "pareFeu.profilDomaine": "Domaine",
   "pareFeu.profilPrive": "Privé",
   "pareFeu.profilPublic": "Public",
+  "transport.queueCountOne": "File d'attente · 1 titre",
+  "transport.queueCount": "File d'attente · {count} titres",
   "v2.radio.removeConfirmDirectory": "Retirer « {name} » de Mes radios ? La station reste disponible dans l'annuaire : vous pourrez l'y retrouver et la rajouter.",
 } as const;
 

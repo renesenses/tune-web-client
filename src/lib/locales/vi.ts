@@ -7378,6 +7378,8 @@ export default {
   "pareFeu.profilDomaine": "Miền",
   "pareFeu.profilPrive": "Riêng tư",
   "pareFeu.profilPublic": "Công cộng",
+  "transport.queueCountOne": "Hàng đợi · 1 bài",
+  "transport.queueCount": "Hàng đợi · {count} bài",
   "v2.radio.removeConfirmDirectory": "Xóa “{name}” khỏi Radio của tôi? Đài vẫn có trong Danh bạ: bạn có thể tìm lại và thêm lại ở đó.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

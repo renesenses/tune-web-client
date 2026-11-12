@@ -7526,6 +7526,8 @@ export default {
   "pareFeu.profilDomaine": "Domeniu",
   "pareFeu.profilPrive": "Privată",
   "pareFeu.profilPublic": "Publică",
+  "transport.queueCountOne": "Coadă · 1 piesă",
+  "transport.queueCount": "Coadă · piese: {count}",
   "v2.radio.removeConfirmDirectory": "Elimini „{name}” din Radiourile mele? Postul rămâne disponibil în Director: îl poți regăsi acolo și adăuga din nou.",
 } as const;
 

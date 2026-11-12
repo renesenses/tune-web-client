@@ -7526,6 +7526,8 @@ export default {
   "pareFeu.profilDomaine": "ドメイン",
   "pareFeu.profilPrive": "プライベート",
   "pareFeu.profilPublic": "パブリック",
+  "transport.queueCountOne": "キュー · 1 曲",
+  "transport.queueCount": "キュー · {count} 曲",
   "v2.radio.removeConfirmDirectory": "「{name}」をマイラジオから削除しますか？このステーションはディレクトリに残るので、そこからいつでも再追加できます。",
 } as const;
 

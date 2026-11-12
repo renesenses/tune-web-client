@@ -7371,6 +7371,8 @@ export default {
   "pareFeu.profilDomaine": "Domena",
   "pareFeu.profilPrive": "Prywatna",
   "pareFeu.profilPublic": "Publiczna",
+  "transport.queueCountOne": "Kolejka · 1 utwór",
+  "transport.queueCount": "Kolejka · utwory: {count}",
   "v2.radio.removeConfirmDirectory": "Usunąć „{name}” z Moich radiów? Stacja pozostaje dostępna w Katalogu: możesz ją tam znaleźć i dodać ponownie.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

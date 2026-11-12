@@ -7485,6 +7485,8 @@ export default {
   "pareFeu.profilDomaine": "Tartomány",
   "pareFeu.profilPrive": "Magán",
   "pareFeu.profilPublic": "Nyilvános",
+  "transport.queueCountOne": "Lejátszási sor · 1 szám",
+  "transport.queueCount": "Lejátszási sor · {count} szám",
   "v2.radio.removeConfirmDirectory": "Eltávolítja a(z) „{name}” adót a Saját rádióim közül? Az adó továbbra is elérhető a Katalógusban: ott megtalálja, és újra hozzáadhatja.",
 } as const;
 

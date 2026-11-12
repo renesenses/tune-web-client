@@ -7546,6 +7546,8 @@ export default {
   "pareFeu.profilDomaine": "Domain",
   "pareFeu.profilPrive": "Private",
   "pareFeu.profilPublic": "Public",
+  "transport.queueCountOne": "Queue · 1 track",
+  "transport.queueCount": "Queue · {count} tracks",
   "v2.radio.removeConfirmDirectory": "Remove “{name}” from My Radios? The station stays available in the Directory: you can find it there and add it back.",
 } as const;
 
