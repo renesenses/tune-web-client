@@ -40,6 +40,7 @@
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t } from '../../lib/i18n';
   import { quatreDistinctes } from '../../lib/mosaique';
+  import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
@@ -434,6 +435,29 @@
     if (!sources.includes(source)) source = LOCAL;
   });
 
+  /**
+   * web#2805 (suite de tune-server-rust#7465, FabienM fil 2271) — « Tous /
+   * Par vous / Par Qobuz » sur la pastille d'un SERVICE, comme Streaming ›
+   * Qobuz › Playlists (#2231). Même module, mêmes règles
+   * (`lib/filtreAuteurPlaylists`) : `editable: true` = à vous, `false` =
+   * suivie ; sans drapeau, la playlist reste dans « Tous » seulement.
+   *
+   * - Appliqué APRÈS la recherche ; les compteurs disent ce qui reste.
+   * - Offert seulement si la liste du service a une playlist de chaque côté
+   *   (`filtreAuteurUtile`, mesuré AVANT la recherche pour que les pastilles
+   *   ne clignotent pas à la frappe). Sinon le choix retombe sur « Tous ».
+   * - Changer de pastille de source remet « Tous » : un choix posé sur Qobuz
+   *   ne doit pas vider l'écran de Tidal.
+   * - Les playlists locales ne sont jamais filtrées (pas de drapeau).
+   */
+  let filtreAuteur = $state<FiltreAuteur>('tous');
+  const listeService = $derived(source === LOCAL ? [] : (services[source] ?? []));
+  const auteurOffert = $derived(filtreAuteurUtile(compterParAuteur(listeService)));
+  const serviceSaisi = $derived(listeService.filter((pl) => correspond(pl?.name)));
+  const comptesAuteur = $derived(compterParAuteur(serviceSaisi));
+  const serviceVu = $derived(filtrerParAuteur(serviceSaisi, auteurOffert ? filtreAuteur : 'tous'));
+  const nomService = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+
   let smart = $state<any[]>([]);
   let smartCharge = false;
   let smartMosaiques = $state<Record<number, string[]>>({});
@@ -729,7 +753,7 @@
   {#if sources.length > 1}
     <nav class="srcs">
       {#each sources as sc (sc)}
-        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; }}>
+        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; filtreAuteur = 'tous'; }}>
           {sc === LOCAL ? $t('v2.pl.here' as any) : sc}
           <span class="cpt">{sc === LOCAL ? local.length : (services[sc]?.length ?? 0)}</span>
         </button>
@@ -805,7 +829,19 @@
     {#if source !== LOCAL}
       <!-- Un service : ses playlists seules, sans en-tête de groupe — la
            pastille active dit déjà de qui il s'agit. -->
-      {@const liste = (services[source] ?? []).filter((pl) => correspond(pl?.name))}
+      {@const liste = serviceVu}
+      {#if auteurOffert}
+        <div class="auteur" role="group" aria-label={$t('v2.str.plAuthorGroup' as any)}>
+          {#each [
+            { id: 'tous' as FiltreAuteur, libelle: $t('v2.str.plAuthorAll' as any), n: comptesAuteur.tous },
+            { id: 'moi' as FiltreAuteur, libelle: $t('v2.str.plAuthorMe' as any), n: comptesAuteur.moi },
+            { id: 'service' as FiltreAuteur, libelle: $t('v2.str.plAuthorService' as any).replace('{s}', nomService(source)), n: comptesAuteur.service },
+          ] as f (f.id)}
+            <button class="chip" class:active={filtreAuteur === f.id} aria-pressed={filtreAuteur === f.id}
+              data-auteur={f.id} onclick={() => (filtreAuteur = f.id)}>{f.libelle} <span class="n">{f.n}</span></button>
+          {/each}
+        </div>
+      {/if}
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
@@ -1044,6 +1080,13 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
   .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+  /* web#2805 — « Tous / Par vous / Par <service> », les puces de Streaming. */
+  .auteur{display:flex; gap:7px; flex-wrap:wrap; padding:0 30px 12px}
+  .auteur .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill)}
+  .auteur .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .auteur .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .auteur .chip .n{font:11px var(--v2-mono); opacity:.75}
   /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
      pas celui d'une alerte : rien n'est en panne. */
   .sans-pl{margin:6px 30px 0; font-size:12px; color:var(--v2-txt3)}
