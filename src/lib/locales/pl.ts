@@ -6100,6 +6100,7 @@ export default {
   "radioGenre.holiday": "Świąteczne",
   "radioGenre.oldies": "Oldies",
   "radioGenre.soundtrack": "Ścieżki dźwiękowe",
+  "radioGenre.religious": "Religijne",
   "credits.wikidataTip": "Instrumenty z wpisu Wikidata o wykonawcy: na czym zwykle gra, niekoniecznie na tej płycie.",
   "credits.wikidataSource": "według Wikidata",
   "v2.liensExternes.titre": "Linki zewnętrzne",

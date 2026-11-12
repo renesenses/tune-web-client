@@ -6251,6 +6251,7 @@ export default {
   "radioGenre.holiday": "节日",
   "radioGenre.oldies": "经典老歌",
   "radioGenre.soundtrack": "影视原声",
+  "radioGenre.religious": "宗教",
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "来自艺术家 Wikidata 条目的乐器：其通常演奏的乐器，不一定在本唱片中演奏。",
   "credits.wikidataSource": "来自 Wikidata",

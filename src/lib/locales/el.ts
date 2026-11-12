@@ -6102,6 +6102,7 @@ export default {
   "radioGenre.holiday": "Γιορτινά",
   "radioGenre.oldies": "Oldies",
   "radioGenre.soundtrack": "Μουσική ταινιών",
+  "radioGenre.religious": "Θρησκευτικά",
   "credits.wikidataTip": "Όργανα από την καταχώριση Wikidata του καλλιτέχνη: τι παίζει γενικά, όχι απαραίτητα σε αυτόν τον δίσκο.",
   "credits.wikidataSource": "από το Wikidata",
   "v2.liensExternes.titre": "Εξωτερικοί σύνδεσμοι",
