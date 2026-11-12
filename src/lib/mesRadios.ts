@@ -101,3 +101,20 @@ export function sectionsRadio(
 ): { recentes: RadioStation[]; mes: RadioStation[] } {
   return { recentes: sansDoublon(recentes), mes: sansDoublon(mes) };
 }
+
+/**
+ * tune-server-rust#7523 (alec_eiffel ; discussion #7564, go de Bertrand du
+ * 12/11/2026) — la question posée avant de retirer une station de « Mes
+ * radios ». Une station de l'annuaire n'est pas supprimée : elle quitte la
+ * liste personnelle et reste dans l'annuaire. La fenêtre le dit, pour ne pas
+ * inquiéter. Une station saisie à la main, elle, n'a pas d'autre copie : la
+ * question reste la question courte.
+ */
+export function questionRetraitMesRadios(
+  traduire: (cle: string) => string,
+  nom: string,
+  dansLAnnuaire: boolean,
+): string {
+  const cle = dansLAnnuaire ? 'v2.radio.removeConfirmDirectory' : 'v2.radio.removeConfirm';
+  return traduire(cle).replace('{name}', nom);
+}

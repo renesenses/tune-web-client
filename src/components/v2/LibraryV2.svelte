@@ -4484,6 +4484,27 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      passe désormais à la ligne, alignée à droite, et un onglet ne se coupe
      jamais en deux. */
   .tabs{margin-left:auto; display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end; min-width:0}
+  /* Recette rc12 (13/11) — neuf onglets ne tiennent pas À CÔTÉ du titre :
+     « Statistiques » passait à la ligne dès 1440 px, et à 400 px la rangée
+     s'empilait par-dessus « Bibliothèque ». Les onglets passent SOUS le titre,
+     sur toute la largeur, alignés à gauche comme les filtres qui suivent. Seul
+     le titre réserve la place de la grappe (avatar, signet), qui ne descend
+     pas jusqu'à la rangée d'onglets. La vue mini (téléphone) garde sa
+     mise en page à elle (`styles/vue-mini.css`). */
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{flex-wrap:wrap; align-items:center; row-gap:10px; padding-right:30px}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{margin-left:0; justify-content:flex-start}
+  /* Fenêtre étroite : UNE rangée qui défile au doigt, plutôt que trois. Et le
+     titre passe SOUS la grappe, qui occupe alors presque toute la largeur. */
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{padding-right:0}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs, :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions::-webkit-scrollbar{display:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap}
+  }
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
     font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .tab:hover{color:var(--v2-txt)}

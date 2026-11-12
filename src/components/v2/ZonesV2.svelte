@@ -57,6 +57,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import ZonesSupprimees from './ZonesSupprimees.svelte';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
   import AlertePareFeu from './AlertePareFeu.svelte';
 
@@ -652,6 +653,9 @@
       <button class="v2-btn" disabled={busy} onclick={() => creerZoneAsio(s)}>{$t('v2.zone.creerZoneAsio' as any)}</button>
     </div>
   {/each}
+
+  <!-- tune-server-rust#7836 — « Zones supprimées (n) » et Restaurer. -->
+  <ZonesSupprimees onRestauree={refresh} />
 
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
