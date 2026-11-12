@@ -235,29 +235,29 @@
     border-radius:var(--v2-r-card, 12px); padding:18px 20px 20px;
     box-shadow:var(--v2-sh-pop, 0 12px 40px rgba(0,0,0,.5))}
   header{position:relative; padding-right:32px; margin-bottom:10px}
-  h2{font:700 16px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
-  h3{font:600 13.5px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit)); margin-bottom:6px}
-  .src{margin-top:3px; font:12.5px var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
+  h2{font:700 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
+  h3{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit)); margin-bottom:6px}
+  .src{margin-top:3px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
   .x{position:absolute; top:-4px; right:-6px; width:28px; height:28px; border:0; background:transparent;
-    color:var(--v2-txt3, inherit); font-size:20px; line-height:1; cursor:pointer; border-radius:6px}
+    color:var(--v2-txt3, inherit); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer; border-radius:6px}
   .x:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
   .bloc{padding:12px 0; border-top:1px solid var(--v2-line2, var(--tune-border, #333));
-    font:13px var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text, inherit))}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text, inherit))}
   dl{display:grid; grid-template-columns:max-content 1fr; gap:4px 14px; margin:4px 0}
   dt{color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
   dd{margin:0; overflow-wrap:anywhere}
-  .code{font-family:var(--v2-mono, monospace); font-size:12px}
+  .code{font-family:var(--v2-mono, monospace); font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .valeur{font-weight:600; color:var(--v2-txt, var(--tune-text, inherit))}
-  .detail{font-size:12px; color:var(--v2-txt3, inherit)}
-  .date{font-size:12px; color:var(--v2-txt3, var(--tune-text-secondary, inherit)); margin-top:4px}
-  .etat{font:13px var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:8px 0}
+  .detail{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3, inherit)}
+  .date{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3, var(--tune-text-secondary, inherit)); margin-top:4px}
+  .etat{font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:8px 0}
   .etat-section{margin-bottom:6px}
   .etat-section[data-etat="perime"]{color:var(--v2-warn, var(--tune-warning, inherit))}
   .image{display:block; width:100%; height:auto; border-radius:6px; background:#000; margin:6px 0}
   .reserve{height:48px; border:1px dashed var(--v2-line2, var(--tune-border, #333)); border-radius:6px}
   .bouton{margin-top:8px; border:1px solid var(--v2-acc1, var(--tune-accent, currentColor)); background:transparent;
     color:var(--v2-acc1, var(--tune-accent, currentColor)); border-radius:999px; padding:6px 14px;
-    font:600 13px var(--v2-sans, inherit); cursor:pointer}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); cursor:pointer}
   .bouton:hover{background:var(--v2-hover, rgba(255,255,255,.06))}
   .bouton:focus-visible,.x:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:2px}
 </style>
