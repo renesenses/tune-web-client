@@ -9215,7 +9215,17 @@ export function getArtistsWithoutImage(limit = 200, offset = 0) {
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
-  return fetchJSON<{ installed: boolean; version: string | null; status: string }>(
+  // web#2441 — `latest_version`, `up_to_date`, `latest_error` : la dernière
+  // version publiée de yt-dlp (tune-server-rust#7166) ; absents d'un serveur
+  // antérieur. Lus par `lib/moduleYoutube`.
+  return fetchJSON<{
+    installed: boolean;
+    version: string | null;
+    status: string;
+    latest_version?: string | null;
+    up_to_date?: boolean | null;
+    latest_error?: string | null;
+  }>(
     `${BASE}/system/youtube/status`
   );
 }
