@@ -168,6 +168,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import { appareilSansSortie } from '../../lib/raisonSortieReseau';
   import SmbWizard from '../partages/SmbWizard.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
@@ -8433,6 +8434,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="dn" use:bulleTexte>{(d.name ?? '').trim()}</span>
                     <span class="dt">{netLabel(d.type)}</span>
                     {#if d.host}<span class="dh">{d.host}</span>{/if}
+                    <!-- tune-server-rust#7838 : trouvé, mais pas une sortie de
+                         lecture (service de rendu manquant). Signalé, pas
+                         montré comme un appareil ordinaire. -->
+                    {#if appareilSansSortie(d)}
+                      <span class="dsans" data-sans-sortie title={$t('v2.devices.sansSortieHint' as any)}>{$t('v2.devices.sansSortie' as any)}</span>
+                    {/if}
                     {#if isAir}
                       {#if pairId === d.id && pairAwaiting}
                         <input class="pin" type="text" placeholder={$t('pairing.pinPlaceholder' as any)}
@@ -9102,6 +9109,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .dev .dsans{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-danger); border:1px solid var(--v2-danger-bd); border-radius:999px; padding:1px 7px; flex:0 0 auto; cursor:help}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:0 9px; outline:none}
   .dev .pmsg{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
