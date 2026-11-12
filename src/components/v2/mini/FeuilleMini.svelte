@@ -43,7 +43,7 @@
     box-shadow:var(--v2-sh-lg); font-family:var(--v2-sans); color:var(--v2-txt)}
   .poignee{flex:0 0 22px; display:grid; place-items:center; border:0; background:none; cursor:pointer}
   .poignee span{display:block; width:38px; height:4px; border-radius:2px; background:var(--v2-line2)}
-  h3{font-size:15px; font-weight:700; padding:2px 14px 8px}
+  h3{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; padding:2px 14px 8px}
   .corps{flex:1; min-height:0; overflow:auto}
   /* La file a sa propre liste défilante (et virtualisée) : le panneau lui donne
      une hauteur, et rien ne déborde en largeur. */

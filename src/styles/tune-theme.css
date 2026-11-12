@@ -28,6 +28,10 @@
   --font-label: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-primary: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  /* rc12 — « Taille du texte » : le multiplicateur de toutes les tailles de
+     police (cran « Normale »). Les crans vivent dans tune-v2.css, sous
+     `:root[data-v2-taille-texte=…]`. */
+  --v2-txt-echelle: 1;
 
   /* Spacing */
   --space-xs: 4px;
@@ -477,7 +481,7 @@ html[data-ascenseurs-larges] * {
   border: 1px solid var(--tune-border, #3a3a45);
   border-radius: var(--radius-sm, 6px);
   font-family: var(--font-body);
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--v2-txt-echelle, 1));
   line-height: 1.4;
   /* `pre-line` : une ligne de liste porte souvent deux textes coupés (le titre
      et l'artiste). La bulle les dit tous les deux, un par ligne, plutôt que de

@@ -112,7 +112,7 @@
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     max-width: 500px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     animation: toastSlideIn 0.25s ease-out;
@@ -159,7 +159,7 @@
 
   .toast-detail {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     opacity: 0.85;
   }
   .toast-detail summary { cursor: pointer; }

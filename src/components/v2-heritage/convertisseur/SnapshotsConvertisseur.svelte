@@ -371,26 +371,26 @@
 
 <style>
   .conv { display: flex; flex-direction: column; gap: 12px; }
-  .conv-titre { margin: 0; font-size: 16px; font-weight: 600; color: var(--tune-text); }
-  .conv-aide, .conv-discret { margin: 0; font-size: 12px; color: var(--tune-text-secondary); }
+  .conv-titre { margin: 0; font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); }
+  .conv-aide, .conv-discret { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .conv-premium { margin: 0; padding: 22px; text-align: center; color: var(--tune-text-secondary); }
-  .conv-vide { margin: 0; color: var(--tune-text-muted); font-size: 13px; }
+  .conv-vide { margin: 0; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-ligne { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-  .conv-champ { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--tune-text-secondary); }
+  .conv-champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .conv-champ select { min-width: 180px; padding: 6px 8px; border: 1px solid var(--tune-border); border-radius: 6px; background: var(--tune-surface); color: var(--tune-text); }
-  .conv-btn { align-self: flex-start; padding: 6px 14px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; font-size: 13px; }
+  .conv-btn { align-self: flex-start; padding: 6px 14px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-btn:disabled { opacity: 0.5; cursor: default; }
   .conv-primaire { background: var(--tune-accent); border-color: var(--tune-accent); color: var(--tune-bg); }
-  .conv-erreur { margin: 0; color: var(--tune-danger, #ef4444); font-size: 13px; }
+  .conv-erreur { margin: 0; color: var(--tune-danger, #ef4444); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-gardees { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .conv-lien-playlist { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; width: 100%; padding: 8px 10px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; text-align: left; }
   .conv-lien-playlist.active { border-color: var(--tune-accent); }
   .conv-bloc { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--tune-border); border-radius: 8px; }
-  .conv-bloc h4 { margin: 0; font-size: 14px; color: var(--tune-text); }
-  .conv-bloc ul, .conv-bloc ol { margin: 0; padding-left: 18px; font-size: 13px; color: var(--tune-text); }
+  .conv-bloc h4 { margin: 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-bloc ul, .conv-bloc ol { margin: 0; padding-left: 18px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .conv-snapshot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 4px 0; border-top: 1px solid var(--tune-border); }
-  .conv-mode, .conv-accord { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tune-text); }
-  .conv-resume { margin: 0; font-size: 13px; color: var(--tune-text); }
-  .conv-avertissement { margin: 0; padding: 8px 10px; border-left: 3px solid var(--tune-accent); font-size: 13px; color: var(--tune-text); }
+  .conv-mode, .conv-accord { display: flex; align-items: center; gap: 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-resume { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-avertissement { margin: 0; padding: 8px 10px; border-left: 3px solid var(--tune-accent); font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .conv-a-retirer { color: var(--tune-text-secondary); }
 </style>

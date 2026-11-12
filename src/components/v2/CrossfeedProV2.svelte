@@ -585,9 +585,9 @@
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; max-width:820px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
-  .lead{font-size:14px; line-height:1.6; color:var(--v2-txt2); padding:6px 0 18px; max-width:62ch}
+  .lead{font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2); padding:6px 0 18px; max-width:62ch}
   .state{padding:24px 0; color:var(--v2-txt3)}
-  .err,.warn{padding:11px 14px; border-radius:10px; font-size:12.5px; line-height:1.5; margin-bottom:16px}
+  .err,.warn{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:16px}
   .err{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .warn{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .warn b{color:var(--v2-acc-tint)}
@@ -602,10 +602,10 @@
   .row.sub{padding:10px 0 10px 18px}
   .row.off{opacity:.45}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:14px; font-weight:600}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:46ch}
+  .lbl span:first-child{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:46ch}
   .hint.sous{margin:6px 0 0; max-width:none}
-  .badge{display:inline-block; margin-left:8px; font:700 10px var(--v2-mono); letter-spacing:.08em; color:var(--v2-acc-tint);
+  .badge{display:inline-block; margin-left:8px; font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:var(--v2-r-pill); padding:2px 8px; vertical-align:middle}
 
   .sw{position:relative; flex:0 0 auto; width:46px; height:26px; cursor:pointer}
@@ -618,16 +618,16 @@
 
   .presets{display:flex; gap:7px; padding:14px 0 2px; flex-wrap:wrap; align-items:center}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .presets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .presets button:disabled{cursor:default}
   .presets.mes{padding-top:10px; padding-bottom:10px; border-bottom:1px solid var(--v2-line)}
-  .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .mesl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
 
   .sl{display:flex; align-items:center; gap:14px; flex:0 0 auto}
   .sl input{width:220px; accent-color:var(--v2-acc1)}
-  .val{font:12px var(--v2-mono); color:var(--v2-txt2); width:76px; text-align:right}
+  .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); width:76px; text-align:right}
 </style>

@@ -141,25 +141,25 @@
   /* web#2665 — le titre gardait la taille d'un <h3> nu (1,17 em, gras), plus
      gros que les autres titres de la fiche : même style que `.titre-connexes`
      de `DiscographieCommune`. */
-  .manquants h3 { margin: 0; font: 600 13px var(--v2-sans); color: var(--v2-txt2); }
+  .manquants h3 { margin: 0; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .gestes { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
   .ghost {
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: calc(12px * var(--v2-txt-echelle, 1));
     background: transparent; color: var(--tune-text);
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3));
   }
   .ghost:disabled { opacity: 0.5; cursor: default; }
-  .option { font-size: 12px; display: flex; align-items: center; gap: 6px; }
-  .etat, .attribution { margin: 0; font-size: 13px; color: var(--tune-text-muted); }
-  .attribution { font-size: 11px; }
-  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .option { font-size: calc(12px * var(--v2-txt-echelle, 1)); display: flex; align-items: center; gap: 6px; }
+  .etat, .attribution { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .attribution { font-size: calc(11px * var(--v2-txt-echelle, 1)); }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
   .titre { font-weight: 600; }
   .annee, .type { color: var(--tune-text-muted); }
   li a { color: var(--tune-accent); }
   .service { display: inline-flex; gap: 6px; }
   .mini {
-    padding: 2px 8px; border-radius: 10px; cursor: pointer; font-size: 11px;
+    padding: 2px 8px; border-radius: 10px; cursor: pointer; font-size: calc(11px * var(--v2-txt-echelle, 1));
     background: transparent; color: var(--tune-text);
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3));
   }

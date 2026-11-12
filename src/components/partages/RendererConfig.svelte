@@ -177,6 +177,17 @@
     if (zone.id != null) save(() => api.updateZoneDlnaPlayDelay(zone.id!, ms));
   }
 
+  // web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes ».
+  // DLNA seulement (le serveur ne l'applique qu'à ce chemin), et seulement si
+  // le serveur publie le champ : un serveur plus ancien l'ignorerait, et
+  // proposer un réglage sans effet serait mentir.
+  let fluxContinuConnu = $derived(zone.output_type === 'dlna' && typeof zone.dlna_flux_continu === 'boolean');
+  let fluxContinu = $state(zone.dlna_flux_continu ?? false);
+  function setFluxContinu(v: boolean) {
+    fluxContinu = v;
+    if (zone.id != null) save(() => api.updateZoneDlnaFluxContinu(zone.id!, v));
+  }
+
   /* ------------------------------------------------------------------------
    * La configuration ENREGISTRÉE.
    *
@@ -390,6 +401,14 @@
         {/each}
       </div>
     </div>
+
+    {#if fluxContinuConnu}
+      <label class="rc-toggle" data-reglage="zone-flux-continu">
+        <input type="checkbox" checked={fluxContinu} onchange={(e) => setFluxContinu((e.target as HTMLInputElement).checked)} />
+        <span>{$t('renderer.fluxContinu')}</span>
+      </label>
+      <p class="rc-hint">{$t('renderer.fluxContinuHint')}</p>
+    {/if}
   </div>
 
   {#if compatibiliteReinitialisable(zone.output_type)}
@@ -460,7 +479,7 @@
   /* Même dessin que le « Enregistré » de `ZoneDeviceEditor`, dans le même
      onglet : deux blocs voisins ne doivent pas s'annoncer de deux façons. */
   .rc-saved {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-success, #22c55e);
     margin-right: 8px;
@@ -484,7 +503,7 @@
   }
   .rc-check {
     font: inherit;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     background: var(--tune-surface);
@@ -508,7 +527,7 @@
   }
   .rc-chip {
     font-family: var(--font-mono, ui-monospace, monospace);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     letter-spacing: 0.02em;
     padding: 4px 9px;
     border-radius: 999px;
@@ -525,7 +544,7 @@
   }
   .rc-err {
     color: var(--tune-error, #ef4444);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .rc-controls {
     display: flex;
@@ -536,13 +555,13 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     cursor: pointer;
   }
   .rc-warn {
     margin: -2px 0 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     line-height: 1.4;
     color: var(--tune-warning, #d29922);
   }
@@ -550,7 +569,7 @@
      avertissement mais une explication de ce qui va se passer. */
   .rc-hint {
     margin: -2px 0 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     line-height: 1.4;
     color: var(--tune-text-secondary, #9ca3af);
   }
@@ -561,7 +580,7 @@
     flex-wrap: wrap;
   }
   .rc-wav-label {
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
   .rc-seg {
@@ -572,7 +591,7 @@
   }
   .rc-seg button {
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     background: transparent;
     border: none;
@@ -617,12 +636,12 @@
     flex-wrap: wrap;
   }
   .rc-garde-date {
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #9ca3af);
   }
   .rc-lien {
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #9ca3af);
     background: none;
     border: none;
@@ -651,7 +670,7 @@
     display: flex;
     gap: 6px;
     align-items: baseline;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .rc-chg code {
     font-family: var(--font-mono, ui-monospace, monospace);

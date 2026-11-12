@@ -445,64 +445,64 @@
 {/if}
 
 <style>
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .extraire{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2)}
   .indice-memoire{margin:-6px 0 12px}
-  .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 12.5px var(--v2-sans)}
+  .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .sec{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt)}
   .pri{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sec:disabled,.pri:disabled{opacity:.35; cursor:not-allowed}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:12px}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
-  .err{padding:8px 12px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .avert{padding:8px 12px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-line2); background:var(--v2-surface2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .err{padding:8px 12px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .avert{padding:8px 12px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-line2); background:var(--v2-surface2)}
 
   .suivi{flex-basis:100%; display:flex; flex-direction:column; gap:8px; margin-top:6px; padding:12px 14px;
     border:1px solid var(--v2-line); border-radius:12px; background:var(--v2-surface2)}
   .tete{display:flex; align-items:center; gap:10px}
-  .global{font:11.5px var(--v2-mono); color:var(--v2-txt2)}
+  .global{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .tete .annuler,.tete .fermer-suivi{margin-left:auto}
   .barre{height:4px; border-radius:2px; background:var(--v2-line); overflow:hidden}
   .barre span{display:block; height:100%; background:var(--v2-acc1)}
   .pistes-suivi{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
-  .piste-suivi{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-size:12px; padding:3px 0}
+  .piste-suivi{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-size:calc(12px * var(--v2-txt-echelle, 1)); padding:3px 0}
   .piste-suivi.courante{font-weight:600}
-  .piste-suivi .num{font:11px var(--v2-mono); color:var(--v2-txt3); width:20px; text-align:right}
+  .piste-suivi .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:20px; text-align:right}
   .piste-suivi .titre{flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:11.5px}
+  .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
   .piste-suivi .pc{font-family:var(--v2-mono)}
-  .illisibles{color:var(--v2-danger); font-size:11.5px; flex-basis:100%; padding-left:30px}
-  .verdict-ar{font-size:11.5px; color:var(--v2-txt2)}
+  .illisibles{color:var(--v2-danger); font-size:calc(11.5px * var(--v2-txt-echelle, 1)); flex-basis:100%; padding-left:30px}
+  .verdict-ar{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .verdict-ar[data-ar=verifie]{color:var(--v2-acc-tint)}
   .verdict-ar[data-ar=different]{color:var(--v2-danger)}
-  .crc,.relectures{font:10.5px var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
+  .crc,.relectures{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
   .fin{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .dossier{overflow-wrap:anywhere}
 
   .fond{position:fixed; inset:0; z-index:900; display:grid; place-items:center; background:rgba(0,0,0,.55); padding:16px}
   .panneau{position:relative; width:min(560px,100%); max-height:calc(100vh - 32px); overflow-y:auto; background:var(--v2-surface);
     color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); padding:20px 22px 22px; font-family:var(--v2-sans)}
-  h2{font-size:17px; font-weight:700; margin-bottom:14px}
+  h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin-bottom:14px}
   .fermer{position:absolute; top:12px; right:12px; width:28px; height:28px; border:0; border-radius:8px; background:transparent;
-    color:var(--v2-txt3); font-size:20px; line-height:1; cursor:pointer}
+    color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   form{display:flex; flex-direction:column; gap:12px}
   fieldset{border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:6px}
   fieldset.ligne{flex-direction:row; flex-wrap:wrap; gap:6px 16px}
-  legend,label > span{display:flex; gap:10px; align-items:center; margin-bottom:5px; font:600 11px var(--v2-mono);
+  legend,label > span{display:flex; gap:10px; align-items:center; margin-bottom:5px; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
   fieldset.ligne legend{flex-basis:100%}
   label{display:block}
-  label.choix{display:flex; gap:8px; align-items:center; font-size:13px}
-  small{display:block; margin-top:4px; font-size:11.5px; color:var(--v2-txt3)}
+  label.choix{display:flex; gap:8px; align-items:center; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  small{display:block; margin-top:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   input:not([type=radio]):not([type=checkbox]),select{width:100%; height:32px; padding:0 10px; border-radius:8px;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .duo{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   @media (max-width:520px){ .duo{grid-template-columns:1fr} }
   .choix-pistes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; max-height:240px; overflow-y:auto}
   .choix-pistes li{display:grid; grid-template-columns:20px 22px minmax(0,1fr); gap:8px; align-items:center}
-  .choix-pistes .num{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .choix-pistes .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .titre-piste:disabled{opacity:.45}
   .pied{display:flex; justify-content:flex-end; gap:10px; margin-top:4px}
 </style>

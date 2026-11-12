@@ -12,6 +12,6 @@
 </span>
 
 <style>
-  .disponibilite{font:500 10px var(--v2-sans); color:var(--v2-txt3); white-space:nowrap}
+  .disponibilite{font:500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); white-space:nowrap}
   .disponibilite.absent{color:var(--v2-danger)}
 </style>

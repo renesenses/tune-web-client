@@ -51,7 +51,7 @@
   }
   .gds-ligne {
     margin: 4px 0 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     line-height: 1.45;
     color: var(--tune-text-secondary, var(--tune-text));
   }

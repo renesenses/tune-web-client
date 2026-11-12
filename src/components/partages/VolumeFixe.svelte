@@ -11,7 +11,7 @@
 
 <style>
   .volume-fixe {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     letter-spacing: 0.02em;
     color: var(--tune-text-muted);
     white-space: nowrap;

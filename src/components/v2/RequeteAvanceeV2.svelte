@@ -92,15 +92,15 @@
 
 <style>
   .requete { display: flex; flex-direction: column; gap: 6px; }
-  .aide, .precision { margin: 0; font-size: 12px; color: var(--v2-txt2, var(--tune-text-muted)); }
+  .aide, .precision { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2, var(--tune-text-muted)); }
   textarea { font-family: var(--v2-mono, ui-monospace, monospace); resize: vertical; }
   .gestes { display: flex; gap: 10px; }
-  .erreur { color: var(--tune-danger, #d33); font-size: 13px; margin: 0; }
+  .erreur { color: var(--tune-danger, #d33); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin: 0; }
   .erreur p { margin: 0 0 4px; }
-  .extrait { display: block; white-space: pre-wrap; font-size: 12px; color: var(--tune-text); }
+  .extrait { display: block; white-space: pre-wrap; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .extrait mark { background: var(--tune-danger, #d33); color: #fff; border-radius: 2px; }
-  .resultat { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .resultat { display: flex; flex-direction: column; gap: 4px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .resultat p { margin: 0; }
   .avert { color: var(--tune-warning, #b80); }
-  ul { margin: 0; padding-left: 18px; font-size: 12px; }
+  ul { margin: 0; padding-left: 18px; font-size: calc(12px * var(--v2-txt-echelle, 1)); }
 </style>

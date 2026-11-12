@@ -500,33 +500,33 @@
   .corps{flex:1; min-height:0; overflow-y:auto; padding:6px 30px 20px; display:flex;
     flex-direction:column; gap:16px; max-width:900px}
   .champ{display:flex; flex-direction:column; gap:6px}
-  .champ > span{font:600 11px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .champ > span{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   .txt{height:38px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-sans); padding:0 12px; outline:none; min-width:0}
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 12px; outline:none; min-width:0}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .txt.num{max-width:140px}
 
   .mode{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
-  .lbl{font:600 11px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .lbl{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   .pill{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt3); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:6px 14px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:6px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .pill.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
 
   .regles{display:flex; flex-direction:column; gap:8px}
   .regle{display:grid; grid-template-columns:1fr auto 1fr auto; align-items:center; gap:8px}
   .sel{height:38px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; min-width:0}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; min-width:0}
   .sel.op{min-width:120px}
   .paire{display:flex; align-items:center; gap:8px; min-width:0}
-  .paire em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
-  .rien{color:var(--v2-txt3); font:12px var(--v2-mono)}
+  .paire em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
+  .rien{color:var(--v2-txt3); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .rm{width:34px; height:34px; border-radius:9px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
   .rm:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .rm svg{width:15px; height:15px}
   .lnk{align-self:flex-start; border:1px dashed var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; border-radius:var(--v2-r-pill); padding:7px 14px;
-    font:600 12px var(--v2-sans)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
 
   .options{display:flex; gap:16px; flex-wrap:wrap}
@@ -537,11 +537,11 @@
      bougent pas d'un pixel. Il n'interdit PAS d'enregistrer : la règle reste
      modifiable ensuite, et une règle incomplète n'abîme rien. */
   .avert{margin:0; padding:10px 30px 0; color:var(--v2-danger);
-    font:500 13px/1.35 var(--v2-sans)}
+    font:500 calc(13px * var(--v2-txt-echelle, 1))/1.35 var(--v2-sans)}
   /* La phrase qui dit ce que la source désigne vraiment (#1231, #4473) :
      sous le sélecteur, en retrait, sans voler la lecture de la règle. */
-  .precision{flex-basis:100%; color:var(--v2-txt3); font:400 12px/1.35 var(--v2-sans)}
-  .ghost,.play{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer}
+  .precision{flex-basis:100%; color:var(--v2-txt3); font:400 calc(12px * var(--v2-txt-echelle, 1))/1.35 var(--v2-sans)}
+  .ghost,.play{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .play{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

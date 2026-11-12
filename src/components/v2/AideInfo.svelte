@@ -35,7 +35,7 @@
   .aide-btn svg{width:15px; height:15px}
   .aide-bulle{display:none; position:absolute; z-index:20; top:calc(100% + 6px); right:0; width:max-content; max-width:300px;
     padding:9px 11px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    box-shadow:0 8px 24px var(--v2-sh-sm); font:12px/1.5 var(--v2-sans); color:var(--v2-txt2);
+    box-shadow:0 8px 24px var(--v2-sh-sm); font:calc(12px * var(--v2-txt-echelle, 1))/1.5 var(--v2-sans); color:var(--v2-txt2);
     white-space:normal; text-transform:none; letter-spacing:0}
   .aide:hover .aide-bulle, .aide-btn:focus-visible + .aide-bulle, .aide-bulle.ouvert{display:block}
 </style>

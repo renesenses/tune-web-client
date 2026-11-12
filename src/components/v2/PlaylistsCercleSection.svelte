@@ -163,16 +163,16 @@
 
 <style>
   .pl-cercle{display:flex; flex-direction:column; gap:8px; margin:0 0 20px; font-family:var(--v2-sans); color:var(--v2-txt)}
-  .pl-cercle h3{font-size:15px; font-weight:700; margin:0}
+  .pl-cercle h3{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
   .pl-cercle ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
   .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px;
-    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
+    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .gestes{display:flex; gap:10px; align-items:center}
-  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .calque-cercle{position:fixed; inset:0; z-index:60; overflow-y:auto; padding:16px 24px 40px;

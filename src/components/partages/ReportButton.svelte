@@ -131,7 +131,7 @@
     background: transparent;
     color: var(--tune-text-muted);
     cursor: pointer;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     opacity: 0.6;
     transition: opacity 0.15s, color 0.15s;
   }
@@ -156,7 +156,7 @@
 
   .report-menu-title {
     padding: 6px 8px;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: var(--tune-text-muted);
@@ -164,7 +164,7 @@
 
   .report-menu-groupe {
     padding: 8px 8px 2px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
   }
@@ -177,7 +177,7 @@
     border-radius: 4px;
     background: transparent;
     color: var(--tune-text);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     text-align: left;
     cursor: pointer;
   }
