@@ -32,8 +32,17 @@
    */
   export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
-  /** L'entrée correspond-elle à l'écran courant ? */
-  function estActif(it: Item, vue: View): boolean {
+  /**
+   * L'entrée correspond-elle à l'écran courant ?
+   *
+   * tune-server-rust#7901 (fil 2658) — « Bibliothèque » restait surlignée
+   * quand « Lecture en cours » était ouverte. L'entrée active se calcule
+   * d'après la ROUTE affichée (`activeView`), jamais d'après la vue
+   * précédente ni d'un préfixe commun : une vue n'allume qu'UNE entrée.
+   * Exportée pour que `barreEntreeActive7901.test.ts` le vérifie sur toutes
+   * les entrées de la barre.
+   */
+  export function estActif(it: Item, vue: View): boolean {
     return it.view === vue || (it.aussi?.includes(vue) ?? false);
   }
 
