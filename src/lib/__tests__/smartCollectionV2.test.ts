@@ -29,8 +29,10 @@ describe('Grammaire des règles : une seule, partagée', () => {
     // « Version », aux deux niveaux. Les collections en voient 31.
     // 34 depuis tune-server-rust#6232 : « Interprète de la piste », aux deux
     // niveaux. Les collections en voient 32 (même compte que `criteres.rs`).
-    expect(CHAMPS.length).toBe(34);
-    expect(champsDe('collection').length).toBe(32);
+    // 37 depuis tune-server-rust#8325 : « Chef d'orchestre », « Ensemble /
+    // orchestre » et « Œuvre », aux deux niveaux. Les collections en voient 35.
+    expect(CHAMPS.length).toBe(37);
+    expect(champsDe('collection').length).toBe(35);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);
