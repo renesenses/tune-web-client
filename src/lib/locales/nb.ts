@@ -1917,6 +1917,8 @@ export default {
   "settings.spotifyReceiverHint": "Mottakeren gjør ÉN sone om til en Spotify-høyttaler.",
   "settings.spotifyNameChangeHint": "Når du endrer navnet, dukker en ny enhet opp i Spotify-appen.",
   "settings.spotifySessionZoneMissing": "Spotify Connect kunne ikke spille i den eksponerte sonen: den finnes ikke lenger. Velg en annen (slå av mottakeren, velg, slå den på igjen).",
+  "settings.spotifySessionZoneCap": "Spotify Connect kunne ikke spille i den eksponerte sonen: Tunes gratisplan begrenser hvor mange soner som spiller samtidig. Stopp en annen sone, eller oppgrader til Premium.",
+  "settings.spotifySessionParental": "Spotify Connect kunne ikke spille i den eksponerte sonen: foreldrekontrollen avviste det (utenfor tillatte tider, lyttebudsjettet brukt opp eller eksplisitt innhold).",
   "settings.spotifyPremiumRequired": "Spotify avviste denne kontoen: Spotify Connect på Tune krever Spotify Premium. Med en gratiskonto spilles ingenting.",
   "settings.noZoneCreateOne": "Ingen sone. Opprett en på Soner-skjermen.",
   "settings.noAcousticModule": "Denne serveren leveres ikke med akustikkmodulen.",

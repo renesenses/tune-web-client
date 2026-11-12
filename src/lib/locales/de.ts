@@ -3258,6 +3258,8 @@ export default {
   "settings.spotifyReceiverHint": "Der Empfänger verwandelt EINE Zone in einen Spotify-Lautsprecher.",
   "settings.spotifyNameChangeHint": "Eine Namensänderung lässt ein neues Gerät in der Spotify-App erscheinen.",
   "settings.spotifySessionZoneMissing": "Spotify Connect konnte nicht in der freigegebenen Zone spielen: Sie existiert nicht mehr. Wählen Sie eine andere (Empfänger aus, Zone wählen, wieder ein).",
+  "settings.spotifySessionZoneCap": "Spotify Connect konnte in der freigegebenen Zone nicht abspielen: Das kostenlose Angebot von Tune begrenzt die Zahl der gleichzeitig spielenden Zonen. Stoppen Sie eine andere Zone oder wechseln Sie zu Premium.",
+  "settings.spotifySessionParental": "Spotify Connect konnte in der freigegebenen Zone nicht abspielen: Die Kindersicherung hat es abgelehnt (außerhalb der erlaubten Zeiten, Hörbudget aufgebraucht oder expliziter Inhalt).",
   "settings.spotifyPremiumRequired": "Spotify hat dieses Konto abgelehnt: Spotify Connect auf Tune erfordert Spotify Premium. Mit einem kostenlosen Konto wird nichts abgespielt.",
   "settings.noZoneCreateOne": "Keine Zone. Erstellen Sie eine im Zonen-Bildschirm.",
   "settings.noAcousticModule": "Dieser Server enthält das Akustik-Modul nicht.",

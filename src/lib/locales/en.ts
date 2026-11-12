@@ -2063,6 +2063,8 @@ export default {
   "settings.spotifyReceiverHint": "The receiver turns ONE zone into a Spotify speaker.",
   "settings.spotifyNameChangeHint": "Changing the name makes a new device appear in the Spotify app.",
   "settings.spotifySessionZoneMissing": "Spotify Connect could not play in the exposed zone: it no longer exists. Pick another zone (turn the receiver off, choose, turn it back on).",
+  "settings.spotifySessionZoneCap": "Spotify Connect could not play in the exposed zone: Tune's free plan limits how many zones play at the same time. Stop another zone, or upgrade to Premium.",
+  "settings.spotifySessionParental": "Spotify Connect could not play in the exposed zone: parental controls refused it (outside the allowed hours, listening budget used up, or explicit content).",
   "settings.spotifyPremiumRequired": "Spotify refused this account: Spotify Connect on Tune requires Spotify Premium. With a free account, nothing will play.",
   "settings.noZoneCreateOne": "No zone. Create one in the Zones screen.",
   "settings.noAcousticModule": "This server does not ship the acoustic module.",

@@ -3258,6 +3258,8 @@ export default {
   "settings.spotifyReceiverHint": "Il ricevitore trasforma UNA zona in un altoparlante Spotify.",
   "settings.spotifyNameChangeHint": "Cambiare il nome fa comparire un nuovo dispositivo nell'app Spotify.",
   "settings.spotifySessionZoneMissing": "Spotify Connect non ha potuto riprodurre nella zona esposta: non esiste più. Scegline un'altra (disattiva il ricevitore, scegli, riattivalo).",
+  "settings.spotifySessionZoneCap": "Spotify Connect non ha potuto riprodurre nella zona esposta: l'offerta gratuita di Tune limita il numero di zone che suonano contemporaneamente. Ferma un'altra zona o passa a Premium.",
+  "settings.spotifySessionParental": "Spotify Connect non ha potuto riprodurre nella zona esposta: il controllo parentale l'ha rifiutato (fuori dalle fasce orarie, budget di ascolto esaurito o contenuto esplicito).",
   "settings.spotifyPremiumRequired": "Spotify ha rifiutato questo account: Spotify Connect su Tune richiede Spotify Premium. Con un account gratuito non verrà riprodotto nulla.",
   "settings.noZoneCreateOne": "Nessuna zona. Creane una nella schermata Zone.",
   "settings.noAcousticModule": "Questo server non include il modulo acustico.",

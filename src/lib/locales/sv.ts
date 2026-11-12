@@ -3257,6 +3257,8 @@ export default {
   "settings.spotifyReceiverHint": "Mottagaren gör EN zon till en Spotify-högtalare.",
   "settings.spotifyNameChangeHint": "Om du byter namn visas en ny enhet i Spotify-appen.",
   "settings.spotifySessionZoneMissing": "Spotify Connect kunde inte spela i den exponerade zonen: den finns inte längre. Välj en annan (stäng av mottagaren, välj, slå på den igen).",
+  "settings.spotifySessionZoneCap": "Spotify Connect kunde inte spela i den exponerade zonen: Tunes gratisnivå begränsar hur många zoner som spelar samtidigt. Stoppa en annan zon eller uppgradera till Premium.",
+  "settings.spotifySessionParental": "Spotify Connect kunde inte spela i den exponerade zonen: föräldrakontrollen nekade (utanför tillåtna tider, lyssningsbudgeten slut eller explicit innehåll).",
   "settings.spotifyPremiumRequired": "Spotify nekade det här kontot: Spotify Connect på Tune kräver Spotify Premium. Med ett gratiskonto spelas ingenting.",
   "settings.noZoneCreateOne": "Ingen zon. Skapa en i Zoner-skärmen.",
   "settings.noAcousticModule": "Den här servern innehåller inte akustikmodulen.",

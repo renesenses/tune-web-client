@@ -1917,6 +1917,8 @@ export default {
   "settings.spotifyReceiverHint": "Odbiornik zamienia JEDNĄ strefę w głośnik Spotify.",
   "settings.spotifyNameChangeHint": "Zmiana nazwy sprawia, że w aplikacji Spotify pojawia się nowe urządzenie.",
   "settings.spotifySessionZoneMissing": "Spotify Connect nie mógł odtwarzać w udostępnionej strefie: już nie istnieje. Wybierz inną (wyłącz odbiornik, wybierz, włącz ponownie).",
+  "settings.spotifySessionZoneCap": "Spotify Connect nie mógł odtwarzać w udostępnionej strefie: darmowy plan Tune ogranicza liczbę stref grających jednocześnie. Zatrzymaj inną strefę lub przejdź na Premium.",
+  "settings.spotifySessionParental": "Spotify Connect nie mógł odtwarzać w udostępnionej strefie: kontrola rodzicielska odmówiła (poza dozwolonymi godzinami, wyczerpany limit słuchania lub treści dla dorosłych).",
   "settings.spotifyPremiumRequired": "Spotify odrzucił to konto: Spotify Connect w Tune wymaga Spotify Premium. Na darmowym koncie nic nie zostanie odtworzone.",
   "settings.noZoneCreateOne": "Brak stref. Utwórz jedną na ekranie Strefy.",
   "settings.noAcousticModule": "Ten serwer nie zawiera modułu akustycznego.",

@@ -3258,6 +3258,8 @@ export default {
   "settings.spotifyReceiverHint": "리시버는 하나의 존을 Spotify 스피커로 바꿉니다.",
   "settings.spotifyNameChangeHint": "이름을 바꾸면 Spotify 앱에 새 기기로 나타납니다.",
   "settings.spotifySessionZoneMissing": "Spotify Connect가 노출된 존에서 재생하지 못했습니다. 해당 존이 더 이상 없습니다. 다른 존을 선택하세요(리시버를 끄고, 선택한 뒤, 다시 켜기).",
+  "settings.spotifySessionZoneCap": "Spotify Connect가 공개 구역에서 재생하지 못했습니다. Tune 무료 요금제는 동시에 재생하는 구역 수를 제한합니다. 다른 구역을 멈추거나 Premium으로 업그레이드하세요.",
+  "settings.spotifySessionParental": "Spotify Connect가 공개 구역에서 재생하지 못했습니다. 자녀 보호 기능이 거부했습니다(허용 시간 외, 청취 한도 소진 또는 노골적인 콘텐츠).",
   "settings.spotifyPremiumRequired": "Spotify가 이 계정을 거부했습니다. Tune의 Spotify Connect에는 Spotify Premium이 필요합니다. 무료 계정으로는 재생되지 않습니다.",
   "settings.noZoneCreateOne": "존이 없습니다. 존 화면에서 만드세요.",
   "settings.noAcousticModule": "이 서버에는 음향 모듈이 포함되어 있지 않습니다.",

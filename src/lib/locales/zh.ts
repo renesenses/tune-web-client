@@ -3258,6 +3258,8 @@ export default {
   "settings.spotifyReceiverHint": "接收器会把一个区域变成 Spotify 音箱。",
   "settings.spotifyNameChangeHint": "更改名称后，Spotify 应用中会出现一个新设备。",
   "settings.spotifySessionZoneMissing": "Spotify Connect 无法在公开的区域播放：该区域已不存在。请另选一个区域（关闭接收器，选择后重新开启）。",
+  "settings.spotifySessionZoneCap": "Spotify Connect 无法在公开的区域中播放：Tune 免费版限制了同时播放的区域数量。请停止另一个区域，或升级到 Premium。",
+  "settings.spotifySessionParental": "Spotify Connect 无法在公开的区域中播放：家长控制拒绝了播放（不在允许的时段、收听额度已用完或内容不当）。",
   "settings.spotifyPremiumRequired": "Spotify 拒绝了此账户：Tune 上的 Spotify Connect 需要 Spotify Premium。免费账户无法播放。",
   "settings.noZoneCreateOne": "没有区域。请在「区域」界面创建一个。",
   "settings.noAcousticModule": "此服务器未包含声学模块。",

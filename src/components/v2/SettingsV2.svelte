@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
@@ -4123,7 +4124,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // tune-server-rust#8565 — la session lancée depuis l'application Spotify
   // n'a pas pu jouer : un code connu est traduit, un motif de sortie passe.
   function erreurDeSessionSpc(code: string): string {
-    return code === 'exposed_zone_missing' ? get(t)('settings.spotifySessionZoneMissing' as any) : code;
+    return erreurDeSessionSpotify(code, (cle) => get(t)(cle as any));
   }
   // #6018 — « Lecture Spotify (expérimental) », désactivée par défaut.
   async function toggleSpotifyLecture(on: boolean) {

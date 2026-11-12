@@ -1919,6 +1919,8 @@ export default {
   "settings.spotifyReceiverHint": "Bộ thu biến MỘT vùng phát thành loa Spotify.",
   "settings.spotifyNameChangeHint": "Đổi tên sẽ làm xuất hiện một thiết bị mới trong ứng dụng Spotify.",
   "settings.spotifySessionZoneMissing": "Spotify Connect không thể phát trong vùng được chia sẻ: vùng đó không còn tồn tại. Hãy chọn vùng khác (tắt bộ thu, chọn, rồi bật lại).",
+  "settings.spotifySessionZoneCap": "Spotify Connect không thể phát trong vùng được chia sẻ: gói miễn phí của Tune giới hạn số vùng phát cùng lúc. Hãy dừng một vùng khác hoặc nâng cấp lên Premium.",
+  "settings.spotifySessionParental": "Spotify Connect không thể phát trong vùng được chia sẻ: kiểm soát của phụ huynh đã từ chối (ngoài khung giờ cho phép, hết hạn mức nghe hoặc nội dung nhạy cảm).",
   "settings.spotifyPremiumRequired": "Spotify đã từ chối tài khoản này: Spotify Connect trên Tune yêu cầu Spotify Premium. Với tài khoản miễn phí sẽ không phát được gì.",
   "settings.noZoneCreateOne": "Chưa có vùng phát nào. Hãy tạo một vùng phát trong màn hình Vùng phát.",
   "settings.noAcousticModule": "Máy chủ này không đi kèm mô-đun phân tích âm học.",

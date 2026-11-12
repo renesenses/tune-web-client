@@ -39,7 +39,7 @@ describe('#8570 — le nom du récepteur Spotify Connect se change à tout momen
       }
     }
     expect(source).toContain("$t('settings.spotifyNameChangeHint' as any)");
-    expect(source).toContain("code === 'exposed_zone_missing'");
+    expect(source).toContain('erreurDeSessionSpotify(code,');
     // Compte gratuit : un message clair, pas un silence.
     expect(source).toContain("spc?.receiver_error_code === 'spotify_premium_required'");
   });
