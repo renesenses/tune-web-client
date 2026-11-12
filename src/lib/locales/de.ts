@@ -7343,7 +7343,7 @@ export default {
   "nowplaying.eqPureNotice": "PURE-Modus ist für diese Zone aktiv: Das Signal wird unverändert und ohne Verarbeitung übertragen. Die Voreinstellungen unten bleiben wirkungslos, solange der PURE-Modus aktiv ist.",
   "settings.fixedSampleRate": "Feste Ausgangsabtastrate",
   "settings.fixedSampleRateOff": "Aus",
-  "settings.fixedSampleRateHint": "Gilt ab dem nächsten Titel, auch für andere Abtastratenfamilien. In PURE und strengem Bit-perfect-Modus inaktiv.",
+  "settings.fixedSampleRateHint": "Gilt ab dem nächsten Titel, auch für andere Abtastratenfamilien. In PURE und strengem Bit-perfect-Modus inaktiv. Oberhalb der Ausgabegrenze verwendet Tune diese Grenze und zeigt sie im Signalweg an.",
   "zone.pauseThisZone": "{name} pausieren",
 } as const;
 

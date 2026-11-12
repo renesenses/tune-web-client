@@ -7188,7 +7188,7 @@ export default {
   "nowplaying.eqPureNotice": "Η λειτουργία PURE είναι ενεργή σε αυτή τη ζώνη: το σήμα μεταδίδεται ανέπαφο, χωρίς καμία επεξεργασία. Οι προεπιλογές παρακάτω δεν θα έχουν αποτέλεσμα όσο η λειτουργία PURE είναι ενεργή.",
   "settings.fixedSampleRate": "Σταθερή συχνότητα δειγματοληψίας εξόδου",
   "settings.fixedSampleRateOff": "Ανενεργή",
-  "settings.fixedSampleRateHint": "Από το επόμενο κομμάτι, ακόμη και για άλλη οικογένεια συχνοτήτων. Ανενεργή σε PURE ή αυστηρό bit-perfect.",
+  "settings.fixedSampleRateHint": "Από το επόμενο κομμάτι, ακόμη και για άλλη οικογένεια συχνοτήτων. Ανενεργή σε PURE ή αυστηρό bit-perfect. Πάνω από το όριο εξόδου, το Tune εφαρμόζει αυτό το όριο και το εμφανίζει στη διαδρομή σήματος.",
   "zone.pauseThisZone": "Παύση {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

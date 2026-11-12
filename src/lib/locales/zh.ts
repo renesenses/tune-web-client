@@ -7343,7 +7343,7 @@ export default {
   "nowplaying.eqPureNotice": "此区域已启用 PURE 模式：信号原样传输，不经任何处理。PURE 模式启用期间，下方的预设不会生效。",
   "settings.fixedSampleRate": "固定输出采样率",
   "settings.fixedSampleRateOff": "关闭",
-  "settings.fixedSampleRateHint": "从下一首开始生效，也适用于其他采样率系列的音源。在 PURE 或严格位完美模式下不生效。",
+  "settings.fixedSampleRateHint": "从下一首开始生效，也适用于其他采样率系列的音源。在 PURE 或严格位完美模式下不生效。 超过输出上限时，Tune 会应用该上限，并在信号路径中显示。",
   "zone.pauseThisZone": "暂停 {name}",
 } as const;
 

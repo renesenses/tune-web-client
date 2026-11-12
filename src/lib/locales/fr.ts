@@ -7365,7 +7365,7 @@ export default {
   "nowplaying.eqPureNotice": "Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun traitement. Les préréglages ci-dessous resteront donc sans effet tant que le mode PURE est activé.",
   "settings.fixedSampleRate": "Fréquence de sortie fixe",
   "settings.fixedSampleRateOff": "Désactivée",
-  "settings.fixedSampleRateHint": "À la piste suivante, même pour une source d’une autre famille. Inactive en mode PURE ou bit-perfect strict.",
+  "settings.fixedSampleRateHint": "À la piste suivante, même pour une source d’une autre famille. Inactive en mode PURE ou bit-perfect strict. Au-delà du plafond de sortie, Tune applique ce plafond et l’indique dans le chemin du signal.",
   "zone.pauseThisZone": "Mettre {name} en pause",
 } as const;
 

@@ -7188,7 +7188,7 @@ export default {
   "nowplaying.eqPureNotice": "Tryb PURE jest włączony w tej strefie: sygnał jest przesyłany bez zmian, bez żadnego przetwarzania. Poniższe ustawienia wstępne nie będą działać, dopóki tryb PURE jest włączony.",
   "settings.fixedSampleRate": "Stała częstotliwość próbkowania wyjścia",
   "settings.fixedSampleRateOff": "Wyłączona",
-  "settings.fixedSampleRateHint": "Od następnego utworu, także z innej rodziny częstotliwości. Nieaktywna w PURE lub ścisłym trybie bit-perfect.",
+  "settings.fixedSampleRateHint": "Od następnego utworu, także z innej rodziny częstotliwości. Nieaktywna w PURE lub ścisłym trybie bit-perfect. Powyżej limitu wyjścia Tune stosuje ten limit i pokazuje go w ścieżce sygnału.",
   "zone.pauseThisZone": "Wstrzymaj {name}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

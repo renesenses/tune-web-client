@@ -1,15 +1,6 @@
 // @vitest-environment jsdom
-//
-// renesenses/tune-server-rust#3973 — l'interrupteur « Bit-perfect strict »
-// dans les réglages par zone de la coquille v2 (`SettingsV2`, onglet Appareils, section « Réglages par zone »).
-//
-// Contrat : la zone rend `strict_bitperfect` (booléen). Un vieux serveur ne
-// l'a pas ⇒ l'interrupteur N'APPARAÎT PAS (proposer un réglage que le serveur
-// ignorerait serait mentir). Écriture : `PATCH /zones/{id}` avec
-// `{"strict_bitperfect": true|false}`.
-//
-// On regarde ce qui PART SUR LE RÉSEAU (le corps du PATCH), pas un appel de
-// fonction simulé : un nom de champ mal orthographié passerait sinon au vert.
+// #8428 / web#2832 : sélecteur de cadence fixe par zone, PATCH réel simulé.
+// Un serveur sans le champ et les sorties AirPlay ne proposent pas ce réglage.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 
@@ -35,7 +26,7 @@ const fr = lFr as unknown as Record<string, string>;
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
-let patches: { url: string; corps: unknown }[] = [];
+let patchesZone: { url: string; corps: unknown }[] = [];
 /** Ce que `GET /zones` rend : l'écran recharge la liste au montage, et une
  *  liste vide effacerait la zone posée dans le magasin. */
 let zonesServeur: unknown[] = [];
@@ -71,20 +62,23 @@ async function poser(z: Record<string, unknown>): Promise<HTMLDivElement> {
   return hote;
 }
 
-function interrupteur(h: HTMLElement): HTMLInputElement | null {
-  return h.querySelector<HTMLInputElement>('#zc-21 .strict-bitperfect input[type="checkbox"]');
-}
 
 beforeEach(() => {
-  patches = [];
+  patchesZone = [];
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as any);
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    const u = String(url);
     if (init?.method === 'PATCH') {
       const corps = JSON.parse(String(init.body ?? '{}'));
-      patches.push({ url: String(url), corps });
-      return new Response(JSON.stringify({ ...zone(), ...corps }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      // Observer tous les PATCH de la zone, y compris un éventuel plafond
+      // parasite, sans confondre la sauvegarde des préférences de l'écran.
+      if (/\/zones\/21(\?|$)/.test(u)) {
+        patchesZone.push({ url: u, corps });
+        zonesServeur[0] = { ...(zonesServeur[0] as Record<string, unknown>), ...corps };
+        return new Response(JSON.stringify(zonesServeur[0]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify(corps), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    const u = String(url);
     const corps = /\/zones(\?|$)/.test(u) ? zonesServeur
       : /\/(profiles|devices|playlists|shortcuts)(\?|$)/.test(u) ? [] : {};
     return new Response(JSON.stringify(corps), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -106,14 +100,34 @@ describe('#8428 — fréquence fixe', () => {
     expect(h.querySelector('[data-reglage="zone-frequence-fixe"]')).toBeNull();
   });
   it('envoie 48000 puis null, sans modifier le plafond', { timeout: 60_000 }, async () => {
-    const h = await poser(zone({ fixed_sample_rate: null }));
+    const h = await poser(zone({ fixed_sample_rate: null, max_sample_rate: 96000 }));
     const choix = h.querySelector<HTMLSelectElement>('[data-reglage="zone-frequence-fixe"] select');
     expect(choix, 'le réglage de fréquence fixe doit apparaître').not.toBeNull();
+    expect(choix!.labels?.[0]?.textContent?.trim()).toBe(fr['settings.fixedSampleRate']);
+    const aide = h.querySelector(`#${choix!.getAttribute('aria-describedby')}`);
+    expect(aide?.textContent).toBe(fr['settings.fixedSampleRateHint']);
+    const plafond = h.querySelector<HTMLSelectElement>('[data-reglage="zone-debit-max"] select');
+    expect(plafond?.value).toBe('96000');
     choix!.value = '48000';
     choix!.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patches.at(-1)?.corps).toEqual({ fixed_sample_rate: 48000 }));
+    await vi.waitFor(() => expect(patchesZone.at(-1)?.corps).toEqual({ fixed_sample_rate: 48000 }));
     choix!.value = '0';
     choix!.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patches.at(-1)?.corps).toEqual({ fixed_sample_rate: null }));
+    await vi.waitFor(() => expect(patchesZone.at(-1)?.corps).toEqual({ fixed_sample_rate: null }));
+    expect(patchesZone.map((p) => p.corps)).toEqual([{ fixed_sample_rate: 48000 }, { fixed_sample_rate: null }]);
+    expect(plafond?.value).toBe('96000');
   });
+  it.each(['airplay', 'airplay2'])('masque le réglage pour %s', async (output_type) => {
+    const h = await poser(zone({ fixed_sample_rate: null, output_type }));
+    expect(h.querySelector('[data-reglage="zone-frequence-fixe"]')).toBeNull();
+  });
+  it('permet une demande au-dessus du plafond, appliqué par le serveur', async () => {
+    const h = await poser(zone({ fixed_sample_rate: null, max_sample_rate: 96000 }));
+    const choix = h.querySelector<HTMLSelectElement>('[data-reglage="zone-frequence-fixe"] select')!;
+    choix.value = '192000';
+    choix.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(patchesZone.map((p) => p.corps)).toEqual([{ fixed_sample_rate: 192000 }]));
+    expect(h.querySelector<HTMLSelectElement>('[data-reglage="zone-debit-max"] select')?.value).toBe('96000');
+  });
+
 });

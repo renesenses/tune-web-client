@@ -7302,7 +7302,7 @@ export default {
   "nowplaying.eqPureNotice": "A PURE mód be van kapcsolva ennél a zónánál: a jel érintetlenül, feldolgozás nélkül halad át. Az alábbi előbeállításoknak nincs hatásuk, amíg a PURE mód be van kapcsolva.",
   "settings.fixedSampleRate": "Rögzített kimeneti mintavételi frekvencia",
   "settings.fixedSampleRateOff": "Kikapcsolva",
-  "settings.fixedSampleRateHint": "A következő számtól, más frekvenciacsalád esetén is. PURE vagy szigorú bit-perfect módban inaktív.",
+  "settings.fixedSampleRateHint": "A következő számtól, más frekvenciacsalád esetén is. PURE vagy szigorú bit-perfect módban inaktív. A kimeneti korlát felett a Tune ezt a korlátot alkalmazza, és jelzi a jelútban.",
   "zone.pauseThisZone": "{name} szüneteltetése",
 } as const;
 

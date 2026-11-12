@@ -6436,10 +6436,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
                           </select>
                         </label>
-                        {#if z.fixed_sample_rate !== undefined}
-                          <label class="zf" data-reglage="zone-frequence-fixe" title={$t('settings.fixedSampleRateHint' as any)}>
-                            <span>{$t('settings.fixedSampleRate' as any)}</span>
-                            <select class="sel sm" value={String(z.fixed_sample_rate ?? 0)}
+                        {#if z.fixed_sample_rate !== undefined && !['airplay', 'airplay2'].includes(z.output_type ?? '')}
+                          <div class="zf" data-reglage="zone-frequence-fixe">
+                            <label for={`fixed-sample-rate-${z.id}`}>{$t('settings.fixedSampleRate' as any)}</label>
+                            <select id={`fixed-sample-rate-${z.id}`} aria-describedby={`fixed-sample-rate-hint-${z.id}`} class="sel sm" value={String(z.fixed_sample_rate ?? 0)}
                               onchange={(e) => { const v = Number(e.currentTarget.value);
                                 setZoneField(z, () => api.updateZoneFixedSampleRate(z.id as number, v > 0 ? v : null)); }}>
                               <option value="0">{$t('settings.fixedSampleRateOff' as any)}</option>
@@ -6447,8 +6447,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                                 <option value={String(rate)}>{rate / 1000} kHz</option>
                               {/each}
                             </select>
-                            <small>{$t('settings.fixedSampleRateHint' as any)}</small>
-                          </label>
+                            <small id={`fixed-sample-rate-hint-${z.id}`}>{$t('settings.fixedSampleRateHint' as any)}</small>
+                          </div>
                         {/if}
                         <!--
                           BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.

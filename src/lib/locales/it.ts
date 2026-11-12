@@ -7343,7 +7343,7 @@ export default {
   "nowplaying.eqPureNotice": "Modalità PURE attiva su questa zona: il segnale è trasmesso intatto, senza alcuna elaborazione. I preset qui sotto non avranno effetto finché la modalità PURE è attiva.",
   "settings.fixedSampleRate": "Frequenza di uscita fissa",
   "settings.fixedSampleRateOff": "Disattivata",
-  "settings.fixedSampleRateHint": "Dalla prossima traccia, anche per sorgenti di un’altra famiglia. Inattiva in PURE o bit-perfect rigoroso.",
+  "settings.fixedSampleRateHint": "Dalla prossima traccia, anche per sorgenti di un’altra famiglia. Inattiva in PURE o bit-perfect rigoroso. Se supera il limite di uscita, Tune applica tale limite e lo indica nel percorso del segnale.",
   "zone.pauseThisZone": "Metti in pausa {name}",
 } as const;
 

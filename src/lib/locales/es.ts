@@ -7343,7 +7343,7 @@ export default {
   "nowplaying.eqPureNotice": "El modo PURE está activo en esta zona: la señal se transmite intacta, sin ningún procesamiento. Los preajustes de abajo no tendrán efecto mientras el modo PURE esté activo.",
   "settings.fixedSampleRate": "Frecuencia de salida fija",
   "settings.fixedSampleRateOff": "Desactivada",
-  "settings.fixedSampleRateHint": "Se aplica a la siguiente pista, incluso de otra familia de frecuencias. Inactiva en PURE o bit-perfect estricto.",
+  "settings.fixedSampleRateHint": "Se aplica a la siguiente pista, incluso de otra familia de frecuencias. Inactiva en PURE o bit-perfect estricto. Por encima del límite de salida, Tune aplica ese límite y lo indica en la ruta de señal.",
   "zone.pauseThisZone": "Pausar {name}",
 } as const;
 

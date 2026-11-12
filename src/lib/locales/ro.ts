@@ -7343,7 +7343,7 @@ export default {
   "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
   "settings.fixedSampleRate": "Frecvență de ieșire fixă",
   "settings.fixedSampleRateOff": "Dezactivată",
-  "settings.fixedSampleRateHint": "De la piesa următoare, inclusiv pentru altă familie de frecvențe. Inactivă în PURE sau bit-perfect strict.",
+  "settings.fixedSampleRateHint": "De la piesa următoare, inclusiv pentru altă familie de frecvențe. Inactivă în PURE sau bit-perfect strict. Peste limita ieșirii, Tune aplică acea limită și o indică în calea semnalului.",
   "zone.pauseThisZone": "Pune {name} pe pauză",
 } as const;
 

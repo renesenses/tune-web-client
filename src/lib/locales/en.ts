@@ -7363,7 +7363,7 @@ export default {
   "nowplaying.eqPureNotice": "PURE mode is on for this zone: the signal is passed through untouched, with no processing. The presets below will have no effect while PURE mode is on.",
   "settings.fixedSampleRate": "Fixed output sample rate",
   "settings.fixedSampleRateOff": "Off",
-  "settings.fixedSampleRateHint": "Applies to the next track, including sources from another rate family. Inactive in PURE or strict bit-perfect mode.",
+  "settings.fixedSampleRateHint": "Applies to the next track, including sources from another rate family. Inactive in PURE or strict bit-perfect mode. Above the output limit, Tune applies that limit and shows it in the signal path.",
   "zone.pauseThisZone": "Pause {name}",
 } as const;
 
