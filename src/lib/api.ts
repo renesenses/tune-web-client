@@ -952,6 +952,33 @@ export function supprimerArretProgramme(): Promise<EtatArretProgramme> {
   return fetchJSON(`${BASE}/system/settings/scheduled-stop`, { method: 'DELETE' }, undefined, true);
 }
 
+/**
+ * tune-server-rust#8325 / ESL63P — réglage « Balises du classique » : les
+ * balises lues par rôle et le sort de BAND. Un PUT qui change le réglage
+ * relance la relecture de fond des balises (`reread_started`), pas un scan.
+ */
+export interface EtatBalisesClassique {
+  classical_tags: import('./balisesClassique').BalisesClassique;
+  defaults: import('./balisesClassique').BalisesClassique;
+  standard_names?: { conductor: string; work: string; movement: string };
+  max_tags_per_role?: number;
+  reread_started?: boolean;
+}
+
+export function getBalisesClassique(): Promise<EtatBalisesClassique> {
+  // Sans bandeau : un serveur d'avant le réglage répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, undefined, undefined, true);
+}
+
+export function setBalisesClassique(
+  reglage: Partial<import('./balisesClassique').BalisesClassique>,
+): Promise<EtatBalisesClassique> {
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
