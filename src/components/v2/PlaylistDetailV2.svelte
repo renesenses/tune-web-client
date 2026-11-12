@@ -48,6 +48,8 @@
   } from '../../lib/remplacementIndisponibles';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
+  import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
+  import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
   import { circleCharge } from '../../lib/circle';
 
@@ -178,6 +180,8 @@
     return l;
   }
   const title = $derived(item.pl.name);
+  /** web#2806 — le sélecteur de radio de l'éditeur est ouvert. */
+  let choixRadio = $state(false);
 
   /**
    * ÉTIQUETER LA PLAYLIST DEPUIS SA FICHE — le même trou que la fiche album.
@@ -284,7 +288,8 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
+      // web#2806 — une radio ne part pas en piste : le mélange client la laisse.
+      const n = await lireListeAleatoire(sansRadios(tracks), gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifierErreur($tr('common.error'), e, { motifSeul: true });
@@ -294,10 +299,19 @@
   function playFrom(startIndex = 0) {
     const zid = zoneRequise();
     if (zid == null) return;
+    // web#2806 — une ligne RADIO se lit par la playlist (`playlist_id` +
+    // son rang RÉEL) : seul le serveur sait mettre son flux en file.
+    const cliquee = pistesVues[startIndex];
+    if (item.kind === 'local' && cliquee && estLigneRadio(cliquee)) {
+      if (radioIndisponible(cliquee)) return;
+      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: rangReel(cliquee) }).catch(signalerEchecLecture);
+      return;
+    }
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
-    // playlist — `start_index` du serveur ne connaît que ce dernier.
+    // playlist — `start_index` du serveur ne connaît que ce dernier. Les
+    // radios n'y vont pas : elles ne s'envoient pas en pistes.
     if (!ordreNaturel) {
-      void lireListe(pistesVues.slice(startIndex), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+      void lireListe(sansRadios(pistesVues.slice(startIndex)), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {
@@ -344,7 +358,8 @@
   async function enfiler(position: number | undefined, cle: string) {
     const zid = zoneRequise();
     if (zid == null || fileOccupee) return;
-    const corps = corpsDeFileListe(pistesVues, position);
+    // web#2806 — les radios restent hors de la file : ce ne sont pas des pistes.
+    const corps = corpsDeFileListe(sansRadios(pistesVues), position);
     if (!corps) { notifications.error($tr('library.noTracks')); return; }
     fileOccupee = true;
     try {
@@ -609,6 +624,12 @@
           <button class="ghost sm" class:on={edition} onclick={() => { edition = false; renaming = false; }} aria-pressed={edition} data-fin-edition-playlist>
             {$tr('v2.pl.editDone' as any)}
           </button>
+          {#if isLocal}
+            <!-- web#2806 — une radio rejoint la playlist depuis l'éditeur. -->
+            <button class="ghost sm" onclick={() => (choixRadio = true)} data-bouton-ajouter-radio aria-haspopup="dialog">
+              {$tr('v2.pl.addRadio' as any)}
+            </button>
+          {/if}
         {/if}
 
         <!-- On DIT pourquoi il n'y a pas de bouton, au lieu de laisser chercher.
@@ -678,14 +699,15 @@
         <div class="pgrille" data-pgrille style="--ptaille:{taillePochettes}px">
           {#each pistesVues as p, i (i)}
             <div class="pcarte">
-              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p)}
-                title={p.title}>
+              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p) || radioIndisponible(p)}
+                title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
                 <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
                   alt={p.title ?? ''} source={mixte ? null : p.source} />
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p)) || peutRemplacer(p, editable)}
+              {#if estLigneRadio(p)}<div class="part" data-ligne-radio>{$tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}</div>{/if}
+              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
@@ -706,7 +728,7 @@
         <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
-        {#if !edition && isLocal && estIntrouvable(_t)}
+        {#if !edition && isLocal && (estIntrouvable(_t) || radioIndisponible(_t))}
           <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
@@ -741,6 +763,11 @@
     {/if}
   </div>
 </div>
+
+{#if choixRadio && item.kind === 'local' && item.pl.id != null}
+  <ChoixRadioPlaylistV2 playlistId={item.pl.id} onClose={() => (choixRadio = false)}
+    onAjoutee={() => { load(); onChanged?.(); }} />
+{/if}
 
 {#if remplacement}
   <RemplacerIndisponibleModale titreDisparu={remplacement.piste.title ?? ''} candidats={remplacement.candidats}

@@ -5110,6 +5110,19 @@ export function addPlaylistTracks(id: number, trackIds: number[], position?: num
   });
 }
 
+/**
+ * web#2806 (tune-server-rust#8412) — ajoute des stations de « Mes radios »
+ * (`GET /radios`, champ `id`) à une playlist Tune : `{ radio_ids, position }`.
+ * Le serveur dédoublonne ; une demande qui ne porte QUE des stations inconnues
+ * rend 404 `playlist_radio_not_found`.
+ */
+export function addPlaylistRadios(id: number, radioIds: number[], position?: number) {
+  return fetchJSON<Playlist & { skipped_radios?: number }>(`${BASE}/playlists/${id}/tracks`, {
+    method: 'POST',
+    body: JSON.stringify({ radio_ids: radioIds, position: position ?? null }),
+  });
+}
+
 // Remove a track by its position (0-based index) in the playlist. The server
 // removes by position (POST /tracks/remove); there is no DELETE-by-track-id
 // route, so the old removePlaylistTrack(playlistId, trackId) silently 404'd.
