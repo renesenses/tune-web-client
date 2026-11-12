@@ -1664,6 +1664,7 @@ export default {
   "v2.home.wZones": "Ζώνες που παίζουν τώρα",
   "v2.svc.eyebrow": "Επιμέλεια",
   "v2.svc.wNew": "Νέες κυκλοφορίες",
+  "v2.svc.rubriqueRetiree": "Το {s} δεν παρέχει πλέον αυτή την ενότητα σε προσωπικές εφαρμογές.",
   "v2.svc.sec.newReleases": "Νέες κυκλοφορίες",
   "v2.svc.sec.bestSellers": "Ευπώλητα",
   "v2.svc.sec.pressAwards": "Βραβεία τύπου",

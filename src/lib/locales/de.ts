@@ -3005,6 +3005,7 @@ export default {
   "v2.home.wZones": "Zonen, die gerade spielen",
   "v2.svc.eyebrow": "Redaktion",
   "v2.svc.wNew": "Neuerscheinungen",
+  "v2.svc.rubriqueRetiree": "{s} stellt diese Rubrik für persönliche Apps nicht mehr bereit.",
   "v2.svc.sec.newReleases": "Neuerscheinungen",
   "v2.svc.sec.bestSellers": "Bestseller",
   "v2.svc.sec.pressAwards": "Auszeichnungen der Presse",

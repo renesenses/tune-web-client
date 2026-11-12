@@ -32,6 +32,7 @@
   import { segmentsAffichables } from '../../lib/library/bioSegments';
   import type { LangueBio } from '../../lib/library/langueBio';
   import MentionRepliBio from './MentionRepliBio.svelte';
+  import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
 
   interface Props {
     bio?: string | null;
@@ -49,6 +50,10 @@
      * que la discographie, en dessous, ne descende pas quand ils arrivent.
      */
     titresEnCharge?: boolean;
+    /** tune-server-rust#8578 — le service a RETIRÉ ses titres phares (Spotify,
+     *  applications personnelles) : le nom du service, pour le dire au lieu
+     *  d'une section absente. */
+    titresRetiresPar?: string | null;
     /** Change à chaque artiste : remet la biographie repliée. */
     cle?: unknown;
     /**
@@ -64,7 +69,7 @@
      */
     actionsBio?: Snippet;
   }
-  let { bio = null, provenance = null, segments = null, langueBio = null, titres = [], titresEnCharge = false, cle = undefined, actionsBio = undefined }: Props = $props();
+  let { bio = null, provenance = null, segments = null, langueBio = null, titres = [], titresEnCharge = false, titresRetiresPar = null, cle = undefined, actionsBio = undefined }: Props = $props();
 
   const bioPropre = $derived((bio ?? '').trim());
   const segmentsBio = $derived(segmentsAffichables(bioPropre, segments));
@@ -103,6 +108,11 @@
       onLire={(_p, i) => lireDepuis(i)}
       clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
   </section>
+{:else if titresRetiresPar && !titresEnCharge}
+  <section class="bloc" data-rubrique-retiree>
+    <h2>{$t('v2.fas.topTracks' as any)}</h2>
+    <p class="retiree">{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), titresRetiresPar)}</p>
+  </section>
 {:else if titresEnCharge}
   <!-- #1874 — la place d'une liste pleine, tenue pendant l'attente : même
        titre, même marge, une ligne réservée par titre attendu (46 px, la
@@ -117,6 +127,7 @@
 
 <style>
   .bloc { margin: 0 0 26px; }
+  .retiree { margin: 0; color: var(--v2-txt3); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   h2 {
     margin: 0 0 10px; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
     text-transform: uppercase; letter-spacing: .05em;

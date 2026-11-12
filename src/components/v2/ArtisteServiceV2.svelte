@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { estRetiree, rubriquesRetirees } from '../../lib/rubriquesRetirees';
   import { labelPrincipal, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   /**
    * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
@@ -1203,6 +1204,7 @@
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
     <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
+      titresRetiresPar={!estLocal && cible?.service && estRetiree(cible.service, 'titres-phares', $rubriquesRetirees) ? cible.service : null}
       actionsBio={artisteEditable ? enrichirBio : undefined} />
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour

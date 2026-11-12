@@ -3005,6 +3005,7 @@ export default {
   "v2.home.wZones": "Zonas sonando ahora",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "Novedades",
+  "v2.svc.rubriqueRetiree": "{s} ya no ofrece esta sección a las aplicaciones personales.",
   "v2.svc.sec.newReleases": "Novedades",
   "v2.svc.sec.bestSellers": "Más vendidos",
   "v2.svc.sec.pressAwards": "Premios de la prensa",

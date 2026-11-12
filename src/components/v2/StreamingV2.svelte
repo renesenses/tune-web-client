@@ -1,5 +1,6 @@
 <script lang="ts">
   import { chercherDansLeGenre, SAISIE_MIN, type EtatRechercheGenre } from '../../lib/rechercheGenre';
+  import { CLE_RUBRIQUE_RETIREE, estRetiree, phraseRetrait, rubriquesRetirees } from '../../lib/rubriquesRetirees';
   import { nomDeService } from '../../lib/groupesVersions';
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
@@ -451,7 +452,10 @@
    * Bandcamp est HORS SUJET ici : sa decouverte par genre passe par
    * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
    */
-  const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
+  // tune-server-rust#8578 — Genres RETIRÉS par le service : l'onglet reste,
+  // et dit pourquoi il est vide (décision de Bertrand, 12/11/2026).
+  const genresRetires = $derived(!!active && estRetiree(active, 'genres', $rubriquesRetirees));
+  const ongletGenres = $derived(!isBc && (aUnOngletGenres(svcGenres) || genresRetires));
   /**
    * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
    * Streaming. Propre à YouTube par nature — ses routes sont
@@ -1715,7 +1719,9 @@
       <!-- Volet GENRES a DEUX niveaux, la ou le service en a deux (#709).
            L'onglet n'existe que si la liste est pleine ; ce garde-fou couvre le
            seul cas restant — la liste videe sous les pieds de l'ecran. -->
-      {#if !svcGenres.length}
+      {#if !svcGenres.length && genresRetires}
+        <div class="state" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), active ?? '')}</div>
+      {:else if !svcGenres.length}
         <div class="state">{$t('streaming.genresEmpty')}</div>
       {:else if !genrePath.length}
         <div class="chips">

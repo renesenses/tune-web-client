@@ -3005,6 +3005,7 @@ export default {
   "v2.home.wZones": "Zone care redau acum",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "Noutăți",
+  "v2.svc.rubriqueRetiree": "{s} nu mai oferă această secțiune aplicațiilor personale.",
   "v2.svc.sec.newReleases": "Noutăți",
   "v2.svc.sec.bestSellers": "Cele mai vândute",
   "v2.svc.sec.pressAwards": "Premii ale presei",

@@ -1664,6 +1664,7 @@ export default {
   "v2.home.wZones": "Soner som spiller nå",
   "v2.svc.eyebrow": "Redaksjonelt",
   "v2.svc.wNew": "Nye utgivelser",
+  "v2.svc.rubriqueRetiree": "{s} tilbyr ikke lenger denne seksjonen til personlige apper.",
   "v2.svc.sec.newReleases": "Nye utgivelser",
   "v2.svc.sec.bestSellers": "Bestselgere",
   "v2.svc.sec.pressAwards": "Presseutmerkelser",

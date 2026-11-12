@@ -37,6 +37,7 @@
   import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
+  import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
@@ -260,7 +261,7 @@
    */
   interface Etat {
     id: string;
-    phase: 'attente' | 'charge' | 'echec' | 'non-propose';
+    phase: 'attente' | 'charge' | 'echec' | 'non-propose' | 'retiree';
     elements: Element[];
     chiffres: ChiffreAffiche[];
     /**
@@ -273,6 +274,8 @@
      */
     donnees?: unknown;
     raison?: string;
+    /** tune-server-rust#8578 — le service qui a retiré la rubrique (`retiree`). */
+    service?: string;
     /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
     recompose?: boolean;
   }
@@ -707,6 +710,10 @@
         // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
         // « réessayer » : réessayer ne changera rien.
         if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
+        // tune-server-rust#8578 — rubrique RETIRÉE par le service (Spotify,
+        // applications personnelles) : la phrase qui le dit, sans rouge ni
+        // « Réessayer » (décision de Bertrand, 12/11/2026).
+        if (err?.retiree === true) { majEtat(id, { phase: 'retiree', service: err.service }); return; }
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
@@ -1640,6 +1647,8 @@
               <div class="state mince">{$t('common.loading' as any)}</div>
             {:else if et.phase === 'non-propose'}
               <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
+            {:else if et.phase === 'retiree'}
+              <div class="state mince" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), et.service ?? '')}</div>
             {:else if et.phase === 'echec'}
               <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
                    revenir. Sans lui, la seule issue était F5 : les quatre

@@ -1666,6 +1666,7 @@ export default {
   "v2.home.wZones": "Vùng phát đang hoạt động",
   "v2.svc.eyebrow": "Biên tập",
   "v2.svc.wNew": "Phát hành mới",
+  "v2.svc.rubriqueRetiree": "{s} không còn cung cấp mục này cho ứng dụng cá nhân.",
   "v2.svc.sec.newReleases": "Phát hành mới",
   "v2.svc.sec.bestSellers": "Bán chạy nhất",
   "v2.svc.sec.pressAwards": "Giải thưởng báo chí",

@@ -27,6 +27,7 @@
  * Le catalogue est donc demandé au service, une fois, à l'ouverture de
  * l'écran.
  */
+import { exigerNonRetiree } from './rubriquesRetirees';
 import * as api from './api';
 import { limiteDe, playlistOuvrable, type Element, type Widget } from './accueilWidgets';
 
@@ -281,7 +282,7 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     forme: 'bande',
     charger: async () =>
       utiles(
-        liste(await api.getStreamingNewReleases(service)).map((o, i) =>
+        exigerNonRetiree(liste(await api.getStreamingNewReleases(service)), service, 'nouveautes').map((o, i) =>
           albumDistant(o, i, `${service}nv`, service),
         ),
       ),
@@ -315,7 +316,7 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        liste(await api.getStreamingFeaturedPlaylists(service))
+        exigerNonRetiree(liste(await api.getStreamingFeaturedPlaylists(service)), service, 'selection')
           .slice(0, limiteDe(ctx))
           .map((o, i) => playlistDistante(o, i, `${service}fp`, service)),
       ),

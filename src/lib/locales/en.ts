@@ -1810,6 +1810,7 @@ export default {
   "v2.home.wZones": "Zones playing now",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "New releases",
+  "v2.svc.rubriqueRetiree": "{s} no longer provides this section to personal apps.",
   "v2.svc.sec.newReleases": "New releases",
   "v2.svc.sec.bestSellers": "Best sellers",
   "v2.svc.sec.pressAwards": "Press awards",
