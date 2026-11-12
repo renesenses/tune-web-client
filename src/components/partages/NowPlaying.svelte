@@ -10,7 +10,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { questionRetraitMesRadios } from '../../lib/mesRadios';
+  import { estDeLAnnuaire, questionRetraitMesRadios } from '../../lib/mesRadios';
   import { tip } from '../../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
@@ -1047,7 +1047,10 @@ import { ICONES } from '../../lib/menuPiste';
     try {
       if (idDansMesRadios != null) {
         // #7523 — une station connue de l'annuaire y reste : la fenêtre le dit.
-        if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), nom, !!s.annuaire), { danger: true }))) return;
+        // Déjà dans « Mes radios », `stationDeLecture` rend `annuaire: null` :
+        // c'est l'entrée personnelle (`mienne.annuaire`) qui dit d'où elle vient.
+        const dansLAnnuaire = !!s.annuaire || (s.mienne != null && estDeLAnnuaire(s.mienne));
+        if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), nom, dansLAnnuaire), { danger: true }))) return;
         await api.deleteRadio(idDansMesRadios);
         notifications.success($t('v2.radio.removed' as any).replace('{name}', nom));
       } else if (s.annuaire) {
