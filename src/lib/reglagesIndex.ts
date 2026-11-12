@@ -93,7 +93,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'replaygain-anti-ecretage', section: 'localAudio', labelKey: 'settings.replayGainPreventClipping', descKey: 'v2.hint.replayGainPreventClipping', techniques: ['ReplayGain', 'clipping', 'true-peak'], min: 'expert' },
   { id: 'replaygain-source', section: 'localAudio', labelKey: 'settings.replaygainSource', descKey: 'settings.replaygainSourceTagsAnalysis', techniques: ['ReplayGain', 'tags'], min: 'intermediate' },
   { id: 'vitesse-analyses', section: 'localAudio', labelKey: 'settings.analysisSpeed', descKey: 'settings.analysisSpeedHint', termesKey: 'reglages.termes.vitesseAnalyses', techniques: ['CPU'], min: 'intermediate' },
-  { id: 'lever-bridage', section: 'localAudio', labelKey: 'settings.analysisUnthrottle', descKey: 'settings.analysisUnthrottleHint', techniques: ['CPU'], min: 'expert' },
   { id: 'remesure-replaygain', section: 'localAudio', labelKey: 'settings.rgReanalyze', descKey: 'settings.rgReanalyzeHint', techniques: ['ReplayGain'], min: 'intermediate' },
   { id: 'sorties-locales-visibles', section: 'localAudio', labelKey: 'settings.audioOutputs', techniques: ['DAC', 'USB'] },
   { id: 'zone-navigateur', section: 'localAudio', labelKey: 'settings.createBrowserZone', descKey: 'settings.playHereHint' },
