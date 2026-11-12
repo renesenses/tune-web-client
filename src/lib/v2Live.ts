@@ -737,6 +737,8 @@ export function demarrerTransportV2(): () => void {
             reprendre: (src) => browserResume(src),
             arreter: () => browserStop(),
           },
+          // #7533 — un titre de radio ne recharge pas le flux.
+          event?.data,
         );
 
         // web#2144 : la lecture démarre sur la zone choisie DANS ce navigateur,
