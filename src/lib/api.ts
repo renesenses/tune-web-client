@@ -2841,7 +2841,17 @@ export interface AlbumsArtisteSections {
    * excluent la discographie et ne disent rien des pistes.
    */
   credit_counts?: CompteursCredits;
+  /**
+   * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les artistes
+   * audibles sur les mêmes pistes que lui, déjà triés par le serveur
+   * (`shared_tracks` décroissant, puis nom), 20 au plus. Absente : serveur
+   * antérieur, ou personne — jamais `[]`. Le client ne retrie pas.
+   */
+  played_with?: JoueAvec[];
 }
+
+/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
+export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
@@ -2877,6 +2887,8 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
     // Lot 2 — recopiées telles quelles : ABSENTE reste absente.
     writing: o.writing,
     credit_counts: o.credit_counts,
+    // #2794 — recopiée telle quelle, sans valeur par défaut.
+    played_with: o.played_with,
   };
 }
 
