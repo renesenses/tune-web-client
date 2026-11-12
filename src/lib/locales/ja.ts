@@ -1306,6 +1306,7 @@ export default {
   "nowplaying.activate": "設定",
   "nowplaying.cancel": "キャンセル",
   "nowplaying.alarmActive": "アラーム有効:",
+  "nowplaying.alarmsSeeAll": "設定済みのすべてのアラーム",
   "nowplaying.normalization": "ノーマライズ",
   "nowplaying.startAmbiance": "ムードを開始",
   "nowplaying.saveAsPlaylist": "プレイリストとして保存",

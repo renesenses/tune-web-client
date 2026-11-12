@@ -1454,6 +1454,7 @@ export default {
   "nowplaying.activate": "Activer",
   "nowplaying.cancel": "Annuler",
   "nowplaying.alarmActive": "Réveil actif :",
+  "nowplaying.alarmsSeeAll": "Tous les réveils programmés",
   "nowplaying.normalization": "Normalisation",
   "nowplaying.startAmbiance": "Lancez une ambiance",
   "nowplaying.saveAsPlaylist": "Sauver en playlist",

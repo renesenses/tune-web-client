@@ -8315,8 +8315,36 @@ export function deleteCollaborativePlaylist(playlistId: number) {
 export function setAlarm(zoneId: number, time: string | null, opts?: { album_id?: number; playlist_id?: number; radio_id?: number; fade_seconds?: number }) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'POST', body: JSON.stringify({ time, ...opts }) });
 }
-export function getAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`); }
-export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'DELETE' }); }
+/**
+ * Un réveil de la zone, tel que `GET /zones/{id}/alarm` le rend.
+ *
+ * web#2534 (fil d'alec_eiffel, alarme FIP) — la route rend une LISTE, triée
+ * par heure (`tune-server/src/routes/playback.rs`, `get_alarms`) : tous les
+ * réveils de la table `alarms` posés sur cette zone, ceux de Lecture en cours
+ * comme ceux de l'écran Réveils. L'écran de lecture lisait `r.time` sur ce
+ * tableau : il ne voyait jamais un réveil actif, donc jamais son « Annuler ».
+ */
+export interface ReveilDeZone {
+  id: number;
+  zone_id: number | null;
+  time: string;
+  enabled: boolean;
+  days?: string | null;
+  source_type?: string | null;
+}
+export async function getAlarm(zoneId: number): Promise<ReveilDeZone[]> {
+  const r = await fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`);
+  const liste: any[] = Array.isArray(r) ? r : r && typeof r === 'object' && r.time ? [r] : [];
+  return liste.filter((a) => a && typeof a.time === 'string' && a.id != null) as ReveilDeZone[];
+}
+/**
+ * Supprime UN réveil de la zone — `DELETE /zones/{id}/alarm/{alarm_id}`.
+ * La route sans identifiant (`DELETE /zones/{id}/alarm`) n'existe pas côté
+ * serveur : « Annuler » échouait en silence.
+ */
+export function cancelAlarm(zoneId: number, alarmId: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm/${alarmId}`, { method: 'DELETE' });
+}
 
 // --- Quick Favorites ---
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }

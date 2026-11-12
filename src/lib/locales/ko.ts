@@ -1286,6 +1286,7 @@ export default {
   "nowplaying.activate": "설정",
   "nowplaying.cancel": "취소",
   "nowplaying.alarmActive": "알람 활성:",
+  "nowplaying.alarmsSeeAll": "예약된 모든 알람",
   "nowplaying.normalization": "정규화",
   "nowplaying.startAmbiance": "무드 시작",
   "nowplaying.saveAsPlaylist": "재생목록으로 저장",

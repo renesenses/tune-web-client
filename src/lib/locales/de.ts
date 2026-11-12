@@ -1306,6 +1306,7 @@ export default {
   "nowplaying.activate": "Stellen",
   "nowplaying.cancel": "Abbrechen",
   "nowplaying.alarmActive": "Wecker aktiv:",
+  "nowplaying.alarmsSeeAll": "Alle geplanten Wecker",
   "nowplaying.normalization": "Normalisierung",
   "nowplaying.startAmbiance": "Stimmung starten",
   "nowplaying.saveAsPlaylist": "Als Playlist speichern",

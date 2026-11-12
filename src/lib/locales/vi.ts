@@ -1308,6 +1308,7 @@ export default {
   "nowplaying.activate": "Đặt",
   "nowplaying.cancel": "Hủy",
   "nowplaying.alarmActive": "Báo thức đang bật:",
+  "nowplaying.alarmsSeeAll": "Tất cả báo thức đã đặt",
   "nowplaying.normalization": "Chuẩn hóa âm lượng",
   "nowplaying.startAmbiance": "Bắt đầu một tâm trạng",
   "nowplaying.saveAsPlaylist": "Lưu thành danh sách phát",

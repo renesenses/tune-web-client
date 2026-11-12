@@ -1306,6 +1306,7 @@ export default {
   "nowplaying.activate": "Programar",
   "nowplaying.cancel": "Cancelar",
   "nowplaying.alarmActive": "Alarma activa:",
+  "nowplaying.alarmsSeeAll": "Todas las alarmas programadas",
   "nowplaying.normalization": "Normalización",
   "nowplaying.startAmbiance": "Iniciar un ambiente",
   "nowplaying.saveAsPlaylist": "Guardar como lista",

@@ -1312,6 +1312,7 @@ export default {
   "nowplaying.activate": "Setează",
   "nowplaying.cancel": "Anulează",
   "nowplaying.alarmActive": "Alarmă activă:",
+  "nowplaying.alarmsSeeAll": "Toate alarmele programate",
   "nowplaying.normalization": "Normalizare",
   "nowplaying.startAmbiance": "Pornește o stare",
   "nowplaying.saveAsPlaylist": "Salvează ca playlist",
