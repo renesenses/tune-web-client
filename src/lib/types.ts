@@ -1228,6 +1228,13 @@ export interface ZoneGroupResponse {
   zone_ids: number[];
   auto_synced: boolean;
   group_manufacturer: string;
+  /** Numéro du groupe dans `zone_groups` (`group_id` en est la chaîne). */
+  id?: number;
+  name?: string;
+  /** tune-server-rust#8445 — volume maître (gain 0..1) et décalage de chaque
+   *  membre (clé : id de zone en chaîne), tels que le serveur les garde. */
+  master_volume?: number;
+  offsets?: Record<string, number>;
 }
 
 /** Filtre de la vue Métadonnées.

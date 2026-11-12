@@ -382,8 +382,10 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     // Lecture seule : aucune barre d'actions, le titre ne lance rien.
     expect(el.querySelector('.pistes-album .pactions')).toBeNull();
     const titre = el.querySelector('.pistes-album button.titre') as HTMLButtonElement;
-    // #7224 : plus `disabled` (le clic doit répondre), mais toujours inerte côté lecture.
-    expect(titre.getAttribute('aria-disabled')).toBe('true');
+    // #7224 (12/11) : un bouton actif — son clic lance l'équivalent trouvé dans MES
+    // sources (chercherDansMesSources7224). Ouvrir l'album, lui, ne lance rien.
+    expect(titre.disabled).toBe(false);
+    expect(titre.getAttribute('aria-disabled')).toBeNull();
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
     sansFuite(el);
     // Aucune demande de lecture n'est partie vers le serveur local.
