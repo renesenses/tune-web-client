@@ -7316,5 +7316,13 @@ export default {
   "login.haveAccount": "Έχετε ήδη λογαριασμό;",
   "nowplaying.eqPureNotice": "Η λειτουργία PURE είναι ενεργή σε αυτή τη ζώνη: το σήμα μεταδίδεται ανέπαφο, χωρίς καμία επεξεργασία. Οι προεπιλογές παρακάτω δεν θα έχουν αποτέλεσμα όσο η λειτουργία PURE είναι ενεργή.",
   "zone.pauseThisZone": "Παύση {name}",
+  "pareFeu.titre": "Το τείχος προστασίας των Windows φιλτράρει το Tune σε αυτό το δίκτυο",
+  "pareFeu.corps": "Το ενεργό δίκτυο είναι χαρακτηρισμένο ως {profils} και ο κανόνας τείχους προστασίας του Tune δεν το καλύπτει. Η ανακάλυψη συσκευών UPnP/DLNA και η πρόσβαση από τηλέφωνο είναι επομένως αποκλεισμένες: μια συσκευή μπορεί να εμφανίζεται μόνο ως AirPlay ή να μη λαμβάνει τίποτα.",
+  "pareFeu.etapePrive": "Ορίστε το δίκτυο ως Ιδιωτικό: Ρυθμίσεις Windows ▸ Δίκτυο και Internet ▸ ιδιότητες δικτύου ▸ Προφίλ δικτύου: Ιδιωτικό.",
+  "pareFeu.etapeAutoriser": "Ή επιτρέψτε το Tune σε αυτό το δίκτυο: Ασφάλεια των Windows ▸ Τείχος προστασίας και προστασία δικτύου ▸ Να επιτρέπεται μια εφαρμογή μέσω του τείχους προστασίας ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Έπειτα επανεκκινήστε το Tune.",
+  "pareFeu.profilDomaine": "Τομέας",
+  "pareFeu.profilPrive": "Ιδιωτικό",
+  "pareFeu.profilPublic": "Δημόσιο",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

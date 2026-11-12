@@ -7471,6 +7471,14 @@ export default {
   "login.haveAccount": "已有账户？",
   "nowplaying.eqPureNotice": "此区域已启用 PURE 模式：信号原样传输，不经任何处理。PURE 模式启用期间，下方的预设不会生效。",
   "zone.pauseThisZone": "暂停 {name}",
+  "pareFeu.titre": "Windows 防火墙正在此网络上拦截 Tune",
+  "pareFeu.corps": "当前网络被归类为{profils}，而 Tune 的防火墙规则不涵盖它。因此 UPnP/DLNA 设备的发现以及来自手机的访问被阻止：设备可能只显示为 AirPlay，或收不到任何内容。",
+  "pareFeu.etapePrive": "将网络设为专用：Windows 设置 ▸ 网络和 Internet ▸ 网络属性 ▸ 网络配置文件：专用。",
+  "pareFeu.etapeAutoriser": "或者在此网络上允许 Tune：Windows 安全中心 ▸ 防火墙和网络保护 ▸ 允许应用通过防火墙 ▸ tune-server.exe。",
+  "pareFeu.etapeRedemarrer": "然后重新启动 Tune。",
+  "pareFeu.profilDomaine": "域",
+  "pareFeu.profilPrive": "专用",
+  "pareFeu.profilPublic": "公用",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

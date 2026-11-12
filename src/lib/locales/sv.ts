@@ -7470,4 +7470,12 @@ export default {
   "login.haveAccount": "Har du redan ett konto?",
   "nowplaying.eqPureNotice": "PURE-läget är på för den här zonen: signalen skickas orörd, utan någon bearbetning. Förinställningarna nedan har ingen effekt så länge PURE-läget är på.",
   "zone.pauseThisZone": "Pausa {name}",
+  "pareFeu.titre": "Windows-brandväggen filtrerar Tune i det här nätverket",
+  "pareFeu.corps": "Det aktiva nätverket är klassat som {profils}, och Tunes brandväggsregel täcker det inte. Upptäckt av UPnP/DLNA-enheter och åtkomst från en telefon blockeras därför: en enhet kan visas bara som AirPlay, eller inte ta emot något.",
+  "pareFeu.etapePrive": "Ställ in nätverket som Privat: Windows-inställningar ▸ Nätverk och Internet ▸ nätverksegenskaper ▸ Nätverksprofil: Privat.",
+  "pareFeu.etapeAutoriser": "Eller tillåt Tune i det här nätverket: Windows-säkerhet ▸ Brandvägg och nätverksskydd ▸ Tillåt en app genom brandväggen ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Starta sedan om Tune.",
+  "pareFeu.profilDomaine": "Domän",
+  "pareFeu.profilPrive": "Privat",
+  "pareFeu.profilPublic": "Offentligt",
 } as const;

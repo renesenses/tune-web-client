@@ -7316,5 +7316,13 @@ export default {
   "login.haveAccount": "Har du allerede en konto?",
   "nowplaying.eqPureNotice": "PURE-modus er på for denne sonen: signalet sendes urørt, uten noen behandling. Forhåndsinnstillingene nedenfor har ingen virkning så lenge PURE-modus er på.",
   "zone.pauseThisZone": "Sett {name} på pause",
+  "pareFeu.titre": "Windows-brannmuren filtrerer Tune på dette nettverket",
+  "pareFeu.corps": "Det aktive nettverket er klassifisert som {profils}, og Tunes brannmurregel dekker det ikke. Oppdaging av UPnP/DLNA-enheter og tilgang fra en telefon er derfor blokkert: en enhet kan vises bare som AirPlay, eller ikke motta noe.",
+  "pareFeu.etapePrive": "Sett nettverket til Privat: Windows-innstillinger ▸ Nettverk og Internett ▸ nettverksegenskaper ▸ Nettverksprofil: Privat.",
+  "pareFeu.etapeAutoriser": "Eller tillat Tune på dette nettverket: Windows-sikkerhet ▸ Brannmur og nettverksbeskyttelse ▸ Tillat en app gjennom brannmuren ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Start deretter Tune på nytt.",
+  "pareFeu.profilDomaine": "Domene",
+  "pareFeu.profilPrive": "Privat",
+  "pareFeu.profilPublic": "Offentlig",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

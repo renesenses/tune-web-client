@@ -7323,5 +7323,13 @@ export default {
   "login.haveAccount": "Đã có tài khoản?",
   "nowplaying.eqPureNotice": "Chế độ PURE đang bật cho vùng này: tín hiệu được truyền nguyên vẹn, không qua xử lý nào. Các cài đặt sẵn bên dưới sẽ không có tác dụng khi chế độ PURE đang bật.",
   "zone.pauseThisZone": "Tạm dừng {name}",
+  "pareFeu.titre": "Tường lửa Windows đang chặn Tune trên mạng này",
+  "pareFeu.corps": "Mạng đang dùng được xếp loại {profils}, và quy tắc tường lửa của Tune không áp dụng cho loại này. Vì vậy việc dò tìm thiết bị UPnP/DLNA và truy cập từ điện thoại bị chặn: thiết bị có thể chỉ hiện dưới dạng AirPlay, hoặc không nhận được gì.",
+  "pareFeu.etapePrive": "Chuyển mạng sang Riêng tư: Cài đặt Windows ▸ Mạng và Internet ▸ thuộc tính mạng ▸ Hồ sơ mạng: Riêng tư.",
+  "pareFeu.etapeAutoriser": "Hoặc cho phép Tune trên mạng này: Bảo mật Windows ▸ Tường lửa và bảo vệ mạng ▸ Cho phép ứng dụng qua tường lửa ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Sau đó khởi động lại Tune.",
+  "pareFeu.profilDomaine": "Miền",
+  "pareFeu.profilPrive": "Riêng tư",
+  "pareFeu.profilPublic": "Công cộng",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

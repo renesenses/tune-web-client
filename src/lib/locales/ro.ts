@@ -7471,6 +7471,14 @@ export default {
   "login.haveAccount": "Ai deja un cont?",
   "nowplaying.eqPureNotice": "Modul PURE este activ în această zonă: semnalul este transmis intact, fără nicio procesare. Presetările de mai jos nu vor avea efect cât timp modul PURE este activ.",
   "zone.pauseThisZone": "Pune {name} pe pauză",
+  "pareFeu.titre": "Paravanul de protecție Windows filtrează Tune în această rețea",
+  "pareFeu.corps": "Rețeaua activă este clasificată ca {profils}, iar regula de paravan a Tune nu o acoperă. Descoperirea dispozitivelor UPnP/DLNA și accesul de pe telefon sunt deci blocate: un dispozitiv poate apărea doar ca AirPlay sau nu primește nimic.",
+  "pareFeu.etapePrive": "Setați rețeaua ca Privată: Setări Windows ▸ Rețea și internet ▸ proprietățile rețelei ▸ Profil de rețea: Privată.",
+  "pareFeu.etapeAutoriser": "Sau permiteți Tune în această rețea: Securitate Windows ▸ Paravan de protecție și protecția rețelei ▸ Permiteți o aplicație prin paravan ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Apoi reporniți Tune.",
+  "pareFeu.profilDomaine": "Domeniu",
+  "pareFeu.profilPrive": "Privată",
+  "pareFeu.profilPublic": "Publică",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

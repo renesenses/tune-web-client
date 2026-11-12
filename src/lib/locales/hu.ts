@@ -7430,6 +7430,14 @@ export default {
   "login.haveAccount": "Már van fiókja?",
   "nowplaying.eqPureNotice": "A PURE mód be van kapcsolva ennél a zónánál: a jel érintetlenül, feldolgozás nélkül halad át. Az alábbi előbeállításoknak nincs hatásuk, amíg a PURE mód be van kapcsolva.",
   "zone.pauseThisZone": "{name} szüneteltetése",
+  "pareFeu.titre": "A Windows tűzfal szűri a Tune-t ezen a hálózaton",
+  "pareFeu.corps": "Az aktív hálózat besorolása {profils}, és a Tune tűzfalszabálya nem fedi le. Ezért le van tiltva az UPnP/DLNA eszközök felderítése és a telefonról való hozzáférés: egy eszköz csak AirPlay-ként jelenhet meg, vagy nem kap semmit.",
+  "pareFeu.etapePrive": "Állítsa a hálózatot Magánra: Windows Gépház ▸ Hálózat és internet ▸ hálózat tulajdonságai ▸ Hálózati profil: Magán.",
+  "pareFeu.etapeAutoriser": "Vagy engedélyezze a Tune-t ezen a hálózaton: Windows biztonság ▸ Tűzfal és hálózatvédelem ▸ Alkalmazás engedélyezése a tűzfalon keresztül ▸ tune-server.exe.",
+  "pareFeu.etapeRedemarrer": "Ezután indítsa újra a Tune-t.",
+  "pareFeu.profilDomaine": "Tartomány",
+  "pareFeu.profilPrive": "Magán",
+  "pareFeu.profilPublic": "Nyilvános",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
