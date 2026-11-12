@@ -3354,7 +3354,7 @@ export default {
   "v2.accueilVide.added": "폴더를 추가했습니다. 스캔이 시작되었으며 앨범이 차례로 나타납니다.",
   "v2.accueilVide.settings": "위치 관리",
   "settings.removeFolderButton": "라이브러리에서 제거",
-  "settings.directoryOrderHint": "음질이 같으면 폴더 순서로 선택합니다. 앨범별 선택이 우선합니다.",
+  "settings.directoryOrderHint": "같은 앨범이 여러 폴더에 있으면 Tune은 가장 좋은 음질을 먼저 재생하고, 음질이 같으면 가장 위에 있는 폴더의 사본을 사용합니다. ↑ ↓ 화살표로 이 순서를 바꿀 수 있습니다. 앨범 페이지에서 선택한 폴더가 우선합니다.",
   "settings.backgroundAnalysisFolder": "백그라운드 분석",
   "settings.backgroundAnalysisFolderAria": "{path} 백그라운드 분석",
   "settings.backgroundAnalysisFoldersHint": "폴더의 선택을 해제하면 백그라운드 분석(ReplayGain, 다이내믹 레인지, 지문, 분위기)에서 제외됩니다. 이미 측정한 값은 유지되며 폴더는 라이브러리에 남습니다.",

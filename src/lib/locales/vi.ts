@@ -2015,7 +2015,7 @@ export default {
   "v2.accueilVide.added": "Đã thêm thư mục: quá trình quét đã bắt đầu, các album của bạn sẽ dần xuất hiện.",
   "v2.accueilVide.settings": "Quản lý vị trí",
   "settings.removeFolderButton": "Gỡ khỏi thư viện",
-  "settings.directoryOrderHint": "Khi chất lượng ngang nhau, thứ tự thư mục quyết định bản nào được ưu tiên. Lựa chọn riêng cho từng album vẫn được ưu tiên hơn.",
+  "settings.directoryOrderHint": "Khi cùng một album nằm trong nhiều thư mục, Tune phát bản có chất lượng tốt nhất trước; khi chất lượng ngang nhau, Tune dùng bản trong thư mục đứng cao nhất. Các mũi tên ↑ ↓ thay đổi thứ tự này. Thư mục chọn trên trang album được ưu tiên hơn.",
   "settings.backgroundAnalysisFolder": "Phân tích nền",
   "settings.backgroundAnalysisFolderAria": "Phân tích {path} ở chế độ nền",
   "settings.backgroundAnalysisFoldersHint": "Bỏ chọn một thư mục để loại nó khỏi phân tích nền: ReplayGain, dải động, dấu vân tay âm thanh và tâm trạng. Các giá trị đã đo được giữ nguyên, và thư mục vẫn ở trong thư viện.",

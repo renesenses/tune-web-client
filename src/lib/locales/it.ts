@@ -3354,7 +3354,7 @@ export default {
   "v2.accueilVide.added": "Cartella aggiunta: l’analisi è iniziata, gli album appariranno man mano.",
   "v2.accueilVide.settings": "Gestisci percorsi",
   "settings.removeFolderButton": "Rimuovi dalla libreria",
-  "settings.directoryOrderHint": "A parità di qualità, decide l'ordine delle cartelle. La scelta per un singolo album ha la precedenza.",
+  "settings.directoryOrderHint": "Quando lo stesso album si trova in più cartelle, Tune riproduce prima la qualità migliore; a parità di qualità, usa la copia della cartella più in alto. Le frecce ↑ ↓ cambiano questo ordine. Una cartella scelta nella scheda di un album ha la precedenza.",
   "settings.backgroundAnalysisFolder": "Analisi in background",
   "settings.backgroundAnalysisFolderAria": "Analizza {path} in background",
   "settings.backgroundAnalysisFoldersHint": "Deseleziona una cartella per escluderla dall'analisi in background: ReplayGain, gamma dinamica, impronte e atmosfere. I valori già misurati vengono conservati e la cartella resta nella libreria.",

@@ -2162,7 +2162,7 @@ export default {
   "v2.accueilVide.added": "Dossier ajouté : l’analyse a commencé, vos albums apparaîtront au fur et à mesure.",
   "v2.accueilVide.settings": "Gérer les emplacements",
   "settings.removeFolderButton": "Retirer de la bibliothèque",
-  "settings.directoryOrderHint": "À qualité égale, l'ordre des dossiers départage les exemplaires. Le choix propre à un album reste prioritaire.",
+  "settings.directoryOrderHint": "Quand le même album se trouve dans plusieurs dossiers, Tune lit d'abord la meilleure qualité ; à qualité égale, il prend l'exemplaire du dossier placé le plus haut. Les flèches ↑ ↓ changent cet ordre. Un dossier choisi sur la fiche d'un album passe avant.",
   "settings.backgroundAnalysisFolder": "Analyses de fond",
   "settings.backgroundAnalysisFolderAria": "Analyser {path} en fond",
   "settings.backgroundAnalysisFoldersHint": "Décochez un dossier pour le retirer des analyses de fond : ReplayGain, plage dynamique, empreintes et ambiances. Les valeurs déjà mesurées sont gardées, et le dossier reste dans la bibliothèque.",

@@ -3354,7 +3354,7 @@ export default {
   "v2.accueilVide.added": "Dosar adăugat: analiza a început, albumele vor apărea treptat.",
   "v2.accueilVide.settings": "Gestionați locațiile",
   "settings.removeFolderButton": "Elimină din bibliotecă",
-  "settings.directoryOrderHint": "La aceeași calitate, decide ordinea dosarelor. Alegerea pentru un album are prioritate.",
+  "settings.directoryOrderHint": "Când același album se află în mai multe dosare, Tune redă mai întâi calitatea cea mai bună; la calitate egală, folosește copia din dosarul aflat cel mai sus. Săgețile ↑ ↓ schimbă această ordine. Un dosar ales pe pagina unui album are prioritate.",
   "settings.backgroundAnalysisFolder": "Analize în fundal",
   "settings.backgroundAnalysisFolderAria": "Analizează {path} în fundal",
   "settings.backgroundAnalysisFoldersHint": "Debifați un dosar pentru a-l scoate din analizele în fundal: ReplayGain, gamă dinamică, amprente și atmosfere. Valorile deja măsurate se păstrează, iar dosarul rămâne în bibliotecă.",

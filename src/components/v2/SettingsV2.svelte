@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
@@ -2345,11 +2346,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
   let orderError = $state<string | null>(null);
-  const displayedMusicDirs = $derived(
-    directoryOrder === null ? musicDirs
-      : [...directoryOrder.filter((d) => musicDirs.includes(d)),
-        ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
-  );
+  // tune-server-rust#7876 : comparaison sur l'écriture normalisée (lib/ordreDossiers).
+  const displayedMusicDirs = $derived(dossiersOrdonnes(musicDirs, directoryOrder));
   /**
    * tune-server-rust#5593 — les racines EXCLUES des analyses de fond
    * (ReplayGain, plage dynamique, empreintes, CLAP). `null` : le serveur ne
@@ -2722,7 +2720,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function refreshDirectoryOrder() {
     try {
       const r = await api.getMusicDirectoryOrder();
-      directoryOrder = Array.isArray(r?.ordre) ? r.ordre : null;
+      directoryOrder = ordreDeLaReponse(r);
     } catch {
       directoryOrder = null; // Older server: keep the existing folder controls.
     }
@@ -2740,7 +2738,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     orderError = null;
     try {
       const r = await api.setMusicDirectoryOrder(next);
-      directoryOrder = r.ordre;
+      directoryOrder = ordreDeLaReponse(r) ?? directoryOrder;
     } catch {
       orderError = get(t)('settings.errDirectoryOrder' as any);
     } finally {
