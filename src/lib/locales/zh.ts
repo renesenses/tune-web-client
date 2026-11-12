@@ -6270,6 +6270,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "选择一个音频流进行收听。",
   "v2.radio.fiche.default": "默认",
+  "v2.radio.fiche.notInCountry": "在您所在的国家/地区不可用",
+  "v2.radio.fiche.countryUnknown": "仅限部分国家/地区：请在“设置 › 常规”中设定收听国家。",
   "v2.radio.dir.offline": "目录的本地副本（离线）",
   "v2.radio.dir.playFailed": "无法播放：{name}",
   "v2.radio.dir.clear": "清除",

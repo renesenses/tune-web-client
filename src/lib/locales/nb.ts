@@ -6121,6 +6121,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Velg en strøm for å lytte.",
   "v2.radio.fiche.default": "standard",
+  "v2.radio.fiche.notInCountry": "Ikke tilgjengelig i ditt land",
+  "v2.radio.fiche.countryUnknown": "Begrenset til enkelte land: angi lyttelandet i Innstillinger › Generelt.",
   "v2.radio.dir.offline": "Lokal kopi av katalogen (frakoblet)",
   "v2.radio.dir.playFailed": "Kan ikke spille av: {name}",
   "v2.radio.dir.clear": "Tøm",

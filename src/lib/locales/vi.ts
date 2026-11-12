@@ -6125,6 +6125,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Chọn một luồng để nghe.",
   "v2.radio.fiche.default": "mặc định",
+  "v2.radio.fiche.notInCountry": "Không khả dụng tại quốc gia của bạn",
+  "v2.radio.fiche.countryUnknown": "Chỉ dành cho một số quốc gia: hãy đặt quốc gia nghe trong Cài đặt › Chung.",
   "v2.radio.dir.offline": "Bản sao cục bộ của danh bạ (ngoại tuyến)",
   "v2.radio.dir.playFailed": "Không thể phát: {name}",
   "v2.radio.dir.clear": "Xóa",

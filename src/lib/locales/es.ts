@@ -6270,6 +6270,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Elige un flujo para escucharlo.",
   "v2.radio.fiche.default": "predeterminado",
+  "v2.radio.fiche.notInCountry": "No disponible en tu país",
+  "v2.radio.fiche.countryUnknown": "Restringido a algunos países: indica tu país de escucha en Ajustes › General.",
   "v2.radio.dir.offline": "Copia local del directorio (sin conexión)",
   "v2.radio.dir.playFailed": "No se puede reproducir: {name}",
   "v2.radio.dir.clear": "Borrar",

@@ -6229,6 +6229,8 @@ export default {
   "v2.radio.fiche.hls": "HLS",
   "v2.radio.fiche.pick": "Válasszon adásfolyamot a lejátszáshoz.",
   "v2.radio.fiche.default": "alapértelmezett",
+  "v2.radio.fiche.notInCountry": "Az Ön országában nem érhető el",
+  "v2.radio.fiche.countryUnknown": "Csak bizonyos országokban érhető el: állítsa be a hallgatási országot a Beállítások › Általános menüben.",
   "v2.radio.dir.offline": "A katalógus helyi másolata (offline)",
   "v2.radio.dir.playFailed": "Nem játszható le: {name}",
   "v2.radio.dir.clear": "Törlés",
