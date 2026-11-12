@@ -108,6 +108,7 @@
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -2614,6 +2615,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ytStatus = $state('absent');
   let ytBusy = $state(false);
   let ytPoll: ReturnType<typeof setInterval> | null = null;
+  /** web#2441 — la ligne « à jour / mise à jour / inconnue » du module. */
+  let ytLigne = $state<LigneModuleYoutube | null>(null);
 
   async function refreshYoutubePlayback() {
     try {
@@ -2622,6 +2625,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ytVersion = s.version ?? null;
       ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
       ytBusy = ytStatus === 'downloading';
+      ytLigne = ligneModuleYoutube(s);
       if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
     } catch { /* serveur antérieur à la route : la section reste en l'état */ }
   }
@@ -2647,6 +2651,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     paysTendancesYt = v;
     try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
     catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
+  /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
+  function remplirModuleYt(phrase: string, params: Record<string, string>): string {
+    return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
   }
 
   async function enableYoutubePlayback() {
@@ -7953,6 +7962,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </button>
                 {/if}
               </div>
+              <!-- web#2441 — version installée ET dernière publiée : « à jour »,
+                   « une mise à jour existe », ou pourquoi on ne sait pas. -->
+              {#if ytLigne}
+                <div class={ytLigne.etat === 'a_jour' ? 'hint' : 'errline'} data-module-youtube={ytLigne.etat}>
+                  {remplirModuleYt($t(ytLigne.cle as any), ytLigne.params)}
+                </div>
+              {/if}
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
               <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
