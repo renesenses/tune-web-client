@@ -1696,7 +1696,7 @@ export default {
   "v2.home.wArtistReleases": "Mới từ các nghệ sĩ của bạn",
   "v2.home.wNewInLibrary": "Mới trong thư viện của bạn",
   "v2.home.wOtherVersions": "Phiên bản khác của những gì bạn nghe",
-  "v2.home.wFavorites": "Yêu thích của bạn",
+  "v2.home.wFavorites": "Album yêu thích",
   "v2.home.wFavArtists": "Nghệ sĩ yêu thích",
   "v2.home.wFavTracks": "Bài hát yêu thích",
   "v2.home.wFavPlaylists": "Danh sách phát yêu thích",

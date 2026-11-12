@@ -3034,7 +3034,7 @@ export default {
   "v2.home.wArtistReleases": "내 아티스트의 신보",
   "v2.home.wNewInLibrary": "라이브러리의 새 항목",
   "v2.home.wOtherVersions": "들으신 음반의 다른 판본",
-  "v2.home.wFavorites": "나의 즐겨찾기",
+  "v2.home.wFavorites": "즐겨찾는 앨범",
   "v2.home.wFavArtists": "즐겨찾는 아티스트",
   "v2.home.wFavTracks": "즐겨찾는 트랙",
   "v2.home.wFavPlaylists": "즐겨찾는 플레이리스트",

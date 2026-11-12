@@ -1694,7 +1694,7 @@ export default {
   "v2.home.wArtistReleases": "Nytt fra artistene dine",
   "v2.home.wNewInLibrary": "Nytt i biblioteket ditt",
   "v2.home.wOtherVersions": "Andre versjoner av det du hører på",
-  "v2.home.wFavorites": "Favorittene dine",
+  "v2.home.wFavorites": "Favorittalbum",
   "v2.home.wFavArtists": "Favorittartister",
   "v2.home.wFavTracks": "Favorittspor",
   "v2.home.wFavPlaylists": "Favorittspillelister",

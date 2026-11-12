@@ -3033,7 +3033,7 @@ export default {
   "v2.home.wArtistReleases": "Nytt från dina artister",
   "v2.home.wNewInLibrary": "Nytt i ditt bibliotek",
   "v2.home.wOtherVersions": "Andra versioner av ditt lyssnande",
-  "v2.home.wFavorites": "Dina favoriter",
+  "v2.home.wFavorites": "Favoritalbum",
   "v2.home.wFavArtists": "Favoritartister",
   "v2.home.wFavTracks": "Favoritspår",
   "v2.home.wFavPlaylists": "Favoritspellistor",
