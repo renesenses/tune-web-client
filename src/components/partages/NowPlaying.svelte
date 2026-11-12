@@ -56,6 +56,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -2395,6 +2396,8 @@ import { ICONES } from '../../lib/menuPiste';
                   </div>
                   <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
                   <GainDeSortieNotes signalPath={zone.signal_path} />
+                  <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+                  <SortiesDuGroupe signalPath={zone.signal_path} />
                 </div>
               </div>
             {/if}

@@ -450,6 +450,30 @@ export interface SignalPath {
   /** tune-server-rust#4384 — ReplayGain armé, piste sans gain stocké : le
    *  préampli n'est pas appliqué. Absent sinon, sous PURE, ou d'un vieux serveur. */
   replaygain_untagged?: { mode?: string; preamp_db?: number } | null;
+  /** tune-server-rust#8419 — lecture groupée : chaque sortie du groupe et
+   *  son étage final. Absent hors groupe, ou d'un serveur antérieur. */
+  group_outputs?: SortiesDuGroupe | null;
+}
+
+/** tune-server-rust#8419 — une sortie d'un groupe de lecture. */
+export interface SortieDuGroupe {
+  zone_id: number;
+  name: string;
+  output_type?: string | null;
+  /** La zone dont on lit le chemin du signal. */
+  this_zone: boolean;
+  leader: boolean;
+  state: 'playing' | 'paused' | 'stopped';
+  bit_perfect?: boolean | null;
+  rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** La dernière étape du chemin du signal de CETTE sortie : ce qu'elle reçoit. */
+  final_stage?: SignalPathStep | null;
+}
+
+export interface SortiesDuGroupe {
+  group_id?: number | null;
+  leader_id?: number | null;
+  outputs: SortieDuGroupe[];
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
