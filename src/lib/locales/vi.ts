@@ -221,6 +221,7 @@ export default {
   "playback.errorNoOutputDevice": "Vùng phát này không có đầu ra âm thanh. Hãy chọn vùng phát khác hoặc cấu hình lại đầu ra của nó.",
   "playback.errorSampleRateUnknown": "Qobuz không cung cấp tần số lấy mẫu của bài hát này và Tune không đọc được nó từ file: không thể phát. Hãy thử lại sau hoặc chọn chất lượng khác.",
   "playback.errorSpotifyDisabled": "Chưa bật phát Spotify (tùy chọn thử nghiệm trong Cài đặt).",
+  "playback.errorSpotifyPremium": "Spotify chỉ cho phép nghe trong Tune với tài khoản Spotify Premium, và tài khoản này không có Premium. Bạn vẫn có thể duyệt (danh sách phát, album, tìm kiếm); để nghe, hãy dùng ứng dụng Spotify hoặc nâng cấp lên Premium.",
   "playback.errorSpotifyLinkRequired": "Spotify cần một bước duy nhất: trong ứng dụng Spotify (điện thoại hoặc máy tính, cùng mạng, cùng tài khoản), hãy chọn thiết bị “{device}” một lần. Sau đó Tune sẽ giữ liên kết này.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify cần một bước duy nhất, nhưng bộ thu Spotify Connect của Tune đang tắt: hãy bật nó, rồi trong ứng dụng Spotify (điện thoại hoặc máy tính, cùng mạng, cùng tài khoản), chọn thiết bị “{device}” một lần.",
   "playback.spotifyReceiverEnabled": "Đã bật bộ thu Spotify Connect. Bây giờ, trong ứng dụng Spotify (cùng mạng, cùng tài khoản), hãy chọn thiết bị “{device}” một lần rồi phát lại.",

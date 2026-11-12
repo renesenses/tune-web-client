@@ -232,6 +232,7 @@ export default {
   'playback.errorNoOutputDevice': "Cette zone n'a aucune sortie audio associée. Choisissez une autre zone ou reconfigurez sa sortie.",
   "playback.errorSampleRateUnknown": "Qobuz n'a pas indiqué la fréquence de cette piste, et Tune n'a pas pu la lire dans le fichier : lecture impossible. Réessayez plus tard ou choisissez une autre qualité.",
   "playback.errorSpotifyDisabled": "Lecture Spotify non activée (option expérimentale dans les Réglages).",
+  "playback.errorSpotifyPremium": "Spotify n'autorise l'écoute dans Tune qu'avec un compte Spotify Premium, et ce compte n'en a pas. La navigation (playlists, albums, recherche) reste disponible ; pour écouter, utilisez l'application Spotify ou passez à Premium.",
   "playback.errorSpotifyLinkRequired": "Spotify demande une étape unique : dans l'application Spotify (téléphone ou ordinateur, même réseau, même compte), choisissez une fois l'appareil « {device} ». Tune garde ensuite cette liaison.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify demande une étape unique, et le récepteur Spotify Connect de Tune est éteint : activez-le, puis, dans l'application Spotify (téléphone ou ordinateur, même réseau, même compte), choisissez une fois l'appareil « {device} ».",
   "playback.spotifyReceiverEnabled": "Récepteur Spotify Connect activé. Dans l'application Spotify (même réseau, même compte), choisissez maintenant une fois l'appareil « {device} », puis relancez la lecture.",
