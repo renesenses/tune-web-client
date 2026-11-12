@@ -3,6 +3,7 @@ import type { Locale } from '../i18n';
 import { resoudreLangue } from '../langueParDefaut';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
+import { appliquerTailleTexte, estTailleTexte, TAILLE_TEXTE_DEFAUT, type TailleTexte } from '../tailleTexte';
 import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
@@ -471,6 +472,12 @@ export interface Preferences {
    */
   ascenseursLarges: boolean;
   /**
+   * « Taille du texte » — rc12 (go de Bertrand du 12/11/2026). Petite /
+   * Normale / Grande ; « Normale » par défaut = le rendu d'avant. Voir
+   * `lib/tailleTexte.ts`.
+   */
+  tailleTexte: TailleTexte;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -606,6 +613,8 @@ const defaults: Preferences = {
   ouvrirFileAuDefilement: false,
   // web#2798 : DÉCOCHÉ — l'ascenseur large se demande dans Réglages.
   ascenseursLarges: false,
+  // rc12 : « Normale » — le rendu d'avant, au pixel près.
+  tailleTexte: TAILLE_TEXTE_DEFAUT,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -774,6 +783,10 @@ function lirePrefs(stored: string | null): Preferences {
       // de laisser l'interface à moitié peinte.
       if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
         p.v2Theme = V2_THEME_DEFAULT;
+      }
+      // rc12 — taille du texte : une valeur inconnue retombe sur « Normale ».
+      if (!estTailleTexte((raw as { tailleTexte?: unknown })?.tailleTexte)) {
+        p.tailleTexte = TAILLE_TEXTE_DEFAUT;
       }
       // Photo d'avatar : on n'accepte QUE ce que ce client sait avoir écrit,
       // une data-URL d'image. Ce blob ne vient pas seulement d'ici — il est
@@ -1015,6 +1028,8 @@ export const preferences = createPreferences();
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
 appliquerAscenseursLarges(loadPrefs().ascenseursLarges === true);
+// rc12 — la taille du texte dès le premier rendu (pas de saut de police).
+appliquerTailleTexte(loadPrefs().tailleTexte);
 
 const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
 

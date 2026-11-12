@@ -877,84 +877,84 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   .redac{display:flex; flex-direction:column; gap:16px; max-width:760px; padding-top:6px}
   .redac .deux{display:grid; grid-template-columns:1fr 1fr; gap:16px}
   .champ{display:flex; flex-direction:column; gap:6px}
-  .champ > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .champ > span{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .txt{height:38px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13.5px var(--v2-sans); padding:0 12px; outline:none; width:100%}
+    color:var(--v2-txt); font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 12px; outline:none; width:100%}
   .txt.zone{height:auto; padding:11px 12px; line-height:1.6; resize:vertical; font-family:var(--v2-sans)}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .sel{height:38px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13.5px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer; width:100%}
-  .case{display:flex; align-items:flex-start; gap:10px; font-size:13px}
-  .case em{display:block; margin-top:3px; font-style:normal; font-size:12px; color:var(--v2-txt3); line-height:1.55}
-  .fnoms{font-style:normal; font-size:12px; color:var(--v2-txt3)}
+    color:var(--v2-txt); font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer; width:100%}
+  .case{display:flex; align-items:flex-start; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .case em{display:block; margin-top:3px; font-style:normal; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.55}
+  .fnoms{font-style:normal; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .pj-liste{list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:2px}
   .pj-liste li{display:flex; align-items:center; gap:8px}
   .redac .actions{display:flex; align-items:center; gap:10px}
   .redac .go{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer;
-    font:700 13px var(--v2-sans); background:var(--v2-acc1); color:var(--v2-on-acc)}
+    font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); background:var(--v2-acc1); color:var(--v2-on-acc)}
   .redac .go:disabled{opacity:.5; cursor:default}
   .redac .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:7px 15px; font:600 11.5px var(--v2-sans)}
-  .tier{font:9.5px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-on-acc);
+    border-radius:999px; padding:7px 15px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .tier{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-radius:999px; padding:4px 11px}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
   .notice{max-width:620px; padding:18px 20px; border-radius:13px; border:1px solid var(--v2-line2); background:var(--v2-surface2)}
-  .notice p{font-size:14px; line-height:1.6; color:var(--v2-txt2)}
-  .notice .sub{margin-top:10px; font-size:12.5px; color:var(--v2-txt3)}
+  .notice p{font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2)}
+  .notice .sub{margin-top:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .notice b{color:var(--v2-txt)}
-  .foot{margin-top:26px; font-size:12.5px; line-height:1.6; color:var(--v2-txt3); max-width:70ch}
+  .foot{margin-top:26px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt3); max-width:70ch}
 
   .list{display:flex; flex-direction:column; gap:8px}
   .tk{display:flex; flex-direction:column; gap:8px; align-items:flex-start; width:100%; padding:14px 16px;
     border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); cursor:pointer;
     color:inherit; text-align:left; font-family:inherit}
   .tk:hover,.tk.on{border-color:var(--v2-acc2)}
-  .tsub{font-size:14px; font-weight:700}
+  .tsub{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .tmeta{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
-  .st{font:9.5px var(--v2-mono); letter-spacing:.09em; text-transform:uppercase; padding:2px 9px;
+  .st{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.09em; text-transform:uppercase; padding:2px 9px;
     border-radius:999px; border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .st.open{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
   .st.ans{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .cat{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  .dt{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
-  .unread{font:9.5px var(--v2-mono); color:#fff; background:var(--v2-danger-bd); border-radius:999px; padding:2px 8px}
+  .cat{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .dt{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .unread{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:#fff; background:var(--v2-danger-bd); border-radius:999px; padding:2px 8px}
 
   .thread{position:absolute; inset:0; z-index:30; background:var(--v2-bg); overflow-y:auto; padding:26px 34px 40px;
     display:flex; flex-direction:column}
   .close{align-self:flex-start; width:40px; height:40px; border-radius:12px; cursor:pointer; margin-bottom:14px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2); display:grid; place-items:center}
   .close svg{width:18px; height:18px}
-  .thread h2{font-size:24px; font-weight:800}
+  .thread h2{font-size:calc(24px * var(--v2-txt-echelle, 1)); font-weight:800}
   .thmeta{display:flex; align-items:center; gap:12px; margin-top:8px; padding-bottom:18px; border-bottom:1px solid var(--v2-line)}
 
   .msgs{flex:1; display:flex; flex-direction:column; gap:12px; padding:18px 0}
   .msg{max-width:70ch; padding:13px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .msg.team{border-color:var(--v2-acc2); background:var(--v2-acc-soft); align-self:flex-start}
   .msg:not(.team){align-self:flex-end}
-  .mh{display:flex; align-items:baseline; gap:12px; font:700 11px var(--v2-sans); color:var(--v2-txt2)}
-  .mh span{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  .mb{margin-top:7px; font-size:13.5px; line-height:1.6; color:var(--v2-txt); white-space:pre-wrap}
+  .mh{display:flex; align-items:baseline; gap:12px; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .mh span{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .mb{margin-top:7px; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt); white-space:pre-wrap}
 
   .reply{display:flex; gap:12px; align-items:flex-end; padding-top:16px; border-top:1px solid var(--v2-line)}
   .reply textarea{flex:1; border-radius:11px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13.5px var(--v2-sans); padding:11px 14px; outline:none; resize:vertical; font-family:inherit}
+    color:var(--v2-txt); font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:11px 14px; outline:none; resize:vertical; font-family:inherit}
   .reply textarea:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
-  .go{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
+  .go{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.4; cursor:default}
-  .closed{padding-top:16px; border-top:1px solid var(--v2-line); font-size:12.5px; color:var(--v2-txt3)}
+  .closed{padding-top:16px; border-top:1px solid var(--v2-line); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 
   /* Volets — meme barre que Podcasts et Streaming. */
   .volets{display:flex; gap:2px; padding:0 30px; border-bottom:1px solid var(--v2-line); margin-bottom:14px}
   .volets button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
-    padding:10px 14px; font:600 13px var(--v2-sans)}
+    padding:10px 14px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .volets button:hover{color:var(--v2-txt)}
   .volets button.on{color:var(--v2-txt)}
   .volets button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px;
@@ -965,31 +965,31 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   .dl{width:100%; max-width:560px; display:flex; flex-direction:column; gap:1px}
   .dr{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 14px;
     border-radius:9px; background:var(--v2-surface2)}
-  .dk{font-size:13.5px; color:var(--v2-txt2)}
-  .dv{font:12px var(--v2-mono); color:var(--v2-txt)}
+  .dk{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .dv{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt)}
   .dv.ok{color:var(--v2-acc1)}
   .dv.ko{color:var(--v2-danger)}
 
   /* Signaler un bogue */
   .bogue{padding:18px 30px 30px; margin-top:4px; border-top:1px solid var(--v2-line);
     display:flex; flex-direction:column; gap:14px; max-width:760px}
-  .bogue h2{font-size:17px; font-weight:800}
-  .bogue .sub{font-size:13px; color:var(--v2-txt3); max-width:620px; line-height:1.5}
+  .bogue h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:800}
+  .bogue .sub{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:620px; line-height:1.5}
   .bogue-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .bogue .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:7px 15px; font:600 11.5px var(--v2-sans); text-decoration:none}
+    border-radius:999px; padding:7px 15px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-decoration:none}
   .bogue .lnk:disabled{opacity:.5; cursor:default}
   .bogue-ok p{margin-bottom:12px}
-  .bogue-err{font-size:12.5px; color:var(--v2-danger); line-height:1.5}
+  .bogue-err{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger); line-height:1.5}
   /* #4564 — les captures. */
-  .bogue-hint{font-size:12px; color:var(--v2-txt3); font-style:normal}
-  .bogue-fnoms{font-size:12px; color:var(--v2-txt2); font-style:normal}
+  .bogue-hint{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); font-style:normal}
+  .bogue-fnoms{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); font-style:normal}
   .bogue-apercu{max-height:320px; overflow:auto; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-line);
-    background:var(--v2-surface2); font:11.5px/1.5 var(--v2-mono); color:var(--v2-txt2); white-space:pre-wrap}
+    background:var(--v2-surface2); font:calc(11.5px * var(--v2-txt-echelle, 1))/1.5 var(--v2-mono); color:var(--v2-txt2); white-space:pre-wrap}
 
   /* Mon systeme */
   .sys{padding:6px 30px 30px; display:flex; flex-direction:column; align-items:flex-start; gap:16px}
-  .sys .sub{font-size:13px; color:var(--v2-txt3); max-width:620px; line-height:1.5}
+  .sys .sub{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:620px; line-height:1.5}
   .schema{width:100%; overflow-x:auto; padding:6px 0}
   .schema svg{max-width:none}
   /* Mermaid pose ses propres couleurs : on ne lui impose que la place. */
@@ -998,7 +998,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   .schema .lien{fill:none; stroke:var(--v2-line2); stroke-width:1.6}
   .schema .lien.off{stroke-dasharray:4 4}
   .schema .bx rect{fill:var(--v2-surface2); stroke:var(--v2-line2); stroke-width:1}
-  .schema .bx text{fill:var(--v2-txt); font:12px var(--v2-sans)}
+  .schema .bx text{fill:var(--v2-txt); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .schema .bx.serveur rect{fill:var(--v2-acc-soft); stroke:var(--v2-acc2)}
   .schema .bx.appareil rect{fill:transparent}
   /* Hors ligne : pointilles, comme le `stroke-dasharray` du Mermaid d'origine. */

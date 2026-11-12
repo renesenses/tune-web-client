@@ -2250,18 +2250,18 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
     color:var(--v2-txt); font-family:var(--v2-sans); box-shadow:0 18px 40px rgba(0,0,0,.5)}
   .coll-item{display:block; flex:0 0 auto; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
-    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans); text-align:left; cursor:pointer;
+    background:transparent; color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align:left; cursor:pointer;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .coll-item:hover{background:var(--v2-surface2)}
   .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
   .coll-item.deja{color:var(--v2-txt3)}
   /* Intitulé d'un rayon (fil 1928) : il range, il ne se clique pas. */
-  .coll-rayon{flex:0 0 auto; margin:6px 0 0; padding:4px 10px 2px; font-size:11px; font-weight:600;
+  .coll-rayon{flex:0 0 auto; margin:6px 0 0; padding:4px 10px 2px; font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:600;
     letter-spacing:.04em; text-transform:uppercase; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .coll-rayon:first-child{margin-top:0}
   .coll-lien{color:var(--v2-acc-tint)}
-  .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
+  .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
@@ -2279,10 +2279,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .qbadge.cue{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   /* tune-server-rust#6285 — un hi-res douteux se distingue, sans crier. */
   .qbadge.cue.douteux{border-color:var(--v2-danger-bd)}
-  .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
+  .qbadge{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
-  .artist{font-size:18px; color:var(--v2-txt2)}
+  .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
+  .artist{font-size:calc(18px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   /* Le bouton doit se lire comme le texte qu'il remplace : même taille, même
      couleur, aligné à gauche. Ce qui l'annonce comme un lien, c'est le
      survol et le focus — visible AU CLAVIER, pas seulement à la souris. */
@@ -2290,24 +2290,24 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     text-align:left; cursor:pointer}
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
-  .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* tune-server-rust#7617 — le choix de la version à lire. */
-  .versions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 8px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .versions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .versions label{display:flex; align-items:center; gap:8px}
   .versions select{max-width:100%; font:inherit; color:var(--v2-txt); background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:6px; padding:3px 6px}
   .vpref{color:var(--v2-acc2)}
   .vchoix{font:inherit; color:var(--v2-acc2); background:transparent; border:1px solid var(--v2-line2); border-radius:6px; padding:3px 8px; cursor:pointer}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
-  .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 12px var(--v2-sans); color:var(--tune-accent)}
+  .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--tune-accent)}
   .lien-label:hover{text-decoration:underline}
   .lien-label:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
-  .repertoire-lecture label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
+  .repertoire-lecture label{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .repertoire-lecture select{width:100%; min-height:38px; padding:6px 10px; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-    font:13px var(--v2-sans)}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .repertoire-lecture select:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .repertoire-lecture select:disabled{opacity:.6}
-  .repertoire-lecture p{margin:0; color:var(--v2-danger); font-size:12px}
+  .repertoire-lecture p{margin:0; color:var(--v2-danger); font-size:calc(12px * var(--v2-txt-echelle, 1))}
   /* Le DR DÉDUIT (moyenne des pistes) : tilde dans le texte, soulignement
      pointillé en `currentColor` — donc lisible dans les deux thèmes sans
      jeton de couleur, et sans peser sur la ligne. Une mesure d'album ne porte
@@ -2322,7 +2322,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .actions{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:8px}
   .actions.local{flex-wrap:wrap; align-items:center}
   .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
-    font:700 14px var(--v2-sans); cursor:pointer; border:0}
+    font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; border:0}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
@@ -2341,7 +2341,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .onglets{display:flex; gap:4px; margin:14px 0 10px; border-bottom:1px solid var(--v2-line2);
     overflow-x:auto; scrollbar-width:none}
   .onglet{flex:0 0 auto; padding:9px 14px; border:0; border-bottom:2px solid transparent; margin-bottom:-1px;
-    background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-sans); cursor:pointer; white-space:nowrap}
+    background:transparent; color:var(--v2-txt2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .onglet:hover{color:var(--v2-txt)}
   .onglet.actif{color:var(--v2-txt); border-bottom-color:var(--v2-acc2)}
   .onglet:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
@@ -2353,12 +2353,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      qu'elle explique. Même dessin que la puce de portée de la Bibliothèque. */
   .focus-artiste{padding:2px 0 10px}
   .fchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
-    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
+    border-radius:var(--v2-r-pill); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .fchip svg{width:14px; height:14px; flex:none}
   .fchip button{display:flex; align-items:center; justify-content:center; width:18px; height:18px;
-    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 14px var(--v2-sans);
+    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     background:transparent; color:inherit; line-height:1}
   .fchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
   .fchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -2368,18 +2368,18 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .barre-selection{position:sticky; top:0; z-index:3; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
     padding:10px 12px; margin-bottom:8px; border-radius:var(--v2-r-md);
     border:1px solid var(--v2-line2); background:var(--v2-surface)}
-  .sel-compte{font:600 13px var(--v2-sans); color:var(--v2-txt); margin-right:6px}
+  .sel-compte{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); margin-right:6px}
   .sel-btn{height:32px; padding:0 14px; border-radius:var(--v2-r-pill); cursor:pointer;
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 12.5px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .sel-btn:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .sel-btn:disabled{opacity:.45; cursor:default}
   .sel-btn[aria-pressed="true"]{border-color:var(--v2-acc2); color:var(--v2-acc-tint); background:var(--v2-acc-soft)}
   .sel-btn.primaire{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sel-btn:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .sel-edition{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 12px 10px}
-  .sel-edition label{font:600 12px var(--v2-sans); color:var(--v2-txt2)}
+  .sel-edition label{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .sel-edition input{min-width:220px; height:32px; padding:0 10px; border-radius:8px;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .sel-edition input:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   /* Les regles de LIGNE ont disparu avec la boucle qu'elles habillaient :
      la fiche monte `ListePistesV2`, qui porte les siennes. Le compilateur
@@ -2391,8 +2391,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      manque, cf. `basculerBio`. */
   .mes-notes-album{max-width:760px}
   .bio{margin:0; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
-  .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
-  .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
+  .bio-text{margin:0; color:var(--v2-txt2); font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.65; max-width:70ch}
+  .bio-state{margin:0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1)); font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
   .bio-text.presentation{white-space:pre-line}
 </style>

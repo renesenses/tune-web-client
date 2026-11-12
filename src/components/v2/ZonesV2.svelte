@@ -947,37 +947,37 @@
 <style>
   .paires{margin:26px 0 0; padding:16px 18px; border-radius:12px; border:1px solid var(--v2-line)}
   .paires .ph{display:flex; align-items:baseline; gap:14px}
-  .paires .cl{font:600 12px var(--v2-mono); letter-spacing:.05em; color:var(--v2-acc1)}
-  .phint{margin-top:6px; font-size:12.5px; line-height:1.55; color:var(--v2-txt3)}
+  .paires .cl{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-acc1)}
+  .phint{margin-top:6px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
   .pform{display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px}
   .pf{display:flex; flex-direction:column; gap:5px}
   .pf.grow{flex:1; min-width:180px}
-  .pf > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .pf > span{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .plist{margin-top:14px; display:flex; flex-direction:column; gap:8px}
   .pitem{display:flex; align-items:center; justify-content:space-between; gap:14px;
     padding:9px 12px; border-radius:9px; background:var(--v2-bg)}
-  .pn{font-size:13px; display:flex; align-items:center; gap:7px; flex-wrap:wrap}
-  .pn em{font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:normal}
+  .pn{font-size:calc(13px * var(--v2-txt-echelle, 1)); display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+  .pn em{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-style:normal}
   .pn .plus{color:var(--v2-txt3)}
-  .voie{font:10.5px var(--v2-mono); color:var(--v2-acc1)}
+  .voie{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1)}
   /* Reprises telles quelles des Réglages v2 : mêmes contrôles, même dessin.
      Les styles Svelte sont portés par composant, il n'y a pas de feuille
      commune où les poser sans les rendre globales. */
   .sel{height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:100%}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 11px; outline:none; width:100%}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .v2-zones{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .newz{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   .newz input{height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:230px}
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:230px}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
@@ -1024,22 +1024,22 @@
   .cpick:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}
 
   .chaut{display:flex; align-items:center; gap:9px; width:100%; min-height:18px}
-  .cot{font:600 9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  .cdef{margin-left:auto; font:600 9.5px var(--v2-mono); letter-spacing:.06em;
+  .cot{font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cdef{margin-left:auto; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em;
     text-transform:uppercase; color:var(--v2-acc1)}
 
-  .cnom{margin-top:9px; font:700 17px var(--v2-sans); line-height:1.25; color:var(--v2-txt);
+  .cnom{margin-top:9px; font:700 calc(17px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25; color:var(--v2-txt);
     width:100%; overflow-wrap:anywhere}
   /* L'appareil, la ligne demandée. `muet` = on n'a que le type de sortie :
      neuf zones sur quatorze sur le .18. On le dit en gris, sans le déguiser
      en modèle. */
-  .cappareil{margin-top:4px; font:12.5px var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
+  .cappareil{margin-top:4px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
   .cappareil.muet{color:var(--v2-txt3)}
   /* #1006 — les badges en PASTILLES, sur une seule rangée qui replie. */
   .cbadges{margin-top:9px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%}
   .cbadges:empty{display:none}
 
-  .cnp{margin-top:10px; font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
+  .cnp{margin-top:10px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
   .cna{color:var(--v2-txt3)}
 
   .crn{padding:0 16px 4px}
@@ -1050,7 +1050,7 @@
   .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
   /* web#2809 — la mention tient la place du curseur : le menu reste à droite. */
   .cvol :global(.volume-fixe), .vol :global(.volume-fixe){flex:1; min-width:0}
-  .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  .cvol .vn{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
@@ -1067,33 +1067,33 @@
   .dot{width:11px; height:11px; border-radius:50%; flex:0 0 auto; border:2px solid var(--v2-line2); background:transparent}
   .dot.on{border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .zmeta{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .zn{font-size:15px; font-weight:700; display:flex; align-items:center; gap:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .zn em{font:9.5px var(--v2-mono); font-style:normal; letter-spacing:.1em; text-transform:uppercase;
+  .zn{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; display:flex; align-items:center; gap:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .zn em{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; letter-spacing:.1em; text-transform:uppercase;
     color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:2px 7px}
   .zi{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .ot{font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc2)}
-  .np{font:11.5px var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px}
-  .rc{font:10px var(--v2-mono); padding:2px 8px; border-radius:999px}
+  .ot{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc2)}
+  .np{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px}
+  .rc{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:2px 8px; border-radius:999px}
   .rc.bad{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .rc.warn{color:var(--v2-acc-tint); border:1px solid var(--v2-acc2)}
-  .rn{font-size:15px; font-weight:700; background:var(--v2-bg); border:1px solid var(--v2-acc2); border-radius:8px;
+  .rn{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; background:var(--v2-bg); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:3px 9px; outline:none; width:220px; font-family:inherit}
 
   .vol{display:flex; align-items:center; gap:10px; flex:0 0 auto}
   .vol svg{width:16px; height:16px; color:var(--v2-txt3)}
   .vol input{width:130px; accent-color:var(--v2-acc1)}
-  .vn{font:11px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right}
+  .vn{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right}
 
   .flags{display:flex; gap:6px; flex:0 0 auto}
-  .fl{font:9.5px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:3px 8px}
+  .fl{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:3px 8px}
 
   .zacts{display:flex; gap:5px; flex:0 0 auto}
   .sortie{max-width:160px; height:24px; border-radius:7px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); font:11px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt2); font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
 .vol input:disabled, .cvol input:disabled { opacity: 0.45; cursor: not-allowed; }
   /* tune-server-rust#7806 — DAC ASIO sans zone. */
   .asio-sans-zone{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px;
     padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
-    color:var(--v2-txt); font-size:13px}
+    color:var(--v2-txt); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .asio-sans-zone span{flex:1 1 240px}
 </style>

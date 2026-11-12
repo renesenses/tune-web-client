@@ -129,30 +129,30 @@
   .v2-req{display:flex; flex-direction:column; gap:8px; min-width:0}
   .ligne{display:flex; gap:8px; align-items:center}
   .txt{flex:1; height:40px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-mono); padding:0 12px; outline:none; min-width:0}
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:0 12px; outline:none; min-width:0}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .txt.fautif{border-color:var(--v2-danger-bd)}
   .aide-btn{width:40px; height:40px; flex:none; border-radius:10px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
-    font:700 15px var(--v2-sans)}
+    font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .aide-btn:hover,.aide-btn.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
 
   .refus{border:1px solid var(--v2-danger-bd); background:var(--v2-danger-soft); border-radius:10px;
     padding:10px 12px; display:flex; flex-direction:column; gap:6px}
-  .refus-titre{color:var(--v2-danger); font:600 13px var(--v2-sans)}
-  .repere{margin:0; font:13px/1.5 var(--v2-mono); color:var(--v2-txt); white-space:pre-wrap; word-break:break-all}
+  .refus-titre{color:var(--v2-danger); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .repere{margin:0; font:calc(13px * var(--v2-txt-echelle, 1))/1.5 var(--v2-mono); color:var(--v2-txt); white-space:pre-wrap; word-break:break-all}
   .repere mark{background:var(--v2-danger); color:var(--v2-on-acc); border-radius:3px; padding:0 1px}
-  .attendu,.detail{font:12px/1.4 var(--v2-sans); color:var(--v2-txt2)}
-  .attendu code{font:12px var(--v2-mono); color:var(--v2-txt)}
+  .attendu,.detail{font:calc(12px * var(--v2-txt-echelle, 1))/1.4 var(--v2-sans); color:var(--v2-txt2)}
+  .attendu code{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt)}
 
   .aide{border:1px solid var(--v2-line2); background:var(--v2-surface2); border-radius:10px;
-    padding:12px 14px; display:flex; flex-direction:column; gap:8px; font:13px/1.45 var(--v2-sans);
+    padding:12px 14px; display:flex; flex-direction:column; gap:8px; font:calc(13px * var(--v2-txt-echelle, 1))/1.45 var(--v2-sans);
     color:var(--v2-txt2)}
   .aide p{margin:0}
-  .aide code{font:12px var(--v2-mono); color:var(--v2-txt)}
+  .aide code{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt)}
   .regles,.exemples{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px}
   .champs{display:flex; flex-direction:column; gap:4px}
-  .lbl{font:600 11px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .lbl{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   .exemples li{display:flex; flex-direction:column; gap:2px}
   .ex{align-self:flex-start; text-align:left; border:1px dashed var(--v2-line2); background:transparent;
     border-radius:8px; padding:4px 8px; cursor:pointer}

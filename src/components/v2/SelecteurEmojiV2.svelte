@@ -75,17 +75,17 @@
 </div>
 
 <style>
-  .selecteur{--emoji-police:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol';display:flex;flex-direction:column;gap:6px;width:min(340px,100%);box-sizing:border-box;padding:8px;background:var(--v2-surface2);color:var(--v2-txt);border:1px solid var(--v2-line);border-radius:12px;font-size:13px}
+  .selecteur{--emoji-police:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol';display:flex;flex-direction:column;gap:6px;width:min(340px,100%);box-sizing:border-box;padding:8px;background:var(--v2-surface2);color:var(--v2-txt);border:1px solid var(--v2-line);border-radius:12px;font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .recherche{font:inherit;color:inherit;width:100%;box-sizing:border-box;border:1px solid var(--v2-line);background:var(--v2-bg);border-radius:8px;padding:6px 8px}
   .onglets{display:flex;gap:2px;flex-wrap:wrap}
-  .onglets button{font-family:var(--emoji-police);font-size:18px;line-height:1;padding:6px;border:0;border-radius:8px;background:transparent;cursor:pointer;min-width:36px;min-height:36px}
+  .onglets button{font-family:var(--emoji-police);font-size:calc(18px * var(--v2-txt-echelle, 1));line-height:1;padding:6px;border:0;border-radius:8px;background:transparent;cursor:pointer;min-width:36px;min-height:36px}
   .onglets button[aria-pressed='true']{background:var(--v2-active1)}
   .onglets button:hover,.emoji:hover{background:var(--v2-hover)}
-  .titre{margin:2px 2px 0;font-size:11px;color:var(--v2-txt2)}
+  .titre{margin:2px 2px 0;font-size:calc(11px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
   .grille{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;max-height:216px;overflow:auto;overscroll-behavior:contain}
-  .emoji{font-family:var(--emoji-police);font-size:22px;line-height:1;aspect-ratio:1;min-width:0;min-height:34px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer;color:inherit}
+  .emoji{font-family:var(--emoji-police);font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;aspect-ratio:1;min-width:0;min-height:34px;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer;color:inherit}
   .onglets button:focus-visible,.emoji:focus-visible,.recherche:focus-visible,.raccourcis input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:1px}
-  .vide{margin:8px 2px;font-size:12px;color:var(--v2-txt2)}
-  .raccourcis{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--v2-txt2);padding-top:4px;border-top:1px solid var(--v2-line)}
+  .vide{margin:8px 2px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
+  .raccourcis{display:flex;gap:6px;align-items:center;font-size:calc(11px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);padding-top:4px;border-top:1px solid var(--v2-line)}
   @media(max-width:699px){.selecteur{width:100%}.grille{max-height:180px}.emoji{min-height:40px}}
 </style>

@@ -671,15 +671,15 @@
 <style>
   .playlist-cercle{display:flex; flex-direction:column; gap:10px}
   .tete{display:flex; align-items:center}
-  .state{color:var(--v2-txt3); font-size:13px}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
   /* web#2287 — le suivi de la playlist d'origine. */
   .suivi-origine{display:flex; flex-direction:column; gap:4px; margin-top:4px}
   .alerte-suivi{color:var(--v2-acc1)}
   .alerte{color:var(--v2-danger)}
   .vide{margin:0}
   .qui-quand{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
+  .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
@@ -688,11 +688,11 @@
      droite sur grand écran ; empilés sur mobile. */
   .en-tete-pl{display:flex; gap:24px; align-items:flex-start; justify-content:space-between; padding:4px 0 8px}
   .entete-texte{display:flex; flex-direction:column; gap:8px; min-width:0; flex:1}
-  .nom-playlist{font-size:22px; font-weight:800; margin:0; overflow-wrap:anywhere; letter-spacing:-.01em}
-  .faits{display:flex; gap:8px; margin:0; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .nom-playlist{font-size:calc(22px * var(--v2-txt-echelle, 1)); font-weight:800; margin:0; overflow-wrap:anywhere; letter-spacing:-.01em}
+  .faits{display:flex; gap:8px; margin:0; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px}
   .play,.ghost{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 18px; border-radius:var(--v2-r-pill);
-    font:700 13px var(--v2-sans); cursor:pointer; border:0}
+    font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; border:0}
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
@@ -710,13 +710,13 @@
   .mosaique-vide{width:64px; height:64px; grid-column:1 / -1; grid-row:1 / -1; place-self:center}
   .membres{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; justify-content:flex-end; max-width:220px}
   .avatar{width:30px; height:30px; border-radius:50%; display:grid; place-items:center; margin-left:-6px;
-    font:700 12px var(--v2-sans); color:var(--v2-txt); background:var(--v2-surface2); border:2px solid var(--v2-bg)}
-  .avatar.plus{font-size:10.5px; color:var(--v2-txt2)}
+    font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); background:var(--v2-surface2); border:2px solid var(--v2-bg)}
+  .avatar.plus{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
 
   /* Les lignes. */
   .morceaux{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .morceau{position:relative; display:grid; grid-template-columns:24px 28px 36px minmax(0,1fr) auto auto auto; align-items:center;
-    gap:10px; padding:6px 6px; border-bottom:1px solid var(--v2-line); border-radius:8px; font-size:13px; color:var(--v2-txt2)}
+    gap:10px; padding:6px 6px; border-bottom:1px solid var(--v2-line); border-radius:8px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .morceau:hover,.morceau:focus-within{background:var(--v2-hover); color:var(--v2-txt)}
   .morceau.glisse{opacity:.5}
   .morceau.en-cours,.morceau.en-cours .titre-morceau{color:var(--v2-acc1)}
@@ -729,7 +729,7 @@
   .poignee:focus-visible{outline:2px solid var(--v2-focus); outline-offset:1px}
   /* Le numéro, et ▶ à sa place au survol ou au focus — comme les vues d'album. */
   .rang-cell{position:relative; width:28px; height:28px; display:grid; place-items:center}
-  .rang{color:var(--v2-txt3); font:12px var(--v2-mono); font-variant-numeric:tabular-nums}
+  .rang{color:var(--v2-txt3); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-variant-numeric:tabular-nums}
   .lire-morceau{position:absolute; inset:0; border:0; border-radius:50%; background:transparent; color:var(--v2-txt);
     cursor:pointer; display:grid; place-items:center; opacity:0}
   .lire-morceau svg{width:14px; height:14px}
@@ -742,7 +742,7 @@
   .titre-ligne{display:flex; align-items:center; gap:6px; min-width:0; color:var(--v2-txt); font-weight:500}
   .titre-morceau,.sous-titre{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .duree{font-variant-numeric:tabular-nums}
-  .resolution{font-size:11px; padding:2px 8px; border-radius:var(--v2-r-pill); white-space:nowrap}
+  .resolution{font-size:calc(11px * var(--v2-txt-echelle, 1)); padding:2px 8px; border-radius:var(--v2-r-pill); white-space:nowrap}
   .resolution:empty{padding:0}
   .res-bibliotheque,.res-service{background:var(--v2-acc-soft); color:var(--v2-txt)}
   .res-introuvable{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
@@ -754,14 +754,14 @@
   .menu-morceau:focus-visible{outline:2px solid var(--v2-focus); outline-offset:1px}
   .menu{position:absolute; right:0; top:calc(100% + 4px); z-index:20; min-width:220px; display:flex; flex-direction:column;
     padding:6px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2); box-shadow:var(--v2-sh-lg)}
-  .menu button{text-align:left; border:0; background:transparent; color:var(--v2-txt); font:13px var(--v2-sans);
+  .menu button{text-align:left; border:0; background:transparent; color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:8px 10px; border-radius:7px; cursor:pointer}
   .menu button:hover:not(:disabled),.menu button:focus-visible{background:var(--v2-hover); outline:none}
   .menu button:disabled{opacity:.4; cursor:not-allowed}
   .menu .danger{color:var(--v2-danger)}
-  .menu .raison{font-size:11.5px; color:var(--v2-txt3); padding:2px 10px 6px}
+  .menu .raison{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); padding:2px 10px 6px}
   .menu .sep{height:1px; background:var(--v2-line2); margin:4px 2px}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .play:focus-visible,.ghost:focus-visible,.lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
 

@@ -250,7 +250,7 @@
 
   .login-card h2 {
     font-family: var(--font-label);
-    font-size: 22px;
+    font-size: calc(22px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-align: center;
     letter-spacing: -0.5px;
@@ -270,7 +270,7 @@
     border-radius: var(--radius-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     outline: none;
     transition: border-color 0.15s;
   }
@@ -286,7 +286,7 @@
   .login-error {
     color: #ef4444;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     padding: var(--space-xs) var(--space-sm);
     background: rgba(239, 68, 68, 0.1);
     border-radius: var(--radius-sm);
@@ -300,7 +300,7 @@
     border: none;
     border-radius: var(--radius-md);
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.15s;
@@ -321,7 +321,7 @@
     gap: var(--space-md);
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .login-divider::before,
@@ -334,7 +334,7 @@
 
   .login-sso-indisponible {
     margin: 0;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     line-height: 1.4;
     color: var(--tune-text-secondary, #888);
     text-align: center;
@@ -352,7 +352,7 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-md);
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 500;
     cursor: pointer;
     transition: border-color 0.15s;
@@ -365,7 +365,7 @@
   .login-switch {
     text-align: center;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
@@ -374,7 +374,7 @@
     border: none;
     color: var(--tune-accent);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     text-decoration: underline;
     padding: 0;

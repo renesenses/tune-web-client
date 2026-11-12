@@ -487,19 +487,19 @@
   .barre{display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px}
   .seg{display:flex; gap:2px; background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:3px}
   .seg button{border:0; background:transparent; cursor:pointer; padding:5px 12px; border-radius:var(--v2-r-pill);
-    color:var(--v2-txt2); font:600 11.5px var(--v2-sans); white-space:nowrap}
+    color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap}
   .seg button[aria-pressed="true"]{background:var(--v2-surface); color:var(--v2-txt); box-shadow:0 0 0 1px var(--v2-line2)}
   .cherche{flex:1 1 200px; min-width:0; max-width:340px}
   button:focus-visible, input:focus-visible, summary:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .fil{display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:30px}
   .fil button{border:1px solid transparent; background:transparent; cursor:pointer; color:var(--v2-txt2);
-    font:13px var(--v2-sans); padding:3px 8px; border-radius:var(--v2-r-pill)}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:3px 8px; border-radius:var(--v2-r-pill)}
   .fil button:hover{border-color:var(--v2-line2); color:var(--v2-txt)}
   .fil button[aria-current="true"]{color:var(--v2-txt); font-weight:600; cursor:default}
   .fil .retour{border-color:var(--v2-line2); color:var(--v2-txt)}
   .fil .retour:disabled{opacity:.4; cursor:default}
   .sep{color:var(--v2-txt3)}
-  .compte{margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .compte{margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .grille{display:grid; grid-template-columns:minmax(0,1fr); gap:16px}
   @media (min-width: 980px){ .grille{grid-template-columns:minmax(0,1fr) 320px} }
   .principal{min-width:0; position:relative}
@@ -512,14 +512,14 @@
   .groupe{border:1px solid transparent; background:transparent}
   .groupe:hover, .groupe.trouve{border-color:var(--v2-acc2)}
   .etiquette{position:absolute; left:50%; top:calc(100% + 8px); transform:translateX(-50%); white-space:nowrap;
-    max-width:180px; overflow:hidden; text-overflow:ellipsis; font:600 11.5px var(--v2-sans); color:var(--v2-txt);
+    max-width:180px; overflow:hidden; text-overflow:ellipsis; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
     background:var(--v2-surface); padding:0 4px; border-radius:4px}
   .element{border:1.5px solid var(--v2-line2); background:hsl(var(--teinte) 35% 55%); overflow:visible;
     display:grid; place-items:center}
   .element img{width:100%; height:100%; object-fit:contain; border-radius:50%; background:#fff}
-  .element .ini, .mini, .grande.ini{font:600 12px var(--v2-sans); color:var(--v2-on-acc)}
+  .element .ini, .mini, .grande.ini{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-on-acc)}
   .element .nom{position:absolute; left:50%; top:calc(100% + 4px); transform:translateX(-50%); white-space:nowrap;
-    max-width:160px; overflow:hidden; text-overflow:ellipsis; font:600 11px var(--v2-sans); color:var(--v2-txt);
+    max-width:160px; overflow:hidden; text-overflow:ellipsis; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
     background:var(--v2-surface); padding:0 4px; border-radius:4px; opacity:0; pointer-events:none}
   .element:hover .nom, .element:focus-visible .nom, .element.choisi .nom{opacity:1; z-index:2}
   .element.choisi, .element.proche, .element:hover{border-color:var(--v2-acc1); border-width:2.5px}
@@ -530,13 +530,13 @@
   .pastille.non{background:var(--v2-danger)}
   .vide{position:absolute; inset:0; display:grid; place-items:center; color:var(--v2-txt3)}
   .liste .vide{position:static; display:block}
-  .aide{position:absolute; left:12px; right:12px; bottom:8px; font:10px var(--v2-mono); color:var(--v2-txt3); pointer-events:none}
-  .legende{display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; font:12px var(--v2-sans); color:var(--v2-txt2)}
+  .aide{position:absolute; left:12px; right:12px; bottom:8px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); pointer-events:none}
+  .legende{display:flex; flex-wrap:wrap; gap:14px; margin-top:8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .legende i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:-1px}
   .legende i.ok{background:var(--v2-acc2)} .legende i.non{background:var(--v2-danger)}
   .liste{border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); background:var(--v2-surface); padding:6px 8px}
   .liste details details{margin-left:14px}
-  .liste summary{cursor:pointer; padding:8px 6px; border-radius:8px; font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .liste summary{cursor:pointer; padding:8px 6px; border-radius:8px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .liste summary small{color:var(--v2-txt3); font-weight:400; margin-left:6px}
   .liste ul, .proches{list-style:none; margin:0 0 4px 14px; padding:0}
   .proches{margin:0}
@@ -547,19 +547,19 @@
     background:hsl(var(--teinte) 35% 55%)}
   .mini img{width:100%; height:100%; object-fit:contain; background:#fff}
   .t{min-width:0; display:flex; flex-direction:column}
-  .t b{font:500 13px var(--v2-sans); overflow-wrap:anywhere}
-  .t small{color:var(--v2-txt3); font-size:11px}
-  .nt{font:10px var(--v2-mono); color:var(--v2-danger)}
+  .t b{font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow-wrap:anywhere}
+  .t small{color:var(--v2-txt3); font-size:calc(11px * var(--v2-txt-echelle, 1))}
+  .nt{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-danger)}
   .volet{background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); padding:14px 16px;
     min-width:0; align-self:start}
-  .volet h2{font:700 15px var(--v2-sans); margin:0 0 4px; overflow-wrap:anywhere}
-  .volet h3{font:600 10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3); margin:14px 0 6px}
+  .volet h2{font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); margin:0 0 4px; overflow-wrap:anywhere}
+  .volet h3{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3); margin:14px 0 6px}
   .tete{display:flex; gap:12px; align-items:center}
   .grande{width:64px; height:64px; flex:none; border-radius:12px; object-fit:contain; background:#fff}
-  .grande.ini{display:grid; place-items:center; background:hsl(var(--teinte) 35% 55%); font-size:20px}
+  .grande.ini{display:grid; place-items:center; background:hsl(var(--teinte) 35% 55%); font-size:calc(20px * var(--v2-txt-echelle, 1))}
   .titres{min-width:0}
-  .titres p, .doux{margin:0; color:var(--v2-txt2); font-size:12.5px}
-  .etat{margin:10px 0 0; font:600 12px var(--v2-sans); color:var(--v2-acc2)}
+  .titres p, .doux{margin:0; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .etat{margin:10px 0 0; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2)}
   .etat.non{color:var(--v2-danger); font-weight:500}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}

@@ -1165,7 +1165,7 @@
   /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
-  .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
+  .emo{width:17px; height:17px; display:grid; place-items:center; font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1; flex:none}
   .brand{position:relative; display:flex; align-items:center; gap:11px; padding:2px 8px 14px}
   /* #1433 — la roue des Réglages et le bouton de repli, groupés à droite.
      `margin-right:-6px` prend six des huit pixels de marge interne de la
@@ -1192,15 +1192,15 @@
      survol que dans l'ancienne coquille (`.logo-link:hover{opacity:.7}`). */
   a.logo{text-decoration:none; transition:opacity .15s}
   a.logo:hover{opacity:.7}
-  .brand .name{font-weight:700; font-size:18px; line-height:1}
-  .brand .sub{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  .brand .name{font-weight:700; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1}
+  .brand .sub{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
-  .brand .ver{font:9.5px var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
-  .brand .maj-info{font:9.5px var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
+  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
-    border-radius:var(--v2-r-pill); cursor:pointer; font:9.5px var(--v2-mono);
+    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
@@ -1215,7 +1215,7 @@
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
-    border:0; background:transparent; cursor:pointer; font:9.5px var(--v2-mono); color:var(--v2-acc-tint);
+    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
   .analyse:hover{color:var(--v2-txt)}
   .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -1234,7 +1234,7 @@
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt3);
+  .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   .grp-label::after{content:""; flex:1; height:1px; background:var(--v2-line)}
 
@@ -1249,7 +1249,7 @@
      elle est repliee en icones sous 1100 px. */
   .nav{display:flex; align-items:center; gap:12px; width:100%; padding:6px 14px; border:0; cursor:pointer;
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
-    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; transition:.15s}
+    font-family:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; text-align:left; transition:.15s}
   .nav svg{width:17px; height:17px; flex:0 0 auto}
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
@@ -1261,7 +1261,7 @@
      dépendent, ils s'en retirent. Le retrait disparaît quand la barre est
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
      et la rangée d'icônes cesserait d'être alignée. */
-  .nav.svc{padding-left:30px; font-size:13px}
+  .nav.svc{padding-left:30px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* #1580 : chevron du repli de l'arbre entier, posé sur l'entrée Collections. */
   .nav-pli{position:relative}
   .nav-pli .nav{padding-right:36px}
@@ -1275,7 +1275,7 @@
   /* #5065 — rubrique « Sources » : la pastille d'état au bout de la ligne,
      posée sur l'icône quand la barre est repliée. */
   .nav.src{position:relative}
-  .nav.src.sous{padding-left:30px; font-size:13px}
+  .nav.src.sous{padding-left:30px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* #5065 — grisée : garde son nom et reste cliquable (sa page dit pourquoi). */
   .nav.src.grisee{opacity:.45}
   .v2-sidebar.collapsed .nav.src.sous{padding-left:0}
@@ -1297,5 +1297,5 @@
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
-  .taches{margin-top:3px; font:10px var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .taches{margin-top:3px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

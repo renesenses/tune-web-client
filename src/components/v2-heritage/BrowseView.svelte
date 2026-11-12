@@ -633,7 +633,7 @@
 
   .browse-header h2 {
     font-family: var(--font-label);
-    font-size: 28px;
+    font-size: calc(28px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: -0.8px;
   }
@@ -649,7 +649,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
     flex-shrink: 0;
   }
@@ -664,7 +664,7 @@
     align-items: center;
     gap: 4px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     min-width: 0;
     overflow: hidden;
   }
@@ -681,7 +681,7 @@
     cursor: pointer;
     padding: 0;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     white-space: nowrap;
     transition: color 0.12s;
   }
@@ -709,7 +709,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
     flex-shrink: 0;
     margin-left: auto;
@@ -772,13 +772,13 @@
 
   .root-name {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
   .root-path {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -788,14 +788,14 @@
 
   .root-warning {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-warning, #d9822b);
     margin-top: 2px;
   }
 
   .root-count {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     flex-shrink: 0;
   }
@@ -819,7 +819,7 @@
     cursor: pointer;
     text-align: left;
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     transition: background 0.12s ease-out;
     border-radius: var(--radius-sm);
   }
@@ -840,7 +840,7 @@
   }
 
   .dir-count {
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -863,7 +863,7 @@
 
   .tracks-count {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-secondary);
     text-transform: uppercase;
@@ -886,7 +886,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     transition: background 0.12s ease-out;
   }
@@ -937,7 +937,7 @@
     width: 28px;
     text-align: center;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -952,26 +952,26 @@
 
   .track-title {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 700;
   }
 
   .track-artist {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
   .track-duration {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
 
   .audio-format {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     letter-spacing: 0.3px;
     flex-shrink: 0;
@@ -985,7 +985,7 @@
     background: none;
     color: var(--tune-text-secondary);
     cursor: pointer;
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     display: flex;
     align-items: center;
     justify-content: center;

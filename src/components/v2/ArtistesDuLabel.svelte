@@ -114,18 +114,18 @@
 
 <style>
   .artistes-du-label { display: flex; flex-direction: column; gap: 14px; margin: 4px 0 16px; }
-  h3 { margin: 0 0 8px; font: 600 13px var(--v2-sans, inherit); color: var(--v2-txt2, var(--tune-text-muted)); }
+  h3 { margin: 0 0 8px; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color: var(--v2-txt2, var(--tune-text-muted)); }
   .rangee { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
   li { width: 112px; display: flex; flex-direction: column; gap: 2px; }
   .artiste { all: unset; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
   .artiste:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   .portrait { width: 112px; height: 112px; border-radius: 50%; overflow: hidden; display: block; }
   .portrait.carre { border-radius: 6px; }
-  .nom { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .compte, .source { font-size: 11px; color: var(--v2-txt2, var(--tune-text-muted)); }
-  .phare { all: unset; cursor: pointer; font-size: 11px; color: var(--tune-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nom { font-weight: 600; font-size: calc(13px * var(--v2-txt-echelle, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .compte, .source { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2, var(--tune-text-muted)); }
+  .phare { all: unset; cursor: pointer; font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .source { margin: 6px 0 0; }
-  .catalogue { all: unset; cursor: pointer; align-self: flex-start; font: 500 12px var(--v2-sans, inherit); color: var(--tune-accent); }
+  .catalogue { all: unset; cursor: pointer; align-self: flex-start; font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color: var(--tune-accent); }
   .catalogue:hover { text-decoration: underline; }
   .catalogue:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
 </style>

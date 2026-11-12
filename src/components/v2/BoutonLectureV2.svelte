@@ -107,7 +107,7 @@
     background:linear-gradient(135deg, var(--v2-acc1), var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong, transparent);
     flex:0 0 auto}
   .bl button{display:inline-flex; align-items:center; border:0; background:transparent; cursor:pointer;
-    color:var(--v2-on-acc, #fff); font:700 14px var(--v2-sans, inherit)}
+    color:var(--v2-on-acc, #fff); font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit)}
   .bl-lire{gap:9px; padding:0 16px 0 20px; border-radius:var(--v2-r-pill, 999px) 0 0 var(--v2-r-pill, 999px)}
   .bl.seul .bl-lire{padding-right:20px; border-radius:var(--v2-r-pill, 999px)}
   .bl .bl-fleche{padding:0 12px 0 10px; border-left:1px solid color-mix(in srgb, var(--v2-on-acc, #fff) 35%, transparent);

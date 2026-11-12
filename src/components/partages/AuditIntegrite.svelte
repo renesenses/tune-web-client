@@ -105,14 +105,14 @@
   /* web#2656 — le texte n'avait aucune taille : il héritait des 16 px du
      document, plus gros que tout le reste de Réglages › Bibliothèque. Mêmes
      tailles que les lignes de la page (`.lbl` 13,5 px, `.hint` 11,5 px). */
-  section { margin-block: 16px; font-size: 12.5px; line-height: 1.45; }
-  h3 { font: 500 13.5px var(--v2-sans); color: var(--v2-txt); }
-  p { color: var(--v2-txt2); margin-block: 8px; font-size: 12.5px; }
+  section { margin-block: 16px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); line-height: 1.45; }
+  h3 { font: 500 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  p { color: var(--v2-txt2); margin-block: 8px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-  button { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2); border-radius: 999px; padding: 6px 13px; cursor: pointer; font: 600 11.5px var(--v2-sans); }
+  button { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2); border-radius: 999px; padding: 6px 13px; cursor: pointer; font: 600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
   button:disabled { opacity: 0.5; cursor: default; }
   progress { width: 100%; accent-color: var(--v2-acc2); }
   .rapport { overflow-x: auto; margin-block: 12px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { font-size: 12px; text-align: start; padding: 8px; border-bottom: 1px solid var(--v2-line2); overflow-wrap: anywhere; }
+  th, td { font-size: calc(12px * var(--v2-txt-echelle, 1)); text-align: start; padding: 8px; border-bottom: 1px solid var(--v2-line2); overflow-wrap: anywhere; }
 </style>

@@ -226,20 +226,20 @@
     border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card);
     padding: 20px 22px 22px; font-family: var(--v2-sans);
   }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; padding-right: 32px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 0 8px; padding-right: 32px; }
   .fermer {
     position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;
     border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3);
-    font-size: 20px; line-height: 1; cursor: pointer;
+    font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
-  .note { font-size: 12.5px; color: var(--v2-txt3); margin: 4px 0; }
-  .err { font-size: 13px; color: var(--v2-danger); margin: 4px 0; }
+  .note { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); margin: 4px 0; }
+  .err { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); margin: 4px 0; }
   .tours { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 14px; }
   .tour { border-top: 1px solid var(--v2-line2); padding-top: 10px; }
   .q { font-weight: 600; margin: 0 0 6px; white-space: pre-wrap; }
   .r { margin: 0 0 6px; white-space: pre-wrap; line-height: 1.45; }
-  .cites { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; font-size: 13px; }
+  .cites { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .cites li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
   .sec-txt { color: var(--v2-txt3); }
   .actions { display: inline-flex; gap: 4px; margin-left: auto; }
@@ -249,7 +249,7 @@
   }
   .mini {
     border: 1px solid var(--v2-line2); border-radius: 6px; background: var(--v2-surface2);
-    color: var(--v2-txt); font-size: 12px; padding: 2px 8px; cursor: pointer;
+    color: var(--v2-txt); font-size: calc(12px * var(--v2-txt-echelle, 1)); padding: 2px 8px; cursor: pointer;
   }
   .saisie { display: flex; align-items: stretch; gap: 10px; margin-top: 10px; }
   .saisie textarea { margin-top: 0; flex: 1; }
@@ -272,7 +272,7 @@
     padding: 8px 10px; font: inherit;
   }
   .pied { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-  .pri, .sec { border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+  .pri, .sec { border-radius: 8px; padding: 7px 14px; font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer; }
   .pri { border: 1px solid var(--v2-acc1); background: transparent; color: var(--v2-acc1); }
   .sec { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt); }
   .pri:disabled, .sec:disabled { opacity: 0.5; cursor: default; }

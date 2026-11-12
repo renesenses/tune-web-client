@@ -118,10 +118,10 @@
 <style>
   .bloc { margin: 0 0 26px; }
   h2 {
-    margin: 0 0 10px; font: 600 13px var(--v2-sans); color: var(--v2-txt2);
+    margin: 0 0 10px; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
     text-transform: uppercase; letter-spacing: .05em;
   }
-  .bio { margin: 0; font-size: 14px; line-height: 1.55; color: var(--v2-txt2); white-space: pre-line; max-width: 80ch; }
+  .bio { margin: 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); line-height: 1.55; color: var(--v2-txt2); white-space: pre-line; max-width: 80ch; }
   /* Sous la biographie, jamais au milieu de la page (#1356). */
   .bio-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   /* #1874 — l'en-tête de `ListePistesV2` (~32 px) puis une ligne de 46 px par
@@ -129,6 +129,6 @@
   .reserve {
     min-height: calc(32px + var(--lignes) * 46px);
     display: flex; align-items: flex-start; padding: 12px 10px;
-    color: var(--v2-txt3); font: 400 13px var(--v2-sans);
+    color: var(--v2-txt3); font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
 </style>

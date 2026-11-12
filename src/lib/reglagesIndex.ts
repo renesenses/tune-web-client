@@ -58,6 +58,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },
   // ── Général › Interface ──────────────────────────────────────────────
   { id: 'theme', section: 'interface', labelKey: 'settings.theme', descKey: 'settings.themePalettesHint', termesKey: 'reglages.termes.theme' },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'taille-texte', section: 'interface', labelKey: 'settings.textSize', descKey: 'settings.textSizeHint', termesKey: 'reglages.termes.tailleTexte' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
   { id: 'crete-metre', section: 'interface', labelKey: 'v2.set.peakMeter', descKey: 'v2.set.peakMeterHint', termesKey: 'reglages.termes.creteMetre', techniques: ['DAT', 'PCM-7030', 'IEC'] },
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },

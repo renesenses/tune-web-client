@@ -1748,7 +1748,7 @@ import { sansDoublons } from '../../lib/clesUniques';
      il ne doit pas rivaliser avec les pochettes qu'il découvre. */
   .voirplus{display:block; margin:14px auto 0; padding:9px 18px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    background:transparent; color:var(--v2-txt2); font:600 12.5px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .voirplus:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 
@@ -1761,7 +1761,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   .field{position:relative; flex:1; max-width:640px; display:flex; align-items:center}
   .field .mag{position:absolute; left:16px; width:19px; height:19px; color:var(--v2-txt3); pointer-events:none}
   .field input{width:100%; height:50px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:15px var(--v2-sans); padding:0 18px 0 46px; outline:none}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 18px 0 46px; outline:none}
   .field input::placeholder{color:var(--v2-txt3)}
   .field input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   /* La croix native de WebKit est retirée : on pose la nôtre, identique dans
@@ -1779,7 +1779,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   @keyframes sp{to{transform:rotate(360deg)}}
 
   .acoustic{display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-sans); cursor:pointer}
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .acoustic svg{width:16px; height:16px}
   .acoustic:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .acoustic.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -1792,14 +1792,14 @@ import { sansDoublons } from '../../lib/clesUniques';
   .hint .glyph{width:64px; height:64px; border-radius:20px; display:grid; place-items:center; color:var(--v2-txt3);
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .hint .glyph svg{width:28px; height:28px}
-  .hint p{max-width:440px; font-size:15px; line-height:1.5}
-  .hint .sub{font-size:13px; color:var(--v2-txt3)}
+  .hint p{max-width:440px; font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1.5}
+  .hint .sub{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .hint b{color:var(--v2-acc-tint); font-weight:700}
 
   .grp{padding:14px 30px 8px}
-  .grp h2{font-size:18px; font-weight:700; padding-bottom:12px; display:flex; align-items:center; gap:10px}
+  .grp h2{font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:12px; display:flex; align-items:center; gap:10px}
   .grp h2 .tri{margin-left:auto; font-weight:400}
-  .grp h2 .tag{font:600 10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint);
+  .grp h2 .tag{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:999px; padding:3px 9px}
 
   /*
@@ -1847,7 +1847,7 @@ import { sansDoublons } from '../../lib/clesUniques';
        border:0; padding:0; background:transparent; color:inherit; font:inherit}
   button.acv{cursor:pointer}
   button.acv:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px}
-  .artile .an{display:block; margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .artile .an{display:block; margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .artile:hover .an{color:var(--v2-acc-tint)}
   /* #1135 / #1136 — la rangée de provenances, SOUS la vignette : elle ne rogne
      donc pas la pochette ronde et dit aussi la bibliothèque. `wrap` parce
@@ -1871,8 +1871,8 @@ import { sansDoublons } from '../../lib/clesUniques';
   .card.static{cursor:default}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:not(.static):hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* #2075 — le nom d'artiste d'un album de service, bouton à part entière. */
   .lienart{border:0; background:transparent; padding:0; cursor:pointer; text-align:inherit; align-self:flex-start; max-width:100%}
   .lienart:hover{text-decoration:underline; color:var(--v2-txt)}
@@ -1893,49 +1893,49 @@ import { sansDoublons } from '../../lib/clesUniques';
   .plg.lire:hover{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .plmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .ln{font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lc{font-size:12px; color:var(--v2-txt3)}
-  .pl{font:600 10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
+  .lc{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .pl{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
   .pill{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt3); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:6px 13px; font:600 12px var(--v2-sans)}
-  .pill b{font:700 10px var(--v2-mono); margin-left:5px; opacity:.75}
+    border-radius:var(--v2-r-pill); padding:6px 13px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .pill b{font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); margin-left:5px; opacity:.75}
   .pill:hover{color:var(--v2-txt)}
   .pill.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   /* Le PÉRIMÈTRE se lit d'un coup d'œil : ses pastilles portent le nom de la
      source, pas un type. */
-  .pill.src{font-family:var(--v2-mono); font-size:11.5px; letter-spacing:.02em}
+  .pill.src{font-family:var(--v2-mono); font-size:calc(11.5px * var(--v2-txt-echelle, 1)); letter-spacing:.02em}
   .pill.raz{border-style:dashed; color:var(--v2-txt3)}
   .pill.raz:hover{color:var(--v2-txt)}
 
   /* Recherches recentes */
   .grp h2 .lnk{margin-left:auto; border:0; background:transparent; color:var(--v2-txt3); cursor:pointer;
-    font:600 11px var(--v2-sans)}
+    font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .grp h2 .lnk:hover{color:var(--v2-danger)}
   /* #4710 — les trois actions restent GROUPÉES à droite : sans cela, chaque
      `.lnk` porte son propre `margin-left:auto` et l'espace se répartit entre
      elles, ce qui les éparpille dès qu'il y en a plus de deux. */
   .grp h2 .lnk ~ .lnk{margin-left:0}
   /* #4710 / #3190 — la durée, en retrait du titre : elle le complète. */
-  .grp h2 .grp-duree{font:400 13px var(--v2-sans); color:var(--v2-txt3)}
+  .grp h2 .grp-duree{font:400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .chips{display:flex; flex-wrap:wrap; gap:9px}
   .chip{display:inline-flex; align-items:center; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:var(--v2-surface2); overflow:hidden}
-  .chq{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:13px var(--v2-sans); padding:7px 4px 7px 14px}
+  .chq{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 4px 7px 14px}
   .chip:hover .chq{color:var(--v2-txt)}
-  .chx{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:15px; line-height:1; padding:7px 12px 8px 6px}
+  .chx{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1; padding:7px 12px 8px 6px}
   .chx:hover{color:var(--v2-danger)}
 
   /* Bandeau de tete : point focal a gauche, balayage a droite. */
   .tete{display:grid; grid-template-columns:minmax(240px,1fr) 2fr; gap:26px; align-items:start}
   @media (max-width:900px){ .tete{grid-template-columns:1fr} }
   .basartistes{min-width:0}
-  .best h2, .basartistes h2{font-size:18px; font-weight:700; padding-bottom:12px}
+  .best h2, .basartistes h2{font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:12px}
   .bcard{display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; cursor:pointer;
     border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface2); padding:18px; color:inherit}
   .bcard:hover{border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .bcv{display:block; width:132px; height:132px; border-radius:10px; overflow:hidden; box-shadow:var(--v2-sh-card); margin-bottom:12px}
   .bcv.rond{border-radius:50%}
-  .bt{font-size:21px; font-weight:800; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .bk{font:600 11px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3);
+  .bt{font-size:calc(21px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bk{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   .pl-row{grid-template-columns:44px 1fr auto; padding:8px 10px; border:0; background:transparent;
@@ -1948,7 +1948,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   /* Enveloppe : la ligne partagee, plus le pourcentage de proximite propre a
      l'ambiance acoustique. */
   .lp{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
-  .lp .sim{font:11px var(--v2-mono); color:var(--v2-acc-tint); padding-right:10px}
+  .lp .sim{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); padding-right:10px}
   /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
      n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
   .tclick{display:grid; grid-template-columns:44px 1fr; align-items:center; gap:14px; min-width:0;
@@ -1956,10 +1956,10 @@ import { sansDoublons } from '../../lib/clesUniques';
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
   .cvsm{width:44px; height:44px; border-radius:6px; overflow:hidden}
-  .trk .ti{min-width:0; font-size:14px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .trk .ti{min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .trk .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .trk .tk{font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .trk .sim{font:11px var(--v2-mono); color:var(--v2-acc-tint)}
-  .trk .dur{font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .trk .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .trk .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .trk .sim{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint)}
+  .trk .dur{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 </style>

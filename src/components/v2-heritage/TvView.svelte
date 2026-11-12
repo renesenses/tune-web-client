@@ -836,7 +836,7 @@
     border-radius: 24px;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(12px);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: #fff;
     animation: tv-panel-in 0.2s ease-out;
   }
@@ -872,7 +872,7 @@
     border: 1px solid transparent;
     border-radius: 14px;
     color: inherit;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     padding: 3px 10px;
     cursor: pointer;
   }
@@ -886,7 +886,7 @@
   }
   .tv-exit-hint {
     opacity: 0.55;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     white-space: nowrap;
   }
 </style>

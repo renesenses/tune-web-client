@@ -424,7 +424,7 @@
   .trait i { display: block; width: 1px; height: 3px; background: var(--tune-text-muted); }
   .trait b {
     font-weight: 400;
-    font-size: 8px;
+    font-size: calc(8px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -460,7 +460,7 @@
 
   .volume-value {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     min-width: 36px;
     text-align: right;
@@ -479,7 +479,7 @@
     padding: 1px 4px;
     cursor: text;
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-variant-numeric: tabular-nums;
     color: var(--tune-text-secondary);
   }
@@ -535,7 +535,7 @@
   }
 
   :global([data-kiosk]) .volume-value {
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     min-width: 40px;
   }
 .volume-slider:disabled, .volume-btn:disabled, .step-btn:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -58,8 +58,8 @@
 <style>
   .reponse{padding:16px 0 4px; display:flex; flex-direction:column; gap:6px}
   .tete{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .titre{font-size:14px; font-weight:600}
-  .legende{display:flex; gap:14px; flex-wrap:wrap; font-size:11.5px; color:var(--v2-txt2)}
+  .titre{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .legende{display:flex; gap:14px; flex-wrap:wrap; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .cle{display:inline-flex; align-items:center; gap:6px}
   .cle i{display:inline-block; width:16px; height:3px; border-radius:2px}
   .cle.side i{background:var(--v2-acc1)}
@@ -69,12 +69,12 @@
   rect.bande{fill:var(--v2-acc-soft)}
   .grille{stroke:var(--v2-line); stroke-width:1}
   .grille.zero{stroke:var(--v2-line2)}
-  .grad{font:10px var(--v2-mono); fill:var(--v2-txt3)}
-  .axe{font:10.5px var(--v2-sans); fill:var(--v2-txt3)}
+  .grad{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); fill:var(--v2-txt3)}
+  .axe{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); fill:var(--v2-txt3)}
   .trait{fill:none; stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round}
   .trait.side{stroke:var(--v2-acc1)}
   .trait.centre{stroke:var(--v2-txt2)}
-  .axey{font-size:10.5px; color:var(--v2-txt3)}
-  .resume{font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .note{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:60ch}
+  .axey{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .resume{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:60ch}
 </style>
