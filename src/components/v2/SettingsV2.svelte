@@ -115,6 +115,7 @@
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
+  import { menusCompletsEffectifs } from '../../lib/menuPiste';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import AssistantSpotify from './spotify/AssistantSpotify.svelte';
   import RelaisSpotify from './spotify/RelaisSpotify.svelte';
@@ -193,7 +194,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
-  import { menusCompletsEffectifs } from '../../lib/menuPiste';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
