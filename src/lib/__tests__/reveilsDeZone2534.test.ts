@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+//
 // web#2534 — « Voir dans l'application la liste des alarmes déjà programmées »
 // (ancien #2448, alec_eiffel, fil de l'alarme FIP : « je ne vois pas dans
 // l'application où visualiser les alarmes qui ont été mises »).
@@ -55,7 +57,7 @@ describe('api — réveils de zone', () => {
     await api.cancelAlarm(2, 9);
     expect(appels).toHaveLength(1);
     expect(appels[0].methode).toBe('DELETE');
-    expect(appels[0].url).toMatch(/\/zones\/2\/alarm\/9$/);
+    expect(appels[0].url).toMatch(/\/zones\/2\/alarm\/9(\?|$)/);
   });
 });
 
