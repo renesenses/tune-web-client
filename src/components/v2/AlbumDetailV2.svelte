@@ -1832,8 +1832,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
 </script>
 
 <div class="v2-detail tune-v2">
-  <button class="close" onclick={onClose} aria-label="Fermer">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+  <!-- #2459 (Régis, 10/11) — la flèche porte son libellé « Retour », comme
+       le retour des Collections (`common.back`) ; visible à toute largeur. -->
+  <button class="close" data-retour-album onclick={onClose}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    <span>{$tr('common.back' as any)}</span>
   </button>
 
   <div class="head">
@@ -2268,10 +2271,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
-  .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2); display:grid; place-items:center}
+  .close{position:sticky; top:0; margin-bottom:8px; height:40px; padding:0 14px 0 10px; border-radius:12px; cursor:pointer;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
+    display:inline-flex; align-items:center; gap:6px; max-width:100%; white-space:nowrap;
+    font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .close svg{width:18px; height:18px}
+  .close svg{width:18px; height:18px; flex:none}
 
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
