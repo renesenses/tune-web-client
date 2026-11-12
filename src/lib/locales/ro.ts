@@ -6170,6 +6170,7 @@ export default {
   "radioGenre.holiday": "Sărbători",
   "radioGenre.oldies": "Oldies",
   "radioGenre.soundtrack": "Coloane sonore",
+  "radioGenre.religious": "Religioasă",
   // #4805 lot 1 — enrichissement d'après MetaRust (Xavier Joly).
   "credits.wikidataTip": "Instrumente din fișa Wikidata a artistului: ce cântă în general, nu neapărat pe acest disc.",
   "credits.wikidataSource": "după Wikidata",

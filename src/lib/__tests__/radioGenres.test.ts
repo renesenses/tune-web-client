@@ -56,8 +56,9 @@ describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
     // tune-server-rust#6516 : l'annuaire radio-metadata.fr v2 ajoute `news`,
     // `lounge`, `rnb`, `country` et `latin` (relevé du 19/10/2026).
     // tune-server-rust#7445 : `holiday`, `oldies`, `soundtrack` s'ajoutent.
-    expect(RADIO_GENRE_KEYS.length).toBe(28);
-    for (const cle of ['news', 'lounge', 'rnb', 'country', 'latin', 'holiday', 'oldies', 'soundtrack']) {
+    // 12/11/2026 (demande de Rémi) : `religious`.
+    expect(RADIO_GENRE_KEYS.length).toBe(29);
+    for (const cle of ['news', 'lounge', 'rnb', 'country', 'latin', 'holiday', 'oldies', 'soundtrack', 'religious']) {
       expect(RADIO_GENRE_KEYS).toContain(`radioGenre.${cle}`);
     }
   });
@@ -206,5 +207,24 @@ describe('tune-server-rust#7445 — les quatre genres de radio-metadata.fr', () 
     ['radio.genre.news', 'radioGenre.news'],
   ])('la clé serveur %s se traduit par %s', (serveur, cle) => {
     expect(cleClienteDuGenre(serveur)).toBe(cle);
+  });
+});
+
+describe('12/11/2026 — le genre religious de radio-metadata.fr (C000096)', () => {
+  it.each([
+    ['religious', 'radioGenre.religious'],
+    ['Religious', 'radioGenre.religious'],
+    ['religion', 'radioGenre.religious'],
+    ['Religieux', 'radioGenre.religious'],
+  ])('la valeur « %s » se range sous %s', (brut, cle) => {
+    expect(radioGenreShelf(brut)?.i18nKey).toBe(cle);
+  });
+
+  it('la clé serveur radio.genre.religious se traduit par radioGenre.religious', () => {
+    expect(cleClienteDuGenre('radio.genre.religious')).toBe('radioGenre.religious');
+  });
+
+  it('gospel reste hors du rayon religious (la bibliothèque le range sous R&B)', () => {
+    expect(radioGenreShelf('gospel')?.i18nKey).not.toBe('radioGenre.religious');
   });
 });

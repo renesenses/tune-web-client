@@ -6021,6 +6021,7 @@ export default {
   "radioGenre.holiday": "Høytidsmusikk",
   "radioGenre.oldies": "Oldies",
   "radioGenre.soundtrack": "Filmmusikk",
+  "radioGenre.religious": "Religiøst",
   "credits.wikidataTip": "Instrumenter fra artistens Wikidata-oppføring: det artisten vanligvis spiller, ikke nødvendigvis på denne utgivelsen.",
   "credits.wikidataSource": "fra Wikidata",
   "v2.liensExternes.titre": "Eksterne lenker",
