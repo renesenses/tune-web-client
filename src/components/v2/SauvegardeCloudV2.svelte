@@ -324,36 +324,36 @@
 <style>
   .sc { display: flex; flex-direction: column; gap: 10px; }
   .inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .hint { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--v2-txt3); }
-  .etat { margin: 0; font-size: 13px; color: var(--v2-txt); }
-  .titre { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--v2-txt); }
-  .errline { margin: 0; font-size: 12.5px; color: var(--v2-danger); }
+  .hint { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); line-height: 1.45; color: var(--v2-txt3); }
+  .etat { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); }
+  .titre { margin: 4px 0 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--v2-txt); }
+  .errline { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
   .alerte {
-    margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--v2-txt);
+    margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); line-height: 1.45; color: var(--v2-txt);
     border-left: 3px solid var(--v2-warn, var(--v2-danger)); padding: 4px 0 4px 10px;
   }
   .mono { font-family: var(--v2-mono); }
-  .cle { margin: 0; font-size: 15px; letter-spacing: 0.04em; color: var(--v2-txt); user-select: all; }
+  .cle { margin: 0; font-size: calc(15px * var(--v2-txt-echelle, 1)); letter-spacing: 0.04em; color: var(--v2-txt); user-select: all; }
   .boite {
     display: flex; flex-direction: column; gap: 8px;
     border: 1px solid var(--v2-line); border-radius: 10px; padding: 12px 14px;
   }
   .champs, .champ { display: flex; flex-direction: column; gap: 6px; }
-  .champs label, .champ { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--v2-txt2); }
+  .champs label, .champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   input[type='password'] {
     max-width: 360px; padding: 6px 8px; border-radius: 6px;
     border: 1px solid var(--v2-line); background: transparent; color: var(--v2-txt);
   }
-  .case { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--v2-txt2); }
+  .case { display: flex; gap: 8px; align-items: flex-start; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   .liste, .bilan { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   .liste li { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .quand { font-size: 13px; color: var(--v2-txt); }
-  .bilan li { font-size: 12.5px; color: var(--v2-txt2); }
-  .details { font-size: 12px; color: var(--v2-txt2); }
+  .quand { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); }
+  .bilan li { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
+  .details { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   .details summary { cursor: pointer; }
   .lnk {
     background: none; border: 1px solid var(--v2-line); border-radius: 6px;
-    padding: 5px 10px; color: var(--v2-txt); font-size: 13px; cursor: pointer;
+    padding: 5px 10px; color: var(--v2-txt); font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
   }
   .lnk:hover:not(:disabled) { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .lnk:disabled { opacity: 0.45; cursor: default; }

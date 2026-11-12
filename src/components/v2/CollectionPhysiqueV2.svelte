@@ -638,21 +638,21 @@
 <style>
   .v2-collection{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .intro, .aide, .avancement, .err{margin:0; padding:4px 30px; font-size:12.5px; color:var(--v2-txt3); max-width:760px}
+  .intro, .aide, .avancement, .err{margin:0; padding:4px 30px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:760px}
   .err{color:var(--v2-danger)}
   .avancement{color:var(--v2-txt2)}
   .compte{display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; padding:10px 30px 4px}
-  .compte label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--v2-txt2)}
+  .compte label{display:flex; flex-direction:column; gap:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .compte input{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:8px; padding:6px 10px; font:13px var(--v2-sans); min-width:220px}
+    border-radius:8px; padding:6px 10px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:220px}
   .state{padding:30px; color:var(--v2-txt3)}
   .filtres{display:flex; flex-wrap:wrap; gap:6px; padding:10px 30px 0}
   .puce{background:transparent; color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    padding:3px 10px; font:12px var(--v2-sans); cursor:pointer}
+    padding:3px 10px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .puce.on{color:var(--v2-txt); border-color:var(--v2-acc1)}
-  .puce .n{font:11px var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
+  .puce .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
   .list{list-style:none; margin:0; padding:12px 30px 20px; display:flex; flex-direction:column; gap:1px}
   .vues{margin-left:auto}
   /* La grille et la carte de la Bibliothèque (LibraryV2 : `.grid`, `.card`,
@@ -663,10 +663,10 @@
   .cover{position:relative; display:block; width:100%; aspect-ratio:1; padding:0; border:0; cursor:pointer;
     background:transparent; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
-  .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .pastilles{position:absolute; left:6px; top:6px; right:6px; display:flex; flex-wrap:wrap; gap:4px; pointer-events:none}
-  .pastille{font:700 8.5px var(--v2-mono); letter-spacing:.04em; padding:2px 5px; border-radius:4px;
+  .pastille{font:700 calc(8.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:2px 5px; border-radius:4px;
     background:var(--v2-scrim); color:var(--v2-txt)}
   .pastille.bibliotheque{background:var(--v2-acc1); color:var(--v2-on-acc)}
   .pastille.streaming{background:var(--v2-acc2); color:var(--v2-on-acc)}
@@ -676,27 +676,27 @@
     padding:8px 10px; border-radius:9px; color:var(--v2-txt2)}
   .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ti{min-width:0; display:flex; flex-direction:column; gap:2px}
-  .tt{font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ti em, .fmt{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3);
+  .tt{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ti em, .fmt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ou{display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px; max-width:520px}
-  .badge{font:600 10.5px var(--v2-sans); border-radius:var(--v2-r-pill); padding:2px 8px; border:1px solid var(--v2-line2)}
+  .badge{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); border-radius:var(--v2-r-pill); padding:2px 8px; border:1px solid var(--v2-line2)}
   .badge.bib{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .badge.st{color:var(--v2-acc2); border-color:var(--v2-acc2)}
   .badge.np, .badge.av{color:var(--v2-txt3)}
-  .q{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .q{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .q.extraire{color:var(--v2-acc2)}
-  .mini{padding:2px 8px; border-radius:10px; cursor:pointer; font-size:11px; background:transparent;
+  .mini{padding:2px 8px; border-radius:10px; cursor:pointer; font-size:calc(11px * var(--v2-txt-echelle, 1)); background:transparent;
     color:var(--v2-txt); border:1px solid var(--v2-line2)}
   .mini.on{color:var(--v2-acc1); border-color:var(--v2-acc1)}
-  .discogs{font-size:11px; color:var(--v2-txt3)}
+  .discogs{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .discogs:hover{color:var(--v2-txt)}
-  .navigation label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2)}
+  .navigation label{display:flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .navigation select{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:8px; padding:3px 8px; font:12px var(--v2-sans); max-width:220px}
+    border-radius:8px; padding:3px 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
   .recherche{display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px}
   .err-mini{color:var(--v2-danger)}
-  .attribution{margin:0; padding:16px 30px 0; font-size:11px; color:var(--v2-txt3)}
+  .attribution{margin:0; padding:16px 30px 0; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .attribution a{color:inherit}
   @media (max-width: 640px){
     .ligne{grid-template-columns:40px minmax(0,1fr)}

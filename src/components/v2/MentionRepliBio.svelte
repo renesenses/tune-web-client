@@ -27,5 +27,5 @@
 {/if}
 
 <style>
-  .bio-repli { margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--v2-txt3); font-style: italic; }
+  .bio-repli { margin: 6px 0 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); line-height: 1.5; color: var(--v2-txt3); font-style: italic; }
 </style>

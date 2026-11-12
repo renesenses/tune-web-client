@@ -242,23 +242,23 @@
   .v2-pont{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:14px; max-width:880px}
-  .state,.hint{color:var(--v2-txt3); font-size:12.5px}
-  .intro{font-size:13px; line-height:1.6; color:var(--v2-txt2); max-width:74ch}
+  .state,.hint{color:var(--v2-txt3); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .intro{font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2); max-width:74ch}
   .intro a{color:var(--v2-acc-tint)}
-  .err,.premium{padding:10px 14px; border-radius:10px; font-size:12.5px}
+  .err,.premium{padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .premium{border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .pas{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap}
-  .fic{display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--v2-txt2)}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .fic{display:flex; flex-direction:column; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .rap{padding:16px 18px; border-radius:13px; border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .rap.final{border-color:var(--v2-acc2)}
-  .rap h2{font-size:14px; font-weight:700; margin-bottom:8px}
-  .src{display:flex; gap:18px; flex-wrap:wrap; font:11px var(--v2-mono); color:var(--v2-txt3); margin-bottom:10px}
-  dl{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 20px; font-size:12.5px}
+  .rap h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; margin-bottom:8px}
+  .src{display:flex; gap:18px; flex-wrap:wrap; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-bottom:10px}
+  dl{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:6px 20px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   dt{color:var(--v2-txt2)}
-  dd{font:12px var(--v2-mono); text-align:right}
-  .note{margin-top:10px; font-size:11.5px; color:var(--v2-txt3)}
+  dd{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-align:right}
+  .note{margin-top:10px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 </style>

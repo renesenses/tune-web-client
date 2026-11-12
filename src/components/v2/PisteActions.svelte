@@ -92,7 +92,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { actionsReduites } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
-  import { entreesMenuPiste } from '../../lib/menuPiste';
+  import { entreesMenuPiste, rangerMenuPiste } from '../../lib/menuPiste';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
@@ -672,7 +672,9 @@
 </span>
 
 {#if ancreMenu}
-  <MenuPisteV2 ancre={ancreMenu} {entrees} onClose={() => (ancreMenu = null)} />
+  <!-- rc12 — gestes courants d'abord, le reste sous « Plus… » ; les outils
+       d'expert absents au niveau Essentiel (`rangerMenuPiste`). -->
+  <MenuPisteV2 ancre={ancreMenu} entrees={rangerMenuPiste(entrees, $preferences.settingsLevel)} onClose={() => (ancreMenu = null)} />
 {/if}
 
 <!-- Le MÊME panneau dans les deux modes : par `trackId` pour la bibliothèque,

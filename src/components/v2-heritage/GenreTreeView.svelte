@@ -333,11 +333,11 @@
 
 <style>
   .gt-view { padding: 24px; max-width: 1100px; margin: 0 auto; }
-  header h1 { margin: 0 0 4px; font-size: 1.5rem; color: var(--tune-text); }
-  .lede { color: var(--tune-text-muted); font-size: 13px; margin: 0 0 14px; max-width: 760px; line-height: 1.45; }
-  .lede code { background: var(--tune-bg); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
-  .help-toggle { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: 13px; padding: 0; margin: 0 0 10px; cursor: pointer; }
-  .help-steps { color: var(--tune-text-muted); font-size: 13px; line-height: 1.5; margin: 0 0 14px; padding-left: 20px; max-width: 760px; }
+  header h1 { margin: 0 0 4px; font-size: calc(1.5rem * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .lede { color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin: 0 0 14px; max-width: 760px; line-height: 1.45; }
+  .lede code { background: var(--tune-bg); padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: calc(11px * var(--v2-txt-echelle, 1)); }
+  .help-toggle { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 0; margin: 0 0 10px; cursor: pointer; }
+  .help-steps { color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); line-height: 1.5; margin: 0 0 14px; padding-left: 20px; max-width: 760px; }
   .help-steps li { margin-bottom: 4px; }
   /* Boutons figés au défilement — le vrai « haut utile » de cette vue (#1237). */
   /* L'ancrage vit sur la barre, pas sur chaque ligne : `.gt-view` est un bloc
@@ -346,7 +346,7 @@
   .gt-toolbar { position: sticky; top: 0; z-index: 20; background: var(--tune-bg); padding: 10px 0; margin-top: -10px; }
   .actions { display: flex; gap: 8px; margin-bottom: 16px; }
   .btn-save, .btn-secondary, .btn-add {
-    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    padding: 6px 14px; border-radius: 6px; font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600;
     cursor: pointer; border: none;
   }
   .btn-save { background: var(--tune-accent); color: white; }
@@ -359,7 +359,7 @@
   .add-parent { display: flex; gap: 8px; margin-bottom: 18px; max-width: 480px; }
   .add-parent input {
     flex: 1; background: var(--tune-bg); border: 1px solid var(--tune-border);
-    border-radius: 6px; padding: 6px 10px; color: var(--tune-text); font-size: 13px;
+    border-radius: 6px; padding: 6px 10px; color: var(--tune-text); font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .grid {
@@ -376,14 +376,14 @@
   .branch-head { display: flex; align-items: center; gap: 8px; }
   .parent-input {
     flex: 1; background: transparent; border: none; padding: 2px 0;
-    color: var(--tune-text); font-size: 14px; font-weight: 600;
+    color: var(--tune-text); font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600;
     border-bottom: 1px solid transparent;
   }
   .parent-input:focus { outline: none; border-bottom-color: var(--tune-accent); }
-  .count { font-size: 11px; color: var(--tune-text-muted); white-space: nowrap; }
+  .count { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); white-space: nowrap; }
   .btn-del {
     background: none; border: none; color: var(--tune-text-muted);
-    font-size: 18px; cursor: pointer; line-height: 1; padding: 0 4px;
+    font-size: calc(18px * var(--v2-txt-echelle, 1)); cursor: pointer; line-height: 1; padding: 0 4px;
   }
   .btn-del:hover { color: #ef4444; }
 
@@ -395,14 +395,14 @@
     display: inline-flex; align-items: center; gap: 4px;
     background: rgba(var(--tune-accent-rgb,99,102,241),0.12);
     color: var(--tune-text);
-    border-radius: 12px; padding: 2px 4px 2px 6px; font-size: 11px;
+    border-radius: 12px; padding: 2px 4px 2px 6px; font-size: calc(11px * var(--v2-txt-echelle, 1));
     cursor: grab;
     user-select: none;
   }
   .child:active { cursor: grabbing; }
   .child-grip {
     color: var(--tune-text-muted);
-    font-size: 10px; letter-spacing: -2px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1)); letter-spacing: -2px;
     padding-right: 2px;
   }
   .branch.drop-target {
@@ -411,13 +411,13 @@
   }
   .child-del {
     background: none; border: none; color: var(--tune-text-muted);
-    cursor: pointer; padding: 0 4px; font-size: 14px; line-height: 1;
+    cursor: pointer; padding: 0 4px; font-size: calc(14px * var(--v2-txt-echelle, 1)); line-height: 1;
   }
   .child-del:hover { color: #ef4444; }
 
   .child-rename {
     background: none; border: none; color: var(--tune-text-muted);
-    cursor: pointer; padding: 0 2px; font-size: 11px; line-height: 1;
+    cursor: pointer; padding: 0 2px; font-size: calc(11px * var(--v2-txt-echelle, 1)); line-height: 1;
   }
   .child-rename:hover { color: var(--tune-accent); }
   .child-rename:disabled { opacity: 0.4; cursor: default; }
@@ -425,7 +425,7 @@
   .add-child-input {
     background: var(--tune-bg); border: 1px dashed var(--tune-border);
     border-radius: 6px; padding: 4px 8px;
-    color: var(--tune-text); font-size: 11px;
+    color: var(--tune-text); font-size: calc(11px * var(--v2-txt-echelle, 1));
   }
   .add-child-input:focus { border-style: solid; border-color: var(--tune-accent); outline: none; }
 

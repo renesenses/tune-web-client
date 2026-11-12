@@ -215,7 +215,7 @@
   }
   .fir-curve-title {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -228,7 +228,7 @@
     border-radius: var(--radius-sm);
     padding: 1px 8px;
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
   }
@@ -245,7 +245,7 @@
   }
   .grid-v, .grid-h { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
   .grid-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
-  .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: 9px; }
+  .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: calc(9px * var(--v2-txt-echelle, 1)); }
   .phase-label { text-anchor: end; }
   .magnitude { fill: none; stroke: #f59e0b; stroke-width: 2; }
   .phase {
@@ -259,12 +259,12 @@
     flex-wrap: wrap;
     gap: 4px 14px;
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
   .fir-rate-warning {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: #f59e0b;
   }
 </style>

@@ -394,13 +394,13 @@
     border-radius:var(--v2-r-card, 12px); padding:18px 20px 20px;
     box-shadow:var(--v2-sh-pop, 0 12px 40px rgba(0,0,0,.5))}
   header{position:relative; padding-right:32px; margin-bottom:14px}
-  h2{font:700 16px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
-  .src{margin-top:3px; font:12.5px var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
+  h2{font:700 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
+  .src{margin-top:3px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
   .approx{font-style:italic}
   .x{position:absolute; top:-4px; right:-6px; width:28px; height:28px; border:0; background:transparent;
-    color:var(--v2-txt3, inherit); font-size:20px; line-height:1; cursor:pointer; border-radius:6px}
+    color:var(--v2-txt3, inherit); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer; border-radius:6px}
   .x:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
-  .etat{font:13px var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
+  .etat{font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
   .tuiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px}
   .tuile{display:flex; align-items:center; gap:10px; min-width:0;
     border:1px solid var(--v2-line, transparent); border-radius:10px; padding:6px}
@@ -410,15 +410,15 @@
   .cv:disabled{cursor:default}
   .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
   .ti{border:0; background:transparent; padding:0; text-align:left; cursor:pointer;
-    font:600 13px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit));
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit));
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ti:hover:not(:disabled):not(.plat){color:var(--v2-acc1, var(--tune-accent, currentColor))}
   .ti:disabled,.ti.plat{cursor:default}
-  .sub{font:11.5px var(--v2-sans, inherit); color:var(--v2-txt3, inherit);
+  .sub{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, inherit);
     display:flex; align-items:center; gap:5px; min-width:0}
   .interprete{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
   .groupes{display:flex; flex-direction:column; gap:14px}
-  .groupe h3{font:600 12.5px var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text-secondary, inherit));
+  .groupe h3{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text-secondary, inherit));
     margin-bottom:6px}
   .groupe.courant h3{color:var(--v2-txt, var(--tune-text, inherit))}
   .lien{font-weight:400; color:var(--v2-txt3, inherit)}
@@ -429,7 +429,7 @@
   .membre.inerte{opacity:.55}
   /* #2017 — le bouton « … » d'une version, à droite de sa tuile. */
   .mv{flex:0 0 auto; width:28px; height:28px; border:0; border-radius:6px; background:transparent;
-    color:var(--v2-txt3, inherit); font-size:18px; line-height:1; cursor:pointer}
+    color:var(--v2-txt3, inherit); font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .mv:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
   .mv:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:-2px}
   .distinction{font-weight:600}
@@ -438,7 +438,7 @@
   .cv.petit{width:40px; height:40px}
   .q{font-variant-numeric:tabular-nums}
   .moi{font-style:italic}
-  .par-defaut{flex:0 0 auto; font:600 11px var(--v2-sans, inherit); padding:2px 7px; border-radius:999px;
+  .par-defaut{flex:0 0 auto; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); padding:2px 7px; border-radius:999px;
     color:var(--v2-acc1, var(--tune-accent, currentColor));
     border:1px solid var(--v2-acc1, var(--tune-accent, currentColor))}
 </style>

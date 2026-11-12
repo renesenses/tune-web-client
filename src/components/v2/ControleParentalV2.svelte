@@ -53,12 +53,12 @@
 {/if}
 
 <style>
-  .hint{margin:4px 0 12px; font-size:12.5px; line-height:1.5; color:var(--v2-txt3)}
+  .hint{margin:4px 0 12px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .guide{margin:0 0 8px; padding:10px 12px; border-radius:11px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt2); font-size:13px; line-height:1.5}
+    background:var(--v2-surface2); color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.5}
   .choix{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;
-    color:var(--v2-txt); font:13px var(--v2-sans)}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .sel{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; min-width:180px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; min-width:180px}
   .sel:focus{outline:none; border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
 </style>

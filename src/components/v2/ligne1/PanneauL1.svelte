@@ -55,7 +55,7 @@
   .ico :global(svg) { width: 15px; height: 15px; }
   h3 {
     margin: 0; min-width: 0; color: var(--v2-txt);
-    font: 600 13px var(--v2-sans);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 

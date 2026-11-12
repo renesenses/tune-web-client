@@ -87,7 +87,7 @@
     background: rgba(245, 158, 11, 0.14);
     border: 1px solid rgba(245, 158, 11, 0.35);
     color: var(--text, #e6e6e6);
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     line-height: 1.35;
   }
   .zone-output-banner svg {
@@ -104,7 +104,7 @@
     color: inherit;
     border-radius: 999px;
     padding: 0.25rem 0.7rem;
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .zone-output-banner-action:hover {
@@ -116,7 +116,7 @@
     border: 0;
     color: inherit;
     opacity: 0.7;
-    font-size: 1.1rem;
+    font-size: calc(1.1rem * var(--v2-txt-echelle, 1));
     line-height: 1;
     padding: 0.1rem 0.35rem;
     cursor: pointer;

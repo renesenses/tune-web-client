@@ -122,18 +122,18 @@
 
 <style>
   .diag-ia { border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card, 10px); padding: 12px 14px; margin-bottom: 14px; }
-  h3 { font-size: 14px; margin: 0 0 6px; }
-  h4 { font-size: 13px; margin: 10px 0 4px; }
-  .sub { font-size: 12.5px; color: var(--v2-txt3); margin: 4px 0; }
+  h3 { font-size: calc(14px * var(--v2-txt-echelle, 1)); margin: 0 0 6px; }
+  h4 { font-size: calc(13px * var(--v2-txt-echelle, 1)); margin: 10px 0 4px; }
+  .sub { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); margin: 4px 0; }
   .ligne { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
   textarea { width: 100%; box-sizing: border-box; background: var(--v2-bg); border: 1px solid var(--v2-line2); border-radius: 8px; color: var(--v2-txt); padding: 8px 10px; font: inherit; }
   .actions { display: flex; justify-content: flex-end; margin-top: 8px; }
   .go { border-radius: 8px; padding: 6px 12px; border: 1px solid var(--v2-acc1); color: var(--v2-acc1); background: transparent; cursor: pointer; }
   .go:disabled { opacity: 0.45; cursor: default; }
   .apercu, .res { border-top: 1px solid var(--v2-line); margin-top: 10px; padding-top: 6px; }
-  pre { white-space: pre-wrap; font-size: 11.5px; max-height: 280px; overflow: auto; background: var(--v2-bg); padding: 8px; border-radius: 6px; }
-  .bandeau { font-size: 12px; color: var(--v2-acc1); margin: 0 0 4px; }
-  .indice { display: block; font-size: 11.5px; margin: 2px 0 0 12px; color: var(--v2-txt3); }
-  .err { font-size: 12.5px; color: var(--v2-danger); }
-  .case { font-size: 12.5px; }
+  pre { white-space: pre-wrap; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); max-height: 280px; overflow: auto; background: var(--v2-bg); padding: 8px; border-radius: 6px; }
+  .bandeau { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-acc1); margin: 0 0 4px; }
+  .indice { display: block; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); margin: 2px 0 0 12px; color: var(--v2-txt3); }
+  .err { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
+  .case { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); }
 </style>

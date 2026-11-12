@@ -60,12 +60,12 @@
   .carte.choisie{border-color:var(--v2-acc1); box-shadow:0 0 0 1px var(--v2-acc1) inset}
   .tete{width:100%; display:flex; align-items:center; gap:8px; border:0; background:none; padding:0; cursor:pointer;
     color:var(--v2-txt); text-align:left}
-  .nom{font-size:13.5px; font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .type{font-size:10.5px; color:var(--v2-txt3); padding:1px 6px; border:1px solid var(--v2-line2); border-radius:4px; flex:0 0 auto}
-  .etat{margin-left:auto; font-size:11px; color:var(--v2-txt2); flex:0 0 auto}
+  .nom{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:700; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .type{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); padding:1px 6px; border:1px solid var(--v2-line2); border-radius:4px; flex:0 0 auto}
+  .etat{margin-left:auto; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); flex:0 0 auto}
   .etat.joue{color:var(--v2-acc1)}
-  .detail{font-size:11.5px; color:var(--v2-txt2); margin:4px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .vol-lu{font:600 11.5px var(--v2-mono); color:var(--v2-txt2); text-align:right}
+  .detail{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); margin:4px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .vol-lu{font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); text-align:right}
   .fin{align-self:center; margin-top:4px; padding:6px 14px; border-radius:20px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt2); cursor:pointer; font:500 12px var(--v2-sans)}
+    background:var(--v2-surface2); color:var(--v2-txt2); cursor:pointer; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
 </style>

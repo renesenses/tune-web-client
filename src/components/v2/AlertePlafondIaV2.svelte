@@ -20,7 +20,7 @@
 
 <style>
   .alerte {
-    margin: 0; font-size: 12.5px; line-height: 1.45;
+    margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); line-height: 1.45;
     color: var(--v2-warn, var(--v2-danger));
   }
 </style>

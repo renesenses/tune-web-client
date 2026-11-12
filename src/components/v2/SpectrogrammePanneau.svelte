@@ -119,17 +119,17 @@
     border-radius:var(--v2-r-card, 12px); padding:18px 20px 20px;
     box-shadow:var(--v2-sh-pop, 0 12px 40px rgba(0,0,0,.5))}
   header{position:relative; padding-right:32px; margin-bottom:14px}
-  h2{font:700 16px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
-  .src{margin-top:3px; font:12.5px var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
+  h2{font:700 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
+  .src{margin-top:3px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
   .x{position:absolute; top:-4px; right:-6px; width:28px; height:28px; border:0; background:transparent;
-    color:var(--v2-txt3, inherit); font-size:20px; line-height:1; cursor:pointer; border-radius:6px}
+    color:var(--v2-txt3, inherit); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer; border-radius:6px}
   .x:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
-  .etat{font:13px var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
+  .etat{font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
   .erreur{color:var(--v2-txt, var(--tune-text, inherit))}
   .image{display:block; width:100%; height:auto; border-radius:6px; background:#000}
   .bouton{border:1px solid var(--v2-acc1, var(--tune-accent, currentColor)); background:transparent;
     color:var(--v2-acc1, var(--tune-accent, currentColor)); border-radius:999px; padding:6px 14px;
-    font:600 13px var(--v2-sans, inherit); cursor:pointer}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); cursor:pointer}
   .bouton:hover{background:var(--v2-hover, rgba(255,255,255,.06))}
   .bouton:focus-visible,.x:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:2px}
 </style>

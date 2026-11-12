@@ -139,9 +139,9 @@
     flex-direction:column; gap:14px}
   .recherche{display:flex; gap:10px; align-items:flex-start; max-width:900px}
   .recherche > :global(.v2-req){flex:1}
-  .etat{margin:0; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .etat{margin:0; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .liste{min-width:0}
-  .ghost,.play{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer; flex:none}
+  .ghost,.play{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; flex:none}
   .ghost{align-self:center; color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .play{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

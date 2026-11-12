@@ -59,13 +59,13 @@
 {/if}
 
 <style>
-  .relais{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--v2-txt3)}
+  .relais{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .bascule{display:flex; gap:8px; align-items:center; font-weight:600; color:var(--v2-txt2); cursor:pointer}
   .aide{margin:0}
   .adresse{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
   .ko{margin:0; color:var(--v2-danger)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 </style>
