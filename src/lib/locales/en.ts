@@ -7407,6 +7407,7 @@ export default {
   "v2.menu.tabsLabel": "Album sections",
   "v2.menu.playOptions": "More ways to play",
   "v2.menu.addToQueue": "Add to queue",
+  "v2.menu.shufflePlay": "Shuffle play",
   "v2.menu.sort": "Sort",
   "v2.menu.order": "Order",
   "v2.menu.new": "New",

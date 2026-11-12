@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -740,12 +741,12 @@
           <div class="ihead">
             <h2>{$t((vue.items.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(vue.items.length))}</h2>
             <div class="acts">
-              <button class="pill" disabled={!!action} onclick={() => enchainer(vue.items, 'all')}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.lbl.playAll' as any)}
-              </button>
-              <button class="pill ghost" disabled={!!action} onclick={() => enchainer(melanger(vue.items), 'shuffle')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$t('v2.album.shuffle' as any)}
-              </button>
+              <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire
+                   passe sous sa flèche (`data-aleatoire-serveur`). -->
+              <span style="--bl-h:32px"><BoutonLectureV2 onLire={() => enchainer(vue.items, 'all')} cle="v2.lbl.playAll"
+                desactive={!!action} attrsLire={{ 'data-lire-serveur': true }}
+                aleatoire={{ faire: () => enchainer(melanger(vue.items), 'shuffle'), desactive: !!action }}
+                attrsAleatoire={{ 'data-aleatoire-serveur': true }} /></span>
             </div>
           </div>
           <div class="trks">

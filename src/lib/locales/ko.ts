@@ -7387,6 +7387,7 @@ export default {
   "v2.menu.tabsLabel": "앨범 섹션",
   "v2.menu.playOptions": "다른 재생 방법",
   "v2.menu.addToQueue": "대기열에 추가",
+  "v2.menu.shufflePlay": "셔플 재생",
   "v2.menu.sort": "정렬",
   "v2.menu.order": "순서",
   "v2.menu.new": "새로 만들기",

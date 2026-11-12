@@ -1320,11 +1320,11 @@
         <BoutonLectureV2 onLire={() => lireCollectionEntiere(false)} cle="collections.playAll" cleBulle="collections.playAll"
           desactive={masseEnCours || !albums.length}
           ensuite={albums.length ? { faire: () => void enfilerCollection(rangLireEnsuite(), 'v2.album.queuedNext'), desactive: masseEnCours } : null}
-          file={albums.length ? { faire: () => void enfilerCollection(undefined, 'v2.album.queued'), desactive: masseEnCours } : null} />
-        <button class="fab creux" onclick={() => lireCollectionEntiere(true)}
-          disabled={masseEnCours || !albums.length} title={$t('collections.shuffleAll' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
-        </button>
+          file={albums.length ? { faire: () => void enfilerCollection(undefined, 'v2.album.queued'), desactive: masseEnCours } : null}
+          aleatoire={albums.length ? { faire: () => lireCollectionEntiere(true), desactive: masseEnCours, bulle: 'collections.shuffleAll' } : null}
+          attrsAleatoire={{ 'data-aleatoire-collection': true }} />
+        <!-- rc12 (Bertrand, 12/11/2026) : « Tout lire en aléatoire » (collections.shuffleAll)
+             n'est plus un bouton à part : c'est l'entrée « Lecture aléatoire » de la flèche. -->
         <BoutonMenuV2 entrees={entreesTri} etiquette={$t('v2.fav.sortBy' as any)} largeur={232}>
           {#snippet declencheur(p)}
             <button class="v2-btn trier" {...p} data-menu-tri title={$t('v2.fav.sortBy' as any)}>

@@ -35,6 +35,7 @@
    *   changé (voir `issueRelecture`).
    */
   import { onDestroy, tick } from 'svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -523,12 +524,12 @@
           </div>
         {/if}
         <div class="actions">
-          <button class="play lire-playlist" disabled={occupe || items.length === 0} onclick={() => void lire()}>
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.circle.pl.play' as any)}
-          </button>
-          <button class="ghost aleatoire-playlist" disabled={occupe || items.length === 0} onclick={() => void lireAleatoire()}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffle')}
-          </button>
+          <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Lecture
+               aléatoire » passe sous sa flèche (`data-aleatoire-playlist-cercle`). -->
+          <BoutonLectureV2 onLire={() => void lire()} cle="v2.circle.pl.play" classeLire="lire-playlist"
+            desactive={occupe || items.length === 0}
+            aleatoire={{ faire: () => void lireAleatoire(), desactive: occupe || items.length === 0 }}
+            attrsAleatoire={{ 'data-aleatoire-playlist-cercle': true }} />
           <button class="ghost ajouter-morceaux" onclick={ajouterDesMorceaux}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{$t('v2.circle.pl.addTracks' as any)}
           </button>

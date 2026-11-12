@@ -20,6 +20,7 @@
   import { corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonLectureV2 from '../v2/BoutonLectureV2.svelte';
   import ListePistesV2 from '../v2/ListePistesV2.svelte';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import { estPisteLocale } from '../../lib/pisteFile';
@@ -1425,15 +1426,18 @@
    * service par `tracks[]` : une playlist Qobuz/Tidal s'enfile aussi.
    */
   let fileOccupee = $state(false);
-  async function lireEnsuite() {
+  /** rc12 — « Lire ensuite » (au rang) et « Ajouter à la file » (à la fin) : le même geste. */
+  function lireEnsuite() { return enfilerPlaylist(rangLireEnsuite()); }
+  function ajouterALaFile() { return enfilerPlaylist(undefined); }
+  async function enfilerPlaylist(position: number | undefined) {
     if (!zone?.id || fileOccupee) return;
-    const corps = corpsDeFileListe(detailTracks, rangLireEnsuite());
+    const corps = corpsDeFileListe(detailTracks, position);
     if (!corps) { notifications.error($tr('library.noTracks')); return; }
     fileOccupee = true;
     try {
       await api.addToQueue(zone.id, corps);
       const nom = selectedPlaylist?.name ?? selectedStreamingPl?.name ?? '';
-      notifications.success($tr('v2.album.queuedNext' as any).replace('{title}', nom));
+      notifications.success($tr((position != null ? 'v2.album.queuedNext' : 'v2.album.queued') as any).replace('{title}', nom));
     } catch {
       notifications.error($tr('v2.pa.queueError' as any));
     }
@@ -1985,25 +1989,18 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
           {$tr('playlist.compare')}
         </button>
-        <button class="play-all-btn" onclick={() => {
+        <!-- rc12 (Bertrand, 12/11/2026) : « un seul bouton Play pour Play /
+             Shuffle / Lire ensuite / Ajouter à la file ». Les trois boutons
+             d'avant (Lire, Lecture aléatoire, Lire ensuite — #1574) deviennent
+             le bouton Lecture partagé et sa flèche. -->
+        <BoutonLectureV2 cle="common.play" classeLire="play-all-btn" onLire={() => {
           if (selectedPlaylist?.id) playPlaylist(selectedPlaylist.id);
           else if (selectedStreamingPl) playStreamingPlaylist(selectedStreamingPl);
-        }}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('common.play')}
-        </button>
-        <button class="shuffle-btn" onclick={lireAleatoire}
-          disabled={melangeEnCours || detailTracks.length === 0}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
-          {$tr('library.shuffle')}
-        </button>
-        <!-- « Lire ensuite » — #1574. Même style que « Lecture aléatoire »,
-             même icône et même libellé que la fiche album. -->
-        <button class="shuffle-btn lire-ensuite-btn" onclick={lireEnsuite}
-          disabled={fileOccupee || detailTracks.length === 0}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>
-          {$tr('v2.album.playNext' as any)}
-        </button>
+        }}
+          aleatoire={{ faire: lireAleatoire, desactive: melangeEnCours || detailTracks.length === 0 }}
+          attrsAleatoire={{ 'data-aleatoire-gestionnaire': true }}
+          ensuite={{ faire: lireEnsuite, desactive: fileOccupee || detailTracks.length === 0 }}
+          file={{ faire: ajouterALaFile, desactive: fileOccupee || detailTracks.length === 0 }} />
       </div>
     </div>
 

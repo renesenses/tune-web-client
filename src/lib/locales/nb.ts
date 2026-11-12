@@ -7232,6 +7232,7 @@ export default {
   "v2.menu.tabsLabel": "Albumdeler",
   "v2.menu.playOptions": "Flere måter å spille av",
   "v2.menu.addToQueue": "Legg til i køen",
+  "v2.menu.shufflePlay": "Tilfeldig avspilling",
   "v2.menu.sort": "Sorter",
   "v2.menu.order": "Rekkefølge",
   "v2.menu.new": "Ny",

@@ -10,6 +10,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonLectureV2 from '../v2/BoutonLectureV2.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import PochetteActions from '../v2/PochetteActions.svelte';
   import { cibleSmartPlaylist } from '../../lib/cibleEtiquette';
@@ -743,14 +744,11 @@
       </div>
 
       <div class="sp-detail-actions">
-        <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('smartPlaylists.playAll')} ({spTracks.length})
-        </button>
-        <button class="edit-btn" onclick={playShuffle} disabled={spTracks.length === 0} title={$tr('library.shuffle')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-          {$tr('library.shuffle')}
-        </button>
+        <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire passe sous sa flèche. -->
+        <BoutonLectureV2 cle="smartPlaylists.playAll" suffixe={` (${spTracks.length})`} classeLire="play-all-btn"
+          onLire={playAll} desactive={spTracks.length === 0}
+          aleatoire={{ faire: playShuffle, desactive: spTracks.length === 0 }}
+          attrsAleatoire={{ 'data-aleatoire-smart': true }} />
         <button class="edit-btn" onclick={() => { const sp = selectedSp!; fermerSpSansReculer(); startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
           {$tr('smartPlaylists.edit')}

@@ -7409,6 +7409,7 @@ export default {
   "v2.menu.tabsLabel": "Sections de l'album",
   "v2.menu.playOptions": "Autres façons de lire",
   "v2.menu.addToQueue": "Ajouter à la file d'attente",
+  "v2.menu.shufflePlay": "Lecture aléatoire",
   "v2.menu.sort": "Trier",
   "v2.menu.order": "Ordre",
   "v2.menu.new": "Nouvelle",

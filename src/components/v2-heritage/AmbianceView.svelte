@@ -7,6 +7,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonLectureV2 from '../v2/BoutonLectureV2.svelte';
   /**
    * Les cinq actions par piste (Bertrand, 05/09/2026 : « et les boutons
    * d'action sur une piste dans cet écran ? »). Cet écran est celui du client
@@ -434,14 +435,9 @@
         </h3>
         <span class="track-count">{$t((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         <div class="results-actions">
-          <button class="action-btn play-all-btn" onclick={() => playAll(false)}>
-            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21" /></svg>
-            {$t('v2.ambiance.playAll' as any)}
-          </button>
-          <button class="action-btn" onclick={() => playAll(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
-            {$t('v2.ambiance.shuffle' as any)}
-          </button>
+          <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire passe sous sa flèche. -->
+          <BoutonLectureV2 cle="v2.ambiance.playAll" classeLire="play-all-btn" onLire={() => playAll(false)}
+            aleatoire={{ faire: () => playAll(true), bulle: 'v2.ambiance.shuffle' }} attrsAleatoire={{ 'data-aleatoire-ambiance': true }} />
           <AmbianceExport ids={trackIds()} nomPropose={`Ambiance · ${lastQuery}`} />
         </div>
       </div>

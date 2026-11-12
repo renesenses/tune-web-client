@@ -7387,6 +7387,7 @@ export default {
   "v2.menu.tabsLabel": "Secțiunile albumului",
   "v2.menu.playOptions": "Alte moduri de redare",
   "v2.menu.addToQueue": "Adaugă în coadă",
+  "v2.menu.shufflePlay": "Redare aleatorie",
   "v2.menu.sort": "Sortează",
   "v2.menu.order": "Ordine",
   "v2.menu.new": "Nouă",

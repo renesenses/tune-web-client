@@ -465,7 +465,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
 
      L'en-tête comptait une vingtaine de boutons. Il en garde trois et un menu :
 
-         [ ▶ Lecture | ▾ ]  [ ⤮ ]  [ ♡ ]  [ … ]
+         [ ▶ Lecture | ▾ ]  [ ♡ ]  [ … ]   (rc12 : ⤮ passé sous ▾)
 
      « Lire ensuite » et « Ajouter à la file » passent sous la flèche du bouton
      Lecture (`BoutonLectureV2`) ; tout le reste dans « … », par groupes.
@@ -1949,13 +1949,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
            QUATRE origines (Bertrand, 06/09/2026) : chaque piste porte sa paire
            `source` + `source_id`, et la route de file accepte `tracks[]`. -->
       <div class="actions">
+        <!-- rc12 (Bertrand, 12/11/2026) : « un seul bouton Play pour Play /
+             Shuffle / Lire ensuite / Ajouter à la file ». Le ⤮ séparé passe
+             sous la flèche, avec son `data-aleatoire-album`. -->
         <BoutonLectureV2 onLire={() => playAlbum(0)} cle="v2.album.play" cleBulle="v2.album.playTip"
+          aleatoire={{ faire: shuffle, bulle: 'v2.album.shuffleTip' }} attrsAleatoire={{ 'data-aleatoire-album': true }}
           ensuite={{ faire: lireEnsuite, desactive: fileOccupee, bulle: 'v2.album.playNextTip' }}
           file={{ faire: addQueue, desactive: fileOccupee, bulle: 'v2.album.addQueueTip' }} />
-        <button class="ghost carre" onclick={shuffle} title={$tr('v2.album.shuffleTip' as any)}
-          aria-label={$tr('v2.album.shuffle' as any)} data-aleatoire-album>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>
-        </button>
         <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE (`id` local, ou
              référence de service — Bandcamp compris depuis #1409). Un bouton
              absent ne promet rien. -->

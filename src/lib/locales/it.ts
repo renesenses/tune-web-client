@@ -7387,6 +7387,7 @@ export default {
   "v2.menu.tabsLabel": "Sezioni dell'album",
   "v2.menu.playOptions": "Altri modi di riprodurre",
   "v2.menu.addToQueue": "Aggiungi alla coda",
+  "v2.menu.shufflePlay": "Riproduzione casuale",
   "v2.menu.sort": "Ordina",
   "v2.menu.order": "Ordine",
   "v2.menu.new": "Nuova",
