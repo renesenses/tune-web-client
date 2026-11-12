@@ -49,6 +49,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import { artisteDAlbum } from '../../lib/lienEntite';
   import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -922,12 +923,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     <div class="barre">
       {#if tab === 'tracks' && vTracks.length}
         <div class="masse">
-          <button class="fab" onclick={() => lireLesPistes(false)} disabled={masseEnCours} title={$t('collections.playAll' as any)}>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
-          </button>
-          <button class="fab creux" onclick={() => lireLesPistes(true)} disabled={masseEnCours} title={$t('collections.shuffleAll' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
-          </button>
+          <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Tout lire au
+               hasard » passe sous sa flèche (`data-aleatoire-favoris`). -->
+          <BoutonLectureV2 onLire={() => lireLesPistes(false)} cle="collections.playAll" cleBulle="collections.playAll"
+            desactive={masseEnCours} attrsLire={{ 'data-lire-favoris': true }}
+            aleatoire={{ faire: () => lireLesPistes(true), desactive: masseEnCours, bulle: 'collections.shuffleAll' }}
+            attrsAleatoire={{ 'data-aleatoire-favoris': true }} />
         </div>
       {/if}
       {#if sourcesOnglet.length > 1}

@@ -7418,6 +7418,7 @@ export default {
   "v2.menu.tabsLabel": "专辑分区",
   "v2.menu.playOptions": "更多播放方式",
   "v2.menu.addToQueue": "添加到队列",
+  "v2.menu.shufflePlay": "随机播放",
   "v2.menu.sort": "排序",
   "v2.menu.order": "顺序",
   "v2.menu.new": "新建",

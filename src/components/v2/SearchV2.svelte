@@ -67,6 +67,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import RadiosTrouvees from './RadiosTrouvees.svelte';
   import { entreesRadios } from '../../lib/rechercheRadios';
   import type { RadiosTrouvees as RadiosTrouveesDonnees } from '../../lib/api/annuaireRadios';
@@ -1617,10 +1618,13 @@ import { sansDoublons } from '../../lib/clesUniques';
             {#if libelleDureeTitres}
               <span class="grp-duree" title={`${titresAvecDuree} / ${titres.length}`}>{libelleDureeTitres}</span>
             {/if}
-            <button class="lnk" onclick={() => lireTousLesTitres(false)} disabled={masseEnCours}
-              title={$t('browse.playAll' as any)}>{$t('browse.playAll' as any)}</button>
-            <button class="lnk" onclick={() => lireTousLesTitres(true)} disabled={masseEnCours}
-              title={$t('library.shuffleResults' as any)}>{$t('library.shuffleResults' as any)}</button>
+            <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play (format réduit
+                 dans un intertitre) ; « Lire les résultats en aléatoire » passe
+                 sous sa flèche (`data-aleatoire-resultats`). -->
+            <span class="lecture-titres" style="--bl-h:28px"><BoutonLectureV2 onLire={() => lireTousLesTitres(false)} cle="browse.playAll" cleBulle="browse.playAll"
+              desactive={masseEnCours} attrsLire={{ 'data-lire-resultats': true }}
+              aleatoire={{ faire: () => lireTousLesTitres(true), desactive: masseEnCours, bulle: 'library.shuffleResults' }}
+              attrsAleatoire={{ 'data-aleatoire-resultats': true }} /></span>
             <!-- #4710 / #3191 : les deux actions ci-dessus enfilent dans la
                  file, volatile. Celle-ci FIGE la sélection. Elle n'apparaît
                  que s'il y a quelque chose d'enregistrable : une recherche qui

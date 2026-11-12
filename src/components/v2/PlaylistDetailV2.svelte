@@ -596,13 +596,12 @@
            « Ajouter à la file » passent sous la flèche du bouton Lecture ;
            étiquettes, partage, export, réparation et édition dans « … ». -->
       <div class="actions">
+        <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Lecture
+             aléatoire » passe sous la flèche, avec son `data-aleatoire-playlist`. -->
         <BoutonLectureV2 onLire={() => playFrom(0)} cle="common.play"
+          aleatoire={{ faire: lireAleatoire, desactive: melangeEnCours }} attrsAleatoire={{ 'data-aleatoire-playlist': true }}
           ensuite={{ faire: lireEnsuite, desactive: fileOccupee }}
           file={{ faire: addQueue, desactive: fileOccupee }} />
-        <button class="ghost carre" onclick={lireAleatoire} disabled={melangeEnCours}
-          title={$tr('library.shuffle')} aria-label={$tr('library.shuffle')} data-aleatoire-playlist>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-        </button>
         <!-- Le CŒUR : il vaut pour les deux sortes de playlist, la locale par
              son identifiant, celle d'un service par la paire service +
              `source_id`. Deux tables, deux chemins. -->

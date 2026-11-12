@@ -76,6 +76,8 @@ export interface EntreeMenu extends Omit<EntreeMenuPiste, 'icone'> {
 export const ICONES = {
   play: 'M8 5v14l11-7z',
   next: 'M4 7h9M4 12h9M4 17h6M16 5.6l4.8 2.9-4.8 2.9z',
+  /** rc12 — « Lecture aléatoire », le ⤮ de la fiche album (BoutonLectureV2). */
+  shuffle: 'M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3',
   queue: 'M4 7h11M4 12h11M4 17h7M18 14.5v6M15 17.5h6',
   similar: 'M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
   versions: 'M7 7h14v14H7zM3 17V5a2 2 0 0 1 2-2h12',

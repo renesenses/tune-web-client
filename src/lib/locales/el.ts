@@ -7263,6 +7263,7 @@ export default {
   "v2.menu.tabsLabel": "Ενότητες άλμπουμ",
   "v2.menu.playOptions": "Άλλοι τρόποι αναπαραγωγής",
   "v2.menu.addToQueue": "Προσθήκη στην ουρά",
+  "v2.menu.shufflePlay": "Τυχαία αναπαραγωγή",
   "v2.menu.sort": "Ταξινόμηση",
   "v2.menu.order": "Σειρά",
   "v2.menu.new": "Νέα",

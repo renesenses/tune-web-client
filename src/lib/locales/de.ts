@@ -7418,6 +7418,7 @@ export default {
   "v2.menu.tabsLabel": "Albumbereiche",
   "v2.menu.playOptions": "Weitere Wiedergabeoptionen",
   "v2.menu.addToQueue": "Zur Warteschlange hinzufügen",
+  "v2.menu.shufflePlay": "Zufallswiedergabe",
   "v2.menu.sort": "Sortieren",
   "v2.menu.order": "Reihenfolge",
   "v2.menu.new": "Neu",

@@ -7270,6 +7270,7 @@ export default {
   "v2.menu.tabsLabel": "Các phần của album",
   "v2.menu.playOptions": "Cách phát khác",
   "v2.menu.addToQueue": "Thêm vào hàng đợi",
+  "v2.menu.shufflePlay": "Phát ngẫu nhiên",
   "v2.menu.sort": "Sắp xếp",
   "v2.menu.order": "Thứ tự",
   "v2.menu.new": "Mới",

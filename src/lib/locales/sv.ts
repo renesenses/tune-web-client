@@ -7417,6 +7417,7 @@ export default {
   "v2.menu.tabsLabel": "Albumavsnitt",
   "v2.menu.playOptions": "Fler sätt att spela",
   "v2.menu.addToQueue": "Lägg till i kön",
+  "v2.menu.shufflePlay": "Blandad uppspelning",
   "v2.menu.sort": "Sortera",
   "v2.menu.order": "Ordning",
   "v2.menu.new": "Ny",

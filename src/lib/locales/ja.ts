@@ -7418,6 +7418,7 @@ export default {
   "v2.menu.tabsLabel": "アルバムのセクション",
   "v2.menu.playOptions": "その他の再生方法",
   "v2.menu.addToQueue": "キューに追加",
+  "v2.menu.shufflePlay": "シャッフル再生",
   "v2.menu.sort": "並べ替え",
   "v2.menu.order": "順序",
   "v2.menu.new": "新規",

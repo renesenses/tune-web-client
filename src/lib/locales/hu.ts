@@ -7377,6 +7377,7 @@ export default {
   "v2.menu.tabsLabel": "Album részei",
   "v2.menu.playOptions": "További lejátszási módok",
   "v2.menu.addToQueue": "Hozzáadás a sorhoz",
+  "v2.menu.shufflePlay": "Véletlenszerű lejátszás",
   "v2.menu.sort": "Rendezés",
   "v2.menu.order": "Sorrend",
   "v2.menu.new": "Új",
