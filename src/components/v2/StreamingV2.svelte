@@ -455,7 +455,7 @@
   // tune-server-rust#8578 — Genres RETIRÉS par le service : l'onglet reste,
   // et dit pourquoi il est vide (décision de Bertrand, 12/11/2026).
   const genresRetires = $derived(!!active && estRetiree(active, 'genres', $rubriquesRetirees));
-  const ongletGenres = $derived(!isBc && (aUnOngletGenres(svcGenres) || genresRetires));
+  const ongletGenres = $derived((!isBc && aUnOngletGenres(svcGenres)) || (!isBc && genresRetires));
   /**
    * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
    * Streaming. Propre à YouTube par nature — ses routes sont

@@ -100,7 +100,7 @@ describe('#8578 — rubriques retirées par le service', () => {
     expect(widgets).toContain("err?.retiree === true");
     expect(widgets).toContain("et.phase === 'retiree'");
     const streaming = lire('../../components/v2/StreamingV2.svelte');
-    expect(streaming).toContain("aUnOngletGenres(svcGenres) || genresRetires");
+    expect(streaming).toContain("(!isBc && aUnOngletGenres(svcGenres)) || (!isBc && genresRetires)");
     expect(streaming).toContain('data-rubrique-retiree');
     const bloc = lire('../../components/v2/BioEtTitresPhares.svelte');
     expect(bloc).toContain('titresRetiresPar');
