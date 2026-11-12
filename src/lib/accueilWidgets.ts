@@ -362,6 +362,12 @@ export interface Widget {
    * libellé, c'est la plainte de Sandro (fil 1679) rejouée à l'identique.
    */
   sansTitre?: boolean;
+  /**
+   * web#2883 (Bertrand, 12/11/2026) — chargé et VIDE, le widget n'est pas
+   * rendu du tout, au lieu de « Rien à montrer ici pour l'instant. ». En mode
+   * « Modifier » il reste visible : c'est là qu'on le déplace ou le retire.
+   */
+  masqueSiVide?: boolean;
 }
 
 /**
@@ -1183,22 +1189,16 @@ function ficheDAlbumDePiste(o: any, idAlbum: number): Element['fiche'] {
 }
 
 /**
- * LES REPLIS DU WIDGET « VOS FAVORIS » — #1509.
+ * UNE PISTE FAVORITE — née repli du widget « Vos favoris » (#1509), repli
+ * retiré le 12/11/2026 (web#2883) ; elle reste la base de `elementPisteDuSeau`.
  *
- * Un artiste ou une piste favori, tels que `chargerFavorisFusionnes` les
- * rend : un objet de BIBLIOTHÈQUE porte son `id` ; un objet de SERVICE porte
- * `id: null` et la paire `source` / `source_id`.
- *
- *  - un ARTISTE s'ouvre par son nom (`ouvrirArtisteParNom`), comme les tops ;
- *    `genre: 'aucun'` parce que son `id` n'est pas celui d'un album ;
- *  - une PISTE se joue : `track_id` local d'abord, sinon la paire service +
+ * Telle que `chargerFavorisFusionnes` la rend : un objet de BIBLIOTHÈQUE porte
+ * son `id` ; un objet de SERVICE porte `id: null` et la paire `source` /
+ * `source_id`. Une PISTE se joue : `track_id` local d'abord, sinon la paire service +
  *    identifiant de piste. Jamais par `versElement` seul, qui prendrait son
  *    `id` de bibliothèque pour un album et son `source_id` pour un
  *    `streaming_album_id` — les deux pièges déjà documentés plus haut.
  */
-function elementArtisteFavori(o: any, i: number): Element {
-  return { ...versElement(o, i, 'art', { genre: 'aucun' }), ...gesteArtisteTop(champ(o, 'name')) };
-}
 function elementPisteFavorite(o: any, i: number): Element {
   const el = versElement(o, i, 'trk', { genre: 'aucun' });
   const local = idLocalValide(o?.id);
@@ -1219,8 +1219,8 @@ function elementPisteFavorite(o: any, i: number): Element {
  * « Artistes favoris, Pistes favorites, Playlists favorites, Smart playlists
  * favorites, Collections favorites, Smart collections favorites. »
  *
- * « Vos favoris » reste tel quel : une bande d'albums, repliée sur artistes
- * puis pistes (#1509). Ces six-là montrent CHACUN un seau, et le lisent par le
+ * « Vos favoris » (« Albums favoris », web#2750) reste une bande d'albums,
+ * sans repli depuis web#2883. Ces six-là montrent CHACUN un seau, et le lisent par le
  * MÊME chargeur que l'écran Favoris (`favorisFusionnes`) — bibliothèque ET
  * services pour les artistes, les pistes et les playlists.
  *
@@ -1745,9 +1745,13 @@ export const WIDGETS: Widget[] = [
      * service : l'onglet dit 2, le widget 0. On passe par le MÊME chargeur
      * que l'écran (`chargerFavorisFusionnes`), pas par un second.
      *
-     * Et un profil sans album favori n'est pas un profil sans favori : à
-     * défaut d'albums, la bande montre les ARTISTES, puis les PISTES.
+     * web#2883 — décision de Bertrand du 12/11/2026 : la bande s'appelle
+     * « Albums favoris » (web#2750) et ne montre QUE des albums. Le repli sur
+     * les artistes puis les pistes (#1509) est retiré : un profil sans album
+     * favori n'a pas cette bande, elle est MASQUÉE (`masqueSiVide`), et les
+     * bandes « Artistes favoris » / « Pistes favorites » existent pour le reste.
      */
+    masqueSiVide: true,
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await chargerFavorisFusionnes(ctx.profileId);
@@ -1763,10 +1767,7 @@ export const WIDGETS: Widget[] = [
           artisteSuggere: champ(o, 'artist_name') ?? null,
         })),
       );
-      if (albums.length) return albums;
-      const artistes = utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteFavori(o, i)));
-      if (artistes.length) return artistes;
-      return utiles(f.tracks.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPisteFavorite(o, i)));
+      return albums;
     },
   },
   {
