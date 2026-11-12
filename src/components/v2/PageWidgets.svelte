@@ -62,6 +62,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
+  import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -133,6 +134,21 @@
     type SuggestionEcartee,
   } from '../../lib/suggestionsEcartees';
   import '../../styles/tune-v2.css';
+
+  /**
+   * web#2750 point 7 — les nombres de titres DEMANDÉS (favoris de service),
+   * par identifiant de vignette. Chaque vignette ne demande qu'une fois.
+   */
+  let titresLus = $state<Record<string, number>>({});
+  const titresDemandes = new Set<string>();
+  function compterAuRendu(_noeud: HTMLElement, el: Element) {
+    if (el.nbTitres != null || !el.compterTitres || titresDemandes.has(el.id)) return;
+    titresDemandes.add(el.id);
+    el.compterTitres().then(
+      (n) => { if (n != null) titresLus = { ...titresLus, [el.id]: n }; },
+      () => {},
+    );
+  }
 
   /**
    * Les trois colonnes du gros widget des tops, dans l'ordre d'affichage.
@@ -1417,6 +1433,13 @@
            texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
            pas distribué, ce serait un lien mort. -->
       {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
+      <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
+           l'objet ou demandé une fois au service (`compterTitres`). -->
+      {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
+        <span class="ca nb-titres" data-nb-titres use:compterAuRendu={el}>{(el.nbTitres ?? titresLus[el.id]) != null
+          ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $t)
+          : ''}</span>
+      {/if}
       <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
       {#if el.raison}
         {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}

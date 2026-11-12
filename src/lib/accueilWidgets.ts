@@ -47,6 +47,7 @@ import { lireListe } from './lectureEnMasse';
 import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
+import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -75,6 +76,16 @@ export interface Element {
    */
   radioId?: number | null;
   cover?: string | null;
+  /**
+   * web#2750 points 6 et 7 — le nombre de titres d'une PLAYLIST, affiché en
+   * sous-titre de sa vignette. `null`/absent : inconnu, rien n'est affiché.
+   */
+  nbTitres?: number | null;
+  /**
+   * Le même nombre, à DEMANDER quand l'objet ne le porte pas (favori de
+   * service) : appelé une fois, au rendu de la vignette.
+   */
+  compterTitres?: () => Promise<number | null>;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
   /**
@@ -562,6 +573,7 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
     ...artisteDuSousDe(o, service, opts.genre ?? 'album'),
+    ...(opts.genre === 'playlist' ? { nbTitres: nbTitresDe(o) } : {}),
   };
 }
 
@@ -1321,11 +1333,21 @@ export function elementPisteDuSeau(o: any, i: number): Element {
  */
 function elementPlaylistDuSeau(pl: any, i: number): Element {
   const local = idLocalValide(pl?.id);
-  if (local == null) return versElement(pl, i, 'fpl', { genre: 'playlist' });
+  if (local == null) {
+    const el = versElement(pl, i, 'fpl', { genre: 'playlist' });
+    // web#2750 point 7 — un favori de service ne porte pas son nombre de
+    // titres : on le demande à la playlist, dans la même file que les
+    // mosaïques (trois requêtes en vol au plus).
+    const service = el.source;
+    const sid = champ(pl, 'source_id');
+    if (el.nbTitres != null || !service || !sid) return el;
+    return { ...el, compterTitres: () => enFileMosaique(() => compterTitresDeService(service, sid)) };
+  }
   const nom = champ(pl, 'name') ?? '—';
   return {
     id: `fpl${i}-${local}`,
     titre: nom,
+    nbTitres: nbTitresDe(pl),
     cover: null,
     source: null,
     jouer: (z: number) => api.play(z, { playlist_id: local }),
