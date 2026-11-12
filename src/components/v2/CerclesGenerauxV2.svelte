@@ -73,15 +73,15 @@
 
 <style>
   .cercles-generaux{margin:24px 0;color:var(--v2-txt)}
-  h2{font-size:18px;margin:0 0 6px}
-  .note{font-size:12px;color:var(--v2-txt2);margin:0 0 12px}
+  h2{font-size:calc(18px * var(--v2-txt-echelle, 1));margin:0 0 6px}
+  .note{font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);margin:0 0 12px}
   .erreur{color:var(--v2-danger)}
   ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column}
   li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 4px;border-bottom:1px solid var(--v2-line)}
   .cercle{flex:1;min-width:140px}
-  .cercle strong{display:block;font-size:14px}
-  .cercle span{display:block;font-size:12px;color:var(--v2-txt2);margin-top:4px}
-  button{font:inherit;font-size:13px;background:var(--v2-surface2);color:var(--v2-txt);border:1px solid var(--v2-line);border-radius:8px;padding:8px 12px;cursor:pointer}
+  .cercle strong{display:block;font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .cercle span{display:block;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);margin-top:4px}
+  button{font:inherit;font-size:calc(13px * var(--v2-txt-echelle, 1));background:var(--v2-surface2);color:var(--v2-txt);border:1px solid var(--v2-line);border-radius:8px;padding:8px 12px;cursor:pointer}
   button.ecrire{background:var(--v2-acc1);color:var(--v2-on-acc);border-color:transparent}
   button:disabled{opacity:.5;cursor:default}
   button:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}

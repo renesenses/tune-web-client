@@ -36,6 +36,7 @@
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -2029,6 +2030,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
       <GainDeSortieNotes signalPath={zone.signal_path} />
+      <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+      <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
@@ -2207,6 +2210,32 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .tb-mini-viz {
     width: 80px;
     flex-shrink: 0;
+  }
+
+  /* Recette rc12 (13/11) — la colonne de gauche vaut un quart de la barre :
+     336 px à 1440 px. Pochette, cœur, crête-mètre (56 px) et visualiseur
+     (80 px) ne rétrécissent pas ; le titre et l'artiste, si : il leur restait
+     30 px (« Fla… », « M · I »). Les deux ornements cèdent donc leur place au
+     titre quand la colonne est étroite — le visualiseur d'abord, comme sous
+     1080 px de barre (plus haut), puis le crête-mètre. */
+  .transport-left {
+    container-type: inline-size;
+    container-name: tleft;
+  }
+  @container tleft (max-width: 439px) {
+    .tb-mini-viz { display: none; }
+  }
+  @container tleft (max-width: 359px) {
+    .tb-crete { display: none; }
+  }
+  /* Fenêtre de téléphone (colonne de ~150 px) : les pastilles « LOCAL » et
+     « FLAC 96/24 » passaient sur deux lignes, sous la barre, et le cœur
+     laissait 28 px au titre. Elles restent dans Lecture en cours. */
+  @container tleft (max-width: 239px) {
+    .transport-left .mini-badges { display: none; }
+  }
+  @container tleft (max-width: 199px) {
+    .transport-left .fav-btn { display: none; }
   }
 
   @media (max-width: 640px) {

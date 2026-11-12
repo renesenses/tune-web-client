@@ -58,8 +58,12 @@ export const REGLAGES: Reglage[] = [
   { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },
   // ── Général › Interface ──────────────────────────────────────────────
   { id: 'theme', section: 'interface', labelKey: 'settings.theme', descKey: 'settings.themePalettesHint', termesKey: 'reglages.termes.theme' },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'taille-texte', section: 'interface', labelKey: 'settings.textSize', descKey: 'settings.textSizeHint', termesKey: 'reglages.termes.tailleTexte' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
   { id: 'crete-metre', section: 'interface', labelKey: 'v2.set.peakMeter', descKey: 'v2.set.peakMeterHint', termesKey: 'reglages.termes.creteMetre', techniques: ['DAT', 'PCM-7030', 'IEC'] },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'menus-complets', section: 'interface', labelKey: 'settings.fullMenus', descKey: 'settings.fullMenusHint', termesKey: 'reglages.termes.menusComplets' },
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },
   { id: 'barre-vu-metres', section: 'interface', labelKey: 'v2.set.barVu', descKey: 'v2.set.barVuHint', techniques: ['VU'] },
   { id: 'barre-onde', section: 'interface', labelKey: 'v2.set.barOnde', descKey: 'v2.set.barOndeHint', termesKey: 'reglages.termes.barreOnde', techniques: ['waveform'] },
@@ -89,7 +93,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'replaygain-anti-ecretage', section: 'localAudio', labelKey: 'settings.replayGainPreventClipping', descKey: 'v2.hint.replayGainPreventClipping', techniques: ['ReplayGain', 'clipping', 'true-peak'], min: 'expert' },
   { id: 'replaygain-source', section: 'localAudio', labelKey: 'settings.replaygainSource', descKey: 'settings.replaygainSourceTagsAnalysis', techniques: ['ReplayGain', 'tags'], min: 'intermediate' },
   { id: 'vitesse-analyses', section: 'localAudio', labelKey: 'settings.analysisSpeed', descKey: 'settings.analysisSpeedHint', termesKey: 'reglages.termes.vitesseAnalyses', techniques: ['CPU'], min: 'intermediate' },
-  { id: 'lever-bridage', section: 'localAudio', labelKey: 'settings.analysisUnthrottle', descKey: 'settings.analysisUnthrottleHint', techniques: ['CPU'], min: 'expert' },
   { id: 'remesure-replaygain', section: 'localAudio', labelKey: 'settings.rgReanalyze', descKey: 'settings.rgReanalyzeHint', techniques: ['ReplayGain'], min: 'intermediate' },
   { id: 'sorties-locales-visibles', section: 'localAudio', labelKey: 'settings.audioOutputs', techniques: ['DAC', 'USB'] },
   { id: 'zone-navigateur', section: 'localAudio', labelKey: 'settings.createBrowserZone', descKey: 'settings.playHereHint' },

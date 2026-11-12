@@ -234,27 +234,27 @@
   .fir { margin-top: 13px; }
   .fir-tl {
     font-family: var(--font-label);
-    font-size: 11px; font-weight: 600;
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px;
     color: var(--tune-text-muted);
     margin: 0 0 6px;
   }
   .fir-desc {
     font-family: var(--font-body);
-    font-size: 12px; line-height: 1.55;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); line-height: 1.55;
     color: var(--tune-text-secondary);
     margin: 0 0 12px;
   }
   .ir-status {
     display: flex; align-items: center; gap: 6px;
-    font-size: 13px; color: var(--tune-text-muted); margin-bottom: 8px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin-bottom: 8px;
   }
   .ir-active { color: var(--tune-success, #4ade80); font-weight: 600; }
-  .ir-path { font-size: 11px; color: var(--tune-text-muted); font-weight: 400; }
+  .ir-path { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-weight: 400; }
   .ir-actions { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .ir-btn {
     font-family: var(--font-body);
-    font-size: 12px; font-weight: 500;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 500;
     padding: 6px 14px;
     border-radius: var(--radius-sm, 6px);
     border: none; cursor: pointer;
@@ -274,6 +274,6 @@
   .ir-btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
   .ir-upload-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
   .ir-file-input { display: none; }
-  .ir-message { font-size: 12px; color: var(--tune-text-muted); margin-top: 4px; }
+  .ir-message { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin-top: 4px; }
   .ir-message.ir-error { color: var(--tune-error, #ef4444); }
 </style>

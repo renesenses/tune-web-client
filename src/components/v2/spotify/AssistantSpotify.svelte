@@ -119,21 +119,21 @@
 <style>
   .replie{flex-basis:100%}
   .assistant{flex-basis:100%; display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:10px;
-    border:1px solid var(--v2-line2); font-size:12px; color:var(--v2-txt2)}
+    border:1px solid var(--v2-line2); font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   header{display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap}
-  .compteur{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  h4{margin:0; font-size:13px}
+  .compteur{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  h4{margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   p{margin:0}
   .note{color:var(--v2-txt3)}
   .ko{color:var(--v2-danger)}
   .valeurs{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; margin:0; align-items:center}
   dd{margin:0; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .adresse{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
   footer{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px}
-  .guide{margin-left:auto; color:var(--v2-acc-tint); font-size:11.5px}
+  .guide{margin-left:auto; color:var(--v2-acc-tint); font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans); text-decoration:none}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-decoration:none}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.discret{border-color:transparent}
 </style>

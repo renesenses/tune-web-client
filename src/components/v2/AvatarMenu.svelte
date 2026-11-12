@@ -577,8 +577,8 @@
   /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
      longue pousse la largeur du menu au lieu de s'élider. */
   .avid{min-width:0}
-  .avname{font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
+  .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .avmail{font-family:var(--v2-mono); font-size:calc(10px * var(--v2-txt-echelle, 1)); letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
      L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une
@@ -593,26 +593,26 @@
   .profils::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
     border-radius:9px; background:transparent; cursor:pointer; text-align:left;
-    color:var(--v2-txt2); font-family:inherit; font-size:13px}
+    color:var(--v2-txt2); font-family:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
   /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
      lisible dans les six thèmes sans avoir à les vérifier un par un. */
   .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
   .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
-    align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff}
+    align-items:center; justify-content:center; font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700; color:#fff}
   .pphoto{object-fit:cover; display:block}
   .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
   .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
-    color:var(--v2-txt3); font-family:inherit; font-size:11px; cursor:pointer; text-decoration:underline}
+    color:var(--v2-txt3); font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1)); cursor:pointer; text-decoration:underline}
   .retirer:hover{color:var(--v2-txt)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
-  .sec{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.16em; color:var(--v2-txt3);
+  .sec{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
   .seg{display:flex; gap:2px; padding:3px; border-radius:12px; background:var(--v2-surface2); border:1px solid var(--v2-line)}
   .seg button{flex:1; border:0; background:transparent; color:var(--v2-txt2); font-family:inherit;
-    font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
+    font-size:calc(11.5px * var(--v2-txt-echelle, 1)); font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
   /* Le champ de fichier n'est jamais montré : le bouton du menu le déclenche.
@@ -622,7 +622,7 @@
   .sfield{position:relative; display:flex; align-items:center; margin:2px 4px 6px}
   .sfield svg{position:absolute; left:11px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
   .sfield input{width:100%; height:36px; border-radius:10px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans); padding:0 10px 0 33px; outline:none}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px 0 33px; outline:none}
   .sfield input::placeholder{color:var(--v2-txt3)}
   .sfield input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .sfield input::-webkit-search-cancel-button{-webkit-appearance:none}
@@ -631,9 +631,9 @@
   .hit{display:flex; align-items:baseline; justify-content:space-between; gap:10px; width:100%; padding:8px;
     border:0; border-radius:8px; background:transparent; cursor:pointer; text-align:left; color:var(--v2-txt2)}
   .hit:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .hit .hl{font-size:12.5px; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .hit .ht{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); flex:0 0 auto}
-  .nohit{padding:10px 8px; font-size:11.5px; color:var(--v2-txt3)}
+  .hit .hl{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hit .ht{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); flex:0 0 auto}
+  .nohit{padding:10px 8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .themes{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; padding:2px 4px 0}
   .sw{position:relative; aspect-ratio:1; border-radius:9px; cursor:pointer; padding:0;
     border:1px solid var(--v2-line2); background:var(--sw-bg); transition:.15s}
@@ -642,9 +642,9 @@
     width:52%; height:52%; border-radius:50%; background:var(--sw-acc)}
   .sw:hover{transform:translateY(-1px); border-color:var(--sw-acc)}
   .sw.on{border-color:var(--sw-acc); box-shadow:0 0 0 2px var(--v2-surface), 0 0 0 3px var(--sw-acc)}
-  .hint{font-size:10.5px; color:var(--v2-txt3); line-height:1.35; padding:8px 6px 2px}
+  .hint{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.35; padding:8px 6px 2px}
   .item{display:flex; align-items:center; gap:11px; width:100%; padding:9px 8px; border:0; cursor:pointer;
-    border-radius:9px; background:transparent; color:var(--v2-txt2); font-family:inherit; font-size:13.5px; font-weight:500; text-align:left}
+    border-radius:9px; background:transparent; color:var(--v2-txt2); font-family:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; text-align:left}
   .item:hover{background:var(--v2-hover); color:var(--v2-txt)}
   /* Déconnexion en cours : plus de survol, plus de curseur cliquable — sinon
      rien ne distingue un bouton qui travaille d'un bouton qui n'a rien fait. */

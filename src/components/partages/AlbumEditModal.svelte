@@ -606,7 +606,7 @@
 
   .modal-header h3 {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
@@ -675,12 +675,12 @@
 
   .drop-hint {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .drop-sub {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     opacity: 0.6;
   }
 
@@ -702,7 +702,7 @@
 
   .cover-message {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -725,7 +725,7 @@
 
   .field-label {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -738,7 +738,7 @@
     padding: 8px 10px;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     outline: none;
     width: 100%;
     box-sizing: border-box;
@@ -772,7 +772,7 @@
 
   .ext-heading {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-muted);
     text-transform: uppercase;
@@ -787,7 +787,7 @@
 
   .ext-cat-label {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-accent);
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -795,7 +795,7 @@
 
   .error-msg {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-danger, #f87171);
   }
 
@@ -819,7 +819,7 @@
     color: var(--tune-text);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     transition: all 0.12s;
   }
 
@@ -841,7 +841,7 @@
     color: var(--tune-text);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .btn-cancel:hover { background: var(--tune-surface-hover); }
@@ -854,7 +854,7 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -874,7 +874,7 @@
     color: #fb923c;
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 500;
     transition: all 0.12s;
   }
@@ -889,7 +889,7 @@
   .write-tags-result {
     padding: 6px 12px;
     margin-top: 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: #fb923c;
     text-align: center;
   }
@@ -905,7 +905,7 @@
 
   .success-state p {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
 
@@ -928,18 +928,18 @@
   }
 
   .hint-warn {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: #fdba74;
     margin-top: 4px;
   }
 
   .hint-info {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: #93c5fd;
     margin-top: 4px;
   }
   .hint-muted {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted, #888);
     margin-top: 2px;
   }
@@ -953,12 +953,12 @@
   .tracks-toggle {
     display: flex; align-items: center; gap: 6px;
     background: none; border: none;
-    color: var(--tune-text); font-size: 12px;
+    color: var(--tune-text); font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-family: var(--font-label); font-weight: 600;
     text-transform: uppercase; letter-spacing: 0.06em;
     cursor: pointer; padding: 0; margin: 0;
   }
-  .tracks-hint { color: var(--tune-text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 11px; }
+  .tracks-hint { color: var(--tune-text-muted); font-weight: 400; text-transform: none; letter-spacing: 0; font-size: calc(11px * var(--v2-txt-echelle, 1)); }
   .tracks-list {
     margin-top: 6px;
     display: flex; flex-direction: column;
@@ -972,15 +972,15 @@
     border: none; color: var(--tune-text);
     text-align: left; cursor: pointer;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .track-row:hover { background: var(--tune-surface-hover, rgba(255,255,255,0.05)); }
   .track-row:disabled { opacity: 0.5; cursor: default; }
   .track-num { color: var(--tune-text-muted); font-family: var(--font-label); text-align: right; }
   .track-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .track-meta { color: var(--tune-text-muted); text-align: right; font-family: var(--font-label); font-size: 11px; }
+  .track-meta { color: var(--tune-text-muted); text-align: right; font-family: var(--font-label); font-size: calc(11px * var(--v2-txt-echelle, 1)); }
   .state-empty {
     padding: 12px; text-align: center;
-    color: var(--tune-text-muted); font-size: 12px;
+    color: var(--tune-text-muted); font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 </style>

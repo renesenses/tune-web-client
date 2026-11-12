@@ -275,11 +275,11 @@
 <style>
   .mt { display: flex; flex-direction: column; gap: 10px; }
   .ligne { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .hint { margin: 0; font-size: 13px; color: var(--v2-txt3); }
+  .hint { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
   .hint.err { color: var(--v2-danger); }
   .lnk {
     background: none; border: 1px solid var(--v2-line); border-radius: 6px;
-    padding: 5px 10px; color: var(--v2-txt); font-size: 13px; cursor: pointer;
+    padding: 5px 10px; color: var(--v2-txt); font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
   }
   .lnk:hover:not(:disabled) { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .lnk:disabled { opacity: 0.45; cursor: default; }
@@ -290,18 +290,18 @@
   .editeur { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
   @media (max-width: 760px) { .editeur { grid-template-columns: minmax(0, 1fr); } }
   .col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-  .champ { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--v2-txt2); }
+  .champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   .txt, .hex {
     background: var(--v2-surface2); color: var(--v2-txt); border: 1px solid var(--v2-line);
-    border-radius: 6px; padding: 5px 8px; font-size: 13px;
+    border-radius: 6px; padding: 5px 8px; font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
   .hex { width: 6.5em; font-family: var(--v2-mono); }
   .groupe { border: 1px solid var(--v2-line); border-radius: 8px; padding: 8px 10px; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-  .groupe legend { font-size: 12px; color: var(--v2-txt3); padding: 0 4px; }
+  .groupe legend { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); padding: 0 4px; }
   .jeton { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
   .jeton input[type='color'] { width: 34px; height: 26px; padding: 0; border: 1px solid var(--v2-line); border-radius: 4px; background: none; cursor: pointer; }
-  .nomj { font-size: 13px; color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; }
-  .sous { font-size: 12px; color: var(--v2-txt3); text-transform: uppercase; letter-spacing: .04em; }
+  .nomj { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; }
+  .sous { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); text-transform: uppercase; letter-spacing: .04em; }
 
   /* L'aperçu lit les jetons posés en ligne sur `.apercu` : il montre le
      brouillon sans repeindre le reste de l'écran. */
@@ -309,19 +309,19 @@
   .ap-fond { background: var(--v2-bg); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
   .ap-carte { background: var(--v2-surface); border: 1px solid var(--v2-line2); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 3px; }
   .ap-titre { color: var(--v2-txt); font-weight: 600; }
-  .ap-sec { color: var(--v2-txt2); font-size: 13px; }
-  .ap-att { color: var(--v2-txt3); font-size: 12px; }
+  .ap-sec { color: var(--v2-txt2); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .ap-att { color: var(--v2-txt3); font-size: calc(12px * var(--v2-txt-echelle, 1)); }
   .ap-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-  .ap-bouton { background: linear-gradient(90deg, var(--v2-acc1), var(--v2-acc2)); color: var(--v2-on-acc); border-radius: 14px; padding: 3px 12px; font-size: 13px; font-weight: 600; }
-  .ap-teinte { color: var(--v2-acc1); font-size: 13px; }
-  .ap-choix { background: var(--v2-surface2); color: var(--v2-txt); border: 1px solid var(--v2-line); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
-  .ap-actif { background: linear-gradient(90deg, var(--v2-active1), var(--v2-active2)); color: var(--v2-acc-tint); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
-  .ap-erreur { background: var(--v2-danger-soft); color: var(--v2-danger); border: 1px solid var(--v2-danger-bd); border-radius: 6px; padding: 6px 8px; font-size: 13px; }
-  .ap-lecteur { background: linear-gradient(180deg, var(--v2-player1), var(--v2-player2)); color: var(--v2-txt2); border-top: 1px solid var(--v2-line); padding: 6px 8px; font-size: 12px; }
+  .ap-bouton { background: linear-gradient(90deg, var(--v2-acc1), var(--v2-acc2)); color: var(--v2-on-acc); border-radius: 14px; padding: 3px 12px; font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; }
+  .ap-teinte { color: var(--v2-acc1); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .ap-choix { background: var(--v2-surface2); color: var(--v2-txt); border: 1px solid var(--v2-line); border-radius: 6px; padding: 6px 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .ap-actif { background: linear-gradient(90deg, var(--v2-active1), var(--v2-active2)); color: var(--v2-acc-tint); border-radius: 6px; padding: 6px 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .ap-erreur { background: var(--v2-danger-soft); color: var(--v2-danger); border: 1px solid var(--v2-danger-bd); border-radius: 6px; padding: 6px 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .ap-lecteur { background: linear-gradient(180deg, var(--v2-player1), var(--v2-player2)); color: var(--v2-txt2); border-top: 1px solid var(--v2-line); padding: 6px 8px; font-size: calc(12px * var(--v2-txt-echelle, 1)); }
 
-  .verdict { font-size: 13px; color: var(--v2-acc1); }
+  .verdict { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-acc1); }
   .verdict.ko { color: var(--v2-danger); font-weight: 600; }
-  .echecs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--v2-txt2); }
+  .echecs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   .echecs li { display: flex; gap: 8px; align-items: center; }
-  .pastille { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 5px; border: 1px solid var(--v2-line); }
+  .pastille { font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 700; border-radius: 4px; padding: 1px 5px; border: 1px solid var(--v2-line); }
 </style>

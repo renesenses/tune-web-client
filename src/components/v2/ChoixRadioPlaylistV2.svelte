@@ -103,9 +103,9 @@
     border-radius:var(--v2-r-card); padding:16px 18px 18px; font-family:var(--v2-sans)}
   .panneau:focus{outline:none}
   .tete{display:flex; align-items:center; justify-content:space-between}
-  .tete h3{margin:0; font-size:16px}
+  .tete h3{margin:0; font-size:calc(16px * var(--v2-txt-echelle, 1))}
   .fermer{width:28px; height:28px; border:0; border-radius:8px; background:transparent; color:var(--v2-txt3);
-    font-size:20px; line-height:1; cursor:pointer}
+    font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .champ{width:100%; box-sizing:border-box; padding:8px 10px; border-radius:8px; border:1px solid var(--v2-line2);
     background:var(--v2-surface2); color:var(--v2-txt); font:inherit}
   .liste{list-style:none; margin:0; padding:0; overflow-y:auto; display:flex; flex-direction:column; gap:2px}
@@ -115,6 +115,6 @@
   .station:disabled{opacity:.6; cursor:default}
   .logo{flex:none; width:32px; height:32px; border-radius:6px; overflow:hidden}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .vide{margin:6px 0; color:var(--v2-txt2); font-size:13px}
+  .vide{margin:6px 0; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .echec{color:var(--v2-danger, #e5484d)}
 </style>
