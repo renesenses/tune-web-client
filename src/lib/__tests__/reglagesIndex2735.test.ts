@@ -151,7 +151,7 @@ describe('#2735 — index des réglages ↔ ancres de l’écran', () => {
   });
 
   it('les ancres posées avant #2735 gardent leur nom (des tests et des écrans les lisent)', () => {
-    for (const id of ['lienLectureVersSource', 'disposition-file', 'dossiers-analyses', 'dossiers-exclus-enrichissement', 'lever-bridage', 'ordre-barre', 'version-jouee']) {
+    for (const id of ['lienLectureVersSource', 'disposition-file', 'dossiers-analyses', 'dossiers-exclus-enrichissement', 'ordre-barre', 'version-jouee']) {
       expect(REGLAGES.some((r) => r.id === id), id).toBe(true);
     }
   });

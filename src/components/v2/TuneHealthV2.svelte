@@ -37,7 +37,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { bridageDesAnalyses, temperatureProcesseur, bridageLeve } from '../../lib/temperatureProcesseur';
+  import { avertissementTemperature, temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -142,15 +142,12 @@
    *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
   let tempCpu = $state<unknown>(undefined);
   const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
-  /** tune-server-rust#5410 — `analyses_bridees` brut (motif, `null` ou absent). */
-  let motifBridage = $state<unknown>(undefined);
-  const bridage = $derived(bridageDesAnalyses(motifBridage, {
-    illisible: $t('v2.health.analysesBrideesIllisible' as any),
-    figee: $t('v2.health.analysesBrideesFigee' as any),
+  /** tune-server-rust#8011 — `temperature_illisible` brut (motif, `null` ou absent). */
+  let motifTemperature = $state<unknown>(undefined);
+  const avertissementChaleur = $derived(avertissementTemperature(motifTemperature, {
+    illisible: $t('v2.health.temperatureIllisible' as any),
+    figee: $t('v2.health.temperatureFigee' as any),
   }));
-  /** tune-server-rust#6713 — `analyses_bridage_leve` brut : bridage levé par l'utilisateur. */
-  let motifBridageLeve = $state<unknown>(undefined);
-  const bridageLeveTexte = $derived(bridageLeve(motifBridageLeve, $t('v2.health.analysesBridageLeve' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -808,8 +805,7 @@
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
-    motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
-    motifBridageLeve = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridage_leve : undefined;
+    motifTemperature = diag[0].status === 'fulfilled' ? diag[0].value?.temperature_illisible : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -1139,11 +1135,10 @@
         <section class="modules">
           <h2>{$t('v2.health.cpuTemp' as any)}</h2>
           <div class="sub">{temperature}</div>
-          <!-- tune-server-rust#5410 — sans température lisible, les analyses
-               de fond tournent à un fichier à la fois : on le dit. -->
-          {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
-          <!-- tune-server-rust#6713 — bridage levé par l'utilisateur : on le dit. -->
-          {#if bridageLeveTexte}<div class="sub bridage" data-bridage="leve">{bridageLeveTexte}</div>{/if}
+          <!-- tune-server-rust#8011 — sans température lisible, les analyses
+               de fond tournent à la vitesse réglée SANS surveillance de la
+               chaleur (#6450 : plus de bridage) : on le dit. -->
+          {#if avertissementChaleur}<div class="sub bridage" data-temperature="illisible">{avertissementChaleur}</div>{/if}
         </section>
       {/if}
 
