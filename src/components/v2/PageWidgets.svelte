@@ -1436,9 +1436,10 @@
       <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
            l'objet ou demandé une fois au service (`compterTitres`). -->
       {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
-        <span class="ca nb-titres" data-nb-titres use:compterAuRendu={el}>{(el.nbTitres ?? titresLus[el.id]) != null
+        {@const nbTexte = (el.nbTitres ?? titresLus[el.id]) != null
           ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $t)
-          : ''}</span>
+          : ''}
+        <span class="ca nb-titres" title={nbTexte} data-nb-titres use:compterAuRendu={el}>{nbTexte}</span>
       {/if}
       <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
       {#if el.raison}
