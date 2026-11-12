@@ -4950,6 +4950,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "在此输出上，原生 DSD 以 DoP 方式发送。",
   "v2.set.dsdCapabilityUnknown": "此输出的原生 DSD 能力尚未知：将在首次播放 DSD 时检测。",
   "v2.set.dsdDopNotAsio": "此输出不是 ASIO 输出：原生 DSD 以 DoP 方式发送。",
+  "v2.set.dsdDopNoNativeDsd": "此输出不支持原生 DSD：以 DoP 方式发送。",
   "v2.set.dsdDopDriverWithoutDsd": "此输出的 ASIO 驱动未声明任何原生 DSD 采样率：DSD 以 DoP 方式发送。",
   "v2.lbl.displayName": "显示名称",
   "v2.lbl.notifications": "通知",

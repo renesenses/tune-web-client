@@ -4821,6 +4821,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "Trên đầu ra này, DSD native được gửi dưới dạng DoP.",
   "v2.set.dsdCapabilityUnknown": "Khả năng DSD native của đầu ra này chưa được biết: sẽ được kiểm tra ở lần phát DSD đầu tiên.",
   "v2.set.dsdDopNotAsio": "Đầu ra này không phải là đầu ra ASIO: DSD native được gửi dưới dạng DoP.",
+  "v2.set.dsdDopNoNativeDsd": "Đầu ra này không nhận DSD native: DSD được gửi dưới dạng DoP.",
   "v2.set.dsdDopDriverWithoutDsd": "Trình điều khiển ASIO của đầu ra này không khai báo tần số DSD native nào: DSD được gửi dưới dạng DoP.",
   "v2.lbl.displayName": "Tên hiển thị",
   "v2.lbl.notifications": "Thông báo",

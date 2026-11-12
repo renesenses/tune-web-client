@@ -4950,6 +4950,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "Pe această ieșire, DSD-ul nativ este trimis ca DoP.",
   "v2.set.dsdCapabilityUnknown": "Capacitatea DSD nativă a acestei ieșiri nu este încă cunoscută: va fi verificată la prima redare DSD.",
   "v2.set.dsdDopNotAsio": "Această ieșire nu este o ieșire ASIO: DSD-ul nativ este trimis ca DoP.",
+  "v2.set.dsdDopNoNativeDsd": "Această ieșire nu acceptă DSD nativ: este trimis ca DoP.",
   "v2.set.dsdDopDriverWithoutDsd": "Driverul ASIO al acestei ieșiri nu declară nicio frecvență DSD nativă: DSD-ul este trimis ca DoP.",
   "v2.lbl.displayName": "Nume afișat",
   "v2.lbl.notifications": "Notificări",

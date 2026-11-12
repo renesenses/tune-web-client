@@ -4819,6 +4819,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "På denne utgangen sendes nativ DSD som DoP.",
   "v2.set.dsdCapabilityUnknown": "Denne utgangens støtte for nativ DSD er ennå ukjent: den sjekkes ved første DSD-avspilling.",
   "v2.set.dsdDopNotAsio": "Denne utgangen er ikke en ASIO-utgang: nativ DSD sendes som DoP.",
+  "v2.set.dsdDopNoNativeDsd": "Denne utgangen tar ikke imot nativ DSD: den sendes som DoP.",
   "v2.set.dsdDopDriverWithoutDsd": "ASIO-driveren til denne utgangen oppgir ingen nativ DSD-frekvens: DSD sendes som DoP.",
   "v2.lbl.displayName": "Visningsnavn",
   "v2.lbl.notifications": "Varsler",
