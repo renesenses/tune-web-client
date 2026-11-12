@@ -83,7 +83,10 @@ describe('#1901 — branché dans la Bibliothèque et les vignettes', () => {
   });
 
   it('le badge posé sur la pochette reste réservé au DSD et au hi-res', () => {
-    expect(lib).toMatch(/\{#if showBadges\}\{#key badge\(a\)\}\{#if badge\(a\)\}<span class="bdg">\{badge\(a\)\}/);
+    // #2731 — la pochette ajoute les canaux (« 5.1 ») au badge de qualité,
+    // mais le texte de qualité reste `badge(a)`, jamais le type de fichier.
+    expect(lib).toMatch(/\{#if showBadges\}\{#key badge\(a\)\}\{@const q = badge\(a\)\}\{@const cx = canauxCarte\(a\)\}\{#if q \|\| cx\}<span class="bdg">\{q \?\? ''\}/);
+    expect(lib).not.toMatch(/<span class="bdg">\{badgeListe/);
   });
 
   it('la troisième ligne passe par qualiteCompacte', () => {

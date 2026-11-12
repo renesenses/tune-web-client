@@ -48,6 +48,11 @@
     basculerMidSide,
     basculerItd,
     midSideDisponible,
+    bornePhaseGuard,
+    defautsSelonVersion,
+    voieCrossfeedPro,
+    choisirVoie,
+    type VoieCrossfeedPro,
     type CurseurMidSide,
     type ModeCrossfeedPro,
     type ReglagesCrossfeedPro,
@@ -97,9 +102,20 @@
   /** La version du greffon installé, quand l'hôte la dit (administrateur,
    *  paquet du catalogue) ; sinon `null`. */
   let versionGreffon = $state<string | null>(null);
+  /** La zone n'a encore rien enregistré (voir `defautsSelonVersion`). */
+  let jamaisReglee = $state(false);
   /** Matriçage Mid/Side (EXPÉRIMENTAL, greffon ≥ 0.4.0, mode Tune seulement). */
   const msDispo = $derived(midSideDisponible(versionGreffon, r));
   const midSide = $derived(valeurMidSide(r, 'experimental_mid_side'));
+  /** La voie croisée en service (greffon#15 : une seule à la fois). */
+  const voie = $derived(voieCrossfeedPro(r));
+  const VOIES = $derived<{ voie: VoieCrossfeedPro; cle: string }[]>([
+    { voie: 'standard', cle: 'v2.cfp.voieStandard' },
+    { voie: 'itd', cle: 'v2.cfp.voieItd' },
+    ...(msDispo ? [{ voie: 'mid_side' as const, cle: 'v2.cfp.voieMs' }] : []),
+  ]);
+  /** La garde va jusqu'à 200 ms avec un greffon ≥ 0.5.0, 50 ms avant. */
+  const bGarde = $derived(bornePhaseGuard(versionGreffon, r));
   const msAdaptatif = $derived(valeurMidSide(r, 'ms_adaptive'));
 
   function publierPresence(p: PresenceCrossfeedPro) {
@@ -115,9 +131,11 @@
       .then((d) => {
         publierPresence(presenceDepuis(d));
         r = reglagesCrossfeedPro(d?.settings);
+        jamaisReglee = d?.settings == null;
         error = null;
       })
       .catch((e) => {
+        jamaisReglee = false;
         const p = presenceDepuis(null, e);
         publierPresence(p);
         error = p === 'inconnue' ? $t('v2.cfp.errLoad' as any) : null;
@@ -127,6 +145,17 @@
 
   $effect(() => {
     void api.versionGreffonNatif(CROSSFEED_PRO_ID).then((v) => { versionGreffon = v; });
+  });
+
+  /** Zone jamais réglée : tant que rien n'est écrit, elle prend les défauts
+   *  de la version installée (greffon ≥ 0.5.0 : coupe-bas allumé, garde à
+   *  100 ms). Une zone déjà réglée garde ses réglages. */
+  $effect(() => {
+    const d = defautsSelonVersion(versionGreffon);
+    if (jamaisReglee && d) {
+      jamaisReglee = false;
+      r = { ...r, ...d };
+    }
   });
 
   async function chargerProfils() {
@@ -159,6 +188,7 @@
     timer = setTimeout(() => { timer = null; void save(); }, 300);
   }
   async function save() {
+    jamaisReglee = false;
     const zid = zoneRequise();
     if (zid == null || verrouille) return;
     // Borné AVANT l'envoi : l'écran montre la valeur réellement appliquée.
@@ -182,10 +212,12 @@
     void save();
   }
   function regler(cle: CurseurCrossfeedPro | CurseurMidSide, e: Event) {
+    jamaisReglee = false;
     r = { ...r, [cle]: Number((e.currentTarget as HTMLInputElement).value) };
     queueSave();
   }
   function reglerCoupure(e: Event) {
+    jamaisReglee = false;
     r = { ...r, head_shadow_hz: coupureDePosition(Number((e.currentTarget as HTMLInputElement).value), bCoupure) };
     queueSave();
   }
@@ -193,6 +225,11 @@
     if (r.mode === m) return;
     // Borné aussitôt : le mode classique a ses propres bornes.
     r = reglagesCrossfeedPro({ ...r, mode: m });
+    void save();
+  }
+  function choisirLaVoie(v: VoieCrossfeedPro) {
+    if (voie === v) return;
+    r = choisirVoie(r, v);
     void save();
   }
   function choisirPreset(p: PresetCrossfeedPro) {
@@ -292,6 +329,17 @@
           </div>
           <p class="hint sous">{$t('v2.cfp.modeHint' as any)}</p>
 
+          {#if !classique}
+            <div class="presets" data-cfp="voie" role="radiogroup" aria-label={$t('v2.cfp.voie' as any)}>
+              <span class="mesl">{$t('v2.cfp.voie' as any)}</span>
+              {#each VOIES as v (v.voie)}
+                <button class:on={voie === v.voie} data-voie={v.voie} role="radio" aria-checked={voie === v.voie}
+                  onclick={() => choisirLaVoie(v.voie)}>{$t(v.cle as any)}</button>
+              {/each}
+            </div>
+            <p class="hint sous">{$t('v2.cfp.voieHint' as any)}</p>
+          {/if}
+
           <div class="presets" data-cfp="presets">
             <span class="mesl">{$t('v2.cfp.presets' as any)}</span>
             {#each PRESETS_CROSSFEED_PRO as p (p.key)}
@@ -314,7 +362,7 @@
             <button data-cfp="save-profile" onclick={enregistrerProfil}>+ {$t('v2.cfp.saveProfile' as any)}</button>
           </div>
 
-          <div class="row" class:off={eteint}>
+          <div class="row" class:off={eteint || (!classique && voie === 'mid_side')}>
             <div class="lbl">
               <span>{$t('v2.cfp.amount' as any)}</span>
               <span class="hint">{$t((classique ? 'v2.cfp.amountHintClassic' : 'v2.cfp.amountHint') as any)}</span>
@@ -340,10 +388,10 @@
               </div>
             </div>
           {:else}
-          <div class="row" class:off={eteint || r.experimental_itd}>
+          <div class="row" class:off={eteint || voie !== 'standard'}>
             <div class="lbl">
               <span>{$t('v2.cfp.delay' as any)}</span>
-              <span class="hint">{$t((r.experimental_itd ? 'v2.cfp.delayItdHint' : 'v2.cfp.delayHint') as any)}</span>
+              <span class="hint">{$t((voie !== 'standard' ? 'v2.cfp.delayItdHint' : 'v2.cfp.delayHint') as any)}</span>
             </div>
             <div class="sl">
               <input type="range" data-cfp="delay_ms" min={B.delay_ms.min} max={B.delay_ms.max} step={B.delay_ms.pas}
@@ -385,7 +433,7 @@
             </div>
           {/if}
 
-          <div class="row" class:off={eteint}>
+          <div class="row" class:off={eteint || voie === 'itd'}>
             <div class="lbl">
               <span>{$t('v2.cfp.lowCut' as any)}</span>
               <span class="hint">{$t('v2.cfp.lowCutHint' as any)}</span>
@@ -410,10 +458,13 @@
           </div>
           {#if r.phase_guard}
             <div class="row sub" class:off={eteint}>
-              <div class="lbl"><span>{$t('v2.cfp.phaseGuardMs' as any)}</span></div>
+              <div class="lbl">
+                <span>{$t('v2.cfp.phaseGuardMs' as any)}</span>
+                <span class="hint">{$t('v2.cfp.phaseGuardMsHint' as any)}</span>
+              </div>
               <div class="sl">
-                <input type="range" data-cfp="phase_guard_ms" min={B.phase_guard_ms.min} max={B.phase_guard_ms.max}
-                  step={B.phase_guard_ms.pas} value={r.phase_guard_ms} oninput={(e) => regler('phase_guard_ms', e)}
+                <input type="range" data-cfp="phase_guard_ms" min={bGarde.min} max={bGarde.max}
+                  step={bGarde.pas} value={r.phase_guard_ms} oninput={(e) => regler('phase_guard_ms', e)}
                   aria-label={$t('v2.cfp.phaseGuardMs' as any)} />
                 <span class="val">{Math.round(r.phase_guard_ms)} ms</span>
               </div>

@@ -282,7 +282,15 @@ export function entreesPochette(
   // La radio et le podcast gardent leurs propres boutons (lecture au centre,
   // abonnement à part, suppression dans la modale d'édition) : ce catalogue
   // ne leur donne rien, comme avant — et leur bouton reste absent.
-  if (c.type === 'radio' || c.type === 'podcast') return sortie;
+  //
+  // web#2806 — sauf UNE entrée pour la radio de « Mes radios » : « Ajouter à
+  // une playlist » (`radio_ids`, tune-server-rust#8412). Le même libellé que
+  // l'entrée d'une piste ou d'un album : c'est le même geste.
+  if (c.type === 'radio') {
+    pousser(deLaBibliotheque, 'playlist.addToPlaylist', g.ajouterAPlaylist);
+    return sortie;
+  }
+  if (c.type === 'podcast') return sortie;
 
   // ── Lire ────────────────────────────────────────────────────────────────
   pousser(!!c.greffonCercle, 'v2.circle.msg.share', g.partagerMessage);

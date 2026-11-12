@@ -26,6 +26,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { objetRadio } from '../../lib/gestesObjet';
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import { memoriserTous, compteTous, type MemoTous } from '../../lib/totalTousLesGenres';
@@ -219,6 +220,7 @@
               libelleVoir={$t('v2.radio.view' as any)}
               onLire={() => ecouter(f)}
               onOuvrir={() => (enFiche = f)}
+              objet={f.my_radio_id != null ? objetRadio({ id: f.my_radio_id, name: f.name }) : null}
               nom={f.name}
             >
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />

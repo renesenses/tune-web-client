@@ -46,6 +46,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { ecouterFicheAnnuaire } from '../../lib/ecouteFicheAnnuaire';
   import { memoriserLecture } from '../../lib/mesRadios';
+  import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import AlbumArt from './AlbumArt.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
 
@@ -214,6 +215,18 @@
     }
   }
 
+  /**
+   * web#2806 — « Ajouter à une playlist » : une station de « Mes radios »
+   * seulement (`radio_ids` = son `id`, tune-server-rust#8412). La fiche se
+   * ferme, la fenêtre partagée (`ShellV2`) prend la suite.
+   */
+  function ajouterAPlaylist() {
+    const f = fiche;
+    if (!f || f.idMienne == null) return;
+    demandeAjoutPlaylist.set({ nom: f.nom, radioIds: [f.idMienne] });
+    onClose();
+  }
+
   // --- Clavier et focus : la fiche est une boîte de dialogue modale ----------
   // À l'ouverture le focus va sur Lecture (sinon sur la fenêtre) ; Tab reste
   // dans la fiche ; à la fermeture, il retourne à ce qui l'a ouverte.
@@ -270,6 +283,13 @@
                 title={fiche.favori ? $t('v2.cover.unfavorite' as any) : $t('v2.cover.favorite' as any)}
                 onclick={basculerFavori}>
                 <svg viewBox="0 0 24 24" fill={fiche.favori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              </button>
+            {/if}
+            {#if fiche.idMienne != null}
+              <button class="coeur ajout-playlist" data-ajout-playlist
+                aria-label={$t('playlist.addToPlaylist' as any)} title={$t('playlist.addToPlaylist' as any)}
+                onclick={ajouterAPlaylist}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h7"/><path d="M18 14v8M14 18h8"/></svg>
               </button>
             {/if}
           </div>

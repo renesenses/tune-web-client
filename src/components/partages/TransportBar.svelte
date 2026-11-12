@@ -43,6 +43,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  // tune-server-rust#8445 — zone groupée : le curseur règle le volume MAÎTRE.
+  import MentionGroupe from './MentionGroupe.svelte';
+  import { tuneWS } from '../../lib/websocket';
+  import { reglerVolume, chargerGroupesDeZones, suivreGroupesDeZones } from '../../lib/volumeDeGroupe';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
   import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
@@ -134,7 +138,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     limiterEnvoiMobile(() => {
       if ($currentZone?.id !== zoneId || !volumeMobileAutorise || contexte !== contexteVolumeMobile) return;
       void envoyerVolumeOuReverrouiller(zoneId, val, {
-        envoyer: api.setVolume,
+        envoyer: reglerVolume,
         relireVerrou: refreshAudiophile,
         verrouille: isVolumeLocked,
         direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
@@ -151,7 +155,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if (newVal === mobileVol) return;
     if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
-    await api.setVolume(z.id, newVal);
+    await reglerVolume(z.id, newVal);
   }
 
   // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
@@ -559,8 +563,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   $effect(() => {
     if (configZone) void chargerGroupes();
   });
+  // #8445 — la barre est toujours montée : elle tient les groupes à jour pour
+  // tous les chemins du volume (curseurs, clavier, vue TV).
+  $effect(() => {
+    suivreGroupesDeZones((h) => tuneWS.onEvent(h));
+  });
   async function apresChangementDeGroupe() {
     await chargerGroupes();
+    // #8445 — le curseur de volume relit aussitôt l'appartenance au groupe.
+    void chargerGroupesDeZones();
     try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
   }
   /**
@@ -1596,6 +1607,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        <MentionGroupe zoneId={$currentZone?.id} />
         {/if}
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
