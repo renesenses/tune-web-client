@@ -183,11 +183,66 @@ function retenirOngletPour(vue: string | null): void {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* COMMENT ON EST ARRIVÉ SUR L'ÉCRAN — web, fil 2694 (Ilan)             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 🔴 « Quand on revient en arrière, par exemple après avoir cliqué sur un
+ * artiste depuis un album, revenir à l'endroit précédent et non à la racine
+ * de Tidal » — Ilan, fil 2694 (ancien utilisateur de Roon, client web).
+ *
+ * Un écran v2 est DÉTRUIT quand on change de vue (`ShellV2`, `{#if}`) : sa
+ * sous-page (genre ouvert, recherche, « Voir tout », défilement) est un
+ * `$state` local, perdu. Pour la lui rendre, l'écran remonté doit savoir
+ * s'il est un RETOUR (bouton Retour d'une page, Précédent/Suivant du
+ * navigateur) ou une ARRIVÉE délibérée (barre latérale, raccourci, lien) —
+ * la règle de #3843 veut qu'une arrivée reparte de la racine.
+ *
+ * - `historique` : l'entrée a été atteinte par Précédent/Suivant (`popstate`) ;
+ * - `retour`     : le Retour d'une page (`revenirA`, `vueEnRetour`) ;
+ * - `geste`      : tout autre changement de vue.
+ *
+ * Tenu par un abonnement de MODULE, posé avant ceux de la coquille : il voit
+ * chaque changement de vue, coquille branchée ou non.
+ */
+export type TypeArrivee = 'historique' | 'retour' | 'geste';
+let arrivee: TypeArrivee = 'geste';
+let arriveeAnnoncee: { vue: string; type: TypeArrivee } | null = null;
+activeView.subscribe((v) => {
+  arrivee = arriveeAnnoncee && arriveeAnnoncee.vue === v ? arriveeAnnoncee.type : 'geste';
+  arriveeAnnoncee = null;
+});
+
+/** Comment la vue COURANTE a été atteinte. À lire au montage de l'écran. */
+export function typeArrivee(): TypeArrivee {
+  return arrivee;
+}
+
+function poserVue(vue: View, type: TypeArrivee): void {
+  arriveeAnnoncee = { vue: String(vue), type };
+  try {
+    activeView.set(vue);
+  } finally {
+    // Vue inchangée : aucun abonné n'a consommé l'annonce, elle ne doit pas
+    // déteindre sur le changement suivant.
+    arriveeAnnoncee = null;
+  }
+}
+
+/**
+ * Changer de vue AU TITRE D'UN RETOUR, sans rien d'autre : le Retour d'une
+ * page qui ne passe pas par `revenirA` (page Label, fiche album de service).
+ */
+export function vueEnRetour(vue: View): void {
+  poserVue(vue, 'retour');
+}
+
 /** Le Retour d'une page : aller à `vue` et y reposer l'onglet retenu. */
 export function revenirA(vue: View): void {
   const r = ongletRetenu;
   ongletRetenu = null;
-  activeView.set(vue);
+  poserVue(vue, 'retour');
   // Après le changement de vue, qui remet l'onglet à `null` : l'entrée neuve
   // est réécrite avec lui, et l'écran le lit à son montage.
   if (r && r.vue === vue) ongletCourant.set(r.onglet);
@@ -222,6 +277,22 @@ export function fermerDetailEnReculant(
 /** Refermer sans reculer (clic ailleurs, changement d'onglet). */
 export function fermerDetail(): void {
   detailOuvert.set(null);
+}
+
+/**
+ * Fil 2694 — REPOSER un niveau de détail sur l'entrée COURANTE, sans en
+ * empiler une : c'est la restauration d'un écran rendu par un retour, pas un
+ * pas de plus. Empiler ici ferait qu'un Précédent suivant ne bougerait pas de
+ * l'écran (l'entrée d'avant montre la même page).
+ */
+let detailEnRemplacement = false;
+export function reposerDetail(cle: string): void {
+  detailEnRemplacement = true;
+  try {
+    detailOuvert.set(String(cle));
+  } finally {
+    detailEnRemplacement = false;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -518,6 +589,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // Une transition composée est en cours : l'entrée porte déjà ce que
     // l'écran d'arrivée est en train de reposer. Ni push, ni replace.
     if (transitionAbsorbe(detail)) return;
+    // Fil 2694 — une restauration réécrit l'entrée courante (`reposerDetail`).
+    if (detailEnRemplacement) { ecrire(false, get(activeView), detail); return; }
     // `opPourFiche` porte la règle d'intention, tracée dans Chrome sur .18 et
     // gardée par `retourHistoriqueFiche.test.ts` : ouverture → empiler ;
     // fermeture à la main → réécrire l'entrée courante ; fermeture PAR UN
@@ -546,7 +619,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     try {
       // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
       ongletCourant.set(etat.onglet ?? null);
-      activeView.set(etat.vue as View);
+      // Fil 2694 — l'écran remonté sait qu'il est atteint par l'historique.
+      poserVue(etat.vue as View, 'historique');
       detailOuvert.set(etat.detail);
     } finally {
       enRestauration = false;

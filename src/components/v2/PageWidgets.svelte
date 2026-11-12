@@ -95,7 +95,11 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, reposerDetail, typeArrivee } from '../../lib/historiqueCoquille';
+  import { retenirPageWidgets, reprendrePageWidgets, type MemoirePageWidgets } from '../../lib/memoireStreaming';
+  import { ficheAlbumDeRetour } from '../../lib/stores/streaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -1376,6 +1380,90 @@
   onDestroy(() => {
     oublierCibleVoirTout();
     if (get(detailOuvert)?.startsWith(`voir-tout:${CLE}:`)) detailOuvert.set(null);
+  });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE, RENDUE AU RETOUR — fil 2694 (Ilan).
+   *
+   * Qobuz › « Nouveautés » (Voir tout) › un album › son artiste, puis Retour :
+   * la page de service est DÉTRUITE en changeant de vue, et « Voir tout », la
+   * fiche posée dessus et le défilement sont des `$state` d'ici. Le Retour
+   * rendait l'éditorial en haut de page.
+   *
+   * On retient à l'instant du départ (abonnement synchrone) et on reprend au
+   * montage, sur un RETOUR seulement (`typeArrivee`) : la barre latérale
+   * repart toujours de la racine (#3843). Mémoire : `lib/memoireStreaming`.
+   */
+  const arriveeAuMontage = typeArrivee();
+  const vueDeLaPage = get(activeView);
+  /** La clé de détail que porte vraiment la page (voir `StreamingV2`). */
+  let cleDeLaPage: string | null = get(detailOuvert);
+  /** La page refermée à la main juste avant de partir (voir `StreamingV2`). */
+  let refermeeAvantDepart: { quand: number; voirTout: string | null; defilementAvant: number; fiche: any; service: string | null } | null = null;
+  $effect(() => detailOuvert.subscribe((c) => {
+    if (get(activeView) !== vueDeLaPage) return;
+    if (c == null && cleDeLaPage != null && ficheOuverte && !retourProgrammatiqueEnCours()) {
+      refermeeAvantDepart = {
+        quand: Date.now(), voirTout: voirTout?.id ?? null, defilementAvant,
+        fiche: ficheOuverte ? $state.snapshot(ficheOuverte) : null, service: serviceOuvert,
+      };
+    } else if (c != null) refermeeAvantDepart = null;
+    cleDeLaPage = c;
+  }));
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueDeLaPage) return;
+      const cleFiche = ficheOuverte ? cleDetailAlbum(ficheOuverte) : null;
+      const visible = !!ficheOuverte && (cleFiche == null || cleFiche === cleDeLaPage);
+      const retourFiche = get(ficheAlbumDeRetour)?.fiche as any;
+      const r = refermeeAvantDepart && Date.now() - refermeeAvantDepart.quand < 5000 ? refermeeAvantDepart : null;
+      refermeeAvantDepart = null;
+      const quittee = !visible && ficheOuverte ? ficheOuverte : (r?.fiche ?? null);
+      const page = voirTout?.id ?? r?.voirTout ?? null;
+      const memoire: MemoirePageWidgets = $state.snapshot({
+        voirTout: page,
+        // Refermée avant de partir, « Voir tout » a déjà rendu la position de
+        // l'éditorial : celle de la page n'est plus lisible, on repart du haut.
+        defilement: voirTout || !r?.voirTout ? (zoneDefilante?.scrollTop ?? 0) : 0,
+        defilementAvant: voirTout ? defilementAvant : (r?.defilementAvant ?? defilementAvant),
+        fiche: visible ? ficheOuverte : null,
+        ficheService: visible ? serviceOuvert : null,
+        ficheQuittee: quittee,
+        ficheQuitteeService: !visible && ficheOuverte ? serviceOuvert : (r?.service ?? null),
+        ficheMontreeParLeRetour: !!quittee && retourFiche != null
+          && String(retourFiche.id ?? '') === String((quittee as any).source_id ?? ''),
+      }) as MemoirePageWidgets;
+      retenirPageWidgets(CLE, memoire.voirTout || memoire.fiche || memoire.ficheQuittee || memoire.defilement > 0 ? memoire : null);
+    });
+  });
+  let pageAReprendre: MemoirePageWidgets | null = reprendrePageWidgets(CLE, arriveeAuMontage);
+  $effect(() => {
+    const m = pageAReprendre;
+    if (!m || !charge) return;
+    // « Voir tout » attend que la page connaisse son widget (#987).
+    if (m.voirTout && !parId(m.voirTout)) return;
+    untrack(() => {
+      pageAReprendre = null;
+      if (m.voirTout) {
+        const cle = `voir-tout:${CLE}:${m.voirTout}`;
+        // L'entrée atteinte par le Précédent la porte déjà ; sinon on la
+        // REPOSE sur l'entrée courante, sans empiler un cran de plus.
+        if (get(detailOuvert) !== cle) reposerDetail(cle);
+        if (voirTout?.id !== m.voirTout) ouvrirVoirTout(m.voirTout);
+        defilementAvant = m.defilementAvant;
+      }
+      const quittee = m.ficheQuittee
+        && (arriveeAuMontage === 'historique' || !m.ficheMontreeParLeRetour) ? m.ficheQuittee : null;
+      const a = (m.fiche ?? quittee) as any;
+      if (a) {
+        ouvrirCalqueAlbum(a);
+        ficheOuverte = a;
+        serviceOuvert = m.fiche ? m.ficheService : m.ficheQuitteeService;
+      }
+      restaurerQuandPret(m.defilement, () => zoneDefilante, { essaisMax: 180 });
+    });
   });
 </script>
 

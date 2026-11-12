@@ -23,6 +23,7 @@
  */
 import { activeView, type View } from './stores/navigation';
 import type { StreamingGenre } from './types';
+import type { TypeArrivee } from './historiqueCoquille';
 
 /** Les vues d'où l'on « revient » au service plutôt que d'y « aller ». */
 export const VUES_DE_PASSAGE: readonly View[] = ['nowplaying'];
@@ -44,12 +45,41 @@ export interface MemoireStreaming {
   fichePlaylist: unknown | null;
   /** Le défilement de la zone de contenu. */
   defilement: number;
+  /**
+   * Fil 2694 — la recherche DANS le service : la saisie, les pages déjà
+   * chargées et le décalage de la dernière. Facultatifs : une mémoire écrite
+   * sans eux (les témoins de #2828) se relit comme avant.
+   */
+  q?: string;
+  results?: unknown | null;
+  rechOffset?: number;
+  bcSearch?: unknown | null;
+  /**
+   * Fil 2694 — la fiche d'album REFERMÉE pour partir ailleurs (le lien de
+   * l'artiste la referme avant de router, #1486). Elle était à l'écran au
+   * moment du clic : le Précédent du navigateur la rouvre.
+   */
+  ficheQuittee?: unknown | null;
+  ficheQuitteeService?: string | null;
+  /**
+   * Vrai quand le Retour de la page d'arrivée rouvre lui-même cette fiche
+   * (`ficheAlbumDeRetour`, web#1602) : revenu par ce Retour, on ne la
+   * rouvre pas une seconde fois.
+   */
+  ficheMontreeParLeRetour?: boolean;
 }
 
 const estDePassage = (v: View | null | undefined): boolean =>
   v != null && (VUES_DE_PASSAGE as readonly string[]).includes(v);
 
 let memoire: MemoireStreaming | null = null;
+/**
+ * Fil 2694 — la DERNIÈRE page quittée, quelle que soit la vue d'arrivée. Elle
+ * n'est relue que par un RETOUR (`typeArrivee` : Retour d'une page,
+ * Précédent/Suivant du navigateur) : une arrivée délibérée (barre latérale,
+ * raccourci) ne la voit jamais, et #3843 tient.
+ */
+let derniere: MemoireStreaming | null = null;
 
 // Relecture : streaming → Lecture en cours → Bibliothèque → Lecture en cours →
 // barre latérale « Qobuz » est une arrivée DEPUIS AILLEURS (#3843). Toute vue
@@ -61,20 +91,70 @@ activeView.subscribe((v) => {
 /** À l'instant où l'on quitte l'écran du service, vers `vers`. */
 export function retenirAuDepart(vers: View | null, etat: MemoireStreaming | null): void {
   memoire = estDePassage(vers) && etat && etat.active ? etat : null;
+  derniere = etat && etat.active ? etat : null;
 }
 
 /**
  * Au remontage, une fois l'onglet de service connu : rend la page à rouvrir,
  * UNE fois, si l'on revient de la vue de passage sur le même service.
  */
-export function reprendreAuRetour(depuis: View | null, active: string | null): MemoireStreaming | null {
+export function reprendreAuRetour(
+  depuis: View | null,
+  active: string | null,
+  arrivee: TypeArrivee = 'geste',
+): MemoireStreaming | null {
   const m = memoire;
+  const d = derniere;
   memoire = null;
-  if (!m || !estDePassage(depuis) || !active || m.active !== active) return null;
+  derniere = null;
+  if (!active) return null;
+  // Fil 2694 — revenu par un Retour ou par l'historique : la dernière page
+  // quittée, sur le même service.
+  if (arrivee !== 'geste') return d && d.active === active ? d : null;
+  if (!m || !estDePassage(depuis) || m.active !== active) return null;
   return m;
+}
+
+/* ------------------------------------------------------------------ */
+/* La page à widgets (éditorial d'un service, Accueil) — fil 2694       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ce que `PageWidgets` avait à l'écran en partant : la page « Voir tout »
+ * ouverte (les nouveautés Qobuz…), la fiche d'album posée dessus, et les
+ * défilements. Rangée par CLÉ de page (`qobuz_widgets`, `home_widgets`) : la
+ * clé porte le service, une page n'en reprend jamais une autre.
+ */
+export interface MemoirePageWidgets {
+  voirTout: string | null;
+  defilement: number;
+  defilementAvant: number;
+  fiche: unknown | null;
+  ficheService: string | null;
+  ficheQuittee: unknown | null;
+  ficheQuitteeService: string | null;
+  ficheMontreeParLeRetour: boolean;
+}
+
+let pagesWidgets = new Map<string, MemoirePageWidgets>();
+
+/** Au départ de la vue qui porte la page `cle`. */
+export function retenirPageWidgets(cle: string, etat: MemoirePageWidgets | null): void {
+  // Une seule page retenue : celle que l'on quitte en dernier.
+  pagesWidgets = new Map();
+  if (etat) pagesWidgets.set(cle, etat);
+}
+
+/** Au montage de la page `cle` : rend sa page quittée, UNE fois, sur un retour. */
+export function reprendrePageWidgets(cle: string, arrivee: TypeArrivee): MemoirePageWidgets | null {
+  const m = pagesWidgets.get(cle) ?? null;
+  pagesWidgets = new Map();
+  return arrivee === 'geste' ? null : m;
 }
 
 /** Pour les tests. */
 export function oublierMemoireStreaming(): void {
   memoire = null;
+  derniere = null;
+  pagesWidgets = new Map();
 }
