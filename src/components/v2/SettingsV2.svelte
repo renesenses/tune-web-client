@@ -88,7 +88,7 @@
   } from '../../lib/playlistsDuScan';
   import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
-  import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { aDesEcarts, aDesDossiersIllisibles, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
   import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
@@ -6845,6 +6845,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each motifsDesFeuilles(scanReport) as m (m.motif)}
                       <p class="hint">{m.motif} — {$formatNombre(m.nombre)}</p>
                     {/each}
+                    {#if aDesDossiersIllisibles(scanReport)}
+                      <!-- tune-server-rust#8177 — un dossier refusé se règle par un geste, on le dit. -->
+                      <p class="hint" data-dossiers-illisibles>{$t('v2.scan.dirsUnreadableHint' as any)}</p>
+                    {/if}
                     {#each groupesEcartes(scanReport) as g (g.cle)}
                       <p class="ecartes-titre">{$t(g.titre as any)} ({$formatNombre(g.chemins.length)})</p>
                       <ul class="ecartes-liste">

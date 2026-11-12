@@ -47,6 +47,17 @@ export function groupesEcartes(r: unknown): GroupeEcarte[] {
     const v = rep[k];
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : [];
   };
+  // tune-server-rust#8177 — les DOSSIERS que le scan n'a pas pu ouvrir
+  // (« Operation not permitted » de macOS sans accès complet au disque, NAS
+  // démonté, droits refusés). Le serveur les rend (`missing_dir_reasons`,
+  // `missing_dirs`, `error_dirs`) ; l'écran ne les montrait pas : leurs
+  // fichiers manquaient sans qu'aucun dossier soit nommé. En tête : un seul
+  // dossier refusé explique souvent tout le reste.
+  const racines = liste('missing_dir_reasons');
+  const groupesDossiers: GroupeEcarte[] = [
+    { cle: 'missing_dirs', titre: 'v2.scan.skipRootUnreachable', chemins: racines.length ? racines : liste('missing_dirs') },
+    { cle: 'error_dirs', titre: 'v2.scan.skipDirUnreadable', chemins: liste('error_dirs') },
+  ];
   const defs: { cle: string; titre: string }[] = [
     { cle: 'failed_paths', titre: 'v2.scan.skipFailed' },
     { cle: 'skipped_empty_file_paths', titre: 'v2.scan.skipEmpty' },
@@ -55,9 +66,13 @@ export function groupesEcartes(r: unknown): GroupeEcarte[] {
     { cle: 'skipped_unsupported_paths', titre: 'v2.scan.skipUnsupported' },
     { cle: 'skipped_duplicate_paths', titre: 'v2.scan.skipDuplicate' },
   ];
-  return defs
-    .map((d) => ({ ...d, chemins: liste(d.cle) }))
+  return [...groupesDossiers, ...defs.map((d) => ({ ...d, chemins: liste(d.cle) }))]
     .filter((g) => g.chemins.length > 0);
+}
+
+/** Le rapport nomme-t-il des dossiers illisibles ? L'écran dit alors le geste à faire. */
+export function aDesDossiersIllisibles(r: unknown): boolean {
+  return groupesEcartes(r).some((g) => g.cle === 'missing_dirs' || g.cle === 'error_dirs');
 }
 
 /**
