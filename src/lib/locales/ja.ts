@@ -3028,7 +3028,7 @@ export default {
   "v2.home.wArtistReleases": "お気に入りアーティストの新作",
   "v2.home.wNewInLibrary": "ライブラリの新着",
   "v2.home.wOtherVersions": "聴いた作品の別バージョン",
-  "v2.home.wFavorites": "あなたのお気に入り",
+  "v2.home.wFavorites": "お気に入りのアルバム",
   "v2.home.wFavArtists": "お気に入りのアーティスト",
   "v2.home.wFavTracks": "お気に入りのトラック",
   "v2.home.wFavPlaylists": "お気に入りのプレイリスト",

@@ -3028,7 +3028,7 @@ export default {
   "v2.home.wArtistReleases": "Noutăți de la artiștii dumneavoastră",
   "v2.home.wNewInLibrary": "Nou în biblioteca dumneavoastră",
   "v2.home.wOtherVersions": "Alte versiuni ale ascultărilor dumneavoastră",
-  "v2.home.wFavorites": "Favoritele dumneavoastră",
+  "v2.home.wFavorites": "Albume favorite",
   "v2.home.wFavArtists": "Artiști favoriți",
   "v2.home.wFavTracks": "Piese favorite",
   "v2.home.wFavPlaylists": "Playlisturi favorite",

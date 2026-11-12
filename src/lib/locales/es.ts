@@ -3028,7 +3028,7 @@ export default {
   "v2.home.wArtistReleases": "Novedades de sus artistas",
   "v2.home.wNewInLibrary": "Nuevo en su biblioteca",
   "v2.home.wOtherVersions": "Otras versiones de sus escuchas",
-  "v2.home.wFavorites": "Sus favoritos",
+  "v2.home.wFavorites": "Álbumes favoritos",
   "v2.home.wFavArtists": "Artistas favoritos",
   "v2.home.wFavTracks": "Pistas favoritas",
   "v2.home.wFavPlaylists": "Listas favoritas",

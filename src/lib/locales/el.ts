@@ -1687,7 +1687,7 @@ export default {
   "v2.home.wArtistReleases": "Νέα από τους καλλιτέχνες σας",
   "v2.home.wNewInLibrary": "Νέα στη βιβλιοθήκη σας",
   "v2.home.wOtherVersions": "Άλλες εκδοχές από όσα ακούτε",
-  "v2.home.wFavorites": "Τα αγαπημένα σας",
+  "v2.home.wFavorites": "Αγαπημένα άλμπουμ",
   "v2.home.wFavArtists": "Αγαπημένοι καλλιτέχνες",
   "v2.home.wFavTracks": "Αγαπημένα κομμάτια",
   "v2.home.wFavPlaylists": "Αγαπημένες λίστες αναπαραγωγής",

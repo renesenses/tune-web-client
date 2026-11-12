@@ -2982,7 +2982,7 @@ export default {
   "v2.home.wArtistReleases": "Újdonságok az előadóitól",
   "v2.home.wNewInLibrary": "Új a könyvtárában",
   "v2.home.wOtherVersions": "Hallgatásainak más változatai",
-  "v2.home.wFavorites": "Az Ön kedvencei",
+  "v2.home.wFavorites": "Kedvenc albumok",
   "v2.home.wFavArtists": "Kedvenc előadók",
   "v2.home.wFavTracks": "Kedvenc számok",
   "v2.home.wFavPlaylists": "Kedvenc lejátszási listák",

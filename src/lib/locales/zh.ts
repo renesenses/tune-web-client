@@ -3028,7 +3028,7 @@ export default {
   "v2.home.wArtistReleases": "您关注艺人的新作",
   "v2.home.wNewInLibrary": "音乐库中的新内容",
   "v2.home.wOtherVersions": "您所听作品的其他版本",
-  "v2.home.wFavorites": "您的收藏",
+  "v2.home.wFavorites": "收藏的专辑",
   "v2.home.wFavArtists": "收藏的艺人",
   "v2.home.wFavTracks": "收藏的曲目",
   "v2.home.wFavPlaylists": "收藏的播放列表",

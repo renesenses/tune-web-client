@@ -1833,7 +1833,7 @@ export default {
   "v2.home.wArtistReleases": "New from your artists",
   "v2.home.wNewInLibrary": "New in your library",
   "v2.home.wOtherVersions": "Other versions of your listening",
-  "v2.home.wFavorites": "Your favourites",
+  "v2.home.wFavorites": "Favourite albums",
   "v2.home.wFavArtists": "Favourite artists",
   "v2.home.wFavTracks": "Favourite tracks",
   "v2.home.wFavPlaylists": "Favourite playlists",
