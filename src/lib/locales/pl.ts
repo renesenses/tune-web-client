@@ -1312,6 +1312,7 @@ export default {
   "nowplaying.activate": "Ustaw",
   "nowplaying.cancel": "Anuluj",
   "nowplaying.alarmActive": "Budzik aktywny:",
+  "nowplaying.alarmsSeeAll": "Wszystkie zaplanowane budziki",
   "nowplaying.normalization": "Normalizacja",
   "nowplaying.startAmbiance": "Włącz nastrój",
   "nowplaying.saveAsPlaylist": "Zapisz jako playlistę",

@@ -1457,6 +1457,7 @@ export default {
   "nowplaying.activate": "Set",
   "nowplaying.cancel": "Cancel",
   "nowplaying.alarmActive": "Alarm active:",
+  "nowplaying.alarmsSeeAll": "All scheduled alarms",
   "nowplaying.normalization": "Normalization",
   "nowplaying.startAmbiance": "Start a mood",
   "nowplaying.saveAsPlaylist": "Save as playlist",

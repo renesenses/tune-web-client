@@ -1312,6 +1312,7 @@ export default {
   "nowplaying.activate": "Sett",
   "nowplaying.cancel": "Avbryt",
   "nowplaying.alarmActive": "Alarm aktiv:",
+  "nowplaying.alarmsSeeAll": "Alle planlagte alarmer",
   "nowplaying.normalization": "Normalisering",
   "nowplaying.startAmbiance": "Start et humør",
   "nowplaying.saveAsPlaylist": "Lagre som spilleliste",

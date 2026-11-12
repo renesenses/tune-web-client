@@ -1401,6 +1401,7 @@ export default {
   "nowplaying.activate": "Beállítás",
   "nowplaying.cancel": "Mégse",
   "nowplaying.alarmActive": "Aktív ébresztő:",
+  "nowplaying.alarmsSeeAll": "Összes beállított ébresztő",
   "nowplaying.normalization": "Normalizálás",
   "nowplaying.startAmbiance": "Hangulat indítása",
   "nowplaying.saveAsPlaylist": "Mentés lejátszási listaként",

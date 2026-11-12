@@ -1309,6 +1309,7 @@ export default {
   "nowplaying.activate": "设置",
   "nowplaying.cancel": "取消",
   "nowplaying.alarmActive": "闹钟已激活：",
+  "nowplaying.alarmsSeeAll": "所有已设定的闹钟",
   "nowplaying.normalization": "音量标准化",
   "nowplaying.startAmbiance": "开始一种情绪",
   "nowplaying.saveAsPlaylist": "另存为播放列表",

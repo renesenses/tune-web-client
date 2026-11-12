@@ -194,15 +194,22 @@ import { ICONES } from '../../lib/menuPiste';
   let alarmActive = $state(false);
   let alarmSetting = $state(false);
 
+  /**
+   * web#2534 — les réveils de la zone, LISTÉS dans le panneau (alec_eiffel :
+   * « je ne vois pas dans l'application où visualiser les alarmes qui ont été
+   * mises »), chacun avec son « Annuler », et un lien vers l'écran Réveils.
+   */
+  let alarmesZone = $state<api.ReveilDeZone[]>([]);
+
   async function handleSetAlarm() {
     if (zone?.id == null) return;
     if (!zone?.id || !alarmTime) return;
     alarmSetting = true;
     try {
       await api.setAlarm(zone.id, alarmTime);
-      alarmActive = true;
       showAlarm = false;
       notifications.success(`${$t('nowplaying.alarmSetAt')} ${alarmTime}`);
+      await loadAlarmState();
     } catch (e) {
       console.error('Alarm error:', e);
       notifications.error($t('nowplaying.alarmError'));
@@ -210,25 +217,26 @@ import { ICONES } from '../../lib/menuPiste';
     alarmSetting = false;
   }
 
-  async function handleCancelAlarm() {
+  async function handleCancelAlarm(alarmId: number) {
     if (zone?.id == null) return;
     try {
-      await api.cancelAlarm(zone.id);
-      alarmActive = false;
-      alarmTime = '';
+      await api.cancelAlarm(zone.id, alarmId);
       notifications.success($t('nowplaying.alarmCancelled'));
     } catch (e) {
       console.error('Cancel alarm error:', e);
+      notifications.error($t('nowplaying.alarmError'));
     }
+    await loadAlarmState();
   }
 
   async function loadAlarmState() {
     if (zone?.id == null) return;
     try {
-      const r = await api.getAlarm(zone.id);
-      alarmActive = !!r.time;
-      if (r.time) alarmTime = r.time;
-    } catch {}
+      alarmesZone = await api.getAlarm(zone.id);
+    } catch {
+      alarmesZone = [];
+    }
+    alarmActive = alarmesZone.some((a) => a.enabled);
   }
 
   $effect(() => {
@@ -2231,13 +2239,16 @@ import { ICONES } from '../../lib/menuPiste';
                 <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
                   {alarmSetting ? '...' : $t('nowplaying.activate')}
                 </button>
-                {#if alarmActive}
-                  <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
-                {/if}
               </div>
-              {#if alarmActive}
-                <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
-              {/if}
+              {#each alarmesZone as a (a.id)}
+                <div class="alarm-row alarm-item" data-reveil-zone={a.id}>
+                  <span class="alarm-status" class:inactive={!a.enabled}>{a.enabled ? `${$t('nowplaying.alarmActive')} ` : ''}{a.time}</span>
+                  <button class="alarm-cancel-btn" onclick={() => handleCancelAlarm(a.id)}>{$t('nowplaying.cancel')}</button>
+                </div>
+              {/each}
+              <button class="alarm-all-link" data-reveils-tous onclick={() => { showAlarm = false; activeView.set('alarms'); }}>
+                {$t('nowplaying.alarmsSeeAll' as any)} ›
+              </button>
             </div>
           {/if}
           {#if showLyrics}
@@ -4367,6 +4378,28 @@ import { ICONES } from '../../lib/menuPiste';
     font-family: var(--font-body);
     font-size: 11px;
     color: var(--tune-accent);
+  }
+
+  .alarm-status.inactive {
+    color: var(--tune-text-muted, var(--tune-text));
+    opacity: 0.7;
+  }
+
+  .alarm-item .alarm-cancel-btn {
+    margin-left: auto;
+  }
+
+  .alarm-all-link {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    color: var(--tune-accent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* Artwork click-to-zoom */

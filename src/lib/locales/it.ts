@@ -1309,6 +1309,7 @@ export default {
   "nowplaying.activate": "Imposta",
   "nowplaying.cancel": "Annulla",
   "nowplaying.alarmActive": "Sveglia attiva:",
+  "nowplaying.alarmsSeeAll": "Tutte le sveglie programmate",
   "nowplaying.normalization": "Normalizzazione",
   "nowplaying.startAmbiance": "Avvia un mood",
   "nowplaying.saveAsPlaylist": "Salva come playlist",

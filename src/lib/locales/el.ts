@@ -1312,6 +1312,7 @@ export default {
   "nowplaying.activate": "Ορισμός",
   "nowplaying.cancel": "Ακύρωση",
   "nowplaying.alarmActive": "Ενεργό ξυπνητήρι:",
+  "nowplaying.alarmsSeeAll": "Όλα τα προγραμματισμένα ξυπνητήρια",
   "nowplaying.normalization": "Κανονικοποίηση",
   "nowplaying.startAmbiance": "Ξεκινήστε μια διάθεση",
   "nowplaying.saveAsPlaylist": "Αποθήκευση ως λίστα αναπαραγωγής",
