@@ -121,6 +121,27 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
     expect(hote.querySelector('[data-role=ensemble] [role=alert]')?.textContent).toContain('BAND');
   });
 
+  it('🔴 un refus s’efface quand le champ change et ne bloque pas l’enregistrement', async () => {
+    await monter();
+    saisir('ensemble', 'BAND');
+    const alerte = () => hote.querySelector('[data-role=ensemble] [role=alert]');
+    expect(alerte()).not.toBeNull();
+    const c = champ('ensemble');
+    c.value = '';
+    c.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    expect(alerte(), 'le refus doit tomber quand la saisie change').toBeNull();
+    // Refus resté, saisie vidée sans événement : enregistrer() recalcule.
+    saisir('conductor', 'BAND');
+    champ('conductor').value = '';
+    hote.querySelector<HTMLInputElement>('input[type=radio][value=ignored]')!.click();
+    flushSync();
+    enregistrer().click();
+    await respirer();
+    expect(mocks.setBalisesClassique).toHaveBeenCalledTimes(1);
+    expect(mocks.setBalisesClassique.mock.calls[0][0]).toMatchObject({ band: 'ignored', conductor: ['CONDUCTOR'] });
+  });
+
   it('🔴 BAND ignoré, retrait d’une puce, puis retour aux défauts par `{}`', async () => {
     await monter();
     hote.querySelector<HTMLInputElement>('input[type=radio][value=ignored]')!.click();

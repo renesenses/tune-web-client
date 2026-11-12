@@ -97,7 +97,15 @@
     if (vivant) enregistrement = false;
   }
 
+  /** Le champ change : son refus ne vaut plus. */
+  function saisieChangee(role: RoleClassique) {
+    if (refus[role]) refus = { ...refus, [role]: undefined };
+  }
+
   function enregistrer() {
+    // Les refus se recalculent à partir des seules saisies non vides : un
+    // refus resté d'une saisie effacée ne bloque pas l'enregistrement.
+    refus = {};
     // Une saisie restée dans un champ compte : on l'ajoute avant d'envoyer.
     for (const role of ROLES_CLASSIQUES) {
       if (saisies[role].trim()) ajouter(role);
@@ -137,7 +145,7 @@
         <div class="ajout">
           <input type="text" bind:value={saisies[role]} placeholder={$t('classicalTags.addPlaceholder' as any)}
             aria-label={$t('classicalTags.add' as any)} spellcheck="false" autocapitalize="characters"
-            onkeydown={(e) => touche(e, role)} />
+            oninput={() => saisieChangee(role)} onkeydown={(e) => touche(e, role)} />
           <button type="button" class="v2-btn" onclick={() => ajouter(role)}>{$t('classicalTags.add' as any)}</button>
         </div>
         {#if refus[role]}<p class="hint erreur" role="alert">{refus[role]}</p>{/if}
