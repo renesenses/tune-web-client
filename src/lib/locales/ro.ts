@@ -4477,6 +4477,7 @@ export default {
   "v2.lib.sourceLocal": "Local",
   "v2.lib.qualityLossy": "Cu pierderi",
   "v2.lib.qualityMultichannel": "Multicanal",
+  "v2.lib.qualityStereo": "Stereo",
   "v2.lib.unknownArtist": "Artist necunoscut",
   "v2.lib.noGenre": "Fără gen",
   "v2.lib.noLabel": "Fără casă de discuri",

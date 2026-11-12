@@ -98,7 +98,7 @@
   import { preferences } from '../../lib/stores/preferences';
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
+  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
@@ -448,7 +448,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
-  type CleQualite = QualityTier | 'hires' | 'multichannel';
+  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo';
   const QUALITES_DE_BASE: { key: CleQualite; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
@@ -457,6 +457,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // serveur plus ancien ne sert pas : sans lui, la puce n'est pas proposée.
   const QUALITES_AVEC_MULTICANAL = [
     ...QUALITES_DE_BASE,
+    // tune-server-rust#8560 (fil 2713) — « Stéréo » à côté de « Multicanal » :
+    // les albums en une ou deux voies, sans ce qui n'est que multicanal.
+    { key: 'stereo' as const, label: 'Stereo', cle: 'v2.lib.qualityStereo' },
     { key: 'multichannel' as const, label: 'Multicanal', cle: 'v2.lib.qualityMultichannel' },
   ];
   const QUALITIES = $derived(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE);
@@ -692,6 +695,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   function tierMatches(a: Album, key: string): boolean {
     if (key === 'multichannel') return estMulticanal(a);
+    if (key === 'stereo') return estStereo(a);
     const t = getQualityTier(a);
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
