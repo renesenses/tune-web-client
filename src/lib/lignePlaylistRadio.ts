@@ -14,9 +14,13 @@
  */
 import type { Track } from './types';
 
-/** La ligne est-elle une radio ? `radio: true`, ou à défaut `source = 'radio'`. */
+/**
+ * La ligne de PLAYLIST est-elle une radio ? Seulement `radio: true` : une piste
+ * `source = 'radio'` de l'historique ou de la lecture en cours n'est pas une
+ * ligne de playlist, et garde sa barre d'actions (cœur radio #1771).
+ */
 export function estLigneRadio(p: Pick<Track, 'radio' | 'source'> | null | undefined): boolean {
-  return p?.radio === true || p?.source === 'radio';
+  return p?.radio === true;
 }
 
 /** Ligne radio dont la station a quitté « Mes radios » : grisée, sautée à la lecture. */

@@ -958,7 +958,6 @@
       <!-- #6179 — une ligne de playlist INTROUVABLE (piste disparue de la
            bibliothèque) est grisée comme une piste indisponible, avec sa
            propre étiquette, et ne se lance pas. -->
-      {@const introuvable = estIntrouvable(p)}
       {@const indispo = pisteIndisponible(p)}
       <!-- web#2806 — une ligne RADIO (tune-server-rust#8412) : icône radio,
            « En direct » pour durée ; grisée quand la station a quitté « Mes
@@ -966,13 +965,16 @@
            ni file, ni playlist ne savent désigner une station par cette barre. -->
       {@const radio = estLigneRadio(p)}
       {@const radioHs = radio && radioIndisponible(p)}
+      <!-- Une station retirée se traite comme une ligne introuvable : grisée,
+           non lançable ; seule son étiquette diffère. -->
+      {@const introuvable = estIntrouvable(p) || radioHs}
       {@const bannie = bannieDe(p)}
       <!-- Les attributs du glisser ne sont posés QUE si la liste est
            réordonnable : sans la prop, la ligne est celle d'avant. -->
       <!-- La ligne se saisit à la souris, la poignée (un bouton) porte le
            geste au clavier. -->
       <!-- svelte-ignore a11y_interactive_supports_focus -->
-      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable || radioHs} class:bannie data-ligne-radio={radio || undefined} aria-current={etat ? 'true' : undefined}
+      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie data-ligne-radio={radio || undefined} aria-current={etat ? 'true' : undefined}
         class:saisie={saisi === i} class:survolee={survolee === i}
         draggable={reordonnable || undefined}
         ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
@@ -993,7 +995,7 @@
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
             <button class="td titre" onclick={() => void lireDelibere(p, i)}
-              disabled={indispo || introuvable || radioHs} {...inerte} title={indispo ? $t(etiquetteIndispo as any) : radioHs ? $t('v2.pl.radioUnavailableHint' as any) : p.title}>
+              disabled={indispo || introuvable} {...inerte} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
@@ -1017,9 +1019,9 @@
                    absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
-              {#if introuvable}<span class="indispo-etiq" title={`${$t('v2.pl.missingTrackHint' as any)}${cheminIntrouvable(p) ? ` — ${cheminIntrouvable(p)}` : ''}`}>{$t('v2.pl.missingTrack' as any)}</span>
-              {:else if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>
-              {:else if radioHs}<span class="indispo-etiq" data-radio-indisponible title={$t('v2.pl.radioUnavailableHint' as any)}>{$t('v2.pl.radioUnavailable' as any)}</span>{/if}
+              {#if radioHs}<span class="indispo-etiq" data-radio-indisponible title={$t('v2.pl.radioUnavailableHint' as any)}>{$t('v2.pl.radioUnavailable' as any)}</span>
+              {:else if introuvable}<span class="indispo-etiq" title={`${$t('v2.pl.missingTrackHint' as any)}${cheminIntrouvable(p) ? ` — ${cheminIntrouvable(p)}` : ''}`}>{$t('v2.pl.missingTrack' as any)}</span>
+              {:else if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
               {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
             </button>
           {:else}

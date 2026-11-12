@@ -114,7 +114,8 @@ afterEach(() => {
 describe('lignePlaylistRadio', () => {
   it('reconnaît une ligne radio, indisponible ou non', () => {
     expect(estLigneRadio(FIP as any)).toBe(true);
-    expect(estLigneRadio({ source: 'radio' } as any)).toBe(true);
+    // Une piste radio de l'historique n'est pas une ligne de playlist (#1771).
+    expect(estLigneRadio({ source: 'radio' } as any)).toBe(false);
     expect(estLigneRadio(LIGNES[0] as any)).toBe(false);
     expect(radioIndisponible(FIP as any)).toBe(false);
     expect(radioIndisponible(PARTIE as any)).toBe(true);

@@ -289,7 +289,7 @@
     melangeEnCours = true;
     try {
       // web#2806 — une radio ne part pas en piste : le mélange client la laisse.
-      const n = await lireListeAleatoire(sansRadios(tracks), gestesDeLaPlaylist(zid, true));
+      const n = await lireListeAleatoire(tracks.filter((p) => !estLigneRadio(p)), gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifierErreur($tr('common.error'), e, { motifSeul: true });
@@ -708,7 +708,7 @@
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              {#if estLigneRadio(p)}<div class="part" data-ligne-radio>{$tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}</div>{/if}
+              {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
               {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
@@ -730,7 +730,14 @@
         <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
-        {#if !edition && isLocal && (estIntrouvable(_t) || radioIndisponible(_t))}
+        {#if !edition && isLocal && estIntrouvable(_t)}
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {/if}
+        <!-- web#2806 — même règle pour une station qui a quitté « Mes radios ». -->
+        {#if !edition && isLocal && radioIndisponible(_t)}
           <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>

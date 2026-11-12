@@ -86,7 +86,7 @@
           <li>
             <button class="station" data-radio-id={r.id} disabled={enCours !== null} onclick={() => choisir(r)}>
               <span class="logo"><AlbumArt coverPath={r.logo_url || r.annuaire?.logo_url || null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0, 1)} /></span>
-              <span class="nom">{r.name}</span>
+              <span class="nom" title={r.name}>{r.name}</span>
             </button>
           </li>
         {/each}
