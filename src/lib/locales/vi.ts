@@ -7135,6 +7135,7 @@ export default {
   "spectro.loading": "Đang tạo phổ đồ… việc này có thể mất vài giây.",
   "spectro.alt": "Phổ đồ của “{title}”",
   "spectro.axes": "Thời gian trên trục ngang, tần số trên trục dọc (0 Hz ở dưới), mức tính bằng dBFS: càng sáng càng to.",
+  "spectro.scale": "Thang mức tính bằng dBFS, từ −120 (đen) đến 0 (trắng)",
   "spectro.retry": "Thử lại",
   "spectro.notLocal": "Bản nhạc này không phải tệp cục bộ: phổ đồ chỉ có cho các bản nhạc trong thư viện mà tệp nằm trên máy chủ.",
   "spectro.failed": "Không thể tạo phổ đồ: tệp không đọc được hoặc có định dạng mà Tune không giải mã được.",

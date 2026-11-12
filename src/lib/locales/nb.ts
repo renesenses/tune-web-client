@@ -7128,6 +7128,7 @@ export default {
   "spectro.loading": "Lager spektrogrammet … det kan ta noen sekunder.",
   "spectro.alt": "Spektrogram av «{title}»",
   "spectro.axes": "Tid langs den vannrette aksen, frekvens langs den loddrette (0 Hz nederst), nivå i dBFS: lysere betyr sterkere.",
+  "spectro.scale": "Nivåskala i dBFS, fra −120 (svart) til 0 (hvit)",
   "spectro.retry": "Prøv igjen",
   "spectro.notLocal": "Dette sporet er ikke en lokal fil: spektrogram finnes bare for spor i biblioteket der filen ligger på tjeneren.",
   "spectro.failed": "Spektrogrammet kunne ikke lages: filen er uleselig eller i et format Tune ikke kan dekode.",

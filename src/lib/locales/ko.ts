@@ -7283,6 +7283,7 @@ export default {
   "spectro.loading": "스펙트로그램을 생성하는 중… 몇 초가 걸릴 수 있습니다.",
   "spectro.alt": "「{title}」의 스펙트로그램",
   "spectro.axes": "가로축은 시간, 세로축은 주파수(아래가 0 Hz), 레벨은 dBFS입니다. 밝을수록 소리가 큽니다.",
+  "spectro.scale": "dBFS 레벨 눈금, −120(검정)부터 0(흰색)까지",
   "spectro.retry": "다시 시도",
   "spectro.notLocal": "이 트랙은 로컬 파일이 아닙니다. 스펙트로그램은 파일이 서버에 있는 라이브러리 트랙에만 제공됩니다.",
   "spectro.failed": "스펙트로그램을 만들 수 없습니다. 파일을 읽을 수 없거나 Tune이 디코딩할 수 없는 형식입니다.",

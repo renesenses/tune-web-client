@@ -20,7 +20,14 @@
   import { t } from '../../lib/i18n';
   import {
     chargerSpectrogramme, ErreurSpectrogramme, type GenreErreurSpectrogramme,
+    degradeEchelleDb, graduationsDb, libelleDb, HAUTEUR_SPECTROGRAMME, MARGES_SPECTROGRAMME,
   } from '../../lib/spectrogramme';
+
+  // web#2707 — la zone tracée de l'image, en % de sa hauteur : l'échelle s'y aligne.
+  const ECHELLE_HAUT = (MARGES_SPECTROGRAMME.haut / HAUTEUR_SPECTROGRAMME) * 100;
+  const ECHELLE_BAS = (MARGES_SPECTROGRAMME.bas / HAUTEUR_SPECTROGRAMME) * 100;
+  const GRADUATIONS = graduationsDb();
+  const DEGRADE = degradeEchelleDb();
 
   interface Props {
     trackId: number;
@@ -98,8 +105,21 @@
     {:else if etat.v === 'chargement'}
       <p class="etat" role="status" aria-live="polite">{$t('spectro.loading' as any)}</p>
     {:else if etat.v === 'image'}
-      <img class="image" src={etat.url}
-        alt={$t('spectro.alt' as any).replace('{title}', titre)} />
+      <div class="avec-echelle">
+        <img class="image" src={etat.url}
+          alt={$t('spectro.alt' as any).replace('{title}', titre)} />
+        <!-- web#2707 — l'échelle de couleurs en dBFS, aux couleurs de l'image. -->
+        <div class="echelle" role="img" aria-label={$t('spectro.scale' as any)} title={$t('spectro.scale' as any)}
+          data-echelle-db style="--haut:{ECHELLE_HAUT}%; --bas:{ECHELLE_BAS}%">
+          <div class="zone">
+            <span class="barre" style="background:{DEGRADE}"></span>
+            {#each GRADUATIONS as g (g.db)}
+              <span class="grad" style="bottom:{g.bas}%" data-db={g.db}>{libelleDb(g.db)}</span>
+            {/each}
+          </div>
+          <span class="unite">dBFS</span>
+        </div>
+      </div>
       <p class="etat">{$t('spectro.axes' as any)}</p>
     {:else}
       <p class="etat erreur" role="alert">{$t(CLES_ERREUR[etat.genre] as any)}</p>
@@ -127,6 +147,17 @@
   .etat{font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
   .erreur{color:var(--v2-txt, var(--tune-text, inherit))}
   .image{display:block; width:100%; height:auto; border-radius:6px; background:#000}
+  .avec-echelle{display:grid; grid-template-columns:minmax(0, 1fr) 58px; gap:8px; align-items:stretch}
+  .echelle{position:relative; min-height:120px}
+  .zone{position:absolute; left:0; right:0; top:var(--haut); bottom:var(--bas)}
+  .barre{position:absolute; left:0; top:0; bottom:0; width:14px; border-radius:3px;
+    border:1px solid var(--v2-line2, var(--tune-border, #333))}
+  .grad{position:absolute; left:20px; transform:translateY(50%); white-space:nowrap;
+    font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono, monospace); color:var(--v2-txt2, var(--tune-text-secondary, inherit));
+    font-variant-numeric:tabular-nums}
+  .grad::before{content:''; position:absolute; left:-6px; top:50%; width:4px; border-top:1px solid currentColor}
+  .unite{position:absolute; left:20px; bottom:0; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit);
+    color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
   .bouton{border:1px solid var(--v2-acc1, var(--tune-accent, currentColor)); background:transparent;
     color:var(--v2-acc1, var(--tune-accent, currentColor)); border-radius:999px; padding:6px 14px;
     font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); cursor:pointer}
