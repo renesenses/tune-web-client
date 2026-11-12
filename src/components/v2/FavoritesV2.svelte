@@ -48,6 +48,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import LienEntite from '../partages/LienEntite.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import { artisteDAlbum } from '../../lib/lienEntite';
+  import { compterTitresDeService, libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
   import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -510,9 +511,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const clefMosaique = (pl: any): string | null =>
     pl?.id == null ? null : `${pl.smart ? 's' : 'p'}${pl.id}`;
 
+  /**
+   * web#2750 point 6 — le nombre de titres d'une playlist DE SERVICE en
+   * favori. `streaming_favorites` ne le garde pas : on le demande à la
+   * playlist (`GET /streaming/{service}/playlists/{id}`), une fois, à
+   * l'ouverture de l'onglet — comme les mosaïques des playlists locales.
+   */
+  let titresPl = $state<Record<string, number>>({});
+  const clefService = (pl: any): string | null =>
+    pl?.id == null && pl?.source && pl?.source_id ? `${pl.source}:${pl.source_id}` : null;
+  const nbTitresPl = (pl: any): number | null =>
+    pl?.track_count ?? (clefService(pl) ? titresPl[clefService(pl)!] ?? null : null);
+
   async function chargerMosaiques(liste: any[]): Promise<void> {
     await Promise.allSettled(
       liste.map(async (pl) => {
+        const ks = clefService(pl);
+        if (ks && pl.track_count == null && !demandees.has(ks)) {
+          demandees.add(ks);
+          const n = await compterTitresDeService(pl.source, pl.source_id);
+          if (n != null) titresPl = { ...titresPl, [ks]: n };
+          return;
+        }
         const k = clefMosaique(pl);
         if (!k || demandees.has(k)) return;
         demandees.add(k);
@@ -1223,10 +1243,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                  playlist intelligente — la distinction que porte le picto.
                  Élidée à la largeur de la carte, elle porte donc son `title`
                  (Bilou, 05/09/2026). -->
+            {@const nbTitres = nbTitresPl(pl)}
             {@const sousTitre = pl.smart
               ? $t('v2.pl.rule' as any)
-              : pl.track_count != null
-                ? $t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))
+              : nbTitres != null
+                ? libelleNbTitres(nbTitres, $t)
                 : ''}
             <div class="card">
               <span class="cv pl" class:img={!!mos || (!locale && !!pl.cover_path)}>
@@ -1293,7 +1314,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 {@render visuelPl(pl, mosaiquesPl[clefMosaique(pl) ?? ''])}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
-              {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
+              {#if nbTitresPl(pl) != null}<span class="sc">{nbTitresPl(pl)}</span>{/if}
               <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
                    pochette et exige un enfant ; cette liste porte une icône. On
                    réemploie le geste, pas l'habillage. -->

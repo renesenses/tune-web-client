@@ -31,7 +31,7 @@ vi.mock('../api', async (importOriginal) => {
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
 import { preferences } from '../stores/preferences';
 import { zones } from '../stores/zones';
-import { diagnosticDsd, CLE_MOTIF_DSD } from '../transportDsd';
+import { diagnosticDsd, CLE_MOTIF_DSD, CLE_DOP_SANS_DSD_NATIF } from '../transportDsd';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 
 const fr = dictionnaire('fr');
@@ -39,6 +39,7 @@ const INCONNUE = 'v2.set.dsdCapabilityUnknown';
 const NON_ASIO = 'v2.set.dsdDopNotAsio';
 const SANS_DSD = 'v2.set.dsdDopDriverWithoutDsd';
 const GENERIQUE = 'v2.set.dsdNativeServedAsDop';
+const SANS_NATIF = 'v2.set.dsdDopNoNativeDsd';
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
@@ -131,8 +132,10 @@ describe('#2513 — diagnosticDsd lit le motif du serveur', () => {
     expect(diagnosticDsd(zone())).toEqual({ cle: INCONNUE, genre: 'inconnue' });
   });
   it('causes connues du repli DoP', () => {
-    expect(diagnosticDsd(zone({ dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'sortie_non_asio' })))
-      .toEqual({ cle: NON_ASIO, genre: 'dop' });
+    expect(diagnosticDsd(zone({
+      dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'sortie_non_asio',
+      audio_backend_status: { active: 'WASAPI', requested: 'WASAPI', fell_back: false },
+    }))).toEqual({ cle: NON_ASIO, genre: 'dop' });
     expect(diagnosticDsd(zone({ dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'pilote_sans_dsd' })))
       .toEqual({ cle: SANS_DSD, genre: 'dop' });
   });
@@ -167,7 +170,7 @@ describe('#2513 — la carte de zone dit la capacité et le motif', () => {
     const h = await poser(zone({ dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'pilote_sans_dsd' }));
     expect(mention(h)?.textContent?.trim()).toBe(fr[SANS_DSD]);
     await pousser(zone({ output_device_id: 'local:hw:1,0', dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'sortie_non_asio' }));
-    expect(mention(h)?.textContent?.trim()).toBe(fr[NON_ASIO]);
+    expect(mention(h)?.textContent?.trim()).toBe(fr[SANS_NATIF]);
     await pousser(zone({ output_type: 'dlna', output_device_id: 'uuid:x', dsd_transport: 'pcm', dsd_transport_reason: null }));
     expect(mention(h)).toBeNull();
   });
@@ -188,6 +191,29 @@ describe('#2513 — la carte de zone dit la capacité et le motif', () => {
   });
 });
 
+describe('server#8248 — « sortie_non_asio » ne parle d’ASIO que sous Windows', () => {
+  const motif = { dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'sortie_non_asio' };
+  it('Linux (ALSA) : la sortie n’accepte pas le DSD natif, sans mention ASIO', () => {
+    const d = diagnosticDsd(zone({ ...motif, audio_backend_status: { active: 'ALSA', requested: 'ALSA', fell_back: false } }));
+    expect(d).toEqual({ cle: CLE_DOP_SANS_DSD_NATIF, genre: 'dop' });
+    expect(fr[d!.cle]).toBe("Cette sortie n'accepte pas le DSD natif : il y est envoyé en DoP.");
+    expect(fr[d!.cle]).not.toContain('ASIO');
+  });
+  it('macOS (CoreAudio) et backend inconnu : le texte général', () => {
+    expect(diagnosticDsd(zone({ ...motif, audio_backend_status: { active: 'CoreAudio', requested: 'CoreAudio', fell_back: false } }))?.cle)
+      .toBe(SANS_NATIF);
+    expect(diagnosticDsd(zone(motif))?.cle).toBe(SANS_NATIF);
+  });
+  it('Windows (WASAPI) : la précision ASIO reste, c’est la vraie cause', () => {
+    expect(diagnosticDsd(zone({ ...motif, audio_backend_status: { active: 'WASAPI', requested: 'ASIO', fell_back: true } }))?.cle)
+      .toBe(NON_ASIO);
+  });
+  it('le motif « pilote sans DSD » ne change pas', () => {
+    expect(diagnosticDsd(zone({ dsd_transport: 'natif_servi_en_dop', dsd_transport_reason: 'pilote_sans_dsd', audio_backend_status: { active: 'ALSA', requested: 'ALSA', fell_back: false } }))?.cle)
+      .toBe(SANS_DSD);
+  });
+});
+
 describe('#2513 — les trois messages dans les quinze langues', () => {
   for (const l of ONZE_LANGUES) {
     it(l, () => {
@@ -197,6 +223,11 @@ describe('#2513 — les trois messages dans les quinze langues', () => {
         expect(d[cle], `${l} : ${cle} doit nommer DSD`).toContain('DSD');
       }
       expect(d[NON_ASIO]).toContain('DoP');
+      // server#8248 — le texte général : DSD et DoP, jamais ASIO.
+      expect(d[SANS_NATIF], `${l} : ${SANS_NATIF} absente`).toBeTruthy();
+      expect(d[SANS_NATIF]).toContain('DSD');
+      expect(d[SANS_NATIF]).toContain('DoP');
+      expect(d[SANS_NATIF]).not.toContain('ASIO');
       expect(d[SANS_DSD]).toContain('ASIO');
     });
   }

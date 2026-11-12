@@ -952,6 +952,33 @@ export function supprimerArretProgramme(): Promise<EtatArretProgramme> {
   return fetchJSON(`${BASE}/system/settings/scheduled-stop`, { method: 'DELETE' }, undefined, true);
 }
 
+/**
+ * tune-server-rust#8325 / ESL63P — réglage « Balises du classique » : les
+ * balises lues par rôle et le sort de BAND. Un PUT qui change le réglage
+ * relance la relecture de fond des balises (`reread_started`), pas un scan.
+ */
+export interface EtatBalisesClassique {
+  classical_tags: import('./balisesClassique').BalisesClassique;
+  defaults: import('./balisesClassique').BalisesClassique;
+  standard_names?: { conductor: string; work: string; movement: string };
+  max_tags_per_role?: number;
+  reread_started?: boolean;
+}
+
+export function getBalisesClassique(): Promise<EtatBalisesClassique> {
+  // Sans bandeau : un serveur d'avant le réglage répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, undefined, undefined, true);
+}
+
+export function setBalisesClassique(
+  reglage: Partial<import('./balisesClassique').BalisesClassique>,
+): Promise<EtatBalisesClassique> {
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
@@ -2848,7 +2875,17 @@ export interface AlbumsArtisteSections {
    * excluent la discographie et ne disent rien des pistes.
    */
   credit_counts?: CompteursCredits;
+  /**
+   * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les artistes
+   * audibles sur les mêmes pistes que lui, déjà triés par le serveur
+   * (`shared_tracks` décroissant, puis nom), 20 au plus. Absente : serveur
+   * antérieur, ou personne — jamais `[]`. Le client ne retrie pas.
+   */
+  played_with?: JoueAvec[];
 }
+
+/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
+export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
@@ -2884,6 +2921,8 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
     // Lot 2 — recopiées telles quelles : ABSENTE reste absente.
     writing: o.writing,
     credit_counts: o.credit_counts,
+    // #2794 — recopiée telle quelle, sans valeur par défaut.
+    played_with: o.played_with,
   };
 }
 
@@ -6755,7 +6794,7 @@ export function createStreamingPlaylist(service: string, name: string) {
  * visite de l'écran, pour un simple nom manquant.
  */
 export function getStreamingPlaylist(service: string, id: string) {
-  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
+  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string; track_count?: number | null }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
     undefined, undefined, true,
   );
@@ -8367,8 +8406,36 @@ export function deleteCollaborativePlaylist(playlistId: number) {
 export function setAlarm(zoneId: number, time: string | null, opts?: { album_id?: number; playlist_id?: number; radio_id?: number; fade_seconds?: number }) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'POST', body: JSON.stringify({ time, ...opts }) });
 }
-export function getAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`); }
-export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'DELETE' }); }
+/**
+ * Un réveil de la zone, tel que `GET /zones/{id}/alarm` le rend.
+ *
+ * web#2534 (fil d'alec_eiffel, alarme FIP) — la route rend une LISTE, triée
+ * par heure (`tune-server/src/routes/playback.rs`, `get_alarms`) : tous les
+ * réveils de la table `alarms` posés sur cette zone, ceux de Lecture en cours
+ * comme ceux de l'écran Réveils. L'écran de lecture lisait `r.time` sur ce
+ * tableau : il ne voyait jamais un réveil actif, donc jamais son « Annuler ».
+ */
+export interface ReveilDeZone {
+  id: number;
+  zone_id: number | null;
+  time: string;
+  enabled: boolean;
+  days?: string | null;
+  source_type?: string | null;
+}
+export async function getAlarm(zoneId: number): Promise<ReveilDeZone[]> {
+  const r = await fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`);
+  const liste: any[] = Array.isArray(r) ? r : r && typeof r === 'object' && r.time ? [r] : [];
+  return liste.filter((a) => a && typeof a.time === 'string' && a.id != null) as ReveilDeZone[];
+}
+/**
+ * Supprime UN réveil de la zone — `DELETE /zones/{id}/alarm/{alarm_id}`.
+ * La route sans identifiant (`DELETE /zones/{id}/alarm`) n'existe pas côté
+ * serveur : « Annuler » échouait en silence.
+ */
+export function cancelAlarm(zoneId: number, alarmId: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm/${alarmId}`, { method: 'DELETE' });
+}
 
 // --- Quick Favorites ---
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
@@ -11326,6 +11393,27 @@ export function defaireCoffretManuel(id: number) {
     `${BASE}/library/coffrets/${id}/defaire-manuel`,
     { method: 'POST' },
   );
+}
+/**
+ * tune-server-rust#8571 (fil 2763) — les albums d'un coffret composé à la
+ * main, dans l'ordre de ses disques. 409 `pas_un_coffret_manuel` ou
+ * `ordre_indisponible` (coffret qui ne retient plus l'album de chaque
+ * disque). N'existe que si la fiche d'édition annonce `ordre_coffret`.
+ */
+export function getOrdreCoffret(id: number) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`);
+}
+/**
+ * tune-server-rust#8571 — RÉORDONNE les albums d'un coffret composé à la
+ * main : `membres` cite chaque `membre` de `getOrdreCoffret` une fois, dans
+ * l'ordre voulu. Les disques sont renumérotés à la suite. Rend le nouvel
+ * ordre ; 422 `ordre_invalide` sur une liste incomplète.
+ */
+export function reordonnerCoffret(id: number, membres: number[]) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`, {
+    method: 'PUT',
+    body: JSON.stringify({ membres }),
+  });
 }
 /**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.

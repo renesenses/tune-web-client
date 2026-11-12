@@ -66,6 +66,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
+  import { labelDe } from '../../lib/artistesDuLabel';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -194,15 +195,22 @@ import { ICONES } from '../../lib/menuPiste';
   let alarmActive = $state(false);
   let alarmSetting = $state(false);
 
+  /**
+   * web#2534 — les réveils de la zone, LISTÉS dans le panneau (alec_eiffel :
+   * « je ne vois pas dans l'application où visualiser les alarmes qui ont été
+   * mises »), chacun avec son « Annuler », et un lien vers l'écran Réveils.
+   */
+  let alarmesZone = $state<api.ReveilDeZone[]>([]);
+
   async function handleSetAlarm() {
     if (zone?.id == null) return;
     if (!zone?.id || !alarmTime) return;
     alarmSetting = true;
     try {
       await api.setAlarm(zone.id, alarmTime);
-      alarmActive = true;
       showAlarm = false;
       notifications.success(`${$t('nowplaying.alarmSetAt')} ${alarmTime}`);
+      await loadAlarmState();
     } catch (e) {
       console.error('Alarm error:', e);
       notifications.error($t('nowplaying.alarmError'));
@@ -210,25 +218,26 @@ import { ICONES } from '../../lib/menuPiste';
     alarmSetting = false;
   }
 
-  async function handleCancelAlarm() {
+  async function handleCancelAlarm(alarmId: number) {
     if (zone?.id == null) return;
     try {
-      await api.cancelAlarm(zone.id);
-      alarmActive = false;
-      alarmTime = '';
+      await api.cancelAlarm(zone.id, alarmId);
       notifications.success($t('nowplaying.alarmCancelled'));
     } catch (e) {
       console.error('Cancel alarm error:', e);
+      notifications.error($t('nowplaying.alarmError'));
     }
+    await loadAlarmState();
   }
 
   async function loadAlarmState() {
     if (zone?.id == null) return;
     try {
-      const r = await api.getAlarm(zone.id);
-      alarmActive = !!r.time;
-      if (r.time) alarmTime = r.time;
-    } catch {}
+      alarmesZone = await api.getAlarm(zone.id);
+    } catch {
+      alarmesZone = [];
+    }
+    alarmActive = alarmesZone.some((a) => a.enabled);
   }
 
   $effect(() => {
@@ -1184,6 +1193,34 @@ import { ICONES } from '../../lib/menuPiste';
 
   const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'album_id' in t ? (t.album_id ?? null) : null;
+  /**
+   * web#2534 (ancienne web#2522, demande de Bertrand, réunion communautaire
+   * du 29/10) — le LABEL de l'album en cours, lien vers ce label dans la
+   * Bibliothèque. Lu sur la piste quand elle le porte, sinon sur l'album de
+   * la bibliothèque (`GET /library/albums/{id}`), une fois par album. Une
+   * piste de service sans label connu n'affiche rien : pas de lien mort.
+   */
+  let labelAlbum = $state<string | null>(null);
+  /** Les labels déjà lus, par album : un retour sur le même album ne relit rien. */
+  const labelsLus = new Map<number, string | null>();
+  const labelsEnVol = new Set<number>();
+  $effect(() => {
+    const direct = labelDe(displayTrack as any);
+    const brut = albumIdOf(displayTrack);
+    const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
+    if (direct || id == null) { labelAlbum = direct; return; }
+    if (labelsLus.has(id)) { labelAlbum = labelsLus.get(id) ?? null; return; }
+    labelAlbum = null;
+    if (labelsEnVol.has(id)) return;
+    labelsEnVol.add(id);
+    api.getAlbum(id).then(
+      (a) => {
+        labelsLus.set(id, labelDe(a as any));
+        if (albumIdOf(displayTrack) === id) labelAlbum = labelsLus.get(id) ?? null;
+      },
+      () => {},
+    ).finally(() => labelsEnVol.delete(id));
+  });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
   const channelsOf = (t: Track | NowPlaying | null | undefined) =>
@@ -2049,6 +2086,13 @@ import { ICONES } from '../../lib/menuPiste';
               {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
             </div>
           {/if}
+          {#if !isRadio && labelAlbum}
+            <!-- web#2534 — le label de l'album, qui ouvre ce label dans la Bibliothèque. -->
+            <p class="track-label" data-np-label>
+              <span class="track-label-tag">{$t('v2.tcol.label' as any)}</span>
+              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAlbum }} />
+            </p>
+          {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
               {#if displayTrack.format}<span class="tech-chip">{displayTrack.format.toUpperCase()}</span>{/if}
@@ -2231,13 +2275,16 @@ import { ICONES } from '../../lib/menuPiste';
                 <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
                   {alarmSetting ? '...' : $t('nowplaying.activate')}
                 </button>
-                {#if alarmActive}
-                  <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
-                {/if}
               </div>
-              {#if alarmActive}
-                <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
-              {/if}
+              {#each alarmesZone as a (a.id)}
+                <div class="alarm-row alarm-item" data-reveil-zone={a.id}>
+                  <span class="alarm-status" class:inactive={!a.enabled}>{a.enabled ? `${$t('nowplaying.alarmActive')} ` : ''}{a.time}</span>
+                  <button class="alarm-cancel-btn" onclick={() => handleCancelAlarm(a.id)}>{$t('nowplaying.cancel')}</button>
+                </div>
+              {/each}
+              <button class="alarm-all-link" data-reveils-tous onclick={() => { showAlarm = false; activeView.set('alarms'); }}>
+                {$t('nowplaying.alarmsSeeAll' as any)} ›
+              </button>
             </div>
           {/if}
           {#if showLyrics}
@@ -3405,6 +3452,31 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: 0;
   }
 
+  /* web#2534 — le label, sous l'album, plus discret que lui. */
+  .track-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 var(--space-xs);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+  .track-label-tag {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .track-info.center .track-label {
+    justify-content: center;
+  }
+  :global([data-kiosk]) .track-label {
+    display: none;
+  }
+
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
@@ -4367,6 +4439,28 @@ import { ICONES } from '../../lib/menuPiste';
     font-family: var(--font-body);
     font-size: 11px;
     color: var(--tune-accent);
+  }
+
+  .alarm-status.inactive {
+    color: var(--tune-text-muted, var(--tune-text));
+    opacity: 0.7;
+  }
+
+  .alarm-item .alarm-cancel-btn {
+    margin-left: auto;
+  }
+
+  .alarm-all-link {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    color: var(--tune-accent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   /* Artwork click-to-zoom */

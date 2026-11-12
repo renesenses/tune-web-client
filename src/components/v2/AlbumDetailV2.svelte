@@ -55,6 +55,8 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
+  import { ordreCoffretAnnonce } from '../../lib/ordreCoffret';
+  import OrdreCoffretFicheV2 from './OrdreCoffretFicheV2.svelte';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
     idsSelectionnables, restreindre, toutEstChoisi, toutOuRien, type Bilan, type EtatSelection,
@@ -520,6 +522,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       if (revelable) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.reveal', bulle: 'v2.album.revealTip',
         faire: () => void ouvrirDansLExplorateur(), attrs: { 'data-reveler-album': true } });
     }
+    // #8571 (fil 2763) — réordonner les albums d'un coffret composé à la
+    // main, sur un serveur qui l'annonce (sonde `ordre_coffret`).
+    if (coffretReordonnable() && !enEdition) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.boxReorder', bulle: 'v2.album.boxReorderTip',
+      active: enOrdreCoffret,
+      faire: () => { onglet = 'pistes'; enOrdreCoffret = !enOrdreCoffret; }, attrs: { 'data-reordonner-coffret': true } });
     if (coffretDefaisable()) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.boxUndo', desactive: defaireEnCours, bulle: 'v2.album.boxUndoTip',
       faire: () => void defaireCoffret(), attrs: { 'data-defaire-coffret': true } });
     return l;
@@ -654,6 +661,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       return 'manuel';
     }
     return null;
+  }
+  /** #8571 — le panneau « Réordonner les albums » est ouvert. */
+  let enOrdreCoffret = $state(false);
+  function coffretReordonnable(): boolean {
+    return origineCoffret === 'manuel' && edition?.album.id === album.id && ordreCoffretAnnonce(edition);
   }
   async function defaireCoffret() {
     const id = album.id;
@@ -923,7 +935,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; notesIa = false; });
+  $effect(() => { void album?.id; enEdition = false; enOrdreCoffret = false; suggestionsIa = false; notesIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -2106,6 +2118,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         onFermer={() => (enEdition = false)}
         onEnregistre={apresEnregistrement}
         onRecharger={() => (rechargement += 1)} />
+    {:else if enOrdreCoffret && album.id != null}
+      <!-- #8571 (fil 2763) — réordonner les albums du coffret. -->
+      <OrdreCoffretFicheV2 coffretId={album.id}
+        onFermer={() => (enOrdreCoffret = false)}
+        onEnregistre={() => { enOrdreCoffret = false; void apresEnregistrement(); }} />
     {:else if loading}
       <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
