@@ -37,6 +37,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { objetRadio } from '../../lib/gestesObjet';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
@@ -599,6 +600,7 @@
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
         onOuvrir={r.id != null ? () => (enFiche = r) : () => play(r)}
+        objet={r.id != null ? objetRadio(r) : null}
         nom={r.name}
       >
         <!-- #6516 — le logo de la fiche d'annuaire quand la station n'en a pas. -->

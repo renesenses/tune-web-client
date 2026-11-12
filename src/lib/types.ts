@@ -358,6 +358,16 @@ export interface Track {
   missing?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
+  /**
+   * web#2806 (tune-server-rust#8412) — la ligne de playlist est une RADIO de
+   * « Mes radios » : `source = 'radio'`, `source_id` = `radio_id` en texte,
+   * le nom en titre, le logo en pochette, `duration_ms = 0`. Passer par
+   * `lib/lignePlaylistRadio.ts`.
+   */
+  radio?: boolean;
+  radio_id?: number | null;
+  /** Ligne radio : la station a quitté « Mes radios ». Grisée, sautée à la lecture. */
+  unavailable?: boolean;
 }
 
 export interface Playlist {
