@@ -1907,7 +1907,7 @@ export default {
   "settings.backgroundTasksHint": "Przetwarzanie w tle można śledzić w *{tab}*.",
   "settings.perZoneScopeHint": "Te ustawienia dotyczą KAŻDEJ strefy z osobna: podążają za wyjściem, a nie za słuchaniem.",
   "settings.levelsOpenMoreTabs": "Poziomy Zaawansowany i Ekspert otwierają dodatkowe zakładki.",
-  "settings.themePalettesHint": "Siedem palet. Ustawienie dotyczy nowego klienta — obecny interfejs zachowuje własny motyw.",
+  "settings.themePalettesHint": "Ustawienie dotyczy nowego klienta — obecny interfejs zachowuje własny motyw.",
   "settings.themeDarkGrey": "Ciemnoszary",
   "settings.themeMozaiklabs": "Mozaiklabs (antracyt / pomarańczowy)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: czerń / mozaika)",
@@ -7357,5 +7357,6 @@ export default {
   "pareFeu.profilPublic": "Publiczna",
   "transport.queueCountOne": "Kolejka · 1 utwór",
   "transport.queueCount": "Kolejka · utwory: {count}",
+  "v2.radio.removeConfirmDirectory": "Usunąć „{name}” z Moich radiów? Stacja pozostaje dostępna w Katalogu: możesz ją tam znaleźć i dodać ponownie.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "태그를 끌어서 옮기거나 키보드에서 Alt + 화살표 키를 사용하세요.",
   "v2.tags.moved": "{name}: {total}개 중 {n}번째",
   "v2.tags.newPlaceholder": "새 태그…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "스마트 컬렉션",
   "v2.col.tabManual": "컬렉션",
   "v2.rayons.tab": "선반",
   "v2.rayons.new": "새 선반",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "백그라운드 처리는 *{tab}* 에서 확인합니다.",
   "settings.perZoneScopeHint": "이 설정은 각 존에 고유합니다. 청취가 아니라 출력을 따릅니다.",
   "settings.levelsOpenMoreTabs": "고급과 전문가 수준에서는 다른 탭이 열립니다.",
-  "settings.themePalettesHint": "일곱 가지 팔레트. 새 클라이언트 전용 설정입니다 — 현재 인터페이스의 테마는 별도로 유지됩니다.",
+  "settings.themePalettesHint": "새 클라이언트 전용 설정입니다 — 현재 인터페이스의 테마는 별도로 유지됩니다.",
   "settings.themeDarkGrey": "짙은 회색",
   "settings.themeMozaiklabs": "Mozaiklabs (차콜 / 오렌지)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (로고: 검정 / 모자이크)",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "공용",
   "transport.queueCountOne": "대기열 · 1곡",
   "transport.queueCount": "대기열 · {count}곡",
+  "v2.radio.removeConfirmDirectory": "“{name}”을(를) 내 라디오에서 제거할까요? 이 방송국은 디렉터리에 그대로 남아 있어 언제든 다시 추가할 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

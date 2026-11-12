@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "Trascina un'etichetta per spostarla, oppure usa Alt + freccia sulla tastiera.",
   "v2.tags.moved": "{name}: posizione {n} di {total}",
   "v2.tags.newPlaceholder": "Nuova etichetta…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Raccolte intelligenti",
   "v2.col.tabManual": "Raccolte",
   "v2.rayons.tab": "Scaffali",
   "v2.rayons.new": "Nuovo scaffale",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Le elaborazioni in background si seguono in *{tab}*.",
   "settings.perZoneScopeHint": "Queste impostazioni sono proprie di OGNI zona: seguono l'uscita, non l'ascolto.",
   "settings.levelsOpenMoreTabs": "I livelli Avanzato ed Esperto aprono altre schede.",
-  "settings.themePalettesHint": "Sette palette. Impostazione propria del nuovo client — il tema dell'interfaccia attuale resta separato.",
+  "settings.themePalettesHint": "Impostazione propria del nuovo client — il tema dell'interfaccia attuale resta separato.",
   "settings.themeDarkGrey": "Grigio scuro",
   "settings.themeMozaiklabs": "Mozaiklabs (antracite / arancione)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: nero / mosaico)",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "Pubblica",
   "transport.queueCountOne": "Coda · 1 brano",
   "transport.queueCount": "Coda · {count} brani",
+  "v2.radio.removeConfirmDirectory": "Rimuovere «{name}» da Le mie radio? La stazione resta disponibile nell'Elenco: potrai ritrovarla lì e aggiungerla di nuovo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

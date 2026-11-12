@@ -1916,7 +1916,7 @@ export default {
   "v2.tags.reorderHint": "Drag a tag to move it, or use Alt + arrow keys on the keyboard.",
   "v2.tags.moved": "{name}: position {n} of {total}",
   "v2.tags.newPlaceholder": "New tag…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Smart collections",
   "v2.col.tabManual": "Collections",
   "v2.rayons.tab": "Shelves",
   "v2.rayons.new": "New shelf",
@@ -2053,7 +2053,7 @@ export default {
   "settings.backgroundTasksHint": "Background processing is followed in *{tab}*.",
   "settings.perZoneScopeHint": "These settings belong to EACH zone: they follow the output, not the listening.",
   "settings.levelsOpenMoreTabs": "The Advanced and Expert levels open further tabs.",
-  "settings.themePalettesHint": "Seven palettes. Specific to the new client — the current interface keeps its own theme.",
+  "settings.themePalettesHint": "Specific to the new client — the current interface keeps its own theme.",
   "settings.themeDarkGrey": "Dark grey",
   "settings.themeMozaiklabs": "Mozaiklabs (charcoal / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: black / mosaic)",
@@ -7532,6 +7532,7 @@ export default {
   "pareFeu.profilPublic": "Public",
   "transport.queueCountOne": "Queue · 1 track",
   "transport.queueCount": "Queue · {count} tracks",
+  "v2.radio.removeConfirmDirectory": "Remove “{name}” from My Radios? The station stays available in the Directory: you can find it there and add it back.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

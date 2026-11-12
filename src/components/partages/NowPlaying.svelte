@@ -10,6 +10,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { estDeLAnnuaire, questionRetraitMesRadios } from '../../lib/mesRadios';
   import { tip } from '../../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
@@ -44,7 +45,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
-  import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
+  import { fluxAjoutable, logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -1030,6 +1031,16 @@ import { ICONES } from '../../lib/menuPiste';
   const logoStation = $derived(logoAuNomDeLaStation(stationEnCours?.fiche?.logo, track?.cover_path));
   /** web#2551 — la station dans « Mes radios » : son identifiant, ou `null`. */
   const idDansMesRadios = $derived(stationEnCours?.mienne?.id ?? stationEnCours?.annuaire?.my_radio_id ?? null);
+  /**
+   * tune-server-rust#7547 — le bouton « Mes radios » est offert dès que la
+   * station est connue (« Mes radios », annuaire) OU que son flux peut y
+   * entrer tel quel ; seulement une fois la station lue.
+   */
+  const mesRadiosOffert = $derived(
+    stationEnCours != null && npStation != null
+      && (idDansMesRadios != null || stationEnCours.annuaire != null
+        || (fluxAjoutable(npStation.source_id) != null && !!(npStation.album_title ?? '').trim())),
+  );
 
   /**
    * web#2551 (alec_eiffel, fil 2562 ; go de Bertrand le 30/10/2026) : ajouter
@@ -1045,11 +1056,20 @@ import { ICONES } from '../../lib/menuPiste';
     gesteMesRadios = true;
     try {
       if (idDansMesRadios != null) {
-        if (!(await dialogs.confirm($t('v2.radio.removeConfirm' as any).replace('{name}', nom), { danger: true }))) return;
+        // #7523 — une station connue de l'annuaire y reste : la fenêtre le dit.
+        // Déjà dans « Mes radios », `stationDeLecture` rend `annuaire: null` :
+        // c'est l'entrée personnelle (`mienne.annuaire`) qui dit d'où elle vient.
+        const dansLAnnuaire = !!s.annuaire || (s.mienne != null && estDeLAnnuaire(s.mienne));
+        if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), nom, dansLAnnuaire), { danger: true }))) return;
         await api.deleteRadio(idDansMesRadios);
         notifications.success($t('v2.radio.removed' as any).replace('{name}', nom));
       } else if (s.annuaire) {
         await api.ajouterDepuisAnnuaire(s.annuaire.external_id, false);
+        notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
+      } else if (fluxAjoutable(np.source_id) && nom.trim()) {
+        // tune-server-rust#7547 — station inconnue de l'annuaire : elle entre
+        // dans « Mes radios » par son flux, comme « Nouvelle station ».
+        await api.createRadio({ name: nom.trim(), stream_url: fluxAjoutable(np.source_id)! });
         notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
       } else {
         return;
@@ -1964,7 +1984,7 @@ import { ICONES } from '../../lib/menuPiste';
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
-              {#if idDansMesRadios != null || stationEnCours?.annuaire}
+              {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
                   aria-pressed={dedans}

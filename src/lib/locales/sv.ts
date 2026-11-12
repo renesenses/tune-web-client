@@ -3110,7 +3110,7 @@ export default {
   "v2.tags.reorderHint": "Dra en etikett för att flytta den, eller använd Alt + piltangent på tangentbordet.",
   "v2.tags.moved": "{name}: plats {n} av {total}",
   "v2.tags.newPlaceholder": "Ny etikett…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Smarta samlingar",
   "v2.col.tabManual": "Samlingar",
   "v2.rayons.tab": "Hyllor",
   "v2.rayons.new": "Ny hylla",
@@ -3247,7 +3247,7 @@ export default {
   "settings.backgroundTasksHint": "Bakgrundsbearbetningen följs i *{tab}*.",
   "settings.perZoneScopeHint": "De här inställningarna hör till VARJE zon: de följer utgången, inte lyssnandet.",
   "settings.levelsOpenMoreTabs": "Nivåerna Avancerad och Expert öppnar fler flikar.",
-  "settings.themePalettesHint": "Sju paletter. Egen inställning för den nya klienten — det nuvarande gränssnittets tema förblir separat.",
+  "settings.themePalettesHint": "Egen inställning för den nya klienten — det nuvarande gränssnittets tema förblir separat.",
   "settings.themeDarkGrey": "Mörkgrå",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logotyp: svart / mosaik)",
@@ -7511,4 +7511,5 @@ export default {
   "pareFeu.profilPublic": "Offentligt",
   "transport.queueCountOne": "Kö · 1 spår",
   "transport.queueCount": "Kö · {count} spår",
+  "v2.radio.removeConfirmDirectory": "Ta bort ”{name}” från Mina radiokanaler? Kanalen finns kvar i Katalogen: du kan hitta den där och lägga till den igen.",
 } as const;

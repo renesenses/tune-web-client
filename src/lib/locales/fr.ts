@@ -1919,7 +1919,7 @@ export default {
   "v2.tags.reorderHint": "Glissez une étiquette pour la déplacer, ou utilisez Alt + flèche au clavier.",
   "v2.tags.moved": "{name} : position {n} sur {total}",
   "v2.tags.newPlaceholder": "Nouvelle étiquette…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Collections intelligentes",
   "v2.col.tabManual": "Collections",
   "v2.rayons.tab": "Rayons",
   "v2.rayons.new": "Nouveau rayon",
@@ -2056,7 +2056,7 @@ export default {
   "settings.backgroundTasksHint": "Les traitements de fond se suivent dans *{tab}*.",
   "settings.perZoneScopeHint": "Ces réglages sont propres à CHAQUE zone : ils suivent la sortie, pas l'écoute.",
   "settings.levelsOpenMoreTabs": "Les niveaux Avancé et Expert ouvrent d'autres onglets.",
-  "settings.themePalettesHint": "Sept palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
+  "settings.themePalettesHint": "Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
   "settings.themeDarkGrey": "Gris foncé",
   "settings.themeMozaiklabs": "Mozaiklabs (anthracite / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo : noir / mosaïque)",
@@ -7534,6 +7534,7 @@ export default {
   "pareFeu.profilPublic": "Public",
   "transport.queueCountOne": "File d'attente · 1 titre",
   "transport.queueCount": "File d'attente · {count} titres",
+  "v2.radio.removeConfirmDirectory": "Retirer « {name} » de Mes radios ? La station reste disponible dans l'annuaire : vous pourrez l'y retrouver et la rajouter.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

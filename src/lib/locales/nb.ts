@@ -1907,7 +1907,7 @@ export default {
   "settings.backgroundTasksHint": "Bakgrunnsbehandlingen følges i *{tab}*.",
   "settings.perZoneScopeHint": "Disse innstillingene tilhører HVER sone: de følger utgangen, ikke lyttingen.",
   "settings.levelsOpenMoreTabs": "Nivåene Avansert og Ekspert åpner flere faner.",
-  "settings.themePalettesHint": "Sju paletter. Gjelder bare den nye klienten — det nåværende grensesnittet beholder sitt eget tema.",
+  "settings.themePalettesHint": "Gjelder bare den nye klienten — det nåværende grensesnittet beholder sitt eget tema.",
   "settings.themeDarkGrey": "Mørk grå",
   "settings.themeMozaiklabs": "Mozaiklabs (antrasitt / oransje)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: svart / mosaikk)",
@@ -7357,5 +7357,6 @@ export default {
   "pareFeu.profilPublic": "Offentlig",
   "transport.queueCountOne": "Kø · 1 spor",
   "transport.queueCount": "Kø · {count} spor",
+  "v2.radio.removeConfirmDirectory": "Fjerne «{name}» fra Mine radioer? Stasjonen er fortsatt tilgjengelig i Katalogen: du kan finne den der og legge den til igjen.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

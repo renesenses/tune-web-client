@@ -13,7 +13,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
-  import { completerAlbumsDePistes } from '../../lib/albumDesEcoutes';
+  import { albumsConnusDePistes, completerAlbumsDePistes } from '../../lib/albumDesEcoutes';
   import { urlNavigateur } from '../../lib/bridge';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -151,6 +151,69 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   let tracks = $state<Track[]>([]);
   /** web#2749 — le dernier chargement ; une complétion plus ancienne ne s'applique pas. */
   let tourAlbumsFavoris = 0;
+  /**
+   * web#2759 (relecture du 12/11) — les pistes de la fusion telles que
+   * chargées (sans proxy `$state`), et jusqu'où, dans l'ordre de l'écran,
+   * les albums ont été demandés. Le premier chargement s'arrête aux pistes
+   * visibles et à la tranche suivante ; le défilement pousse l'horizon.
+   */
+  let pistesDeBase: Track[] = [];
+  let horizonAlbums = 0;
+  const TRANCHE_ALBUMS = 40;
+  let listeTitres = $state<HTMLDivElement | null>(null);
+
+  /** Les albums connus, posés sur les pistes du chargement en cours. */
+  function poserAlbumsConnus(tour: number) {
+    if (tour !== tourAlbumsFavoris) return;
+    const maj = albumsConnusDePistes(pistesDeBase);
+    if (maj) tracks = maj;
+  }
+
+  /**
+   * Demande les albums des pistes affichées jusqu'au rang `jusqua` (ordre de
+   * l'écran, `vTracks`). Rien n'est redemandé : `albumDesEcoutes` mémorise
+   * les réponses et écarte les demandes en vol. Les liens apparaissent par
+   * paquets, sans attendre la dernière réponse.
+   */
+  function demanderAlbumsJusqua(jusqua: number) {
+    if (jusqua <= horizonAlbums) return;
+    horizonAlbums = jusqua;
+    const tour = tourAlbumsFavoris;
+    const ordre = vTracks.slice(0, horizonAlbums);
+    void completerAlbumsDePistes(pistesDeBase, api.getStreamingTrack, {
+      plafond: ordre.length,
+      ordre,
+      ordreSeul: true,
+      paquet: TRANCHE_ALBUMS,
+      surPaquet: () => poserAlbumsConnus(tour),
+    }).then(() => poserAlbumsConnus(tour));
+  }
+
+  /**
+   * Au défilement de l'onglet Titres : le dernier rang visible, estimé sur la
+   * hauteur de la liste (toutes les lignes sont rendues, de même hauteur).
+   * Quand il approche de l'horizon, la tranche suivante est demandée.
+   */
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    let attente = 0;
+    const regarder = () => {
+      attente = 0;
+      const el = listeTitres;
+      const n = vTracks.length;
+      if (!el || !n) return;
+      const r = el.getBoundingClientRect();
+      if (r.height <= 0) return;
+      const visible = Math.ceil((window.innerHeight - r.top) / (r.height / n));
+      if (visible + TRANCHE_ALBUMS > horizonAlbums) demanderAlbumsJusqua(Math.min(n, visible + 2 * TRANCHE_ALBUMS));
+    };
+    const surDefilement = () => { if (!attente) attente = requestAnimationFrame(regarder); };
+    window.addEventListener('scroll', surDefilement, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('scroll', surDefilement, { capture: true } as any);
+      if (attente) cancelAnimationFrame(attente);
+    };
+  });
   let artists = $state<Artist[]>([]);
   /**
    * Playlists et collections en favori. Bertrand, 05/09/2026 : « il manque les
@@ -261,10 +324,18 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        * à la piste chez son service, comme dans l'Historique (web#2209).
        */
       // Un tableau `$state` est un proxy : on compare des tours, pas des tableaux.
-      const tour = ++tourAlbumsFavoris;
-      void completerAlbumsDePistes(fusion.tracks, api.getStreamingTrack).then((maj) => {
-        if (maj && tour === tourAlbumsFavoris) tracks = maj;
-      });
+      ++tourAlbumsFavoris;
+      /*
+       * web#2759 — plus de plafond fixe de 40 sur l'ordre de la FUSION : les
+       * pistes sont demandées dans l'ordre de l'écran (`vTracks`, tri et
+       * filtre compris). Relecture du 12/11 : pas toutes d'un coup — les
+       * pistes visibles et la tranche suivante d'abord (deux tranches), le
+       * reste au défilement ; les liens s'affichent par paquets.
+       */
+      pistesDeBase = fusion.tracks;
+      horizonAlbums = 0;
+      poserAlbumsConnus(tourAlbumsFavoris);
+      demanderAlbumsJusqua(2 * TRANCHE_ALBUMS);
       /*
        * 🔴 LE QUATRIÈME SEAU — #3822, moitié « lecture ».
        *
@@ -485,6 +556,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
   const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
+  /**
+   * web#2759 — un autre tri ou un autre filtre montre d'autres pistes en
+   * tête : l'horizon repart de l'écran, les pistes déjà résolues ne sont pas
+   * redemandées.
+   */
+  $effect(() => {
+    void q; void sourceFiltre; void tri;
+    untrack(() => {
+      if (!pistesDeBase.length) return;
+      horizonAlbums = 0;
+      demanderAlbumsJusqua(2 * TRANCHE_ALBUMS);
+    });
+  });
   const vArtists = $derived(trierEtFiltrer(fArtists, sourceFiltre, tri));
 
   /** Nom lisible d'une source : la bibliotheque se traduit, un service porte son nom. */
@@ -1070,7 +1154,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           deux sens. Le retrait passe par lui : il sait déjà distinguer une
           piste de la bibliothèque d'une piste de service.
         -->
-        <div class="list">
+        <div class="list" bind:this={listeTitres}>
           <!-- ⚠️ `clef` : `id` est NUL sur toute piste de service. Deux entrées
                de clé `null` arrêtent Svelte sur `each_key_duplicate`, et
                l'écran entier disparaît. `clef()` existe ici pour ça. -->
@@ -1571,7 +1655,23 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .simple:disabled{cursor:default; opacity:.55}
   .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
 
-  .tabs{display:flex; gap:4px}
+  .tabs{display:flex; gap:4px; flex-wrap:wrap}
+  /* Recette rc12 (13/11) — même en-tête que la Bibliothèque : le titre sur sa
+     ligne, le filtre et les sept onglets dessous, alignés à gauche. À côté du
+     titre, ils ne tenaient pas : « Votre sélection » passait sur deux lignes
+     à 1440 px, et à 1024 px la rangée d'onglets recouvrait « Favoris ». La vue
+     mini (téléphone) garde sa mise en page (`styles/vue-mini.css`). */
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{flex-wrap:wrap; align-items:center; row-gap:10px; padding-right:30px}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{padding-right:0}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .v2-rech{flex:1 1 100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; min-width:0; max-width:100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs::-webkit-scrollbar{display:none}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs button{flex:0 0 auto; white-space:nowrap}
+  }
   .tabs button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
   .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}

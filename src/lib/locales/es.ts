@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "Arrastre una etiqueta para moverla, o use Alt + flecha en el teclado.",
   "v2.tags.moved": "{name}: posición {n} de {total}",
   "v2.tags.newPlaceholder": "Nueva etiqueta…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Colecciones inteligentes",
   "v2.col.tabManual": "Colecciones",
   "v2.rayons.tab": "Estantes",
   "v2.rayons.new": "Nuevo estante",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Los procesos en segundo plano se siguen en *{tab}*.",
   "settings.perZoneScopeHint": "Estos ajustes son propios de CADA zona: siguen a la salida, no a la escucha.",
   "settings.levelsOpenMoreTabs": "Los niveles Avanzado y Experto abren otras pestañas.",
-  "settings.themePalettesHint": "Siete paletas. Ajuste propio del nuevo cliente — el tema de la interfaz actual sigue aparte.",
+  "settings.themePalettesHint": "Ajuste propio del nuevo cliente — el tema de la interfaz actual sigue aparte.",
   "settings.themeDarkGrey": "Gris oscuro",
   "settings.themeMozaiklabs": "Mozaiklabs (antracita / naranja)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logotipo: negro / mosaico)",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "Pública",
   "transport.queueCountOne": "Cola · 1 pista",
   "transport.queueCount": "Cola · {count} pistas",
+  "v2.radio.removeConfirmDirectory": "¿Quitar «{name}» de Mis radios? La emisora sigue disponible en el Directorio: podrá encontrarla allí y volver a añadirla.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "Ziehen Sie ein Etikett, um es zu verschieben, oder verwenden Sie auf der Tastatur Alt + Pfeiltaste.",
   "v2.tags.moved": "{name}: Position {n} von {total}",
   "v2.tags.newPlaceholder": "Neues Etikett…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Intelligente Sammlungen",
   "v2.col.tabManual": "Sammlungen",
   "v2.rayons.tab": "Regale",
   "v2.rayons.new": "Neues Regal",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Hintergrundverarbeitung wird unter *{tab}* verfolgt.",
   "settings.perZoneScopeHint": "Diese Einstellungen gehören zu JEDER Zone: sie folgen dem Ausgang, nicht dem Hören.",
   "settings.levelsOpenMoreTabs": "Die Ebenen Fortgeschritten und Experte öffnen weitere Reiter.",
-  "settings.themePalettesHint": "Sieben Paletten. Eigene Einstellung des neuen Clients — das Thema der aktuellen Oberfläche bleibt getrennt.",
+  "settings.themePalettesHint": "Eigene Einstellung des neuen Clients — das Thema der aktuellen Oberfläche bleibt getrennt.",
   "settings.themeDarkGrey": "Dunkelgrau",
   "settings.themeMozaiklabs": "Mozaiklabs (Anthrazit / Orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (Logo: Schwarz / Mosaik)",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "Öffentlich",
   "transport.queueCountOne": "Warteschlange · 1 Titel",
   "transport.queueCount": "Warteschlange · {count} Titel",
+  "v2.radio.removeConfirmDirectory": "„{name}“ aus „Meine Radios“ entfernen? Der Sender bleibt im Verzeichnis verfügbar: Sie können ihn dort wiederfinden und erneut hinzufügen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

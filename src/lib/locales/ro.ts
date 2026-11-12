@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "Trageți o etichetă pentru a o muta sau folosiți Alt + săgeată de la tastatură.",
   "v2.tags.moved": "{name}: poziția {n} din {total}",
   "v2.tags.newPlaceholder": "Etichetă nouă…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Colecții inteligente",
   "v2.col.tabManual": "Colecții",
   "v2.rayons.tab": "Rafturi",
   "v2.rayons.new": "Raft nou",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Prelucrările de fundal se urmăresc în *{tab}*.",
   "settings.perZoneScopeHint": "Aceste setări aparțin FIECĂREI zone: urmează ieșirea, nu ascultarea.",
   "settings.levelsOpenMoreTabs": "Nivelurile Avansat și Expert deschid alte file.",
-  "settings.themePalettesHint": "Șapte palete. Setare proprie noului client — tema interfeței actuale rămâne separată.",
+  "settings.themePalettesHint": "Setare proprie noului client — tema interfeței actuale rămâne separată.",
   "settings.themeDarkGrey": "Gri închis",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / portocaliu)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: negru / mozaic)",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "Publică",
   "transport.queueCountOne": "Coadă · 1 piesă",
   "transport.queueCount": "Coadă · piese: {count}",
+  "v2.radio.removeConfirmDirectory": "Elimini „{name}” din Radiourile mele? Postul rămâne disponibil în Director: îl poți regăsi acolo și adăuga din nou.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -1907,7 +1907,7 @@ export default {
   "settings.backgroundTasksHint": "Οι εργασίες στο παρασκήνιο παρακολουθούνται στο *{tab}*.",
   "settings.perZoneScopeHint": "Αυτές οι ρυθμίσεις ανήκουν σε ΚΑΘΕ ζώνη: ακολουθούν την έξοδο, όχι την ακρόαση.",
   "settings.levelsOpenMoreTabs": "Τα επίπεδα Προχωρημένο και Ειδικό ανοίγουν επιπλέον καρτέλες.",
-  "settings.themePalettesHint": "Επτά παλέτες. Ειδική ρύθμιση του νέου προγράμματος-πελάτη — η τρέχουσα διεπαφή διατηρεί το δικό της θέμα.",
+  "settings.themePalettesHint": "Ειδική ρύθμιση του νέου προγράμματος-πελάτη — η τρέχουσα διεπαφή διατηρεί το δικό της θέμα.",
   "settings.themeDarkGrey": "Σκούρο γκρι",
   "settings.themeMozaiklabs": "Mozaiklabs (ανθρακί / πορτοκαλί)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (λογότυπο: μαύρο / μωσαϊκό)",
@@ -7357,5 +7357,6 @@ export default {
   "pareFeu.profilPublic": "Δημόσιο",
   "transport.queueCountOne": "Ουρά · 1 κομμάτι",
   "transport.queueCount": "Ουρά · {count} κομμάτια",
+  "v2.radio.removeConfirmDirectory": "Αφαίρεση του «{name}» από τα Ραδιόφωνά μου; Ο σταθμός παραμένει διαθέσιμος στον Κατάλογο: μπορείτε να τον βρείτε εκεί και να τον προσθέσετε ξανά.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

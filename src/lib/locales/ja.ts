@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "タグをドラッグして移動するか、キーボードの Alt + 矢印キーを使います。",
   "v2.tags.moved": "{name}：{total} 件中 {n} 番目",
   "v2.tags.newPlaceholder": "新しいタグ…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "スマートコレクション",
   "v2.col.tabManual": "コレクション",
   "v2.rayons.tab": "棚",
   "v2.rayons.new": "新しい棚",
@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "バックグラウンド処理は *{tab}* で確認できます。",
   "settings.perZoneScopeHint": "これらの設定は各ゾーン固有です。聴取ではなく出力に従います。",
   "settings.levelsOpenMoreTabs": "アドバンストとエキスパートのレベルでは他のタブが開きます。",
-  "settings.themePalettesHint": "7 種類のパレット。新しいクライアント固有の設定です — 現在のインターフェースのテーマは別のままです。",
+  "settings.themePalettesHint": "新しいクライアント固有の設定です — 現在のインターフェースのテーマは別のままです。",
   "settings.themeDarkGrey": "ダークグレー",
   "settings.themeMozaiklabs": "Mozaiklabs（チャコール / オレンジ）",
   "settings.themeMozaiklabsLogo": "Mozaiklabs（ロゴ：黒 / モザイク）",
@@ -7512,6 +7512,7 @@ export default {
   "pareFeu.profilPublic": "パブリック",
   "transport.queueCountOne": "キュー · 1 曲",
   "transport.queueCount": "キュー · {count} 曲",
+  "v2.radio.removeConfirmDirectory": "「{name}」をマイラジオから削除しますか？このステーションはディレクトリに残るので、そこからいつでも再追加できます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
