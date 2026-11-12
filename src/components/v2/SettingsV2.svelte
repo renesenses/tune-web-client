@@ -5184,6 +5184,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
+              <!-- Discussion #8269 (go de Bertrand, 12/11/2026) — la barre de
+                   progression en forme d'onde. Décochée par défaut : l'écran
+                   de qui n'a rien demandé ne bouge pas. Voir lib/barreOnde. -->
+              <div class="row" data-reglage="barre-onde">
+                <div class="lbl">
+                  <span>{$t('v2.set.barOnde' as any)}</span>
+                  <span class="hint">{$t('v2.set.barOndeHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.barreOnde === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, barreOnde: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <div class="row" data-reglage="langue">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'en'}

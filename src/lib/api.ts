@@ -8134,6 +8134,17 @@ export function setCrossfader(zoneId: number, position: number) {
   return fetchJSON<any>(`${BASE}/dj/crossfader/${zoneId}`, { method: 'POST', body: JSON.stringify({ position }) });
 }
 
+/** Enveloppe d'une piste de BIBLIOTHÈQUE (`GET /library/tracks/{id}/waveform`,
+ *  200 points dans [0, 1], `waveform: null` sans fichier lisible) — celle de la
+ *  barre de progression en forme d'onde (Discussion #8269). À ne pas confondre
+ *  avec `getWaveform` juste dessous, qui vise le greffon DJ. `sansBandeau` :
+ *  un échec se replie sur la barre classique, il n'a rien à annoncer. */
+export function getTrackWaveform(trackId: number) {
+  return fetchJSON<{ track_id: number; waveform: number[] | null; error?: string }>(
+    `${BASE}/library/tracks/${trackId}/waveform`, undefined, undefined, true,
+  );
+}
+
 export function getWaveform(trackId: number) {
   return fetchJSON<{ track_id: number; waveform: number[]; bpm: number | null }>(`${BASE}/dj/waveform/${trackId}`);
 }

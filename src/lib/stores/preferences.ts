@@ -233,6 +233,15 @@ export interface Preferences {
    * #1428). Sans effet quand la barre à VU-mètres est allumée, qui le remplace.
    */
   visualiseurBarre: boolean;
+  /**
+   * Barre de progression en forme d'onde — Discussion #8269, go de Bertrand
+   * du 12/11/2026 (rc12). Coché, la barre de « Lecture en cours » et celle de
+   * la barre de lecture dessinent l'enveloppe de la piste locale ; sans
+   * enveloppe (streaming, radio, calcul en cours), la barre classique.
+   * AFFICHAGE seulement. DÉCOCHÉ par défaut (la règle de #1428). Voir
+   * `lib/barreOnde.ts`.
+   */
+  barreOnde: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -559,6 +568,8 @@ const defaults: Preferences = {
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
   visualiseurBarre: true,
+  // Discussion #8269 — décoché : l'écran de qui n'a rien demandé ne bouge pas.
+  barreOnde: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // ESSENTIEL pour une installation NEUVE (Bertrand, 09/11/2026, #2735) —

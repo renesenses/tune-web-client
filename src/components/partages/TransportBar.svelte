@@ -27,6 +27,9 @@
   import RadioFicheModale from './RadioFicheModale.svelte';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
+  import { ondePisteEnCours } from '../../lib/stores/ondePiste';
+  import { cibleClavier } from '../../lib/barreOnde';
+  import OndeProgression from './OndeProgression.svelte';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
@@ -1072,6 +1075,23 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     if (isBrowserZone(zone)) browserSeek(posMs);
   }
+  /** Clavier sur le curseur (Discussion #8269) : ← / → 10 s, Début / Fin —
+   *  le même pas que le raccourci global de l'écran de lecture, qui ignore
+   *  la touche une fois qu'elle est prise ici (`preventDefault`). */
+  function handleProgressKey(e: KeyboardEvent) {
+    const zone = $currentZone;
+    if (!effectiveDurationMs || !zone?.id) return;
+    const posMs = cibleClavier(e.key, $seekPositionMs, effectiveDurationMs);
+    if (posMs === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+  }
+
+  // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique.
+  let onde = $derived($ondePisteEnCours);
   /*
     Témoin d'attente. Bertrand, 05/09/2026 : « l'ui ne repond plus aux demandes
     de play un autre album ou piste !! ».
@@ -1238,8 +1258,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
-        <div class="progress-fill" style="width: {progressPercent}%"></div>
+      <div class="progress-track" class:onde={!!onde} onclick={handleProgressSeek} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
+        {#if onde}
+          <OndeProgression points={onde} progress={progressPercent} />
+        {:else}
+          <div class="progress-fill" style="width: {progressPercent}%"></div>
+        {/if}
       </div>
       <span class="progress-time">{formatTime(effectiveDurationMs)}</span>
     </div>
@@ -2358,6 +2382,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   .progress-track:hover .progress-fill {
     height: 6px;
+  }
+
+  /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
+     la hauteur de la piste de clic (22 px, 4 de plus que la barre classique). */
+  .progress-track.onde {
+    height: 22px;
+  }
+
+  .progress-track.onde::before {
+    display: none;
   }
 
   .control-btn {
