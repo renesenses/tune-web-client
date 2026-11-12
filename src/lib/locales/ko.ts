@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "태그를 끌어서 옮기거나 키보드에서 Alt + 화살표 키를 사용하세요.",
   "v2.tags.moved": "{name}: {total}개 중 {n}번째",
   "v2.tags.newPlaceholder": "새 태그…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "스마트 컬렉션",
   "v2.col.tabManual": "컬렉션",
   "v2.rayons.tab": "선반",
   "v2.rayons.new": "새 선반",

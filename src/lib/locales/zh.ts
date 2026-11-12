@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "拖动标签即可移动，也可使用键盘上的 Alt + 方向键。",
   "v2.tags.moved": "{name}：第 {n} 个，共 {total} 个",
   "v2.tags.newPlaceholder": "新标签…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "智能收藏集",
   "v2.col.tabManual": "收藏集",
   "v2.rayons.tab": "书架",
   "v2.rayons.new": "新建书架",

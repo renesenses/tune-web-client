@@ -1919,7 +1919,7 @@ export default {
   "v2.tags.reorderHint": "Glissez une étiquette pour la déplacer, ou utilisez Alt + flèche au clavier.",
   "v2.tags.moved": "{name} : position {n} sur {total}",
   "v2.tags.newPlaceholder": "Nouvelle étiquette…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Collections intelligentes",
   "v2.col.tabManual": "Collections",
   "v2.rayons.tab": "Rayons",
   "v2.rayons.new": "Nouveau rayon",

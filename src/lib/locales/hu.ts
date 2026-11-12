@@ -3065,7 +3065,7 @@ export default {
   "v2.tags.reorderHint": "Húzzon el egy címkét az áthelyezéséhez, vagy használja az Alt + nyílbillentyűt.",
   "v2.tags.moved": "{name}: {n}. hely / {total}",
   "v2.tags.newPlaceholder": "Új címke…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Intelligens gyűjtemények",
   "v2.col.tabManual": "Gyűjtemények",
   "v2.rayons.tab": "Polcok",
   "v2.rayons.new": "Új polc",

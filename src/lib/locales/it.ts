@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "Trascina un'etichetta per spostarla, oppure usa Alt + freccia sulla tastiera.",
   "v2.tags.moved": "{name}: posizione {n} di {total}",
   "v2.tags.newPlaceholder": "Nuova etichetta…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Raccolte intelligenti",
   "v2.col.tabManual": "Raccolte",
   "v2.rayons.tab": "Scaffali",
   "v2.rayons.new": "Nuovo scaffale",

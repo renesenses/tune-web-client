@@ -3110,7 +3110,7 @@ export default {
   "v2.tags.reorderHint": "Dra en etikett för att flytta den, eller använd Alt + piltangent på tangentbordet.",
   "v2.tags.moved": "{name}: plats {n} av {total}",
   "v2.tags.newPlaceholder": "Ny etikett…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Smarta samlingar",
   "v2.col.tabManual": "Samlingar",
   "v2.rayons.tab": "Hyllor",
   "v2.rayons.new": "Ny hylla",

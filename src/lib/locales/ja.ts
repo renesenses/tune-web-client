@@ -3111,7 +3111,7 @@ export default {
   "v2.tags.reorderHint": "タグをドラッグして移動するか、キーボードの Alt + 矢印キーを使います。",
   "v2.tags.moved": "{name}：{total} 件中 {n} 番目",
   "v2.tags.newPlaceholder": "新しいタグ…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "スマートコレクション",
   "v2.col.tabManual": "コレクション",
   "v2.rayons.tab": "棚",
   "v2.rayons.new": "新しい棚",

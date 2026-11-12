@@ -1916,7 +1916,7 @@ export default {
   "v2.tags.reorderHint": "Drag a tag to move it, or use Alt + arrow keys on the keyboard.",
   "v2.tags.moved": "{name}: position {n} of {total}",
   "v2.tags.newPlaceholder": "New tag…",
-  "v2.col.tabSmart": "Smart Collections",
+  "v2.col.tabSmart": "Smart collections",
   "v2.col.tabManual": "Collections",
   "v2.rayons.tab": "Shelves",
   "v2.rayons.new": "New shelf",
