@@ -53,9 +53,9 @@
 <style>
   .carte-theme{display:flex;flex-direction:column;gap:8px}
   .apercu{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid;border-radius:8px;min-width:220px}
-  .surface{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:6px;font-size:13px;flex:1}
-  .accent{border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600}
-  .gestes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px}
+  .surface{display:flex;flex-direction:column;gap:2px;padding:6px 10px;border-radius:6px;font-size:calc(13px * var(--v2-txt-echelle, 1));flex:1}
+  .accent{border-radius:12px;padding:3px 10px;font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600}
+  .gestes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .erreur{color:var(--v2-danger)}
   button{font:inherit;border:1px solid var(--v2-line);background:var(--v2-bg);color:inherit;border-radius:6px;padding:6px 10px;cursor:pointer}
   button:disabled{opacity:.5;cursor:default}

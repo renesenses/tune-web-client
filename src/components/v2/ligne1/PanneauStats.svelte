@@ -162,7 +162,7 @@
 </PanneauL1>
 
 <style>
-  .etat { margin: 0; color: var(--v2-txt3); font: 400 12px var(--v2-sans); }
+  .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   /* Le panneau entier ouvre le Tableau de bord : c'est un raccourci vers
      l'écran qui développe ces quatre lectures, pas un bouton de plus. */
@@ -174,9 +174,9 @@
   .tend { display: flex; align-items: flex-end; gap: 12px; }
   .chiffre { display: flex; flex-direction: column; }
   .chiffre strong {
-    color: var(--v2-acc1); font: 700 26px/1 var(--v2-sans); font-variant-numeric: tabular-nums;
+    color: var(--v2-acc1); font: 700 calc(26px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); font-variant-numeric: tabular-nums;
   }
-  .chiffre span { color: var(--v2-txt3); font: 500 10px var(--v2-sans); text-transform: uppercase; letter-spacing: .06em; }
+  .chiffre span { color: var(--v2-txt3); font: 500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform: uppercase; letter-spacing: .06em; }
   .courbe { flex: 1 1 auto; display: flex; align-items: flex-end; gap: 4px; height: 38px; }
   .courbe i {
     flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0;
@@ -186,11 +186,11 @@
   .barres { display: flex; flex-direction: column; gap: 4px; }
   h4 {
     margin: 0 0 2px; color: var(--v2-txt3);
-    font: 500 10px var(--v2-sans); text-transform: uppercase; letter-spacing: .06em;
+    font: 500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform: uppercase; letter-spacing: .06em;
   }
   .ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .nom {
-    flex: 0 0 88px; min-width: 0; color: var(--v2-txt2); font: 400 11px var(--v2-sans);
+    flex: 0 0 88px; min-width: 0; color: var(--v2-txt2); font: 400 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .rail {
@@ -200,7 +200,7 @@
   .rail i { display: block; height: 100%; border-radius: 4px; background: var(--v2-acc1); }
   .val {
     flex: 0 0 34px; text-align: right; color: var(--v2-txt2);
-    font: 500 11px var(--v2-sans); font-variant-numeric: tabular-nums;
+    font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-variant-numeric: tabular-nums;
   }
 
   .heures { display: flex; flex-direction: column; gap: 4px; }

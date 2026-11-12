@@ -150,7 +150,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     line-height: 1.4;
   }
   .output-modules-summary {
@@ -183,7 +183,7 @@
     vertical-align: top;
   }
   .output-modules-table th {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -202,11 +202,11 @@
   .mono,
   code {
     font-family: 'SF Mono', 'Fira Code', ui-monospace, monospace;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .output-modules-badge {
     display: inline-block;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 999px;
@@ -235,7 +235,7 @@
     color: inherit;
     border-radius: 999px;
     padding: 0.15rem 0.6rem;
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--v2-txt-echelle, 1));
     line-height: 1.3;
     white-space: nowrap;
     text-decoration: none;

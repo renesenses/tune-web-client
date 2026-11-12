@@ -43,19 +43,19 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 14px var(--v2-sans); }
+  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .liste { list-style: none; margin: 0; padding: 0 30px; display: flex; flex-direction: column; gap: 5px; }
   .liste li { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
   .an {
-    flex: 0 0 42px; font: 600 12px var(--v2-sans); color: var(--v2-acc1);
+    flex: 0 0 42px; font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-acc1);
     font-variant-numeric: tabular-nums;
   }
   .tit {
-    flex: 1 1 auto; min-width: 0; font: 400 14px var(--v2-sans); color: var(--v2-txt);
+    flex: 1 1 auto; min-width: 0; font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .sub { color: var(--v2-txt2); font-size: 12px; }
+  .sub { color: var(--v2-txt2); font-size: calc(12px * var(--v2-txt-echelle, 1)); }
 
   @media (max-width: 1024px) { .liste { padding-left: 22px; padding-right: 22px; } }
   @media (max-width: 640px) { .liste { padding-left: 16px; padding-right: 16px; } .an { flex-basis: 36px; } }

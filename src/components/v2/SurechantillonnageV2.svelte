@@ -168,18 +168,18 @@
   .v2-up{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; max-width:920px}
-  .lead{font-size:14px; line-height:1.6; color:var(--v2-txt2); padding:6px 0 18px; max-width:62ch}
+  .lead{font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2); padding:6px 0 18px; max-width:62ch}
   .state{padding:24px 0; color:var(--v2-txt3)}
-  .err,.warn{padding:11px 14px; border-radius:10px; font-size:12.5px; line-height:1.5; margin-bottom:16px}
+  .err,.warn{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:16px}
   .err{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .warn{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:6px 20px 18px; margin-bottom:16px}
   .row{display:flex; align-items:center; justify-content:space-between; gap:24px; padding:16px 0;
     border-bottom:1px solid var(--v2-line)}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:14px; font-weight:600}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:62ch}
-  .val{font:12px var(--v2-mono); color:var(--v2-txt2)}
+  .lbl span:first-child{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:62ch}
+  .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .sel{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:8px; padding:6px 8px}
   .actions{display:flex; gap:10px; align-items:center; padding-top:14px}
   .go{background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); color:var(--v2-on-acc, #fff); border:0;

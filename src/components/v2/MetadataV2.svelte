@@ -1336,14 +1336,14 @@
     font-family:var(--v2-sans); overflow:hidden}
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
-  .tabs button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+  .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .tabs button.on span{color:var(--v2-on-acc); opacity:.75}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
@@ -1351,16 +1351,16 @@
   .cpbar{display:flex; gap:8px; align-items:center; margin:0 0 14px}
   .cpq{flex:1 1 auto; min-width:0; height:34px; padding:0 12px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
-    font:12.5px var(--v2-sans)}
+    font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .cpq:focus{outline:none; border-color:var(--v2-acc2)}
   .cpacts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
   /* En-tête de groupe : le titre porte le regroupement, la ligne ne répète
      donc que l'artiste — c'est lui qui change d'une ligne à l'autre. */
   .cpgh{display:flex; align-items:baseline; gap:10px; margin:16px 0 6px; flex-wrap:wrap}
-  .cpgt{font:600 13.5px var(--v2-sans); color:var(--v2-txt)}
-  .chemin{display:block; margin-top:2px; font:10.5px var(--v2-mono); color:var(--v2-txt3);
+  .cpgt{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .chemin{display:block; margin-top:2px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
-  .cpgn{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cpgn{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .note.avert{color:var(--v2-acc-tint)}
   /* Armé = le prochain clic agit. `.grp .lnk.armed` ne porte pas jusqu'ici :
      ces boutons ne sont pas dans une carte de groupe. */
@@ -1372,21 +1372,21 @@
   /* Le drapeau déjà posé, dit à côté du compte de pistes : sans lui, marquer
      agit sans qu'on voie sur quoi. On n'affiche QUE le positif — voir
      PastilleCompilation. */
-  .cfrang{margin-left:auto; font:600 11px var(--v2-sans); color:var(--v2-acc1);
+  .cfrang{margin-left:auto; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1);
     border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill); padding:2px 9px; white-space:nowrap}
   .cpflag{margin-left:8px; padding:1px 7px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
-    font:700 9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
+    font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .dbl-echec{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; color:var(--v2-txt2)}
-  .note{padding:4px 0 16px; font-size:12.5px; color:var(--v2-txt3)}
+  .note{padding:4px 0 16px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .note b{color:var(--v2-txt2)}
 
   .auto{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 18px;
     border-radius:13px; border:1px solid var(--v2-line); background:var(--v2-surface2); margin-bottom:18px}
   .al{display:flex; flex-direction:column; gap:4px}
-  .al span:first-child{font-size:13.5px; font-weight:600}
-  .hint{font-size:11.5px; color:var(--v2-txt3)}
+  .al span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .sw{position:relative; width:44px; height:25px; cursor:pointer; flex:0 0 auto}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}
@@ -1399,9 +1399,9 @@
   .prop{display:flex; align-items:center; gap:20px; padding:14px 18px; border-radius:12px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .pw{flex:1; min-width:0}
-  .pt{font-size:14px; font-weight:700; display:flex; gap:9px; align-items:baseline}
-  .pt em{font:11.5px var(--v2-sans); font-style:normal; color:var(--v2-txt3)}
-  .pf{margin-top:4px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-acc2)}
+  .pt{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; display:flex; gap:9px; align-items:baseline}
+  .pt em{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3)}
+  .pf{margin-top:4px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-acc2)}
   /* #1069 — les pochettes du groupe, côte à côte. Celle qu'on GARDE est
      soulignée : c'est la fiche qui absorbera les autres, et rien ne la
      distinguait des autres vignettes. */
@@ -1411,42 +1411,42 @@
   .eclc.garde{border-color:var(--v2-acc1)}
   .diff{margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .diff svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
-  .cur{font-size:13px; color:var(--v2-txt3); text-decoration:line-through}
-  .new{font-size:13px; font-weight:600; color:var(--v2-acc-tint)}
-  .src{margin-top:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .cur{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); text-decoration:line-through}
+  .new{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-acc-tint)}
+  .src{margin-top:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .pa{display:flex; gap:8px; flex:0 0 auto}
   .pa.wrap{flex-wrap:wrap; margin-top:8px}
   .drgrid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:14px}
   .drk{display:flex; flex-direction:column; gap:3px; padding:12px 16px; border-radius:12px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
-  .drk b{font:600 20px var(--v2-sans); color:var(--v2-txt); font-variant-numeric:tabular-nums}
-  .drk span{font-size:11.5px; color:var(--v2-txt3)}
-  .errline{margin-top:10px; font-size:12.5px; color:var(--v2-danger)}
-  .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
+  .drk b{font:600 calc(20px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); font-variant-numeric:tabular-nums}
+  .drk span{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
+  .dh{margin:18px 0 8px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
   .dh span{margin-left:6px; opacity:.7}
-  .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
+  .sub{margin-top:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* tune-server-rust#5976 : B ne porte pas le même titre que A — à regarder avant de trancher. */
   .sub.ecart{color:var(--v2-danger); font-weight:600}
   .grp .lnk.armed{font-weight:700}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 15px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:7px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .go:disabled,.lnk:disabled{opacity:.45; cursor:default}
-  .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
 
   .dgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px}
   .dcard{display:flex; gap:14px; padding:12px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .dcard .cv{width:64px; height:64px; flex:0 0 auto; border-radius:8px; overflow:hidden}
   .dm{min-width:0}
-  .dt{font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .da{margin-top:3px; font-size:11.5px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dt{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .da{margin-top:3px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .drs{margin-top:8px; display:flex; gap:5px; flex-wrap:wrap}
-  .r{font:9.5px var(--v2-mono); color:var(--v2-danger); border:1px solid var(--v2-danger-bd);
+  .r{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-danger); border:1px solid var(--v2-danger-bd);
     border-radius:999px; padding:2px 8px}
 
-  .foot{margin-top:24px; font-size:12.5px; line-height:1.6; color:var(--v2-txt3); max-width:70ch}
+  .foot{margin-top:24px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt3); max-width:70ch}
   .foot b{color:var(--v2-txt2)}
-  .foot code{font:11px var(--v2-mono); color:var(--v2-acc2)}
+  .foot code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
 </style>

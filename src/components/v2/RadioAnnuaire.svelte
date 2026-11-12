@@ -272,22 +272,22 @@
   .annuaire{display:flex; flex-direction:column; gap:10px; padding:4px 30px 30px}
   .filtres{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 11.5px var(--v2-sans); max-width:220px}
-  .total{font:11px var(--v2-mono); color:var(--v2-txt3)}
+    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
+  .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .etat{padding:20px 0; color:var(--v2-txt3)} .etat.err{color:var(--v2-danger)}
   .grille{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .fiche{position:relative; display:flex; flex-direction:column; min-width:0}
   .vignette{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .fiche:hover .vignette{box-shadow:0 10px 24px var(--v2-glow)}
-  .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .gn,.encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .gn,.encours{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .encours{color:var(--v2-acc2)}
   .pied{display:flex; align-items:center; gap:6px; margin-top:4px; min-height:22px}
-  .tk{font:9.5px var(--v2-mono); color:var(--v2-acc2)}
-  .dedans{margin-left:auto; font:600 9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tk{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .dedans{margin-left:auto; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .suite{display:flex; justify-content:center; padding-top:8px}
-  .source{margin-top:14px; font:11px var(--v2-sans); color:var(--v2-txt3)}
+  .source{margin-top:14px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .source a{color:var(--v2-acc2); text-decoration:none}
   .source a:hover{text-decoration:underline}
   .horsligne{color:var(--v2-txt2)}

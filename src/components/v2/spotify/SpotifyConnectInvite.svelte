@@ -79,14 +79,14 @@
 
 <style>
   .invite{flex-basis:100%; display:flex; flex-direction:column; gap:8px; align-items:flex-start; padding:12px;
-    border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); font-size:12px; color:var(--v2-txt2)}
+    border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   p{margin:0}
-  .titre{font-weight:600; font-size:13px}
+  .titre{font-weight:600; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .note{color:var(--v2-txt3)}
   .ko{color:var(--v2-danger)}
   .compte{display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding-top:8px; border-top:1px solid var(--v2-line2); width:100%}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.principal{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 </style>

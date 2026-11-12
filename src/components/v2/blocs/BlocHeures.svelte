@@ -53,14 +53,14 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 14px var(--v2-sans); }
+  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 30px 12px; }
   .grand {
-    font: 700 32px/1 var(--v2-sans); letter-spacing: -1px;
+    font: 700 calc(32px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
   }
-  .quoi { font: 600 13px var(--v2-sans); color: var(--v2-txt2); }
+  .quoi { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 
   /* Vingt-quatre colonnes ÉGALES : `1fr` et non une largeur fixe, donc la
      rangée se comprime au lieu de déborder sur un téléphone. */
@@ -72,14 +72,14 @@
   /* L'heure de pointe est CERNÉE, pas recolorée : une seconde teinte ferait
      le « tableau de bord d'aéroport » que Bertrand refuse. */
   .case.pointe { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
-  .h { font: 600 9px var(--v2-sans); color: var(--v2-on-acc); opacity: 0.75; }
+  .h { font: 600 calc(9px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-on-acc); opacity: 0.75; }
 
   @media (max-width: 1024px) {
     .tete, .rangee { padding-left: 22px; padding-right: 22px; }
   }
   @media (max-width: 640px) {
     .tete, .rangee { padding-left: 16px; padding-right: 16px; }
-    .grand { font-size: 26px; }
+    .grand { font-size: calc(26px * var(--v2-txt-echelle, 1)); }
     .rangee { gap: 2px; }
     /* Sous 640 px, 24 chiffres dans 288 px feraient 12 px par case : le
        chiffre devient illisible et sale. On le retire, l'infobulle reste. */

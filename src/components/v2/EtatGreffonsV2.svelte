@@ -56,22 +56,22 @@
 {/if}
 
 <style>
-  .sect{margin:22px 0 10px; font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .sect{margin:22px 0 10px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:10px}
   .pl{display:flex; align-items:flex-start; gap:20px; padding:12px 18px; border-radius:13px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .pl.err{border-color:var(--v2-danger-bd)}
   .pi{flex:1; min-width:0}
   .ph{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
-  .ph h2{font-size:14px; font-weight:700}
-  .ver{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  .cat,.etat{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px;
+  .ph h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .ver{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .cat,.etat{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px;
     color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .etat.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
   .pl.err .etat{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .why{margin-top:8px; font-size:11.5px; color:var(--v2-txt3); overflow-wrap:anywhere}
+  .why{margin-top:8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow-wrap:anywhere}
   .why.bad{color:var(--v2-danger)}
   .actions{margin-top:10px}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
 </style>

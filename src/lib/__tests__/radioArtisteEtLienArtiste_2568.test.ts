@@ -99,7 +99,8 @@ describe("#2568 — la fiche porte les DEUX gestes que Sandro demande", () => {
 
     // web#2094 — le cœur de l'artiste de service vit dans la même barre : il
     // n'est pas un geste de LECTURE, on ne le compte pas ici.
-    const boutons = Array.from(hote.querySelectorAll<HTMLButtonElement>('.v2-fas .gestes button:not(.coeur-artiste)'));
+    // rc12 : la flèche ▾ du bouton Lecture n'est pas un geste, elle ouvre son menu.
+    const boutons = Array.from(hote.querySelectorAll<HTMLButtonElement>('.v2-fas .gestes button:not(.coeur-artiste):not([data-lecture-options])'));
     // tune-server-rust#6467 — « Lire » (50 titres au hasard) vient AVANT le
     // best of, à la demande de FabienM (fil 2302, point 12) : trois gestes.
     expect(boutons.length, 'trois gestes — Lire, le best of ET le mix').toBe(3);

@@ -209,15 +209,15 @@
 <ReglageVersionJouee />
 
 <style>
-  .hint{margin:4px 0 12px; font-size:12.5px; line-height:1.5; color:var(--v2-txt3)}
+  .hint{margin:4px 0 12px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .liste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
   .profil{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px; border-radius:11px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2)}
   .profil.actif{border-color:var(--v2-acc2)}
   .principal{display:flex; align-items:center; gap:10px; flex:1; min-width:0; padding:0; border:0; background:transparent;
-    color:var(--v2-txt); cursor:pointer; text-align:left; font:13.5px var(--v2-sans)}
+    color:var(--v2-txt); cursor:pointer; text-align:left; font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .rond{width:32px; height:32px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center;
-    color:#fff; font:600 13px var(--v2-sans)}
+    color:#fff; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   /* Une pastille qui porte une PHOTO : l'image remplit le rond, sans
      déformer. `object-fit` plutôt qu'un étirement — un portrait recadré de
      travers se remarque tout de suite. */
@@ -226,23 +226,23 @@
   .rondbtn{cursor:pointer; border:0; background:none; padding:0; display:inline-flex}
   .rondbtn:hover .rond{outline:2px solid var(--v2-acc1); outline-offset:1px}
   .nom{font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .badge{font:600 10px var(--v2-sans); padding:2px 8px; border-radius:999px; background:var(--v2-acc2); color:#fff}
+  .badge{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:2px 8px; border-radius:999px; background:var(--v2-acc2); color:#fff}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; flex:1; min-width:140px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 11px; outline:none; flex:1; min-width:140px}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .couleurs{display:flex; gap:5px}
   .pt{width:18px; height:18px; border-radius:50%; border:2px solid transparent; padding:0; cursor:pointer}
   .pt.choisi{border-color:var(--v2-txt)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk:disabled{opacity:.45; cursor:default}
   .lnk.prim{background:var(--v2-acc2); border-color:transparent; color:#fff}
   .lnk.danger{color:var(--v2-danger, #ef4444)}
   .creer{margin-top:16px; padding-top:14px; border-top:1px solid var(--v2-line2)}
-  .creer h4{margin:0 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt)}
+  .creer h4{margin:0 0 10px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .rangee{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .err{margin:8px 0 0; font-size:12px; color:var(--v2-danger, #ef4444)}
-  .premium{margin:0; padding:10px 12px; border-radius:11px; font-size:12.5px; color:var(--v2-txt2);
+  .err{margin:8px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger, #ef4444)}
+  .premium{margin:0; padding:10px 12px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2);
     border:1px solid rgba(245,158,11,.35); background:rgba(245,158,11,.08)}
 </style>

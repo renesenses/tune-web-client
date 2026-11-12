@@ -107,7 +107,7 @@
   }
   .apc-carte h2 {
     margin: 0 0 12px;
-    font-size: 1.2rem;
+    font-size: calc(1.2rem * var(--v2-txt-echelle, 1));
   }
   .apc-carte p {
     margin: 0 0 16px;
@@ -119,7 +119,7 @@
     flex-direction: column;
     gap: 6px;
     margin-bottom: 16px;
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     color: var(--v2-txt2);
   }
   .apc-champ input {
@@ -160,7 +160,7 @@
   }
   .apc-plateforme {
     color: var(--v2-txt3);
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .apc-bandeau {
     position: fixed;
@@ -175,7 +175,7 @@
     padding: 8px 16px;
     background: var(--v2-acc-soft);
     color: var(--v2-txt);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
   }
   .apc-bandeau span {
     flex: 1;
