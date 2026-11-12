@@ -19,6 +19,9 @@ import { get } from 'svelte/store';
 const LOCALE = {
   track_id: 77, album_id: 5, artist_id: 3,
   title: 'It’s No Good', artist_name: 'Depeche Mode', album_title: 'Ultra',
+  // Une pochette connue : `AlbumArt` ne relit alors pas l'album pour la trouver,
+  // et le compteur ne voit que la lecture du label.
+  cover_path: 'covers/ultra.jpg',
   source: 'local', duration_ms: 298000,
 };
 

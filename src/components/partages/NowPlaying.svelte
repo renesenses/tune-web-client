@@ -1172,23 +1172,25 @@ import { ICONES } from '../../lib/menuPiste';
    * piste de service sans label connu n'affiche rien : pas de lien mort.
    */
   let labelAlbum = $state<string | null>(null);
-  let labelLuPourAlbum: number | null = null;
+  /** Les labels déjà lus, par album : un retour sur le même album ne relit rien. */
+  const labelsLus = new Map<number, string | null>();
+  const labelsEnVol = new Set<number>();
   $effect(() => {
     const direct = labelDe(displayTrack as any);
     const brut = albumIdOf(displayTrack);
     const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
-    if (direct || id == null) {
-      labelLuPourAlbum = null;
-      labelAlbum = direct;
-      return;
-    }
-    if (id === labelLuPourAlbum) return;
-    labelLuPourAlbum = id;
+    if (direct || id == null) { labelAlbum = direct; return; }
+    if (labelsLus.has(id)) { labelAlbum = labelsLus.get(id) ?? null; return; }
     labelAlbum = null;
+    if (labelsEnVol.has(id)) return;
+    labelsEnVol.add(id);
     api.getAlbum(id).then(
-      (a) => { if (labelLuPourAlbum === id) labelAlbum = labelDe(a as any); },
+      (a) => {
+        labelsLus.set(id, labelDe(a as any));
+        if (albumIdOf(displayTrack) === id) labelAlbum = labelsLus.get(id) ?? null;
+      },
       () => {},
-    );
+    ).finally(() => labelsEnVol.delete(id));
   });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
