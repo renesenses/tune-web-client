@@ -40,11 +40,11 @@
   /* `stopPropagation` ci-dessus : sur une carte de zone, le clic sur la carte
      ACTIVE la zone. Ouvrir le catalogue ne doit pas changer la sortie audio. */
   .tt{
-    font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
+    font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
     color:var(--v2-acc1); border:1px solid var(--v2-acc1); border-radius:3px;
     padding:1px 5px; white-space:nowrap; text-decoration:none; cursor:pointer;
     align-self:center;
   }
-  .tt.md{font-size:10px; padding:2px 7px; border-radius:4px}
+  .tt.md{font-size:calc(10px * var(--v2-txt-echelle, 1)); padding:2px 7px; border-radius:4px}
   .tt:hover{background:var(--v2-acc-soft)}
 </style>

@@ -125,7 +125,7 @@
 
 <style>
   .verif{flex-basis:100%; display:flex; flex-direction:column; gap:8px; align-items:flex-start;
-    font-size:11.5px; color:var(--v2-txt3)}
+    font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .alerte{margin:0; color:var(--v2-danger)}
   .bien{margin:0; color:var(--v2-acc1)}
   .titre{margin:0; font-weight:600; color:var(--v2-txt2)}
@@ -135,10 +135,10 @@
   .ok .val{color:var(--v2-acc1)}
   .ko .val, .ko-txt{color:var(--v2-danger)}
   .copier{flex-basis:100%; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
   .causes{margin:4px 0 0; padding-left:18px}
   .corrections{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; color:var(--v2-txt2)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 </style>

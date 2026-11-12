@@ -222,7 +222,8 @@ describe('Le menu, comme surface', () => {
     // n'ait changé. On tient donc désormais le COMPORTEMENT — ce qu'une
     // recopie de code ne gardait de toute façon pas — plus le fait que le
     // menu appelle bien le calcul partagé.
-    expect(/styleMenuAncre\(ancre, entrees\.length( \+ intertitres)?, window(, largeur)?\)/.test(menu()),
+    // rc12 : le menu compte les entrées VISIBLES (et « Plus… »), plus toutes.
+    expect(/styleMenuAncre\(ancre, (entrees\.length|visibles\.length \+ \(cachees \? 1 : 0\))( \+ intertitres)?, window(, largeur)?\)/.test(menu()),
       'le menu ne place plus son panneau par le calcul partagé').toBe(true);
     const fenetre = { innerWidth: 1440, innerHeight: 900 };
     expect(styleMenuAncre({ top: 300, bottom: 326, right: 1000 }, 7, fenetre),

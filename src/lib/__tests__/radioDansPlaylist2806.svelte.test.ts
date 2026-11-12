@@ -24,6 +24,7 @@ import { estLigneRadio, radioIndisponible, sansRadios } from '../lignePlaylistRa
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
+import { entreeDuMenu, MENU_LECTURE } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -230,7 +231,8 @@ describe('(b) les lignes radio dans la playlist', () => {
 
   it('🔴 « Aléatoire » n’envoie pas les radios comme des pistes', async () => {
     await ouvrirPlaylist();
-    [...hote!.querySelectorAll<HTMLButtonElement>('button')].find((x) => x.getAttribute('title') === fr['library.shuffle'])!.click();
+    // rc12 : « Lecture aléatoire » vit sous la flèche du bouton Lecture.
+    entreeDuMenu(hote!, '[data-aleatoire-playlist]', MENU_LECTURE)!.click();
     await attendreQue(() => !!lecture(), 'la lecture');
     const corps = JSON.stringify(lecture()!.body);
     expect(corps).not.toContain('"radio"');

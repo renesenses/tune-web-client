@@ -608,7 +608,7 @@
   .cc-pas-maintenant { padding: 0.35rem 0.85rem; border-radius: 999px; }
   .cc-pays { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0.25rem; }
   .cc-pays select { padding: 0.4rem 0.6rem; border-radius: 6px; }
-  .cc-note { color: var(--tune-text-muted); font-size: 0.875rem; margin: 0.35rem 0; }
+  .cc-note { color: var(--tune-text-muted); font-size: calc(0.875rem * var(--v2-txt-echelle, 1)); margin: 0.35rem 0; }
   .cc-attention { color: var(--warning, #d99a2b); }
   .cc-inactif { opacity: 0.55; }
   .cc-commune .cc-a-preciser { outline: 2px solid var(--warning, #d99a2b); }
@@ -625,7 +625,7 @@
      serrée évite qu'une liste chronologique ne s'étire sur trois écrans. */
   .cc-liste.cc-par-date > li { padding: 0.35rem 0; }
   .cc-liste > li { padding: 0.75rem 0; border-bottom: 1px solid var(--tune-border); }
-  .cc-liste h3 { margin: 0 0 0.35rem; font-size: 1rem; }
+  .cc-liste h3 { margin: 0 0 0.35rem; font-size: calc(1rem * var(--v2-txt-echelle, 1)); }
   .cc-dates { list-style: none; padding: 0; margin: 0; }
   .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
   .cc-date { font-variant-numeric: tabular-nums; min-width: 6.5rem; }

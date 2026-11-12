@@ -308,11 +308,11 @@
   .ia { display: flex; flex-direction: column; gap: 10px; }
   .inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
   .deux { display: flex; flex-wrap: wrap; gap: 12px; }
-  .hint { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--v2-txt3); }
-  .ok { margin: 0; font-size: 12.5px; color: var(--v2-txt); }
-  .errline { margin: 0; font-size: 12.5px; color: var(--v2-danger); }
-  .champ { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--v2-txt2); }
-  .case { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--v2-txt2); }
+  .hint { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); line-height: 1.45; color: var(--v2-txt3); }
+  .ok { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); }
+  .errline { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
+  .champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
+  .case { display: flex; gap: 8px; align-items: flex-start; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
   input[type='text'], input[type='url'], input[type='password'], select {
     max-width: 420px; padding: 6px 8px; border-radius: 6px;
     border: 1px solid var(--v2-line); background: transparent; color: var(--v2-txt);
@@ -322,12 +322,12 @@
   select, select option { background: var(--v2-surface); color: var(--v2-txt); }
   .lnk {
     background: none; border: 1px solid var(--v2-line); border-radius: 6px;
-    padding: 5px 10px; color: var(--v2-txt); font-size: 13px; cursor: pointer;
+    padding: 5px 10px; color: var(--v2-txt); font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
   }
   .lnk:hover:not(:disabled) { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .lnk:disabled { opacity: 0.45; cursor: default; }
   .lnk.primaire { border-color: var(--v2-acc1); color: var(--v2-acc1); }
-  .usages { font-size: 12.5px; color: var(--v2-txt3); }
+  .usages { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
   .usages summary { cursor: pointer; }
   .usages ul { margin: 6px 0 0; padding-left: 18px; }
   .hint a { color: var(--v2-acc1); }

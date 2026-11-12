@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -740,12 +741,12 @@
           <div class="ihead">
             <h2>{$t((vue.items.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(vue.items.length))}</h2>
             <div class="acts">
-              <button class="pill" disabled={!!action} onclick={() => enchainer(vue.items, 'all')}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.lbl.playAll' as any)}
-              </button>
-              <button class="pill ghost" disabled={!!action} onclick={() => enchainer(melanger(vue.items), 'shuffle')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$t('v2.album.shuffle' as any)}
-              </button>
+              <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire
+                   passe sous sa flèche (`data-aleatoire-serveur`). -->
+              <span style="--bl-h:32px"><BoutonLectureV2 onLire={() => enchainer(vue.items, 'all')} cle="v2.lbl.playAll"
+                desactive={!!action} attrsLire={{ 'data-lire-serveur': true }}
+                aleatoire={{ faire: () => enchainer(melanger(vue.items), 'shuffle'), desactive: !!action }}
+                attrsAleatoire={{ 'data-aleatoire-serveur': true }} /></span>
             </div>
           </div>
           <div class="trks">
@@ -803,29 +804,29 @@
   .v2-ms{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-x:hidden; overflow-y:auto}
   .clr{position:absolute; right:10px; width:20px; height:20px; border:0; background:transparent; cursor:pointer;
-    color:var(--v2-txt3); font-size:16px; line-height:1}
+    color:var(--v2-txt3); font-size:calc(16px * var(--v2-txt-echelle, 1)); line-height:1}
   .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);
     border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
   .spin.sm{position:static; width:12px; height:12px; border-color:var(--v2-on-acc); border-top-color:transparent}
   @keyframes sp{to{transform:rotate(360deg)}}
 
   .err{display:flex; align-items:center; gap:10px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    background:var(--v2-danger-soft); border:1px solid var(--v2-danger); color:var(--v2-danger); font-size:13px}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; cursor:pointer; font-size:16px}
+    background:var(--v2-danger-soft); border:1px solid var(--v2-danger); color:var(--v2-danger); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; cursor:pointer; font-size:calc(16px * var(--v2-txt-echelle, 1))}
 
   .fil{display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:2px 30px 10px}
   .back{width:30px; height:30px; flex:0 0 auto; border-radius:9px; cursor:pointer; display:grid; place-items:center;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
   .back:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .back svg{width:15px; height:15px}
-  .crumb{border:0; background:transparent; cursor:pointer; color:var(--v2-txt2); font:13px var(--v2-sans); padding:2px 2px}
+  .crumb{border:0; background:transparent; cursor:pointer; color:var(--v2-txt2); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:2px 2px}
   .crumb:hover{color:var(--v2-acc-tint)}
   .crumb.last{color:var(--v2-txt); font-weight:700; cursor:default}
-  .sep{color:var(--v2-txt3); font-size:12px}
-  .host{margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .sep{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .host{margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* Indexation et ses plafonds (#4154) */
   .idx{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-       border-radius:999px; padding:5px 12px; font:12px var(--v2-sans); cursor:pointer}
+       border-radius:999px; padding:5px 12px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .idx:hover:not(:disabled){border-color:var(--v2-acc1); color:var(--v2-acc-tint)}
   .idx:disabled{opacity:.55; cursor:progress}
   .idx.ghost{background:transparent; color:var(--v2-txt2)}
@@ -834,10 +835,10 @@
   .idx.danger:hover:not(:disabled){border-color:var(--v2-danger); color:var(--v2-danger)}
   .plafonds{display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 12px}
   .plafond{display:flex; flex-direction:column; gap:3px; min-width:200px; max-width:320px}
-  .plafond .ttl{font:600 12px var(--v2-sans); color:var(--v2-txt)}
-  .plafond .aide{font:11px var(--v2-sans); color:var(--v2-txt3); line-height:1.35}
+  .plafond .ttl{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .plafond .aide{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); line-height:1.35}
   .plafond select{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-                  border-radius:6px; padding:5px 8px; font:12px var(--v2-sans)}
+                  border-radius:6px; padding:5px 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   /* Le réglage que la troncature désigne : mis en avant, pour que
      « relever le réglage » soit un geste et pas une chasse. */
   .plafond.vise select{border-color:var(--v2-acc1)}
@@ -845,26 +846,26 @@
   .bilan{position:relative; margin:0 30px 12px; padding:10px 34px 10px 12px; border-radius:8px;
          border:1px solid var(--v2-line2); background:var(--v2-surface2)}
   .bilan.coupe{border-color:var(--v2-acc1)}
-  .bilan .chiffres{margin:0; font:13px var(--v2-sans); color:var(--v2-txt)}
-  .bilan .coupure{margin:6px 0 0; font:12px var(--v2-sans); color:var(--v2-txt2); line-height:1.4}
+  .bilan .chiffres{margin:0; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .bilan .coupure{margin:6px 0 0; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); line-height:1.4}
   .bilan .clr{position:absolute; top:6px; right:8px}
 
   .chips{display:flex; gap:8px; flex-wrap:wrap; padding:0 30px 12px}
   .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .chip:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
-  .state{padding:26px 2px; color:var(--v2-txt3); font-size:14px}
-  .recharge{display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--v2-txt3); font-size:13px}
+  .state{padding:26px 2px; color:var(--v2-txt3); font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .recharge{display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .recharge .spin{position:static}
   .raison{color:var(--v2-txt3)}
   .notice{display:flex; flex-direction:column; gap:8px; padding:34px 2px; max-width:560px}
-  .notice p{color:var(--v2-txt2); font-size:15px}
-  .notice .sub{color:var(--v2-txt3); font-size:13px; line-height:1.6}
+  .notice p{color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1))}
+  .notice .sub{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.6}
 
   /* Liste des serveurs. Le NOM ne suffit pas a distinguer (ils s'appellent
      tous « Tune Server ») : l'adresse est au meme rang, pas en mention. */
@@ -873,34 +874,34 @@
   .svcs{display:flex; gap:8px; flex-wrap:wrap; padding:2px 30px 12px}
   .svcs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2);
     background:transparent; color:var(--v2-txt2); cursor:pointer; border-radius:var(--v2-r-pill);
-    padding:8px 16px; font:600 13px var(--v2-mono)}
+    padding:8px 16px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .svcs button:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .svcs button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .svcs .tag{font:700 9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px;
+  .svcs .tag{font:700 calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px;
     border-radius:5px; border:1px solid currentColor; opacity:.75}
   /* Absents : repliés par défaut, grisés, mais cliquables. */
-  .absents{padding:0 30px 12px; color:var(--v2-txt3); font:12px var(--v2-sans)}
+  .absents{padding:0 30px 12px; color:var(--v2-txt3); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .absents summary{cursor:pointer; width:max-content}
   .absents-liste{display:flex; gap:8px; flex-wrap:wrap; padding-top:8px}
   .absent{display:inline-flex; align-items:center; gap:8px; border:1px dashed var(--v2-line2);
     background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:var(--v2-r-pill);
-    padding:6px 14px; font:12px var(--v2-sans); opacity:.7}
+    padding:6px 14px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); opacity:.7}
   .absent:hover, .absent.on{opacity:1; color:var(--v2-txt2); border-color:var(--v2-acc2)}
-  .absent .adr{font:600 12px var(--v2-mono)}
+  .absent .adr{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .absent .vu{font-style:italic}
   /* La Bibliotheque montee ici est un composant plein ecran : sans cette
      regle elle se dimensionne a son contenu et laisse la coquille vide. */
   .v2-ms > :global(.v2-lib){flex:1; min-height:0}
 
-  .warn{margin:2px 0 14px; padding:9px 14px; border-radius:10px; font-size:12.5px;
+  .warn{margin:2px 0 14px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     color:var(--v2-txt2); border:1px solid var(--v2-line2); background:var(--v2-surface2)}
   .scope{display:flex; align-items:center; gap:8px; padding:2px 0 14px}
   .scope button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:6px 13px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:6px 13px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .scope button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .scope .cnt{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .scope .cnt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(158px, 1fr)); gap:20px 18px; padding-top:4px}
   .card{position:relative; display:flex; flex-direction:column; min-width:0}
@@ -920,8 +921,8 @@
     opacity:0; transform:translateY(6px); transition:.16s}
   .card:hover .pbtn{opacity:1; transform:none}
   .pbtn svg{width:15px; height:15px; margin-left:2px}
-  .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden;
+  .ct{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden;
     text-overflow:ellipsis; min-height:14px}
 
   .folders{display:flex; flex-direction:column; gap:2px; padding-top:4px}
@@ -929,15 +930,15 @@
     padding:11px 12px; border:0; border-radius:10px; background:transparent; color:var(--v2-txt2)}
   .folder:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .folder > svg{width:18px; height:18px; flex:0 0 auto; color:var(--v2-acc2)}
-  .fn{font:500 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .fc{margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .fn{font:500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .fc{margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .folder .go{width:15px; height:15px; flex:0 0 auto; color:var(--v2-txt3)}
 
   .ihead{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:24px 0 10px}
-  .ihead h2{font-size:16px; font-weight:700}
+  .ihead h2{font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700}
   .acts{display:flex; gap:9px}
   .pill{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border:0; cursor:pointer;
-    border-radius:var(--v2-r-pill); font:700 12.5px var(--v2-sans); color:var(--v2-on-acc);
+    border-radius:var(--v2-r-pill); font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .pill.ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .pill.ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
@@ -959,8 +960,8 @@
   .tdepuis svg{width:15px; height:15px}
   .tdepuis:disabled{opacity:.5; cursor:default}
   .tq svg{width:15px; height:15px}
-  .ti{font:500 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tar{font:12px var(--v2-sans); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  .ti{font:500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tar{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     max-width:340px}
-  .td{font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .td{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 </style>

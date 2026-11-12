@@ -265,33 +265,33 @@
 <style>
   .parental{flex-basis:100%; display:flex; flex-direction:column; gap:12px; padding:12px 4px 4px;
     border-top:1px solid var(--v2-line2)}
-  .note{margin:0; font-size:12.5px; line-height:1.5; color:var(--v2-txt3)}
+  .note{margin:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .champ{display:flex; flex-direction:column; gap:5px}
-  .lbl{font:600 12.5px var(--v2-sans); color:var(--v2-txt)}
-  .aide{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  .lbl{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .aide{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .aide.avert{color:var(--v2-danger, #ef4444)}
   .coche{display:flex; align-items:center; gap:8px; cursor:pointer}
   textarea{border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
-    font:13px var(--v2-sans); padding:8px 11px; outline:none; resize:vertical; min-height:64px}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 11px; outline:none; resize:vertical; min-height:64px}
   textarea:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .etape2{display:flex; flex-direction:column; gap:12px}
   .plage{display:flex; flex-direction:column; gap:6px; padding:8px 10px; border:1px solid var(--v2-line2); border-radius:10px}
   .jours{display:flex; flex-wrap:wrap; gap:5px}
   .jour{display:inline-flex; align-items:center; gap:4px; padding:3px 9px; border-radius:999px; cursor:pointer;
-    border:1px solid var(--v2-line2); font:600 11.5px var(--v2-sans); color:var(--v2-txt2)}
+    border:1px solid var(--v2-line2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .jour.on{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .heures,.budget{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--v2-txt2)}
-  .lbl2{min-width:90px; font:600 12px var(--v2-sans); color:var(--v2-txt)}
+  .heures,.budget{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .lbl2{min-width:90px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   input[type=time],input[type=text]{border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:5px 8px; outline:none}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:5px 8px; outline:none}
   .budget input[type=text]{width:64px}
   .actions{display:flex; gap:8px; flex-wrap:wrap}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk:disabled{opacity:.45; cursor:default}
   .lnk.prim{background:var(--v2-acc2); border-color:transparent; color:#fff}
   .lnk.danger{color:var(--v2-danger, #ef4444)}
-  .err{margin:0; font-size:12px; color:var(--v2-danger, #ef4444)}
-  .ok{margin:0; font-size:12px; color:var(--v2-txt2)}
+  .err{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger, #ef4444)}
+  .ok{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
 </style>

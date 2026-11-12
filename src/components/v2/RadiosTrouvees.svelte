@@ -133,14 +133,14 @@
   .vignette{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .fiche:hover .vignette{box-shadow:0 10px 24px var(--v2-glow)}
-  .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .gn{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .gn{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .pied{display:flex; align-items:center; gap:6px; margin-top:4px; min-height:22px}
-  .tk{font:9.5px var(--v2-mono); color:var(--v2-acc2)}
-  .dedans{margin-left:auto; font:600 9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tk{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .dedans{margin-left:auto; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .ajout{margin-left:auto; width:24px; height:24px; border-radius:50%; border:1px solid var(--v2-line2);
     background:transparent; color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
   .ajout:hover{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .ajout svg{width:13px; height:13px}
-  .reste{margin:12px 0 0; font:11.5px var(--v2-sans); color:var(--v2-txt3)}
+  .reste{margin:12px 0 0; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
 </style>

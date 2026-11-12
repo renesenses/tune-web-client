@@ -59,10 +59,10 @@
 <style>
   .fond { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); padding: 20px; }
   .panneau { position: relative; width: min(520px, 100%); max-height: 90vh; overflow: auto; background: var(--v2-surface); color: var(--v2-txt); border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card); padding: 20px 22px 22px; font-family: var(--v2-sans); }
-  h2 { font-size: 16px; font-weight: 700; margin: 0 0 8px; }
-  .fermer { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3); font-size: 20px; cursor: pointer; }
-  ul { list-style: none; padding: 0; margin: 6px 0 0; font-size: 13px; }
-  .bandeau { font-size: 12px; color: var(--v2-acc1); margin: 8px 0 2px; }
-  .note { font-size: 12.5px; color: var(--v2-txt3); margin: 4px 0; }
-  .err { font-size: 12.5px; color: var(--v2-danger); }
+  h2 { font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 0 8px; }
+  .fermer { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3); font-size: calc(20px * var(--v2-txt-echelle, 1)); cursor: pointer; }
+  ul { list-style: none; padding: 0; margin: 6px 0 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .bandeau { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-acc1); margin: 8px 0 2px; }
+  .note { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); margin: 4px 0; }
+  .err { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
 </style>

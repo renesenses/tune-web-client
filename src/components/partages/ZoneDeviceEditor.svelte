@@ -300,7 +300,7 @@
 <style>
   .section-title {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -310,14 +310,14 @@
 
   .section-desc {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     margin: 0 0 12px;
   }
 
   .device-error {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-error, #e5484d);
     margin: 0 0 10px;
   }
@@ -348,19 +348,19 @@
     border: none;
     padding: 0;
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-accent);
     cursor: pointer;
     text-decoration: underline;
   }
   .device-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
   .device-input {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     background: var(--tune-bg);
     border: 1px solid var(--tune-border);
@@ -374,7 +374,7 @@
   }
   .device-detected {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 8px 0 0;
   }
@@ -392,13 +392,13 @@
   .device-reject-label {
     display: block;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
   .device-reject-hint {
     display: block;
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
   .device-actions {
@@ -409,13 +409,13 @@
   }
   .device-saved {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-accent);
   }
 
   .btn {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 500;
     padding: 6px 14px;
     border-radius: var(--radius-sm);
@@ -436,7 +436,7 @@
   }
   .btn-sm {
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     flex-shrink: 0;
   }
 </style>

@@ -116,7 +116,7 @@
 
   .dialog-message {
     margin: 0;
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     line-height: 1.5;
     color: var(--tune-text);
     white-space: pre-line;
@@ -127,7 +127,7 @@
     display: flex;
     align-items: flex-start;
     gap: var(--space-sm);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     line-height: 1.4;
     color: var(--tune-text);
     cursor: pointer;
@@ -141,7 +141,7 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-md);
     color: var(--tune-text);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
   }
 
   .dialog-input:focus {
@@ -161,7 +161,7 @@
     border: 1px solid var(--tune-border);
     background: transparent;
     color: var(--tune-text);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: background 0.12s ease-out;
   }

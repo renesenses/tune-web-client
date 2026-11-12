@@ -116,13 +116,13 @@
 <style>
   .upnp-serveur { display: flex; flex-direction: column; gap: 10px; }
   .case { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-  .champ { display: flex; flex-direction: column; gap: 4px; max-width: 360px; font-size: 12px; color: var(--tune-text-muted); }
+  .champ { display: flex; flex-direction: column; gap: 4px; max-width: 360px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .champ input {
-    font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px;
+    font: inherit; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 6px 8px; border-radius: 6px;
     color: var(--tune-text); background: var(--tune-bg-input, transparent);
     border: 1px solid var(--tune-border);
   }
   .champ input:focus-visible { outline: 2px solid var(--tune-accent, currentColor); outline-offset: 1px; }
-  .hint { margin: 0; font-size: 12px; color: var(--tune-text-muted); }
+  .hint { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .alerte { color: var(--tune-warning, #d97706); }
 </style>

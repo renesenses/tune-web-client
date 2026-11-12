@@ -948,14 +948,14 @@
   .gestes{display:flex; gap:8px; align-items:flex-start}
   .gestes .danger:hover{color:var(--v2-danger)}
   .creer input{min-width:0; width:min(220px, 40vw); padding:8px 12px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:13px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .creer input:focus{outline:none; border-color:var(--v2-acc2)}
-  .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
+  .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
-  .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}
+  .etat{padding:30px; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1)); max-width:60ch}
 
   .liste{display:flex; flex-wrap:wrap; gap:10px; padding:12px 30px 30px; list-style:none}
-  .aide{margin:0; padding:4px 30px 0; color:var(--v2-txt3); font-size:12.5px}
+  .aide{margin:0; padding:4px 30px 0; color:var(--v2-txt3); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   /* web#2166 — l'étiquette tenue s'estompe, celle qu'on survole montre où
      elle va tomber. */
   .liste li{border-radius:var(--v2-r-pill)}
@@ -968,7 +968,7 @@
     padding:9px 15px; border-radius:var(--v2-r-pill);
     border:1px solid color-mix(in srgb, var(--c) 45%, transparent);
     background:color-mix(in srgb, var(--c) 12%, transparent);
-    color:var(--v2-txt); font:600 13.5px var(--v2-sans);
+    color:var(--v2-txt); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
   .tag:hover{background:color-mix(in srgb, var(--c) 24%, transparent)}
   .pastille{--c:var(--v2-acc1); width:9px; height:9px; border-radius:50%; background:var(--c); flex:none}
@@ -978,9 +978,9 @@
   .tirage svg{width:14px; height:14px}
   .tirage .on{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .onglets button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
-  .onglets button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .onglets button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .onglets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .onglets button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -1004,8 +1004,8 @@
      vignette (`.meta.inerte`). */
   .simple .si{display:inline-flex; color:var(--v2-acc1)}
   .simple .si svg{width:17px; height:17px}
-  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
-  .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .simple .sc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   /* L'artiste garde la pochette RONDE de partout ailleurs : la même personne
      ne doit pas changer de forme selon l'écran qui la montre. */
@@ -1019,6 +1019,6 @@
   /* Une vignette sans destination reste LISIBLE, mais son curseur ne promet
      rien (web#1660) — la même règle que la ligne inerte des collections. */
   .meta.inerte{cursor:default}
-  .ct{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{display:block; margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{display:block; margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{display:block; margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

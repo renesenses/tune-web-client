@@ -109,7 +109,7 @@
 {/if}
 
 <style>
-  .etat { margin: 0; color: var(--v2-txt3); font: 400 12px var(--v2-sans); }
+  .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   li {
@@ -118,11 +118,11 @@
   }
   .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .art {
-    color: var(--v2-txt); font: 500 12px var(--v2-sans);
+    color: var(--v2-txt); font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .sous {
-    color: var(--v2-txt3); font: 400 11px var(--v2-sans);
+    color: var(--v2-txt3); font: 400 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   a { flex: 0 0 auto; display: inline-flex; color: var(--v2-txt3); }
@@ -132,7 +132,7 @@
   .tout {
     margin-top: 8px; padding: 4px 11px; border-radius: var(--v2-r-pill);
     border: 1px solid color-mix(in srgb, var(--v2-acc1) 32%, transparent);
-    background: none; color: var(--v2-txt2); font: 500 11px var(--v2-sans); cursor: pointer;
+    background: none; color: var(--v2-txt2); font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
   }
   .tout:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }
 </style>

@@ -96,7 +96,7 @@
 
   .section-title {
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     margin: 0;
@@ -136,7 +136,7 @@
 
   .rec-title {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     max-width: 140px;
     transition: color 0.12s;
@@ -144,7 +144,7 @@
 
   .rec-artist {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     max-width: 140px;
   }
@@ -152,7 +152,7 @@
   .rec-reason {
     display: inline-block;
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-accent);
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);

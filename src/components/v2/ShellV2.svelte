@@ -230,6 +230,7 @@
   import { get } from 'svelte/store';
   import { preferences, preferencesRelues, appliquerAscenseursLarges } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  import { appliquerTailleTexte } from '../../lib/tailleTexte';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
   import { chargerMonTheme, monThemeActif } from '../../lib/stores/monTheme';
@@ -365,6 +366,8 @@
   // web#2798 : « Barres de défilement larges » — le réglage enregistré,
   // appliqué à `<html>` (et pas seulement au chargement du module).
   $effect(() => { appliquerAscenseursLarges($preferences.ascenseursLarges === true); });
+  // rc12 — « Taille du texte » (Réglages › Interface) : `data-v2-taille-texte` sur <html>.
+  $effect(() => { appliquerTailleTexte($preferences.tailleTexte); });
 
   // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
@@ -1119,13 +1122,13 @@
     padding:0 30px; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
     color:var(--v2-on-acc); font-family:var(--v2-sans)}
   .maj-txt{flex:1; min-width:0; border:0; background:transparent; color:inherit; cursor:pointer;
-    text-align:left; font:600 13px var(--v2-sans);
+    text-align:left; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     /* La grappe avatar/signet vit au-dessus du bord droit : le texte s'arrête
        avant, sinon la fin de la phrase passe sous les ronds. */
     padding:0 150px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .maj-txt:hover{text-decoration:underline}
   .maj-x{flex:0 0 auto; width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
-    background:rgba(255,255,255,.18); color:inherit; font-size:18px; line-height:1;
+    background:rgba(255,255,255,.18); color:inherit; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1;
     display:grid; place-items:center}
   .maj-x:hover{background:rgba(255,255,255,.32)}
   /* Le bouton d'origine de « Lecture en cours » est MASQUÉ ici : la grappe
@@ -1145,7 +1148,7 @@
      La HAUTEUR ne bouge pas (32 px) : il reste aligné sur ses voisins, et
      `reserveHauteDeLaGrappe` n'a rien à recalculer. */
   .raccourci.tv.nomme{width:auto; flex:0 0 auto; border-radius:16px; padding:0 13px 0 11px;
-    display:inline-flex; gap:7px; font:600 12px var(--v2-sans); white-space:nowrap}
+    display:inline-flex; gap:7px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap}
   .tv-nom{line-height:1}
   /* La loupe reprise du client actuel se dessine en 36 px sur fond
      transparent. Dans la grappe elle voisinerait deux ronds pleins de 32 px :
@@ -1163,13 +1166,13 @@
   .rc-fond{position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.45); display:grid; place-items:center; padding:20px}
   .rc{display:flex; flex-direction:column; gap:10px; width:min(360px,100%); padding:20px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card)}
-  .rc label{font:600 11px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
+  .rc label{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
   .rc input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px; color:var(--v2-txt);
-    font:inherit; font-size:13.5px; padding:9px 11px}
+    font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:9px 11px}
   .rc button{border:0; border-radius:8px; background:var(--v2-acc1); color:var(--v2-on-acc);
-    font:600 13px var(--v2-sans); padding:9px 14px; cursor:pointer}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:9px 14px; cursor:pointer}
   .rc button:disabled{opacity:.5; cursor:default}
-  .rc-cible{margin:0; font-size:12px; color:var(--v2-txt2); overflow-wrap:anywhere}
+  .rc-cible{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow-wrap:anywhere}
   /* `auto` et non une largeur fixe : la barre laterale se replie (72 px) et
      la colonne doit suivre, sinon le repli laisse une bande vide. C'est la
      barre qui porte sa largeur, pas la grille.
@@ -1246,10 +1249,10 @@
   .main > :global(*){flex:1 1 auto; min-width:0; min-height:0}
   .soon{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; color:var(--v2-txt); font-family:var(--v2-sans); padding:40px}
-  .soon .badge{font:700 10px var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--v2-on-acc);
+  .soon .badge{font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
-  .soon h2{font-size:28px; font-weight:800}
-  .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}
+  .soon h2{font-size:calc(28px * var(--v2-txt-echelle, 1)); font-weight:800}
+  .soon p{max-width:420px; color:var(--v2-txt2); font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.5}
   /* 🔴 122, et non 120 : AU-DESSUS de la grappe.
      
      Sur petit écran la grappe passe à `z-index:121` pour rester atteignable
