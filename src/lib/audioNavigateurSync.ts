@@ -49,6 +49,7 @@ export function appliquerEvenementAudioNavigateur(
   estZoneNavigateur: (z: unknown) => boolean,
   source: (z: unknown) => string | undefined,
   actions: ActionsAudioNavigateur,
+  donnees?: unknown,
 ): void {
   if (!zone || !estZoneNavigateur(zone)) return;
 
@@ -69,8 +70,17 @@ export function appliquerEvenementAudioNavigateur(
       // 🔴 Rechargement FORCÉ au changement de piste : le serveur sert la piste
       // suivante sous la MÊME adresse de flux, et sans cela l'élément rejoue le
       // tampon qui vient de finir — l'album « se répète » (Elie).
+      //
+      // Sauf pour un titre de RADIO (#7533) : le serveur annonce le morceau
+      // que la station vient de lancer par ce même `track_changed`
+      // (`poller/radio.rs` → `update_now_playing`), sur le MÊME flux. Le
+      // recharger coupait le direct à chaque nouveau titre, au moment où la
+      // pochette changeait. Sans forçage, `browserPlay` ne recharge que si
+      // l'adresse a changé.
       const src = source(zone);
-      if (src) actions.jouer(src, type === 'playback.track_changed');
+      if (src) {
+        actions.jouer(src, type === 'playback.track_changed' && !estUnTitreDeRadio(donnees));
+      }
       return;
     }
     default:
@@ -78,4 +88,22 @@ export function appliquerEvenementAudioNavigateur(
       // particulier, qui arrive en continu.
       return;
   }
+}
+
+/**
+ * #7533 — `track_changed` d'une radio : le titre que la station annonce, pas
+ * une nouvelle piste. Le serveur le marque `source: "radio"`
+ * (`tune-core/src/poller/radio.rs`) et garde le flux (`stream_id`) de la
+ * station : rien à recharger.
+ *
+ * Fil 2461 (Bilou, zone navigateur, Windows) : « coupure systématique au
+ * chargement de la pochette » ; fil 2559 point 6 (FabienM, Firefox) :
+ * « micro-coupure du son au changement de vignette du titre écouté ».
+ */
+export function estUnTitreDeRadio(donnees: unknown): boolean {
+  return (
+    typeof donnees === 'object' &&
+    donnees !== null &&
+    (donnees as { source?: unknown }).source === 'radio'
+  );
 }
