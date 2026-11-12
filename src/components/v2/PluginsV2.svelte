@@ -38,8 +38,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   } from '../../lib/greffonsAudioNatifs';
   import { licenseState, isPremium } from '../../lib/stores/license';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
-  import { notifications } from '../../lib/stores/notifications';
+  import { redemarrerServeurConfirme } from '../../lib/redemarrerServeur';
   import '../../styles/tune-v2.css';
 
   const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
@@ -106,24 +105,11 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
 
   /** Redémarrer pour activer le greffon : la route de toujours
    *  (`POST /system/restart`), après confirmation, puis recharger quand le
-   *  serveur répond — le même geste que Réglages. */
+   *  serveur répond — le même geste que Réglages (`lib/redemarrerServeur`). */
   let redemarrage = $state(false);
   async function redemarrerPourActiver() {
-    if (!(await dialogs.confirm($t('settings.restartConfirm' as any), { danger: true }))) return;
     redemarrage = true;
-    try {
-      await api.restartServer();
-    } catch (e) {
-      // « Failed to fetch » = le redémarrage a commencé ; seule une erreur
-      // applicative arrête ici (même règle que Réglages).
-      const msg = errText(e);
-      if (msg !== null) { redemarrage = false; notifications.error(msg); return; }
-    }
-    attendreRetourEtRecharger({
-      sonder: () => api.getHealth(),
-      recharger: () => window.location.reload(),
-      renoncer: () => { redemarrage = false; notifications.error($t('settings.updateReloadGaveUp' as any)); },
-    });
+    if (!(await redemarrerServeurConfirme(() => (redemarrage = false)))) redemarrage = false;
   }
 
   async function installerDuCatalogue(id: string) {
@@ -303,7 +289,14 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
   {#if restartNeeded}
-    <div class="restart">{$t('v2.plug.restartNeeded' as any)}</div>
+    <!-- web#2534 (fil 2533) : le bouton À CÔTÉ du message, pour ne pas
+         aller le chercher dans Réglages. -->
+    <div class="restart">
+      <span>{$t('v2.plug.restartNeeded' as any)}</span>
+      <button class="lnk redemarrer-bandeau" disabled={redemarrage} onclick={redemarrerPourActiver}>
+        {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
+      </button>
+    </div>
   {/if}
   <!-- tune-server-rust#4861 : greffons payants absents d'un compte Premium. -->
   <BandeauReinstallerGreffons onReinstalle={(r) => { if (r) restartNeeded = true; reload(); }} />
@@ -543,6 +536,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
     border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans)}
   .lnk.danger:hover:not(:disabled){border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .lnk:disabled{opacity:.45; cursor:default}
+  .restart .redemarrer-bandeau{margin-left:auto}
   .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
