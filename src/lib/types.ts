@@ -764,6 +764,13 @@ export interface Zone {
    */
   dlna_radio_title?: 'off' | 'next' | 'reload';
   /**
+   * web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » :
+   * les pistes consécutives de même format partent en un seul flux WAV vers
+   * un renderer DLNA qui raccorde mal. Toujours présent sur un serveur qui
+   * connaît le réglage ; absent ⇒ l'interrupteur n'est pas proposé.
+   */
+  dlna_flux_continu?: boolean;
+  /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
    * l'appareil.

@@ -2312,6 +2312,8 @@ export default {
   "renderer.wav24Refused": "Test wykrywania wykazał: to urządzenie nie deklaruje ani audio/L24, ani audio/wav. 24 bity pozostają zablokowane — przesłanie ich skutkowałoby odtworzeniem ciszy.",
   "renderer.startDelay": "Opóźnienie startu",
   "renderer.startDelayHint": "Pauza przed rozpoczęciem odtwarzania, aby wzmacniacz DLNA zdążył zbuforować dane (pomaga, gdy pierwsze sekundy się zacinają). 0 = wartość domyślna.",
+  "renderer.fluxContinu": "Ciągły strumień między utworami",
+  "renderer.fluxContinuHint": "Dla odtwarzaczy, które źle łączą dwa kolejne utwory: kolejne utwory w tym samym formacie są wysyłane jako jeden strumień WAV, bez przetwarzania. Przy pierwszej zmianie formatu następuje powrót do zwykłego przechodzenia między utworami.",
   "renderer.probeFailed": "Nie udało się odczytać możliwości renderera. Serwer nie zdołał ustalić dokładnej przyczyny.",
   "renderer.probeOffline": "Renderer nie jest obecnie wykrywany. Upewnij się, że jest włączony i podłączony do tej samej sieci.",
   "renderer.probeEmptySink": "Renderer odpowiedział, ale nie udostępnia użytecznych parametrów audio. Odtwarzanie może nadal działać z ustawieniami automatycznymi.",

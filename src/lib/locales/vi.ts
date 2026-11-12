@@ -2314,6 +2314,8 @@ export default {
   "renderer.wav24Refused": "Bước kiểm tra phát hiện cho thấy: thiết bị này không thông báo audio/L24 lẫn audio/wav. 24-bit vẫn bị đóng — nếu phát sẽ chỉ ra im lặng.",
   "renderer.startDelay": "Độ trễ khởi động",
   "renderer.startDelayHint": "Tạm dừng trước khi bắt đầu phát, để ampli DLNA kịp nạp buffer (hữu ích khi vài giây đầu bị giật). 0 = mặc định.",
+  "renderer.fluxContinu": "Luồng liên tục giữa các bản nhạc",
+  "renderer.fluxContinuHint": "Dành cho đầu phát nối hai bản nhạc liên tiếp không tốt: các bản liên tiếp cùng định dạng được gửi thành một luồng WAV duy nhất, không qua xử lý. Khi định dạng thay đổi lần đầu, việc chuyển bài trở lại bình thường.",
   "renderer.probeFailed": "Không đọc được khả năng của renderer. Máy chủ không xác định được nguyên nhân chính xác.",
   "renderer.probeOffline": "Hiện không phát hiện được renderer. Hãy đảm bảo nó đã bật nguồn và ở cùng mạng.",
   "renderer.probeEmptySink": "Renderer có phản hồi nhưng không công bố khả năng âm thanh nào dùng được. Việc phát vẫn có thể hoạt động với cài đặt tự động.",

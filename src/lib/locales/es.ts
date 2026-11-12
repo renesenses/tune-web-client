@@ -1767,6 +1767,8 @@ export default {
   "renderer.wav24Refused": "La comprobación de descubrimiento ha respondido: este aparato no anuncia ni audio/L24 ni audio/wav. Los 24 bits siguen cerrados: enviárselos produciría silencio.",
   "renderer.startDelay": "Retardo de inicio",
   "renderer.startDelayHint": "Pausa antes de que comience la reproducción, para permitir que un amplificador DLNA almacene en búfer (útil si los primeros segundos se entrecortan). 0 = valor predeterminado.",
+  "renderer.fluxContinu": "Flujo continuo entre pistas",
+  "renderer.fluxContinuHint": "Para los reproductores que enlazan mal dos pistas seguidas: las pistas consecutivas del mismo formato se envían en un único flujo WAV, sin procesamiento. Al primer cambio de formato, se vuelve al encadenamiento normal.",
   "renderer.probeFailed": "No se pudieron leer las capacidades del renderer. El servidor no pudo determinar la causa exacta.",
   "renderer.probeOffline": "El renderer no se detecta actualmente. Asegúrate de que esté encendido y en la misma red.",
   "renderer.probeEmptySink": "El renderer responde, pero no publica capacidades de audio utilizables. La reproducción puede funcionar con los ajustes automáticos.",

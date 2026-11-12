@@ -1767,6 +1767,8 @@ export default {
   "renderer.wav24Refused": "发现检测已回复：此设备既不声明 audio/L24，也不声明 audio/wav。24 位保持禁用——发送将只会静音。",
   "renderer.startDelay": "启动延迟",
   "renderer.startDelayHint": "播放开始前的暂停，以便 DLNA 功放缓冲（当最初几秒卡顿时有帮助）。0 = 默认值。",
+  "renderer.fluxContinu": "曲目间连续流",
+  "renderer.fluxContinuHint": "适用于无法顺畅衔接相邻两首曲目的播放器：相同格式的连续曲目将作为单一 WAV 流发送，不做任何处理。格式一旦变化，即恢复正常的曲目衔接。",
   "renderer.probeFailed": "无法读取渲染器的功能。服务器无法确定确切原因。",
   "renderer.probeOffline": "当前未检测到渲染器。请确保它已开机并连接到同一网络。",
   "renderer.probeEmptySink": "渲染器已响应，但未公布可用的音频功能。使用自动设置仍可能正常播放。",

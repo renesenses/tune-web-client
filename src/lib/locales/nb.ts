@@ -2312,6 +2312,8 @@ export default {
   "renderer.wav24Refused": "Oppdagelsessjekken svarte: denne enheten oppgir verken audio/L24 eller audio/wav. 24 bit forblir stengt — å sende det ville gitt stillhet.",
   "renderer.startDelay": "Startforsinkelse",
   "renderer.startDelayHint": "Pause før avspillingen starter, slik at en DLNA-forsterker rekker å bufre (hjelper hvis de første sekundene hakker). 0 = standard.",
+  "renderer.fluxContinu": "Sammenhengende strøm mellom spor",
+  "renderer.fluxContinuHint": "For spillere som skjøter dårlig mellom to spor på rad: påfølgende spor i samme format sendes som én enkelt WAV-strøm, uten behandling. Ved første formatskifte går avspillingen tilbake til vanlig sporovergang.",
   "renderer.probeFailed": "Kunne ikke lese rendererens egenskaper. Serveren klarte ikke å fastslå den nøyaktige årsaken.",
   "renderer.probeOffline": "Rendereren er ikke oppdaget for øyeblikket. Sørg for at den er på og på samme nettverk.",
   "renderer.probeEmptySink": "Rendereren svarte, men oppga ingen brukbare lydegenskaper. Avspilling kan likevel fungere med automatiske innstillinger.",

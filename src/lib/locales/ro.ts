@@ -1773,6 +1773,8 @@ export default {
   "renderer.wav24Refused": "Verificarea de descoperire a răspuns: acest aparat nu anunță nici audio/L24, nici audio/wav. 24 de biți rămâne închis — trimiterea lui ar produce liniște.",
   "renderer.startDelay": "Întârziere la pornire",
   "renderer.startDelayHint": "Pauză înainte de începerea redării, pentru a permite unui amplificator DLNA să memoreze în buffer (util când primele secunde se întrerup). 0 = valoare implicită.",
+  "renderer.fluxContinu": "Flux continuu între piese",
+  "renderer.fluxContinuHint": "Pentru playerele care îmbină prost două piese consecutive: piesele consecutive de același format sunt trimise într-un singur flux WAV, fără procesare. La prima schimbare de format, se revine la înlănțuirea normală.",
   "renderer.probeFailed": "Nu s-au putut citi capacitățile renderer-ului. Serverul nu a putut determina cauza exactă.",
   "renderer.probeOffline": "Renderer-ul nu este detectat momentan. Asigură-te că este pornit și în aceeași rețea.",
   "renderer.probeEmptySink": "Renderer-ul răspunde, dar nu publică nicio capacitate audio utilizabilă. Redarea poate funcționa totuși cu setările automate.",

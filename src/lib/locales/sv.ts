@@ -1638,6 +1638,8 @@ export default {
   "renderer.wav24Refused": "Identifieringskontrollen svarade: enheten annonserar varken audio/L24 eller audio/wav. 24 bitar förblir stängt — att skicka det skulle ge tystnad.",
   "renderer.startDelay": "Startfördröjning",
   "renderer.startDelayHint": "Paus innan uppspelningen börjar, så att en DLNA-förstärkare hinner buffra (hjälper när de första sekunderna hackar). 0 = standardvärde.",
+  "renderer.fluxContinu": "Kontinuerlig ström mellan spår",
+  "renderer.fluxContinuHint": "För spelare som skarvar dåligt mellan två spår i följd: spår i följd med samma format skickas som en enda WAV-ström, utan bearbetning. Vid första formatbytet återgår uppspelningen till vanlig spårövergång.",
   "renderer.probeFailed": "Kunde inte läsa renderarens kapaciteter. Servern kunde inte fastställa den exakta orsaken.",
   "renderer.probeOffline": "Renderaren upptäcks inte just nu. Kontrollera att den är påslagen och på samma nätverk.",
   "renderer.probeEmptySink": "Renderaren svarar men publicerar inga användbara ljudkapaciteter. Uppspelning kan ändå fungera med automatiska inställningar.",
