@@ -7362,6 +7362,8 @@ export default {
   "spectro.loading": "正在生成频谱图…可能需要几秒钟。",
   "spectro.alt": "《{title}》的频谱图",
   "spectro.axes": "横轴为时间，纵轴为频率（底部为 0 Hz），电平以 dBFS 表示：越亮表示声音越大。",
+  "spectro.scale": "电平刻度（dBFS），从 −120（黑）到 0（白）",
+  "spectro.unit": "dBFS",
   "spectro.retry": "重试",
   "spectro.notLocal": "此曲目不是本地文件：只有文件位于服务器上的资料库曲目才有频谱图。",
   "spectro.failed": "无法生成频谱图：文件无法读取，或格式为 Tune 无法解码。",

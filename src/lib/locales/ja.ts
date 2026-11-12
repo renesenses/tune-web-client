@@ -7362,6 +7362,8 @@ export default {
   "spectro.loading": "スペクトログラムを生成しています… 数秒かかることがあります。",
   "spectro.alt": "「{title}」のスペクトログラム",
   "spectro.axes": "横軸が時間、縦軸が周波数（下が 0 Hz）、レベルは dBFS です。明るいほど大きな音です。",
+  "spectro.scale": "dBFS のレベルスケール（−120＝黒、0＝白）",
+  "spectro.unit": "dBFS",
   "spectro.retry": "再試行",
   "spectro.notLocal": "このトラックはローカルファイルではありません。スペクトログラムは、ファイルがサーバー上にあるライブラリのトラックにのみ用意されます。",
   "spectro.failed": "スペクトログラムを生成できませんでした。ファイルが読み取れないか、Tune がデコードできない形式です。",

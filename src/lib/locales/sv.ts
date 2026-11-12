@@ -7361,6 +7361,8 @@ export default {
   "spectro.loading": "Skapar spektrogrammet … det kan ta några sekunder.",
   "spectro.alt": "Spektrogram för ”{title}”",
   "spectro.axes": "Tid på den vågräta axeln, frekvens på den lodräta (0 Hz längst ned), nivå i dBFS: ljusare betyder starkare.",
+  "spectro.scale": "Nivåskala i dBFS, från −120 (svart) till 0 (vitt)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Försök igen",
   "spectro.notLocal": "Det här spåret är ingen lokal fil: spektrogram finns bara för bibliotekets spår vars fil ligger på servern.",
   "spectro.failed": "Spektrogrammet kunde inte skapas: filen är oläsbar eller i ett format som Tune inte kan avkoda.",

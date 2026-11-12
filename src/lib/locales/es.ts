@@ -7362,6 +7362,8 @@ export default {
   "spectro.loading": "Generando el espectrograma… puede tardar unos segundos.",
   "spectro.alt": "Espectrograma de «{title}»",
   "spectro.axes": "Tiempo en el eje horizontal, frecuencia en el vertical (0 Hz abajo), nivel en dBFS: más claro significa más fuerte.",
+  "spectro.scale": "Escala de niveles en dBFS, de −120 (negro) a 0 (blanco)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Reintentar",
   "spectro.notLocal": "Esta pista no es un archivo local: solo existe espectrograma para las pistas de la biblioteca cuyo archivo está en el servidor.",
   "spectro.failed": "No se pudo producir el espectrograma: el archivo es ilegible o está en un formato que Tune no sabe decodificar.",
