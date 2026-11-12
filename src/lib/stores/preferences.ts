@@ -507,6 +507,21 @@ export interface Preferences {
    */
   sourcesBarre: ChoixTypesBarre | null;
   /**
+   * rc12 — « barre latérale et menus allégés » (go de Bertrand du 12/11/2026).
+   * Les groupes à intertitre de la barre (Sélections, Studio) se replient d'un
+   * clic sur leur intertitre ; la liste des groupes REPLIÉS est retenue. Vide
+   * par défaut : la barre s'affiche comme avant tant qu'on n'a rien replié.
+   */
+  barreGroupesReplies: string[];
+  /**
+   * rc12 — les menus « … » des pistes et des fiches montrent d'abord les
+   * gestes courants, le reste sous « Plus… ». `null` (défaut) : SELON LE
+   * NIVEAU — complets à l'Expert (le niveau des installations existantes :
+   * rien ne change pour elles), courts à l'Essentiel et à l'Avancé. Un choix
+   * explicite (Réglages › Interface) l'emporte sur le niveau.
+   */
+  menusComplets: boolean | null;
+  /**
    * #2117 — l'instant (ms) du dernier geste sur ces cases, pour qu'un choix
    * fait sur un autre appareil du même profil arrive ici. `0` : jamais daté.
    * Voir `arbitrerTypesBarre` dans `lib/typesSourcesBarre`.
@@ -622,6 +637,10 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  // rc12 : rien de replié — la barre comme avant.
+  barreGroupesReplies: [],
+  // rc12 : selon le niveau (complets à l'Expert, courts sinon).
+  menusComplets: null,
   sourcesBarreMaj: 0,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
@@ -796,6 +815,13 @@ function lirePrefs(stored: string | null): Preferences {
       // « aucune photo », ce qui redonne le dégradé au lieu d'un rond cassé.
       if (!estDataUrlImage((raw as { avatarImage?: unknown })?.avatarImage)) {
         p.avatarImage = '';
+      }
+      // rc12 — une liste de groupes repliés illisible retombe sur « rien de replié ».
+      {
+        const r = (raw as { barreGroupesReplies?: unknown })?.barreGroupesReplies;
+        p.barreGroupesReplies = Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string') : [];
+        const m = (raw as { menusComplets?: unknown })?.menusComplets;
+        p.menusComplets = typeof m === 'boolean' ? m : null;
       }
       // Le propriétaire de la photo est comparé à une identité de compte : une
       // valeur qui n'est pas une chaîne ne peut apparier personne, et la garder

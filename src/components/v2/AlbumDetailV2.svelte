@@ -493,9 +493,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       faire: () => (etiquettesOuvertes = true), attrs: { 'data-etiquettes-album': true, 'aria-haspopup': 'dialog' } });
     // ▸ Infos — l'assistant IA : mêmes albums que « Modifier ».
     if (edition && !enEdition && album.id != null) {
-      l.push({ groupe: infos, cle: 'assistantIa.album.button', bulle: 'assistantIa.album.tip',
+      l.push({ groupe: infos, cle: 'assistantIa.album.button', bulle: 'assistantIa.album.tip', secondaire: true,
         faire: () => (suggestionsIa = true), attrs: { 'data-suggestions-ia-album': true } });
-      l.push({ groupe: infos, cle: 'assistantIa.notes.button', bulle: 'assistantIa.notes.tip',
+      l.push({ groupe: infos, cle: 'assistantIa.notes.button', bulle: 'assistantIa.notes.tip', secondaire: true,
         faire: () => (notesIa = true), attrs: { 'data-notes-ia-album': true } });
     }
     // #6481 — le livret s'ouvre dans un nouvel onglet.
@@ -509,16 +509,18 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       attrs: { 'data-selection-album': true } });
     if (edition && !enEdition) l.push({ groupe: biblio, cle: 'v2.edition.modify', bulle: 'v2.edition.modifyTip',
       faire: () => { onglet = 'pistes'; enEdition = true; }, attrs: { 'data-modifier-album': true } });
-    if (album.id != null && !depot) l.push({ groupe: biblio,
+    // rc12 — réidentifier (MusicBrainz) et le dossier sur disque sont des
+    // outils d'EXPERT : absents au niveau Essentiel, sous « Plus… » sinon.
+    if (album.id != null && !depot && !essentiel) l.push({ groupe: biblio, secondaire: true,
       cle: reidentification ? 'library.reidentifying' : 'library.reidentify', desactive: reidentification, bulle: 'v2.album.reidentifyTip',
       faire: () => void reidentifier(), attrs: { 'data-reidentifier-album': true } });
     // Le dossier n'existe que pour un album LOCAL dont les pistes portent un chemin.
-    if (dossier) {
-      l.push({ groupe: biblio, cle: 'v2.album.locate', bulle: 'v2.album.locateTip', faire: localiser, attrs: { 'data-localiser-album': true } });
-      if (revelable) l.push({ groupe: biblio, cle: 'v2.album.reveal', bulle: 'v2.album.revealTip',
+    if (dossier && !essentiel) {
+      l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.locate', bulle: 'v2.album.locateTip', faire: localiser, attrs: { 'data-localiser-album': true } });
+      if (revelable) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.reveal', bulle: 'v2.album.revealTip',
         faire: () => void ouvrirDansLExplorateur(), attrs: { 'data-reveler-album': true } });
     }
-    if (coffretDefaisable()) l.push({ groupe: biblio, cle: 'v2.album.boxUndo', desactive: defaireEnCours, bulle: 'v2.album.boxUndoTip',
+    if (coffretDefaisable()) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.boxUndo', desactive: defaireEnCours, bulle: 'v2.album.boxUndoTip',
       faire: () => void defaireCoffret(), attrs: { 'data-defaire-coffret': true } });
     return l;
   }
@@ -724,6 +726,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let loading = $state(true);
   let error = $state<string | null>(null);
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
+  /** rc12 — niveau Essentiel : les outils d'expert du menu « … » n'y sont pas proposés. */
+  const essentiel = $derived(!atLeast($preferences.settingsLevel, 'intermediate'));
 
   /**
    * Les pistes de la fiche AFFICHÉE — et rien d'autre.

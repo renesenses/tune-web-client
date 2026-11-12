@@ -67,6 +67,11 @@ export interface EntreeMenu extends Omit<EntreeMenuPiste, 'icone'> {
   coche?: boolean;
   /** Défini : l'entrée est une bascule (`menuitemcheckbox`) — « Écouter plus tard ». */
   active?: boolean;
+  /**
+   * rc12 — entrée SECONDAIRE : rangée sous « Plus… » tant que le menu n'est
+   * pas déplié (sauf « Menus complets », Réglages › Interface).
+   */
+  secondaire?: boolean;
   /** Clé i18n de l'infobulle : ce que l'entrée FAIT (#2151), pas son libellé. */
   bulle?: string;
   /** Texte qui suit le libellé traduit (nom d'un livret). Jamais une phrase. */
@@ -102,6 +107,41 @@ export const ICONES = {
   spectro: 'M3 3v18h18M7 16v-3M11 16V8M15 16v-5M19 16V6',
   credits: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
 } as const;
+/**
+ * rc12 — « menus « … » raccourcis aux actions courantes avec un « Plus… » pour
+ * le reste » (go de Bertrand du 12/11/2026). Restent à vue : Lire, Lire
+ * ensuite, Ajouter à la file, Ajouter à une playlist, Aller à l'artiste /
+ * l'album, Écouter plus tard. Passent sous « Plus… » : ces entrées-ci. Rien
+ * n'est retiré : « Plus… » les déplie en place.
+ */
+export const CLES_SECONDAIRES_PISTE: ReadonlySet<string> = new Set([
+  'library.playSimilar', 'library.otherVersions',
+  'v2.circle.pl.addToCircle', 'v2.circle.msg.share',
+  'v2.cover.tags', 'trackTags.title', 'credits.see', 'spectro.menu',
+  'ban.ban', 'ban.unban',
+]);
+/**
+ * rc12 — les outils d'EXPERT du menu de piste, absents au niveau Essentiel
+ * (ils reviennent dès Avancé) : « Tous les champs piste » (métadonnées du
+ * fichier) et « Spectrogramme » (diagnostic de la source).
+ */
+export const CLES_PISTE_HORS_ESSENTIEL: ReadonlySet<string> = new Set(['trackTags.title', 'spectro.menu']);
+/** rc12 — de même pour le menu d'une carte d'album : réidentifier (MusicBrainz) et localiser le dossier. */
+export const CLES_CARTE_HORS_ESSENTIEL: ReadonlySet<string> = new Set(['library.reidentify', 'v2.album.locate']);
+/**
+ * rc12 — les menus « … » sont-ils complets ? Le choix explicite de
+ * l'utilisateur, sinon le niveau : complets à l'Expert (installations
+ * existantes inchangées), courts à l'Essentiel et à l'Avancé.
+ */
+export function menusCompletsEffectifs(p: { menusComplets?: boolean | null; settingsLevel?: string }): boolean {
+  return typeof p.menusComplets === 'boolean' ? p.menusComplets : p.settingsLevel === 'expert';
+}
+/** Les entrées d'un menu de piste telles que `MenuPisteV2` les range, selon le niveau. */
+export function rangerMenuPiste<E extends { cle: string }>(entrees: E[], niveau: string | null | undefined): (E & { secondaire?: boolean })[] {
+  return entrees
+    .filter((e) => niveau !== 'beginner' || !CLES_PISTE_HORS_ESSENTIEL.has(e.cle))
+    .map((e) => (CLES_SECONDAIRES_PISTE.has(e.cle) ? { ...e, secondaire: true } : e));
+}
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
   /** La piste sait se désigner pour la lecture. */

@@ -115,6 +115,7 @@
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
+  import { menusCompletsEffectifs } from '../../lib/menuPiste';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import AssistantSpotify from './spotify/AssistantSpotify.svelte';
   import RelaisSpotify from './spotify/RelaisSpotify.svelte';
@@ -5162,6 +5163,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
                    comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
+              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
+                   décoché par défaut, les menus montrent les gestes courants et
+                   rangent le reste sous « Plus… ». -->
+              <div class="row" data-reglage="menus-complets">
+                <div class="lbl">
+                  <span>{$t('settings.fullMenus' as any)}</span>
+                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
+                    aria-label={$t('settings.fullMenus' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <div class="row" data-visualiseur-barre data-reglage="visualiseur-barre">
                 <div class="lbl">
                   <span>{$t('v2.set.barViz' as any)}</span>

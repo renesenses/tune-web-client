@@ -62,6 +62,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'taille-texte', section: 'interface', labelKey: 'settings.textSize', descKey: 'settings.textSizeHint', termesKey: 'reglages.termes.tailleTexte' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
   { id: 'crete-metre', section: 'interface', labelKey: 'v2.set.peakMeter', descKey: 'v2.set.peakMeterHint', termesKey: 'reglages.termes.creteMetre', techniques: ['DAT', 'PCM-7030', 'IEC'] },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'menus-complets', section: 'interface', labelKey: 'settings.fullMenus', descKey: 'settings.fullMenusHint', termesKey: 'reglages.termes.menusComplets' },
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },
   { id: 'barre-vu-metres', section: 'interface', labelKey: 'v2.set.barVu', descKey: 'v2.set.barVuHint', techniques: ['VU'] },
   { id: 'barre-onde', section: 'interface', labelKey: 'v2.set.barOnde', descKey: 'v2.set.barOndeHint', termesKey: 'reglages.termes.barreOnde', techniques: ['waveform'] },
