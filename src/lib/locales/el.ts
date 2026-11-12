@@ -1907,7 +1907,7 @@ export default {
   "settings.backgroundTasksHint": "Οι εργασίες στο παρασκήνιο παρακολουθούνται στο *{tab}*.",
   "settings.perZoneScopeHint": "Αυτές οι ρυθμίσεις ανήκουν σε ΚΑΘΕ ζώνη: ακολουθούν την έξοδο, όχι την ακρόαση.",
   "settings.levelsOpenMoreTabs": "Τα επίπεδα Προχωρημένο και Ειδικό ανοίγουν επιπλέον καρτέλες.",
-  "settings.themePalettesHint": "Επτά παλέτες. Ειδική ρύθμιση του νέου προγράμματος-πελάτη — η τρέχουσα διεπαφή διατηρεί το δικό της θέμα.",
+  "settings.themePalettesHint": "Ειδική ρύθμιση του νέου προγράμματος-πελάτη — η τρέχουσα διεπαφή διατηρεί το δικό της θέμα.",
   "settings.themeDarkGrey": "Σκούρο γκρι",
   "settings.themeMozaiklabs": "Mozaiklabs (ανθρακί / πορτοκαλί)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (λογότυπο: μαύρο / μωσαϊκό)",

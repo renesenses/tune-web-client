@@ -1571,7 +1571,23 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .simple:disabled{cursor:default; opacity:.55}
   .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
 
-  .tabs{display:flex; gap:4px}
+  .tabs{display:flex; gap:4px; flex-wrap:wrap}
+  /* Recette rc12 (13/11) — même en-tête que la Bibliothèque : le titre sur sa
+     ligne, le filtre et les sept onglets dessous, alignés à gauche. À côté du
+     titre, ils ne tenaient pas : « Votre sélection » passait sur deux lignes
+     à 1440 px, et à 1024 px la rangée d'onglets recouvrait « Favoris ». La vue
+     mini (téléphone) garde sa mise en page (`styles/vue-mini.css`). */
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{flex-wrap:wrap; align-items:center; row-gap:10px; padding-right:30px}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{padding-right:0}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .v2-rech{flex:1 1 100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; min-width:0; max-width:100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs::-webkit-scrollbar{display:none}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs button{flex:0 0 auto; white-space:nowrap}
+  }
   .tabs button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
   .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}

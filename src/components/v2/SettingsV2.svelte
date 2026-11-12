@@ -8786,6 +8786,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
+     la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
+     chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le
+     titre réserve la place de la grappe (avatar, signet). Vue mini exclue :
+     elle a sa propre mise en page (`styles/vue-mini.css`). */
+  @media (max-width:720px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{flex-wrap:wrap; align-items:center; row-gap:12px; padding-right:30px}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  }
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{padding-right:0}
+  }
   .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
     background:transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
     white-space:nowrap; transition:.15s}
@@ -8833,6 +8846,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
   .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite : un contrôle large (les pastilles
+     du thème, Petite / Normale / Grande) écrasait son libellé en une colonne
+     d'un mot par ligne. Il passe sous le libellé ; un interrupteur, étroit,
+     reste à côté. */
+  @media (max-width:640px){
+    .row{flex-wrap:wrap; row-gap:8px}
+    .row > .lbl{flex:1 1 200px}
+  }
   .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
   .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
