@@ -2280,7 +2280,16 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
 
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
-  .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px}
+  .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
+     pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
+     coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  @media (max-width:640px){
+    .v2-detail{padding:20px 16px 32px}
+    .head:not(.compact){flex-direction:column; gap:18px}
+    .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
+    .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  }
   /* Le badge de qualité et la pastille « compilation » sur la MÊME ligne, et
      non deux blocs empilés : ce sont deux étiquettes de même rang, et empilées
      elles pousseraient le titre de l'album hors du premier coup d'œil. */

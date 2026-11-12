@@ -36,6 +36,9 @@
   import { ICONES, type EntreeMenu } from '../../lib/menuPiste';
   import BoutonMenuV2 from './BoutonMenuV2.svelte';
 
+  /** Largeur du menu ▾ : « Ajouter à la file d'attente » sur une ligne, même en Grande. */
+  const LARGEUR_MENU_LECTURE = 264;
+
   interface Geste {
     faire: () => void;
     /** Une requête est en cours : l'entrée reste, grisée. */
@@ -90,7 +93,10 @@
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8V4z"/></svg>{#if !compact}{$t(cle as any)}{suffixe}{/if}
   </button>
   {#if aUneFleche}
-    <BoutonMenuV2 {entrees} etiquette={$t('v2.menu.playOptions' as any)}>
+    <!-- Recette rc12 (13/11) — à 208 px (la largeur par défaut), « Ajouter à
+         la file d'attente » passait sur deux lignes, et davantage en taille
+         de texte Grande ou en allemand. -->
+    <BoutonMenuV2 {entrees} etiquette={$t('v2.menu.playOptions' as any)} largeur={LARGEUR_MENU_LECTURE}>
       {#snippet declencheur(p)}
         <button class="bl-fleche" {...p} data-lecture-options
           aria-label={$t('v2.menu.playOptions' as any)} title={$t('v2.menu.playOptions' as any)}>

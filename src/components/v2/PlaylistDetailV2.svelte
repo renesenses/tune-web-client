@@ -818,6 +818,15 @@
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
   .art > svg{width:96px; height:96px}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
+     pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
+     coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  @media (max-width:640px){
+    .v2-pldetail{padding:20px 16px 32px}
+    .head:not(.compact){flex-direction:column; gap:18px}
+    .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
+    .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  }
   .kind{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
   .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .rn{font-size:calc(32px * var(--v2-txt-echelle, 1)); font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;

@@ -108,6 +108,7 @@
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -125,7 +126,6 @@
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
-  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import EtatImportUpnp from '../partages/EtatImportUpnp.svelte';
@@ -656,10 +656,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
-  // tune-server-rust#6713 — lever le bridage des analyses quand la
-  // température est illisible : désactivé par défaut, niveau Expert, avec
-  // un avertissement à l'activation.
-  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -682,8 +678,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
-        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
-        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -735,21 +729,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
-  }
-  async function setLevBridage(ev: Event) {
-    const caseCochee = ev.currentTarget as HTMLInputElement | null;
-    const souhait = !!caseCochee?.checked;
-    // Lever le bridage se fait en connaissance de cause : l'avertissement
-    // d'abord, et un refus laisse la case décochée.
-    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
-      if (caseCochee) caseCochee.checked = false;
-      return;
-    }
-    const before = levBridage; levBridage = souhait;
-    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
-      levBridage = before;
-      if (caseCochee) caseCochee.checked = !!before;
-    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -2636,6 +2615,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ytStatus = $state('absent');
   let ytBusy = $state(false);
   let ytPoll: ReturnType<typeof setInterval> | null = null;
+  /** web#2441 — la ligne « à jour / mise à jour / inconnue » du module. */
+  let ytLigne = $state<LigneModuleYoutube | null>(null);
 
   async function refreshYoutubePlayback() {
     try {
@@ -2644,6 +2625,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ytVersion = s.version ?? null;
       ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
       ytBusy = ytStatus === 'downloading';
+      ytLigne = ligneModuleYoutube(s);
       if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
     } catch { /* serveur antérieur à la route : la section reste en l'état */ }
   }
@@ -2669,6 +2651,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     paysTendancesYt = v;
     try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
     catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
+  /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
+  function remplirModuleYt(phrase: string, params: Record<string, string>): string {
+    return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
   }
 
   async function enableYoutubePlayback() {
@@ -7975,6 +7962,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </button>
                 {/if}
               </div>
+              <!-- web#2441 — version installée ET dernière publiée : « à jour »,
+                   « une mise à jour existe », ou pourquoi on ne sait pas. -->
+              {#if ytLigne}
+                <div class={ytLigne.etat === 'a_jour' ? 'hint' : 'errline'} data-module-youtube={ytLigne.etat}>
+                  {remplirModuleYt($t(ytLigne.cle as any), ytLigne.params)}
+                </div>
+              {/if}
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
               <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
@@ -8590,22 +8584,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
-                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
-                     vitesse réglée quand la température est illisible. -->
-                {#if levBridage !== null && voit('expert', s.id)}
-                  <div class="row" data-reglage="lever-bridage">
-                    <div class="lbl">
-                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
-                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
-                    </div>
-                    <label class="sw">
-                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
-                        aria-label={$t('settings.analysisUnthrottle' as any)}
-                        onchange={setLevBridage} />
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer" data-reglage="remesure-replaygain">
                     <div class="lbl">
@@ -8786,6 +8764,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
+     la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
+     chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le
+     titre réserve la place de la grappe (avatar, signet). Vue mini exclue :
+     elle a sa propre mise en page (`styles/vue-mini.css`). */
+  @media (max-width:720px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{flex-wrap:wrap; align-items:center; row-gap:12px; padding-right:30px}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  }
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{padding-right:0}
+  }
   .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
     background:transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
     white-space:nowrap; transition:.15s}
@@ -8833,6 +8824,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
   .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite : un contrôle large (les pastilles
+     du thème, Petite / Normale / Grande) écrasait son libellé en une colonne
+     d'un mot par ligne. Il passe sous le libellé ; un interrupteur, étroit,
+     reste à côté. */
+  @media (max-width:640px){
+    .row{flex-wrap:wrap; row-gap:8px}
+    .row > .lbl{flex:1 1 200px}
+  }
   .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
   .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}

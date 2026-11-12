@@ -445,6 +445,11 @@
    masque sa propre grappe haut-droite sur « Lecture en cours »
    (`App.svelte`, `$activeView !== 'nowplaying'`). */
 .v2-shell{--v2-grappe-w:172px; --v2-grappe-h:66px}
+/* Recette rc12 (13/11) — la coquille n'a PAS de barre d'onglets du bas (seule
+   la vue mini en a une, `BarreOngletsMini`). Sous 768 px, la barre de lecture
+   lui réservait pourtant `--tab-bar-height` (56 px, `tune-theme.css`) : une
+   bande vide sous la barre, à 768 comme à 400 px. */
+.v2-shell:not(.mini){--tab-bar-height:0px}
 
 .tune-v2 .v2-top{
   display:flex; align-items:flex-end; gap:20px;
