@@ -4645,6 +4645,8 @@ export default {
   "v2.lib.map.clear": "Fjern landfilteret",
   "v2.lib.map.filterError": "Albumene fra dette landet kunne ikke lastes inn.",
   "browse.playAllRecursive": "Spill alle (inkludert undermapper)",
+  "browse.shuffleFolder": "Tilfeldig",
+  "browse.shuffleFolderHint": "Spill denne mappen og undermappene i tilfeldig rekkefølge",
   "browse.addAllRecursive": "Legg til i køen (inkludert undermapper)",
   "browse.folderPlayError": "Kunne ikke spille mappen: {erreur}",
   "browse.folderQueued": "Mappen er lagt til i køen, inkludert undermapper",

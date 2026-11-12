@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "国の絞り込みを解除",
   "v2.lib.map.filterError": "この国のアルバムを読み込めませんでした。",
   "browse.playAllRecursive": "すべて再生（サブフォルダーを含む）",
+  "browse.shuffleFolder": "シャッフル",
+  "browse.shuffleFolderHint": "このフォルダーとサブフォルダーをシャッフル再生",
   "browse.addAllRecursive": "キューに追加（サブフォルダーを含む）",
   "browse.folderPlayError": "フォルダーを再生できません：{erreur}",
   "browse.folderQueued": "フォルダーをサブフォルダーごとキューに追加しました",

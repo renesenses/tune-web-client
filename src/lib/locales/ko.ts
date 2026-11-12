@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "국가 필터 해제",
   "v2.lib.map.filterError": "이 국가의 앨범을 불러올 수 없습니다.",
   "browse.playAllRecursive": "모두 재생(하위 폴더 포함)",
+  "browse.shuffleFolder": "셔플",
+  "browse.shuffleFolderHint": "이 폴더와 하위 폴더를 무작위로 재생",
   "browse.addAllRecursive": "대기열에 추가(하위 폴더 포함)",
   "browse.folderPlayError": "폴더를 재생할 수 없습니다: {erreur}",
   "browse.folderQueued": "하위 폴더를 포함해 폴더를 대기열에 추가했습니다",

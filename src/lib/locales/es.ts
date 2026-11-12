@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "Quitar el filtro de país",
   "v2.lib.map.filterError": "No se pudieron cargar los álbumes de este país.",
   "browse.playAllRecursive": "Reproducir todo (subcarpetas incluidas)",
+  "browse.shuffleFolder": "Aleatorio",
+  "browse.shuffleFolderHint": "Reproducir esta carpeta y sus subcarpetas en orden aleatorio",
   "browse.addAllRecursive": "Añadir a la cola (subcarpetas incluidas)",
   "browse.folderPlayError": "No se puede reproducir la carpeta: {erreur}",
   "browse.folderQueued": "Carpeta añadida a la cola, subcarpetas incluidas",

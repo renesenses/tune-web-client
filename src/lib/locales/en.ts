@@ -4791,6 +4791,8 @@ export default {
   "v2.lib.map.clear": "Remove the country filter",
   "v2.lib.map.filterError": "The albums of this country could not be loaded.",
   "browse.playAllRecursive": "Play all (including subfolders)",
+  "browse.shuffleFolder": "Shuffle",
+  "browse.shuffleFolderHint": "Play this folder and its subfolders shuffled",
   "browse.addAllRecursive": "Add to queue (including subfolders)",
   "browse.folderPlayError": "Could not play the folder: {erreur}",
   "browse.folderQueued": "Folder added to the queue, including subfolders",

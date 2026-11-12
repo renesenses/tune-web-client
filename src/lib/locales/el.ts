@@ -4645,6 +4645,8 @@ export default {
   "v2.lib.map.clear": "Αφαίρεση φίλτρου χώρας",
   "v2.lib.map.filterError": "Δεν ήταν δυνατή η φόρτωση των άλμπουμ αυτής της χώρας.",
   "browse.playAllRecursive": "Αναπαραγωγή όλων (μαζί με υποφακέλους)",
+  "browse.shuffleFolder": "Τυχαία",
+  "browse.shuffleFolderHint": "Τυχαία αναπαραγωγή αυτού του φακέλου και των υποφακέλων του",
   "browse.addAllRecursive": "Προσθήκη στην ουρά (μαζί με υποφακέλους)",
   "browse.folderPlayError": "Δεν ήταν δυνατή η αναπαραγωγή του φακέλου: {erreur}",
   "browse.folderQueued": "Ο φάκελος προστέθηκε στην ουρά μαζί με τους υποφακέλους",

@@ -4793,6 +4793,8 @@ export default {
   "v2.lib.map.clear": "Retirer le filtre de pays",
   "v2.lib.map.filterError": "Les albums de ce pays n’ont pas pu être chargés.",
   "browse.playAllRecursive": "Tout lire (sous-dossiers compris)",
+  "browse.shuffleFolder": "Aléatoire",
+  "browse.shuffleFolderHint": "Lire ce dossier et ses sous-dossiers en aléatoire",
   "browse.addAllRecursive": "Ajouter à la file (sous-dossiers compris)",
   "browse.folderPlayError": "Lecture du dossier impossible : {erreur}",
   "browse.folderQueued": "Dossier ajouté à la file, sous-dossiers compris",

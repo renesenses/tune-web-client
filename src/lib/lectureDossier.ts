@@ -80,3 +80,30 @@ export async function ajouterDossierALaFile(
     return false;
   }
 }
+
+/**
+ * « Aléatoire » d'un dossier, sous-dossiers compris — web#2606 (JeanPitre,
+ * fil 2595 : « rajouter dans le bandeau supérieur un onglet lecture
+ * aléatoire »).
+ *
+ * C'est la lecture aléatoire EXISTANTE, pas une nouvelle : `api.shuffleAll`
+ * avec la portée `folder` (#2801), la même qu'Oxygène (#1947). Le serveur
+ * tire dans le sous-arbre entier et applique son plafond
+ * (`shuffle_max_tracks`) ; le client n'a jamais le sous-arbre, il n'envoie
+ * donc que le dossier. Rend `true` si la lecture est partie.
+ */
+export async function lireDossierAleatoire(zoneId: number | null | undefined, dossier: string | null | undefined): Promise<boolean> {
+  if (!dossier) return false;
+  if (zoneId == null) {
+    notifications.error(tr('library.noZoneSelected'));
+    return false;
+  }
+  try {
+    const r = await api.shuffleAll(zoneId, { folder: dossier });
+    notifications.success(tr('library.shufflePlaying').replace('{count}', String(r.track_count)));
+    return true;
+  } catch (e) {
+    signalerEchec(e);
+    return false;
+  }
+}

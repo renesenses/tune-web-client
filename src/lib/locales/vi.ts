@@ -4647,6 +4647,8 @@ export default {
   "v2.lib.map.clear": "Bỏ bộ lọc quốc gia",
   "v2.lib.map.filterError": "Không thể tải các album của quốc gia này.",
   "browse.playAllRecursive": "Phát tất cả (gồm thư mục con)",
+  "browse.shuffleFolder": "Ngẫu nhiên",
+  "browse.shuffleFolderHint": "Phát thư mục này và các thư mục con theo thứ tự ngẫu nhiên",
   "browse.addAllRecursive": "Thêm vào hàng đợi (gồm thư mục con)",
   "browse.folderPlayError": "Không thể phát thư mục: {erreur}",
   "browse.folderQueued": "Đã thêm thư mục vào hàng đợi, gồm cả thư mục con",

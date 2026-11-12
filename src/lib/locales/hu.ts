@@ -4725,6 +4725,8 @@ export default {
   "v2.lib.map.clear": "Országszűrő eltávolítása",
   "v2.lib.map.filterError": "Az ország albumai nem tölthetők be.",
   "browse.playAllRecursive": "Összes lejátszása (almappákkal együtt)",
+  "browse.shuffleFolder": "Véletlen",
+  "browse.shuffleFolderHint": "A mappa és almappái lejátszása véletlen sorrendben",
   "browse.addAllRecursive": "Hozzáadás a sorhoz (almappákkal együtt)",
   "browse.folderPlayError": "A mappa nem játszható le: {erreur}",
   "browse.folderQueued": "A mappa az almappákkal együtt a sorba került",

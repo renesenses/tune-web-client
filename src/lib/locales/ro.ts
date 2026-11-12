@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "Elimină filtrul de țară",
   "v2.lib.map.filterError": "Albumele acestei țări nu au putut fi încărcate.",
   "browse.playAllRecursive": "Redă tot (inclusiv subdosarele)",
+  "browse.shuffleFolder": "Aleatoriu",
+  "browse.shuffleFolderHint": "Redă acest dosar și subdosarele sale în ordine aleatorie",
   "browse.addAllRecursive": "Adaugă în coadă (inclusiv subdosarele)",
   "browse.folderPlayError": "Dosarul nu poate fi redat: {erreur}",
   "browse.folderQueued": "Dosar adăugat în coadă, inclusiv subdosarele",

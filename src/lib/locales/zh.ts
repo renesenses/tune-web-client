@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "移除国家筛选",
   "v2.lib.map.filterError": "无法加载该国家的专辑。",
   "browse.playAllRecursive": "全部播放（含子文件夹）",
+  "browse.shuffleFolder": "随机播放",
+  "browse.shuffleFolderHint": "随机播放此文件夹及其子文件夹",
   "browse.addAllRecursive": "加入队列（含子文件夹）",
   "browse.folderPlayError": "无法播放该文件夹：{erreur}",
   "browse.folderQueued": "文件夹（含子文件夹）已加入队列",

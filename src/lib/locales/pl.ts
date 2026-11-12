@@ -4643,6 +4643,8 @@ export default {
   "v2.lib.map.clear": "Usuń filtr kraju",
   "v2.lib.map.filterError": "Nie udało się wczytać albumów z tego kraju.",
   "browse.playAllRecursive": "Odtwórz wszystko (z podfolderami)",
+  "browse.shuffleFolder": "Losowo",
+  "browse.shuffleFolderHint": "Odtwórz ten folder i jego podfoldery losowo",
   "browse.addAllRecursive": "Dodaj do kolejki (z podfolderami)",
   "browse.folderPlayError": "Nie można odtworzyć folderu: {erreur}",
   "browse.folderQueued": "Folder dodany do kolejki wraz z podfolderami",

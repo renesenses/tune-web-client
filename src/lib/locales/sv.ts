@@ -4770,6 +4770,8 @@ export default {
   "v2.lib.map.clear": "Ta bort landsfiltret",
   "v2.lib.map.filterError": "Albumen från det här landet kunde inte läsas in.",
   "browse.playAllRecursive": "Spela alla (inklusive undermappar)",
+  "browse.shuffleFolder": "Blanda",
+  "browse.shuffleFolderHint": "Spela den här mappen och dess undermappar i blandad ordning",
   "browse.addAllRecursive": "Lägg till i kön (inklusive undermappar)",
   "browse.folderPlayError": "Det gick inte att spela mappen: {erreur}",
   "browse.folderQueued": "Mappen har lagts till i kön, inklusive undermappar",

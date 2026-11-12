@@ -4771,6 +4771,8 @@ export default {
   "v2.lib.map.clear": "Länderfilter entfernen",
   "v2.lib.map.filterError": "Die Alben dieses Landes konnten nicht geladen werden.",
   "browse.playAllRecursive": "Alles abspielen (inkl. Unterordner)",
+  "browse.shuffleFolder": "Zufall",
+  "browse.shuffleFolderHint": "Diesen Ordner samt Unterordnern zufällig abspielen",
   "browse.addAllRecursive": "Zur Warteschlange hinzufügen (inkl. Unterordner)",
   "browse.folderPlayError": "Ordner kann nicht abgespielt werden: {erreur}",
   "browse.folderQueued": "Ordner samt Unterordnern zur Warteschlange hinzugefügt",
