@@ -51,4 +51,16 @@ describe('tune-server-rust#8419 — sorties du groupe dans le chemin du signal',
     expect(sortiesDuGroupe(chemin({ outputs: [GROUPE.outputs[0]] }))).toEqual([]);
     expect(etageFinal({ ...GROUPE.outputs[1], final_stage: null })).toBeNull();
   });
+
+  it("l'étage final passe par la traduction des étapes du parent", () => {
+    locale.set('fr');
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    monte = mount(SortiesDuGroupe, {
+      target: host,
+      props: { signalPath: chemin(GROUPE), libelleEtape: (e) => `«${e.description}»` },
+    });
+    flushSync();
+    expect(host.textContent).toContain('«WASAPI exclusif — PCM 48 kHz/24 bit»');
+  });
 });

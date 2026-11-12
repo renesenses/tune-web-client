@@ -2397,7 +2397,7 @@ import { ICONES } from '../../lib/menuPiste';
                   <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
                   <GainDeSortieNotes signalPath={zone.signal_path} />
                   <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
-                  <SortiesDuGroupe signalPath={zone.signal_path} />
+                  <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
                 </div>
               </div>
             {/if}

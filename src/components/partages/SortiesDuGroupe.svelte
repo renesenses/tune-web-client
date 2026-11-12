@@ -6,9 +6,14 @@
    */
   import { t } from '../../lib/i18n';
   import { sortiesDuGroupe, etageFinal } from '../../lib/sortiesDuGroupe';
-  import type { SignalPath } from '../../lib/types';
+  import type { SignalPath, SignalPathStep } from '../../lib/types';
 
-  let { signalPath }: { signalPath: SignalPath | null | undefined } = $props();
+  /** `libelleEtape` : la même traduction que les étapes du chemin du signal
+   *  (`trDesc(descriptionDEtape(…))` du parent). Absente : la description brute. */
+  let { signalPath, libelleEtape }: {
+    signalPath: SignalPath | null | undefined;
+    libelleEtape?: (etape: SignalPathStep) => string;
+  } = $props();
 
   let sorties = $derived(sortiesDuGroupe(signalPath));
 </script>
@@ -25,7 +30,7 @@
             {#if s.state !== 'playing' && s.state !== 'paused'}
               {$t('signal.groupOutputIdle' as any)}
             {:else}
-              {etageFinal(s) ?? $t('signal.unknownFormat' as any)}
+              {(s.final_stage && etageFinal(s) && libelleEtape ? libelleEtape(s.final_stage) : etageFinal(s)) ?? $t('signal.unknownFormat' as any)}
             {/if}
           </span>
         </li>
