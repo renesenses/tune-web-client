@@ -12,6 +12,7 @@
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
+  import { piloteDeLaZone } from '../../lib/zoneHorsBackend';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
   import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
@@ -1154,6 +1155,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               <span class="zone-popover-meta">
                 {#if deviceTypeLabel(z.output_type)}
                   <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
+                {/if}
+                <!-- tune-server-rust#7806 — le pilote réel d'une zone locale
+                     Windows : « This Computer » en WASAPI ne se confond plus
+                     avec la zone du DAC ASIO. -->
+                {#if piloteDeLaZone(z)}
+                  <span class="zone-popover-badge" data-pilote-local title={$t('v2.zone.piloteLocal' as any)}>{piloteDeLaZone(z)}</span>
                 {/if}
                 {#if z.recovery_started_at != null}
                   <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>

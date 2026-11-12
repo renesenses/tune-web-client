@@ -993,6 +993,19 @@ export interface CandidatRattachement {
   name: string;
   backend: string;
 }
+/** tune-server-rust#7806 — les sorties ASIO présentes qu'aucune zone visible
+ *  ne porte. Un serveur antérieur (404) ou injoignable rend une liste vide :
+ *  l'avertissement se tait, l'écran s'affiche. */
+export async function getSortiesAsioSansZone(): Promise<import('./zoneHorsBackend').SortieAsioSansZone[]> {
+  try {
+    const r = await fetchJSON<{ sorties?: import('./zoneHorsBackend').SortieAsioSansZone[] }>(
+      `${BASE}/zones/asio-sans-zone`, undefined, undefined, true,
+    );
+    return Array.isArray(r?.sorties) ? r.sorties : [];
+  } catch {
+    return [];
+  }
+}
 /** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
 export function getRattachementCandidats(id: number) {
   return fetchJSON<{ zone_id: number; candidats: CandidatRattachement[] }>(`${BASE}/zones/${id}/rattacher`);
