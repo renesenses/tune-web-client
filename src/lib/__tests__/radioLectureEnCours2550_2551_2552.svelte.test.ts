@@ -218,9 +218,9 @@ describe('web#2551 — Lecture en cours : ajouter à « Mes radios » ou en reti
     expect(appels.filter((a) => a.methode === 'DELETE')).toHaveLength(0);
   });
 
-  it('CONTRE-ÉPREUVE : station inconnue de l’annuaire et de « Mes radios » : pas de bouton', async () => {
+  it('CONTRE-ÉPREUVE : station inconnue, flux qui n’est pas une adresse web : pas de bouton', async () => {
     annuaire = [];
-    const h = await poser(RADIO);
+    const h = await poser({ ...RADIO, source_id: 'radio:42' });
     expect(boutonMesRadios(h)).toBeNull();
   });
 

@@ -194,8 +194,31 @@ export async function stationDeLecture(np: Lecture): Promise<StationDeLecture> {
   const nom = np?.album_title ?? '';
   if (!nom) return AUCUNE;
   const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
-  const f = a.items.find((x) => fold(x.name) === fold(nom)) ?? null;
+  // tune-server-rust#7547 (rc12) — à défaut du nom exact, la fiche dont le
+  // flux est celui qui joue : un nom affiché par le flux diffère souvent de
+  // celui de l'annuaire (« FIP Hi-Fi » contre « FIP »).
+  const f = a.items.find((x) => fold(x.name) === fold(nom))
+    ?? (np?.source_id ? a.items.find((x) => x.stream_url === np.source_id) : undefined)
+    ?? null;
   return { fiche: f ? ficheDeAnnuaire(f) : null, mienne: null, annuaire: f };
+}
+
+/**
+ * tune-server-rust#7547 (alec_eiffel, rc9, go de Bertrand le 12/11/2026 pour
+ * la rc12) — le flux qui joue, s'il peut entrer TEL QUEL dans « Mes radios » :
+ * une adresse `http(s)://`. Sert à la station que ni « Mes radios » ni
+ * l'annuaire ne connaissent : avant, elle n'avait pas de bouton du tout.
+ * `null` sinon. Pure.
+ */
+export function fluxAjoutable(sourceId: string | null | undefined): string | null {
+  const u = (sourceId ?? '').trim();
+  if (!u || u.length > 2048 || /\s/.test(u)) return null;
+  try {
+    const url = new URL(u);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? u : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Le logo de la fiche d'annuaire de ce nom exact, ou `null` (jamais d'échec). */
