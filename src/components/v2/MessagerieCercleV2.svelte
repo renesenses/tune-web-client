@@ -2,6 +2,9 @@
   import { onMount, tick } from 'svelte';
   // #2527 — la carte « thème » (Mon thème) dans le fil.
   import CarteThemeCercleV2 from './CarteThemeCercleV2.svelte';
+  // #2853 — emojis : sélecteur, raccourcis « :) » à l'envoi, grands emojis seuls.
+  import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
+  import { insererEmoji, convertirRaccourcis, raccourcisActifs, grandsEmojis } from '../../lib/emojis';
   import { t, locale } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -26,6 +29,8 @@
   let saisie = $state<HTMLTextAreaElement>();
   let formulaire = $state<HTMLFormElement>();
   let menuMessage = $state<number | null>(null);
+  let emojis = $state(false);
+  let boutonEmoji = $state<HTMLButtonElement>();
   let fini = false;
   let generation = 0;
   let dernierTour = 0;
@@ -61,8 +66,16 @@
   function clavier(ev: KeyboardEvent) {
     if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
   }
+  async function ajouterEmoji(e: string) {
+    const r = insererEmoji(texte, saisie?.selectionStart, saisie?.selectionEnd, e);
+    texte = r.texte;
+    await tick();
+    saisie?.setSelectionRange(r.curseur, r.curseur);
+    ajusterSaisie();
+  }
+  function fermerEmojis(rendreFocus = true) { emojis = false; if (rendreFocus) saisie?.focus(); }
   function retour() { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
-  function viderBrouillons() { texte = ''; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
+  function viderBrouillons() { texte = ''; emojis = false; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
   function echec(e: unknown) {
     if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; viderBrouillons(); }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
@@ -152,7 +165,8 @@
   async function envoyer(ev: SubmitEvent) {
     ev.preventDefault();
     if (!choix || !ecritureOuverte(choix) || !messageEnvoyable(texte, null)) return;
-    const id = choix.id; const brouillon = texte; const cercle = choix.kind === 'circle' ? choix.circle.id : null;
+    const id = choix.id; const brouillon = raccourcisActifs() ? convertirRaccourcis(texte) : texte; const cercle = choix.kind === 'circle' ? choix.circle.id : null;
+    emojis = false;
     await geste(async () => { await (cercle !== null ? envoyerAuCercle(cercle, brouillon) : envoyerMessage(id, brouillon)); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
   }
   async function supprimer(m: MessageCercle) {
@@ -217,7 +231,7 @@
                 <li class="message" class:mon-message={m.mine} class:groupe>
                   <div class="bulle">
                     {#if !m.mine && !groupe}<div class="auteur">{auteur(choix, m)}</div>{/if}
-                    {#if m.body}<p class="texte">{m.body}</p>{/if}
+                    {#if m.body}<p class="texte" class:grands-emojis={grandsEmojis(m.body)}>{m.body}</p>{/if}
                     {#if m.card && m.card.type === 'theme'}
                       <CarteThemeCercleV2 carte={m.card} />
                     {:else if m.card}
@@ -248,7 +262,9 @@
           </div>
           <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques.at(-1)?.body ?? chronologiques.at(-1)?.card?.title ?? ''}</p>
           {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else}
-          <form class="composeur" bind:this={formulaire} onsubmit={envoyer}>
+          <form class="composeur" bind:this={formulaire} onsubmit={envoyer} onfocusout={(ev) => { if (emojis && ev.relatedTarget instanceof Node && !formulaire?.contains(ev.relatedTarget)) emojis = false; }}>
+            {#if emojis}<div class="ligne-emojis"><SelecteurEmojiV2 id="message-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { fermerEmojis(false); boutonEmoji?.focus(); }} /></div>{/if}
+            <button class="bouton-emoji" type="button" bind:this={boutonEmoji} aria-label={tr('v2.circle.emoji.open')} title={tr('v2.circle.emoji.open')} aria-expanded={emojis} aria-controls={emojis ? 'message-emojis' : undefined} disabled={occupe} onclick={() => emojis = !emojis}><span aria-hidden="true">🙂</span></button>
             <textarea id="message-texte" aria-label={tr('v2.circle.msg.write')} placeholder={tr('v2.circle.msg.write')} bind:this={saisie} bind:value={texte} oninput={ajusterSaisie} onkeydown={clavier} rows="1" maxlength="8000" disabled={occupe}></textarea>
             <button class="envoi" type="submit" aria-label={tr('v2.circle.msg.send')} disabled={occupe || !messageEnvoyable(texte, null)}><span aria-hidden="true">↑</span></button>
             {#if longueurMessage(texte) >= 3500}<span class="compteur note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>{/if}
@@ -282,17 +298,17 @@
   button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}
   .conversation{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 8px;border:0;background:transparent;min-width:0}.conversation:hover{background:var(--v2-hover)}.conversation.choisie{background:var(--v2-active1)}
   .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:12px;font-weight:600;color:var(--v2-txt)}
-  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.extrait{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
+  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.extrait{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
   .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:10px;color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:11px}
   .avatar-cercle{font-size:16px;color:var(--v2-acc1)}.reglage-ecriture{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--v2-txt2)}.reglage-ecriture select{padding:4px 6px;font-size:12px}.lecture-seule{margin:12px 16px 4px}
   .fil{min-width:0;display:flex;flex-direction:column}.entete-fil{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
   .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:12px}
   .messages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}.message{align-self:flex-start;max-width:70%;min-width:0;overflow-wrap:anywhere}.message.mon-message{align-self:flex-end}.message.groupe{margin-top:-6px}
   .bulle{padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--v2-surface2);color:var(--v2-txt)}.mon-message .bulle{background:color-mix(in srgb,var(--v2-acc1) 14%,var(--v2-surface));border-radius:16px 16px 4px 16px}
-  .auteur{font-size:11px;font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.5}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:10px;padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
+  .auteur{font-size:11px;font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.5;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol'}.texte.grands-emojis{font-size:34px;line-height:1.25}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:10px;padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
   .jour{align-self:stretch;display:flex;justify-content:center;margin:10px 0;color:var(--v2-txt2);font-size:11px}.jour span{padding:3px 10px;border-radius:12px;background:var(--v2-bg2)}
   .actions-message{position:relative}.menu-bouton{opacity:0;pointer-events:none;border:0;background:transparent;padding:0 5px;line-height:20px;font-size:18px}.message:hover .menu-bouton,.message:focus-within .menu-bouton{opacity:1;pointer-events:auto}.menu-message{position:absolute;bottom:24px;left:0;z-index:2;display:flex;flex-direction:column;gap:8px;padding:10px;min-width:140px;background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:10px;font-size:12px;color:var(--v2-txt)}.mon-message .menu-message{left:auto;right:0}
-  .composeur{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.composeur textarea{flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:24px}.compteur{width:100%;text-align:right}
+  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:24px}.compteur{width:100%;text-align:right}
   .note{font-size:12px;color:var(--v2-txt2)}.moderation{font-size:11px;line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:12px}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   @media(hover:none){.menu-bouton{opacity:1;pointer-events:auto}}
   @media(max-width:699px){.volets{grid-template-columns:minmax(0,1fr)}nav{border-right:0;max-height:65dvh}.fil-ouvert nav{display:none}.retour{display:block;border:0;background:transparent}.attente{display:none}.defilement{height:clamp(180px,40dvh,400px);padding:10px 12px}.message{max-width:72%}.composeur{padding:10px 12px 4px}.moderation{margin:8px 12px 12px}}

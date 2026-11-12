@@ -19,6 +19,7 @@ import { currentZoneId } from '../stores/zones';
 import { activeView } from '../stores/navigation';
 import { CLE_REGLAGE, NOM_ETIQUETTE, oublierSas, sasEcouterPlusTard } from '../ecouterPlusTard';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
+import { entreeDuMenu } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 60_000 });
 const fr = dictionnaire('fr');
@@ -79,7 +80,9 @@ async function ouvrir(props: Record<string, unknown>): Promise<HTMLElement> {
   await souffler();
   return hote;
 }
-const bouton = (h: HTMLElement) => h.querySelector<HTMLButtonElement>('.actions button[data-ecouter-plus-tard]');
+// web#2736 — une entrée-bascule (`menuitemcheckbox`) du menu « … » de la fiche :
+// `aria-checked` y dit l'état que portait `aria-pressed` sur l'ancien bouton.
+const bouton = (h: HTMLElement) => entreeDuMenu(h, '[data-ecouter-plus-tard]');
 const libelle = (b: HTMLElement | null) => (b?.textContent ?? '').trim();
 
 describe('web#2202 — « Écouter plus tard » sur la fiche d’un album', () => {
@@ -88,7 +91,7 @@ describe('web#2202 — « Écouter plus tard » sur la fiche d’un album', () =
     const b = bouton(h);
     expect(b, 'aucun bouton « Écouter plus tard » sur la fiche').not.toBeNull();
     expect(libelle(b)).toBe(fr['v2.later.add']);
-    expect(b!.getAttribute('aria-pressed')).toBe('false');
+    expect(b!.getAttribute('aria-checked')).toBe('false');
     expect(b!.getAttribute('title')).toBe(fr['v2.later.albumAddTip']);
 
     b!.click();
@@ -97,7 +100,7 @@ describe('web#2202 — « Écouter plus tard » sur la fiche d’un album', () =
     expect(depot, 'le clic n’a rien déposé').toBeTruthy();
     expect(depot!.body).toMatchObject({ item_type: 'album', item_id: 959 });
     expect(libelle(bouton(h))).toBe(fr['v2.later.remove']);
-    expect(bouton(h)!.getAttribute('aria-pressed')).toBe('true');
+    expect(bouton(h)!.getAttribute('aria-checked')).toBe('true');
 
     bouton(h)!.click();
     await souffler();

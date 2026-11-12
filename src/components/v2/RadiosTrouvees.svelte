@@ -18,6 +18,8 @@
   import { nomDuPays } from '../../lib/paysAffichage';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import PochetteActions from './PochetteActions.svelte';
 
   let { entrees, reste = 0 }: { entrees: EntreeRadio[]; reste?: number } = $props();
@@ -35,6 +37,10 @@
     [e.genre ? libelleGenre(e.genre) : null, e.pays ? nomDuPays(e.pays, $locale, e.pays) : null]
       .filter(Boolean)
       .join(' · ');
+
+  /** La fiche de la station ouverte par un appui sur sa vignette ou sur son
+   *  nom (web#2770, lot 4) ; la lecture reste sur ▶. */
+  let enFiche = $state<EntreeRadio | null>(null);
 
   async function ecouter(e: EntreeRadio) {
     const zid = zoneRequise();
@@ -86,13 +92,13 @@
         <PochetteActions
           favoriExterne={{ actif: e.favori, basculer: () => basculerFavori(e) }}
           onLire={() => ecouter(e)}
-          onOuvrir={() => ecouter(e)}
+          onOuvrir={() => (enFiche = e)}
           nom={e.nom}
         >
           <AlbumArt coverPath={e.logo} albumId={null} size={0} alt={e.nom} fallbackInitials={e.nom?.slice(0, 1)} />
         </PochetteActions>
       </span>
-      <span class="nm" use:bulleTexte>{e.nom}</span>
+      <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: e.nom, ouvrir: () => (enFiche = e) }} /></span>
       <span class="gn" use:bulleTexte>{sousTitre(e)}</span>
       <span class="pied">
         {#if e.codec}<span class="tk">{e.codec}{e.bitrate ? ` ${e.bitrate}` : ''}</span>{/if}
@@ -107,9 +113,19 @@
     </div>
   {/each}
 </div>
+{#if enFiche}
+  <RadioFicheModale
+    reference={{ nom: enFiche.nom, idLocal: enFiche.idLocal, idAnnuaire: enFiche.idAnnuaire }}
+    onClose={() => (enFiche = null)}
+    onChange={(st) => {
+      const e = enFiche;
+      if (e) retouches = { ...retouches, [e.cle]: entreeApres(e, st) };
+    }} />
+{/if}
 {#if reste > 0}
   <p class="reste">{$t('v2.rech.radiosMore' as any).replace('{n}', String(reste))}</p>
 {/if}
+
 
 <style>
   .grille{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}

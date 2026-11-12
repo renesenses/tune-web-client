@@ -79,7 +79,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // touche — la file d'attente, l'aléatoire — et par le chiffre lui-même.
       { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner',
         keywords: ['lecture', 'volume', 'aléatoire', 'shuffle', 'file d\'attente', 'limite', '500', 'titres'] },
-      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist'] },
+      // tune-server-rust#8213 (web #2802) : arrêt programmé à heure fixe,
+      // certains jours ; sur Tune OS, extinction de la machine au choix.
+      { id: 'scheduledStop', titleKey: 'scheduledStop.title', from: 'general', min: 'beginner',
+        keywords: ['arrêt programmé', 'heure fixe', 'minuterie', 'sommeil', 'éteindre', 'extinction', 'shutdown', 'poweroff', 'scheduled stop', 'sleep'] },
+      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist', 'défilement', 'ascenseur', 'barre de défilement', 'scrollbar', 'accessibilité'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
@@ -87,6 +91,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
         keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
+      // web#2771 : le contrôle parental n'avait d'accès que sous une ligne de
+      // Profils, et seulement dans le bon cas. Il a sa section, au niveau
+      // débutant, et se trouve par la recherche.
+      { id: 'parental',   titleKey: 'parental.title', from: 'profiles', min: 'beginner',
+        keywords: ['contrôle parental', 'parental', 'enfant', 'enfants', 'parental controls', 'kids', 'child', 'horaires', 'budget', "temps d'écoute", 'explicite', 'explicit'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
       // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
       // fournisseur, son plafond. Gratuit, dès le niveau débutant.
@@ -101,6 +110,15 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac', 'replaygain', 'true-peak', 'crêtes'] },
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignoré', 'réapparaît', 'rétablir', 'masqué'] },
+      /**
+       * web#2784 (Alex, 10/11/2026) — l'annonce du serveur multimédia
+       * UPnP/DLNA de Tune (`upnp_enabled`, `upnp_friendly_name`) existait
+       * côté serveur sans aucun écran : il fallait un `curl` avec la clé API
+       * pour la couper. À la suite d'« Appareils réseau » et « Appareils
+       * ignorés », les voisins qui parlent déjà de DLNA/UPnP. Prend effet au redémarrage.
+       */
+      { id: 'serveurUpnp',   titleKey: 'upnpServeur.title',            from: 'network', min: 'intermediate',
+        keywords: ['dlna', 'upnp', 'serveur multimédia', 'media server', 'annonce', 'annoncer', 'bibliothèque', 'réseau', 'ssdp', 'nom annoncé'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
       { id: 'sendspin',      title: 'Sendspin',                        from: 'services', min: 'intermediate', keywords: ['sendspin', 'enceinte', 'music assistant', 'voice pe', 'esphome', 'exclure', 'ne pas se connecter'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },

@@ -20,6 +20,7 @@ import { locale } from '../i18n';
 import { EVT_COFFRET_DEFAIT } from '../coffretAuto';
 import lFr from '../locales/fr';
 import type { Album } from '../types';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.mock('../api', async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
@@ -70,9 +71,9 @@ async function ouvrir(meta: Record<string, string>, sonde: boolean): Promise<HTM
   return hote;
 }
 
+/** web#2736 — une entrée du menu « … » de la fiche (Bibliothèque), par son libellé. */
 function bouton(el: HTMLElement): HTMLButtonElement | null {
-  return [...el.querySelectorAll<HTMLButtonElement>('button')]
-    .find((b) => (b.textContent ?? '').trim() === BOUTON) ?? null;
+  return entreeParLibelle(el, BOUTON) as HTMLButtonElement | null;
 }
 
 async function repondre(oui: boolean): Promise<string> {

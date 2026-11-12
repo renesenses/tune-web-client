@@ -36,6 +36,12 @@
    * progression suit `cd.memoire.*` en direct (et la relecture de `/etat`) ;
    * une fois prêt, « Lire le disque » se sert dans la mémoire. Rien ne part
    * tout seul : c'est l'utilisateur qui lance la lecture.
+   *
+   * tune-server-rust#8514 : les CRC AccurateRip calculés au chargement
+   * s'affichent piste par piste dès qu'elles sont entières (détail
+   * repliable) ; une fois le disque entier en mémoire,
+   * « Enregistrer dans la bibliothèque » (`ExtractionCdV2`, `memoirePrete`)
+   * verse les pistes déjà lues sans relire le CD.
    */
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
@@ -45,11 +51,13 @@
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd, numeroPisteCdEnCours,
     getMemoireCd, reglerMemoireCd, vueChargementCd,
-    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement,
+    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement, accurateRipDuChargement,
+    verificationDuChargement,
     type EtatLecteurCd, type DisqueCd, type MemoireCd,
   } from '../../lib/lectureCd';
   import { tuneWS } from '../../lib/websocket';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
+  import { resumeAr, texteVerdictAr } from '../../lib/verificationAr';
   // tune-server-rust#7195 — un CD de la collection Discogs, pas encore copié.
   import { cdDansLaCollection, collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import '../../styles/tune-v2.css';
@@ -81,6 +89,11 @@
   const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
   /** #6596 — où en est le chargement du disque affiché. */
   const etatCharg = $derived(etatChargementCd(etat?.chargement, disque?.disc_id));
+  /** #8514 — les CRC AccurateRip du chargement, piste par piste. */
+  const crcChargement = $derived(accurateRipDuChargement(etat?.chargement, disque?.disc_id));
+  /** tune-server-rust#8522 — le verdict de la base AccurateRip. */
+  const verifAr = $derived(verificationDuChargement(etat?.chargement, disque?.disc_id));
+  const tr = (cle: string) => $t(cle as any);
   let chargementDemande = $state(false);
   let erreurChargement = $state<string | null>(null);
 
@@ -324,6 +337,22 @@
               </span>
             </div>
           {/if}
+          {#if crcChargement.length || verifAr}
+            <!-- #8514 : AccurateRip calculé dès le chargement ; #8522 : vérifié contre la base. -->
+            <details class="accuraterip-chargement note" data-base={verifAr?.base ?? ''}>
+              <summary>{verifAr
+                ? resumeAr(verifAr, tr)
+                : $t('v2.cd.memAccurateRip' as any).replace('{n}', String(crcChargement.length))}</summary>
+              <ol>
+                {#each crcChargement as a (a.piste)}
+                  {@const v = verifAr?.pistes.find((p) => p.piste === a.piste)}
+                  <li data-ar={v?.statut ?? ''}><span class="num">{a.piste}</span> {$t('v2.cd.rip.crc' as any).replace('{crc1}', a.v1).replace('{crc2}', a.v2)}
+                    {#if v}<span class="verdict-ar">{texteVerdictAr(v, tr)}</span>{/if}</li>
+                {/each}
+              </ol>
+              {#if !verifAr || verifAr.base === 'en_cours'}<small>{$t('v2.cd.rip.accurateRip' as any)}</small>{/if}
+            </details>
+          {/if}
           <div class="actions">
             <button class="go lire-disque" disabled={$currentZoneId == null || occupe !== null} onclick={() => jouer()}>
               {occupe === 'disque' ? '…' : $t('v2.cd.playDisc' as any)}
@@ -334,7 +363,7 @@
               <span class="note">{$t('v2.cd.toZone' as any).replace('{zone}', $currentZone.name)}</span>
             {/if}
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
-            <ExtractionCdV2 {disque} />
+            <ExtractionCdV2 {disque} memoirePrete={etatCharg === 'pret'} />
             {#if possedeNonCopie}
               <span class="note collection-non-copie" data-collection-non-copie>{$t('collectionPhysique.cdNonCopie' as any)}</span>
             {/if}
@@ -432,5 +461,11 @@
   .chargement small{margin-left:4px; color:var(--v2-txt3)}
   .charger{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .charger-memoire{padding:0; font-weight:600}
+  .accuraterip-chargement summary{cursor:pointer}
+  .accuraterip-chargement ol{list-style:none; margin:4px 0 2px; padding:0; font:10.5px var(--v2-mono)}
+  .accuraterip-chargement .num{display:inline-block; width:20px; text-align:right; color:var(--v2-txt3)}
+  .accuraterip-chargement .verdict-ar{margin-left:8px; font-family:var(--v2-sans)}
+  .accuraterip-chargement li[data-ar=verifie] .verdict-ar{color:var(--v2-acc-tint)}
+  .accuraterip-chargement li[data-ar=different] .verdict-ar{color:var(--v2-danger)}
   .memoire{display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px}
 </style>

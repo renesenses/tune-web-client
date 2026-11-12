@@ -23,7 +23,11 @@
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
+  import BoutonMenuV2 from './BoutonMenuV2.svelte';
+  import type { EntreeMenu } from '../../lib/menuPiste';
+  import { lireListe, lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
@@ -44,6 +48,8 @@
   } from '../../lib/remplacementIndisponibles';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
+  import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
+  import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
   import { circleCharge } from '../../lib/circle';
 
@@ -144,7 +150,38 @@
     item.kind === 'streaming' && (item.pl as StreamingPlaylist & { editable?: boolean | null }).editable === true,
   );
   const editable = $derived(isLocal || aMoiChezLeService);
+
+  /**
+   * web#2736 — le menu « … » de la fiche : les gestes qui étaient des boutons
+   * de l'en-tête, chacun sous SA garde d'avant (absent quand il ne s'applique
+   * pas, jamais grisé sauf pendant sa requête).
+   */
+  function supprimerPlaylist() {
+    if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
+  }
+  function entreesPlus(): EntreeMenu[] {
+    const l: EntreeMenu[] = [];
+    if (cibleEtiquettes) l.push({ cle: 'v2.cover.tags', faire: () => (etiquettesOuvertes = true),
+      attrs: { 'data-etiquettes-playlist': true, 'aria-haspopup': 'dialog' } });
+    const partager = partagerAvecUnCercle;
+    if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
+    // EXPORT : la route ne connaît que les playlists locales.
+    if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
+    // tune-server-rust#8066 — seulement s'il y a des titres indisponibles là où l'on peut écrire.
+    if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
+      faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });
+    // #2098 — une playlist de SERVICE ne s'édite que si l'utilisateur en est propriétaire.
+    if (editable) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
+      faire: () => { edition = !edition; renaming = false; }, attrs: { 'data-editer-playlist': true } });
+    if (edition && isLocal) {
+      l.push({ cle: 'v2.pl.rename', faire: () => { draft = item.pl.name; renaming = true; }, attrs: { 'data-renommer-playlist': true } });
+      l.push({ cle: 'common.delete', danger: true, faire: supprimerPlaylist, attrs: { 'data-supprimer-playlist': true } });
+    }
+    return l;
+  }
   const title = $derived(item.pl.name);
+  /** web#2806 — le sélecteur de radio de l'éditeur est ouvert. */
+  let choixRadio = $state(false);
 
   /**
    * ÉTIQUETER LA PLAYLIST DEPUIS SA FICHE — le même trou que la fiche album.
@@ -251,7 +288,8 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
+      // web#2806 — une radio ne part pas en piste : le mélange client la laisse.
+      const n = await lireListeAleatoire(tracks.filter((p) => !estLigneRadio(p)), gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifierErreur($tr('common.error'), e, { motifSeul: true });
@@ -261,10 +299,21 @@
   function playFrom(startIndex = 0) {
     const zid = zoneRequise();
     if (zid == null) return;
+    // web#2806 — une ligne RADIO se lit par la playlist (`playlist_id` +
+    // son rang RÉEL) : seul le serveur sait mettre son flux en file.
+    const cliquee = pistesVues[startIndex];
+    if (item.kind === 'local' && cliquee && estLigneRadio(cliquee)) {
+      if (radioIndisponible(cliquee)) return;
+      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: rangReel(cliquee) }).catch(signalerEchecLecture);
+      return;
+    }
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
-    // playlist — `start_index` du serveur ne connaît que ce dernier.
+    // playlist — `start_index` du serveur ne connaît que ce dernier. Les
+    // radios n'y vont pas : elles ne s'envoient pas en pistes.
     if (!ordreNaturel) {
-      void lireListe(pistesVues.slice(startIndex), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+      const pistes = sansRadios(pistesVues.slice(startIndex));
+      if (!pistes.length) { notifications.error($tr('library.noTracks')); return; }
+      void lireListe(pistes, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {
@@ -281,6 +330,14 @@
       // lecture en cours » — cliquer Lire relançait le morceau du moment.
       // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
       // charge les pistes deux lignes plus haut.
+      //
+      // web#2687 — playlist MIXTE (titres « Indisponible » / « À paraître ») :
+      // `streaming_playlist_id` mettrait toute la liste en file. On envoie la
+      // liste nous-mêmes, sans les titres grisés, dans le contexte de la playlist.
+      if (pistesVues.some(pisteIndisponible)) {
+        void lireListeDepuis(pistesVues, startIndex, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+        return;
+      }
       playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(signalerEchecLecture);
     }
   }
@@ -303,7 +360,8 @@
   async function enfiler(position: number | undefined, cle: string) {
     const zid = zoneRequise();
     if (zid == null || fileOccupee) return;
-    const corps = corpsDeFileListe(pistesVues, position);
+    // web#2806 — les radios restent hors de la file : ce ne sont pas des pistes.
+    const corps = corpsDeFileListe(sansRadios(pistesVues), position);
     if (!corps) { notifications.error($tr('library.noTracks')); return; }
     fileOccupee = true;
     try {
@@ -533,83 +591,49 @@
         <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
       </div>
+      <!-- web#2736 (Bertrand, 09/11/2026) — même principe que la fiche album :
+           [ ▶ Lecture | ▾ ]  [ ⤮ ]  [ ♡ ]  [ … ]. « Lire ensuite » (#1574) et
+           « Ajouter à la file » passent sous la flèche du bouton Lecture ;
+           étiquettes, partage, export, réparation et édition dans « … ». -->
       <div class="actions">
-        <button class="play" onclick={() => playFrom(0)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('common.play' as any)}
+        <BoutonLectureV2 onLire={() => playFrom(0)} cle="common.play"
+          ensuite={{ faire: lireEnsuite, desactive: fileOccupee }}
+          file={{ faire: addQueue, desactive: fileOccupee }} />
+        <button class="ghost carre" onclick={lireAleatoire} disabled={melangeEnCours}
+          title={$tr('library.shuffle')} aria-label={$tr('library.shuffle')} data-aleatoire-playlist>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
         </button>
-        <button class="ghost" onclick={lireAleatoire} disabled={melangeEnCours}
-          title={$tr('library.shuffle')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$tr('library.shuffle')}
-        </button>
-        <!-- « Lire ensuite » — #1574 : le geste de la fiche album, même icône,
-             même libellé, même rang (`rangLireEnsuite`). -->
-        <button class="ghost lire-ensuite" onclick={lireEnsuite} disabled={fileOccupee}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
-        </button>
-        <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.ms.addToQueue' as any)}
-        </button>
-        <!-- Le CŒUR d'abord : il vaut pour les deux sortes de playlist, la
-             locale par son identifiant, celle d'un service par la paire
-             service + `source_id`. Deux tables, deux chemins. -->
-        <button class="ghost sm coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+        <!-- Le CŒUR : il vaut pour les deux sortes de playlist, la locale par
+             son identifiant, celle d'un service par la paire service +
+             `source_id`. Deux tables, deux chemins. -->
+        <button class="ghost carre coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
           aria-pressed={enFavori}
-          title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
-          <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+          aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+          <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-
-        <!-- ÉTIQUETTES — vaut pour les deux sortes de playlist, la locale par
-             son identifiant, celle d'un service par la paire. Absent quand il
-             n'y a rien à désigner : voir `cibleEtiquettes`. -->
-        {#if cibleEtiquettes}
-          <button class="ghost sm" onclick={() => (etiquettesOuvertes = true)}
-            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
-            title={$tr('v2.cover.tags' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
-            {$tr('v2.cover.tags' as any)}
+        <BoutonMenuV2 entrees={entreesPlus} etiquette={$tr('v2.cover.more' as any)} largeur={240}>
+          {#snippet declencheur(p)}
+            <button class="ghost carre plus" {...p} data-menu-playlist
+              aria-label={$tr('v2.cover.more' as any)} title={$tr('v2.cover.more' as any)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+          {/snippet}
+        </BoutonMenuV2>
+        {#if edition}
+          <!-- Le mode édition se DIT, et se quitte d'un geste : sans ce
+               bouton, il faudrait rouvrir « … » pour le refermer. -->
+          <button class="ghost sm" class:on={edition} onclick={() => { edition = false; renaming = false; }} aria-pressed={edition} data-fin-edition-playlist>
+            {$tr('v2.pl.editDone' as any)}
           </button>
-        {/if}
-
-        {#if partagerAvecUnCercle}
-          <button class="ghost sm partager-cercle" onclick={() => partagerAvecUnCercle?.()} data-partager-cercle>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
-            {$tr('v2.circle.pl.shareWithCircle' as any)}
-          </button>
-        {/if}
-
-        <!-- EXPORT : la route ne connaît que les playlists locales, une playlist
-             de service n'ayant pas d'identifiant chez nous. -->
-        {#if isLocal}
-          <button class="ghost sm" onclick={exporter} disabled={exportEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-            {$tr('v2.pl.export' as any)}
-          </button>
+          {#if isLocal}
+            <!-- web#2806 — une radio rejoint la playlist depuis l'éditeur. -->
+            <button class="ghost sm" onclick={() => (choixRadio = true)} data-bouton-ajouter-radio aria-haspopup="dialog">
+              {$tr('v2.pl.addRadio' as any)}
+            </button>
+          {/if}
         {/if}
 
-        <!-- tune-server-rust#8066 — « Réparer la playlist » : seulement s'il y a
-             des titres indisponibles là où l'on peut écrire. -->
-        {#if reparable}
-          <button class="ghost sm reparer" data-reparer-playlist onclick={reparerPlaylist} disabled={reparationEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>
-            {$tr((reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair') as any)}
-          </button>
-        {/if}
-
-        <!-- Une playlist de SERVICE ne s'édite pas, sauf celle dont
-             l'utilisateur est propriétaire (#2098) : on peut alors en retirer
-             des titres — ni renommer, ni supprimer, ni réordonner. -->
-        {#if editable}
-          <button class="ghost sm" class:on={edition} onclick={() => { edition = !edition; renaming = false; }}
-            aria-pressed={edition}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            {$tr(edition ? 'v2.pl.editDone' as any : 'v2.pl.edit' as any)}
-          </button>
-        {/if}
-        {#if edition && isLocal}
-          <button class="ghost sm" onclick={() => { draft = item.pl.name; renaming = true; }}>{$tr('v2.pl.rename' as any)}</button>
-          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>{$tr('common.delete' as any)}</button>
-        {/if}
         <!-- On DIT pourquoi il n'y a pas de bouton, au lieu de laisser chercher.
              Le client porte bien une fonction `importPlaylist`, mais elle vise
              `POST /playlists/import`, qui n'existe pas : le serveur n'a que
@@ -677,14 +701,15 @@
         <div class="pgrille" data-pgrille style="--ptaille:{taillePochettes}px">
           {#each pistesVues as p, i (i)}
             <div class="pcarte">
-              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p)}
-                title={p.title}>
+              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p) || radioIndisponible(p)}
+                title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
                 <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
                   alt={p.title ?? ''} source={mixte ? null : p.source} />
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p)) || peutRemplacer(p, editable)}
+              {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
+              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
@@ -706,6 +731,13 @@
              du mode édition : c'est le seul geste qui l'efface, il doit être
              à portée. -->
         {#if !edition && isLocal && estIntrouvable(_t)}
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {/if}
+        <!-- web#2806 — même règle pour une station qui a quitté « Mes radios ». -->
+        {#if !edition && isLocal && radioIndisponible(_t)}
           <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
@@ -741,6 +773,11 @@
   </div>
 </div>
 
+{#if choixRadio && item.kind === 'local' && item.pl.id != null}
+  <ChoixRadioPlaylistV2 playlistId={item.pl.id} onClose={() => (choixRadio = false)}
+    onAjoutee={() => { load(); onChanged?.(); }} />
+{/if}
+
 {#if remplacement}
   <RemplacerIndisponibleModale titreDisparu={remplacement.piste.title ?? ''} candidats={remplacement.candidats}
     choisir={choisirRemplacant} onClose={() => (remplacement = null)} />
@@ -773,8 +810,10 @@
   .head.compact .meta{gap:4px; padding-top:0}
   .head.compact .meta h1{font-size:24px}
   .head.compact .desc{display:none}
-  .head.compact .actions{margin-top:2px}
-  .head.compact .play,.head.compact .ghost,.head.compact .ghost.sm{height:36px}
+  /* `--bl-h` : la hauteur du bouton Lecture partagé (`BoutonLectureV2`). */
+  .head.compact .actions{margin-top:2px; --bl-h:36px}
+  .head.compact .ghost,.head.compact .ghost.sm{height:36px}
+  .head.compact .ghost.carre{width:36px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg);
     display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
@@ -787,9 +826,8 @@
   .desc{font-size:14px; color:var(--v2-txt2); max-width:60ch}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:12px; margin-top:8px; flex-wrap:wrap}
-  .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
+  .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
-  .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   /* Le mode ÉDITION se voit : sinon on ne sait pas pourquoi des croix sont
@@ -799,8 +837,12 @@
   .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .chez{align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
   .ghost.sm{height:44px; padding:0 14px; font-size:13px}
-  .ghost.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .play svg,.ghost svg{width:16px; height:16px}
+  .ghost svg{width:16px; height:16px}
+  /* web#2736 — les boutons d'icône seule. */
+  .ghost.carre{width:44px; padding:0; justify-content:center; flex:0 0 auto}
+  .ghost[aria-expanded="true"]{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .ghost:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .ghost:disabled{opacity:.55; cursor:default}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .tri{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 10px}

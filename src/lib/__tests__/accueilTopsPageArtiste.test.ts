@@ -144,6 +144,7 @@ describe('« Vos tops » — un artiste ouvre SA PAGE, pas la grille', () => {
     await cliquer(premierArtiste(page));
     expect(get(ficheArtisteService), 'un artiste au hasard a été ouvert').toBeNull();
     expect(get(pendingLibraryArtist), 'un artiste au hasard a été ouvert').toBeNull();
-    expect(get(activeView)).toBe('library');
+    // web#2770 : sans fiche, la Recherche sur ce nom — plus la Bibliothèque.
+    expect(get(activeView)).toBe('search');
   });
 });

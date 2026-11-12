@@ -58,6 +58,10 @@
   import { formatTime } from '../../lib/utils';
   import { currentZone } from '../../lib/stores/zones';
   import { licenseState, isPremium } from '../../lib/stores/license';
+  import { playAndSync } from '../../lib/stores/zones';
+  import { zoneRequise } from '../../lib/zoneRequise';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { chercherDansMesSources, trouverEquivalent, type CibleLecture, type CibleRecherche, type Correspondance } from '../../lib/chercherDansMesSources';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -233,6 +237,7 @@
   }
 
   function recharger() {
+    lectureEquivalente++; equivalent = null;
     album = null;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -265,6 +270,7 @@
   }
 
   function ouvrirAlbum(a: AlbumContact) {
+    lectureEquivalente++; equivalent = null;
     album = a;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -314,6 +320,83 @@
     : '');
 
   const rienNeBouge = () => {};
+
+  /**
+   * #7224 (décision du 12/11, rc12) — sans écoute chez le contact, un clic sur
+   * un album ou une piste LANCE son équivalent dans MES sources (bibliothèque,
+   * puis services connectés), sur ma zone, sans liste à choisir. Rien de
+   * reconnu : on le dit, et « Chercher dans mes sources » reste le repli.
+   */
+  type EtatEquivalent =
+    | { termes: string; etat: 'cours' }
+    | { termes: string; etat: 'aucun'; cible: CibleLecture }
+    | { termes: string; etat: 'erreur' }
+    | { termes: string; etat: 'lance'; trouvee: Correspondance };
+  let equivalent = $state<EtatEquivalent | null>(null);
+  let lectureEquivalente = 0;
+
+  async function lireEquivalent(c: CibleLecture) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const mine = ++lectureEquivalente;
+    const termes = [c.titre, c.artiste].filter(Boolean).join(' ');
+    equivalent = { termes, etat: 'cours' };
+    let trouvee: Correspondance | null;
+    try {
+      trouvee = (await trouverEquivalent(c)).trouvee;
+    } catch {
+      if (!fini && mine === lectureEquivalente) equivalent = { termes, etat: 'erreur' };
+      return;
+    }
+    if (fini || mine !== lectureEquivalente) return;
+    if (!trouvee) { equivalent = { termes, etat: 'aucun', cible: c }; return; }
+    equivalent = { termes, etat: 'lance', trouvee };
+    playAndSync(zid, trouvee.lecture as any).catch((e) => {
+      if (!fini && mine === lectureEquivalente) equivalent = null;
+      signalerEchecLecture(e);
+    });
+  }
+  const cibleAlbum = (a: AlbumContact): CibleLecture =>
+    ({ genre: 'album', titre: a.title, artiste: a.artist_name, mbid: a.musicbrainz_release_group_id });
+  const ciblePiste = (p: PisteContact): CibleLecture =>
+    ({ genre: 'track', titre: p.title, artiste: p.artist_name, isrc: p.isrc, duree_ms: p.duration_ms });
+  const clicSansEcoute = (_p: Track, i: number) => {
+    const p = (album ? sourcesAlbum : sourcesPistes)[i];
+    if (p) void lireEquivalent(ciblePiste(p));
+  };
+
+  /** #7224 — « Chercher dans mes sources » : la recherche globale, sur le titre + l'artiste. */
+  type EtatSources =
+    | { termes: string; etat: 'cours' }
+    | { termes: string; etat: 'erreur' }
+    | { termes: string; etat: 'ok'; resultats: Correspondance[] };
+  let sources = $state<EtatSources | null>(null);
+  let rechercheSources = 0;
+
+  async function chercherSources(c: CibleRecherche) {
+    const mine = ++rechercheSources;
+    const termes = [c.titre, c.artiste].filter(Boolean).join(' ');
+    sources = { termes, etat: 'cours' };
+    try {
+      const r = await chercherDansMesSources(c);
+      if (fini || mine !== rechercheSources) return;
+      sources = { termes: r.termes, etat: 'ok', resultats: r.resultats };
+    } catch {
+      if (fini || mine !== rechercheSources) return;
+      sources = { termes, etat: 'erreur' };
+    }
+  }
+  const chercherAlbum = (a: AlbumContact) => void chercherSources({ genre: 'album', titre: a.title, artiste: a.artist_name });
+  const chercherPiste = (p: Track) => void chercherSources({ genre: 'track', titre: p.title, artiste: p.artist_name });
+  const nomDeSource = (src: string) =>
+    src === 'local' ? $t('v2.circle.sources.local' as any)
+      : (NOM_SERVICE as Record<string, string>)[src] ?? src.charAt(0).toUpperCase() + src.slice(1);
+
+  function lireCorrespondance(c: Correspondance) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    playAndSync(zid, c.lecture as any).catch(signalerEchecLecture);
+  }
   const lireLigne = (_p: Track, i: number) => void lancerEcoute((album ? sourcesAlbum : sourcesPistes)[i]);
 
   /** Artiste · album · durée d'une référence ; le genre si ce n'est pas un titre. */
@@ -345,9 +428,57 @@
       <p class="note ecoute-note" use:bulleTexte>{$t('v2.circle.listen.hint' as any)}</p>
     {:else}
       <p class="note lecture-seule" use:bulleTexte>{$t('v2.circle.lib.readOnly' as any)}</p>
+      {#if !ouverte}
+        <p class="ecoute-fermee" role="note">{$t('v2.circle.listen.closed' as any)}</p>
+      {/if}
       {#if ouverte}
         <p class="note ecoute-premium" use:bulleTexte><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
       {/if}
+    {/if}
+    {#if equivalent && !ecoute}
+      {#if equivalent.etat === 'cours'}
+        <p class="note equivalent-encours" role="status" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', equivalent.termes)}</p>
+      {:else if equivalent.etat === 'lance'}
+        <p class="note equivalent-lance" role="status" use:bulleTexte>{$t('v2.circle.sources.playing' as any).replace('{title}', equivalent.trouvee.titre).replace('{source}', nomDeSource(equivalent.trouvee.source))}</p>
+      {:else}
+        {@const echec = equivalent}
+        <div class="err equivalent-{echec.etat}" role="alert">
+          <span>{echec.etat === 'aucun' ? $t('v2.circle.sources.notFound' as any).replace('{query}', echec.termes) : $t('v2.circle.sources.error' as any)}</span>
+          {#if echec.etat === 'aucun'}
+            <button class="lnk chercher-repli" onclick={() => { const c = echec.cible; equivalent = null; void chercherSources(c); }}>{$t('v2.circle.sources.search' as any)}</button>
+          {/if}
+          <button class="lnk fermer-retour" onclick={() => { lectureEquivalente++; equivalent = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
+        </div>
+      {/if}
+    {/if}
+    {#if sources}
+      <section class="sources-trouvees" aria-labelledby="circle-sources-titre" aria-live="polite">
+        <div class="sources-tete">
+          <h4 id="circle-sources-titre" class="sources-titre">{$t('v2.circle.sources.title' as any).replace('{query}', sources.termes)}</h4>
+          <button class="lnk fermer-sources" onclick={() => { rechercheSources++; sources = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
+        </div>
+        {#if sources.etat === 'cours'}
+          <p class="note sources-encours" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', sources.termes)}</p>
+        {:else if sources.etat === 'erreur'}
+          <p class="note sources-erreur" role="alert" use:bulleTexte>{$t('v2.circle.sources.error' as any)}</p>
+        {:else if sources.resultats.length === 0}
+          <p class="note sources-aucun" use:bulleTexte>{$t('v2.circle.sources.none' as any).replace('{query}', sources.termes)}</p>
+        {:else}
+          <ul class="sources-liste">
+            {#each sources.resultats as r, i (i)}
+              <li class="ligne source-resultat source-{r.source}">
+                <span class="ref-texte">
+                  <span class="ref-titre" use:bulleTexte>{r.titre}</span>
+                  <span class="note" use:bulleTexte>{[r.artiste, nomDeSource(r.source)].filter(Boolean).join(' · ')}</span>
+                </span>
+                <button class="lire-piste lire-source"
+                  aria-label={$t('v2.circle.sources.playAria' as any).replace('{title}', r.titre).replace('{source}', nomDeSource(r.source))}
+                  onclick={() => lireCorrespondance(r)}>▶ {$t('v2.circle.listen.play' as any)}</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
     {/if}
     {#if refusEcoute}
       <div class="err refus-ecoute" role="alert"><span>{refusEcoute}</span>
@@ -380,6 +511,11 @@
       </ul>
     </section>
   {/if}
+{#snippet boutonChercherPiste(p: Track, _i: number)}
+  <button class="chercher-sources chercher-piste"
+    aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [p.title, p.artist_name].filter(Boolean).join(' '))}
+    onclick={() => chercherPiste(p)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
+{/snippet}
 {#snippet boutonLire(_p: Track, i: number)}
   {@const source = (album ? sourcesAlbum : sourcesPistes)[i]}
   <button class="lire-piste" disabled={ecouteEnCours != null || !source}
@@ -395,9 +531,16 @@
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
+          <button class="chercher-sources chercher-album"
+            aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
+            onclick={() => chercherAlbum(album!)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
           {#if ecoute && sourcesAlbum.length > 0}
             <button class="lire-album" disabled={ecouteEnCours != null}
               onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
+          {:else if !ecoute}
+            <button class="lire-equivalent lire-equivalent-album"
+              aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
+              onclick={() => void lireEquivalent(cibleAlbum(album!))}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
           {/if}
         </div>
       </div>
@@ -409,8 +552,8 @@
       {:else}
         <div class="pistes-album">
           <ListePistesV2 pistes={pistesAlbum} onLire={rienNeBouge} numerotation="piste"
-            enTetesDisque lectureSeule
-            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
+            enTetesDisque lectureSeule onClicLectureSeule={ecoute ? null : clicSansEcoute}
+            apres={ecoute ? boutonLire : boutonChercherPiste} largeurApres={ecoute ? '84px' : '210px'} />
         </div>
       {/if}
     </div>
@@ -448,6 +591,14 @@
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>
+              {#if !ecoute}
+                <button class="lire-equivalent lire-equivalent-carte"
+                  aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
+                  onclick={() => void lireEquivalent(cibleAlbum(a))}>▶ {$t('v2.circle.listen.play' as any)}</button>
+              {/if}
+              <button class="chercher-sources chercher-album-carte"
+                aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
+                onclick={() => chercherAlbum(a)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
             </li>
           {/each}
         </ul>
@@ -489,8 +640,8 @@
         <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <div class="pistes-contact">
-          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule
-            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
+          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule onClicLectureSeule={ecoute ? null : clicSansEcoute}
+            apres={ecoute ? boutonLire : boutonChercherPiste} largeurApres={ecoute ? '84px' : '210px'} />
         </div>
       {/if}
     {/if}
@@ -554,10 +705,22 @@
   .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
   .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
-  .lire-piste,.lire-album{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+  .lire-piste,.lire-album,.lire-equivalent{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
     background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
-  .lire-album{margin-top:6px}
+  .lire-album,.lire-equivalent-album{margin-top:6px}
   .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
-  .lire-piste:focus-visible,.lire-album:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .lire-piste:focus-visible,.lire-album:focus-visible,.lire-equivalent:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .ecoute-fermee{margin:0; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
+    color:var(--v2-txt); font-size:12.5px}
+  .chercher-sources{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+    background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .chercher-album,.chercher-album-carte,.lire-equivalent-carte{margin-top:6px}
+  .lire-equivalent-carte{margin-right:6px}
+  .chercher-sources:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .sources-trouvees{display:flex; flex-direction:column; gap:6px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}
+  .sources-tete{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .sources-titre{font-size:13px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .sources-liste{display:flex; flex-direction:column}
+  .source-resultat{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 </style>

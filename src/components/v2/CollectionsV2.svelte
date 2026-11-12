@@ -46,6 +46,11 @@
   import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
+  import BoutonMenuV2 from './BoutonMenuV2.svelte';
+  import type { EntreeMenu } from '../../lib/menuPiste';
+  import { corpsDeFileListe } from '../../lib/pisteFile';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
@@ -621,6 +626,31 @@
     }
     masseEnCours = false;
   }
+  /**
+   * web#2736 — « Lire ensuite » et « Ajouter à la file » sous la flèche du
+   * bouton Lecture, comme sur la fiche album : les pistes de la collection en
+   * UNE requête (`corpsDeFileListe`), au rang de `rangLireEnsuite` ou à la fin.
+   */
+  async function enfilerCollection(position: number | undefined, cle: string) {
+    const zid = $currentZoneId;
+    if (zid == null) {
+      notifications.error($t('v2.col.noZone' as any));
+      return;
+    }
+    if (masseEnCours) return;
+    masseEnCours = true;
+    try {
+      const corps = corpsDeFileListe((await pistesDeLaCollection()) as any, position);
+      if (!corps) notifications.error($t('collections.noTracks' as any));
+      else {
+        await api.addToQueue(zid, corps);
+        notifications.success($t(cle as any).replace('{title}', ouverte ? libelleTradu(ouverte) : ''));
+      }
+    } catch (err: any) {
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
+    }
+    masseEnCours = false;
+  }
   async function lireCollection(e: Entree) {
     const zid = $currentZoneId;
     if (zid == null) {
@@ -725,6 +755,57 @@
       : albums,
   );
 
+  /**
+   * web#2736 — UN menu « Trier ▾ » réunit le critère et le sens (ou « Re-tirer »
+   * pour l'ordre aléatoire, qui passe dans « … »). Les entrées sont des choix
+   * exclusifs (`menuitemradio`) : l'état coché dit le tri courant.
+   */
+  function entreesTri(): EntreeMenu[] {
+    const l: EntreeMenu[] = [];
+    const crit = 'v2.fav.sortBy', ordre = 'v2.menu.order';
+    if (ouverte?.sorte === 'smart') {
+      for (const k of TRIS_SMART) l.push({ groupe: crit, cle: LIBELLES_SMART[k], coche: triSmart === k,
+        faire: () => (triSmart = k), attrs: { 'data-tri': k } });
+      if (triSmart !== 'random') for (const sens of SENS) l.push({ groupe: ordre,
+        cle: sens === 'asc' ? 'common.ascending' : 'common.descending', coche: sensSmart === sens,
+        faire: () => (sensSmart = sens), attrs: { 'data-sens': sens } });
+    } else {
+      for (const k of TRIS_ALBUMS) l.push({ groupe: crit, cle: LIBELLES_TRI[k], coche: triAlbums === k,
+        faire: () => changerTri(k, sensAlbums), attrs: { 'data-tri': k } });
+      if (triAlbums !== 'random') for (const sens of SENS) l.push({ groupe: ordre,
+        cle: sens === 'asc' ? 'common.ascending' : 'common.descending', coche: sensAlbums === sens,
+        faire: () => changerTri(triAlbums, sens), attrs: { 'data-sens': sens } });
+    }
+    return l;
+  }
+  /** « … » de la collection ouverte : Éditer, Re-tirer (ordre aléatoire), Supprimer. */
+  function entreesPlusCollection(): EntreeMenu[] {
+    const o = ouverte;
+    if (!o) return [];
+    const l: EntreeMenu[] = [
+      { cle: 'v2.cover.edit', faire: () => editerCollection(o), attrs: { 'data-editer-collection': true, 'aria-haspopup': 'dialog' } },
+    ];
+    if ((o.sorte === 'smart' ? triSmart : triAlbums) === 'random')
+      l.push({ cle: 'library.reshuffle', faire: reTirer, attrs: { 'data-re-tirer': true } });
+    l.push({ cle: 'common.delete', danger: true, faire: () => void supprimerCollection(o), attrs: { 'data-supprimer-collection': true } });
+    return l;
+  }
+  /**
+   * « + Nouvelle » de la liste : UN bouton, trois sortes. Il suivait l'onglet
+   * (manuelle sur l'un, intelligente et suggestions de l'assistant sur
+   * l'autre) ; les trois sont désormais nommées, quel que soit l'onglet.
+   */
+  function entreesNouvelle(): EntreeMenu[] {
+    return [
+      { cle: 'v2.menu.newManual', faire: () => (creation = true), attrs: { 'data-nouvelle-manuelle': true, 'aria-haspopup': 'dialog' } },
+      { cle: 'v2.menu.newSmart', faire: () => (editeurSmart = { id: null }), attrs: { 'data-nouvelle-smart': true, 'aria-haspopup': 'dialog' } },
+      // tune-server-rust #6839 — l'assistant propose, l'utilisateur crée.
+      { cle: 'v2.menu.newAi', faire: () => (propositionsIa = true), attrs: { 'data-propositions-ia': true, 'aria-haspopup': 'dialog' } },
+    ];
+  }
+  const libelleTriCourant = $derived(
+    ouverte?.sorte === 'smart' ? LIBELLES_SMART[triSmart] : LIBELLES_TRI[triAlbums],
+  );
   function changerTri(tri: TriAlbums, sens: Sens) {
     triAlbums = tri;
     sensAlbums = sens;
@@ -1230,88 +1311,37 @@
         <h1>{libelleTradu(ouverte)}</h1>
         {#if descriptionTraduite(ouverte)}<p class="v2-sous">{descriptionTraduite(ouverte)}</p>{/if}
       </div>
+      <!-- web#2736 (Bertrand, 09/11/2026) — [ ▶ Tout lire | ▾ ] [ Aléatoire ]
+           [ Trier ▾ ] [ … ]. Les deux tris (critère et sens) dans UN menu ;
+           Modifier, Re-tirer et Supprimer dans « … ». La suppression reste à
+           un geste de la fiche ouverte (Bertrand, 21/09/2026 ; #1143), avec
+           la même confirmation `danger`. -->
       <div class="v2-actions fa">
-        {#if ouverte.sorte === 'smart'}
-          <label class="tricol">
-            <span>{$t('v2.fav.sortBy' as any)}</span>
-            <select bind:value={triSmart} aria-label={$t('v2.fav.sortBy' as any)}>
-              {#each TRIS_SMART as k (k)}<option value={k}>{$t(LIBELLES_SMART[k] as any)}</option>{/each}
-            </select>
-            {#if triSmart === 'random'}
-            <button class="sens" onclick={reTirer}
-              title={$t('library.reshuffle' as any)} aria-label={$t('library.reshuffle' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-            </button>
-            {:else}
-            <button class="sens" onclick={() => (sensSmart = sensSmart === 'asc' ? 'desc' : 'asc')}
-              title={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}
-              aria-label={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
-              {#if sensSmart === 'asc'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
-              {:else}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
-              {/if}
-            </button>
-            {/if}
-          </label>
-        {:else}
-          <label class="tricol">
-            <span>{$t('v2.fav.sortBy' as any)}</span>
-            <select value={triAlbums} aria-label={$t('v2.fav.sortBy' as any)}
-              onchange={(ev) => changerTri((ev.currentTarget as HTMLSelectElement).value as TriAlbums, sensAlbums)}>
-              {#each TRIS_ALBUMS as k (k)}
-                <option value={k}>{$t(LIBELLES_TRI[k] as any)}</option>
-              {/each}
-            </select>
-            {#if triAlbums === 'random'}
-            <button class="sens" onclick={reTirer}
-              title={$t('library.reshuffle' as any)} aria-label={$t('library.reshuffle' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-            </button>
-            {:else}
-            <button class="sens" onclick={() => changerTri(triAlbums, sensAlbums === 'asc' ? 'desc' : 'asc')}
-              title={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}
-              aria-label={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
-              {#if sensAlbums === 'asc'}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
-              {:else}
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
-              {/if}
-            </button>
-            {/if}
-          </label>
-        {/if}
-        <button class="fab" onclick={() => lireCollectionEntiere(false)}
-          disabled={masseEnCours || !albums.length} title={$t('collections.playAll' as any)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
-        </button>
+        <BoutonLectureV2 onLire={() => lireCollectionEntiere(false)} cle="collections.playAll" cleBulle="collections.playAll"
+          desactive={masseEnCours || !albums.length}
+          ensuite={albums.length ? { faire: () => void enfilerCollection(rangLireEnsuite(), 'v2.album.queuedNext'), desactive: masseEnCours } : null}
+          file={albums.length ? { faire: () => void enfilerCollection(undefined, 'v2.album.queued'), desactive: masseEnCours } : null} />
         <button class="fab creux" onclick={() => lireCollectionEntiere(true)}
           disabled={masseEnCours || !albums.length} title={$t('collections.shuffleAll' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
         </button>
-        <!-- L'édition, ABSENTE de la fiche jusqu'au 09/09/2026 : elle ne vivait
-             que sur la vignette de la liste. Une fois la collection ouverte, ses
-             règles n'étaient plus atteignables. Même appel que la liste. -->
-        <button class="v2-btn" onclick={() => editerCollection(ouverte!)}
-          title={$t('v2.cover.edit' as any)} aria-label={$t('v2.cover.edit' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
-          {$t('v2.cover.edit' as any)}
-        </button>
-        <!-- LA SUPPRESSION, À CÔTÉ DE « MODIFIER ».
-             Bertrand, 21/09/2026 : « On ne peut pas supprimer une smart
-             collection. Pas normal ! » — puis « ok vu le bouton supprimer ».
-             Elle existait, mais au SURVOL, derrière le coin bas-gauche de la
-             vignette, et dans l'éditeur. C'est la DEUXIÈME personne qui la
-             cherche : FabienM l'avait déjà cherchée deux fois (#1143), ce qui
-             l'avait fait ajouter dans l'éditeur. La fiche ouverte est
-             l'endroit où l'on regarde : elle y est, visible sans survol.
-             Même fonction que les deux autres portes — même confirmation
-             `danger`, même route selon la sorte. -->
-        <button class="v2-btn danger" onclick={() => void supprimerCollection(ouverte!)}
-          title={$t('common.delete' as any)} aria-label={$t('common.delete' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
-          {$t('common.delete' as any)}
-        </button>
+        <BoutonMenuV2 entrees={entreesTri} etiquette={$t('v2.fav.sortBy' as any)} largeur={232}>
+          {#snippet declencheur(p)}
+            <button class="v2-btn trier" {...p} data-menu-tri title={$t('v2.fav.sortBy' as any)}>
+              <span class="trier-mot">{$t('v2.menu.sort' as any)}</span>
+              <span class="trier-valeur">{$t(libelleTriCourant as any)}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          {/snippet}
+        </BoutonMenuV2>
+        <BoutonMenuV2 entrees={entreesPlusCollection} etiquette={$t('v2.cover.more' as any)}>
+          {#snippet declencheur(p)}
+            <button class="v2-btn carre" {...p} data-menu-collection
+              aria-label={$t('v2.cover.more' as any)} title={$t('v2.cover.more' as any)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+          {/snippet}
+        </BoutonMenuV2>
       </div>
     </header>
 
@@ -1382,24 +1412,18 @@
       <h1>{$t('v2.col.title' as any)}</h1>
       </div>
       <div class="v2-actions">
-      <!-- Le bouton suit l'ONGLET : creer une collection manuelle et en creer
-           une intelligente ne demandent pas la meme chose, et un seul bouton
-           qui change de sens serait un piege. -->
-      {#if onglet === 'manuelle'}
-        <button class="v2-btn primaire" onclick={() => (creation = true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          {$t('v2.col.create' as any)}
-        </button>
-      {:else if onglet === 'smart'}
-        <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          {$t('v2.smart.newTitle' as any)}
-        </button>
-        <!-- tune-server-rust #6839 — l'assistant propose, l'utilisateur crée. -->
-        <button class="v2-btn" onclick={() => (propositionsIa = true)} data-propositions-ia>
-          {$t('assistantIa.coll.proposeButton' as any)}
-        </button>
-      {/if}
+      <!-- web#2736 — UN bouton « + Nouvelle » : Manuelle, Intelligente ou
+           Suggérée par l'IA. Chaque sorte est NOMMÉE dans le menu : un seul
+           bouton qui changerait de sens selon l'onglet serait un piège. -->
+      <BoutonMenuV2 entrees={entreesNouvelle} etiquette={$t('v2.menu.new' as any)} largeur={232}>
+        {#snippet declencheur(p)}
+          <button class="v2-btn primaire" {...p} data-nouvelle-collection>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            {$t('v2.menu.new' as any)}
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        {/snippet}
+      </BoutonMenuV2>
       </div>
     </header>
 
@@ -1738,16 +1762,6 @@
   .tricol select{height:30px; padding:0 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:var(--v2-surface2); color:var(--v2-txt2); font:12.5px inherit; cursor:pointer}
   .tricol select:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
-  /* Le sens, à côté de la clé : un seul bouton qui bascule, l'icône dit
-     l'état courant et le titre le nomme. */
-  .tricol .sens{width:30px; height:30px; display:grid; place-items:center; padding:0;
-    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
-    color:var(--v2-txt2); cursor:pointer}
-  .tricol .sens:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
-  .tricol .sens svg{width:14px; height:14px}
-  /* Dans l'en-tête d'une collection ouverte, le sélecteur ne se pousse pas à
-     droite : il précède les boutons de lecture. */
-  .fa .tricol{margin-left:0}
   .tricol.horsrayon{margin-left:auto; cursor:pointer}
   .tricol.horsrayon + .tricol{margin-left:0}
 
@@ -1760,10 +1774,6 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
   .cv.teintee{box-shadow:0 0 0 2px var(--teinte); border-radius:var(--v2-r-card)}
-  /* « Supprimer » dans l'en-tête de la fiche : visible, jamais aussi présent
-     que « Lire ». Le rouge ne vient qu'au survol. */
-  .v2-btn.danger{color:var(--v2-danger)}
-  .v2-btn.danger:hover{background:var(--v2-danger-soft); border-color:var(--v2-danger-bd)}
   /* Ascenseur alphabetique, repris a l'identique de la Bibliotheque pour que
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
@@ -1836,7 +1846,15 @@
   .mqo{color:var(--v2-txt2)}
   .mqe{color:var(--v2-warn, #c8922b)}
   .tag{font-style:normal; padding:1px 6px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); color:var(--v2-txt2)}
-  .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+  /* `--bl-h` : le bouton Lecture partagé (`BoutonLectureV2`) à la hauteur des `.fab`. */
+  .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center; --bl-h:38px}
+  /* web#2736 — « Trier ▾ » dit le critère courant ; « … » est carré. */
+  .trier{display:inline-flex; align-items:center; gap:6px; max-width:100%}
+  .trier-mot{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .trier-valeur{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+  .trier svg,.chevron{width:14px; height:14px; flex:0 0 auto}
+  .v2-btn.carre{width:38px; padding:0; justify-content:center; display:inline-grid; place-items:center}
+  .v2-btn.carre svg{width:16px; height:16px}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
     border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
     font:700 13px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);

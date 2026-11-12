@@ -66,7 +66,10 @@ export type Contrainte =
   | 'premium_required'
   | 'plugin_not_installed'
   | 'pure'
-  | 'machine_test_missing';
+  | 'machine_test_missing'
+  // #8149 (renesenses/tune-server-rust) — zone réseau, et « bit-perfect strict » de la zone.
+  | 'output_not_supported'
+  | 'strict_bitperfect';
 
 export interface EtatSurechantillonnage {
   zone_id: number;
@@ -148,6 +151,8 @@ export function cleContrainte(c: Contrainte | null): string | null {
     case 'plugin_not_installed': return 'upsampling.constraint.notInstalled';
     case 'pure': return 'upsampling.constraint.pure';
     case 'machine_test_missing': return 'upsampling.constraint.machineTest';
+    case 'output_not_supported': return 'upsampling.constraint.zoneNotSupported';
+    case 'strict_bitperfect': return 'upsampling.constraint.strictBitPerfect';
     default: return null;
   }
 }

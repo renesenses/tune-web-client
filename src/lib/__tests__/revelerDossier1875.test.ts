@@ -91,7 +91,9 @@ describe('#1875 — branché dans la fiche, et traduit', () => {
   const src = readFileSync(resolve(__dirname, '../../components/v2/AlbumDetailV2.svelte'), 'utf8');
 
   it('le bouton est conditionné par la réponse du serveur, à côté de « Localiser »', () => {
-    expect(src).toMatch(/\{#if revelable\}\s*<button class="ghost reveler" onclick=\{ouvrirDansLExplorateur\}/);
+    // web#2736 — l'entrée suit « Localiser » dans le menu « … », sous `revelable`.
+    expect(src).toMatch(/if \(revelable\) l\.push\(\{ groupe: biblio, cle: 'v2\.album\.reveal'[^\n]*\n\s*faire: \(\) => void ouvrirDansLExplorateur\(\)/);
+    expect(src.indexOf("cle: 'v2.album.reveal'")).toBeGreaterThan(src.indexOf("cle: 'v2.album.locate'"));
     expect(src).toMatch(/revelationDisponible\(\)\.then/);
     expect(src).toMatch(/revelerDossierAlbum\(album\.id\)/);
   });

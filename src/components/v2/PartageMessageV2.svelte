@@ -3,7 +3,19 @@
   import { t } from '../../lib/i18n';
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
   import { carteAPartager, ouvrirConversation, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteCercle } from '../../lib/circleMessagerie';
+  // #2853 — emojis : le même sélecteur que la messagerie, raccourcis « :) » à l'envoi.
+  import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
+  import { insererEmoji, convertirRaccourcis, raccourcisActifs } from '../../lib/emojis';
   let { carte }: { carte: CarteCercle } = $props();
+  let emojis = $state(false);
+  let saisie = $state<HTMLTextAreaElement>();
+  let boutonEmoji = $state<HTMLButtonElement>();
+  async function ajouterEmoji(e: string) {
+    const r = insererEmoji(texte, saisie?.selectionStart, saisie?.selectionEnd, e);
+    texte = r.texte;
+    await tick();
+    saisie?.setSelectionRange(r.curseur, r.curseur);
+  }
   let contacts = $state<ContactCercle[]>([]);
   let destinataire = $state<number | ''>('');
   // #2527 — un thème part avec un texte lisible : les clients qui ne
@@ -30,7 +42,7 @@
   async function envoyer(ev: SubmitEvent) {
     ev.preventDefault(); if (!destinataire || occupe) return;
     occupe = true; erreur = '';
-    try { const c = await ouvrirConversation(Number(destinataire)); await envoyerMessage(c.id, texte, carte); carteAPartager.set(null); }
+    try { const c = await ouvrirConversation(Number(destinataire)); await envoyerMessage(c.id, raccourcisActifs() ? convertirRaccourcis(texte) : texte, carte); carteAPartager.set(null); }
     catch (e) { erreur = tr(motifCercle(e).cle); }
     finally { occupe = false; }
   }
@@ -54,8 +66,12 @@
         {#each contacts as c (c.user_id)}<option value={c.user_id}>{c.name}</option>{/each}
       </select>
       <label for="message-partage-texte">{tr('v2.circle.msg.write')}</label>
-      <textarea id="message-partage-texte" bind:value={texte} rows="3" maxlength="8000" disabled={occupe}></textarea>
-      <span class="note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>
+      <textarea id="message-partage-texte" bind:this={saisie} bind:value={texte} rows="3" maxlength="8000" disabled={occupe}></textarea>
+      <div class="ligne-saisie">
+        <button class="bouton-emoji" type="button" bind:this={boutonEmoji} aria-label={tr('v2.circle.emoji.open')} title={tr('v2.circle.emoji.open')} aria-expanded={emojis} aria-controls={emojis ? 'partage-emojis' : undefined} disabled={occupe} onclick={() => emojis = !emojis}><span aria-hidden="true">🙂</span></button>
+        <span class="note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>
+      </div>
+      {#if emojis}<SelecteurEmojiV2 id="partage-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { emojis = false; boutonEmoji?.focus(); }} />{/if}
       <div class="boutons">
         <button type="button" disabled={occupe} onclick={() => carteAPartager.set(null)}>{tr('common.cancel')}</button>
         <button type="submit" disabled={occupe || !destinataire || !messageEnvoyable(texte, carte)}>{tr('v2.circle.msg.send')}</button>
@@ -69,5 +85,5 @@
   .partage{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--v2-bg);color:var(--v2-txt);padding:24px;border:1px solid var(--v2-line);border-radius:12px;box-sizing:border-box}
   .nuancier{display:flex;gap:4px}.nuancier span{width:22px;height:22px;border-radius:4px;border:1px solid var(--v2-line)}
   h2{font-size:20px;margin-top:0}.note{font-size:12px;color:var(--v2-txt2)}form{display:flex;flex-direction:column;gap:8px}.boutons{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
-  button,textarea,select{font:inherit;border:1px solid var(--v2-line);background:var(--v2-bg);color:inherit;border-radius:6px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5}textarea{resize:vertical}
+  button,textarea,select{font:inherit;border:1px solid var(--v2-line);background:var(--v2-bg);color:inherit;border-radius:6px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5}textarea{resize:vertical;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji'}.ligne-saisie{display:flex;align-items:center;justify-content:space-between;gap:8px}.bouton-emoji{border:0;background:transparent;font-size:22px;line-height:1;padding:4px 6px;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
 </style>

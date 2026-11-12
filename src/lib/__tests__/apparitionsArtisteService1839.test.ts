@@ -73,7 +73,8 @@ const titresDe = (racine: Element | null) =>
 describe('#1839 — fiche d’un artiste de service', () => {
   it('les albums d’autres artistes sont sous « Apparitions », plus sous « Autres / Connexes »', () => {
     const h = poser({ locaux: [], services: [QOBUZ_AIR, TIDAL_AIR], nomArtiste: 'Air' });
-    const principale = h.querySelector('.disco > .gr');
+    // web#2639 — la discographie est la première des quatre sections.
+    const principale = h.querySelector('[data-section="discographie"] > .gr');
     const apparitions = h.querySelector('[data-section="apparitions"]');
     expect(h.querySelector('[data-section="connexes"]'), 'la section « Autres / Connexes » existe encore').toBeNull();
     expect(apparitions, 'la section « Apparitions » n’est pas rendue').not.toBeNull();
@@ -84,7 +85,9 @@ describe('#1839 — fiche d’un artiste de service', () => {
     }
     // Même édition chez Qobuz et Tidal : UNE vignette, comme ailleurs.
     expect(titresDe(apparitions).filter((x) => x === 'Blue Moon Safari')).toHaveLength(1);
-    expect(h.querySelector('[data-section="apparitions"] h3')?.textContent).toContain('Apparitions');
+    // web#2639 — les apparitions vivent sous le titre « Apparaît sur ».
+    expect(h.querySelector('[data-section="appears-on"] h3')?.textContent).toContain('Apparaît sur');
+    expect(h.querySelector('[data-section="appears-on"] [data-section="apparitions"]')).not.toBeNull();
   });
 
   it('même section, même libellé que pour un artiste local : les deux origines s’y rejoignent', () => {
@@ -95,12 +98,12 @@ describe('#1839 — fiche d’un artiste de service', () => {
     expect(titresDe(sections[0])).toEqual(expect.arrayContaining(['Invité local', 'Japan! (feat. Air)', 'MMY (feat. AIR)']));
   });
 
-  it('« Apparitions » se place après « Compilations », comme pour un artiste local', () => {
+  it('« Compilations » est un sous-groupe d’« Apparaît sur », après les apparitions (web#2639)', () => {
     const compil = al({ id: 5, title: 'Compil', artist_name: 'Various Artists' });
     const h = poser({ locaux: [], services: [QOBUZ_AIR], nomArtiste: 'Air', compilations: [compil] });
-    const ordre = [...h.querySelectorAll('[data-section]')].map((n) => n.getAttribute('data-section'));
-    expect(ordre.indexOf('compilations')).toBeGreaterThan(-1);
-    expect(ordre.indexOf('apparitions')).toBeGreaterThan(ordre.indexOf('compilations'));
+    const ordre = [...h.querySelectorAll('[data-section="appears-on"] [data-section]')].map((n) => n.getAttribute('data-section'));
+    expect(ordre.indexOf('apparitions')).toBeGreaterThan(-1);
+    expect(ordre.indexOf('compilations')).toBeGreaterThan(ordre.indexOf('apparitions'));
   });
 
   it('un service sans intrus n’ouvre pas de section « Apparitions »', () => {

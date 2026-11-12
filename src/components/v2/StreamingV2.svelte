@@ -45,7 +45,9 @@
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
-  import { activeView } from '../../lib/stores/navigation';
+  import { activeView, previousView } from '../../lib/stores/navigation';
+  import { retenirAuDepart, reprendreAuRetour, type MemoireStreaming } from '../../lib/memoireStreaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -72,6 +74,7 @@
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
+  import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -305,6 +308,13 @@
     svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
+    // web#2828 — le fil de genres quitté pour « Lecture en cours » se repose
+    // APRÈS la remise à zéro du service, sinon elle l'effacerait aussitôt.
+    const r = genresARestaurer;
+    if (r && r.active === svc) {
+      genresARestaurer = null;
+      genrePath = r.genrePath; subGenres = r.subGenres; genreId = r.genreId;
+    }
     let vivant = true;
     api.getStreamingGenres(svc)
       .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })
@@ -387,6 +397,9 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
+  let favSuiteEnCours = $state(false);
+  let seqFavoris = 0;
   /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
   function allerA(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -541,6 +554,7 @@
       // d'Alain (fil 1671) ne ramenait jamais sur son service. Un souhait
       // intenable (service déconnecté depuis) retombe sur le premier onglet.
       active = ongletDeRestitution(services, bandcampLive, get(activeStreamingService));
+      reprendrePageQuittee();
     }).finally(() => { loading = false; });
   });
 
@@ -702,6 +716,10 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // tune-server-rust#8040 — tout nouveau chargement périme la chaîne des
+    // favoris encore en vol (sa suite comme son « prêt »), quelle que soit
+    // la vue qui prend la place.
+    const mien = ++seqFavoris;
     // web#2587 — rien à charger pour un service dont la session a expiré.
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
@@ -762,15 +780,21 @@
       // Les trois natures de favoris partent ensemble : elles vivent sur le
       // meme ecran, et les separer encore ferait trois allers-retours pour
       // une seule question — « qu'est-ce que j'ai aime ? ».
-      Promise.allSettled([
-        api.getStreamingFavorites(svc, 'albums'),
-        api.getStreamingFavorites(svc, 'artists'),
-        api.getStreamingFavorites(svc, 'tracks'),
-      ]).then(([a, ar, tr]) => {
-        favAlbums = a.status === 'fulfilled' ? ((a.value as any)?.albums ?? []) : [];
-        favArtists = ar.status === 'fulfilled' ? ((ar.value as any)?.artists ?? []) : [];
-        favTracks = tr.status === 'fulfilled' ? ((tr.value as any)?.tracks ?? []) : [];
-      }).finally(done);
+      // tune-server-rust#8040 — la PREMIÈRE page de chaque nature s'affiche
+      // dès qu'elle arrive ; la suite se charge ensuite, sans geste, et
+      // remplace la page. Un chargement dépassé par un changement de service
+      // ou d'onglet n'écrit plus rien.
+      favSuiteEnCours = true;
+      chargerFavorisProgressifs(
+        (type, page) => api.getStreamingFavorites(svc, type, page),
+        (type, items) => {
+          if (mien !== seqFavoris) return;
+          if (type === 'albums') favAlbums = items;
+          else if (type === 'artists') favArtists = items;
+          else favTracks = items;
+        },
+        () => { if (mien === seqFavoris) done(); },
+      ).finally(() => { if (mien === seqFavoris) favSuiteEnCours = false; });
     }
   });
 
@@ -945,6 +969,53 @@
       fermerCalquePlaylist();
     });
   });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE POUR « LECTURE EN COURS » — web#2828.
+   *
+   * Ronin22 (ASR, rc11) : Qobuz › Genres › un genre › un album › Lecture, puis
+   * « Lecture en cours », puis retour sur Qobuz → accueil du service. Quitter
+   * la vue DÉTRUIT cet écran ; tout ce qui suit est du `$state` local, perdu.
+   *
+   * On le retient À L'INSTANT où la vue change — l'abonnement est synchrone,
+   * avant que la coquille ne referme quoi que ce soit — et on le rejoue au
+   * remontage, une fois l'onglet de service connu. La règle (vue de passage,
+   * même service, une seule fois) est dans `lib/memoireStreaming`.
+   */
+  let genresARestaurer: MemoireStreaming | null = null;
+  const vuePrecedenteAuMontage = get(previousView);
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueAuMontage) return;
+      retenirAuDepart(v, active ? $state.snapshot({
+        active, sub, genrePath, subGenres, genreId,
+        fiche, ficheService, ficheBc, fichePlaylist,
+        defilement: zoneDefilante?.scrollTop ?? 0,
+      }) as MemoireStreaming : null);
+    });
+  });
+  function reprendrePageQuittee() {
+    const r = reprendreAuRetour(vuePrecedenteAuMontage, active);
+    if (!r) return;
+    sub = r.sub as Sub;
+    if (r.genrePath.length) genresARestaurer = r;
+    if (r.fiche) {
+      const a = r.fiche as any;
+      ouvrirCalqueAlbum(a);
+      fiche = a;
+      ficheService = r.ficheService;
+    } else if (r.ficheBc) {
+      const a = r.ficheBc as any;
+      ouvrirCalqueAlbum(a);
+      ficheBc = a;
+    } else if (r.fichePlaylist) {
+      const p = r.fichePlaylist as any;
+      ouvrirCalquePlaylist(p, p?.source ?? active);
+    }
+    restaurerQuandPret(r.defilement, () => zoneDefilante, { essaisMax: 180 });
+  }
 
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
@@ -1791,6 +1862,9 @@
         <div class="state">{$t('v2.str.noFavoritesInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {:else if !favAlbumsVus.length && !favArtistsVus.length && !favTracksVus.length}
         <div class="state">{$t('v2.common.noResult' as any)}</div>
+      {:else if favSuiteEnCours}
+        <!-- tune-server-rust#8040 — la première page est là ; la suite arrive. -->
+        <div class="state" aria-live="polite">{$t('v2.stream.loadingMore' as any)}</div>
       {/if}
     {/if}
   </div>
@@ -2064,7 +2138,7 @@
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   /* #6231 — ce que fait la saisie dans un genre : catalogue, ou simple filtre. */
   .note-genre{margin:4px 0 12px; font-size:12px; color:var(--v2-txt2)}
@@ -2176,7 +2250,7 @@
      déjà, il ne l'appliquait qu'aux résultats de recherche. */
   .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
   .arow::-webkit-scrollbar{height:8px}
-  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:999px}
   /* La grille d'artistes des RESULTATS de recherche : elle va a la ligne.
      `.arow` va desormais a la ligne elle aussi (#1382) — elle reste distincte
      par sa gouttiere et sa largeur libre, la ou `.agrid` colonne a pas fixe

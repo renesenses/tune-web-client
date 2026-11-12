@@ -68,7 +68,10 @@ import { niveauApresAlerte } from './santeServeur';
 import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
+import { texteAvisServeur } from './avisServeur';
 import { estEcouteRevoquee } from './circle';
+import { estDepartMuetAirplay2, texteDepartMuetAirplay2 } from './departMuetAirplay2';
+import { estAvisFichierAbime, texteAvisFichierAbime } from './avisFichierAbime';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
@@ -506,7 +509,30 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // tune-server-rust#8422 — un avis (« Bascule PURE : reprise à 2:31 »),
+    // pas une erreur : bandeau d'information, jamais tu par la fenêtre de
+    // grâce, et la zone se relit (la relance a changé son flux).
+    if (type === 'zone.notice') {
+      const texte = texteAvisServeur(event?.data);
+      if (texte) notifications.info(texte, 6000);
+      void rechargerZones();
+      return;
+    }
+
     if (type === 'zone.playback_error' || type === 'playback.error') {
+      // tune-server-rust#8402 — AirPlay 2 parti à 0 % (PURE
+      // verrouillé) : un avertissement, dit même dans la fenêtre de grâce.
+      if (estDepartMuetAirplay2(event?.data)) {
+        notifications.info(texteDepartMuetAirplay2(event.data), 12000);
+        return;
+      }
+      // tune-server-rust#8483 — fichier abîmé : la zone est passée à la
+      // suivante. Un avertissement, dit même dans la fenêtre de grâce.
+      if (estAvisFichierAbime(event?.data)) {
+        notifications.info(texteAvisFichierAbime(event.data), 12000);
+        void rechargerZones();
+        return;
+      }
       const zoneId = event?.data?.zone_id as number | null | undefined;
       // La fenêtre de grâce, telle que la v1 la tient (#1146) : pendant les
       // trente secondes qui suivent un Lire, une erreur PASSAGÈRE est le

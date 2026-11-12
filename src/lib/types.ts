@@ -358,6 +358,16 @@ export interface Track {
   missing?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
+  /**
+   * web#2806 (tune-server-rust#8412) — la ligne de playlist est une RADIO de
+   * « Mes radios » : `source = 'radio'`, `source_id` = `radio_id` en texte,
+   * le nom en titre, le logo en pochette, `duration_ms = 0`. Passer par
+   * `lib/lignePlaylistRadio.ts`.
+   */
+  radio?: boolean;
+  radio_id?: number | null;
+  /** Ligne radio : la station a quitté « Mes radios ». Grisée, sautée à la lecture. */
+  unavailable?: boolean;
 }
 
 export interface Playlist {
@@ -641,7 +651,16 @@ export interface Zone {
    * `dop_active`, détecté sur les octets pendant la lecture. Absent des
    * serveurs qui ne le publient pas : l'interface n'affirme alors rien.
    */
-  dsd_transport?: string;
+  dsd_transport?: string | null;
+  /**
+   * #2513 (tune-server-rust#7372) — le motif du diagnostic `dsd_transport` :
+   * `capacite_non_sondee` (capacité native encore inconnue, `dsd_transport`
+   * vaut alors `null`), `sortie_non_asio` ou `pilote_sans_dsd` (cause connue
+   * du repli DoP), `null` quand il n'y a rien à expliquer.
+   */
+  dsd_transport_reason?: 'capacite_non_sondee' | 'sortie_non_asio' | 'pilote_sans_dsd' | string | null;
+  /** `output_capability` : capacité de la sortie, pas transport réel de la piste. */
+  dsd_transport_scope?: string | null;
   /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
    *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
   lyrics_offset_ms?: number;
@@ -1219,6 +1238,13 @@ export interface ZoneGroupResponse {
   zone_ids: number[];
   auto_synced: boolean;
   group_manufacturer: string;
+  /** Numéro du groupe dans `zone_groups` (`group_id` en est la chaîne). */
+  id?: number;
+  name?: string;
+  /** tune-server-rust#8445 — volume maître (gain 0..1) et décalage de chaque
+   *  membre (clé : id de zone en chaîne), tels que le serveur les garde. */
+  master_volume?: number;
+  offsets?: Record<string, number>;
 }
 
 /** Filtre de la vue Métadonnées.
@@ -1614,6 +1640,12 @@ export interface RadioStation {
     /** Les flux publiés de la fiche, le principal d'abord (#7177). */
     streams?: FluxRadio[];
   } | null;
+  /**
+   * web#2795 — la station de l'annuaire a été modifiée CHEZ SOI (nom, logo ou
+   * flux) : le relevé de l'annuaire ne la touche plus, et « Revenir à la fiche
+   * de l'annuaire » efface la surcharge. Absent d'un serveur antérieur.
+   */
+  surcharge_locale?: boolean;
 }
 
 /**

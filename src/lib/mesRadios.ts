@@ -10,7 +10,8 @@ export const URL_PROPOSER = 'https://mozaiklabs.fr/radios';
 
 /**
  * Une entrée venue de l'annuaire : flux, logo et description sont gérés en
- * central, on ne les modifie donc pas ici — on la RETIRE de « Mes radios ».
+ * central — on la VOIT, on la RETIRE de « Mes radios », et depuis web#2795 on
+ * la modifie CHEZ SOI (nom, logo, flux) sans toucher à la fiche.
  *
  * Le critère est le LIEN ENREGISTRÉ (`external_id`), pas le rapprochement :
  * le serveur rapproche aussi par adresse de flux ou par nom, et une station

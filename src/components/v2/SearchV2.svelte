@@ -57,6 +57,11 @@ import { sansDoublons } from '../../lib/clesUniques';
   import { servicesAvecSuite, decalageSuivant, parametresSuite, fusionnerSuiteService, type FamilleService } from '../../lib/rechercheSuiteService';
   import { nomService } from '../../lib/convertisseurPlaylists';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
+  import { artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
+  import { albumDeServiceDe } from '../../lib/routageAlbum';
+  import { ouvrirParRaccourci, ouvrirPlaylistDeService } from '../../lib/ouvrirParRaccourci';
   // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
   // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
   // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
@@ -884,6 +889,46 @@ import { sansDoublons } from '../../lib/clesUniques';
     }
   }
 
+  /**
+   * web#2770 (lot 4) — la ligne d'une playlist trouvée OUVRE la playlist
+   * (« clic = navigation, jamais lecture ») : l'écran Playlists sur elle pour
+   * une playlist de la bibliothèque, la fiche de service sinon — les mêmes
+   * chemins que « Lecture en cours » vers sa source (`lienLectureEnCours`).
+   */
+  function ouvrirPlaylistTrouvee(pl: PlaylistTrouvee) {
+    if (pl.idLocal != null) {
+      void ouvrirParRaccourci('playlists', `playlists:${pl.idLocal}`, pl.idLocal, pl.nom ?? '');
+      return;
+    }
+    if (pl.idService && pl.serviceSource) {
+      void ouvrirPlaylistDeService(pl.serviceSource, { source_id: String(pl.idService), name: pl.nom ?? '' });
+    }
+  }
+
+  /**
+   * web#2770 (lot 4) — le MEILLEUR RÉSULTAT « titre » ouvre son album quand
+   * il est connu : `album_id` d'une piste locale, identifiant d'album chez le
+   * service sinon (`albumDeServiceDe`). Sans album connu, il reste la lecture
+   * — mieux qu'une carte morte.
+   */
+  function albumDePisteTrouvee(pi: any): any | null {
+    if (estLocal(pi)) {
+      const id = pi?.album_id;
+      if (!Number.isInteger(id) || id <= 0) return null;
+      return { id, source: null, source_id: null, title: pi.album_title ?? '', artist_name: pi.artist_name ?? '',
+        artist_id: pi.artist_id ?? null, cover_path: pi.cover_path ?? null };
+    }
+    const c = albumDeServiceDe(pi);
+    if (!c) return null;
+    return { id: null, source: c.service, source_id: c.albumId, title: c.titre, artist_name: c.artiste ?? '',
+      artist_id: c.artisteId, cover_path: c.pochette ?? null };
+  }
+  function ouvrirPisteTrouvee(pi: any) {
+    const album = albumDePisteTrouvee(pi);
+    if (album) ouvrirFiche(album);
+    else lirePiste(pi);
+  }
+
   /** Lit une ligne d'album, locale ou de service — le geste diffère, pas l'intention. */
   function ouvrirOuLire(a: any) {
     if (estLocal(a)) lireAlbum(a.id);
@@ -1256,7 +1301,8 @@ import { sansDoublons } from '../../lib/clesUniques';
                 </span>
                 <button class="meta" onclick={() => ouvrirFiche(a)}>
                   <span class="ct" title={a.title}>{a.title}</span>
-                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  <!-- web#2770 (lot 3) — l'artiste est un lien à part dans le bouton de l'album. -->
+                  <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
                   <QualiteAlbum objet={a} />
                 </button>
               </div>
@@ -1343,14 +1389,17 @@ import { sansDoublons } from '../../lib/clesUniques';
                 <button class="bcard" onclick={() => ouvrirFiche(a)}>
                   <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
                   <span class="bt" use:bulleTexte>{a.title}</span>
-                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindAlbum' as any)} · <LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
                 </button>
               {:else}
                 {@const pi = meilleur.piste}
-                <button class="bcard" onclick={() => lirePiste(pi)}>
+                <!-- web#2770 (lot 4) — le meilleur résultat « titre » OUVRE son
+                     album quand il est connu (clic = navigation) ; sans album
+                     connu, il garde la lecture. L'artiste est un lien à part. -->
+                <button class="bcard" onclick={() => ouvrirPisteTrouvee(pi)}>
                   <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} vignette alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
                   <span class="bt" use:bulleTexte>{pi.title}</span>
-                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
+                  <span class="bk" use:bulleTexte>{$t('v2.rech.kindTrack' as any)} · <LienEntite entite={{ type: 'artiste', nom: pi.artist_name ?? '', artiste: artisteDePiste(pi) }} /></span>
                 </button>
               {/if}
             </div>
@@ -1516,7 +1565,7 @@ import { sansDoublons } from '../../lib/clesUniques';
                 {#if (local_ || (a.source && a.source_id)) && !artisteCarte}
                   <button class="meta" onclick={() => ouvrirFiche(a)}>
                     <span class="ct" title={a.title}>{a.title}</span>
-                    <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                    <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
                     <QualiteAlbum objet={a} />
                   </button>
                 {:else}
@@ -1527,11 +1576,12 @@ import { sansDoublons } from '../../lib/clesUniques';
                   {:else}
                     <span class="ct" title={a.title}>{a.title}</span>
                   {/if}
+                  <!-- web#2770 — le même `LienEntite` que partout : par identifiant
+                       chez le service, sinon par le nom (repli de #956 qui parle). -->
                   {#if artisteCarte}
-                    <button class="ca lienart" data-artiste-carte title={a.artist_name ?? ''}
-                      onclick={() => ouvrirArtisteDeCarte(artisteCarte)}>{a.artist_name ?? ''}</button>
+                    <span class="ca lienart" data-artiste-carte title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', ouvrir: () => ouvrirArtisteDeCarte(artisteCarte) }} /></span>
                   {:else}
-                    <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                    <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
                   {/if}
                   <QualiteAlbum objet={a} />
                 {/if}
@@ -1622,12 +1672,14 @@ import { sansDoublons } from '../../lib/clesUniques';
           <h2>{$t('v2.rech.playlists' as any)}</h2>
           <div class="list">
             {#each lesPlaylists as pl, i (pl.source + ':' + (pl.idLocal ?? pl.idService ?? i))}
+              <!-- web#2770 (lot 4) — la ligne OUVRE la playlist ; la lecture a
+                   son bouton ▶ à gauche (et le menu « … »). -->
               <div class="plhote">
               <span class="plmenu"><MenuObjetV2 objet={objetPlaylistTrouvee(pl)} nom={pl.nom ?? ''} /></span>
-              <button class="trk pl-row" onclick={() => lirePlaylist(pl)}>
-                <span class="plg" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h11M4 12h11M4 17h7M18 15V8l3 .6"/></svg>
-                </span>
+              <button class="plg lire" onclick={() => lirePlaylist(pl)} title={$t('common.play' as any)} aria-label={`${$t('common.play' as any)} — ${pl.nom ?? ''}`}>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <button class="trk pl-row" onclick={() => ouvrirPlaylistTrouvee(pl)}>
                 <span class="ti" use:bulleTexte>{pl.nom}<em>{pl.source}</em></span>
                 <span class="dur">{String(pl.pistes)}</span>
               </button>
@@ -1729,7 +1781,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   .acoustic.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
 
   .hint{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;
     padding:70px 30px; color:var(--v2-txt2)}
@@ -1782,7 +1834,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   */
   .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
   .arow::-webkit-scrollbar{height:8px}
-  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:999px}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
   /* Carrée comme un album — voir `ArtistesV2`. */
   /* #1341 — la vignette des têtes d'affiche est un BOUTON : les remises à
@@ -1830,8 +1882,11 @@ import { sansDoublons } from '../../lib/clesUniques';
   /* Menus d'objets : le « … » d'un label à côté de sa pastille, celui d'une
      playlist au bout de sa ligne — jamais DANS le bouton. */
   .labhote{display:inline-flex; align-items:center; gap:2px}
-  .plhote{position:relative}
-  .plhote > .pl-row{padding-right:48px}
+  .plhote{position:relative; display:flex; align-items:center; gap:8px}
+  .plhote > .pl-row{flex:1 1 auto; min-width:0; grid-template-columns:1fr auto; padding-right:48px}
+  /* web#2770 — le bouton ▶ de la playlist, hors de la ligne qui l'ouvre. */
+  .plg.lire{flex:0 0 44px; cursor:pointer; padding:0; font:inherit}
+  .plg.lire:hover{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .plmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .ln{font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lc{font-size:12px; color:var(--v2-txt3)}

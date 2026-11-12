@@ -34,6 +34,7 @@
   import {
     enTranches,
     nomDObjet,
+    titresDuTiroir,
     artisteDObjet,
     pochetteDObjet,
     serviceDePlaylist,
@@ -41,7 +42,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
-  import { completerAlbumsDeService } from '../../lib/albumDesEcoutes';
+  import { completerAlbumsDeService, appliquerAlbumsConnus } from '../../lib/albumDesEcoutes';
   import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
   import { ouvertureArtisteDuLot } from '../../lib/lienArtisteDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
@@ -113,13 +114,31 @@
   const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
 
   let serveur = $state<HistoryEntry[]>([]);
-  /** web#2209 — le dernier passage de `completerAlbumsDeService` ; un plus ancien ne s'applique pas. */
-  let tourAlbums = 0;
+  /**
+   * web#2209 / web#2749 — les albums de service obtenus depuis le dernier
+   * rendu : chaque nouvelle réponse relance la dérivation des écoutes.
+   */
+  let albumsObtenus = $state(0);
   let favorisRadio = $state(new Set<string>());
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
 
-  const entrees = $derived(fusionnerHistorique($playbackHistory, serveur));
+  const fusion = $derived(fusionnerHistorique($playbackHistory, serveur));
+  /**
+   * 🔴 web#2749 (FabienM, fil 2723, point 3) — la complétion de l'album de
+   * service passe sur la FUSION, pas sur les seules lignes du serveur : une
+   * écoute notée par ce navigateur (celle qui porte l'étiquette de qualité)
+   * gardait sinon un nom d'album inerte et pas d'« Aller à l'album ».
+   */
+  const entrees = $derived((void albumsObtenus, appliquerAlbumsConnus(fusion)));
+  $effect(() => {
+    const base = fusion;
+    let vivant = true;
+    void completerAlbumsDeService(base, api.getStreamingTrack).then((maj) => {
+      if (maj && vivant) albumsObtenus += 1;
+    });
+    return () => { vivant = false; };
+  });
 
   /**
    * 🔴 #904 / #903 — l'écran en DEUX niveaux.
@@ -216,12 +235,8 @@
           const lues = entreesDepuisServeur(response?.items ?? []);
           serveur = lues;
           // web#2209 — l'album CHEZ LE SERVICE d'un titre lancé hors de son
-          // album : le lien de la colonne Album et « Aller à l'album » en
-          // dépendent. Demandé à la piste elle-même, borné et mémorisé.
-          const tour = ++tourAlbums;
-          void completerAlbumsDeService(lues, api.getStreamingTrack).then((maj) => {
-            if (maj && active && tour === tourAlbums && requestedGeneration === generation) serveur = maj;
-          });
+          // album est demandé à la piste elle-même (borné, mémorisé), sur la
+          // fusion local + serveur : voir `entrees` plus haut (web#2749).
         }
       } catch {
         // Keep the last successful snapshot on a transient network failure.
@@ -417,6 +432,8 @@
           {:else}
             {@const lot = tranche.entrees}
             {@const nom = nomDObjet(tranche.type, lot)}
+            <!-- web#2748 — la ligne de la STATION ne redit pas, dans le tiroir, le nom de l'en-tête. -->
+            {@const titres = titresDuTiroir(tranche.type, lot, nom)}
             {@const ouvert = deplies.has(tranche.cle)}
             {@const fiche = fiches.get(tranche.cle) ?? null}
             {@const vignette = fiche?.pochette
@@ -497,7 +514,7 @@
               </span>
               <!-- Le compte occupe la colonne de la barre d'actions, calé à
                    droite comme elle (`.act`). -->
-              <span class="ocompte-cell"><span class="ocompte">{lot.length}</span></span>
+              <span class="ocompte-cell"><span class="ocompte">{titres.length}</span></span>
               <!-- Et l'instant occupe la colonne du suffixe, avec la MÊME
                    structure que les lignes de piste : `.quand`, puis la place
                    du cœur radio. Sans ce second élément l'instant se collerait
@@ -508,17 +525,17 @@
             {#if ouvert}
               <div class="tiroir">
                 <ListePistesV2
-                  pistes={lot.map((x) => x.track)}
+                  pistes={titres.map((x) => x.track)}
                   numerotation="aucune"
                   pochetteEnTableau
-                  onLire={(_p, i) => rejouer(lot[i])}
-                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
+                  onLire={(_p, i) => rejouer(titres[i])}
+                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + titres[i].playedAt}
                   apres={suffixeObjet}
-                  coeurDe={(_p, i) => coeurRadio(lot[i])}
+                  coeurDe={(_p, i) => coeurRadio(titres[i])}
                   largeurApres="164px"
                 />
                 {#snippet suffixeObjet(_p: any, i: number)}
-                  {@render colonnes(lot[i])}
+                  {@render colonnes(titres[i])}
                 {/snippet}
               </div>
             {/if}
@@ -554,7 +571,7 @@
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}

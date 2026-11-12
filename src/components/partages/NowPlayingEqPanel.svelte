@@ -26,6 +26,13 @@
      * le signalement de Daniel POUCHON (fil 1364, #2419).
      */
     locked?: boolean;
+    /**
+     * web#2387 — le greffon `equalizer` n'est pas installé (ou inactif) : le
+     * serveur a répondu `409 plugin_unavailable`. Le panneau le dit et mène
+     * aux Extensions, comme l'écran Égaliseur.
+     */
+    greffonAbsent?: boolean;
+    onOuvrirExtensions?: () => void;
   }
   let {
     current,
@@ -34,6 +41,8 @@
     bands = [],
     enabled = true,
     locked = false,
+    greffonAbsent = false,
+    onOuvrirExtensions,
   }: Props = $props();
 
   // Échelle d'affichage. Le serveur accepte ±12 dB (EqualizerView : MIN_GAIN /
@@ -63,15 +72,20 @@
     </p>
   {/if}
 
+  {#if greffonAbsent}
+    <p class="eq-greffon-notice" data-testid="eq-greffon-absent">
+      <span>{$t('v2.eq.pluginNotInstalled' as any)}</span>
+      {#if onOuvrirExtensions}
+        <button type="button" class="eq-greffon-lien" onclick={onOuvrirExtensions}>{$t('v2.nav.plugins' as any)}</button>
+      {/if}
+    </p>
+  {/if}
+
   {#if pureMode}
     <!-- En mode PURE, load_eq_processor n'est jamais construit : le PCM atteint
          la sortie intact. Laisser cliquer un préréglage qui ne fera rien, sans
          rien dire, c'était le signalement de Bilou. -->
-    <p class="eq-pure-notice">
-      Mode PURE actif sur cette zone : le signal est transmis intact, sans aucun
-      traitement. Les préréglages ci-dessous resteront donc sans effet tant que
-      le mode PURE est activé.
-    </p>
+    <p class="eq-pure-notice">{$t('nowplaying.eqPureNotice' as any)}</p>
   {/if}
 
   {#if hasCurve}
@@ -208,6 +222,25 @@
     max-width: 48ch;
   }
   .eq-premium-notice svg { flex: none; }
+  .eq-greffon-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    max-width: 48ch;
+  }
+  .eq-greffon-lien {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--tune-accent, #f0b429);
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+  }
   .eq-preset.active {
     background: var(--tune-accent, #f0b429);
     color: #1a1a1a;
