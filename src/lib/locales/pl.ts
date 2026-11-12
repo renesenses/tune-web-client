@@ -3707,6 +3707,8 @@ export default {
   "v2.meta.boxCompose": "Scal w zestaw pudełkowy",
   "v2.meta.boxOrder": "Kolejność zaznaczania jest kolejnością płyt.",
   "v2.meta.boxDisc": "Płyta {n}",
+  "v2.meta.boxName": "Nazwa zestawu",
+  "v2.meta.boxDiscRange": "Płyty {a}–{b}",
   "v2.meta.boxDone": "Scalone płyty: {count} w albumie “{title}”.",
   "v2.meta.boxTitle": "Rozdzielone zestawy pudełkowe",
   "v2.meta.boxDiscs": "Płyty: {n}, każda jako osobny album",

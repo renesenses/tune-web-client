@@ -3828,6 +3828,8 @@ export default {
   "v2.meta.boxCompose": "Zu einem Box-Set zusammenführen",
   "v2.meta.boxOrder": "Die Reihenfolge des Ankreuzens ist die Reihenfolge der Discs.",
   "v2.meta.boxDisc": "Disc {n}",
+  "v2.meta.boxName": "Name des Box-Sets",
+  "v2.meta.boxDiscRange": "Discs {a}–{b}",
   "v2.meta.boxDone": "{count} Discs unter „{title}“ zusammengeführt.",
   "v2.meta.boxTitle": "Aufgeteilte Box-Sets",
   "v2.meta.boxDiscs": "{n} Datenträger, je ein Album",

@@ -3847,6 +3847,8 @@ export default {
   "v2.meta.boxCompose": "Merge into a box set",
   "v2.meta.boxOrder": "The order you tick them in is the disc order.",
   "v2.meta.boxDisc": "Disc {n}",
+  "v2.meta.boxName": "Box set name",
+  "v2.meta.boxDiscRange": "Discs {a}–{b}",
   "v2.meta.boxDone": "{count} discs merged under “{title}”.",
   "v2.meta.boxTitle": "Split box sets",
   "v2.meta.boxDiscs": "{n} discs, one album each",

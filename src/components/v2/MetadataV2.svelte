@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Métadonnées — nouveau client (direction Levente). Niveau Expert.
@@ -466,6 +467,12 @@
   let cfBusy = $state(false);
   let cfBilan = $state<string | null>(null);
   let cfErr = $state<string | null>(null);
+  /** #8464 (fil 2765) — le nom du coffret, prérempli avec le titre que le
+   *  serveur calculerait ; `cfTitreTouche` dès que l'utilisateur l'a écrit
+   *  lui-même : l'aperçu ne l'écrase plus. */
+  let cfTitre = $state('');
+  let cfTitreTouche = $state(false);
+  let cfApercuN = 0;
 
   /** Les albums affichés, À PLAT. */
   let cfAlbums = $derived.by(() => {
@@ -490,6 +497,42 @@
   function rangCoffret(id: number): number {
     return cfChoisis.indexOf(id) + 1;
   }
+
+  /**
+   * #8463 (fil 2763) — les disques qu'un album coché portera dans le
+   * coffret. Le serveur garde les disques de chaque album et les numérote à
+   * la suite : un album de 3 CD coché en premier prend 1 à 3, le suivant 4.
+   * Le rang seul aurait annoncé « Disque 2 » pour ce dernier.
+   */
+  function disquesCoffret(id: number): { a: number; b: number } | null {
+    let a = 1;
+    for (const x of cfChoisis) {
+      const n = Math.max(1, cpTous.find((t) => t.album_id === x)?.disc_count ?? 1);
+      if (x === id) return { a, b: a + n - 1 };
+      a += n;
+    }
+    return null;
+  }
+
+  // #8464 — le titre calculé, demandé au serveur à chaque changement de la
+  // sélection, tant que l'utilisateur n'a pas écrit son propre nom. Une
+  // réponse arrivée après une sélection plus récente est ignorée.
+  $effect(() => {
+    const ids = [...cfChoisis];
+    // Seule la SÉLECTION relance l'aperçu : la frappe dans le champ, non.
+    untrack(() => {
+      if (ids.length < 2) {
+        cfApercuN++;
+        if (!ids.length) cfTitreTouche = false;
+        if (!cfTitreTouche) cfTitre = '';
+        return;
+      }
+      const n = ++cfApercuN;
+      api.apercuCoffret(ids)
+        .then((r) => { if (n === cfApercuN && !cfTitreTouche) cfTitre = r?.titre ?? ''; })
+        .catch(() => {});
+    });
+  });
 
   function cocherCoffret(id: number) {
     const i = cfChoisis.indexOf(id);
@@ -519,12 +562,14 @@
     arme = null;
     cfBusy = true;
     try {
-      const r = await api.composerCoffret(cfChoisis);
+      const r = await api.composerCoffret(cfChoisis, cfTitre);
       cfBilan = $t('v2.meta.boxDone' as any)
         .replace('{count}', String(r.disques))
         .replace('{title}', r.titre ?? '');
       cfErr = null;
       cfChoisis = [];
+      cfTitre = '';
+      cfTitreTouche = false;
       // La bibliothèque a changé : la liste en mémoire est périmée.
       cpCharge = false;
       await chargerAlbumsCompil();
@@ -1153,6 +1198,21 @@
           </button>
         </div>
         <p class="note">{$t('v2.meta.boxOrder' as any)}</p>
+        <!-- #8464 (fil 2765) — le nom du coffret, saisi avant de réunir.
+             Prérempli avec le titre que le serveur calculerait ; vide, le
+             serveur le calcule. -->
+        {#if cfChoisis.length >= 2}
+          <div class="cpbar">
+            <input
+              class="cpq"
+              type="text"
+              aria-label={$t('v2.meta.boxName' as any)}
+              placeholder={$t('v2.meta.boxName' as any)}
+              bind:value={cfTitre}
+              oninput={() => { cfTitreTouche = true; arme = null; }}
+            />
+          </div>
+        {/if}
         {#if cfBilan}<p class="note">{cfBilan}</p>{/if}
         {#if cfErr}<div class="errline">{cfErr}</div>{/if}
         <div class="list">
@@ -1181,7 +1241,10 @@
                    invisible, et l'utilisateur découvrirait son coffret après
                    coup. -->
               {#if rang > 0}
-                <span class="cfrang">{$t('v2.meta.boxDisc' as any).replace('{n}', String(rang))}</span>
+                {@const d = disquesCoffret(a.album_id)}
+                <span class="cfrang">{d && d.b > d.a
+                  ? $t('v2.meta.boxDiscRange' as any).replace('{a}', String(d.a)).replace('{b}', String(d.b))
+                  : $t('v2.meta.boxDisc' as any).replace('{n}', String(d?.a ?? rang))}</span>
               {/if}
             </label>
           {/each}

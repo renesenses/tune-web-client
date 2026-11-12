@@ -3828,6 +3828,8 @@ export default {
   "v2.meta.boxCompose": "Reunește într-o cutie",
   "v2.meta.boxOrder": "Ordinea în care le bifați este ordinea discurilor.",
   "v2.meta.boxDisc": "Discul {n}",
+  "v2.meta.boxName": "Numele cutiei",
+  "v2.meta.boxDiscRange": "Discurile {a}–{b}",
   "v2.meta.boxDone": "{count} discuri reunite sub „{title}”.",
   "v2.meta.boxTitle": "Cutii împărțite",
   "v2.meta.boxDiscs": "{n} discuri, câte un album fiecare",

@@ -3709,6 +3709,8 @@ export default {
   "v2.meta.boxCompose": "Gộp thành bộ đĩa (box set)",
   "v2.meta.boxOrder": "Thứ tự bạn đánh dấu chính là thứ tự các đĩa.",
   "v2.meta.boxDisc": "Đĩa {n}",
+  "v2.meta.boxName": "Tên bộ đĩa",
+  "v2.meta.boxDiscRange": "Đĩa {a}–{b}",
   "v2.meta.boxDone": "Đã gộp {count} đĩa vào “{title}”.",
   "v2.meta.boxTitle": "Bộ đĩa (box set) bị tách rời",
   "v2.meta.boxDiscs": "{n} đĩa, mỗi đĩa một album",

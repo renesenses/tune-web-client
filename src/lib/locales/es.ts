@@ -3828,6 +3828,8 @@ export default {
   "v2.meta.boxCompose": "Reunir en una caja",
   "v2.meta.boxOrder": "El orden en que los marca es el orden de los discos.",
   "v2.meta.boxDisc": "Disco {n}",
+  "v2.meta.boxName": "Nombre de la caja",
+  "v2.meta.boxDiscRange": "Discos {a}–{b}",
   "v2.meta.boxDone": "{count} discos reunidos bajo «{title}».",
   "v2.meta.boxTitle": "Cajas divididas",
   "v2.meta.boxDiscs": "{n} discos, un álbum cada uno",

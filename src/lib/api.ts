@@ -11189,9 +11189,26 @@ export function defaireCoffretManuel(id: number) {
  * le serveur a DÉTECTÉ (marqueur chiffré, dossiers frères). Celle-ci ne
  * détecte rien : elle obéit.
  */
-export function composerCoffret(albumIds: number[]) {
+export function composerCoffret(albumIds: number[], titre?: string) {
+  // #8464 (fil 2765) — `titre` : le nom saisi à l'écran. Absent ou vide, le
+  // serveur garde le titre qu'il calcule (plus long préfixe commun).
+  const corps: { album_ids: number[]; titre?: string } = { album_ids: albumIds };
+  if (titre && titre.trim()) corps.titre = titre.trim();
   return fetchJSON<{ cible: number; absorbes: number; disques: number; titre: string }>(
     `${BASE}/library/albums/coffret`,
+    { method: 'POST', body: JSON.stringify(corps) },
+  );
+}
+
+/**
+ * #8464 (fil 2765) — le titre que `composerCoffret` donnerait à ces albums,
+ * SANS rien écrire : de quoi préremplir le champ du nom. `null` si aucun
+ * album n'est connu. Un serveur d'avant #8464 répond 404 : l'appelant laisse
+ * alors le champ vide, et le serveur calcule le titre comme avant.
+ */
+export function apercuCoffret(albumIds: number[]) {
+  return fetchJSON<{ titre: string | null }>(
+    `${BASE}/library/albums/coffret/apercu`,
     { method: 'POST', body: JSON.stringify({ album_ids: albumIds }) },
   );
 }
