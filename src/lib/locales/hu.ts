@@ -7469,6 +7469,7 @@ export default {
   "pareFeu.profilDomaine": "Tartomány",
   "pareFeu.profilPrive": "Magán",
   "pareFeu.profilPublic": "Nyilvános",
+  "v2.radio.removeConfirmDirectory": "Eltávolítja a(z) „{name}” adót a Saját rádióim közül? Az adó továbbra is elérhető a Katalógusban: ott megtalálja, és újra hozzáadhatja.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

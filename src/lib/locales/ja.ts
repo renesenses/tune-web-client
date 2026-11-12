@@ -7510,6 +7510,7 @@ export default {
   "pareFeu.profilDomaine": "ドメイン",
   "pareFeu.profilPrive": "プライベート",
   "pareFeu.profilPublic": "パブリック",
+  "v2.radio.removeConfirmDirectory": "「{name}」をマイラジオから削除しますか？このステーションはディレクトリに残るので、そこからいつでも再追加できます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -7532,6 +7532,7 @@ export default {
   "pareFeu.profilDomaine": "Domaine",
   "pareFeu.profilPrive": "Privé",
   "pareFeu.profilPublic": "Public",
+  "v2.radio.removeConfirmDirectory": "Retirer « {name} » de Mes radios ? La station reste disponible dans l'annuaire : vous pourrez l'y retrouver et la rajouter.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

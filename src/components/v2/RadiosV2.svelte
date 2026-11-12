@@ -31,7 +31,7 @@
   import { radioGenreRayon, radioGenreLabel, type RadioGenreShelf }
     from '../../lib/radioGenres';
   import { nomDuPays } from '../../lib/paysAffichage';
-  import { estDeLAnnuaire, dernieresLues, memoriserLecture, sectionsRadio } from '../../lib/mesRadios';
+  import { estDeLAnnuaire, dernieresLues, memoriserLecture, sectionsRadio, questionRetraitMesRadios } from '../../lib/mesRadios';
   import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -153,12 +153,12 @@
 
   /**
    * Une entrée de l'annuaire se RETIRE de « Mes radios » ; elle ne se modifie
-   * pas. Même confirmation que la suppression d'une station saisie à la main.
+   * pas. #7523 : la confirmation précise que la station reste dans l'annuaire.
    */
   async function retirer(r: RadioStation) {
     const id = r.id;
     if (id == null) return;
-    if (!(await dialogs.confirm($t('v2.radio.removeConfirm' as any).replace('{name}', r.name), { danger: true }))) return;
+    if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), r.name, estDeLAnnuaire(r)), { danger: true }))) return;
     try {
       await api.deleteRadio(id);
       radios = radios.filter((x) => x.id !== id);

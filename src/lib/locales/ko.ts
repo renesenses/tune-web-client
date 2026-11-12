@@ -7510,6 +7510,7 @@ export default {
   "pareFeu.profilDomaine": "도메인",
   "pareFeu.profilPrive": "개인",
   "pareFeu.profilPublic": "공용",
+  "v2.radio.removeConfirmDirectory": "“{name}”을(를) 내 라디오에서 제거할까요? 이 방송국은 디렉터리에 그대로 남아 있어 언제든 다시 추가할 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
