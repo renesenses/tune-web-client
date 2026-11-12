@@ -488,6 +488,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   function handleBarClick(e: MouseEvent) {
+    // Le `click` qui suit un glisser relâché à côté de la barre de
+    // progression : la recherche est partie, rien d'autre à faire.
+    if (seekEnvoyeAuRelachement) { seekEnvoyeAuRelachement = false; return; }
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-selector')) return;
     if ((e.target as HTMLElement).closest('.transfer-selector')) return;
@@ -1057,14 +1060,93 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     displayTrack && displayTrack.source !== 'radio' ? (displayTrack.duration_ms || lastDurationMs) : 0
   );
 
+  // ── Glisser sur la barre (Bertrand, 12/11/2026, Discussion #8269) ──────
+  // Le même geste que la barre de Lecture en cours (`SeekBar`), sur la barre
+  // classique comme sur la forme d'onde : pendant le glisser, la barre et le
+  // compteur suivent le doigt ou la souris SANS rien envoyer ; une seule
+  // recherche part au relâchement.
+  let glisse = $state(false);
+  let positionGlisseMs = $state(0);
+  let pisteProgressionEl: HTMLElement | undefined = $state();
+  /** Le relâchement vient d'envoyer la recherche de ce geste : le `click`
+   *  que le navigateur fait suivre ne doit pas en envoyer une seconde
+   *  (ticket 193, même garde que `SeekBar`), ni ouvrir Lecture en cours sur
+   *  mobile s'il tombe à côté de la barre. Remis à zéro à chaque appui. */
+  let seekEnvoyeAuRelachement = false;
+
+  let positionAfficheeMs = $derived(glisse ? positionGlisseMs : $seekPositionMs);
+
   let progressPercent = $derived(
-    effectiveDurationMs ? Math.min(100, ($seekPositionMs / effectiveDurationMs) * 100) : 0
+    effectiveDurationMs ? Math.min(100, (positionAfficheeMs / effectiveDurationMs) * 100) : 0
   );
 
+  function positionDepuisX(x: number): number {
+    if (!pisteProgressionEl || !effectiveDurationMs) return 0;
+    const rect = pisteProgressionEl.getBoundingClientRect();
+    if (!rect.width) return 0;
+    const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    return Math.floor(pct * effectiveDurationMs);
+  }
+
+  function envoyerSeekGlisse(posMs: number) {
+    const zone = $currentZone;
+    if (!zone?.id) return;
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+    seekEnvoyeAuRelachement = true;
+  }
+
+  function handleProgressMouseDown(e: MouseEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || e.button !== 0) return;
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.clientX);
+    function onMove(ev: MouseEvent) {
+      positionGlisseMs = positionDepuisX(ev.clientX);
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function handleProgressTouchStart(e: TouchEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || !e.touches[0]) return;
+    e.stopPropagation();
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.touches[0].clientX);
+    function onMove(ev: TouchEvent) {
+      ev.preventDefault();
+      if (ev.touches[0]) positionGlisseMs = positionDepuisX(ev.touches[0].clientX);
+    }
+    function onEnd() {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
+  }
+
   function handleProgressSeek(e: MouseEvent) {
+    e.stopPropagation();
+    if (seekEnvoyeAuRelachement) {
+      seekEnvoyeAuRelachement = false;
+      return;
+    }
     const zone = $currentZone;
     if (!effectiveDurationMs || !zone?.id) return;
-    e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * effectiveDurationMs);
@@ -1257,8 +1339,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
-      <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" class:onde={!!onde} onclick={handleProgressSeek} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
+      <!-- Hors glisser, le compteur EST `seekPositionMs` : la carte de la
+           zone courante lit le même nombre (synchroProgressionSevy). -->
+      <span class="progress-time">{#if glisse}{formatTime(positionGlisseMs)}{:else}{formatTime($seekPositionMs)}{/if}</span>
+      <div class="progress-track" class:onde={!!onde} bind:this={pisteProgressionEl} onclick={handleProgressSeek} onmousedown={handleProgressMouseDown} ontouchstart={handleProgressTouchStart} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={positionAfficheeMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
         {#if onde}
           <OndeProgression points={onde} progress={progressPercent} />
         {:else}
@@ -2357,6 +2441,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     display: flex;
     align-items: center;
     cursor: pointer;
+    /* Le glisser au doigt ne doit pas faire défiler la page (comme SeekBar). */
+    touch-action: none;
   }
 
   .progress-track::before {
