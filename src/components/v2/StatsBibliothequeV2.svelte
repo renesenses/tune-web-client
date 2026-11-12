@@ -26,6 +26,8 @@
     CLES_REPARTITION, lireRepartitions, lignesRepartition,
     type CleRepartition, type FiltreBibliotheque, type LigneRepartition, type Repartitions,
   } from '../../lib/repartitionsBibliotheque';
+  // tune-server-rust#8264 — artistes et genres classés par nombre de pistes.
+  import { CLES_CLASSEMENT, estTronque, lireClassements, type CleClassement, type Classements } from '../../lib/classementsBibliotheque';
 
   const TITRES: Record<CleRepartition, string> = {
     by_codec: 'statsBibliotheque.codecs',
@@ -33,18 +35,24 @@
     by_decade: 'statsBibliotheque.decennies',
     by_credit_role: 'statsBibliotheque.roles',
   };
+  const TITRES_CLASSEMENT: Record<CleClassement, string> = {
+    by_artist: 'statsBibliotheque.artistes',
+    by_genre: 'statsBibliotheque.genres',
+  };
 
   let { embarquee = false }: { embarquee?: boolean } = $props();
 
   let etat = $state<'chargement' | 'pret' | 'indisponible' | 'erreur'>('chargement');
   let repartitions = $state<Repartitions | null>(null);
   let totaux = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  let classements = $state<Classements | null>(null);
 
   onMount(async () => {
     try {
       const s = await api.getLibraryStats();
       totaux = { tracks: s?.tracks ?? 0, albums: s?.albums ?? 0, artists: s?.artists ?? 0 };
       repartitions = lireRepartitions(s);
+      classements = lireClassements(s);
       etat = repartitions ? 'pret' : 'indisponible';
     } catch {
       etat = 'erreur';
@@ -141,6 +149,33 @@
             {/if}
           </article>
         {/each}
+        {#if classements}
+          {#each CLES_CLASSEMENT as cle (cle)}
+            {@const c = classements[cle]}
+            {#if c}
+              {@const max = c.items.reduce((m, l) => Math.max(m, l.tracks), 0)}
+              <article class="repartition" data-classement={cle}>
+                <h2>{$t(TITRES_CLASSEMENT[cle] as any)}</h2>
+                {#if estTronque(c)}
+                  <p class="aide">{$t('statsBibliotheque.premiersSur' as any).replace('{n}', nombre(c.items.length)).replace('{total}', nombre(c.total))}</p>
+                {/if}
+                {#if !c.items.length}
+                  <p class="etat">{$t('statsBibliotheque.vide' as any)}</p>
+                {:else}
+                  <ul class="barres">
+                    {#each c.items as l, i (i)}
+                      <li>
+                        <span class="nom" title={l.value}>{l.value}</span>
+                        <span class="piste"><span class="jauge" style:width="{max ? Math.max((l.tracks / max) * 100, 1) : 0}%"></span></span>
+                        <span class="val" data-valeur>{$t('statsBibliotheque.pistes' as any).replace('{n}', nombre(l.tracks))}</span>
+                      </li>
+                    {/each}
+                  </ul>
+                {/if}
+              </article>
+            {/if}
+          {/each}
+        {/if}
       </div>
     {/if}
   </div>
