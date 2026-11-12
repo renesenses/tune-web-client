@@ -2485,23 +2485,55 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // servies par les favoris du profil (`api.getFavorites`), pas la fenêtre
   // paginée de toute la bibliothèque.
   const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris);
-  let pistesFavorites = $state.raw<Track[]>([]);
+  //
+  // Les requêtes sont comptées (relecture du 12/11) : `getFavorites` relit
+  // chaque objet favori un par un. On ne demande donc QUE les pistes
+  // (`'track'`), UNE fois à l'activation du filtre — pas les albums, artistes
+  // et playlists favoris, et pas à chaque cœur. Un cœur ôté retire la piste
+  // sur place (filtre sur `$favoriteTrackIds`) ; un cœur posé ne relit que la
+  // piste ajoutée (`getTrack`).
+  let pistesFavoritesLues = $state.raw<Track[]>([]);
   let pistesFavoritesEnCharge = $state(false);
   let pistesFavoritesErreur = $state<string | null>(null);
+  /** La lecture initiale a abouti : les ajouts se relisent alors un par un. */
+  let pistesFavoritesPretes = $state(false);
+  /** Les pistes ajoutées déjà demandées — un cœur ne relit sa piste qu'une fois. */
+  const pistesFavoritesDemandees = new Set<number>();
+  const filtreFavorisPistes = $derived(fFavoris && tab === 'tracks' && !depot && $currentProfileId != null);
   $effect(() => {
     const pid = $currentProfileId;
-    // Relu quand un cœur de piste change.
-    void $favoriteTrackIds;
-    if (!fFavoris || tab !== 'tracks' || depot || pid == null) return;
+    if (!filtreFavorisPistes || pid == null) return;
     let perime = false;
-    pistesFavoritesEnCharge = untrack(() => pistesFavorites.length === 0);
+    pistesFavoritesPretes = false;
+    pistesFavoritesDemandees.clear();
+    pistesFavoritesEnCharge = untrack(() => pistesFavoritesLues.length === 0);
     pistesFavoritesErreur = null;
-    api.getFavorites(pid)
-      .then((f: any) => { if (!perime) pistesFavorites = Array.isArray(f?.tracks) ? f.tracks : []; })
+    api.getFavorites(pid, 'track')
+      .then((f: any) => {
+        if (perime) return;
+        pistesFavoritesLues = Array.isArray(f?.tracks) ? f.tracks : [];
+        pistesFavoritesPretes = true;
+      })
       .catch((e: any) => { if (!perime) pistesFavoritesErreur = e?.message ?? $tr('common.error' as any); })
       .finally(() => { if (!perime) pistesFavoritesEnCharge = false; });
     return () => { perime = true; };
   });
+  $effect(() => {
+    const ids = $favoriteTrackIds;
+    if (!filtreFavorisPistes || !pistesFavoritesPretes) return;
+    const connues = new Set(untrack(() => pistesFavoritesLues).map((t) => t.id));
+    for (const id of ids) {
+      if (connues.has(id) || pistesFavoritesDemandees.has(id)) continue;
+      pistesFavoritesDemandees.add(id);
+      api.getTrack(id)
+        .then((t: Track) => {
+          if (t && !pistesFavoritesLues.some((x) => x.id === t.id)) pistesFavoritesLues = [...pistesFavoritesLues, t];
+        })
+        .catch(() => { pistesFavoritesDemandees.delete(id); });
+    }
+  });
+  /** Les pistes favorites AFFICHÉES : celles dont le cœur est encore posé. */
+  const pistesFavorites = $derived(pistesFavoritesLues.filter((t) => t.id != null && $favoriteTrackIds.has(t.id)));
   /** La fenêtre AFFICHÉE : la précédente reste à l'écran tant que la
    *  nouvelle (tri, recherche…) n'a pas rendu sa première page. */
   let fenetrePistes = $state.raw<FenetrePistes | null>(null);

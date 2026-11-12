@@ -46,26 +46,9 @@ describe('#7586 — la logique', () => {
   });
 });
 
-describe('#7586 — l’écran', () => {
-  const lib = readFileSync('src/components/v2/LibraryV2.svelte', 'utf8');
-  const artistes = readFileSync('src/components/v2/ArtistesV2.svelte', 'utf8');
-
-  it('la puce bascule `fFavoris`, retirable et remise à zéro par « Tout »', () => {
-    expect(lib).toContain('data-filtre-favoris');
-    expect(lib).toContain('onclick={() => (fFavoris = !fFavoris)}');
-    expect(lib).toContain("r.push({ cle: 'favorites', libelle: t('v2.lib.onlyFavorites'), retirer: () => (fFavoris = false) });");
-    expect(lib).toMatch(/function reset\(\) \{[^}]*fFavoris = false;/);
-  });
-
-  it('chaque onglet lit le filtre', () => {
-    expect(lib).toContain("if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;");
-    expect(lib).toContain('estFacetteFavoriteDe(tab, g.key, $favoriteFacetKeys)');
-    expect(lib).toContain('const base = fFavoris ? pistesFavorites : tracks;');
-    expect(lib).toContain("&& !fFavoris);");
-    expect(lib).toContain('seulementFavoris={fFavoris}');
-    expect(artistes).toContain('seulementFavorisDe(dansLaPortee, $favoriteArtistIds)');
-  });
-
+describe('#7586 — les langues', () => {
+  // Le comportement de l'écran (puce, requêtes) est prouvé par le témoin
+  // monté `uniquementFavorisRequetes7586.test.ts`.
   it('les trois textes existent dans toutes les langues', () => {
     for (const l of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
