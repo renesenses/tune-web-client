@@ -85,6 +85,7 @@
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
+  import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
   import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation } from '../../lib/circleMessagerie';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
@@ -691,6 +692,7 @@
 
       <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
       <MessagerieCercleV2 />
+      <CerclesGenerauxV2 />
 
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>

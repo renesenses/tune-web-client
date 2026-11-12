@@ -17,21 +17,27 @@ export type CarteMusique = { type: 'album' | 'track' | 'playlist'; title: string
  *  (contrat cloud : site-mozaiklabs, `CircleMessage::THEME_COLOR_KEYS`). */
 export type CarteTheme = { type: 'theme'; title: string; colors: Record<string, string> };
 export type CarteCercle = CarteMusique | CarteTheme;
-/** `sender_name` : conversation de cercle seulement (rc11) — le nom de l'auteur tant qu'il est membre, `null` pour un ancien membre. */
+/** `sender_name` : conversation de cercle (rc11) et fil de cercle général (rc12) — le nom de l'auteur tant qu'il est membre, `null` pour un ancien membre. */
 export interface MessageCercle { id: number; sender_id: number; mine: boolean; body: string | null; card: CarteCercle | null; created_at: string; sender_name?: string | null }
 /** rc11 — écrire à tout un cercle (site-mozaiklabs#454). `write` : `all` (défaut) ou `owner`. */
 export type EcritureCercle = 'all' | 'owner';
 export interface CercleDeConversation { id: number; name: string; owner_id: number; owner_name: string; mine: boolean; write: EcritureCercle }
 export type ConversationCercle =
   | { id: number; kind: 'direct'; contact: { user_id: number; name: string }; unread_count: number; last_message?: MessageCercle | null }
-  | { id: number; kind: 'circle'; contact: null; circle: CercleDeConversation; can_write: boolean; unread_count: number; last_message?: MessageCercle | null };
+  | { id: number; kind: 'circle'; contact: null; circle: CercleDeConversation; can_write: boolean; unread_count: number; last_message?: MessageCercle | null }
+  /** rc12 — le fil d'un cercle général rejoint volontairement (site-mozaiklabs#422). Le pseudo n'y
+   *  paraît qu'après acceptation, une fois par cercle, enregistrée côté cloud (`name_consent_required`). */
+  | { id: number; kind: 'general'; contact: null; circle: { id: number; name: string }; name_consent_required: boolean; unread_count: number; last_message?: MessageCercle | null };
 /** Le nom affiché d'une conversation : le contact, ou « # Nom du cercle ». */
-export const nomConversation = (c: ConversationCercle) => c.kind === 'circle' ? `# ${c.circle.name}` : c.contact.name;
-/** Peut-on écrire ici ? Toujours en privé ; selon le réglage du cercle sinon. */
-export const ecritureOuverte = (c: ConversationCercle) => c.kind === 'direct' || c.can_write;
+export const nomConversation = (c: ConversationCercle) => c.kind === 'direct' ? c.contact.name : `# ${c.circle.name}`;
+/** Peut-on écrire ici ? Toujours en privé et dans un cercle général ; selon le réglage du cercle sinon. */
+export const ecritureOuverte = (c: ConversationCercle) => c.kind !== 'circle' || c.can_write;
+/** rc12 — un cercle général du catalogue (période, genre, label, artiste). Aucun membre n'y est nommé. */
+export type CategorieCercleGeneral = 'period' | 'genre' | 'label' | 'artist';
+export interface CercleGeneral { id: number; name: string; category: CategorieCercleGeneral | null; member_count: number; joined: boolean }
 export interface PageMessages { conversation: ConversationCercle; messages: MessageCercle[]; next_cursor: string | null }
 export const messagerieSupport = writable<boolean | null>(null);
-export const demandeConversation = writable<{ contact?: number; conversation?: number; cercle?: number } | null>(null);
+export const demandeConversation = writable<{ contact?: number; conversation?: number; cercle?: number; general?: number } | null>(null);
 export const erreurOuvertureConversation = writable<{ contact: number; cle: string } | null>(null);
 export function ecrireAuContact(contact: number): void {
   erreurOuvertureConversation.set(null);
@@ -44,6 +50,14 @@ export function ecrireAuCercle(cercle: number): void {
   demandeConversation.set({ cercle });
   document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
 }
+/** rc12 — « Écrire au cercle » depuis la rubrique « Cercles généraux ». */
+export function ecrireAuCercleGeneral(general: number): void {
+  erreurOuvertureConversation.set(null);
+  demandeConversation.set({ general });
+  document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' });
+}
+/** rc12 — quitter un cercle général retire tout de suite son fil de la messagerie ouverte. */
+export const ADHESION_GENERALE_CHANGEE = 'circle-general-membership-changed';
 export const carteAPartager = writable<CarteCercle | null>(null);
 const racine = () => `${BASE}/ext/circle`;
 const idsService = ['qobuz_id', 'tidal_id', 'spotify_id', 'deezer_id', 'youtube_id'] as const;
@@ -108,6 +122,10 @@ function cercleDeConversation(b: any): CercleDeConversation | null {
   return { id: b.id, name: texte(b.name), owner_id: b.owner_id, owner_name: texte(b.owner_name), mine: b.mine === true, write: b.write === 'owner' ? 'owner' : 'all' };
 }
 function conversation(b: any): ConversationCercle | null {
+  if (b?.kind === 'general') {
+    if (!Number.isSafeInteger(b?.id) || !Number.isSafeInteger(b.circle?.id) || !texte(b.circle?.name) || typeof b.name_consent_required !== 'boolean') return null;
+    return { id: b.id, kind: 'general', contact: null, circle: { id: b.circle.id, name: texte(b.circle.name) }, name_consent_required: b.name_consent_required, unread_count: Number.isSafeInteger(b.unread_count) ? Math.max(0, b.unread_count) : 0, last_message: message(b.last_message) };
+  }
   if (b?.kind === 'circle') {
     const circle = cercleDeConversation(b.circle);
     if (!Number.isSafeInteger(b?.id) || !circle) return null;
@@ -133,6 +151,29 @@ export async function ouvrirConversationCercle(cercle: number): Promise<Conversa
   if (!b || b.kind !== 'circle') throw new Error('Invalid conversation');
   return b;
 }
+/** rc12 — le catalogue des cercles généraux. 404 : site sans cercles généraux (la rubrique se masque). */
+export async function cerclesGeneraux(): Promise<CercleGeneral[]> {
+  const b = await fetchJSON<any>(`${racine()}/general-circles`, undefined, undefined, true);
+  if (!Array.isArray(b?.circles)) throw new Error('Invalid general circles');
+  return b.circles.filter((c: any) => Number.isSafeInteger(c?.id) && texte(c?.name)).map((c: any): CercleGeneral => ({
+    id: c.id, name: texte(c.name),
+    category: ['period', 'genre', 'label', 'artist'].includes(c.category) ? c.category : null,
+    member_count: Number.isSafeInteger(c.member_count) ? Math.max(0, c.member_count) : 0,
+    joined: c.joined === true,
+  }));
+}
+export const rejoindreCercleGeneral = (id: number) => fetchJSON(`${racine()}/general-circles/${id}/membership`, { method: 'POST' }, undefined, true);
+export const quitterCercleGeneral = (id: number) => fetchJSON(`${racine()}/general-circles/${id}/membership`, { method: 'DELETE' }, undefined, true);
+/** rc12 — le fil d'un cercle général rejoint (404 sinon). */
+export async function ouvrirFilGeneral(general: number): Promise<ConversationCercle> {
+  const b = conversation(await fetchJSON(`${racine()}/general-circles/${general}/conversation`, { method: 'POST' }, undefined, true));
+  if (!b || b.kind !== 'general') throw new Error('Invalid conversation');
+  return b;
+}
+/** rc12 — l'acceptation d'afficher son pseudo dans CE cercle, enregistrée par le cloud avant le premier texte ou la première carte. */
+export const consentirPseudo = (conversation: number) => fetchJSON(`${racine()}/conversations/${conversation}/name-consent`, { method: 'POST', body: JSON.stringify({ accepted: true }) }, undefined, true);
+/** Le cloud refuse un envoi sans acceptation du pseudo (422 `circle.name_consent_required`). */
+export const refusFautePseudo = (e: unknown) => (e as any)?.status === 422 && (e as any)?.code === 'circle.name_consent_required';
 export async function lireMessages(id: number, cursor?: string): Promise<PageMessages> {
   const q = new URLSearchParams({ limit: '50' }); if (cursor) q.set('cursor', cursor);
   const b = await fetchJSON<any>(`${racine()}/conversations/${id}/messages?${q}`, undefined, undefined, true);
