@@ -203,6 +203,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
+  import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -5603,6 +5604,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ingest.file_writes_enabled === false}<p class="hint">{$t('fileWrites.offHint' as any)}</p>{/if}
                 {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
               {/if}
+
+            {:else if s.id === 'classicalTags'}
+              <BalisesClassiqueV2 />
 
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">
