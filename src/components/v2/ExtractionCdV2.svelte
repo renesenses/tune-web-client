@@ -14,6 +14,11 @@
    *   fois). Si le flux se tait (repli en relecture HTTP), la route est relue.
    * - L'état final propose d'ouvrir l'album une fois le scan passé
    *   (`library.scan.completed`).
+   * - tune-server-rust#8514 : le disque ENTIER en mémoire (`memoirePrete`)
+   *   offre « Enregistrer dans la bibliothèque » : la même feuille (format,
+   *   dossier cible, pistes, balises), sans la vérification, et
+   *   `depuis_memoire: true` — le serveur verse les pistes déjà lues sans
+   *   relire le CD, puis lance le scan.
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -29,14 +34,16 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { titrePisteCd, type DisqueCd } from '../../lib/lectureCd';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { resumeAr, texteVerdictAr, verificationAr } from '../../lib/verificationAr';
   import {
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
-    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu,
+    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu, depuisMemoire,
     type ReglagesExtraction, type EtatExtraction, type FormatExtraction, type VerificationExtraction,
   } from '../../lib/extractionCd';
 
-  let { disque }: { disque: DisqueCd } = $props();
+  /** `memoirePrete` (#8514) : le disque affiché est entier en mémoire. */
+  let { disque, memoirePrete = false }: { disque: DisqueCd; memoirePrete?: boolean } = $props();
 
   /** Relecture de secours quand aucun évènement n'est venu depuis ce délai. */
   const SILENCE_MS = 5000;
@@ -64,6 +71,10 @@
   let album = $state('');
   let titres = $state<Record<number, string>>({});
   let ecraser = $state(false);
+  /** #8522 — décalage du lecteur (échantillons), si le serveur le règle. */
+  let decalage = $state(0);
+  /** #8514 — la feuille enregistre depuis la mémoire. */
+  let modeMemoire = $state(false);
 
   let fini = false;
   let dernierEvenement = 0;
@@ -146,8 +157,9 @@
   });
 
   // ─── Feuille de lancement ────────────────────────────────────────────────
-  function ouvrirFeuille() {
+  function ouvrirFeuille(depuisLaMemoire = false) {
     if (!reglages) return;
+    modeMemoire = depuisLaMemoire;
     format = reglages.formats.includes(reglages.format) ? reglages.format : 'flac';
     destination = reglages.destination ?? reglages.emplacements[0] ?? '';
     verification = 'doute';
@@ -156,6 +168,7 @@
     album = disque.titre ?? '';
     titres = Object.fromEntries(disque.pistes.map((p) => [p.numero, titrePisteCd(p, disque, pisteN)]));
     ecraser = false;
+    decalage = reglages.decalage_lecteur ?? 0;
     erreurFeuille = null;
     feuille = true;
   }
@@ -172,11 +185,15 @@
     erreurFeuille = null;
     try {
       // Le choix devient le défaut : mémorisé côté serveur, pour tous les clients.
-      if (format !== reglages.format || (destination && destination !== reglages.destination)) {
-        reglages = await putReglagesExtraction({ format, destination });
+      // #8522 — le décalage ne part que si le serveur le connaît et qu'il change.
+      const decalageChange = reglages.decalage_lecteur !== undefined && Number(decalage) !== reglages.decalage_lecteur;
+      if (format !== reglages.format || (destination && destination !== reglages.destination) || decalageChange) {
+        reglages = await putReglagesExtraction(decalageChange
+          ? { format, destination, decalage_lecteur: Math.trunc(Number(decalage)) }
+          : { format, destination });
       }
       const e = await lancerExtraction(corpsLancement(
-        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser },
+        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser, depuisMemoire: modeMemoire },
         disque,
       ));
       feuille = false;
@@ -245,6 +262,8 @@
     attenteScan = null;
   }
 
+  const tr = (cle: string) => $t(cle as any);
+  const verifSuivi = $derived(verificationAr(suivi?.accuraterip));
   const pct = (x: number) => `${Math.max(0, Math.min(100, Math.round(x || 0)))} %`;
   const illisibles = $derived(suivi ? secteursIllisibles(suivi) : 0);
 
@@ -256,7 +275,13 @@
 <svelte:window onkeydown={auClavier} />
 
 {#if reglages}
-  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={ouvrirFeuille}>
+  {#if memoirePrete}
+    <!-- #8514 : le disque est déjà en mémoire, rien à relire. -->
+    <button class="go enregistrer-memoire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(true)}>
+      {$t('v2.cd.save.action' as any)}
+    </button>
+  {/if}
+  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(false)}>
     {$t('v2.cd.rip.action' as any)}
   </button>
 {/if}
@@ -265,8 +290,8 @@
   <div class="suivi" data-statut={suivi.statut} aria-live="polite">
     <div class="tete">
       <strong class="statut">
-        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : 'v2.cd.rip.running') as any)}
-        {:else if suivi.statut === 'terminee'}{$t('v2.cd.rip.done' as any)}
+        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : depuisMemoire(suivi) ? 'v2.cd.save.running' : 'v2.cd.rip.running') as any)}
+        {:else if suivi.statut === 'terminee'}{$t((depuisMemoire(suivi) ? 'v2.cd.save.done' : 'v2.cd.rip.done') as any)}
         {:else if suivi.statut === 'annulee'}{$t('v2.cd.rip.cancelled' as any)}
         {:else}{$t('v2.cd.rip.failed' as any)}{/if}
       </strong>
@@ -294,6 +319,9 @@
           <span class="titre" use:bulleTexte>{p.titre}</span>
           <span class="etat">{$t(`v2.cd.rip.st.${p.statut}` as any)}</span>
           <span class="pc">{pct(p.pourcentage)}</span>
+          {#if p.verification}
+            <span class="verdict-ar" data-ar={p.verification.statut}>{texteVerdictAr(p.verification, tr)}</span>
+          {/if}
           {#if p.secteurs_illisibles > 0}
             <span class="illisibles">{$t('v2.cd.rip.unreadable' as any).replace('{n}', String(p.secteurs_illisibles))}</span>
           {/if}
@@ -306,6 +334,9 @@
         </li>
       {/each}
     </ol>
+    {#if verifSuivi}
+      <div class="note resume-ar" data-base={verifSuivi.base}>{resumeAr(verifSuivi, tr)}</div>
+    {/if}
     {#if suivi.statut !== 'en_cours'}
       {#if expert && suivi.pistes.some((p) => p.accuraterip_v1 || p.accuraterip_v2)}
         <div class="note">{$t('v2.cd.rip.accurateRip' as any)}</div>
@@ -327,9 +358,11 @@
 
 {#if feuille && reglages}
   <div class="fond tune-v2" role="presentation" use:portail onclick={() => { if (!travail) feuille = false; }}>
-    <div class="panneau feuille-extraction" role="dialog" aria-modal="true" aria-label={$t('v2.cd.rip.sheetTitle' as any)}
+    <div class="panneau feuille-extraction" class:memoire={modeMemoire} role="dialog" aria-modal="true"
+      aria-label={$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}
       onclick={(e) => e.stopPropagation()}>
-      <h2>{$t('v2.cd.rip.sheetTitle' as any)}</h2>
+      <h2>{$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}</h2>
+      {#if modeMemoire}<p class="note indice-memoire">{$t('v2.cd.save.hint' as any)}</p>{/if}
       <button class="fermer" aria-label={$t('common.close' as any)} disabled={travail} onclick={() => (feuille = false)}>×</button>
       <form onsubmit={lancer}>
         <fieldset class="ligne">
@@ -373,13 +406,24 @@
           </ol>
         </fieldset>
 
-        <label>
-          <span>{$t('v2.cd.rip.verification' as any)}</span>
-          <select class="verification" bind:value={verification}>
-            <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
-            <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
-          </select>
-        </label>
+        {#if !modeMemoire}
+          <label>
+            <span>{$t('v2.cd.rip.verification' as any)}</span>
+            <select class="verification" bind:value={verification}>
+              <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
+              <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
+            </select>
+          </label>
+        {/if}
+
+        {#if reglages.decalage_lecteur !== undefined}
+          <label>
+            <span>{$t('v2.cd.rip.driveOffset' as any)}</span>
+            <input class="decalage" type="number" step="1" min={-(reglages.decalage_max ?? 2940)} max={reglages.decalage_max ?? 2940}
+              bind:value={decalage} />
+            <small>{$t('v2.cd.rip.driveOffsetHint' as any)}</small>
+          </label>
+        {/if}
 
         <label class="choix"><input type="checkbox" class="ecraser" bind:checked={ecraser} /> {$t('v2.cd.rip.overwrite' as any)}</label>
 
@@ -388,7 +432,7 @@
         <div class="pied">
           <button type="button" class="sec" disabled={travail} onclick={() => (feuille = false)}>{$t('common.cancel' as any)}</button>
           <button type="submit" class="pri lancer" disabled={travail || !choisies.length || !destination}>
-            {travail ? '…' : $t('v2.cd.rip.start' as any)}
+            {travail ? '…' : $t((modeMemoire ? 'v2.cd.save.start' : 'v2.cd.rip.start') as any)}
           </button>
         </div>
       </form>
@@ -405,6 +449,7 @@
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .extraire{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2)}
+  .indice-memoire{margin:-6px 0 12px}
   .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 12.5px var(--v2-sans)}
   .sec{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt)}
   .pri{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -429,6 +474,9 @@
   .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:11.5px}
   .piste-suivi .pc{font-family:var(--v2-mono)}
   .illisibles{color:var(--v2-danger); font-size:11.5px; flex-basis:100%; padding-left:30px}
+  .verdict-ar{font-size:11.5px; color:var(--v2-txt2)}
+  .verdict-ar[data-ar=verifie]{color:var(--v2-acc-tint)}
+  .verdict-ar[data-ar=different]{color:var(--v2-danger)}
   .crc,.relectures{font:10.5px var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
   .fin{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .dossier{overflow-wrap:anywhere}

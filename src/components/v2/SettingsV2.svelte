@@ -78,6 +78,8 @@
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
+  // tune-server-rust#8261 — les « ignorés » du dernier scan, motif par motif.
+  import { decompteIgnores } from '../../lib/rapportEcartes';
   import { CLE_DEDOUBLONNAGE_PAR_RACINE, dedoublonnageParRacineDepuisConfig } from '../../lib/dedoublonnageParRacine';
   import {
     CLE_IMPORT_PLAYLISTS_SCAN,
@@ -88,7 +90,7 @@
   } from '../../lib/playlistsDuScan';
   import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
-  import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { aDesEcarts, aDesDossiersIllisibles, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
   import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
@@ -162,6 +164,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SmbWizard from '../partages/SmbWizard.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
+  import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
@@ -2358,12 +2361,63 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let retraitScanMsg = $state<{ ok: boolean; texte: string } | null>(null);
   /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
    *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
-  let lrclibOn = $state(false);
+  let lrclibOn = $state<boolean | null>(null);
   let lrclibErr = $state<string | null>(null);
   // « Écrire les modifications dans les fichiers audio » — décoché par défaut
   // (Bertrand, 05/10/2026). Absent de la config : décoché, comme le serveur.
-  let ecritureFichiersOn = $state(false);
+  let ecritureFichiersOn = $state<boolean | null>(null);
   let ecritureFichiersErr = $state<string | null>(null);
+  /**
+   * tune-server-rust#8521 (Tades, fil 2726) — « décochés quand je redémarre,
+   * il arrive que cela marche ».
+   *
+   * Les deux cases partaient DÉCOCHÉES (`false`) et ne changeaient qu'une fois
+   * `GET /system/config` lu. Si cette lecture échouait — serveur en train de
+   * redémarrer (503 du répondeur de démarrage), injoignable un instant —,
+   * elles restaient décochées : l'écran affirmait « désactivé » sur un réglage
+   * qu'il n'avait pas lu, et la seule erreur s'affichait loin de là, sous les
+   * dossiers de musique. Rien ne relisait ensuite.
+   *
+   * `null` = pas encore lu : la case est GRISÉE, jamais décochée. Une lecture
+   * en échec le dit dans la carte même, et se retente toutes les
+   * `RELECTURE_CONSENTEMENTS_MS` jusqu'à ce que le serveur réponde.
+   */
+  let consentementsIllisibles = $state(false);
+  const RELECTURE_CONSENTEMENTS_MS = 3000;
+  const RELECTURES_CONSENTEMENTS_MAX = 100;
+  let relectureConsentements: ReturnType<typeof setTimeout> | null = null;
+  let relecturesConsentements = 0;
+  let reglagesDetruits = false;
+  function appliquerConsentements(c: any) {
+    lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
+    ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+    consentementsIllisibles = false;
+  }
+  function relireConsentementsPlusTard() {
+    consentementsIllisibles = true;
+    if (reglagesDetruits || relectureConsentements) return;
+    if (relecturesConsentements >= RELECTURES_CONSENTEMENTS_MAX) return;
+    relecturesConsentements++;
+    relectureConsentements = setTimeout(async () => {
+      relectureConsentements = null;
+      if (reglagesDetruits) return;
+      try {
+        const c: any = await api.getConfig();
+        if (reglagesDetruits) return;
+        appliquerConsentements(c);
+        // Le serveur répond de nouveau : le reste de l'onglet (dossiers,
+        // options d'analyse) se relit aussi, et l'erreur d'en haut s'efface.
+        if (libErr === get(t)('settings.errConfigUnavailable')) libErr = null;
+        void refreshLibrary();
+      } catch {
+        relireConsentementsPlusTard();
+      }
+    }, RELECTURE_CONSENTEMENTS_MS);
+  }
+  $effect(() => () => {
+    reglagesDetruits = true;
+    if (relectureConsentements) clearTimeout(relectureConsentements);
+  });
   // « Analyser la bibliothèque au démarrage ». `null` : le serveur ne publie
   // pas le réglage (version antérieure), l'interrupteur ne s'affiche pas.
   let scanDemarrage = $state<boolean | null>(null);
@@ -2618,13 +2672,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
-      lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
-      ecritureFichiersOn = ecritureFichiersDepuisConfig(c?.[CLE_ECRITURE_FICHIERS]);
+      appliquerConsentements(c);
       coffretsAuto = coffretsAutoDepuisConfig(c?.[CLE_COFFRETS_AUTO]);
       dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
-    } catch { libErr = get(t)('settings.errConfigUnavailable'); }
+    } catch {
+      libErr = get(t)('settings.errConfigUnavailable');
+      relireConsentementsPlusTard();
+    }
     try {
       const sch: any = await api.getScanSchedule();
       schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
@@ -5256,7 +5312,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn}
+                  <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn === true}
+                    disabled={ecritureFichiersOn === null}
                     onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
@@ -5270,12 +5327,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
                 </div>
                 <label class="sw">
-                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn}
+                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn === true}
+                    disabled={lrclibOn === null}
                     onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
               </div>
               {#if lrclibErr}<div class="errline">{lrclibErr}</div>{/if}
+              <!-- tune-server-rust#8521 — réglages pas encore lus : on le dit
+                   ICI, pas seulement sous les dossiers de musique. -->
+              {#if consentementsIllisibles}<div class="errline" data-temoin="consentements-illisibles">{$t('settings.errConfigUnavailable')}</div>{/if}
               {#if voit('intermediate', s.id)}
                 <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
               {/if}
@@ -6130,6 +6191,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+                {#if etapeLiaison(spc) !== 'masquee'}
+                  <!-- web#2804 (tune-server-rust#8154) — l'étape unique : tant que
+                       Spotify n'a pas vu l'appareil de Tune choisi une fois dans
+                       son application, la lecture bute sur un 409. -->
+                  <div class="row" data-spotify-liaison data-etape={etapeLiaison(spc)}>
+                    <div class="lbl"><span class="hint">{$t('playback.errorSpotifyLinkRequired' as any).replace('{device}', lireRefusLiaison(spc).appareil)}</span></div>
+                    {#if etapeLiaison(spc) === 'activer'}
+                      <button class="lnk" type="button" disabled={spcBusy} onclick={() => toggleSpc(true)}>{$t('settings.enableReceiver' as any)}</button>
+                    {/if}
+                  </div>
+                {/if}
                 {#if !spc?.enabled}
                   <div class="row" data-reglage="spotify-zone-exposee">
                     <div class="lbl"><span>{$t('settings.exposedZone' as any)}</span>
@@ -6765,6 +6837,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     .replace('{a}', $formatNombre(scanReport.inserted ?? 0))
                     .replace('{m}', $formatNombre(scanReport.updated ?? 0))
                     .replace('{i}', $formatNombre(scanReport.skipped ?? 0))}
+                  {#if decompteIgnores(scanReport).length}
+                    <!-- tune-server-rust#8261 — « 63 ignorés : lesquels, et pourquoi ? » Les inchangés n'ont pas de liste : leur nombre comble l'écart. -->
+                    <span class="hint decompte" data-decompte-ignores>{$t('v2.scan.skippedBreakdown' as any).replace('{d}', decompteIgnores(scanReport).map((d) => `${$t(d.titre as any)} (${$formatNombre(d.nombre)})`).join(' · '))}</span>
+                  {/if}
                   {#if scanReport.failed_paths?.length}
                     <b>{$t('v2.set.scanFailedPaths' as any).replace('{n}', String(scanReport.failed_paths.length))}</b>
                   {/if}
@@ -6789,6 +6865,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#each motifsDesFeuilles(scanReport) as m (m.motif)}
                       <p class="hint">{m.motif} — {$formatNombre(m.nombre)}</p>
                     {/each}
+                    {#if aDesDossiersIllisibles(scanReport)}
+                      <!-- tune-server-rust#8177 — un dossier refusé se règle par un geste, on le dit. -->
+                      <p class="hint" data-dossiers-illisibles>{$t('v2.scan.dirsUnreadableHint' as any)}</p>
+                    {/if}
                     {#each groupesEcartes(scanReport) as g (g.cle)}
                       <p class="ecartes-titre">{$t(g.titre as any)} ({$formatNombre(g.chemins.length)})</p>
                       <ul class="ecartes-liste">
@@ -8784,6 +8864,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+  .okbox .decompte{display:block; margin-top:4px}
 
   /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
      centaines d'entrées : elle défile chez elle, sans pousser le reste de
