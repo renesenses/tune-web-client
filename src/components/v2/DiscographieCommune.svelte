@@ -477,7 +477,7 @@
             {#if typeof j.artist_id === 'number'}
               <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
             {:else}
-              <span class="nom-joue-avec" data-sans-fiche>{j.artist_name}</span>
+              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
             {/if}
             <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
           </li>
