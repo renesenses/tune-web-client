@@ -497,6 +497,7 @@
         bind:q={qAnnuaire} bind:pays={paysAnnuaire} bind:genre={genreAnnuaire}
         limiteInitiale={nombreAnnuaire} onCharge={annuaireCharge}
         onAjoutee={stationAjoutee}
+        onRetiree={(id) => { radios = radios.filter((x) => x.id !== id); }}
         enDirect={ficheJouee}
         titreEnCours={titreEnCours}
         onJoue={(id) => { ficheJouee = id; playingId = null; }}
