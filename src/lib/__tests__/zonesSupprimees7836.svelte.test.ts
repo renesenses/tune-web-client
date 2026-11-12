@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import ZonesSupprimees from '../../components/v2/ZonesSupprimees.svelte';
 import { locale } from '../i18n';
+import { zones } from '../stores/zones';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -96,5 +97,17 @@ describe('tune-server-rust#7836 — Zones supprimées', () => {
     await until(() => appels.length > 0);
     await wait(); flushSync();
     expect(host.querySelector('.supprimees')).toBeNull();
+  });
+
+  it('une zone supprimée sur le même écran apparaît aussitôt', async () => {
+    supprimees = [];
+    zones.set([{ id: 5, name: MAC.name } as never]);
+    composant = mount(ZonesSupprimees, { target: host, props: {} });
+    await until(() => lien()?.textContent?.includes('(0)') === true, 'vide');
+    // `DELETE /zones/5` puis `refresh()` : la liste visible change.
+    supprimees = [MAC];
+    zones.set([]);
+    await until(() => lien()?.textContent?.includes('Zones supprimées (1)') === true, 'rechargée');
+    zones.set([]);
   });
 });

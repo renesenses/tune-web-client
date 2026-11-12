@@ -9,25 +9,32 @@
    * est grisé quand il n'y a rien ; ouvert, il liste les zones supprimées,
    * chacune avec un bouton Restaurer.
    */
-  import { onMount } from 'svelte';
+  import { untrack } from 'svelte';
   import * as api from '../../lib/api';
   import type { ZoneSupprimee } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { dateCourte } from '../../lib/dates';
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { zones as zonesVisibles } from '../../lib/stores/zones';
 
   let { onRestauree }: { onRestauree?: () => void | Promise<void> } = $props();
 
   /** `null` : serveur sans la route, rien n'est affiché. */
-  let zones = $state<ZoneSupprimee[] | null>(null);
+  let supprimees = $state<ZoneSupprimee[] | null>(null);
   let ouvert = $state(false);
   let enCours = $state<number | null>(null);
 
   async function charger() {
-    zones = await api.getZonesSupprimees();
-    if (zones !== null && zones.length === 0) ouvert = false;
+    supprimees = await api.getZonesSupprimees();
+    if (supprimees !== null && supprimees.length === 0) ouvert = false;
   }
-  onMount(() => { charger(); });
+  // À l'ouverture, puis à chaque changement de la liste des zones visibles :
+  // une zone supprimée sur ce même écran apparaît aussitôt ici (et une zone
+  // restaurée en sort). L'effet ne lit que la liste visible.
+  $effect(() => {
+    void $zonesVisibles.map((z) => z.id).join(',');
+    untrack(() => { charger(); });
+  });
 
   async function restaurer(z: ZoneSupprimee) {
     if (enCours !== null) return;
@@ -44,15 +51,15 @@
   }
 </script>
 
-{#if zones !== null}
-  <div class="supprimees" data-zones-supprimees={zones.length}>
-    <button class="lien" disabled={zones.length === 0} aria-expanded={ouvert}
+{#if supprimees !== null}
+  <div class="supprimees" data-zones-supprimees={supprimees.length}>
+    <button class="lien" disabled={supprimees.length === 0} aria-expanded={ouvert}
       onclick={() => (ouvert = !ouvert)}>
-      {$t('v2.zones.deletedZones' as any).replace('{n}', String(zones.length))}
+      {$t('v2.zones.deletedZones' as any).replace('{n}', String(supprimees.length))}
     </button>
-    {#if ouvert && zones.length}
+    {#if ouvert && supprimees.length}
       <ul class="liste">
-        {#each zones as z (z.id)}
+        {#each supprimees as z (z.id)}
           <li data-zone-supprimee={z.id}>
             <span class="nom">{z.name}</span>
             {#if z.output_type}<em>{z.output_type}</em>{/if}
