@@ -3258,6 +3258,7 @@ export default {
   "settings.spotifyReceiverHint": "El receptor convierte UNA zona en un altavoz Spotify.",
   "settings.spotifyNameChangeHint": "Cambiar el nombre hace aparecer un nuevo dispositivo en la aplicación Spotify.",
   "settings.spotifySessionZoneMissing": "Spotify Connect no pudo reproducir en la zona expuesta: ya no existe. Elija otra (desactive el receptor, elija, vuelva a activarlo).",
+  "settings.spotifyPremiumRequired": "Spotify ha rechazado esta cuenta: Spotify Connect en Tune requiere Spotify Premium. Con una cuenta gratuita no sonará nada.",
   "settings.noZoneCreateOne": "Ninguna zona. Cree una en la pantalla Zonas.",
   "settings.noAcousticModule": "Este servidor no incluye el módulo acústico.",
   "settings.serverPathHint": "Ruta absoluta vista por el SERVIDOR, no por este navegador.",

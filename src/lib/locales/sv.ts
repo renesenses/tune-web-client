@@ -3257,6 +3257,7 @@ export default {
   "settings.spotifyReceiverHint": "Mottagaren gör EN zon till en Spotify-högtalare.",
   "settings.spotifyNameChangeHint": "Om du byter namn visas en ny enhet i Spotify-appen.",
   "settings.spotifySessionZoneMissing": "Spotify Connect kunde inte spela i den exponerade zonen: den finns inte längre. Välj en annan (stäng av mottagaren, välj, slå på den igen).",
+  "settings.spotifyPremiumRequired": "Spotify nekade det här kontot: Spotify Connect på Tune kräver Spotify Premium. Med ett gratiskonto spelas ingenting.",
   "settings.noZoneCreateOne": "Ingen zon. Skapa en i Zoner-skärmen.",
   "settings.noAcousticModule": "Den här servern innehåller inte akustikmodulen.",
   "settings.serverPathHint": "Absolut sökväg som SERVERN ser den, inte den här webbläsaren.",

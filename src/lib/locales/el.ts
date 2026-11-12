@@ -1917,6 +1917,7 @@ export default {
   "settings.spotifyReceiverHint": "Ο δέκτης μετατρέπει ΜΙΑ ζώνη σε ηχείο Spotify.",
   "settings.spotifyNameChangeHint": "Η αλλαγή ονόματος εμφανίζει νέα συσκευή στην εφαρμογή Spotify.",
   "settings.spotifySessionZoneMissing": "Το Spotify Connect δεν μπόρεσε να παίξει στην εκτεθειμένη ζώνη: δεν υπάρχει πια. Επιλέξτε άλλη (απενεργοποιήστε τον δέκτη, επιλέξτε, ενεργοποιήστε τον ξανά).",
+  "settings.spotifyPremiumRequired": "Το Spotify απέρριψε αυτόν τον λογαριασμό: το Spotify Connect στο Tune απαιτεί Spotify Premium. Με δωρεάν λογαριασμό δεν θα παίξει τίποτα.",
   "settings.noZoneCreateOne": "Καμία ζώνη. Δημιουργήστε μία στην οθόνη Ζώνες.",
   "settings.noAcousticModule": "Αυτός ο διακομιστής δεν περιλαμβάνει την ακουστική μονάδα.",
   "settings.serverPathHint": "Απόλυτη διαδρομή όπως τη βλέπει ο ΔΙΑΚΟΜΙΣΤΗΣ, όχι αυτό το πρόγραμμα περιήγησης.",

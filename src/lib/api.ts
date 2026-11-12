@@ -6215,6 +6215,9 @@ export interface SpotifyConnectStatus {
    *  l'application Spotify n'a pas joué dans la zone exposée (code stable,
    *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
   session_error?: string | null;
+  /** tune-server-rust#8565 — `spotify_premium_required` : Spotify a refusé
+   *  le compte, qui n'est pas Premium (Spotify Connect l'exige). */
+  receiver_error_code?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {

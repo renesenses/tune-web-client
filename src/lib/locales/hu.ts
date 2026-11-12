@@ -3212,6 +3212,7 @@ export default {
   "settings.spotifyReceiverHint": "A vevő EGY zónát Spotify-hangszóróvá alakít.",
   "settings.spotifyNameChangeHint": "A név módosítása új eszközt jelenít meg a Spotify alkalmazásban.",
   "settings.spotifySessionZoneMissing": "A Spotify Connect nem tudott lejátszani a megosztott zónában: már nem létezik. Válasszon másikat (kapcsolja ki a vevőt, válasszon, kapcsolja vissza).",
+  "settings.spotifyPremiumRequired": "A Spotify elutasította ezt a fiókot: a Spotify Connect a Tune-ban Spotify Premiumot igényel. Ingyenes fiókkal semmi sem szól.",
   "settings.noZoneCreateOne": "Nincs zóna. Hozzon létre egyet a Zónák képernyőn.",
   "settings.noAcousticModule": "Ez a kiszolgáló nem tartalmazza az akusztikai modult.",
   "settings.serverPathHint": "A KISZOLGÁLÓ által látott abszolút útvonal, nem ezé a böngészőé.",

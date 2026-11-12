@@ -34,11 +34,13 @@ describe('#8570 — le nom du récepteur Spotify Connect se change à tout momen
 
   it('l’aide et l’erreur de session existent dans les quinze langues', () => {
     for (const langue of ONZE_LANGUES) {
-      for (const cle of ['settings.spotifyNameChangeHint', 'settings.spotifySessionZoneMissing']) {
+      for (const cle of ['settings.spotifyNameChangeHint', 'settings.spotifySessionZoneMissing', 'settings.spotifyPremiumRequired']) {
         expect(dictionnaire(langue)[cle], `${cle} en ${langue}`).toBeTruthy();
       }
     }
     expect(source).toContain("$t('settings.spotifyNameChangeHint' as any)");
     expect(source).toContain("code === 'exposed_zone_missing'");
+    // Compte gratuit : un message clair, pas un silence.
+    expect(source).toContain("spc?.receiver_error_code === 'spotify_premium_required'");
   });
 });

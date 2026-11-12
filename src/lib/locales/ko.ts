@@ -3258,6 +3258,7 @@ export default {
   "settings.spotifyReceiverHint": "리시버는 하나의 존을 Spotify 스피커로 바꿉니다.",
   "settings.spotifyNameChangeHint": "이름을 바꾸면 Spotify 앱에 새 기기로 나타납니다.",
   "settings.spotifySessionZoneMissing": "Spotify Connect가 노출된 존에서 재생하지 못했습니다. 해당 존이 더 이상 없습니다. 다른 존을 선택하세요(리시버를 끄고, 선택한 뒤, 다시 켜기).",
+  "settings.spotifyPremiumRequired": "Spotify가 이 계정을 거부했습니다. Tune의 Spotify Connect에는 Spotify Premium이 필요합니다. 무료 계정으로는 재생되지 않습니다.",
   "settings.noZoneCreateOne": "존이 없습니다. 존 화면에서 만드세요.",
   "settings.noAcousticModule": "이 서버에는 음향 모듈이 포함되어 있지 않습니다.",
   "settings.serverPathHint": "이 브라우저가 아니라 서버가 보는 절대 경로입니다.",

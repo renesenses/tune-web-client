@@ -2063,6 +2063,7 @@ export default {
   "settings.spotifyReceiverHint": "The receiver turns ONE zone into a Spotify speaker.",
   "settings.spotifyNameChangeHint": "Changing the name makes a new device appear in the Spotify app.",
   "settings.spotifySessionZoneMissing": "Spotify Connect could not play in the exposed zone: it no longer exists. Pick another zone (turn the receiver off, choose, turn it back on).",
+  "settings.spotifyPremiumRequired": "Spotify refused this account: Spotify Connect on Tune requires Spotify Premium. With a free account, nothing will play.",
   "settings.noZoneCreateOne": "No zone. Create one in the Zones screen.",
   "settings.noAcousticModule": "This server does not ship the acoustic module.",
   "settings.serverPathHint": "Absolute path as seen by the SERVER, not by this browser.",

@@ -3258,6 +3258,7 @@ export default {
   "settings.spotifyReceiverHint": "Receptorul transformă O zonă într-un difuzor Spotify.",
   "settings.spotifyNameChangeHint": "Schimbarea numelui face să apară un dispozitiv nou în aplicația Spotify.",
   "settings.spotifySessionZoneMissing": "Spotify Connect nu a putut reda în zona expusă: nu mai există. Alegeți alta (dezactivați receptorul, alegeți, reactivați-l).",
+  "settings.spotifyPremiumRequired": "Spotify a refuzat acest cont: Spotify Connect pe Tune necesită Spotify Premium. Cu un cont gratuit nu se va reda nimic.",
   "settings.noZoneCreateOne": "Nicio zonă. Creați una în ecranul Zone.",
   "settings.noAcousticModule": "Acest server nu include modulul acustic.",
   "settings.serverPathHint": "Cale absolută văzută de SERVER, nu de acest browser.",

@@ -3258,6 +3258,7 @@ export default {
   "settings.spotifyReceiverHint": "レシーバーは 1 つのゾーンを Spotify スピーカーに変えます。",
   "settings.spotifyNameChangeHint": "名前を変えると、Spotify アプリに新しいデバイスとして表示されます。",
   "settings.spotifySessionZoneMissing": "Spotify Connect は公開ゾーンで再生できませんでした。そのゾーンはもう存在しません。別のゾーンを選んでください（レシーバーをオフにし、選んでから再びオン）。",
+  "settings.spotifyPremiumRequired": "Spotify がこのアカウントを拒否しました。Tune の Spotify Connect には Spotify Premium が必要です。無料アカウントでは再生されません。",
   "settings.noZoneCreateOne": "ゾーンがありません。ゾーン画面で作成してください。",
   "settings.noAcousticModule": "このサーバーには音響モジュールが含まれていません。",
   "settings.serverPathHint": "このブラウザではなく、サーバーから見た絶対パスです。",

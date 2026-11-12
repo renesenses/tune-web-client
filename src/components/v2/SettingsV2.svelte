@@ -6335,6 +6335,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName}
                     disabled={spcBusy} onchange={renommerSpc} />
                 </div>
+                {#if spc?.enabled && spc?.receiver_error_code === 'spotify_premium_required'}
+                  <div class="errline" data-spotify-premium-exige>{$t('settings.spotifyPremiumRequired' as any)}</div>
+                {/if}
                 {#if spc?.enabled && spc?.session_error}
                   <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
