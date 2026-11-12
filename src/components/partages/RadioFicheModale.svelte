@@ -411,7 +411,7 @@
   /* web#2801 — réservé à d'autres pays : grisé, pas choisissable. */
   .flux li.interdit{opacity:.5}
   .flux li.interdit .flux-lire:disabled{cursor:not-allowed; opacity:1}
-  .pays-refus, .pays-inconnu{font:11px var(--v2-sans); color:var(--v2-txt3)}
+  .pays-refus, .pays-inconnu{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .flux-lire{display:flex; align-items:center; gap:8px; width:100%; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; text-align:left; cursor:pointer}
   .flux-lire:disabled{cursor:progress; opacity:.7}
