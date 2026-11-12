@@ -17,7 +17,7 @@ import { zones, currentZoneId } from '../stores/zones';
 import { activeView } from '../stores/navigation';
 import { queueTracks } from '../stores/queue';
 import { locale } from '../i18n';
-import { fluxAjoutable, oublierBadgesDeLecture } from '../ficheStation';
+import { ficheAuFlux, fluxAjoutable, oublierBadgesDeLecture } from '../ficheStation';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -30,6 +30,8 @@ const RADIO = {
 let miennes: any[] = [];
 let annuaire: any[] = [];
 let appels: { url: string; methode: string; corps: any }[] = [];
+let recherches: string[] = [];
+const replier = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
@@ -40,8 +42,19 @@ function reponse(url: string, methode: string, corpsEnvoye: any): Response {
   if (/\/radios\/directory\/S1\/add$/.test(url) && methode === 'POST') {
     miennes = [{ id: 9, name: 'Jazz Radio', stream_url: FLUX }];
     corps = miennes[0];
+  } else if (/\/radios\/directory\/S2\/add$/.test(url) && methode === 'POST') {
+    miennes = [{ id: 10, name: 'FIP', stream_url: 'https://icecast.radiofrance.fr/fip-hifi.aac' }];
+    corps = miennes[0];
   } else if (/\/radios\/directory(\?|$)/.test(url)) {
-    corps = { total: annuaire.length, offset: 0, limit: 20, count: annuaire.length, items: annuaire, countries: [], genres: [] };
+    // Comme le serveur (`radios_annuaire.rs`, `correspond`) : sans accents ni
+    // casse, CHAQUE mot de `q` dans un même champ ; le flux n'est pas cherché.
+    const p = new URL(url, 'http://h').searchParams;
+    const mots = replier(p.get('q') ?? '').split(/\s+/).filter(Boolean);
+    const items = annuaire.filter((f) => !mots.length
+      || [f.name, f.genre, f.country_code, f.description].filter(Boolean).some((champ: string) => mots.every((m) => replier(champ).includes(m))));
+    const limite = Number(p.get('limit') ?? 120);
+    recherches.push(p.get('q') ?? '');
+    corps = { total: items.length, offset: 0, limit: limite, count: Math.min(limite, items.length), items: items.slice(0, limite), countries: [], genres: [] };
   } else if (/\/radios$/.test(url) && methode === 'POST') {
     miennes = [{ id: 12, ...corpsEnvoye }];
     corps = miennes[0];
@@ -71,6 +84,7 @@ const bouton = (h: HTMLElement) => h.querySelector<HTMLButtonElement>('button[da
 beforeEach(() => {
   locale.set('fr');
   appels = [];
+  recherches = [];
   miennes = [];
   annuaire = [];
   oublierBadgesDeLecture();
@@ -109,6 +123,16 @@ describe('#7547 — fluxAjoutable', () => {
   });
 });
 
+describe('#7547 — ficheAuFlux', () => {
+  it('le flux principal OU l’un des autres flux, sans schéma, casse ni « / » final', () => {
+    const f = { stream_url: 'https://a.org/main.mp3', streams: [{ url: 'https://a.org/hifi.aac' }] };
+    expect(ficheAuFlux(f, 'https://a.org/main.mp3')).toBe(true);
+    expect(ficheAuFlux(f, 'http://A.org/hifi.aac/')).toBe(true);
+    expect(ficheAuFlux(f, 'https://a.org/autre.mp3')).toBe(false);
+    expect(ficheAuFlux({ stream_url: 'https://a.org/main.mp3' }, '')).toBe(false);
+  });
+});
+
 describe('#7547 — Lecture en cours : « Mes radios » pour toute station', () => {
   it('🔴 station inconnue partout : « + » la crée dans « Mes radios » par son flux, puis « − »', async () => {
     const h = await poser(RADIO);
@@ -130,6 +154,24 @@ describe('#7547 — Lecture en cours : « Mes radios » pour toute station', () 
     await respirer();
     expect(appels.filter((a) => a.methode === 'POST' && /\/radios\/directory\/S1\/add$/.test(a.url))).toHaveLength(1);
     expect(appels.filter((a) => a.methode === 'POST' && /\/radios$/.test(a.url))).toHaveLength(0);
+  });
+
+  it('🔴 « FIP Hi-Fi » joue, l’annuaire dit « FIP » et publie ce flux parmi ses autres flux : pas de doublon manuel', async () => {
+    const HIFI = 'https://icecast.radiofrance.fr/fip-hifi.aac';
+    annuaire = [
+      { external_id: 'S2', name: 'FIP', genre: 'eclectic', country_code: 'FR', logo_url: null, my_radio_id: null,
+        stream_url: 'https://icecast.radiofrance.fr/fip-midfi.mp3',
+        streams: [{ url: 'https://icecast.radiofrance.fr/fip-midfi.mp3' }, { url: HIFI, codec: 'AAC' }] },
+    ];
+    const h = await poser({ ...RADIO, album_title: 'FIP Hi-Fi', source_id: HIFI });
+    // La recherche par le nom entier ne rend rien (comme le vrai serveur) :
+    // c'est la recherche large qui trouve la fiche.
+    expect(recherches).toContain('FIP Hi-Fi');
+    expect(recherches).toContain('FIP');
+    bouton(h)!.click();
+    await respirer();
+    expect(appels.filter((a) => a.methode === 'POST' && /\/radios\/directory\/S2\/add$/.test(a.url))).toHaveLength(1);
+    expect(appels.filter((a) => a.methode === 'POST' && /\/radios$/.test(a.url)), 'station manuelle créée en double').toHaveLength(0);
   });
 
   it('CONTRE-ÉPREUVE : une radio sans nom n’est pas créée', async () => {
