@@ -39,6 +39,7 @@ const memoire = new Map<string, { album: string; artiste: string | null } | null
 /** Pour les témoins : repartir d'une mémoire vide. */
 export function oublierAlbumsDesEcoutes(): void {
   memoire.clear();
+  enVol.clear();
 }
 
 const cle = (t: any) => `${t.source}:${t.source_id}`;
@@ -69,17 +70,48 @@ function completer(t: any): any {
 }
 
 /**
+ * Demandes en vol, par `service:source_id` : deux passages qui se chevauchent
+ * (premier chargement, puis défilement) ne redemandent pas la même piste.
+ */
+const enVol = new Set<string>();
+
+/**
+ * Les PISTES, avec les albums DÉJÀ obtenus, sans aucune demande. `null`
+ * quand rien ne change (l'appelant garde son tableau).
+ */
+export function albumsConnusDePistes<T>(pistes: readonly T[]): T[] | null {
+  let change = false;
+  const sortie = pistes.map((p) => {
+    if (!albumAResoudre(p)) return p;
+    const t = completer(p);
+    if (t === p) return p;
+    change = true;
+    return t as T;
+  });
+  return change ? sortie : null;
+}
+
+/**
  * Les PISTES, avec l'album de service de celles qui n'en avaient pas.
  * `null` quand rien n'a changé (l'appelant garde son tableau).
  *
  * web#2749 — la forme générale : les Titres favoris d'un service n'ont pas
  * d'album non plus (`/profiles/{id}/favorites/streaming` ne rend que le titre
  * de l'album), et leur colonne Album restait du texte.
+ *
+ * web#2759 (relecture du 12/11) — `surPaquet` est appelé toutes les `paquet`
+ * réponses : l'écran montre ses liens au fil de l'eau au lieu d'attendre la
+ * dernière réponse. `ordreSeul` borne le passage aux pistes de `ordre` (la
+ * partie de l'écran visible et la tranche suivante), le reste attend le
+ * défilement.
  */
 export async function completerAlbumsDePistes<T>(
   pistes: readonly T[],
   lire: LirePiste,
-  { plafond = 40, parallele = 3, ordre }: { plafond?: number; parallele?: number; ordre?: readonly unknown[] } = {},
+  { plafond = 40, parallele = 3, ordre, ordreSeul = false, paquet = 40, surPaquet }: {
+    plafond?: number; parallele?: number; ordre?: readonly unknown[]; ordreSeul?: boolean;
+    paquet?: number; surPaquet?: () => void;
+  } = {},
 ): Promise<T[] | null> {
   const aDemander: { service: string; id: string; k: string }[] = [];
   const vues = new Set<string>();
@@ -96,15 +128,19 @@ export async function completerAlbumsDePistes<T>(
     const p = albumAResoudre(o) ? parCle.get(cle(o)) : undefined;
     if (p !== undefined) prioritaires.push(p);
   }
-  for (const p of [...prioritaires, ...pistes]) {
+  for (const p of ordreSeul ? prioritaires : [...prioritaires, ...pistes]) {
     const t = p as any;
     if (!albumAResoudre(t)) continue;
     const k = cle(t);
-    if (memoire.has(k) || vues.has(k)) continue;
+    if (memoire.has(k) || vues.has(k) || enVol.has(k)) continue;
     vues.add(k);
-    if (aDemander.length < plafond) aDemander.push({ service: t.source, id: String(t.source_id), k });
+    if (aDemander.length < plafond) {
+      aDemander.push({ service: t.source, id: String(t.source_id), k });
+      enVol.add(k);
+    }
   }
   let i = 0;
+  let faites = 0;
   const ouvrier = async () => {
     while (i < aDemander.length) {
       const d = aDemander[i++];
@@ -115,20 +151,16 @@ export async function completerAlbumsDePistes<T>(
       } catch {
         // Un service qui ne répond pas n'est pas une piste sans album : on
         // ne mémorise pas l'échec, le prochain passage redemandera.
+      } finally {
+        enVol.delete(d.k);
       }
+      faites++;
+      if (surPaquet && faites % Math.max(1, paquet) === 0 && faites < aDemander.length) surPaquet();
     }
   };
   await Promise.all(Array.from({ length: Math.min(parallele, aDemander.length) }, ouvrier));
 
-  let change = false;
-  const sortie = pistes.map((p) => {
-    if (!albumAResoudre(p)) return p;
-    const t = completer(p);
-    if (t === p) return p;
-    change = true;
-    return t as T;
-  });
-  return change ? sortie : null;
+  return albumsConnusDePistes(pistes);
 }
 
 /**

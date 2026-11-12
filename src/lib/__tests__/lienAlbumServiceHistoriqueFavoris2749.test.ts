@@ -106,6 +106,7 @@ describe('web#2749 — Titres favoris d’un service', () => {
 
   it('FavoritesV2 branche la complétion sur ses pistes', () => {
     const src = readFileSync(new URL('../../components/v2/FavoritesV2.svelte', import.meta.url), 'utf8');
-    expect(src).toMatch(/completerAlbumsDePistes\(fusion\.tracks, api\.getStreamingTrack, \{/);
+    expect(src).toMatch(/pistesDeBase = fusion\.tracks;/);
+    expect(src).toMatch(/completerAlbumsDePistes\(pistesDeBase, api\.getStreamingTrack, \{/);
   });
 });

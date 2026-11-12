@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import FavoritesV2 from '../../components/v2/FavoritesV2.svelte';
-import { completerAlbumsDePistes, oublierAlbumsDesEcoutes } from '../albumDesEcoutes';
+import { albumsConnusDePistes, completerAlbumsDePistes, oublierAlbumsDesEcoutes } from '../albumDesEcoutes';
 import { versPiste } from '../favorisFusionnes';
 import { ouvertureAlbumDePiste } from '../lienAlbumDePiste';
 import { currentProfileId, favoriteStreamingKeys, streamingFavKey } from '../stores/profile';
@@ -50,6 +50,38 @@ describe('web#2759 point 1 — l’ordre de l’écran passe avant celui de la f
   });
 });
 
+describe('web#2759 relecture du 12/11 — par paquets, et seulement ce qui se voit', () => {
+  const avecAlbum = (pistes: any[]) => (albumsConnusDePistes(pistes) ?? pistes).filter((p: any) => p.album_id_service).length;
+
+  it('🔴 les liens arrivent toutes les 40 réponses, sans attendre la dernière', async () => {
+    const pistes = Array.from({ length: 100 }, (_, i) => piste(i));
+    const vus: number[] = [];
+    const lire = vi.fn(async (_s: string, id: string) => ({ album_id: `A${id}` }));
+    await completerAlbumsDePistes(pistes, lire, { plafond: 100, paquet: 40, surPaquet: () => vus.push(avecAlbum(pistes)) });
+    expect(vus).toEqual([40, 80]);
+    expect(avecAlbum(pistes)).toBe(100);
+  });
+
+  it('🔴 `ordreSeul` : seules les pistes de l’écran sont demandées, pas le reste de la fusion', async () => {
+    const pistes = Array.from({ length: 50 }, (_, i) => piste(i));
+    const lire = vi.fn(async (_s: string, id: string) => ({ album_id: `A${id}` }));
+    await completerAlbumsDePistes(pistes, lire, { plafond: 50, ordre: [piste(7), piste(3)], ordreSeul: true });
+    expect(lire.mock.calls.map((c) => c[1])).toEqual(['7', '3']);
+  });
+
+  it('deux passages qui se chevauchent ne redemandent pas une piste en vol', async () => {
+    const pistes = Array.from({ length: 6 }, (_, i) => piste(i));
+    let lacher!: () => void;
+    const porte = new Promise<void>((r) => { lacher = r; });
+    const lire = vi.fn(async (_s: string, id: string) => { await porte; return { album_id: `A${id}` }; });
+    const a = completerAlbumsDePistes(pistes, lire, { plafond: 4 });
+    const b = completerAlbumsDePistes(pistes, lire, { plafond: 6 });
+    lacher();
+    await Promise.all([a, b]);
+    expect(lire.mock.calls.map((c) => c[1]).sort()).toEqual(['0', '1', '2', '3', '4', '5']);
+  });
+});
+
 describe('web#2759 point 2 — Bandcamp', () => {
   const fav = (extra: Record<string, unknown>) => versPiste({
     id: 1, profile_id: 1, item_type: 'track', service: 'bandcamp',
@@ -70,7 +102,7 @@ describe('web#2759 point 2 — Bandcamp', () => {
 });
 
 describe('web#2759 point 3 — l’écran Favoris monté', () => {
-  const N = 45;
+  let N = 45;
   const demandes: string[] = [];
   let hote: HTMLDivElement | null = null;
   let monte: Record<string, unknown> | null = null;
@@ -91,6 +123,7 @@ describe('web#2759 point 3 — l’écran Favoris monté', () => {
   }
 
   beforeEach(() => {
+    N = 45;
     demandes.length = 0;
     locale.set('fr');
     localStorage.clear();
@@ -104,6 +137,10 @@ describe('web#2759 point 3 — l’écran Favoris monté', () => {
     vi.stubGlobal('WebSocket', class { close(){} addEventListener(){} removeEventListener(){} send(){} } as any);
     vi.stubGlobal('ResizeObserver', class { observe(){} unobserve(){} disconnect(){} } as any);
     vi.stubGlobal('IntersectionObserver', class { observe(){} unobserve(){} disconnect(){} } as any);
+    vi.stubGlobal('requestAnimationFrame', (f: FrameRequestCallback) => setTimeout(() => f(0), 0) as unknown as number);
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => clearTimeout(id));
+  });
+  beforeEach(() => {
     currentProfileId.set(1);
     favoriteStreamingKeys.set(new Set(Array.from({ length: N }, (_, i) => streamingFavKey('track', 'qobuz', String(1000 + i)))));
     gestesNavigationService.set(gestes());
@@ -145,5 +182,28 @@ describe('web#2759 point 3 — l’écran Favoris monté', () => {
     flushSync();
     (hote.querySelector('.trow button.lien-album') as HTMLButtonElement).click();
     expect(g.ouvrirAlbum).toHaveBeenCalledWith(expect.objectContaining({ service: 'qobuz', albumId: 'ALB1044' }));
+  });
+
+  it('🔴 120 titres : le premier chargement s’arrête à 80 (écran + tranche suivante), le défilement demande le reste', async () => {
+    N = 120;
+    favoriteStreamingKeys.set(new Set(Array.from({ length: N }, (_, i) => streamingFavKey('track', 'qobuz', String(1000 + i)))));
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(FavoritesV2, { target: hote, props: {} as any });
+    for (let i = 0; i < 30; i++) { await respirer(5); flushSync(); }
+    const onglet = Array.from(hote.querySelectorAll<HTMLButtonElement>('.tabs button'))
+      .find((b) => /titre|piste/i.test(b.textContent ?? ''));
+    onglet!.click();
+    for (let i = 0; i < 30; i++) { await respirer(5); flushSync(); }
+    expect(new Set(demandes).size, 'toutes les pistes demandées dès le chargement').toBe(80);
+    expect(hote.querySelectorAll('button.lien-album').length).toBe(80);
+
+    // La liste défile : ses dernières lignes entrent dans l'écran.
+    const liste = hote.querySelector<HTMLDivElement>('.list')!;
+    liste.getBoundingClientRect = () => ({ top: -2400, height: 3000, bottom: 600, left: 0, right: 0, width: 0, x: 0, y: -2400, toJSON() {} }) as DOMRect;
+    window.dispatchEvent(new Event('scroll'));
+    for (let i = 0; i < 30; i++) { await respirer(5); flushSync(); }
+    expect(new Set(demandes).size).toBe(N);
+    expect(hote.querySelectorAll('button.lien-album').length).toBe(N);
   });
 });
