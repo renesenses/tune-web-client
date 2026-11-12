@@ -1581,7 +1581,7 @@
         {@const et = etatDe(id)}
         <!-- web#2883 — un widget `masqueSiVide` chargé et vide n'est pas
              rendu (hors « Modifier », où on doit pouvoir le retirer). -->
-        {#if w && !(w.masqueSiVide && !edition && et?.phase === 'charge' && !et.elements.length)}
+        {#if w && !(w.masqueSiVide && !edition && et?.phase === 'charge' && et.elements.length === 0)}
           <section
             class="bloc"
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
