@@ -156,15 +156,16 @@ describe('#1562 — la fenêtre de rendu, en logique pure', () => {
 });
 
 describe('#1562 — basculer entre les trois vues, 6 704 albums, liste entière déjà chargée', () => {
-  it('#7774 Local — un saut vers Z ne monte pas le préfixe entier', { timeout: 300_000 }, async () => {
+  it('#7774 Local — Z puis A remonte le premier album et garde une fenêtre bornée', { timeout: 300_000 }, async () => {
     localStorage.setItem('tune_v2_ecran_v2.lib.source', 'local');
     albums.set(ALBUMS as any);
     const el = await ecran();
-    for (const lettre of ['M', 'Z', 'B']) {
+    for (const lettre of ['M', 'Z', 'A', 'B']) {
       [...el.querySelectorAll<HTMLButtonElement>('.rail .rl')].find(b => b.textContent === lettre)!.click();
       await vi.waitFor(() => {
         flushSync();
-        expect(el.querySelector(`.grid [data-letter="${lettre}"]`)).not.toBeNull();
+        const index = ALBUMS.findIndex(a => a.title.startsWith(lettre));
+        expect(el.querySelector(`.grid [data-i="${index}"]`), `le premier album de ${lettre} doit être remonté après Z`).not.toBeNull();
       }, { timeout: 15_000 });
       expect(montes(el), 'Source Local : le saut ne doit pas monter tous les albums précédents').toBeLessThan(300);
     }
@@ -222,7 +223,7 @@ describe('#1562 — basculer entre les trois vues, 6 704 albums, liste entière 
 describe('#1562 — basculer entre les trois vues, 6 704 albums, en pages (#4800)', () => {
   it('#7774 — M, Z puis B gardent une fenêtre bornée autour de la cible', { timeout: 300_000 }, async () => {
     const el = await ecran();
-    for (const lettre of ['M', 'Z', 'B']) {
+    for (const lettre of ['M', 'Z', 'A', 'B']) {
       [...el.querySelectorAll<HTMLButtonElement>('.rail .rl')].find(b => b.textContent === lettre)!.click();
       await vi.waitFor(() => {
         flushSync();

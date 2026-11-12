@@ -1500,6 +1500,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (!nu) {
       const i = affiches.findIndex((a) => firstLetter(a) === L);
       if (i < 0) return;
+      // La fenêtre mobile peut être près de Z : même A (indice < 200)
+      // doit être remonté, puis visé par son indice exact.
+      if (allerCasePaginee) {
+        void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-i="${i}"]`));
+        return;
+      }
       if (i < plafond) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
       void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-letter="${L}"]`));
       return;
