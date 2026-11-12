@@ -36,6 +36,7 @@
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -2029,6 +2030,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
       <GainDeSortieNotes signalPath={zone.signal_path} />
+      <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+      <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
