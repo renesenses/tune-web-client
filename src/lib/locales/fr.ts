@@ -7306,6 +7306,7 @@ export default {
   "spectro.alt": "Spectrogramme de « {title} »",
   "spectro.axes": "Temps en abscisse, fréquence en ordonnée (0 Hz en bas), niveau en dBFS : plus c’est clair, plus c’est fort.",
   "spectro.scale": "Échelle des niveaux en dBFS, de −120 (noir) à 0 (blanc)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Réessayer",
   "spectro.notLocal": "Cette piste n’est pas un fichier local : le spectrogramme n’existe que pour les pistes de la bibliothèque dont le fichier est sur le serveur.",
   "spectro.failed": "Le spectrogramme n’a pas pu être produit : le fichier est illisible ou dans un format que Tune ne sait pas décoder.",

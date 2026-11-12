@@ -7284,6 +7284,7 @@ export default {
   "spectro.alt": "Spektrogramm von „{title}“",
   "spectro.axes": "Zeit waagerecht, Frequenz senkrecht (0 Hz unten), Pegel in dBFS: heller bedeutet lauter.",
   "spectro.scale": "Pegelskala in dBFS, von −120 (schwarz) bis 0 (weiß)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Erneut versuchen",
   "spectro.notLocal": "Dieser Titel ist keine lokale Datei: Spektrogramme gibt es nur für Titel der Bibliothek, deren Datei auf dem Server liegt.",
   "spectro.failed": "Das Spektrogramm konnte nicht erzeugt werden: Die Datei ist nicht lesbar oder in einem Format, das Tune nicht dekodieren kann.",

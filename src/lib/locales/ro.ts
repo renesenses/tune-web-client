@@ -7284,6 +7284,7 @@ export default {
   "spectro.alt": "Spectrograma piesei „{title}”",
   "spectro.axes": "Timpul pe axa orizontală, frecvența pe cea verticală (0 Hz jos), nivelul în dBFS: mai deschis înseamnă mai tare.",
   "spectro.scale": "Scara nivelurilor în dBFS, de la −120 (negru) la 0 (alb)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Reîncearcă",
   "spectro.notLocal": "Această piesă nu este un fișier local: spectrograma există doar pentru piesele din bibliotecă al căror fișier se află pe server.",
   "spectro.failed": "Spectrograma nu a putut fi produsă: fișierul este ilizibil sau într-un format pe care Tune nu îl poate decoda.",

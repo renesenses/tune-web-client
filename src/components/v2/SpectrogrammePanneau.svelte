@@ -117,7 +117,7 @@
               <span class="grad" style="bottom:{g.bas}%" data-db={g.db}>{libelleDb(g.db)}</span>
             {/each}
           </div>
-          <span class="unite">dBFS</span>
+          <span class="unite">{$t('spectro.unit' as any)}</span>
         </div>
       </div>
       <p class="etat">{$t('spectro.axes' as any)}</p>

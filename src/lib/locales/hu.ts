@@ -7243,6 +7243,7 @@ export default {
   "spectro.alt": "„{title}” spektrogramja",
   "spectro.axes": "Az idő vízszintesen, a frekvencia függőlegesen (0 Hz alul), a szint dBFS-ben: minél világosabb, annál hangosabb.",
   "spectro.scale": "Szintskála dBFS-ben, −120-tól (fekete) 0-ig (fehér)",
+  "spectro.unit": "dBFS",
   "spectro.retry": "Újra",
   "spectro.notLocal": "Ez a szám nem helyi fájl: spektrogram csak azokhoz a könyvtári számokhoz van, amelyek fájlja a szerveren van.",
   "spectro.failed": "A spektrogramot nem sikerült elkészíteni: a fájl olvashatatlan, vagy olyan formátumú, amelyet a Tune nem tud dekódolni.",
