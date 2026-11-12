@@ -7509,4 +7509,5 @@ export default {
   "pareFeu.profilDomaine": "Domän",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Offentligt",
+  "v2.radio.removeConfirmDirectory": "Ta bort ”{name}” från Mina radiokanaler? Kanalen finns kvar i Katalogen: du kan hitta den där och lägga till den igen.",
 } as const;

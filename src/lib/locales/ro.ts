@@ -7510,6 +7510,7 @@ export default {
   "pareFeu.profilDomaine": "Domeniu",
   "pareFeu.profilPrive": "Privată",
   "pareFeu.profilPublic": "Publică",
+  "v2.radio.removeConfirmDirectory": "Elimini „{name}” din Radiourile mele? Postul rămâne disponibil în Director: îl poți regăsi acolo și adăuga din nou.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

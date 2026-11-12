@@ -7355,5 +7355,6 @@ export default {
   "pareFeu.profilDomaine": "Τομέας",
   "pareFeu.profilPrive": "Ιδιωτικό",
   "pareFeu.profilPublic": "Δημόσιο",
+  "v2.radio.removeConfirmDirectory": "Αφαίρεση του «{name}» από τα Ραδιόφωνά μου; Ο σταθμός παραμένει διαθέσιμος στον Κατάλογο: μπορείτε να τον βρείτε εκεί και να τον προσθέσετε ξανά.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

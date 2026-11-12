@@ -7510,6 +7510,7 @@ export default {
   "pareFeu.profilDomaine": "域",
   "pareFeu.profilPrive": "专用",
   "pareFeu.profilPublic": "公用",
+  "v2.radio.removeConfirmDirectory": "要将“{name}”从“我的电台”中移除吗？该电台仍保留在电台目录中，您可以随时在那里找到并重新添加。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

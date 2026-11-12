@@ -7510,6 +7510,7 @@ export default {
   "pareFeu.profilDomaine": "Domäne",
   "pareFeu.profilPrive": "Privat",
   "pareFeu.profilPublic": "Öffentlich",
+  "v2.radio.removeConfirmDirectory": "„{name}“ aus „Meine Radios“ entfernen? Der Sender bleibt im Verzeichnis verfügbar: Sie können ihn dort wiederfinden und erneut hinzufügen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

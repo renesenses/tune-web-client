@@ -7530,6 +7530,7 @@ export default {
   "pareFeu.profilDomaine": "Domain",
   "pareFeu.profilPrive": "Private",
   "pareFeu.profilPublic": "Public",
+  "v2.radio.removeConfirmDirectory": "Remove “{name}” from My Radios? The station stays available in the Directory: you can find it there and add it back.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
