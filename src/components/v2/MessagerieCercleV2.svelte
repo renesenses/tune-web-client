@@ -10,7 +10,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -39,9 +39,21 @@
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
 
   /** rc11 — un cercle a « # » pour avatar ; un contact, ses initiales. */
-  function avatar(c: ConversationCercle) { return c.kind === 'circle' ? '#' : initiales(c.contact.name); }
-  /** L'auteur d'un message reçu : le contact en privé ; dans un cercle, son nom tant qu'il est membre. */
-  function auteur(c: ConversationCercle, m: MessageCercle) { return c.kind === 'circle' ? (m.sender_name ?? tr('v2.circle.msg.formerMember')) : c.contact.name; }
+  function avatar(c: ConversationCercle) { return c.kind === 'direct' ? initiales(c.contact.name) : '#'; }
+  /** L'auteur d'un message reçu : le contact en privé ; dans un cercle (rc11) ou un cercle général (rc12), son nom tant qu'il est membre. */
+  function auteur(c: ConversationCercle, m: MessageCercle) { return c.kind === 'direct' ? c.contact.name : (m.sender_name ?? tr('v2.circle.msg.formerMember')); }
+  /** rc12 — avant le premier texte ou la première carte dans un cercle général :
+   *  l'acceptation du pseudo, enregistrée par le cloud. `false` : refus, rien n'est envoyé. */
+  async function pseudoAccepte(id: number): Promise<boolean> {
+    if (choix?.kind !== 'general' || choix.id !== id || !choix.name_consent_required) return true;
+    const tour = generation;
+    if (!(await dialogs.confirm(tr('v2.circle.general.nameConsent').replace('{circle}', choix.circle.name))) || fini || tour !== generation || choix?.id !== id) return false;
+    await consentirPseudo(id);
+    if (fini || tour !== generation || choix?.kind !== 'general' || choix.id !== id) return false;
+    choix = { ...choix, name_consent_required: false };
+    liste = liste.map((c) => c.id === id && c.kind === 'general' ? { ...c, name_consent_required: false } : c);
+    return true;
+  }
   async function regler(write: EcritureCercle) {
     if (choix?.kind !== 'circle' || !choix.circle.mine) return;
     const id = choix.id; const cercle = choix.circle.id;
@@ -64,7 +76,7 @@
   function ajusterSaisie() { if (saisie) { saisie.style.height = 'auto'; saisie.style.height = `${Math.min(saisie.scrollHeight, 158)}px`; } }
   async function bas() { await tick(); if (defilement) defilement.scrollTop = defilement.scrollHeight; }
   function clavier(ev: KeyboardEvent) {
-    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
   }
   async function ajouterEmoji(e: string) {
     const r = insererEmoji(texte, saisie?.selectionStart, saisie?.selectionEnd, e);
@@ -77,6 +89,12 @@
   function retour() { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
   function viderBrouillons() { texte = ''; emojis = false; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
   function echec(e: unknown) {
+    if (refusFautePseudo(e)) {
+      // Le cloud a perdu (ou jamais reçu) l'acceptation : on la redemandera au prochain envoi.
+      if (choix?.kind === 'general') choix = { ...choix, name_consent_required: true };
+      erreur = tr('v2.circle.general.nameConsentNeeded');
+      return;
+    }
     if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; viderBrouillons(); }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
   }
@@ -134,7 +152,14 @@
     if (!d || occupe) return;
     demandeConversation.set(null);
     void geste(async () => {
-      if (d.cercle) {
+      if (d.general) {
+        erreurOuvertureConversation.set(null);
+        const c = await ouvrirFilGeneral(d.general);
+        if (fini) return;
+        disponible = true;
+        if (!liste.some((l) => l.id === c.id)) liste = [c, ...liste];
+        await ouvrir(c);
+      } else if (d.cercle) {
         erreurOuvertureConversation.set(null);
         const c = await ouvrirConversationCercle(d.cercle);
         if (fini) return;
@@ -167,7 +192,7 @@
     if (!choix || !ecritureOuverte(choix) || !messageEnvoyable(texte, null)) return;
     const id = choix.id; const brouillon = raccourcisActifs() ? convertirRaccourcis(texte) : texte; const cercle = choix.kind === 'circle' ? choix.circle.id : null;
     emojis = false;
-    await geste(async () => { await (cercle !== null ? envoyerAuCercle(cercle, brouillon) : envoyerMessage(id, brouillon)); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
+    await geste(async () => { if (!(await pseudoAccepte(id))) return; await (cercle !== null ? envoyerAuCercle(cercle, brouillon) : envoyerMessage(id, brouillon)); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
   }
   async function supprimer(m: MessageCercle) {
     if (!choix || !m.mine || !(await dialogs.confirm(tr('v2.circle.msg.deleteConfirm'), { danger: true }))) return;
@@ -188,7 +213,17 @@
     const tour = () => { if (!document.hidden && !occupe && Date.now() - dernierTour >= RELECTURE_MESSAGES_MS) void charger(); };
     const timer = setInterval(tour, RELECTURE_MESSAGES_MS);
     document.addEventListener('visibilitychange', tour);
-    return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); };
+    // rc12 — quitter un cercle général : son fil disparaît tout de suite, ouvert ou non.
+    const adhesion = (ev: Event) => {
+      const general = (ev as CustomEvent<{ general?: number }>).detail?.general;
+      const parti = (c: ConversationCercle) => c.kind === 'general' && (general === undefined || c.circle.id === general);
+      generation++;
+      liste = liste.filter((c) => !parti(c));
+      if (choix && parti(choix)) { choix = null; messages = []; selection = []; viderBrouillons(); }
+      void charger();
+    };
+    window.addEventListener(ADHESION_GENERALE_CHANGEE, adhesion);
+    return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); window.removeEventListener(ADHESION_GENERALE_CHANGEE, adhesion); };
   });
 </script>
 
@@ -204,15 +239,15 @@
         {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{/if}
         {#each liste as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
-            <span class="avatar" class:avatar-cercle={c.kind === 'circle'} aria-hidden="true">{avatar(c)}</span>
-            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
+            <span class="avatar" class:avatar-cercle={c.kind !== 'direct'} aria-hidden="true">{avatar(c)}</span>
+            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{:else if c.kind === 'general'}<span class="extrait" use:bulleTexte>{tr('v2.circle.general.label')}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
             <span class="repere"><time datetime={c.last_message?.created_at}>{heure(c.last_message?.created_at ?? '', true)}</time>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}</span>
           </button>
         {/each}
       </nav>
       {#if choix}
         <div class="fil">
-          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind === 'circle'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
+          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind !== 'direct'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
             {#if choix.kind === 'circle' && choix.circle.mine}
               <label class="reglage-ecriture">{tr('v2.circle.msg.writeSetting')}
                 <select value={choix.circle.write} disabled={occupe} onchange={(ev) => void regler(ev.currentTarget.value as EcritureCercle)}>
@@ -269,7 +304,7 @@
             <button class="envoi" type="submit" aria-label={tr('v2.circle.msg.send')} disabled={occupe || !messageEnvoyable(texte, null)}><span aria-hidden="true">↑</span></button>
             {#if longueurMessage(texte) >= 3500}<span class="compteur note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>{/if}
           </form>{/if}
-          <p class="note moderation"><span aria-hidden="true">ⓘ</span> {tr(choix.kind === 'circle' ? 'v2.circle.msg.circlePrivacy' : 'v2.circle.msg.privacy')}</p>
+          <p class="note moderation"><span aria-hidden="true">ⓘ</span> {tr(choix.kind === 'circle' ? 'v2.circle.msg.circlePrivacy' : choix.kind === 'general' ? 'v2.circle.general.privacy' : 'v2.circle.msg.privacy')}</p>
           {#if selection.length}<button type="button" onclick={() => signalement = !signalement}>{tr('v2.circle.msg.report')} ({selection.length})</button>{/if}
           {#if signalement}
             <form class="signalement" onsubmit={signaler}>
