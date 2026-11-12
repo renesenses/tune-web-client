@@ -4981,6 +4981,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "この出力では、ネイティブ DSD は DoP として送信されます。",
   "v2.set.dsdCapabilityUnknown": "この出力のネイティブ DSD 対応はまだ不明です。最初の DSD 再生時に確認されます。",
   "v2.set.dsdDopNotAsio": "この出力は ASIO 出力ではありません。ネイティブ DSD は DoP として送信されます。",
+  "v2.set.dsdDopNoNativeDsd": "この出力はネイティブ DSD に対応していません。DSD は DoP として送信されます。",
   "v2.set.dsdDopDriverWithoutDsd": "この出力の ASIO ドライバーはネイティブ DSD のレートを宣言していません。DSD は DoP として送信されます。",
   "v2.lbl.displayName": "表示名",
   "v2.lbl.notifications": "通知",

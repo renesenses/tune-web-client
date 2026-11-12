@@ -4935,6 +4935,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "Ezen a kimeneten a natív DSD DoP-ként kerül kiküldésre.",
   "v2.set.dsdCapabilityUnknown": "Ennek a kimenetnek a natív DSD-képessége még ismeretlen: az első DSD-lejátszáskor derül ki.",
   "v2.set.dsdDopNotAsio": "Ez a kimenet nem ASIO-kimenet: a natív DSD DoP-ként kerül kiküldésre.",
+  "v2.set.dsdDopNoNativeDsd": "Ez a kimenet nem fogad natív DSD-t: DoP-ként kerül kiküldésre.",
   "v2.set.dsdDopDriverWithoutDsd": "Ennek a kimenetnek az ASIO-illesztőprogramja nem jelez natív DSD-mintavételt: a DSD DoP-ként kerül kiküldésre.",
   "v2.lbl.displayName": "Megjelenő név",
   "v2.lbl.notifications": "Értesítések",

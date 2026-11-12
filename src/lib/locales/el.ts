@@ -4850,6 +4850,7 @@ export default {
   "v2.set.dsdNativeServedAsDop": "Σε αυτή την έξοδο, το εγγενές DSD αποστέλλεται ως DoP.",
   "v2.set.dsdCapabilityUnknown": "Η δυνατότητα εγγενούς DSD αυτής της εξόδου δεν είναι ακόμη γνωστή: θα ελεγχθεί στην πρώτη αναπαραγωγή DSD.",
   "v2.set.dsdDopNotAsio": "Αυτή η έξοδος δεν είναι έξοδος ASIO: το εγγενές DSD αποστέλλεται ως DoP.",
+  "v2.set.dsdDopNoNativeDsd": "Αυτή η έξοδος δεν δέχεται εγγενές DSD: αποστέλλεται ως DoP.",
   "v2.set.dsdDopDriverWithoutDsd": "Το πρόγραμμα οδήγησης ASIO αυτής της εξόδου δεν δηλώνει καμία εγγενή συχνότητα DSD: το DSD αποστέλλεται ως DoP.",
   "v2.lbl.displayName": "Εμφανιζόμενο όνομα",
   "v2.lbl.notifications": "Ειδοποιήσεις",
