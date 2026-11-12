@@ -60,7 +60,7 @@
         {/if}
         <button disabled={enVol} onclick={() => agir(async () => { offset = 0; await api.startIntegrity(false); })}>{$t('integrity.start')}</button>
       {/if}
-      <button disabled={enVol || etat.traites === 0} onclick={() => agir(api.exportIntegrityCsv)}>{$t('integrity.export')}</button>
+      <button disabled={enVol || etat.traites === 0} onclick={() => agir(() => api.exportIntegrityCsv(verdict))}>{$t('integrity.export')}</button>
     </div>
     <p>{$t('integrity.sain')}: {etat.sains} · {$t('integrity.corrompu')}: {etat.corrompus} · {$t('integrity.non_verifiable')}: {etat.non_verifiables}</p>
     {#if etat.alertes_taille > 0}<p>{$t('integrity.sizeChanged')}: {etat.alertes_taille}</p>{/if}
