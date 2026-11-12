@@ -306,6 +306,41 @@ export function libelleBanniereEnrichissement(
 }
 
 /**
+ * web#2874 — la BULLE de la ligne des tâches de fond, sous « MOZAIKLABS ».
+ *
+ * Le libellé de la ligne porte le compteur (« Crédits 123/4567 »), qui change
+ * à chaque sondage. Une bulle native dont l'attribut `title` change sous le
+ * pointeur se referme (Chrome), ou ne s'ouvre jamais : le testeur du fil 2779
+ * n'a trouvé « aucune bulle » qui donne le libellé coupé en entier. La bulle
+ * dit donc ce qui NE bouge PAS : le nom de chaque tâche en cours, et la phase
+ * de la première, sans compteur. Elle ne change qu'au changement de tâche ou
+ * de phase.
+ */
+export function bulleBanniereEnrichissement(
+  toutes: TacheDeFond[],
+  secours: string,
+  traduire?: (cle: string) => string,
+): string | null {
+  const taches = toutes.filter((t) => t && !t.paused);
+  if (taches.length === 0) return null;
+  const nomDe = (t: TacheDeFond) => {
+    const cle = Object.hasOwn(LIBELLES_TACHES, t.id) ? LIBELLES_TACHES[t.id] : null;
+    return cle && traduire ? traduire(cle) : t.label || secours;
+  };
+  const vus = new Set<string>();
+  const morceaux: string[] = [];
+  taches.forEach((t, i) => {
+    const nom = nomDe(t);
+    // La même tâche deux fois (deux passes du même type) ne se dit qu'une.
+    if (vus.has(nom)) return;
+    vus.add(nom);
+    const phase = i === 0 && t.progress ? libellePhase(t.progress.detail, traduire) : '';
+    morceaux.push(phase ? `${nom} — ${phase}` : nom);
+  });
+  return morceaux.join(' · ');
+}
+
+/**
  * L'enrichissement des images d'artistes vient-il de se terminer ?
  *
  * Vrai uniquement au front descendant : la tâche était là, elle n'y est plus.

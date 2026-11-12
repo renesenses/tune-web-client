@@ -99,7 +99,8 @@ describe('#7915 — les analyses qui suivent le scan se voient dans la barre', (
     expect(texte).toContain(fr['v2.nav.bgTask.fingerprints']);
     expect(texte).toContain('35');
     expect(texte).toContain('2 h 05');
-    expect(indicateur()!.getAttribute('title')).toBe(fr['v2.nav.bgAnalysisHint']);
+    // web#2874 : la bulle nomme la passe (stable), plus « Analyse de fond en cours ».
+    expect(indicateur()!.getAttribute('title')).toBe(fr['v2.nav.bgTaskOpenHint'].replace('{task}', fr['v2.nav.bgTask.fingerprints']));
   });
 
   it('🔴 il disparaît à la fin de la passe et mène à l’État du serveur', () => {

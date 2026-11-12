@@ -3308,7 +3308,7 @@ export default {
   "v2.nav.bgDurMin": "{m} min",
   "v2.nav.bgDurH": "{h} h",
   "v2.nav.bgDurHMin": "{h} h {mm} min",
-  "v2.nav.bgAnalysisHint": "Analiză în fundal în curs — deschide Starea serverului",
+  "v2.nav.bgTaskOpenHint": "{task} în curs — deschide Starea serverului",
   "v2.nav.bgTask.fingerprints": "Amprente audio",
   "v2.nav.bgTask.dynamic_range": "Gamă dinamică",
   "v2.nav.bgTask.replaygain": "ReplayGain",

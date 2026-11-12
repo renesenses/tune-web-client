@@ -2116,7 +2116,7 @@ export default {
   "v2.nav.bgDurMin": "{m} min",
   "v2.nav.bgDurH": "{h} h",
   "v2.nav.bgDurHMin": "{h} h {mm}",
-  "v2.nav.bgAnalysisHint": "Analyse de fond en cours — ouvrir l'État du serveur",
+  "v2.nav.bgTaskOpenHint": "{task} en cours — ouvrir l'État du serveur",
   "v2.nav.bgTask.fingerprints": "Empreintes audio",
   "v2.nav.bgTask.dynamic_range": "Plage dynamique",
   "v2.nav.bgTask.replaygain": "ReplayGain",

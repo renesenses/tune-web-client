@@ -3308,7 +3308,7 @@ export default {
   "v2.nav.bgDurMin": "{m} 分钟",
   "v2.nav.bgDurH": "{h} 小时",
   "v2.nav.bgDurHMin": "{h} 小时 {mm} 分钟",
-  "v2.nav.bgAnalysisHint": "后台分析进行中 — 打开服务器状态",
+  "v2.nav.bgTaskOpenHint": "{task}进行中 — 打开服务器状态",
   "v2.nav.bgTask.fingerprints": "音频指纹",
   "v2.nav.bgTask.dynamic_range": "动态范围",
   "v2.nav.bgTask.replaygain": "ReplayGain",

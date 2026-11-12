@@ -1967,7 +1967,7 @@ export default {
   "v2.nav.bgDurMin": "{m} λεπ.",
   "v2.nav.bgDurH": "{h} ώρ.",
   "v2.nav.bgDurHMin": "{h} ώρ. {mm} λεπ.",
-  "v2.nav.bgAnalysisHint": "Ανάλυση στο παρασκήνιο σε εξέλιξη — άνοιγμα Κατάστασης διακομιστή",
+  "v2.nav.bgTaskOpenHint": "{task} σε εξέλιξη — άνοιγμα Κατάστασης διακομιστή",
   "v2.nav.bgTask.fingerprints": "Αποτυπώματα ήχου",
   "v2.nav.bgTask.dynamic_range": "Δυναμικό εύρος",
   "v2.nav.bgTask.replaygain": "ReplayGain",

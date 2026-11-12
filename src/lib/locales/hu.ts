@@ -3262,7 +3262,7 @@ export default {
   "v2.nav.bgDurMin": "{m} perc",
   "v2.nav.bgDurH": "{h} óra",
   "v2.nav.bgDurHMin": "{h} óra {mm} perc",
-  "v2.nav.bgAnalysisHint": "Háttérelemzés folyamatban — Kiszolgáló állapota megnyitása",
+  "v2.nav.bgTaskOpenHint": "{task} folyamatban — Kiszolgáló állapota megnyitása",
   "v2.nav.bgTask.fingerprints": "Hang-ujjlenyomatok",
   "v2.nav.bgTask.dynamic_range": "Dinamikatartomány",
   "v2.nav.bgTask.replaygain": "ReplayGain",

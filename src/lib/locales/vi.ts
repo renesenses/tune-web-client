@@ -1969,7 +1969,7 @@ export default {
   "v2.nav.bgDurMin": "{m} phút",
   "v2.nav.bgDurH": "{h} giờ",
   "v2.nav.bgDurHMin": "{h} giờ {mm} phút",
-  "v2.nav.bgAnalysisHint": "Đang phân tích nền — mở Trạng thái máy chủ",
+  "v2.nav.bgTaskOpenHint": "{task} đang chạy — mở Trạng thái máy chủ",
   "v2.nav.bgTask.fingerprints": "Dấu vân tay âm thanh",
   "v2.nav.bgTask.dynamic_range": "Dải động",
   "v2.nav.bgTask.replaygain": "ReplayGain",
