@@ -137,9 +137,10 @@
     /** Ouvre l'édition. Absent = pas de bouton d'édition. */
     onEditer?: (() => void) | null;
     /**
-     * Ouvre la fiche en lecture seule (œil, haut droite, à la place de
-     * l'édition) : une station de l'annuaire, tenue en central, se VOIT, elle
-     * ne se modifie pas (web#2443). Ignoré si `onEditer` est donné.
+     * Ouvre la fiche en lecture seule (œil, haut droite) : une station de
+     * l'annuaire, tenue en central, se VOIT (web#2443). Avec `onEditer`
+     * (web#2795, surcharge locale), le crayon se range à gauche de l'œil et de
+     * « retirer ».
      */
     onVoir?: (() => void) | null;
     /** Libellé du bouton « voir ». */
@@ -292,6 +293,11 @@
     }
     menuObjet?.basculer(boite);
   }
+  /*
+   * web#2795 — le coin du crayon : seul, en haut à droite ; à côté de l'œil et
+   * de « retirer » (station de l'annuaire), à leur gauche.
+   */
+  const coinEditer = $derived(['tr', 'tr2', 'tr3'][(onVoir ? 1 : 0) + (onRetirer ? 1 : 0)]);
 </script>
 
 <div class="pa" {@attach amorcerMenu}>
@@ -330,7 +336,7 @@
 
   {#if onEditer}
     <button
-      class="coin tr"
+      class="coin {coinEditer}"
       aria-label={$t('v2.cover.edit' as any)}
       title={$t('v2.cover.edit' as any)}
       onclick={(e) => seul(e, onEditer)}
@@ -339,14 +345,14 @@
     </button>
   {/if}
 
-  {#if !onEditer && onVoir}
+  {#if onVoir}
     <button class="coin tr voir" aria-label={libelleVoir} title={libelleVoir}
       onclick={(e) => seul(e, onVoir)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   {/if}
 
-  {#if !onEditer && onRetirer}
+  {#if onRetirer}
     <button class="coin" class:tr={!onVoir} class:tr2={!!onVoir} aria-label={libelleRetirer} title={libelleRetirer}
       onclick={(e) => seul(e, onRetirer)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
@@ -500,6 +506,7 @@
   .tl2 { top: 8px; left: 42px; }
   .tr { top: 8px; right: 8px; }
   .tr2 { top: 8px; right: 42px; }
+  .tr3 { top: 8px; right: 76px; }
   .bl { bottom: 8px; left: 8px; }
   .br { bottom: 8px; right: 8px; }
 
@@ -588,6 +595,7 @@
     .coin { width: 24px; height: 24px; border-radius: 7px; }
     .tl2 { left: 38px; }
     .tr2 { right: 38px; }
+    .tr3 { right: 68px; }
     .coin svg { width: 13px; height: 13px; }
     .centre { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
     .centre svg { width: 20px; height: 20px; }

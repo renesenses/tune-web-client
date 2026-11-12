@@ -19,6 +19,7 @@ import { locale } from '../i18n';
 import { notifications } from '../stores/notifications';
 import { get } from 'svelte/store';
 import fr from '../locales/fr';
+import { entreeParLibelle } from './aides/menuFiche';
 
 type Sorte = 'playlist' | 'collection';
 let hote: HTMLDivElement;
@@ -55,9 +56,11 @@ async function ouvrir(type: Sorte) {
   if (type === 'collection') {
     hote.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1].click(); flushSync();
   }
-  const cle = type === 'playlist' ? 'v2.lbl.newPlaylist' : 'v2.col.create';
-  const bouton = [...hote.querySelectorAll<HTMLButtonElement>('header button')]
-    .find((b) => b.textContent?.trim() === fr[cle]);
+  // web#2736 — côté collections, UN bouton « + Nouvelle » déroule Manuelle /
+  // Intelligente / Suggérée par l'IA : la création manuelle est son entrée.
+  const bouton = type === 'playlist'
+    ? [...hote.querySelectorAll<HTMLButtonElement>('header button')].find((b) => b.textContent?.trim() === fr['v2.lbl.newPlaylist'])
+    : entreeParLibelle(hote, fr['v2.menu.newManual'], '[data-nouvelle-collection]') ?? undefined;
   expect(bouton).toBeDefined(); bouton!.click(); flushSync();
   expect(champNom()).not.toBeNull(); saisir(champNom()!, '  Nouvelle sélection  ');
   if (type === 'collection') saisir(document.querySelector('[role="dialog"] textarea')!, 'Description conservée');

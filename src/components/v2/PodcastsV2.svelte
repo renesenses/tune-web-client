@@ -19,6 +19,7 @@
    */
   import * as api from '../../lib/api';
   import { lancerEpisode } from '../../lib/lectureEpisode';
+  import { progressionEpisode, positionDeLancement, reculDeLaConfig, formatPosition, RECUL_DEFAUT_S, type LigneEpisode } from '../../lib/reprisePodcast';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { listResetNonce } from '../../lib/stores/navigation';
   import { untrack } from 'svelte';
@@ -66,6 +67,9 @@
   let episodes = $state<any[]>([]);
   let epLoading = $state(false);
   let playingUrl = $state<string | null>(null);
+// Où en sont les épisodes commencés, et le recul de reprise réglé au serveur.
+let reprises = $state<LigneEpisode[]>([]);
+let reculS = $state(RECUL_DEFAUT_S);
 
   $effect(() => {
     api.getPodcastSubscriptions()
@@ -532,6 +536,7 @@
     const apple = feed ? null : appleIdOf(p);
     if (!feed && !apple) return;
     opened = p; episodes = []; epLoading = true;
+    void chargerReprises();
     // Un raccourci se rouvre par le flux : sans flux, il n'y a rien à poser.
     if (feed) {
       setShortcutTarget({
@@ -555,7 +560,23 @@
     epLoading = false;
   }
 
-  async function playEpisode(ep: any) {
+  /** Les reprises enregistrées ; sans elles, tout part du début comme avant. */
+  async function chargerReprises() {
+    try {
+      const [lignes, config] = await Promise.all([
+        api.getContinueListening(200).catch(() => []),
+        api.getConfig().catch(() => null),
+      ]);
+      reprises = Array.isArray(lignes) ? lignes.filter((l: any) => l?.context_type === 'podcast') : [];
+      reculS = reculDeLaConfig(config);
+    } catch {
+      reprises = [];
+    }
+  }
+
+  const progression = (ep: any) => progressionEpisode(ep, title(opened), reprises);
+
+  async function playEpisode(ep: any, depuisLeDebut = false) {
     const zid = $currentZoneId;
     if (zid == null) { errorDetail = ''; error = $t('v2.lib.noActiveZone' as any); return; }
     // tune-server-rust#6468 — l'épisode ne s'allume « en lecture » qu'APRÈS
@@ -570,6 +591,7 @@
       podcast_id: String(opened.feed_url ?? opened.source_id ?? opened.id ?? title(opened)),
       cover_url: cover(opened) ?? ep.cover_url ?? undefined,
       duration_ms: ep.duration_ms,
+      seek_ms: positionDeLancement(progression(ep), reculS, depuisLeDebut),
     });
     if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }
     error = null;
@@ -995,15 +1017,27 @@
           <div class="state">{$t('v2.pod.noEpisode' as any)}</div>
         {:else}
           {#each episodes as ep, i (ep.audio_url ?? i)}
-            <button class="ep" class:live={playingUrl === ep.audio_url} onclick={() => playEpisode(ep)}>
-              <span class="ei">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
-              </span>
-              <span class="et" use:bulleTexte>{ep.title}
-                {#if showExpert}<em>{[epDate(ep), ep.duration_ms ? formatDuration(ep.duration_ms) : ''].filter(Boolean).join(' · ')}</em>{/if}
-              </span>
-              {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
-            </button>
+            {@const prog = progression(ep)}
+            <div class="eprow">
+              <button class="ep" class:live={playingUrl === ep.audio_url} onclick={() => playEpisode(ep)}>
+                <span class="ei">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
+                </span>
+                <span class="et" use:bulleTexte>{ep.title}
+                  {#if showExpert}<em>{[epDate(ep), ep.duration_ms ? formatDuration(ep.duration_ms) : ''].filter(Boolean).join(' · ')}</em>{/if}
+                  {#if prog}
+                    <span class="prog">
+                      {#if prog.pourcent != null}<span class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(prog.pourcent)}><i style="width:{prog.pourcent}%"></i></span>{/if}
+                      <small>{$t('v2.pod.resumeAt' as any).replace('{pos}', formatPosition(prog.positionMs))}</small>
+                    </span>
+                  {/if}
+                </span>
+                {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
+              </button>
+              {#if prog}
+                <button class="depuis" onclick={() => playEpisode(ep, true)}>{$t('v2.pod.fromStart' as any)}</button>
+              {/if}
+            </div>
           {/each}
         {/if}
       </div>
@@ -1143,6 +1177,15 @@
   .eps{display:flex; flex-direction:column; gap:1px}
   .ep{display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:14px; width:100%; padding:10px 12px;
     border:0; border-radius:9px; background:transparent; color:var(--v2-txt2); cursor:pointer; text-align:left}
+  .eprow{display:flex; align-items:center; gap:8px}
+  .eprow .ep{flex:1; min-width:0}
+  .prog{display:flex; align-items:center; gap:10px; margin-top:4px}
+  .pbar{flex:0 0 90px; height:3px; border-radius:2px; background:var(--v2-hover); overflow:hidden}
+  .pbar i{display:block; height:100%; background:var(--v2-acc1)}
+  .prog small{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .depuis{flex:none; border:1px solid var(--v2-acc2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    padding:6px 12px; border-radius:var(--v2-r-pill); font:12px var(--v2-sans)}
+  .depuis:hover{color:var(--v2-acc1)}
   .ep:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ep.live{color:var(--v2-acc1)}
   .ei{width:26px; height:26px; border-radius:50%; display:grid; place-items:center;

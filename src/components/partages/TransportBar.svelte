@@ -1,6 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -13,7 +13,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
-  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
   import { upNextCount } from '../../lib/stores/queue';
@@ -42,7 +42,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  // tune-server-rust#8445 — zone groupée : le curseur règle le volume MAÎTRE.
+  import MentionGroupe from './MentionGroupe.svelte';
+  import { tuneWS } from '../../lib/websocket';
+  import { reglerVolume, chargerGroupesDeZones, suivreGroupesDeZones } from '../../lib/volumeDeGroupe';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
@@ -51,8 +56,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
-  import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
+  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
@@ -132,7 +137,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     limiterEnvoiMobile(() => {
       if ($currentZone?.id !== zoneId || !volumeMobileAutorise || contexte !== contexteVolumeMobile) return;
       void envoyerVolumeOuReverrouiller(zoneId, val, {
-        envoyer: api.setVolume,
+        envoyer: reglerVolume,
         relireVerrou: refreshAudiophile,
         verrouille: isVolumeLocked,
         direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
@@ -149,7 +154,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if (newVal === mobileVol) return;
     if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
-    await api.setVolume(z.id, newVal);
+    await reglerVolume(z.id, newVal);
   }
 
   // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
@@ -557,8 +562,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   $effect(() => {
     if (configZone) void chargerGroupes();
   });
+  // #8445 — la barre est toujours montée : elle tient les groupes à jour pour
+  // tous les chemins du volume (curseurs, clavier, vue TV).
+  $effect(() => {
+    suivreGroupesDeZones((h) => tuneWS.onEvent(h));
+  });
   async function apresChangementDeGroupe() {
     await chargerGroupes();
+    // #8445 — le curseur de volume relit aussitôt l'appartenance au groupe.
+    void chargerGroupesDeZones();
     try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
   }
   /**
@@ -729,6 +741,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   async function arreter() {
     if (!stopPossible || !zone?.id) return;
     await stopAndSync(zone.id);
+  }
+
+  /** web#2823 — pause d'UNE zone de la liste, sans changer la zone pilotée. */
+  async function mettreZoneEnPause(id: number | null) {
+    if (id == null) return;
+    try {
+      await pauseAndSync(id);
+    } catch (err) {
+      notifierErreur($t('common.errorLabel' as any), err, { motifSeul: true });
+    }
   }
 
   async function doubleClicLecture() {
@@ -1071,7 +1093,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
-      activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+      // #2743 — même Retour que le bouton de l'écran : reculer rend l'onglet et la fiche.
+      retourDepuisLectureEnCours();
       return;
     }
     if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();
@@ -1136,13 +1159,30 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                   <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
                 {:else if z.online === false}
                   <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
-                {:else if z.state === 'playing'}
-                  <span class="zone-playing-indicator">
-                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
-                  </span>
                 {/if}
               </span>
             </button>
+            <!--
+              web#2823 (fil 2766) — le ▶ vert « en lecture » se lisait « cliquez
+              pour lire ». À sa place, un VRAI bouton pause, sur chaque zone qui
+              joue : il coupe CETTE zone (le son d'une autre pièce) sans la
+              piloter. Bouton frère du corps de la rangée — un bouton ne
+              s'imbrique pas dans un bouton — et `stopPropagation` : le clic ne
+              remonte ni au fond du sélecteur ni à la barre. Zone en pause ou
+              arrêtée : pas de bouton.
+            -->
+            {#if z.id !== null && z.online !== false && z.recovery_started_at == null && z.state === 'playing'}
+              <button
+                type="button"
+                class="zone-popover-pause"
+                data-pause-zone={z.id}
+                aria-label={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                title={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                onclick={(e) => { e.stopPropagation(); void mettreZoneEnPause(z.id); }}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              </button>
+            {/if}
             <!--
               #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
               point 1). Elle et le bouton dédié « Transférer la lecture vers… »
@@ -1538,6 +1578,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             </svg>
           {/if}
         </button>
+        {#if volumeFixe($currentZone)}
+          <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+          <VolumeFixe />
+        {:else}
         <input
           type="range"
           class="mobile-volume-slider"
@@ -1556,6 +1600,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        <MentionGroupe zoneId={$currentZone?.id} />
+        {/if}
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}
@@ -2946,11 +2992,29 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     border-radius: var(--radius-sm);
   }
 
-  .zone-playing-indicator {
-    color: var(--tune-success);
+  /* web#2823 — le bouton pause d'une zone qui joue, à droite de la rangée. */
+  .zone-popover-pause {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    align-self: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--tune-success);
+    cursor: pointer;
+  }
+  .zone-popover-pause:hover {
+    background: var(--tune-surface-hover);
+  }
+  .zone-popover-pause:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 1px;
   }
 
   /* Recovery / Offline states */

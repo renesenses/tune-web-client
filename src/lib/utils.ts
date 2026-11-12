@@ -167,6 +167,53 @@ export function estMulticanal(album: { max_channels?: number | null } | null | u
   return Number(album?.max_channels ?? 0) > 2;
 }
 
+/**
+ * tune-web-client#2731 (Rhorn, fil 2713) — le nombre de canaux écrit comme
+ * sur une pochette : « 2.0 », « 5.1 »… `null` quand il est inconnu (absent,
+ * nul ou négatif) : pas de badge plutôt qu'un badge inventé.
+ *
+ * Un nombre seul ne dit pas la disposition : on prend celle que le serveur
+ * donne par défaut au même nombre (`channel_badge`, tune-core
+ * `audio/channels.rs` : 3 → 3.0, 4 → 4.0, 5 → 5.0, 6 → 5.1, 7 → 6.1,
+ * 8 → 7.1). Au-delà, les dispositions immersives se confondent (7.1.4 Atmos
+ * ou Auro-3D ?) : on écrit le compte, « 12 ch ».
+ */
+const DISPOSITION_PAR_NOMBRE: Readonly<Record<number, string>> = {
+  1: '1.0', 2: '2.0', 3: '3.0', 4: '4.0', 5: '5.0', 6: '5.1', 7: '6.1', 8: '7.1',
+};
+export function libelleNombreCanaux(n: number | null | undefined): string | null {
+  const c = Number(n ?? 0);
+  if (!Number.isInteger(c) || c <= 0) return null;
+  return DISPOSITION_PAR_NOMBRE[c] ?? `${c} ch`;
+}
+
+/**
+ * Le badge de canaux d'une carte : les nombres de canaux CONNUS de ses
+ * versions, distincts et croissants (« 2.0 », « 2.0/5.1 » pour une carte
+ * qui regroupe une édition stéréo et une multicanale), ou `null`.
+ */
+export function badgeCanaux(nombres: ReadonlyArray<number | null | undefined>): string | null {
+  const distincts = [...new Set(nombres.map((n) => Number(n ?? 0)))]
+    .filter((n) => libelleNombreCanaux(n) != null)
+    .sort((a, b) => a - b);
+  return distincts.length ? distincts.map((n) => libelleNombreCanaux(n)).join('/') : null;
+}
+
+/**
+ * Le badge de canaux d'une POCHETTE (#2731) : rien quand les canaux sont
+ * inconnus ; rien non plus pour un disque stéréo sans badge de qualité (un
+ * « 2.0 » sur chaque CD serait du bruit, même raison que #1901) ; un
+ * multicanal le porte toujours, et un DSD / Hi-Res aussi en stéréo.
+ */
+export function canauxDePochette(
+  badgeQualite: string | null | undefined,
+  nombres: ReadonlyArray<number | null | undefined>,
+): string | null {
+  const texte = badgeCanaux(nombres);
+  if (!texte) return null;
+  return badgeQualite || nombres.some((n) => Number(n ?? 0) > 2) ? texte : null;
+}
+
 /** L'album porte-t-il son nombre de canaux (serveur rc11 et suivants) ? */
 export function porteSesCanaux(album: { max_channels?: number | null } | null | undefined): boolean {
   return album?.max_channels != null;

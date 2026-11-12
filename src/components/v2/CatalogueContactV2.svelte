@@ -61,7 +61,7 @@
   import { playAndSync } from '../../lib/stores/zones';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { signalerEchecLecture } from '../../lib/echecLecture';
-  import { chercherDansMesSources, type CibleRecherche, type Correspondance } from '../../lib/chercherDansMesSources';
+  import { chercherDansMesSources, trouverEquivalent, type CibleLecture, type CibleRecherche, type Correspondance } from '../../lib/chercherDansMesSources';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -237,6 +237,7 @@
   }
 
   function recharger() {
+    lectureEquivalente++; equivalent = null;
     album = null;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -269,6 +270,7 @@
   }
 
   function ouvrirAlbum(a: AlbumContact) {
+    lectureEquivalente++; equivalent = null;
     album = a;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -320,14 +322,47 @@
   const rienNeBouge = () => {};
 
   /**
-   * #7224 — pas d'action silencieuse. Le titre d'une piste, sans écoute, ne
-   * lance rien : il le DIT, en tête de l'écran, et propose la recherche.
+   * #7224 (décision du 12/11, rc12) — sans écoute chez le contact, un clic sur
+   * un album ou une piste LANCE son équivalent dans MES sources (bibliothèque,
+   * puis services connectés), sur ma zone, sans liste à choisir. Rien de
+   * reconnu : on le dit, et « Chercher dans mes sources » reste le repli.
    */
-  let retourClic = $state<string | null>(null);
-  const clicSansEcoute = () => {
-    retourClic = ouverte
-      ? $t('v2.circle.listen.premiumOnly' as any)
-      : $t('v2.circle.listen.closedClick' as any);
+  type EtatEquivalent =
+    | { termes: string; etat: 'cours' }
+    | { termes: string; etat: 'aucun'; cible: CibleLecture }
+    | { termes: string; etat: 'erreur' }
+    | { termes: string; etat: 'lance'; trouvee: Correspondance };
+  let equivalent = $state<EtatEquivalent | null>(null);
+  let lectureEquivalente = 0;
+
+  async function lireEquivalent(c: CibleLecture) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const mine = ++lectureEquivalente;
+    const termes = [c.titre, c.artiste].filter(Boolean).join(' ');
+    equivalent = { termes, etat: 'cours' };
+    let trouvee: Correspondance | null;
+    try {
+      trouvee = (await trouverEquivalent(c)).trouvee;
+    } catch {
+      if (!fini && mine === lectureEquivalente) equivalent = { termes, etat: 'erreur' };
+      return;
+    }
+    if (fini || mine !== lectureEquivalente) return;
+    if (!trouvee) { equivalent = { termes, etat: 'aucun', cible: c }; return; }
+    equivalent = { termes, etat: 'lance', trouvee };
+    playAndSync(zid, trouvee.lecture as any).catch((e) => {
+      if (!fini && mine === lectureEquivalente) equivalent = null;
+      signalerEchecLecture(e);
+    });
+  }
+  const cibleAlbum = (a: AlbumContact): CibleLecture =>
+    ({ genre: 'album', titre: a.title, artiste: a.artist_name, mbid: a.musicbrainz_release_group_id });
+  const ciblePiste = (p: PisteContact): CibleLecture =>
+    ({ genre: 'track', titre: p.title, artiste: p.artist_name, isrc: p.isrc, duree_ms: p.duration_ms });
+  const clicSansEcoute = (_p: Track, i: number) => {
+    const p = (album ? sourcesAlbum : sourcesPistes)[i];
+    if (p) void lireEquivalent(ciblePiste(p));
   };
 
   /** #7224 — « Chercher dans mes sources » : la recherche globale, sur le titre + l'artiste. */
@@ -354,7 +389,8 @@
   const chercherAlbum = (a: AlbumContact) => void chercherSources({ genre: 'album', titre: a.title, artiste: a.artist_name });
   const chercherPiste = (p: Track) => void chercherSources({ genre: 'track', titre: p.title, artiste: p.artist_name });
   const nomDeSource = (src: string) =>
-    src === 'local' ? $t('v2.circle.sources.local' as any) : src.charAt(0).toUpperCase() + src.slice(1);
+    src === 'local' ? $t('v2.circle.sources.local' as any)
+      : (NOM_SERVICE as Record<string, string>)[src] ?? src.charAt(0).toUpperCase() + src.slice(1);
 
   function lireCorrespondance(c: Correspondance) {
     const zid = zoneRequise();
@@ -399,9 +435,21 @@
         <p class="note ecoute-premium" use:bulleTexte><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
       {/if}
     {/if}
-    {#if retourClic && !ecoute}
-      <div class="err retour-clic" role="alert"><span>{retourClic}</span>
-        <button class="lnk fermer-retour" onclick={() => (retourClic = null)}>{$t('v2.circle.listen.dismiss' as any)}</button></div>
+    {#if equivalent && !ecoute}
+      {#if equivalent.etat === 'cours'}
+        <p class="note equivalent-encours" role="status" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', equivalent.termes)}</p>
+      {:else if equivalent.etat === 'lance'}
+        <p class="note equivalent-lance" role="status" use:bulleTexte>{$t('v2.circle.sources.playing' as any).replace('{title}', equivalent.trouvee.titre).replace('{source}', nomDeSource(equivalent.trouvee.source))}</p>
+      {:else}
+        {@const echec = equivalent}
+        <div class="err equivalent-{echec.etat}" role="alert">
+          <span>{echec.etat === 'aucun' ? $t('v2.circle.sources.notFound' as any).replace('{query}', echec.termes) : $t('v2.circle.sources.error' as any)}</span>
+          {#if echec.etat === 'aucun'}
+            <button class="lnk chercher-repli" onclick={() => { const c = echec.cible; equivalent = null; void chercherSources(c); }}>{$t('v2.circle.sources.search' as any)}</button>
+          {/if}
+          <button class="lnk fermer-retour" onclick={() => { lectureEquivalente++; equivalent = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
+        </div>
+      {/if}
     {/if}
     {#if sources}
       <section class="sources-trouvees" aria-labelledby="circle-sources-titre" aria-live="polite">
@@ -489,6 +537,10 @@
           {#if ecoute && sourcesAlbum.length > 0}
             <button class="lire-album" disabled={ecouteEnCours != null}
               onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
+          {:else if !ecoute}
+            <button class="lire-equivalent lire-equivalent-album"
+              aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
+              onclick={() => void lireEquivalent(cibleAlbum(album!))}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
           {/if}
         </div>
       </div>
@@ -539,6 +591,11 @@
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>
+              {#if !ecoute}
+                <button class="lire-equivalent lire-equivalent-carte"
+                  aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
+                  onclick={() => void lireEquivalent(cibleAlbum(a))}>▶ {$t('v2.circle.listen.play' as any)}</button>
+              {/if}
               <button class="chercher-sources chercher-album-carte"
                 aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
                 onclick={() => chercherAlbum(a)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
@@ -648,16 +705,17 @@
   .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
   .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
-  .lire-piste,.lire-album{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+  .lire-piste,.lire-album,.lire-equivalent{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
     background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
-  .lire-album{margin-top:6px}
+  .lire-album,.lire-equivalent-album{margin-top:6px}
   .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
-  .lire-piste:focus-visible,.lire-album:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .lire-piste:focus-visible,.lire-album:focus-visible,.lire-equivalent:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .ecoute-fermee{margin:0; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font-size:12.5px}
   .chercher-sources{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
     background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
-  .chercher-album,.chercher-album-carte{margin-top:6px}
+  .chercher-album,.chercher-album-carte,.lire-equivalent-carte{margin-top:6px}
+  .lire-equivalent-carte{margin-right:6px}
   .chercher-sources:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .sources-trouvees{display:flex; flex-direction:column; gap:6px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}
   .sources-tete{display:flex; justify-content:space-between; align-items:center; gap:10px}

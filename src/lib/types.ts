@@ -358,6 +358,16 @@ export interface Track {
   missing?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
+  /**
+   * web#2806 (tune-server-rust#8412) — la ligne de playlist est une RADIO de
+   * « Mes radios » : `source = 'radio'`, `source_id` = `radio_id` en texte,
+   * le nom en titre, le logo en pochette, `duration_ms = 0`. Passer par
+   * `lib/lignePlaylistRadio.ts`.
+   */
+  radio?: boolean;
+  radio_id?: number | null;
+  /** Ligne radio : la station a quitté « Mes radios ». Grisée, sautée à la lecture. */
+  unavailable?: boolean;
 }
 
 export interface Playlist {
@@ -1228,6 +1238,13 @@ export interface ZoneGroupResponse {
   zone_ids: number[];
   auto_synced: boolean;
   group_manufacturer: string;
+  /** Numéro du groupe dans `zone_groups` (`group_id` en est la chaîne). */
+  id?: number;
+  name?: string;
+  /** tune-server-rust#8445 — volume maître (gain 0..1) et décalage de chaque
+   *  membre (clé : id de zone en chaîne), tels que le serveur les garde. */
+  master_volume?: number;
+  offsets?: Record<string, number>;
 }
 
 /** Filtre de la vue Métadonnées.
@@ -1623,6 +1640,12 @@ export interface RadioStation {
     /** Les flux publiés de la fiche, le principal d'abord (#7177). */
     streams?: FluxRadio[];
   } | null;
+  /**
+   * web#2795 — la station de l'annuaire a été modifiée CHEZ SOI (nom, logo ou
+   * flux) : le relevé de l'annuaire ne la touche plus, et « Revenir à la fiche
+   * de l'annuaire » efface la surcharge. Absent d'un serveur antérieur.
+   */
+  surcharge_locale?: boolean;
 }
 
 /**

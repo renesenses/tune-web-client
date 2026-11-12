@@ -48,6 +48,9 @@ describe('choix proposés', () => {
     expect(cleContrainte('plugin_not_installed')).toBe('upsampling.constraint.notInstalled');
     expect(cleContrainte('pure')).toBe('upsampling.constraint.pure');
     expect(cleContrainte('machine_test_missing')).toBe('upsampling.constraint.machineTest');
+    // #8149 (tune-server-rust) — zone réseau et « bit-perfect strict » : l'écran le dit.
+    expect(cleContrainte('output_not_supported')).toBe('upsampling.constraint.zoneNotSupported');
+    expect(cleContrainte('strict_bitperfect')).toBe('upsampling.constraint.strictBitPerfect');
     expect(cleContrainte('disabled')).toBeNull();
     expect(cleContrainte(null)).toBeNull();
   });

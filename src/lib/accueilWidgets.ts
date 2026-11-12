@@ -1840,6 +1840,9 @@ export const WIDGETS: Widget[] = [
       ),
   },
   {
+    // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit
+    // ce que sert `/home/radio-picks` : stations en favori, puis les dernières
+    // écoutées — pas des « radios d'artistes » (aligné sur tune-remote-flutter#236).
     id: 'radios-artistes',
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',

@@ -20,6 +20,7 @@ import { t } from '../i18n';
 import { activeView } from '../stores/navigation';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -97,23 +98,26 @@ function poser(props: Record<string, unknown>) {
 /** Le bouton, retrouvé par son libellé traduit — jamais par sa position. */
 function bouton(): HTMLButtonElement | null {
   // web#2151 — la bulle du bouton décrit son geste ; elle ne recopie plus le libellé.
+  // web#2736 — c'est une entrée du menu « … » de la fiche (« Ajouter à › Collection »).
   const libelle = get(t)('v2.album.addToCollectionTip' as any);
-  return hote?.querySelector<HTMLButtonElement>(`.actions button[title="${libelle}"]`) ?? null;
+  return (hote ? entreeDuMenu(hote, `[role="menuitem"][title="${libelle}"]`) : null) as HTMLButtonElement | null;
 }
 /** Le panneau est porté à la racine du document (`use:portail`). */
 const panneau = () => document.body.querySelector<HTMLElement>('.coll-menu');
 const entrees = () => Array.from(panneau()?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
 
 describe('la fiche d’un album de la bibliothèque', () => {
-  it('porte le bouton, après Étiquettes', async () => {
+  it('porte l’entrée, dans « Ajouter à », avec Étiquettes', async () => {
+    // web#2736 (Bertrand, 09/11/2026) : « … ▸ Ajouter à — Playlist · Collection ·
+    // Écouter plus tard · Étiquettes ».
     poser({ album: LOCAL });
     await jusqua(() => !!bouton());
     const b = bouton();
     expect(b, 'pas de bouton « Ajouter à une collection »').not.toBeNull();
-    const boutons = Array.from(hote!.querySelectorAll<HTMLButtonElement>('.actions button'));
-    const etiquettes = boutons.findIndex((x) => x.title === get(t)('v2.album.tagsTip' as any));
-    expect(etiquettes).toBeGreaterThan(-1);
-    expect(boutons.indexOf(b!)).toBe(etiquettes + 1);
+    const groupe = b!.closest('[role="group"]')!;
+    expect(groupe.getAttribute('aria-label')).toBe(get(t)('v2.menu.addTo' as any));
+    expect(groupe.querySelector(`[title="${get(t)('v2.album.tagsTip' as any)}"]`)).not.toBeNull();
+    expect(b!.textContent?.trim()).toBe(get(t)('v2.menu.toCollection' as any));
   });
 
   it('🔴 clic ⇒ menu des MANUELLES ⇒ POST /library/collections/{id}/albums/{album_id}', async () => {

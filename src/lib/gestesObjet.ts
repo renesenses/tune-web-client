@@ -177,6 +177,15 @@ export function objetPlaylist(pl: any, service: string | null = null): ObjetMenu
   return { type: 'playlist', id: Number.isInteger(pl?.id) ? pl.id : null, nom };
 }
 
+/**
+ * web#2806 — une station de « Mes radios ». Son seul geste de menu est
+ * « Ajouter à une playlist » (tune-server-rust#8412) : la lecture, le favori
+ * et l'édition gardent leurs boutons propres sur la vignette.
+ */
+export function objetRadio(r: any): ObjetMenu {
+  return { type: 'radio', id: Number.isInteger(r?.id) ? r.id : null, nom: texte(r?.name ?? r?.nom) };
+}
+
 export function objetPlaylistIntelligente(sp: any): ObjetMenu {
   return { type: 'playlistIntelligente', id: Number.isInteger(sp?.id) ? sp.id : null, nom: texte(sp?.name ?? sp?.nom) };
 }
@@ -897,6 +906,11 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
     // web#2096 — l'album entier, par la fenêtre partagée (`ShellV2`).
     g.ajouterAPlaylist = () => demandeAjoutPlaylist.set({ nom: o.nom ?? '', pistes: () => pistesDe(o) });
   }
+  if (o.type === 'radio' && o.id != null) {
+    // web#2806 — la station part en `radio_ids`, par la même fenêtre partagée.
+    const id = o.id;
+    g.ajouterAPlaylist = () => demandeAjoutPlaylist.set({ nom: o.nom ?? '', radioIds: [id] });
+  }
   if (TYPES_DE_CERCLE.has(o.type) && (o.id != null || deService(o))) {
     const nom = o.nom ?? '';
     g.ajouterAPlaylistDeCercle = () => demandeCercle.set({ mode: 'ajout', nom, pistes: () => pistesPourCercle(o) });
@@ -935,8 +949,9 @@ export function gestesObjet(o: ObjetMenu, options: OptionsMenuObjet = {}): Geste
  * de lectures de magasins pour peindre une liste.
  */
 export function objetAUnMenu(o: ObjetMenu, gestes: GestesPochette = {}): boolean {
-  // web#916 — sauf la radio que l'accueil suggère : « Pas pour moi ».
-  if (o.type === 'radio') return !!gestes.pasPourMoi;
+  // web#2806 — une station de « Mes radios » a UNE entrée : « Ajouter à une playlist ».
+  // web#916 — et la radio que l'accueil suggère : « Pas pour moi ».
+  if (o.type === 'radio') return o.id != null || !!gestes.pasPourMoi;
   if (o.type === 'podcast') return false;
   if (o.type === 'label') return !!o.nom;
   return o.id != null || deService(o) || !!gestes.ouvrir || ouvrirParDefaut(o) != null;

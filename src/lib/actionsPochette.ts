@@ -291,12 +291,17 @@ export function entreesPochette(
   // abonnement à part, suppression dans la modale d'édition) : ce catalogue
   // ne leur donne rien, comme avant — et leur bouton reste absent.
   //
-  // web#916 (décision du 13/10/2026) — une seule exception : la radio que
-  // l'ACCUEIL suggère porte « Pas pour moi », que lui seul fournit.
-  if (c.type === 'radio' || c.type === 'podcast') {
-    pousser(c.type === 'radio', 'v2.dismiss.notForMe', g.pasPourMoi);
+  // web#2806 — sauf UNE entrée pour la radio de « Mes radios » : « Ajouter à
+  // une playlist » (`radio_ids`, tune-server-rust#8412). Le même libellé que
+  // l'entrée d'une piste ou d'un album : c'est le même geste.
+  // web#916 (décision du 13/10/2026) — et la radio que l'ACCUEIL suggère
+  // porte « Pas pour moi », que lui seul fournit.
+  if (c.type === 'radio') {
+    pousser(deLaBibliotheque, 'playlist.addToPlaylist', g.ajouterAPlaylist);
+    pousser(true, 'v2.dismiss.notForMe', g.pasPourMoi);
     return sortie;
   }
+  if (c.type === 'podcast') return sortie;
 
   // ── Lire ────────────────────────────────────────────────────────────────
   pousser(!!c.greffonCercle, 'v2.circle.msg.share', g.partagerMessage);

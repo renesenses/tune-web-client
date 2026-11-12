@@ -1,6 +1,6 @@
 <script lang="ts">
   import { seekPositionMs } from '../../lib/stores/nowPlaying';
-  import { lyricsSourceKind, type LyricsMiss } from '../../lib/lyrics';
+  import { avecDecalageParoles, ligneParolesActive, lyricsSourceKind, positionParolesTenue, type LyricsMiss } from '../../lib/lyrics';
   import { parolesEnLigneActives } from '../../lib/lyricsOnline';
   import { t } from '../../lib/i18n';
 
@@ -16,6 +16,12 @@
      * alors la position depuis l'ancrage `metadata_age_ms`.
      */
     positionMs?: number | null;
+    /** web#2797 — décalage des paroles de la zone (`lyrics_offset_ms`), en ms.
+     *  Positif : paroles retardées. Le Grand écran l'appliquait seul. */
+    decalageMs?: number | null;
+    /** web#2797 — la lecture avance. En pause, un recul est un geste de
+     *  l'utilisateur (curseur, Précédent) : il est suivi tout de suite. */
+    enLecture?: boolean;
     /** Provenance annoncée par le serveur : "lrc", "tag" ou "lrclib". */
     source: string | null;
     /** Motif de l'absence de paroles, quand il n'y en a pas. `null` tant que
@@ -27,7 +33,7 @@
   // blanc), `positionMs` de cette branche (#719, le karaoké sur une radio).
   // Les deux sont nécessaires — l'un dit POURQUOI il n'y a pas de paroles,
   // l'autre OÙ en est celle qu'on a.
-  let { loading, lyrics, syncedLines, karaokeMode, source, miss = null, onToggleKaraoke, positionMs = null }: Props =
+  let { loading, lyrics, syncedLines, karaokeMode, source, miss = null, onToggleKaraoke, positionMs = null, decalageMs = 0, enLecture = true }: Props =
     $props();
 
   let karaokePanel = $state<HTMLElement | null>(null);
@@ -62,17 +68,27 @@
    *  ce que le contrat serveur nomme. */
   let sourceKind = $derived(lyricsSourceKind(source));
 
+  /**
+   * web#2797 — la position déjà atteinte sur CES paroles. Pas un `$state` :
+   * c'est la mémoire du calcul ci-dessous, elle ne doit rien redéclencher.
+   * Des paroles nouvelles (autre piste) repartent de zéro.
+   */
+  let tenue: { lignes: typeof syncedLines; pos: number } | null = null;
+
   let currentLine = $derived.by(() => {
     if (!karaokeMode || syncedLines.length === 0) return -1;
     // #719 : `positionMs` l'emporte quand le parent en fournit un — c'est le
     // cas sur une radio, où la position de zone vaut zéro en permanence.
     const pos = positionMs ?? $seekPositionMs ?? 0;
-    let idx = -1;
-    for (let i = 0; i < syncedLines.length; i++) {
-      if (syncedLines[i].time <= pos) idx = i;
-      else break;
-    }
-    return idx;
+    // web#2797 : le décalage de la zone, puis jamais de recul sur un simple
+    // recalage d'horloge (≤ 2,5 s) — c'était l'aller-retour entre strophes.
+    const voulue = avecDecalageParoles(pos, decalageMs);
+    // En pause, rien ne rattraperait la position tenue : on suit le recul.
+    const atteinte = enLecture
+      ? positionParolesTenue(tenue?.lignes === syncedLines ? tenue.pos : null, voulue)
+      : voulue;
+    tenue = { lignes: syncedLines, pos: atteinte };
+    return ligneParolesActive(syncedLines, atteinte);
   });
 
   // Auto-scroll to keep current line centered

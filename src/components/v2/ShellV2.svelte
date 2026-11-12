@@ -128,6 +128,8 @@
    * dont la deconnexion d'un service.
    */
   import DialogContainer from '../partages/DialogContainer.svelte';
+  // web#2798 : le bouton « Remonter en haut » des longues listes.
+  import RemonterEnHaut from './RemonterEnHaut.svelte';
   /**
    * TREIZIÈME « écrit mais pas branché », et le plus coûteux de la série.
    *
@@ -196,7 +198,7 @@
   import TableauDeBordV2 from './TableauDeBordV2.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
-  import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { mobileNowPlayingOpen, vueAvantGrandEcran, origineGrandEcran } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   // « Demander à l'assistant » (chantier assistant-ia, `/ai/query`) : le
   // bouton n'existe que si l'assistant est prêt ; les réglages sont sondés
@@ -226,7 +228,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { preferences, preferencesRelues } from '../../lib/stores/preferences';
+  import { preferences, preferencesRelues, appliquerAscenseursLarges } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
@@ -360,6 +362,9 @@
    * autre écrivain est le sélecteur des Réglages, qui met les deux à jour.
    */
   $effect(() => { locale.set($preferences.language ?? 'en'); });
+  // web#2798 : « Barres de défilement larges » — le réglage enregistré,
+  // appliqué à `<html>` (et pas seulement au chargement du module).
+  $effect(() => { appliquerAscenseursLarges($preferences.ascenseursLarges === true); });
 
   // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
@@ -582,6 +587,9 @@
    * désormais au même écran. Deux copies divergeraient au premier correctif.
    */
   function modeTv() {
+    // web#2761 — la porte dit d'où l'on part : la vue, et le calque s'il est ouvert.
+    vueAvantGrandEcran.set(origineGrandEcran($activeView, $mobileNowPlayingOpen));
+    mobileNowPlayingOpen.set(false);
     entrerEnModeGrandEcran((vue) => activeView.set(vue));
   }
 
@@ -1016,6 +1024,7 @@
   <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne
        demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
        les ecrans qu'elle monte. -->
+  <RemonterEnHaut />
   <DialogContainer />
 
   <!-- Les BANDEAUX. Même raison, même endroit que les dialogues : sans lui,

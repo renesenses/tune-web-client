@@ -26,3 +26,31 @@ export function lireEtatMiroir(valeur: string | null | undefined): EtatMiroirFav
   const v = (valeur ?? '').trim().toLowerCase();
   return ETATS.has(v) ? (v as EtatMiroirFavoris) : null;
 }
+
+/**
+ * web#2679 — LEQUEL, ET POURQUOI. L'en-tête ne dit que « échec », pour tous
+ * les services réunis : le bandeau restait des jours sans nommer le coupable
+ * (fil « Page des Favoris, je comprends pas tout ! », rc10). Le détail par
+ * service existe pourtant côté serveur : `GET /profiles/{id}/favorites/streaming/miroir`
+ * (tune-server-rust#5997) rend `statut` et `erreur` de chacun.
+ */
+export interface EtatMiroirService {
+  statut?: string;
+  erreur?: string | null;
+}
+
+export interface EchecMiroir {
+  service: string;
+  erreur: string | null;
+}
+
+/** Les services dont le DERNIER rafraîchissement a échoué, dans l'ordre du serveur. */
+export function servicesEnEchec(
+  detail: { services?: Record<string, EtatMiroirService> | null } | null | undefined,
+): EchecMiroir[] {
+  const services = detail?.services;
+  if (!services || typeof services !== 'object') return [];
+  return Object.entries(services)
+    .filter(([, e]) => e?.statut === 'echec')
+    .map(([service, e]) => ({ service, erreur: (e?.erreur ?? '').trim() || null }));
+}

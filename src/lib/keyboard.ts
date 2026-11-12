@@ -1,6 +1,7 @@
 import { cibleDuPas } from './limitesVolume';
 import { volumeCommandable, plageVolumeSortie } from './capacitesVolumeSortie';
 import { isVolumeLocked } from './stores/audiophile';
+import { reglerVolume } from './volumeDeGroupe';
 import { get } from 'svelte/store';
 import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, currentTrack } from './stores/nowPlaying';
@@ -113,7 +114,7 @@ export function setupKeyboardShortcuts(): () => void {
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         // Step by 1% (round to avoid float drift), not 5%.
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'up') : Math.min(1, Math.round((vol + 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       case 'ArrowDown': {
@@ -121,7 +122,7 @@ export function setupKeyboardShortcuts(): () => void {
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') : Math.max(0, Math.round((vol - 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       /**

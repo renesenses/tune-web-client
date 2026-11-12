@@ -30,7 +30,8 @@
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
-  import { etatMiroirFavoris } from '../../lib/stores/favorisMiroir';
+  import { etatMiroirFavoris, servicesEnEchec, type EchecMiroir } from '../../lib/stores/favorisMiroir';
+  import { nomService } from '../../lib/convertisseurPlaylists';
   import {
     chargerFavorisFusionnes,
     collectionsFavorites,
@@ -304,6 +305,22 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   // Rechargé si le profil change : les favoris sont personnels.
   $effect(() => { void $currentProfileId; reload(); });
+
+  /**
+   * web#2679 — le bandeau d'échec NOMME le service et dit le motif. L'en-tête
+   * ne porte qu'un état global ; le détail est lu à part, seulement quand il
+   * y a un échec à expliquer. Lecture impossible : le texte d'avant.
+   */
+  let echecsMiroir = $state<EchecMiroir[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if ($etatMiroirFavoris !== 'echec' || pid == null) { echecsMiroir = []; return; }
+    let vivant = true;
+    api.getEtatMiroirFavorisParService(pid)
+      .then((d) => { if (vivant) echecsMiroir = servicesEnEchec(d); })
+      .catch(() => { if (vivant) echecsMiroir = []; });
+    return () => { vivant = false; };
+  });
 
   function match(s: string | null | undefined): boolean {
     return !q || fold(s).includes(fold(q));
@@ -956,7 +973,22 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        serveur réessaiera. Rien pour ok, aucun, ou un serveur ancien. -->
   {#if $etatMiroirFavoris === 'en_attente' || $etatMiroirFavoris === 'echec'}
     <p class="miroir-etat" role="status" data-testid="miroir-favoris-etat">
-      {$etatMiroirFavoris === 'en_attente' ? $t('v2.fav.miroirEnAttente' as any) : $t('v2.fav.miroirEchec' as any)}
+      {#if $etatMiroirFavoris === 'en_attente'}
+        {$t('v2.fav.miroirEnAttente' as any)}
+      {:else if echecsMiroir.length > 0}
+        {$t('v2.fav.miroirEchecService' as any).replace('{services}', echecsMiroir.map((e) => nomService(e.service)).join(', '))}
+        {#each echecsMiroir.filter((e) => e.erreur) as e (e.service)}
+          <!-- #2417 : le motif du serveur est rédigé en français
+               (favorites_mirror.rs) ; l'écran dit une phrase traduite, le
+               texte brut reste lisible, replié, pour le diagnostic. -->
+          <details class="miroir-motif" data-testid="miroir-favoris-motif">
+            <summary>{nomService(e.service)} — {$t('v2.fav.miroirMotif' as any)}</summary>
+            <code>{e.erreur}</code>
+          </details>
+        {/each}
+      {:else}
+        {$t('v2.fav.miroirEchec' as any)}
+      {/if}
     </p>
   {/if}
 
@@ -1551,6 +1583,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
   .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
+  .miroir-motif{display:block; margin-top:2px; overflow-wrap:anywhere}
+  .miroir-motif summary{cursor:pointer}
+  .miroir-motif code{display:block; margin-top:2px; font-size:11px}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
