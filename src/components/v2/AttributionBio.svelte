@@ -37,7 +37,7 @@
 
 <style>
   .bio-attrib {
-    margin: 6px 0 0; font-size: 12px; line-height: 1.5; color: var(--v2-txt3);
+    margin: 6px 0 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); line-height: 1.5; color: var(--v2-txt3);
     display: flex; flex-wrap: wrap; gap: 0 .35em;
   }
   .bio-attrib a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

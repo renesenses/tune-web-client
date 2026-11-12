@@ -145,13 +145,13 @@
   .v2-source{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px; max-width:720px}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .disparue,.encadre{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2)}
   .carte{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap}
   .pic{width:96px; height:96px; border-radius:16px; background:var(--v2-surface2); color:var(--v2-acc1);
     display:grid; place-items:center; flex:none}
   .pic svg{width:48px; height:48px}
-  .fiche{display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; margin:0; font-size:13px; min-width:0}
+  .fiche{display:grid; grid-template-columns:max-content 1fr; gap:6px 16px; margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0}
   .fiche dt{color:var(--v2-txt3)}
   .fiche dd{margin:0; color:var(--v2-txt); display:flex; align-items:center; gap:8px}
   .pastille{width:8px; height:8px; border-radius:50%; background:var(--v2-txt3); flex:none}
@@ -162,19 +162,19 @@
   .e-vide{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-txt3)}
   .e-autorisation_refusee{background:var(--v2-danger)}
   .e-non_pris_en_charge,.e-indisponible{background:var(--v2-line2)}
-  .niveau{display:flex; align-items:center; gap:12px; font-size:12.5px}
+  .niveau{display:flex; align-items:center; gap:12px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .niveau .lib{color:var(--v2-txt3); min-width:60px}
   .jauge{flex:1; max-width:360px; height:8px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); overflow:hidden}
   /* Pas de transition : la valeur suit le rythme des événements du serveur. */
   .rempli{height:100%; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
-  .db{font:11.5px var(--v2-mono); color:var(--v2-txt2); min-width:64px}
-  .refus{padding:12px 16px; border-radius:12px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger); font-size:13px}
+  .db{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); min-width:64px}
+  .refus{padding:12px 16px; border-radius:12px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .refus p{margin:0}
   .refus .chemin{margin-top:6px; color:var(--v2-txt2)}
   .actions{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .go{height:48px; padding:0 28px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 14px var(--v2-sans);
+  .go{height:48px; padding:0 28px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
-  .err{padding:10px 14px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .err{padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
 </style>

@@ -635,19 +635,19 @@
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .surch{display:inline-flex; flex:none; color:var(--v2-txt3)}
   .surch svg{width:11px; height:11px}
-  .encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
+  .encours{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ronglets .rn{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.7; margin-left:5px}
   /* « Dernières lues » : UNE seule rangée, quelle que soit la largeur. */
   .rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
   .recentes{padding-bottom:4px; flex:none}
   .sec-tete{display:flex; align-items:baseline; gap:12px}
-  .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:11.5px}
+  .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
   /* Dépliée, la rangée ne prend jamais tout l'écran : la liste reste visible. */
   .recentes.depliee .grid{max-height:45vh; overflow-y:auto}
   .filtres{padding:4px 30px 10px}
   .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 11.5px var(--v2-sans); max-width:220px}
+    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
 
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
@@ -656,7 +656,7 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
   .sec{padding:8px 30px 18px}
-  .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
+  .sec h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
 
   .st{position:relative; display:flex; flex-direction:column}
@@ -667,9 +667,9 @@
   .st:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
   .nm-ligne{display:flex; align-items:center; gap:6px; min-width:0; margin-top:9px}
   .nm-ligne .nm{margin-top:0; min-width:0}
-  .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .gn{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tk{margin-top:2px; font:9.5px var(--v2-mono); color:var(--v2-acc2)}
+  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .gn{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tk{margin-top:2px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .fav{position:absolute; top:8px; right:8px; z-index:2; width:30px; height:30px; border-radius:50%; cursor:pointer;
     border:0; background:rgba(0,0,0,.45); color:#fff; display:grid; place-items:center; opacity:0; transition:.16s}
   .st:hover .fav, .fav.on{opacity:1}

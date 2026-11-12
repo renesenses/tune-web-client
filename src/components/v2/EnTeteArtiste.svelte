@@ -164,14 +164,14 @@
   */
   .portrait{width:92px; height:92px; border-radius:50%; overflow:hidden; flex:none; background:var(--v2-line2)}
   .portrait :global(img){width:100%; height:100%; object-fit:cover; display:block}
-  .ident h1{margin:0; font:600 26px/1.15 var(--v2-sans)}
+  .ident h1{margin:0; font:600 calc(26px * var(--v2-txt-echelle, 1))/1.15 var(--v2-sans)}
   /* 🔴 `.prov`, PAS `.svc` : `.svc` nommait les sections par service que la
      discographie commune a supprimées, et un garde de #4330 vérifie qu'il
      n'en reste aucune dans la fiche. Réemployer ce nom pour la provenance
      aurait fait rougir ce garde — et surtout brouillé ce qu'il mesure. */
-  .prov{display:block; font:11px var(--v2-mono); color:var(--v2-txt3);
+  .prov{display:block; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3);
     text-transform:uppercase; letter-spacing:.06em}
-  .cpt{display:block; font:11px var(--v2-mono); color:var(--v2-txt3); margin-top:3px}
+  .cpt{display:block; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:3px}
   .credits{display:flex; flex-wrap:wrap; gap:4px 14px}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
 </style>

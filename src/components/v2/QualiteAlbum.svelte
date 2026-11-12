@@ -69,6 +69,6 @@
   .qa{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:3px; min-width:0}
   /* Le chiffre s'élide, pas le badge : savoir d'où vient un disque prime sur
      savoir en quelle fréquence il est encodé. */
-  .q{font:500 10px var(--v2-mono); letter-spacing:.02em; color:var(--v2-txt3);
+  .q{font:500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.02em; color:var(--v2-txt3);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

@@ -46,9 +46,9 @@
 
 <style>
   .tricol{display:inline-flex; align-items:center; gap:8px}
-  .tricol span{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tricol span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .tricol select{height:30px; padding:0 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    background:var(--v2-surface2); color:var(--v2-txt2); font:12.5px inherit; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt2); font:calc(12.5px * var(--v2-txt-echelle, 1)) inherit; cursor:pointer}
   .tricol select:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .sens{width:30px; height:30px; display:grid; place-items:center; padding:0;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);

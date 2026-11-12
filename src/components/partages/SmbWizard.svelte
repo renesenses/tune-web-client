@@ -668,7 +668,7 @@
 
   .wizard-title h3 {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     margin: 0;
   }
@@ -713,7 +713,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-muted);
     transition: all 0.2s;
@@ -755,7 +755,7 @@
 
   .wizard-desc {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     margin: 0;
     line-height: 1.5;
@@ -782,7 +782,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
   }
 
@@ -798,7 +798,7 @@
 
   .scan-btn.small {
     padding: var(--space-xs) var(--space-md);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .btn-primary {
@@ -808,7 +808,7 @@
     border-radius: var(--radius-md);
     padding: 8px 20px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.12s;
@@ -824,7 +824,7 @@
     border-radius: var(--radius-md);
     padding: 8px 20px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
   }
@@ -839,7 +839,7 @@
     padding: var(--space-sm) var(--space-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     outline: none;
     width: 100%;
     box-sizing: border-box;
@@ -856,7 +856,7 @@
 
   .form-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     font-weight: 500;
   }
@@ -875,7 +875,7 @@
 
   .manual-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -897,7 +897,7 @@
 
   .list-label {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -918,7 +918,7 @@
     text-align: left;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .share-item:hover {
@@ -932,7 +932,7 @@
 
   .share-item.sub {
     padding: 6px 12px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .share-item svg {
@@ -955,12 +955,12 @@
   }
 
   .share-host {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
   .share-count {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
@@ -980,7 +980,7 @@
     display: flex;
     justify-content: space-between;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .mount-label {
@@ -997,7 +997,7 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     cursor: pointer;
   }
@@ -1005,7 +1005,7 @@
   .mount-path {
     display: block;
     font-family: monospace;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin-top: 4px;
   }
@@ -1018,7 +1018,7 @@
     border-radius: var(--radius-sm);
     color: #ef4444;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .wizard-success {
@@ -1028,7 +1028,7 @@
     border-radius: var(--radius-sm);
     color: #4ade80;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .loading-inline {
@@ -1036,14 +1036,14 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     padding: 4px 0;
   }
 
   .muted {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
   }
@@ -1058,7 +1058,7 @@
 
   .done-title {
     font-family: var(--font-label);
-    font-size: 18px;
+    font-size: calc(18px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-align: center;
     margin: 0;
@@ -1080,7 +1080,7 @@
     display: flex;
     justify-content: space-between;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .summary-label {
@@ -1094,7 +1094,7 @@
 
   .summary-value.mono {
     font-family: monospace;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     max-width: 250px;
     overflow: hidden;
@@ -1123,7 +1123,7 @@
 
   .link-btn {
     background: none; border: none; color: var(--tune-accent, #6366f1);
-    font-size: 12px; cursor: pointer; padding: 4px 0; text-decoration: underline;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer; padding: 4px 0; text-decoration: underline;
   }
   .link-btn:hover { opacity: 0.8; }
   .scan-credentials {

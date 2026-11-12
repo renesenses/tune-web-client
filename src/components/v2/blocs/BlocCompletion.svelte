@@ -54,21 +54,21 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 14px var(--v2-sans); }
+  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 30px 12px; }
   .grand {
-    font: 700 36px/1 var(--v2-sans); letter-spacing: -1.2px;
+    font: 700 calc(36px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1.2px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
   }
-  .quoi { font: 600 13px var(--v2-sans); color: var(--v2-txt2); }
+  .quoi { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 
   .barre { display: flex; height: 13px; margin: 0 30px; border-radius: 7px; overflow: hidden; }
   .fini { background: var(--v2-acc1); }
   .passe { background: color-mix(in srgb, var(--v2-acc1) 18%, transparent); }
 
   .legende { display: flex; flex-wrap: wrap; gap: 20px; padding: 11px 30px 0;
-    font: 400 12px var(--v2-sans); color: var(--v2-txt2); }
+    font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .pois { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
   .pois.plein { background: var(--v2-acc1); }
   .pois.efface { background: color-mix(in srgb, var(--v2-acc1) 30%, transparent); }
@@ -80,6 +80,6 @@
   @media (max-width: 640px) {
     .tete, .legende { padding-left: 16px; padding-right: 16px; }
     .barre { margin-left: 16px; margin-right: 16px; }
-    .grand { font-size: 28px; }
+    .grand { font-size: calc(28px * var(--v2-txt-echelle, 1)); }
   }
 </style>

@@ -1234,13 +1234,13 @@
 <style>
   .v2-health{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:14px; margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:14px; margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .meta .live{color:var(--v2-acc1)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk:disabled{opacity:.5; cursor:default}
-  .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
@@ -1250,9 +1250,9 @@
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .card.run{border-color:var(--v2-acc2)}
   .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
-  .chead h2{font-size:15px; font-weight:700}
-  .sub{margin-top:3px; font-size:11.5px; color:var(--v2-txt3)}
-  .badge{flex:0 0 auto; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase;
+  .chead h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .sub{margin-top:3px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .badge{flex:0 0 auto; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase;
     padding:3px 9px; border-radius:999px; border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .badge.run{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .badge.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
@@ -1264,34 +1264,34 @@
   .cactions{margin-top:13px; display:flex; gap:10px; flex-wrap:wrap}
   /* tune-server-rust#5169 — le choix d'ordre de la plage dynamique. */
   .prio{margin-top:13px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
-  .prio-label{font-size:11.5px; color:var(--v2-txt2)}
+  .prio-label{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .prio-select{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
-    border-radius:8px; padding:5px 8px; font:12px var(--v2-sans); max-width:100%}
+    border-radius:8px; padding:5px 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:100%}
   .prio-select:disabled{opacity:.5}
-  .prio-hint{flex-basis:100%; font-size:11px; color:var(--v2-txt3); line-height:1.45}
+  .prio-hint{flex-basis:100%; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.45}
 
-  .line{margin-top:13px; font-size:13px; color:var(--v2-txt2); line-height:1.5}
+  .line{margin-top:13px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); line-height:1.5}
   .bar{margin-top:11px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar span{display:block; height:100%; border-radius:4px;
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s ease}
-  .pct{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
-  .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
-  .frein{margin-top:9px; font-size:11.5px; color:var(--v2-txt2)}
-  .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:12.5px}
+  .pct{margin-top:6px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .nogauge{margin-top:11px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-style:italic}
+  .detail{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .frein{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .sansportrait li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; min-width:0}
   .nomartiste{border:0; background:transparent; padding:2px 0; color:var(--v2-txt2); cursor:pointer; text-align:left; font:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
   .nomartiste:hover{color:var(--v2-acc-tint); text-decoration:underline}
-  .sansportrait .nature{flex:none; font-size:11px; color:var(--v2-txt3)}
-  .foot{margin-top:22px; font-size:12.5px; color:var(--v2-txt3)}
-  .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--v2-txt2)}
+  .sansportrait .nature{flex:none; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .foot{margin-top:22px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .reseau .ind{padding-left:18px}
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
-  .modules h2{font-size:15px; font-weight:700}
+  .modules h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .tourne-liste{list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px}
   .tourne-liste li{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px}
   .tourne-nom{font-weight:600}
-  .tourne-pourquoi{flex-basis:100%; font-size:13px; color:var(--v2-txt2)}
+  .tourne-pourquoi{flex-basis:100%; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .modules .sub{margin-bottom:12px}
   /* tune-server-rust#5410 — les analyses bridées faute de thermomètre. */
   .modules .sub.bridage{color:var(--v2-acc2)}
@@ -1300,13 +1300,13 @@
      l'écran plutôt qu'avec un style à lui. */
   .journaux{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px;
     background:var(--v2-surface2); padding:16px 18px 18px}
-  .journaux h2{font-size:15px; font-weight:700}
+  .journaux h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .journaux .sub{margin-bottom:12px}
   .jactions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .jsrc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .jsrc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* Le journal est long et ses lignes le sont aussi : il défile dans les deux
      sens, et la page, elle, ne déborde pas. */
   .jtexte{margin-top:12px; max-height:380px; overflow:auto; padding:12px;
     border:1px solid var(--v2-line2); border-radius:10px; background:var(--v2-bg);
-    font:11.5px/1.55 var(--v2-mono); color:var(--v2-txt2); white-space:pre; tab-size:2}
+    font:calc(11.5px * var(--v2-txt-echelle, 1))/1.55 var(--v2-mono); color:var(--v2-txt2); white-space:pre; tab-size:2}
 </style>

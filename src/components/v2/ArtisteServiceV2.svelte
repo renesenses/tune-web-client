@@ -1295,7 +1295,7 @@
 
 <style>
   .mes-notes-artiste{max-width:760px; padding:0 30px}
-  .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: 13px; color: var(--tune-accent); }
+  .lien-label { all: unset; cursor: pointer; align-self: flex-start; margin: 4px 0 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-accent); }
   .lien-label:hover { text-decoration: underline; }
   .lien-label:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   .v2-fas{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt);
@@ -1304,22 +1304,22 @@
      désormais dans `EnTeteArtiste`, partagé avec la fiche de bibliothèque
      (#1356). Ne reste ici que ce qui est rendu dans CETTE portée. */
   /* #910 — pourquoi les deux gestes manquent. */
-  .echec{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
-  .identite-detachee{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
+  .echec{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt2); align-self:center}
+  .identite-detachee{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt2); align-self:center}
   .etat{padding:40px 0; color:var(--v2-txt3)}
-  h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
+  h2{margin:22px 0 10px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}
   /* « À propos » — la forme exacte d'`ArtistesV2` (#1232, étape 2). */
   .apropos{margin:0 0 18px; display:flex; flex-direction:column; gap:8px; align-items:flex-start}
-  .apropos h3{margin:8px 0 0; font:600 11px var(--v2-mono); letter-spacing:.08em;
+  .apropos h3{margin:8px 0 0; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em;
     text-transform:uppercase; color:var(--v2-txt3)}
   .puces{display:flex; flex-wrap:wrap; gap:6px}
   .puce{padding:4px 10px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puce.fixe{cursor:default}
   .retour-similaires{margin:0 0 12px; align-self:flex-start}
-  .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
+  .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
   }

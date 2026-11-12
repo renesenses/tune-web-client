@@ -423,38 +423,38 @@
   .v2-cd{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:14px; max-width:880px}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .absent,.plateforme,.lecteur-absent,.vide{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2)}
-  .err{padding:10px 14px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .err{padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .disque{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap}
   .pochette{width:160px; height:160px; border-radius:12px; object-fit:cover; background:var(--v2-surface2); flex:none}
   .vide-pochette{display:flex; align-items:center; justify-content:center; color:var(--v2-txt3)}
   .vide-pochette svg{width:64px; height:64px}
   .infos{display:flex; flex-direction:column; gap:6px; min-width:0; flex:1}
-  .album{font-size:20px; font-weight:700}
-  .artiste{font-size:14px; color:var(--v2-txt2)}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
+  .album{font-size:calc(20px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .artiste{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .actions{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:8px}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .pistes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .piste{display:grid; grid-template-columns:32px minmax(0,1fr) auto 36px; align-items:center; gap:10px;
-    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
-  .num{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .piste.en-cours .titre,.piste.en-cours .duree{color:var(--v2-acc-tint); font-weight:600}
   .egaliseur{width:12px; height:12px; fill:var(--v2-acc-tint); vertical-align:middle}
   .titre{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .titre small{margin-left:8px; color:var(--v2-txt3)}
-  .duree{font:11.5px var(--v2-mono); color:var(--v2-txt2)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px}
+  .duree{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .ejecter{margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 16px;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-    font:600 12.5px var(--v2-sans); cursor:pointer}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .ejecter svg{width:16px; height:16px}
   .ejecter:disabled{opacity:.35; cursor:not-allowed}
-  .chargement{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--v2-txt2)}
+  .chargement{display:flex; align-items:center; gap:8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .chargement .barre{width:90px; height:4px; border-radius:2px; background:var(--v2-line); overflow:hidden; flex:none}
   .chargement .barre span{display:block; height:100%; background:var(--v2-acc-tint); transition:width .4s}
   .chargement.fini .barre span{background:var(--v2-acc2)}
@@ -462,7 +462,7 @@
   .charger{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .charger-memoire{padding:0; font-weight:600}
   .accuraterip-chargement summary{cursor:pointer}
-  .accuraterip-chargement ol{list-style:none; margin:4px 0 2px; padding:0; font:10.5px var(--v2-mono)}
+  .accuraterip-chargement ol{list-style:none; margin:4px 0 2px; padding:0; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .accuraterip-chargement .num{display:inline-block; width:20px; text-align:right; color:var(--v2-txt3)}
   .accuraterip-chargement .verdict-ar{margin-left:8px; font-family:var(--v2-sans)}
   .accuraterip-chargement li[data-ar=verifie] .verdict-ar{color:var(--v2-acc-tint)}

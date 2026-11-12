@@ -808,7 +808,7 @@
   .head.compact .art{width:64px; height:64px; border-radius:6px}
   .head.compact .art > svg{width:30px; height:30px}
   .head.compact .meta{gap:4px; padding-top:0}
-  .head.compact .meta h1{font-size:24px}
+  .head.compact .meta h1{font-size:calc(24px * var(--v2-txt-echelle, 1))}
   .head.compact .desc{display:none}
   /* `--bl-h` : la hauteur du bouton Lecture partagé (`BoutonLectureV2`). */
   .head.compact .actions{margin-top:2px; --bl-h:36px}
@@ -819,15 +819,15 @@
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
   .art > svg{width:96px; height:96px}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
-  .kind{font:700 11px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
-  .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
-  .rn{font-size:32px; font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
+  .kind{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
+  .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
+  .rn{font-size:calc(32px * var(--v2-txt-echelle, 1)); font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:4px 10px; outline:none}
-  .desc{font-size:14px; color:var(--v2-txt2); max-width:60ch}
-  .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .desc{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); max-width:60ch}
+  .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:12px; margin-top:8px; flex-wrap:wrap}
   .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
-    font:700 14px var(--v2-sans); cursor:pointer; border:0}
+    font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; border:0}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   /* Le mode ÉDITION se voit : sinon on ne sait pas pourquoi des croix sont
@@ -835,8 +835,8 @@
   .ghost.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .chez{align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
-  .ghost.sm{height:44px; padding:0 14px; font-size:13px}
+  .chez{align-self:center; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
+  .ghost.sm{height:44px; padding:0 14px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .ghost svg{width:16px; height:16px}
   /* web#2736 — les boutons d'icône seule. */
   .ghost.carre{width:44px; padding:0; justify-content:center; flex:0 0 auto}
@@ -849,10 +849,10 @@
   .vuebar{display:inline-flex; align-items:center; gap:14px; flex-wrap:wrap}
   .vues{display:inline-flex; border:1px solid var(--v2-line2); border-radius:9px; overflow:hidden}
   .vbtn{height:32px; padding:0 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12.5px var(--v2-sans)}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .vbtn.basc{border:1px solid var(--v2-line2); border-radius:9px}
   .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
-  .taille{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .taille{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .taille input{width:140px; accent-color:var(--v2-acc2)}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
@@ -860,12 +860,12 @@
     background:var(--v2-surface2); line-height:0}
   .pvig:disabled{opacity:.5; cursor:default}
   .pvig:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .pnom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .part{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pnom{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .part{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pact{display:flex; gap:6px}
-  .tricol{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .tricol{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .tricol select{height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 8px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 8px}
   .tricol .sens{width:32px; height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
   .tricol .sens svg{width:15px; height:15px}
@@ -877,13 +877,13 @@
   .trk.np{color:var(--v2-acc1)}
   .trk .pl{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; border:0; background:transparent;
     color:inherit; cursor:pointer; text-align:left; padding:11px 0}
-  .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .trk .n{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .trk.np .n{color:var(--v2-acc1)}
-  .trk .ti{min-width:0; font-size:14px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .trk .ti{min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .trk .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .trk .tk{font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .trk .dur{font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .trk .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .trk .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .trk .dur{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .rm{width:30px; height:30px; border-radius:8px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
   .rm:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}

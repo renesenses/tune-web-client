@@ -327,7 +327,7 @@
     border: 0;
     background: transparent;
     color: var(--v2-txt);
-    font: 500 12.5px var(--v2-sans);
+    font: 500 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding: 7px 10px;
     border-radius: 7px;
     text-align: left;

@@ -512,14 +512,14 @@
 
   .view-header h2 {
     font-family: var(--font-label);
-    font-size: 28px;
+    font-size: calc(28px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: -0.8px;
   }
 
   .subtitle {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -531,7 +531,7 @@
 
   .section-title {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-secondary);
     display: flex;
@@ -560,7 +560,7 @@
     border-radius: var(--radius-lg);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     outline: none;
     transition: border-color 0.12s;
   }
@@ -580,7 +580,7 @@
     border: none;
     border-radius: var(--radius-lg);
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: background 0.12s;
@@ -601,7 +601,7 @@
 
   .prompt-aide {
     margin: 8px 0 0;
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--v2-txt-echelle, 1));
     line-height: 1.5;
     color: var(--tune-text-muted, #8a8a8a);
   }
@@ -619,7 +619,7 @@
     border-radius: 20px;
     color: var(--tune-text-secondary);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
   }
@@ -640,7 +640,7 @@
   .saved-row { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
   .saved-label {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--tune-text-muted);
@@ -659,7 +659,7 @@
     border: 0;
     color: var(--tune-text-muted);
     font: inherit;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     line-height: 1;
     padding: 3px 4px;
     border-radius: 4px;
@@ -677,7 +677,7 @@
     border-radius: 20px;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     outline: none;
   }
   .naming-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -689,7 +689,7 @@
     border-radius: 20px;
     color: #fff;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .naming-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -698,12 +698,12 @@
     border: 0;
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .naming-hint {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     max-width: 260px;
     overflow: hidden;
@@ -720,7 +720,7 @@
     padding: var(--space-md);
     border-radius: var(--radius-lg);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .acoustic-notice {
@@ -737,7 +737,7 @@
   }
   .acoustic-notice-body {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     max-width: 70ch;
   }
@@ -748,7 +748,7 @@
     border: none;
     border-radius: 6px;
     padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .acoustic-notice-btn:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -778,7 +778,7 @@
   }
 
   .empty-state span {
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .loading-spinner {
@@ -805,7 +805,7 @@
 
   .track-count {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     flex: 1;
   }
@@ -826,7 +826,7 @@
     background: none;
     color: var(--tune-text-secondary);
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
@@ -885,7 +885,7 @@
     width: 24px;
     text-align: right;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
@@ -927,19 +927,19 @@
 
   .track-title {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 700;
   }
 
   .track-artist {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
   .match-badge {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     padding: 2px 6px;
@@ -950,7 +950,7 @@
 
   .track-duration {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     min-width: 36px;

@@ -150,19 +150,19 @@
   .v2-stats-biblio{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .v2-stats-biblio.embarquee{flex:1; min-height:0; height:auto}
-  .meta{margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .meta.solo{padding:8px 30px 0}
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .etat{margin:0; padding:16px 30px; color:var(--v2-txt3); font-size:13px; max-width:760px}
+  .etat{margin:0; padding:16px 30px; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1)); max-width:760px}
   .etat.err{color:var(--v2-danger)}
   .grille{display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:18px; padding:12px 30px}
   .repartition{border:1px solid var(--v2-line2); border-radius:12px; padding:14px 0 16px; min-width:0}
-  .repartition h2{margin:0 0 10px; padding:0 18px; font:600 14px var(--v2-sans)}
+  .repartition h2{margin:0 0 10px; padding:0 18px; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .repartition .etat{padding:4px 18px}
-  .aide{margin:-4px 0 10px; padding:0 18px; font-size:11.5px; color:var(--v2-txt3)}
+  .aide{margin:-4px 0 10px; padding:0 18px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .barres{list-style:none; margin:0; padding:0 18px; display:flex; flex-direction:column; gap:7px}
   .barres li{display:grid; grid-template-columns:120px minmax(40px,1fr) auto; align-items:center; gap:10px; min-width:0}
-  .nom{min-width:0; font:400 13px var(--v2-sans); color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis;
+  .nom{min-width:0; font:400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; text-align:left}
   .cliquable{background:none; border:0; padding:0; cursor:pointer; text-decoration:underline dotted; color:var(--v2-txt)}
   .cliquable:hover{color:var(--v2-acc1)}
@@ -170,7 +170,7 @@
   .piste{height:9px; border-radius:5px; overflow:hidden; background:var(--v2-hover)}
   .jauge{display:block; height:100%; border-radius:5px; background:var(--v2-acc1)}
   .inconnu .jauge{background:var(--v2-txt3)}
-  .val{font:500 12px var(--v2-sans); color:var(--v2-txt2); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .val{font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); font-variant-numeric:tabular-nums; white-space:nowrap}
   .val em{font-style:normal; color:var(--v2-txt3); margin-left:6px}
   @media (max-width: 640px) {
     .grille{grid-template-columns:1fr; padding:10px 16px}

@@ -193,6 +193,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -5086,6 +5087,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!-- rc12 — « Taille du texte » (go de Bertrand du 12/11/2026 ;
+                   testeurs : « des textes minuscules »). Un seul jeton,
+                   `--v2-txt-echelle`, multiplie toutes les tailles de police ;
+                   « Normale » = le rendu d'avant. Voir `lib/tailleTexte.ts`. -->
+              <div class="row" data-reglage="taille-texte">
+                <div class="lbl">
+                  <span>{$t('settings.textSize' as any)}</span>
+                  <span class="hint">{$t('settings.textSizeHint' as any)}</span>
+                </div>
+                <div class="seg4" role="group" aria-label={$t('settings.textSize' as any)}>
+                  {#each TAILLES_TEXTE as tt (tt)}
+                    <button class:on={$preferences.tailleTexte === tt} aria-pressed={$preferences.tailleTexte === tt}
+                      data-taille-texte={tt}
+                      onclick={() => preferences.update((pr) => ({ ...pr, tailleTexte: tt }))}>{$t(LIBELLE_TAILLE_TEXTE[tt] as any)}</button>
+                  {/each}
+                </div>
+              </div>
+
               <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
                    Rien tant que le serveur ne porte pas le greffon. -->
               {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
@@ -8700,7 +8719,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .notes{margin-top:12px; max-height:420px; overflow-y:auto; padding-right:6px}
   .note{padding:8px 0; border-bottom:1px solid var(--v2-line)}
   .note.courante{border-left:2px solid var(--v2-acc1); padding-left:10px}
-  .note-items{margin:4px 0 8px 18px; font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
+  .note-items{margin:4px 0 8px 18px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
      C'est la même règle que le tableau de pistes lui-même. */
@@ -8710,12 +8729,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     align-items:center; gap:8px; padding:8px 12px}
   .mrow:not(.mhead):hover{background:var(--v2-hover)}
   .mhead{background:var(--v2-surface2); border-bottom:1px solid var(--v2-line2)}
-  .mhead .mcell{font:600 11px var(--v2-sans); letter-spacing:.04em;
+  .mhead .mcell{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.04em;
     text-transform:uppercase; color:var(--v2-txt3); text-align:center}
   .mcell{display:flex; align-items:center; justify-content:center; min-width:0}
   .mnom{justify-content:flex-start; flex-direction:column; align-items:flex-start;
-    gap:1px; font-size:13px; color:var(--v2-txt2); min-width:0}
-  .mnote{font:10.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3);
+    gap:1px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); min-width:0}
+  .mnote{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%}
   /* Grisé ET dit : une case inerte qui ressemble à une case active serait
      exactement le défaut qu'on corrige ailleurs. */
@@ -8732,7 +8751,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
   .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
-    background:transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer;
+    background:transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
     white-space:nowrap; transition:.15s}
   .tab svg{width:16px; height:16px; flex:0 0 auto}
   .tab:hover{color:var(--v2-txt)}
@@ -8747,7 +8766,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
-  .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .masked{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
@@ -8762,24 +8781,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   @media (prefers-reduced-motion: reduce){
     .pane :global(.reglage-eclaire){animation:none; box-shadow:0 0 0 3px var(--v2-focus)}
   }
-  .force-niveau{margin-top:8px; font-size:12.5px; color:var(--v2-txt2); border-left:3px solid var(--v2-acc2); padding:4px 10px}
+  .force-niveau{margin-top:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); border-left:3px solid var(--v2-acc2); padding:4px 10px}
   /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
      un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
      bordure et étiquette de danger, séparée des deux autres outils. */
-  .groupe{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
+  .groupe{font-size:calc(12px * var(--v2-txt-echelle, 1)); font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
   .card.fin-groupe{margin-bottom:14px}
   .card.zone-danger{border-color:var(--v2-danger-bd); background:var(--v2-danger-soft); margin-top:10px}
-  .danger-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
+  .danger-tag{font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
     border:1px solid var(--v2-danger-bd); border-radius:var(--v2-r-pill); padding:1px 8px}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .cardhead h3{font-size:15px; font-weight:700}
+  .cardhead h3{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
   /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
   .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:13.5px; font-weight:500}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}
@@ -8792,20 +8811,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar2 span{display:block; height:100%; border-radius:4px;
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
-  .hint code{font:11px var(--v2-mono); color:var(--v2-acc2)}
+  .hint code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .urls{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .url{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 10px; border-radius:8px}
   .url:hover{background:var(--v2-hover)}
-  .up{font:12.5px var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .up{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zlist{display:flex; flex-direction:column; gap:9px; margin-top:12px}
   .zc{padding:13px 15px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-bg)}
   .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
-  .zn{font-size:14px; font-weight:700}
+  .zn{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .tt-proposer{margin-left:auto; align-self:center; background:transparent; border:1px solid var(--v2-line2);
-    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 11.5px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .tt-proposer:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
-  .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zt{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}
   .hint.err{color:var(--v2-danger)}
@@ -8813,7 +8832,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
   .apercu{display:inline-block; min-width:150px}
-  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
+  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
      par réglage, le libellé à gauche en casse normale, le contrôle à droite,
@@ -8821,13 +8840,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      aux champs, liste « titre radio » étirée sur toute la largeur). */
   .zch-photo{margin-left:auto; align-self:center; width:40px; height:40px; border-radius:8px; overflow:hidden; flex:0 0 auto}
   .zgrp{margin-top:14px; border-top:1px solid var(--v2-line); padding-top:6px}
-  .zgt{font:600 10.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
+  .zgt{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
   .zf{display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:7px 0; min-width:0}
-  .zf .dsd-dop{flex-basis:100%; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf .dsd-dop{flex-basis:100%; font:calc(11.5px * var(--v2-txt-echelle, 1))/1.35 var(--v2-sans); color:var(--v2-txt2)}
+  .zf > span{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .zf.chk{justify-content:flex-start; gap:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .zf.chk span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf.chk span{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .fz-ligne{display:flex; align-items:center; justify-content:space-between; gap:10px}
   .fz-ligne > .zf{flex:1 1 auto}
   .fz-ctl{display:inline-flex; align-items:center; gap:8px; flex:0 0 auto}
@@ -8837,14 +8856,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zsec > summary::-webkit-details-marker{display:none}
   .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
   .zsec[open] > summary::before{content:'▾'}
-  .zsec-t{font:600 13px var(--v2-sans); color:var(--v2-txt)}
-  .zsec-r{font-size:11.5px; color:var(--v2-txt3)}
+  .zsec-t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .zsec-r{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le titre du composant partagé répète celui du repli : on le tait ici. */
   .zsec-fir :global(.fir-tl){display:none}
-  .sel.sm{min-width:130px; height:32px; font-size:12.5px}
+  .sel.sm{min-width:130px; height:32px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
-  .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  .monote{margin-top:9px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
   /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
      gabarit que « Bit-perfect strict » ci-dessous. */
   .publi-bloc .monote{margin-top:4px}
@@ -8853,27 +8872,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
   .canaux{padding:3px 0}
-  .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .trim .tl{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
-  .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
+  .trim .tv{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
   .limites-volume{flex-direction:column; align-items:stretch; gap:0; margin-top:2px}
-  .limites-volume .tl{font:12.5px var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
-  .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
+  .limites-volume .tl{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
+  .limites-volume .lim{width:4.5em; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .limites-volume .tv{min-width:0}
   .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}
-  .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
+  .trim .tf{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
-  .radv summary{cursor:pointer; font:600 12px var(--v2-mono); letter-spacing:.05em;
+  .radv summary{cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em;
     color:var(--v2-acc1); list-style:none}
   .radv summary::-webkit-details-marker{display:none}
   .radv summary::before{content:'▸ '; display:inline-block; transition:transform .12s}
   .radv[open] summary::before{content:'▾ '}
   .radv > :global(.rc){margin-top:11px}
   .fvbox{margin-top:13px; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-danger-bd)}
-  .fvbox p{font-size:12.5px; line-height:1.55; color:var(--v2-txt2)}
+  .fvbox p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt2)}
   .fvbox b{color:var(--v2-txt)}
   .fvbox .inline{margin-top:11px}
   .txt.wide{width:320px}
@@ -8883,10 +8902,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
+  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
-  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
+  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
   .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
@@ -8906,19 +8925,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .scan-avance .jauge.mini{height:3px}
   .dir:hover{background:var(--v2-hover)}
   .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
-  .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dp{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .rows{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .kv{display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:9px 10px; border-radius:8px}
   .kv:hover{background:var(--v2-hover)}
-  .kv span{font-size:13px; color:var(--v2-txt2)}
-  .kv b{font:600 13px var(--v2-sans); color:var(--v2-txt)}
-  .kv b.mono{font-family:var(--v2-mono); font-size:12px}
-  .tierb{text-transform:uppercase; font-family:var(--v2-mono); font-size:11px; letter-spacing:.1em; color:var(--v2-txt3)}
+  .kv span{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .kv b{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .kv b.mono{font-family:var(--v2-mono); font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .tierb{text-transform:uppercase; font-family:var(--v2-mono); font-size:calc(11px * var(--v2-txt-echelle, 1)); letter-spacing:.1em; color:var(--v2-txt3)}
   .tierb.prem{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
     border-radius:999px; padding:3px 11px}
-  .hs{font-family:var(--v2-mono); font-size:12px; color:var(--v2-danger)}
+  .hs{font-family:var(--v2-mono); font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
   .hs.ok{color:var(--v2-acc1)}
-  .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
+  .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .okbox .decompte{display:block; margin-top:4px}
@@ -8926,11 +8945,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
      centaines d'entrées : elle défile chez elle, sans pousser le reste de
      l'écran. */
-  .ecartes{margin-top:10px; font:13px/1.5 var(--v2-sans); color:var(--v2-txt2)}
+  .ecartes{margin-top:10px; font:calc(13px * var(--v2-txt-echelle, 1))/1.5 var(--v2-sans); color:var(--v2-txt2)}
   .ecartes summary{cursor:pointer; color:var(--v2-txt); font-weight:600}
   .ecartes-titre{margin:10px 0 4px; font-weight:600; color:var(--v2-txt)}
   .ecartes-liste{margin:0; padding:0 0 0 18px; max-height:220px; overflow:auto;
-    font-family:var(--v2-mono, ui-monospace, monospace); font-size:12px}
+    font-family:var(--v2-mono, ui-monospace, monospace); font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .ecartes-liste li{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .warnbox b,.okbox b{color:var(--v2-txt)}
 
@@ -8938,36 +8957,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      `.okbox` (fenêtre en cours — rassurant) ou de `.warnbox` (fenêtre écoulée,
      jamais vérifiée). */
   .graceblock{display:flex; flex-direction:column; gap:4px}
-  .gracerule{margin:10px 0 0; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
-  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
+  .gracerule{margin:10px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
   .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}
-  .comp{font:10px var(--v2-mono); padding:3px 9px; border-radius:999px;
+  .comp{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:3px 9px; border-radius:999px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .comp.ok{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
   .svc:hover{background:var(--v2-hover)}
-  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:14px; font-weight:600;
+  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
     text-transform:capitalize}
-  .sst{font:9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
+  .sst{font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
   .sst.ok{color:var(--v2-acc1)} .sst.off{color:var(--v2-txt3)}
-  .sname em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
+  .sname em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
   .sname em.sub{color:var(--v2-acc2)}
   .flow{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
-  .ucode{font:700 15px var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
+  .ucode{font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); border-radius:9px; padding:6px 13px}
-  .waiting{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .serr{flex-basis:100%; font-size:11.5px; color:var(--v2-danger)}
-  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--v2-txt3)}
-  .sredir code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  .waiting{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .serr{flex-basis:100%; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
+  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .sredir code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
   .sredir-refus{color:var(--v2-danger)}
   .sredir-colle{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .sredir-colle .txt{flex:1; min-width:0}
-  .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .unavail{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .lbl b{color:var(--v2-acc-tint); font-weight:700}
   .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;
     background:var(--v2-surface2); border:1px solid var(--v2-line)}
-  .seg4 button{border:0; background:transparent; color:var(--v2-txt2); font:600 11.5px var(--v2-sans);
+  .seg4 button{border:0; background:transparent; color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:7px 11px; border-radius:9px; cursor:pointer; transition:.15s; white-space:nowrap}
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -8977,15 +8996,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     border-radius:9px; cursor:pointer; color:var(--v2-txt2)}
   .dev:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .dev .dn{font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dev .dt{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
   .danger-box{margin-top:12px; padding:13px 15px; border-radius:11px;
     border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .danger-box p{font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
-  .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:13px; font-weight:600}
+  .danger-box p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
+  .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600}
   .rng{flex:0 0 auto; width:200px; accent-color:var(--v2-acc1)}
   .sel{flex:0 0 auto; height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .themerow{display:flex; gap:7px; flex:0 0 auto}
   .sw2{position:relative; width:30px; height:30px; border-radius:9px; cursor:pointer; padding:0;
@@ -8999,38 +9018,38 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .wrow{display:flex; align-items:center; gap:11px; flex:1; min-width:0; border:0; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; padding:6px 0; font-family:inherit}
   .wifi.sel .wrow{color:var(--v2-txt)}
-  .okline{margin-top:10px; padding:9px 12px; border-radius:10px; font-size:12px; color:var(--v2-acc-tint);
+  .okline{margin-top:10px; padding:9px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
+  .mono{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
   a.link{color:var(--v2-acc-tint); text-decoration:none}
   a.link:hover{text-decoration:underline}
   .brqr{width:184px; margin:10px 0 4px; padding:8px; background:#fff; border-radius:8px; line-height:0}
   .brqr :global(svg){width:100%; height:auto; display:block}
   .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
     border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
-  .tok code{font:11.5px var(--v2-mono); color:var(--v2-txt); word-break:break-all}
-  .warnline{font-size:11.5px; line-height:1.45; color:var(--v2-acc-tint)}
+  .tok .tlab{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tok code{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt); word-break:break-all}
+  .warnline{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-acc-tint)}
   .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
   .actions-serveur{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0 4px}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:210px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 11px; outline:none; width:210px}
   .txt.num{width:78px; font-family:var(--v2-mono)}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .subhead{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px;
-    padding-top:12px; border-top:1px solid var(--v2-line); font:700 12px var(--v2-sans); color:var(--v2-txt2)}
-  .badge{font:10px var(--v2-mono); letter-spacing:.05em; padding:3px 9px; border-radius:999px; flex:0 0 auto;
+    padding-top:12px; border-top:1px solid var(--v2-line); font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .badge{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; padding:3px 9px; border-radius:999px; flex:0 0 auto;
     color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .badge.up{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .diag{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .dl{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:11px; padding:8px 4px}
-  .di{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 11px var(--v2-sans);
+  .di{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .di.info{color:var(--v2-txt3); border-color:var(--v2-line2)}
   .di.ok{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .dlab{font-size:13px; color:var(--v2-txt2)}
-  .dval{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .warn{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:12px; line-height:1.45;
+  .dlab{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .dval{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .warn{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45;
     color:var(--v2-txt2); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
@@ -9046,30 +9065,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
-  .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}
-  .dev .pmsg{font:11px var(--v2-sans); color:var(--v2-acc-tint)}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:0 9px; outline:none}
+  .dev .pmsg{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
   .del{width:26px; height:26px; border-radius:7px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:0 0 auto}
   .del:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .del svg{width:13px; height:13px}
   .del.avec-texte{width:auto; padding:0 8px; display:flex; gap:5px; align-items:center;
-    border-color:var(--v2-line, transparent); font:11px var(--v2-sans); white-space:nowrap}
+    border-color:var(--v2-line, transparent); font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap}
   .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--v2-line)}
   .foot .hint{flex:1; min-width:200px}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .empty{padding:30px 4px; color:var(--v2-txt3); font-size:14px}
+  .empty{padding:30px 4px; color:var(--v2-txt3); font-size:calc(14px * var(--v2-txt-echelle, 1))}
   .svc{border:1px solid var(--v2-line2); border-radius:12px; padding:14px; margin-top:12px}
   .svchead{display:flex; align-items:center; gap:9px}
   .svcdot{width:9px; height:9px; border-radius:50%; border:1px solid var(--v2-line2); flex:none}
   .svcname{font-weight:700}
-  .svcstate{margin-left:auto; font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3)}
+  .svcstate{margin-left:auto; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3)}
   .svcfields{display:flex; flex-direction:column; gap:8px; margin-top:10px}
-  .svcfield{display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--v2-txt2)}
+  .svcfield{display:flex; flex-direction:column; gap:4px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .svcfield input{width:100%}
   .svcsub{margin-top:12px; padding-top:10px; border-top:1px solid var(--v2-line2);
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
@@ -9089,5 +9108,5 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpv:hover .zpveil, .zpv:focus-visible .zpveil{opacity:1}
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
   /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
-  .zpattente{margin:0; font-size:12px; color:var(--tune-warning)}
+  .zpattente{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--tune-warning)}
 </style>

@@ -163,18 +163,18 @@
 
 <style>
   .apports-qobuz { margin: 1rem 0; padding: .75rem 1rem; border: 1px solid var(--tune-border, rgba(127,127,127,.25)); border-radius: 8px; }
-  h3 { margin: 0 0 .5rem; font-size: 1rem; display: flex; align-items: center; gap: .25rem; }
+  h3 { margin: 0 0 .5rem; font-size: calc(1rem * var(--v2-txt-echelle, 1)); display: flex; align-items: center; gap: .25rem; }
   h3.replie { margin-bottom: 0; }
   .pli { display: inline-flex; align-items: center; gap: .25rem; padding: 0; margin-left: -.25rem; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; text-align: left; }
   .pli svg { width: 1rem; height: 1rem; transition: transform .15s; }
   .pli svg.ferme { transform: rotate(-90deg); }
-  h4 { margin: .75rem 0 .25rem; font-size: .9rem; }
+  h4 { margin: .75rem 0 .25rem; font-size: calc(.9rem * var(--v2-txt-echelle, 1)); }
   dl { margin: 0; display: grid; gap: .25rem; }
   .ligne { display: flex; gap: .5rem; flex-wrap: wrap; }
   dt { font-weight: 600; min-width: 9rem; }
   dd { margin: 0; }
   .credits { margin: 0; padding-left: 1.2rem; }
-  .source { margin-left: .4rem; font-size: .75rem; opacity: .7; }
+  .source { margin-left: .4rem; font-size: calc(.75rem * var(--v2-txt-echelle, 1)); opacity: .7; }
   .gestes { display: flex; gap: .5rem; margin: .25rem 0 .5rem; flex-wrap: wrap; }
   .a-confirmer { margin: 0 0 .25rem; }
 </style>

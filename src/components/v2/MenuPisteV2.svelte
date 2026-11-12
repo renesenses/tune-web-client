@@ -176,7 +176,7 @@
     display:flex; flex-direction:column; gap:1px}
   .item{display:flex; align-items:center; gap:9px; width:100%; text-align:left;
     padding:7px 10px; border:0; border-radius:6px; background:transparent; cursor:pointer;
-    font:13px var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text-secondary, inherit))}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt2, var(--tune-text-secondary, inherit))}
   .item:hover{background:var(--v2-hover, var(--tune-surface-hover, rgba(255,255,255,.06)));
     color:var(--v2-txt, var(--tune-text, inherit))}
   .item:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:-2px}
@@ -184,7 +184,7 @@
   /* web#2736 — les groupes d'un menu d'en-tête de fiche. */
   .groupe{display:flex; flex-direction:column; gap:1px}
   .groupe + .groupe{margin-top:3px; padding-top:3px; border-top:1px solid var(--v2-line, rgba(255,255,255,.08))}
-  .intertitre{padding:5px 10px 2px; font:600 10.5px var(--v2-sans, inherit); letter-spacing:.05em;
+  .intertitre{padding:5px 10px 2px; font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); letter-spacing:.05em;
     text-transform:uppercase; color:var(--v2-txt3, var(--tune-text-muted, inherit))}
   .item.danger{color:var(--v2-danger, #ef4444)}
   .item[aria-disabled="true"]{opacity:.5; cursor:default}

@@ -1742,7 +1742,7 @@
 </section>
 
 <style>
-  .pourquoi-ia{background:none;border:0;padding:2px 0;color:var(--v2-txt3);font-size:11.5px;cursor:pointer;text-align:left}
+  .pourquoi-ia{background:none;border:0;padding:2px 0;color:var(--v2-txt3);font-size:calc(11.5px * var(--v2-txt-echelle, 1));cursor:pointer;text-align:left}
   .pourquoi-ia:hover{color:var(--v2-acc1)}
   .v2-collections{height:100%; display:flex; flex-direction:column; overflow:hidden; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
   /* #855 / #907 — la SECTION défilait tout entière : en-tête, « Retour »,
@@ -1751,26 +1751,26 @@
   .v2-collections > header, .v2-collections > .tabs{flex:none}
   .defil{flex:1; min-height:0; overflow-y:auto}
   .lnkcrea{display:block; margin-top:12px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; border-radius:999px; padding:6px 14px; font:600 11.5px var(--v2-sans)}
+    color:var(--v2-txt2); cursor:pointer; border-radius:999px; padding:6px 14px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnkcrea:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
+  .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
   /* Le tri se range a DROITE de la barre d'onglets : il commande la liste
      entiere, pas l'un des deux onglets. */
   .tricol{display:inline-flex; align-items:center; gap:8px; margin-left:auto}
-  .tricol span{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tricol span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .tricol select{height:30px; padding:0 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    background:var(--v2-surface2); color:var(--v2-txt2); font:12.5px inherit; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt2); font:calc(12.5px * var(--v2-txt-echelle, 1)) inherit; cursor:pointer}
   .tricol select:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .tricol.horsrayon{margin-left:auto; cursor:pointer}
   .tricol.horsrayon + .tricol{margin-left:0}
 
   .tabs{display:flex; gap:4px; padding:4px 30px 0}
   .tab{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
-    color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
+    color:var(--v2-txt3); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:10px 12px}
   .tab:hover{color:var(--v2-txt2)}
   .tab.active{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
-  .state{padding:30px; color:var(--v2-txt3); font-size:13.5px}
+  .state{padding:30px; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1))}
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
   .cv.teintee{box-shadow:0 0 0 2px var(--teinte); border-radius:var(--v2-r-card)}
@@ -1781,7 +1781,7 @@
   /* web#1801 — GRANDES VIGNETTES : la même carte, un pas de grille plus
      large. */
   .grid.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}
-  .grid.grandes .ct{font-size:15px}
+  .grid.grandes .ct{font-size:calc(15px * var(--v2-txt-echelle, 1))}
   /* web#1801 — LA LISTE, c'est la même grille couchée, comme dans Playlists
      (#1719) : une carte par ligne, la mosaïque réduite. Aucune seconde
      branche de gabarit — les actions de la pochette, le titre cliquable et
@@ -1792,7 +1792,7 @@
   /* web#2256 — même liseré que l'onglet Rayons (ArbreRayons, `.col.survol`). */
   .card.survol{outline:2px dashed var(--v2-acc1); outline-offset:2px; border-radius:9px}
   .card[draggable="true"]{cursor:grab}
-  .indicemanuel{margin:0 0 8px; font-size:12px; color:var(--v2-txt3)}
+  .indicemanuel{margin:0 0 8px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .grid.liste .cv{width:48px; flex:0 0 48px}
   .grid.liste .meta{flex-direction:row; align-items:baseline; gap:12px; flex:1; min-width:0}
   .grid.liste .meta .ct{max-width:60%; min-width:0}
@@ -1801,12 +1801,12 @@
     padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0; align-self:flex-start;
     border-right:1px solid var(--v2-line)}
   .rl{width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent;
-    font:600 11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
+    font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
   .rl:disabled{opacity:.22; cursor:default}
   .rl.hot{color:var(--v2-txt2)}
   .rl.hot:hover{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .rl:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
-  .totalonglet{margin-left:auto; align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .totalonglet{margin-left:auto; align-self:center; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* La carte n'est plus un `<button>` : elle contient les cinq boutons
      d'action de la pochette, et des boutons imbriqués sont du HTML invalide. */
   .meta{display:flex; flex-direction:column; gap:6px; width:100%; border:0; background:transparent;
@@ -1814,9 +1814,9 @@
   /* Le cadre porte le carré : la mosaïque le remplit, une pochette seule aussi. */
   .cv{display:block; aspect-ratio:1; width:100%; border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-surface)}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
-  .ct{font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ca{font:11px var(--v2-mono); color:var(--v2-txt3); display:flex; align-items:center; gap:6px}
-  .mq{font:11px var(--v2-mono); color:var(--v2-warn, #c8922b); display:flex; align-items:center; gap:4px;
+  .ct{font-weight:600; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); display:flex; align-items:center; gap:6px}
+  .mq{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-warn, #c8922b); display:flex; align-items:center; gap:4px;
     border:0; background:transparent; padding:0; text-align:left; cursor:pointer; width:100%;
     text-decoration:underline; text-underline-offset:2px}
   .mq:hover{color:var(--v2-acc-tint, #e6c176)}
@@ -1826,20 +1826,20 @@
     border-radius:var(--v2-r-card, 12px); background:var(--v2-surface, #1b1b1b);
     border:1px solid var(--v2-line2, rgba(255,255,255,.16)); color:var(--v2-txt, inherit)}
   .mqp header{display:flex; align-items:baseline; gap:8px; margin-bottom:8px}
-  .mqs{font:11px var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .mqx{margin-left:auto; border:0; background:transparent; color:inherit; font-size:20px; line-height:1; cursor:pointer}
-  .mqh{font-size:12px; color:var(--v2-txt2); margin:0 0 12px}
+  .mqs{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mqx{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
+  .mqh{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); margin:0 0 12px}
   .mqp ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
   .mqp li{display:flex; flex-direction:column; gap:2px; padding-bottom:8px;
     border-bottom:1px solid var(--v2-line, rgba(255,255,255,.08))}
-  .mqt{font-size:13.5px; font-weight:600}
-  .mqt.inc{font:12px var(--v2-mono); color:var(--v2-txt3); font-weight:400}
-  .mqa{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .mqr{font-size:12px; color:var(--v2-txt2)}
+  .mqt{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .mqt.inc{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-weight:400}
+  .mqa{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .mqr{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .mql{border:0; background:transparent; padding:0; color:var(--v2-acc-tint, #e6c176); cursor:pointer;
     text-decoration:underline; text-underline-offset:2px; font:inherit}
   .mqg{display:flex; flex-wrap:wrap; gap:6px; margin-top:4px}
-  .mqb{font-size:12px; padding:3px 10px; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
+  .mqb{font-size:calc(12px * var(--v2-txt-echelle, 1)); padding:3px 10px; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
     border:1px solid var(--v2-line2, rgba(255,255,255,.16)); background:transparent; color:inherit;
     max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .mqb:disabled{opacity:.5; cursor:default}
@@ -1850,14 +1850,14 @@
   .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; align-items:center; --bl-h:38px}
   /* web#2736 — « Trier ▾ » dit le critère courant ; « … » est carré. */
   .trier{display:inline-flex; align-items:center; gap:6px; max-width:100%}
-  .trier-mot{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .trier-mot{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .trier-valeur{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
   .trier svg,.chevron{width:14px; height:14px; flex:0 0 auto}
   .v2-btn.carre{width:38px; padding:0; justify-content:center; display:inline-grid; place-items:center}
   .v2-btn.carre svg{width:16px; height:16px}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
     border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
-    font:700 13px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
+    font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
     background:linear-gradient(135deg, var(--v2-acc1, #d9a441), var(--v2-acc2, #b8862b))}
   .fab.creux{background:transparent; color:var(--v2-txt, inherit);
     border:1px solid var(--v2-line2, rgba(255,255,255,.16))}
