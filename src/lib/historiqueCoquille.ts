@@ -85,6 +85,40 @@ export interface EtatCoquille {
    * réécritures de l'entrée (onglet, fermeture de fiche).
    */
   empilee?: true;
+  /**
+   * Fil 2694 (relecture de #2926) — l'IDENTIFIANT de l'entrée, pour les vues
+   * dont l'écran retient la page quittée (`VUES_A_PAGE`). Une page n'est
+   * rendue par Précédent/Suivant que sur l'entrée même qu'on avait quittée :
+   * deux visites du même service sont deux entrées, et la racine reste la
+   * racine. Absent ailleurs : les autres entrées gardent leur forme.
+   */
+  page?: string;
+}
+
+/** Fil 2694 — les vues dont les entrées portent un identifiant de page. */
+const VUES_A_PAGE: readonly string[] = ['streaming'];
+let compteurPages = 0;
+function nouvellePage(): string {
+  compteurPages += 1;
+  return `${Date.now().toString(36)}-${compteurPages}`;
+}
+
+/** Fil 2694 — l'identifiant de l'entrée d'historique COURANTE, s'il y en a un. */
+export function pageCourante(): string | null {
+  if (typeof window === 'undefined') return null;
+  const e = window.history.state;
+  return estEtatCoquille(e) && typeof e.page === 'string' ? e.page : null;
+}
+
+/**
+ * Fil 2694 — l'identifiant de l'entrée QUITTÉE au dernier changement de vue.
+ * Au moment où l'écran qui part s'en aperçoit, la coquille a déjà écrit
+ * l'entrée d'arrivée (ou le `popstate` l'a déjà rendue) : elle la retient donc
+ * juste avant.
+ */
+let pageQuitteeAuChangement: string | null = null;
+export function pageQuittee(): string | null {
+  return pageQuitteeAuChangement;
 }
 
 /**
@@ -500,12 +534,21 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
    */
   let enRestauration = false;
 
+  /** Fil 2694 — l'entrée sur laquelle on se trouve, telle qu'on la connaît. */
+  let pageConnue: string | null = null;
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
     const courant = historique.state as unknown;
     if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
+    // Fil 2694 — une entrée neuve reçoit son identifiant ; une réécriture de
+    // la même vue le garde.
+    if (VUES_A_PAGE.includes(etat.vue)) {
+      etat.page = !pousser && estEtatCoquille(courant) && courant.vue === etat.vue && typeof courant.page === 'string'
+        ? courant.page : nouvellePage();
+    }
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
+    pageConnue = etat.page ?? null;
   };
 
   /**
@@ -575,6 +618,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // est alors COMPOSÉE, elle porte la clé dès sa naissance, et le parcours ne
     // coûte qu'un cran au lieu de deux. Voir `allerAuDetail`.
     const vise = consommerVuePourEntree();
+    pageQuitteeAuChangement = estEtatCoquille(historique.state) ? (historique.state.page ?? null) : null;
     enRestauration = true;
     detailOuvert.set(vise);
     // web#1790 — l'onglet appartient à la vue qu'on quitte.
@@ -614,6 +658,10 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // fermetures suivantes redeviennent des réécritures.
     finDuRetourProgrammatique();
     const etat = e.state;
+    // `history.state` est DÉJÀ l'entrée atteinte : l'entrée quittée est celle
+    // qu'on connaissait.
+    pageQuitteeAuChangement = pageConnue;
+    pageConnue = estEtatCoquille(etat) ? (etat.page ?? null) : null;
     if (!estEtatCoquille(etat)) return;
     enRestauration = true;
     try {

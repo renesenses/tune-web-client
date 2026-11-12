@@ -95,7 +95,7 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, reposerDetail, typeArrivee } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, reposerDetail, typeArrivee, pageCourante, pageQuittee } from '../../lib/historiqueCoquille';
   import { retenirPageWidgets, reprendrePageWidgets, type MemoirePageWidgets } from '../../lib/memoireStreaming';
   import { ficheAlbumDeRetour } from '../../lib/stores/streaming';
   import { restaurerQuandPret } from '../../lib/defilementReel';
@@ -1434,11 +1434,12 @@
         ficheQuitteeService: !visible && ficheOuverte ? serviceOuvert : (r?.service ?? null),
         ficheMontreeParLeRetour: !!quittee && retourFiche != null
           && String(retourFiche.id ?? '') === String((quittee as any).source_id ?? ''),
+        page: pageQuittee(),
       }) as MemoirePageWidgets;
       retenirPageWidgets(CLE, memoire.voirTout || memoire.fiche || memoire.ficheQuittee || memoire.defilement > 0 ? memoire : null);
     });
   });
-  let pageAReprendre: MemoirePageWidgets | null = reprendrePageWidgets(CLE, arriveeAuMontage);
+  let pageAReprendre: MemoirePageWidgets | null = reprendrePageWidgets(CLE, arriveeAuMontage, pageCourante());
   $effect(() => {
     const m = pageAReprendre;
     if (!m || !charge) return;
@@ -1458,7 +1459,12 @@
         && (arriveeAuMontage === 'historique' || !m.ficheMontreeParLeRetour) ? m.ficheQuittee : null;
       const a = (m.fiche ?? quittee) as any;
       if (a) {
-        ouvrirCalqueAlbum(a);
+        // Relecture de #2926 — par l'historique, la clé est REPOSÉE sur
+        // l'entrée atteinte : en empiler une jetterait la page artiste des
+        // entrées suivantes du navigateur.
+        const cleA = cleDetailAlbum(a);
+        if (arriveeAuMontage !== 'historique') ouvrirCalqueAlbum(a);
+        else if (cleA && get(detailOuvert) !== cleA) reposerDetail(cleA);
         ficheOuverte = a;
         serviceOuvert = m.fiche ? m.ficheService : m.ficheQuitteeService;
       }

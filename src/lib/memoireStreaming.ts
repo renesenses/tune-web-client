@@ -24,6 +24,7 @@
 import { activeView, type View } from './stores/navigation';
 import type { StreamingGenre } from './types';
 import type { TypeArrivee } from './historiqueCoquille';
+import { currentProfileId } from './stores/profile';
 
 /** Les vues d'où l'on « revient » au service plutôt que d'y « aller ». */
 export const VUES_DE_PASSAGE: readonly View[] = ['nowplaying'];
@@ -67,6 +68,23 @@ export interface MemoireStreaming {
    * rouvre pas une seconde fois.
    */
   ficheMontreeParLeRetour?: boolean;
+  /**
+   * Relecture de #2926 — l'IDENTIFIANT de l'entrée d'historique quittée
+   * (`historiqueCoquille.pageQuittee`). Par Précédent/Suivant, la page n'est
+   * rendue que sur CETTE entrée : une autre visite du même service (sa racine)
+   * reste ce qu'elle était.
+   */
+  page?: string | null;
+  /** Le compte du service au départ : un autre compte ne reprend rien. */
+  compte?: string | null;
+}
+
+/** Ce que l'écran remonté sait de son arrivée. */
+export interface ContexteArrivee {
+  /** L'identifiant de l'entrée atteinte (`historiqueCoquille.pageCourante`). */
+  page?: string | null;
+  /** Le compte du service maintenant. */
+  compte?: string | null;
 }
 
 const estDePassage = (v: View | null | undefined): boolean =>
@@ -102,16 +120,23 @@ export function reprendreAuRetour(
   depuis: View | null,
   active: string | null,
   arrivee: TypeArrivee = 'geste',
+  contexte: ContexteArrivee = {},
 ): MemoireStreaming | null {
   const m = memoire;
   const d = derniere;
   memoire = null;
   derniere = null;
   if (!active) return null;
-  // Fil 2694 — revenu par un Retour ou par l'historique : la dernière page
-  // quittée, sur le même service.
-  if (arrivee !== 'geste') return d && d.active === active ? d : null;
-  if (!m || !estDePassage(depuis) || m.active !== active) return null;
+  const memeCompte = (x: MemoireStreaming) =>
+    !('compte' in contexte) || (x.compte ?? null) === (contexte.compte ?? null);
+  // Fil 2694 — revenu par l'historique : la page quittée, et seulement sur
+  // l'entrée même qu'on avait quittée.
+  if (arrivee === 'historique') {
+    return d && d.active === active && memeCompte(d) && d.page != null && d.page === (contexte.page ?? null) ? d : null;
+  }
+  // Revenu par le Retour d'une page : la dernière page quittée du service.
+  if (arrivee === 'retour') return d && d.active === active && memeCompte(d) ? d : null;
+  if (!m || !estDePassage(depuis) || m.active !== active || !memeCompte(m)) return null;
   return m;
 }
 
@@ -134,6 +159,8 @@ export interface MemoirePageWidgets {
   ficheQuittee: unknown | null;
   ficheQuitteeService: string | null;
   ficheMontreeParLeRetour: boolean;
+  /** L'identifiant de l'entrée quittée (voir `MemoireStreaming.page`). */
+  page?: string | null;
 }
 
 let pagesWidgets = new Map<string, MemoirePageWidgets>();
@@ -146,15 +173,29 @@ export function retenirPageWidgets(cle: string, etat: MemoirePageWidgets | null)
 }
 
 /** Au montage de la page `cle` : rend sa page quittée, UNE fois, sur un retour. */
-export function reprendrePageWidgets(cle: string, arrivee: TypeArrivee): MemoirePageWidgets | null {
+export function reprendrePageWidgets(cle: string, arrivee: TypeArrivee, page: string | null = null): MemoirePageWidgets | null {
   const m = pagesWidgets.get(cle) ?? null;
   pagesWidgets = new Map();
-  return arrivee === 'geste' ? null : m;
+  if (!m || arrivee === 'geste') return null;
+  if (arrivee === 'historique' && (m.page == null || m.page !== page)) return null;
+  return m;
 }
 
-/** Pour les tests. */
+/**
+ * Tout oublier : changement de profil, de compte d'un service, et tests. Une
+ * page retenue sous un profil (ses favoris, sa recherche) ne se rend jamais à
+ * un autre.
+ */
 export function oublierMemoireStreaming(): void {
   memoire = null;
   derniere = null;
   pagesWidgets = new Map();
 }
+
+let profilConnu: unknown;
+let profilLu = false;
+currentProfileId.subscribe((p) => {
+  if (profilLu && p !== profilConnu) oublierMemoireStreaming();
+  profilLu = true;
+  profilConnu = p;
+});

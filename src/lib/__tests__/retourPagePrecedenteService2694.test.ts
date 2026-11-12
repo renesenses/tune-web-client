@@ -22,7 +22,7 @@ import ShellV2 from '../../components/v2/ShellV2.svelte';
 import { activeView, requestListReset, vueDeRetour } from '../stores/navigation';
 import { activeStreamingService, ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService } from '../stores/streaming';
 import { detailOuvert, ongletCourant } from '../historiqueCoquille';
-import { oublierMemoireStreaming } from '../memoireStreaming';
+import { oublierMemoireStreaming, retenirAuDepart, reprendreAuRetour, type MemoireStreaming } from '../memoireStreaming';
 import { t } from '../i18n';
 import { reculer } from './reculer';
 import { currentProfileId } from '../stores/profile';
@@ -177,6 +177,15 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
+/** Le Suivant du navigateur, attendu sur son `popstate` (comme `reculer`). */
+function avancer(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const filet = setTimeout(() => reject(new Error('aucun popstate après history.forward()')), 4_000);
+    window.addEventListener('popstate', () => { clearTimeout(filet); resolve(); }, { once: true });
+    history.forward();
+  });
+}
+
 const lectures = () => appels.filter((a) => a.method !== 'GET' && /playback|queue|\/play\b|\/zones\//.test(a.url));
 
 describe('fil 2694 — TIDAL › un genre › un album › son artiste › retour', () => {
@@ -219,6 +228,25 @@ describe('fil 2694 — TIDAL › un genre › un album › son artiste › retou
     expect(fiche(), 'un second Précédent referme la fiche').toBeNull();
     expect(filDeGenre(), 'et laisse la page du genre').toBe('Pop');
     expect(lectures()).toEqual([]);
+  });
+
+  it('relecture #2926 : la fiche rouverte ne jette pas la page artiste — Suivant y retourne', async () => {
+    await jusquALArtiste();
+    const longueur = history.length;
+    await reculer();
+    await laisserFaire(150, () => filDeGenre() === 'Pop' && !!fiche());
+    expect(history.length, 'la fiche rouverte n’empile aucune entrée').toBe(longueur);
+    await avancer();
+    await laisserFaire(80, () => get(activeView) === 'streamingartist');
+    expect(get(activeView), 'Suivant ramène à la page de l’artiste').toBe('streamingartist');
+    await reculer();
+    await laisserFaire(150, () => filDeGenre() === 'Pop' && !!fiche());
+    expect(fiche()?.textContent).toContain('Album Tidal');
+    await reculer();
+    await laisserFaire(60, () => !fiche());
+    expect(get(activeView)).toBe('streaming');
+    expect(fiche(), 'le Précédent suivant rend la page d’avant l’album').toBeNull();
+    expect(filDeGenre()).toBe('Pop');
   });
 });
 
@@ -305,6 +333,63 @@ describe('fil 2694 — recherche dans TIDAL › un album › retour', () => {
   });
 });
 
+describe('relecture #2926 — la page n’est rendue que sur l’entrée quittée', () => {
+  it('TIDAL racine → Bibliothèque → TIDAL recherche → Bibliothèque, Précédent ×3 : la racine reste la racine', async () => {
+    await entrerPar('tidal');
+    await laisserFaire(40);
+    const racine = history.state;
+    activeView.set('library'); flushSync(); await laisserFaire(20);
+    requestListReset(); activeStreamingService.set('tidal'); activeView.set('streaming'); flushSync();
+    await laisserFaire(150, () => !!champ());
+    const c = champ()!;
+    c.value = 'beatles';
+    c.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    await laisserFaire(400, () => !!bouton('.v2-str button.ct', 'Résultat 29'));
+    activeView.set('library'); flushSync(); await laisserFaire(20);
+
+    await reculer();
+    await laisserFaire(300, () => champ()?.value === 'beatles' && !!bouton('.v2-str button.ct', 'Résultat 29'));
+    expect(champ()?.value, 'Précédent rend la recherche quittée').toBe('beatles');
+    await reculer();
+    await laisserFaire(20);
+    expect(get(activeView)).toBe('library');
+    await reculer();
+    await laisserFaire(150, () => !!champ());
+    await laisserFaire(40);
+    expect(get(activeView)).toBe('streaming');
+    expect(champ()?.value, 'la racine de TIDAL ne montre pas la recherche d’une autre visite').toBe('');
+    expect(bouton('.v2-str button.ct', 'Résultat 29')).toBeNull();
+    expect(history.state, 'l’entrée atteinte n’est pas réécrite').toEqual(racine);
+  });
+});
+
+describe('relecture #2926 — profil et compte', () => {
+  const page = (): MemoireStreaming => ({
+    active: 'tidal', sub: 'editorial', genrePath: [], subGenres: [], genreId: '',
+    fiche: null, ficheService: null, ficheBc: null, fichePlaylist: null, defilement: 0,
+    q: 'beatles', page: 'p1', compte: 'Ilan',
+  });
+  it('un changement de profil oublie la page retenue', () => {
+    currentProfileId.set(1);
+    retenirAuDepart('streamingartist', page());
+    currentProfileId.set(2);
+    expect(reprendreAuRetour('streamingartist', 'tidal', 'retour', { compte: 'Ilan' })).toBeNull();
+  });
+  it('un autre compte du service ne reprend rien', () => {
+    retenirAuDepart('streamingartist', page());
+    expect(reprendreAuRetour('streamingartist', 'tidal', 'retour', { compte: 'Autre' })).toBeNull();
+    retenirAuDepart('streamingartist', page());
+    expect(reprendreAuRetour('streamingartist', 'tidal', 'retour', { compte: 'Ilan' })?.q).toBe('beatles');
+  });
+  it('par l’historique, seulement sur l’entrée quittée', () => {
+    retenirAuDepart('library', page());
+    expect(reprendreAuRetour('library', 'tidal', 'historique', { page: 'p2', compte: 'Ilan' })).toBeNull();
+    retenirAuDepart('library', page());
+    expect(reprendreAuRetour('library', 'tidal', 'historique', { page: 'p1', compte: 'Ilan' })?.q).toBe('beatles');
+  });
+});
+
 describe('fil 2694 — Qobuz › « Nouveautés » (Voir tout) › un album › retour', () => {
   const pageNouveautes = () => document.querySelector('.v2-str .voir-tout-page');
   async function ouvrirNouveautes() {
@@ -356,6 +441,12 @@ describe('fil 2694 — Qobuz › « Nouveautés » (Voir tout) › un album › 
     await reculer();
     await laisserFaire(200, () => !!pageNouveautes() && !!fiche());
     expect(pageNouveautes(), 'le Précédent rend la page des nouveautés').not.toBeNull();
+    expect(fiche()?.textContent).toContain('Nouveauté Qobuz');
+    await avancer();
+    await laisserFaire(80, () => get(activeView) === 'streamingartist');
+    expect(get(activeView), 'Suivant ramène à la page de l’artiste').toBe('streamingartist');
+    await reculer();
+    await laisserFaire(200, () => !!pageNouveautes() && !!fiche());
     expect(fiche()?.textContent).toContain('Nouveauté Qobuz');
     await reculer();
     await laisserFaire(60, () => !fiche());

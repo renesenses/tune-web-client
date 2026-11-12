@@ -69,7 +69,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
@@ -1000,6 +1000,10 @@
    * répondent plus tard, et c'est alors seulement que la page se reprend.
    */
   const arriveeAuMontage = typeArrivee();
+  /** Relecture de #2926 — l'entrée atteinte : la page n'est rendue que sur elle. */
+  const pageAuMontage = pageCourante();
+  /** Le compte connecté du service : un autre compte ne reprend rien. */
+  const compteDe = (svc: string | null): string | null => (services[cleServeur(svc) ?? '']?.username ?? null) as string | null;
   /** Fil 2694 — au-delà, une fiche refermée n'est plus « celle qu'on quittait ». */
   const DELAI_DEPART = 5000;
   /**
@@ -1048,13 +1052,29 @@
         ficheQuitteeService: !ficheVisible && fiche ? ficheService : (recente?.service ?? null),
         ficheMontreeParLeRetour: !!quittee && retourFiche != null
           && String(retourFiche.id ?? '') === String(quittee.source_id ?? ''),
+        page: pageQuittee(),
+        compte: compteDe(active),
       }) as MemoireStreaming : null);
     });
   });
   function reprendrePageQuittee() {
-    const r = reprendreAuRetour(vuePrecedenteAuMontage, active, arriveeAuMontage);
+    const r = reprendreAuRetour(vuePrecedenteAuMontage, active, arriveeAuMontage,
+      { page: pageAuMontage, compte: compteDe(active) });
     if (!r) return;
-    sub = r.sub as Sub;
+    const parHistorique = arriveeAuMontage === 'historique';
+    // Relecture de #2926 — atteinte par l'historique, l'entrée a DÉJÀ rendu
+    // son onglet (`ongletCourant`) : le réécrire réécrirait l'entrée atteinte.
+    if (!parHistorique) sub = r.sub as Sub;
+    /**
+     * Rouvrir un calque. Par l'historique, la clé est REPOSÉE sur l'entrée
+     * atteinte (`reposerDetail`) : en empiler une jetterait les entrées
+     * suivantes du navigateur (la page artiste), et Suivant n'y mènerait plus.
+     */
+    const poserCle = (cle: string | null) => {
+      if (!cle) return;
+      if (!parHistorique) { ouvrirDetail(cle); return; }
+      if (get(detailOuvert) !== cle) reposerDetail(cle);
+    };
     if (r.genrePath.length) genresARestaurer = r;
     // Fil 2694 — la recherche dans le service, ses pages déjà chargées.
     if (r.q && r.q.trim()) {
@@ -1071,16 +1091,22 @@
       ? r.ficheQuittee : null;
     if (r.fiche || quittee) {
       const a = (r.fiche ?? quittee) as any;
-      ouvrirCalqueAlbum(a);
+      poserCle(cleDetailAlbum(a));
       fiche = a;
       ficheService = r.fiche ? r.ficheService : (r.ficheQuitteeService ?? null);
     } else if (r.ficheBc) {
       const a = r.ficheBc as any;
-      ouvrirCalqueAlbum(a);
+      poserCle(cleDetailAlbum(a));
       ficheBc = a;
     } else if (r.fichePlaylist) {
       const p = r.fichePlaylist as any;
-      ouvrirCalquePlaylist(p, p?.source ?? active);
+      const svc = p?.source ?? active;
+      fichePlaylist = { ...p, source: svc };
+      const sid = p?.source_id;
+      if (svc && sid != null && sid !== '') {
+        clePlaylistEmpilee = `streamingplaylists:${svc}:${sid}`;
+        poserCle(clePlaylistEmpilee);
+      }
     }
     restaurerQuandPret(r.defilement, () => zoneDefilante, { essaisMax: 180 });
   }
