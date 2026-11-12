@@ -32,7 +32,7 @@ import { t } from '../i18n';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import {
   SUIVI, SURFACES, zoneCorrectionPiece, entreeSimulation, placementType, presenceCalibration, coteHorsBornes,
-  positionHorsPiece, positionDuMode, demandeCorrection, expertBorne, ENCEINTES_MAX,
+  positionHorsPiece, positionDuMode, demandeCorrection, expertBorne, COUPE_MIN_DB, ENCEINTES_MAX,
   PIECE_DEFAUT, SURFACES_DEFAUT,
 } from '../correctionPiece';
 import CorrectionPieceV2 from '../../components/v2/CorrectionPieceV2.svelte';
@@ -643,6 +643,7 @@ describe('web#2803 — mode expert', () => {
     const bandes = q('[data-room="expert-bandes"]') as HTMLInputElement;
     expect(bandes.max).toBe('10');
     expect((q('[data-room="expert-coupe"]') as HTMLInputElement).max).toBe('12');
+    expect((q('[data-room="expert-coupe"]') as HTMLInputElement).min).toBe('0.5');
 
     saisir('[data-room="expert-bandes"]', '8', 'change');
     await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 3);
@@ -657,6 +658,19 @@ describe('web#2803 — mode expert', () => {
     await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction/profil`).length > 0);
     expect(appelsA(`${EXT}/simulations/sim-1/correction/profil`)[0].corps)
       .toEqual({ cible: { type: 'plate' }, bandes_max: 8, coupe_max_db: 12, expert: true, zone_id: ZONE });
+  });
+
+  it('🔴 une coupe de 0 n’est jamais envoyée : ramenée à 0,5 dB (le serveur refuse ≤ 0)', async () => {
+    await simulee();
+    const c = q('[data-room="expert-actif"]') as HTMLInputElement;
+    c.checked = true;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 2);
+    saisir('[data-room="expert-coupe"]', '0', 'change');
+    await jusqua(() => appelsA(`${EXT}/simulations/sim-1/correction`).length === 3);
+    expect(appelsA(`${EXT}/simulations/sim-1/correction`)[2].corps)
+      .toEqual({ cible: { type: 'plate' }, bandes_max: 3, coupe_max_db: 0.5, expert: true });
+    expect(q('[data-room="expert"]')!.textContent).toContain('0.5–12');
   });
 
   it('le refus 422 s’affiche avec sa cause', async () => {
@@ -676,10 +690,14 @@ describe('web#2803 — mode expert', () => {
     expect(q('[data-room="expert"]')).toBeNull();
   });
 
-  it('les bornes sont tenues : 1 … bandes_max, 0 … coupe_max_db', () => {
+  it('les bornes sont tenues : 1 … bandes_max, COUPE_MIN_DB (0,5) … coupe_max_db', () => {
     const b = SIMULATION.bornes_correction.expert;
+    expect(COUPE_MIN_DB).toBeGreaterThan(0);
     expect(demandeCorrection('harman', null)).toEqual({ cible: { type: 'harman' } });
-    expect(expertBorne({ bandes_max: 0, coupe_max_db: -3 }, b)).toEqual({ bandes_max: 1, coupe_max_db: 0 });
+    // Le serveur refuse `coupe <= 0` (demande_prudente) : ni 0 ni moins ne partent.
+    expect(expertBorne({ bandes_max: 0, coupe_max_db: -3 }, b)).toEqual({ bandes_max: 1, coupe_max_db: 0.5 });
+    expect(expertBorne({ bandes_max: 3, coupe_max_db: 0 }, b)).toEqual({ bandes_max: 3, coupe_max_db: 0.5 });
+    expect(expertBorne({ bandes_max: 3, coupe_max_db: 0.5 }, b)).toEqual({ bandes_max: 3, coupe_max_db: 0.5 });
     expect(expertBorne({ bandes_max: 99, coupe_max_db: 99 }, b)).toEqual({ bandes_max: 10, coupe_max_db: 12 });
     expect(expertBorne({ bandes_max: NaN, coupe_max_db: NaN }, b)).toEqual({ bandes_max: 3, coupe_max_db: 4 });
   });

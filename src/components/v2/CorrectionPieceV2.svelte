@@ -28,7 +28,7 @@
     PIECE_DEFAUT, SURFACES_DEFAUT, SURFACES, QUALITES, LIBELLES_SURFACES, LIBELLES_QUALITES, LIBELLES_TYPES_MODE,
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
     coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros,
-    placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne,
+    placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne, COUPE_MIN_DB,
     ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
@@ -638,9 +638,9 @@
                 </label>
                 <label class="dim">
                   <span>{$t('v2.room.expertCut' as any)}</span>
-                  <input type="number" data-room="expert-coupe" min="0" max={bornesExpert.coupe_max_db} step="0.5"
+                  <input type="number" data-room="expert-coupe" min={COUPE_MIN_DB} max={bornesExpert.coupe_max_db} step="0.5"
                     value={expertEnvoye.coupe_max_db} onchange={(e) => reglerExpert('coupe_max_db', e)} />
-                  <span class="unite">dB (0–{bornesExpert.coupe_max_db})</span>
+                  <span class="unite">dB ({COUPE_MIN_DB}–{bornesExpert.coupe_max_db})</span>
                 </label>
               </div>
             {/if}

@@ -236,13 +236,21 @@ export interface ReglageExpert { bandes_max: number; coupe_max_db: number }
 export const expertParDefaut = (b: BornesEstimation): ReglageExpert =>
   ({ bandes_max: b.bandes_defaut, coupe_max_db: b.coupe_defaut_db });
 
-/** Le réglage ramené dans les bornes du serveur (1 … bandes_max, 0 … coupe_max_db). */
+/**
+ * La plus petite coupe maximale acceptée, en dB. Le serveur refuse une coupe
+ * nulle ou négative (`coupe <= 0.0` dans `demande_prudente`, tune-calibration
+ * `modes.rs`, et dans `correction.rs`) : 0 donnait un 422 déroutant. 0,5 dB
+ * est le pas du champ, la première valeur strictement positive qu'il propose.
+ */
+export const COUPE_MIN_DB = 0.5;
+
+/** Le réglage ramené dans les bornes du serveur (1 … bandes_max, COUPE_MIN_DB … coupe_max_db). */
 export function expertBorne(r: ReglageExpert, b: BornesEstimation): ReglageExpert {
   const borne = (v: number, min: number, max: number, defaut: number) =>
     (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : defaut);
   return {
     bandes_max: Math.round(borne(Number(r.bandes_max), 1, b.bandes_max, b.bandes_defaut)),
-    coupe_max_db: borne(Number(r.coupe_max_db), 0, b.coupe_max_db, b.coupe_defaut_db),
+    coupe_max_db: borne(Number(r.coupe_max_db), COUPE_MIN_DB, b.coupe_max_db, b.coupe_defaut_db),
   };
 }
 
