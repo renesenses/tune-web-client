@@ -1767,6 +1767,8 @@ export default {
   "renderer.wav24Refused": "Die Erkennungsprüfung hat geantwortet: Dieses Gerät bietet weder audio/L24 noch audio/wav an. 24 Bit bleibt gesperrt — es zu senden würde Stille erzeugen.",
   "renderer.startDelay": "Startverzögerung",
   "renderer.startDelayHint": "Pause vor dem Start der Wiedergabe, damit ein DLNA-Verstärker puffern kann (hilft, wenn die ersten Sekunden stocken). 0 = Standardwert.",
+  "renderer.fluxContinu": "Durchgehender Stream zwischen Titeln",
+  "renderer.fluxContinuHint": "Für Player, die zwei aufeinanderfolgende Titel schlecht verbinden: Aufeinanderfolgende Titel im selben Format werden als ein einziger WAV-Stream gesendet, ohne Bearbeitung. Beim ersten Formatwechsel wird wieder normal von Titel zu Titel gewechselt.",
   "renderer.probeFailed": "Die Fähigkeiten des Renderers konnten nicht gelesen werden. Der Server konnte die genaue Ursache nicht ermitteln.",
   "renderer.probeOffline": "Der Renderer wird derzeit nicht erkannt. Stelle sicher, dass er eingeschaltet und im selben Netzwerk ist.",
   "renderer.probeEmptySink": "Der Renderer antwortet, veröffentlicht aber keine nutzbaren Audiofähigkeiten. Die Wiedergabe kann mit automatischen Einstellungen dennoch funktionieren.",

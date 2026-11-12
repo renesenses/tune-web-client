@@ -1240,6 +1240,17 @@ export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'rel
   });
 }
 
+/** web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » : sur
+ *  un renderer DLNA qui raccorde mal deux pistes, une suite de pistes de même
+ *  format part en un seul flux WAV. Par zone, désactivé par défaut ; pris en
+ *  compte à la lecture suivante. */
+export function updateZoneDlnaFluxContinu(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_flux_continu: enabled }),
+  });
+}
+
 export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

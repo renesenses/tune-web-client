@@ -2456,6 +2456,8 @@ export default {
   "renderer.wav24Refused": "The discovery check answered: this device advertises neither audio/L24 nor audio/wav. 24-bit stays closed — serving it would play silence.",
   "renderer.startDelay": "Start delay",
   "renderer.startDelayHint": "Pause before playback starts, to let a DLNA amp buffer (helps when the first seconds stutter). 0 = default.",
+  "renderer.fluxContinu": "Continuous stream between tracks",
+  "renderer.fluxContinuHint": "For players that join two consecutive tracks badly: consecutive tracks of the same format are sent as a single WAV stream, without processing. At the first change of format, normal track-to-track playback resumes.",
   "renderer.probeFailed": "Couldn't read the renderer's capabilities. The server could not determine the exact cause.",
   "renderer.probeOffline": "The renderer is not currently discovered. Make sure it is powered on and on the same network.",
   "renderer.probeEmptySink": "The renderer responded but did not publish usable audio capabilities. Playback may still work with automatic settings.",

@@ -1747,6 +1747,8 @@ export default {
   "renderer.wav24Refused": "검색 확인 결과 이 기기는 audio/L24도 audio/wav도 알리지 않습니다. 24비트는 계속 비활성화됩니다. 보내면 무음이 됩니다.",
   "renderer.startDelay": "시작 지연",
   "renderer.startDelayHint": "재생이 시작되기 전 일시 정지로, DLNA 앰프가 버퍼링할 수 있도록 합니다(처음 몇 초가 끊길 때 유용합니다). 0 = 기본값.",
+  "renderer.fluxContinu": "트랙 간 연속 스트림",
+  "renderer.fluxContinuHint": "연속된 두 트랙을 매끄럽게 잇지 못하는 플레이어용: 같은 포맷의 연속 트랙을 처리 없이 하나의 WAV 스트림으로 보냅니다. 포맷이 처음 바뀌면 일반 연결 방식으로 돌아갑니다.",
   "renderer.probeFailed": "렌더러의 기능을 읽을 수 없습니다. 서버가 정확한 원인을 확인하지 못했습니다.",
   "renderer.probeOffline": "렌더러가 현재 감지되지 않습니다. 전원과 같은 네트워크 연결을 확인하세요.",
   "renderer.probeEmptySink": "렌더러가 응답했지만 사용 가능한 오디오 기능을 공개하지 않았습니다. 자동 설정으로도 재생될 수 있습니다.",

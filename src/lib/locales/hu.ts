@@ -1783,6 +1783,8 @@ export default {
   "renderer.wav24Refused": "A felderítés válaszolt: ez a készülék sem audio/L24, sem audio/wav formátumot nem hirdet. A 24 bit zárva marad — elküldve némaságot adna.",
   "renderer.startDelay": "Indítási késleltetés",
   "renderer.startDelayHint": "Szünet a lejátszás indulása előtt, hogy egy DLNA-erősítő pufferelhessen (segít, ha az első másodpercek akadoznak). 0 = alapértelmezett.",
+  "renderer.fluxContinu": "Folyamatos adatfolyam a számok között",
+  "renderer.fluxContinuHint": "Olyan lejátszókhoz, amelyek rosszul illesztenek össze két egymást követő számot: az azonos formátumú egymást követő számok egyetlen WAV-folyamként, feldolgozás nélkül kerülnek elküldésre. Az első formátumváltásnál visszaáll a szokásos számváltás.",
   "renderer.probeFailed": "Nem sikerült kiolvasni a renderelő képességeit. A kiszolgáló nem tudta meghatározni a pontos okot.",
   "renderer.probeOffline": "A renderelő jelenleg nem észlelhető. Ellenőrizd, hogy be van-e kapcsolva, és ugyanazon a hálózaton van-e.",
   "renderer.probeEmptySink": "A renderelő válaszol, de nem tesz közzé használható hangképességeket. A lejátszás automatikus beállításokkal ettől még működhet.",
