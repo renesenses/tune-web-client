@@ -64,6 +64,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
+  import { labelDe } from '../../lib/artistesDuLabel';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -1163,6 +1164,32 @@ import { ICONES } from '../../lib/menuPiste';
 
   const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'album_id' in t ? (t.album_id ?? null) : null;
+  /**
+   * web#2534 (ancienne web#2522, demande de Bertrand, réunion communautaire
+   * du 29/10) — le LABEL de l'album en cours, lien vers ce label dans la
+   * Bibliothèque. Lu sur la piste quand elle le porte, sinon sur l'album de
+   * la bibliothèque (`GET /library/albums/{id}`), une fois par album. Une
+   * piste de service sans label connu n'affiche rien : pas de lien mort.
+   */
+  let labelAlbum = $state<string | null>(null);
+  let labelLuPourAlbum: number | null = null;
+  $effect(() => {
+    const direct = labelDe(displayTrack as any);
+    const brut = albumIdOf(displayTrack);
+    const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
+    if (direct || id == null) {
+      labelLuPourAlbum = null;
+      labelAlbum = direct;
+      return;
+    }
+    if (id === labelLuPourAlbum) return;
+    labelLuPourAlbum = id;
+    labelAlbum = null;
+    api.getAlbum(id).then(
+      (a) => { if (labelLuPourAlbum === id) labelAlbum = labelDe(a as any); },
+      () => {},
+    );
+  });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
   const channelsOf = (t: Track | NowPlaying | null | undefined) =>
@@ -2024,6 +2051,13 @@ import { ICONES } from '../../lib/menuPiste';
               <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
               {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
             </div>
+          {/if}
+          {#if !isRadio && labelAlbum}
+            <!-- web#2534 — le label de l'album, qui ouvre ce label dans la Bibliothèque. -->
+            <p class="track-label" data-np-label>
+              <span class="track-label-tag">{$t('v2.tcol.label' as any)}</span>
+              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAlbum }} />
+            </p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -3377,6 +3411,31 @@ import { ICONES } from '../../lib/menuPiste';
     min-width: 0;
     flex: 0 1 auto;
     margin-bottom: 0;
+  }
+
+  /* web#2534 — le label, sous l'album, plus discret que lui. */
+  .track-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 var(--space-xs);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+  .track-label-tag {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .track-info.center .track-label {
+    justify-content: center;
+  }
+  :global([data-kiosk]) .track-label {
+    display: none;
   }
 
   .track-album.clickable {
