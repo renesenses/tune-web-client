@@ -26,6 +26,8 @@ import { get } from 'svelte/store';
 import { activeView, gestesNavigationService, pendingLibraryAlbum, type GestesNavigationService } from './stores/navigation';
 import { albumDeServiceDe } from './routageAlbum';
 import { estPisteLocale } from './pisteFile';
+import { viserDetail } from './historiqueCoquille';
+import { cleDetailAlbum } from './cleDetailAlbum';
 
 export function ouvertureAlbumDePiste(
   piste: any,
@@ -36,6 +38,14 @@ export function ouvertureAlbumDePiste(
     const id = piste.album_id;
     if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) return null;
     return () => {
+      // #2459 (signalement du 10/11, rc11) — même arrivée que « Aller à
+      // l'album » du menu (#2460) : la fiche est la destination, sans cran de
+      // grille de Bibliothèque intermédiaire ; un seul Retour rend l'écran de
+      // départ (la playlist, son détail ouvert).
+      if (get(activeView) !== 'library') {
+        const cle = cleDetailAlbum({ id });
+        if (cle) viserDetail(cle);
+      }
       pendingLibraryAlbum.set(id);
       activeView.set('library');
     };
