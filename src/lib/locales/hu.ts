@@ -198,6 +198,8 @@ export default {
   "playlist.moveUp": "Mozgatás felfelé",
   "playlist.moveDown": "Mozgatás lefelé",
   "favorites.serviceSyncFailed": "A kedvenc megmaradt a Tune-ban, de a(z) {service} nem követte: {motif}",
+  "favorites.spotifyReconnect": "Csatlakoztassa újra egyszer a Spotify-t a kedvencei kezeléséhez.",
+  "favorites.spotifyReconnectAction": "Spotify újracsatlakoztatása",
   "favorites.miroirEnAttente": "A kedvenc megmaradt a Tune-ban; a(z) {service} még nem követte ({motif}). A Tune újra próbálja.",
   "v2.fav.miroirEnAttente": "Néhány szolgáltatáskedvenc még a szolgáltatására vár. A Tune újra próbálja.",
   "v2.fav.miroirEchec": "A szolgáltatáskedvencek legutóbbi frissítése nem sikerült. A lista elavult lehet.",

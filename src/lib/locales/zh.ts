@@ -504,6 +504,8 @@ export default {
   'playlist.importing': '导入中...',
   'playlist.manager': '播放列表管理器',
   'favorites.serviceSyncFailed': '收藏已保留在 Tune 中，但 {service} 未同步：{motif}',
+  "favorites.spotifyReconnect": "请重新连接一次 Spotify 以管理您的收藏。",
+  "favorites.spotifyReconnectAction": "重新连接 Spotify",
   "favorites.miroirEnAttente": "收藏已保留在 Tune 中；{service} 尚未同步（{motif}）。Tune 将重试。",
   "v2.fav.miroirEnAttente": "部分服务收藏仍在等待其服务同步。Tune 将重试。",
   "v2.fav.miroirEchec": "上次刷新服务收藏失败。列表可能不是最新的。",

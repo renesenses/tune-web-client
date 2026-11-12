@@ -566,6 +566,8 @@ export default {
   "playlist.importing": "Importerer...",
   "playlist.manager": "Spillelistebehandler",
   "favorites.serviceSyncFailed": "Favoritten er beholdt i Tune, men {service} fulgte ikke med: {motif}",
+  "favorites.spotifyReconnect": "Koble til Spotify på nytt én gang for å administrere favorittene dine.",
+  "favorites.spotifyReconnectAction": "Koble til Spotify på nytt",
   "favorites.miroirEnAttente": "Favoritten er beholdt i Tune; {service} har ikke fulgt med ennå ({motif}). Tune prøver igjen.",
   "v2.fav.miroirEnAttente": "Noen tjenestefavoritter venter fortsatt på tjenesten sin. Tune prøver igjen.",
   "v2.fav.miroirEchec": "Siste oppdatering av tjenestefavorittene mislyktes. Listen kan være utdatert.",

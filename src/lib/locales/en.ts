@@ -604,6 +604,8 @@ export default {
   'playlist.importing': 'Importing...',
   'playlist.manager': 'Playlist Manager',
   'favorites.serviceSyncFailed': 'Favourite kept in Tune, but {service} did not follow: {motif}',
+  "favorites.spotifyReconnect": "Reconnect Spotify once to manage your favourites.",
+  "favorites.spotifyReconnectAction": "Reconnect Spotify",
   "favorites.miroirEnAttente": "Favourite kept in Tune; {service} has not followed yet ({motif}). Tune will retry.",
   "v2.fav.miroirEnAttente": "Some service favourites are still waiting for their service. Tune will retry.",
   "v2.fav.miroirEchec": "The last refresh of service favourites failed. The list may be out of date.",

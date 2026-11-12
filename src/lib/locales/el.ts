@@ -566,6 +566,8 @@ export default {
   "playlist.importing": "Εισαγωγή...",
   "playlist.manager": "Διαχείριση λιστών αναπαραγωγής",
   "favorites.serviceSyncFailed": "Το αγαπημένο διατηρήθηκε στο Tune, αλλά το {service} δεν ακολούθησε: {motif}",
+  "favorites.spotifyReconnect": "Επανασυνδέστε το Spotify μία φορά για να διαχειρίζεστε τα αγαπημένα σας.",
+  "favorites.spotifyReconnectAction": "Επανασύνδεση Spotify",
   "favorites.miroirEnAttente": "Το αγαπημένο διατηρήθηκε στο Tune· το {service} δεν έχει ακολουθήσει ακόμη ({motif}). Το Tune θα δοκιμάσει ξανά.",
   "v2.fav.miroirEnAttente": "Ορισμένα αγαπημένα υπηρεσιών περιμένουν ακόμη την υπηρεσία τους. Το Tune θα δοκιμάσει ξανά.",
   "v2.fav.miroirEchec": "Η τελευταία ανανέωση των αγαπημένων υπηρεσιών απέτυχε. Η λίστα μπορεί να μην είναι ενημερωμένη.",
