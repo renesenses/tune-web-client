@@ -1013,6 +1013,34 @@ export async function getSortiesAsioSansZone(): Promise<import('./zoneHorsBacken
     return [];
   }
 }
+/** tune-server-rust#7836 — une zone supprimée (masquée), restaurable. */
+export interface ZoneSupprimee {
+  id: number;
+  name: string;
+  output_device_id: string | null;
+  output_type: string | null;
+  motif: string | null;
+  masquee_le: string | null;
+  appareil_detecte: boolean;
+}
+/**
+ * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
+ * serveur ne publie pas la route (antérieur à la rc12), l'écran n'en dit rien.
+ */
+export async function getZonesSupprimees(): Promise<ZoneSupprimee[] | null> {
+  try {
+    const r = await fetchJSON<{ items?: ZoneSupprimee[] }>(
+      `${BASE}/zones/supprimees`, undefined, undefined, true,
+    );
+    return Array.isArray(r?.items) ? r.items : null;
+  } catch {
+    return null;
+  }
+}
+/** tune-server-rust#7836 — rend visible une zone supprimée, réglages gardés. */
+export function restaurerZone(id: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}/restaurer`, { method: 'POST' });
+}
 /** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
 export function getRattachementCandidats(id: number) {
   return fetchJSON<{ zone_id: number; candidats: CandidatRattachement[] }>(`${BASE}/zones/${id}/rattacher`);
