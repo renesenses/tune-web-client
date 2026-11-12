@@ -144,11 +144,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('web#2550 — Lecture en cours : le logo de la station à côté de son nom', () => {
+// web#2550 — décision de Bertrand du 12/11/2026 (rc12) : le logo, en petit,
+// dans un coin de la pochette du morceau, et plus à côté du nom.
+describe('web#2550 — Lecture en cours : le logo de la station en petit, dans le coin de la pochette', () => {
+  it('🔴 un seul logo : dans le coin de la pochette, plus sur la ligne du nom', async () => {
+    miennes = [FIP_MIENNE];
+    const h = await poser(RADIO);
+    expect(h.querySelectorAll('[data-logo-station]')).toHaveLength(1);
+    expect(h.querySelector('.np-logo-coin[data-logo-station]'), 'pas de logo dans le coin de la pochette').not.toBeNull();
+    expect(h.querySelector('.radio-station-ligne [data-logo-station]')).toBeNull();
+    // La pochette du morceau reste l'image principale.
+    const pochette = h.querySelector('.artwork-clickable > .album-art img, .artwork-clickable img');
+    expect(pochette?.getAttribute('src') ?? '').toContain('kind-of-blue');
+  });
+
   it('🔴 pochette du morceau affichée : le logo de la station est là, devant le nom', async () => {
     miennes = [FIP_MIENNE];
     const h = await poser(RADIO);
-    const logo = h.querySelector('.radio-station-ligne [data-logo-station]');
+    const logo = h.querySelector('.artwork-clickable [data-logo-station]');
     expect(logo, 'le logo de la station n’apparaît nulle part').not.toBeNull();
     expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
   });
@@ -163,7 +176,7 @@ describe('web#2550 — Lecture en cours : le logo de la station à côté de son
   it('🔴 station de « Mes radios » SANS logo (rc10) : le logo de l’annuaire du même nom', async () => {
     miennes = [{ ...FIP_MIENNE, logo_url: null, annuaire: { radio_metadata_key: 'fip' } }];
     const h = await poser(RADIO);
-    const logo = h.querySelector('.radio-station-ligne [data-logo-station]');
+    const logo = h.querySelector('.artwork-clickable [data-logo-station]');
     expect(logo, 'Mes radios sans logo : rien à côté du nom (#2550, rc10)').not.toBeNull();
     expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
   });
