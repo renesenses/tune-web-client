@@ -1013,6 +1013,34 @@ export async function getSortiesAsioSansZone(): Promise<import('./zoneHorsBacken
     return [];
   }
 }
+/** tune-server-rust#7836 — une zone supprimée (masquée), restaurable. */
+export interface ZoneSupprimee {
+  id: number;
+  name: string;
+  output_device_id: string | null;
+  output_type: string | null;
+  motif: string | null;
+  masquee_le: string | null;
+  appareil_detecte: boolean;
+}
+/**
+ * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
+ * serveur ne publie pas la route (antérieur à la rc12), l'écran n'en dit rien.
+ */
+export async function getZonesSupprimees(): Promise<ZoneSupprimee[] | null> {
+  try {
+    const r = await fetchJSON<{ items?: ZoneSupprimee[] }>(
+      `${BASE}/zones/supprimees`, undefined, undefined, true,
+    );
+    return Array.isArray(r?.items) ? r.items : null;
+  } catch {
+    return null;
+  }
+}
+/** tune-server-rust#7836 — rend visible une zone supprimée, réglages gardés. */
+export function restaurerZone(id: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}/restaurer`, { method: 'POST' });
+}
 /** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
 export function getRattachementCandidats(id: number) {
   return fetchJSON<{ zone_id: number; candidats: CandidatRattachement[] }>(`${BASE}/zones/${id}/rattacher`);
@@ -1237,6 +1265,17 @@ export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'rel
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_radio_title: mode }),
+  });
+}
+
+/** web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » : sur
+ *  un renderer DLNA qui raccorde mal deux pistes, une suite de pistes de même
+ *  format part en un seul flux WAV. Par zone, désactivé par défaut ; pris en
+ *  compte à la lecture suivante. */
+export function updateZoneDlnaFluxContinu(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_flux_continu: enabled }),
   });
 }
 
@@ -6761,6 +6800,12 @@ export interface StreamingFavorite {
   title?: string | null;
   artist?: string | null;
   album?: string | null;
+  /**
+   * web#2759 — l'identifiant de l'album chez le service (page d'album pour
+   * Bandcamp), pour un favori PISTE. Pas encore servi par le serveur au
+   * 12/11/2026 : lu s'il arrive, sinon `undefined`.
+   */
+  album_id_service?: string | null;
   cover_url?: string | null;
   /**
    * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).
@@ -9215,7 +9260,17 @@ export function getArtistsWithoutImage(limit = 200, offset = 0) {
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
-  return fetchJSON<{ installed: boolean; version: string | null; status: string }>(
+  // web#2441 — `latest_version`, `up_to_date`, `latest_error` : la dernière
+  // version publiée de yt-dlp (tune-server-rust#7166) ; absents d'un serveur
+  // antérieur. Lus par `lib/moduleYoutube`.
+  return fetchJSON<{
+    installed: boolean;
+    version: string | null;
+    status: string;
+    latest_version?: string | null;
+    up_to_date?: boolean | null;
+    latest_error?: string | null;
+  }>(
     `${BASE}/system/youtube/status`
   );
 }
@@ -9307,15 +9362,12 @@ export function getServerDiagnostics() {
     // capteur lisible (macOS, Windows, conteneur, VM). Optionnel : un serveur
     // antérieur n'envoie pas le champ. Lu par `lib/temperatureProcesseur.ts`.
     cpu_temp_c?: number | null;
-    // tune-server-rust#5410 — `null` si la garde thermique mesure, sinon le
-    // motif du bridage des analyses de fond (`temperature_illisible`,
-    // `temperature_figee`). Absent chez un serveur antérieur.
-    analyses_bridees?: string | null;
-    analyses_bridees_largeur?: number | null;
-    // tune-server-rust#6713 — le motif quand la température est illisible
-    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
-    // un serveur antérieur.
-    analyses_bridage_leve?: string | null;
+    // tune-server-rust#6450 / #8011 — `null` si la garde thermique mesure,
+    // sinon le motif (`temperature_illisible`, `temperature_figee`) : les
+    // analyses de fond tournent à la vitesse réglée sans surveillance de la
+    // chaleur. Remplace `analyses_bridees` et `analyses_bridage_leve`.
+    // Absent chez un serveur antérieur.
+    temperature_illisible?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
