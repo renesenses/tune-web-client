@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "バックグラウンド処理は *{tab}* で確認できます。",
   "settings.perZoneScopeHint": "これらの設定は各ゾーン固有です。聴取ではなく出力に従います。",
   "settings.levelsOpenMoreTabs": "アドバンストとエキスパートのレベルでは他のタブが開きます。",
-  "settings.themePalettesHint": "7 種類のパレット。新しいクライアント固有の設定です — 現在のインターフェースのテーマは別のままです。",
+  "settings.themePalettesHint": "新しいクライアント固有の設定です — 現在のインターフェースのテーマは別のままです。",
   "settings.themeDarkGrey": "ダークグレー",
   "settings.themeMozaiklabs": "Mozaiklabs（チャコール / オレンジ）",
   "settings.themeMozaiklabsLogo": "Mozaiklabs（ロゴ：黒 / モザイク）",

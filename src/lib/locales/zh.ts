@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "后台处理可在 *{tab}* 中查看。",
   "settings.perZoneScopeHint": "这些设置属于每个区域：它们跟随输出，而非收听。",
   "settings.levelsOpenMoreTabs": "高级和专家级别会打开更多标签页。",
-  "settings.themePalettesHint": "七种配色。新客户端专有的设置 — 当前界面的主题保持独立。",
+  "settings.themePalettesHint": "新客户端专有的设置 — 当前界面的主题保持独立。",
   "settings.themeDarkGrey": "深灰",
   "settings.themeMozaiklabs": "Mozaiklabs（炭灰 / 橙色）",
   "settings.themeMozaiklabsLogo": "Mozaiklabs（标志：黑色 / 马赛克）",

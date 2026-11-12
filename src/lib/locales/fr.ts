@@ -2056,7 +2056,7 @@ export default {
   "settings.backgroundTasksHint": "Les traitements de fond se suivent dans *{tab}*.",
   "settings.perZoneScopeHint": "Ces réglages sont propres à CHAQUE zone : ils suivent la sortie, pas l'écoute.",
   "settings.levelsOpenMoreTabs": "Les niveaux Avancé et Expert ouvrent d'autres onglets.",
-  "settings.themePalettesHint": "Sept palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
+  "settings.themePalettesHint": "Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
   "settings.themeDarkGrey": "Gris foncé",
   "settings.themeMozaiklabs": "Mozaiklabs (anthracite / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo : noir / mosaïque)",

@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Le elaborazioni in background si seguono in *{tab}*.",
   "settings.perZoneScopeHint": "Queste impostazioni sono proprie di OGNI zona: seguono l'uscita, non l'ascolto.",
   "settings.levelsOpenMoreTabs": "I livelli Avanzato ed Esperto aprono altre schede.",
-  "settings.themePalettesHint": "Sette palette. Impostazione propria del nuovo client — il tema dell'interfaccia attuale resta separato.",
+  "settings.themePalettesHint": "Impostazione propria del nuovo client — il tema dell'interfaccia attuale resta separato.",
   "settings.themeDarkGrey": "Grigio scuro",
   "settings.themeMozaiklabs": "Mozaiklabs (antracite / arancione)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: nero / mosaico)",

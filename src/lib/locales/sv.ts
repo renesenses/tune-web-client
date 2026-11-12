@@ -3247,7 +3247,7 @@ export default {
   "settings.backgroundTasksHint": "Bakgrundsbearbetningen följs i *{tab}*.",
   "settings.perZoneScopeHint": "De här inställningarna hör till VARJE zon: de följer utgången, inte lyssnandet.",
   "settings.levelsOpenMoreTabs": "Nivåerna Avancerad och Expert öppnar fler flikar.",
-  "settings.themePalettesHint": "Sju paletter. Egen inställning för den nya klienten — det nuvarande gränssnittets tema förblir separat.",
+  "settings.themePalettesHint": "Egen inställning för den nya klienten — det nuvarande gränssnittets tema förblir separat.",
   "settings.themeDarkGrey": "Mörkgrå",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logotyp: svart / mosaik)",

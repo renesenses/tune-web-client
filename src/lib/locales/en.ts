@@ -2053,7 +2053,7 @@ export default {
   "settings.backgroundTasksHint": "Background processing is followed in *{tab}*.",
   "settings.perZoneScopeHint": "These settings belong to EACH zone: they follow the output, not the listening.",
   "settings.levelsOpenMoreTabs": "The Advanced and Expert levels open further tabs.",
-  "settings.themePalettesHint": "Seven palettes. Specific to the new client — the current interface keeps its own theme.",
+  "settings.themePalettesHint": "Specific to the new client — the current interface keeps its own theme.",
   "settings.themeDarkGrey": "Dark grey",
   "settings.themeMozaiklabs": "Mozaiklabs (charcoal / orange)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: black / mosaic)",

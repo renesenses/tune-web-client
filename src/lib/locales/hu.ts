@@ -3202,7 +3202,7 @@ export default {
   "settings.backgroundTasksHint": "A háttérfeldolgozás a *{tab}* alatt követhető.",
   "settings.perZoneScopeHint": "Ezek a beállítások MINDEN zónához külön tartoznak: a kimenetet követik, nem a hallgatást.",
   "settings.levelsOpenMoreTabs": "A Haladó és a Szakértő szint további füleket nyit meg.",
-  "settings.themePalettesHint": "Hét paletta. Az új kliens saját beállítása — a jelenlegi felület témája külön marad.",
+  "settings.themePalettesHint": "Az új kliens saját beállítása — a jelenlegi felület témája külön marad.",
   "settings.themeDarkGrey": "Sötétszürke",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / narancs)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logó: fekete / mozaik)",

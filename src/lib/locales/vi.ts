@@ -1909,7 +1909,7 @@ export default {
   "settings.backgroundTasksHint": "Các tác vụ xử lý nền được theo dõi trong *{tab}*.",
   "settings.perZoneScopeHint": "Các cài đặt này thuộc về TỪNG vùng phát: chúng đi theo đầu ra, không theo phiên nghe.",
   "settings.levelsOpenMoreTabs": "Các cấp Nâng cao và Chuyên gia mở thêm các tab khác.",
-  "settings.themePalettesHint": "Bảy bảng màu. Riêng cho ứng dụng mới — giao diện hiện tại giữ chủ đề riêng của nó.",
+  "settings.themePalettesHint": "Riêng cho ứng dụng mới — giao diện hiện tại giữ chủ đề riêng của nó.",
   "settings.themeDarkGrey": "Xám đậm",
   "settings.themeMozaiklabs": "Mozaiklabs (xám than / cam)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: đen / khảm màu)",

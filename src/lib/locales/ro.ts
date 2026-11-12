@@ -3248,7 +3248,7 @@ export default {
   "settings.backgroundTasksHint": "Prelucrările de fundal se urmăresc în *{tab}*.",
   "settings.perZoneScopeHint": "Aceste setări aparțin FIECĂREI zone: urmează ieșirea, nu ascultarea.",
   "settings.levelsOpenMoreTabs": "Nivelurile Avansat și Expert deschid alte file.",
-  "settings.themePalettesHint": "Șapte palete. Setare proprie noului client — tema interfeței actuale rămâne separată.",
+  "settings.themePalettesHint": "Setare proprie noului client — tema interfeței actuale rămâne separată.",
   "settings.themeDarkGrey": "Gri închis",
   "settings.themeMozaiklabs": "Mozaiklabs (antracit / portocaliu)",
   "settings.themeMozaiklabsLogo": "Mozaiklabs (logo: negru / mozaic)",
