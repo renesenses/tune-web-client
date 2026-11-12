@@ -311,7 +311,9 @@
     // playlist — `start_index` du serveur ne connaît que ce dernier. Les
     // radios n'y vont pas : elles ne s'envoient pas en pistes.
     if (!ordreNaturel) {
-      void lireListe(sansRadios(pistesVues.slice(startIndex)), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+      const pistes = sansRadios(pistesVues.slice(startIndex));
+      if (!pistes.length) { notifications.error($tr('library.noTracks')); return; }
+      void lireListe(pistes, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {

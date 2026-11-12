@@ -192,6 +192,32 @@ describe('(b) les lignes radio dans la playlist', () => {
     expect(r.querySelector('[data-radio-indisponible]')?.textContent).toBe(fr['v2.pl.radioUnavailable']);
     const titre = r.querySelector<HTMLButtonElement>('button.titre')!;
     expect(titre.disabled).toBe(true);
+    titre.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await souffler();
+    expect(lecture(), 'une station indisponible a été lancée').toBeUndefined();
+  });
+
+  it('🔴 en liste TRIÉE, cliquer la radio la lit encore par la playlist, à son rang réel', async () => {
+    await ouvrirPlaylist();
+    const tri = hote!.querySelector<HTMLSelectElement>('.tricol select')!;
+    tri.value = 'title';
+    tri.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSync();
+    ligne('FIP').querySelector<HTMLButtonElement>('button.titre')!.click();
+    await attendreQue(() => !!lecture(), 'la lecture');
+    expect(lecture()!.body).toMatchObject({ playlist_id: 12, start_index: 1 });
+    expect(lecture()!.body.track_ids).toBeUndefined();
+  });
+
+  it('🔴 « Ajouter à la file » n’envoie pas les radios comme des pistes', async () => {
+    await ouvrirPlaylist();
+    hote!.querySelector<HTMLButtonElement>('[data-lecture-options]')!.click();
+    await attendreQue(() => !!document.querySelector('[data-ajouter-file]'), 'l’entrée « Ajouter à la file »');
+    document.querySelector<HTMLElement>('[data-ajouter-file]')!.click();
+    await attendreQue(() => requetes.some((r) => r.method === 'POST' && /\/zones\/1\/queue\/add/.test(r.url)), 'la file');
+    const corps = requetes.find((r) => /\/zones\/1\/queue\/add/.test(r.url))!.body;
+    expect(JSON.stringify(corps)).not.toContain('"radio"');
+    expect(corps.track_ids).toEqual([501]);
   });
 
   it('🔴 cliquer la radio la lit par la playlist, à son rang réel', async () => {
