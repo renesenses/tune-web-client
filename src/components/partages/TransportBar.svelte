@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
@@ -1708,11 +1709,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           disabled={!volumeMobileAutorise}
           {...{ orient: 'vertical' }}
           aria-label="Volume"
+          aria-valuetext={libelleVolumeZone($currentZone as any, mobileVol) ?? undefined}
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
-          <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+          <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+          <span class="mobile-volume-value" data-volume-mobile>{libelleVolumeZone($currentZone as any, mobileVol) ?? Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
         <MentionGroupe zoneId={$currentZone?.id} />
