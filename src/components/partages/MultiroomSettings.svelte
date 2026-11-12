@@ -154,27 +154,27 @@
 <style>
   .multiroom-settings { padding: 1rem 1.2rem; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04); border-radius: 12px; margin-bottom: 1rem; }
   .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
-  .header h2 { font-size: 1rem; margin: 0; color: var(--tune-text); }
+  .header h2 { font-size: calc(1rem * var(--v2-txt-echelle, 1)); margin: 0; color: var(--tune-text); }
   .refresh { background: transparent; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); border-radius: 6px; padding: 0.2rem 0.6rem; color: var(--tune-text); cursor: pointer; }
-  .hint { font-size: 0.8rem; color: var(--tune-text-muted); margin: 0 0 0.8rem 0; }
+  .hint { font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin: 0 0 0.8rem 0; }
   .state { padding: 1rem; text-align: center; color: var(--tune-text-muted); }
   .pairs-grid { display: flex; flex-direction: column; gap: 0.5rem; }
   .pair { display: grid; grid-template-columns: 130px 1fr 60px 24px 100px; gap: 0.6rem; align-items: center; padding: 0.4rem 0.6rem; border-radius: 8px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06); }
-  .pair-label { font-size: 0.85rem; color: var(--tune-text); text-transform: uppercase; }
+  .pair-label { font-size: calc(0.85rem * var(--v2-txt-echelle, 1)); color: var(--tune-text); text-transform: uppercase; }
   .pair input[type="range"] { accent-color: var(--tune-accent, #6366f1); }
-  .num { width: 60px; padding: 0.2rem 0.3rem; border-radius: 4px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); background: transparent; color: var(--tune-text); font-size: 0.85rem; }
-  .unit { font-size: 0.75rem; color: var(--tune-text-muted); }
-  .save { font-size: 0.8rem; padding: 0.3rem 0.7rem; border-radius: 6px; border: none; background: var(--tune-accent, #6366f1); color: white; cursor: pointer; }
-  .saved { font-size: 0.8rem; color: #10b981; margin: 0.6rem 0 0 0; }
+  .num { width: 60px; padding: 0.2rem 0.3rem; border-radius: 4px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); background: transparent; color: var(--tune-text); font-size: calc(0.85rem * var(--v2-txt-echelle, 1)); }
+  .unit { font-size: calc(0.75rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .save { font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); padding: 0.3rem 0.7rem; border-radius: 6px; border: none; background: var(--tune-accent, #6366f1); color: white; cursor: pointer; }
+  .saved { font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); color: #10b981; margin: 0.6rem 0 0 0; }
 
   .zone-cleanup { padding: 1rem 1.2rem; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.04); border-radius: 12px; margin-bottom: 1rem; }
-  .zone-cleanup h2 { font-size: 1rem; margin: 0 0 0.4rem 0; color: var(--tune-text); }
+  .zone-cleanup h2 { font-size: calc(1rem * var(--v2-txt-echelle, 1)); margin: 0 0 0.4rem 0; color: var(--tune-text); }
   .cleanup-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .zone-count { font-size: 0.85rem; color: var(--tune-text-muted); }
-  .cleanup-btn { font-size: 0.85rem; padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); background: transparent; color: var(--tune-text); cursor: pointer; transition: all 0.15s; }
+  .zone-count { font-size: calc(0.85rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .cleanup-btn { font-size: calc(0.85rem * var(--v2-txt-echelle, 1)); padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.4); background: transparent; color: var(--tune-text); cursor: pointer; transition: all 0.15s; }
   .cleanup-btn:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); }
   .cleanup-btn:disabled { opacity: 0.5; cursor: default; }
-  .cleanup-result { font-size: 0.8rem; color: #10b981; margin: 0.5rem 0 0 0; }
+  .cleanup-result { font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); color: #10b981; margin: 0.5rem 0 0 0; }
 
   @media (max-width: 700px) {
     .pair { grid-template-columns: 1fr; }

@@ -34,7 +34,7 @@
 </span>
 
 <style>
-  .ez{display:inline-flex; align-items:center; gap:6px; font:600 10.5px var(--v2-sans);
+  .ez{display:inline-flex; align-items:center; gap:6px; font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     letter-spacing:.03em; color:var(--v2-txt3); flex:0 0 auto}
   .ez svg{width:10px; height:10px; flex:0 0 auto}
   .ez .lbl{white-space:nowrap}

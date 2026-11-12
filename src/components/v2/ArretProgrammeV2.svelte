@@ -228,21 +228,21 @@
 
 <style>
   .arret-programme { display: flex; flex-direction: column; gap: 12px; }
-  .hint { margin: 0; font: 400 12px var(--v2-sans); color: var(--v2-txt2); }
+  .hint { margin: 0; font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .hint.avert { color: var(--v2-txt); }
   .champ { display: flex; flex-direction: column; gap: 6px; }
-  .lbl { font: 500 13px var(--v2-sans); color: var(--v2-txt); }
-  .ligne { display: flex; align-items: center; gap: 8px; font: 400 14px var(--v2-sans); color: var(--v2-txt); cursor: pointer; }
+  .lbl { font: 500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  .ligne { display: flex; align-items: center; gap: 8px; font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); cursor: pointer; }
   .champ input[type='time'] {
     align-self: flex-start;
     padding: 9px 11px; border-radius: var(--v2-r-input, 8px); border: 1px solid var(--v2-line2);
-    background: var(--v2-bg); color: var(--v2-txt); font: 400 14px var(--v2-sans);
+    background: var(--v2-bg); color: var(--v2-txt); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
   .jours { display: flex; gap: 6px; flex-wrap: wrap; }
   .jour {
     min-width: 42px; padding: 7px 0; border-radius: var(--v2-r-pill); cursor: pointer;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2);
-    font: 600 12px var(--v2-sans);
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
   .jour.on { background: var(--v2-acc1); border-color: var(--v2-acc1); color: var(--v2-on-acc); }
   .zones { display: flex; flex-direction: column; gap: 4px; padding-left: 4px; }

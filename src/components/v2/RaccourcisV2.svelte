@@ -200,7 +200,7 @@
   .v2-sc{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; min-width:0; overflow-y:auto; padding:8px 30px 40px}
-  .etat{padding:26px 0; color:var(--v2-txt3); font-size:13.5px}
+  .etat{padding:26px 0; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1))}
 
   .liste{list-style:none; display:flex; flex-direction:column; gap:6px; max-width:760px}
   .ligne{display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:var(--v2-r-card);
@@ -219,9 +219,9 @@
 
   .ouvrir{flex:1; min-width:0; display:flex; align-items:center; gap:10px; border:0; background:transparent;
     color:inherit; cursor:pointer; text-align:left; padding:0; font:inherit}
-  .emo{font-size:16px; line-height:1; width:22px; text-align:center; flex:none}
-  .nm{font:600 13.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .tag{font:9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-acc1);
+  .emo{font-size:calc(16px * var(--v2-txt-echelle, 1)); line-height:1; width:22px; text-align:center; flex:none}
+  .nm{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tag{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-acc1);
     border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill); padding:1px 7px; flex:none}
 
   .actions{display:flex; gap:4px; flex:none}
@@ -234,14 +234,14 @@
   .edition{flex:1; min-width:0; display:flex; flex-direction:column; gap:8px}
   .icones{display:flex; flex-wrap:wrap; gap:3px}
   .ic{width:26px; height:26px; border:1px solid transparent; border-radius:7px; background:transparent;
-    font-size:14px; line-height:1; cursor:pointer}
+    font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .ic:hover{background:var(--v2-hover)}
   .ic.on{border-color:var(--v2-acc1); background:var(--v2-hover)}
   .ligne-edit{display:flex; gap:6px}
   .ligne-edit input{flex:1; min-width:0; background:var(--v2-bg); border:1px solid var(--v2-line2);
-    border-radius:8px; color:var(--v2-txt); font:inherit; font-size:13px; padding:7px 9px}
+    border-radius:8px; color:var(--v2-txt); font:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:7px 9px}
   .btn{border:1px solid var(--v2-line2); border-radius:8px; background:transparent; color:var(--v2-txt2);
-    font:600 12.5px var(--v2-sans); padding:7px 12px; cursor:pointer}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 12px; cursor:pointer}
   .btn:hover{color:var(--v2-txt)}
   .btn.pri{border-color:transparent; background:var(--v2-acc1); color:var(--v2-on-acc)}
   .btn.pri:disabled{opacity:.5; cursor:default}

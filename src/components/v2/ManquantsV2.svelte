@@ -344,16 +344,16 @@
 
 <style>
   .manquants { padding: 6px 0 30px; max-width: 900px; }
-  .intro { margin: 0 0 16px; color: var(--v2-txt2); font-size: 14px; }
-  .err { margin: 0 0 14px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--v2-danger-bd); color: var(--v2-danger); font-size: 13px; }
+  .intro { margin: 0 0 16px; color: var(--v2-txt2); font-size: calc(14px * var(--v2-txt-echelle, 1)); }
+  .err { margin: 0 0 14px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--v2-danger-bd); color: var(--v2-danger); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .compteurs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 0 0 22px; }
   .compteur { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px 16px; border-radius: var(--v2-r-card); background: var(--v2-surface2); border: 1px solid var(--v2-line2); cursor: pointer; text-align: left; font: inherit; color: inherit; }
   .compteur:hover { border-color: var(--v2-acc2); }
   .compteur.ouvert { border-color: var(--v2-acc2); }
-  .voir { margin-top: 6px; font: 10px var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-acc-tint); }
+  .voir { margin-top: 6px; font: calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-acc-tint); }
   .liste-bloc { margin: 0 0 24px; }
   .outils { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0 12px; }
-  .saisie { height: 34px; padding: 0 12px; border-radius: var(--v2-r-pill); border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt); font: 12.5px var(--v2-sans); }
+  .saisie { height: 34px; padding: 0 12px; border-radius: var(--v2-r-pill); border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt); font: calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
   .saisie.etroite { width: 110px; }
   .saisie:focus { outline: none; border-color: var(--v2-acc2); }
   .lignes { display: flex; flex-direction: column; gap: 6px; }
@@ -361,16 +361,16 @@
   .ligne input[type=checkbox] { flex: 0 0 auto; accent-color: var(--v2-acc2); }
   .vign { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 6px; overflow: hidden; }
   .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
-  .titre { font: 600 13px var(--v2-sans); color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .meta { font: 11.5px var(--v2-mono); color: var(--v2-txt3); }
-  .propo { font: 11.5px var(--v2-mono); color: var(--v2-acc-tint); }
+  .titre { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meta { font: calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
+  .propo { font: calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-acc-tint); }
   .sep { color: var(--v2-txt3); }
-  .depot { flex: 0 0 auto; font: 11px var(--v2-mono); color: var(--v2-acc-tint); border: 1px dashed var(--v2-acc2); border-radius: var(--v2-r-pill); padding: 4px 10px; }
-  .nom { font: 600 12px var(--v2-sans); color: var(--v2-txt2); text-transform: uppercase; letter-spacing: .05em; }
-  .n { font: 700 28px var(--v2-sans); color: var(--v2-txt); }
-  .sur { font: 11px var(--v2-mono); color: var(--v2-txt3); }
+  .depot { flex: 0 0 auto; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-acc-tint); border: 1px dashed var(--v2-acc2); border-radius: var(--v2-r-pill); padding: 4px 10px; }
+  .nom { font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); text-transform: uppercase; letter-spacing: .05em; }
+  .n { font: 700 calc(28px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  .sur { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
   .actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
   .action { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-  .source { margin: 0; font-size: 12.5px; color: var(--v2-txt3); }
-  .etat { margin: 0; font: 12px var(--v2-mono); color: var(--v2-txt2); }
+  .source { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .etat { margin: 0; font: calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt2); }
 </style>

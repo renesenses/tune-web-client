@@ -123,9 +123,9 @@
   .cles { display: flex; flex-direction: column; gap: 14px; }
   .cle { display: flex; flex-direction: column; gap: 6px; }
   .tete { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .etat { font-size: 12px; color: var(--tune-text-muted); }
+  .etat { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .etat.alerte { color: var(--tune-warning, #d97706); }
-  .hint, .verdict { margin: 0; font-size: 12px; color: var(--tune-text-muted); }
+  .hint, .verdict { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .hint a { color: var(--tune-accent); }
   .ligne { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
   input {
@@ -134,7 +134,7 @@
     background: transparent; color: var(--tune-text); font-family: monospace;
   }
   .lnk {
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: calc(12px * var(--v2-txt-echelle, 1));
     background: transparent; color: var(--tune-text);
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3));
   }

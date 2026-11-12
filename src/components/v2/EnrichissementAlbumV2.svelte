@@ -277,20 +277,20 @@
 
 <style>
   .enrichissement { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; }
-  .manque, .complet, .message, .regle, .attribution { margin: 0; font-size: 13px; }
+  .manque, .complet, .message, .regle, .attribution { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .manque { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--tune-warning, #d97706); }
   .manque svg { width: 16px; height: 16px; flex: none; }
-  .mesure { color: var(--tune-text-muted); font-size: 12px; }
+  .mesure { color: var(--tune-text-muted); font-size: calc(12px * var(--v2-txt-echelle, 1)); }
   .complet, .message, .regle, .attribution { color: var(--tune-text-muted); }
-  .attribution { font-size: 11px; }
+  .attribution { font-size: calc(11px * var(--v2-txt-echelle, 1)); }
   .gestes { display: flex; flex-wrap: wrap; gap: 6px; }
   .ghost {
-    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: calc(12px * var(--v2-txt-echelle, 1));
     background: transparent; color: var(--tune-text);
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3));
   }
   .ghost:disabled { opacity: 0.5; cursor: default; }
-  .bpm { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+  .bpm { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .bpm li { display: grid; grid-template-columns: 32px minmax(0, 1fr) 80px 90px; gap: 8px; }
   .bpm .no, .bpm .source { color: var(--tune-text-muted); }
   .bpm .titre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -298,10 +298,10 @@
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.3)); border-radius: 8px;
     padding: 10px 12px; display: flex; flex-direction: column; gap: 6px;
   }
-  .tete-prop { margin: 0; font-size: 13px; font-weight: 600; }
+  .tete-prop { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; }
   .tete-prop a { color: var(--tune-accent); }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: 13px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   dt { color: var(--tune-text-muted); }
   dd { margin: 0; }
-  .option { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .option { font-size: calc(12px * var(--v2-txt-echelle, 1)); display: flex; align-items: center; gap: 6px; }
 </style>

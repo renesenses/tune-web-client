@@ -99,7 +99,7 @@
 </PanneauL1>
 
 <style>
-  .etat { margin: 0; color: var(--v2-txt3); font: 400 12px var(--v2-sans); }
+  .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
   li { min-width: 0; }
@@ -107,7 +107,7 @@
     display: block; width: 100%; text-align: left; min-width: 0;
     padding: 5px 10px; border-radius: var(--v2-r-pill);
     border: 1px solid var(--v2-line2); background: var(--v2-surface);
-    color: var(--v2-txt2); font: 500 12px var(--v2-sans); cursor: pointer;
+    color: var(--v2-txt2); font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   button:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }

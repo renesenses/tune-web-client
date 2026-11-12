@@ -167,7 +167,7 @@
   .rr{position:relative; display:flex; align-items:center; width:min(380px, 100%); flex:0 1 380px}
   .rr svg{position:absolute; left:12px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
   .rr input{width:100%; height:38px; border-radius:10px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 12px 0 35px; outline:none}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 12px 0 35px; outline:none}
   .rr input::placeholder{color:var(--v2-txt3)}
   .rr input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .rr-liste{position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:30; margin:0; padding:4px; list-style:none;
@@ -176,11 +176,11 @@
   .rr-liste[hidden]{display:none}
   .rr-liste li{display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:8px; cursor:pointer; color:var(--v2-txt2)}
   .rr-liste li.actif{background:var(--v2-hover); color:var(--v2-txt)}
-  .rr-lib{font-size:13px; font-weight:600; color:var(--v2-txt)}
-  .rr-chemin{font-size:11.5px; color:var(--v2-txt3)}
-  .rr-masque{align-self:flex-start; margin-top:2px; font-size:10.5px; color:var(--v2-txt2);
+  .rr-lib{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt)}
+  .rr-chemin{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .rr-masque{align-self:flex-start; margin-top:2px; font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2);
     border:1px solid var(--v2-line2); border-radius:6px; padding:1px 6px}
-  .rr-liste li.rr-vide{cursor:default; font-size:12px; color:var(--v2-txt3)}
+  .rr-liste li.rr-vide{cursor:default; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .rr-annonce{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   @media (max-width: 720px){ .rr{flex-basis:100%; width:100%} }
 </style>

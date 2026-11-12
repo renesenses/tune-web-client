@@ -86,7 +86,7 @@
     border-bottom: 1px solid var(--tune-border);
   }
   .drawer-titres { min-width: 0; }
-  .drawer-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
+  .drawer-header h3 { font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 600; margin: 0; }
   .close-btn {
     background: none; border: none; color: var(--tune-text-muted);
     cursor: pointer; padding: 4px; display: inline-flex;

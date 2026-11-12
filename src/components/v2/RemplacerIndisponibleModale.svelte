@@ -136,12 +136,12 @@
     background: var(--v2-surface); color: var(--v2-txt); border: 1px solid var(--v2-line2);
     border-radius: var(--v2-r-card); padding: 20px 22px 22px; font-family: var(--v2-sans);
   }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 32px 12px 0; }
-  h3 { font: 600 11px var(--v2-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--v2-txt3); margin: 16px 0 6px; }
-  .aide { color: var(--v2-txt2); font-size: 13px; margin: 0 0 10px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 32px 12px 0; }
+  h3 { font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--v2-txt3); margin: 16px 0 6px; }
+  .aide { color: var(--v2-txt2); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin: 0 0 10px; }
   .fermer {
     position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: 0; border-radius: 8px;
-    background: transparent; color: var(--v2-txt3); font-size: 20px; line-height: 1; cursor: pointer;
+    background: transparent; color: var(--v2-txt3); font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
   .liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -153,13 +153,13 @@
   .ligne { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
   .vig { width: 44px; height: 44px; }
   .txt { display: grid; min-width: 0; }
-  .t { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .s { color: var(--v2-txt3); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .duree { font: 12px var(--v2-mono); color: var(--v2-txt2); }
-  .score { font: 600 12px var(--v2-mono); color: var(--v2-txt2); white-space: nowrap; }
+  .t { font-weight: 600; font-size: calc(13.5px * var(--v2-txt-echelle, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s { color: var(--v2-txt3); font-size: calc(12px * var(--v2-txt-echelle, 1)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .duree { font: calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt2); }
+  .score { font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt2); white-space: nowrap; }
   .score.sur { color: var(--v2-acc1); }
-  .badge { margin-left: 6px; font-size: 10px; text-transform: uppercase; }
-  button.pri, button.sec { border-radius: 8px; font: 600 12.5px var(--v2-sans); padding: 6px 12px; cursor: pointer; }
+  .badge { margin-left: 6px; font-size: calc(10px * var(--v2-txt-echelle, 1)); text-transform: uppercase; }
+  button.pri, button.sec { border-radius: 8px; font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding: 6px 12px; cursor: pointer; }
   .pri { border: 0; background: var(--v2-acc1); color: var(--v2-on-acc); }
   .pri:disabled { opacity: .5; cursor: default; }
   .sec { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2); }

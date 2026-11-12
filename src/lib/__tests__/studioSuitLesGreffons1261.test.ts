@@ -89,7 +89,8 @@ describe('#1261 — la section STUDIO suit l’état réel des greffons', () => 
 
   it('🔴 la barre et l’écran Extensions sont branchés sur ce filtre', () => {
     const barre = readFileSync('src/components/v2/Sidebar.svelte', 'utf-8');
-    expect(barre).toMatch(/\{#each studioVisible as it/);
+    // rc12 : le groupe se replie (intertitre repliable) ; la liste reste `studioVisible`.
+    expect(barre).toMatch(/\{#each \(repliee\('studio'\)[^\n]*: studioVisible\) as it/);
     expect(barre).not.toMatch(/\{#each STUDIO as it/);
     const ext = readFileSync('src/components/v2/PluginsV2.svelte', 'utf-8');
     expect(ext).toMatch(/publierGreffons\(plugins\)/);

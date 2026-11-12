@@ -21,8 +21,8 @@
 <style>
   .chips{display:flex; gap:7px; flex-wrap:wrap}
   .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 11.5px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill); transition:.15s}
-  .chip span{font-family:var(--v2-mono); font-size:9.5px; color:var(--v2-txt3); margin-left:5px}
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill); transition:.15s}
+  .chip span{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin-left:5px}
   .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .chip.active span{color:var(--v2-on-acc); opacity:.75}
