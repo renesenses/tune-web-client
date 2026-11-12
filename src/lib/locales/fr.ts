@@ -4541,6 +4541,7 @@ export default {
   "v2.lib.sourceLocal": "Local",
   "v2.lib.qualityLossy": "Compressé",
   "v2.lib.qualityMultichannel": "Multicanal",
+  "v2.lib.qualityStereo": "Stéréo",
   "v2.lib.unknownArtist": "Artiste inconnu",
   "v2.lib.noGenre": "Sans genre",
   "v2.lib.noLabel": "Sans label",

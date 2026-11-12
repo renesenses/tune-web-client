@@ -4519,6 +4519,7 @@ export default {
   "v2.lib.sourceLocal": "ローカル",
   "v2.lib.qualityLossy": "非可逆",
   "v2.lib.qualityMultichannel": "マルチチャンネル",
+  "v2.lib.qualityStereo": "ステレオ",
   "v2.lib.unknownArtist": "不明なアーティスト",
   "v2.lib.noGenre": "ジャンルなし",
   "v2.lib.noLabel": "レーベルなし",

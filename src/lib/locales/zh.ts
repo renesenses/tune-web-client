@@ -4519,6 +4519,7 @@ export default {
   "v2.lib.sourceLocal": "本地",
   "v2.lib.qualityLossy": "有损",
   "v2.lib.qualityMultichannel": "多声道",
+  "v2.lib.qualityStereo": "立体声",
   "v2.lib.unknownArtist": "未知艺术家",
   "v2.lib.noGenre": "无流派",
   "v2.lib.noLabel": "无厂牌",

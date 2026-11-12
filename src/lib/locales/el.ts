@@ -4394,6 +4394,7 @@ export default {
   "v2.lib.sourceLocal": "Τοπικά",
   "v2.lib.qualityLossy": "Με απώλειες",
   "v2.lib.qualityMultichannel": "Πολυκαναλικό",
+  "v2.lib.qualityStereo": "Στερεοφωνικό",
   "v2.lib.unknownArtist": "Άγνωστος καλλιτέχνης",
   "v2.lib.noGenre": "Χωρίς είδος",
   "v2.lib.noLabel": "Χωρίς δισκογραφική",

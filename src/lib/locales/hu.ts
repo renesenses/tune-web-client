@@ -4473,6 +4473,7 @@ export default {
   "v2.lib.sourceLocal": "Helyi",
   "v2.lib.qualityLossy": "Veszteséges",
   "v2.lib.qualityMultichannel": "Többcsatornás",
+  "v2.lib.qualityStereo": "Sztereó",
   "v2.lib.unknownArtist": "Ismeretlen előadó",
   "v2.lib.noGenre": "Nincs műfaj",
   "v2.lib.noLabel": "Nincs kiadó",

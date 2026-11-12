@@ -4394,6 +4394,7 @@ export default {
   "v2.lib.sourceLocal": "Lokalt",
   "v2.lib.qualityLossy": "Tapsbelagt",
   "v2.lib.qualityMultichannel": "Flerkanal",
+  "v2.lib.qualityStereo": "Stereo",
   "v2.lib.unknownArtist": "Ukjent artist",
   "v2.lib.noGenre": "Ingen sjanger",
   "v2.lib.noLabel": "Ingen plateselskap",

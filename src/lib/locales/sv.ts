@@ -4518,6 +4518,7 @@ export default {
   "v2.lib.sourceLocal": "Lokalt",
   "v2.lib.qualityLossy": "Förlustbehäftad",
   "v2.lib.qualityMultichannel": "Flerkanal",
+  "v2.lib.qualityStereo": "Stereo",
   "v2.lib.unknownArtist": "Okänd artist",
   "v2.lib.noGenre": "Utan genre",
   "v2.lib.noLabel": "Utan bolag",

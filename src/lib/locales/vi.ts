@@ -4396,6 +4396,7 @@ export default {
   "v2.lib.sourceLocal": "Cục bộ",
   "v2.lib.qualityLossy": "Lossy",
   "v2.lib.qualityMultichannel": "Đa kênh",
+  "v2.lib.qualityStereo": "Âm thanh nổi",
   "v2.lib.unknownArtist": "Nghệ sĩ không xác định",
   "v2.lib.noGenre": "Không có thể loại",
   "v2.lib.noLabel": "Không có hãng đĩa",
