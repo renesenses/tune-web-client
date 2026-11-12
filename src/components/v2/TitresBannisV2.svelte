@@ -186,10 +186,10 @@
 <style>
   .v2-bannis{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
-  .intro{margin:0; padding:6px 30px 12px; font-size:12.5px; color:var(--v2-txt3); max-width:720px}
+  .intro{margin:0; padding:6px 30px 12px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:720px}
   .state{padding:30px; color:var(--v2-txt3); display:flex; gap:12px; align-items:center; flex-wrap:wrap}
   .state.err{color:var(--v2-danger)}
   .list{list-style:none; margin:0; padding:6px 30px 20px; display:flex; flex-direction:column; gap:1px}
@@ -201,13 +201,13 @@
   .cv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .ti{min-width:0; display:flex; flex-direction:column; gap:2px}
-  .tt{min-width:0; font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3);
+  .tt{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lien{background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer}
   .lien:hover{text-decoration:underline; color:var(--v2-txt)}
-  .svc{font:600 10px var(--v2-sans); color:var(--v2-txt3, inherit); margin-left:6px; text-transform:none}
-  .orph{font:600 10px var(--v2-sans); color:var(--v2-acc2); border:1px solid var(--v2-line2);
+  .svc{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3, inherit); margin-left:6px; text-transform:none}
+  .orph{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:1px 6px; width:max-content}
-  .quand{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .quand{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
 </style>

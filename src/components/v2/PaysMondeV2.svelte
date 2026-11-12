@@ -45,12 +45,12 @@
   .case-rond{display:inline-block;border-radius:50%;background:var(--v2-acc2);opacity:.45}
   .pays-monde{padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
   .pays-legende{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0}
-  .pays-legende li{display:flex;align-items:center;gap:6px;font-size:12px}
+  .pays-legende li{display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .pays-teinte{display:inline-block;width:18px;height:12px;background:var(--v2-acc2);border:1px solid currentColor;border-radius:2px}
   .pays-interrupteur[aria-checked='true']{color:var(--v2-acc2)}
   .pays-interrupteur:focus-visible,summary:focus-visible{outline:2px solid var(--v2-acc2);outline-offset:3px}
   summary{cursor:pointer}
   .pays-tableau{max-height:260px;overflow:auto}
-  table{border-collapse:collapse;width:100%;font-size:13px}
+  table{border-collapse:collapse;width:100%;font-size:calc(13px * var(--v2-txt-echelle, 1))}
   th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--v2-line)}
 </style>

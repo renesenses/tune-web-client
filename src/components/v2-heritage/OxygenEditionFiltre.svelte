@@ -243,20 +243,20 @@
 </div>
 
 <style>
-  .oxy-tagsel { background: var(--tune-surface); border: 1px solid var(--tune-border); color: var(--tune-text-secondary); height: 34px; padding: 0 12px; border-radius: 9px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .oxy-tagsel { background: var(--tune-surface); border: 1px solid var(--tune-border); color: var(--tune-text-secondary); height: 34px; padding: 0 12px; border-radius: 9px; cursor: pointer; font-size: calc(13px * var(--v2-txt-echelle, 1)); white-space: nowrap; }
   .oxy-tagsel:hover:not(:disabled) { color: var(--tune-text); border-color: var(--tune-accent); }
   .oxy-tagsel:disabled { opacity: .5; cursor: default; }
   .oxy-tagsel.on { color: var(--tune-text); border-color: var(--tune-accent); }
   .oxy-tagsel.primaire { background: var(--tune-accent); border-color: var(--tune-accent); color: var(--tune-bg); }
   .oxy-tagsel-fond { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 900; }
   .oxy-tagsel-dialogue { position: fixed; z-index: 901; left: 50%; top: 12%; transform: translateX(-50%); width: min(480px, calc(100vw - 32px)); max-height: 80vh; overflow-y: auto; background: var(--tune-bg); color: var(--tune-text); border: 1px solid var(--tune-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
-  .oxy-tagsel-dialogue h2 { font-size: 16px; margin: 0; }
-  .oxy-tagsel-ligne { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+  .oxy-tagsel-dialogue h2 { font-size: calc(16px * var(--v2-txt-echelle, 1)); margin: 0; }
+  .oxy-tagsel-ligne { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .oxy-tagsel-ligne select, .oxy-tagsel-nom { flex: 1; min-width: 0; height: 32px; background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); border-radius: 8px; padding: 0 8px; }
-  .oxy-tagsel-apercu { margin: 0; font-size: 14px; }
+  .oxy-tagsel-apercu { margin: 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); }
   .oxy-tagsel-apercu p { margin: 0 0 6px; }
   .oxy-tagsel-apercu.alerte { color: var(--tune-danger, #d33); }
-  .oxy-tagsel-note { margin: 0; font-size: 12px; color: var(--tune-text-secondary); }
-  .oxy-edit-exemples { margin: 0 0 6px; padding-left: 18px; font-size: 13px; }
+  .oxy-tagsel-note { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
+  .oxy-edit-exemples { margin: 0 0 6px; padding-left: 18px; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .oxy-tagsel-actions { display: flex; justify-content: flex-end; gap: 8px; }
 </style>

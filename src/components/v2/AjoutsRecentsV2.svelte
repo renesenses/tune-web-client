@@ -180,14 +180,14 @@
   .recents::-webkit-scrollbar{width:9px}
   .recents::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
-  .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
+  .regle{margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .fenetres{display:flex; gap:6px}
   .fenetres button{padding:5px 11px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .fenetres button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
-  .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .repli{flex-basis:100%; margin:0; font-size:12px; color:var(--v2-txt3)}
-  .etat{padding:24px 0; color:var(--v2-txt3); font-size:13px}
+  .compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .repli{flex-basis:100%; margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .etat{padding:24px 0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
   .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}
 
@@ -203,9 +203,9 @@
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .vign{width:44px; height:44px; border-radius:6px; overflow:hidden}
-  .ltitre{min-width:0; font-size:13.5px; font-weight:600; color:var(--v2-txt);
+  .ltitre{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lartiste{min-width:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .titre{font-size:13px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .artiste{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lartiste{min-width:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .artiste{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

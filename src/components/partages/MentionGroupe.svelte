@@ -24,7 +24,7 @@
 
 <style>
   .mention-groupe {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--v2-txt-echelle, 1));
     color: var(--text-secondary, inherit);
     opacity: 0.8;
     white-space: nowrap;

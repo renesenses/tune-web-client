@@ -252,20 +252,20 @@
 
 <style>
   .mes-notes { margin: 12px 0; padding: 12px 16px; border: 1px solid var(--v2-line2, rgba(127, 127, 127, 0.25));
-    border-radius: 10px; font: 400 13px var(--v2-sans, inherit); color: var(--v2-txt, inherit) }
+    border-radius: 10px; font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color: var(--v2-txt, inherit) }
   .entete { display: flex; flex-wrap: wrap; align-items: center; gap: 10px }
-  .entete h3 { margin: 0 auto 0 0; font: 600 13px var(--v2-sans, inherit) }
+  .entete h3 { margin: 0 auto 0 0; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit) }
   .lien { background: none; border: 0; padding: 2px 4px; cursor: pointer; color: var(--v2-acc1, inherit); font: inherit }
   .lien:disabled { opacity: .5; cursor: default }
   .primaire { background: var(--v2-acc1, #888); color: var(--v2-on-acc, #fff); border: 0; border-radius: 999px;
-    padding: 5px 14px; cursor: pointer; font: 500 12px var(--v2-sans, inherit) }
+    padding: 5px 14px; cursor: pointer; font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit) }
   .primaire:disabled { opacity: .5; cursor: default }
   .etat { margin: 8px 0 0; color: var(--v2-txt3, inherit) }
   .etat.err { color: var(--v2-danger, inherit) }
-  .aide { margin: 4px 0 0; font-size: 11.5px; color: var(--v2-txt3, inherit) }
+  .aide { margin: 4px 0 0; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3, inherit) }
   .saisie { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px 10px; resize: vertical;
     background: var(--v2-surface, transparent); color: var(--v2-txt, inherit); border: 1px solid var(--v2-line2, #888);
-    border-radius: 8px; font: 13px var(--v2-mono, monospace) }
+    border-radius: 8px; font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono, monospace) }
   .boutons { display: flex; gap: 10px; align-items: center; margin-top: 8px }
   .rendu { margin-top: 8px; line-height: 1.5; overflow-wrap: anywhere }
   .rendu :global(p) { margin: 0 0 8px }
@@ -273,12 +273,12 @@
   .rendu :global(pre) { overflow-x: auto; padding: 8px; border-radius: 6px; background: var(--v2-surface2, transparent) }
   .chercher { display: flex; gap: 8px; margin-top: 10px }
   .chercher input { flex: 1; min-width: 0; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--v2-line2, #888);
-    background: var(--v2-surface, transparent); color: var(--v2-txt, inherit); font: 13px var(--v2-sans, inherit) }
+    background: var(--v2-surface, transparent); color: var(--v2-txt, inherit); font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit) }
   .resultats { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px }
   .resultat { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; width: 100%; text-align: left;
     background: none; border: 0; padding: 6px 8px; border-radius: 8px; cursor: pointer; color: inherit; font: inherit }
   .resultat:hover { background: var(--v2-hover, rgba(127, 127, 127, 0.1)) }
-  .type { font: 600 10.5px var(--v2-mono, monospace); color: var(--v2-txt3, inherit); text-transform: uppercase }
+  .type { font: 600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono, monospace); color: var(--v2-txt3, inherit); text-transform: uppercase }
   .nom { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-  .extrait { grid-column: 2; color: var(--v2-txt2, inherit); font-size: 12px }
+  .extrait { grid-column: 2; color: var(--v2-txt2, inherit); font-size: calc(12px * var(--v2-txt-echelle, 1)) }
 </style>

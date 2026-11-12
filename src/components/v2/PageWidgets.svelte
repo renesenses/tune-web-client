@@ -2055,34 +2055,34 @@
     font-family:var(--v2-sans); overflow:hidden}
 
   /* Point 10 — la date d'un album annoncé, sous son titre. */
-  .cp{display:block; font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
+  .cp{display:block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
 
-  .aide-edition{margin:0 0 8px; padding:0 2px; font-size:12px; color:var(--v2-txt2); line-height:1.45}
+  .aide-edition{margin:0 0 8px; padding:0 2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); line-height:1.45}
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
   .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2); border-style:solid}
   /* #1059 — déjà sur la page : lisible, mais visiblement inerte. Le trait
      plein et l'opacité disent « celui-ci, tu l'as déjà » sans le cacher. */
   .posee{border:1px solid var(--v2-line2); color:var(--v2-txt2); opacity:.55;
-    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   /* #1059 — le fantôme : une carte SOBRE, jamais alarmante. Elle n'existe
      qu'en mode édition, et son seul geste est la croix de retrait. */
   .bloc.absent h2{color:var(--v2-txt3); font-style:italic}
-  .vide{color:var(--v2-txt3); font-size:13px}
+  .vide{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
 
   /* `min-width: 0` : sans lui, une bande large POUSSE la colonne au lieu de
      défiler dans son cadre, et c'est la page entière qui prend une barre de
      défilement horizontale — visible sur la capture du 02/09/2026. */
   .scroll{flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding:4px 0 40px}
   .bloc{min-width:0}
-  .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
+  .state{padding:26px 30px; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1))}
   .state.mince{padding:8px 30px 18px}
   .state.err{color:var(--v2-danger); display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   /* #871 — la relance est une ACTION, elle se voit sans survol : c'est le
      dernier recours d'une page tombée, et un bouton caché n'en est pas un. */
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2, var(--v2-txt));
-    font:inherit; font-size:12.5px; padding:3px 10px; border-radius:7px; cursor:pointer}
+    font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); padding:3px 10px; border-radius:7px; cursor:pointer}
   .relancer:hover{border-color:var(--v2-acc1); color:var(--v2-txt)}
 
   .bloc{padding:10px 0 6px; border-top:1px solid transparent}
@@ -2124,14 +2124,14 @@
 
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
-  .tete h2{font-size:15px; font-weight:700; flex:1}
+  .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}
   .poignee:hover{color:var(--v2-txt)}
   .poignee:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .poignee svg{width:14px; height:14px}
   .retirer{width:24px; height:24px; border:0; border-radius:6px; background:transparent; color:var(--v2-txt3);
-    font-size:17px; line-height:1; cursor:pointer}
+    font-size:calc(17px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .retirer:hover{color:var(--v2-danger); background:var(--v2-hover)}
 
   /* TOUS les widgets sont des bandes horizontales — décision de Bertrand.
@@ -2156,20 +2156,20 @@
 
   .zinfo{min-width:0; display:flex; flex-direction:column; gap:6px}
   .zhaut{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .zpill{font:10.5px var(--v2-mono); padding:3px 9px; border-radius:var(--v2-r-pill);
+  .zpill{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:3px 9px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-line2); white-space:nowrap}
   .zpill.fmt{color:var(--v2-acc1); border-color:color-mix(in srgb, var(--v2-acc1) 45%, transparent)}
   .zpill.tech{color:var(--v2-acc2); border-color:color-mix(in srgb, var(--v2-acc2) 45%, transparent)}
-  .zannee{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .zannee{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
-  .ztitre{font:700 21px var(--v2-sans); letter-spacing:-.01em; margin:2px 0 0;
+  .ztitre{font:700 calc(21px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:-.01em; margin:2px 0 0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .zartiste{font:13.5px var(--v2-sans); color:var(--v2-txt2);
+  .zartiste{font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   .zzone{display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
     padding:0; border:0; background:transparent; cursor:pointer;
-    font:11px var(--v2-mono); color:var(--v2-txt3); max-width:100%;
+    font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); max-width:100%;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zzone:hover{color:var(--v2-acc1)}
   .zzone:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
@@ -2187,7 +2187,7 @@
   .zplay svg{width:22px; height:22px}
   /* Les deux durées s'alignent : sans chiffres tabulaires, la barre sautait
      d'un pixel à chaque seconde. */
-  .zt{font:11px var(--v2-mono); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
+  .zt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
   .zprog{height:4px; border-radius:999px; background:var(--v2-line2); overflow:hidden}
   .zprog i{display:block; height:100%; border-radius:999px;
     background:linear-gradient(90deg, var(--v2-acc1), var(--v2-acc2))}
@@ -2230,11 +2230,11 @@
   /* Le disque de lecture, centré. Révélé au survol ET au clavier : sans
      `focus-within` on tabulerait jusqu'à un bouton invisible. */
   .viz{height:20px; opacity:.85}
-  .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
      UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
-  .cw{font:italic 10.5px var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cw{font:italic calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
@@ -2259,15 +2259,15 @@
     border:1px solid color-mix(in srgb, var(--v2-acc1) 25%, transparent);
     background:color-mix(in srgb, var(--v2-acc1) 8%, transparent)}
   .stat .ico svg{width:13px; height:13px}
-  .stat .v{font:700 16px/1 var(--v2-mono); letter-spacing:-.01em}
-  .stat .l{font:600 16px/1 var(--v2-mono); color:var(--v2-acc1);
+  .stat .v{font:700 calc(16px * var(--v2-txt-echelle, 1))/1 var(--v2-mono); letter-spacing:-.01em}
+  .stat .l{font:600 calc(16px * var(--v2-txt-echelle, 1))/1 var(--v2-mono); color:var(--v2-acc1);
     text-transform:uppercase; letter-spacing:.08em}
 
   .choix-chiffres{padding:0 30px 14px}
-  .choix-chiffres .aide{margin:0 0 8px; font:12px var(--v2-sans); color:var(--v2-txt3)}
+  .choix-chiffres .aide{margin:0 0 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .choix-chiffres .opts{display:flex; flex-wrap:wrap; gap:8px}
   .choix-chiffres .opt{display:flex; align-items:center; gap:6px; cursor:pointer;
-    padding:5px 11px; border-radius:var(--v2-r-pill); font:13px var(--v2-sans);
+    padding:5px 11px; border-radius:var(--v2-r-pill); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .choix-chiffres .opt.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
 
@@ -2275,7 +2275,7 @@
      déborder : la ligne de la maquette fait 1600 px de large. */
   @media (max-width:720px){
     .chiffres{gap:10px; padding:0 16px 12px}
-    .stat .v, .stat .l{font-size:14px}
+    .stat .v, .stat .l{font-size:calc(14px * var(--v2-txt-echelle, 1))}
   }
 
   /* ── LE BLOC : la seconde forme (25/09/2026) ──────────────────────────
@@ -2297,7 +2297,7 @@
 
   /* ── Le gros widget des tops (20/09/2026) ────────────────────────────── */
   .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}
-  .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
+  .topcol h4{margin:0 0 10px; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.1em;
     text-transform:uppercase; color:var(--v2-txt3)}
   /* Cinquante rangs par colonne depuis le 25/09/2026 : la colonne DÉFILE
      dans la hauteur de cinq lignes (50 px de ligne + 6 px d'écart) au lieu
@@ -2317,13 +2317,13 @@
     cursor:pointer; opacity:0}
   .topcol li:hover .toplire, .topcol .toplire:focus-visible{opacity:1}
   .topcol .toplire:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 12px var(--v2-mono);
+  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     color:var(--v2-txt3)}
   .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
   .topcol .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
-  .topcol .t{font:600 13px var(--v2-sans); color:var(--v2-txt);
+  .topcol .t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .topcol .s{font:11.5px var(--v2-sans); color:var(--v2-txt2);
+  .topcol .s{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* ── #1671 — LA GRILLE DU TABLEAU DE BORD ───────────────────────────────
@@ -2355,14 +2355,14 @@
   }
   /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
   .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;
-    color:var(--v2-txt3); font:inherit; font-size:12.5px; padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
+    color:var(--v2-txt3); font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
   .voir-tout:hover{color:var(--v2-acc1); background:var(--v2-hover)}
   .voir-tout:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .voir-tout svg{width:16px; height:16px}
   .voir-tout-page{padding:10px 0 6px}
   .vt-tete{display:flex; align-items:center; gap:10px; padding:0 30px 14px}
-  .vt-tete h2{font-size:17px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .vt-compte{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .vt-tete h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .vt-compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .retour{display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:8px;
     background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer}
   .retour:hover{background:var(--v2-hover)}

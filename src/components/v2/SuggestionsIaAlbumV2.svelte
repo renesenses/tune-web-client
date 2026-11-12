@@ -306,15 +306,15 @@
     border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card);
     padding: 20px 22px 22px; font-family: var(--v2-sans);
   }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 0 14px; }
-  h3 { font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 0 14px; }
+  h3 { font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 14px 0 6px; }
   .fermer {
     position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;
     border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3);
-    font-size: 20px; line-height: 1; cursor: pointer;
+    font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
-  .ecart { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ecart { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .ecart th { text-align: left; font-weight: 600; color: var(--v2-txt3); padding: 4px 6px; border-bottom: 1px solid var(--v2-line); }
   .ecart td { padding: 6px; border-bottom: 1px solid var(--v2-line); vertical-align: top; }
   .avant { color: var(--v2-txt3); text-decoration: line-through; }
@@ -323,12 +323,12 @@
   .pied { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .pied.gauche { justify-content: flex-start; }
   .pri, .sec {
-    border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    border-radius: 8px; padding: 7px 14px; font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt);
   }
   .pri { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .pri:disabled, .sec:disabled { opacity: 0.45; cursor: default; }
-  .liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--v2-txt2); }
-  .note { margin: 8px 0 0; font-size: 12.5px; color: var(--v2-txt3); }
-  .err { margin: 10px 0 0; font-size: 12.5px; color: var(--v2-danger); }
+  .liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); }
+  .note { margin: 8px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .err { margin: 10px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
 </style>

@@ -57,18 +57,18 @@
 <style>
   /* Tout est en variables `--v2-*` : la coquille v2 porte cinq thèmes, dont
      un CLAIR. Une seule couleur en dur et l'un des deux modes serait raté. */
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 14px var(--v2-sans); }
+  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .tete { display: flex; align-items: baseline; gap: 14px; padding: 0 30px 14px; flex-wrap: wrap; }
   .grand {
-    font: 700 46px/1 var(--v2-sans);
+    font: 700 calc(46px * var(--v2-txt-echelle, 1))/1 var(--v2-sans);
     letter-spacing: -1.5px;
     color: var(--v2-acc1);
     font-variant-numeric: tabular-nums;
   }
   .legende { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .quoi { font: 600 13px var(--v2-sans); color: var(--v2-txt); }
-  .appoint { font: 400 12px var(--v2-sans); color: var(--v2-txt3); }
+  .quoi { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  .appoint { font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
 
   /* Les barres RESPIRENT : une gouttière franche de 3 px.
 
@@ -95,7 +95,7 @@
   }
   .barre:hover { opacity: 0.65; }
 
-  .axe { margin: 10px 0 0; padding: 0 30px; font: 400 11.5px var(--v2-sans); color: var(--v2-txt3); }
+  .axe { margin: 10px 0 0; padding: 0 30px; font: 400 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
 
   /* Tablette et mobile : la page perd ses gouttières de 30 px, comme le reste
      de `PageWidgets` (voir ses propres ruptures à 1024 et 640). Les barres se
@@ -107,7 +107,7 @@
   }
   @media (max-width: 640px) {
     .tete, .barres, .axe { padding-left: 16px; padding-right: 16px; }
-    .grand { font-size: 34px; }
+    .grand { font-size: calc(34px * var(--v2-txt-echelle, 1)); }
     .barres { gap: 2px; height: 140px; }
   }
 </style>

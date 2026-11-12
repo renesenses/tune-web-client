@@ -207,7 +207,7 @@
     border: none;
     padding: 7px 12px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     cursor: pointer;
     border-radius: 6px;

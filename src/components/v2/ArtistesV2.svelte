@@ -522,10 +522,10 @@
   .meta.centre { text-align: center; }
   .ct {
     display: block; margin-top: 9px;
-    font: 600 12.5px var(--v2-sans); line-height: 1.25;
+    font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height: 1.25;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .etat { padding: 30px; color: var(--v2-txt3); font-size: 13.5px; }
+  .etat { padding: 30px; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
   .etat.err { color: var(--v2-danger); }
 
   .rail {
@@ -535,7 +535,7 @@
   }
   .rail button {
     border: 0; background: transparent; cursor: pointer;
-    font: 600 10px var(--v2-mono); color: var(--v2-txt3);
+    font: 600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
     padding: 1px 4px; border-radius: 4px; line-height: 1.35;
   }
   .rail button.chaud { color: var(--v2-txt2); }
