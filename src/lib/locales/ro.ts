@@ -7098,6 +7098,8 @@ export default {
   "v2.lib.periodTo": "Până la",
   "v2.lib.periodClear": "Șterge",
   "v2.lib.periodCount": "Albume în perioadă: {n}",
+  "v2.lib.periodCountFiltered": "Albume în perioadă: {n} cu filtrele actuale ({total} fără)",
+  "library.removeFilter": "Elimină filtrul {f}",
   "v2.lib.periodNoYear": "Albume fără an excluse: {n}",
   "v2.lib.periodStart": "Începutul perioadei",
   "v2.lib.periodEnd": "Sfârșitul perioadei",

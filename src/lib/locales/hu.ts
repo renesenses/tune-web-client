@@ -7057,6 +7057,8 @@ export default {
   "v2.lib.periodTo": "Eddig",
   "v2.lib.periodClear": "Törlés",
   "v2.lib.periodCount": "Albumok az időszakban: {n}",
+  "v2.lib.periodCountFiltered": "Albumok az időszakban: {n} a jelenlegi szűrőkkel ({total} nélkülük)",
+  "library.removeFilter": "A(z) {f} szűrő eltávolítása",
   "v2.lib.periodNoYear": "Év nélküli albumok kizárva: {n}",
   "v2.lib.periodStart": "Az időszak kezdete",
   "v2.lib.periodEnd": "Az időszak vége",

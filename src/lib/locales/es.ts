@@ -7098,6 +7098,8 @@ export default {
   "v2.lib.periodTo": "Hasta",
   "v2.lib.periodClear": "Borrar",
   "v2.lib.periodCount": "Álbumes en el periodo: {n}",
+  "v2.lib.periodCountFiltered": "Álbumes en el periodo: {n} con los filtros actuales ({total} sin ellos)",
+  "library.removeFilter": "Quitar el filtro {f}",
   "v2.lib.periodNoYear": "Álbumes sin año excluidos: {n}",
   "v2.lib.periodStart": "Inicio del periodo",
   "v2.lib.periodEnd": "Fin del periodo",

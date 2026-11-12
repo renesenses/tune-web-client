@@ -6943,6 +6943,8 @@ export default {
   "v2.lib.periodTo": "Έως",
   "v2.lib.periodClear": "Καθαρισμός",
   "v2.lib.periodCount": "Άλμπουμ στην περίοδο: {n}",
+  "v2.lib.periodCountFiltered": "Άλμπουμ στην περίοδο: {n} με τα τρέχοντα φίλτρα ({total} χωρίς)",
+  "library.removeFilter": "Αφαίρεση του φίλτρου {f}",
   "v2.lib.periodNoYear": "Εξαιρούνται άλμπουμ χωρίς έτος: {n}",
   "v2.lib.periodStart": "Αρχή της περιόδου",
   "v2.lib.periodEnd": "Τέλος της περιόδου",
