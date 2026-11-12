@@ -131,15 +131,13 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
     c.dispatchEvent(new Event('input', { bubbles: true }));
     flushSync();
     expect(alerte(), 'le refus doit tomber quand la saisie change').toBeNull();
-    // Refus resté, saisie vidée sans événement : enregistrer() recalcule.
-    saisir('conductor', 'BAND');
-    champ('conductor').value = '';
+    // Le champ vidé, le refus d'avant ne bloque pas l'enregistrement.
     hote.querySelector<HTMLInputElement>('input[type=radio][value=ignored]')!.click();
     flushSync();
     enregistrer().click();
     await respirer();
     expect(mocks.setBalisesClassique).toHaveBeenCalledTimes(1);
-    expect(mocks.setBalisesClassique.mock.calls[0][0]).toMatchObject({ band: 'ignored', conductor: ['CONDUCTOR'] });
+    expect(mocks.setBalisesClassique.mock.calls[0][0]).toMatchObject({ band: 'ignored', ensemble: ['ENSEMBLE', 'ORCHESTRA', 'CHOIR'] });
   });
 
   it('🔴 BAND ignoré, retrait d’une puce, puis retour aux défauts par `{}`', async () => {
