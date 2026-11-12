@@ -116,7 +116,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
-  import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
+  import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
   import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -504,6 +505,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let fIncomplets = $state(false);
   let idsIncomplets = $state<Set<number>>(new Set());
+
+  /**
+   * tune-server-rust#7586 (FabienM, fil « 1.0.0RC9: Divers bugs », point 13 ;
+   * go de Bertrand du 12/11 : rc12) — « Uniquement favoris » sur TOUS les
+   * onglets : Albums (albums favoris), Artistes, Pistes, et Genres / Années /
+   * Labels (les valeurs mises en favori). Favoris de la bibliothèque locale
+   * seulement, pas ceux des services : un album de service (bibliothèque
+   * élargie) n'a pas d'identifiant local, il sort. Voir `lib/uniquementFavoris`.
+   */
+  let fFavoris = $state(false);
+  /** L'album est-il un favori LOCAL ? `id` nul = album de service : non. */
+  const estAlbumFavori = (a: Album): boolean => a.id != null && $favoriteAlbumIds.has(a.id);
+  /** Le filtre vaut pour les ALBUMS sur l'onglet Albums seulement. Une fonction :
+   *  `tab` est déclaré plus bas, lu paresseusement. */
+  function favorisSurLesAlbums(): boolean { return fFavoris && tab === 'albums'; }
   $effect(() => {
     // Bibliothèque d'un AUTRE serveur : ses identifiants ne sont pas les nôtres.
     if (depot) return;
@@ -725,6 +741,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
+    // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
+    // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
+    if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
     if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
@@ -945,9 +964,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     periode: periodeAppliquee ? periode : null,
     format: fFormat, profondeur: fDepth, recherche: q,
     compilation: fCompilation, provenance: fProvenance,
+    favoris: favorisSurLesAlbums(),
   });
   const outilsFacettes = $derived<Outils>({
-    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
+    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe, estFavori: estAlbumFavori,
     albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,
   });
 
@@ -1814,7 +1834,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
       || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
-      || paysChoisi != null,
+      || paysChoisi != null || fFavoris,
   );
 
   /**
@@ -1853,6 +1873,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     }
     if (fCompilation != null) r.push({ cle: 'compilation', libelle: t('v2.lib.compilations'), retirer: () => (fCompilation = null) });
     if (fIncomplets) r.push({ cle: 'incomplete', libelle: t('v2.lib.incomplete'), retirer: () => (fIncomplets = false) });
+    if (fFavoris) r.push({ cle: 'favorites', libelle: t('v2.lib.onlyFavorites'), retirer: () => (fFavoris = false) });
     if (fProvenance) r.push({ cle: 'source', libelle: `${t('v2.lib.source')} · ${libelleProvenance(fProvenance)}`, retirer: () => (fProvenance = null) });
     if (paysChoisi) r.push({ cle: 'country', libelle: `${t('v2.lib.map.chip')} · ${nomPays(paysChoisi.code, $locale)}`, retirer: () => (paysChoisi = null) });
     if (fYear != null) r.push({ cle: 'year', libelle: String(fYear), retirer: () => (fYear = null) });
@@ -2155,9 +2176,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * `artists` n'y figure pas : un artiste a un IDENTIFIANT, son coeur passe
    * donc par la table des favoris normale, pas par celle des facettes.
    */
-  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = {
-    genres: 'genre', years: 'year', labels: 'label',
-  };
+  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = FACETTE_SERVEUR_DES_ONGLETS;
 
   /** Un depot distant n'a pas de facettes chez nous : ses genres viennent de
    *  SON catalogue, et un favori local ne saurait pas les reselectionner. */
@@ -2265,7 +2284,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    const tous = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    // #7586 — « Uniquement favoris » : les valeurs mises en favori (cœur de la
+    // liste), seulement les réelles — « Sans genre » ne se met pas en favori.
+    const out = fFavoris
+      ? tous.filter((g) => g.reel && estFacetteFavoriteDe(tab, g.key, $favoriteFacetKeys))
+      : tous;
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -2457,7 +2481,59 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const h = setTimeout(() => (qPistes = v), 250);
     return () => clearTimeout(h);
   });
-  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier');
+  // #7586 — « Uniquement favoris » sur les Pistes : les pistes favorites,
+  // servies par les favoris du profil (`api.getFavorites`), pas la fenêtre
+  // paginée de toute la bibliothèque.
+  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris);
+  //
+  // Les requêtes sont comptées (relecture du 12/11) : `getFavorites` relit
+  // chaque objet favori un par un. On ne demande donc QUE les pistes
+  // (`'track'`), UNE fois à l'activation du filtre — pas les albums, artistes
+  // et playlists favoris, et pas à chaque cœur. Un cœur ôté retire la piste
+  // sur place (filtre sur `$favoriteTrackIds`) ; un cœur posé ne relit que la
+  // piste ajoutée (`getTrack`).
+  let pistesFavoritesLues = $state.raw<Track[]>([]);
+  let pistesFavoritesEnCharge = $state(false);
+  let pistesFavoritesErreur = $state<string | null>(null);
+  /** La lecture initiale a abouti : les ajouts se relisent alors un par un. */
+  let pistesFavoritesPretes = $state(false);
+  /** Les pistes ajoutées déjà demandées — un cœur ne relit sa piste qu'une fois. */
+  const pistesFavoritesDemandees = new Set<number>();
+  const filtreFavorisPistes = $derived(fFavoris && tab === 'tracks' && !depot && $currentProfileId != null);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (!filtreFavorisPistes || pid == null) return;
+    let perime = false;
+    pistesFavoritesPretes = false;
+    pistesFavoritesDemandees.clear();
+    pistesFavoritesEnCharge = untrack(() => pistesFavoritesLues.length === 0);
+    pistesFavoritesErreur = null;
+    api.getFavorites(pid, 'track')
+      .then((f: any) => {
+        if (perime) return;
+        pistesFavoritesLues = Array.isArray(f?.tracks) ? f.tracks : [];
+        pistesFavoritesPretes = true;
+      })
+      .catch((e: any) => { if (!perime) pistesFavoritesErreur = e?.message ?? $tr('common.error' as any); })
+      .finally(() => { if (!perime) pistesFavoritesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const ids = $favoriteTrackIds;
+    if (!filtreFavorisPistes || !pistesFavoritesPretes) return;
+    const connues = new Set(untrack(() => pistesFavoritesLues).map((t) => t.id));
+    for (const id of ids) {
+      if (connues.has(id) || pistesFavoritesDemandees.has(id)) continue;
+      pistesFavoritesDemandees.add(id);
+      api.getTrack(id)
+        .then((t: Track) => {
+          if (t && !pistesFavoritesLues.some((x) => x.id === t.id)) pistesFavoritesLues = [...pistesFavoritesLues, t];
+        })
+        .catch(() => { pistesFavoritesDemandees.delete(id); });
+    }
+  });
+  /** Les pistes favorites AFFICHÉES : celles dont le cœur est encore posé. */
+  const pistesFavorites = $derived(pistesFavoritesLues.filter((t) => t.id != null && $favoriteTrackIds.has(t.id)));
   /** La fenêtre AFFICHÉE : la précédente reste à l'écran tant que la
    *  nouvelle (tri, recherche…) n'a pas rendu sa première page. */
   let fenetrePistes = $state.raw<FenetrePistes | null>(null);
@@ -2654,7 +2730,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    return tracks.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+    const base = fFavoris ? pistesFavorites : tracks;
+    return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
   // dans le navigateur et avec la règle du serveur (`trierPistes`).
@@ -3059,7 +3136,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; periode = SANS_PERIODE; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fFavoris = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; periode = SANS_PERIODE; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -3430,6 +3507,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {/each}
           </div>
         </div>
+      {/if}
+      <!-- tune-server-rust#7586 — « Uniquement favoris », sur tous les onglets
+           de la Bibliothèque (pas les Ajouts récents ni les coffrets, qui ont
+           leur propre source ; pas un dépôt distant, dont les favoris ne sont
+           pas ceux de ce profil). -->
+      {#if showSearch && !depot && ONGLETS_UNIQUEMENT_FAVORIS.includes(tab as any)}
+        <button class="chip" class:active={fFavoris} data-filtre-favoris aria-pressed={fFavoris}
+          title={$tr('v2.lib.onlyFavoritesHint' as any)}
+          onclick={() => (fFavoris = !fFavoris)}>{$tr('v2.lib.onlyFavorites' as any)}</button>
       {/if}
       {#if showSearch && !depot}
         <!-- #7597 (suite) — RÉPERTOIRE : poser la portée de dossier sans
@@ -3868,7 +3954,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            déduction depuis les albums chargés. Ils ne passent donc pas par les
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
            albums ne sont pas encore arrivés a déjà ses artistes. -->
-      <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
+      <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
@@ -3952,12 +4038,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {:else if tab === 'tracks'}
         <div class="tracklist">
-          {#if tracksLoading}
+          {#if fFavoris ? pistesFavoritesEnCharge : tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
-          {:else if tracksError}
-            <div class="state">{tracksError}</div>
+          {:else if fFavoris ? pistesFavoritesErreur : tracksError}
+            <div class="state">{fFavoris ? pistesFavoritesErreur : tracksError}</div>
           {:else if !visibleTracks.length}
-            <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
+            <div class="state" data-favoris-vide={fFavoris || undefined}>{fFavoris ? $tr('v2.lib.onlyFavoritesNone' as any) : tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             <!-- `ouvertureAlbum` est une FABRIQUE : seule la Bibliothèque sait
                  si l'album de CETTE piste est dans son magasin. Un gestionnaire
