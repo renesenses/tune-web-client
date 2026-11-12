@@ -63,7 +63,9 @@ describe('#919 — la file d’attente depuis la barre de lecture', () => {
     expect(repeter).toBeGreaterThan(-1);
     expect(file).toBeGreaterThan(repeter);
     expect(file - repeter).toBeLessThan(1500);
-    expect(barre).toContain("aria-label={$t('nav.queue')}");
+    // web#2389 : le nom du bouton porte aussi le nombre de titres de la file
+    // (`nav.queue` quand elle est vide) — voir medaillonFile2389.test.ts.
+    expect(barre).toContain('aria-label={libelleBoutonFile($t, $queueTracks.length)}');
     expect(barre).toContain("class:active={$activeView === 'queue'}");
   });
 });

@@ -57,7 +57,9 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import ZonesSupprimees from './ZonesSupprimees.svelte';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
+  import AlertePareFeu from './AlertePareFeu.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -639,12 +641,21 @@
        fonction n'existait pas. On prévient, on ne masque pas. -->
   <OutputModuleBanner instantane={instantaneFournisseurs} />
 
+  <!-- tune-server-rust#7371 — le pare-feu de Windows filtre Tune sur le réseau
+       actif (réseau Public hors de la règle « Tune ») : un appareil DLNA n'est
+       alors jamais découvert. Hors du bloc « aucune zone », pour la même raison
+       que le bandeau ci-dessus. -->
+  <AlertePareFeu />
+
   {#each asioAAvertir as s (s.device_id)}
     <div class="asio-sans-zone" role="status" data-asio-sans-zone={s.device_id}>
       <span>{$t('v2.zone.asioSansZone' as any).replace('{name}', s.name)}</span>
       <button class="v2-btn" disabled={busy} onclick={() => creerZoneAsio(s)}>{$t('v2.zone.creerZoneAsio' as any)}</button>
     </div>
   {/each}
+
+  <!-- tune-server-rust#7836 — « Zones supprimées (n) » et Restaurer. -->
+  <ZonesSupprimees onRestauree={refresh} />
 
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}

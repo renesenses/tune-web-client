@@ -100,6 +100,11 @@ export interface FiltresBibliotheque {
    * Valeurs : `'local'`, ou `'upnp:<udn>'`.
    */
   provenance: string | null;
+  /**
+   * tune-server-rust#7586 — « Uniquement favoris » (onglet Albums) : seuls
+   * les albums favoris du profil, lus par `Outils.estFavori`. Absent : faux.
+   */
+  favoris?: boolean;
 }
 
 /** Les facettes qui portent un compte. */
@@ -121,6 +126,8 @@ export interface Outils {
    * (convention posée par l'indexation, côté serveur).
    */
   provenanceDe: (a: Album) => string;
+  /** #7586 — l'album est-il un favori local du profil ? Lu sous `favoris`. */
+  estFavori?: (a: Album) => boolean;
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — les albums que la RECHERCHE
    * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire ou dans
@@ -182,6 +189,8 @@ export function correspond(
   if (sauf !== 'compilation' && f.compilation != null
       && (a.is_compilation ?? false) !== f.compilation) return false;
   if (sauf !== 'provenance' && !sourceCorrespond(o.provenanceDe(a), f.provenance)) return false;
+  // #7586 — pas une facette comptée : ne s'exclut jamais, comme la recherche.
+  if (f.favoris && o.estFavori && !o.estFavori(a)) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
   if (!repondALaRecherche(a, f.recherche, o)) return false;

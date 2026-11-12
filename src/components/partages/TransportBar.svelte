@@ -17,7 +17,8 @@
   import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
-  import { upNextCount } from '../../lib/stores/queue';
+  import { upNextCount, queueTracks } from '../../lib/stores/queue';
+  import { texteMedaillonFile, libelleBoutonFile } from '../../lib/medaillonFile';
   import { ytPlayerState, ytLoading } from '../../lib/stores/ytPlayer';
   import { isBrowserZone, browserSetVolume, browserSeek } from '../../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -36,6 +37,7 @@
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -1635,15 +1637,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
          accès rapide vers la file d'attente ; une icône dédiée à côté de
          répéter ». La barre avait aléatoire et répéter, et rien vers la file.
-         Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
-         reste compacte. -->
+         web#2389 — FabienM, fil 2431 : le nombre de titres de la file est
+         DESSINÉ en médaillon, comme sur l'appli Android, et repris dans
+         l'infobulle (lib/medaillonFile). File vide : pas de médaillon. -->
     <button
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={$t('nav.queue')}
-      title={$t('nav.queue')}
+      aria-label={libelleBoutonFile($t, $queueTracks.length)}
+      title={libelleBoutonFile($t, $queueTracks.length)}
     >
+      {#if texteMedaillonFile($queueTracks.length)}
+        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>
+      {/if}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
         <polygon points="17 10 22 13 17 16 17 10" fill="currentColor" stroke="none" />
@@ -2029,6 +2035,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
       <GainDeSortieNotes signalPath={zone.signal_path} />
+      <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+      <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
@@ -2207,6 +2215,32 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .tb-mini-viz {
     width: 80px;
     flex-shrink: 0;
+  }
+
+  /* Recette rc12 (13/11) — la colonne de gauche vaut un quart de la barre :
+     336 px à 1440 px. Pochette, cœur, crête-mètre (56 px) et visualiseur
+     (80 px) ne rétrécissent pas ; le titre et l'artiste, si : il leur restait
+     30 px (« Fla… », « M · I »). Les deux ornements cèdent donc leur place au
+     titre quand la colonne est étroite — le visualiseur d'abord, comme sous
+     1080 px de barre (plus haut), puis le crête-mètre. */
+  .transport-left {
+    container-type: inline-size;
+    container-name: tleft;
+  }
+  @container tleft (max-width: 439px) {
+    .tb-mini-viz { display: none; }
+  }
+  @container tleft (max-width: 359px) {
+    .tb-crete { display: none; }
+  }
+  /* Fenêtre de téléphone (colonne de ~150 px) : les pastilles « LOCAL » et
+     « FLAC 96/24 » passaient sur deux lignes, sous la barre, et le cœur
+     laissait 28 px au titre. Elles restent dans Lecture en cours. */
+  @container tleft (max-width: 239px) {
+    .transport-left .mini-badges { display: none; }
+  }
+  @container tleft (max-width: 199px) {
+    .transport-left .fav-btn { display: none; }
   }
 
   @media (max-width: 640px) {
@@ -2527,6 +2561,35 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     opacity: 1;
     color: var(--tune-accent);
   }
+
+  /* web#2389 — médaillon du nombre de titres de la file. Le bouton est
+     `.small` (opacité 0.5) : le médaillon, lui, reste lisible. */
+  .control-btn.queue-btn {
+    position: relative;
+    overflow: visible;
+  }
+  .queue-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--tune-accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Le bouton `.small` est à demi-opaque, ce qui éteindrait aussi son
+     médaillon : l'opacité passe sur l'icône seule. */
+  .control-btn.small.queue-btn { opacity: 1; }
+  .control-btn.small.queue-btn:not(.active) svg { opacity: 0.5; }
 
   .play-btn {
     background: var(--tune-accent) !important;
