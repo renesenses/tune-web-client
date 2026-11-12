@@ -1076,7 +1076,7 @@
 
   h1 {
     font-family: var(--font-display);
-    font-size: 36px;
+    font-size: calc(36px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     line-height: 1.2;
@@ -1084,30 +1084,30 @@
 
   h2 {
     font-family: var(--font-label);
-    font-size: 22px;
+    font-size: calc(22px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
   }
 
   .welcome-desc,
   .reprise{margin:18px auto 4px; max-width:420px; padding:14px 16px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); border-radius:10px; text-align:left}
-  .reprise h2{font-size:15px; margin:0 0 6px}
-  .reprise-desc{font-size:13px; margin:0 0 6px; opacity:.85}
-  .reprise-limites{font-size:12px; margin:0 0 10px; opacity:.7}
-  .reprise-premium{font-size:12px; margin:0 0 10px; opacity:.7}
-  .reprise-fichier{font-size:12px; margin:0 0 8px; font-family:var(--v2-mono, monospace)}
+  .reprise h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); margin:0 0 6px}
+  .reprise-desc{font-size:calc(13px * var(--v2-txt-echelle, 1)); margin:0 0 6px; opacity:.85}
+  .reprise-limites{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:0 0 10px; opacity:.7}
+  .reprise-premium{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:0 0 10px; opacity:.7}
+  .reprise-fichier{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:0 0 8px; font-family:var(--v2-mono, monospace)}
   .reprise-gestes{display:flex; gap:8px; align-items:center}
   .reprise-choix{display:inline-block; cursor:pointer}
   .reprise-choix input{display:none}
-  .reprise-ok{font-size:13px; margin:0; color:var(--tune-accent)}
-  .reprise-champ{display:flex; flex-direction:column; gap:4px; font-size:12px; margin:0 0 8px}
+  .reprise-ok{font-size:calc(13px * var(--v2-txt-echelle, 1)); margin:0; color:var(--tune-accent)}
+  .reprise-champ{display:flex; flex-direction:column; gap:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:0 0 8px}
   .reprise-champ select, .reprise-champ input{padding:6px 8px; border-radius:6px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); background:transparent; color:inherit}
-  .reprise-bilan{font-size:12px; margin:6px 0 0; padding-left:18px}
-  .reprise-err{font-size:12px; margin:8px 0 0; color:var(--tune-danger, #d05353)}
-  .reprise-alerte{font-size:12px; margin:0 0 8px; padding:4px 0 4px 10px; border-left:3px solid var(--tune-warning, #d0a053)}
+  .reprise-bilan{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:6px 0 0; padding-left:18px}
+  .reprise-err{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:8px 0 0; color:var(--tune-danger, #d05353)}
+  .reprise-alerte{font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:0 0 8px; padding:4px 0 4px 10px; border-left:3px solid var(--tune-warning, #d0a053)}
   .step-desc {
     font-family: var(--font-body);
-    font-size: 15px;
+    font-size: calc(15px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     line-height: 1.5;
     max-width: 480px;
@@ -1132,7 +1132,7 @@
     align-items: center;
     gap: var(--space-md);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     text-align: left;
   }
@@ -1153,7 +1153,7 @@
     border: none;
     border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-size: 15px;
+    font-size: calc(15px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.15s;
@@ -1175,7 +1175,7 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-md);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
     min-height: 36px;
@@ -1196,7 +1196,7 @@
     border: none;
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     padding: var(--space-xs) var(--space-md);
     transition: color 0.12s;
@@ -1211,7 +1211,7 @@
     border: 1px solid var(--tune-border);
     color: var(--tune-text-secondary);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-md);
@@ -1228,7 +1228,7 @@
     border: 1px solid var(--tune-border);
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     padding: 2px 10px;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -1272,7 +1272,7 @@
     border: none;
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     padding: var(--space-xs) var(--space-md);
     transition: color 0.12s;
@@ -1284,12 +1284,12 @@
 
   .btn-scan-launch {
     padding: var(--space-md) var(--space-xxl, 40px);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
   }
 
   .btn-go {
     padding: var(--space-md) var(--space-xxl, 40px);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     margin-top: var(--space-md);
   }
 
@@ -1316,7 +1316,7 @@
     padding: var(--space-sm) var(--space-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     outline: none;
     transition: border-color 0.12s;
     width: 100%;
@@ -1366,14 +1366,14 @@
 
   .music-dir-name {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 500;
     color: var(--tune-text);
   }
 
   .music-dir-path {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1382,14 +1382,14 @@
 
   .music-dir-count {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     flex-shrink: 0;
   }
 
   .hint-text {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
     line-height: 1.4;
@@ -1436,7 +1436,7 @@
 
   .service-name {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-text);
   }
@@ -1454,7 +1454,7 @@
 
   .badge {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     padding: 2px 8px;
     border-radius: var(--radius-sm);
   }
@@ -1471,14 +1471,14 @@
 
   .auth-hint {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     margin: 0;
   }
 
   .auth-code {
     font-family: var(--font-label);
-    font-size: 22px;
+    font-size: calc(22px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     letter-spacing: 3px;
     color: var(--tune-accent);
@@ -1487,7 +1487,7 @@
 
   .auth-link {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-accent);
     word-break: break-all;
   }
@@ -1497,7 +1497,7 @@
     align-items: center;
     gap: var(--space-sm);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -1529,7 +1529,7 @@
     max-width: 300px;
     padding: var(--space-xs) 0;
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
   }
 
   .scan-summary-label {
@@ -1590,7 +1590,7 @@
 
   .scan-stat-number {
     font-family: var(--font-display);
-    font-size: 28px;
+    font-size: calc(28px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-accent);
     line-height: 1;
@@ -1598,7 +1598,7 @@
 
   .scan-stat-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1606,7 +1606,7 @@
 
   .scan-hint {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
   }
@@ -1634,7 +1634,7 @@
 
   .scan-done-count {
     font-family: var(--font-body);
-    font-size: 17px;
+    font-size: calc(17px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     line-height: 1.4;
   }
@@ -1658,7 +1658,7 @@
 
   .scan-final-number {
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: calc(24px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-success);
     line-height: 1;
@@ -1666,7 +1666,7 @@
 
   .scan-final-label {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1675,7 +1675,7 @@
   /* Error and scan messages */
   .error-msg {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-warning);
     margin: 0;
   }
@@ -1707,11 +1707,11 @@
     }
 
     h1 {
-      font-size: 28px;
+      font-size: calc(28px * var(--v2-txt-echelle, 1));
     }
 
     h2 {
-      font-size: 20px;
+      font-size: calc(20px * var(--v2-txt-echelle, 1));
     }
 
     .service-list {
@@ -1723,7 +1723,7 @@
     }
 
     .scan-stat-number {
-      font-size: 24px;
+      font-size: calc(24px * var(--v2-txt-echelle, 1));
     }
 
     .scan-final-stats {

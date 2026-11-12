@@ -1088,13 +1088,13 @@
   .tbl::-webkit-scrollbar{height:9px}
   /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
-  .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
+  .grouphead{padding:10px 10px 2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);
     border-bottom:1px solid var(--v2-line2); padding-bottom:9px; margin-bottom:4px}
-  .th{font:600 11px var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
+  .th{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
     text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* web#2584 — un en-tête à poignée laisse déborder la poignée dans la
      gouttière (14 px) ; son libellé s'élide dans `.th-txt` ou `.trier`. */
@@ -1134,13 +1134,13 @@
   /* #4806 — le titre banni : grisé et barré, visible, jouable d'un clic délibéré. */
   .trow.bannie{opacity:0.45}
   .trow.bannie .ttxt{text-decoration:line-through}
-  .bannie-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-txt3);
+  .bannie-etiq{margin-left:8px; font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
   .trow.indispo .titre{cursor:default}
-  .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+  .indispo-etiq{margin-left:8px; font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
 
-  .td{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .td{font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Les colonnes de chiffres s'alignent à droite, en chiffres tabulaires :
      sans quoi la durée saute d'un pixel d'une ligne à l'autre. */
   .th.d, .td.d{text-align:right; font-variant-numeric:tabular-nums}
@@ -1150,13 +1150,13 @@
   .trier:hover, .trier.actif{color:var(--v2-txt)}
   .trier:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:3px}
   .th.d .trier{justify-content:flex-end}
-  .fleche{font-size:8px}
+  .fleche{font-size:calc(8px * var(--v2-txt-echelle, 1))}
   .intercalaire{flex:none}
   .th.c, .td.c{text-align:center}
 
   .titre{display:flex; align-items:center; gap:7px;
     padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:600 13.5px var(--v2-sans); color:var(--v2-txt); min-width:0}
+    font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); min-width:0}
   /* 36 px : la ligne du tableau fait 46 px de haut (`.trow`), contre 56 px
      dans l'ancien écran qui portait une vignette de 44. La vignette ne doit
      pas décider de la hauteur de la ligne, sinon le tableau change de densité

@@ -96,25 +96,25 @@
 </div>
 
 <style>
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .pm-liste{display:flex; flex-direction:column; gap:1px; margin-top:10px}
   .pm-dev{display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:11px;
     padding:7px 10px; border-radius:9px; color:var(--v2-txt2)}
   .pm-dev:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .pm-nom{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .pm-marque-nom{font-size:13px; color:var(--v2-txt)}
-  .pm-plage{font:11px var(--v2-mono); color:var(--v2-acc2); text-align:right}
+  .pm-nom{font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pm-marque-nom{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
+  .pm-plage{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); text-align:right}
   .pm-plage.inconnue{color:var(--v2-txt3)}
   .pm-table{margin-top:12px}
-  .pm-table summary{cursor:pointer; font-size:13px; color:var(--v2-txt2); padding:6px 0}
-  .pm-total{font:11px var(--v2-mono); color:var(--v2-txt3); margin-left:8px}
+  .pm-table summary{cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); padding:6px 0}
+  .pm-total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-left:8px}
   .pm-recherche{width:100%; max-width:360px; height:30px; margin:8px 0; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-    font:12px var(--v2-sans); padding:0 10px; outline:none; box-sizing:border-box}
+    font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; box-sizing:border-box}
   .pm-marque{padding:8px 0; border-top:1px solid var(--v2-line2)}
   .pm-entete{display:flex; justify-content:space-between; gap:10px; align-items:baseline}
-  .pm-compte{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .pm-compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .pm-prefixes{display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; max-height:160px; overflow:auto}
-  .pm-prefixes code{font:10.5px var(--v2-mono); color:var(--v2-txt2); background:var(--v2-surface2);
+  .pm-prefixes code{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); background:var(--v2-surface2);
     border-radius:5px; padding:1px 5px}
 </style>

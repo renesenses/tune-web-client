@@ -89,9 +89,9 @@
   .reglage-version{margin-top:16px; padding-top:14px; border-top:1px solid var(--v2-line2);
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .lbl{display:flex; flex-direction:column; gap:3px; flex:1; min-width:220px}
-  .lbl > span:first-child{font:600 13px var(--v2-sans); color:var(--v2-txt)}
-  .hint{font-size:12.5px; line-height:1.5; color:var(--v2-txt3)}
+  .lbl > span:first-child{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .hint{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .sel{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px}
-  .err{flex-basis:100%; margin:4px 0 0; font-size:12px; color:var(--v2-danger, #ef4444)}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px}
+  .err{flex-basis:100%; margin:4px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger, #ef4444)}
 </style>

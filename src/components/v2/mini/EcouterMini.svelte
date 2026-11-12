@@ -113,8 +113,8 @@
     gap:10px; padding:14px 18px 10px; font-family:var(--v2-sans); color:var(--v2-txt)}
   .pochette{width:220px; height:220px; border-radius:6px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-card)}
   .infos{width:100%; min-width:0; display:flex; flex-direction:column; gap:4px}
-  .titre{font-size:17px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .sous{display:flex; align-items:baseline; gap:4px; min-width:0; font-size:13px; color:var(--v2-txt2)}
+  .titre{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .sous{display:flex; align-items:baseline; gap:4px; min-width:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .sep{flex:0 0 auto}
   .lien{border:0; background:none; padding:0; font:inherit; color:inherit; cursor:pointer; min-width:0;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-decoration:underline;
@@ -122,19 +122,19 @@
   .lien:hover:not(:disabled){color:var(--v2-txt)}
   .lien:disabled{cursor:default; text-decoration:none}
   .badges{display:flex; gap:6px; align-items:center; min-height:20px}
-  .q{font:600 10.5px var(--v2-mono); padding:3px 7px; border-radius:4px}
+  .q{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:3px 7px; border-radius:4px}
   .q.tier-gold-max{color:#f59e0b; background:rgba(245,158,11,.15)}
   .q.tier-gold{color:#a78bfa; background:rgba(167,139,250,.12)}
   .q.tier-blue{color:#60a5fa; background:rgba(96,165,250,.1)}
   .q.tier-green{color:#34d399; background:rgba(52,211,153,.1)}
   .q.tier-gray{color:#f87171; background:rgba(248,113,113,.08)}
   .q.tier-neutre{color:var(--v2-txt2); background:var(--v2-surface)}
-  .pure{font:700 10px var(--v2-sans); letter-spacing:.12em; padding:3px 7px; border-radius:4px;
+  .pure{font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.12em; padding:3px 7px; border-radius:4px;
     color:var(--v2-acc1); border:1px solid var(--v2-acc1)}
   .progression{width:100%; display:flex; flex-direction:column; gap:5px}
   .barre{height:6px; border-radius:3px; background:var(--v2-line2); cursor:pointer; overflow:hidden}
   .barre i{display:block; height:100%; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
-  .temps{display:flex; justify-content:space-between; font:500 10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .temps{display:flex; justify-content:space-between; font:500 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .transport{display:flex; align-items:center; justify-content:center; gap:22px}
   .tb{width:36px; height:36px; display:grid; place-items:center; border:0; background:none; color:var(--v2-txt);
     border-radius:50%; cursor:pointer}
@@ -151,8 +151,8 @@
   .ecouter.replie{display:grid; grid-template-columns:112px 1fr; grid-template-rows:auto auto 1fr;
     align-items:center; column-gap:12px; row-gap:4px; padding:8px 10px; overflow:hidden}
   .replie .pochette{grid-row:1 / span 3; width:112px; height:112px}
-  .replie .titre{font-size:14px}
-  .replie .sous{font-size:12px}
+  .replie .titre{font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .replie .sous{font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .replie .transport{justify-content:flex-start; gap:6px}
   .replie .lecture{width:36px; height:36px}
   .replie .lecture svg{width:18px; height:18px}

@@ -181,25 +181,25 @@
 <style>
   .sans-email{display:flex; flex-direction:column; gap:8px; padding-top:6px; border-top:1px solid var(--v2-line)}
   .liens{display:flex; flex-direction:column; gap:6px}
-  .titre{font-size:13px; font-weight:600}
-  .sous-titre{font-size:13px; font-weight:700; margin:4px 0 0}
+  .titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .sous-titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:700; margin:4px 0 0}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .champ{height:34px; padding:0 12px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt); font:13px var(--v2-sans); min-width:0}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
   .pseudo-saisi{flex:1 1 200px}
-  .url-lien{flex:1 1 260px; font-family:var(--v2-mono, monospace); font-size:12px}
+  .url-lien{flex:1 1 260px; font-family:var(--v2-mono, monospace); font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .champ:focus-visible,.go:focus-visible,.lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled,.lnk:disabled{opacity:.35; cursor:not-allowed}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
-  .err,.ok{padding:8px 12px; border-radius:10px; font-size:12.5px}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
+  .err,.ok{padding:8px 12px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}
   ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px;
-    padding:6px 4px; border-bottom:1px solid var(--v2-line); font-size:13px}
+    padding:6px 4px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .gestes{display:flex; gap:10px; align-items:center}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}

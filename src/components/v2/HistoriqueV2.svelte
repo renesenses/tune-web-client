@@ -567,8 +567,8 @@
 <style>
   .v2-hist{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .regle{margin:4px 0 0; max-width:72ch; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .regle{margin:4px 0 0; max-width:72ch; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
@@ -585,9 +585,9 @@
   /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
      comme dans l'écran actuel. */
   .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
-  .quand .zone{font:600 10.5px var(--v2-mono); color:var(--v2-acc1); letter-spacing:.02em;
+  .quand .zone{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); letter-spacing:.02em;
     max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .quand .when{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   /* #1771 — le cœur radio est rendu par `PisteActions` (`.pa.coeur`), dans
      la barre d'actions. Il n'en reste ici que la place réservée, qui garde
@@ -614,12 +614,12 @@
     border-radius:9px; background:var(--v2-surface2, transparent); color:var(--v2-txt);
     cursor:pointer; font-family:inherit}
   .objet:hover{border-color:var(--v2-acc1)}
-  .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .objet .pli{font:600 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .objet.ouvert .pli{color:var(--v2-acc1)}
   /* La colonne centrale : le type puis le nom, sur une ligne, dans la seule
      cellule qui absorbe les colonnes de données du tableau. */
   .objet .ocorps{display:flex; align-items:center; gap:14px; min-width:0}
-  .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
+  .objet .otype{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-acc1); flex:none}
   .objet .onom{display:flex; align-items:center; gap:10px; min-width:0}
   .objet .ovig{flex:none; width:36px; height:36px}
@@ -627,12 +627,12 @@
   .objet .otitre, .objet .oart{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .objet .lien-album{cursor:pointer}
   .objet .lien-album:hover{text-decoration:underline; color:var(--v2-txt)}
-  .objet .oart{font-size:12px; color:var(--v2-txt3)}
+  .objet .oart{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le compte tient la colonne des actions, calé à droite comme `.act` du
      tableau : la pastille tombe ainsi au-dessus du dernier bouton de la barre,
      et jamais sur la colonne de données voisine. */
   .objet .ocompte-cell{display:flex; align-items:center; justify-content:flex-end}
-  .objet .ocompte{font:11px var(--v2-mono); color:var(--v2-txt3);
+  .objet .ocompte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:10px; padding:1px 7px}
   /* La colonne du suffixe, à l'identique de `.td.act` dans `ListePistesV2` :
      flex, calé à droite, AUCUNE gouttière — une gouttière ici décalerait

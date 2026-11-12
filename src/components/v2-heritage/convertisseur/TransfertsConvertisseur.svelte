@@ -301,29 +301,29 @@
 
 <style>
   .conv { display: flex; flex-direction: column; gap: 12px; }
-  .conv-titre { margin: 0; font-size: 16px; font-weight: 600; color: var(--tune-text); }
-  .conv-aide, .conv-discret { margin: 0; font-size: 12px; color: var(--tune-text-secondary); }
+  .conv-titre { margin: 0; font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); }
+  .conv-aide, .conv-discret { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .conv-premium { margin: 0; padding: 22px; text-align: center; color: var(--tune-text-secondary); }
-  .conv-vide { margin: 0; color: var(--tune-text-muted); font-size: 13px; }
+  .conv-vide { margin: 0; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-ligne { display: flex; flex-wrap: wrap; gap: 12px; }
-  .conv-champ { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--tune-text-secondary); }
+  .conv-champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .conv-champ select { min-width: 180px; padding: 6px 8px; border: 1px solid var(--tune-border); border-radius: 6px; background: var(--tune-surface); color: var(--tune-text); }
   .conv-choix { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
-  .conv-choix label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tune-text); cursor: pointer; }
-  .conv-btn { align-self: flex-start; padding: 6px 14px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; font-size: 13px; }
+  .conv-choix label { display: flex; align-items: center; gap: 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); cursor: pointer; }
+  .conv-btn { align-self: flex-start; padding: 6px 14px; border: 1px solid var(--tune-border); border-radius: 6px; background: none; color: var(--tune-text); cursor: pointer; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-btn:disabled { opacity: 0.5; cursor: default; }
   .conv-primaire { background: var(--tune-accent); border-color: var(--tune-accent); color: var(--tune-bg); }
-  .conv-erreur { margin: 0; color: var(--tune-danger, #ef4444); font-size: 13px; }
+  .conv-erreur { margin: 0; color: var(--tune-danger, #ef4444); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .conv-bloc { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--tune-border); border-radius: 8px; }
-  .conv-bloc h4 { margin: 0; font-size: 14px; color: var(--tune-text); }
-  .conv-bloc ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--tune-text); }
-  .conv-resume { margin: 0; font-size: 13px; color: var(--tune-text); }
+  .conv-bloc h4 { margin: 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-bloc ul { margin: 0; padding-left: 18px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-resume { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .conv-pl { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--tune-border); }
   .conv-pl-tete { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
-  .conv-introuvables summary { cursor: pointer; font-size: 12px; color: var(--tune-text-secondary); }
-  .conv-raison { margin-left: 6px; font-size: 12px; color: var(--tune-text-muted); }
-  .conv-accord { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tune-text); }
-  .conv-etat { font-size: 12px; color: var(--tune-text-secondary); }
+  .conv-introuvables summary { cursor: pointer; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
+  .conv-raison { margin-left: 6px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .conv-accord { display: flex; align-items: center; gap: 8px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
+  .conv-etat { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .conv-lots ul { list-style: none; padding: 0; }
   .conv-lot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 4px 0; }
 </style>

@@ -41,13 +41,13 @@
 
 <style>
   .pistes-douteuses{margin:16px 0 22px; border:1px solid var(--v2-line2); border-radius:10px; padding:14px}
-  h3{margin:0 0 10px; font:600 14px var(--v2-sans); color:var(--v2-txt)}
+  h3{margin:0 0 10px; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   ol{list-style:none; margin:0; padding:0}
   li{display:flex; flex-direction:column; gap:4px; padding:10px 0; border-bottom:1px solid var(--v2-line2); min-width:0}
-  strong{font:600 13px var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
-  .chemin{font:11px var(--v2-mono); color:var(--v2-txt3); overflow-wrap:anywhere}
-  .raisons{font:12px var(--v2-sans); color:var(--v2-txt2)}
-  .suite{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; font:12px var(--v2-sans); color:var(--v2-txt3)}
-  button{border:1px solid var(--v2-line2); border-radius:8px; background:transparent; color:var(--v2-txt); padding:7px 12px; font:600 12px var(--v2-sans); cursor:pointer}
+  strong{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
+  .chemin{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); overflow-wrap:anywhere}
+  .raisons{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .suite{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
+  button{border:1px solid var(--v2-line2); border-radius:8px; background:transparent; color:var(--v2-txt); padding:7px 12px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   button:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
 </style>

@@ -48,7 +48,7 @@
     align-items: center;
     gap: 4px;
     font-family: var(--font-label, system-ui);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: 0.4px;
     padding: 2px 7px;
@@ -80,7 +80,7 @@
   }
 
   .qb-star {
-    font-size: 8px;
+    font-size: calc(8px * var(--v2-txt-echelle, 1));
     line-height: 1;
   }
 

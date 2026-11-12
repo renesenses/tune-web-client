@@ -1138,19 +1138,19 @@
 <style>
   .v2-eq{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .onoff{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
+  .onoff{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
   .reglages{border:0; margin:0; padding:0; min-width:0}
-  .note-peq{margin:0 0 12px; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
+  .note-peq{margin:0 0 12px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .lecture-echouee{display:flex; flex-direction:column; align-items:flex-start; gap:12px}
   .lecture-echouee p{margin:0}
   .reglages.voile{opacity:.45; pointer-events:none; user-select:none}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
   .modes{display:flex; gap:7px; margin:2px 0 18px}
   .modes button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    cursor:pointer; border-radius:999px; padding:6px 15px; font:600 12px var(--v2-sans)}
+    cursor:pointer; border-radius:999px; padding:6px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .modes button:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .modes button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
 
@@ -1162,12 +1162,12 @@
   .sw input:checked + .slider{background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sw input:checked + .slider::before{transform:translateX(20px)}
 
-  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
-  .restart{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:12.5px;
+  .restart{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint);
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .redemarrer-bandeau{margin-left:auto; padding:5px 12px; border-radius:8px; font:inherit; cursor:pointer;
@@ -1175,28 +1175,28 @@
   .redemarrer-bandeau:disabled{opacity:.45; cursor:default}
 
   .plugin{display:flex; flex-direction:column; align-items:flex-start; gap:14px; max-width:64ch; padding:26px 0}
-  .plugin-banner{padding:12px 16px; border-radius:11px; font-size:12.5px; line-height:1.55;
+  .plugin-banner{padding:12px 16px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55;
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
-  .plugin-text{font-size:13.5px; line-height:1.55; color:var(--v2-txt2)}
+  .plugin-text{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt2)}
   .plugin-install:disabled{opacity:.55; cursor:progress}
 
   .presets{display:flex; gap:7px; flex-wrap:wrap; padding:2px 0 16px}
   .presets.mes{align-items:center; margin-top:-8px}
-  .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .mesl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .mien{display:inline-flex}
   .mien .x{padding:0 7px}
   .confirm-suppr{display:inline-flex; align-items:center; gap:5px; margin-left:5px}
-  .confirm-texte{font-size:11.5px; color:var(--v2-txt2)}
+  .confirm-texte{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .confirm-suppr .oui{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .modif{font:italic 11.5px var(--v2-sans); color:var(--v2-acc-tint)}
-  .bilan-peq{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+  .modif{font:italic calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
+  .bilan-peq{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5;
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .bilan-peq p{margin:0}
-  .apercu-peq{margin:-8px 0 16px; padding:10px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+  .apercu-peq{margin:-8px 0 16px; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5;
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .apercu-peq p{margin:0 0 6px}
   .apercu-titre{color:var(--v2-txt)}
-  .apercu-bandes{width:100%; border-collapse:collapse; margin:0 0 8px; font:11.5px var(--v2-mono)}
+  .apercu-bandes{width:100%; border-collapse:collapse; margin:0 0 8px; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .apercu-bandes th, .apercu-bandes td{padding:2px 6px; text-align:right; border-bottom:1px solid var(--v2-line2)}
   .apercu-bandes th:nth-child(2), .apercu-bandes td:nth-child(2){text-align:left}
   .apercu-actions{display:flex; gap:7px; flex-wrap:wrap}
@@ -1207,17 +1207,17 @@
   .autoeq-form input{flex:1 1 180px; min-width:0}
   .autoeq-resultats{list-style:none; margin:8px 0 0; padding:0; max-height:280px; overflow-y:auto}
   .autoeq-resultats button{display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left}
-  .autoeq-source{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .autoeq-compte, .autoeq-vide, .autoeq-erreur, .autoeq-credit{margin:8px 0 0; font-size:12px; color:var(--v2-txt2)}
+  .autoeq-source{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .autoeq-compte, .autoeq-vide, .autoeq-erreur, .autoeq-credit{margin:8px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .autoeq-erreur{color:var(--v2-acc-tint)}
   .autoeq-credit{color:var(--v2-txt3)}
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
      de `.err`, qui dirait à tort que rien ne marche. */
-  .mes-cache{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:12.5px; line-height:1.5;
+  .mes-cache{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5;
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   /* Le préréglage EN VIGUEUR. Bordure ET fond teinté : la seule bordure se
      confond avec le survol, et un écran se lit d'un coup d'œil, sans
@@ -1226,13 +1226,13 @@
     background:color-mix(in srgb, var(--v2-acc1) 14%, transparent)}
 
   .ctrls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:0 0 18px}
-  .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   .cl.sep{margin-left:12px}
   .seg{display:flex; gap:2px; padding:3px; border-radius:11px; background:var(--v2-surface2); border:1px solid var(--v2-line)}
-  .seg button{border:0; background:transparent; color:var(--v2-txt2); font:600 11.5px var(--v2-sans);
+  .seg button{border:0; background:transparent; color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:6px 12px; border-radius:8px; cursor:pointer}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .note{font-size:11px; color:var(--v2-txt3)}
+  .note{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .ctrls.reserve{padding-top:18px}
   .note b{color:var(--v2-txt2)}
 
@@ -1241,11 +1241,11 @@
   .board.off{opacity:.4}
   .board::-webkit-scrollbar{height:8px}.board::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .band{display:flex; flex-direction:column; align-items:center; gap:8px; flex:1 1 0; min-width:34px}
-  .band .g{font:10px var(--v2-mono); color:var(--v2-acc2); min-height:13px}
-  .band .f{font:9.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .band .g{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); min-height:13px}
+  .band .f{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .band .v{writing-mode:vertical-lr; direction:rtl; width:22px; height:190px; accent-color:var(--v2-acc1); cursor:pointer}
 
-  .more{margin-top:20px; padding:13px 16px; border-radius:11px; font-size:12.5px; line-height:1.55;
+  .more{margin-top:20px; padding:13px 16px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55;
     color:var(--v2-txt3); border:1px dashed var(--v2-line2)}
   .more b{color:var(--v2-txt2)}
 </style>

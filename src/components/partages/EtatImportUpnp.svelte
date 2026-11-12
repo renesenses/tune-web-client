@@ -57,5 +57,5 @@
   ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
   li { display: flex; flex-direction: column; gap: 2px; }
   .nom { font-weight: 600; color: var(--v2-txt2); }
-  .detail, .raison { font-size: 12px; color: var(--v2-txt3); }
+  .detail, .raison { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
 </style>

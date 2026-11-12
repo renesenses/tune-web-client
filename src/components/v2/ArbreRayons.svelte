@@ -338,15 +338,15 @@
   .arbre-rayons{padding:12px 30px 30px; color:var(--v2-txt); font-family:var(--v2-sans)}
   .arbre-rayons.compact{padding:0 0 4px 18px}
   .barre{display:flex; gap:8px; margin-bottom:12px}
-  .aucun, .indice, .vide{color:var(--v2-txt3); font-size:12.5px; margin:4px 0}
+  .aucun, .indice, .vide{color:var(--v2-txt3); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); margin:4px 0}
   ul{list-style:none; margin:0; padding:0}
   .enfants{padding-left:18px}
   .compact .enfants{padding-left:12px}
   .rayon, .col{position:relative}
   .tete{display:flex; align-items:center; gap:4px; border-radius:8px; padding:2px 4px}
   .tete.survol, .hors.survol, .col.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
-  .ordre{display:flex; align-items:center; gap:6px; margin-left:auto; font:12.5px var(--v2-sans); color:var(--v2-txt3)}
-  .ordre select{font:12.5px var(--v2-sans)}
+  .ordre{display:flex; align-items:center; gap:6px; margin-left:auto; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
+  .ordre select{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .pli, .geste, .plus{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;
     background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:6px}
   .pli svg{width:14px; height:14px; transition:transform .12s}
@@ -354,25 +354,25 @@
   .pli svg.ferme{transform:rotate(-90deg)}
   .pli:hover, .geste:hover, .plus:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nomrayon{flex:1; min-width:0; text-align:left; border:0; background:transparent; color:inherit;
-    font:600 13.5px var(--v2-sans); cursor:pointer; padding:4px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .compact .nomrayon{font-size:12.5px; color:var(--v2-txt2)}
-  .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
+    font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; padding:4px 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .compact .nomrayon{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .col{display:flex; align-items:center; gap:4px}
   .ouvre{flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:0; background:transparent;
-    color:var(--v2-txt2); cursor:pointer; padding:4px 6px; border-radius:6px; font:13px var(--v2-sans); text-align:left}
-  .compact .ouvre{font-size:12px; padding:3px 4px}
+    color:var(--v2-txt2); cursor:pointer; padding:4px 6px; border-radius:6px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align:left}
+  .compact .ouvre{font-size:calc(12px * var(--v2-txt-echelle, 1)); padding:3px 4px}
   .ouvre:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pastille{flex:none; width:8px; height:8px; border-radius:50%; background:var(--v2-line2)}
-  .sorte{font:9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
+  .sorte{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
   .menu{position:absolute; right:0; top:100%; z-index:20; min-width:200px; max-height:280px; overflow-y:auto;
     display:flex; flex-direction:column; padding:6px; border:1px solid var(--v2-line2); border-radius:10px;
     background:var(--v2-surface2); box-shadow:var(--v2-sh-card)}
   .menu button{border:0; background:transparent; color:var(--v2-txt2); text-align:left; padding:6px 8px;
-    border-radius:6px; cursor:pointer; font:13px var(--v2-sans)}
+    border-radius:6px; cursor:pointer; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .menu button:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .menu button.danger{color:var(--v2-danger)}
-  .titre-menu{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); padding:4px 8px}
+  .titre-menu{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); padding:4px 8px}
   .hors{margin-top:22px; padding:8px; border-radius:10px}
-  .hors h2{font:600 12px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:0 0 4px}
+  .hors h2{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:0 0 4px}
 </style>

@@ -89,7 +89,8 @@ describe('#2151 — chaque bouton de la fiche album a une bulle qui dit ce qu’
   it('🔴 les quatre boutons nommés par Didier ont leur bulle', { timeout: 60_000 }, async () => {
     const h = await ouvrir();
     for (const [cle, tip] of [
-      ['v2.album.shuffle', 'v2.album.shuffleTip'],
+      // rc12 : « Lecture aléatoire » est sous la flèche du bouton Lecture.
+      ['v2.menu.shufflePlay', 'v2.album.shuffleTip'],
       ['v2.album.playNext', 'v2.album.playNextTip'],
       ['v2.menu.addToQueue', 'v2.album.addQueueTip'],
       ['library.reidentify', 'v2.album.reidentifyTip'],

@@ -19,6 +19,7 @@ import { flushSync, mount, unmount, type Component } from 'svelte';
 import PlaylistManagerView from '../../components/v2-heritage/PlaylistManagerView.svelte';
 import { locale } from '../i18n';
 import fr from '../locales/fr';
+import { entreeDuMenu, entreesDuMenu, MENU_LECTURE } from './aides/menuFiche';
 import { preferences } from '../stores/preferences';
 import {
   pendingPlaylistId,
@@ -153,7 +154,12 @@ describe('Gestionnaire de playlists — Lire et Lecture aléatoire (web#1520)', 
     expect(barre, 'pas de barre detail-actions').not.toBeNull();
     const libelles = Array.from(barre!.querySelectorAll('button')).map((b) => b.textContent?.trim());
     expect(libelles, 'pas de bouton Lire').toContain(FR['common.play']);
-    expect(libelles, 'pas de bouton Lecture aléatoire').toContain(FR['library.shuffle']);
+    // rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Lecture aléatoire »
+    // et « Lire ensuite » sont sous sa flèche.
+    const menu = entreesDuMenu(barre!, MENU_LECTURE).map((b) => b.textContent?.trim());
+    expect(menu, 'pas d’entrée Lecture aléatoire').toContain(FR['v2.menu.shufflePlay']);
+    expect(menu, 'pas d’entrée Lire ensuite').toContain(FR['v2.album.playNext']);
+    expect(menu, 'pas d’entrée Ajouter à la file').toContain(FR['v2.menu.addToQueue']);
   });
 
   it('« Lire » lance la playlist par son identifiant', async () => {
@@ -170,9 +176,7 @@ describe('Gestionnaire de playlists — Lire et Lecture aléatoire (web#1520)', 
     // permutation est connue et différente de l'ordre de la playlist.
     vi.spyOn(Math, 'random').mockReturnValue(0);
     const el = await monterLaFiche();
-    const bouton = Array.from(enTete(el)!.querySelectorAll<HTMLButtonElement>('button')).find(
-      (b) => b.textContent?.trim() === FR['library.shuffle'],
-    );
+    const bouton = entreeDuMenu(enTete(el)!, '[data-aleatoire-gestionnaire]', MENU_LECTURE) ?? undefined;
     expect(bouton, 'pas de bouton Lecture aléatoire').toBeDefined();
     bouton!.click();
     await souffler();
