@@ -103,6 +103,22 @@ describe('ceQuiTourne — la logique', () => {
     expect(c.freins?.fichiersDeScanRetenus).toBe(12);
   });
 
+  it('le renvoi des images d\'artistes (rc12) se range sous la ligne des images d\'artistes', () => {
+    const base = instantane();
+    const inst = instantane({
+      tasks: [
+        ...base.tasks,
+        { id: 'renvoi_images_artistes', label: 'Partage des images d\'artistes…', kind: 'enrichment', progress: { processed: 12, total: 40, detail: 'Images' } },
+      ],
+      pausable: base.pausable.map((p: any) => (p.id === 'artist_images' ? { ...p, state: 'en_cours' } : p)),
+    });
+    const c = ceQuiTourne(inst)!;
+    const images = c.lignes.filter((l) => l.id === 'artist_images');
+    expect(images).toHaveLength(1);
+    expect(images[0].avancement).toEqual({ fait: 12, total: 40, detail: 'Images' });
+    expect(c.lignes.find((l) => l.id === 'tache:renvoi_images_artistes')).toBeUndefined();
+  });
+
   it('l\'interrupteur général se dit comme tel', () => {
     const inst = instantane({ all_paused: true });
     const c = ceQuiTourne(inst)!;
