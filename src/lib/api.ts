@@ -10250,6 +10250,24 @@ export function getContinueListening(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/home/continue-listening?limit=${limit}`);
 }
 
+/** Une position d'épisode de podcast commencé (tune-server-rust#8170). */
+export interface PositionEpisodePodcast {
+  audio_url: string;
+  position_ms: number;
+  duration_ms?: number | null;
+  updated_at?: string | null;
+}
+
+/**
+ * tune-server-rust#8170 — la position de CHAQUE épisode commencé, un par
+ * épisode (celle de la zone d'abord). Absente d'un serveur antérieur : le
+ * repli est `getContinueListening`, qui n'en rend qu'une par podcast.
+ */
+export function getPodcastEpisodePositions(zoneId?: number | null) {
+  const q = zoneId != null ? `?zone_id=${encodeURIComponent(String(zoneId))}` : '';
+  return fetchJSON<{ positions: PositionEpisodePodcast[] }>(`${BASE}/podcasts/positions${q}`);
+}
+
 /**
  * Les albums entrés dans la bibliothèque au cours des `days` derniers jours.
  *

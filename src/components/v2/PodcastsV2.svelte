@@ -563,11 +563,20 @@ let reculS = $state(RECUL_DEFAUT_S);
   /** Les reprises enregistrées ; sans elles, tout part du début comme avant. */
   async function chargerReprises() {
     try {
-      const [lignes, config] = await Promise.all([
+      const [lignes, config, positions] = await Promise.all([
         api.getContinueListening(200).catch(() => []),
         api.getConfig().catch(() => null),
+        // tune-server-rust#8170 — la position de CHAQUE épisode commencé ;
+        // un serveur antérieur n'a pas la route : le repli reste ci-dessus.
+        api.getPodcastEpisodePositions($currentZoneId).catch(() => null),
       ]);
-      reprises = Array.isArray(lignes) ? lignes.filter((l: any) => l?.context_type === 'podcast') : [];
+      const parEpisode: LigneEpisode[] = Array.isArray(positions?.positions)
+        ? positions.positions.map((p) => ({ context_type: 'podcast', audio_url: p.audio_url, position_ms: p.position_ms }))
+        : [];
+      reprises = [
+        ...parEpisode,
+        ...(Array.isArray(lignes) ? lignes.filter((l: any) => l?.context_type === 'podcast') : []),
+      ];
       reculS = reculDeLaConfig(config);
     } catch {
       reprises = [];
