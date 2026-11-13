@@ -733,7 +733,7 @@
   .album-contact{display:flex; flex-direction:column; gap:4px; width:100%; border:0; background:transparent; color:var(--v2-txt);
     cursor:pointer; padding:0; text-align:left; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
   .pochette{position:relative; display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
-  .pochette-mienne{position:absolute; left:4px; bottom:4px; max-width:calc(100% - 8px); padding:1px 5px; border-radius:var(--v2-r-sm, 4px); font-size:10px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; background:rgba(0,0,0,.55); opacity:.85; pointer-events:none}
+  .pochette-mienne{position:absolute; left:4px; bottom:4px; max-width:calc(100% - 8px); padding:1px 5px; border-radius:var(--v2-r-sm, 4px); font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; background:rgba(0,0,0,.55); opacity:.85; pointer-events:none}
   .album-nom{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .album-contact .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .artistes{display:flex; flex-direction:column}
