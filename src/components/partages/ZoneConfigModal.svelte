@@ -135,7 +135,7 @@
   /**
    * Forum, fil 2694 (Ilan) ; décision de Bertrand du 13/11 — « Continuer
    * avec des titres similaires à la fin de la file », comme Roon. Activé par
-   * défaut côté serveur (tune-server-rust, migration 151 / PG 117) ; c'est
+   * défaut côté serveur (tune-server-rust, migration 152 / PG 118) ; c'est
    * ici qu'on le coupe pour une zone. Même patron que le gapless : on
    * affiche ce que le serveur rend, un échec remet l'interrupteur.
    */

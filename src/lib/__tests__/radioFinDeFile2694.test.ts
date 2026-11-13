@@ -12,7 +12,7 @@ import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
  * Forum, fil 2694 (Ilan, 12/11/2026) ; décision de Bertrand du 13/11 —
  * « Continuer avec des titres similaires à la fin de la file », comme Roon.
  *
- * Le serveur (tune-server-rust, migration 151 / PG 117) active la radio de
+ * Le serveur (tune-server-rust, migration 152 / PG 118) active la radio de
  * fin de file par défaut et marque `added_by_radio` les lignes qu'elle
  * ajoute. Ici : le réglage est atteignable depuis le panneau de zone, son
  * état vient du serveur, le décocher écrit `autoplay_enabled: false`, et les
