@@ -6784,6 +6784,7 @@ export default {
   "v2.circle.emoji.categories": "Κατηγορίες emoji",
   "v2.circle.emoji.results": "Αποτελέσματα",
   "v2.circle.emoji.none": "Δεν βρέθηκε emoji",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "Προσθήκη emoji",
   'v2.circle.emoji.suggestions': "Προτάσεις emoji κατά την πληκτρολόγηση",
   "v2.circle.emoji.shortcuts": "Μετατροπή :) ;) <3 σε emoji κατά την αποστολή",

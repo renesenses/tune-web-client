@@ -6939,6 +6939,7 @@ export default {
   "v2.circle.emoji.categories": "絵文字のカテゴリ",
   "v2.circle.emoji.results": "検索結果",
   "v2.circle.emoji.none": "絵文字が見つかりません",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "絵文字を追加",
   'v2.circle.emoji.suggestions': "入力中に絵文字を提案する",
   "v2.circle.emoji.shortcuts": "送信時に :) ;) <3 を絵文字に変換",

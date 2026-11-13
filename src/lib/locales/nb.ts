@@ -6784,6 +6784,7 @@ export default {
   "v2.circle.emoji.categories": "Emoji-kategorier",
   "v2.circle.emoji.results": "Resultater",
   "v2.circle.emoji.none": "Fant ingen emoji",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "Legg til en emoji",
   'v2.circle.emoji.suggestions': "Foreslå emojier mens du skriver",
   "v2.circle.emoji.shortcuts": "Gjør om :) ;) <3 til emojier ved sending",

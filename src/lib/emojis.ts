@@ -179,10 +179,12 @@ export function reglerSuggestions(actives: boolean): void {
   try { localStorage.setItem(CLE_SUGGESTIONS, actives ? 'oui' : 'non'); } catch { /* stockage facultatif */ }
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SUGGESTIONS_CHANGEES, { detail: actives }));
 }
+const MOTS_OUTILS = new Set('sur avec dans pour par les des une est son ses aux qui que oui non the and for with you your our are was this that not from into out'.split(' '));
 export function suggererEmoji(texte: string): Emoji | undefined {
   const mot = texte.match(/(?:^|\s)([\p{L}\p{M}]+)$/u)?.[1];
   if (!mot) return;
   const q = normaliser(mot);
+  if (q.length < 3 || MOTS_OUTILS.has(q)) return;
   // Le sélecteur accepte des préfixes ; la suggestion attend un mot entier.
   return chercherEmojis(mot).find((e) => [...e.en, ...e.fr].some((v) => normaliser(v).split(/\s+/).includes(q)));
 }

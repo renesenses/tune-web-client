@@ -46,13 +46,15 @@
   });
 </script>
 
+<span class="annonce" role="status" aria-live="polite">{visible && emoji ? `${$t('v2.circle.emoji.suggestion' as any)} ${nomEmoji(emoji, $locale)}` : ''}</span>
 {#if visible && emoji}
-  <div class="suggestion" data-suggestion-emoji aria-live="polite">
-    <button type="button" onpointerdown={(ev) => ev.preventDefault()} onclick={choisir} title={nomEmoji(emoji, $locale)}>{$t('v2.circle.emoji.suggestion' as any)} {emoji.e} <kbd>Tab</kbd></button>
+  <div class="suggestion" data-suggestion-emoji>
+    <button type="button" onpointerdown={(ev) => ev.preventDefault()} onclick={choisir} title={nomEmoji(emoji, $locale)}>{$t('v2.circle.emoji.suggestion' as any)} {emoji.e} <kbd>{$t('v2.circle.emoji.suggestionKey' as any)}</kbd></button>
   </div>
 {/if}
 
 <style>
+  .annonce{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .suggestion{flex:1 1 100%;min-width:0}
   button{font:inherit;color:var(--v2-txt);background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:8px;padding:6px 10px;cursor:pointer}
   button:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:2px}

@@ -6939,6 +6939,7 @@ export default {
   "v2.circle.emoji.categories": "Categorie di emoji",
   "v2.circle.emoji.results": "Risultati",
   "v2.circle.emoji.none": "Nessun emoji trovato",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "Aggiungi un emoji",
   'v2.circle.emoji.suggestions': "Suggerisci emoji durante la digitazione",
   "v2.circle.emoji.shortcuts": "Converti :) ;) <3 in emoji all’invio",

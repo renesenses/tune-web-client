@@ -6939,6 +6939,7 @@ export default {
   "v2.circle.emoji.categories": "Categorii de emoji",
   "v2.circle.emoji.results": "Rezultate",
   "v2.circle.emoji.none": "Niciun emoji găsit",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "Adaugă un emoji",
   'v2.circle.emoji.suggestions': "Sugerează emoji în timpul tastării",
   "v2.circle.emoji.shortcuts": "Transformă :) ;) <3 în emoji la trimitere",

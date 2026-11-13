@@ -236,6 +236,24 @@ describe('suggestions explicites #2982', () => {
     expect(hote.querySelector('[data-suggestion-emoji]')).not.toBeNull();
     expect(envoyes()).toEqual([]);
   });
+  it('laisse Tab naviguer après les mots-outils et garde la région d’annonce montée', async () => {
+    const el = await ouvrir();
+    const annonce = hote.querySelector('.annonce[aria-live="polite"]');
+    expect(annonce).not.toBeNull(); expect(annonce?.textContent).toBe('');
+    for (const mot of ['le', 'de', 'il a', 'je', 'il', 'on', 'me', 'ok', 'sur', 'oui', 'non', 'the', 'you', 'with']) {
+      await taper(el, mot);
+      expect(hote.querySelector('[data-suggestion-emoji]'), `pas de suggestion sur le mot-outil ${mot}`).toBeNull();
+      const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      el.dispatchEvent(tab); await finir();
+      expect(tab.defaultPrevented, `Tab doit rester libre après ${mot}`).toBe(false);
+      expect(el.value).toBe(mot);
+    }
+    await taper(el, 'hello');
+    expect(hote.querySelector('[data-suggestion-emoji]')?.textContent).toContain('👋');
+    expect(hote.querySelector('.annonce[aria-live="polite"]')).toBe(annonce);
+    expect(annonce?.textContent).not.toBe('');
+    expect(envoyes()).toEqual([]);
+  });
   it('le réglage du sélecteur désactive les suggestions et persiste', async () => {
     const el = await ouvrir(); await taper(el, 'hello');
     (hote.querySelector('.bouton-emoji') as HTMLButtonElement).click(); await finir();

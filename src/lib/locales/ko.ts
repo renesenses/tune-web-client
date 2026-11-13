@@ -6939,6 +6939,7 @@ export default {
   "v2.circle.emoji.categories": "이모지 카테고리",
   "v2.circle.emoji.results": "검색 결과",
   "v2.circle.emoji.none": "이모지를 찾을 수 없습니다",
+  'v2.circle.emoji.suggestionKey': "Tab",
   'v2.circle.emoji.suggestion': "이모지 추가",
   'v2.circle.emoji.suggestions': "입력 중 이모지 제안",
   "v2.circle.emoji.shortcuts": "보낼 때 :) ;) <3 을 이모지로 변환",
