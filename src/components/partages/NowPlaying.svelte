@@ -45,6 +45,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
+  import BadgeCoverPlus from './BadgeCoverPlus.svelte';
   import { fluxAjoutable, logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
@@ -2039,6 +2040,8 @@ import { ICONES } from '../../lib/menuPiste';
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
+              <!-- tune-server-rust#8452 — la pochette vient de Cover+. -->
+              {#if track?.cover_plus}<BadgeCoverPlus />{/if}
               {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
