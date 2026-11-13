@@ -2908,8 +2908,20 @@ export interface AlbumsArtisteSections {
   played_with?: JoueAvec[];
 }
 
-/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
-export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
+/**
+ * Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et
+ * les enregistrements partagés. #2961 (tune-server-rust, lot rc12) :
+ * `shared_albums` (albums distincts) et `album_wide` (crédité sur presque
+ * tout chacun de ses albums partagés : compter des titres ne dit rien) —
+ * absents devant un serveur antérieur.
+ */
+export interface JoueAvec {
+  artist_id: number | null;
+  artist_name: string;
+  shared_tracks: number;
+  shared_albums?: number;
+  album_wide?: boolean;
+}
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
