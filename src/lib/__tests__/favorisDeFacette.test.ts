@@ -135,9 +135,13 @@ describe('le cœur de facette dans la Bibliothèque', () => {
   it('les noms envoyés au serveur sont au SINGULIER', () => {
     // L'onglet s'appelle « Genres », la table `genre`. Écrire le pluriel
     // produirait des favoris que `/library/facets` ne relirait jamais.
-    expect(src).toMatch(/genres:\s*'genre'/);
-    expect(src).toMatch(/years:\s*'year'/);
-    expect(src).toMatch(/labels:\s*'label'/);
+    // tune-server-rust#7586 — la table vit dans `lib/uniquementFavoris`,
+    // partagée avec le filtre « Uniquement favoris » ; l'écran l'importe.
+    const table = sansCommentaires(lire('src/lib/uniquementFavoris.ts'));
+    expect(src).toContain('FACETTE_SERVEUR: Partial<Record<Tab, string>> = FACETTE_SERVEUR_DES_ONGLETS');
+    expect(table).toMatch(/genres:\s*'genre'/);
+    expect(table).toMatch(/years:\s*'year'/);
+    expect(table).toMatch(/labels:\s*'label'/);
   });
 
   it("« Sans label » et « Année inconnue » n'ont pas de cœur", () => {

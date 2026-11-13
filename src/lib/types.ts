@@ -139,6 +139,11 @@ export interface Album {
    * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
    */
   max_channels?: number | null;
+  /**
+   * tune-server-rust#8560 — le plus petit nombre de canaux parmi les pistes
+   * de l'album, pour le filtre Stéréo. Absent d'un serveur plus ancien.
+   */
+  min_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -450,6 +455,30 @@ export interface SignalPath {
   /** tune-server-rust#4384 — ReplayGain armé, piste sans gain stocké : le
    *  préampli n'est pas appliqué. Absent sinon, sous PURE, ou d'un vieux serveur. */
   replaygain_untagged?: { mode?: string; preamp_db?: number } | null;
+  /** tune-server-rust#8419 — lecture groupée : chaque sortie du groupe et
+   *  son étage final. Absent hors groupe, ou d'un serveur antérieur. */
+  group_outputs?: SortiesDuGroupe | null;
+}
+
+/** tune-server-rust#8419 — une sortie d'un groupe de lecture. */
+export interface SortieDuGroupe {
+  zone_id: number;
+  name: string;
+  output_type?: string | null;
+  /** La zone dont on lit le chemin du signal. */
+  this_zone: boolean;
+  leader: boolean;
+  state: 'playing' | 'paused' | 'stopped';
+  bit_perfect?: boolean | null;
+  rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** La dernière étape du chemin du signal de CETTE sortie : ce qu'elle reçoit. */
+  final_stage?: SignalPathStep | null;
+}
+
+export interface SortiesDuGroupe {
+  group_id?: number | null;
+  leader_id?: number | null;
+  outputs: SortieDuGroupe[];
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -772,6 +801,13 @@ export interface Zone {
    * Absent sur un vieux serveur ⇒ le sélecteur n'est pas proposé.
    */
   dlna_radio_title?: 'off' | 'next' | 'reload';
+  /**
+   * web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » :
+   * les pistes consécutives de même format partent en un seul flux WAV vers
+   * un renderer DLNA qui raccorde mal. Toujours présent sur un serveur qui
+   * connaît le réglage ; absent ⇒ l'interrupteur n'est pas proposé.
+   */
+  dlna_flux_continu?: boolean;
   /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
@@ -1685,6 +1721,18 @@ export interface FluxRadio {
   hls?: boolean;
   /** Le flux principal de la fiche. */
   primary?: boolean;
+  /**
+   * web#2801 (tune-server-rust#7515, rc12) — le flux que le serveur joue si
+   * l'auditeur n'en choisit aucun ; jamais un flux réservé à d'autres pays.
+   * Au plus un par fiche. Absent d'un serveur plus ancien.
+   */
+  par_defaut?: boolean;
+  /**
+   * web#2801 — `true` : libre ou ouvert au pays d'écoute ; `false` : réservé
+   * à d'autres pays (ou invalide) ; `null` : restreint alors que le pays
+   * d'écoute n'est pas renseigné. Absent d'un serveur plus ancien.
+   */
+  autorise?: boolean | null;
 }
 
 export interface RadioImportResult {

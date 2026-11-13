@@ -20,6 +20,8 @@
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import OrdreCoffretListeV2 from './OrdreCoffretListeV2.svelte';
+  import { deplacerDans } from '../../lib/ordreCoffret';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
   // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
@@ -534,6 +536,27 @@
         .catch(() => {});
     });
   });
+
+  /**
+   * #8571 (fil 2763) — les albums cochés, DANS L'ORDRE du coffret, pour la
+   * liste réordonnable. Un album coché que la recherche ne montre plus reste
+   * dans la liste : c'est la sélection, pas l'affichage, qui fait l'ordre.
+   */
+  let cfOrdre = $derived(cfChoisis.map((id) => {
+    const a = cpTous.find((x) => x.album_id === id);
+    return {
+      cle: id,
+      titre: a?.title ?? '—',
+      detail: [a?.album_artist, finDeDossier(a?.folder)].filter(Boolean).join(' · ') || undefined,
+      disques: Math.max(1, a?.disc_count ?? 1),
+    };
+  }));
+
+  /** #8571 — glisser-déposer ou Monter / Descendre dans la liste ordonnée. */
+  function deplacerCoffret(de: number, vers: number) {
+    cfChoisis = deplacerDans(cfChoisis, de, vers);
+    arme = null;
+  }
 
   function cocherCoffret(id: number) {
     const i = cfChoisis.indexOf(id);
@@ -1213,6 +1236,13 @@
               oninput={() => { cfTitreTouche = true; arme = null; }}
             />
           </div>
+        {/if}
+        <!-- #8571 (fil 2763) — l'ordre du coffret se change ici, sans
+             décocher : glisser par la poignée, ou Monter / Descendre au
+             clavier. -->
+        {#if cfChoisis.length >= 2}
+          <OrdreCoffretListeV2 elements={cfOrdre} ondeplacer={deplacerCoffret}
+            etiquette={$t('v2.box.orderList' as any)} desactive={cfBusy} />
         {/if}
         {#if cfBilan}<p class="note">{cfBilan}</p>{/if}
         {#if cfErr}<div class="errline">{cfErr}</div>{/if}
