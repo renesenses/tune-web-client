@@ -125,6 +125,19 @@ describe('câblage de l’écran', () => {
     expect(fr['upsampling.lead']).toMatch(/limiteur/);
   });
 
+  // tune-server-rust Discussion #8519 — DLNA et OpenHome sont pris en charge :
+  // les textes de l’écran le disent, dans les quinze langues.
+  it('les zones DLNA et OpenHome sont nommées dans les quinze langues (#8519)', () => {
+    for (const l of LANGUES) {
+      const source = lire(`src/lib/locales/${l}.ts`);
+      for (const cle of ['upsampling.lead', 'upsampling.enabledHint', 'upsampling.constraint.zoneNotSupported']) {
+        const ligne = source.split('\n').find((x) => x.includes(`"${cle}"`)) ?? '';
+        expect(ligne, `${l} ${cle}`).toMatch(/DLNA/);
+        expect(ligne, `${l} ${cle}`).toMatch(/OpenHome/);
+      }
+    }
+  });
+
   it('chaque clef de l’écran existe dans les quinze langues', () => {
     const ecran = lire('src/components/v2/SurechantillonnageV2.svelte') + lire('src/lib/surechantillonnage.ts');
     const cles = new Set([...ecran.matchAll(/'(upsampling\.[A-Za-z.]+)'/g)].map((m) => m[1]));
