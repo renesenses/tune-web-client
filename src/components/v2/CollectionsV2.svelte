@@ -712,6 +712,10 @@
   function reTirer(): void { graineTirage = graineAleatoire(); }
   async function chargerAlbums(e: Entree) {
     albumsChargement = true;
+    // web#2965 — une liste rechargée (ouverture, autre tri, règles
+    // enregistrées) repart d'une tranche, comme l'onglet Artistes : sinon,
+    // après un défilement complet, elle remonterait toutes ses cartes.
+    montees = TRANCHE_GRILLE;
     try {
       albums =
         ((e.sorte === 'smart'
@@ -1286,7 +1290,6 @@
     // collection, pas a l'afficher ; `label` est ce qui se lit.
     setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: libelleTradu(e) });
     albums = [];
-    montees = TRANCHE_GRILLE;
     await chargerAlbums(e);
   }
 

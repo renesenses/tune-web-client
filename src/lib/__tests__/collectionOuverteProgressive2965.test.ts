@@ -37,9 +37,14 @@ const SMART = [{
   sort_by: null, sort_order: 'asc', track_count: 22167,
 }];
 
+/** Une collection MANUELLE de même taille : son tri passe par le serveur. */
+const MANUELLES = [{ id: 7, name: 'Tout', description: null, album_ids: ALBUMS.map((a) => a.id), covers: [], created_at: '2026-01-01T00:00:00Z' }];
+
 function corps(chemin: string): unknown {
   if (/\/smart-collections\/\d+\/albums/.test(chemin)) return ALBUMS;
   if (chemin.endsWith('/library/smart-collections')) return SMART;
+  if (/\/collections\/\d+\/albums/.test(chemin)) return ALBUMS;
+  if (chemin.endsWith('/library/collections')) return MANUELLES;
   return [];
 }
 
@@ -124,4 +129,30 @@ describe('web#2965 — une collection ouverte ne monte pas ses 1 853 cartes d’
     expect(cartes(r).length).toBeGreaterThan(TRANCHE_GRILLE);
     expect(cartes(r).length).toBeLessThanOrEqual(N);
   }, 60_000);
+
+  it('un autre tri d’une collection manuelle repart d’une tranche, même après un défilement complet', async () => {
+    localStorage.setItem('tune_v2_ecran_v2.collection.albums.tri', 'artist');
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(CollectionsV2, { target: hote, props: {} as any });
+    flushSync();
+    await tourner();
+    const onglets = Array.from(hote.querySelectorAll<HTMLButtonElement>('nav.tabs button.tab'));
+    onglets[1].click();
+    await tourner();
+    hote.querySelector<HTMLButtonElement>('.grid .card button.meta')!.click();
+    expect(await attendreQue(() => cartes(hote!).length > 0)).toBe(true);
+    await tourner();
+    expect(cartes(hote).length).toBe(TRANCHE_GRILLE);
+    // « Z », au bout de la liste : tout se monte, comme un défilement complet.
+    Array.from(hote.querySelectorAll<HTMLButtonElement>('.rail .rl')).find((b) => b.textContent?.trim() === 'Z')!.click();
+    expect(await attendreQue(() => cartes(hote!).length === N)).toBe(true);
+    // Trier ▾ › Titre : le serveur recharge la liste.
+    hote.querySelector<HTMLButtonElement>('[data-menu-tri]')!.click();
+    flushSync();
+    document.querySelector<HTMLButtonElement>('[data-tri="title"]')!.click();
+    await tourner();
+    expect(await attendreQue(() => cartes(hote!).length > 0 && cartes(hote!).length <= TRANCHE_GRILLE)).toBe(true);
+    expect(cartes(hote).length).toBe(TRANCHE_GRILLE);
+  }, 120_000);
 });
