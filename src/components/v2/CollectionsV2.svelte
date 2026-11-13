@@ -36,7 +36,7 @@
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -1640,10 +1640,7 @@
             {#if e.manquants}
               <button class="mq" title={$t('collections.missingHint' as any)}
                 onclick={(ev) => { ev.stopPropagation(); manquantsOuverts = e; void chargerResolutions(e); }}
-                >{(e.manquants > 1
-                  ? $t('collections.missingMany' as any)
-                  : $t('collections.missingOne' as any)
-                ).replace('{count}', String(e.manquants))}</button>
+                >{$tn('collections.missingN', e.manquants)}</button>
             {/if}
           </div>
         {/each}

@@ -1,3 +1,4 @@
+import { formaterPluriel } from './pluriel';
 /**
  * La phrase qui dit POURQUOI une suggestion de l'accueil est là
  * (renesenses/tune-web-client#916, FabienM, fil forum 1527).
@@ -75,9 +76,7 @@ export function texteRaison(raison: unknown, traduire: Traduire, langue = 'fr'):
       const artiste = texte(r.artiste);
       const n = typeof r.albums === 'number' && Number.isFinite(r.albums) ? Math.floor(r.albums) : 0;
       if (!artiste || n < 1) return null;
-      return traduire(n === 1 ? 'v2.why.ownedArtistOne' : 'v2.why.ownedArtistMany')
-        .replace('{artiste}', artiste)
-        .replace('{n}', String(n));
+      return formaterPluriel(traduire('v2.why.ownedArtistN'), n, langue).replace('{artiste}', artiste);
     }
     case 'autre_version': {
       const titre = texte(r.titre);
