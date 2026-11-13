@@ -22,6 +22,7 @@
    */
   import * as api from '../../lib/api';
   import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { zones, currentZoneId } from '../../lib/stores/zones';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
@@ -57,7 +58,9 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import ZonesSupprimees from './ZonesSupprimees.svelte';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
+  import AlertePareFeu from './AlertePareFeu.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -639,12 +642,21 @@
        fonction n'existait pas. On prévient, on ne masque pas. -->
   <OutputModuleBanner instantane={instantaneFournisseurs} />
 
+  <!-- tune-server-rust#7371 — le pare-feu de Windows filtre Tune sur le réseau
+       actif (réseau Public hors de la règle « Tune ») : un appareil DLNA n'est
+       alors jamais découvert. Hors du bloc « aucune zone », pour la même raison
+       que le bandeau ci-dessus. -->
+  <AlertePareFeu />
+
   {#each asioAAvertir as s (s.device_id)}
     <div class="asio-sans-zone" role="status" data-asio-sans-zone={s.device_id}>
       <span>{$t('v2.zone.asioSansZone' as any).replace('{name}', s.name)}</span>
       <button class="v2-btn" disabled={busy} onclick={() => creerZoneAsio(s)}>{$t('v2.zone.creerZoneAsio' as any)}</button>
     </div>
   {/each}
+
+  <!-- tune-server-rust#7836 — « Zones supprimées (n) » et Restaurer. -->
+  <ZonesSupprimees onRestauree={refresh} />
 
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
@@ -773,8 +785,10 @@
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
               {/if}
               <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
@@ -821,8 +835,10 @@
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
               {/if}
             </span>
 
@@ -1051,6 +1067,8 @@
   /* web#2809 — la mention tient la place du curseur : le menu reste à droite. */
   .cvol :global(.volume-fixe), .vol :global(.volume-fixe){flex:1; min-width:0}
   .cvol .vn{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  /* tune-server-rust#7205 — « -45.0 dB » ne tient pas dans 24 px. */
+  .cvol .vn.db, .vn.db{width:auto; min-width:58px; white-space:nowrap}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui

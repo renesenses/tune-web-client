@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
+  import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
@@ -25,7 +26,7 @@
    */
   import { t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
-  import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
+  import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { diagnosticDsd } from '../../lib/transportDsd';
@@ -109,6 +110,7 @@
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -126,7 +128,6 @@
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
-  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import EtatImportUpnp from '../partages/EtatImportUpnp.svelte';
@@ -204,6 +205,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
+  import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -657,10 +659,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
-  // tune-server-rust#6713 — lever le bridage des analyses quand la
-  // température est illisible : désactivé par défaut, niveau Expert, avec
-  // un avertissement à l'activation.
-  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -683,8 +681,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
-        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
-        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -736,21 +732,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
-  }
-  async function setLevBridage(ev: Event) {
-    const caseCochee = ev.currentTarget as HTMLInputElement | null;
-    const souhait = !!caseCochee?.checked;
-    // Lever le bridage se fait en connaissance de cause : l'avertissement
-    // d'abord, et un refus laisse la case décochée.
-    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
-      if (caseCochee) caseCochee.checked = false;
-      return;
-    }
-    const before = levBridage; levBridage = souhait;
-    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
-      levBridage = before;
-      if (caseCochee) caseCochee.checked = !!before;
-    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -2346,11 +2327,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
   let orderError = $state<string | null>(null);
-  const displayedMusicDirs = $derived(
-    directoryOrder === null ? musicDirs
-      : [...directoryOrder.filter((d) => musicDirs.includes(d)),
-        ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
-  );
+  // tune-server-rust#7876 : comparaison sur l'écriture normalisée (lib/ordreDossiers).
+  const displayedMusicDirs = $derived(dossiersOrdonnes(musicDirs, directoryOrder));
   /**
    * tune-server-rust#5593 — les racines EXCLUES des analyses de fond
    * (ReplayGain, plage dynamique, empreintes, CLAP). `null` : le serveur ne
@@ -2637,6 +2615,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ytStatus = $state('absent');
   let ytBusy = $state(false);
   let ytPoll: ReturnType<typeof setInterval> | null = null;
+  /** web#2441 — la ligne « à jour / mise à jour / inconnue » du module. */
+  let ytLigne = $state<LigneModuleYoutube | null>(null);
 
   async function refreshYoutubePlayback() {
     try {
@@ -2645,6 +2625,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ytVersion = s.version ?? null;
       ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
       ytBusy = ytStatus === 'downloading';
+      ytLigne = ligneModuleYoutube(s);
       if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
     } catch { /* serveur antérieur à la route : la section reste en l'état */ }
   }
@@ -2670,6 +2651,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     paysTendancesYt = v;
     try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
     catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
+  /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
+  function remplirModuleYt(phrase: string, params: Record<string, string>): string {
+    return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
   }
 
   async function enableYoutubePlayback() {
@@ -2723,7 +2709,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function refreshDirectoryOrder() {
     try {
       const r = await api.getMusicDirectoryOrder();
-      directoryOrder = Array.isArray(r?.ordre) ? r.ordre : null;
+      directoryOrder = ordreDeLaReponse(r);
     } catch {
       directoryOrder = null; // Older server: keep the existing folder controls.
     }
@@ -2741,7 +2727,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     orderError = null;
     try {
       const r = await api.setMusicDirectoryOrder(next);
-      directoryOrder = r.ordre;
+      directoryOrder = ordreDeLaReponse(r) ?? directoryOrder;
     } catch {
       orderError = get(t)('settings.errDirectoryOrder' as any);
     } finally {
@@ -4145,12 +4131,54 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .then((r) => { air = r; })
       .catch(() => { air = null; });
   });
-  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number }) {
+  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
     airBusy = true; airErr = null;
     try {
       air = await api.setDevialetAirReglages(corps);
-    } catch (e: any) { airErr = e?.message ?? get(t)('settings.errActionFailed'); }
-    airBusy = false;
+      return true;
+    } catch (e: any) {
+      // tune-server-rust#7205 — les deux refus de la course, dans la langue de l'écran.
+      const code = e?.code ?? (e?.corps as { error?: unknown } | undefined)?.error;
+      airErr = code === 'volume_range_invalid' ? texteCourseAir('v2.set.devialetAirRangeInvalid')
+        : code === 'volume_range_below_limit' ? get(t)('v2.set.devialetAirRangeBelowLimit' as any)
+        : e?.message ?? get(t)('settings.errActionFailed');
+      return false;
+    } finally {
+      airBusy = false;
+    }
+  }
+  /**
+   * tune-server-rust#7205 (discussion #7458, rc12) — la course du curseur de
+   * volume Devialet en dB d'ampli : bas et haut entre le plancher et le
+   * plafond (−80 et −10 dB), plafond infranchissable. Un serveur qui ne
+   * publie pas `volume_min_db` / `volume_max_db` n'a pas ces champs.
+   */
+  let airBas = $state('');
+  let airHaut = $state('');
+  let airCourseLue = $state<string | null>(null);
+  $effect(() => {
+    const cle = air && typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'
+      ? `${air.volume_min_db}|${air.volume_max_db}` : null;
+    if (cle === airCourseLue) return;
+    airCourseLue = cle;
+    if (cle && air) { airBas = texteLimiteDb(air.volume_min_db); airHaut = texteLimiteDb(air.volume_max_db); }
+  });
+  const airPlancher = $derived(air?.volume_floor_db ?? -80);
+  function texteCourseAir(cle: string): string {
+    return get(t)(cle as any)
+      .replaceAll('{floor}', String(airPlancher))
+      .replaceAll('{ceiling}', String(air?.volume_ceiling_db ?? -10))
+      .replaceAll('{gap}', String(ECART_MINIMAL_COURSE_DB));
+  }
+  const airCourseSaisie = $derived(air ? saisieCourse(airBas, airHaut, airPlancher, air.volume_ceiling_db) : null);
+  const airCourseChangee = $derived(!!airCourseSaisie && !('refus' in airCourseSaisie)
+    && (airCourseSaisie.min !== air?.volume_min_db || airCourseSaisie.max !== air?.volume_max_db));
+  async function enregistrerCourseAir() {
+    const c = airCourseSaisie;
+    if (!c || 'refus' in c) { airErr = texteCourseAir('v2.set.devialetAirRangeInvalid'); return; }
+    if (await reglerDevialetAir({ volume_min_db: c.min, volume_max_db: c.max })) {
+      notifications.success(get(t)('common.saved' as any));
+    }
   }
 
   // ── Base de donnees / exports ─────────────────────────────────────────
@@ -5625,6 +5653,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
               {/if}
 
+            {:else if s.id === 'classicalTags'}
+              <BalisesClassiqueV2 />
+
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">
                 <div class="lbl">
@@ -6386,8 +6417,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </select>
                 </div>
+                {#if typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'}
+                  <div class="row" data-reglage="devialet-air-course">
+                    <div class="lbl">
+                      <span>{$t('v2.set.devialetAirRange' as any)}</span>
+                      <span class="hint">{texteCourseAir('v2.set.devialetAirRangeHint')}</span>
+                    </div>
+                    <div class="course-air">
+                      <label>{$t('v2.set.devialetAirRangeMin' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-bas bind:value={airBas} disabled={airBusy} />
+                      </label>
+                      <label>{$t('v2.set.devialetAirRangeMax' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-haut bind:value={airHaut} disabled={airBusy} />
+                      </label>
+                      <button class="v2-btn sm" data-course-enregistrer disabled={airBusy || !airCourseChangee}
+                        onclick={enregistrerCourseAir}>{$t('common.save' as any)}</button>
+                    </div>
+                  </div>
+                  {#if airCourseSaisie && 'refus' in airCourseSaisie}
+                    <div class="errline" data-course-refus>{texteCourseAir('v2.set.devialetAirRangeInvalid')}</div>
+                  {/if}
+                {/if}
                 <p class="hint">{$t('v2.set.devialetAirLimits' as any).replace('{db}', String(air.volume_ceiling_db)).replace('{khz}', String(air.max_sample_rate / 1000))}</p>
-                {#if airErr}<div class="errline">{airErr}</div>{/if}
+                {#if airErr}<div class="errline" data-air-erreur>{airErr}</div>{/if}
               {/if}
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
@@ -8005,6 +8057,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </button>
                 {/if}
               </div>
+              <!-- web#2441 — version installée ET dernière publiée : « à jour »,
+                   « une mise à jour existe », ou pourquoi on ne sait pas. -->
+              {#if ytLigne}
+                <div class={ytLigne.etat === 'a_jour' ? 'hint' : 'errline'} data-module-youtube={ytLigne.etat}>
+                  {remplirModuleYt($t(ytLigne.cle as any), ytLigne.params)}
+                </div>
+              {/if}
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
               <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
@@ -8620,22 +8679,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
-                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
-                     vitesse réglée quand la température est illisible. -->
-                {#if levBridage !== null && voit('expert', s.id)}
-                  <div class="row" data-reglage="lever-bridage">
-                    <div class="lbl">
-                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
-                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
-                    </div>
-                    <label class="sw">
-                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
-                        aria-label={$t('settings.analysisUnthrottle' as any)}
-                        onchange={setLevBridage} />
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer" data-reglage="remesure-replaygain">
                     <div class="lbl">
@@ -8816,6 +8859,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
+     la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
+     chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le
+     titre réserve la place de la grappe (avatar, signet). Vue mini exclue :
+     elle a sa propre mise en page (`styles/vue-mini.css`). */
+  @media (max-width:720px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{flex-wrap:wrap; align-items:center; row-gap:12px; padding-right:30px}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  }
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{padding-right:0}
+  }
   .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
     background:transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
     white-space:nowrap; transition:.15s}
@@ -8863,6 +8919,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
   .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite : un contrôle large (les pastilles
+     du thème, Petite / Normale / Grande) écrasait son libellé en une colonne
+     d'un mot par ligne. Il passe sous le libellé ; un interrupteur, étroit,
+     reste à côté. */
+  @media (max-width:640px){
+    .row{flex-wrap:wrap; row-gap:8px}
+    .row > .lbl{flex:1 1 200px}
+  }
   .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
   .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
@@ -9069,6 +9133,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .danger-box p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
   .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600}
   .rng{flex:0 0 auto; width:200px; accent-color:var(--v2-acc1)}
+  .course-air{display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 12px}
+  .course-air label{display:flex; flex-direction:column; gap:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .course-air .txt{width:84px}
   .sel{flex:0 0 auto; height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
     background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}

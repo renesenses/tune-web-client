@@ -35,7 +35,7 @@
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import {
-    estHls, ficheDeAnnuaire, ficheDeLecture, ficheDeStation, joueCetteStation, libelleFlux,
+    estHls, ficheDeAnnuaire, ficheDeLecture, ficheDeStation, fluxParDefautDeFiche, joueCetteStation, libelleFlux,
     ordonnerFluxParQualite, titreEnCoursRadio, type FicheStation,
   } from '../../lib/ficheStation';
   import { radioGenreLabel, radioGenreRayon } from '../../lib/radioGenres';
@@ -141,12 +141,12 @@
   const pays = $derived(fiche ? nomDuPays(fiche.paysCode, $locale, fiche.pays) : '');
   // web#2552 : du meilleur flux au moins bon (sans perte, puis débit).
   const fluxRanges = $derived(ordonnerFluxParQualite(fiche?.flux ?? []));
-  /** Le flux que Tune lit par défaut : celui de la station, sinon le principal. */
-  const fluxParDefaut = $derived.by(() => {
-    const flux = fiche?.flux ?? [];
-    if (fiche?.fluxActuel && flux.some((f) => f.url === fiche!.fluxActuel)) return fiche.fluxActuel;
-    return flux.find((f) => f.primary)?.url ?? null;
-  });
+  /**
+   * Le flux que Tune lit par défaut : celui de la station, sinon celui que le
+   * serveur marque `par_defaut` (web#2801), sinon le principal (serveur ancien).
+   * L'ordre de repli vit dans `fluxParDefautDeFiche`, pure et testée.
+   */
+  const fluxParDefaut = $derived(fluxParDefautDeFiche(fluxRanges, fiche?.fluxActuel));
 
   /** On peut lancer cette station : elle est dans « Mes radios » ou dans l'annuaire. */
   const jouable = $derived(!!fiche && (fiche.idMienne != null || !!fiche.annuaireId));
@@ -180,11 +180,18 @@
         idMienne = null;
       }
       let refusAnnonce = false;
+      // web#2801 : `stream_url` n'est envoyé que si l'auditeur a choisi un
+      // AUTRE flux que celui du serveur. Sinon POST sans corps : le serveur
+      // choisit seul le meilleur flux permis, et passe au suivant si le
+      // diffuseur refuse (tune-server-rust#8397). Renvoyer le défaut affiché
+      // ferait jouer, sur un serveur ancien, un principal refusé chez
+      // l'auditeur (#7658).
+      const choisi = url && url !== fluxParDefaut ? url : undefined;
       const ok = await ecouterFicheAnnuaire(
         { external_id: f.annuaireId ?? '', my_radio_id: idMienne },
         zid,
         () => { refusAnnonce = true; },
-        idMienne == null ? url : undefined,
+        idMienne == null ? choisi : undefined,
       );
       if (!ok) {
         if (!refusAnnonce) notifications.error($t('v2.radio.dir.playFailed' as any).replace('{name}', f.nom));
@@ -320,9 +327,11 @@
           <ul aria-label={$t('v2.radio.fiche.streams' as any)}>
             {#each fluxRanges as f (f.url)}
               {@const joue = enDirect && lecture?.source_id === f.url}
-              <li class:actuel={f.url === fluxParDefaut} class:joue>
+              {@const interdit = f.autorise === false}
+              <li class:actuel={f.url === fluxParDefaut} class:joue class:interdit data-flux={f.url}>
                 {#if jouable}
-                  <button class="flux-lire" disabled={enCours !== null} aria-current={joue ? 'true' : undefined}
+                  <!-- web#2801 : un flux réservé à d'autres pays ne se choisit pas. -->
+                  <button class="flux-lire" disabled={enCours !== null || interdit} aria-current={joue ? 'true' : undefined}
                     aria-label={`${$t('common.play' as any)} — ${libelleFlux(f) || f.url}`}
                     onclick={() => lire(f.url)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
@@ -336,6 +345,11 @@
                     <span class="transport">{estHls(f) ? $t('v2.radio.fiche.hls' as any) : $t('v2.radio.fiche.direct' as any)}</span>
                     {#if f.url === fluxParDefaut}<span class="prin">{$t('v2.radio.fiche.default' as any)}</span>{/if}
                   </span>
+                {/if}
+                {#if interdit}
+                  <span class="pays-refus">{$t('v2.radio.fiche.notInCountry' as any)}</span>
+                {:else if f.autorise === null}
+                  <span class="pays-inconnu">{$t('v2.radio.fiche.countryUnknown' as any)}</span>
                 {/if}
                 <span class="url" title={f.url}>{f.url}</span>
               </li>
@@ -394,6 +408,10 @@
     border:1px solid var(--v2-line2); border-radius:10px}
   .flux li.actuel{border-color:var(--v2-acc1)}
   .flux li.joue{background:var(--v2-surface2)}
+  /* web#2801 — réservé à d'autres pays : grisé, pas choisissable. */
+  .flux li.interdit{opacity:.5}
+  .flux li.interdit .flux-lire:disabled{cursor:not-allowed; opacity:1}
+  .pays-refus, .pays-inconnu{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .flux-lire{display:flex; align-items:center; gap:8px; width:100%; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; text-align:left; cursor:pointer}
   .flux-lire:disabled{cursor:progress; opacity:.7}

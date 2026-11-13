@@ -194,6 +194,8 @@
    */
   let ecriture = $state<Album[]>([]);
   let compteurs = $state<api.CompteursCredits | null>(null);
+  /** #2794 (tune-server-rust#7768) — « Joue avec » (`played_with`) ; absente = pas de bloc. */
+  let joueAvec = $state<api.JoueAvec[]>([]);
   /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
   let artisteFocus = $state<FocusArtiste | null>(null);
   /**
@@ -466,6 +468,7 @@
     reprises = [];
     ecriture = [];
     compteurs = null;
+    joueAvec = [];
     // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
     // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
     // affiché sous celui-ci.
@@ -558,6 +561,7 @@
     reprises = [];
     ecriture = [];
     compteurs = null;
+    joueAvec = [];
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
@@ -594,6 +598,8 @@
       // `covers`) ; `credit_counts` absente = pas de compteurs.
       ecriture = (d.value?.writing ?? []) as Album[];
       compteurs = d.value?.credit_counts ?? null;
+      // #2794 — `played_with` absente (serveur antérieur, ou personne) = pas de bloc.
+      joueAvec = d.value?.played_with ?? [];
     }
     chargement = false;
     void chargerBioLocale(mien, id, artiste?.bio ?? null, provenanceDe(artiste), langueBioDe(artiste));
@@ -1267,14 +1273,14 @@
          disque à lui — musicien de séance, compositeur, ingénieur — n'a que
          celles-là, et c'est précisément le profil que la passe des crédits
          fait apparaître. -->
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || ecriture.length || reprises.length}
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || ecriture.length || reprises.length || joueAvec.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge} {rangeeSources}
         nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
-        {compilations} {apparitions} {collaborations} {ecriture} {reprises}
+        {compilations} {apparitions} {collaborations} {ecriture} {reprises} {joueAvec}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}

@@ -197,6 +197,14 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
         keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
+      /**
+       * tune-server-rust#8325 / ESL63P (testeur HCFR, %band%, %choir%) — les
+       * balises lues pour le chef, l'ensemble, l'œuvre et le mouvement, et le
+       * sort de BAND. Expert : un réglage de spécialiste, dont les défauts
+       * suffisent à qui ne range pas son classique sous des balises à lui.
+       */
+      { id: 'classicalTags', titleKey: 'classicalTags.title', from: 'library', min: 'expert',
+        keywords: ['classique', 'balises', 'tags', 'chef', 'orchestre', 'ensemble', 'chœur', 'choeur', 'œuvre', 'mouvement', 'band', 'choir', 'chorus', 'conductor', 'work', 'movement', 'classical'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
