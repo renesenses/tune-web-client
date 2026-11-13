@@ -150,6 +150,21 @@ export function dureeLisible(secondes: number, t: (cle: string) => string): stri
 }
 
 /**
+ * Le nom seul de la passe en cours (« Plage dynamique »), sans pourcentage
+ * ni temps restant : ce que la bulle de l'indicateur peut dire sans changer
+ * à chaque événement d'avancement (web#2874).
+ */
+export function nomAnalyseDeFond(
+  a: AnalyseDeFond | null,
+  t: (cle: string) => string,
+): string | null {
+  if (!a) return null;
+  const cleNom = `v2.nav.bgTask.${a.tache}`;
+  const traduit = t(cleNom);
+  return traduit && traduit !== cleNom ? traduit : t('v2.nav.bgTask.other');
+}
+
+/**
  * Le libellé de la barre : « Empreintes audio — 35 % · encore 2 h 05 ».
  * `t` est la fonction de traduction, injectée pour tester sans rendu.
  */
@@ -158,9 +173,7 @@ export function libelleAnalyseDeFond(
   t: (cle: string) => string,
 ): string | null {
   if (!a) return null;
-  const cleNom = `v2.nav.bgTask.${a.tache}`;
-  const traduit = t(cleNom);
-  const nom = traduit && traduit !== cleNom ? traduit : t('v2.nav.bgTask.other');
+  const nom = nomAnalyseDeFond(a, t)!;
   let libelle = t('v2.nav.bgAnalysisPct')
     .replace('{task}', nom)
     .replace('{p}', String(pourcentAnalyseDeFond(a)));
