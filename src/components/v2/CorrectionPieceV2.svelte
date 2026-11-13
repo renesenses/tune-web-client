@@ -27,12 +27,15 @@
     SUIVI,
     PIECE_DEFAUT, SURFACES_DEFAUT, SURFACES, QUALITES, LIBELLES_SURFACES, LIBELLES_QUALITES, LIBELLES_TYPES_MODE,
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
-    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, micros, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
+    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros,
+    placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne, COUPE_MIN_DB,
+    ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
     lireResultat, proposerMesure, enregistrerProfilMesure,
     type PresenceCalibration, type PresenceEgaliseur, type Piece, type Surfaces, type Simulation, type Proposition, type TypeCible,
     type Microphones, type Avancement, type ResultatMesure, type ProfilEnregistre,
+    type Placement, type Position, type ReglageExpert,
   } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
@@ -150,9 +153,78 @@
     ['hauteur_m', 'v2.room.height', BORNES_PIECE.hauteur],
   ];
 
+  /*
+   * web#2803 (Tades, fil 2725 ; serveur tune-server-rust#8332) — les positions
+   * de l'auditeur et des enceintes. Tant qu'on n'en a touché aucune, elles
+   * SUIVENT les dimensions (disposition type) ; dès la première saisie, elles
+   * sont figées telles quelles, jusqu'à « Rétablir la disposition type ».
+   */
+  let placementSaisi = $state<Placement | null>(null);
+  const placement = $derived<Placement>(placementSaisi ?? placementType(piece));
+  const posHors = $derived(positionHorsPiece(placement, piece));
+  /** Le nombre d'enceintes de la simulation affichée (le couplage va de −N à +N). */
+  let enceintesSimulees = $state(2);
+
+  function copiePlacement(): Placement {
+    return { auditeur: { ...placement.auditeur }, enceintes: placement.enceintes.map((e) => ({ ...e })) };
+  }
+  function reglerPosition(qui: number, axe: keyof Position, e: Event) {
+    const v = Number((e.currentTarget as HTMLInputElement).value);
+    const pl = copiePlacement();
+    if (qui < 0) pl.auditeur[axe] = v; else pl.enceintes[qui][axe] = v;
+    placementSaisi = pl;
+  }
+  function ajouterEnceinte() {
+    if (placement.enceintes.length >= ENCEINTES_MAX) return;
+    const pl = copiePlacement();
+    pl.enceintes.push(enceinteAjoutee(piece, pl.enceintes));
+    placementSaisi = pl;
+  }
+  function retirerEnceinte(i: number) {
+    if (placement.enceintes.length <= ENCEINTES_MIN) return;
+    const pl = copiePlacement();
+    pl.enceintes.splice(i, 1);
+    placementSaisi = pl;
+  }
+
+  /** Le schéma vu de dessus : largeur en abscisse, longueur (depuis le mur avant) en ordonnée. */
+  const SCHEMA = 160;
+  const schema = $derived.by(() => {
+    const L = Math.max(0.1, Number(piece.longueur_m) || 0.1);
+    const l = Math.max(0.1, Number(piece.largeur_m) || 0.1);
+    const k = SCHEMA / Math.max(L, l);
+    return { w: l * k, h: L * k, px: (y: number) => y * k, py: (x: number) => x * k };
+  });
+
+  /*
+   * Le mode expert (#8332) : bornes relevées jusqu'à celles d'une mesure, lues
+   * dans la simulation (`bornes_correction.expert`). Un serveur qui ne les
+   * publie pas ne le propose pas.
+   */
+  let expertActif = $state(false);
+  let reglageExpert = $state<ReglageExpert | null>(null);
+  const bornesExpert = $derived(simulation?.bornes_correction?.expert ?? null);
+  const expertEnvoye = $derived(expertActif && bornesExpert && reglageExpert ? expertBorne(reglageExpert, bornesExpert) : null);
+
+  function basculerExpert(e: Event) {
+    expertActif = (e.currentTarget as HTMLInputElement).checked;
+    if (expertActif && bornesExpert && !reglageExpert) reglageExpert = expertParDefaut(bornesExpert);
+    application = 'repos';
+    appliquee = null;
+    void proposerSim();
+  }
+  function reglerExpert(cle: keyof ReglageExpert, e: Event) {
+    if (!bornesExpert) return;
+    const base = reglageExpert ?? expertParDefaut(bornesExpert);
+    reglageExpert = expertBorne({ ...base, [cle]: Number((e.currentTarget as HTMLInputElement).value) }, bornesExpert);
+    application = 'repos';
+    appliquee = null;
+    void proposerSim();
+  }
+
   async function lancerSimulation() {
     if (verrouille || calculSim) return;
-    if (horsBornes) return;
+    if (horsBornes || posHors) return;
     calculSim = true;
     erreurSim = null;
     simulation = null;
@@ -160,7 +232,9 @@
     application = 'repos';
     appliquee = null;
     try {
-      simulation = await simuler(entreeSimulation(piece, surfaces, zoneId));
+      const e = entreeSimulation(piece, surfaces, zoneId, placement);
+      simulation = await simuler(e);
+      enceintesSimulees = e.enceintes.length;
     } catch (e) {
       erreurSim = erreurDe('v2.room.errSimulation', e);
       calculSim = false;
@@ -172,8 +246,10 @@
 
   async function proposerSim() {
     if (!simulation) return;
+    // Un refus précédent (422 en mode expert) ne doit pas survivre à la demande suivante.
+    erreurSim = null;
     try {
-      propSim = await proposerSimulation(simulation.id, cibleSim);
+      propSim = await proposerSimulation(simulation.id, cibleSim, expertEnvoye);
     } catch (e) {
       propSim = null;
       erreurSim = erreurDe('v2.room.errProposal', e);
@@ -191,7 +267,8 @@
     const sim = simulation;
     const zid = zoneId;
     if (!sim || zid == null) return;
-    void appliquer(() => enregistrerProfilSimulation(sim.id, cibleSim, zid), (e) => { erreurSim = e; });
+    const expert = expertEnvoye;
+    void appliquer(() => enregistrerProfilSimulation(sim.id, cibleSim, zid, expert), (e) => { erreurSim = e; });
   }
 
   function regler(cle: keyof Piece, e: Event) {
@@ -452,10 +529,61 @@
             </label>
           {/each}
         </div>
-        <p class="hint">{$t('v2.room.placementNote' as any)}</p>
+        <div class="positions" data-room="positions">
+          <div class="pos-titre">
+            <span>{$t('v2.room.positionsTitle' as any)}</span>
+            <span class="hint">{$t('v2.room.positionsHelp' as any)}</span>
+          </div>
+          <div class="pos-corps">
+            <table class="pos">
+              <thead><tr><th></th>{#each AXES as a (a)}<th>{a}</th>{/each}<th></th></tr></thead>
+              <tbody>
+                {#each [-1, ...placement.enceintes.map((_, i) => i)] as qui (qui)}
+                  {@const pos = qui < 0 ? placement.auditeur : placement.enceintes[qui]}
+                  <tr data-position={qui < 0 ? 'auditeur' : `enceinte-${qui}`}>
+                    <th scope="row">{qui < 0 ? $t('v2.room.listener' as any) : $t('v2.room.speakerN' as any).replace('{n}', String(qui + 1))}</th>
+                    {#each AXES as a (a)}
+                      <td><input type="number" data-axe={a} min="0" max={piece[COTE_DE_L_AXE[a]]} step="0.05" value={pos[a]}
+                        aria-label={`${qui < 0 ? $t('v2.room.listener' as any) : $t('v2.room.speakerN' as any).replace('{n}', String(qui + 1))} ${a}`}
+                        class:faux={posHors?.qui === qui && posHors?.axe === a}
+                        oninput={(e) => reglerPosition(qui, a, e)} /></td>
+                    {/each}
+                    <td>
+                      {#if qui >= 0 && placement.enceintes.length > ENCEINTES_MIN}
+                        <button class="lien" data-room="retirer-enceinte" onclick={() => retirerEnceinte(qui)}>{$t('v2.room.removeSpeaker' as any)}</button>
+                      {/if}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+            <svg class="schema" data-room="schema" viewBox={`-6 -6 ${schema.w + 12} ${schema.h + 12}`}
+              width={schema.w + 12} height={schema.h + 12} role="img" aria-label={$t('v2.room.topView' as any)}>
+              <rect class="mur" x="0" y="0" width={schema.w} height={schema.h} />
+              <line class="avant" x1="0" y1="0" x2={schema.w} y2="0" />
+              {#each placement.enceintes as e, i (i)}
+                <rect class="hp" x={schema.px(e.y) - 4} y={schema.py(e.x) - 4} width="8" height="8" />
+              {/each}
+              <circle class="ecoute" cx={schema.px(placement.auditeur.y)} cy={schema.py(placement.auditeur.x)} r="5" />
+            </svg>
+          </div>
+          {#if posHors}
+            <div class="hint faux" data-room="position-hors">{$t('v2.room.positionOutside' as any)}</div>
+          {/if}
+          <div class="actions">
+            {#if placement.enceintes.length < ENCEINTES_MAX}
+              <button class="v2-btn" data-room="ajouter-enceinte" onclick={ajouterEnceinte}>{$t('v2.room.addSpeaker' as any)}</button>
+            {/if}
+            {#if placementSaisi}
+              <button class="v2-btn" data-room="placement-type" onclick={() => (placementSaisi = null)}>{$t('v2.room.resetPlacement' as any)}</button>
+            {:else}
+              <span class="hint">{$t('v2.room.placementNote' as any)}</span>
+            {/if}
+          </div>
+        </div>
 
         <div class="actions">
-          <button class="v2-btn primaire" data-room="simuler" disabled={calculSim || horsBornes != null} onclick={lancerSimulation}>
+          <button class="v2-btn primaire" data-room="simuler" disabled={calculSim || horsBornes != null || posHors != null} onclick={lancerSimulation}>
             {calculSim ? $t('v2.room.simulating' as any) : $t('v2.room.simulate' as any)}
           </button>
         </div>
@@ -471,17 +599,18 @@
           </div>
           <CourbeCorrectionPiece titre={$t('v2.room.simCurve' as any)}
             series={[{ cle: 'mesure', freqs: simulation.reponse.freqs_hz, db: simulation.reponse.db }]}
-            modes={modesAffiches(simulation.modes).filter(modeFort).map((m) => m.frequence_hz)} />
+            modes={modesAffiches(simulation.modes).filter((m) => modeFort(m, enceintesSimulees)).map((m) => m.frequence_hz)} />
           <table class="modes" data-room="modes">
             <thead><tr><th>{$t('v2.room.colFreq' as any)}</th><th>{$t('v2.room.colType' as any)}</th><th>{$t('v2.room.colIndices' as any)}</th><th>{$t('v2.room.colDecay' as any)}</th><th></th></tr></thead>
             <tbody>
               {#each modesAffiches(simulation.modes) as m, i (i)}
-                <tr class:fort={modeFort(m)} data-mode={f1(m.frequence_hz)}>
+                {@const ou = positionDuMode(m, enceintesSimulees)}
+                <tr class:fort={ou === 'ventre'} data-mode={f1(m.frequence_hz)} data-couplage={ou}>
                   <td>{f1(m.frequence_hz)} Hz</td>
                   <td>{$t(LIBELLES_TYPES_MODE[m.type] as any)}</td>
                   <td>({m.indices.join(', ')})</td>
                   <td>{f2(m.t60_s)} s</td>
-                  <td>{modeFort(m) ? $t('v2.room.modeStrong' as any) : ''}</td>
+                  <td>{$t(LIBELLES_POSITIONS_MODE[ou] as any)}</td>
                 </tr>
               {/each}
             </tbody>
@@ -489,6 +618,33 @@
           {#if simulation.avertissements.length}
             <ul class="avert">{#each simulation.avertissements as a, i (i)}<li>{a}</li>{/each}</ul>
           {/if}
+        {/if}
+
+        {#if bornesExpert}
+          <details class="expert" data-room="expert">
+            <summary>{$t('v2.room.expertTitle' as any)}</summary>
+            <p class="hint faux" data-room="expert-avertissement">{$t('v2.room.expertWarning' as any)}</p>
+            <label class="chk">
+              <input type="checkbox" data-room="expert-actif" checked={expertActif} onchange={basculerExpert} />
+              <span>{$t('v2.room.expertTitle' as any)}</span>
+            </label>
+            {#if expertActif && expertEnvoye}
+              <div class="dims">
+                <label class="dim">
+                  <span>{$t('v2.room.expertBands' as any)}</span>
+                  <input type="number" data-room="expert-bandes" min="1" max={bornesExpert.bandes_max} step="1"
+                    value={expertEnvoye.bandes_max} onchange={(e) => reglerExpert('bandes_max', e)} />
+                  <span class="unite">1–{bornesExpert.bandes_max}</span>
+                </label>
+                <label class="dim">
+                  <span>{$t('v2.room.expertCut' as any)}</span>
+                  <input type="number" data-room="expert-coupe" min={COUPE_MIN_DB} max={bornesExpert.coupe_max_db} step="0.5"
+                    value={expertEnvoye.coupe_max_db} onchange={(e) => reglerExpert('coupe_max_db', e)} />
+                  <span class="unite">dB ({COUPE_MIN_DB}–{bornesExpert.coupe_max_db})</span>
+                </label>
+              </div>
+            {/if}
+          </details>
         {/if}
 
         {#if propSim}
@@ -632,5 +788,23 @@
   .avancement{display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .avancement progress{width:220px; accent-color:var(--v2-acc1)}
   .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .positions{display:flex; flex-direction:column; gap:8px; padding-top:4px}
+  .pos-titre{display:flex; flex-direction:column; gap:2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .pos-corps{display:flex; flex-wrap:wrap; gap:14px 24px; align-items:flex-start}
+  .pos{border-collapse:collapse; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .pos th{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:left; padding:3px 10px 3px 0; font-weight:400}
+  .pos tbody th{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap}
+  .pos td{padding:3px 8px 3px 0}
+  .pos input{width:68px}
+  .lien{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font:inherit; padding:0; text-decoration:underline}
+  .schema{flex:none; overflow:visible}
+  .schema .mur{fill:var(--v2-bg); stroke:var(--v2-line2); stroke-width:1}
+  .schema .avant{stroke:var(--v2-acc1); stroke-width:3}
+  .schema .hp{fill:var(--v2-acc-tint)}
+  .schema .ecoute{fill:none; stroke:var(--v2-txt); stroke-width:2}
+  .expert{border-top:1px solid var(--v2-line); padding-top:8px; display:flex; flex-direction:column; gap:8px}
+  .expert summary{cursor:pointer; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .expert[open]{gap:8px}
+  .chk{display:flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
   @media (max-width: 640px){ .scroll{padding:6px 16px 40px} }
 </style>

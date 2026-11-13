@@ -80,6 +80,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import { objetArtiste } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
+  import { favoriteArtistIds } from '../../lib/stores/profile';
+  import { seulementFavoris as seulementFavorisDe } from '../../lib/uniquementFavoris';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -102,8 +104,10 @@
     idsPortee?: Set<number> | null;
     /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
     nomPortee?: string | null;
+    /** tune-server-rust#7586 — « Uniquement favoris » : les artistes favoris du profil. */
+    seulementFavoris?: boolean;
   }
-  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null, seulementFavoris = false }: Props = $props();
   /** tune-server-rust#6474 — « Trier les artistes par nom de famille » (réglage
    *  du profil, gardé par le serveur dans `ui_preferences`). `!== false` : un
    *  blob d'avant le réglage garde l'ordre livré, celui du nom de tri. */
@@ -179,7 +183,10 @@
   const dansLaPortee = $derived(
     idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
   );
-  const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
+  const artistesRecherche = $derived(
+    (seulementFavoris ? seulementFavorisDe(dansLaPortee, $favoriteArtistIds) : dansLaPortee)
+      .filter(a => plier(a.name).includes(plier(q))),
+  );
   const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
     [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur

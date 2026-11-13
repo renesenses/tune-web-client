@@ -273,6 +273,30 @@ describe('Extensions — Crossfeed Pro : mise à jour, redémarrage, plateforme 
     expect(confirmer.mock.calls[1][0]).toBe(texte('settings.restartConfirm'));
   });
 
+  it('🔴 web#2534 — le bandeau « Redémarrez le serveur » porte son bouton : confirmation, puis POST /system/restart', async () => {
+    palier('premium');
+    const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    monte = mount(PluginsV2, { target: cible! });
+    await jusqua(() => !!q('[data-catalogue="crossfeed-pro"] .installer-natif'));
+    (q('.installer-natif') as HTMLButtonElement).click();
+    await jusqua(() => !!q('.restart .redemarrer-bandeau'));
+    const bandeau = q('.restart')!;
+    expect(bandeau.textContent).toContain(texte('v2.plug.restartNeeded'));
+    const bouton = q('.restart .redemarrer-bandeau') as HTMLButtonElement;
+    expect(bouton.textContent!.trim()).toBe(texte('settings.restartServer'));
+
+    bouton.click(); // refusé : rien ne part, le bouton reste utilisable
+    await jusqua(() => confirmer.mock.calls.length === 1);
+    await jusqua(() => false, 50);
+    expect(appelsRedemarrage, 'redémarré sans confirmation').toBe(0);
+    expect(bouton.disabled).toBe(false);
+
+    bouton.click(); // confirmé
+    await jusqua(() => appelsRedemarrage === 1 && attente.armee === 1);
+    expect(appelsRedemarrage).toBe(1);
+    expect(attente.armee).toBe(1);
+  });
+
   it('non-Premium : le catalogue n’est pas interrogé', async () => {
     palier('free');
     const espion = vi.fn();
