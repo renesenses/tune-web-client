@@ -24,7 +24,7 @@
   import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
   import { basculerOperateur, parametreEt } from '../../lib/facettesEtOu';
   import { t } from '../../lib/i18n';
-import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeurRail, retablirLargeurRail, RAIL_MIN_PX, plafondRail } from '../../lib/largeurRailOxygen';
+  import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeurRail, retablirLargeurRail, RAIL_MIN_PX, plafondRail } from '../../lib/largeurRailOxygen';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import type { Track } from '../../lib/types';
 
@@ -869,7 +869,7 @@ import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeur
           aria-valuenow={railLargeur} aria-valuemin={RAIL_MIN_PX} aria-valuemax={plafondRail(placeRail)}
           aria-label={$t('oxygen.railWidth')} title={$t('oxygen.railWidth')}
           onpointerdown={debutTirerRail} onpointermove={suivreTirerRail}
-          onpointerup={finirTirerRail} onpointercancel={finirTirerRail}
+          onpointerup={finirTirerRail} onpointercancel={finirTirerRail} onlostpointercapture={finirTirerRail}
           ondblclick={() => { railVoulu = retablirLargeurRail(); }}
           onkeydown={railAuClavier}></div>
       {/if}
