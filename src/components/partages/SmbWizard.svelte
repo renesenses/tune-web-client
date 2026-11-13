@@ -51,6 +51,10 @@
   let showScanCredentials = $state(false);
   let selectedHost = $state<NetworkShareInfo | null>(null);
   let hostShares = $state<string[]>([]);
+  /** Raison rendue par `scan-host` quand un hôte DÉCOUVERT ne livre aucun
+   *  partage (#8628 : `smbclient` absent de l'image Docker, identifiants
+   *  refusés…). Sans elle, la liste restait vide sans explication. */
+  let hostSharesError = $state<string | null>(null);
   let loadingShares = $state(false);
   let selectedShare = $state<string | null>(null);
 
@@ -148,9 +152,7 @@
         const errMsg = (!Array.isArray(result) && result?.error)
           || $t('smb.noSharesOnHost').replace('{host}', adresse.host);
         scanError = errMsg;
-        if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
-          showScanCredentials = true;
-        }
+        if (erreurDIdentifiants(errMsg)) showScanCredentials = true;
       }
     } catch (e: any) {
       scanError = e?.message || $t('smb.cannotScanHost');
@@ -161,9 +163,15 @@
     scanning = false;
   }
 
+  /** Le message de `scan-host` parle-t-il d'identifiants refusés ? */
+  function erreurDIdentifiants(msg: string): boolean {
+    return msg.includes('refusé') || msg.includes('auth') || msg.includes('Authentication') || msg.includes('ACCESS_DENIED');
+  }
+
   async function selectHost(share: NetworkShareInfo) {
     selectedHost = share;
     selectedShare = null;
+    hostSharesError = null;
     const dejaConnus = nomsDePartages(share.shares);
     if (dejaConnus.length > 0) {
       // Chemin « adresse saisie à la main » : les partages sont déjà là.
@@ -188,8 +196,19 @@
         const result = await api.scanHost(share.host, share.protocol || 'smb', scanUser, scanPass);
         // `scan-host` rend un TABLEAU nu ; on tolère aussi `{shares: […]}`.
         hostShares = nomsDePartages(Array.isArray(result) ? result : result?.shares);
-      } catch {
+        // En échec, le serveur rend `{shares: [], error, code?}` : `error` est
+        // DÉJÀ traduit (`net.smbclientMissing`, `net.smbAccessDenied`…). La
+        // saisie manuelle l'affichait ; le clic sur un hôte découvert le
+        // jetait, et l'assistant montrait « aucun partage » sans raison
+        // (#8628, fil 2788 : image Docker sans `smbclient`).
+        const raison = !Array.isArray(result) && typeof result?.error === 'string' ? result.error : '';
+        if (hostShares.length === 0 && raison) {
+          hostSharesError = raison;
+          if (erreurDIdentifiants(raison)) showScanCredentials = true;
+        }
+      } catch (e: any) {
         hostShares = [];
+        hostSharesError = e?.message || $t('smb.cannotScanHost');
       }
       loadingShares = false;
     }
@@ -419,6 +438,8 @@
             <span class="list-label">{$t('smb.sharesOnHost').replace('{host}', selectedHost.name)}</span>
             {#if loadingShares}
               <div class="loading-inline"><div class="spinner small"></div> {$t('common.loading')}</div>
+            {:else if hostShares.length === 0 && hostSharesError}
+              <div class="wizard-error">{hostSharesError}</div>
             {:else if hostShares.length === 0}
               <p class="muted">{$t('smb.noSharesAvailable')}</p>
             {:else}
