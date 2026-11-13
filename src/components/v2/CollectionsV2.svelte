@@ -183,7 +183,10 @@
   // (Collections, Smart Collections ou Rayons) au lieu de toujours « Smart ».
   const ONGLETS: readonly Onglet[] = ['smart', 'manuelle', 'rayons'];
   let onglet = $state<Onglet>(lireChoix<Onglet>('v2.collections.onglet', ONGLETS, 'smart'));
-  $effect(() => { ecrireChoix('v2.collections.onglet', onglet); });
+  // Enregistré au CLIC seulement : un repli automatique (rayons indisponibles)
+  // ou l'ouverture d'une collection depuis la barre latérale ne changent pas
+  // le choix de l'utilisateur.
+  function choisirOnglet(o: Onglet) { onglet = o; ecrireChoix('v2.collections.onglet', o); }
   let rayons = $state<EtatRayons>({ mode: 'plat' });
   async function chargerLesRayons() {
     rayons = await rafraichirRayons(api.getCollectionFolders);
@@ -1499,12 +1502,12 @@
 
     <nav class="tabs" role="tablist">
       <button class="tab" class:active={onglet === 'smart'} role="tab"
-        aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.col.tabSmart' as any)}</button>
+        aria-selected={onglet === 'smart'} onclick={() => choisirOnglet('smart')}>{$t('v2.col.tabSmart' as any)}</button>
       <button class="tab" class:active={onglet === 'manuelle'} role="tab"
-        aria-selected={onglet === 'manuelle'} onclick={() => (onglet = 'manuelle')}>{$t('v2.col.tabManual' as any)}</button>
+        aria-selected={onglet === 'manuelle'} onclick={() => choisirOnglet('manuelle')}>{$t('v2.col.tabManual' as any)}</button>
       {#if rayons.mode === 'arbre'}
         <button class="tab" class:active={onglet === 'rayons'} role="tab"
-          aria-selected={onglet === 'rayons'} onclick={() => (onglet = 'rayons')}>{$t('v2.rayons.tab' as any)}</button>
+          aria-selected={onglet === 'rayons'} onclick={() => choisirOnglet('rayons')}>{$t('v2.rayons.tab' as any)}</button>
       {/if}
       <!-- Le total de l'onglet COURANT. Absent tant qu'une collection n'a pas
            rendu son compte : une somme partielle serait pire que rien. -->
