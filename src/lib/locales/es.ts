@@ -4317,7 +4317,7 @@ export default {
   "v2.sup.bugSendError": "Error al enviar. Inténtelo de nuevo o copie el informe en el foro.",
   "v2.sup.bugRateLimited": "Límite de envíos alcanzado: el foro solo acepta un número limitado de informes por hora. Inténtelo de nuevo en una hora como máximo, o copie el informe en el foro.",
   "v2.sup.bugRateLimitedRetry": "Límite de envíos alcanzado: el foro solo acepta un número limitado de informes por hora. Inténtelo de nuevo {delay}, o copie el informe en el foro.",
-  "v2.sup.bugRejectedBySite": "El foro rechazó el informe: {reason} Copie el informe y publíquelo directamente en el foro.",
+  "v2.sup.bugRejectedBySite": "El foro rechazó este informe: volver a enviarlo sin cambios fallaría de nuevo. El motivo indicado por el foro está en los detalles.",
   "v2.sup.bugImages": "Capturas de pantalla y registros (opcional)",
   "v2.sup.bugImagesHint": "Hasta 3 imágenes (PNG, JPEG, GIF o WebP) de 4 MB cada una, y 3 registros (.log, .txt, .json o .zip) de 10 MB cada uno. Se añaden al hilo del foro.",
   "v2.sup.bugImagesTooMany": "Demasiadas capturas: {max} imágenes como máximo.",

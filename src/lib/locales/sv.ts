@@ -4316,7 +4316,7 @@ export default {
   "v2.sup.bugSendError": "Sändningen misslyckades. Försök igen, eller kopiera rapporten till forumet.",
   "v2.sup.bugRateLimited": "Sändningsgränsen är nådd: forumet tar bara emot ett begränsat antal rapporter per timme. Försök igen inom högst en timme, eller kopiera rapporten till forumet.",
   "v2.sup.bugRateLimitedRetry": "Sändningsgränsen är nådd: forumet tar bara emot ett begränsat antal rapporter per timme. Försök igen {delay}, eller kopiera rapporten till forumet.",
-  "v2.sup.bugRejectedBySite": "Forumet avvisade rapporten: {reason} Kopiera rapporten och publicera den direkt i forumet.",
+  "v2.sup.bugRejectedBySite": "Forumet avvisade den här rapporten: att skicka den igen oförändrad skulle misslyckas igen. Skälet som forumet angav finns i detaljerna.",
   "v2.sup.bugImages": "Skärmbilder och loggar (valfritt)",
   "v2.sup.bugImagesHint": "Upp till 3 bilder (PNG, JPEG, GIF eller WebP) på 4 MB vardera och 3 loggar (.log, .txt, .json eller .zip) på 10 MB vardera. De läggs till i forumtråden.",
   "v2.sup.bugImagesTooMany": "För många skärmbilder: högst {max} bilder.",

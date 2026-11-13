@@ -4271,7 +4271,7 @@ export default {
   "v2.sup.bugSendError": "A küldés sikertelen. Próbálja újra, vagy másolja a jelentést a fórumba.",
   "v2.sup.bugRateLimited": "Elérte a küldési korlátot: a fórum óránként csak korlátozott számú jelentést fogad. Próbálja újra legfeljebb egy óra múlva, vagy másolja a jelentést a fórumba.",
   "v2.sup.bugRateLimitedRetry": "Elérte a küldési korlátot: a fórum óránként csak korlátozott számú jelentést fogad. Próbálja újra {delay}, vagy másolja a jelentést a fórumba.",
-  "v2.sup.bugRejectedBySite": "A fórum elutasította a jelentést: {reason} Másolja ki a jelentést, és tegye közzé közvetlenül a fórumon.",
+  "v2.sup.bugRejectedBySite": "A fórum elutasította ezt a jelentést: változatlan újraküldése ismét sikertelen lenne. A fórum által megadott ok a részletekben található.",
   "v2.sup.bugImages": "Képernyőképek és naplók (nem kötelező)",
   "v2.sup.bugImagesHint": "Legfeljebb 3 kép (PNG, JPEG, GIF vagy WebP), egyenként 4 MB, és 3 napló (.log, .txt, .json vagy .zip), egyenként 10 MB. A fórumtémához kerülnek.",
   "v2.sup.bugImagesTooMany": "Túl sok képernyőkép: legfeljebb {max} kép.",

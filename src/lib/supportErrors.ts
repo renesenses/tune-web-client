@@ -153,26 +153,27 @@ export function messageLimiteRapportBogue(e: unknown, tr: Traduire, locale: stri
 }
 
 /**
- * #8627 — le refus du site, avec son MOTIF, ou `null`.
+ * #8627 — le refus du site, ou `null`.
  *
  * Quand le site refuse un rapport (422 : sa mise en forme aurait effacé le
- * texte du testeur, site-mozaiklabs#529), le serveur rend désormais le statut
- * 422, le code `site_rejected` et la phrase du site sous `site_message`.
- * L'écran disait « Échec de l'envoi. Réessayez… » : réessayer le même rapport
- * échoue pareil, et consomme un des envois de l'heure. On dit le motif, et on
- * propose le forum.
+ * texte du testeur, site-mozaiklabs#529), le serveur rend le statut 422, le
+ * code `site_rejected` et la phrase du site sous `site_message`. L'écran disait
+ * « Échec de l'envoi. Réessayez… » : réessayer le même rapport échoue pareil,
+ * et consomme un des envois de l'heure.
  *
- * Sans motif lisible (serveur antérieur, corps vide), `null` : l'écran garde
- * son message générique.
+ * La phrase affichée est TRADUITE ; `site_message`, écrit en français par le
+ * site, ne va que dans le « Détails » replié (#2417).
  */
-export function messageRefusDuSiteRapportBogue(e: unknown, tr: Traduire): string | null {
+export function refusDuSiteRapportBogue(
+  e: unknown,
+  tr: Traduire,
+): { message: string; detail: string } | null {
   const corps = (e as { corps?: unknown } | null | undefined)?.corps as
     | { code?: unknown; error?: unknown; site_message?: unknown }
     | null
     | undefined;
-  const refus = corps?.code === 'site_rejected' || corps?.error === 'site_rejected' || statutHttp(e) === 422;
+  const refus = corps?.code === 'site_rejected' || corps?.error === 'site_rejected';
   if (!refus) return null;
-  const motif = typeof corps?.site_message === 'string' ? corps.site_message.trim() : '';
-  if (!motif) return null;
-  return tr('v2.sup.bugRejectedBySite', { reason: motif });
+  const detail = typeof corps?.site_message === 'string' ? corps.site_message.trim() : '';
+  return { message: tr('v2.sup.bugRejectedBySite'), detail };
 }
