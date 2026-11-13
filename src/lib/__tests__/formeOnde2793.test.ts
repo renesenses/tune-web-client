@@ -153,7 +153,7 @@ describe('fil 2793 — les règles pures', () => {
 
   it('les libellés existent dans les quinze langues', () => {
     const cles = Object.keys(fr).filter((k) => k.startsWith('fiche.waveform.'));
-    expect(cles.length).toBeGreaterThanOrEqual(27);
+    expect(cles.length).toBeGreaterThanOrEqual(33);
     expect(cles).not.toContain('fiche.waveform.soon');
     for (const langue of ONZE_LANGUES) {
       const d = dictionnaire(langue);
@@ -245,6 +245,27 @@ describe('fil 2793 — l’écran', () => {
     boutonTexte(fr['fiche.waveform.compute'])!.click();
     expect(await attendreQue(() => (document.body.textContent ?? '').includes(fr['fiche.waveform.notLocal']))).toBe(true);
     expect(boutonTexte(fr['fiche.waveform.compute'])).toBeUndefined();
+  });
+
+  it('réponse 11020 : la sonie EBU R128 déjà mesurée, en chiffres, sans calcul', async () => {
+    poser(FormeOnde, {
+      trackId: 7,
+      section: { etat: 'absent', url: '', colonnes: 1000, sonie: { integree_lufs: -14.8, crete_vraie_dbtp: 0.4, mesure_le: '2026-11-09T10:00:00Z' } },
+    });
+    const bloc = document.querySelector<HTMLElement>('[data-sonie]');
+    expect(bloc).not.toBeNull();
+    const t = bloc!.textContent ?? '';
+    expect(t).toContain(fr['fiche.waveform.lufs'].replace('{n}', '\u221214,8'));
+    expect(t).toContain(fr['fiche.waveform.dbtp'].replace('{n}', '0,4'));
+    expect(t).toContain(fr['fiche.waveform.loudnessHelp'].slice(0, 20));
+    // Au-dessus de 0 dBTP : en alerte.
+    expect(bloc!.querySelector('dd.alerte')).not.toBeNull();
+    expect(requetes).toHaveLength(0);
+  });
+
+  it('sans sonie mesurée : aucun bloc vide', () => {
+    poser(FormeOnde, { trackId: 7, section: { etat: 'absent', url: '', colonnes: 1000 } });
+    expect(document.querySelector('[data-sonie]')).toBeNull();
   });
 
   it('branchée dans la fiche technique', async () => {

@@ -23,10 +23,23 @@ export const COLONNES_FORME_ONDE = 1000;
 /** En échelle dB, le bas de l'échelle (le centre du tracé). */
 export const PLANCHER_ECHELLE_DB = -60;
 
+/**
+ * La sonie EBU R128 déjà mesurée par la passe ReplayGain du serveur (fil 2793,
+ * réponse 11020) : sonie intégrée et crête vraie. Absente tant que la piste
+ * n'est pas analysée ; la plage de sonie (LRA) n'est pas mesurée.
+ */
+export interface SonieR128 {
+  integree_lufs?: number;
+  crete_vraie_dbtp?: number;
+  algo?: string;
+  mesure_le?: string;
+}
+
 export interface SectionFormeOnde {
   etat: 'a_jour' | 'absent';
   url: string;
   colonnes: number;
+  sonie?: SonieR128 | null;
 }
 
 export interface ChiffresOnde {

@@ -11,9 +11,14 @@
    * la plage est redemandée au serveur, et à défaut découpée dans la forme
    * de la piste entière. Aucun son.
    *
+   * Sonie EBU R128 (réponse 11020) : la sonie intégrée (LUFS) et la crête
+   * vraie (dBTP) que la passe ReplayGain du serveur a déjà mesurées, quand
+   * elles existent — aucune mesure nouvelle.
+   *
    * Données : `lib/formeOnde` (`GET /library/tracks/{id}/forme-onde`).
    */
   import { t, locale } from '../../lib/i18n';
+  import { dateLisible } from '../../lib/ficheTechnique';
   import {
     chargerFormeOnde, ErreurFormeOnde, versY, graduationsOnde, cheminBande, colonnesEcretees,
     trancher, zoomer, nombreDb, tempsLisible,
@@ -54,6 +59,8 @@
     return detail ?? trancher(complete, plage);
   });
   const graduations = $derived(graduationsOnde(echelle));
+  const sonie = $derived(section?.sonie ?? null);
+  const sonieDatee = $derived(dateLisible(sonie?.mesure_le, langue));
 
   async function charger() {
     controle?.abort();
@@ -137,6 +144,24 @@
 
 <h3>{$t('fiche.section.waveform' as any)}</h3>
 <p class="aide">{$t('fiche.waveform.help' as any)}</p>
+
+{#if sonie && (sonie.integree_lufs != null || sonie.crete_vraie_dbtp != null)}
+  <div class="sonie" data-sonie>
+    <h4>{$t('fiche.waveform.loudness' as any)}</h4>
+    <dl>
+      {#if sonie.integree_lufs != null}
+        <dt>{$t('fiche.waveform.integrated' as any)}</dt>
+        <dd>{$t('fiche.waveform.lufs' as any).replace('{n}', nombreDb(sonie.integree_lufs, langue))}</dd>
+      {/if}
+      {#if sonie.crete_vraie_dbtp != null}
+        <dt>{$t('fiche.waveform.truePeak' as any)}</dt>
+        <dd class:alerte={sonie.crete_vraie_dbtp > 0}>{$t('fiche.waveform.dbtp' as any).replace('{n}', nombreDb(sonie.crete_vraie_dbtp, langue))}</dd>
+      {/if}
+    </dl>
+    <p class="aide">{$t('fiche.waveform.loudnessHelp' as any)}</p>
+    {#if sonieDatee}<p class="date">{$t('fiche.measuredOn' as any).replace('{date}', sonieDatee)}</p>{/if}
+  </div>
+{/if}
 
 {#if etat.v === 'chargement'}
   <p class="etat" role="status" aria-live="polite">{$t('fiche.waveform.loading' as any)}</p>
@@ -246,6 +271,11 @@
   .puce[aria-pressed="true"]{border-color:var(--v2-acc1, var(--tune-accent, currentColor)); color:var(--v2-acc1, var(--tune-accent, currentColor))}
   .puce:disabled{opacity:.45; cursor:default}
   .puce:focus-visible{outline:2px solid var(--v2-acc1, var(--tune-accent, currentColor)); outline-offset:2px}
+  .sonie{margin:6px 0 8px}
+  h4{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-txt2, inherit); margin:0 0 4px}
+  .sonie dl{display:grid; grid-template-columns:max-content 1fr; gap:3px 14px; margin:0; font-variant-numeric:tabular-nums}
+  .sonie dt{color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
+  .sonie dd{margin:0}
   .canal{margin:4px 0}
   .nom{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3, inherit)}
   .trace{position:relative; padding-left:30px}
