@@ -3449,7 +3449,7 @@ export default {
   "parental.err.generic": "The rules could not be read or saved.",
   "parental.step2Applies": "The time ranges and budgets above apply to this profile's playback, on every output. The time is the server's.",
   "parental.hours.title": "Allowed listening hours",
-  "parental.hours.hint": "Outside these ranges, this profile cannot start playback. No range: any time. You can add several ranges. A range cannot cross midnight: to allow 21:00 to 07:00, add one range from 21:00 to 23:59 and another from 00:00 to 07:00.",
+  "parental.hours.hint": "Outside these ranges, this profile cannot start playback. No range: any time. You can add several ranges. A range cannot cross midnight, and listening stops at its end time. For 21:00 to 07:00, add 21:00–23:59 and 00:00–07:00: only the last minute before midnight stays outside the ranges.",
   "parental.hours.days": "Days of the range",
   "parental.hours.from": "From",
   "parental.hours.to": "to",

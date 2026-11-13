@@ -2707,7 +2707,7 @@ export default {
   "parental.err.generic": "Impossibile leggere o salvare le regole.",
   "parental.step2Applies": "Le fasce orarie e i budget qui sopra si applicano alla riproduzione di questo profilo, su tutte le uscite. L’ora è quella del server.",
   "parental.hours.title": "Orari di ascolto consentiti",
-  "parental.hours.hint": "Fuori da queste fasce questo profilo non può avviare la riproduzione. Senza fasce: a qualsiasi ora. Si possono aggiungere più fasce. Una fascia non può superare la mezzanotte: per consentire dalle 21:00 alle 07:00, aggiungi una fascia dalle 21:00 alle 23:59 e un’altra dalle 00:00 alle 07:00.",
+  "parental.hours.hint": "Fuori da queste fasce questo profilo non può avviare la riproduzione. Senza fasce: a qualsiasi ora. Si possono aggiungere più fasce. Una fascia non può superare la mezzanotte, e l’ascolto si ferma all’ora di fine. Per 21:00–07:00, aggiungi 21:00–23:59 e 00:00–07:00: solo l’ultimo minuto prima di mezzanotte resta escluso.",
   "parental.hours.days": "Giorni della fascia",
   "parental.hours.from": "Dalle",
   "parental.hours.to": "alle",

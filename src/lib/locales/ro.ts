@@ -2710,7 +2710,7 @@ export default {
   "parental.err.generic": "Regulile nu au putut fi citite sau salvate.",
   "parental.step2Applies": "Intervalele orare și bugetele de mai sus se aplică redării acestui profil, pe toate ieșirile. Ora este cea a serverului.",
   "parental.hours.title": "Intervale orare de ascultare permise",
-  "parental.hours.hint": "În afara acestor intervale, acest profil nu poate porni redarea. Fără interval: oricând. Se pot adăuga mai multe intervale. Un interval nu poate trece de miezul nopții: pentru 21:00–07:00, adăugați un interval de la 21:00 la 23:59 și altul de la 00:00 la 07:00.",
+  "parental.hours.hint": "În afara acestor intervale, acest profil nu poate porni redarea. Fără interval: oricând. Se pot adăuga mai multe intervale. Un interval nu poate trece de miezul nopții, iar ascultarea se oprește la ora lui de sfârșit. Pentru 21:00–07:00, adăugați 21:00–23:59 și 00:00–07:00: doar ultimul minut dinainte de miezul nopții rămâne în afară.",
   "parental.hours.days": "Zilele intervalului",
   "parental.hours.from": "De la",
   "parental.hours.to": "până la",

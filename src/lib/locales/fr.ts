@@ -3452,7 +3452,7 @@ export default {
   "parental.err.generic": "Les règles n’ont pas pu être lues ou enregistrées.",
   "parental.step2Applies": "Les plages horaires et les budgets ci-dessus s’appliquent à la lecture de ce profil, sur toutes les sorties. L’heure est celle du serveur.",
   "parental.hours.title": "Plages horaires d’écoute",
-  "parental.hours.hint": "Hors de ces plages, ce profil ne peut pas lancer de lecture. Sans plage : à toute heure. Plusieurs plages sont possibles. Une plage ne passe pas minuit : pour écouter de 21:00 à 07:00, ajoutez une plage de 21:00 à 23:59 et une autre de 00:00 à 07:00.",
+  "parental.hours.hint": "Hors de ces plages, ce profil ne peut pas lancer de lecture. Sans plage : à toute heure. Plusieurs plages sont possibles. Une plage ne passe pas minuit, et l’écoute s’arrête à son heure de fin. Pour 21:00 à 07:00, ajoutez 21:00–23:59 et 00:00–07:00 : seule la dernière minute avant minuit reste hors plage.",
   "parental.hours.days": "Jours de la plage",
   "parental.hours.from": "De",
   "parental.hours.to": "à",

@@ -2707,7 +2707,7 @@ export default {
   "parental.err.generic": "Die Regeln konnten nicht gelesen oder gespeichert werden.",
   "parental.step2Applies": "Die Zeitfenster und Budgets oben gelten für die Wiedergabe dieses Profils auf allen Ausgängen. Maßgeblich ist die Uhrzeit des Servers.",
   "parental.hours.title": "Erlaubte Hörzeiten",
-  "parental.hours.hint": "Außerhalb dieser Zeitfenster kann dieses Profil keine Wiedergabe starten. Ohne Zeitfenster: jederzeit. Mehrere Zeitfenster sind möglich. Ein Zeitfenster kann nicht über Mitternacht gehen: Für 21:00 bis 07:00 fügen Sie ein Zeitfenster von 21:00 bis 23:59 und ein weiteres von 00:00 bis 07:00 hinzu.",
+  "parental.hours.hint": "Außerhalb dieser Zeitfenster kann dieses Profil keine Wiedergabe starten. Ohne Zeitfenster: jederzeit. Mehrere Zeitfenster sind möglich. Ein Zeitfenster kann nicht über Mitternacht gehen, und die Wiedergabe endet zu seiner Endzeit. Für 21:00 bis 07:00 fügen Sie 21:00–23:59 und 00:00–07:00 hinzu: Nur die letzte Minute vor Mitternacht bleibt außerhalb.",
   "parental.hours.days": "Tage des Zeitfensters",
   "parental.hours.from": "Von",
   "parental.hours.to": "bis",

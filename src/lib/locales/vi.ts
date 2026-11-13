@@ -3321,7 +3321,7 @@ export default {
   "parental.err.generic": "Không đọc hoặc lưu được quy tắc.",
   "parental.step2Applies": "Các khung giờ và hạn mức ở trên áp dụng cho việc phát của hồ sơ này, trên mọi đầu ra. Giờ là giờ của máy chủ.",
   "parental.hours.title": "Khung giờ được phép nghe",
-  "parental.hours.hint": "Ngoài các khung giờ này, hồ sơ không thể bắt đầu phát. Không có khung giờ: nghe lúc nào cũng được. Có thể thêm nhiều khung giờ. Một khung giờ không thể vượt qua nửa đêm: để cho phép từ 21:00 đến 07:00, hãy thêm một khung 21:00–23:59 và một khung 00:00–07:00.",
+  "parental.hours.hint": "Ngoài các khung giờ này, hồ sơ không thể bắt đầu phát. Không có khung giờ: nghe lúc nào cũng được. Có thể thêm nhiều khung giờ. Một khung giờ không thể vượt qua nửa đêm, và việc nghe dừng ở giờ kết thúc của nó. Để nghe từ 21:00 đến 07:00, hãy thêm 21:00–23:59 và 00:00–07:00: chỉ phút cuối cùng trước nửa đêm nằm ngoài.",
   "parental.hours.days": "Các ngày của khung giờ",
   "parental.hours.from": "Từ",
   "parental.hours.to": "đến",

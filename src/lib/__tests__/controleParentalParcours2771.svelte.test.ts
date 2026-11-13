@@ -85,4 +85,11 @@ describe('web#2771 — les textes du parcours', () => {
       expect(dict['parental.hours.hint'], l).toContain('00:00');
     }
   });
+
+  it('la fin d’une plage est exclue (le serveur compare `heure < fin`) : l’aide ne promet pas 23:59', () => {
+    expect(FR['parental.hours.hint']).toMatch(/dernière minute avant minuit/);
+    expect(EN['parental.hours.hint']).toMatch(/last minute before midnight/);
+    // Une seule fois la consigne « passer minuit » : pas de phrase répétée.
+    expect(FR['parental.hours.hint'].match(/minuit/g)?.length).toBe(2);
+  });
 });

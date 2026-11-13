@@ -3319,7 +3319,7 @@ export default {
   "parental.err.generic": "Reglene kunne ikke leses eller lagres.",
   "parental.step2Applies": "Tidsrommene og budsjettene over gjelder avspillingen for denne profilen, på alle utganger. Klokkeslettet er serverens.",
   "parental.hours.title": "Tillatte lyttetider",
-  "parental.hours.hint": "Utenfor disse tidsrommene kan profilen ikke starte avspilling. Ingen tidsrom: når som helst. Du kan legge til flere tidsrom. Et tidsrom kan ikke gå over midnatt: for 21:00 til 07:00, legg til ett tidsrom fra 21:00 til 23:59 og ett fra 00:00 til 07:00.",
+  "parental.hours.hint": "Utenfor disse tidsrommene kan profilen ikke starte avspilling. Ingen tidsrom: når som helst. Du kan legge til flere tidsrom. Et tidsrom kan ikke gå over midnatt, og lyttingen stopper ved sluttidspunktet. For 21:00 til 07:00, legg til 21:00–23:59 og 00:00–07:00: bare det siste minuttet før midnatt faller utenfor.",
   "parental.hours.days": "Tidsrommets dager",
   "parental.hours.from": "Fra",
   "parental.hours.to": "til",
