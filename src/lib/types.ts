@@ -902,7 +902,6 @@ export interface Zone {
 export interface DeviceQuirks {
   dlna_no_extra_headers?: boolean;
   max_sample_rate?: number | null;
-  fixed_sample_rate?: number | null;
   force_mime?: string | null;
   force_16bit?: boolean;
   no_gapless?: boolean;

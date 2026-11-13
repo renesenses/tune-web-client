@@ -121,6 +121,14 @@ describe('#8428 — fréquence fixe', () => {
     const h = await poser(zone({ fixed_sample_rate: null, output_type }));
     expect(h.querySelector('[data-reglage="zone-frequence-fixe"]')).toBeNull();
   });
+  // #8520 ne refuse la cadence fixe qu'à AirPlay (`sortie_compatible`) :
+  // DLNA et Chromecast l'acceptent, bornée par le plafond de la zone.
+  it.each(['dlna', 'chromecast'])('propose le réglage pour %s', async (output_type) => {
+    const h = await poser(zone({ fixed_sample_rate: 96000, output_type }));
+    const choix = h.querySelector<HTMLSelectElement>('[data-reglage="zone-frequence-fixe"] select');
+    expect(choix, `${output_type} accepte la cadence fixe côté serveur`).not.toBeNull();
+    expect(choix!.value).toBe('96000');
+  });
   it('permet une demande au-dessus du plafond, appliqué par le serveur', async () => {
     const h = await poser(zone({ fixed_sample_rate: null, max_sample_rate: 96000 }));
     const choix = h.querySelector<HTMLSelectElement>('[data-reglage="zone-frequence-fixe"] select')!;
