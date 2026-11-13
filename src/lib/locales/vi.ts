@@ -6790,6 +6790,8 @@ export default {
   "v2.circle.emoji.categories": "Nhóm biểu tượng cảm xúc",
   "v2.circle.emoji.results": "Kết quả",
   "v2.circle.emoji.none": "Không tìm thấy biểu tượng nào",
+  'v2.circle.emoji.suggestion': "Thêm biểu tượng cảm xúc",
+  'v2.circle.emoji.suggestions': "Gợi ý biểu tượng cảm xúc khi nhập",
   "v2.circle.emoji.shortcuts": "Đổi :) ;) <3 thành biểu tượng cảm xúc khi gửi",
   "v2.circle.emoji.cat.recent": "Gần đây",
   "v2.circle.emoji.cat.smileys": "Mặt cười",

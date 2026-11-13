@@ -6960,6 +6960,8 @@ export default {
   "v2.circle.emoji.categories": "Catégories d’emojis",
   "v2.circle.emoji.results": "Résultats",
   "v2.circle.emoji.none": "Aucun emoji trouvé",
+  'v2.circle.emoji.suggestion': "Ajouter un emoji",
+  'v2.circle.emoji.suggestions': "Suggérer des emojis pendant la saisie",
   "v2.circle.emoji.shortcuts": "Convertir :) ;) <3 en emojis à l’envoi",
   "v2.circle.emoji.cat.recent": "Récents",
   "v2.circle.emoji.cat.smileys": "Smileys",

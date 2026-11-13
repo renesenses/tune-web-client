@@ -6938,6 +6938,8 @@ export default {
   "v2.circle.emoji.categories": "表情符号类别",
   "v2.circle.emoji.results": "搜索结果",
   "v2.circle.emoji.none": "未找到表情符号",
+  'v2.circle.emoji.suggestion': "添加表情符号",
+  'v2.circle.emoji.suggestions': "输入时推荐表情符号",
   "v2.circle.emoji.shortcuts": "发送时将 :) ;) <3 转换为表情符号",
   "v2.circle.emoji.cat.recent": "最近使用",
   "v2.circle.emoji.cat.smileys": "笑脸",

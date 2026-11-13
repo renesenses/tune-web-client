@@ -169,6 +169,24 @@ export function reglerRaccourcis(actifs: boolean): void {
   try { localStorage.setItem(CLE_RACCOURCIS, actifs ? 'oui' : 'non'); } catch { /* réglage de session seulement */ }
 }
 
+// #2982 — une suggestion explicite, jamais une substitution automatique.
+const CLE_SUGGESTIONS = 'tune.circle.emojis.suggestions';
+export const SUGGESTIONS_CHANGEES = 'tune:emoji-suggestions';
+export function suggestionsActives(): boolean {
+  try { return localStorage.getItem(CLE_SUGGESTIONS) !== 'non'; } catch { return true; }
+}
+export function reglerSuggestions(actives: boolean): void {
+  try { localStorage.setItem(CLE_SUGGESTIONS, actives ? 'oui' : 'non'); } catch { /* stockage facultatif */ }
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(SUGGESTIONS_CHANGEES, { detail: actives }));
+}
+export function suggererEmoji(texte: string): Emoji | undefined {
+  const mot = texte.match(/(?:^|\s)([\p{L}\p{M}]+)$/u)?.[1];
+  if (!mot) return;
+  const q = normaliser(mot);
+  // Le sélecteur accepte des préfixes ; la suggestion attend un mot entier.
+  return chercherEmojis(mot).find((e) => [...e.en, ...e.fr].some((v) => normaliser(v).split(/\s+/).includes(q)));
+}
+
 // --- Insertion et affichage -------------------------------------------------
 
 /** Insère `e` à la place de la sélection [debut, fin) ; rend le texte et la position du curseur après l'emoji. */

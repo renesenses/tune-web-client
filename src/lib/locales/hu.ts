@@ -6897,6 +6897,8 @@ export default {
   "v2.circle.emoji.categories": "Emoji-kategóriák",
   "v2.circle.emoji.results": "Találatok",
   "v2.circle.emoji.none": "Nincs ilyen emoji",
+  'v2.circle.emoji.suggestion': "Emoji hozzáadása",
+  'v2.circle.emoji.suggestions': "Emojijavaslatok gépelés közben",
   "v2.circle.emoji.shortcuts": ":) ;) <3 átalakítása emojivá küldéskor",
   "v2.circle.emoji.cat.recent": "Legutóbbiak",
   "v2.circle.emoji.cat.smileys": "Hangulatjelek",

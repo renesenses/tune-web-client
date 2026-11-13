@@ -6937,6 +6937,8 @@ export default {
   "v2.circle.emoji.categories": "Emoji-kategorier",
   "v2.circle.emoji.results": "Resultat",
   "v2.circle.emoji.none": "Ingen emoji hittades",
+  'v2.circle.emoji.suggestion': "Lägg till en emoji",
+  'v2.circle.emoji.suggestions': "Föreslå emojier medan du skriver",
   "v2.circle.emoji.shortcuts": "Gör om :) ;) <3 till emojier när du skickar",
   "v2.circle.emoji.cat.recent": "Senaste",
   "v2.circle.emoji.cat.smileys": "Smileys",
