@@ -71,7 +71,7 @@
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
-  import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFiltre, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
   import { departSimilaires, defilerVersSimilaires, retenirDepartSimilaires, retourAuxSimilairesVisible, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
@@ -1082,6 +1082,8 @@
     sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
     compteurs={estLocal ? compteurs : null}
+    pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : null}
+    onPays={(code) => { pendingLibraryFiltre.set({ paysArtiste: code }); activeView.set('library'); }}
     onRetour={retour}>
     {#snippet actions()}
       <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
