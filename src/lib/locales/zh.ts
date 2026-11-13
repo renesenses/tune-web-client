@@ -852,6 +852,9 @@ export default {
   'signal.network': '网络',
   'signal.checksum': '校验和',
   'signal.verified': '已验证',
+  'signal.adjust': '调整',
+  'signal.adjustStep': '调整{name}',
+  'signal.adjustDisabled': '已关闭 — 调整',
   'signal.decisions': '管道决策',
 
   // Artist detail

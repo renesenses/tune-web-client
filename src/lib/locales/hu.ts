@@ -945,6 +945,9 @@ export default {
   "signal.network": "Hálózat",
   "signal.checksum": "Ellenőrzőösszeg",
   "signal.verified": "Ellenőrizve",
+  "signal.adjust": "Beállítás",
+  "signal.adjustStep": "{name} beállítása",
+  "signal.adjustDisabled": "Kikapcsolva — beállítás",
   "signal.decisions": "A feldolgozási lánc döntései",
   // Előadó részletei
   "artist.similarArtists": "Hasonló előadók",

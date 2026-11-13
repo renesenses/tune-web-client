@@ -839,6 +839,9 @@ export default {
   'signal.network': 'Nätverk',
   'signal.checksum': 'Kontrollsumma',
   'signal.verified': 'Verifierad',
+  'signal.adjust': 'Justera',
+  'signal.adjustStep': 'Justera {name}',
+  'signal.adjustDisabled': 'Av — justera',
   'signal.decisions': 'Pipeline-beslut',
 
   // Artist detail

@@ -58,6 +58,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import SortiesDuGroupe from './SortiesDuGroupe.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -85,6 +87,12 @@ import { ICONES } from '../../lib/menuPiste';
   let isFavorite = $state(false);
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'lecture') return;
+    cheminARouvrir.set(null);
+    showSignalDetail = true;
+  });
   let showTrackDetail = $state(false);
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
@@ -2507,6 +2515,7 @@ import { ICONES } from '../../lib/menuPiste';
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
+                          <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="lecture" onouvrir={() => showSignalDetail = false} />
                         </div>
                       </div>
                     {/each}

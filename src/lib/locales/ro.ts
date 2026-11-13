@@ -858,6 +858,9 @@ export default {
   'signal.network': 'Rețea',
   'signal.checksum': 'Sumă de control',
   'signal.verified': 'Verificat',
+  'signal.adjust': 'Reglează',
+  'signal.adjustStep': 'Reglează {name}',
+  'signal.adjustDisabled': 'Dezactivat — reglează',
   'signal.decisions': 'Decizii pipeline',
 
   // Artist detail

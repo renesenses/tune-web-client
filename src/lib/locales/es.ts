@@ -852,6 +852,9 @@ export default {
   'signal.network': 'Red',
   'signal.checksum': 'Suma de verificación',
   'signal.verified': 'Verificado',
+  'signal.adjust': 'Ajustar',
+  'signal.adjustStep': 'Ajustar {name}',
+  'signal.adjustDisabled': 'Desactivado — ajustar',
   'signal.decisions': 'Decisiones del pipeline',
 
   // Artist detail

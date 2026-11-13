@@ -979,6 +979,9 @@ export default {
   'signal.network': 'Network',
   'signal.checksum': 'Checksum',
   'signal.verified': 'Verified',
+  'signal.adjust': 'Adjust',
+  'signal.adjustStep': 'Adjust {name}',
+  'signal.adjustDisabled': 'Off — adjust',
   'signal.decisions': 'Pipeline decisions',
 
   // Artist detail

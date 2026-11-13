@@ -852,6 +852,9 @@ export default {
   'signal.network': 'Rete',
   'signal.checksum': 'Checksum',
   'signal.verified': 'Verificato',
+  'signal.adjust': 'Regola',
+  'signal.adjustStep': 'Regola {name}',
+  'signal.adjustDisabled': 'Disattivato — regola',
   'signal.decisions': 'Decisioni della pipeline',
 
   // Artist detail
