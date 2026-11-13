@@ -39,7 +39,7 @@
 // répartition de ses 6 338 albums), ni l'allure du déplacement. Cela se mesure
 // dans un navigateur, et aucun n'est disponible sur le poste.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, tick } from 'svelte';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryLoading, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
@@ -208,6 +208,16 @@ function derouler(max = 20) {
   }
 }
 
+// Le rail peut devoir remonter sa fenêtre avant de viser l'ancre (#7774).
+// Laisser finir ce rendu, puis dérouler les mêmes corrections de géométrie.
+async function finirSaut() {
+  for (let n = 0; n < 4; n++) {
+    await tick();
+    flushSync();
+    derouler();
+  }
+}
+
 const attendre = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 
 async function ecranMonte(): Promise<HTMLDivElement> {
@@ -294,8 +304,7 @@ describe('#1487 — l’écran monté : le PREMIER clic sur une lettre atteint c
     const { cartes, modele } = grilleEtModele(el);
 
     boutonRail(el, 'N').click();
-    flushSync();
-    derouler();
+    await finirSaut();
 
     expect(
       modele.lettreEnHaut(),
@@ -310,13 +319,11 @@ describe('#1487 — l’écran monté : le PREMIER clic sur une lettre atteint c
     const { modele } = grilleEtModele(el);
 
     boutonRail(el, 'N').click();
-    flushSync();
-    derouler();
+    await finirSaut();
     const apresPremier = modele.defilement();
 
     boutonRail(el, 'N').click();
-    flushSync();
-    derouler();
+    await finirSaut();
     expect(modele.defilement()).toBe(apresPremier);
     expect(modele.lettreEnHaut()).toBe('N');
   });
@@ -329,15 +336,13 @@ describe('#1487 — l’écran monté : le PREMIER clic sur une lettre atteint c
     // sur « E », deuxième dizième de liste, elle ne suffit pas encore à changer
     // de lettre. C'est « S » qui la rend visible.
     boutonRail(el, 'S').click();
-    flushSync();
-    derouler();
+    await finirSaut();
     expect(modele.lettreEnHaut(), 'le saut vers « S » rate sa cible').toBe('S');
 
     // « Z » est en fin de liste : le conteneur bute avant d'aligner l'ancre.
     // Le saut doit s'arrêter là sans boucler, et montrer la fin.
     boutonRail(el, 'Z').click();
-    flushSync();
-    derouler();
+    await finirSaut();
     expect(modele.lettreEnHaut(), 'le saut vers « Z » ne descend pas jusqu’à la fin').toBe('Z');
   });
 });

@@ -52,6 +52,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
+  // tune-server-rust#8611 / #8636 (lot rc12) — contrôle parental : artiste
+  // bloqué pour ce profil (403, lecture ou fiche). Sans cette entrée, le
+  // refus restait muet pour l'enfant : rien ne jouait, rien ne s'affichait.
+  parental_content_blocked: 'playback.errorParentalBlocked',
 };
 
 /**
@@ -77,6 +81,8 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'zone_output_unavailable',
   // tune-server-rust#8088 — refus du contrôle parental, phrase traduite par le serveur.
   'parental_explicit_refused',
+  // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
+  'parental_content_blocked',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
@@ -2619,6 +2625,7 @@ export interface PageAlbums {
   total: number | null;
   /** Renseignée en tri aléatoire seulement (#3074). */
   seed?: number;
+  reperesAlphabetiques?: Record<string, number>;
 }
 export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
   const p = new URLSearchParams();
@@ -2633,7 +2640,13 @@ export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums
   const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
   amorcerPochettes(Array.isArray(raw) ? raw : raw?.items);
   if (Array.isArray(raw)) return { items: raw, total: null };
+  const index = raw?.reperes_alphabetiques;
+  const reperesAlphabetiques = index && typeof index === 'object' && !Array.isArray(index)
+    && Object.entries(index).every(([lettre, offset]) => /^[A-Z#]$/.test(lettre)
+      && Number.isInteger(offset) && (offset as number) >= 0 && (offset as number) < raw.total)
+    ? index as Record<string, number> : undefined;
   return {
+    reperesAlphabetiques,
     items: Array.isArray(raw?.items) ? raw.items : [],
     total: typeof raw?.total === 'number' ? raw.total : null,
     seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
@@ -6244,6 +6257,30 @@ export function getStreamingServices() {
 
 export function enableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/enable`, { method: 'POST' });
+}
+
+/**
+ * tune-server-rust#8481 — le pays du catalogue d'un service (TIDAL), comme
+ * « PL » dans LMS. `chosen_country` null : celui du compte.
+ */
+export interface PaysDuCatalogue {
+  service: string;
+  supported: boolean;
+  account_country: string | null;
+  chosen_country: string | null;
+  effective_country: string;
+}
+
+/** Sans bandeau : 422 (Qobuz, service sans ce réglage) ou 404 (serveur plus ancien) cachent simplement le champ. */
+export function getCatalogCountry(service: string) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, undefined, undefined, true);
+}
+
+export function setCatalogCountry(service: string, country: string | null) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, {
+    method: 'PUT',
+    body: JSON.stringify({ country }),
+  }, undefined, true);
 }
 
 export function disableStreamingService(service: string) {

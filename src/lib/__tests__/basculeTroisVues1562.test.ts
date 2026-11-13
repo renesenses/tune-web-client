@@ -133,7 +133,7 @@ async function troisBascules(el: HTMLElement) {
     await poser();
     tours.push({
       vers: vue(el), requetes: urls.slice(avant), montes: montes(el), pleines: pleines(el),
-      cale: !!el.querySelector('.grid > .cale, .rows > .cale, .carrou > .cale'),
+      cale: !!el.querySelector('.grid > .cale, .rows > .cale, .carrou > .cale, .paginee > .cale-paginee'),
     });
   }
   return tours;
@@ -156,6 +156,21 @@ describe('#1562 — la fenêtre de rendu, en logique pure', () => {
 });
 
 describe('#1562 — basculer entre les trois vues, 6 704 albums, liste entière déjà chargée', () => {
+  it('#7774 Local — Z puis A remonte le premier album et garde une fenêtre bornée', { timeout: 300_000 }, async () => {
+    localStorage.setItem('tune_v2_ecran_v2.lib.source', 'local');
+    albums.set(ALBUMS as any);
+    const el = await ecran();
+    for (const lettre of ['M', 'Z', 'A', 'B']) {
+      [...el.querySelectorAll<HTMLButtonElement>('.rail .rl')].find(b => b.textContent === lettre)!.click();
+      await vi.waitFor(() => {
+        flushSync();
+        const index = ALBUMS.findIndex(a => a.title.startsWith(lettre));
+        expect(el.querySelector(`.grid [data-i="${index}"]`), `le premier album de ${lettre} doit être remonté après Z`).not.toBeNull();
+      }, { timeout: 15_000 });
+      expect(montes(el), 'Source Local : le saut ne doit pas monter tous les albums précédents').toBeLessThan(300);
+    }
+  });
+
   it('chaque bascule ne monte que la fenêtre, et ne fait AUCUNE requête', { timeout: 300_000 }, async () => {
     albums.set(ALBUMS as any);
     const el = await ecran();
@@ -177,16 +192,18 @@ describe('#1562 — basculer entre les trois vues, 6 704 albums, liste entière 
     }
   });
 
-  it('la cale qui entre dans le cadre élargit la fenêtre, sans requête', { timeout: 300_000 }, async () => {
+  it('le défilement remplace la fenêtre sans requête de liste', { timeout: 300_000 }, async () => {
     albums.set(ALBUMS as any);
     const el = await ecran();
     const avant = urls.filter((u) => !/\/library\/albums\/\d+$/.test(u)).length;
-    const laCale = el.querySelector('.grid > .cale');
-    expect(laCale, 'la grille n’a pas de cale').not.toBeNull();
-    faireEntrer(laCale!);
+    const grille = el.querySelector<HTMLElement>('.grid.paginee')!;
+    expect(grille).not.toBeNull();
+    grille.scrollTop = 1000 * 210;
+    grille.dispatchEvent(new Event('scroll'));
     await poser();
-    expect(montes(el)).toBe(FENETRE_INITIALE + PAS_FENETRE);
-    expect(urls.filter((u) => !/\/library\/albums\/\d+$/.test(u)).length, 'élargir a relancé une requête de liste').toBe(avant);
+    expect(montes(el)).toBeLessThan(300);
+    expect(Number(grille.querySelector('[data-i]')?.getAttribute('data-i'))).toBeGreaterThan(0);
+    expect(urls.filter((u) => !/\/library\/albums\/\d+$/.test(u)).length).toBe(avant);
   });
 
   // B commence à l'album 258 : juste au-delà de la fenêtre initiale.
@@ -204,6 +221,19 @@ describe('#1562 — basculer entre les trois vues, 6 704 albums, liste entière 
 });
 
 describe('#1562 — basculer entre les trois vues, 6 704 albums, en pages (#4800)', () => {
+  it('#7774 — M, Z puis B gardent une fenêtre bornée autour de la cible', { timeout: 300_000 }, async () => {
+    const el = await ecran();
+    for (const lettre of ['M', 'Z', 'A', 'B']) {
+      [...el.querySelectorAll<HTMLButtonElement>('.rail .rl')].find(b => b.textContent === lettre)!.click();
+      await vi.waitFor(() => {
+        flushSync();
+        expect(el.querySelector(`.grid [data-letter="${lettre}"]`), 'la lettre visée doit être montée').not.toBeNull();
+      }, { timeout: 15_000 });
+      expect(montes(el), 'un saut lointain ne doit pas monter le préfixe entier').toBeLessThan(300);
+      expect(el.querySelector('.grid > .cale-paginee'), 'les albums éloignés gardent leur place').not.toBeNull();
+    }
+  });
+
   it('chaque bascule ne monte que la fenêtre, et ne redemande aucune page', { timeout: 300_000 }, async () => {
     const el = await ecran();
     expect(vue(el)).toBe('grid');
