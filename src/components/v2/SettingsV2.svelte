@@ -7,6 +7,7 @@
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
+  import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -24,7 +25,7 @@
    * l'écran actuel — jamais un cadre vide qui laisserait croire à un réglage
    * absent.
    */
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
@@ -150,6 +151,7 @@
     relireAvantEnvoi, ecrireRelireAvantEnvoi,
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
+  import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -2252,8 +2254,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * refuse d'ailleurs tout « 14 » littéral dans les onze traductions.
    */
   function graceJours(n: number): string {
-    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
-      .replace('{days}', String(n));
+    return $tn('settings.licenseGraceDaysN', n);
   }
   async function activateLic() {
     const k = licKey.trim();
@@ -4704,7 +4705,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {#if tab}
         <div class="panehead">
           {#if hiddenCount > 0}
-            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
+            <span class="masked">{$tn('v2.set.hiddenSectionsN', hiddenCount)}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
@@ -6371,6 +6372,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if spc?.enabled && spc?.receiver_error_code === 'spotify_premium_required'}
                   <div class="errline" data-spotify-premium-exige>{$t('settings.spotifyPremiumRequired' as any)}</div>
                 {/if}
+                <!-- tune-server-rust#8565 (13/11) — Spotify refuse les clés audio du compte. -->
+                {#if spc?.enabled && spc?.receiver_error_code === 'spotify_audio_key_refused'}
+                  <div class="errline" data-spotify-cles-refusees>{$t('playback.errorSpotifyAudioKeyRefused' as any)}</div>
+                {/if}
                 {#if spc?.enabled && spc?.session_error}
                   <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
@@ -7069,6 +7074,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+              <!-- rc12 (décision du 13/11, tune-server-rust#6285) — la détection des faux Hi-Res, éteinte par défaut. -->
+              <div data-reglage="faux-hires"><DetectionFauxHiRes /></div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <div data-reglage="audit-integrite"><AuditIntegrite /></div>
@@ -7885,6 +7892,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           onchange={(e) => basculerSvc(name, (e.currentTarget as HTMLInputElement).checked)} />
                         <span>{$t('v2.set.svcActive' as any)}</span>
                       </label>
+
+                      {#if name === 'tidal'}
+                        <!-- tune-server-rust#8481 — le pays du catalogue (« PL » de LMS). -->
+                        <PaysDuCatalogueV2 service={name} />
+                      {/if}
 
                       {#if name === 'spotify' && !st.authenticated && !flow}
                         <!-- tune-server-rust#8198 — assistant pas à pas (4 écrans). -->

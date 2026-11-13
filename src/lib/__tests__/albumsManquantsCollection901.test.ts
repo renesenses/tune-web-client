@@ -110,8 +110,7 @@ describe('#901 — les albums manquants d’un dossier sont dits, puis NOMMÉS',
 
   it('elle accorde le singulier et le pluriel, et porte une explication', () => {
     const src = ecran();
-    expect(src).toContain('collections.missingOne');
-    expect(src).toContain('collections.missingMany');
+    expect(src).toContain("$tn('collections.missingN', e.manquants)");
     expect(src).toContain('collections.missingHint');
   });
 
@@ -119,8 +118,7 @@ describe('#901 — les albums manquants d’un dossier sont dits, puis NOMMÉS',
     for (const langue of LANGUES) {
       const dictionnaire = lire(`src/lib/locales/${langue}.ts`);
       for (const cle of [
-        'collections.missingOne',
-        'collections.missingMany',
+        'collections.missingN',
         'collections.missingHint',
         'collections.missingListTitle',
         'collections.missingUnknown',
@@ -131,11 +129,11 @@ describe('#901 — les albums manquants d’un dossier sont dits, puis NOMMÉS',
     }
   });
 
-  it('le pluriel porte bien le nombre, le singulier non', () => {
+  it('le message pluriel porte les formes et le nombre', () => {
     const fr = lire('src/lib/locales/fr.ts');
     const ligne = (cle: string) => fr.split('\n').find((l) => l.includes(`"${cle}"`)) ?? '';
-    expect(ligne('collections.missingMany')).toContain('{count}');
-    expect(ligne('collections.missingOne')).not.toContain('{count}');
+    expect(ligne('collections.missingN')).toContain('one {# album manquant}');
+    expect(ligne('collections.missingN')).toContain('other {# albums manquants}');
   });
 
   // tune-server-rust#5615 (Lulu, fil 1891, 01/10) — « Album n° 992 » a la

@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // #1999 — la grâce hors ligne doit se VOIR.
@@ -57,8 +58,7 @@ const CLES = [
   'settings.licenseGraceLapsedBody',
   'settings.licenseGraceNeverTitle',
   'settings.licenseGraceNeverBody',
-  'settings.licenseGraceDayOne',
-  'settings.licenseGraceDayOther',
+  'settings.licenseGraceDaysN',
   'settings.licenseOfflineRule',
 ] as const;
 
@@ -229,7 +229,7 @@ describe('grâce hors ligne — ce que l’écran AFFICHE (#1999)', () => {
 
     // « encore 3 jours » — le pluriel, pas « 3 jour ».
     expect(b!.textContent).toContain(
-      fr['settings.licenseGraceDayOther'].replace('{days}', '3'),
+      'encore 3 jours',
     );
 
     // Le cadre est celui qui rassure : la fenêtre court, le Premium est intact.
@@ -242,11 +242,11 @@ describe('grâce hors ligne — ce que l’écran AFFICHE (#1999)', () => {
     const el = await ongletLicence();
     const b = bandeau(el)!;
     expect(b.textContent, 'le singulier n’est pas servi').toContain(
-      fr['settings.licenseGraceDayOne'],
+      'encore 1 jour',
     );
     // Et pas la forme plurielle, qui donnerait « encore 1 jours ».
     expect(b.textContent).not.toContain(
-      fr['settings.licenseGraceDayOther'].replace('{days}', '1'),
+      'encore 1 jours',
     );
   });
 
@@ -394,7 +394,7 @@ describe('grâce hors ligne — le message', () => {
         ).toBe(true);
       }
       expect(dict['settings.licenseOfflineRule'].includes('{days}')).toBe(true);
-      expect(dict['settings.licenseGraceDayOther'].includes('{days}')).toBe(true);
+      expect(formaterPluriel(dict['settings.licenseGraceDaysN'], 3, langue)).toContain('3');
     }
   });
 

@@ -24,6 +24,7 @@
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
     filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
+    detailEdition, editionsCachees,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
@@ -34,6 +35,7 @@
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -104,6 +106,27 @@
      */
     rangeeSources?: boolean;
   }
+  /**
+   * #2961 — le compte d'un musicien de « Joue avec » : « N albums » quand le
+   * serveur dit que ses crédits tiennent tout l'album (`album_wide`, des
+   * balises qui recopient le personnel sur chaque piste), sinon « N titres ».
+   */
+  function compteJoueAvec(j: JoueAvec): string {
+    const parAlbum = j.album_wide === true && typeof j.shared_albums === 'number' && j.shared_albums > 0;
+    const n = parAlbum ? (j.shared_albums as number) : (j.shared_tracks ?? 0);
+    const cle = parAlbum
+      ? (n === 1 ? 'v2.disco.sharedAlbumOne' : 'v2.disco.sharedAlbums')
+      : (n === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks');
+    return $t(cle as any).replace('{n}', String(n));
+  }
+
+  /** #2961 — la cible du nom : la fiche par `artist_id`, sinon par le nom. */
+  function entiteJoueAvec(j: JoueAvec): Entite {
+    return typeof j.artist_id === 'number'
+      ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
+      : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } };
+  }
+
   let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
@@ -289,12 +312,48 @@
    * l'OBJET, et le même album y a le même menu qu'ailleurs.
    */
 
+  /*
+   * tune-server-rust#8662 — le choix d'édition (Bertrand, 13/11/2026) : une
+   * vignette par album, et quand un service y tient plusieurs éditions de
+   * même titre, un badge « N éditions » ouvre leur liste. Une seule liste
+   * ouverte à la fois ; la clé porte la section, car une même vignette peut
+   * figurer dans deux sections.
+   */
+  let editionsOuvertes = $state<string | null>(null);
+  const cleListe = (e: EntreeDiscographie, origine: OrigineSection) => `${origine ?? 'disco'}|${e.cle}`;
+  function basculerEditions(cle: string) {
+    editionsOuvertes = editionsOuvertes === cle ? null : cle;
+  }
+  /** Échap ferme la liste ouverte et rend le focus au badge qui l'a ouverte. */
+  function toucheEditions(ev: KeyboardEvent) {
+    if (ev.key !== 'Escape' || !editionsOuvertes) return;
+    const id = idListe(editionsOuvertes);
+    editionsOuvertes = null;
+    document.querySelector<HTMLElement>(`.badge-editions[data-liste="${id}"]`)?.focus();
+  }
+  /** Un identifiant HTML sans espace : `aria-controls` est une liste d'identifiants. */
+  const idListe = (cle: string) => `editions-${encodeURIComponent(cle).replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  /** Un clic hors de la liste ouverte la referme. */
+  $effect(() => {
+    if (!editionsOuvertes) return;
+    const ferme = (ev: MouseEvent) => {
+      const cible = ev.target as HTMLElement | null;
+      if (cible?.closest?.('.editions, .badge-editions')) return;
+      editionsOuvertes = null;
+    };
+    window.addEventListener('click', ferme, true);
+    return () => window.removeEventListener('click', ferme, true);
+  });
+  const libelleSource = (source: string) => (source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : source);
+
   const LIBELLES_QUALITE: Record<Qualite, string> = {
     dsd: 'v2.disco.dsd', hires: 'v2.disco.hires', cd: 'v2.disco.cd', lossy: 'v2.disco.lossy',
     multichannel: 'v2.disco.multichannel',
   };
   const libelleQualite = (q: Qualite) => $t(LIBELLES_QUALITE[q] as any);
 </script>
+
+<svelte:window onkeydown={toucheEditions} />
 
 <div class="disco">
   {#if provenances.length > 1 || actif.size || rangeeSources}
@@ -466,20 +525,21 @@
 
   <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
        (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
-       Un nom avec fiche (`artist_id`) ouvre sa page ; sans fiche (musicien de
-       séance), texte simple. Clé absente = pas de bloc, sans message. -->
+       #2961 — des puces qui passent à la ligne, nom ENTIER, compte discret
+       dans la police du texte (« 13 titres », ou « 1 album » quand le
+       serveur dit que les crédits tiennent tout l'album : `album_wide`).
+       CHAQUE nom est un lien : la fiche par `artist_id`, sinon par le nom
+       (`ouvrirArtisteDepuis` : fiche exacte, à défaut la Recherche). Clé
+       absente = pas de bloc, sans message. -->
   {#if joueAvec?.length}
     <section class="bloc" data-section="played-with">
       <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
       <ul class="liste-joue-avec">
         {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          {@const compte = compteJoueAvec(j)}
           <li data-joue-avec={j.artist_name}>
-            {#if typeof j.artist_id === 'number'}
-              <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
-            {:else}
-              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
-            {/if}
-            <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
+            <span class="nom-joue-avec"><LienEntite titre={`${j.artist_name} · ${compte}`} entite={entiteJoueAvec(j)} /></span>
+            <span class="compte-joue-avec">{compte}</span>
           </li>
         {/each}
       </ul>
@@ -520,7 +580,9 @@
   {@const al = e.principal.album}
   {@const loc = local(e)}
   {@const enBiblio = e.principal.source === BIBLIOTHEQUE}
-  <div class="carte" data-sources={e.sources.join(' ')}>
+  {@const cleEd = cleListe(e, origine)}
+  {@const ouverte = editionsOuvertes === cleEd}
+  <div class="carte" data-sources={e.sources.join(' ')} class:ouverte>
     <div class="cv">
       <PochetteActions
         favori={loc?.id != null ? { albumId: loc.id } : null}
@@ -566,7 +628,49 @@
           {#if res}<span class="res">{res}</span>{/if}
         </span>
       {/each}
+      {#if editionsCachees(e)}
+        <!-- #8662 — les éditions de même titre qu'un service rend en plusieurs
+             exemplaires : une vignette, et le choix ici. -->
+        <button class="badge-editions" data-editions={e.editions.length}
+          data-liste={idListe(cleEd)} aria-expanded={ouverte} aria-controls={ouverte ? idListe(cleEd) : undefined}
+          onclick={() => basculerEditions(cleEd)}>
+          {$t('v2.disco.editions' as any).replace('{n}', String(e.editions.length))}
+        </button>
+      {/if}
     </div>
+    {#if ouverte}
+      <div class="editions" id={idListe(cleEd)} role="group"
+        aria-label={$t('v2.disco.editionsOf' as any).replace('{title}', al.title ?? '')}>
+        <ul>
+          {#each e.editions as ex, i (`${ex.source}|${ex.album.source_id ?? ex.album.id ?? i}|${i}`)}
+            {@const d = detailEdition(ex)}
+            {@const res = d.resolution ?? (d.qualite === 'lossy' ? $t('v2.disco.lossy' as any) : null)}
+            <li class="edition" data-edition={ex.album.source_id ?? ex.album.id ?? ''} class:principale={ex === e.principal}>
+              <button class="ouvrir-edition" title={$t('v2.disco.openEdition' as any)}
+                onclick={() => { editionsOuvertes = null; onOuvrir(ex, origine); }}>
+                <span class="et">{d.titre}</span>
+                <span class="ed">
+                  {#if ex.source === BIBLIOTHEQUE}
+                    <span>{libelleSource(ex.source)}</span>
+                  {:else}
+                    <ServiceBadge source={ex.source} compact />
+                  {/if}
+                  {#if res}<span>{res}</span>{/if}
+                  {#if d.date}<span>{d.date}</span>{/if}
+                  {#if d.pistes}<span>{$t('v2.disco.editionTracks' as any).replace('{n}', String(d.pistes))}</span>{/if}
+                  {#if d.label}<span>{d.label}</span>{/if}
+                </span>
+              </button>
+              <button class="lire-edition" aria-label={`${$t('v2.disco.playEdition' as any)} — ${d.titre}`}
+                title={$t('v2.disco.playEdition' as any)} onclick={() => onLire(ex)}>
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </li>
+          {/each}
+        </ul>
+        <button class="fermer-editions" onclick={() => { editionsOuvertes = null; }}>{$t('v2.disco.closeEditions' as any)}</button>
+      </div>
+    {/if}
   </div>
 {/snippet}
 
@@ -621,6 +725,51 @@
     align-content: start;
   }
   .carte { display: flex; flex-direction: column; content-visibility: auto; contain-intrinsic-size: auto 210px; }
+  /* #8662 — la liste ouverte passe au-dessus des vignettes voisines :
+     `content-visibility` la rognerait, on le lève sur la carte ouverte. */
+  .carte.ouverte { position: relative; z-index: 3; content-visibility: visible; }
+  .badge-editions {
+    border: 1px solid var(--v2-line2); background: transparent; cursor: pointer;
+    border-radius: var(--v2-r-pill); padding: 1px 7px;
+    font: 600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-acc1);
+  }
+  .badge-editions:hover, .badge-editions[aria-expanded="true"] { border-color: var(--v2-acc2); background: var(--v2-acc-soft); }
+  .badge-editions:focus-visible, .ouvrir-edition:focus-visible, .lire-edition:focus-visible, .fermer-editions:focus-visible {
+    outline: 2px solid var(--v2-acc1); outline-offset: 2px;
+  }
+  .editions {
+    position: absolute; top: 100%; left: 0; margin-top: 6px;
+    width: max(100%, 280px); max-width: min(360px, 90vw); max-height: 320px; overflow: auto;
+    padding: 8px; border-radius: var(--v2-r-card);
+    background: var(--v2-surface2); border: 1px solid var(--v2-line2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  }
+  .editions ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .edition { display: flex; align-items: center; gap: 6px; border-radius: 6px; }
+  .edition.principale { background: var(--v2-acc-soft); }
+  .ouvrir-edition {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+    border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; padding: 6px;
+  }
+  .ouvrir-edition:hover .et { color: var(--v2-acc1); }
+  .et {
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ed {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+    font: calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
+  }
+  .lire-edition {
+    flex: none; display: grid; place-items: center; width: 28px; height: 28px;
+    border: 0; border-radius: 50%; background: transparent; color: var(--v2-txt2); cursor: pointer;
+  }
+  .lire-edition:hover { color: var(--v2-acc1); background: var(--v2-line2); }
+  .lire-edition svg { width: 14px; height: 14px; }
+  .fermer-editions {
+    display: block; margin: 6px 0 0 auto; border: 0; background: transparent; cursor: pointer; padding: 2px 4px;
+    font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
+  }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
   /* #2829 — les étiquettes plateforme + résolution, sous le titre. */
@@ -671,15 +820,18 @@
     font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
-  /* #2794 — « Joue avec » : une liste de noms, en colonnes, sans pochettes. */
+  /* #2794 / #2961 — « Joue avec » : des puces qui passent à la ligne, le nom
+     en entier (il se coupe plutôt que de se tronquer), le compte discret dans
+     la police du texte. */
   .liste-joue-avec {
     list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px;
+    display: flex; flex-wrap: wrap; gap: 8px;
   }
   .liste-joue-avec li {
-    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%;
+    padding: 4px 12px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill, 999px);
     font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
   }
-  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pistes-joue-avec { flex: none; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
+  .nom-joue-avec { min-width: 0; overflow-wrap: anywhere; }
+  .compte-joue-avec { flex: none; font-size: 0.92em; color: var(--v2-txt3); white-space: nowrap; }
 </style>

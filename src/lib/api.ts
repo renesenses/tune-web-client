@@ -49,9 +49,17 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tierce qu'avec Premium (409 `spotify_premium_required`, refus de librespot
   // ou `PREMIUM_REQUIRED` de l'API Web). Un état du compte, pas une panne.
   spotify_premium_required: 'playback.errorSpotifyPremium',
+  // tune-server-rust#8565 (décision de Bertrand du 13/11) — Spotify refuse
+  // les clés audio du compte (librespot #1649) : 409
+  // `spotify_audio_key_refused`, au lieu d'un titre sauté sans un mot.
+  spotify_audio_key_refused: 'playback.errorSpotifyAudioKeyRefused',
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
+  // tune-server-rust#8611 / #8636 (lot rc12) — contrôle parental : artiste
+  // bloqué pour ce profil (403, lecture ou fiche). Sans cette entrée, le
+  // refus restait muet pour l'enfant : rien ne jouait, rien ne s'affichait.
+  parental_content_blocked: 'playback.errorParentalBlocked',
 };
 
 /**
@@ -77,6 +85,8 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'zone_output_unavailable',
   // tune-server-rust#8088 — refus du contrôle parental, phrase traduite par le serveur.
   'parental_explicit_refused',
+  // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
+  'parental_content_blocked',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
@@ -2619,6 +2629,7 @@ export interface PageAlbums {
   total: number | null;
   /** Renseignée en tri aléatoire seulement (#3074). */
   seed?: number;
+  reperesAlphabetiques?: Record<string, number>;
 }
 export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
   const p = new URLSearchParams();
@@ -2633,7 +2644,13 @@ export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums
   const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
   amorcerPochettes(Array.isArray(raw) ? raw : raw?.items);
   if (Array.isArray(raw)) return { items: raw, total: null };
+  const index = raw?.reperes_alphabetiques;
+  const reperesAlphabetiques = index && typeof index === 'object' && !Array.isArray(index)
+    && Object.entries(index).every(([lettre, offset]) => /^[A-Z#]$/.test(lettre)
+      && Number.isInteger(offset) && (offset as number) >= 0 && (offset as number) < raw.total)
+    ? index as Record<string, number> : undefined;
   return {
+    reperesAlphabetiques,
     items: Array.isArray(raw?.items) ? raw.items : [],
     total: typeof raw?.total === 'number' ? raw.total : null,
     seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
@@ -2895,8 +2912,20 @@ export interface AlbumsArtisteSections {
   played_with?: JoueAvec[];
 }
 
-/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
-export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
+/**
+ * Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et
+ * les enregistrements partagés. #2961 (tune-server-rust, lot rc12) :
+ * `shared_albums` (albums distincts) et `album_wide` (crédité sur presque
+ * tout chacun de ses albums partagés : compter des titres ne dit rien) —
+ * absents devant un serveur antérieur.
+ */
+export interface JoueAvec {
+  artist_id: number | null;
+  artist_name: string;
+  shared_tracks: number;
+  shared_albums?: number;
+  album_wide?: boolean;
+}
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
@@ -3507,6 +3536,28 @@ export async function getLibraryFacets(
   return (raw && typeof raw === 'object') ? raw : {};
 }
 
+/**
+ * tune-server-rust#8668 — le pays de CHAQUE album (`[id, pays]`), en une
+ * réponse : `artist` = pays de l'artiste principal (MusicBrainz), `release` =
+ * pays de l'édition (balise RELEASECOUNTRY, sinon release MusicBrainz). La
+ * carte des pays le croise avec les albums que la grille garde, pour compter
+ * sous les MÊMES filtres que la grille. `null` : serveur antérieur (route
+ * absente) ou réponse illisible — la carte retombe sur les facettes, sans
+ * bandeau d'erreur.
+ */
+export async function getLibraryAlbumCountries(
+  source: 'artist' | 'release',
+): Promise<[number, string][] | null> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/album-countries?source=${source}`, undefined, undefined, true);
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.albums)) return null;
+    return (raw.albums as unknown[]).filter((p): p is [number, string] =>
+      Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'string');
+  } catch {
+    return null;
+  }
+}
+
 /** Une carte album d'Oxygen : les agrégats calculés PAR LE SERVEUR sur la
  *  sélection de facettes courante. Les dériver des pistes chargées donnait des
  *  comptes faux dès qu'un album chevauchait la pagination. */
@@ -3801,6 +3852,17 @@ export function getLibraryStats() {
   // web#2653 — `distributions` (tune-server-rust#7849) : absente d'un serveur
   // plus ancien, `null` si sa lecture a échoué. Lue par `lireRepartitions`.
   return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
+}
+
+/**
+ * Go du 13/11 — chercher un artiste ou un genre dans TOUT le classement des
+ * statistiques (pas seulement les cent premiers). Réponse lue par
+ * `lireRecherche` (`lib/classementsBibliotheque`). Rejette sur un serveur
+ * plus ancien (route absente) : l'appelant se replie, sans bandeau d'erreur.
+ */
+export function chercherClassement(by: 'artist' | 'genre', q: string, limit = 100) {
+  const p = new URLSearchParams({ by, q, limit: String(limit) });
+  return fetchJSON<unknown>(`${BASE}/library/stats/rankings?${p}`, undefined, undefined, true);
 }
 
 // --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
@@ -6246,6 +6308,30 @@ export function enableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/enable`, { method: 'POST' });
 }
 
+/**
+ * tune-server-rust#8481 — le pays du catalogue d'un service (TIDAL), comme
+ * « PL » dans LMS. `chosen_country` null : celui du compte.
+ */
+export interface PaysDuCatalogue {
+  service: string;
+  supported: boolean;
+  account_country: string | null;
+  chosen_country: string | null;
+  effective_country: string;
+}
+
+/** Sans bandeau : 422 (Qobuz, service sans ce réglage) ou 404 (serveur plus ancien) cachent simplement le champ. */
+export function getCatalogCountry(service: string) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, undefined, undefined, true);
+}
+
+export function setCatalogCountry(service: string, country: string | null) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, {
+    method: 'PUT',
+    body: JSON.stringify({ country }),
+  }, undefined, true);
+}
+
 export function disableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/disable`, { method: 'POST' });
 }
@@ -6314,8 +6400,13 @@ export interface SpotifyConnectStatus {
    *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
   session_error?: string | null;
   /** tune-server-rust#8565 — `spotify_premium_required` : Spotify a refusé
-   *  le compte, qui n'est pas Premium (Spotify Connect l'exige). */
+   *  le compte, qui n'est pas Premium (Spotify Connect l'exige) ;
+   *  `spotify_audio_key_refused` : Spotify a refusé les clés audio du compte
+   *  (librespot #1649), les titres sont sautés sans un son. */
   receiver_error_code?: string | null;
+  /** tune-server-rust#8565 — la phrase du serveur pour `receiver_error_code`,
+   *  dans la langue de la requête (clés audio refusées seulement). */
+  receiver_error_message?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -6592,8 +6683,8 @@ export interface AlbumEnCours {
  * identifiant. Le corps porte alors `reason`. L'appelant doit retomber sur son
  * geste d'avant plutôt que d'afficher une erreur.
  */
-export function getZoneCurrentAlbum(zoneId: number) {
-  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
+export function getZoneCurrentAlbum(zoneId: number, sansBandeau = false) {
+  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`, undefined, undefined, sansBandeau);
 }
 
 /** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
@@ -8823,20 +8914,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 // --- CSV Export ---
 
+export type ModeIntegrite = 'full' | 'quick';
 export interface EtatIntegrite {
+  mode?: ModeIntegrite;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
   non_verifiables: number; alertes_taille: number; erreur: string | null;
   lecture_prioritaire: boolean;
 }
 export interface LigneIntegrite {
+  mode?: ModeIntegrite;
   id: number; chemin: string; taille_sans_nouvelle_date: boolean;
   resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
-    erreur: string | null; position_trames: number | null; trames_decodees: number };
+    erreur: string | null; position_trames: number | null; trames_decodees: number;
+    localisation?: { unite: 'trame' | 'page'; numero: number; octet: number; echantillon: number | null } | null;
+    fautes?: number | null; unites_controlees?: number | null };
 }
 export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
-export function startIntegrity(resume = false) {
-  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+export function startIntegrity(resume = false, mode: ModeIntegrite = 'full') {
+  // Une reprise garde le mode enregistré par le serveur, quel que soit le sélecteur.
+  const choix = !resume && mode === 'quick' ? '&mode=quick' : '';
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}${choix}`, { method: 'POST' });
 }
 export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
 export function getIntegrityReport(offset = 0, verdict = '') {
@@ -11549,6 +11647,24 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
 /** tune-server-rust#6285 — le verdict des faux hi-res d'un album local. */
 export function getAlbumHiRes(albumId: number) {
   return fetchJSON<import('./badgeHiRes').VerdictHiRes>(`${BASE}/library/albums/${albumId}/hires`);
+}
+/** tune-server-rust#6285 — l'état de la passe des faux Hi-Res : armée ou non,
+ *  verdict « douteux » montré ou non, pistes restant à mesurer, pistes rangées. */
+export interface EtatFauxHiRes { active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number }
+/** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
+export function getEtatFauxHiRes() {
+  return fetchJSON<EtatFauxHiRes>(`${BASE}/library/hires-check`, undefined, undefined, true);
+}
+/** Allume ou éteint la détection. Le serveur rc12 montre « douteux » quand
+ *  elle s'allume et le masque quand elle s'éteint. */
+export function setDetectionFauxHiRes(active: boolean) {
+  return fetchJSON<EtatFauxHiRes>(`${BASE}/library/hires-check`, { method: 'POST', body: JSON.stringify({ active }) });
+}
+/** Une page d'albums filtrée sur le verdict hi-res PUBLIÉ (`?hires_verdict=`). */
+export function getAlbumsParVerdictHiRes(verdict: 'verifie' | 'douteux', limit: number, offset: number) {
+  return fetchJSON<{ items?: { id?: number }[]; total?: number }>(
+    `${BASE}/library/albums?hires_verdict=${verdict}&limit=${limit}&offset=${offset}`,
+  );
 }
 export function resolveTrackDuplicate(keep: number, del: number) {
   return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });

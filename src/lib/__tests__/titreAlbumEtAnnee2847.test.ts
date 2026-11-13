@@ -29,12 +29,14 @@ const PISTE = {
 };
 const ZONE = { id: 1, name: 'Salon', state: 'playing', current_track: PISTE, position_ms: 1000 };
 
+let anneeLue: number | null = 1975;
+let reponseAlbumRetardee: Promise<Response> | null = null;
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
 function reponse(url: string) {
   const corps = /\/(zones|profiles|devices|playlists|shortcuts|search)/.test(url) ? []
-    : /\/albums\/55(\?|$)/.test(url) ? { id: 55, title: 'Wish You Were Here', year: 1975 }
+    : /\/albums\/55(\?|$)/.test(url) ? { id: 55, title: 'Wish You Were Here', year: anneeLue }
     : {};
   return {
     ok: true, status: 200, statusText: 'OK',
@@ -54,7 +56,9 @@ function poser(): HTMLDivElement {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => reponse(String(url))));
+  anneeLue = 1975;
+  reponseAlbumRetardee = null;
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => /\/albums\/55(\?|$)/.test(String(url)) && reponseAlbumRetardee ? reponseAlbumRetardee : reponse(String(url))));
   vi.stubGlobal('WebSocket', class { close(){} addEventListener(){} removeEventListener(){} send(){} } as any);
   vi.stubGlobal('ResizeObserver', class { observe(){} unobserve(){} disconnect(){} } as any);
   zones.set([ZONE] as any);
@@ -116,5 +120,37 @@ describe('web#2847 — mise en page de la ligne titre + année', () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync('src/components/partages/NowPlaying.svelte', 'utf-8');
     expect(src).toMatch(/\.track-info\.center \.track-album-ligne[^{]*\{[^}]*justify-content:\s*center/);
+  });
+});
+
+
+describe('web#2951 — année absente de l’état de lecture local', () => {
+  it('lit l’année de l’album et garde deux liens distincts', async () => {
+    anneeLue = 2020;
+    zones.set([{ ...ZONE, current_track: { ...PISTE, year: null } }] as any);
+    const h = poser();
+    await vi.waitFor(() => { flushSync(); expect(h.querySelector('.track-year')?.textContent ?? '', 'l’année 2020 de l’album doit être affichée').toContain('2020'); });
+    expect(h.querySelector('button.track-album')!.contains(h.querySelector('.track-year'))).toBe(false);
+    h.querySelector<HTMLElement>('.track-year [role="link"]')!.click();
+    await vi.waitFor(() => expect(get(pendingLibraryYear)).toBe(2020));
+    expect(get(pendingLibraryAlbum)).toBeNull();
+  });
+
+  it('ne fabrique pas d’année si la piste et l’album n’en ont pas', async () => {
+    anneeLue = null;
+    zones.set([{ ...ZONE, current_track: { ...PISTE, year: null } }] as any);
+    const h = poser(); await respirer();
+    expect(h.querySelector('.track-year')).toBeNull();
+  });
+
+  it('ignore l’année d’un ancien album arrivée après un changement de piste', async () => {
+    let terminer!: (r: Response) => void;
+    reponseAlbumRetardee = new Promise<Response>(r => { terminer = r; });
+    zones.set([{ ...ZONE, current_track: { ...PISTE, year: null } }] as any);
+    const h = poser(); await respirer();
+    zones.set([{ ...ZONE, current_track: { ...PISTE, track_id: 902, id: 902, album_id: 56, year: null } }] as any);
+    flushSync(); await respirer();
+    terminer(reponse('/albums/55')); await respirer(); flushSync();
+    expect(h.querySelector('.track-year')).toBeNull();
   });
 });

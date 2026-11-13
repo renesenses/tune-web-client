@@ -79,9 +79,15 @@ const raccourci = (o: object): Shortcut =>
 const LOCALE_SC = () => raccourci({ type: 'playlist', id: 42, nom: 'Nocturnes' });
 const QOBUZ_SC = () => raccourci({ type: 'playlist', service: 'qobuz', sourceId: 'q-777', nom: 'Sleepy Mix' });
 
-/** Le détail d'une playlist est à l'écran (son en-tête, son titre). */
+/**
+ * Le détail d'une playlist est à l'écran (son en-tête, son titre).
+ *
+ * web#2971 — le raccourci d'une playlist rouvre désormais la fiche V2
+ * (`playlists`, `PlaylistDetailV2`), plus l'écran complet : on accepte l'une
+ * ou l'autre fiche, ce que ce témoin garde, c'est que la playlist S'AFFICHE.
+ */
 const detailAffiche = (nom: string) => {
-  const tete = hote.querySelector('.pm-view .detail-header');
+  const tete = hote.querySelector('.v2-pldetail h1') ?? hote.querySelector('.pm-view .detail-header');
   return !!tete && (tete.textContent ?? '').includes(nom);
 };
 
@@ -100,7 +106,7 @@ describe('#2049 — un raccourci vers une playlist l’affiche', () => {
     await tourner(5);
     navigateToShortcut(LOCALE_SC());
     await tourner();
-    expect(get(activeView)).toBe('playlistmanager');
+    expect(get(activeView)).toBe('playlists');
     expect(detailAffiche('Nocturnes')).toBe(true);
   });
 

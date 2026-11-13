@@ -31,6 +31,17 @@ export interface FiltresCatalogue {
 
 const QUALITES_CONNUES = new Set(['dsd', 'hires', 'cd', 'lossy']);
 
+/**
+ * rc12 — « Hi-Res vérifié » / « Hi-Res douteux » (`hires_verifie`,
+ * `hires_douteux`) filtrent l'écran, mais la route du catalogue ne connaît
+ * pas le verdict hi-res : elle rendrait des albums que l'écran cache. Tant
+ * qu'un de ces filtres est coché, le catalogue ne suit PAS l'écran, et
+ * l'export est refusé plutôt que de livrer autre chose que ce qu'on voit.
+ */
+export function catalogueSuitLesFiltres(qualites: readonly string[]): boolean {
+  return !qualites.some((q) => q === 'hires_verifie' || q === 'hires_douteux');
+}
+
 /** Le chemin de la route, avec sa requête, relatif à la base de l'API. */
 export function adresseCatalogue(f: FiltresCatalogue): string {
   const p = new URLSearchParams();

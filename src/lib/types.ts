@@ -91,6 +91,9 @@ export interface Artist {
    *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
    *  inconnu. Absent d'un serveur ancien. */
   musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
+  /** tune-server-rust#8668 — pays de l'artiste (MusicBrainz, #8090), code ISO
+   *  en majuscules ; `null` inconnu ; absent d'un serveur antérieur. */
+  country?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */

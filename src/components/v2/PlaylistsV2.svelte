@@ -38,7 +38,7 @@
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { notifications } from '../../lib/stores/notifications';
@@ -784,8 +784,13 @@
            dans l'écran de l'ancienne interface, monté par la coquille depuis
            `v2-heritage/`. Sans ce bouton la route existe et n'est atteinte par
            personne — le défaut qu'on vient de corriger deux fois ailleurs. -->
-      <button class="onglet gestion" onclick={() => activeView.set('playlistmanager')}
+      <button class="onglet gestion" data-ouvrir-gestionnaire onclick={() => activeView.set('playlistmanager')}
         >{$t('playlist.manager')}</button>
+      <!-- web#2971 — le Générateur de playlists (humeur, découverte, tempo…)
+           n'était qu'un onglet de l'écran complet ; l'entrée « Playlists » de
+           la barre mène désormais ICI, il a donc sa porte ici. -->
+      <button class="onglet gestion" data-ouvrir-generateur onclick={() => activeView.set('smart-ai')}
+        >{$t('smartai.title' as any)}</button>
     </nav>
   {/if}
 
@@ -875,7 +880,7 @@
                    endroit de l'écran où le titre ne menait nulle part. -->
               <button class="meta" onclick={() => ouvrirPl({ kind: 'streaming', service: source, pl })}>
                 <span class="ct" title={pl.name}>{pl.name}</span>
-                <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{$t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))}{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+                <span class="ca" title={`${$tn('v2.common.trackCountN', pl.track_count)}${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{$tn('v2.common.trackCountN', pl.track_count)}{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
               </button>
             </div>
           {/each}
@@ -964,7 +969,7 @@
                 </span>
                 <button class="meta" onclick={() => ouvrirPl({ kind: 'local', pl })}>
                   <span class="ct" title={pl.name}>{pl.name}</span>
-                  <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{$t(((pl.track_count ?? 0) > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String((pl.track_count ?? 0)))}</span>
+                  <span class="ca" title={$tn('v2.common.trackCountN', pl.track_count ?? 0)}>{$tn('v2.common.trackCountN', pl.track_count ?? 0)}</span>
                 </button>
               </div>
             {/each}

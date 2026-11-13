@@ -188,7 +188,11 @@ export function abonnerAnalysesDeFond(
   onEvent: (h: (e: { type?: string; data?: any }) => void) => () => void,
 ): () => void {
   return onEvent((event) => {
-    if (event?.type === 'library.analysis.progress') {
+    if (event?.type === 'system.background_tasks' && Array.isArray(event.data?.pausable)) {
+      // Les relances publient l’instantané avant le premier résultat d’analyse.
+      // Les événements du registre sans `pausable` ne remplacent pas cet état.
+      analyseDeFond.set(depuisInstantane(event.data));
+    } else if (event?.type === 'library.analysis.progress') {
       analyseDeFond.update((a) => fusionnerAnalyseDeFond(a, event.data));
     }
   });

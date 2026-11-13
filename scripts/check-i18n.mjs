@@ -201,7 +201,8 @@ console.log('i18n check: no hardcoded French in visible text.');
  * `tr` est le seul alias en usage ; le motif nomme les deux formes plutôt
  * qu'un joker, pour ne pas apparier `format(` ou `at(`.
  */
-const KEY_CALL = /\$?(?:t|tr)\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
+// `tn` : la forme PLURIELLE (`$tn('cle', n)`, voir `src/lib/pluriel.ts`).
+const KEY_CALL = /\$?(?:t|tr|tn)\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
 
 /**
  * 🔴 Une clé RANGÉE dans une table, pas appelée sur place.

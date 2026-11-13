@@ -29,13 +29,14 @@ import type { Album } from '../types';
 
 vi.setConfig({ testTimeout: 60_000 });
 
-const ALBUMS: Album[] = Array.from({ length: 40 }, (_, i) => ({
+const catalogue = (nombre: number): Album[] => Array.from({ length: nombre }, (_, i) => ({
   id: 100 + i,
-  title: `Album ${String(i).padStart(2, '0')}`,
+  title: `Album ${String(i).padStart(4, '0')}`,
   artist_id: 900 + i,
-  artist_name: `Artiste ${String(i).padStart(2, '0')}`,
+  artist_name: `Artiste ${String(i).padStart(4, '0')}`,
   year: 1980 + (i % 30),
 }) as Album);
+let ALBUMS = catalogue(40);
 
 class ObservateurInerte { observe() {} unobserve() {} disconnect() {} }
 
@@ -59,6 +60,8 @@ let rectOriginal: typeof Element.prototype.getBoundingClientRect;
 let scrollTopOriginal: PropertyDescriptor | undefined;
 
 beforeEach(() => {
+  ALBUMS = catalogue(40);
+  vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) { return this.hasAttribute('data-i') ? 100 : 0; });
   vi.stubGlobal('ResizeObserver', ObservateurInerte);
   if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte);
   for (const [prop, valeur] of [['clientHeight', 2000], ['clientWidth', 1400]] as const) {
@@ -78,7 +81,8 @@ beforeEach(() => {
     const i = this.getAttribute?.('data-i');
     const grille = this.closest?.('.grid') as HTMLElement | null;
     const top = i != null && grille ? Number(i) * 100 - grille.scrollTop : 0;
-    return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON() {} } as DOMRect;
+    const hauteur = i != null ? 100 : this.matches?.('.grid') ? 2000 : 0;
+    return { top, left: 0, right: 1400, bottom: top + hauteur, width: 1400, height: hauteur, x: 0, y: top, toJSON() {} } as DOMRect;
   };
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     const corps = corpsPour(String(url));
@@ -107,6 +111,7 @@ afterEach(() => {
   albumsStore.set([]);
   activeView.set('home');
   detailOuvert.set(null);
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -132,6 +137,12 @@ async function ouvrirFicheLoin(rang: number): Promise<HTMLDivElement> {
   activeView.set('library');
   flushSync();
   const el = await monterBibliotheque();
+  if (!el.querySelector(`.grid [data-i="${rang}"]`)) {
+    const grille = el.querySelector<HTMLElement>('.grid')!;
+    grille.scrollTop = rang * 100;
+    grille.dispatchEvent(new Event('scroll'));
+    await laisserFaire();
+  }
   const carte = el.querySelector<HTMLElement>(`.grid [data-i="${rang}"]`);
   expect(carte, `case ${rang} absente de la grille — témoin sans objet`).not.toBeNull();
   const bouton = carte!.querySelector<HTMLButtonElement>('button.meta') ?? carte!.querySelector<HTMLButtonElement>('button');
@@ -173,4 +184,20 @@ describe('web#2743 — la grille de la Bibliothèque, montée, après « Lecture
     const el = await monterBibliotheque();
     expect(el.querySelector<HTMLElement>('.grid')!.scrollTop, 'la grille a sauté sur l’ancien album').toBe(0);
   });
+});
+
+
+it('800 albums : Retour retrouve l’album ouvert au rang 450 dans la fenêtre active', async () => {
+  ALBUMS = catalogue(800);
+  const premier = await ouvrirFicheLoin(450);
+  expect(premier.querySelectorAll('.grid [data-i]').length, 'le témoin doit activer la fenêtre >600').toBeLessThan(300);
+  activeView.set('nowplaying'); await attendre(); demonter();
+  const retour = new Promise<void>(r => window.addEventListener('popstate', () => r(), { once: true }));
+  retourDepuisLectureEnCours(); await retour; await attendre();
+  expect(get(detailOuvert)).toBe(`album:${ALBUMS[450].id}`);
+  const el = await monterBibliotheque();
+  const grille = el.querySelector<HTMLElement>('.grid')!;
+  expect(grille.querySelector('[data-i="450"]'), 'album ouvert non remonté dans la fenêtre').not.toBeNull();
+  expect(grille.scrollTop).toBe(45000);
+  expect(grille.querySelectorAll('[data-i]').length).toBeLessThan(300);
 });

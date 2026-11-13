@@ -11,7 +11,7 @@
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
-  import { t as tr, locale } from '../../lib/i18n';
+  import { tn, t as tr, locale } from '../../lib/i18n';
   import { comparerAlphabetique, initialeAlbum, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
@@ -51,7 +51,7 @@
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
-  import { filtreDuPays, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
+  import { filtreDuPays, paysArtisteChoisi, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
@@ -91,6 +91,8 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
+  import { catalogueSuitLesFiltres } from '../../lib/catalogueExport';
+  import { entreesHiRes, estCleHiRes, idsParVerdictHiRes, VERDICT_DE_LA_CLE, type CleHiRes } from '../../lib/filtreHiRes';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums, chargerPistesDesAlbums } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
@@ -106,6 +108,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { retenirAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
+  import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
@@ -388,7 +391,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
       : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere)
-        || (paysChoisi != null && idsPays == null),
+        || (paysChoisi != null && idsPays == null)
+        || fQuality.some((k) => estCleHiRes(k) && QUALITES_HIRES.some((x) => x.key === k) && idsHiRes[k] == null),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -450,7 +454,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
-  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo';
+  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo' | CleHiRes;
   const QUALITES_DE_BASE: { key: CleQualite; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
@@ -464,7 +468,43 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     { key: 'stereo' as const, label: 'Stereo', cle: 'v2.lib.qualityStereo' },
     { key: 'multichannel' as const, label: 'Multicanal', cle: 'v2.lib.qualityMultichannel' },
   ];
-  const QUALITIES = $derived(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE);
+  // Décision du 13/11 (rc12, tune-server-rust#6285) — « Hi-Res vérifié » et
+  // « Hi-Res douteux », quand la détection des faux Hi-Res a servi ; jamais
+  // sur la bibliothèque d'un autre serveur (`depot`).
+  let etatFauxHiRes = $state<api.EtatFauxHiRes | null>(null);
+  $effect(() => {
+    if (depot) return;
+    let vivant = true;
+    api.getEtatFauxHiRes()
+      .then((e) => { if (vivant) etatFauxHiRes = e ?? null; })
+      .catch(() => { /* serveur antérieur : pas d'entrée */ });
+    return () => { vivant = false; };
+  });
+  const QUALITES_HIRES = $derived(depot ? [] : entreesHiRes(etatFauxHiRes));
+  const QUALITIES = $derived([
+    ...(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE),
+    ...QUALITES_HIRES,
+  ]);
+  /** Les albums de chaque verdict, lus par `?hires_verdict=` ; absent = pas encore lu. */
+  let idsHiRes = $state<Partial<Record<CleHiRes, Set<number>>>>({});
+  const verdictsEnVol = new Set<CleHiRes>();
+  $effect(() => {
+    const voulues = QUALITES_HIRES.map((x) => x.key);
+    if (!voulues.length || !(facettesVoulues || fQuality.some(estCleHiRes))) return;
+    // Lu sans suivi : la réponse d'un verdict ne doit pas relancer l'autre.
+    for (const k of voulues) {
+      if (untrack(() => idsHiRes[k]) || verdictsEnVol.has(k)) continue;
+      verdictsEnVol.add(k);
+      idsParVerdictHiRes((limite, rang) => api.getAlbumsParVerdictHiRes(VERDICT_DE_LA_CLE[k], limite, rang))
+        .then((ids) => { idsHiRes = { ...idsHiRes, [k]: ids }; })
+        .catch(() => {
+          // Un échec ne montre RIEN et le dit, comme le pays.
+          idsHiRes = { ...idsHiRes, [k]: new Set<number>() };
+          notifications.error($tr('v2.lib.hiresFilterError' as any));
+        })
+        .finally(() => verdictsEnVol.delete(k));
+    }
+  });
 
   /**
    * Les facettes à valeurs listées portent un TABLEAU — #898.
@@ -566,6 +606,28 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { perime = true; };
   });
   const filtresCarte = $derived<Record<string, api.FacetParam>>(dossierPortee ? { folder: dossierPortee } : {});
+  /**
+   * tune-server-rust#8668 — les albums que la grille garde sous ses AUTRES
+   * filtres (source, qualité, fréquence, format, DR, favoris, recherche,
+   * année…), le pays exclu : la carte compte parmi eux. Au .18, avec Source ·
+   * QOBUZ, la carte annonçait « États-Unis 20 albums » (toute la
+   * bibliothèque) et le clic n'en montrait aucun.
+   * `null` (mode paginé, liste pas encore là, dépôt) : la carte retombe sur
+   * les facettes du serveur. Calculé seulement carte ouverte.
+   */
+  const retenusCarte = $derived.by((): Set<number> | null => {
+    if (!carteOuverte || depot || nu || (porteeActive && idsPortee == null) || $libraryLoading) return null;
+    const ids = new Set<number>();
+    for (const a of src) if (a.id != null && matchesSaufPays(a)) ids.add(a.id);
+    return ids;
+  });
+  /** #8668 — un filtre autre que le pays est posé : la carte dit d'où viennent ses comptes. */
+  // `$derived.by` : `q`, `fYear` et `nu` sont déclarés plus bas — lus paresseusement.
+  const filtresHorsPaysPoses = $derived.by(() =>
+    fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
+      || fFavoris || q.trim() !== '' || fYear != null || periodeAppliquee,
+  );
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -714,13 +776,20 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
+    if (estCleHiRes(key)) return a.id != null && !!idsHiRes[key]?.has(a.id);
     if (key === 'multichannel') return estMulticanal(a);
     if (key === 'stereo') return estStereo(a);
     const t = getQualityTier(a);
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
   }
-  function matches(a: Album): boolean {
+  function matches(a: Album): boolean { return matchesSelon(a, true); }
+  /** #8668 — tous les critères SAUF le pays : ce que la carte des pays croise
+   *  pour compter comme la grille. Fonctions distinctes, pas un paramètre par
+   *  défaut : `matches` est passée telle quelle à `.filter`, qui lui donne
+   *  l'indice en second argument. */
+  function matchesSaufPays(a: Album): boolean { return matchesSelon(a, false); }
+  function matchesSelon(a: Album, avecPays: boolean): boolean {
     // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
     // facettes cochées le sont toutes les deux (ET) — #898.
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
@@ -728,11 +797,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
-    return matchesHorsAnnees(a);
+    return horsAnneesSelon(a, avecPays);
   }
   /** Tous les critères de `matches` SAUF l'année et la période : ce que le
    *  compteur de la période doit croiser pour parler de la grille (tune-server-rust#8162). */
-  function matchesHorsAnnees(a: Album): boolean {
+  function matchesHorsAnnees(a: Album): boolean { return horsAnneesSelon(a, true); }
+  function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
     if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
@@ -752,7 +822,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
     // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
     if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
-    if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
+    if (avecPays && paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -1507,12 +1577,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (!nu) {
       const i = affiches.findIndex((a) => firstLetter(a) === L);
       if (i < 0) return;
+      // La fenêtre mobile peut être près de Z : même A (indice < 200)
+      // doit être remonté, puis visé par son indice exact.
+      if (allerCasePaginee) {
+        void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-i="${i}"]`));
+        return;
+      }
       if (i < plafond) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
       void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-letter="${L}"]`));
       return;
     }
     // #4800 — en pages, la lettre est un OFFSET dans la liste du serveur :
-    // trouvé par dichotomie (`offsetDeLettre`), sa page est demandée, puis
+    // fourni par les repères de la page (`offsetDeLettre`), puis chargé avant que
     // on vise la CASE — `data-i` — qui existe, vide ou pleine, dès que le
     // total est connu. `sauterVersAncre` vérifie le saut comme d'habitude.
     const c = clef;
@@ -2074,12 +2150,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let fenetre = $state<Fenetre>(fenetreNeuve());
   const clefFenetre = $derived(`${display}|${nu ? 'pages' : 'entiere'}|${tab}`);
   const plafond: number = $derived(plafondDe(fenetre, clefFenetre, nu ? cases.length : affiches.length));
-  const casesVisibles: (Album | null)[] = $derived.by(() => cases.slice(0, plafond));
+  let tranchePaginee = $state<TrancheAlbums>({ debut: 0, fin: 200, avant: 0, apres: 0 });
+  let allerCasePaginee: ((index: number) => Promise<void>) | undefined;
+  function poserTranchePaginee(t: TrancheAlbums) {
+    if (t.debut !== tranchePaginee.debut || t.fin !== tranchePaginee.fin || t.avant !== tranchePaginee.avant || t.apres !== tranchePaginee.apres) tranchePaginee = t;
+  }
+  function preparerSautPagine(aller: ((index: number) => Promise<void>) | undefined) { allerCasePaginee = aller; }
+  // #7774 : Source Local et les facettes chargent la liste entière ; les
+  // sauts ne doivent pas pour autant monter tout son préfixe. Le tri année
+  // conserve ses intertitres de hauteur variable et son rendu dédié.
+  const casesFenestrees: (Album | null)[] = $derived(nu ? cases : affiches);
+  const casesVisibles: (Album | null)[] = $derived.by(() => casesFenestrees.slice(tranchePaginee.debut, tranchePaginee.fin));
   const affichesVisibles: Album[] = $derived.by(() => affiches.slice(0, plafond));
   /** La cale a vu le cadre : monter au moins `besoin` éléments. */
   const etendreFenetre = (besoin: number) => { fenetre = elargir(fenetre, clefFenetre, besoin); };
   /** Le rail vise l'élément `i` : il doit être monté AVANT le saut. */
   async function monterJusqua(i: number) {
+    if (allerCasePaginee) { await allerCasePaginee(i); await tick(); return; }
     if (i < plafond) return;
     fenetre = elargir(fenetre, clefFenetre, i + 1);
     await tick();
@@ -2369,8 +2456,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * cochés, genre ou artiste ouvert, tri en cours. Voir `catalogueExport`.
    */
   let exportCatalogueEnCours = $state(false);
+  /** rc12 — un filtre « Hi-Res vérifié / douteux » que la route ne sait pas suivre. */
+  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality));
   async function exporterCatalogue() {
-    if (exportCatalogueEnCours) return;
+    if (exportCatalogueEnCours || exportCatalogueImpossible) return;
     exportCatalogueEnCours = true;
     try {
       await api.exportCatalogue({
@@ -3079,6 +3168,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     refermerCalqueAlbumSansReculer();
   });
 
+  /** tune-server-rust#8668 — le pays cliqué sur la fiche d'un artiste :
+   *  « Pays de l'artiste », carte ouverte pour qu'on voie le filtre. */
+  function choisirPaysArtiste(code: string) {
+    sourcePays = 'artiste';
+    paysChoisi = paysArtisteChoisi(code);
+    carteOuverte = true;
+  }
+
   /**
    * web#2653 — un FORMAT ou une FRÉQUENCE demandés par une barre de l'écran
    * des statistiques. Même contrat que l'année ci-dessus (`$store`, pas
@@ -3093,6 +3190,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
+      else if ('paysArtiste' in f) choisirPaysArtiste(f.paysArtiste);
       else fRate = [f.frequence];
       tabChoisi = 'albums';
       refermerCalqueAlbumSansReculer();
@@ -3724,8 +3822,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- web#2622 — le catalogue imprimable de la bibliothèque LOCALE : un
            dépôt distant n'a pas de route d'export chez nous. -->
       {#if !depot}
-        <button class="exportcat" onclick={exporterCatalogue} disabled={exportCatalogueEnCours}
-          aria-label={$tr('v2.lib.exportCatalogue' as any)} title={$tr('v2.lib.exportCatalogue' as any)}>
+        <button class="exportcat" onclick={exporterCatalogue} disabled={exportCatalogueEnCours || exportCatalogueImpossible}
+          aria-label={$tr('v2.lib.exportCatalogue' as any)}
+          title={exportCatalogueImpossible ? $tr('v2.lib.exportCatalogueHiResUnsupported' as any) : $tr('v2.lib.exportCatalogue' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
         </button>
@@ -3785,6 +3884,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   {#if carteOuverte && showFilters && !depot}
     <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
+      retenus={retenusCarte} filtresPoses={filtresHorsPaysPoses}
       onChoisir={(p) => (paysChoisi = p)} />
   {/if}
 
@@ -3813,7 +3913,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
-          {fYear} · {$tr((yearCount > 1 ? 'v2.lib.yearAlbumsMany' : 'v2.lib.yearAlbumsOne') as any).replace('{n}', String(yearCount))}
+          {fYear} · {$tn('v2.lib.yearAlbumsN', yearCount)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -4292,34 +4392,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
         {/if}
 
-      {:else if nu}
+      {:else if nu || (sortKey !== 'year' && affiches.length > 0)}
         <!-- #4800 — LA GRILLE EN PAGES. Une case par album du total ; celles
              dont la page n'est pas là sont vides et la demandent en entrant
              dans le cadre. Pas d'intertitre d'année : le tri par année sort
              du mode paginé. Les trois dessins sont ceux des snippets. -->
         {#if display === 'list'}
-          <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+          <div class="rows paginee" style="--lcols:{colonnesListe}" bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render ligne(c, i)}{:else}<div class="lrow sq" data-i={i} use:observerCase={i} aria-hidden="true"><span class="lcv"></span><span class="lt">&nbsp;</span></div>{/if}
             {/each}
-            {@render caleDeFin(cases.length, false, 57)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else if display === 'carousel'}
-          <div class="carrou" use:defilementHorizontal bind:this={gridEl}
-               use:centrageCarrousel={{ nombre: cases.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
+          <div class="carrou paginee" use:defilementHorizontal bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}
+               use:centrageCarrousel={{ nombre: casesFenestrees.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
                style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
                role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render carteCarrou(c, i)}{:else}<div class="ccard sq" class:centre={i === iCentre} data-i={i} use:observerCase={i} aria-hidden="true"><div class="cover"></div><div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div></div></div>{/if}
             {/each}
-            {@render caleDeFin(cases.length, true, geoCarrou.cote + geoCarrou.gouttiere)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else}
-          <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render carte(c, i)}{:else}{@render caseVide(i)}{/if}
             {/each}
-            {@render caleDeFin(cases.length, false, 35)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {/if}
 
@@ -4510,6 +4616,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
        monté, en UN élément de la bonne taille. Elle élargit la fenêtre quand
        elle approche du cadre (`lib/fenetreDeRendu`). `repli` : la taille d'un
        élément quand rien n'est mesurable. -->
+  {#snippet calePaginee(taille: number)}
+    {#if taille > 0}
+      <div class="cale-paginee" aria-hidden="true" style:height={display === 'carousel' ? '1px' : `${taille}px`} style:width={display === 'carousel' ? `${taille}px` : 'auto'}></div>
+    {/if}
+  {/snippet}
   {#snippet caleDeFin(total: number, horizontal: boolean, repli: number)}
     {#if total > plafond}
       <div class="cale" aria-hidden="true"
@@ -4979,6 +5090,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .yinter .yn{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
+  .cale-paginee{grid-column:1 / -1; flex:none; pointer-events:none}
+  .paginee{overflow-anchor:none}
+  .paginee .card, .paginee .ccard, .paginee .lrow{content-visibility:visible; contain-intrinsic-size:none}
+  .paginee .lhote, .paginee > .lrow{flex:none}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /*
     #929 — LE CARROUSEL : UNE BANDE, ET L'ALBUM DU MILIEU EN GRAND.

@@ -115,6 +115,63 @@ export async function chargerPays(
   return { agregat: agregerPays(v?.country, 'country', 'morceaux'), ancien: true };
 }
 
+/** tune-server-rust#8668 — le nom de chaque source pour `GET /library/album-countries`. */
+export const SOURCE_SERVEUR: Record<SourcePays, 'artist' | 'release'> = { artiste: 'artist', edition: 'release' };
+
+/**
+ * tune-server-rust#8668 — les pays des SEULS albums que la grille garde.
+ *
+ * Les filtres de la grille (source, qualité, fréquence, favoris, recherche…)
+ * s'appliquent sur place, dans le client ; les facettes du serveur ne les
+ * connaissent pas. La carte annonçait donc « États-Unis 20 albums » avec
+ * Source · QOBUZ posée, et le clic montrait 0. Ici, le pays de chaque album
+ * (`[id, pays]`, rendu par le serveur) est croisé avec les albums retenus :
+ * la carte compte ce que la grille montrera. Un album compte UNE fois par
+ * pays, toutes casses réunies ; un album dont aucune valeur n'est sur la
+ * carte (`XE`, `XW`) compte « hors carte ».
+ */
+export function agregerPaysDesAlbums(
+  paires: readonly (readonly [number, string])[],
+  retenus: ReadonlySet<number>,
+  source: SourcePays,
+): AgregatPays {
+  const parCode = new Map<string, { albums: Set<number>; valeurs: string[] }>();
+  const surLaCarte = new Set<number>();
+  const ailleurs = new Set<number>();
+  for (const [id, valeur] of paires) {
+    if (!retenus.has(id) || typeof valeur !== 'string') continue;
+    const code = valeur.trim().toUpperCase();
+    if (!code) continue;
+    if (!CODES_PAYS.has(code)) { ailleurs.add(id); continue; }
+    surLaCarte.add(id);
+    const p = parCode.get(code);
+    if (p) { p.albums.add(id); if (!p.valeurs.includes(valeur)) p.valeurs.push(valeur); }
+    else parCode.set(code, { albums: new Set([id]), valeurs: [valeur] });
+  }
+  const filtre = FILTRE_PAYS[source];
+  const pays = [...parCode.entries()]
+    .map(([code, p]) => ({ code, n: p.albums.size, valeurs: p.valeurs, filtre }))
+    .sort((a, b) => b.n - a.n || a.code.localeCompare(b.code));
+  let horsCarte = 0;
+  for (const id of ailleurs) if (!surLaCarte.has(id)) horsCarte++;
+  return { pays, horsCarte, max: pays[0]?.n ?? 0, unite: 'albums' };
+}
+
+/** tune-server-rust#8668 — le drapeau d'un code ISO (indicateurs régionaux
+ *  Unicode) ; `''` pour un code qui n'est pas un pays de la carte. */
+export function drapeauPays(code: string | null | undefined): string {
+  const c = (code ?? '').trim().toUpperCase();
+  if (!CODES_PAYS.has(c)) return '';
+  return String.fromCodePoint(...[...c].map((l) => 0x1f1e6 + l.charCodeAt(0) - 65));
+}
+
+/** tune-server-rust#8668 — le pays de l'artiste choisi depuis sa fiche : le
+ *  filtre « Pays de l'artiste » de la Bibliothèque, sans passer par la carte. */
+export function paysArtisteChoisi(code: string): PaysDeLaBibliotheque {
+  const c = code.trim().toUpperCase();
+  return { code: c, n: 0, valeurs: [c], filtre: 'artist_country' };
+}
+
 /** #2800 — le filtre serveur d'un pays choisi. */
 export function filtreDuPays(p: PaysDeLaBibliotheque): Record<string, FacetParam> {
   return { [p.filtre]: p.valeurs };

@@ -2,6 +2,9 @@
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
+  import TrackTagsDrawer from './TrackTagsDrawer.svelte';
+  let mode = $state<api.ModeIntegrite>('full');
+  let fichierOuvert = $state<number | null>(null);
   let etat = $state<api.EtatIntegrite | null>(null);
   let lignes = $state<api.LigneIntegrite[]>([]);
   let offset = $state(0);
@@ -47,10 +50,17 @@
   <p>{$t('integrity.hint')}</p>
   {#if erreur}<p role="alert">{$t(erreur)}</p>{/if}
   {#if etat}
-    <p aria-live="polite">{$t('integrity.state.' + etat.status)} · {etat.traites} / {etat.total}</p>
+    <p aria-live="polite">{$t('integrity.state.' + etat.status)} · {etat.traites} / {etat.total} · {$t('integrity.mode.' + (etat.mode ?? 'full'))}</p>
     {#if etat.total > 0}<progress max={etat.total} value={etat.traites} aria-label={$t('integrity.progress')}></progress>{/if}
     {#if etat.lecture_prioritaire && etat.status === 'running'}<p>{$t('integrity.playback')}</p>{/if}
     {#if etat.erreur}<p role="alert">{etat.erreur}</p>{/if}
+    <label>{$t('integrity.mode')}
+      <select bind:value={mode} disabled={enVol || etat.status === 'running'}>
+        <option value="full">{$t('integrity.mode.full')}</option>
+        <option value="quick">{$t('integrity.mode.quick')}</option>
+      </select>
+    </label>
+    {#if mode === 'quick' || etat.mode === 'quick'}<p>{$t('integrity.quickHint')}</p>{/if}
     <div class="actions">
       {#if etat.status === 'running'}
         <button disabled={enVol} onclick={() => agir(api.pauseIntegrity)}>{$t('integrity.pause')}</button>
@@ -58,7 +68,7 @@
         {#if etat.status === 'paused' || etat.status === 'error'}
           <button disabled={enVol} onclick={() => agir(() => api.startIntegrity(true))}>{$t('integrity.resume')}</button>
         {/if}
-        <button disabled={enVol} onclick={() => agir(async () => { offset = 0; await api.startIntegrity(false); })}>{$t('integrity.start')}</button>
+        <button disabled={enVol} onclick={() => agir(async () => { offset = 0; await api.startIntegrity(false, mode); })}>{$t(mode === 'quick' ? 'integrity.startQuick' : 'integrity.start')}</button>
       {/if}
       <button disabled={enVol || etat.traites === 0} onclick={() => agir(() => api.exportIntegrityCsv(verdict))}>{$t('integrity.export')}</button>
     </div>
@@ -75,20 +85,29 @@
     {#if lignes.length > 0}
       <div class="rapport">
         <table>
-          <thead><tr><th>{$t('integrity.path')}</th><th>{$t('integrity.result')}</th><th>{$t('integrity.error')}</th><th>{$t('integrity.position')}</th></tr></thead>
+          <thead><tr><th>{$t('integrity.path')}</th><th>{$t('integrity.mode')}</th><th>{$t('integrity.result')}</th><th>{$t('integrity.error')}</th><th>{$t('integrity.position')}</th></tr></thead>
           <tbody>{#each lignes as ligne (ligne.id)}
             <tr>
-              <td>{ligne.chemin}</td>
+              <td><button class="fichier" title={$t('trackTags.title')} onclick={() => fichierOuvert = ligne.id}>{ligne.chemin}</button></td>
+              <td>{$t('integrity.mode.' + (ligne.mode ?? 'full'))}</td>
               <td>{$t('integrity.' + ligne.resultat.verdict)}</td>
               <td>
-                {#if ligne.resultat.code === 'md5_nul'}{$t('integrity.zeroMd5')}
+                {#if ligne.resultat.code === 'tronque'}{$t('integrity.truncated')}
+                {:else if ligne.resultat.code === 'fin_de_flux_absente'}{$t('integrity.noEnd')}
+                {:else if ligne.resultat.code === 'mode_rapide_non_applicable'}{$t('integrity.quickUnsupported')}
+                {:else if ligne.resultat.code === 'md5_nul'}{$t('integrity.zeroMd5')}
                 {:else if ['format_non_pris_en_charge', 'codec_non_pris_en_charge'].includes(ligne.resultat.code)}{$t('integrity.unsupported')}
                 {:else if ligne.resultat.code === 'aucune_piste_audio'}{$t('integrity.noAudio')}
                 {:else if ligne.resultat.code === 'modifie_pendant_audit'}{$t('integrity.changed')}
                 {:else if ligne.resultat.code !== 'sain'}{ligne.resultat.erreur ?? ligne.resultat.code}{/if}
                 {#if ligne.taille_sans_nouvelle_date}<p>{$t('integrity.sizeChanged')}</p>{/if}
               </td>
-              <td>{ligne.resultat.position_trames ?? $t('integrity.unknownPosition')}</td>
+              <td>
+                {#if ligne.resultat.localisation}
+                  {$t('integrity.' + ligne.resultat.localisation.unite)} {ligne.resultat.localisation.numero} · {$t('integrity.byte')} {ligne.resultat.localisation.octet}
+                {:else}{ligne.resultat.position_trames ?? $t('integrity.unknownPosition')}{/if}
+                {#if ligne.resultat.fautes != null}<p>{$t('integrity.faults')}: {ligne.resultat.fautes}</p>{/if}
+              </td>
             </tr>
           {/each}</tbody>
         </table>
@@ -100,6 +119,9 @@
     {/if}
   {/if}
 </section>
+{#if fichierOuvert != null}
+  {#key fichierOuvert}<TrackTagsDrawer trackId={fichierOuvert} onClose={() => fichierOuvert = null} />{/key}
+{/if}
 
 <style>
   /* web#2656 — le texte n'avait aucune taille : il héritait des 16 px du
@@ -110,6 +132,7 @@
   p { color: var(--v2-txt2); margin-block: 8px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; }
   button { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2); border-radius: 999px; padding: 6px 13px; cursor: pointer; font: 600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
+  button.fichier { border: 0; border-radius: 0; padding: 0; text-align: start; text-decoration: underline; overflow-wrap: anywhere; }
   button:disabled { opacity: 0.5; cursor: default; }
   progress { width: 100%; accent-color: var(--v2-acc2); }
   .rapport { overflow-x: auto; margin-block: 12px; }

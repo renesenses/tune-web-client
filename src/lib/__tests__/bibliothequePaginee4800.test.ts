@@ -68,7 +68,7 @@ describe('#4800 — les écrans qui tiennent la liste entière la demandent eux-
 
   it('la Bibliothèque a sa grille en pages, et une case vide demande sa page', () => {
     const src = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-    expect(src).toContain('{:else if nu}');
+    expect(src).toMatch(/\{:else if nu(?:\s*\|\|[^}]*)?\}/);
     expect(src).toContain('use:observerCase={i}');
     expect(src).toContain('demanderBibliothequeEntiere()');
     // La modification d'une fiche passe par le magasin paginé, pas par

@@ -60,7 +60,7 @@
     MediaServerItem,
   } from '../../lib/types';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   /** Les rayons d'un serveur Tune, nommés pour cet écran. Les identifiants et
@@ -674,7 +674,7 @@
         <div class="scope">
           <button class:on={toutLeServeur} onclick={() => (toutLeServeur = true)}>{$t('v2.ms.wholeServer' as any)}</button>
           <button class:on={!toutLeServeur} onclick={() => (toutLeServeur = false)}>{$t('v2.ms.thisFolder' as any)}</button>
-          {#if trouve?.total_matches}<span class="cnt">{(trouve.total_matches > 1 ? $t('v2.ms.resultsMany' as any) : $t('v2.ms.resultsOne' as any)).replace('{count}', String(trouve.total_matches))}</span>{/if}
+          {#if trouve?.total_matches}<span class="cnt">{$tn('v2.ms.resultsN', trouve.total_matches)}</span>{/if}
         </div>
       {/if}
 
@@ -739,7 +739,7 @@
 
         {#if vue.items.length}
           <div class="ihead">
-            <h2>{$t((vue.items.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(vue.items.length))}</h2>
+            <h2>{$tn('v2.common.trackCountN', vue.items.length)}</h2>
             <div class="acts">
               <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire
                    passe sous sa flèche (`data-aleatoire-serveur`). -->

@@ -14,7 +14,7 @@
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, tn } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -1053,7 +1053,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     const n = lot.length;
     demandeCercle.set({
       mode: 'ajout',
-      nom: [album.title, $tr((n === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(n))]
+      nom: [album.title, $tn('v2.selection.countN', n)]
         .filter(Boolean).join(' · '),
       pistes: async () => lot,
     });
@@ -1915,7 +1915,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
-        <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
+        <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,
              `DR ~12` souligné en pointillés pour la moyenne des pistes. Même
@@ -2160,7 +2160,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              ceux des boutons de l'album : ce sont les mêmes gestes. -->
         <div class="barre-selection" role="toolbar" aria-label={$tr('v2.selection.toolbar' as any)}>
           <span class="sel-compte" data-sel-compte aria-live="polite">
-            {$tr((choisies.length === 0 ? 'v2.selection.countNone' : choisies.length === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(choisies.length))}
+            {$tn('v2.selection.countN', choisies.length)}
           </span>
           <button class="sel-btn" data-sel-tout onclick={() => (sel = toutOuRien(sel, ordreSelection))}>
             {$tr((toutChoisi ? 'v2.selection.none' : 'v2.selection.all') as any)}

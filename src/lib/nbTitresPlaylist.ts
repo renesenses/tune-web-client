@@ -26,8 +26,8 @@ export function nbTitresDe(o: any): number | null {
 }
 
 /** « 1 titre » / « 12 titres », dans la langue de l'interface. */
-export function libelleNbTitres(n: number, tr: (cle: any) => string): string {
-  return tr(n > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne').replace('{n}', String(n));
+export function libelleNbTitres(n: number, tn: (cle: string, n: number) => string): string {
+  return tn('v2.common.trackCountN', n);
 }
 
 /**

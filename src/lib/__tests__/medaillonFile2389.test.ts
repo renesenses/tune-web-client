@@ -32,11 +32,11 @@ describe('web#2389 — médaillon du bouton file d’attente', () => {
     expect(libelleBoutonFile(tFr, 59)).toBe("File d'attente · 59 titres");
   });
 
-  it('les libellés existent dans toutes les langues du client, avec {count}', () => {
+  it('les libellés existent dans toutes les langues du client, avec leur nombre', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
-      expect(d['transport.queueCountOne'], `${l} queueCountOne`).toBeTruthy();
-      expect(d['transport.queueCount'], `${l} queueCount`).toContain('{count}');
+      expect(d['transport.queueCountN'], `${l} queueCountN`).toContain('plural,');
+      expect(libelleBoutonFile((k) => d[k] ?? k, 59, l)).toContain('59');
     }
   });
 
@@ -44,7 +44,7 @@ describe('web#2389 — médaillon du bouton file d’attente', () => {
     expect(BARRE).toContain("import { texteMedaillonFile, libelleBoutonFile } from '../../lib/medaillonFile';");
     expect(BARRE).toContain('{#if texteMedaillonFile($queueTracks.length)}');
     expect(BARRE).toContain('<span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>');
-    expect(BARRE).toContain('title={libelleBoutonFile($t, $queueTracks.length)}');
+    expect(BARRE).toContain('title={libelleBoutonFile($t, $queueTracks.length, $locale)}');
     // Le commentaire de #919 ne prétend plus que le nombre est « en infobulle, pas dessiné ».
     expect(BARRE).not.toContain('Le nombre de titres à suivre est en infobulle, pas dessiné');
   });
