@@ -3036,6 +3036,7 @@ export default {
   "v2.home.wZones": "再生中のゾーン",
   "v2.svc.eyebrow": "エディトリアル",
   "v2.svc.wNew": "新着",
+  "v2.svc.rubriqueRetiree": "{s} はこのセクションを個人用アプリに提供しなくなりました。",
   "v2.svc.sec.newReleases": "新着",
   "v2.svc.sec.bestSellers": "ベストセラー",
   "v2.svc.sec.pressAwards": "メディア受賞作",

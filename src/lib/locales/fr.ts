@@ -1845,6 +1845,7 @@ export default {
   "v2.home.wZones": "Zones d’écoute actives",
   "v2.svc.eyebrow": "Éditorial",
   "v2.svc.wNew": "Nouveautés",
+  "v2.svc.rubriqueRetiree": "{s} ne fournit plus cette rubrique aux applications personnelles.",
   "v2.svc.sec.newReleases": "Nouveautés",
   "v2.svc.sec.bestSellers": "Meilleures ventes",
   "v2.svc.sec.pressAwards": "Récompenses de la presse",

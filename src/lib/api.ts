@@ -24,6 +24,7 @@ import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
 import { cleCodeSpotify } from './messagesSpotify';
+import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -6586,7 +6587,7 @@ export function getZoneCurrentAlbum(zoneId: number) {
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
-    undefined, undefined, true,
+    undefined, undefined, true, noterRetrait(service, 'titres-phares'),
   );
 }
 
@@ -6680,11 +6681,14 @@ export function getStreamingFeatured(service: string, section: string, limit = 2
 }
 
 export function getStreamingNewReleases(service: string, limit = 50) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/new-releases?limit=${limit}`);
+  // tune-server-rust#8578 — `x-tune-rubrique-retiree` : voir `rubriquesRetirees.ts`.
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/new-releases?limit=${limit}`,
+    undefined, undefined, false, noterRetrait(service, 'nouveautes'));
 }
 
 export function getStreamingFeaturedPlaylists(service: string) {
-  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`);
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`,
+    undefined, undefined, false, noterRetrait(service, 'selection'));
 }
 
 /** Une catégorie de playlists éditoriales et sa rangée, telle que le service
@@ -6718,7 +6722,8 @@ export function getStreamingGenrePlaylists(service: string, genreId: string) {
 
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
-  return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
+  return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`,
+    undefined, undefined, false, parentId ? undefined : noterRetrait(service, 'genres'));
 }
 
 /**

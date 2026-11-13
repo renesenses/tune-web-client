@@ -3036,6 +3036,7 @@ export default {
   "v2.home.wZones": "지금 재생 중인 존",
   "v2.svc.eyebrow": "에디토리얼",
   "v2.svc.wNew": "신보",
+  "v2.svc.rubriqueRetiree": "{s}은(는) 더 이상 개인용 앱에 이 섹션을 제공하지 않습니다.",
   "v2.svc.sec.newReleases": "신보",
   "v2.svc.sec.bestSellers": "베스트셀러",
   "v2.svc.sec.pressAwards": "언론 수상작",

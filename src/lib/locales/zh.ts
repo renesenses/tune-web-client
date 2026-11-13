@@ -3036,6 +3036,7 @@ export default {
   "v2.home.wZones": "正在播放的区域",
   "v2.svc.eyebrow": "编辑推荐",
   "v2.svc.wNew": "新发行",
+  "v2.svc.rubriqueRetiree": "{s} 已不再向个人应用提供此栏目。",
   "v2.svc.sec.newReleases": "新发行",
   "v2.svc.sec.bestSellers": "畅销榜",
   "v2.svc.sec.pressAwards": "媒体获奖",

@@ -1696,6 +1696,7 @@ export default {
   "v2.home.wZones": "Aktualnie grające strefy",
   "v2.svc.eyebrow": "Redakcja",
   "v2.svc.wNew": "Nowości",
+  "v2.svc.rubriqueRetiree": "{s} nie udostępnia już tej sekcji aplikacjom osobistym.",
   "v2.svc.sec.newReleases": "Nowości",
   "v2.svc.sec.bestSellers": "Bestsellery",
   "v2.svc.sec.pressAwards": "Nagrody prasy",

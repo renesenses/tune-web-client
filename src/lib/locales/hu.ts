@@ -2990,6 +2990,7 @@ export default {
   "v2.home.wZones": "Most szóló zónák",
   "v2.svc.eyebrow": "Szerkesztőségi",
   "v2.svc.wNew": "Újdonságok",
+  "v2.svc.rubriqueRetiree": "A(z) {s} már nem biztosítja ezt a rovatot személyes alkalmazásoknak.",
   "v2.svc.sec.newReleases": "Újdonságok",
   "v2.svc.sec.bestSellers": "Legkelendőbbek",
   "v2.svc.sec.pressAwards": "Sajtódíjak",

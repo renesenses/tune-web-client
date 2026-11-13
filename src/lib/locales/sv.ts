@@ -3035,6 +3035,7 @@ export default {
   "v2.home.wZones": "Zoner som spelar nu",
   "v2.svc.eyebrow": "Redaktionellt",
   "v2.svc.wNew": "Nyheter",
+  "v2.svc.rubriqueRetiree": "{s} tillhandahåller inte längre den här sektionen till personliga appar.",
   "v2.svc.sec.newReleases": "Nyheter",
   "v2.svc.sec.bestSellers": "Bästsäljare",
   "v2.svc.sec.pressAwards": "Presspriser",
