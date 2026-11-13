@@ -49,6 +49,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tierce qu'avec Premium (409 `spotify_premium_required`, refus de librespot
   // ou `PREMIUM_REQUIRED` de l'API Web). Un état du compte, pas une panne.
   spotify_premium_required: 'playback.errorSpotifyPremium',
+  // tune-server-rust#8565 (décision de Bertrand du 13/11) — Spotify refuse
+  // les clés audio du compte (librespot #1649) : 409
+  // `spotify_audio_key_refused`, au lieu d'un titre sauté sans un mot.
+  spotify_audio_key_refused: 'playback.errorSpotifyAudioKeyRefused',
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
@@ -6314,8 +6318,13 @@ export interface SpotifyConnectStatus {
    *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
   session_error?: string | null;
   /** tune-server-rust#8565 — `spotify_premium_required` : Spotify a refusé
-   *  le compte, qui n'est pas Premium (Spotify Connect l'exige). */
+   *  le compte, qui n'est pas Premium (Spotify Connect l'exige) ;
+   *  `spotify_audio_key_refused` : Spotify a refusé les clés audio du compte
+   *  (librespot #1649), les titres sont sautés sans un son. */
   receiver_error_code?: string | null;
+  /** tune-server-rust#8565 — la phrase du serveur pour `receiver_error_code`,
+   *  dans la langue de la requête (clés audio refusées seulement). */
+  receiver_error_message?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {

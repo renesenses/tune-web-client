@@ -2680,6 +2680,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz angav inte samplingsfrekvensen för det här spåret, och Tune kunde inte läsa den ur filen: uppspelning är inte möjlig. Försök igen senare eller välj en annan kvalitet.",
   "playback.errorSpotifyDisabled": "Spotify-uppspelning är inte aktiverad (experimentellt alternativ i Inställningar).",
   "playback.errorSpotifyPremium": "Spotify tillåter bara lyssning i Tune med ett Spotify Premium-konto, och det här kontot har inget. Bläddring (spellistor, album, sökning) fungerar fortfarande; för att lyssna, använd Spotify-appen eller uppgradera till Premium.",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify har nekat ljudnycklarna för det här kontot: dess spår kan inte spelas i Tune. Nekandet kommer från Spotify, inte från Tune.",
   "playback.errorSpotifyLinkRequired": "Spotify kräver ett engångssteg: välj enheten ”{device}” en gång i Spotify-appen (telefon eller dator, samma nätverk, samma konto). Tune behåller sedan den här kopplingen.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify kräver ett engångssteg och Tunes Spotify Connect-mottagare är avstängd: slå på den och välj sedan enheten ”{device}” en gång i Spotify-appen (telefon eller dator, samma nätverk, samma konto).",
   "playback.spotifyReceiverEnabled": "Spotify Connect-mottagaren är påslagen. Välj nu enheten ”{device}” en gång i Spotify-appen (samma nätverk, samma konto) och starta sedan uppspelningen igen.",

@@ -2663,6 +2663,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz 未提供此曲目的采样率，Tune 也无法从文件中读取：无法播放。请稍后重试或选择其他音质。",
   "playback.errorSpotifyDisabled": "Spotify 播放未启用（设置中的实验性选项）。",
   "playback.errorSpotifyPremium": "Spotify 仅允许 Spotify Premium 账户在 Tune 中收听，而此账户不是 Premium。浏览（播放列表、专辑、搜索）仍然可用；如需收听，请使用 Spotify 应用或升级到 Premium。",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify 拒绝了此账户的音频密钥：其曲目无法在 Tune 中播放。拒绝来自 Spotify，而非 Tune。",
   "playback.errorSpotifyLinkRequired": "Spotify 需要完成一次性步骤：在 Spotify 应用（手机或电脑，同一网络、同一账户）中选择一次设备“{device}”。之后 Tune 会保留此关联。",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify 需要完成一次性步骤，而 Tune 的 Spotify Connect 接收器已关闭：请先开启它，然后在 Spotify 应用（手机或电脑，同一网络、同一账户）中选择一次设备“{device}”。",
   "playback.spotifyReceiverEnabled": "Spotify Connect 接收器已开启。现在请在 Spotify 应用（同一网络、同一账户）中选择一次设备“{device}”，然后重新开始播放。",

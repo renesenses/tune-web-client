@@ -244,6 +244,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz nie podał częstotliwości próbkowania tego utworu, a Tune nie mógł jej odczytać z pliku: odtwarzanie jest niemożliwe. Spróbuj ponownie później lub wybierz inną jakość.",
   "playback.errorSpotifyDisabled": "Odtwarzanie ze Spotify nie jest włączone (opcja eksperymentalna w Ustawieniach).",
   "playback.errorSpotifyPremium": "Spotify pozwala słuchać w Tune tylko z kontem Spotify Premium, a to konto go nie ma. Przeglądanie (playlisty, albumy, wyszukiwanie) pozostaje dostępne; aby słuchać, użyj aplikacji Spotify lub przejdź na Premium.",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify odrzucił klucze audio tego konta: jego utworów nie można odtworzyć w Tune. Odmowa pochodzi od Spotify, nie od Tune.",
   "playback.errorSpotifyLinkRequired": "Spotify wymaga jednorazowego kroku: w aplikacji Spotify (telefon lub komputer, ta sama sieć, to samo konto) wybierz raz urządzenie „{device}”. Tune zachowa potem to połączenie.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify wymaga jednorazowego kroku, a odbiornik Spotify Connect w Tune jest wyłączony: włącz go, a następnie w aplikacji Spotify (telefon lub komputer, ta sama sieć, to samo konto) wybierz raz urządzenie „{device}”.",
   "playback.spotifyReceiverEnabled": "Odbiornik Spotify Connect włączony. W aplikacji Spotify (ta sama sieć, to samo konto) wybierz teraz raz urządzenie „{device}”, a potem ponownie uruchom odtwarzanie.",
