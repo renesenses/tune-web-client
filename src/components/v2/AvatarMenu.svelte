@@ -443,7 +443,7 @@
             {#each hits as h (h.reglage.id)}
               <button class="hit" onclick={() => openSetting(h)} title={h.chemin.join(' › ')}>
                 <span class="hl" use:bulleTexte>{h.label}</span>
-                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · {$t(LEVEL_LABEL_KEYS[h.niveau] as any)}{/if}</span>
+                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · <span data-masque-niveau>{$t('reglages.recherche.masque' as any).replace('{niveau}', $t(LEVEL_LABEL_KEYS[h.niveau] as any))}</span>{/if}</span>
               </button>
             {/each}
           {:else}
