@@ -6413,7 +6413,6 @@ export default {
   "v2.radio.tabDirectory": "Annuaire",
   "v2.radio.dir.allCountries": "Tous les pays",
   "v2.radio.dir.count": "{n} stations",
-  "v2.radio.filters.toggle": "Plus de filtres",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "Tous les formats",
   "v2.radio.filters.bitrateMin": "Débit minimal",

@@ -6391,7 +6391,6 @@ export default {
   "v2.radio.tabDirectory": "Director",
   "v2.radio.dir.allCountries": "Toate țările",
   "v2.radio.dir.count": "{n} posturi",
-  "v2.radio.filters.toggle": "Mai multe filtre",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "Toate formatele",
   "v2.radio.filters.bitrateMin": "Debit minim",

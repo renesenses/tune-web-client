@@ -66,7 +66,7 @@
   /** web#2443 — la fiche « Voir » ouverte (œil de la vignette). */
   let enFiche = $state<FicheAnnuaireRadio | null>(null);
 
-  /** tune-server-rust#7466 — les critères de « Plus de filtres ». */
+  /** tune-server-rust#7466 — les critères de recherche (RadioFiltresAvances). */
   const criteres = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
   const cleCriteres = $derived(JSON.stringify(criteres));
   /** web#2693 — « Tous » suit les filtres actifs (genre mis à part). */
@@ -221,11 +221,12 @@
         <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
       {/each}
     </select>
+    <!-- Recette rc12 (13/11) : les critères, dépliés, sur la ligne du pays. -->
+    <RadioFiltresAvances />
     {#if page}
       <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
     {/if}
   </div>
-  <RadioFiltresAvances />
   {#if genresAffiches.length}
     <RadioChipsGenres
       genres={genresAffiches}

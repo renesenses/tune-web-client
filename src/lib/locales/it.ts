@@ -6391,7 +6391,6 @@ export default {
   "v2.radio.tabDirectory": "Elenco",
   "v2.radio.dir.allCountries": "Tutti i paesi",
   "v2.radio.dir.count": "{n} stazioni",
-  "v2.radio.filters.toggle": "Altri filtri",
   "v2.radio.filters.format": "Formato",
   "v2.radio.filters.anyFormat": "Tutti i formati",
   "v2.radio.filters.bitrateMin": "Bitrate minimo",

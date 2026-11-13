@@ -6246,7 +6246,6 @@ export default {
   "v2.radio.tabDirectory": "Danh bạ",
   "v2.radio.dir.allCountries": "Tất cả quốc gia",
   "v2.radio.dir.count": "{n} đài",
-  "v2.radio.filters.toggle": "Thêm bộ lọc",
   "v2.radio.filters.format": "Định dạng",
   "v2.radio.filters.anyFormat": "Mọi định dạng",
   "v2.radio.filters.bitrateMin": "Bitrate tối thiểu",

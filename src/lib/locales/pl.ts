@@ -6240,7 +6240,6 @@ export default {
   "v2.radio.tabDirectory": "Katalog",
   "v2.radio.dir.allCountries": "Wszystkie kraje",
   "v2.radio.dir.count": "Stacje: {n}",
-  "v2.radio.filters.toggle": "Więcej filtrów",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "Wszystkie formaty",
   "v2.radio.filters.bitrateMin": "Minimalna przepływność",
