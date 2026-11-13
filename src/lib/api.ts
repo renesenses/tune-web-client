@@ -6291,6 +6291,13 @@ export interface SpotifyConnectStatus {
   error?: string;
   /** #6018 — « Lecture Spotify (expérimental) » : désactivée par défaut. */
   lecture_experimentale?: boolean;
+  /** tune-server-rust#8565 — pourquoi la dernière session lancée depuis
+   *  l'application Spotify n'a pas joué dans la zone exposée (code stable,
+   *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
+  session_error?: string | null;
+  /** tune-server-rust#8565 — `spotify_premium_required` : Spotify a refusé
+   *  le compte, qui n'est pas Premium (Spotify Connect l'exige). */
+  receiver_error_code?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -6347,6 +6354,11 @@ export interface DevialetAirReglages {
   source_index_max: number;
   volume_ceiling_db: number;
   max_sample_rate: number;
+  /** #6918 — la course du curseur en dB (bas, haut) et son plancher ; absents
+   *  d'un serveur antérieur : l'écran ne propose pas de les régler. */
+  volume_floor_db?: number;
+  volume_min_db?: number;
+  volume_max_db?: number;
 }
 
 export function getDevialetAirReglages() {
@@ -6354,7 +6366,7 @@ export function getDevialetAirReglages() {
 }
 
 /** Chaque champ est facultatif : seul ce qui est passé change. */
-export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
   return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
     method: 'POST',
     body: JSON.stringify(corps),

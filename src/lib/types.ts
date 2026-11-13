@@ -139,6 +139,11 @@ export interface Album {
    * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
    */
   max_channels?: number | null;
+  /**
+   * tune-server-rust#8560 — le plus petit nombre de canaux parmi les pistes
+   * de l'album, pour le filtre Stéréo. Absent d'un serveur plus ancien.
+   */
+  min_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
