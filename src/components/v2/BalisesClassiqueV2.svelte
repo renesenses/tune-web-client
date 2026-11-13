@@ -4,12 +4,12 @@
    * demande ESL63P, testeur HCFR : %band%, %choir%).
    *
    * Pour chaque rôle, les balises que le serveur lit au scan (puces
-   * éditables), et le sort de BAND. Les noms standard (CONDUCTOR, WORK,
+   * éditables). BAND reste traité par le serveur. Les noms standard (CONDUCTOR, WORK,
    * MOVEMENTNAME) couvrent toutes les graphies d'un conteneur ; tout autre nom
    * est une balise libre (`CHORUS` lit aussi `TXXX:CHORUS`).
    *
    * Aucune écriture au chargement. « Enregistrer » envoie le réglage ;
-   * « Revenir aux valeurs par défaut » envoie `{}`. Un changement relance la
+   * « Revenir aux valeurs par défaut » restaure les rôles visibles. Un changement relance la
    * relecture de fond des fichiers, pas une analyse complète.
    */
   import { onDestroy, onMount } from 'svelte';
@@ -18,7 +18,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { notifierErreur } from '../../lib/notifierErreur';
   import {
-    DEFAUTS_CLASSIQUE, MODES_BAND, ROLES_CLASSIQUES, copieBalises, memesBalises, normaliserBalise,
+    DEFAUTS_CLASSIQUE, ROLES_CLASSIQUES, copieBalises, memesBalises, normaliserBalise,
     type BalisesClassique, type RoleClassique,
   } from '../../lib/balisesClassique';
   import '../../styles/tune-v2.css';
@@ -38,7 +38,8 @@
   onMount(() => { void charger(); });
 
   const modifie = $derived(!memesBalises(form, enBase));
-  const auxDefauts = $derived(memesBalises(enBase, defauts) && memesBalises(form, defauts));
+  const defautsVisibles = $derived({ ...defauts, band: enBase.band });
+  const auxDefauts = $derived(memesBalises(enBase, defautsVisibles) && memesBalises(form, defautsVisibles));
 
   function appliquer(etat: api.EtatBalisesClassique) {
     if (etat.defaults) defauts = copieBalises(etat.defaults);
@@ -115,7 +116,7 @@
   }
 
   function revenirAuxDefauts() {
-    void envoyer({});
+    void envoyer(copieBalises(defautsVisibles));
   }
 </script>
 
@@ -152,16 +153,6 @@
       </div>
     {/each}
 
-    <div class="champ" data-band>
-      <span class="lbl">{$t('classicalTags.band' as any)}</span>
-      {#each MODES_BAND as mode (mode)}
-        <label class="ligne">
-          <input type="radio" name="mode-band" value={mode} bind:group={form.band} />
-          <span>{$t(`classicalTags.bandMode.${mode}` as any)}</span>
-        </label>
-      {/each}
-    </div>
-
     <p class="hint">{$t('classicalTags.rereadHint' as any)}</p>
 
     <div class="actions">
@@ -181,7 +172,6 @@
   .hint.erreur { color: var(--v2-danger); }
   .champ { display: flex; flex-direction: column; gap: 6px; }
   .lbl { font: 500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
-  .ligne { display: flex; align-items: center; gap: 8px; font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); cursor: pointer; }
   .puces { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; align-items: center; }
   .puce {
     display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 10px;
