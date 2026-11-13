@@ -3344,7 +3344,7 @@ export default {
   "v2.nav.bgDurMin": "{m} min",
   "v2.nav.bgDurH": "{h} tim",
   "v2.nav.bgDurHMin": "{h} tim {mm} min",
-  "v2.nav.bgAnalysisHint": "Bakgrundsanalys pågår — öppna Serverstatus",
+  "v2.nav.bgTaskOpenHint": "{task} pågår — öppna Serverstatus",
   "v2.nav.bgTask.fingerprints": "Ljudfingeravtryck",
   "v2.nav.bgTask.dynamic_range": "Dynamiskt omfång",
   "v2.nav.bgTask.replaygain": "ReplayGain",

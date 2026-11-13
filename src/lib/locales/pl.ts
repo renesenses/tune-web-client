@@ -2005,7 +2005,7 @@ export default {
   "v2.nav.bgDurMin": "{m} min",
   "v2.nav.bgDurH": "{h} godz.",
   "v2.nav.bgDurHMin": "{h} godz. {mm} min",
-  "v2.nav.bgAnalysisHint": "Analiza w tle w toku — otwórz Stan serwera",
+  "v2.nav.bgTaskOpenHint": "{task} w toku — otwórz Stan serwera",
   "v2.nav.bgTask.fingerprints": "Odciski audio",
   "v2.nav.bgTask.dynamic_range": "Zakres dynamiki",
   "v2.nav.bgTask.replaygain": "ReplayGain",

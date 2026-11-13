@@ -2005,7 +2005,7 @@ export default {
   "v2.nav.bgDurMin": "{m} min",
   "v2.nav.bgDurH": "{h} t",
   "v2.nav.bgDurHMin": "{h} t {mm} min",
-  "v2.nav.bgAnalysisHint": "Bakgrunnsanalyse pågår — åpne Serverstatus",
+  "v2.nav.bgTaskOpenHint": "{task} pågår — åpne Serverstatus",
   "v2.nav.bgTask.fingerprints": "Lydfingeravtrykk",
   "v2.nav.bgTask.dynamic_range": "Dynamisk område",
   "v2.nav.bgTask.replaygain": "ReplayGain",

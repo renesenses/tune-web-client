@@ -3345,7 +3345,7 @@ export default {
   "v2.nav.bgDurMin": "{m}분",
   "v2.nav.bgDurH": "{h}시간",
   "v2.nav.bgDurHMin": "{h}시간 {mm}분",
-  "v2.nav.bgAnalysisHint": "백그라운드 분석 진행 중 — 서버 상태 열기",
+  "v2.nav.bgTaskOpenHint": "{task} 진행 중 — 서버 상태 열기",
   "v2.nav.bgTask.fingerprints": "오디오 지문",
   "v2.nav.bgTask.dynamic_range": "다이내믹 레인지",
   "v2.nav.bgTask.replaygain": "ReplayGain",

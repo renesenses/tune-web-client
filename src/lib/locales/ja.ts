@@ -3345,7 +3345,7 @@ export default {
   "v2.nav.bgDurMin": "{m}分",
   "v2.nav.bgDurH": "{h}時間",
   "v2.nav.bgDurHMin": "{h}時間{mm}分",
-  "v2.nav.bgAnalysisHint": "バックグラウンド解析中 — サーバーの状態を開く",
+  "v2.nav.bgTaskOpenHint": "{task} 実行中 — サーバーの状態を開く",
   "v2.nav.bgTask.fingerprints": "オーディオフィンガープリント",
   "v2.nav.bgTask.dynamic_range": "ダイナミックレンジ",
   "v2.nav.bgTask.replaygain": "ReplayGain",
