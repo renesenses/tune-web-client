@@ -2667,6 +2667,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz no ha indicado la frecuencia de muestreo de esta pista y Tune no ha podido leerla en el archivo: no se puede reproducir. Vuelve a intentarlo más tarde o elige otra calidad.",
   "playback.errorSpotifyDisabled": "La reproducción de Spotify no está activada (opción experimental en Ajustes).",
   "playback.errorSpotifyPremium": "Spotify solo permite escuchar en Tune con una cuenta Spotify Premium, y esta cuenta no la tiene. La navegación (playlists, álbumes, búsqueda) sigue disponible; para escuchar, use la aplicación de Spotify o pase a Premium.",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify ha rechazado las claves de audio de esta cuenta: sus canciones no se pueden reproducir en Tune. El rechazo viene de Spotify, no de Tune.",
   "playback.errorSpotifyLinkRequired": "Spotify requiere un paso único: en la aplicación de Spotify (teléfono u ordenador, misma red, misma cuenta), elija una vez el dispositivo «{device}». Después, Tune conserva este vínculo.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify requiere un paso único y el receptor Spotify Connect de Tune está apagado: actívelo y, en la aplicación de Spotify (teléfono u ordenador, misma red, misma cuenta), elija una vez el dispositivo «{device}».",
   "playback.spotifyReceiverEnabled": "Receptor Spotify Connect activado. En la aplicación de Spotify (misma red, misma cuenta), elija ahora una vez el dispositivo «{device}» y vuelva a iniciar la reproducción.",

@@ -2663,6 +2663,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz がこのトラックのサンプリング周波数を通知せず、Tune もファイルから読み取れませんでした。再生できません。しばらくしてから再試行するか、別の音質を選んでください。",
   "playback.errorSpotifyDisabled": "Spotify の再生は有効になっていません（設定の試験的オプション）。",
   "playback.errorSpotifyPremium": "Spotify は Tune での再生を Spotify Premium アカウントにのみ許可しており、このアカウントは Premium ではありません。閲覧（プレイリスト、アルバム、検索）は引き続き利用できます。再生するには Spotify アプリを使うか、Premium にアップグレードしてください。",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify がこのアカウントのオーディオキーを拒否しました。このアカウントの曲は Tune で再生できません。拒否しているのは Tune ではなく Spotify です。",
   "playback.errorSpotifyLinkRequired": "Spotify では一度だけの操作が必要です。Spotify アプリ（スマートフォンまたはパソコン、同じネットワーク、同じアカウント）でデバイス「{device}」を一度選択してください。以降、Tune はこの連携を保持します。",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify では一度だけの操作が必要ですが、Tune の Spotify Connect レシーバーがオフです。オンにしてから、Spotify アプリ（スマートフォンまたはパソコン、同じネットワーク、同じアカウント）でデバイス「{device}」を一度選択してください。",
   "playback.spotifyReceiverEnabled": "Spotify Connect レシーバーをオンにしました。Spotify アプリ（同じネットワーク、同じアカウント）でデバイス「{device}」を一度選択してから、もう一度再生してください。",

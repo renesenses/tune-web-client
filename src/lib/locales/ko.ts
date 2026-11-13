@@ -2661,6 +2661,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz가 이 트랙의 샘플링 주파수를 알려 주지 않았고, Tune도 파일에서 읽어 내지 못했습니다. 재생할 수 없습니다. 나중에 다시 시도하거나 다른 음질을 선택하세요.",
   "playback.errorSpotifyDisabled": "Spotify 재생이 활성화되지 않았습니다(설정의 실험적 옵션).",
   "playback.errorSpotifyPremium": "Spotify는 Tune에서의 재생을 Spotify Premium 계정에만 허용하며, 이 계정은 Premium이 아닙니다. 탐색(플레이리스트, 앨범, 검색)은 계속 사용할 수 있습니다. 들으려면 Spotify 앱을 사용하거나 Premium으로 업그레이드하세요.",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify가 이 계정의 오디오 키를 거부했습니다. 이 계정의 곡은 Tune에서 재생할 수 없습니다. 거부는 Tune이 아니라 Spotify에서 온 것입니다.",
   "playback.errorSpotifyLinkRequired": "Spotify에서 한 번만 필요한 단계가 있습니다. Spotify 앱(휴대폰 또는 컴퓨터, 같은 네트워크, 같은 계정)에서 '{device}' 기기를 한 번 선택하세요. 이후 Tune이 이 연결을 유지합니다.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify에서 한 번만 필요한 단계가 있는데 Tune의 Spotify Connect 수신기가 꺼져 있습니다. 수신기를 켠 다음 Spotify 앱(휴대폰 또는 컴퓨터, 같은 네트워크, 같은 계정)에서 '{device}' 기기를 한 번 선택하세요.",
   "playback.spotifyReceiverEnabled": "Spotify Connect 수신기를 켰습니다. 이제 Spotify 앱(같은 네트워크, 같은 계정)에서 '{device}' 기기를 한 번 선택한 다음 다시 재생하세요.",

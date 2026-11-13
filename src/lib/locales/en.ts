@@ -257,6 +257,7 @@ export default {
   "playback.errorSampleRateUnknown": "Qobuz did not report the sample rate of this track, and Tune could not read it from the file: playback is not possible. Try again later or choose another quality.",
   "playback.errorSpotifyDisabled": "Spotify playback is not enabled (experimental option in Settings).",
   "playback.errorSpotifyPremium": "Spotify only allows listening in Tune with a Spotify Premium account, and this account does not have one. Browsing (playlists, albums, search) remains available; to listen, use the Spotify app or upgrade to Premium.",
+  "playback.errorSpotifyAudioKeyRefused": "Spotify refused the audio keys for this account: its tracks cannot be played in Tune. The refusal comes from Spotify, not from Tune.",
   "playback.errorSpotifyLinkRequired": "Spotify needs a one-time step: in the Spotify app (phone or computer, same network, same account), select the “{device}” device once. Tune then keeps this link.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify needs a one-time step, and Tune's Spotify Connect receiver is off: turn it on, then, in the Spotify app (phone or computer, same network, same account), select the “{device}” device once.",
   "playback.spotifyReceiverEnabled": "Spotify Connect receiver turned on. In the Spotify app (same network, same account), now select the “{device}” device once, then start playback again.",
