@@ -43,7 +43,7 @@
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, migrationLigneChiffres } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
@@ -1538,7 +1538,7 @@
            l'objet ou demandé une fois au service (`compterTitres`). -->
       {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
         {@const nbTexte = (el.nbTitres ?? titresLus[el.id]) != null
-          ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $t)
+          ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $tn)
           : ''}
         <span class="ca nb-titres" title={nbTexte} data-nb-titres use:compterAuRendu={el}>{nbTexte}</span>
       {/if}

@@ -4,7 +4,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import ArbreGenresMusicBrainzV2 from '../v2/ArbreGenresMusicBrainzV2.svelte';
 
@@ -285,7 +285,7 @@
               value={parent}
               onblur={(e) => renameParent(parent, e)}
             />
-            <span class="count">{tree[parent].length} {tree[parent].length > 1 ? $t('genreTree.subGenresPlural') : $t('genreTree.subGenre')}</span>
+            <span class="count">{$tn('genreTree.subGenresN', tree[parent].length)}</span>
             <button class="btn-del" onclick={() => removeParent(parent)} title={$t('genreTree.removeBranchTitle')}>×</button>
           </div>
           <div class="children">
