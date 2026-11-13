@@ -8,14 +8,13 @@
  * appliqué par le serveur — l'écran propose, l'utilisateur enregistre par les
  * routes habituelles.
  *
- * Un serveur sans ces routes répond 404 : `routeAbsente` le reconnaît, et
- * l'écran cache simplement le bouton.
+ * Un serveur sans ces routes répond 404 : `appelIa` en fait l’échec nommé
+ * `assistant_inactif` (web#2966), que l’écran dit avec le lien vers Extensions.
  */
-import { BASE, fetchJSON } from './api';
-import type { EchecIa, EtatPlafondIa, RegleIa } from './assistantIa';
+import { BASE } from './api';
+import { appelIa, type EchecIa, type EtatPlafondIa, type RegleIa } from './assistantIa';
 
 const RACINE = `${BASE}/ext/assistant-ia`;
-const accepter = (s: number) => s !== 401;
 
 /** Un aperçu : ce qui PARTIRAIT, et son coût estimé. Rien n'est envoyé. */
 export interface ApercuIa {
@@ -68,18 +67,18 @@ export interface NotesIa {
 }
 
 export function lireNotesIa(albumId: number): Promise<NotesIa | EchecIa> {
-  return fetchJSON(`${RACINE}/albums/${albumId}/notes`, undefined, (s) => s !== 401, true);
+  return appelIa(`${RACINE}/albums/${albumId}/notes`, undefined, true);
 }
 
 export function ecrireNotesIa(
   albumId: number,
   o: { langue?: string; second_avis?: boolean; regenerer?: boolean; apercu?: boolean } = {},
 ): Promise<NotesIa | ApercuIa | EchecIa> {
-  return fetchJSON(`${RACINE}/albums/${albumId}/notes`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/albums/${albumId}/notes`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function effacerNotesIa(albumId: number): Promise<{ ok: true } | EchecIa> {
-  return fetchJSON(`${RACINE}/albums/${albumId}/notes`, { method: 'DELETE' }, accepter);
+  return appelIa(`${RACINE}/albums/${albumId}/notes`, { method: 'DELETE' });
 }
 
 /** Les sources sous licence à citer sous les notes (Wikipédia, CC BY-SA…). */
@@ -128,11 +127,11 @@ export interface DiagnosticIa {
 export function apercuDiagnosticIa(
   o: { zone_id?: number | null; question?: string; langue?: string; second_avis?: boolean },
 ): Promise<ApercuDiagnosticIa | EchecIa> {
-  return fetchJSON(`${RACINE}/diagnostic/apercu`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/diagnostic/apercu`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function envoyerDiagnosticIa(apercuId: string): Promise<DiagnosticIa | EchecIa> {
-  return fetchJSON(`${RACINE}/diagnostic`, { method: 'POST', body: JSON.stringify({ apercu_id: apercuId }) }, accepter);
+  return appelIa(`${RACINE}/diagnostic`, { method: 'POST', body: JSON.stringify({ apercu_id: apercuId }) });
 }
 
 // ---------------------------------------------------------------------------
@@ -162,31 +161,31 @@ export function affinerCollectionIa(o: {
   langue?: string;
   apercu?: boolean;
 }): Promise<({ ok: true; proposition: { name: string; match_mode: 'all' | 'any'; rules: RegleIa[] }; ecart: EcartReglesIa; avant: RegleIa[] } & AvecCout) | ApercuIa | EchecIa> {
-  return fetchJSON(`${RACINE}/collections/affiner`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/collections/affiner`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function proposerCollectionsIa(
   o: { langue?: string; apercu?: boolean } = {},
 ): Promise<({ ok: true; collections: CollectionProposeeIa[]; ecartees: unknown[] } & AvecCout) | ApercuIa | EchecIa> {
-  return fetchJSON(`${RACINE}/collections/proposer`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/collections/proposer`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function collectionsEcouteIa(
   o: { langue?: string; profil_id?: number | null; apercu?: boolean } = {},
 ): Promise<({ ok: true; collections: CollectionProposeeIa[]; ecartees: unknown[] } & AvecCout) | ApercuIa | EchecIa> {
-  return fetchJSON(`${RACINE}/collections/ecoute`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/collections/ecoute`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function nommerCollectionIa(
   o: { cible?: 'collection' | 'playlist'; rules: RegleIa[]; match_mode?: string; langue?: string },
 ): Promise<({ ok: true; name: string; description: string; marque: 'ia' } & AvecCout) | EchecIa> {
-  return fetchJSON(`${RACINE}/collections/nommer`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/collections/nommer`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 export function pourquoiAlbumIa(
   o: { rules: RegleIa[]; match_mode?: string; album_id: number; langue?: string },
 ): Promise<({ ok: true; explication: string; regles: number[]; marque: 'ia' } & AvecCout) | EchecIa> {
-  return fetchJSON(`${RACINE}/collections/pourquoi`, { method: 'POST', body: JSON.stringify(o) }, accepter);
+  return appelIa(`${RACINE}/collections/pourquoi`, { method: 'POST', body: JSON.stringify(o) });
 }
 
 /**
