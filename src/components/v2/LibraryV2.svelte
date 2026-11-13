@@ -2761,7 +2761,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
     }
     // Une recherche sans résultat ne fait pas disparaître les choix.
-    for (const source of ['local', 'upnp', ...src.map(provenanceDe), ...tracks.map(provenanceDe), ...sourcesIntegrees]) {
+    for (const source of ['local', 'upnp', ...src.map(provenanceDe), ...tracks.map(provenanceDe), ...comptesArtistes.comptes.keys(), ...(fenetrePistes?.comptes?.keys() ?? []), ...sourcesIntegrees]) {
       if (!counts.has(source)) counts.set(source, 0);
     }
     if (fProvenance && !counts.has(fProvenance)) counts.set(fProvenance, 0);
