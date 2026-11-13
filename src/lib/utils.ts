@@ -168,6 +168,23 @@ export function estMulticanal(album: { max_channels?: number | null } | null | u
 }
 
 /**
+ * tune-server-rust#8560 (fil forum 2713) — l'album a-t-il une version stéréo
+ * (une ou deux voies) ? Pendant de `estMulticanal` : « Stéréo » exclut ce qui
+ * n'est QUE multicanal. Un album qui mêle pistes stéréo et multicanales sort
+ * sous les deux choix.
+ *
+ * Se lit dans `min_channels` (le plus petit nombre de canaux de ses pistes,
+ * serveur rc12). Un serveur qui ne sert que `max_channels` : on s'en tient à
+ * lui (1 ou 2 voies au plus = stéréo). Canaux inconnus : ni l'un ni l'autre.
+ */
+export function estStereo(
+  album: { min_channels?: number | null; max_channels?: number | null } | null | undefined,
+): boolean {
+  const n = Number(album?.min_channels ?? album?.max_channels ?? 0);
+  return n >= 1 && n <= 2;
+}
+
+/**
  * tune-web-client#2731 (Rhorn, fil 2713) — le nombre de canaux écrit comme
  * sur une pochette : « 2.0 », « 5.1 »… `null` quand il est inconnu (absent,
  * nul ou négatif) : pas de badge plutôt qu'un badge inventé.

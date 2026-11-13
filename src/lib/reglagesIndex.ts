@@ -93,7 +93,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'replaygain-anti-ecretage', section: 'localAudio', labelKey: 'settings.replayGainPreventClipping', descKey: 'v2.hint.replayGainPreventClipping', techniques: ['ReplayGain', 'clipping', 'true-peak'], min: 'expert' },
   { id: 'replaygain-source', section: 'localAudio', labelKey: 'settings.replaygainSource', descKey: 'settings.replaygainSourceTagsAnalysis', techniques: ['ReplayGain', 'tags'], min: 'intermediate' },
   { id: 'vitesse-analyses', section: 'localAudio', labelKey: 'settings.analysisSpeed', descKey: 'settings.analysisSpeedHint', termesKey: 'reglages.termes.vitesseAnalyses', techniques: ['CPU'], min: 'intermediate' },
-  { id: 'lever-bridage', section: 'localAudio', labelKey: 'settings.analysisUnthrottle', descKey: 'settings.analysisUnthrottleHint', techniques: ['CPU'], min: 'expert' },
   { id: 'remesure-replaygain', section: 'localAudio', labelKey: 'settings.rgReanalyze', descKey: 'settings.rgReanalyzeHint', techniques: ['ReplayGain'], min: 'intermediate' },
   { id: 'sorties-locales-visibles', section: 'localAudio', labelKey: 'settings.audioOutputs', techniques: ['DAC', 'USB'] },
   { id: 'zone-navigateur', section: 'localAudio', labelKey: 'settings.createBrowserZone', descKey: 'settings.playHereHint' },
@@ -171,6 +170,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'rangement-dossier-cible', section: 'ingest', labelKey: 'v2.lbl.targetFolder' },
   { id: 'rangement-modele', section: 'ingest', labelKey: 'ingest.template' },
   { id: 'rangement-ecrire-tags', section: 'ingest', labelKey: 'settings.writeTags', descKey: 'settings.writeTagsHint', techniques: ['tags'] },
+  // tune-server-rust#8325 / ESL63P — Bibliothèque › Balises du classique.
+  { id: 'balises-classique', section: 'classicalTags', labelKey: 'classicalTags.title', descKey: 'classicalTags.hint', composant: 'BalisesClassiqueV2.svelte', techniques: ['BAND', 'CHOIR', 'CHORUS', 'CONDUCTOR', 'WORK', 'MOVEMENTNAME', 'TXXX'] },
   { id: 'vue-oxygen', section: 'oxygen', labelKey: 'v2.lbl.oxygenView', descKey: 'settings.facetsNavHint', techniques: ['Oxygen'] },
   { id: 'valeurs-facettes', section: 'oxygen', labelKey: 'oxygen.facetValues', descKey: 'settings.facetValuesHint', techniques: ['Oxygen'] },
 
@@ -201,6 +202,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'sauvegarde-reglages-appareils', section: 'sauvegardeReglages', labelKey: 'v2.dev.backupTitle', descKey: 'v2.dev.backupIntro', techniques: ['backup', 'JSON'] },
   { id: 'devialet-air', section: 'devialetAir', labelKey: 'v2.set.devialetAirEnable', descKey: 'v2.set.devialetAirDiscoveryHint', techniques: ['Devialet', 'AIR', 'D200', 'D400'] },
   { id: 'devialet-air-source', section: 'devialetAir', labelKey: 'v2.set.devialetAirSource', techniques: ['Devialet'] },
+  { id: 'devialet-air-course', section: 'devialetAir', labelKey: 'v2.set.devialetAirRange', techniques: ['Devialet', 'dB'] },
 
   // ── Affichage ────────────────────────────────────────────────────────
   { id: 'colonnes-pistes', section: 'displayPrefs', labelKey: 'settings.trackColumns', descKey: 'settings.trackColumnsHint' },

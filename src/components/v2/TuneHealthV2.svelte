@@ -37,7 +37,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { bridageDesAnalyses, temperatureProcesseur, bridageLeve } from '../../lib/temperatureProcesseur';
+  import { avertissementTemperature, temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -47,6 +47,7 @@
     freinesParLaLecture,
     FREIN_SCAN,
     serveurSaitSuspendre,
+    libelleProgression,
     type InstantaneTachesDeFond,
     type PrioriteDr,
     type RattrapageRapportsDr,
@@ -58,7 +59,7 @@
   import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
   import { carteEmpreintes, carteDeFondCiblee, TRAITEMENT_EMPREINTES } from '../../lib/carteEmpreintes';
-  import { dureeLisible } from '../../lib/analysesDeFond';
+  import { dureeLisible, avancementsParTraitement, fusionnerAvancements, ligneAvancement, type AnalyseDeFond } from '../../lib/analysesDeFond';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { t } from '../../lib/i18n';
@@ -142,15 +143,12 @@
    *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
   let tempCpu = $state<unknown>(undefined);
   const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
-  /** tune-server-rust#5410 — `analyses_bridees` brut (motif, `null` ou absent). */
-  let motifBridage = $state<unknown>(undefined);
-  const bridage = $derived(bridageDesAnalyses(motifBridage, {
-    illisible: $t('v2.health.analysesBrideesIllisible' as any),
-    figee: $t('v2.health.analysesBrideesFigee' as any),
+  /** tune-server-rust#8011 — `temperature_illisible` brut (motif, `null` ou absent). */
+  let motifTemperature = $state<unknown>(undefined);
+  const avertissementChaleur = $derived(avertissementTemperature(motifTemperature, {
+    illisible: $t('v2.health.temperatureIllisible' as any),
+    figee: $t('v2.health.temperatureFigee' as any),
   }));
-  /** tune-server-rust#6713 — `analyses_bridage_leve` brut : bridage levé par l'utilisateur. */
-  let motifBridageLeve = $state<unknown>(undefined);
-  const bridageLeveTexte = $derived(bridageLeve(motifBridageLeve, $t('v2.health.analysesBridageLeve' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -164,6 +162,9 @@
   /** tune-server-rust#6330 — ce que la lecture ralentit ou arrête, par
    *  identifiant serveur (`FREIN_SCAN` pour le scan). */
   let freins = $state<Set<string>>(new Set());
+  /** web#2675 — l'avancement de chaque passe en cours (titres traités, total,
+   *  temps restant), par identifiant serveur ; vide face à un serveur ancien. */
+  let avancements = $state<Record<string, AnalyseDeFond>>({});
   /** L'identifiant de frein d'une carte : son traitement, ou le scan. */
   const freinDe = (c: Card) => (c.id === 'scan' ? FREIN_SCAN : c.traitement);
   let pausePossible = $state(false);
@@ -178,6 +179,7 @@
     pausePossible = serveurSaitSuspendre(inst);
     pauses = pausesParTraitement(inst);
     freins = freinesParLaLecture(inst);
+    avancements = avancementsParTraitement(inst);
     toutEnPause = !!inst?.all_paused;
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
@@ -808,8 +810,7 @@
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
-    motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
-    motifBridageLeve = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridage_leve : undefined;
+    motifTemperature = diag[0].status === 'fulfilled' ? diag[0].value?.temperature_illisible : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -841,6 +842,10 @@
   // Sans cet abonnement la carte resterait muette : `GET /scan/status`, seul,
   // ne porte qu'un booléen.
   $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  // web#2675 — les cartes suivent `library.analysis.progress` entre deux relevés.
+  $effect(() => tuneWS.onEvent((e: { type?: string; data?: any }) => {
+    if (e?.type === 'library.analysis.progress') avancements = fusionnerAvancements(avancements, e.data);
+  }));
 
   // Sondage UNIQUEMENT tant qu'un traitement tourne : un écran de santé qui
   // interroge le serveur en boucle alors que rien ne bouge est lui-même un
@@ -976,7 +981,7 @@
                     <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
                   {/if}
                   {#if l.avancement}
-                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: l.avancement.detail, fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
+                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: libelleProgression(l.avancement, (k) => $t(k as any)), fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
                   {/if}
                 </li>
               {/each}
@@ -1030,6 +1035,13 @@
             </div>
 
             <div class="line">{c.ligne}</div>
+            <!-- web#2675 — titres traités, total et temps restant de la passe
+                 en cours. La carte Empreintes les porte déjà dans sa ligne. -->
+            {#if !enPause && c.id !== 'fp' && c.traitement && avancements[c.traitement]}
+              <div class="reste" data-avancement-analyse={c.traitement}>
+                {ligneAvancement(avancements[c.traitement], (k) => $t(k as any), (n) => $formatNombre(n))}
+              </div>
+            {/if}
 
             <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
                  POURQUOI : le serveur cède la place à la lecture. Pas sur une
@@ -1139,11 +1151,10 @@
         <section class="modules">
           <h2>{$t('v2.health.cpuTemp' as any)}</h2>
           <div class="sub">{temperature}</div>
-          <!-- tune-server-rust#5410 — sans température lisible, les analyses
-               de fond tournent à un fichier à la fois : on le dit. -->
-          {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
-          <!-- tune-server-rust#6713 — bridage levé par l'utilisateur : on le dit. -->
-          {#if bridageLeveTexte}<div class="sub bridage" data-bridage="leve">{bridageLeveTexte}</div>{/if}
+          <!-- tune-server-rust#8011 — sans température lisible, les analyses
+               de fond tournent à la vitesse réglée SANS surveillance de la
+               chaleur (#6450 : plus de bridage) : on le dit. -->
+          {#if avertissementChaleur}<div class="sub bridage" data-temperature="illisible">{avertissementChaleur}</div>{/if}
         </section>
       {/if}
 
@@ -1276,6 +1287,7 @@
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s ease}
   .pct{margin-top:6px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .nogauge{margin-top:11px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-style:italic}
+  .reste{margin-top:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); font-variant-numeric:tabular-nums}
   .detail{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .frein{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}

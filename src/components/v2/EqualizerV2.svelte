@@ -28,6 +28,7 @@
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { redemarrerServeurConfirme } from '../../lib/redemarrerServeur';
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -145,6 +146,7 @@
   let greffon = $state<Pick<MergedPlugin, 'installed' | 'install_proposed' | 'existing_configuration'> | null>(null);
   let installation = $state(false);
   let redemarrageRequis = $state(false);
+  let redemarrageEnCours = $state(false);
   /** Compteur relu par l'effet de chargement : l'incrémenter recharge l'écran. */
   let rechargement = $state(0);
   const nonInstalle = $derived(greffon?.installed === false);
@@ -841,7 +843,12 @@
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
-  {#if redemarrageRequis}<div class="restart plugin-restart">{$t('v2.eq.pluginRestart' as any)}</div>{/if}
+  <!-- web#2534 (fil 2533) : le bouton à côté du message, comme sur Extensions. -->
+  {#if redemarrageRequis}<div class="restart plugin-restart"><span>{$t('v2.eq.pluginRestart' as any)}</span>
+    <button class="redemarrer-bandeau" disabled={redemarrageEnCours}
+            onclick={async () => { redemarrageEnCours = true; if (!(await redemarrerServeurConfirme(() => (redemarrageEnCours = false)))) redemarrageEnCours = false; }}>
+      {redemarrageEnCours ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
+    </button></div>{/if}
 
   <div class="scroll">
     {#if loading}
@@ -1161,7 +1168,11 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
   .restart{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
-    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .redemarrer-bandeau{margin-left:auto; padding:5px 12px; border-radius:8px; font:inherit; cursor:pointer;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
+  .redemarrer-bandeau:disabled{opacity:.45; cursor:default}
 
   .plugin{display:flex; flex-direction:column; align-items:flex-start; gap:14px; max-width:64ch; padding:26px 0}
   .plugin-banner{padding:12px 16px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55;

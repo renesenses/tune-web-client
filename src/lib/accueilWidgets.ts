@@ -47,6 +47,7 @@ import { lireListe } from './lectureEnMasse';
 import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
+import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -75,6 +76,16 @@ export interface Element {
    */
   radioId?: number | null;
   cover?: string | null;
+  /**
+   * web#2750 points 6 et 7 — le nombre de titres d'une PLAYLIST, affiché en
+   * sous-titre de sa vignette. `null`/absent : inconnu, rien n'est affiché.
+   */
+  nbTitres?: number | null;
+  /**
+   * Le même nombre, à DEMANDER quand l'objet ne le porte pas (favori de
+   * service) : appelé une fois, au rendu de la vignette.
+   */
+  compterTitres?: () => Promise<number | null>;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
   /**
@@ -362,6 +373,12 @@ export interface Widget {
    * libellé, c'est la plainte de Sandro (fil 1679) rejouée à l'identique.
    */
   sansTitre?: boolean;
+  /**
+   * web#2883 (Bertrand, 12/11/2026) — chargé et VIDE, le widget n'est pas
+   * rendu du tout, au lieu de « Rien à montrer ici pour l'instant. ». En mode
+   * « Modifier » il reste visible : c'est là qu'on le déplace ou le retire.
+   */
+  masqueSiVide?: boolean;
 }
 
 /**
@@ -562,6 +579,7 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
     ...artisteDuSousDe(o, service, opts.genre ?? 'album'),
+    ...(opts.genre === 'playlist' ? { nbTitres: nbTitresDe(o) } : {}),
   };
 }
 
@@ -1183,22 +1201,16 @@ function ficheDAlbumDePiste(o: any, idAlbum: number): Element['fiche'] {
 }
 
 /**
- * LES REPLIS DU WIDGET « VOS FAVORIS » — #1509.
+ * UNE PISTE FAVORITE — née repli du widget « Vos favoris » (#1509), repli
+ * retiré le 12/11/2026 (web#2883) ; elle reste la base de `elementPisteDuSeau`.
  *
- * Un artiste ou une piste favori, tels que `chargerFavorisFusionnes` les
- * rend : un objet de BIBLIOTHÈQUE porte son `id` ; un objet de SERVICE porte
- * `id: null` et la paire `source` / `source_id`.
- *
- *  - un ARTISTE s'ouvre par son nom (`ouvrirArtisteParNom`), comme les tops ;
- *    `genre: 'aucun'` parce que son `id` n'est pas celui d'un album ;
- *  - une PISTE se joue : `track_id` local d'abord, sinon la paire service +
+ * Telle que `chargerFavorisFusionnes` la rend : un objet de BIBLIOTHÈQUE porte
+ * son `id` ; un objet de SERVICE porte `id: null` et la paire `source` /
+ * `source_id`. Une PISTE se joue : `track_id` local d'abord, sinon la paire service +
  *    identifiant de piste. Jamais par `versElement` seul, qui prendrait son
  *    `id` de bibliothèque pour un album et son `source_id` pour un
  *    `streaming_album_id` — les deux pièges déjà documentés plus haut.
  */
-function elementArtisteFavori(o: any, i: number): Element {
-  return { ...versElement(o, i, 'art', { genre: 'aucun' }), ...gesteArtisteTop(champ(o, 'name')) };
-}
 function elementPisteFavorite(o: any, i: number): Element {
   const el = versElement(o, i, 'trk', { genre: 'aucun' });
   const local = idLocalValide(o?.id);
@@ -1219,8 +1231,8 @@ function elementPisteFavorite(o: any, i: number): Element {
  * « Artistes favoris, Pistes favorites, Playlists favorites, Smart playlists
  * favorites, Collections favorites, Smart collections favorites. »
  *
- * « Vos favoris » reste tel quel : une bande d'albums, repliée sur artistes
- * puis pistes (#1509). Ces six-là montrent CHACUN un seau, et le lisent par le
+ * « Vos favoris » (« Albums favoris », web#2750) reste une bande d'albums,
+ * sans repli depuis web#2883. Ces six-là montrent CHACUN un seau, et le lisent par le
  * MÊME chargeur que l'écran Favoris (`favorisFusionnes`) — bibliothèque ET
  * services pour les artistes, les pistes et les playlists.
  *
@@ -1321,11 +1333,21 @@ export function elementPisteDuSeau(o: any, i: number): Element {
  */
 function elementPlaylistDuSeau(pl: any, i: number): Element {
   const local = idLocalValide(pl?.id);
-  if (local == null) return versElement(pl, i, 'fpl', { genre: 'playlist' });
+  if (local == null) {
+    const el = versElement(pl, i, 'fpl', { genre: 'playlist' });
+    // web#2750 point 7 — un favori de service ne porte pas son nombre de
+    // titres : on le demande à la playlist, dans la même file que les
+    // mosaïques (trois requêtes en vol au plus).
+    const service = el.source;
+    const sid = champ(pl, 'source_id');
+    if (el.nbTitres != null || !service || !sid) return el;
+    return { ...el, compterTitres: () => enFileMosaique(() => compterTitresDeService(service, sid)) };
+  }
   const nom = champ(pl, 'name') ?? '—';
   return {
     id: `fpl${i}-${local}`,
     titre: nom,
+    nbTitres: nbTitresDe(pl),
     cover: null,
     source: null,
     jouer: (z: number) => api.play(z, { playlist_id: local }),
@@ -1745,9 +1767,13 @@ export const WIDGETS: Widget[] = [
      * service : l'onglet dit 2, le widget 0. On passe par le MÊME chargeur
      * que l'écran (`chargerFavorisFusionnes`), pas par un second.
      *
-     * Et un profil sans album favori n'est pas un profil sans favori : à
-     * défaut d'albums, la bande montre les ARTISTES, puis les PISTES.
+     * web#2883 — décision de Bertrand du 12/11/2026 : la bande s'appelle
+     * « Albums favoris » (web#2750) et ne montre QUE des albums. Le repli sur
+     * les artistes puis les pistes (#1509) est retiré : un profil sans album
+     * favori n'a pas cette bande, elle est MASQUÉE (`masqueSiVide`), et les
+     * bandes « Artistes favoris » / « Pistes favorites » existent pour le reste.
      */
+    masqueSiVide: true,
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await chargerFavorisFusionnes(ctx.profileId);
@@ -1763,10 +1789,7 @@ export const WIDGETS: Widget[] = [
           artisteSuggere: champ(o, 'artist_name') ?? null,
         })),
       );
-      if (albums.length) return albums;
-      const artistes = utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteFavori(o, i)));
-      if (artistes.length) return artistes;
-      return utiles(f.tracks.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPisteFavorite(o, i)));
+      return albums;
     },
   },
   {

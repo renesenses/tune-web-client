@@ -128,17 +128,17 @@ const fr: Record<string, string> = lFr as any;
 const LOCAL_CLES = [
   'common.play', 'v2.pa.next', 'queue.addToQueue', 'library.playSimilar', 'library.otherVersions',
   'nowplaying.addToPlaylist', 'library.goToArtist', 'library.goToAlbum', 'v2.later.add', 'v2.cover.tags',
-  'trackTags.title', 'credits.see', 'spectro.menu', 'ban.ban',
+  'trackTags.title', 'credits.see', 'spectro.menu', 'fiche.menu', 'ban.ban',
 ];
 /** Ce que le SERVEUR ne sait pas encore rendre pour ce service. */
 const ABSENTS_PAR_SERVICE: Record<string, string[]> = {
-  qobuz: ['spectro.menu'],
-  tidal: ['credits.see', 'spectro.menu'],
-  deezer: ['credits.see', 'spectro.menu'],
-  spotify: ['library.playSimilar', 'credits.see', 'spectro.menu'],
-  youtube: ['library.playSimilar', 'credits.see', 'spectro.menu'],
-  bandcamp: ['library.playSimilar', 'credits.see', 'spectro.menu'],
-  amazon: ['library.playSimilar', 'credits.see', 'spectro.menu'],
+  qobuz: ['spectro.menu', 'fiche.menu'],
+  tidal: ['credits.see', 'spectro.menu', 'fiche.menu'],
+  deezer: ['credits.see', 'spectro.menu', 'fiche.menu'],
+  spotify: ['library.playSimilar', 'credits.see', 'spectro.menu', 'fiche.menu'],
+  youtube: ['library.playSimilar', 'credits.see', 'spectro.menu', 'fiche.menu'],
+  bandcamp: ['library.playSimilar', 'credits.see', 'spectro.menu', 'fiche.menu'],
+  amazon: ['library.playSimilar', 'credits.see', 'spectro.menu', 'fiche.menu'],
 };
 const attendu = (absents: string[]) => LOCAL_CLES.filter((c) => !absents.includes(c)).map((c) => fr[c]);
 function nettoyer() {

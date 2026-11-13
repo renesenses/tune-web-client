@@ -55,6 +55,8 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
+  import { ordreCoffretAnnonce } from '../../lib/ordreCoffret';
+  import OrdreCoffretFicheV2 from './OrdreCoffretFicheV2.svelte';
   import {
     SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
     idsSelectionnables, restreindre, toutEstChoisi, toutOuRien, type Bilan, type EtatSelection,
@@ -520,6 +522,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       if (revelable) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.reveal', bulle: 'v2.album.revealTip',
         faire: () => void ouvrirDansLExplorateur(), attrs: { 'data-reveler-album': true } });
     }
+    // #8571 (fil 2763) — réordonner les albums d'un coffret composé à la
+    // main, sur un serveur qui l'annonce (sonde `ordre_coffret`).
+    if (coffretReordonnable() && !enEdition) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.boxReorder', bulle: 'v2.album.boxReorderTip',
+      active: enOrdreCoffret,
+      faire: () => { onglet = 'pistes'; enOrdreCoffret = !enOrdreCoffret; }, attrs: { 'data-reordonner-coffret': true } });
     if (coffretDefaisable()) l.push({ groupe: biblio, secondaire: true, cle: 'v2.album.boxUndo', desactive: defaireEnCours, bulle: 'v2.album.boxUndoTip',
       faire: () => void defaireCoffret(), attrs: { 'data-defaire-coffret': true } });
     return l;
@@ -654,6 +661,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       return 'manuel';
     }
     return null;
+  }
+  /** #8571 — le panneau « Réordonner les albums » est ouvert. */
+  let enOrdreCoffret = $state(false);
+  function coffretReordonnable(): boolean {
+    return origineCoffret === 'manuel' && edition?.album.id === album.id && ordreCoffretAnnonce(edition);
   }
   async function defaireCoffret() {
     const id = album.id;
@@ -923,7 +935,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     return () => { vivant = false; };
   });
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
-  $effect(() => { void album?.id; enEdition = false; suggestionsIa = false; notesIa = false; });
+  $effect(() => { void album?.id; enEdition = false; enOrdreCoffret = false; suggestionsIa = false; notesIa = false; });
 
   /**
    * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
@@ -1832,8 +1844,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
 </script>
 
 <div class="v2-detail tune-v2">
-  <button class="close" onclick={onClose} aria-label="Fermer">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
+  <!-- #2459 (Régis, 10/11) — la flèche porte son libellé « Retour », comme
+       le retour des Collections (`common.back`) ; visible à toute largeur. -->
+  <button class="close" data-retour-album onclick={onClose}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    <span>{$tr('common.back' as any)}</span>
   </button>
 
   <div class="head">
@@ -2103,6 +2118,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         onFermer={() => (enEdition = false)}
         onEnregistre={apresEnregistrement}
         onRecharger={() => (rechargement += 1)} />
+    {:else if enOrdreCoffret && album.id != null}
+      <!-- #8571 (fil 2763) — réordonner les albums du coffret. -->
+      <OrdreCoffretFicheV2 coffretId={album.id}
+        onFermer={() => (enOrdreCoffret = false)}
+        onEnregistre={() => { enOrdreCoffret = false; void apresEnregistrement(); }} />
     {:else if loading}
       <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
@@ -2268,14 +2288,25 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
-  .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2); display:grid; place-items:center}
+  .close{position:sticky; top:0; margin-bottom:8px; height:40px; padding:0 14px 0 10px; border-radius:12px; cursor:pointer;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
+    display:inline-flex; align-items:center; gap:6px; max-width:100%; white-space:nowrap;
+    font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .close svg{width:18px; height:18px}
+  .close svg{width:18px; height:18px; flex:none}
 
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
-  .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px}
+  .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
+     pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
+     coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  @media (max-width:640px){
+    .v2-detail{padding:20px 16px 32px}
+    .head:not(.compact){flex-direction:column; gap:18px}
+    .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
+    .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  }
   /* Le badge de qualité et la pastille « compilation » sur la MÊME ligne, et
      non deux blocs empilés : ce sont deux étiquettes de même rang, et empilées
      elles pousseraient le titre de l'album hors du premier coup d'œil. */
