@@ -74,6 +74,15 @@ export interface EntreeDiscographie {
   sources: string[];
   /** Les qualités trouvées parmi les exemplaires, sans doublon. */
   qualites: Qualite[];
+  /**
+   * tune-server-rust#8662 — TOUTES les éditions de ce titre, y compris celles
+   * qu'un même service rend en plusieurs exemplaires (Qobuz : trois éditions
+   * de « The Hurting » de Tears For Fears, même titre, même version). Les
+   * exemplaires d'abord, dans leur ordre ; puis les autres éditions de chaque
+   * source, dans l'ordre d'arrivée. `exemplaires` n'en garde qu'une par
+   * source ; rien n'est perdu ici. Voir `editionsCachees`.
+   */
+  editions: Exemplaire[];
 }
 
 /** Le vocabulaire du type explicite (`release_type`, serveur #4767). */
@@ -293,6 +302,53 @@ export function versionsEntree(e: EntreeDiscographie): VersionSource[] {
 }
 
 /**
+ * tune-server-rust#8662 — la vignette cache-t-elle des éditions ? Vrai quand
+ * une source y tient plus d'un exemplaire : c'est alors que le badge
+ * « N éditions » s'affiche. Un album présent chez Qobuz et dans la
+ * bibliothèque n'a qu'une édition par source : pas de badge, ses étiquettes
+ * de plateforme (#2829) le disent déjà.
+ */
+export function editionsCachees(e: EntreeDiscographie): boolean {
+  return (e.editions?.length ?? 0) > e.exemplaires.length;
+}
+
+/** Ce que la liste des éditions dit de chacune (#8662). */
+export interface DetailEdition {
+  source: string;
+  titre: string;
+  qualite: Qualite | null;
+  resolution: string | null;
+  /** « 1983-03-07 » quand la date est connue, sinon l'année, sinon `null`. */
+  date: string | null;
+  pistes: number | null;
+  label: string | null;
+}
+
+/**
+ * Le détail d'une édition : qualité, date de sortie, nombre de titres, label.
+ * Ce que le service ne dit pas reste `null` — on n'affiche pas ce qu'on ne
+ * sait pas. Qobuz date ses albums par `released_at` (secondes d'époque).
+ */
+export function detailEdition(ex: Exemplaire): DetailEdition {
+  const al = ex.album as Album & { released_at?: number | null };
+  let date: string | null = al.release_date?.trim() ? al.release_date.trim().slice(0, 10) : null;
+  if (!date && typeof al.released_at === 'number' && Number.isFinite(al.released_at) && al.released_at > 0) {
+    date = new Date(al.released_at * 1000).toISOString().slice(0, 10);
+  }
+  if (!date && al.year) date = String(al.year);
+  const pistes = Number(al.track_count ?? 0);
+  return {
+    source: ex.source,
+    titre: al.title ?? '',
+    qualite: qualiteDe(ex),
+    resolution: resolutionDe(ex),
+    date,
+    pistes: pistes > 0 ? pistes : null,
+    label: al.label?.trim() || null,
+  };
+}
+
+/**
  * L'exemplaire relève-t-il de cette qualité ? Multicanal se lit à part
  * (`max_channels`, servi par la bibliothèque seulement), les paliers par
  * `qualiteDe`.
@@ -310,6 +366,11 @@ export function aLaQualite(ex: Exemplaire, q: Qualite): boolean {
  * 🔴 Un même service rend parfois DEUX fois la même édition sous deux
  * identifiants (Qobuz, rééditions de catalogue). On garde UN exemplaire par
  * source : deux pastilles « QOBUZ » sur une vignette ne diraient rien de plus.
+ *
+ * 🔴 Les autres ne sont pas JETÉS (#8662, Simon, fil 2795 : « Tears For
+ * Fears only shows one version of The Hurting ») : ils restent des éditions
+ * de la vignette (`editions`), proposées par le badge « N éditions ». Une
+ * vignette, aucun doublon visible, et chaque édition s'ouvre et se lit.
  *
  * 🔴 Lequel : celui qui a le PLUS de titres, pas le premier arrivé. Neil
  * Young, « Second Song » (#4652, fil 1875) : Qobuz rend le single d'avant-
@@ -332,6 +393,8 @@ export function fusionnerDiscographie(
   services: AlbumsDeService[] | null | undefined,
 ): EntreeDiscographie[] {
   const parCle = new Map<string, Exemplaire[]>();
+  /** #8662 — les exemplaires d'un service écartés par la règle de #4652. */
+  const autresParCle = new Map<string, Exemplaire[]>();
   const ajouterBibliotheque = (album: Album) => {
     const cle = cleEdition(album?.title);
     if (!cle) return ajouter(BIBLIOTHEQUE, album);
@@ -355,13 +418,20 @@ export function fusionnerDiscographie(
     const k = cle || `∅:${source}:${String(album?.id ?? album?.source_id ?? parCle.size)}`;
     const liste = parCle.get(k) ?? [];
     const deja = cle ? liste.findIndex((e) => e.source === source) : -1;
+    const ex: Exemplaire = { source, album };
+    // #8662 — l'exemplaire écarté reste une ÉDITION de la vignette.
+    const autres = autresParCle.get(k) ?? [];
     if (deja > -1) {
       if (Number(album?.track_count ?? 0) > Number(liste[deja].album?.track_count ?? 0)) {
-        liste[deja] = { source, album };
+        autres.push(liste[deja]);
+        liste[deja] = ex;
+      } else {
+        autres.push(ex);
       }
+      autresParCle.set(k, autres);
       return;
     }
-    liste.push({ source, album });
+    liste.push(ex);
     parCle.set(k, liste);
   };
 
@@ -386,6 +456,10 @@ export function fusionnerDiscographie(
       // Local et UPnP partagent la pastille « bibliothèque » : une seule fois.
       sources: [...new Set(ranges.map((e) => e.source))],
       qualites,
+      editions: [...ranges, ...(autresParCle.get(cle) ?? [])
+        .map((e, i) => ({ e, i }))
+        .sort((a, b) => rangExemplaire(a.e) - rangExemplaire(b.e) || a.i - b.i)
+        .map(({ e }) => e)],
     };
   });
 }
