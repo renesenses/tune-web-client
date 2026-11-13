@@ -954,7 +954,8 @@
    */
   let montees = $state(TRANCHE_GRILLE);
   const albumsMontes = $derived(albumsVus.slice(0, montees));
-  let defilEl = $state<HTMLElement | null>(null);
+  /** Le conteneur qui DÉFILE : `.defil`, autour du rail et de la grille. */
+  const defilEl = $derived(grilleEl?.closest<HTMLElement>('.defil') ?? null);
   let sentinelle = $state<HTMLElement | null>(null);
   const AVANCE_PX = 800;
   function basProche(): boolean {
@@ -1404,7 +1405,7 @@
     </header>
 
     <!-- #907 : l'en-tête (et son « Retour ») ne part plus avec la grille. -->
-    <div class="defil" bind:this={defilEl}>
+    <div class="defil">
     {#if albumsChargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !albums.length}
