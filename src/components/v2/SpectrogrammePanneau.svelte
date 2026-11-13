@@ -15,11 +15,18 @@
    * « Pas un fichier local » (piste de service, fichier absent) et « l'image
    * n'a pas pu être produite » ne se corrigent pas de la même façon : la
    * seconde se retente, pas la première.
+   *
+   * ## Pistes Qobuz / TIDAL (go du 13/11)
+   *
+   * `service` : le serveur télécharge l'audio pour le calcul, puis l'efface ;
+   * l'attente le dit (« Téléchargement pour analyse… »), et un refus du
+   * service (non connecté, région, trop volumineux…) se dit avec sa raison.
    */
   import { portail } from '../../lib/portail';
   import { t } from '../../lib/i18n';
   import {
     chargerSpectrogramme, ErreurSpectrogramme, type GenreErreurSpectrogramme,
+    analyseParTelechargement, cleRaisonService, raisonRetentable, type RaisonService,
     degradeEchelleDb, graduationsDb, libelleDb, HAUTEUR_SPECTROGRAMME, MARGES_SPECTROGRAMME,
   } from '../../lib/spectrogramme';
 
@@ -32,15 +39,18 @@
   interface Props {
     trackId: number;
     titre?: string;
+    /** La source de la piste : `qobuz` / `tidal` se calculent par téléchargement. */
+    source?: string | null;
     onClose: () => void;
   }
-  let { trackId, titre = '', onClose }: Props = $props();
+  let { trackId, titre = '', source = null, onClose }: Props = $props();
+  const parTelechargement = $derived(analyseParTelechargement(source));
 
   type Etat =
     | { v: 'repos' }
     | { v: 'chargement' }
     | { v: 'image'; url: string }
-    | { v: 'erreur'; genre: GenreErreurSpectrogramme };
+    | { v: 'erreur'; genre: GenreErreurSpectrogramme; raison?: RaisonService | null };
   let etat = $state<Etat>({ v: 'repos' });
   let controle: AbortController | null = null;
 
@@ -60,7 +70,9 @@
       etat = { v: 'image', url: URL.createObjectURL(blob) };
     } catch (e) {
       if (c.signal.aborted) return;
-      etat = { v: 'erreur', genre: e instanceof ErreurSpectrogramme ? e.genre : 'reseau' };
+      etat = e instanceof ErreurSpectrogramme
+        ? { v: 'erreur', genre: e.genre, raison: e.raison }
+        : { v: 'erreur', genre: 'reseau' };
     }
   }
 
@@ -72,6 +84,7 @@
 
   const CLES_ERREUR: Record<GenreErreurSpectrogramme, string> = {
     'non-locale': 'spectro.notLocal',
+    service: 'spectro.failed',
     impossible: 'spectro.failed',
     indisponible: 'spectro.unavailable',
     introuvable: 'fiche.trackNotFound',
@@ -79,7 +92,11 @@
     reseau: 'spectro.network',
   };
   /** Un fichier qui n'est pas local ne se « retente » pas. */
-  const retentable = $derived(etat.v === 'erreur' && etat.genre !== 'non-locale' && etat.genre !== 'indisponible' && etat.genre !== 'introuvable');
+  const retentable = $derived(etat.v === 'erreur' && (etat.genre === 'service'
+    ? raisonRetentable(etat.raison)
+    : etat.genre !== 'non-locale' && etat.genre !== 'indisponible' && etat.genre !== 'introuvable'));
+  const messageErreur = $derived(etat.v !== 'erreur' ? ''
+    : etat.genre === 'service' && etat.raison ? cleRaisonService(etat.raison) : CLES_ERREUR[etat.genre]);
 
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') { e.stopPropagation(); fermer(); }
@@ -104,7 +121,9 @@
       <p class="etat">{$t('spectro.intro' as any)}</p>
       <button class="bouton" onclick={generer}>{$t('spectro.generate' as any)}</button>
     {:else if etat.v === 'chargement'}
-      <p class="etat" role="status" aria-live="polite">{$t('spectro.loading' as any)}</p>
+      <p class="etat" role="status" aria-live="polite" data-telechargement={parTelechargement || undefined}>
+        {$t((parTelechargement ? 'analyse.downloading' : 'spectro.loading') as any)}
+      </p>
     {:else if etat.v === 'image'}
       <div class="avec-echelle">
         <img class="image" src={etat.url}
@@ -123,7 +142,7 @@
       </div>
       <p class="etat">{$t('spectro.axes' as any)}</p>
     {:else}
-      <p class="etat erreur" role="alert">{$t(CLES_ERREUR[etat.genre] as any)}</p>
+      <p class="etat erreur" role="alert" data-raison={etat.v === 'erreur' ? etat.raison ?? undefined : undefined}>{$t(messageErreur as any)}</p>
       {#if retentable}
         <button class="bouton" onclick={generer}>{$t('spectro.retry' as any)}</button>
       {/if}

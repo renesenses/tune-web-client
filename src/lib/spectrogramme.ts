@@ -16,6 +16,11 @@
  *   - 422 « spectrogram failed: … » : le fichier existe mais ne se décode pas.
  * Un serveur antérieur à la PR répond 404 sans ce corps : même famille que
  * « piste inconnue », l'écran dit alors que la fonction n'est pas disponible.
+ *
+ * Go du 13/11 (tune-server-rust, après #8664) — une piste QOBUZ ou TIDAL de
+ * la bibliothèque a aussi son spectrogramme et sa forme d'onde : le serveur
+ * télécharge l'audio pour le calcul puis l'efface. Ses refus sont des 422 en
+ * JSON, `{ error, raison }` : `raison` (`RaisonService`) se traduit.
  */
 import { authHeaders, BASE } from './api';
 import { clearToken } from './auth';
@@ -56,9 +61,65 @@ export function graduationsDb(pas = 20): { db: number; bas: number }[] {
 /** « −20 » avec le vrai signe moins ; « 0 » sans signe. */
 export const libelleDb = (db: number): string => (db === 0 ? '0' : `\u2212${Math.abs(db)}`);
 
+/** Les services dont une piste s'analyse par téléchargement (go du 13/11). */
+export const SERVICES_ANALYSABLES: readonly string[] = ['qobuz', 'tidal'];
+
+/** La piste se calcule-t-elle par téléchargement (Qobuz, TIDAL) ? */
+export function analyseParTelechargement(source: string | null | undefined): boolean {
+  return !!source && SERVICES_ANALYSABLES.includes(source.toLowerCase());
+}
+
+/**
+ * L'identifiant à donner au spectrogramme et à la fiche technique d'une piste
+ * Qobuz / TIDAL de la bibliothèque (un `i64` de `tracks`), ou `null`.
+ */
+export function idAnalyseDe(piste: { id?: unknown; source?: unknown } | null | undefined): number | null {
+  return typeof piste?.id === 'number' && analyseParTelechargement(piste.source == null ? null : String(piste.source))
+    ? piste.id
+    : null;
+}
+
+/** Les raisons d'un refus pour une piste de service, telles que le serveur les nomme. */
+export const RAISONS_SERVICE = [
+  'service_non_connecte', 'service_inactif', 'non_diffusable', 'region',
+  'trop_volumineux', 'delai_depasse', 'telechargement_impossible', 'zoom_non_disponible',
+] as const;
+export type RaisonService = (typeof RAISONS_SERVICE)[number];
+
+/** La raison d'un 422 en JSON (`{ error, raison }`), ou `null`. */
+export function raisonDeRefus(corps: string): RaisonService | null {
+  try {
+    const r = (JSON.parse(corps) as { raison?: unknown })?.raison;
+    return typeof r === 'string' && (RAISONS_SERVICE as readonly string[]).includes(r) ? (r as RaisonService) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Les clés i18n des raisons, écrites en entier (la garde i18n les lit). */
+const CLES_RAISONS: Record<RaisonService, string> = {
+  service_non_connecte: 'analyse.raison.service_non_connecte',
+  service_inactif: 'analyse.raison.service_inactif',
+  non_diffusable: 'analyse.raison.non_diffusable',
+  region: 'analyse.raison.region',
+  trop_volumineux: 'analyse.raison.trop_volumineux',
+  delai_depasse: 'analyse.raison.delai_depasse',
+  telechargement_impossible: 'analyse.raison.telechargement_impossible',
+  zoom_non_disponible: 'analyse.raison.zoom_non_disponible',
+};
+
+/** La clé i18n d'une raison de refus. */
+export const cleRaisonService = (r: RaisonService): string => CLES_RAISONS[r];
+
+/** Une raison qui peut passer en réessayant (délai, réseau du service). */
+export const raisonRetentable = (r: RaisonService | null | undefined): boolean =>
+  r === 'delai_depasse' || r === 'telechargement_impossible';
+
 export type GenreErreurSpectrogramme =
   /** Pas de fichier local (piste de service, fichier absent du disque). */
   | 'non-locale'
+  /** Piste Qobuz / TIDAL que le serveur n'a pas pu télécharger : voir `raison`. */
+  | 'service'
   /** Le fichier existe mais l'image n'a pas pu être produite. */
   | 'impossible'
   /** Serveur trop ancien pour la route (404 sans corps de piste, 405). */
@@ -72,9 +133,11 @@ export type GenreErreurSpectrogramme =
 
 export class ErreurSpectrogramme extends Error {
   genre: GenreErreurSpectrogramme;
-  constructor(genre: GenreErreurSpectrogramme, detail = '') {
+  raison: RaisonService | null;
+  constructor(genre: GenreErreurSpectrogramme, detail = '', raison: RaisonService | null = null) {
     super(`spectrogramme: ${genre}${detail ? ` (${detail})` : ''}`);
     this.genre = genre;
+    this.raison = raison;
   }
 }
 
@@ -85,6 +148,7 @@ export function genreDeRefus(statut: number, corps: string): GenreErreurSpectrog
   // ce texte (serveur antérieur à la fonction).
   if (statut === 404) return /track not found/i.test(corps) ? 'introuvable' : 'indisponible';
   if (statut === 422) {
+    if (raisonDeRefus(corps)) return 'service';
     return /no local file|file not found/i.test(corps) ? 'non-locale' : 'impossible';
   }
   return 'reseau';
@@ -110,7 +174,7 @@ export async function chargerSpectrogramme(
     const corps = await resp.text().catch(() => '');
     const genre = genreDeRefus(resp.status, corps);
     if (genre === 'session') clearToken();
-    throw new ErreurSpectrogramme(genre, `${resp.status}`);
+    throw new ErreurSpectrogramme(genre, `${resp.status}`, raisonDeRefus(corps));
   }
   return resp.blob();
 }

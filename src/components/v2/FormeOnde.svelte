@@ -17,6 +17,12 @@
    * elles existent — aucune mesure nouvelle.
    *
    * Données : `lib/formeOnde` (`GET /library/tracks/{id}/forme-onde`).
+   *
+   * Piste Qobuz / TIDAL (go du 13/11, `section.service`) : le serveur
+   * télécharge l'audio pour le calcul, puis l'efface — l'attente le dit
+   * (« Téléchargement pour analyse… ») ; le zoom se découpe dans la forme de
+   * la piste entière, sans requête (une plage retéléchargerait la piste) ;
+   * un refus du service se dit avec sa raison.
    */
   import { t, locale } from '../../lib/i18n';
   import { dateLisible } from '../../lib/ficheTechnique';
@@ -25,7 +31,7 @@
     trancher, zoomer, nombreDb, tempsLisible,
     type FormeOnde, type SectionFormeOnde, type Echelle, type Plage, type GenreErreurFormeOnde,
   } from '../../lib/formeOnde';
-  import { libelleDb } from '../../lib/spectrogramme';
+  import { libelleDb, cleRaisonService, raisonRetentable, type RaisonService } from '../../lib/spectrogramme';
 
   interface Props {
     trackId: number;
@@ -41,7 +47,7 @@
     | { v: 'repos' }
     | { v: 'chargement' }
     | { v: 'pret'; forme: FormeOnde }
-    | { v: 'erreur'; genre: GenreErreurFormeOnde };
+    | { v: 'erreur'; genre: GenreErreurFormeOnde; raison?: RaisonService | null };
   // `raw` : des milliers de nombres, jamais modifiés en place ; et `plage`
   // se compare par identité au retour du serveur.
   let etat = $state.raw<Etat>({ v: 'repos' });
@@ -54,6 +60,8 @@
   let minuterieDetail: ReturnType<typeof setTimeout> | null = null;
 
   const langue = $derived($locale ?? 'fr');
+  /** Qobuz / TIDAL : calculée par téléchargement (go du 13/11). */
+  const parTelechargement = $derived(!!section?.service);
   const complete = $derived(etat.v === 'pret' ? etat.forme : null);
   const vue = $derived.by(() => {
     if (!complete) return null;
@@ -76,7 +84,9 @@
       if (!c.signal.aborted) etat = { v: 'pret', forme: f };
     } catch (e) {
       if ((e as { name?: string })?.name === 'AbortError') return;
-      etat = { v: 'erreur', genre: e instanceof ErreurFormeOnde ? e.genre : 'reseau' };
+      etat = e instanceof ErreurFormeOnde
+        ? { v: 'erreur', genre: e.genre, raison: e.raison }
+        : { v: 'erreur', genre: 'reseau' };
     }
   }
 
@@ -96,7 +106,8 @@
     annulerDetail();
     plage = p;
     detail = null;
-    if (!p) return;
+    // Piste de service : la plage reste découpée dans la forme entière.
+    if (!p || parTelechargement) return;
     minuterieDetail = setTimeout(() => {
       minuterieDetail = null;
       void demanderPlage(p);
@@ -185,9 +196,16 @@
 {/if}
 
 {#if etat.v === 'chargement'}
-  <p class="etat" role="status" aria-live="polite">{$t('fiche.waveform.loading' as any)}</p>
+  <p class="etat" role="status" aria-live="polite" data-telechargement={parTelechargement || undefined}>
+    {$t((parTelechargement ? 'analyse.downloading' : 'fiche.waveform.loading') as any)}
+  </p>
 {:else if etat.v === 'erreur'}
-  {#if etat.genre === 'indisponible'}
+  {#if etat.genre === 'service' && etat.raison}
+    <p class="etat" role="alert" data-raison={etat.raison}>{$t(cleRaisonService(etat.raison) as any)}</p>
+    {#if raisonRetentable(etat.raison)}
+      <button class="bouton" onclick={charger}>{$t('fiche.waveform.compute' as any)}</button>
+    {/if}
+  {:else if etat.genre === 'indisponible'}
     <p class="etat" role="status">{$t('fiche.waveform.unavailable' as any)}</p>
   {:else if etat.genre === 'introuvable'}
     <p class="etat" role="status">{$t('fiche.trackNotFound' as any)}</p>
