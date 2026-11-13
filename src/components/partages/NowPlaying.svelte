@@ -226,13 +226,20 @@ import { ICONES } from '../../lib/menuPiste';
     alarmSetting = true;
     alarmSourceRequise = null;
     try {
-      await api.setAlarm(zone.id, alarmTime);
+      // #8666 — une piste de la bibliothèque : son album part avec le réveil
+      // (accepté par `POST /zones/{id}/alarm` de tout serveur, même ancien).
+      const albumDuTitre = track && track.source !== 'radio' && typeof track.album_id === 'number' && track.album_id > 0
+        ? track.album_id : null;
+      await api.setAlarm(zone.id, alarmTime, albumDuTitre != null ? { album_id: albumDuTitre } : undefined);
       showAlarm = false;
       notifications.success(`${$t('nowplaying.alarmSetAt')} ${alarmTime}`);
       await loadAlarmState();
     } catch (e) {
       console.error('Alarm error:', e);
-      if ((e as { code?: string } | null)?.code === 'alarm_source_required') {
+      // `invalid_source` : la même chose dite par un serveur d'avant #8666
+      // (aucune source envoyée, rien de jouable en cours).
+      const code = (e as { code?: string } | null)?.code;
+      if (code === 'alarm_source_required' || code === 'invalid_source') {
         // Pas de toast : le panneau reste ouvert et dit quoi faire.
         alarmSourceRequise = $t('nowplaying.alarmSourceRequired' as any);
       } else if (!dejaAnnoncee(e)) {

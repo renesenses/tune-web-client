@@ -28,10 +28,12 @@ const PISTE = {
 
 let refus: { status: number; corps: unknown } | null = null;
 let poses = 0;
+let corpsPose: any = null;
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
-function reponse(url: string, methode: string): Response {
+function reponse(url: string, methode: string, body?: unknown): Response {
+  if (/\/zones\/1\/alarm(\?|$)/.test(url) && methode === 'POST') corpsPose = body ? JSON.parse(String(body)) : null;
   if (/\/zones\/1\/alarm(\?|$)/.test(url) && methode === 'POST') {
     poses++;
     if (refus) {
@@ -59,10 +61,11 @@ beforeEach(() => {
   locale.set('fr');
   refus = null;
   poses = 0;
+  corpsPose = null;
   for (const n of get(notifications)) notifications.dismiss(n.id);
   vi.stubGlobal('fetch', vi.fn(async (entree: unknown, options?: RequestInit) => {
     const url = String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree);
-    return reponse(url, String(options?.method ?? 'GET').toUpperCase());
+    return reponse(url, String(options?.method ?? 'GET').toUpperCase(), options?.body);
   }));
   vi.stubGlobal('WebSocket', class { close() {} addEventListener() {} removeEventListener() {} send() {} } as never);
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as never);
@@ -121,8 +124,26 @@ describe('#8666 — réveil depuis Lecture en cours', () => {
     expect(get(activeView)).toBe('alarms');
   });
 
+  it('🔴 serveur d’avant #8666 (`invalid_source`) : même panneau, pas de toast', async () => {
+    refus = { status: 400, corps: { error: 'invalid_source', message: 'no source: name source_type and source_id' } };
+    const h = await poserUnReveil();
+    expect(h.querySelector('[data-reveil-source-requise]')).not.toBeNull();
+    expect(get(notifications).some((n) => n.level === 'error')).toBe(false);
+  });
+
+  it('🔴 piste de la bibliothèque : son album part avec le réveil', async () => {
+    zones.set([{ id: 1, name: 'Salon', state: 'playing', current_track: { ...PISTE, source: 'local', album_id: 42, track_id: 7 }, position_ms: 1000 }] as never);
+    await poserUnReveil();
+    expect(corpsPose).toMatchObject({ time: '07:00', album_id: 42 });
+  });
+
+  it('piste de service sans album de bibliothèque : rien de plus n’est envoyé', async () => {
+    await poserUnReveil();
+    expect(corpsPose?.album_id).toBeUndefined();
+  });
+
   it('🔴 autre refus : le toast « Erreur réveil » se ferme seul', async () => {
-    refus = { status: 400, corps: { error: 'invalid_source', message: 'source invalide' } };
+    refus = { status: 422, corps: { error: 'invalid_days', message: 'jours invalides' } };
     await poserUnReveil();
     const erreurs = get(notifications).filter((n) => n.level === 'error');
     expect(erreurs.length, 'un seul toast').toBe(1);
