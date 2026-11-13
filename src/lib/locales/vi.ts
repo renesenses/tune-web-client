@@ -593,6 +593,8 @@ export default {
   "playlist.importing": "Đang nhập...",
   "playlist.manager": "Quản lý danh sách phát",
   "favorites.serviceSyncFailed": "Mục yêu thích vẫn được giữ trong Tune, nhưng {service} không đồng bộ theo: {motif}",
+  "favorites.spotifyReconnect": "Hãy kết nối lại Spotify một lần để quản lý mục yêu thích.",
+  "favorites.spotifyReconnectAction": "Kết nối lại Spotify",
   "favorites.miroirEnAttente": "Mục yêu thích vẫn được giữ trong Tune; {service} chưa đồng bộ theo ({motif}). Tune sẽ thử lại.",
   "v2.fav.miroirEnAttente": "Một số mục yêu thích của dịch vụ vẫn đang chờ dịch vụ phản hồi. Tune sẽ thử lại.",
   "v2.fav.miroirEchec": "Lần làm mới gần nhất của mục yêu thích dịch vụ đã thất bại. Danh sách có thể chưa được cập nhật.",

@@ -528,6 +528,8 @@ export default {
   'playlist.importing': 'インポート中...',
   'playlist.manager': 'プレイリストマネージャー',
   'favorites.serviceSyncFailed': 'お気に入りは Tune に保存されましたが、{service} に反映されませんでした: {motif}',
+  "favorites.spotifyReconnect": "お気に入りを管理するには、Spotify を一度再接続してください。",
+  "favorites.spotifyReconnectAction": "Spotify を再接続",
   "favorites.miroirEnAttente": "お気に入りは Tune に保存されました。{service} はまだ反映していません（{motif}）。Tune が再試行します。",
   "v2.fav.miroirEnAttente": "一部のサービスのお気に入りがまだサービスへの反映待ちです。Tune が再試行します。",
   "v2.fav.miroirEchec": "サービスのお気に入りの前回の更新に失敗しました。一覧が古い可能性があります。",

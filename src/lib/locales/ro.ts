@@ -534,6 +534,8 @@ export default {
   'playlist.importing': 'Se importă...',
   'playlist.manager': 'Manager playlisturi',
   'favorites.serviceSyncFailed': 'Favoritul a rămas în Tune, dar {service} nu a urmat: {motif}',
+  "favorites.spotifyReconnect": "Reconectați Spotify o dată pentru a vă gestiona favoritele.",
+  "favorites.spotifyReconnectAction": "Reconectați Spotify",
   "favorites.miroirEnAttente": "Favoritul a rămas în Tune; {service} nu a urmat încă ({motif}). Tune va reîncerca.",
   "v2.fav.miroirEnAttente": "Unele favorite ale serviciilor își așteaptă încă serviciul. Tune va reîncerca.",
   "v2.fav.miroirEchec": "Ultima reîmprospătare a favoritelor serviciilor a eșuat. Lista poate fi depășită.",

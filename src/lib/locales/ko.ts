@@ -528,6 +528,8 @@ export default {
   'playlist.importing': '가져오는 중...',
   'playlist.manager': '재생목록 관리자',
   'favorites.serviceSyncFailed': '즐겨찾기는 Tune에 유지되었지만 {service}에 반영되지 않았습니다: {motif}',
+  "favorites.spotifyReconnect": "즐겨찾기를 관리하려면 Spotify를 한 번 다시 연결하세요.",
+  "favorites.spotifyReconnectAction": "Spotify 다시 연결",
   "favorites.miroirEnAttente": "즐겨찾기는 Tune에 유지되었습니다. {service}에 아직 반영되지 않았습니다({motif}). Tune이 다시 시도합니다.",
   "v2.fav.miroirEnAttente": "일부 서비스 즐겨찾기가 아직 서비스 반영을 기다리고 있습니다. Tune이 다시 시도합니다.",
   "v2.fav.miroirEchec": "서비스 즐겨찾기의 마지막 새로 고침에 실패했습니다. 목록이 최신이 아닐 수 있습니다.",

@@ -528,6 +528,8 @@ export default {
   'playlist.importing': 'Wird importiert...',
   'playlist.manager': 'Playlist-Verwaltung',
   'favorites.serviceSyncFailed': 'Favorit in Tune behalten, aber {service} hat nicht mitgezogen: {motif}',
+  "favorites.spotifyReconnect": "Verbinden Sie Spotify einmal neu, um Ihre Favoriten zu verwalten.",
+  "favorites.spotifyReconnectAction": "Spotify neu verbinden",
   "favorites.miroirEnAttente": "Favorit in Tune behalten; {service} hat noch nicht mitgezogen ({motif}). Tune versucht es erneut.",
   "v2.fav.miroirEnAttente": "Einige Dienst-Favoriten warten noch auf ihren Dienst. Tune versucht es erneut.",
   "v2.fav.miroirEchec": "Die letzte Aktualisierung der Dienst-Favoriten ist fehlgeschlagen. Die Liste ist eventuell nicht aktuell.",

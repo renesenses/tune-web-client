@@ -591,6 +591,8 @@ export default {
   "playlist.importing": "Importowanie...",
   "playlist.manager": "Menedżer playlist",
   "favorites.serviceSyncFailed": "Ulubione zachowano w Tune, ale {service} nie nadążył: {motif}",
+  "favorites.spotifyReconnect": "Połącz ponownie Spotify jeden raz, aby zarządzać ulubionymi.",
+  "favorites.spotifyReconnectAction": "Połącz ponownie Spotify",
   "favorites.miroirEnAttente": "Ulubione zachowano w Tune; {service} jeszcze nie nadążył ({motif}). Tune spróbuje ponownie.",
   "v2.fav.miroirEnAttente": "Część ulubionych z usług nadal czeka na swoją usługę. Tune spróbuje ponownie.",
   "v2.fav.miroirEchec": "Ostatnie odświeżenie ulubionych z usług nie powiodło się. Lista może być nieaktualna.",

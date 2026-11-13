@@ -528,6 +528,8 @@ export default {
   'playlist.importing': 'Importando...',
   'playlist.manager': 'Gestor de listas de reproducción',
   'favorites.serviceSyncFailed': 'Favorito guardado en Tune, pero {service} no lo ha seguido: {motif}',
+  "favorites.spotifyReconnect": "Vuelva a conectar Spotify una vez para gestionar sus favoritos.",
+  "favorites.spotifyReconnectAction": "Reconectar Spotify",
   "favorites.miroirEnAttente": "Favorito guardado en Tune; {service} aún no lo ha seguido ({motif}). Tune lo reintentará.",
   "v2.fav.miroirEnAttente": "Algunos favoritos de servicio aún esperan a su servicio. Tune lo reintentará.",
   "v2.fav.miroirEchec": "La última actualización de los favoritos de servicio falló. La lista puede estar desfasada.",
