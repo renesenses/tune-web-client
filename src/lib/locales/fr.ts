@@ -1468,6 +1468,8 @@ export default {
   "nowplaying.generationError": "Erreur lors de la génération",
   "nowplaying.alarmSetAt": "Réveil programmé à",
   "nowplaying.alarmError": "Erreur réveil",
+  "nowplaying.alarmSourceRequired": "Ce qui joue ne peut pas devenir la source du réveil (titre d'un service hors de votre bibliothèque, ou rien en lecture). Choisissez une radio, un album ou une playlist.",
+  "nowplaying.alarmChooseSource": "Choisir la source",
   "nowplaying.alarmCancelled": "Réveil annulé",
   "nowplaying.sleepTimerError": "Erreur sleep timer",
   "nowplaying.clearQueueError": "Erreur lors du vidage",

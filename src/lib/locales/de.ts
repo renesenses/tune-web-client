@@ -1316,6 +1316,8 @@ export default {
   "nowplaying.generationError": "Fehler bei der Generierung",
   "nowplaying.alarmSetAt": "Wecker gestellt für",
   "nowplaying.alarmError": "Wecker-Fehler",
+  "nowplaying.alarmSourceRequired": "Was gerade läuft, kann nicht zur Weckerquelle werden (Titel eines Dienstes außerhalb Ihrer Bibliothek oder keine Wiedergabe). Wählen Sie einen Radiosender, ein Album oder eine Playlist.",
+  "nowplaying.alarmChooseSource": "Quelle wählen",
   "nowplaying.alarmCancelled": "Wecker abgebrochen",
   "nowplaying.sleepTimerError": "Sleep-Timer-Fehler",
   "nowplaying.clearQueueError": "Fehler beim Leeren der Warteschlange",

@@ -1320,6 +1320,8 @@ export default {
   "nowplaying.generationError": "Σφάλμα κατά τη δημιουργία",
   "nowplaying.alarmSetAt": "Το ξυπνητήρι ορίστηκε για",
   "nowplaying.alarmError": "Σφάλμα ξυπνητηριού",
+  "nowplaying.alarmSourceRequired": "Αυτό που παίζει δεν μπορεί να γίνει πηγή του ξυπνητηριού (κομμάτι υπηρεσίας εκτός της βιβλιοθήκης σας ή τίποτα σε αναπαραγωγή). Επιλέξτε ραδιοφωνικό σταθμό, άλμπουμ ή λίστα αναπαραγωγής.",
+  "nowplaying.alarmChooseSource": "Επιλογή πηγής",
   "nowplaying.alarmCancelled": "Το ξυπνητήρι ακυρώθηκε",
   "nowplaying.sleepTimerError": "Σφάλμα χρονοδιακόπτη ύπνου",
   "nowplaying.clearQueueError": "Σφάλμα κατά την εκκαθάριση της ουράς",

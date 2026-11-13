@@ -1316,6 +1316,8 @@ export default {
   "nowplaying.generationError": "Errore durante la generazione",
   "nowplaying.alarmSetAt": "Sveglia impostata per",
   "nowplaying.alarmError": "Errore della sveglia",
+  "nowplaying.alarmSourceRequired": "Ciò che è in riproduzione non può diventare la sorgente della sveglia (un brano di un servizio fuori dalla tua libreria, o nulla in riproduzione). Scegli una radio, un album o una playlist.",
+  "nowplaying.alarmChooseSource": "Scegli la sorgente",
   "nowplaying.alarmCancelled": "Sveglia annullata",
   "nowplaying.sleepTimerError": "Errore del timer di spegnimento",
   "nowplaying.clearQueueError": "Errore durante lo svuotamento della coda",

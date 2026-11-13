@@ -1322,6 +1322,8 @@ export default {
   "nowplaying.generationError": "Lỗi khi tạo",
   "nowplaying.alarmSetAt": "Đã đặt báo thức lúc",
   "nowplaying.alarmError": "Lỗi báo thức",
+  "nowplaying.alarmSourceRequired": "Nội dung đang phát không thể làm nguồn báo thức (bài hát từ dịch vụ không có trong thư viện, hoặc không có gì đang phát). Hãy chọn một đài radio, một album hoặc một danh sách phát.",
+  "nowplaying.alarmChooseSource": "Chọn nguồn",
   "nowplaying.alarmCancelled": "Đã hủy báo thức",
   "nowplaying.sleepTimerError": "Lỗi hẹn giờ tắt",
   "nowplaying.clearQueueError": "Lỗi khi xóa hàng đợi",

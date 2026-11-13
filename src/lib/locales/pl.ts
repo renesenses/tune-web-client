@@ -1320,6 +1320,8 @@ export default {
   "nowplaying.generationError": "Błąd podczas generowania",
   "nowplaying.alarmSetAt": "Budzik ustawiony na",
   "nowplaying.alarmError": "Błąd budzika",
+  "nowplaying.alarmSourceRequired": "To, co gra, nie może być źródłem budzika (utwór z serwisu spoza biblioteki lub nic nie gra). Wybierz stację radiową, album lub playlistę.",
+  "nowplaying.alarmChooseSource": "Wybierz źródło",
   "nowplaying.alarmCancelled": "Budzik anulowany",
   "nowplaying.sleepTimerError": "Błąd wyłącznika czasowego",
   "nowplaying.clearQueueError": "Błąd podczas czyszczenia kolejki",

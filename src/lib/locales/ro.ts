@@ -1322,6 +1322,8 @@ export default {
   "nowplaying.generationError": "Eroare în timpul generării",
   "nowplaying.alarmSetAt": "Alarmă setată pentru",
   "nowplaying.alarmError": "Eroare alarmă",
+  "nowplaying.alarmSourceRequired": "Ce se redă nu poate deveni sursa alarmei (o piesă dintr-un serviciu, în afara bibliotecii, sau nimic în redare). Alegeți un post de radio, un album sau un playlist.",
+  "nowplaying.alarmChooseSource": "Alegeți sursa",
   "nowplaying.alarmCancelled": "Alarmă anulată",
   "nowplaying.sleepTimerError": "Eroare cronometru de adormire",
   "nowplaying.clearQueueError": "Eroare la golirea cozii",

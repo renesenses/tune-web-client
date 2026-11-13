@@ -194,6 +194,24 @@ import { ICONES } from '../../lib/menuPiste';
   let alarmTime = $state('');
   let alarmActive = $state(false);
   let alarmSetting = $state(false);
+  /**
+   * tune-server-rust#8666 — ce qui joue ne peut pas devenir la source du
+   * réveil (titre de service hors bibliothèque, rien en lecture) : le serveur
+   * refuse en `alarm_source_required`. Le panneau le dit, en clair, et
+   * propose de choisir la source dans l'écran Réveils.
+   */
+  let alarmSourceRequise = $state<string | null>(null);
+  /** #8666 — un toast d'erreur du réveil se ferme seul. */
+  const DUREE_ERREUR_REVEIL = 8000;
+  /**
+   * #8666 — `fetchJSON` annonce déjà, lui-même et pour 8 s, une panne du
+   * serveur (5xx) ou un refus qu'il sait dire (`dejaAnnonce`) : un second
+   * toast « Erreur réveil » doublerait le premier.
+   */
+  function dejaAnnoncee(e: unknown): boolean {
+    const err = e as { dejaAnnonce?: boolean; status?: number } | null;
+    return !!err?.dejaAnnonce || (typeof err?.status === 'number' && err.status >= 500 && err.status !== 501);
+  }
 
   /**
    * web#2534 — les réveils de la zone, LISTÉS dans le panneau (alec_eiffel :
@@ -206,6 +224,7 @@ import { ICONES } from '../../lib/menuPiste';
     if (zone?.id == null) return;
     if (!zone?.id || !alarmTime) return;
     alarmSetting = true;
+    alarmSourceRequise = null;
     try {
       await api.setAlarm(zone.id, alarmTime);
       showAlarm = false;
@@ -213,7 +232,12 @@ import { ICONES } from '../../lib/menuPiste';
       await loadAlarmState();
     } catch (e) {
       console.error('Alarm error:', e);
-      notifications.error($t('nowplaying.alarmError'));
+      if ((e as { code?: string } | null)?.code === 'alarm_source_required') {
+        // Pas de toast : le panneau reste ouvert et dit quoi faire.
+        alarmSourceRequise = $t('nowplaying.alarmSourceRequired' as any);
+      } else if (!dejaAnnoncee(e)) {
+        notifierErreur($t('nowplaying.alarmError'), e, { duree: DUREE_ERREUR_REVEIL });
+      }
     }
     alarmSetting = false;
   }
@@ -225,7 +249,7 @@ import { ICONES } from '../../lib/menuPiste';
       notifications.success($t('nowplaying.alarmCancelled'));
     } catch (e) {
       console.error('Cancel alarm error:', e);
-      notifications.error($t('nowplaying.alarmError'));
+      if (!dejaAnnoncee(e)) notifierErreur($t('nowplaying.alarmError'), e, { duree: DUREE_ERREUR_REVEIL });
     }
     await loadAlarmState();
   }
@@ -2276,6 +2300,15 @@ import { ICONES } from '../../lib/menuPiste';
                   {alarmSetting ? '...' : $t('nowplaying.activate')}
                 </button>
               </div>
+              {#if alarmSourceRequise}
+                <div class="alarm-row alarm-source-requise" data-reveil-source-requise role="alert">
+                  <span class="alarm-status">{alarmSourceRequise}</span>
+                  <button class="alarm-set-btn" data-reveil-choisir-source
+                    onclick={() => { showAlarm = false; alarmSourceRequise = null; activeView.set('alarms'); }}>
+                    {$t('nowplaying.alarmChooseSource' as any)}
+                  </button>
+                </div>
+              {/if}
               {#each alarmesZone as a (a.id)}
                 <div class="alarm-row alarm-item" data-reveil-zone={a.id}>
                   <span class="alarm-status" class:inactive={!a.enabled}>{a.enabled ? `${$t('nowplaying.alarmActive')} ` : ''}{a.time}</span>

@@ -1320,6 +1320,8 @@ export default {
   "nowplaying.generationError": "Feil under generering",
   "nowplaying.alarmSetAt": "Alarm satt til",
   "nowplaying.alarmError": "Alarmfeil",
+  "nowplaying.alarmSourceRequired": "Det som spilles kan ikke bli alarmens kilde (et spor fra en tjeneste utenfor biblioteket ditt, eller ingenting spilles). Velg en radiostasjon, et album eller en spilleliste.",
+  "nowplaying.alarmChooseSource": "Velg kilde",
   "nowplaying.alarmCancelled": "Alarm avbrutt",
   "nowplaying.sleepTimerError": "Feil i sovetimer",
   "nowplaying.clearQueueError": "Feil ved tømming av køen",
