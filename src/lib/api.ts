@@ -6246,6 +6246,30 @@ export function enableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/enable`, { method: 'POST' });
 }
 
+/**
+ * tune-server-rust#8481 — le pays du catalogue d'un service (TIDAL), comme
+ * « PL » dans LMS. `chosen_country` null : celui du compte.
+ */
+export interface PaysDuCatalogue {
+  service: string;
+  supported: boolean;
+  account_country: string | null;
+  chosen_country: string | null;
+  effective_country: string;
+}
+
+/** Sans bandeau : 422 (Qobuz, service sans ce réglage) ou 404 (serveur plus ancien) cachent simplement le champ. */
+export function getCatalogCountry(service: string) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, undefined, undefined, true);
+}
+
+export function setCatalogCountry(service: string, country: string | null) {
+  return fetchJSON<PaysDuCatalogue>(`${BASE}/streaming/${encodeURIComponent(service)}/catalog-country`, {
+    method: 'PUT',
+    body: JSON.stringify({ country }),
+  }, undefined, true);
+}
+
 export function disableStreamingService(service: string) {
   return fetchJSON<{ status: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/disable`, { method: 'POST' });
 }
