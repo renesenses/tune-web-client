@@ -2722,7 +2722,7 @@ export default {
   "parental.err.generic": "Reglerna kunde inte läsas eller sparas.",
   "parental.step2Applies": "Tidsintervallen och budgetarna ovan gäller uppspelningen för den här profilen, på alla utgångar. Tiden är serverns tid.",
   "parental.hours.title": "Tillåtna lyssningstider",
-  "parental.hours.hint": "Utanför de här intervallen kan profilen inte starta uppspelning. Inget intervall: när som helst. Du kan lägga till flera intervall. Ett intervall kan inte gå över midnatt: för 21:00 till 07:00, lägg till ett intervall 21:00–23:59 och ett till 00:00–07:00.",
+  "parental.hours.hint": "Utanför de här intervallen kan profilen inte starta uppspelning. Inget intervall: när som helst. Du kan lägga till flera intervall. Ett intervall kan inte gå över midnatt, och lyssningen slutar vid dess sluttid. För 21:00 till 07:00, lägg till 21:00–23:59 och 00:00–07:00: bara den sista minuten före midnatt hamnar utanför.",
   "parental.hours.days": "Intervallets dagar",
   "parental.hours.from": "Från",
   "parental.hours.to": "till",

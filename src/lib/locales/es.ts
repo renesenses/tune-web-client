@@ -2705,7 +2705,7 @@ export default {
   "parental.err.generic": "No se pudieron leer o guardar las reglas.",
   "parental.step2Applies": "Las franjas horarias y los presupuestos de arriba se aplican a la reproducción de este perfil, en todas las salidas. La hora es la del servidor.",
   "parental.hours.title": "Horarios de escucha permitidos",
-  "parental.hours.hint": "Fuera de estas franjas, este perfil no puede iniciar la reproducción. Sin franja: a cualquier hora. Se pueden añadir varias franjas. Una franja no puede pasar de medianoche: para permitir de 21:00 a 07:00, añada una franja de 21:00 a 23:59 y otra de 00:00 a 07:00.",
+  "parental.hours.hint": "Fuera de estas franjas, este perfil no puede iniciar la reproducción. Sin franja: a cualquier hora. Se pueden añadir varias franjas. Una franja no puede pasar de medianoche, y la escucha se detiene a su hora de fin. Para 21:00 a 07:00, añada 21:00–23:59 y 00:00–07:00: solo el último minuto antes de medianoche queda fuera.",
   "parental.hours.days": "Días de la franja",
   "parental.hours.from": "De",
   "parental.hours.to": "a",

@@ -3317,7 +3317,7 @@ export default {
   "parental.err.generic": "Nie udało się odczytać ani zapisać reguł.",
   "parental.step2Applies": "Przedziały czasu i limity powyżej dotyczą odtwarzania tego profilu na wszystkich wyjściach. Godzina jest godziną serwera.",
   "parental.hours.title": "Dozwolone godziny słuchania",
-  "parental.hours.hint": "Poza tymi przedziałami profil nie może rozpocząć odtwarzania. Bez przedziału: o każdej porze. Można dodać kilka przedziałów. Przedział nie może przechodzić przez północ: aby zezwolić od 21:00 do 07:00, dodaj przedział od 21:00 do 23:59 i drugi od 00:00 do 07:00.",
+  "parental.hours.hint": "Poza tymi przedziałami profil nie może rozpocząć odtwarzania. Bez przedziału: o każdej porze. Można dodać kilka przedziałów. Przedział nie może przechodzić przez północ, a słuchanie kończy się o jego godzinie końcowej. Dla 21:00–07:00 dodaj 21:00–23:59 i 00:00–07:00: poza przedziałami zostaje tylko ostatnia minuta przed północą.",
   "parental.hours.days": "Dni przedziału",
   "parental.hours.from": "Od",
   "parental.hours.to": "do",

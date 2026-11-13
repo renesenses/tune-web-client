@@ -2769,7 +2769,7 @@ export default {
   "parental.err.generic": "A szabályokat nem sikerült beolvasni vagy menteni.",
   "parental.step2Applies": "A fenti időszakok és keretek ennek a profilnak a lejátszására vonatkoznak, minden kimeneten. Az idő a szerver ideje.",
   "parental.hours.title": "Engedélyezett hallgatási időszakok",
-  "parental.hours.hint": "Ezeken az időszakokon kívül a profil nem indíthat lejátszást. Időszak nélkül: bármikor. Több időszak is felvehető. Egy időszak nem nyúlhat át éjfélen: 21:00 és 07:00 között vegyen fel egy 21:00–23:59 és egy 00:00–07:00 időszakot.",
+  "parental.hours.hint": "Ezeken az időszakokon kívül a profil nem indíthat lejátszást. Időszak nélkül: bármikor. Több időszak is felvehető. Egy időszak nem nyúlhat át éjfélen, és a hallgatás a záró időpontban leáll. 21:00–07:00-hoz vegyen fel egy 21:00–23:59 és egy 00:00–07:00 időszakot: csak az éjfél előtti utolsó perc marad ki.",
   "parental.hours.days": "Az időszak napjai",
   "parental.hours.from": "Ettől",
   "parental.hours.to": "eddig",
