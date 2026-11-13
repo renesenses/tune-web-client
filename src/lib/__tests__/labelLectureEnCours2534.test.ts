@@ -29,12 +29,18 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 let albumLu: Record<string, unknown> = {};
 let appelsAlbum = 0;
+let appelsContexte = 0;
+let contexte: { label_name?: string } = {};
+let retarderContexte: Promise<Response> | null = null;
 
 function reponse(url: string): Response {
+  url = new URL(url, "http://localhost").pathname;
   let corps: unknown = /\/(zones|profiles|devices|playlists|shortcuts|search)(\?|$)/.test(url) ? [] : {};
   if (/\/queue/.test(url)) corps = { tracks: [], position: 0, length: 0 };
   if (/\/(credits|history|favorites|plays)/.test(url)) corps = [];
   if (/\/library\/albums\/5$/.test(url)) { appelsAlbum += 1; corps = albumLu; }
+  if (url.endsWith('/zones/1/album-en-cours')) corps = { kind: 'streaming', service: 'qobuz', album_id: 'album-qobuz' };
+  if (url.endsWith('/streaming/qobuz/albums/album-qobuz/context')) { appelsContexte += 1; corps = contexte; }
   return {
     ok: true, status: 200, statusText: 'OK',
     headers: new Map([['content-type', 'application/json']]),
@@ -58,8 +64,11 @@ beforeEach(() => {
   locale.set('fr');
   albumLu = {};
   appelsAlbum = 0;
+  appelsContexte = 0;
+  contexte = {};
+  retarderContexte = null;
   vi.stubGlobal('fetch', vi.fn(async (entree: unknown) =>
-    reponse(String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree))));
+    new URL(String(entree), 'http://localhost').pathname.endsWith('/context') && retarderContexte ? retarderContexte : reponse(String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree))));
   vi.stubGlobal('WebSocket', class { close(){} addEventListener(){} removeEventListener(){} send(){} } as any);
   vi.stubGlobal('ResizeObserver', class { observe(){} unobserve(){} disconnect(){} } as any);
   activeView.set('nowplaying');
@@ -108,5 +117,38 @@ describe('web#2534 — le label dans Lecture en cours', () => {
     await new Promise((r) => setTimeout(r, 20));
     flushSync();
     expect(racine.querySelector('[data-np-label]')).toBeNull();
+  });
+});
+
+
+const QOBUZ = { title: 'Titre de service', album_title: 'Album de service', source: 'qobuz', source_id: 'titre-qobuz', album_id: null, track_id: null, cover_path: 'cover.jpg' };
+describe('web#2952 — label du contexte de service', () => {
+  it('Qobuz sans label dans now-playing : affiche le label du contexte, sans répétition au polling', async () => {
+    contexte = { label_name: 'EMI Marketing' };
+    const h = await poser(QOBUZ);
+    await vi.waitFor(() => { flushSync(); expect(h.querySelector('[data-np-label]')?.textContent ?? '', vi.mocked(fetch).mock.calls.map(([u]) => String(u)).join('\n')).toContain('EMI Marketing'); });
+    zones.update(zs => zs.map(z => ({ ...z, current_track: { ...QOBUZ } as any })));
+    flushSync(); await new Promise(r => setTimeout(r, 40));
+    expect(appelsContexte).toBe(1);
+    expect(appelsAlbum).toBe(0);
+    expect(h.querySelector('[data-np-label] [role="link"]')).not.toBeNull();
+  });
+
+  it('une réponse de contexte tardive ne pose pas le label de Qobuz sur la radio suivante', async () => {
+    let terminer!: (r: Response) => void;
+    retarderContexte = new Promise(r => { terminer = r; });
+    const h = await poser(QOBUZ);
+    await vi.waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => new URL(String(u), 'http://localhost').pathname.endsWith('/context'))).toBe(true));
+    zones.update(zs => zs.map(z => ({ ...z, current_track: { ...QOBUZ, source: 'radio', source_id: 'radio' } as any })));
+    flushSync();
+    contexte = { label_name: 'Ancien label' }; terminer(reponse('/streaming/qobuz/albums/album-qobuz/context'));
+    await new Promise(r => setTimeout(r, 40)); flushSync();
+    expect(h.querySelector('[data-np-label]')).toBeNull();
+  });
+
+  it('un service sans label connu ne rend pas de ligne vide', async () => {
+    const h = await poser(QOBUZ);
+    await vi.waitFor(() => expect(appelsContexte).toBe(1));
+    flushSync(); expect(h.querySelector('[data-np-label]')).toBeNull();
   });
 });

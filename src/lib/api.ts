@@ -6650,8 +6650,8 @@ export interface AlbumEnCours {
  * identifiant. Le corps porte alors `reason`. L'appelant doit retomber sur son
  * geste d'avant plutôt que d'afficher une erreur.
  */
-export function getZoneCurrentAlbum(zoneId: number) {
-  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
+export function getZoneCurrentAlbum(zoneId: number, sansBandeau = false) {
+  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`, undefined, undefined, sansBandeau);
 }
 
 /** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
