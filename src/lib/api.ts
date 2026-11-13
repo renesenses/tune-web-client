@@ -8870,6 +8870,8 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 // --- CSV Export ---
 
 export interface EtatIntegrite {
+  /** Estimation publiée par le serveur ; absente sur un serveur ancien. */
+  eta_seconds?: number | null;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
   non_verifiables: number; alertes_taille: number; erreur: string | null;

@@ -190,6 +190,7 @@
   /** #4681 — la section « Ce qui tourne » ; `null` face à un serveur qui ne
    *  publie ni `pausable` ni `playback_priority` : la section se tait. */
   let tourne = $state<CeQuiTourne | null>(null);
+  let auditIntegrite = $state<api.EtatIntegrite | null>(null);
   const lectureEnTete = $derived(phraseLecture(tourne));
   const calculEnTete = $derived(phraseCalcul(tourne));
   /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
@@ -377,7 +378,8 @@
     if (reseauOuvert) void lireReseau();
   }
 
-  const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
+  const anyRunning = $derived(cards.some((c) => c.etat === 'running')
+    || tourne?.lignes.some((l) => l.id === 'tache:integrity' && l.etat !== 'en_pause'));
 
   async function collect() {
     refreshing = true;
@@ -558,6 +560,13 @@
     // passage réglé (tune-server-rust#5169).
     const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
     rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    // Le registre nomme l’audit, son avancement persistant est sur cette route.
+    // Aucun sondage supplémentaire lorsqu’aucun audit n’est inscrit.
+    if (tourne?.lignes.some((l) => l.id === 'tache:integrity')) {
+      try { auditIntegrite = await api.getIntegrityStatus(); }
+      catch { auditIntegrite = null; }
+    } else auditIntegrite = null;
+
 
     // ── Empreintes audio (tune-server-rust#8346) ──────────────────────────
     // Deuxième rang de la cascade, entre ReplayGain et la plage dynamique.
@@ -980,7 +989,14 @@
                   {#if l.raisonCle}
                     <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
                   {/if}
-                  {#if l.avancement}
+                  {#if l.id === 'tache:integrity' && auditIntegrite && auditIntegrite.total > 0}
+                    <span class="tourne-pourquoi" data-avancement-integrite aria-label={$t('integrity.progress' as any)}>
+                      {$formatNombre(auditIntegrite.traites)} / {$formatNombre(auditIntegrite.total)}
+                      {#if auditIntegrite.status === 'running' && !auditIntegrite.lecture_prioritaire && typeof auditIntegrite.eta_seconds === 'number' && Number.isFinite(auditIntegrite.eta_seconds) && auditIntegrite.eta_seconds > 0}
+                        · {$t('v2.nav.bgAnalysisEta' as any).replace('{d}', dureeLisible(auditIntegrite.eta_seconds, (k) => $t(k as any)))}
+                      {/if}
+                    </span>
+                  {:else if l.avancement}
                     <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: libelleProgression(l.avancement, (k) => $t(k as any)), fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
                   {/if}
                 </li>
