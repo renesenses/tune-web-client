@@ -243,6 +243,7 @@ export default {
   "playback.errorNoOutputDevice": "Denne sonen har ingen lydutgang. Velg en annen sone eller sett opp utgangen på nytt.",
   "playback.errorSampleRateUnknown": "Qobuz oppga ikke samplingsraten for dette sporet, og Tune kunne ikke lese den fra filen: avspilling er ikke mulig. Prøv igjen senere eller velg en annen kvalitet.",
   "playback.errorSpotifyDisabled": "Spotify-avspilling er ikke slått på (eksperimentelt valg i Innstillinger).",
+  "playback.errorSpotifyPremium": "Spotify tillater bare lytting i Tune med en Spotify Premium-konto, og denne kontoen har ikke det. Blaing (spillelister, album, søk) er fortsatt tilgjengelig; for å lytte, bruk Spotify-appen eller oppgrader til Premium.",
   "playback.errorSpotifyLinkRequired": "Spotify krever et engangstrinn: velg enheten «{device}» én gang i Spotify-appen (telefon eller datamaskin, samme nettverk, samme konto). Tune beholder deretter denne koblingen.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify krever et engangstrinn, og Tunes Spotify Connect-mottaker er av: slå den på, og velg deretter enheten «{device}» én gang i Spotify-appen (telefon eller datamaskin, samme nettverk, samme konto).",
   "playback.spotifyReceiverEnabled": "Spotify Connect-mottakeren er slått på. Velg nå enheten «{device}» én gang i Spotify-appen (samme nettverk, samme konto), og start avspillingen på nytt.",

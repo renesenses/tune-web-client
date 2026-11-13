@@ -2660,6 +2660,7 @@ export default {
   "playback.errorNoOutputDevice": "Questa zona non ha alcuna uscita audio. Scegli un'altra zona o riconfigura la sua uscita.",
   "playback.errorSampleRateUnknown": "Qobuz non ha indicato la frequenza di campionamento di questo brano e Tune non è riuscito a leggerla dal file: riproduzione impossibile. Riprova più tardi o scegli un'altra qualità.",
   "playback.errorSpotifyDisabled": "La riproduzione Spotify non è attivata (opzione sperimentale nelle Impostazioni).",
+  "playback.errorSpotifyPremium": "Spotify consente l'ascolto in Tune solo con un account Spotify Premium, e questo account non lo è. La navigazione (playlist, album, ricerca) resta disponibile; per ascoltare, usa l'app Spotify o passa a Premium.",
   "playback.errorSpotifyLinkRequired": "Spotify richiede un passaggio unico: nell'app Spotify (telefono o computer, stessa rete, stesso account), scegli una volta il dispositivo «{device}». Tune mantiene poi questo collegamento.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify richiede un passaggio unico e il ricevitore Spotify Connect di Tune è spento: attivalo, poi nell'app Spotify (telefono o computer, stessa rete, stesso account) scegli una volta il dispositivo «{device}».",
   "playback.spotifyReceiverEnabled": "Ricevitore Spotify Connect attivato. Nell'app Spotify (stessa rete, stesso account) scegli ora una volta il dispositivo «{device}», poi riavvia la riproduzione.",

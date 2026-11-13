@@ -262,6 +262,7 @@ export default {
   "playback.errorNoOutputDevice": "Ennek a zónának nincs hangkimenete. Válassz másik zónát, vagy állítsd be újra a kimenetét.",
   "playback.errorSampleRateUnknown": "A Qobuz nem adta meg ennek a számnak a mintavételezési frekvenciáját, és a Tune a fájlból sem tudta kiolvasni: a lejátszás nem lehetséges. Próbáld újra később, vagy válassz másik minőséget.",
   "playback.errorSpotifyDisabled": "A Spotify-lejátszás nincs bekapcsolva (kísérleti beállítás a Beállításokban).",
+  "playback.errorSpotifyPremium": "A Spotify csak Spotify Premium-fiókkal engedi a hallgatást a Tune-ban, és ez a fiók nem Premium. A böngészés (lejátszási listák, albumok, keresés) továbbra is elérhető; a hallgatáshoz használja a Spotify alkalmazást, vagy váltson Premiumra.",
   "playback.errorSpotifyLinkRequired": "A Spotify egyszeri lépést kér: a Spotify alkalmazásban (telefonon vagy számítógépen, ugyanazon a hálózaton és fiókkal) válassza ki egyszer a(z) „{device}” eszközt. A Tune ezután megőrzi ezt a kapcsolatot.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "A Spotify egyszeri lépést kér, de a Tune Spotify Connect vevője ki van kapcsolva: kapcsolja be, majd a Spotify alkalmazásban (telefonon vagy számítógépen, ugyanazon a hálózaton és fiókkal) válassza ki egyszer a(z) „{device}” eszközt.",
   "playback.spotifyReceiverEnabled": "A Spotify Connect vevő bekapcsolva. Most válassza ki egyszer a(z) „{device}” eszközt a Spotify alkalmazásban (ugyanazon a hálózaton és fiókkal), majd indítsa újra a lejátszást.",

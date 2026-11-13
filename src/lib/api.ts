@@ -43,6 +43,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
   // ne l'est pas. Un état de réglage, pas une panne.
   spotify_playback_disabled: 'playback.errorSpotifyDisabled',
+  // Compte Spotify gratuit : Spotify n'autorise l'écoute dans une application
+  // tierce qu'avec Premium (409 `spotify_premium_required`, refus de librespot
+  // ou `PREMIUM_REQUIRED` de l'API Web). Un état du compte, pas une panne.
+  spotify_premium_required: 'playback.errorSpotifyPremium',
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',

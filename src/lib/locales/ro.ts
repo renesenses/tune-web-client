@@ -2663,6 +2663,7 @@ export default {
   "playback.errorNoOutputDevice": "Această zonă nu are nicio ieșire audio. Alege altă zonă sau reconfigurează ieșirea ei.",
   "playback.errorSampleRateUnknown": "Qobuz nu a indicat frecvența de eșantionare a acestei piese, iar Tune nu a putut-o citi din fișier: redarea este imposibilă. Încearcă din nou mai târziu sau alege altă calitate.",
   "playback.errorSpotifyDisabled": "Redarea Spotify nu este activată (opțiune experimentală în Setări).",
+  "playback.errorSpotifyPremium": "Spotify permite ascultarea în Tune doar cu un cont Spotify Premium, iar acest cont nu are unul. Navigarea (playlisturi, albume, căutare) rămâne disponibilă; pentru a asculta, folosiți aplicația Spotify sau treceți la Premium.",
   "playback.errorSpotifyLinkRequired": "Spotify cere un pas unic: în aplicația Spotify (telefon sau computer, aceeași rețea, același cont), alegeți o dată dispozitivul „{device}”. Tune păstrează apoi această legătură.",
   "playback.errorSpotifyLinkRequiredReceiverOff": "Spotify cere un pas unic, iar receptorul Spotify Connect al Tune este oprit: activați-l, apoi, în aplicația Spotify (telefon sau computer, aceeași rețea, același cont), alegeți o dată dispozitivul „{device}”.",
   "playback.spotifyReceiverEnabled": "Receptorul Spotify Connect a fost activat. În aplicația Spotify (aceeași rețea, același cont), alegeți acum o dată dispozitivul „{device}”, apoi reporniți redarea.",
