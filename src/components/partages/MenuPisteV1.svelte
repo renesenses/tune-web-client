@@ -98,6 +98,8 @@
   let tiroirCredits = $state(false);
   /** #7857 — le panneau « Spectrogramme ». */
   let panneauSpectro = $state(false);
+  /** #8160 — la « Fiche technique ». */
+  let panneauFiche = $state(false);
   /**
    * #4993 — le titre de service relevé AU CLIC. Pas `pisteCredits` en direct :
    * un refus (501/404) retire l'entrée, et le tiroir se refermerait avant
@@ -347,6 +349,7 @@
       onChampsDuFichier={() => (tiroirChamps = true)}
       onVoirCredits={() => { creditsDuService = pisteCredits; tiroirCredits = true; }}
       onSpectrogramme={() => (panneauSpectro = true)}
+      onFicheTechnique={() => (panneauFiche = true)}
     />
   {/if}
 </div>
@@ -390,6 +393,12 @@
   {#await import('../v2/SpectrogrammePanneau.svelte') then m}
     <m.default trackId={idBibliotheque} titre={piste.title}
       onClose={() => (panneauSpectro = false)} />
+  {/await}
+{/if}
+{#if panneauFiche && idBibliotheque != null}
+  {#await import('../v2/FicheTechniquePanneau.svelte') then m}
+    <m.default trackId={idBibliotheque} titre={piste.title}
+      onClose={() => (panneauFiche = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

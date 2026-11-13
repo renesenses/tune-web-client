@@ -17,6 +17,7 @@ import { get } from 'svelte/store';
 import type { Source } from './types';
 import { activeView, vueDeRetour } from './stores/navigation';
 import { ficheAlbumService, ficheLabelService } from './stores/streaming';
+import { vueEnRetour } from './historiqueCoquille';
 
 /** Les albums montrés avant « Voir tout ». */
 export const ALBUMS_EN_APERCU = 12;
@@ -54,13 +55,14 @@ export function fermerLabelDeService(): void {
   if (c.retour === 'streamingalbum') {
     if (!c.ficheAlbum) {
       vueDeRetour.set(null);
-      activeView.set(c.retourDuRetour ?? 'home');
+      vueEnRetour(c.retourDuRetour ?? 'home');
       return;
     }
     ficheAlbumService.set(c.ficheAlbum);
   }
   vueDeRetour.set(c.retourDuRetour);
-  activeView.set(c.retour ?? 'home');
+  // Fil 2694 — un RETOUR : l'écran d'un service reprend sa page quittée.
+  vueEnRetour(c.retour ?? 'home');
 }
 
 /** Le début de la page suivante du catalogue, ou `null` quand tout est lu. */

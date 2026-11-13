@@ -37,6 +37,7 @@
   import { onDestroy, onMount, tick, untrack } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
+  import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
@@ -62,6 +63,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
+  import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -94,7 +96,11 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, reposerDetail, typeArrivee, pageCourante, pageQuittee } from '../../lib/historiqueCoquille';
+  import { retenirPageWidgets, reprendrePageWidgets, type MemoirePageWidgets } from '../../lib/memoireStreaming';
+  import { ficheAlbumDeRetour } from '../../lib/stores/streaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -133,6 +139,21 @@
     type SuggestionEcartee,
   } from '../../lib/suggestionsEcartees';
   import '../../styles/tune-v2.css';
+
+  /**
+   * web#2750 point 7 — les nombres de titres DEMANDÉS (favoris de service),
+   * par identifiant de vignette. Chaque vignette ne demande qu'une fois.
+   */
+  let titresLus = $state<Record<string, number>>({});
+  const titresDemandes = new Set<string>();
+  function compterAuRendu(_noeud: HTMLElement, el: Element) {
+    if (el.nbTitres != null || !el.compterTitres || titresDemandes.has(el.id)) return;
+    titresDemandes.add(el.id);
+    el.compterTitres().then(
+      (n) => { if (n != null) titresLus = { ...titresLus, [el.id]: n }; },
+      () => {},
+    );
+  }
 
   /**
    * Les trois colonnes du gros widget des tops, dans l'ordre d'affichage.
@@ -260,7 +281,7 @@
    */
   interface Etat {
     id: string;
-    phase: 'attente' | 'charge' | 'echec' | 'non-propose';
+    phase: 'attente' | 'charge' | 'echec' | 'non-propose' | 'retiree';
     elements: Element[];
     chiffres: ChiffreAffiche[];
     /**
@@ -273,6 +294,8 @@
      */
     donnees?: unknown;
     raison?: string;
+    /** tune-server-rust#8578 — le service qui a retiré la rubrique (`retiree`). */
+    service?: string;
     /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
     recompose?: boolean;
   }
@@ -707,6 +730,10 @@
         // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
         // « réessayer » : réessayer ne changera rien.
         if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
+        // tune-server-rust#8578 — rubrique RETIRÉE par le service (Spotify,
+        // applications personnelles) : la phrase qui le dit, sans rouge ni
+        // « Réessayer » (décision de Bertrand, 12/11/2026).
+        if (err?.retiree === true) { majEtat(id, { phase: 'retiree', service: err.service }); return; }
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
@@ -1361,6 +1388,96 @@
     oublierCibleVoirTout();
     if (get(detailOuvert)?.startsWith(`voir-tout:${CLE}:`)) detailOuvert.set(null);
   });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE, RENDUE AU RETOUR — fil 2694 (Ilan).
+   *
+   * Qobuz › « Nouveautés » (Voir tout) › un album › son artiste, puis Retour :
+   * la page de service est DÉTRUITE en changeant de vue, et « Voir tout », la
+   * fiche posée dessus et le défilement sont des `$state` d'ici. Le Retour
+   * rendait l'éditorial en haut de page.
+   *
+   * On retient à l'instant du départ (abonnement synchrone) et on reprend au
+   * montage, sur un RETOUR seulement (`typeArrivee`) : la barre latérale
+   * repart toujours de la racine (#3843). Mémoire : `lib/memoireStreaming`.
+   */
+  const arriveeAuMontage = typeArrivee();
+  const vueDeLaPage = get(activeView);
+  /** La clé de détail que porte vraiment la page (voir `StreamingV2`). */
+  let cleDeLaPage: string | null = get(detailOuvert);
+  /** La page refermée à la main juste avant de partir (voir `StreamingV2`). */
+  let refermeeAvantDepart: { quand: number; voirTout: string | null; defilementAvant: number; fiche: any; service: string | null } | null = null;
+  $effect(() => detailOuvert.subscribe((c) => {
+    if (get(activeView) !== vueDeLaPage) return;
+    if (c == null && cleDeLaPage != null && ficheOuverte && !retourProgrammatiqueEnCours()) {
+      refermeeAvantDepart = {
+        quand: Date.now(), voirTout: voirTout?.id ?? null, defilementAvant,
+        fiche: ficheOuverte ? $state.snapshot(ficheOuverte) : null, service: serviceOuvert,
+      };
+    } else if (c != null) refermeeAvantDepart = null;
+    cleDeLaPage = c;
+  }));
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueDeLaPage) return;
+      const cleFiche = ficheOuverte ? cleDetailAlbum(ficheOuverte) : null;
+      const visible = !!ficheOuverte && (cleFiche == null || cleFiche === cleDeLaPage);
+      const retourFiche = get(ficheAlbumDeRetour)?.fiche as any;
+      const r = refermeeAvantDepart && Date.now() - refermeeAvantDepart.quand < 5000 ? refermeeAvantDepart : null;
+      refermeeAvantDepart = null;
+      const quittee = !visible && ficheOuverte ? ficheOuverte : (r?.fiche ?? null);
+      const page = voirTout?.id ?? r?.voirTout ?? null;
+      const memoire: MemoirePageWidgets = $state.snapshot({
+        voirTout: page,
+        // Refermée avant de partir, « Voir tout » a déjà rendu la position de
+        // l'éditorial : celle de la page n'est plus lisible, on repart du haut.
+        defilement: voirTout || !r?.voirTout ? (zoneDefilante?.scrollTop ?? 0) : 0,
+        defilementAvant: voirTout ? defilementAvant : (r?.defilementAvant ?? defilementAvant),
+        fiche: visible ? ficheOuverte : null,
+        ficheService: visible ? serviceOuvert : null,
+        ficheQuittee: quittee,
+        ficheQuitteeService: !visible && ficheOuverte ? serviceOuvert : (r?.service ?? null),
+        ficheMontreeParLeRetour: !!quittee && retourFiche != null
+          && String(retourFiche.id ?? '') === String((quittee as any).source_id ?? ''),
+        page: pageQuittee(),
+      }) as MemoirePageWidgets;
+      retenirPageWidgets(CLE, memoire.voirTout || memoire.fiche || memoire.ficheQuittee || memoire.defilement > 0 ? memoire : null);
+    });
+  });
+  let pageAReprendre: MemoirePageWidgets | null = reprendrePageWidgets(CLE, arriveeAuMontage, pageCourante());
+  $effect(() => {
+    const m = pageAReprendre;
+    if (!m || !charge) return;
+    // « Voir tout » attend que la page connaisse son widget (#987).
+    if (m.voirTout && !parId(m.voirTout)) return;
+    untrack(() => {
+      pageAReprendre = null;
+      if (m.voirTout) {
+        const cle = `voir-tout:${CLE}:${m.voirTout}`;
+        // L'entrée atteinte par le Précédent la porte déjà ; sinon on la
+        // REPOSE sur l'entrée courante, sans empiler un cran de plus.
+        if (get(detailOuvert) !== cle) reposerDetail(cle);
+        if (voirTout?.id !== m.voirTout) ouvrirVoirTout(m.voirTout);
+        defilementAvant = m.defilementAvant;
+      }
+      const quittee = m.ficheQuittee
+        && (arriveeAuMontage === 'historique' || !m.ficheMontreeParLeRetour) ? m.ficheQuittee : null;
+      const a = (m.fiche ?? quittee) as any;
+      if (a) {
+        // Relecture de #2926 — par l'historique, la clé est REPOSÉE sur
+        // l'entrée atteinte : en empiler une jetterait la page artiste des
+        // entrées suivantes du navigateur.
+        const cleA = cleDetailAlbum(a);
+        if (arriveeAuMontage !== 'historique') ouvrirCalqueAlbum(a);
+        else if (cleA && get(detailOuvert) !== cleA) reposerDetail(cleA);
+        ficheOuverte = a;
+        serviceOuvert = m.fiche ? m.ficheService : m.ficheQuitteeService;
+      }
+      restaurerQuandPret(m.defilement, () => zoneDefilante, { essaisMax: 180 });
+    });
+  });
 </script>
 
 {#snippet carte(el: Element)}
@@ -1417,6 +1534,14 @@
            texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
            pas distribué, ce serait un lien mort. -->
       {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
+      <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
+           l'objet ou demandé une fois au service (`compterTitres`). -->
+      {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
+        {@const nbTexte = (el.nbTitres ?? titresLus[el.id]) != null
+          ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $t)
+          : ''}
+        <span class="ca nb-titres" title={nbTexte} data-nb-titres use:compterAuRendu={el}>{nbTexte}</span>
+      {/if}
       <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
       {#if el.raison}
         {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
@@ -1579,7 +1704,9 @@
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
              d'un bloc, et sous la `<section>` ils ne compilent pas. -->
         {@const et = etatDe(id)}
-        {#if w}
+        <!-- web#2883 — un widget `masqueSiVide` chargé et vide n'est pas
+             rendu (hors « Modifier », où on doit pouvoir le retirer). -->
+        {#if w && !(w.masqueSiVide && !edition && et?.phase === 'charge' && et.elements.length === 0)}
           <section
             class="bloc"
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
@@ -1640,6 +1767,8 @@
               <div class="state mince">{$t('common.loading' as any)}</div>
             {:else if et.phase === 'non-propose'}
               <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
+            {:else if et.phase === 'retiree'}
+              <div class="state mince" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), et.service ?? '')}</div>
             {:else if et.phase === 'echec'}
               <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
                    revenir. Sans lui, la seule issue était F5 : les quatre

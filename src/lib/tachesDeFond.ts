@@ -24,8 +24,13 @@
 export type ProgressionTache = {
   processed: number;
   total: number;
-  /** Sous-phase : `MusicBrainz`, `Images`… */
+  /** Sous-phase : `MusicBrainz`, `Images`… (texte français du serveur). */
   detail: string;
+  /** tune-server-rust#8282 — code stable de la sous-phase (`credits`,
+   *  `source`…). Absent d'un serveur antérieur. */
+  detail_code?: string;
+  /** tune-server-rust#8282 — paramètres du code, ex. `{ name: 'MusicBrainz' }`. */
+  detail_params?: Record<string, unknown>;
 };
 
 /** Une tâche de fond telle que le serveur la sérialise. */
@@ -272,6 +277,50 @@ export function libellePhase(detail: string | null | undefined, traduire?: (cle:
 }
 
 /**
+ * tune-server-rust#8282 — le serveur publie la sous-phase sous un CODE stable
+ * (`detail_code`) et ses paramètres (`detail_params`). Table littérale : un
+ * code inconnu (serveur plus récent) retombe sur le texte, par `libellePhase`.
+ */
+const CLES_CODES_PHASES: Record<string, string> = {
+  credits: 'app.task.phase.credits',
+  files: 'app.task.phase.files',
+  lrcFiles: 'app.task.phase.lrcFiles',
+  metadata: 'app.task.phase.metadata',
+  tags: 'app.task.phase.tags',
+  composer: 'app.task.phase.composer',
+  compilations: 'app.task.phase.compilations',
+  albums: 'app.task.phase.albums',
+  labels: 'app.task.phase.labels',
+  images: 'app.task.phase.images',
+  dynamicRange: 'app.task.phase.dynamicRange',
+  waitingPlayback: 'app.task.phase.waitingPlayback',
+  waitingHeat: 'app.task.phase.waitingHeat',
+  waitingSlot: 'app.task.phase.waitingSlot',
+  paused: 'app.task.phase.paused',
+  done: 'app.task.phase.done',
+  source: 'app.task.phase.source',
+};
+
+/** La sous-phase d'un avancement, dans la langue de l'interface. */
+export function libelleProgression(
+  p: Pick<ProgressionTache, 'detail' | 'detail_code' | 'detail_params'> | null | undefined,
+  traduire?: (cle: string) => string,
+): string {
+  if (!p) return '';
+  const code = typeof p.detail_code === 'string' ? p.detail_code : '';
+  const cle = code && Object.hasOwn(CLES_CODES_PHASES, code) ? CLES_CODES_PHASES[code] : null;
+  if (cle && traduire) {
+    const modele = traduire(cle);
+    if (modele && modele !== cle) {
+      const params = p.detail_params ?? {};
+      return modele.replace(/\{(\w+)\}/g, (tout, nom: string) =>
+        Object.hasOwn(params, nom) ? String(params[nom]) : tout);
+    }
+  }
+  return libellePhase(p.detail, traduire);
+}
+
+/**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
  * tourne — c'est ce `null` qui referme le bandeau.
  *
@@ -297,12 +346,47 @@ export function libelleBanniereEnrichissement(
   // tune-core tourne avant le premier `write_progress`, le registre rend alors
   // 0/0, et afficher « 0/0 » se lit comme un arrêt.
   const p = premiere.progress;
-  const phase = p ? libellePhase(p.detail, traduire) : '';
+  const phase = p ? libelleProgression(p, traduire) : '';
   const avancement = p && p.total > 0 ? ` — ${phase ? `${phase} ` : ''}${p.processed}/${p.total}` : '';
 
   const surnumeraires = taches.length > 1 ? ` (+${taches.length - 1})` : '';
 
   return `${nom}${avancement}${surnumeraires}`;
+}
+
+/**
+ * web#2874 — la BULLE de la ligne des tâches de fond, sous « MOZAIKLABS ».
+ *
+ * Le libellé de la ligne porte le compteur (« Crédits 123/4567 »), qui change
+ * à chaque sondage. Une bulle native dont l'attribut `title` change sous le
+ * pointeur se referme (Chrome), ou ne s'ouvre jamais : le testeur du fil 2779
+ * n'a trouvé « aucune bulle » qui donne le libellé coupé en entier. La bulle
+ * dit donc ce qui NE bouge PAS : le nom de chaque tâche en cours, et la phase
+ * de la première, sans compteur. Elle ne change qu'au changement de tâche ou
+ * de phase.
+ */
+export function bulleBanniereEnrichissement(
+  toutes: TacheDeFond[],
+  secours: string,
+  traduire?: (cle: string) => string,
+): string | null {
+  const taches = toutes.filter((t) => t && !t.paused);
+  if (taches.length === 0) return null;
+  const nomDe = (t: TacheDeFond) => {
+    const cle = Object.hasOwn(LIBELLES_TACHES, t.id) ? LIBELLES_TACHES[t.id] : null;
+    return cle && traduire ? traduire(cle) : t.label || secours;
+  };
+  const vus = new Set<string>();
+  const morceaux: string[] = [];
+  taches.forEach((t, i) => {
+    const nom = nomDe(t);
+    // La même tâche deux fois (deux passes du même type) ne se dit qu'une.
+    if (vus.has(nom)) return;
+    vus.add(nom);
+    const phase = i === 0 && t.progress ? libellePhase(t.progress.detail, traduire) : '';
+    morceaux.push(phase ? `${nom} — ${phase}` : nom);
+  });
+  return morceaux.join(' · ');
 }
 
 /**

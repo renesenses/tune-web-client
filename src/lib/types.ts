@@ -139,6 +139,11 @@ export interface Album {
    * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
    */
   max_channels?: number | null;
+  /**
+   * tune-server-rust#8560 — le plus petit nombre de canaux parmi les pistes
+   * de l'album, pour le filtre Stéréo. Absent d'un serveur plus ancien.
+   */
+  min_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -450,6 +455,30 @@ export interface SignalPath {
   /** tune-server-rust#4384 — ReplayGain armé, piste sans gain stocké : le
    *  préampli n'est pas appliqué. Absent sinon, sous PURE, ou d'un vieux serveur. */
   replaygain_untagged?: { mode?: string; preamp_db?: number } | null;
+  /** tune-server-rust#8419 — lecture groupée : chaque sortie du groupe et
+   *  son étage final. Absent hors groupe, ou d'un serveur antérieur. */
+  group_outputs?: SortiesDuGroupe | null;
+}
+
+/** tune-server-rust#8419 — une sortie d'un groupe de lecture. */
+export interface SortieDuGroupe {
+  zone_id: number;
+  name: string;
+  output_type?: string | null;
+  /** La zone dont on lit le chemin du signal. */
+  this_zone: boolean;
+  leader: boolean;
+  state: 'playing' | 'paused' | 'stopped';
+  bit_perfect?: boolean | null;
+  rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** La dernière étape du chemin du signal de CETTE sortie : ce qu'elle reçoit. */
+  final_stage?: SignalPathStep | null;
+}
+
+export interface SortiesDuGroupe {
+  group_id?: number | null;
+  leader_id?: number | null;
+  outputs: SortieDuGroupe[];
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -620,6 +649,15 @@ export interface Zone {
    *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
    *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
   sortie_absente?: boolean;
+  /** tune-server-rust#7279 / #7838 — zone `dlna` ou `openhome` dont aucune
+   *  sortie de lecture n'est enregistrée. Absent d'un serveur antérieur. */
+  sortie_reseau_absente?: boolean;
+  /** tune-server-rust#7838 — posé seulement quand la découverte VOIT
+   *  l'appareil : pourquoi il ne peut pas jouer. Absent = hors ligne ordinaire
+   *  (voir `lib/raisonSortieReseau`). */
+  raison_sortie_absente?: 'services_de_rendu_manquants' | 'sortie_non_enregistree';
+  /** Les services de rendu UPnP que l'appareil n'annonce pas. */
+  services_manquants?: Array<'avtransport' | 'renderingcontrol' | string>;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
@@ -763,6 +801,13 @@ export interface Zone {
    * Absent sur un vieux serveur ⇒ le sélecteur n'est pas proposé.
    */
   dlna_radio_title?: 'off' | 'next' | 'reload';
+  /**
+   * web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » :
+   * les pistes consécutives de même format partent en un seul flux WAV vers
+   * un renderer DLNA qui raccorde mal. Toujours présent sur un serveur qui
+   * connaît le réglage ; absent ⇒ l'interrupteur n'est pas proposé.
+   */
+  dlna_flux_continu?: boolean;
   /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
@@ -917,6 +962,10 @@ export interface DiscoveredDevice {
   mac_prefix?: string | null;
   /** Marque que la table OUI associe à cette plage ; `null` si elle n'y est pas. */
   mac_vendor?: string | null;
+  /** tune-server-rust#7279 — `false` : trouvé, mais aucune de ses identités
+   *  n'est une sortie de lecture (service de rendu manquant). Absent d'un
+   *  serveur antérieur : traiter l'absence comme `true`. */
+  registered?: boolean;
 }
 
 export interface LocalAudioDevice {
@@ -1672,6 +1721,18 @@ export interface FluxRadio {
   hls?: boolean;
   /** Le flux principal de la fiche. */
   primary?: boolean;
+  /**
+   * web#2801 (tune-server-rust#7515, rc12) — le flux que le serveur joue si
+   * l'auditeur n'en choisit aucun ; jamais un flux réservé à d'autres pays.
+   * Au plus un par fiche. Absent d'un serveur plus ancien.
+   */
+  par_defaut?: boolean;
+  /**
+   * web#2801 — `true` : libre ou ouvert au pays d'écoute ; `false` : réservé
+   * à d'autres pays (ou invalide) ; `null` : restreint alors que le pays
+   * d'écoute n'est pas renseigné. Absent d'un serveur plus ancien.
+   */
+  autorise?: boolean | null;
 }
 
 export interface RadioImportResult {

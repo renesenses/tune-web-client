@@ -1,5 +1,6 @@
 <script lang="ts">
   import { chercherDansLeGenre, SAISIE_MIN, type EtatRechercheGenre } from '../../lib/rechercheGenre';
+  import { CLE_RUBRIQUE_RETIREE, estRetiree, phraseRetrait, rubriquesRetirees } from '../../lib/rubriquesRetirees';
   import { nomDeService } from '../../lib/groupesVersions';
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
@@ -69,7 +70,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
@@ -94,8 +95,9 @@
     reponseProuveLaBibliotheque,
   } from '../../lib/ongletsStreaming';
   import { untrack } from 'svelte';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
-  import { activeStreamingService } from '../../lib/stores/streaming';
+  import { activeStreamingService, ficheAlbumDeRetour } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -451,7 +453,10 @@
    * Bandcamp est HORS SUJET ici : sa decouverte par genre passe par
    * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
    */
-  const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
+  // tune-server-rust#8578 — Genres RETIRÉS par le service : l'onglet reste,
+  // et dit pourquoi il est vide (décision de Bertrand, 12/11/2026).
+  const genresRetires = $derived(!!active && estRetiree(active, 'genres', $rubriquesRetirees));
+  const ongletGenres = $derived((!isBc && aUnOngletGenres(svcGenres)) || (!isBc && genresRetires));
   /**
    * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
    * Streaming. Propre à YouTube par nature — ses routes sont
@@ -859,11 +864,21 @@
     (subGenres.find((g) => g.id === genreId) ?? genrePath.find((g) => g.id === genreId) ?? genrePath[0])?.name ?? '',
   );
 
+  /**
+   * Fil 2694 — la recherche RENDUE par un retour : ses pages sont déjà là
+   * (`reprendrePageQuittee`). La relancer repartirait de la première page et
+   * ferait perdre la position dans la liste. Consommée au premier passage.
+   */
+  let rechercheReprise: { svc: string; q: string } | null = null;
+
   // Recherche dans le service courant.
   $effect(() => {
     const svc = active, needle = q.trim();
     // #2030 — hors Éditorial, la saisie filtre l'onglet : rien ne part au catalogue.
     if (!svc || needle.length < 2 || !ongletCatalogue) { results = null; bcSearch = null; searching = false; rechOffset = 0; rechSuite = false; return; }
+    const reprise = rechercheReprise;
+    rechercheReprise = null;
+    if (reprise && reprise.svc === svc && reprise.q === needle) { searching = false; return; }
     const mine = ++seq;
     searching = true;
     rechOffset = 0; rechSuite = false;
@@ -984,35 +999,118 @@
    */
   let genresARestaurer: MemoireStreaming | null = null;
   const vuePrecedenteAuMontage = get(previousView);
+  /**
+   * Fil 2694 — comment cet écran a été atteint, lu AU MONTAGE : les services
+   * répondent plus tard, et c'est alors seulement que la page se reprend.
+   */
+  const arriveeAuMontage = typeArrivee();
+  /** Relecture de #2926 — l'entrée atteinte : la page n'est rendue que sur elle. */
+  const pageAuMontage = pageCourante();
+  /** Le compte connecté du service : un autre compte ne reprend rien. */
+  const compteDe = (svc: string | null): string | null => (services[cleServeur(svc) ?? '']?.username ?? null) as string | null;
+  /** Fil 2694 — au-delà, une fiche refermée n'est plus « celle qu'on quittait ». */
+  const DELAI_DEPART = 5000;
+  /**
+   * Fil 2694 — la clé de détail que porte VRAIMENT l'écran, suivie de façon
+   * synchrone. Au départ, la coquille remet `detailOuvert` à `null` AVANT que
+   * notre abonnement à la vue ne s'exécute : on ignore donc ce qui arrive une
+   * fois la vue changée. Une fiche dont la clé n'est plus là au départ a été
+   * refermée pour partir (le lien de l'artiste, #1486).
+   */
+  let cleDeLaVue: string | null = get(detailOuvert);
+  /**
+   * La fiche refermée À LA MAIN juste avant de partir. Le lien d'un artiste
+   * sans identifiant passe par une recherche (`ouvrirArtisteDeServiceParNom`) :
+   * la vue change APRÈS la réponse, quand la fiche a déjà disparu de l'écran.
+   * Un Retour programmatique (bouton « Retour » de la fiche) n'est pas retenu.
+   */
+  let refermeeAvantDepart: { quand: number; fiche: any; service: string | null } | null = null;
+  $effect(() => detailOuvert.subscribe((c) => {
+    if (get(activeView) !== vueAuMontage) return;
+    if (c == null && cleDeLaVue != null && fiche && !retourProgrammatiqueEnCours()) {
+      refermeeAvantDepart = { quand: Date.now(), fiche: $state.snapshot(fiche), service: ficheService };
+    } else if (c != null) refermeeAvantDepart = null;
+    cleDeLaVue = c;
+  }));
   $effect(() => {
     let premier = true;
     return activeView.subscribe((v) => {
       if (premier) { premier = false; return; }
       if (v === vueAuMontage) return;
+      const cleFiche = fiche ? cleDetailAlbum(fiche) : ficheBc ? cleDetailAlbum(ficheBc) : null;
+      const ficheVisible = (fiche || ficheBc) && (cleFiche == null || cleFiche === cleDeLaVue);
+      const playlistVisible = !!fichePlaylist && (clePlaylistEmpilee == null || clePlaylistEmpilee === cleDeLaVue);
+      const retourFiche = get(ficheAlbumDeRetour)?.fiche as any;
+      const recente = refermeeAvantDepart && Date.now() - refermeeAvantDepart.quand < DELAI_DEPART ? refermeeAvantDepart : null;
+      refermeeAvantDepart = null;
+      const quittee = !ficheVisible && fiche ? fiche : (recente?.fiche ?? null);
       retenirAuDepart(v, active ? $state.snapshot({
         active, sub, genrePath, subGenres, genreId,
-        fiche, ficheService, ficheBc, fichePlaylist,
+        fiche: ficheVisible ? fiche : null,
+        ficheService: ficheVisible ? ficheService : null,
+        ficheBc: ficheVisible ? ficheBc : null,
+        fichePlaylist: playlistVisible ? fichePlaylist : null,
         defilement: zoneDefilante?.scrollTop ?? 0,
+        q, results, rechOffset, bcSearch,
+        ficheQuittee: quittee,
+        ficheQuitteeService: !ficheVisible && fiche ? ficheService : (recente?.service ?? null),
+        ficheMontreeParLeRetour: !!quittee && retourFiche != null
+          && String(retourFiche.id ?? '') === String(quittee.source_id ?? ''),
+        page: pageQuittee(),
+        compte: compteDe(active),
       }) as MemoireStreaming : null);
     });
   });
   function reprendrePageQuittee() {
-    const r = reprendreAuRetour(vuePrecedenteAuMontage, active);
+    const r = reprendreAuRetour(vuePrecedenteAuMontage, active, arriveeAuMontage,
+      { page: pageAuMontage, compte: compteDe(active) });
     if (!r) return;
-    sub = r.sub as Sub;
+    const parHistorique = arriveeAuMontage === 'historique';
+    // Relecture de #2926 — atteinte par l'historique, l'entrée a DÉJÀ rendu
+    // son onglet (`ongletCourant`) : le réécrire réécrirait l'entrée atteinte.
+    if (!parHistorique) sub = r.sub as Sub;
+    /**
+     * Rouvrir un calque. Par l'historique, la clé est REPOSÉE sur l'entrée
+     * atteinte (`reposerDetail`) : en empiler une jetterait les entrées
+     * suivantes du navigateur (la page artiste), et Suivant n'y mènerait plus.
+     */
+    const poserCle = (cle: string | null) => {
+      if (!cle) return;
+      if (!parHistorique) { ouvrirDetail(cle); return; }
+      if (get(detailOuvert) !== cle) reposerDetail(cle);
+    };
     if (r.genrePath.length) genresARestaurer = r;
-    if (r.fiche) {
-      const a = r.fiche as any;
-      ouvrirCalqueAlbum(a);
+    // Fil 2694 — la recherche dans le service, ses pages déjà chargées.
+    if (r.q && r.q.trim()) {
+      q = r.q;
+      results = (r.results ?? null) as StreamingSearchResult | null;
+      bcSearch = r.bcSearch ?? null;
+      rechOffset = r.rechOffset ?? 0;
+      if (active) rechercheReprise = { svc: active, q: r.q.trim() };
+    }
+    // La fiche refermée pour partir revient par le Précédent du navigateur ;
+    // par le Retour d'une page, seulement si ce Retour ne l'a pas déjà montrée.
+    const quittee = r.ficheQuittee
+      && (arriveeAuMontage === 'historique' || !r.ficheMontreeParLeRetour)
+      ? r.ficheQuittee : null;
+    if (r.fiche || quittee) {
+      const a = (r.fiche ?? quittee) as any;
+      poserCle(cleDetailAlbum(a));
       fiche = a;
-      ficheService = r.ficheService;
+      ficheService = r.fiche ? r.ficheService : (r.ficheQuitteeService ?? null);
     } else if (r.ficheBc) {
       const a = r.ficheBc as any;
-      ouvrirCalqueAlbum(a);
+      poserCle(cleDetailAlbum(a));
       ficheBc = a;
     } else if (r.fichePlaylist) {
       const p = r.fichePlaylist as any;
-      ouvrirCalquePlaylist(p, p?.source ?? active);
+      const svc = p?.source ?? active;
+      fichePlaylist = { ...p, source: svc };
+      const sid = p?.source_id;
+      if (svc && sid != null && sid !== '') {
+        clePlaylistEmpilee = `streamingplaylists:${svc}:${sid}`;
+        poserCle(clePlaylistEmpilee);
+      }
     }
     restaurerQuandPret(r.defilement, () => zoneDefilante, { essaisMax: 180 });
   }
@@ -1715,7 +1813,9 @@
       <!-- Volet GENRES a DEUX niveaux, la ou le service en a deux (#709).
            L'onglet n'existe que si la liste est pleine ; ce garde-fou couvre le
            seul cas restant — la liste videe sous les pieds de l'ecran. -->
-      {#if !svcGenres.length}
+      {#if !svcGenres.length && genresRetires}
+        <div class="state" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), active ?? '')}</div>
+      {:else if !svcGenres.length}
         <div class="state">{$t('streaming.genresEmpty')}</div>
       {:else if !genrePath.length}
         <div class="chips">

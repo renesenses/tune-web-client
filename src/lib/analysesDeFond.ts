@@ -73,6 +73,57 @@ export function depuisInstantane(instantane: any): AnalyseDeFond | null {
   return null;
 }
 
+/**
+ * web#2675 (discussion tune-server-rust#8310, reprise en rc12) — l'avancement
+ * de CHAQUE passe en cours, par identifiant serveur (`pausable[].id`), pour
+ * les cartes de l'écran État du serveur. Une passe en pause, au repos ou sans
+ * `progress` (serveur antérieur) n'a pas d'entrée : sa carte garde
+ * l'affichage d'avant.
+ */
+export function avancementsParTraitement(instantane: any): Record<string, AnalyseDeFond> {
+  const out: Record<string, AnalyseDeFond> = {};
+  for (const p of instantane?.pausable ?? []) {
+    if (p?.state !== 'en_cours' || p?.paused) continue;
+    const id = String(p.id ?? '');
+    const a = id ? depuisAvancement(id, p.progress) : null;
+    if (a) out[id] = a;
+  }
+  return out;
+}
+
+/** La table qui suit un `library.analysis.progress` ; la même si rien ne change. */
+export function fusionnerAvancements(
+  courants: Record<string, AnalyseDeFond>,
+  data: any,
+): Record<string, AnalyseDeFond> {
+  const tache = typeof data?.task === 'string' ? data.task : null;
+  if (!tache) return courants;
+  const a = data.active === false ? null : depuisAvancement(tache, data);
+  if (!a) {
+    if (!(tache in courants)) return courants;
+    const { [tache]: _parti, ...reste } = courants;
+    return reste;
+  }
+  return { ...courants, [tache]: a };
+}
+
+/**
+ * La ligne d'une carte : « 1 250 pistes traitées sur 40 000 dans la passe en
+ * cours · encore 2 h 05 ». `nombre` met en forme les entiers (séparateurs de
+ * la langue). L'estimation n'est ajoutée que si le serveur en donne une.
+ */
+export function ligneAvancement(
+  a: AnalyseDeFond,
+  t: (cle: string) => string,
+  nombre: (n: number) => string = String,
+): string {
+  let l = t('v2.health.fpLine').replace('{n}', nombre(a.traitees)).replace('{t}', nombre(a.total));
+  if (a.resteSecondes !== null && a.resteSecondes > 0) {
+    l += ' · ' + t('v2.nav.bgAnalysisEta').replace('{d}', dureeLisible(a.resteSecondes, t));
+  }
+  return l;
+}
+
 /** Le pourcentage traité, arrondi vers le bas, borné à 0-100. */
 export function pourcentAnalyseDeFond(a: AnalyseDeFond): number {
   return Math.max(0, Math.min(100, Math.floor((a.traitees / a.total) * 100)));
@@ -99,6 +150,21 @@ export function dureeLisible(secondes: number, t: (cle: string) => string): stri
 }
 
 /**
+ * Le nom seul de la passe en cours (« Plage dynamique »), sans pourcentage
+ * ni temps restant : ce que la bulle de l'indicateur peut dire sans changer
+ * à chaque événement d'avancement (web#2874).
+ */
+export function nomAnalyseDeFond(
+  a: AnalyseDeFond | null,
+  t: (cle: string) => string,
+): string | null {
+  if (!a) return null;
+  const cleNom = `v2.nav.bgTask.${a.tache}`;
+  const traduit = t(cleNom);
+  return traduit && traduit !== cleNom ? traduit : t('v2.nav.bgTask.other');
+}
+
+/**
  * Le libellé de la barre : « Empreintes audio — 35 % · encore 2 h 05 ».
  * `t` est la fonction de traduction, injectée pour tester sans rendu.
  */
@@ -107,9 +173,7 @@ export function libelleAnalyseDeFond(
   t: (cle: string) => string,
 ): string | null {
   if (!a) return null;
-  const cleNom = `v2.nav.bgTask.${a.tache}`;
-  const traduit = t(cleNom);
-  const nom = traduit && traduit !== cleNom ? traduit : t('v2.nav.bgTask.other');
+  const nom = nomAnalyseDeFond(a, t)!;
   let libelle = t('v2.nav.bgAnalysisPct')
     .replace('{task}', nom)
     .replace('{p}', String(pourcentAnalyseDeFond(a)));

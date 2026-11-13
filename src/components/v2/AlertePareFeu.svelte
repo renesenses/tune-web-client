@@ -58,7 +58,7 @@
     background: rgba(245, 158, 11, 0.14);
     border: 1px solid rgba(245, 158, 11, 0.35);
     color: var(--text, #e6e6e6);
-    font-size: 0.85rem;
+    font-size:calc(0.85rem * var(--v2-txt-echelle, 1));
     line-height: 1.4;
   }
   .alerte-pare-feu svg {

@@ -22,6 +22,7 @@
    */
   import * as api from '../../lib/api';
   import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { zones, currentZoneId } from '../../lib/stores/zones';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
@@ -57,8 +58,10 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import ZonesSupprimees from './ZonesSupprimees.svelte';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
   import AlertePareFeu from './AlertePareFeu.svelte';
+  import { cleRaisonSortieReseau } from '../../lib/raisonSortieReseau';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -482,11 +485,28 @@
    * récemment en petits badges » — les phrases entières faisaient des
    * bandeaux pleine largeur sur la carte.
    */
+  /**
+   * tune-server-rust#7838 — la phrase qui dit pourquoi l'appareil réseau de la
+   * zone ne peut pas jouer, ou `''`. Les clés sont écrites EN CLAIR, une par
+   * branche, pour que `check-i18n` les voie.
+   */
+  function raisonSortie(z: Zone): string {
+    const cle = cleRaisonSortieReseau(z);
+    if (cle === 'v2.zone.raisonSansLecture') return $t('v2.zone.raisonSansLecture' as any);
+    if (cle === 'v2.zone.raisonSansVolume') return $t('v2.zone.raisonSansVolume' as any);
+    if (cle === 'v2.zone.raisonSansLectureNiVolume') return $t('v2.zone.raisonSansLectureNiVolume' as any);
+    if (cle === 'v2.zone.raisonSortieNonCreee') return $t('v2.zone.raisonSortieNonCreee' as any);
+    return '';
+  }
   function reach(z: Zone): { cls: string; txt: string; long: string } | null {
     // Absent = `ok` : ne pas inventer une panne sur un serveur < 0.9.70.
     const r = z.output_reach ?? 'ok';
     if (r === 'no_output') return { cls: 'bad', txt: $t('v2.zone.badgeNoOutput' as any), long: $t('v2.zone.noOutputLong' as any) };
     if (r === 'browser_unattended') return { cls: 'warn', txt: $t('v2.zone.badgeBrowser' as any), long: $t('v2.zones.browserUnattended' as any) };
+    // tune-server-rust#7838 : vu sur le réseau, mais ne peut pas jouer — la
+    // raison, donnée par le serveur. Absente, la zone est simplement hors ligne.
+    const raison = raisonSortie(z);
+    if (raison) return { cls: 'bad', txt: $t('v2.zone.badgeCannotPlay' as any), long: raison };
     if (z.online === false) return { cls: 'bad', txt: $t('v2.zone.badgeOffline' as any), long: $t('v2.zone.badgeOffline' as any) };
     return null;
   }
@@ -653,6 +673,9 @@
     </div>
   {/each}
 
+  <!-- tune-server-rust#7836 — « Zones supprimées (n) » et Restaurer. -->
+  <ZonesSupprimees onRestauree={refresh} />
+
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
       <!-- #1096 — tant que la liste n'a pas été CHARGÉE, une liste vide ne dit
@@ -757,6 +780,7 @@
                   <BadgeReaffectation cible="zone" id={z.id} />
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                 </span>
+                {#if raisonSortie(z)}<span class="craison" data-raison-sortie>{raisonSortie(z)}</span>{/if}
                 {#if np?.title}
                   <span class="cnp" title={`${np.title}${np.artist_name ? ' — ' + np.artist_name : ''}`}>♪ {np.title}{#if np.artist_name}<span class="cna"> — {np.artist_name}</span>{/if}</span>
                 {/if}
@@ -780,8 +804,10 @@
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
               {/if}
               <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
@@ -810,7 +836,8 @@
                   {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
                   {#if z.current_track?.title}<span class="np" use:bulleTexte>♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
-                  {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
+                  {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
+                  {#if raisonSortie(z)}<span class="craison" data-raison-sortie>{raisonSortie(z)}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
                   <BadgeReaffectation cible="zone" id={z.id} />
@@ -828,8 +855,10 @@
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
               {/if}
             </span>
 
@@ -1058,6 +1087,8 @@
   /* web#2809 — la mention tient la place du curseur : le menu reste à droite. */
   .cvol :global(.volume-fixe), .vol :global(.volume-fixe){flex:1; min-width:0}
   .cvol .vn{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  /* tune-server-rust#7205 — « -45.0 dB » ne tient pas dans 24 px. */
+  .cvol .vn.db, .vn.db{width:auto; min-width:58px; white-space:nowrap}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
@@ -1082,6 +1113,8 @@
   .np{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px}
   .rc{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:2px 8px; border-radius:999px}
   .rc.bad{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  /* tune-server-rust#7838 : la raison, en clair, sous les pastilles. */
+  .craison{display:block; margin-top:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.35; color:var(--v2-danger); white-space:normal; text-align:left}
   .rc.warn{color:var(--v2-acc-tint); border:1px solid var(--v2-acc2)}
   .rn{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; background:var(--v2-bg); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:3px 9px; outline:none; width:220px; font-family:inherit}

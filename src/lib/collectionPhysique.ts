@@ -52,6 +52,15 @@ export type EtatDisque = 'bibliotheque' | 'streaming' | 'nulle_part' | 'a_verifi
  *  MusicBrainz vient ensuite, à part (`AffinageMusicbrainz`). */
 export type Etape = 'liste' | 'streaming' | 'bibliotheque';
 
+/**
+ * tune-server-rust#8070 (discussion #8281, reprise en rc12) — pourquoi un
+ * disque est « nulle part ». Servi par le greffon depuis #7981 : `raison` sur
+ * chaque disque `nulle_part`, `candidats_locaux` pour `plusieurs_candidats`,
+ * et `compteurs.par_raison`. Absent d'un greffon antérieur : rien ne s'affiche.
+ */
+export type RaisonNullePart = 'aucun_candidat' | 'plusieurs_candidats' | 'service_non_interroge';
+export const RAISONS: readonly RaisonNullePart[] = ['aucun_candidat', 'plusieurs_candidats', 'service_non_interroge'];
+
 export const FAMILLES: readonly Famille[] = ['vinyle', 'cd', 'sacd', 'cassette', 'autre'];
 export const ETATS: readonly EtatDisque[] = ['bibliotheque', 'streaming', 'nulle_part', 'a_verifier'];
 
@@ -149,6 +158,10 @@ export interface Disque {
   dossier?: number | null;
   genres?: string[];
   styles?: string[];
+  /** #8070 : pourquoi « nulle part » ; `null` pour un autre état. */
+  raison?: RaisonNullePart | null;
+  /** #8070 : le nombre d'albums locaux candidats, pour `plusieurs_candidats`. */
+  candidats_locaux?: number | null;
 }
 
 /** Un dossier Discogs et son compteur (#7929). `nom` est `null` quand
@@ -174,6 +187,8 @@ export interface Collection {
     total: number;
     par_etat?: Partial<Record<EtatDisque, number>>;
     par_format?: Partial<Record<Famille, number>>;
+    /** #8070 — sur TOUTE la collection, comme `par_etat`. */
+    par_raison?: Partial<Record<RaisonNullePart, number>>;
     cd_non_copies?: number;
     par_dossier?: CompteDossier[];
     par_genre?: CompteNom[];
@@ -471,4 +486,22 @@ export function clicSurDisque(d: Disque): ClicSurDisque {
   const s = d.streaming[0];
   if (s) return { vers: 'streaming', service: s };
   return { vers: 'discogs', url: d.lien_discogs };
+}
+
+/**
+ * #8070 — la phrase qui dit pourquoi ce disque est « nulle part » : la clé de
+ * traduction et le nombre à y mettre, ou `null` (autre état, raison absente
+ * ou inconnue d'un greffon plus récent). Pure.
+ */
+export function raisonDuDisque(d: Pick<Disque, 'etat' | 'raison' | 'candidats_locaux'>): { cle: string; n: number | null } | null {
+  if (d.etat !== 'nulle_part' || !d.raison || !(RAISONS as readonly string[]).includes(d.raison)) return null;
+  const n = d.raison === 'plusieurs_candidats' && typeof d.candidats_locaux === 'number' ? d.candidats_locaux : null;
+  return { cle: `collectionPhysique.raison.${d.raison}`, n };
+}
+
+/** #8070 — les compteurs par raison à montrer (non nuls), dans l'ordre de `RAISONS`. Pure. */
+export function compteursDeRaison(c: Pick<Collection, 'compteurs'> | null | undefined): { raison: RaisonNullePart; n: number }[] {
+  const par = c?.compteurs?.par_raison;
+  if (!par) return [];
+  return RAISONS.map((raison) => ({ raison, n: Number(par[raison] ?? 0) })).filter((x) => x.n > 0);
 }

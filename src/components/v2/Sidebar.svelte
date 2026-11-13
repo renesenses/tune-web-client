@@ -32,8 +32,17 @@
    */
   export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
-  /** L'entrée correspond-elle à l'écran courant ? */
-  function estActif(it: Item, vue: View): boolean {
+  /**
+   * L'entrée correspond-elle à l'écran courant ?
+   *
+   * tune-server-rust#7901 (fil 2658) — « Bibliothèque » restait surlignée
+   * quand « Lecture en cours » était ouverte. L'entrée active se calcule
+   * d'après la ROUTE affichée (`activeView`), jamais d'après la vue
+   * précédente ni d'un préfixe commun : une vue n'allume qu'UNE entrée.
+   * Exportée pour que `barreEntreeActive7901.test.ts` le vérifie sur toutes
+   * les entrées de la barre.
+   */
+  export function estActif(it: Item, vue: View): boolean {
     return it.view === vue || (it.aussi?.includes(vue) ?? false);
   }
 
@@ -236,7 +245,6 @@
 </script>
 
 <script lang="ts">
-  import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
   import { collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
@@ -245,12 +253,12 @@
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
-  import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
+  import { libelleBanniereEnrichissement, bulleBanniereEnrichissement } from '../../lib/tachesDeFond';
   import {
     avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import {
-    analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond,
+    analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond, nomAnalyseDeFond,
   } from '../../lib/analysesDeFond';
   import { carteDeFondCiblee } from '../../lib/carteEmpreintes';
   import { tuneWS } from '../../lib/websocket';
@@ -448,6 +456,25 @@
     go('diagnostics');
   }
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
+  /**
+   * web#2874 (fil 2779) — les deux lignes sous « MOZAIKLABS » sont coupées
+   * par une ellipse, et leur bulle ne donnait pas ce qui était coupé : celle
+   * de l'analyse de fond disait « Analyse de fond en cours », celle des tâches
+   * était réécrite à chaque sondage (le compteur bouge) et Chrome referme une
+   * bulle native dont le `title` change sous le pointeur. Les deux bulles
+   * disent désormais le NOM de ce qui tourne, qui ne bouge pas, et le geste
+   * (« ouvrir l'État du serveur ») ; la ligne des tâches y mène, comme
+   * l'indicateur d'analyse.
+   */
+  const indiceOuvrir = (nom: string) => $t('v2.nav.bgTaskOpenHint' as any).replace('{task}', nom);
+  const bulleTaches = $derived.by(() => {
+    const noms = bulleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any));
+    return noms ? indiceOuvrir(noms) : null;
+  });
+  const bulleFond = $derived.by(() => {
+    const nom = nomAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any));
+    return nom ? indiceOuvrir(nom) : null;
+  });
   /**
    * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
    * jour en cours de la base ». L'avancement d'une analyse n'était lu que par
@@ -862,7 +889,8 @@
       <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
-      {#if enrichissementEnCours}<div class="taches" aria-live="polite" use:bulleTexte>{enrichissementEnCours}</div>{/if}
+      {#if enrichissementEnCours}<button class="taches" onclick={ouvrirEtatDuServeur} aria-live="polite"
+        data-testid="bg-tasks" title={bulleTaches}>{enrichissementEnCours}</button>{/if}
       {#if libelleAnalyse}
         <button class="analyse" onclick={ouvrirAnalyse} aria-live="polite"
           title={$t('v2.nav.scanRunningHint' as any)}>
@@ -870,7 +898,7 @@
         </button>
       {:else if libelleFond}
         <button class="analyse" onclick={ouvrirEtatDuServeur} aria-live="polite"
-          data-testid="bg-analysis" title={$t('v2.nav.bgAnalysisHint' as any)}>
+          data-testid="bg-analysis" title={bulleFond}>
           <span class="pt"></span>{libelleFond}
         </button>
       {/if}
@@ -894,7 +922,7 @@
         aria-label={libelleAnalyse} title={libelleAnalyse}></button>
     {:else if enIcones && libelleFond}
       <button class="analyse-point" onclick={ouvrirEtatDuServeur}
-        aria-label={libelleFond} title={libelleFond}></button>
+        data-testid="bg-analysis-point" aria-label={libelleFond} title={bulleFond}></button>
     {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
@@ -1274,7 +1302,9 @@
   .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
-  .grp-pli{border:0; background:transparent; cursor:pointer; text-align:start; width:100%; padding-inline:0}
+  /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
+     « Studio » 14 px plus à gauche que « Raccourcis » et que les icônes. */
+  .grp-pli{border:0; background:transparent; cursor:pointer; text-align:start; width:100%; padding-inline:14px}
   .grp-pli:hover{color:var(--v2-txt2)}
   .grp-pli:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .grp-pli .chev{width:12px; height:12px; flex:0 0 auto; order:2; transition:transform .15s}
@@ -1340,5 +1370,8 @@
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
-  .taches{margin-top:3px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .taches{display:block; max-width:100%; margin-top:3px; padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .taches:hover{color:var(--v2-txt)}
+  .taches:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 </style>

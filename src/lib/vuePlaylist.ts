@@ -41,11 +41,33 @@ export function bornerTaille(vue: VuePlaylist, n: number): number {
   return Math.min(b.max, Math.max(b.min, Math.round(n)));
 }
 
-export function lireVuePlaylist(): VuePlaylist {
-  return lireChoix(CLE_VUE_PLAYLIST, VUES_PLAYLIST, 'liste');
+/**
+ * tune-server-rust#7394 / web#2618 (Régis, fils 2524 et 2592 ; go de Bertrand
+ * du 12/11/2026, rc12) — le choix liste / pochettes est retenu PAR PLAYLIST :
+ * une liste pour accéder à un titre précis, des pochettes pour une autre, y
+ * compris les playlists de service et mixtes.
+ *
+ * La clé d'une playlist : `local:<id>` ou `<service>:<id chez le service>`.
+ * Sans choix propre, une playlist prend le DERNIER choix fait (la clé
+ * générale d'avant, que chaque geste continue d'écrire) : celui qui préfère
+ * les pochettes partout n'a pas à le redire playlist par playlist.
+ */
+export function clePlaylistVue(
+  item: { kind: 'local'; pl: { id: number | null } } | { kind: 'streaming'; service: string; pl: { source_id: string } } | null | undefined,
+): string | null {
+  if (!item) return null;
+  if (item.kind === 'local') return item.pl.id != null ? `local:${item.pl.id}` : null;
+  const id = String(item.pl.source_id ?? '').trim();
+  return item.service && id ? `${item.service}:${id}` : null;
 }
-export function ecrireVuePlaylist(v: VuePlaylist): void {
+
+export function lireVuePlaylist(clePlaylist: string | null = null): VuePlaylist {
+  const generale = lireChoix(CLE_VUE_PLAYLIST, VUES_PLAYLIST, 'liste');
+  return clePlaylist ? lireChoix(`${CLE_VUE_PLAYLIST}.${clePlaylist}`, VUES_PLAYLIST, generale) : generale;
+}
+export function ecrireVuePlaylist(v: VuePlaylist, clePlaylist: string | null = null): void {
   ecrireChoix(CLE_VUE_PLAYLIST, v);
+  if (clePlaylist) ecrireChoix(`${CLE_VUE_PLAYLIST}.${clePlaylist}`, v);
 }
 
 const cleTaille = (v: VuePlaylist) => (v === 'liste' ? CLE_TAILLE_LISTE : CLE_TAILLE_POCHETTES);

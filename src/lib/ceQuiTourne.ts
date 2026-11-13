@@ -79,7 +79,11 @@ export type LigneCeQuiTourne = {
   raisonCle?: string;
   params?: Record<string, string | number>;
   /** Avancement publié par le registre, quand il y en a un. */
-  avancement?: { fait: number; total: number; detail: string };
+  avancement?: {
+    fait: number; total: number; detail: string;
+    /** tune-server-rust#8282 — code stable de la sous-phase et ses paramètres. */
+    detail_code?: string; detail_params?: Record<string, unknown>;
+  };
 };
 
 /** Les activités publiées par le serveur (#6310). Un autre mot est ignoré :
@@ -154,7 +158,10 @@ const nombre = (v: unknown): number | null =>
 function avancementDe(t: TacheDeFond | undefined): LigneCeQuiTourne['avancement'] {
   const p = t?.progress;
   if (!p || !(p.total > 0)) return undefined;
-  return { fait: p.processed, total: p.total, detail: p.detail ?? '' };
+  return {
+    fait: p.processed, total: p.total, detail: p.detail ?? '',
+    detail_code: p.detail_code, detail_params: p.detail_params,
+  };
 }
 
 /**

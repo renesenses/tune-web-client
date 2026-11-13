@@ -10,6 +10,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { estDeLAnnuaire, questionRetraitMesRadios } from '../../lib/mesRadios';
   import { tip } from '../../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
   import { upNextTracks, upNextHiddenCount, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
@@ -44,7 +45,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
-  import { logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
+  import { fluxAjoutable, logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
   import { estRefusPremium } from '../../lib/premiumRefus';
@@ -56,6 +57,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -64,6 +66,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
+  import { labelDe } from '../../lib/artistesDuLabel';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -192,15 +195,22 @@ import { ICONES } from '../../lib/menuPiste';
   let alarmActive = $state(false);
   let alarmSetting = $state(false);
 
+  /**
+   * web#2534 — les réveils de la zone, LISTÉS dans le panneau (alec_eiffel :
+   * « je ne vois pas dans l'application où visualiser les alarmes qui ont été
+   * mises »), chacun avec son « Annuler », et un lien vers l'écran Réveils.
+   */
+  let alarmesZone = $state<api.ReveilDeZone[]>([]);
+
   async function handleSetAlarm() {
     if (zone?.id == null) return;
     if (!zone?.id || !alarmTime) return;
     alarmSetting = true;
     try {
       await api.setAlarm(zone.id, alarmTime);
-      alarmActive = true;
       showAlarm = false;
       notifications.success(`${$t('nowplaying.alarmSetAt')} ${alarmTime}`);
+      await loadAlarmState();
     } catch (e) {
       console.error('Alarm error:', e);
       notifications.error($t('nowplaying.alarmError'));
@@ -208,25 +218,26 @@ import { ICONES } from '../../lib/menuPiste';
     alarmSetting = false;
   }
 
-  async function handleCancelAlarm() {
+  async function handleCancelAlarm(alarmId: number) {
     if (zone?.id == null) return;
     try {
-      await api.cancelAlarm(zone.id);
-      alarmActive = false;
-      alarmTime = '';
+      await api.cancelAlarm(zone.id, alarmId);
       notifications.success($t('nowplaying.alarmCancelled'));
     } catch (e) {
       console.error('Cancel alarm error:', e);
+      notifications.error($t('nowplaying.alarmError'));
     }
+    await loadAlarmState();
   }
 
   async function loadAlarmState() {
     if (zone?.id == null) return;
     try {
-      const r = await api.getAlarm(zone.id);
-      alarmActive = !!r.time;
-      if (r.time) alarmTime = r.time;
-    } catch {}
+      alarmesZone = await api.getAlarm(zone.id);
+    } catch {
+      alarmesZone = [];
+    }
+    alarmActive = alarmesZone.some((a) => a.enabled);
   }
 
   $effect(() => {
@@ -1030,6 +1041,16 @@ import { ICONES } from '../../lib/menuPiste';
   const logoStation = $derived(logoAuNomDeLaStation(stationEnCours?.fiche?.logo, track?.cover_path));
   /** web#2551 — la station dans « Mes radios » : son identifiant, ou `null`. */
   const idDansMesRadios = $derived(stationEnCours?.mienne?.id ?? stationEnCours?.annuaire?.my_radio_id ?? null);
+  /**
+   * tune-server-rust#7547 — le bouton « Mes radios » est offert dès que la
+   * station est connue (« Mes radios », annuaire) OU que son flux peut y
+   * entrer tel quel ; seulement une fois la station lue.
+   */
+  const mesRadiosOffert = $derived(
+    stationEnCours != null && npStation != null
+      && (idDansMesRadios != null || stationEnCours.annuaire != null
+        || (fluxAjoutable(npStation.source_id) != null && !!(npStation.album_title ?? '').trim())),
+  );
 
   /**
    * web#2551 (alec_eiffel, fil 2562 ; go de Bertrand le 30/10/2026) : ajouter
@@ -1045,11 +1066,20 @@ import { ICONES } from '../../lib/menuPiste';
     gesteMesRadios = true;
     try {
       if (idDansMesRadios != null) {
-        if (!(await dialogs.confirm($t('v2.radio.removeConfirm' as any).replace('{name}', nom), { danger: true }))) return;
+        // #7523 — une station connue de l'annuaire y reste : la fenêtre le dit.
+        // Déjà dans « Mes radios », `stationDeLecture` rend `annuaire: null` :
+        // c'est l'entrée personnelle (`mienne.annuaire`) qui dit d'où elle vient.
+        const dansLAnnuaire = !!s.annuaire || (s.mienne != null && estDeLAnnuaire(s.mienne));
+        if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), nom, dansLAnnuaire), { danger: true }))) return;
         await api.deleteRadio(idDansMesRadios);
         notifications.success($t('v2.radio.removed' as any).replace('{name}', nom));
       } else if (s.annuaire) {
         await api.ajouterDepuisAnnuaire(s.annuaire.external_id, false);
+        notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
+      } else if (fluxAjoutable(np.source_id) && nom.trim()) {
+        // tune-server-rust#7547 — station inconnue de l'annuaire : elle entre
+        // dans « Mes radios » par son flux, comme « Nouvelle station ».
+        await api.createRadio({ name: nom.trim(), stream_url: fluxAjoutable(np.source_id)! });
         notifications.success($t('v2.radio.dir.added' as any).replace('{name}', nom));
       } else {
         return;
@@ -1163,6 +1193,34 @@ import { ICONES } from '../../lib/menuPiste';
 
   const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'album_id' in t ? (t.album_id ?? null) : null;
+  /**
+   * web#2534 (ancienne web#2522, demande de Bertrand, réunion communautaire
+   * du 29/10) — le LABEL de l'album en cours, lien vers ce label dans la
+   * Bibliothèque. Lu sur la piste quand elle le porte, sinon sur l'album de
+   * la bibliothèque (`GET /library/albums/{id}`), une fois par album. Une
+   * piste de service sans label connu n'affiche rien : pas de lien mort.
+   */
+  let labelAlbum = $state<string | null>(null);
+  /** Les labels déjà lus, par album : un retour sur le même album ne relit rien. */
+  const labelsLus = new Map<number, string | null>();
+  const labelsEnVol = new Set<number>();
+  $effect(() => {
+    const direct = labelDe(displayTrack as any);
+    const brut = albumIdOf(displayTrack);
+    const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
+    if (direct || id == null) { labelAlbum = direct; return; }
+    if (labelsLus.has(id)) { labelAlbum = labelsLus.get(id) ?? null; return; }
+    labelAlbum = null;
+    if (labelsEnVol.has(id)) return;
+    labelsEnVol.add(id);
+    api.getAlbum(id).then(
+      (a) => {
+        labelsLus.set(id, labelDe(a as any));
+        if (albumIdOf(displayTrack) === id) labelAlbum = labelsLus.get(id) ?? null;
+      },
+      () => {},
+    ).finally(() => labelsEnVol.delete(id));
+  });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
   const channelsOf = (t: Track | NowPlaying | null | undefined) =>
@@ -1828,6 +1886,16 @@ import { ICONES } from '../../lib/menuPiste';
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="artwork-clickable" onclick={() => { if (!ytActive) showLightbox = true; }}>
             <AlbumArt coverPath={displayTrack.cover_path} albumId={albumIdOf(displayTrack)} size={isWide ? 420 : 440} alt={displayTrack.title} />
+            <!-- web#2550 (décision de Bertrand du 12/11/2026, rc12) — quand la
+                 pochette du morceau a pris la place du logo de la station, le
+                 logo reste là EN PETIT, dans un coin de la pochette (option 1
+                 d'alec_eiffel, fil 2560). Il quitte la ligne du nom : un seul
+                 logo à l'écran. -->
+            {#if isRadio && logoStation}
+              <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
+                <AlbumArt coverPath={logoStation} albumId={null} size={64} alt={displayTrack.album_title || 'Radio'} />
+              </span>
+            {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -1954,17 +2022,10 @@ import { ICONES } from '../../lib/menuPiste';
             <!-- #2398 — le nom de la station ouvre sa fiche (description, site). -->
             <!-- web#2443 — plus grand, et le badge « Metadata+ » à côté. -->
             <div class="radio-station-ligne">
-              <!-- web#2550 — le logo de la station à côté de son nom, quand la
-                   pochette du morceau a pris sa place. -->
-              {#if logoStation}
-                <span class="radio-station-logo" data-logo-station>
-                  <AlbumArt coverPath={logoStation} albumId={null} size={28} alt={displayTrack.album_title || 'Radio'} />
-                </span>
-              {/if}
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
-              {#if idDansMesRadios != null || stationEnCours?.annuaire}
+              {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
                   aria-pressed={dedans}
@@ -2024,6 +2085,13 @@ import { ICONES } from '../../lib/menuPiste';
               <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
               {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
             </div>
+          {/if}
+          {#if !isRadio && labelAlbum}
+            <!-- web#2534 — le label de l'album, qui ouvre ce label dans la Bibliothèque. -->
+            <p class="track-label" data-np-label>
+              <span class="track-label-tag">{$t('v2.tcol.label' as any)}</span>
+              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAlbum }} />
+            </p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
@@ -2207,13 +2275,16 @@ import { ICONES } from '../../lib/menuPiste';
                 <button class="alarm-set-btn" onclick={handleSetAlarm} disabled={alarmSetting || !alarmTime}>
                   {alarmSetting ? '...' : $t('nowplaying.activate')}
                 </button>
-                {#if alarmActive}
-                  <button class="alarm-cancel-btn" onclick={handleCancelAlarm}>{$t('nowplaying.cancel')}</button>
-                {/if}
               </div>
-              {#if alarmActive}
-                <span class="alarm-status">{$t('nowplaying.alarmActive')} {alarmTime}</span>
-              {/if}
+              {#each alarmesZone as a (a.id)}
+                <div class="alarm-row alarm-item" data-reveil-zone={a.id}>
+                  <span class="alarm-status" class:inactive={!a.enabled}>{a.enabled ? `${$t('nowplaying.alarmActive')} ` : ''}{a.time}</span>
+                  <button class="alarm-cancel-btn" onclick={() => handleCancelAlarm(a.id)}>{$t('nowplaying.cancel')}</button>
+                </div>
+              {/each}
+              <button class="alarm-all-link" data-reveils-tous onclick={() => { showAlarm = false; activeView.set('alarms'); }}>
+                {$t('nowplaying.alarmsSeeAll' as any)} ›
+              </button>
             </div>
           {/if}
           {#if showLyrics}
@@ -2395,6 +2466,8 @@ import { ICONES } from '../../lib/menuPiste';
                   </div>
                   <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
                   <GainDeSortieNotes signalPath={zone.signal_path} />
+                  <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+                  <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
                 </div>
               </div>
             {/if}
@@ -3379,6 +3452,31 @@ import { ICONES } from '../../lib/menuPiste';
     margin-bottom: 0;
   }
 
+  /* web#2534 — le label, sous l'album, plus discret que lui. */
+  .track-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0 0 var(--space-xs);
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+  }
+  .track-label-tag {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+  .track-info.center .track-label {
+    justify-content: center;
+  }
+  :global([data-kiosk]) .track-label {
+    display: none;
+  }
+
   .track-album.clickable {
     cursor: pointer;
     transition: color 0.15s ease-out;
@@ -3864,13 +3962,6 @@ import { ICONES } from '../../lib/menuPiste';
     justify-content: center;
   }
   /* web#2550 — le logo de la station, petit, devant son nom. */
-  .radio-station-logo {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    overflow: hidden;
-  }
   /* web#2551 — ajouter à « Mes radios » ou en retirer. */
   .np-mes-radios {
     flex-shrink: 0;
@@ -4350,12 +4441,55 @@ import { ICONES } from '../../lib/menuPiste';
     color: var(--tune-accent);
   }
 
+  .alarm-status.inactive {
+    color: var(--tune-text-muted, var(--tune-text));
+    opacity: 0.7;
+  }
+
+  .alarm-item .alarm-cancel-btn {
+    margin-left: auto;
+  }
+
+  .alarm-all-link {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 11.5px;
+    color: var(--tune-accent);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   /* Artwork click-to-zoom */
   .artwork-clickable {
     cursor: zoom-in;
     position: relative;
     width: 100%;
     height: 100%;
+  }
+
+  /* web#2550 — le logo de la station, en petit, dans le coin haut gauche de
+     la pochette du morceau (le bas porte déjà la loupe et l'œil). */
+  .np-logo-coin {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: clamp(36px, 16%, 64px);
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+  }
+  .np-logo-coin :global(.album-art) {
+    width: 100% !important;
+    height: 100% !important;
+    box-shadow: none !important;
   }
 
   .artwork-zoom-hint {
