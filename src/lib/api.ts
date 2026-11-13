@@ -8881,20 +8881,27 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 // --- CSV Export ---
 
+export type ModeIntegrite = 'full' | 'quick';
 export interface EtatIntegrite {
+  mode?: ModeIntegrite;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
   non_verifiables: number; alertes_taille: number; erreur: string | null;
   lecture_prioritaire: boolean;
 }
 export interface LigneIntegrite {
+  mode?: ModeIntegrite;
   id: number; chemin: string; taille_sans_nouvelle_date: boolean;
   resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
-    erreur: string | null; position_trames: number | null; trames_decodees: number };
+    erreur: string | null; position_trames: number | null; trames_decodees: number;
+    localisation?: { unite: 'trame' | 'page'; numero: number; octet: number; echantillon: number | null } | null;
+    fautes?: number | null; unites_controlees?: number | null };
 }
 export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
-export function startIntegrity(resume = false) {
-  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+export function startIntegrity(resume = false, mode: ModeIntegrite = 'full') {
+  // Une reprise garde le mode enregistré par le serveur, quel que soit le sélecteur.
+  const choix = !resume && mode === 'quick' ? '&mode=quick' : '';
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}${choix}`, { method: 'POST' });
 }
 export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
 export function getIntegrityReport(offset = 0, verdict = '') {
