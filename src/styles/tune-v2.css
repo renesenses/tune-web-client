@@ -500,6 +500,8 @@
   padding:0 32px 0 37px; outline:none;
 }
 .tune-v2 .v2-rech input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+/* `type="search"` : la croix native ferait doublon avec `.clr`. */
+.tune-v2 .v2-rech input::-webkit-search-cancel-button{-webkit-appearance:none; display:none}
 .tune-v2 .v2-rech .clr{
   position:absolute; right:9px; width:19px; height:19px; border:0; border-radius:50%;
   background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;

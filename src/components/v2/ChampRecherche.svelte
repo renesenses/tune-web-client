@@ -28,6 +28,7 @@
     champ = $bindable(null),
     enCours = false,
     raccourci,
+    aide,
     onvider,
     onsaisie,
     onkeydown,
@@ -42,6 +43,9 @@
     enCours?: boolean;
     /** `aria-keyshortcuts`, seulement si l'écran a déjà un raccourci. */
     raccourci?: string;
+    /** Une précision en infobulle (« bibliothèque LOCALE », #2142) — l'invite,
+     *  elle, reste la même partout. */
+    aide?: string;
     /** Appelé APRÈS l'effacement (croix ou Échap). */
     onvider?: () => void;
     /** Chaque frappe, pour un écran qui lance lui-même sa recherche. */
@@ -72,8 +76,8 @@
 
 <div class="v2-rech" data-champ-recherche role="search">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-  <input bind:this={champ} bind:value={valeur} type="text" autocomplete="off" spellcheck="false"
-    placeholder={invite} aria-label={invite} aria-keyshortcuts={raccourci}
+  <input bind:this={champ} bind:value={valeur} type="search" autocomplete="off" spellcheck="false"
+    placeholder={invite} aria-label={invite} aria-keyshortcuts={raccourci} title={aide}
     oninput={() => onsaisie?.(valeur)} onkeydown={clavier} />
   {#if enCours}
     <span class="spin" aria-hidden="true"></span>

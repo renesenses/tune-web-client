@@ -107,4 +107,11 @@ describe('ChampRecherche — le champ partagé', () => {
     const sans = await monter({ ecran: 'Favoris' });
     expect(sans.hasAttribute('aria-keyshortcuts')).toBe(false);
   });
+
+  it('une précision passe en infobulle, l’invite reste la commune', async () => {
+    const input = await monter({ ecran: 'Albums', aide: 'Chercher dans la bibliothèque locale' });
+    expect(input.title).toBe('Chercher dans la bibliothèque locale');
+    expect(input.placeholder).toBe('Rechercher dans Albums…');
+    expect(input.type).toBe('search');
+  });
 });

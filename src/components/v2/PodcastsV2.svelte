@@ -741,7 +741,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     </div>
     <div class="v2-actions">
     {#if tab === 'subs'}
-      <ChampRecherche bind:valeur={q} ecran={$t('v2.pod.tabSubs' as any)} />
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.pod.tabSubs' as any)} aide={$t('v2.pod.filterSubs' as any)} />
     {/if}
     {#if showDiscover && tab !== 'subs' && tab !== 'map'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux

@@ -3504,8 +3504,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          en PREMIER, comme sur tous les autres écrans (`ChampRecherche`). Son
          invite nomme l'onglet ouvert : « Rechercher dans Albums… ». -->
     {#if showSearch}
+      <!-- web#2142 — l'infobulle garde la précision « bibliothèque LOCALE ». -->
       <ChampRecherche bind:valeur={q} bind:champ={champRecherche} raccourci="/"
-        ecran={depot ? depot.nom : $tr((ONGLETS.find((o) => o.id === tab)?.label ?? 'library.title') as any)} />
+        ecran={depot ? depot.nom : $tr((ONGLETS.find((o) => o.id === tab)?.label ?? 'library.title') as any)}
+        aide={depot ? undefined : $tr('v2.lib.searchPlaceholder' as any)} />
       <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
            sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
            route. Elle part du texte déjà tapé. -->
@@ -3516,6 +3518,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
         </button>
       {/if}
+    {:else}
+      <!-- Ajouts récents, Coffrets : pas de recherche (#1367, elle y serait
+           inerte), mais sa PLACE reste — sinon les onglets glissent sous le
+           pointeur au changement d'onglet. -->
+      <span class="v2-rech" data-place-recherche aria-hidden="true"></span>
+      {#if !depot}<span class="req-av place" aria-hidden="true"></span>{/if}
     {/if}
     <nav class="tabs">
       <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
@@ -4874,6 +4882,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .req-av{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .req-av:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .req-av.place{visibility:hidden}
   .req-av svg{width:16px; height:16px}
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus

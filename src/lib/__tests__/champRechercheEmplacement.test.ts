@@ -57,7 +57,7 @@ describe('un seul champ de recherche, le même partout', () => {
     // podcasts), dont le champ LOCALISE un pays sur la carte à Entrée.
     const permis = new Set(['src/components/v2/ChampRecherche.svelte', 'src/components/v2/CarteDecouverte.svelte']);
     const fautifs = [...globSync('src/components/**/*.svelte')]
-      .filter((f) => !permis.has(f) && /class="v2-rech[ "]/.test(balisage(f)));
+      .filter((f) => !permis.has(f) && /class="v2-rech[^"]*"[^>]*>\s*<svg/.test(balisage(f)));
     expect(fautifs).toEqual([]);
   });
 
