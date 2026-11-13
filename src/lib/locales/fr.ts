@@ -5945,7 +5945,6 @@ export default {
   "v2.circle.listen.notShared": "Ce titre n'est plus partagé avec vous.",
   "v2.circle.listen.revoked": "Cette écoute n'est plus autorisée.",
   "v2.circle.listen.noZone": "Choisissez une zone pour lancer l'écoute.",
-  "v2.circle.listen.closed": "Consultation seulement : l'écoute chez un contact n'est pas ouverte. Un clic sur un album ou une piste lance son équivalent depuis vos sources (votre bibliothèque, puis vos services connectés).",
   "v2.circle.sources.search": "Chercher dans mes sources",
   "v2.circle.sources.searchAria": "Chercher « {query} » dans mes sources",
   "v2.circle.sources.searching": "Recherche de « {query} » dans vos sources…",

@@ -5923,7 +5923,6 @@ export default {
   "v2.circle.listen.notShared": "Această piesă nu mai este partajată cu tine.",
   "v2.circle.listen.revoked": "Această ascultare nu mai este permisă.",
   "v2.circle.listen.noZone": "Alege o zonă pentru a începe ascultarea.",
-  "v2.circle.listen.closed": "Doar consultare: ascultarea la un contact nu este deschisă. Un clic pe un album sau o piesă redă echivalentul din sursele tale (biblioteca ta, apoi serviciile conectate).",
   "v2.circle.sources.search": "Caută în sursele mele",
   "v2.circle.sources.searchAria": "Caută „{query}” în sursele mele",
   "v2.circle.sources.searching": "Se caută „{query}” în sursele tale…",

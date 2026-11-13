@@ -5923,7 +5923,6 @@ export default {
   "v2.circle.listen.notShared": "此曲目已不再与您共享。",
   "v2.circle.listen.revoked": "此次收听已不再被允许。",
   "v2.circle.listen.noZone": "请选择一个区域以开始收听。",
-  "v2.circle.listen.closed": "仅供浏览：尚未开放在联系人处收听。点击专辑或曲目，将从您自己的音源（先资料库，再已连接的服务）播放对应内容。",
   "v2.circle.sources.search": "在我的音源中搜索",
   "v2.circle.sources.searchAria": "在我的音源中搜索“{query}”",
   "v2.circle.sources.searching": "正在您的音源中搜索“{query}”…",

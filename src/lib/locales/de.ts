@@ -5923,7 +5923,6 @@ export default {
   "v2.circle.listen.notShared": "Dieser Titel wird nicht mehr mit Ihnen geteilt.",
   "v2.circle.listen.revoked": "Dieses Anhören ist nicht mehr erlaubt.",
   "v2.circle.listen.noZone": "Wählen Sie eine Zone, um das Anhören zu starten.",
-  "v2.circle.listen.closed": "Nur ansehen: Das Hören bei einem Kontakt ist nicht freigegeben. Ein Klick auf ein Album oder einen Titel spielt die Entsprechung aus Ihren Quellen ab (Ihre Bibliothek, dann Ihre verbundenen Dienste).",
   "v2.circle.sources.search": "In meinen Quellen suchen",
   "v2.circle.sources.searchAria": "„{query}“ in meinen Quellen suchen",
   "v2.circle.sources.searching": "Suche nach „{query}“ in Ihren Quellen …",

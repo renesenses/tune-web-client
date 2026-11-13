@@ -5923,7 +5923,6 @@ export default {
   "v2.circle.listen.notShared": "Questo brano non è più condiviso con te.",
   "v2.circle.listen.revoked": "Questo ascolto non è più autorizzato.",
   "v2.circle.listen.noZone": "Scegli una zona per avviare l'ascolto.",
-  "v2.circle.listen.closed": "Solo consultazione: l'ascolto presso un contatto non è aperto. Un clic su un album o un brano riproduce il suo equivalente dalle tue fonti (la tua libreria, poi i tuoi servizi collegati).",
   "v2.circle.sources.search": "Cerca nelle mie fonti",
   "v2.circle.sources.searchAria": "Cerca «{query}» nelle mie fonti",
   "v2.circle.sources.searching": "Ricerca di «{query}» nelle tue fonti…",
