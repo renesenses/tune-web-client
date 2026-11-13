@@ -60,7 +60,7 @@
     MediaServerItem,
   } from '../../lib/types';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
   /** Les rayons d'un serveur Tune, nommés pour cet écran. Les identifiants et
@@ -739,7 +739,7 @@
 
         {#if vue.items.length}
           <div class="ihead">
-            <h2>{$t((vue.items.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(vue.items.length))}</h2>
+            <h2>{$tn('v2.common.trackCountN', vue.items.length)}</h2>
             <div class="acts">
               <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire
                    passe sous sa flèche (`data-aleatoire-serveur`). -->

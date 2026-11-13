@@ -76,7 +76,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tick, untrack } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import '../../styles/tune-v2.css';
 
@@ -1247,7 +1247,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
             {@const sousTitre = pl.smart
               ? $t('v2.pl.rule' as any)
               : nbTitres != null
-                ? libelleNbTitres(nbTitres, $t)
+                ? libelleNbTitres(nbTitres, $tn)
                 : ''}
             <div class="card">
               <span class="cv pl" class:img={!!mos || (!locale && !!pl.cover_path)}>
@@ -1457,7 +1457,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         {/if}
       {:else}
         <div class="rf-actions">
-          <span class="rf-cpt">{$t((radio.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(radio.length))}</span>
+          <span class="rf-cpt">{$tn('v2.common.trackCountN', radio.length)}</span>
           <button class="rf-btn accent" onclick={() => (creationPlaylist = true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             {$t('v2.fav.radioMakePlaylist' as any)}
