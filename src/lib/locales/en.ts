@@ -2880,6 +2880,8 @@ export default {
   "alarms.fieldTime": "Time",
   "alarms.fieldDays": "Days",
   "alarms.skipHolidays": "Skip public holidays",
+  "alarms.interruptPlayback": "Interrupt current playback",
+  "alarms.interruptPlaybackHint": "If the zone is already playing when the alarm goes off, the alarm replaces the current music, at its own volume. Unchecked, the zone keeps its music.",
   "alarms.playbackZone": "Playback zone",
   "alarms.defaultZone": "Default zone",
   "alarms.source": "Source",

@@ -2091,6 +2091,8 @@ export default {
   "alarms.fieldTime": "Ora",
   "alarms.fieldDays": "Giorni",
   "alarms.skipHolidays": "Salta i giorni festivi",
+  "alarms.interruptPlayback": "Interrompi la riproduzione in corso",
+  "alarms.interruptPlaybackHint": "Se la zona sta già suonando quando scatta la sveglia, questa sostituisce la musica in corso, al proprio volume. Se non selezionato, la zona mantiene la sua musica.",
   "alarms.playbackZone": "Zona di riproduzione",
   "alarms.defaultZone": "Zona predefinita",
   "alarms.source": "Sorgente",

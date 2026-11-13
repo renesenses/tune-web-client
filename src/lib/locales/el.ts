@@ -2731,6 +2731,8 @@ export default {
   "alarms.fieldTime": "Ώρα",
   "alarms.fieldDays": "Ημέρες",
   "alarms.skipHolidays": "Παράλειψη επίσημων αργιών",
+  "alarms.interruptPlayback": "Διακοπή της τρέχουσας αναπαραγωγής",
+  "alarms.interruptPlaybackHint": "Αν η ζώνη παίζει ήδη τη στιγμή του ξυπνητηριού, αυτό αντικαθιστά την τρέχουσα μουσική, στη δική του ένταση. Χωρίς επιλογή, η ζώνη κρατά τη μουσική της.",
   "alarms.playbackZone": "Ζώνη αναπαραγωγής",
   "alarms.defaultZone": "Προεπιλεγμένη ζώνη",
   "alarms.source": "Πηγή",

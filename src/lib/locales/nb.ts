@@ -2731,6 +2731,8 @@ export default {
   "alarms.fieldTime": "Tid",
   "alarms.fieldDays": "Dager",
   "alarms.skipHolidays": "Hopp over helligdager",
+  "alarms.interruptPlayback": "Avbryt pågående avspilling",
+  "alarms.interruptPlaybackHint": "Hvis sonen allerede spiller når alarmen går, erstatter alarmen den pågående musikken, med sitt eget volum. Uten avkrysning beholder sonen musikken sin.",
   "alarms.playbackZone": "Avspillingssone",
   "alarms.defaultZone": "Standardsone",
   "alarms.source": "Kilde",

@@ -2044,6 +2044,8 @@ export default {
   "alarms.fieldTime": "Tid",
   "alarms.fieldDays": "Dagar",
   "alarms.skipHolidays": "Hoppa över helgdagar",
+  "alarms.interruptPlayback": "Avbryt pågående uppspelning",
+  "alarms.interruptPlaybackHint": "Om zonen redan spelar när larmet går ersätter larmet den pågående musiken, med sin egen volym. Avmarkerat behåller zonen sin musik.",
   "alarms.playbackZone": "Uppspelningszon",
   "alarms.defaultZone": "Standardzon",
   "alarms.source": "Källa",

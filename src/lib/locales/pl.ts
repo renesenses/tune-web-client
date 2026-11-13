@@ -2731,6 +2731,8 @@ export default {
   "alarms.fieldTime": "Godzina",
   "alarms.fieldDays": "Dni",
   "alarms.skipHolidays": "Pomijaj święta państwowe",
+  "alarms.interruptPlayback": "Przerwij bieżące odtwarzanie",
+  "alarms.interruptPlaybackHint": "Jeśli strefa już odtwarza w chwili budzika, budzik zastępuje bieżącą muzykę, z własną głośnością. Bez zaznaczenia strefa zachowuje swoją muzykę.",
   "alarms.playbackZone": "Strefa odtwarzania",
   "alarms.defaultZone": "Strefa domyślna",
   "alarms.source": "Źródło",

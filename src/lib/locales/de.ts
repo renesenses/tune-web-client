@@ -2091,6 +2091,8 @@ export default {
   "alarms.fieldTime": "Uhrzeit",
   "alarms.fieldDays": "Tage",
   "alarms.skipHolidays": "Feiertage überspringen",
+  "alarms.interruptPlayback": "Laufende Wiedergabe unterbrechen",
+  "alarms.interruptPlaybackHint": "Spielt die Zone beim Wecken bereits, ersetzt der Wecker die laufende Musik in seiner Lautstärke. Nicht angehakt behält die Zone ihre Musik.",
   "alarms.playbackZone": "Wiedergabezone",
   "alarms.defaultZone": "Standardzone",
   "alarms.source": "Quelle",

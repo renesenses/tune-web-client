@@ -2091,6 +2091,8 @@ export default {
   "alarms.fieldTime": "Hora",
   "alarms.fieldDays": "Días",
   "alarms.skipHolidays": "Omitir días festivos",
+  "alarms.interruptPlayback": "Interrumpir la reproducción en curso",
+  "alarms.interruptPlaybackHint": "Si la zona ya está sonando cuando suena la alarma, esta sustituye la música en curso, a su volumen. Desmarcado, la zona conserva su música.",
   "alarms.playbackZone": "Zona de reproducción",
   "alarms.defaultZone": "Zona predeterminada",
   "alarms.source": "Fuente",

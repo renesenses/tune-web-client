@@ -2071,6 +2071,8 @@ export default {
   "alarms.fieldTime": "시간",
   "alarms.fieldDays": "요일",
   "alarms.skipHolidays": "공휴일 건너뛰기",
+  "alarms.interruptPlayback": "현재 재생 중단",
+  "alarms.interruptPlaybackHint": "알람이 울릴 때 영역이 이미 재생 중이면 알람이 자체 볼륨으로 현재 음악을 대신합니다. 선택하지 않으면 영역은 기존 음악을 유지합니다.",
   "alarms.playbackZone": "재생 존",
   "alarms.defaultZone": "기본 존",
   "alarms.source": "소스",
