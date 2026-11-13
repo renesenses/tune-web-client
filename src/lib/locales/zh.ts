@@ -2093,6 +2093,8 @@ export default {
   "alarms.fieldTime": "时间",
   "alarms.fieldDays": "日期",
   "alarms.skipHolidays": "跳过公众假期",
+  "alarms.interruptPlayback": "中断当前播放",
+  "alarms.interruptPlaybackHint": "闹钟响起时如果该区域正在播放，闹钟会以自己的音量取代当前音乐。不勾选时，该区域继续播放原来的音乐。",
   "alarms.playbackZone": "播放区域",
   "alarms.defaultZone": "默认区域",
   "alarms.source": "音源",

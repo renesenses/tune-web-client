@@ -2202,6 +2202,8 @@ export default {
   "alarms.fieldTime": "Időpont",
   "alarms.fieldDays": "Napok",
   "alarms.skipHolidays": "Ünnepnapok kihagyása",
+  "alarms.interruptPlayback": "Az aktuális lejátszás megszakítása",
+  "alarms.interruptPlaybackHint": "Ha a zóna az ébresztéskor már lejátszik, az ébresztő a saját hangerején felváltja a szóló zenét. Kikapcsolva a zóna megtartja a zenéjét.",
   "alarms.playbackZone": "Lejátszási zóna",
   "alarms.defaultZone": "Alapértelmezett zóna",
   "alarms.source": "Forrás",

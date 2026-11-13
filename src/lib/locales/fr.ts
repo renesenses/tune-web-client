@@ -2885,6 +2885,8 @@ export default {
   "alarms.fieldTime": "Heure",
   "alarms.fieldDays": "Jours",
   "alarms.skipHolidays": "Ignorer les jours fériés",
+  "alarms.interruptPlayback": "Interrompre la lecture en cours",
+  "alarms.interruptPlaybackHint": "Si la zone joue déjà au moment du réveil, il remplace la musique en cours, à son volume. Décoché, la zone garde sa musique.",
   "alarms.playbackZone": "Zone de lecture",
   "alarms.defaultZone": "Zone par défaut",
   "alarms.source": "Source",

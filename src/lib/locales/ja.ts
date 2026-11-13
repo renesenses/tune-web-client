@@ -2089,6 +2089,8 @@ export default {
   "alarms.fieldTime": "時刻",
   "alarms.fieldDays": "曜日",
   "alarms.skipHolidays": "祝日をスキップ",
+  "alarms.interruptPlayback": "再生中の音楽を中断する",
+  "alarms.interruptPlaybackHint": "アラームの時刻にゾーンが再生中の場合、アラームが自分の音量で再生中の音楽を置き換えます。オフにすると、ゾーンはそのまま音楽を再生し続けます。",
   "alarms.playbackZone": "再生ゾーン",
   "alarms.defaultZone": "デフォルトゾーン",
   "alarms.source": "ソース",

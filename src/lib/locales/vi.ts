@@ -2735,6 +2735,8 @@ export default {
   "alarms.fieldTime": "Giờ",
   "alarms.fieldDays": "Ngày",
   "alarms.skipHolidays": "Bỏ qua ngày lễ",
+  "alarms.interruptPlayback": "Ngắt phát nhạc đang diễn ra",
+  "alarms.interruptPlaybackHint": "Nếu vùng đang phát nhạc khi báo thức kêu, báo thức sẽ thay thế nhạc đang phát với âm lượng của nó. Bỏ chọn thì vùng giữ nguyên nhạc của mình.",
   "alarms.playbackZone": "Vùng phát",
   "alarms.defaultZone": "Vùng phát mặc định",
   "alarms.source": "Nguồn",

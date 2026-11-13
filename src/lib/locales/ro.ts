@@ -2099,6 +2099,8 @@ export default {
   "alarms.fieldTime": "Oră",
   "alarms.fieldDays": "Zile",
   "alarms.skipHolidays": "Sari peste sărbătorile legale",
+  "alarms.interruptPlayback": "Întrerupe redarea în curs",
+  "alarms.interruptPlaybackHint": "Dacă zona redă deja la ora alarmei, alarma înlocuiește muzica în curs, la volumul ei. Nebifat, zona își păstrează muzica.",
   "alarms.playbackZone": "Zonă de redare",
   "alarms.defaultZone": "Zonă implicită",
   "alarms.source": "Sursă",
