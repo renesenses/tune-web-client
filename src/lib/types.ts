@@ -649,6 +649,15 @@ export interface Zone {
    *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
    *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
   sortie_absente?: boolean;
+  /** tune-server-rust#7279 / #7838 — zone `dlna` ou `openhome` dont aucune
+   *  sortie de lecture n'est enregistrée. Absent d'un serveur antérieur. */
+  sortie_reseau_absente?: boolean;
+  /** tune-server-rust#7838 — posé seulement quand la découverte VOIT
+   *  l'appareil : pourquoi il ne peut pas jouer. Absent = hors ligne ordinaire
+   *  (voir `lib/raisonSortieReseau`). */
+  raison_sortie_absente?: 'services_de_rendu_manquants' | 'sortie_non_enregistree';
+  /** Les services de rendu UPnP que l'appareil n'annonce pas. */
+  services_manquants?: Array<'avtransport' | 'renderingcontrol' | string>;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
@@ -953,6 +962,10 @@ export interface DiscoveredDevice {
   mac_prefix?: string | null;
   /** Marque que la table OUI associe à cette plage ; `null` si elle n'y est pas. */
   mac_vendor?: string | null;
+  /** tune-server-rust#7279 — `false` : trouvé, mais aucune de ses identités
+   *  n'est une sortie de lecture (service de rendu manquant). Absent d'un
+   *  serveur antérieur : traiter l'absence comme `true`. */
+  registered?: boolean;
 }
 
 export interface LocalAudioDevice {

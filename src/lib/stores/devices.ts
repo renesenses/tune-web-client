@@ -14,6 +14,8 @@ export const unboundDevices = derived(
         .map((z) => z.output_device_id)
         .filter((id): id is string => typeof id === 'string')
     );
-    return $devices.filter((d) => d.available && !deviceHasBoundZone(d, boundDeviceIds));
+    // tune-server-rust#7838 : un appareil trouvé sans sortie de lecture
+    // (`registered: false`) n'est pas une sortie à proposer.
+    return $devices.filter((d) => d.available && d.registered !== false && !deviceHasBoundZone(d, boundDeviceIds));
   }
 );
