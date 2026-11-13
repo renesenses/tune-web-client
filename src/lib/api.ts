@@ -1,6 +1,7 @@
 import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
+import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -5797,6 +5798,25 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/**
+ * #8676 — « Remplacer le chemin » : l'aperçu (n'écrit rien) et l'application
+ * (une transaction, identifiants conservés). Les refus (400, 409, 422) portent
+ * un corps lisible : `refusal` ou `error`, que `remplacerChemin.ts` traduit.
+ */
+export function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
+  return fetchJSON<ApercuDeplacement>(`${BASE}/system/music-dirs/move/preview`, {
+    method: 'POST',
+    body: JSON.stringify({ old_prefix: oldPrefix, new_prefix: newPrefix }),
+  }, (s) => s === 400);
+}
+
+export function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
+  return fetchJSON<BilanDeplacement>(`${BASE}/system/music-dirs/move`, {
+    method: 'POST',
+    body: JSON.stringify({ old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks }),
+  }, (s) => s === 400 || s === 409 || s === 422);
 }
 
 /** Une entrée de l'explorateur de dossiers du serveur. */
