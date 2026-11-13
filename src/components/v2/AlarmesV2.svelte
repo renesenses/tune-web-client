@@ -56,6 +56,9 @@
     /** Masque lun..dim, celui que lit le planificateur (#5669). */
     days_of_week?: string | null;
     skip_holidays: number;
+    /** tune-server-rust#8615 — « Interrompre la lecture en cours ». Absent
+     *  (serveur d'avant) : cochée, la valeur par défaut. */
+    interrupt_playback?: boolean | number | null;
     holiday_country: string;
     zone_id: number | null;
     source_type: string;
@@ -85,6 +88,8 @@
   let fHeure = $state('07:00');
   let fJours = $state<number[]>([...EN_SEMAINE]);
   let fFeries = $state(true);
+  /** tune-server-rust#8615 (décision du 13/11) : cochée par défaut. */
+  let fInterrompre = $state(true);
   let fZone = $state<number | null>(null);
   let fTypeSource = $state('radio');
   let fIdSource = $state('');
@@ -119,6 +124,7 @@
     fHeure = '07:00';
     fJours = [...EN_SEMAINE];
     fFeries = true;
+    fInterrompre = true;
     fZone = $currentZone?.id ?? null;
     fTypeSource = 'radio';
     fIdSource = '';
@@ -134,6 +140,7 @@
     fHeure = r.time;
     fJours = joursDuReveil(r);
     fFeries = !!r.skip_holidays;
+    fInterrompre = r.interrupt_playback == null ? true : !!r.interrupt_playback;
     fZone = r.zone_id;
     fTypeSource = r.source_type;
     fIdSource = r.source_id;
@@ -167,6 +174,8 @@
       time: r.time ?? fHeure,
       ...champsJours(jours),
       skip_holidays: r.skip_holidays ?? fFeries,
+      // #8615 — un réveil d'un serveur d'avant n'a pas la clé : cochée.
+      interrupt_playback: r.interrupt_playback != null ? !!r.interrupt_playback : fInterrompre,
       holiday_country: r.holiday_country ?? 'FR',
       zone_id: r.zone_id !== undefined ? r.zone_id : fZone,
       source_type: r.source_type ?? fTypeSource,
@@ -320,6 +329,12 @@
           <input type="range" min="0" max="120" step="5" bind:value={fMontee} />
         </label>
       {/if}
+
+      <!-- tune-server-rust#8615 (fil 2784) — visible à tous les niveaux. -->
+      <label class="champ ligne" data-reveil-interrompre title={$t('alarms.interruptPlaybackHint' as any)}>
+        <input type="checkbox" bind:checked={fInterrompre} />
+        <span>{$t('alarms.interruptPlayback' as any)}</span>
+      </label>
 
       {#if atLeast(niveau, 'expert')}
         <label class="champ ligne">
