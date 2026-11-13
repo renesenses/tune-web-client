@@ -179,7 +179,11 @@
   // `rayons` : l'arbre de rangement (tune-server-rust#4853). L'onglet n'existe
   // que si le serveur sert l'arbre ; sinon l'écran reste ses deux listes plates.
   type Onglet = 'smart' | 'manuelle' | 'rayons';
-  let onglet = $state<Onglet>('smart');
+  // Fil 2809 (JLuc, 13/11) : l'écran rouvre sur le dernier onglet choisi
+  // (Collections, Smart Collections ou Rayons) au lieu de toujours « Smart ».
+  const ONGLETS: readonly Onglet[] = ['smart', 'manuelle', 'rayons'];
+  let onglet = $state<Onglet>(lireChoix<Onglet>('v2.collections.onglet', ONGLETS, 'smart'));
+  $effect(() => { ecrireChoix('v2.collections.onglet', onglet); });
   let rayons = $state<EtatRayons>({ mode: 'plat' });
   async function chargerLesRayons() {
     rayons = await rafraichirRayons(api.getCollectionFolders);
