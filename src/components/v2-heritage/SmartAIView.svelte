@@ -427,6 +427,9 @@
     display: flex;
     align-items: baseline;
     gap: var(--space-md);
+    /* web#2971 — monté seul par la coquille v2 (route `smart-ai`) : l'en-tête
+       laisse la place à la grappe du haut, comme les autres écrans v1. */
+    padding-right: var(--v2-grappe-w, 172px);
   }
 
   .view-header h2 {

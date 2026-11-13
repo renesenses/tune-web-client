@@ -28,7 +28,7 @@
  */
 import { derived, get, writable } from 'svelte/store';
 import { BASE, fetchJSON, play, addToQueue } from './api';
-import { estReglages, type EtatPlafondIa, type ReglagesIa } from './assistantIa';
+import { assistantAbsent, assistantIaAbsent, estReglages, type EtatPlafondIa, type ReglagesIa } from './assistantIa';
 
 /** Une action exécutée par l'assistant (un outil, son entrée, son résultat). */
 export interface ActionIa {
@@ -111,10 +111,13 @@ export function noterReglagesIa(r: unknown): void {
  * simplement le bouton absent.
  */
 export async function sonderAssistantIa(
-  lire: () => Promise<unknown> = () => fetchJSON(`${BASE}/ext/assistant-ia/reglages`, undefined, undefined, true),
+  // web#2966 — le 404 de route absente est LU (et non levé) : c'est lui qui
+  // dit « greffon inactif », que les fenêtres de l'assistant expliquent.
+  lire: () => Promise<unknown> = () => fetchJSON(`${BASE}/ext/assistant-ia/reglages`, undefined, (s) => s !== 401, true),
 ): Promise<boolean> {
   try {
     const r = await lire();
+    assistantIaAbsent.set(assistantAbsent(r));
     if (estReglages(r)) noterReglagesIa(r);
     else reglagesIaConnus.set(null);
   } catch {
