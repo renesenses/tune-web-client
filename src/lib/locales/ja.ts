@@ -5943,7 +5943,6 @@ export default {
   "v2.circle.listen.notShared": "このトラックは共有されなくなりました。",
   "v2.circle.listen.revoked": "この再生は許可されなくなりました。",
   "v2.circle.listen.noZone": "再生するゾーンを選択してください。",
-  "v2.circle.listen.closed": "閲覧のみ：連絡先の元での再生は開放されていません。アルバムや曲をクリックすると、ご自身のソース（ライブラリ、次に接続中のサービス）にある同じものを再生します。",
   "v2.circle.sources.search": "自分のソースで検索",
   "v2.circle.sources.searchAria": "「{query}」を自分のソースで検索",
   "v2.circle.sources.searching": "「{query}」をあなたのソースで検索中…",

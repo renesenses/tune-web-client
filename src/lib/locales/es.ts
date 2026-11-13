@@ -5943,7 +5943,6 @@ export default {
   "v2.circle.listen.notShared": "Esta pista ya no se comparte contigo.",
   "v2.circle.listen.revoked": "Esta escucha ya no está autorizada.",
   "v2.circle.listen.noZone": "Elige una zona para empezar a escuchar.",
-  "v2.circle.listen.closed": "Solo consulta: la escucha en casa de un contacto no está abierta. Un clic en un álbum o una pista reproduce su equivalente desde tus fuentes (tu biblioteca y luego tus servicios conectados).",
   "v2.circle.sources.search": "Buscar en mis fuentes",
   "v2.circle.sources.searchAria": "Buscar «{query}» en mis fuentes",
   "v2.circle.sources.searching": "Buscando «{query}» en tus fuentes…",

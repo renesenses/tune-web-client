@@ -5897,7 +5897,6 @@ export default {
   "v2.circle.listen.notShared": "Ezt a számot már nem osztják meg Önnel.",
   "v2.circle.listen.revoked": "Ez a hallgatás már nem engedélyezett.",
   "v2.circle.listen.noZone": "Válasszon zónát a hallgatás indításához.",
-  "v2.circle.listen.closed": "Csak megtekintés: a kapcsolatnál való hallgatás nincs megnyitva. Egy albumra vagy számra kattintva a saját forrásaidban talált megfelelője szól (előbb a könyvtáradból, aztán a csatlakoztatott szolgáltatásokból).",
   "v2.circle.sources.search": "Keresés a forrásaimban",
   "v2.circle.sources.searchAria": "„{query}” keresése a forrásaimban",
   "v2.circle.sources.searching": "„{query}” keresése a forrásaidban…",

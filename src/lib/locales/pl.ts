@@ -5800,7 +5800,6 @@ export default {
   "v2.circle.listen.notShared": "Ten utwór nie jest już Ci udostępniany.",
   "v2.circle.listen.revoked": "Ta sesja odsłuchu nie jest już dozwolona.",
   "v2.circle.listen.noZone": "Wybierz strefę, aby rozpocząć odsłuch.",
-  "v2.circle.listen.closed": "Tylko przeglądanie: słuchanie u kontaktu nie jest otwarte. Kliknięcie albumu lub utworu odtwarza jego odpowiednik z Twoich źródeł (najpierw biblioteka, potem połączone usługi).",
   "v2.circle.sources.search": "Szukaj w moich źródłach",
   "v2.circle.sources.searchAria": "Szukaj „{query}” w moich źródłach",
   "v2.circle.sources.searching": "Szukanie „{query}” w Twoich źródłach…",

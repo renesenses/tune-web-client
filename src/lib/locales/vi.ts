@@ -5805,7 +5805,6 @@ export default {
   "v2.circle.listen.notShared": "Bài hát này không còn được chia sẻ với bạn.",
   "v2.circle.listen.revoked": "Phiên nghe này không còn được cho phép.",
   "v2.circle.listen.noZone": "Chọn một vùng phát để bắt đầu nghe.",
-  "v2.circle.listen.closed": "Chỉ xem: tính năng nghe tại máy của liên hệ chưa được mở. Nhấp vào một album hoặc bài hát sẽ phát bản tương ứng từ nguồn của bạn (thư viện của bạn, rồi đến các dịch vụ đã kết nối).",
   "v2.circle.sources.search": "Tìm trong nguồn của tôi",
   "v2.circle.sources.searchAria": "Tìm “{query}” trong nguồn của tôi",
   "v2.circle.sources.searching": "Đang tìm “{query}” trong nguồn của bạn…",

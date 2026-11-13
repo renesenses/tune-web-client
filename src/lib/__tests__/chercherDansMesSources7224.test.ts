@@ -179,12 +179,12 @@ async function ouvrirTitresElise(el: Element) {
 }
 
 
-describe('#7224 — écoute fermée : le message en tête', () => {
-  it('un message explicite en tête de la bibliothèque, en plus de « Consultation seulement »', async () => {
+describe('#2984 — bibliothèque du contact sans paragraphe de fermeture', () => {
+  it('conserve le statut de consultation sans le paragraphe sur l’écoute à distance', async () => {
     const el = await poser();
     await cliquer(el, 'li.partage-recu button.ouvrir-catalogue');
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
-    expect(texte(el.querySelector('.ecoute-fermee')!)).toBe(fr['v2.circle.listen.closed']);
+    expect(el.querySelector('.ecoute-fermee'), 'le paragraphe de fermeture doit disparaître').toBeNull();
   });
 
   it('écoute ouverte : pas de message de fermeture, pas de bouton de recherche sur les pistes', async () => {

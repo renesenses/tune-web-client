@@ -5942,7 +5942,6 @@ export default {
   "v2.circle.listen.notShared": "Det här spåret delas inte längre med dig.",
   "v2.circle.listen.revoked": "Den här lyssningen är inte längre tillåten.",
   "v2.circle.listen.noZone": "Välj en zon för att börja lyssna.",
-  "v2.circle.listen.closed": "Endast visning: lyssning hos en kontakt är inte öppen. Ett klick på ett album eller en låt spelar motsvarigheten från dina källor (ditt bibliotek, sedan dina anslutna tjänster).",
   "v2.circle.sources.search": "Sök i mina källor",
   "v2.circle.sources.searchAria": "Sök efter ”{query}” i mina källor",
   "v2.circle.sources.searching": "Söker efter ”{query}” i dina källor …",

@@ -5802,7 +5802,6 @@ export default {
   "v2.circle.listen.notShared": "Dette sporet er ikke lenger delt med deg.",
   "v2.circle.listen.revoked": "Denne lyttesesjonen er ikke lenger tillatt.",
   "v2.circle.listen.noZone": "Velg en sone for å begynne å lytte.",
-  "v2.circle.listen.closed": "Kun visning: lytting hos en kontakt er ikke åpen. Et klikk på et album eller et spor spiller tilsvarende fra dine kilder (biblioteket ditt, deretter de tilkoblede tjenestene).",
   "v2.circle.sources.search": "Søk i mine kilder",
   "v2.circle.sources.searchAria": "Søk etter «{query}» i mine kilder",
   "v2.circle.sources.searching": "Søker etter «{query}» i kildene dine …",

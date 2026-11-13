@@ -5963,7 +5963,6 @@ export default {
   "v2.circle.listen.notShared": "This track is no longer shared with you.",
   "v2.circle.listen.revoked": "This listening session is no longer allowed.",
   "v2.circle.listen.noZone": "Choose a zone to start listening.",
-  "v2.circle.listen.closed": "Browse only: listening at a contact's is not open. Clicking an album or a track plays its equivalent from your sources (your library, then your connected services).",
   "v2.circle.sources.search": "Search my sources",
   "v2.circle.sources.searchAria": "Search my sources for \"{query}\"",
   "v2.circle.sources.searching": "Searching your sources for \"{query}\"…",
