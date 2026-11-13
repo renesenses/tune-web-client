@@ -20,6 +20,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
+  import { lireTotaux, infobulleTotaux, type TotauxBibliotheque } from '../../lib/totauxBibliotheque';
   import { t, locale } from '../../lib/i18n';
   import { activeView, pendingLibraryFiltre } from '../../lib/stores/navigation';
   import {
@@ -45,12 +46,16 @@
   let etat = $state<'chargement' | 'pret' | 'indisponible' | 'erreur'>('chargement');
   let repartitions = $state<Repartitions | null>(null);
   let totaux = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  /** tune-server-rust#8625 — LE total des listes, et l'écart des tables. */
+  let totauxListes = $state<TotauxBibliotheque | null>(null);
   let classements = $state<Classements | null>(null);
 
   onMount(async () => {
     try {
       const s = await api.getLibraryStats();
-      totaux = { tracks: s?.tracks ?? 0, albums: s?.albums ?? 0, artists: s?.artists ?? 0 };
+      // #8625 — les totaux de Titres et d'Albums, pas le compte des tables.
+      totauxListes = lireTotaux(s);
+      totaux = { tracks: totauxListes.tracks, albums: totauxListes.albums, artists: s?.artists ?? 0 };
       repartitions = lireRepartitions(s);
       classements = lireClassements(s);
       etat = repartitions ? 'pret' : 'indisponible';
@@ -85,6 +90,8 @@
       .replace('{artists}', nombre(totaux.artists))
     : null);
 
+  const infobulle = $derived(totauxListes ? infobulleTotaux(totauxListes, (c) => $t(c as any), nombre) : undefined);
+
   function filtrer(f: FiltreBibliotheque) {
     pendingLibraryFiltre.set(f);
     activeView.set('library');
@@ -99,13 +106,13 @@
       </div>
       {#if texteTotaux}
         <div class="v2-actions">
-          <div class="meta">{texteTotaux}</div>
+          <div class="meta" data-totaux-bibliotheque title={infobulle}>{texteTotaux}</div>
         </div>
       {/if}
     </header>
   {/if}
   <div class="scroll">
-    {#if embarquee && texteTotaux}<div class="meta solo">{texteTotaux}</div>{/if}
+    {#if embarquee && texteTotaux}<div class="meta solo" data-totaux-bibliotheque title={infobulle}>{texteTotaux}</div>{/if}
     {#if etat === 'chargement'}
       <p class="etat">{$t('v2.common.loading' as any)}</p>
     {:else if etat === 'erreur'}

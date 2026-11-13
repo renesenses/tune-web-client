@@ -35,7 +35,9 @@ describe('le compteur de pistes', () => {
 
   it("part des statistiques du serveur, pas de la liste vide", () => {
     expect(src).toContain('api.getLibraryStats()');
-    expect(src).toMatch(/nbPistesServeur = st\?\.tracks \?\? null/);
+    // tune-server-rust#8625 — le total des listes (`library_totals`), plus
+    // le compte des tables.
+    expect(src).toMatch(/nbPistesServeur = lireTotaux\(st\)\.tracks/);
   });
 
   it("le total du serveur ne sert QUE pendant le chargement", () => {

@@ -115,6 +115,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
+  import { lireTotaux } from '../../lib/totauxBibliotheque';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
@@ -2112,6 +2113,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
   const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
+  /**
+   * tune-server-rust#8625 — liste entière, sans filtre : « Tout » compte des
+   * CARTES (versions regroupées #7617, favoris des services #7780), pas les
+   * albums du serveur. L'écart est expliqué en infobulle.
+   */
+  const toutActif = $derived(!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee);
+  const infobulleTout: string | undefined = $derived.by(() =>
+    !nu && !depot && toutActif && affiches.length !== $albums.length
+      ? $tr('bibliotheque.albums.infobulleCartes' as any)
+        .replace('{shown}', $formatNombre(affiches.length))
+        .replace('{total}', $formatNombre($albums.length))
+      : undefined);
   /** Les comptes des menus ne valent que sur la liste entière. */
   const comptesPrets = $derived(!!depot || bibliothequeEntiere);
   /**
@@ -2704,7 +2717,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // premier sans traîner l'inventaire des zones et des sorties.
     // Sous portée, le total du serveur porte sur TOUTE la bibliothèque : on
     // n'annonce pas un compte qu'on ne servira pas.
-    if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
+    if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = lireTotaux(st).tracks; }).catch(() => {});
     (d ? pistesDistantes(d)
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
        : demanderToutesLesPistes(annulation.signal))
@@ -3463,7 +3476,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={toutActif} onclick={reset} title={infobulleTout} data-albums-tout>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
