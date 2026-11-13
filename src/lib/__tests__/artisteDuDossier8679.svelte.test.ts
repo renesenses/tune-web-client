@@ -90,7 +90,7 @@ describe('Albums douteux : artiste du dossier (#8679)', () => {
       expect(ligne(1)).toBeNull();
     });
     expect(api.getDoubtfulTracks).toHaveBeenCalledTimes(2);
-    expect(hote.querySelector('.pistes-douteuses .bilan')?.textContent).toContain(dict['fileWrites.savedInTuneOnly']);
+    expect(hote.querySelector('[data-bilan-dossier]')?.textContent).toContain(dict['fileWrites.savedInTuneOnly']);
   });
 
   it('toute la liste : l’aperçu compte d’abord, rien n’est écrit avant la confirmation', async () => {
@@ -112,6 +112,29 @@ describe('Albums douteux : artiste du dossier (#8679)', () => {
       expect(hote.querySelectorAll('.pistes-douteuses li[data-piste-id]').length).toBe(1);
     });
     expect(hote.querySelector('.pistes-douteuses button.tout')).toBeNull();
+  });
+
+  it('le bilan reste affiché quand plus aucune piste n’est concernée, ou plus aucune piste du tout', async () => {
+    // Toutes les pistes ont un dossier : après « toute la liste », la liste
+    // relue est VIDE et l'onglet n'affiche plus que « aucun album douteux ».
+    donnees = [donnees[0], donnees[1]];
+    await ouvrir();
+    hote.querySelector<HTMLButtonElement>('.pistes-douteuses button.tout')!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(hote.querySelector('.pistes-douteuses .gestes .go')).not.toBeNull();
+    });
+    hote.querySelector<HTMLButtonElement>('.pistes-douteuses .gestes .go')!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(hote.querySelector('.pistes-douteuses')).toBeNull();
+      expect(hote.textContent).toContain(dict['v2.meta.noDoubtful']);
+    });
+    const bilan = hote.querySelector('[data-bilan-dossier]')?.textContent ?? '';
+    expect(bilan, 'le bilan a disparu avec la liste').toContain(
+      dict['v2.meta.dFolderDone'].replace('{tracks}', '2').replace('{albums}', '1'),
+    );
+    expect(bilan).toContain(dict['fileWrites.savedInTuneOnly']);
   });
 
   it('les groupes prennent le nom du serveur plutôt que la devinette locale', () => {

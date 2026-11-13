@@ -4,7 +4,9 @@
   import { formatNombre } from '../../lib/formats';
   import { t } from '../../lib/i18n';
 
-  let { pistes, onEcrit }: { pistes: PisteDouteuse[]; onEcrit?: () => void | Promise<void> } = $props();
+  /** `onEcrit` reçoit le bilan : c'est le parent qui l'affiche, la liste
+   *  relue pouvant ne plus contenir ce composant (#8679). */
+  let { pistes, onEcrit }: { pistes: PisteDouteuse[]; onEcrit?: (bilan: string) => void | Promise<void> } = $props();
   let limite = $state(50);
   let visibles = $derived(pistes.slice(0, limite));
 
@@ -13,7 +15,6 @@
   let avecDossier = $derived(pistes.filter((p) => dossierDe(p)));
   let apercu = $state<api.ApercuArtisteDuDossier | null>(null);
   let occupe = $state(false);
-  let bilan = $state<string | null>(null);
   let erreur = $state<string | null>(null);
 
   function dossierDe(p: PisteDouteuse): string | null {
@@ -50,12 +51,10 @@
     if (occupe) return;
     occupe = true;
     erreur = null;
-    bilan = null;
     try {
       const b = await api.ecrireArtisteDuDossier(ids);
-      bilan = direBilan(b);
       apercu = null;
-      await onEcrit?.();
+      await onEcrit?.(direBilan(b));
     } catch (e: any) {
       erreur = e?.message ?? $t('v2.meta.dFolderFailed' as any);
     }
@@ -66,7 +65,6 @@
     if (occupe) return;
     occupe = true;
     erreur = null;
-    bilan = null;
     try {
       apercu = await api.apercuArtisteDuDossier();
     } catch (e: any) {
@@ -107,7 +105,6 @@
           {$t('v2.meta.dFolderAll' as any).replace('{count}', $formatNombre(avecDossier.length))}
         </button>
       {/if}
-      {#if bilan}<p class="bilan" aria-live="polite">{bilan}</p>{/if}
       {#if erreur}<p class="erreur" role="alert">{erreur}</p>{/if}
     </div>
   {/if}
