@@ -35,6 +35,7 @@
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -117,6 +118,13 @@
       ? (n === 1 ? 'v2.disco.sharedAlbumOne' : 'v2.disco.sharedAlbums')
       : (n === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks');
     return $t(cle as any).replace('{n}', String(n));
+  }
+
+  /** #2961 — la cible du nom : la fiche par `artist_id`, sinon par le nom. */
+  function entiteJoueAvec(j: JoueAvec): Entite {
+    return typeof j.artist_id === 'number'
+      ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
+      : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } };
   }
 
   let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
@@ -530,13 +538,7 @@
         {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
           {@const compte = compteJoueAvec(j)}
           <li data-joue-avec={j.artist_name}>
-            <LienEntite
-              classe="nom-joue-avec"
-              titre={`${j.artist_name} · ${compte}`}
-              entite={typeof j.artist_id === 'number'
-                ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
-                : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } }}
-            />
+            <span class="nom-joue-avec"><LienEntite titre={`${j.artist_name} · ${compte}`} entite={entiteJoueAvec(j)} /></span>
             <span class="compte-joue-avec">{compte}</span>
           </li>
         {/each}
@@ -830,6 +832,6 @@
     padding: 4px 12px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill, 999px);
     font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
   }
-  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow-wrap: anywhere; }
+  .nom-joue-avec { min-width: 0; overflow-wrap: anywhere; }
   .compte-joue-avec { flex: none; font-size: 0.92em; color: var(--v2-txt3); white-space: nowrap; }
 </style>
