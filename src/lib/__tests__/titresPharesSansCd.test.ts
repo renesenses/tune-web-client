@@ -21,7 +21,7 @@ describe('titres phares : jamais un appareil (CD, UPnP)', () => {
   it('un titre désigné par le CD ou un serveur UPnP est écarté', () => {
     const titres = titresPharesJouables(charge, 'qobuz');
     expect(titres.map((t) => t.title)).toEqual(['Abacab', 'Duke’s Travels', 'The Serpent (2026 Mix)']);
-    expect(titres.some((t) => t.source === 'cd' || t.source === 'upnp')).toBe(false);
+    expect(titres.some((t) => ['cd', 'upnp'].includes(String(t.source)))).toBe(false);
   });
 
   it('la source posée par le serveur est gardée, seule l’absente est tamponnée', () => {
