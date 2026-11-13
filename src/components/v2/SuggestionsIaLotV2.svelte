@@ -10,6 +10,8 @@
    * une application se défait par « Annuler ce lot ».
    */
   import { t } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { portail } from '../../lib/portail';
   import {
     lotSuggestionsIa, lotAppliquerIa, lotAnnulerIa, lignesDuLot, cleDeLigneDuLot,
@@ -114,6 +116,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.lot.title' as any)}
     onclick={(e) => e.stopPropagation()} data-suggestions-ia-lot>
     <h2>{$t('assistantIa.lot.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
 
     {#if resultats == null}
@@ -178,7 +181,7 @@
       <AlertePlafondIaV2 {plafond} />
       <p class="note">{$t('assistantIa.album.dbOnly' as any)}</p>
     {/if}
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
   </div>
 </div>
 

@@ -2,7 +2,8 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { untrack } from 'svelte';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
-  import { gestesNavigationService } from '../../lib/stores/navigation';
+  import { gestesNavigationService, activeView } from '../../lib/stores/navigation';
+  import { pendingPlaylistId } from '../../lib/stores/playlists';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -170,6 +171,16 @@
     if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
     // EXPORT : la route ne connaît que les playlists locales.
     if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
+    // web#2971 — l'entrée « Playlists » de la barre ouvre désormais CETTE fiche,
+    // plus celle de l'écran complet. Ce qu'elle ne sait pas faire (Vérifier la
+    // disponibilité, Transférer, Comparer, fusionner, liens…) reste à un geste :
+    // l'écran complet, ouvert SUR cette playlist (`pendingPlaylistId`, le
+    // chemin de « Transférer » dans `gestesObjet`).
+    if (isLocal && item.kind === 'local' && item.pl.id != null) {
+      const id = item.pl.id;
+      l.push({ cle: 'playlist.manager', faire: () => { pendingPlaylistId.set(id); activeView.set('playlistmanager'); },
+        attrs: { 'data-ouvrir-gestionnaire-playlist': true } });
+    }
     // tune-server-rust#8066 — seulement s'il y a des titres indisponibles là où l'on peut écrire.
     if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
       faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });

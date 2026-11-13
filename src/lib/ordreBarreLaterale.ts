@@ -39,10 +39,27 @@ export interface ChoixBarre {
   masquees: string[];
 }
 
+/**
+ * Les entrées RENOMMÉES depuis qu'un ordre a pu être enregistré : l'ancien nom
+ * prend la place du nouveau, au même rang (masquée si elle l'était).
+ *
+ * web#2971 — l'entrée « Playlists » menait à `playlistmanager` du 14/09 au
+ * 13/11/2026 ; elle mène à `playlists`. Sans cette table, un ordre enregistré
+ * entre-temps perdrait sa place choisie (l'entrée retomberait à sa place par
+ * défaut) et une entrée masquée réapparaîtrait.
+ */
+export const ENTREES_RENOMMEES: Readonly<Record<string, string>> = {
+  playlistmanager: 'playlists',
+};
+
 function chaines(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   const vues: string[] = [];
-  for (const x of v) if (typeof x === 'string' && x && !vues.includes(x)) vues.push(x);
+  for (const x of v) {
+    if (typeof x !== 'string' || !x) continue;
+    const vue = ENTREES_RENOMMEES[x] ?? x;
+    if (!vues.includes(vue)) vues.push(vue);
+  }
   return vues;
 }
 
@@ -72,7 +89,7 @@ export function ordonnerEntrees<T extends { view: string }>(
   const parVue = new Map(defaut.map((it) => [it.view, it]));
   const resultat: T[] = [];
   for (const vue of enregistre) {
-    const it = parVue.get(vue);
+    const it = parVue.get(ENTREES_RENOMMEES[vue] ?? vue);
     if (it && !resultat.includes(it)) resultat.push(it);
   }
   // Les entrées que l'ordre enregistré ne connaît pas encore : chacune juste
@@ -91,7 +108,7 @@ export function ordonnerEntrees<T extends { view: string }>(
 
 export function estMasquee(vue: string, choix: ChoixBarre | null | undefined): boolean {
   if (ENTREES_TOUJOURS_VISIBLES.includes(vue)) return false;
-  return !!choix?.masquees.includes(vue);
+  return !!choix?.masquees.some((m) => (ENTREES_RENOMMEES[m] ?? m) === vue);
 }
 
 /** L'ordre choisi diffère-t-il de l'ordre livré ? Masquer seul ne compte pas. */

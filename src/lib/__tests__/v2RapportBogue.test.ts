@@ -111,6 +111,22 @@ describe('Support v2 — signaler un bogue au forum (porté de DiagnosticsView)'
     expect(hote!.textContent).not.toContain(fr['v2.sup.bugSent']);
   });
 
+  // #8627 — le site refuse CE rapport (422, site-mozaiklabs#529) et dit
+  // pourquoi. L'écran disait « Échec de l'envoi. Réessayez… » : réessayer
+  // échoue pareil. Le motif du site doit arriver au testeur.
+  it('#8627 — refus 422 du site : phrase traduite, motif du site replié dans les détails', async () => {
+    const motif = "Le rapport n'a pas été publié : sa mise en forme aurait effacé votre texte. Rien n'a été enregistré.";
+    envoi = { status: 422, corps: { error: 'site_rejected', code: 'site_rejected', status: 422, site_message: motif } };
+    await monterEtEnvoyer('Bogue');
+
+    const err = hote!.querySelector('.bogue-err');
+    expect(err, 'aucune erreur affichée après le refus du site').toBeTruthy();
+    expect(err!.textContent, '#8627 : la phrase du refus du site doit être affichée').toBe(fr['v2.sup.bugRejectedBySite']);
+    expect(err!.textContent).not.toContain(fr['v2.sup.bugSendError']);
+    attendreDetailsReplie(hote!, fr['v2.sup.bugRejectedBySite'], motif); // #2417
+    expect(hote!.textContent).not.toContain(fr['v2.sup.bugSent']);
+  });
+
   // #5068 — le site limite l'envoi (throttle:5,60). L'écran disait « Échec de
   // l'envoi… (cloud rejected the report) » : ni qu'il fallait attendre, ni
   // combien.

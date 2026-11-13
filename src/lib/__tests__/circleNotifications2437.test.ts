@@ -130,18 +130,32 @@ describe('Tune Circle rc9 — notifications : projection', () => {
 });
 
 describe('Tune Circle rc9 — notifications : écran', () => {
-  it('liste les notifications dans la langue, la non lue en avant, sans rien du message', async () => {
+  it('liste les non lues dans la langue, sans rien du message ; les anciennes sur demande', async () => {
     const el = await poser();
     const bloc = el.querySelector('.notifs-cercle');
     expect(bloc).not.toBeNull();
-    const lignes = [...el.querySelectorAll('.notif')];
+    let lignes = [...el.querySelectorAll('.notif')];
+    expect(lignes.map((l) => texte(l.querySelector('.notif-texte')))).toEqual([
+      'Alice a partagé la playlist « Blue Note » dans « Jazz du jeudi »',
+      '3 nouveaux messages de Bruno',
+    ]);
+    expect(lignes.every((l) => l.classList.contains('non-lue'))).toBe(true);
+    expect(texte(bloc!.querySelector('.notifs-compte'))).toBe('2 non lues');
+
+    const anciennes = el.querySelector('.voir-anciennes') as HTMLButtonElement;
+    expect(texte(anciennes)).toBe('Voir les anciennes (1)');
+    expect(anciennes.getAttribute('aria-expanded')).toBe('false');
+    anciennes.click(); flushSync();
+    lignes = [...el.querySelectorAll('.notif')];
     expect(lignes.map((l) => texte(l.querySelector('.notif-texte')))).toEqual([
       'Alice a partagé la playlist « Blue Note » dans « Jazz du jeudi »',
       '3 nouveaux messages de Bruno',
       'Chloé a accepté votre invitation',
     ]);
     expect(lignes.map((l) => l.classList.contains('non-lue'))).toEqual([true, true, false]);
-    expect(texte(bloc!.querySelector('.notifs-compte'))).toBe('2 non lues');
+    expect(texte(anciennes)).toBe('Masquer les anciennes');
+    anciennes.click(); flushSync();
+    expect(el.querySelectorAll('.notif')).toHaveLength(2);
   });
 
   it('lire une notification part sans corps, met à jour le compteur et ouvre la playlist', async () => {
@@ -151,6 +165,8 @@ describe('Tune Circle rc9 — notifications : écran', () => {
     const lus = vers(/\/notifications\/17\/read$/);
     expect(lus.map((a) => [a.method, a.body])).toEqual([['POST', undefined]]);
     expect(get(notifsCercle).nonLues).toBe(1);
+    // web#2986 : lue, elle quitte la liste.
+    expect(el.querySelector('.notif[data-genre="playlist_shared"]')).toBeNull();
     // La vue de la playlist s'ouvre : elle lit la playlist désignée.
     expect(vers(/\/ext\/circle\/playlists\/9$/).length).toBeGreaterThan(0);
   });
@@ -161,7 +177,9 @@ describe('Tune Circle rc9 — notifications : écran', () => {
     await laisserFaire();
     expect(vers(/\/notifications\/read-all$/).map((a) => [a.method, a.body])).toEqual([['POST', undefined]]);
     expect(get(notifsCercle).nonLues).toBe(0);
-    expect(el.querySelectorAll('.notif.non-lue')).toHaveLength(0);
+    expect(el.querySelectorAll('.notif')).toHaveLength(0);
+    expect(texte(el.querySelector('.notifs-vide'))).toBe('Aucune nouvelle notification.');
+    expect(texte(el.querySelector('.voir-anciennes'))).toBe('Voir les anciennes (3)');
     expect(el.querySelector('.tout-lu')).toBeNull();
   });
 
@@ -194,7 +212,7 @@ describe('Tune Circle rc9 — notifications : écran', () => {
     await relireNotifications();
     await laisserFaire();
     expect(el.querySelector('.notifs-cercle [role="alert"]')).not.toBeNull();
-    expect(el.querySelectorAll('.notif')).toHaveLength(3);
+    expect(el.querySelectorAll('.notif')).toHaveLength(2);
   });
 });
 
@@ -260,7 +278,8 @@ describe('web#2546 — revenir à la liste après avoir ouvert une notification'
       await laisserFaire();
       expect(vues).toContain('circle-notifs');
       expect(el.querySelector('.retour-notifs')).toBeNull();
-      expect(el.querySelectorAll('.notif')).toHaveLength(3);
+      // web#2986 : la notification ouverte est lue, elle n'est plus listée.
+      expect([...el.querySelectorAll('.notif')].map((l) => (l as HTMLElement).dataset.genre)).toEqual(['playlist_shared']);
     } finally {
       Element.prototype.scrollIntoView = avant;
     }
@@ -276,7 +295,7 @@ describe('web#2546 — revenir à la liste après avoir ouvert une notification'
       // La playlist 9 n'existe pas chez ce faux cloud (404) : la vue se
       // referme d'elle-même, comme un Retour.
       await laisserFaire();
-      expect(el.querySelectorAll('.notif')).toHaveLength(3);
+      expect([...el.querySelectorAll('.notif')].map((l) => (l as HTMLElement).dataset.genre)).toEqual(['message']);
       expect(vues).toContain('circle-notifs');
     } finally {
       Element.prototype.scrollIntoView = avant;
@@ -285,8 +304,66 @@ describe('web#2546 — revenir à la liste après avoir ouvert une notification'
 
   it('une notification qui n’ouvre rien ne pose pas de bouton', async () => {
     const el = await poser();
+    (el.querySelector('.voir-anciennes') as HTMLButtonElement).click(); flushSync();
     (el.querySelector('.notif[data-genre="contact_accepted"] .notif-ligne') as HTMLButtonElement).click();
     await laisserFaire();
     expect(el.querySelector('.retour-notifs')).toBeNull();
+  });
+});
+
+// web#2986 (recette rc12) : « les notifications doivent disparaître une fois
+// lues » — et ne pas gêner la lecture de l'écran.
+describe('web#2986 — une notification lue quitte la liste', () => {
+  it('🔴 lue : elle disparaît aussitôt, la pastille décompte, et une relecture ne la ramène pas', async () => {
+    const el = await poser();
+    const pastille = document.createElement('div');
+    document.body.appendChild(pastille);
+    const p = mount(PastilleNotifsCercle, { target: pastille });
+    try {
+      notifsCercle.update((e) => ({ ...e })); flushSync();
+      expect(texte(pastille.querySelector('.pastille-notifs'))).toBe('2');
+      (el.querySelector('.notif[data-genre="message"] .notif-ligne') as HTMLButtonElement).click();
+      flushSync();
+      // Avant même la réponse du cloud.
+      expect(el.querySelector('.notif[data-genre="message"]')).toBeNull();
+      expect(texte(pastille.querySelector('.pastille-notifs'))).toBe('1');
+      await laisserFaire();
+      // Rechargement / autre appareil : c'est le cloud qui garde la lecture.
+      await relireNotifications();
+      await laisserFaire();
+      expect(el.querySelector('.notif[data-genre="message"]')).toBeNull();
+      expect(get(notifsCercle).nonLues).toBe(1);
+      expect(texte(pastille.querySelector('.pastille-notifs'))).toBe('1');
+    } finally {
+      unmount(p);
+      pastille.remove();
+    }
+  });
+
+  it('🔴 le cloud refuse : la notification revient non lue, avec la phrase d’erreur', async () => {
+    const el = await poser();
+    panne = true;
+    (el.querySelector('.notif[data-genre="message"] .notif-ligne') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(el.querySelector('.notif.non-lue[data-genre="message"]')).not.toBeNull();
+    expect(get(notifsCercle).nonLues).toBe(2);
+    expect(el.querySelector('.notifs-cercle [role="alert"]')).not.toBeNull();
+  });
+
+  it('🔴 « Tout marquer comme lu » refusé : rien n’est caché', async () => {
+    const el = await poser();
+    panne = true;
+    (el.querySelector('.tout-lu') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(el.querySelectorAll('.notif.non-lue')).toHaveLength(2);
+    expect(get(notifsCercle).nonLues).toBe(2);
+  });
+
+  it('ni panneau ni toast : la section reste dans le flux, sans dialogue ni région fixe', async () => {
+    const el = await poser();
+    const bloc = el.querySelector('.notifs-cercle')!;
+    expect(bloc.tagName).toBe('SECTION');
+    expect(bloc.querySelector('[role="dialog"], dialog, [popover]')).toBeNull();
+    expect(document.querySelectorAll('.toast, [data-toast]')).toHaveLength(0);
   });
 });
