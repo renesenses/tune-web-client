@@ -106,6 +106,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { retenirAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
+  import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
@@ -1506,12 +1507,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (!nu) {
       const i = affiches.findIndex((a) => firstLetter(a) === L);
       if (i < 0) return;
+      // La fenêtre mobile peut être près de Z : même A (indice < 200)
+      // doit être remonté, puis visé par son indice exact.
+      if (allerCasePaginee) {
+        void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-i="${i}"]`));
+        return;
+      }
       if (i < plafond) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
       void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-letter="${L}"]`));
       return;
     }
     // #4800 — en pages, la lettre est un OFFSET dans la liste du serveur :
-    // trouvé par dichotomie (`offsetDeLettre`), sa page est demandée, puis
+    // fourni par les repères de la page (`offsetDeLettre`), puis chargé avant que
     // on vise la CASE — `data-i` — qui existe, vide ou pleine, dès que le
     // total est connu. `sauterVersAncre` vérifie le saut comme d'habitude.
     const c = clef;
@@ -2073,12 +2080,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let fenetre = $state<Fenetre>(fenetreNeuve());
   const clefFenetre = $derived(`${display}|${nu ? 'pages' : 'entiere'}|${tab}`);
   const plafond: number = $derived(plafondDe(fenetre, clefFenetre, nu ? cases.length : affiches.length));
-  const casesVisibles: (Album | null)[] = $derived.by(() => cases.slice(0, plafond));
+  let tranchePaginee = $state<TrancheAlbums>({ debut: 0, fin: 200, avant: 0, apres: 0 });
+  let allerCasePaginee: ((index: number) => Promise<void>) | undefined;
+  function poserTranchePaginee(t: TrancheAlbums) {
+    if (t.debut !== tranchePaginee.debut || t.fin !== tranchePaginee.fin || t.avant !== tranchePaginee.avant || t.apres !== tranchePaginee.apres) tranchePaginee = t;
+  }
+  function preparerSautPagine(aller: ((index: number) => Promise<void>) | undefined) { allerCasePaginee = aller; }
+  // #7774 : Source Local et les facettes chargent la liste entière ; les
+  // sauts ne doivent pas pour autant monter tout son préfixe. Le tri année
+  // conserve ses intertitres de hauteur variable et son rendu dédié.
+  const casesFenestrees: (Album | null)[] = $derived(nu ? cases : affiches);
+  const casesVisibles: (Album | null)[] = $derived.by(() => casesFenestrees.slice(tranchePaginee.debut, tranchePaginee.fin));
   const affichesVisibles: Album[] = $derived.by(() => affiches.slice(0, plafond));
   /** La cale a vu le cadre : monter au moins `besoin` éléments. */
   const etendreFenetre = (besoin: number) => { fenetre = elargir(fenetre, clefFenetre, besoin); };
   /** Le rail vise l'élément `i` : il doit être monté AVANT le saut. */
   async function monterJusqua(i: number) {
+    if (allerCasePaginee) { await allerCasePaginee(i); await tick(); return; }
     if (i < plafond) return;
     fenetre = elargir(fenetre, clefFenetre, i + 1);
     await tick();
@@ -4276,34 +4294,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
         {/if}
 
-      {:else if nu}
+      {:else if nu || (sortKey !== 'year' && affiches.length > 0)}
         <!-- #4800 — LA GRILLE EN PAGES. Une case par album du total ; celles
              dont la page n'est pas là sont vides et la demandent en entrant
              dans le cadre. Pas d'intertitre d'année : le tri par année sort
              du mode paginé. Les trois dessins sont ceux des snippets. -->
         {#if display === 'list'}
-          <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+          <div class="rows paginee" style="--lcols:{colonnesListe}" bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render ligne(c, i)}{:else}<div class="lrow sq" data-i={i} use:observerCase={i} aria-hidden="true"><span class="lcv"></span><span class="lt">&nbsp;</span></div>{/if}
             {/each}
-            {@render caleDeFin(cases.length, false, 57)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else if display === 'carousel'}
-          <div class="carrou" use:defilementHorizontal bind:this={gridEl}
-               use:centrageCarrousel={{ nombre: cases.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
+          <div class="carrou paginee" use:defilementHorizontal bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}
+               use:centrageCarrousel={{ nombre: casesFenestrees.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
                style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
                role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render carteCarrou(c, i)}{:else}<div class="ccard sq" class:centre={i === iCentre} data-i={i} use:observerCase={i} aria-hidden="true"><div class="cover"></div><div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div></div></div>{/if}
             {/each}
-            {@render caleDeFin(cases.length, true, geoCarrou.cote + geoCarrou.gouttiere)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else}
-          <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
+          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+            {@render calePaginee(tranchePaginee.avant)}
+            {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
+              {@const i = tranchePaginee.debut + relatif}
               {#if c}{@render carte(c, i)}{:else}{@render caseVide(i)}{/if}
             {/each}
-            {@render caleDeFin(cases.length, false, 35)}
+            {@render calePaginee(tranchePaginee.apres)}
           </div>
         {/if}
 
@@ -4494,6 +4518,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
        monté, en UN élément de la bonne taille. Elle élargit la fenêtre quand
        elle approche du cadre (`lib/fenetreDeRendu`). `repli` : la taille d'un
        élément quand rien n'est mesurable. -->
+  {#snippet calePaginee(taille: number)}
+    {#if taille > 0}
+      <div class="cale-paginee" aria-hidden="true" style:height={display === 'carousel' ? '1px' : `${taille}px`} style:width={display === 'carousel' ? `${taille}px` : 'auto'}></div>
+    {/if}
+  {/snippet}
   {#snippet caleDeFin(total: number, horizontal: boolean, repli: number)}
     {#if total > plafond}
       <div class="cale" aria-hidden="true"
@@ -4963,6 +4992,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .yinter .yn{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
+  .cale-paginee{grid-column:1 / -1; flex:none; pointer-events:none}
+  .paginee{overflow-anchor:none}
+  .paginee .card, .paginee .ccard, .paginee .lrow{content-visibility:visible; contain-intrinsic-size:none}
+  .paginee .lhote, .paginee > .lrow{flex:none}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /*
     #929 — LE CARROUSEL : UNE BANDE, ET L'ALBUM DU MILIEU EN GRAND.

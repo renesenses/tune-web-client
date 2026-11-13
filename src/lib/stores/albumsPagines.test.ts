@@ -343,3 +343,64 @@ describe('fil 2134 — rafraîchir les pages périmées', () => {
     expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
   });
 });
+
+
+describe('repères alphabétiques de la page (#7774)', () => {
+  const reponse = { items: ALBUMS.slice(0, 100), total: 6000,
+    reperesAlphabetiques: { A: 0, M: 2700, Z: 5800 } };
+
+  it('M, Z puis B ne déclenchent aucune dichotomie HTTP', async () => {
+    vi.mocked(api.getAlbumsPagines).mockResolvedValue(reponse);
+    await demanderPage(TITRE, 0);
+    expect(await offsetDeLettre(TITRE, 'M', initiale)).toBe(2700);
+    expect(await offsetDeLettre(TITRE, 'Z', initiale)).toBe(5800);
+    expect(await offsetDeLettre(TITRE, 'B', initiale)).toBe(2700);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+  });
+
+  it('le rail attend la première page déjà en vol sans requête supplémentaire', async () => {
+    let terminer!: (p: api.PageAlbums) => void;
+    vi.mocked(api.getAlbumsPagines).mockImplementationOnce(() => new Promise(r => { terminer = r; }));
+    const page = demanderPage(TITRE, 0);
+    const saut = offsetDeLettre(TITRE, 'Z', initiale);
+    let fini = false;
+    void saut.then(() => { fini = true; });
+    await Promise.resolve();
+    expect(fini).toBe(false);
+    terminer(reponse);
+    await page;
+    expect(await saut).toBe(5800);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(1);
+  });
+
+  it('une fin de scan renouvelle les repères avant le prochain saut', async () => {
+    vi.mocked(api.getAlbumsPagines).mockResolvedValueOnce(reponse)
+      .mockResolvedValueOnce({ ...reponse, reperesAlphabetiques: { A: 0, Z: 5900 } });
+    await demanderPage(TITRE, 0);
+    expect(await offsetDeLettre(TITRE, 'Z', initiale)).toBe(5800);
+    invaliderBibliotheque();
+    expect(await offsetDeLettre(TITRE, 'Z', initiale)).toBe(5900);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(2);
+  });
+
+  it('un scan pendant l’attente de la première page annule le saut périmé', async () => {
+    vi.mocked(api.getAlbumsPagines).mockResolvedValueOnce(reponse);
+    await demanderPage(TITRE, 0);
+    invaliderBibliotheque();
+    let terminer!: (p: api.PageAlbums) => void;
+    vi.mocked(api.getAlbumsPagines).mockImplementationOnce(() => new Promise(r => { terminer = r; }));
+    const saut = offsetDeLettre(TITRE, 'Z', initiale);
+    invaliderBibliotheque();
+    terminer(reponse);
+    expect(await saut).toBeNull();
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(2);
+  });
+
+  it('un autre tri ne réutilise pas les positions du titre', async () => {
+    vi.mocked(api.getAlbumsPagines).mockResolvedValueOnce(reponse)
+      .mockResolvedValueOnce({ ...reponse, reperesAlphabetiques: { A: 0, Z: 5000 } });
+    await demanderPage(TITRE, 0);
+    expect(await offsetDeLettre({ sort: 'artist', order: 'asc' }, 'Z', initiale)).toBe(5000);
+    expect(api.getAlbumsPagines).toHaveBeenCalledTimes(2);
+  });
+});
