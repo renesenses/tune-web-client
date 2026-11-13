@@ -7696,6 +7696,14 @@ export default {
   "transport.queueCountOne": "Coadă · 1 piesă",
   "transport.queueCount": "Coadă · piese: {count}",
   "v2.radio.removeConfirmDirectory": "Elimini „{name}” din Radiourile mele? Postul rămâne disponibil în Director: îl poți regăsi acolo și adăuga din nou.",
+  "settings.fauxHiRes": "Detectează hi-res fals",
+  "settings.fauxHiResHint": "Tune verifică dacă fișierele fără pierderi (FLAC, WAV, AIFF, ALAC…) conțin cu adevărat ceea ce declară: biții folosiți efectiv și tăierea spectrului, pentru a depista un CD supraeșantionat sau un fișier provenit dintr-un MP3. Analiza rulează în fundal și se retrage în timpul redării; ascultă 12 fragmente de 5 secunde pe piesă, ceea ce poate dura câteva ore pentru o bibliotecă mare.",
+  "settings.fauxHiResProgress": "{d} piese analizate, {r} rămase.",
+  "settings.fauxHiResDone": "Analiză încheiată: {d} piese analizate.",
+  "settings.fauxHiResError": "Serverul nu a putut schimba această setare.",
+  "v2.lib.qualityHiresVerified": "Hi-res verificat",
+  "v2.lib.qualityHiresDoubtful": "Hi-res îndoielnic",
+  "v2.lib.hiresFilterError": "Verdictul hi-res al albumelor nu a putut fi citit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

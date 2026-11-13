@@ -7548,5 +7548,13 @@ export default {
   "transport.queueCountOne": "Hàng đợi · 1 bài",
   "transport.queueCount": "Hàng đợi · {count} bài",
   "v2.radio.removeConfirmDirectory": "Xóa “{name}” khỏi Radio của tôi? Đài vẫn có trong Danh bạ: bạn có thể tìm lại và thêm lại ở đó.",
+  "settings.fauxHiRes": "Phát hiện hi-res giả",
+  "settings.fauxHiResHint": "Tune kiểm tra xem các tệp lossless của bạn (FLAC, WAV, AIFF, ALAC…) có thực sự chứa đúng như chúng công bố không: số bit thực sự được dùng và điểm cắt phổ, để phát hiện CD bị nâng tần số lấy mẫu hoặc tệp được tạo từ MP3. Việc phân tích chạy nền và nhường chỗ khi đang phát nhạc; mỗi bài được nghe 12 đoạn dài 5 giây, nên với thư viện lớn có thể mất vài giờ.",
+  "settings.fauxHiResProgress": "Đã phân tích {d} bài, còn {r} bài.",
+  "settings.fauxHiResDone": "Phân tích xong: đã phân tích {d} bài.",
+  "settings.fauxHiResError": "Máy chủ không thể thay đổi cài đặt này.",
+  "v2.lib.qualityHiresVerified": "Hi-res đã xác minh",
+  "v2.lib.qualityHiresDoubtful": "Hi-res đáng ngờ",
+  "v2.lib.hiresFilterError": "Không thể đọc kết luận hi-res của các album.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

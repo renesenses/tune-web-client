@@ -7718,6 +7718,14 @@ export default {
   "transport.queueCountOne": "File d'attente · 1 titre",
   "transport.queueCount": "File d'attente · {count} titres",
   "v2.radio.removeConfirmDirectory": "Retirer « {name} » de Mes radios ? La station reste disponible dans l'annuaire : vous pourrez l'y retrouver et la rajouter.",
+  "settings.fauxHiRes": "Détecter les faux Hi-Res",
+  "settings.fauxHiResHint": "Tune vérifie que vos fichiers sans perte (FLAC, WAV, AIFF, ALAC…) contiennent vraiment ce qu'ils annoncent : bits réellement utilisés et coupure du spectre, pour repérer un CD suréchantillonné ou un fichier issu d'un MP3. L'analyse tourne en tâche de fond et s'efface pendant la lecture ; elle écoute 12 extraits de 5 secondes par morceau, ce qui peut prendre plusieurs heures sur une grande bibliothèque.",
+  "settings.fauxHiResProgress": "{d} pistes analysées, {r} restantes.",
+  "settings.fauxHiResDone": "Analyse terminée : {d} pistes analysées.",
+  "settings.fauxHiResError": "Le serveur n'a pas pu changer ce réglage.",
+  "v2.lib.qualityHiresVerified": "Hi-Res vérifié",
+  "v2.lib.qualityHiresDoubtful": "Hi-Res douteux",
+  "v2.lib.hiresFilterError": "Impossible de lire le verdict Hi-Res des albums.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -7541,5 +7541,13 @@ export default {
   "transport.queueCountOne": "Kø · 1 spor",
   "transport.queueCount": "Kø · {count} spor",
   "v2.radio.removeConfirmDirectory": "Fjerne «{name}» fra Mine radioer? Stasjonen er fortsatt tilgjengelig i Katalogen: du kan finne den der og legge den til igjen.",
+  "settings.fauxHiRes": "Oppdag falsk hi-res",
+  "settings.fauxHiResHint": "Tune kontrollerer at de tapsfrie filene dine (FLAC, WAV, AIFF, ALAC…) virkelig inneholder det de oppgir: bits som faktisk brukes og avskjæring i spekteret, for å avsløre en oppsamplet CD eller en fil laget fra MP3. Analysen kjører i bakgrunnen og viker under avspilling; den lytter til 12 utdrag på 5 sekunder per spor, noe som kan ta flere timer på et stort bibliotek.",
+  "settings.fauxHiResProgress": "{d} spor analysert, {r} gjenstår.",
+  "settings.fauxHiResDone": "Analyse fullført: {d} spor analysert.",
+  "settings.fauxHiResError": "Serveren kunne ikke endre denne innstillingen.",
+  "v2.lib.qualityHiresVerified": "Bekreftet hi-res",
+  "v2.lib.qualityHiresDoubtful": "Tvilsom hi-res",
+  "v2.lib.hiresFilterError": "Kunne ikke lese albumenes hi-res-vurdering.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

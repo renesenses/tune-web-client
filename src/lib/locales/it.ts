@@ -7696,6 +7696,14 @@ export default {
   "transport.queueCountOne": "Coda · 1 brano",
   "transport.queueCount": "Coda · {count} brani",
   "v2.radio.removeConfirmDirectory": "Rimuovere «{name}» da Le mie radio? La stazione resta disponibile nell'Elenco: potrai ritrovarla lì e aggiungerla di nuovo.",
+  "settings.fauxHiRes": "Rileva falso Hi-Res",
+  "settings.fauxHiResHint": "Tune verifica che i tuoi file lossless (FLAC, WAV, AIFF, ALAC…) contengano davvero ciò che dichiarano: bit effettivamente usati e taglio dello spettro, per individuare un CD sovracampionato o un file derivato da un MP3. L'analisi gira in background e si fa da parte durante la riproduzione; ascolta 12 estratti di 5 secondi per brano, il che può richiedere diverse ore su una libreria grande.",
+  "settings.fauxHiResProgress": "{d} brani analizzati, {r} rimanenti.",
+  "settings.fauxHiResDone": "Analisi completata: {d} brani analizzati.",
+  "settings.fauxHiResError": "Il server non è riuscito a modificare questa impostazione.",
+  "v2.lib.qualityHiresVerified": "Hi-Res verificato",
+  "v2.lib.qualityHiresDoubtful": "Hi-Res dubbio",
+  "v2.lib.hiresFilterError": "Impossibile leggere il verdetto Hi-Res degli album.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

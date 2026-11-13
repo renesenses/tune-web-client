@@ -7696,6 +7696,14 @@ export default {
   "transport.queueCountOne": "キュー · 1 曲",
   "transport.queueCount": "キュー · {count} 曲",
   "v2.radio.removeConfirmDirectory": "「{name}」をマイラジオから削除しますか？このステーションはディレクトリに残るので、そこからいつでも再追加できます。",
+  "settings.fauxHiRes": "偽ハイレゾを検出",
+  "settings.fauxHiResHint": "Tune は、ロスレスファイル（FLAC、WAV、AIFF、ALAC…）が表示どおりの内容を本当に含んでいるかを確認します。実際に使われているビット数とスペクトルのカットオフを調べ、アップサンプリングされた CD や MP3 から作られたファイルを見つけます。解析はバックグラウンドで行われ、再生中は控えます。1 曲につき 5 秒の抜粋を 12 か所解析するため、大きなライブラリでは数時間かかることがあります。",
+  "settings.fauxHiResProgress": "{d} 曲を解析済み、残り {r} 曲。",
+  "settings.fauxHiResDone": "解析完了：{d} 曲を解析しました。",
+  "settings.fauxHiResError": "サーバーはこの設定を変更できませんでした。",
+  "v2.lib.qualityHiresVerified": "ハイレゾ確認済み",
+  "v2.lib.qualityHiresDoubtful": "ハイレゾ疑わしい",
+  "v2.lib.hiresFilterError": "アルバムのハイレゾ判定を読み込めませんでした。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -91,6 +91,7 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
+  import { entreesHiRes, estCleHiRes, idsParVerdictHiRes, VERDICT_DE_LA_CLE, type CleHiRes } from '../../lib/filtreHiRes';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums, chargerPistesDesAlbums } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
@@ -387,7 +388,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
       : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere)
-        || (paysChoisi != null && idsPays == null),
+        || (paysChoisi != null && idsPays == null)
+        || fQuality.some((k) => estCleHiRes(k) && QUALITES_HIRES.some((x) => x.key === k) && idsHiRes[k] == null),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -449,7 +451,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
-  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo';
+  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo' | CleHiRes;
   const QUALITES_DE_BASE: { key: CleQualite; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
@@ -463,7 +465,43 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     { key: 'stereo' as const, label: 'Stereo', cle: 'v2.lib.qualityStereo' },
     { key: 'multichannel' as const, label: 'Multicanal', cle: 'v2.lib.qualityMultichannel' },
   ];
-  const QUALITIES = $derived(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE);
+  // Décision du 13/11 (rc12, tune-server-rust#6285) — « Hi-Res vérifié » et
+  // « Hi-Res douteux », quand la détection des faux Hi-Res a servi ; jamais
+  // sur la bibliothèque d'un autre serveur (`depot`).
+  let etatFauxHiRes = $state<api.EtatFauxHiRes | null>(null);
+  $effect(() => {
+    if (depot) return;
+    let vivant = true;
+    api.getEtatFauxHiRes()
+      .then((e) => { if (vivant) etatFauxHiRes = e ?? null; })
+      .catch(() => { /* serveur antérieur : pas d'entrée */ });
+    return () => { vivant = false; };
+  });
+  const QUALITES_HIRES = $derived(depot ? [] : entreesHiRes(etatFauxHiRes));
+  const QUALITIES = $derived([
+    ...(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE),
+    ...QUALITES_HIRES,
+  ]);
+  /** Les albums de chaque verdict, lus par `?hires_verdict=` ; absent = pas encore lu. */
+  let idsHiRes = $state<Partial<Record<CleHiRes, Set<number>>>>({});
+  const verdictsEnVol = new Set<CleHiRes>();
+  $effect(() => {
+    const voulues = QUALITES_HIRES.map((x) => x.key);
+    if (!voulues.length || !(facettesVoulues || fQuality.some(estCleHiRes))) return;
+    // Lu sans suivi : la réponse d'un verdict ne doit pas relancer l'autre.
+    for (const k of voulues) {
+      if (untrack(() => idsHiRes[k]) || verdictsEnVol.has(k)) continue;
+      verdictsEnVol.add(k);
+      idsParVerdictHiRes((limite, rang) => api.getAlbumsParVerdictHiRes(VERDICT_DE_LA_CLE[k], limite, rang))
+        .then((ids) => { idsHiRes = { ...idsHiRes, [k]: ids }; })
+        .catch(() => {
+          // Un échec ne montre RIEN et le dit, comme le pays.
+          idsHiRes = { ...idsHiRes, [k]: new Set<number>() };
+          notifications.error($tr('v2.lib.hiresFilterError' as any));
+        })
+        .finally(() => verdictsEnVol.delete(k));
+    }
+  });
 
   /**
    * Les facettes à valeurs listées portent un TABLEAU — #898.
@@ -713,6 +751,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
+    if (estCleHiRes(key)) return a.id != null && !!idsHiRes[key]?.has(a.id);
     if (key === 'multichannel') return estMulticanal(a);
     if (key === 'stereo') return estStereo(a);
     const t = getQualityTier(a);
