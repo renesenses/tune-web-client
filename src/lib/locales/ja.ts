@@ -2295,6 +2295,7 @@ export default {
   "zoneConfig.firChannelLeft": "左",
   "zoneConfig.firChannelRight": "右",
   "zoneConfig.firChannelN": "チャンネル {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}：カーブを表示できません",
   "zoneConfig.firPhase": "位相",
   "zoneConfig.firTaps": "タップ",
   "zoneConfig.firLatency": "レイテンシ",

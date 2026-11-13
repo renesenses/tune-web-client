@@ -2954,6 +2954,7 @@ export default {
   "zoneConfig.firChannelLeft": "Trái",
   "zoneConfig.firChannelRight": "Phải",
   "zoneConfig.firChannelN": "Kênh {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: không có đường cong",
   "zoneConfig.firPhase": "Pha",
   "zoneConfig.firTaps": "taps",
   "zoneConfig.firLatency": "Độ trễ",

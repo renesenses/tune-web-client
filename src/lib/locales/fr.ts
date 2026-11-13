@@ -3104,6 +3104,7 @@ export default {
   "zoneConfig.firChannelLeft": "Gauche",
   "zoneConfig.firChannelRight": "Droite",
   "zoneConfig.firChannelN": "Canal {n}",
+  "zoneConfig.firChannelUnavailable": "{channel} : courbe indisponible",
   "zoneConfig.firPhase": "Phase",
   "zoneConfig.firTaps": "taps",
   "zoneConfig.firLatency": "Latence",

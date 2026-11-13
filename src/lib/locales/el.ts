@@ -2952,6 +2952,7 @@ export default {
   "zoneConfig.firChannelLeft": "Αριστερό",
   "zoneConfig.firChannelRight": "Δεξί",
   "zoneConfig.firChannelN": "Κανάλι {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: η καμπύλη δεν είναι διαθέσιμη",
   "zoneConfig.firPhase": "Φάση",
   "zoneConfig.firTaps": "taps",
   "zoneConfig.firLatency": "Καθυστέρηση",

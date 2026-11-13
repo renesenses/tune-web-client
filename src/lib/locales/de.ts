@@ -2299,6 +2299,7 @@ export default {
   "zoneConfig.firChannelLeft": "Links",
   "zoneConfig.firChannelRight": "Rechts",
   "zoneConfig.firChannelN": "Kanal {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: Kurve nicht verfügbar",
   "zoneConfig.firPhase": "Phase",
   "zoneConfig.firTaps": "Taps",
   "zoneConfig.firLatency": "Latenz",

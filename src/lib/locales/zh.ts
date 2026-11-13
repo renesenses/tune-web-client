@@ -2299,6 +2299,7 @@ export default {
   "zoneConfig.firChannelLeft": "左",
   "zoneConfig.firChannelRight": "右",
   "zoneConfig.firChannelN": "声道 {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}：曲线不可用",
   "zoneConfig.firPhase": "相位",
   "zoneConfig.firTaps": "抽头",
   "zoneConfig.firLatency": "延迟",

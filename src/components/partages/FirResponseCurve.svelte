@@ -75,14 +75,19 @@
   // (serveur plus ancien, IR mono) la seule courbe `points`.
   let traces = $derived.by<Trace[]>(() => {
     if (!data) return [];
-    const ch = Array.isArray(data.channels)
-      ? data.channels.filter(c => Array.isArray(c?.points) && c.points.length > 1)
-      : [];
+    // Deux canaux ou plus annoncés : on les garde TOUS, même celui dont la
+    // courbe manque (0 ou 1 point). Le retirer ferait repasser en mono sans
+    // rien dire ; la légende le dit « indisponible » à la place.
+    const ch = Array.isArray(data.channels) ? data.channels.filter(c => c && typeof c === 'object') : [];
     if (ch.length >= 2) {
-      return ch.map((c, i) => ({ index: Number.isInteger(c.channel) ? (c.channel as number) : i, points: c.points! }));
+      return ch.map((c, i) => ({
+        index: Number.isInteger(c.channel) ? (c.channel as number) : i,
+        points: Array.isArray(c.points) ? c.points : [],
+      }));
     }
     return [{ index: 0, points: data.points ?? [] }];
   });
+  const traceVide = (tr: Trace) => tr.points.length < 2;
   let multi = $derived(traces.length > 1);
 
   function channelLabel(index: number): string {
@@ -90,6 +95,15 @@
     if (index === 1) return $t('zoneConfig.firChannelRight');
     return $t('zoneConfig.firChannelN').replace('{n}', String(index + 1));
   }
+  function legendLabel(tr: Trace): string {
+    const nom = channelLabel(tr.index);
+    return traceVide(tr) ? $t('zoneConfig.firChannelUnavailable').replace('{channel}', nom) : nom;
+  }
+  let svgLabel = $derived(
+    multi
+      ? `${$t('zoneConfig.firResponseTitle')} — ${traces.map(legendLabel).join(', ')}`
+      : $t('zoneConfig.firResponseTitle')
+  );
 
   // --- Géométrie (même approche que ParametricEq.svelte) ---
   const W = 640;
@@ -197,7 +211,7 @@
       {/if}
     </div>
 
-    <svg viewBox="0 0 {W} {H}" class="fir-plot" role="img" aria-label={$t('zoneConfig.firResponseTitle')}>
+    <svg viewBox="0 0 {W} {H}" class="fir-plot" role="img" aria-label={svgLabel}>
       <!-- Grille fréquences -->
       {#each GRID_FREQS as f}
         <line x1={xOf(f)} y1="0" x2={xOf(f)} y2={H} class="grid-v" />
@@ -213,20 +227,20 @@
         {#each [-180, -90, 0, 90, 180] as deg}
           <text x={W - 4} y={yPhase(deg) - 3} class="grid-label phase-label">{deg > 0 ? '+' : ''}{deg}°</text>
         {/each}
-        {#each traces as tr, i (tr.index)}
-          <path d={phasePath(tr.points)} class="phase phase-{i % 4}" />
+        {#each traces as tr, i (i)}
+          <path d={phasePath(tr.points)} class="phase" class:phase-0={multi && i % 4 === 0} class:phase-1={multi && i % 4 === 1} class:phase-2={multi && i % 4 === 2} class:phase-3={multi && i % 4 === 3} data-channel={tr.index} />
         {/each}
       {/if}
       <!-- Magnitude : une trace par canal -->
-      {#each traces as tr, i (tr.index)}
+      {#each traces as tr, i (i)}
         <path d={magPath(tr.points)} class="magnitude trace-{i % 4}" data-channel={tr.index} />
       {/each}
     </svg>
 
     {#if multi}
       <div class="fir-legend">
-        {#each traces as tr, i (tr.index)}
-          <span class="legend-item"><span class="legend-swatch trace-{i % 4}"></span>{channelLabel(tr.index)}</span>
+        {#each traces as tr, i (i)}
+          <span class="legend-item" class:indisponible={traceVide(tr)}><span class="legend-swatch trace-{i % 4}" aria-hidden="true"></span>{legendLabel(tr)}</span>
         {/each}
       </div>
     {/if}
@@ -312,12 +326,18 @@
   .legend-swatch.trace-1 { background: #38bdf8; }
   .legend-swatch.trace-2 { background: #a78bfa; }
   .legend-swatch.trace-3 { background: #34d399; }
+  .legend-item.indisponible { opacity: 0.6; }
   .phase {
     fill: none;
     stroke: rgba(255, 255, 255, 0.45);
     stroke-width: 1.5;
     stroke-dasharray: 4 4;
   }
+  /* Une couleur par canal, comme l'amplitude, en pointillé (web#1427). */
+  .phase.phase-0 { stroke: rgba(245, 158, 11, 0.6); }
+  .phase.phase-1 { stroke: rgba(56, 189, 248, 0.6); }
+  .phase.phase-2 { stroke: rgba(167, 139, 250, 0.6); }
+  .phase.phase-3 { stroke: rgba(52, 211, 153, 0.6); }
   .fir-meta {
     display: flex;
     flex-wrap: wrap;

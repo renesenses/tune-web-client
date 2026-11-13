@@ -76,14 +76,74 @@ describe('web#1427 — courbe FIR : une trace par canal', () => {
     expect(hote.querySelector('.fir-legend')).toBeNull();
   });
 
+  it('phase affichée : une trace de phase par canal, chacune à sa couleur', async () => {
+    await monter({
+      loaded: true, points: courbe(-3),
+      channels: [
+        { channel: 0, points: courbe(-3) },
+        { channel: 1, points: courbe(4) },
+      ],
+    });
+    (hote.querySelector('.phase-toggle') as HTMLButtonElement).click();
+    await stabiliser();
+    const phases = [...hote.querySelectorAll('path.phase')];
+    expect(phases.length).toBe(2);
+    expect(phases[0].classList.contains('phase-0')).toBe(true);
+    expect(phases[1].classList.contains('phase-1')).toBe(true);
+    // Les règles CSS existent : sans elles, gauche et droite auraient la même couleur.
+    const src = (await import('node:fs')).readFileSync(
+      (await import('node:path')).resolve(process.cwd(), 'src/components/partages/FirResponseCurve.svelte'), 'utf-8');
+    expect(src).toMatch(/\.phase\.phase-0\s*\{[^}]*stroke/);
+    expect(src).toMatch(/\.phase\.phase-1\s*\{[^}]*stroke/);
+  });
+
+  it('deux canaux au même numéro (serveur fautif) : pas de plantage, deux traces', async () => {
+    await monter({
+      loaded: true, points: courbe(0),
+      channels: [{ channel: 0, points: courbe(-3) }, { channel: 0, points: courbe(4) }],
+    });
+    expect(hote.querySelectorAll('path.magnitude').length).toBe(2);
+  });
+
+  it('un canal sans courbe (0 ou 1 point) : on reste en stéréo et la légende le dit', async () => {
+    for (const pts of [[], courbe(4).slice(0, 1)]) {
+      if (composant) await unmount(composant);
+      composant = undefined; hote.innerHTML = '';
+      await monter({
+        loaded: true, points: courbe(-3),
+        channels: [{ channel: 0, points: courbe(-3) }, { channel: 1, points: pts }],
+      });
+      const legende = hote.querySelector('.fir-legend')?.textContent ?? '';
+      expect(legende).toContain(FR['zoneConfig.firChannelLeft']);
+      expect(legende).toContain(
+        FR['zoneConfig.firChannelUnavailable'].replace('{channel}', FR['zoneConfig.firChannelRight']));
+      expect(hote.querySelectorAll('path.magnitude[data-channel="0"]').length).toBe(1);
+    }
+  });
+
+  it('accessibilité : le SVG nomme les canaux, les pastilles sont décoratives', async () => {
+    await monter({
+      loaded: true, points: courbe(-3),
+      channels: [{ channel: 0, points: courbe(-3) }, { channel: 1, points: courbe(4) }],
+    });
+    const label = hote.querySelector('svg.fir-plot')?.getAttribute('aria-label') ?? '';
+    expect(label).toContain(FR['zoneConfig.firResponseTitle']);
+    expect(label).toContain(FR['zoneConfig.firChannelLeft']);
+    expect(label).toContain(FR['zoneConfig.firChannelRight']);
+    const pastilles = [...hote.querySelectorAll('.legend-swatch')];
+    expect(pastilles.length).toBe(2);
+    for (const p of pastilles) expect(p.getAttribute('aria-hidden')).toBe('true');
+  });
+
   it('les libellés de la légende existent dans les 15 langues', async () => {
     const langues = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh'];
     for (const l of langues) {
       const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
-      for (const k of ['firChannelLeft', 'firChannelRight', 'firChannelN']) {
+      for (const k of ['firChannelLeft', 'firChannelRight', 'firChannelN', 'firChannelUnavailable']) {
         expect(dict[`zoneConfig.${k}`], `${l} ${k}`).toBeTruthy();
       }
       expect(dict['zoneConfig.firChannelN'], l).toContain('{n}');
+      expect(dict['zoneConfig.firChannelUnavailable'], l).toContain('{channel}');
     }
   });
 });

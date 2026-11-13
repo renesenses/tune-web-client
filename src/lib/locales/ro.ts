@@ -2305,6 +2305,7 @@ export default {
   "zoneConfig.firChannelLeft": "Stânga",
   "zoneConfig.firChannelRight": "Dreapta",
   "zoneConfig.firChannelN": "Canalul {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: curbă indisponibilă",
   "zoneConfig.firPhase": "Fază",
   "zoneConfig.firTaps": "taps",
   "zoneConfig.firLatency": "Latență",

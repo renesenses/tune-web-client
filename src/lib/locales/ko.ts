@@ -2279,6 +2279,7 @@ export default {
   "zoneConfig.firChannelLeft": "왼쪽",
   "zoneConfig.firChannelRight": "오른쪽",
   "zoneConfig.firChannelN": "채널 {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: 곡선을 사용할 수 없음",
   "zoneConfig.firPhase": "위상",
   "zoneConfig.firTaps": "탭",
   "zoneConfig.firLatency": "지연",

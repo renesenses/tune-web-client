@@ -2421,6 +2421,7 @@ export default {
   "zoneConfig.firChannelLeft": "Bal",
   "zoneConfig.firChannelRight": "Jobb",
   "zoneConfig.firChannelN": "{n}. csatorna",
+  "zoneConfig.firChannelUnavailable": "{channel}: a görbe nem érhető el",
   "zoneConfig.firPhase": "Fázis",
   "zoneConfig.firTaps": "csap",
   "zoneConfig.firLatency": "Késleltetés",

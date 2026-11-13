@@ -2952,6 +2952,7 @@ export default {
   "zoneConfig.firChannelLeft": "Venstre",
   "zoneConfig.firChannelRight": "Høyre",
   "zoneConfig.firChannelN": "Kanal {n}",
+  "zoneConfig.firChannelUnavailable": "{channel}: kurven er ikke tilgjengelig",
   "zoneConfig.firPhase": "Fase",
   "zoneConfig.firTaps": "taps",
   "zoneConfig.firLatency": "Latens",
