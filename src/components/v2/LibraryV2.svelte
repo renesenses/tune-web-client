@@ -51,7 +51,7 @@
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
-  import { filtreDuPays, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
+  import { filtreDuPays, paysArtisteChoisi, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
@@ -605,6 +605,28 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { perime = true; };
   });
   const filtresCarte = $derived<Record<string, api.FacetParam>>(dossierPortee ? { folder: dossierPortee } : {});
+  /**
+   * tune-server-rust#8668 — les albums que la grille garde sous ses AUTRES
+   * filtres (source, qualité, fréquence, format, DR, favoris, recherche,
+   * année…), le pays exclu : la carte compte parmi eux. Au .18, avec Source ·
+   * QOBUZ, la carte annonçait « États-Unis 20 albums » (toute la
+   * bibliothèque) et le clic n'en montrait aucun.
+   * `null` (mode paginé, liste pas encore là, dépôt) : la carte retombe sur
+   * les facettes du serveur. Calculé seulement carte ouverte.
+   */
+  const retenusCarte = $derived.by((): Set<number> | null => {
+    if (!carteOuverte || depot || nu || (porteeActive && idsPortee == null) || $libraryLoading) return null;
+    const ids = new Set<number>();
+    for (const a of src) if (a.id != null && matchesSaufPays(a)) ids.add(a.id);
+    return ids;
+  });
+  /** #8668 — un filtre autre que le pays est posé : la carte dit d'où viennent ses comptes. */
+  // `$derived.by` : `q`, `fYear` et `nu` sont déclarés plus bas — lus paresseusement.
+  const filtresHorsPaysPoses = $derived.by(() =>
+    fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
+      || fFavoris || q.trim() !== '' || fYear != null || periodeAppliquee,
+  );
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -760,7 +782,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
   }
-  function matches(a: Album): boolean {
+  function matches(a: Album): boolean { return matchesSelon(a, true); }
+  /** #8668 — tous les critères SAUF le pays : ce que la carte des pays croise
+   *  pour compter comme la grille. Fonctions distinctes, pas un paramètre par
+   *  défaut : `matches` est passée telle quelle à `.filter`, qui lui donne
+   *  l'indice en second argument. */
+  function matchesSaufPays(a: Album): boolean { return matchesSelon(a, false); }
+  function matchesSelon(a: Album, avecPays: boolean): boolean {
     // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
     // facettes cochées le sont toutes les deux (ET) — #898.
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
@@ -768,11 +796,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
-    return matchesHorsAnnees(a);
+    return horsAnneesSelon(a, avecPays);
   }
   /** Tous les critères de `matches` SAUF l'année et la période : ce que le
    *  compteur de la période doit croiser pour parler de la grille (tune-server-rust#8162). */
-  function matchesHorsAnnees(a: Album): boolean {
+  function matchesHorsAnnees(a: Album): boolean { return horsAnneesSelon(a, true); }
+  function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
     if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
@@ -792,7 +821,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
     // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
     if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
-    if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
+    if (avecPays && paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -3123,6 +3152,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     refermerCalqueAlbumSansReculer();
   });
 
+  /** tune-server-rust#8668 — le pays cliqué sur la fiche d'un artiste :
+   *  « Pays de l'artiste », carte ouverte pour qu'on voie le filtre. */
+  function choisirPaysArtiste(code: string) {
+    sourcePays = 'artiste';
+    paysChoisi = paysArtisteChoisi(code);
+    carteOuverte = true;
+  }
+
   /**
    * web#2653 — un FORMAT ou une FRÉQUENCE demandés par une barre de l'écran
    * des statistiques. Même contrat que l'année ci-dessus (`$store`, pas
@@ -3137,6 +3174,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
+      else if ('paysArtiste' in f) choisirPaysArtiste(f.paysArtiste);
       else fRate = [f.frequence];
       tabChoisi = 'albums';
       refermerCalqueAlbumSansReculer();
@@ -3830,6 +3868,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   {#if carteOuverte && showFilters && !depot}
     <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
+      retenus={retenusCarte} filtresPoses={filtresHorsPaysPoses}
       onChoisir={(p) => (paysChoisi = p)} />
   {/if}
 

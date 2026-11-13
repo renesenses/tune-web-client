@@ -3536,6 +3536,28 @@ export async function getLibraryFacets(
   return (raw && typeof raw === 'object') ? raw : {};
 }
 
+/**
+ * tune-server-rust#8668 — le pays de CHAQUE album (`[id, pays]`), en une
+ * réponse : `artist` = pays de l'artiste principal (MusicBrainz), `release` =
+ * pays de l'édition (balise RELEASECOUNTRY, sinon release MusicBrainz). La
+ * carte des pays le croise avec les albums que la grille garde, pour compter
+ * sous les MÊMES filtres que la grille. `null` : serveur antérieur (route
+ * absente) ou réponse illisible — la carte retombe sur les facettes, sans
+ * bandeau d'erreur.
+ */
+export async function getLibraryAlbumCountries(
+  source: 'artist' | 'release',
+): Promise<[number, string][] | null> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/album-countries?source=${source}`, undefined, undefined, true);
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.albums)) return null;
+    return (raw.albums as unknown[]).filter((p): p is [number, string] =>
+      Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'string');
+  } catch {
+    return null;
+  }
+}
+
 /** Une carte album d'Oxygen : les agrégats calculés PAR LE SERVEUR sur la
  *  sélection de facettes courante. Les dériver des pistes chargées donnait des
  *  comptes faux dès qu'un album chevauchait la pagination. */
