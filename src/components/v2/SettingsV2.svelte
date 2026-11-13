@@ -150,6 +150,7 @@
     relireAvantEnvoi, ecrireRelireAvantEnvoi,
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
+  import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -7885,6 +7886,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           onchange={(e) => basculerSvc(name, (e.currentTarget as HTMLInputElement).checked)} />
                         <span>{$t('v2.set.svcActive' as any)}</span>
                       </label>
+
+                      {#if name === 'tidal'}
+                        <!-- tune-server-rust#8481 — le pays du catalogue (« PL » de LMS). -->
+                        <PaysDuCatalogueV2 service={name} />
+                      {/if}
 
                       {#if name === 'spotify' && !st.authenticated && !flow}
                         <!-- tune-server-rust#8198 — assistant pas à pas (4 écrans). -->
