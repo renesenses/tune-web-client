@@ -17,7 +17,8 @@ import lFr from '../locales/fr';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import { oublierSondageNotes } from '../api';
 import {
-  versY, cheminBande, colonnesEcretees, trancher, zoomer, nombreDb, graduationsOnde,
+  versY, cheminBande, colonnesEcretees, cheminEcretees, trancher, zoomer, nombreDb, graduationsOnde,
+  ANTI_REBOND_ZOOM_MS,
   type FormeOnde as Forme, type VoieOnde,
 } from '../formeOnde';
 
@@ -47,6 +48,7 @@ let requetes: string[] = [];
 let statutRoute = 200;
 let statutPlage = 200;
 let corpsRoute: Forme = forme();
+let corpsErreur = 'Not Found';
 
 function repondre(statut: number, corps: unknown): Response {
   return {
@@ -88,6 +90,7 @@ beforeEach(() => {
   statutRoute = 200;
   statutPlage = 200;
   corpsRoute = forme();
+  corpsErreur = 'Not Found';
   vi.stubGlobal('ResizeObserver', ObservateurInerte);
   vi.stubGlobal('IntersectionObserver', ObservateurInerte);
   vi.stubGlobal('fetch', vi.fn(async (e: RequestInfo | URL) => {
@@ -101,7 +104,7 @@ beforeEach(() => {
         const f = Number(u.searchParams.get('fin_s'));
         return repondre(200, { ...forme(100, d, f - d), voies: [voie(0, 0.9, 100), voie(1, 0.8, 100)] });
       }
-      return statutRoute >= 400 ? repondre(statutRoute, statutRoute === 422 ? 'track has no local file' : 'Not Found') : repondre(200, corpsRoute);
+      return statutRoute >= 400 ? repondre(statutRoute, statutRoute === 422 ? 'track has no local file' : corpsErreur) : repondre(200, corpsRoute);
     }
     if (url.includes('/fiche-technique')) {
       return repondre(200, {
@@ -137,6 +140,10 @@ describe('fil 2793 — les règles pures', () => {
     expect(cheminBande([0.5, 0.5], [-0.5, -0.5], 100, 100, 'lineaire')).toBe('M0,25L100,25L100,75L0,75Z');
     const v = voie(0, 0.5, 10, 1);
     expect(colonnesEcretees(v, -0.01)).toEqual([9]);
+    // #8664 : le serveur désigne les colonnes (suites à la pleine échelle) ;
+    // une crête isolée à 1,0 qu'il n'a pas retenue n'est pas rouge.
+    expect(colonnesEcretees({ ...v, colonnes_ecretees: [] })).toEqual([]);
+    expect(colonnesEcretees({ ...v, colonnes_ecretees: [2, 3] })).toEqual([2, 3]);
     expect(nombreDb(-6.02, 'fr')).toBe('−6,0');
     expect(nombreDb(null, 'fr')).toBe('−∞');
   });
@@ -149,12 +156,25 @@ describe('fil 2793 — les règles pures', () => {
     expect(t.colonnes).toBe(50);
     expect(t.debut_s).toBe(50);
     expect(t.voies[0].max.length).toBe(50);
+    const f = forme(100, 0, 200);
+    f.voies[1] = { ...f.voies[1], colonnes_ecretees: [10, 30, 60, 99] };
+    expect(trancher(f, { debut: 50, fin: 150 }).voies[1].colonnes_ecretees).toEqual([5, 35]);
+  });
+
+  it('un seul chemin pour les colonnes écrêtées, les voisines fusionnées', () => {
+    expect(cheminEcretees([], 100, 1000, 120)).toBe('');
+    expect(cheminEcretees([3, 4, 5, 9], 100, 1000, 120)).toBe('M30,0h30v120h-30ZM90,0h10v120h-10Z');
+    // Une colonne plus étroite que 1,5 px garde une largeur visible.
+    expect(cheminEcretees([0], 4000, 1000, 120)).toBe('M0,0h1.5v120h-1.5Z');
   });
 
   it('les libellés existent dans les quinze langues', () => {
     const cles = Object.keys(fr).filter((k) => k.startsWith('fiche.waveform.'));
     expect(cles.length).toBeGreaterThanOrEqual(33);
     expect(cles).not.toContain('fiche.waveform.soon');
+    cles.push('fiche.trackNotFound');
+    // #8664 : plus de « PLR » pour un facteur de crête non pondéré.
+    expect(fr['fiche.waveform.plr']).not.toContain('PLR');
     for (const langue of ONZE_LANGUES) {
       const d = dictionnaire(langue);
       for (const k of cles) expect(d[k], `${langue} ${k}`).toBeTruthy();
@@ -181,14 +201,15 @@ describe('fil 2793 — l’écran', () => {
     // Repère 0 dBFS aux deux bords.
     expect(canaux()[0].querySelectorAll('line.zero')).toHaveLength(2);
     expect(document.querySelector('tr[data-chiffres="global"]')).not.toBeNull();
-    expect(document.querySelectorAll('rect.ecrete')).toHaveLength(0);
+    expect(document.querySelectorAll('.ecrete')).toHaveLength(0);
   });
 
   it('écrêtage : décompte en alerte et colonnes en rouge', async () => {
     corpsRoute = forme(100, 0, 200, 37);
     poser(FormeOnde, { trackId: 7, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
     expect(await attendreQue(() => canaux().length === 2)).toBe(true);
-    expect(document.querySelectorAll('.canal[data-canal="1"] rect.ecrete')).toHaveLength(1);
+    expect(document.querySelectorAll('.canal[data-canal="1"] path.ecrete')).toHaveLength(1);
+    expect(document.querySelectorAll('rect.ecrete')).toHaveLength(0);
     const global = document.querySelector('tr[data-chiffres="global"] td.alerte');
     expect(global?.textContent).toBe('37');
   });
@@ -221,6 +242,34 @@ describe('fil 2793 — l’écran', () => {
     // Repli : la découpe de la piste entière reste affichée.
     expect(document.querySelector('.temps')?.textContent).toContain('0:50');
     expect(canaux()).toHaveLength(2);
+  });
+
+  it('anti-rebond : des clics ×2 rapprochés ne demandent que la dernière plage', async () => {
+    poser(FormeOnde, { trackId: 7, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => canaux().length === 2)).toBe(true);
+    for (let i = 0; i < 3; i += 1) {
+      boutonTexte(fr['fiche.waveform.zoomIn'])!.click();
+      flushSync();
+    }
+    // La découpe s'affiche tout de suite, sans requête.
+    expect(document.querySelector('.temps')?.textContent).toContain('1:26');
+    expect(requetes.filter((u) => u.includes('debut_s='))).toHaveLength(0);
+    expect(await attendreQue(() => requetes.some((u) => u.includes('debut_s=')))).toBe(true);
+    await attendreQue(() => false, ANTI_REBOND_ZOOM_MS + 100);
+    const plages = requetes.filter((u) => u.includes('debut_s='));
+    expect(plages).toHaveLength(1);
+    expect(plages[0]).toContain('debut_s=87.500');
+    expect(plages[0]).toContain('fin_s=112.500');
+  });
+
+  it('piste inconnue (404 « track not found ») : ni « indisponible » ni réessai', async () => {
+    statutRoute = 404;
+    corpsErreur = 'track not found';
+    poser(FormeOnde, { trackId: 7, section: null });
+    boutonTexte(fr['fiche.waveform.compute'])!.click();
+    expect(await attendreQue(() => (document.body.textContent ?? '').includes(fr['fiche.trackNotFound']))).toBe(true);
+    expect(document.body.textContent).not.toContain(fr['fiche.waveform.unavailable']);
+    expect(boutonTexte(fr['fiche.waveform.compute'])).toBeUndefined();
   });
 
   it('absent : rien n’est calculé avant le bouton', async () => {

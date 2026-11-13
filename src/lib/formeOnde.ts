@@ -6,13 +6,16 @@
  * `GET /library/tracks/{id}/forme-onde?colonnes=N[&debut_s=&fin_s=]` rend,
  * par canal et par colonne de temps, les crêtes (`min` / `max`, linéaires
  * −1..1) et la RMS (0..1), et en chiffres la crête maximale, la RMS globale,
- * le facteur de crête (PLR) et le nombre d'échantillons écrêtés. Calcul côté
+ * le facteur de crête (crête − RMS non pondéré, pas le PLR de l'EBU) et le
+ * nombre d'échantillons écrêtés (suites d'au moins trois échantillons à la
+ * pleine échelle ; les colonnes concernées dans `colonnes_ecretees`). Calcul côté
  * serveur à la demande, gardé en cache pour la piste entière ; une PLAGE
  * (`debut_s`, `fin_s`) sert au zoom et se calcule à chaque fois.
  *
  * Même règle que le spectrogramme : une piste de service, sans fichier
  * local, n'a pas de forme d'onde (422). Un serveur antérieur à la route
- * répond 404 / 405 : l'écran dit alors que la fonction n'est pas disponible.
+ * répond 404 / 405 : l'écran dit alors que la fonction n'est pas disponible ;
+ * un 404 « track not found » dit que la piste n'existe plus.
  */
 import { authHeaders, BASE } from './api';
 import { clearToken } from './auth';
@@ -20,6 +23,11 @@ import { genreDeRefus, type GenreErreurSpectrogramme } from './spectrogramme';
 
 /** Colonnes demandées : le défaut du serveur. */
 export const COLONNES_FORME_ONDE = 1000;
+/**
+ * Anti-rebond du zoom : une plage n'est demandée au serveur qu'une fois les
+ * clics finis (relecture de #2945).
+ */
+export const ANTI_REBOND_ZOOM_MS = 300;
 /** En échelle dB, le bas de l'échelle (le centre du tracé). */
 export const PLANCHER_ECHELLE_DB = -60;
 
@@ -54,6 +62,8 @@ export interface VoieOnde extends ChiffresOnde {
   min: number[];
   max: number[];
   rms: number[];
+  /** Les colonnes qui contiennent un écrêtage, selon le serveur (#8664). */
+  colonnes_ecretees?: number[];
 }
 
 export interface FormeOnde {
@@ -64,7 +74,10 @@ export interface FormeOnde {
   sample_rate: number;
   debut_s: number;
   duree_s: number;
-  seuil_ecretage_dbfs: number;
+  /** Écrêtage : suites d'au moins N échantillons à la pleine échelle. */
+  ecretage_suite_min?: number;
+  /** Ancien contrat (avant #8664) : seuil en dBFS. */
+  seuil_ecretage_dbfs?: number;
   global: ChiffresOnde;
   voies: VoieOnde[];
   calcule_le?: string;
@@ -153,8 +166,13 @@ export function cheminBande(
   return `M${points.join('L')}Z`;
 }
 
-/** Les index des colonnes qui touchent le seuil d'écrêtage (en dBFS). */
-export function colonnesEcretees(voie: VoieOnde, seuilDbfs: number): number[] {
+/**
+ * Les index des colonnes écrêtées : celles que le serveur désigne
+ * (`colonnes_ecretees`, suites d'échantillons à la pleine échelle) ; à
+ * défaut (serveur plus ancien), celles qui touchent la pleine échelle.
+ */
+export function colonnesEcretees(voie: VoieOnde, seuilDbfs = 0): number[] {
+  if (Array.isArray(voie.colonnes_ecretees)) return voie.colonnes_ecretees;
   const seuil = 10 ** (seuilDbfs / 20) - 1e-4;
   const out: number[] = [];
   for (let i = 0; i < voie.max.length; i += 1) {
@@ -175,8 +193,41 @@ export function trancher(f: FormeOnde, plage: Plage): FormeOnde {
     colonnes: i1 - i0,
     debut_s: f.debut_s + i0 * parCol,
     duree_s: (i1 - i0) * parCol,
-    voies: f.voies.map((v) => ({ ...v, min: v.min.slice(i0, i1), max: v.max.slice(i0, i1), rms: v.rms.slice(i0, i1) })),
+    voies: f.voies.map((v) => ({
+      ...v, min: v.min.slice(i0, i1), max: v.max.slice(i0, i1), rms: v.rms.slice(i0, i1),
+      ...(Array.isArray(v.colonnes_ecretees)
+        ? { colonnes_ecretees: v.colonnes_ecretees.filter((i) => i >= i0 && i < i1).map((i) => i - i0) }
+        : {}),
+    })),
   };
+}
+
+/**
+ * Un seul chemin SVG pour toutes les colonnes écrêtées (au lieu d'un
+ * rectangle chacune) : les colonnes voisines forment une seule bande.
+ */
+export function cheminEcretees(
+  indices: number[], n: number, largeur: number, hauteur: number, minimum = 1.5,
+): string {
+  if (n <= 0 || indices.length === 0) return '';
+  const pas = largeur / n;
+  const arrondi = (v: number) => Math.round(v * 10) / 10;
+  const tries = [...indices].sort((a, b) => a - b);
+  const morceaux: string[] = [];
+  let debut = tries[0];
+  let fin = tries[0];
+  const clore = () => {
+    const x = debut * pas;
+    const w = Math.max(minimum, (fin - debut + 1) * pas);
+    morceaux.push(`M${arrondi(x)},0h${arrondi(w)}v${hauteur}h${arrondi(-w)}Z`);
+  };
+  for (const i of tries.slice(1)) {
+    if (i <= fin + 1) { fin = Math.max(fin, i); continue; }
+    clore();
+    debut = i; fin = i;
+  }
+  clore();
+  return morceaux.join('');
 }
 
 /**

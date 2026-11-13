@@ -6,10 +6,11 @@
    * Par canal : les crêtes (min / max, bande claire), la RMS (bande foncée)
    * et les colonnes écrêtées (en rouge), sur une échelle linéaire ou en dB,
    * repère 0 dBFS aux bords. En chiffres : crête maximale, RMS globale,
-   * facteur de crête (PLR) et échantillons écrêtés, par canal et en tout.
+   * facteur de crête (crête − RMS) et échantillons écrêtés, par canal et en tout.
    * Zoom : boutons ×2 / ÷2, ou glisser sur le tracé pour choisir une plage ;
-   * la plage est redemandée au serveur, et à défaut découpée dans la forme
-   * de la piste entière. Aucun son.
+   * la plage est redemandée au serveur après un court anti-rebond (des clics
+   * rapprochés ne lancent qu'un calcul), et en attendant ou à défaut
+   * découpée dans la forme de la piste entière. Aucun son.
    *
    * Sonie EBU R128 (réponse 11020) : la sonie intégrée (LUFS) et la crête
    * vraie (dBTP) que la passe ReplayGain du serveur a déjà mesurées, quand
@@ -20,7 +21,7 @@
   import { t, locale } from '../../lib/i18n';
   import { dateLisible } from '../../lib/ficheTechnique';
   import {
-    chargerFormeOnde, ErreurFormeOnde, versY, graduationsOnde, cheminBande, colonnesEcretees,
+    chargerFormeOnde, ErreurFormeOnde, graduationsOnde, cheminBande, colonnesEcretees, cheminEcretees, ANTI_REBOND_ZOOM_MS,
     trancher, zoomer, nombreDb, tempsLisible,
     type FormeOnde, type SectionFormeOnde, type Echelle, type Plage, type GenreErreurFormeOnde,
   } from '../../lib/formeOnde';
@@ -50,6 +51,7 @@
   let selection = $state<{ x0: number; x1: number } | null>(null);
   let controle: AbortController | null = null;
   let controleDetail: AbortController | null = null;
+  let minuterieDetail: ReturnType<typeof setTimeout> | null = null;
 
   const langue = $derived($locale ?? 'fr');
   const complete = $derived(etat.v === 'pret' ? etat.forme : null);
@@ -78,11 +80,30 @@
     }
   }
 
-  async function chargerPlage(p: Plage | null) {
+  function annulerDetail() {
+    if (minuterieDetail) clearTimeout(minuterieDetail);
+    minuterieDetail = null;
     controleDetail?.abort();
+    controleDetail = null;
+  }
+
+  /**
+   * Affiche tout de suite la découpe de la plage, et ne la demande au
+   * serveur qu'après l'anti-rebond : cinq clics « ×2 » d'affilée ne lancent
+   * qu'un décodage, celui de la dernière plage.
+   */
+  function chargerPlage(p: Plage | null) {
+    annulerDetail();
     plage = p;
     detail = null;
     if (!p) return;
+    minuterieDetail = setTimeout(() => {
+      minuterieDetail = null;
+      void demanderPlage(p);
+    }, ANTI_REBOND_ZOOM_MS);
+  }
+
+  async function demanderPlage(p: Plage) {
     const c = new AbortController();
     controleDetail = c;
     try {
@@ -95,13 +116,13 @@
 
   function zoom(facteur: number) {
     if (!complete) return;
-    void chargerPlage(zoomer(plage, facteur, complete.duree_s));
+    chargerPlage(zoomer(plage, facteur, complete.duree_s));
   }
 
   $effect(() => {
     void trackId;
     if (section?.etat === 'a_jour') void charger();
-    return () => { controle?.abort(); controleDetail?.abort(); };
+    return () => { controle?.abort(); annulerDetail(); };
   });
 
   function nomDuCanal(canal: number, canaux: number): string {
@@ -138,7 +159,7 @@
     if (b - a < 0.01) return;
     const debut = vue.debut_s + a * vue.duree_s;
     const fin = vue.debut_s + b * vue.duree_s;
-    void chargerPlage(fin - debut >= complete.duree_s - 1e-6 ? null : { debut, fin });
+    chargerPlage(fin - debut >= complete.duree_s - 1e-6 ? null : { debut, fin });
   }
 </script>
 
@@ -168,6 +189,8 @@
 {:else if etat.v === 'erreur'}
   {#if etat.genre === 'indisponible'}
     <p class="etat" role="status">{$t('fiche.waveform.unavailable' as any)}</p>
+  {:else if etat.genre === 'introuvable'}
+    <p class="etat" role="status">{$t('fiche.trackNotFound' as any)}</p>
   {:else if etat.genre === 'non-locale'}
     <p class="etat" role="status">{$t('fiche.waveform.notLocal' as any)}</p>
   {:else}
@@ -190,7 +213,7 @@
   </div>
 
   {#each vue.voies as voie (voie.canal)}
-    {@const ecretees = colonnesEcretees(voie, vue.seuil_ecretage_dbfs)}
+    {@const ecretees = colonnesEcretees(voie, vue.seuil_ecretage_dbfs ?? 0)}
     <div class="canal" data-canal={voie.canal}>
       <span class="nom">{nomDuCanal(voie.canal, vue.canaux)}</span>
       <div class="trace">
@@ -209,10 +232,9 @@
           <line class="centre" x1="0" x2={LARGEUR} y1={HAUTEUR / 2} y2={HAUTEUR / 2} />
           <path class="crete" d={cheminBande(voie.max, voie.min, LARGEUR, HAUTEUR, echelle)} />
           <path class="rms" d={cheminBande(voie.rms, voie.rms.map((r) => -r), LARGEUR, HAUTEUR, echelle)} />
-          {#each ecretees as i (i)}
-            <rect class="ecrete" x={(i / Math.max(1, voie.max.length)) * LARGEUR} y="0"
-              width={Math.max(1.5, LARGEUR / Math.max(1, voie.max.length))} height={HAUTEUR} />
-          {/each}
+          {#if ecretees.length}
+            <path class="ecrete" d={cheminEcretees(ecretees, voie.max.length, LARGEUR, HAUTEUR)} />
+          {/if}
           {#if selection}
             <rect class="selection" x={Math.min(selection.x0, selection.x1) * LARGEUR} y="0"
               width={Math.abs(selection.x1 - selection.x0) * LARGEUR} height={HAUTEUR} />
@@ -282,7 +304,7 @@
   .echelle{position:absolute; left:0; top:0; bottom:0; width:28px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono, monospace);
     color:var(--v2-txt3, inherit); text-align:right}
   .echelle span{position:absolute; right:2px; transform:translateY(-50%); line-height:1}
-  svg{display:block; width:100%; height:120px; background:var(--v2-bg, #0e0e10); border-radius:6px; touch-action:none; cursor:crosshair}
+  svg{display:block; width:100%; height:120px; background:var(--v2-bg, #0e0e10); border-radius:6px; touch-action:pan-y; cursor:crosshair}
   .grille{stroke:var(--v2-line2, #333); stroke-width:1; vector-effect:non-scaling-stroke; stroke-dasharray:3 4}
   .zero{stroke:var(--v2-txt3, #888); stroke-width:1; vector-effect:non-scaling-stroke}
   .centre{stroke:var(--v2-line2, #333); stroke-width:1; vector-effect:non-scaling-stroke}
