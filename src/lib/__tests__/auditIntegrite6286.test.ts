@@ -71,3 +71,22 @@ it('exporte le rapport CSV par la route authentifiée de la bibliothèque', asyn
   expect(clic).toHaveBeenCalledOnce();
   clic.mockRestore();
 });
+
+it.each(['corrompu', 'sain', 'non_verifiable'])('export CSV 2925 : conserve le filtre %s et nomme le fichier', async verdict => {
+  etat.traites = 4;
+  vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:rapport'), revokeObjectURL: vi.fn() }));
+  const noms: string[] = [];
+  const clic = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function(this: HTMLAnchorElement) { noms.push(this.download); });
+  try {
+    component = mount(AuditIntegrite, { target: host }); await attendre();
+    const select = host.querySelector('select')!;
+    select.value = verdict; select.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
+    bouton('Exporter en CSV').click(); await attendre();
+    expect(requetes).toContainEqual({ url: `/api/v1/library/integrity/report.csv?verdict=${verdict}`, method: 'GET' });
+    expect(noms).toEqual([`integrite-bibliotheque-${verdict}.csv`]);
+    select.value = ''; select.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
+    bouton('Exporter en CSV').click(); await attendre();
+    expect(requetes).toContainEqual({ url: '/api/v1/library/integrity/report.csv', method: 'GET' });
+    expect(noms.at(-1)).toBe('integrite-bibliotheque.csv');
+  } finally { clic.mockRestore(); }
+});

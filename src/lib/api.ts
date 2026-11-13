@@ -8842,7 +8842,10 @@ export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integ
 export function getIntegrityReport(offset = 0, verdict = '') {
   return fetchJSON<{ etat: EtatIntegrite; lignes: LigneIntegrite[] }>(`${BASE}/library/integrity/report?offset=${offset}${verdict ? `&verdict=${encodeURIComponent(verdict)}` : ''}`);
 }
-export function exportIntegrityCsv() { return downloadCsv('/library/integrity/report.csv', 'integrite-bibliotheque.csv'); }
+export function exportIntegrityCsv(verdict = '') {
+  const filtre = verdict ? `?verdict=${encodeURIComponent(verdict)}` : '';
+  return downloadCsv(`/library/integrity/report.csv${filtre}`, `integrite-bibliotheque${verdict ? `-${verdict}` : ''}.csv`);
+}
 
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
