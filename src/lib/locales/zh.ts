@@ -7329,6 +7329,7 @@ export default {
   "app.task.writeMetadata": "正在将元数据写入文件…",
   "app.task.readMetadata": "正在读取文件元数据…",
   "app.task.readClassical": "正在读取作品、乐章和乐团…",
+  "app.task.shareArtistImages": "正在与社区共享艺人图片…",
   "app.task.composers": "正在查找作曲家…",
   "app.task.lyrics": "正在获取歌词…",
   "app.task.writeLyrics": "正在将歌词写入文件…",

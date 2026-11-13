@@ -7329,6 +7329,7 @@ export default {
   "app.task.writeMetadata": "Se scriu metadatele în fișiere…",
   "app.task.readMetadata": "Se citesc metadatele fișierelor…",
   "app.task.readClassical": "Se citesc operele, mișcările și ansamblurile…",
+  "app.task.shareArtistImages": "Se partajează imaginile artiștilor cu comunitatea…",
   "app.task.composers": "Se caută compozitorii…",
   "app.task.lyrics": "Se preiau versurile…",
   "app.task.writeLyrics": "Se scriu versurile în fișiere…",

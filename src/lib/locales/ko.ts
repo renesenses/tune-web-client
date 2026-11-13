@@ -7329,6 +7329,7 @@ export default {
   "app.task.writeMetadata": "메타데이터를 파일에 쓰는 중…",
   "app.task.readMetadata": "파일 메타데이터 읽는 중…",
   "app.task.readClassical": "작품, 악장, 앙상블을 읽는 중…",
+  "app.task.shareArtistImages": "아티스트 이미지를 커뮤니티와 공유하는 중…",
   "app.task.composers": "작곡가 검색 중…",
   "app.task.lyrics": "가사 가져오는 중…",
   "app.task.writeLyrics": "가사를 파일에 쓰는 중…",

@@ -7174,6 +7174,7 @@ export default {
   "app.task.writeMetadata": "Εγγραφή μεταδεδομένων στα αρχεία…",
   "app.task.readMetadata": "Ανάγνωση μεταδεδομένων αρχείων…",
   "app.task.readClassical": "Ανάγνωση έργων, μερών και συνόλων…",
+  "app.task.shareArtistImages": "Κοινοποίηση εικόνων καλλιτεχνών στην κοινότητα…",
   "app.task.composers": "Αναζήτηση συνθετών…",
   "app.task.lyrics": "Ανάκτηση στίχων…",
   "app.task.writeLyrics": "Εγγραφή στίχων στα αρχεία…",

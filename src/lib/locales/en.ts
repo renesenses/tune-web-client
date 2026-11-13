@@ -7349,6 +7349,7 @@ export default {
   "app.task.writeMetadata": "Writing metadata to files…",
   "app.task.readMetadata": "Reading file metadata…",
   "app.task.readClassical": "Reading works, movements and ensembles…",
+  "app.task.shareArtistImages": "Sharing artist images with the community…",
   "app.task.composers": "Finding composers…",
   "app.task.lyrics": "Fetching lyrics…",
   "app.task.writeLyrics": "Writing lyrics to files…",
