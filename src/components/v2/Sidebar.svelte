@@ -291,7 +291,7 @@
   import { updateAvailable, latestVersion, currentVersion, updateInstallable, updateInstallHint } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
-  import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes } from '../../lib/ordreBarreLaterale';
+  import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes, type Tranche } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -409,22 +409,33 @@
    */
   const ordreLibre = $derived(ordreModifie(TOUTES_ENTREES, choixBarre));
   const tranchesLibres = $derived.by(() => {
-    if (!ordreLibre) return [[], [], []] as Item[][];
+    if (!ordreLibre) return [] as Tranche<Item>[];
     const disponibles = new Set<string>([
       ...CORE.filter(auNiveau), ...SELECTIONS,
       ...(showAdvanced ? avanceDisponibles : []),
       ...(showStudio ? studioDisponibles : []),
     ].map((it) => it.view));
-    // Découpe sur la liste COMPLÈTE : une entrée ne change pas d'intertitre
-    // selon le niveau ou les greffons ; on filtre ensuite.
-    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupeOrigine, 3)
-      .map((l) => sansMasquees(l.filter((it) => disponibles.has(it.view))));
+    const affichee = (it: Item) => disponibles.has(it.view) && !estMasquee(it.view, choixBarre);
+    // Découpe sur la liste COMPLÈTE, l'ordre enregistré à la lettre ; les
+    // entrées non affichées ne servent qu'à placer les intertitres, on les
+    // retire ensuite.
+    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupeOrigine, 3, affichee)
+      .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
-  const listeLibre = $derived(tranchesLibres[0]);
-  /** Les entrées rendues sous « Sélections » et « Studio », groupes livrés ou liste libre. */
-  const selectionsRendues = $derived(ordreLibre ? tranchesLibres[1] : selectionsAffichees);
-  const studioRendu = $derived(ordreLibre ? tranchesLibres[2] : studioVisible);
-  const studioMontre = $derived(ordreLibre ? studioRendu.length > 0 : showStudio && studioVisible.length > 0);
+  const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);
+  /** Les tranches à intertitre (Sélections, Studio), dans l'ordre choisi par l'utilisateur. */
+  const tranchesTitrees = $derived(tranchesLibres.slice(1).filter((tr) => tr.entrees.length > 0));
+  const INTERTITRE_GROUPE: Record<number, { id: string; cle: string }> = {
+    1: { id: 'selections', cle: 'v2.nav.selections' },
+    2: { id: 'studio', cle: 'v2.nav.studio' },
+  };
+  /**
+   * Replié, un groupe ne garde que l'écran ouvert ; en liste libre, il garde
+   * aussi les entrées du NOYAU qu'on y a placées (Accueil mis en dernier) :
+   * le noyau ne se replie jamais (relecture de web#2960).
+   */
+  const entreesDuGroupe = (id: string, l: Item[]) =>
+    repliee(id) ? l.filter((it) => estActif(it, $activeView) || groupeOrigine(it) === 0) : l;
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -1016,6 +1027,17 @@
       {/if}
     {/snippet}
 
+    <!-- Une entrée de la liste libre, quelle que soit sa tranche : les
+         Collections gardent l'arbre des Rayons, Streaming ses services. -->
+    {#snippet entreeLibre(it: Item)}
+      {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
+        {@render collectionsEtRayons(it)}
+      {:else}
+        {@render boutonEntree(it)}
+        {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
+      {/if}
+    {/snippet}
+
     <!-- rc12 — un intertitre de groupe se replie d'un clic (Sélections,
          Studio). Replié, le groupe ne garde que l'entrée de l'écran OUVERT,
          pour qu'on sache toujours où l'on est. -->
@@ -1034,12 +1056,7 @@
            (services, rayons) suivent leur parent. -->
       <nav class="grp libre" data-ordre="libre">
         {#each listeLibre as it (it.view)}
-          {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
-            {@render collectionsEtRayons(it)}
-          {:else}
-            {@render boutonEntree(it)}
-            {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
-          {/if}
+          {@render entreeLibre(it)}
         {/each}
       </nav>
     {:else}
@@ -1130,33 +1147,41 @@
       {/if}
     </nav>
 
-    {#if selectionsRendues.length}
+    {#if ordreLibre}
+      <!-- Recette rc12 — en liste libre, « Sélections » et « Studio » gardent
+           leur intertitre, dans l'ordre choisi (`repartirEnGroupes`). Aucun
+           plafond de hauteur ici : une tranche peut être longue. -->
+      {#each tranchesTitrees as tr (tr.groupe)}
+        {@const g = INTERTITRE_GROUPE[tr.groupe]}
+        <nav class="grp" data-groupe={g.id}>
+          {@render intertitreRepliable(g.id, g.cle)}
+          {#each entreesDuGroupe(g.id, tr.entrees) as it (it.view)}
+            {@render entreeLibre(it)}
+          {/each}
+        </nav>
+      {/each}
+    {:else}
+    {#if selectionsAffichees.length}
     <nav class="grp" data-groupe="selections">
       {@render intertitreRepliable('selections', 'v2.nav.selections')}
-      {#each (repliee('selections') ? selectionsRendues.filter((it) => estActif(it, $activeView)) : selectionsRendues) as it (it.view)}
-        {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
-          {@render collectionsEtRayons(it)}
-        {:else}
-          {@render boutonEntree(it)}
-          {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
-        {/if}
+      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, $activeView)) : selectionsAffichees) as it (it.view)}
+        {@render entreeLibre(it)}
       {/each}
     </nav>
     {/if}
 
     <!-- web#1827 : toutes ses entrées masquées, le groupe se referme avec
-         son intitulé plutôt que de laisser « Studio » seul ; en liste libre,
-         il reçoit la dernière tranche de l'ordre choisi (`tranchesLibres`). -->
-    <nav class="grp reveal" data-groupe="studio" class:show={studioMontre} aria-hidden={!studioMontre}>
+         son intitulé plutôt que de laisser « Studio » seul. -->
+    <nav class="grp reveal" data-groupe="studio" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
       {@render intertitreRepliable('studio', 'v2.nav.studio')}
-      {#each (repliee('studio') ? studioRendu.filter((it) => estActif(it, $activeView)) : studioRendu) as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={studioMontre ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, $activeView)) : studioVisible) as it (it.view)}
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
-        {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
       {/each}
     </nav>
+    {/if}
   </div>
 
   <!-- 🔴 Le Support est la SEULE entrée qui n'avait aucune infobulle — même

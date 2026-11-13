@@ -117,6 +117,7 @@ beforeEach(() => {
   streamingServices.set({});
   activeView.set('home');
   poserChoix(null);
+  preferences.update((p) => ({ ...p, barreGroupesReplies: [] }));
 });
 
 afterEach(() => {
@@ -244,16 +245,83 @@ describe('#1827 — la barre suit le choix', () => {
 
   it('repartirEnGroupes : tranches contiguës, ordre intact, une entrée déplacée reste à sa place', () => {
     const g = (v: string) => (v[0] === 's' ? 1 : v[0] === 't' ? 2 : 0);
+    const plat = (r: { groupe: number; entrees: string[] }[]) => r.map((t) => [t.groupe, t.entrees]);
     const liste = ['a', 's1', 'b', 'c', 's2', 's3', 't1', 'a2', 't2'];
     const r = repartirEnGroupes(liste, g, 3);
-    expect(r.flat()).toEqual(liste);
-    expect(r[0]).toEqual(['a', 's1', 'b', 'c']);
-    expect(r[1]).toEqual(['s2', 's3']);
-    expect(r[2]).toEqual(['t1', 'a2', 't2']);
+    expect(r.flatMap((t) => t.entrees)).toEqual(liste);
+    expect(plat(r)).toEqual([[0, ['a', 's1', 'b', 'c']], [1, ['s2', 's3']], [2, ['t1', 'a2', 't2']]]);
     // L'ordre livré se découpe exactement en ses groupes.
-    expect(repartirEnGroupes(TOUTES_ENTREES, groupeOrigine, 3).map(vues))
+    expect(repartirEnGroupes(TOUTES_ENTREES, groupeOrigine, 3).map((t) => vues(t.entrees)))
       .toEqual([[...NOYAU, ...vues(ADVANCED)], vues(SELECTIONS), vues(STUDIO)]);
-    expect(repartirEnGroupes([], g, 3)).toEqual([[], [], []]);
+    expect(plat(repartirEnGroupes([] as string[], g, 3))).toEqual([[0, []], [1, []], [2, []]]);
+  });
+
+  /** Relecture de web#2960 : deux ordres où la tranche « Sélections » sortait vide. */
+  const mk = (p: string, n: number) => Array.from({ length: n }, (_, i) => `${p}${i}`);
+  const [C, A, S, T] = [mk('c', 10), mk('a', 8), mk('s', 6), mk('t', 9)];
+  const gx = (v: string) => (v[0] === 's' ? 1 : v[0] === 't' ? 2 : 0);
+  it.each([
+    ['noyau, Sélections, Avancé, Studio', [...C, ...S, ...A, ...T], [0, 1, 2]],
+    ['Sélections sous le Studio', [...C, ...A, ...T, ...S], [0, 2, 1]],
+    ['Studio en tête, une entrée Studio en dernier', [...T.slice(1), ...C, ...A, ...S, 't0'], [0, 1, 2]],
+  ])('aucune tranche vide quand son groupe a des entrées : %s', (_nom, liste, ordreGroupes) => {
+    const r = repartirEnGroupes(liste, gx, 3);
+    expect(r.flatMap((t) => t.entrees)).toEqual(liste);
+    expect(r.map((t) => t.groupe)).toEqual(ordreGroupes);
+    for (const t of r) expect(t.entrees.some((v) => gx(v) === t.groupe)).toBe(true);
+  });
+
+  it('une tranche sans entrée VISIBLE de son groupe se fond dans la précédente (Studio en Essentiel)', () => {
+    const liste = [...C, ...A, ...S, 'c99', ...T];
+    const r = repartirEnGroupes(liste, gx, 3, (v) => v[0] !== 't');
+    expect(r.flatMap((t) => t.entrees)).toEqual(liste);
+    expect(r[2].entrees).toEqual([]);
+    // Les Sélections, elles, gardent leurs entrées visibles.
+    expect(r[1].entrees.filter((v) => v[0] === 's')).toEqual(S);
+  });
+
+  it('🔴 tout ce qui est affiché, bout à bout, suit exactement l’ordre enregistré', async () => {
+    for (const ordre of [
+      [...NOYAU, ...vues(SELECTIONS), ...vues(ADVANCED), ...vues(STUDIO)],
+      [...NOYAU, ...vues(ADVANCED), ...vues(STUDIO), ...vues(SELECTIONS)],
+      [...vues(STUDIO), ...TOUTES.filter((v) => !vues(STUDIO).includes(v))],
+    ]) {
+      poserChoix({ ordre, masquees: ['tags'] });
+      if (!monte) await monterBarre(); else await laisserTourner(5);
+      const rendu = vuesRendues();
+      expect(new Set(rendu).size).toBe(rendu.length);
+      expect(rendu).toEqual(ordre.filter((v) => rendu.includes(v)));
+      // Le noyau et les Sélections non masquées sont tous là.
+      for (const v of [...NOYAU, ...vues(SELECTIONS).filter((x) => x !== 'tags')]) expect(rendu).toContain(v);
+      expect(rendu).not.toContain('tags');
+      expect(intertitres()).toContain(SELECTIONS_FR);
+    }
+    // Sélections sous le Studio : leur intertitre suit celui du Studio.
+    poserChoix({ ordre: [...NOYAU, ...vues(ADVANCED), ...vues(STUDIO), ...vues(SELECTIONS)], masquees: [] });
+    await laisserTourner(5);
+    const groupes = Array.from(hote!.querySelectorAll<HTMLElement>('nav[data-groupe]')).map((n) => n.dataset.groupe);
+    if (groupes.includes('studio')) expect(groupes).toEqual(['studio', 'selections']);
+    // Aucun plafond de hauteur sur une tranche de la liste libre.
+    expect(hote!.querySelector('nav[data-groupe].reveal')).toBeNull();
+  });
+
+  it('replier un groupe ne cache jamais une entrée du noyau qu’on y a placée (Accueil en dernier)', async () => {
+    const ordre = [...TOUTES.filter((v) => v !== 'home'), 'home'];
+    poserChoix({ ordre, masquees: [] });
+    preferences.update((p) => ({ ...p, barreGroupesReplies: ['selections', 'studio'] }));
+    activeView.set('library');
+    await monterBarre();
+    expect(vuesRendues()).toContain('home');
+    expect(vuesRendues()).toContain('library');
+    expect(vuesRendues()).not.toContain('tags');
+    preferences.update((p) => ({ ...p, barreGroupesReplies: [] }));
+  });
+
+  it('niveau Essentiel : pas d’intertitre « Studio » sans entrée du Studio', async () => {
+    poserChoix({ ordre: avecEn('tags', 0), masquees: [] }, 'beginner');
+    await monterBarre();
+    expect(intertitres()).not.toContain('Studio');
+    expect(intertitres()).toContain(SELECTIONS_FR);
   });
 
   it('niveau : une entrée Avancée placée en 2e reste cachée en Essentiel, puis s’affiche à sa place', async () => {

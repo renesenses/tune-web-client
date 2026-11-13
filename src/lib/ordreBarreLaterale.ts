@@ -102,59 +102,118 @@ export function ordreModifie(defaut: readonly { view: string }[], choix: ChoixBa
   return r.some((it, i) => it !== defaut[i]);
 }
 
+/** Une tranche de la barre en liste libre : son groupe (son intertitre) et ses entrées. */
+export interface Tranche<T> {
+  groupe: number;
+  entrees: T[];
+}
+
+function permutations(l: number[]): number[][] {
+  if (l.length <= 1) return [l];
+  return l.flatMap((x, i) => permutations([...l.slice(0, i), ...l.slice(i + 1)]).map((r) => [x, ...r]));
+}
+
 /**
  * Recette rc12 (Bertrand, 13/11/2026) — une liste libre garde ses intertitres.
  *
  * Avant, un ordre personnalisé rendait la barre en UNE liste sans intertitre :
  * « Sélections » et « Studio » disparaissaient pour quiconque avait réordonné
  * sa barre, même d'une seule entrée. On découpe désormais la liste ordonnée en
- * `n` tranches CONTIGUËS (0 = noyau et Avancé, 1 = Sélections, 2 = Studio), aux
- * coupures qui laissent le plus d'entrées dans leur groupe d'origine. L'ordre
- * n'est jamais touché : une entrée déplacée d'un groupe à l'autre reste à la
- * place choisie, sous l'intertitre de ses voisines (les Favoris montés sous
- * l'Historique restent dans le noyau). À égalité, la coupure la plus tôt.
+ * `n` tranches CONTIGUËS : la première est le noyau (groupe 0, sans
+ * intertitre), les suivantes portent chacune un groupe (1 = Sélections,
+ * 2 = Studio), dans l'ordre où l'utilisateur les a mis — des Sélections
+ * descendues sous le Studio gardent leur intertitre, sous celui du Studio.
  *
- * Calcul sur la liste COMPLÈTE (avant niveau, greffons, masquées) : une entrée
- * ne change pas de groupe quand on change de niveau.
+ * L'ordre n'est jamais touché : « l'entrée reste où je l'ai mise » (Bertrand,
+ * 13/11) ; seuls les intertitres se placent, au plus près de leur place
+ * habituelle. Les coupures (et l'ordre des groupes) se choisissent, dans cet
+ * ordre de priorité :
+ *   1. aucune tranche sans entrée VISIBLE de son groupe quand ce groupe en a
+ *      une (sinon l'intertitre disparaît : relecture de web#2960, ordres
+ *      « noyau, Sélections, Avancé, Studio » et « Sélections après Studio ») ;
+ *   2. le plus d'entrées dans leur groupe d'origine ;
+ *   3. une tranche qui commence par une entrée de son groupe (l'intertitre
+ *      coiffe les siens) ; à égalité encore, l'ordre livré des groupes, puis
+ *      la coupure la plus tôt.
+ * Une tranche sans aucune entrée visible de son groupe (le Studio au niveau
+ * Essentiel) n'a pas d'intertitre à porter : ses entrées rejoignent la
+ * tranche précédente, à leur place.
+ *
+ * `visible` : les entrées réellement affichées (niveau, greffons, masquées).
+ * Par défaut, toutes. Le résultat compte toujours `n` tranches, la première
+ * du groupe 0 ; leur concaténation est `liste`, telle quelle.
  */
-export function repartirEnGroupes<T>(liste: readonly T[], groupe: (it: T) => number, n: number): T[][] {
+export function repartirEnGroupes<T>(
+  liste: readonly T[],
+  groupe: (it: T) => number,
+  n: number,
+  visible: (it: T) => boolean = () => true,
+): Tranche<T>[] {
   const L = liste.length;
-  // meilleur[k][i] : le plus d'entrées « chez elles » pour les i premières
-  // réparties dans les tranches 0..k ; coupe[k][i] : début de la tranche k.
-  const meilleur: number[][] = [];
-  const coupe: number[][] = [];
+  // Sommes cumulées par groupe : entrées du groupe, et entrées VISIBLES du groupe.
+  const chez: number[][] = [];
+  const vus: number[][] = [];
   for (let k = 0; k < n; k++) {
-    meilleur.push(new Array(L + 1).fill(-1));
-    coupe.push(new Array(L + 1).fill(0));
-    for (let i = 0; i <= L; i++) {
-      if (k === 0) {
-        let c = 0;
-        for (let j = 0; j < i; j++) if (groupe(liste[j]) === 0) c++;
-        meilleur[0][i] = c;
-        continue;
+    const c = [0];
+    const v = [0];
+    for (let x = 0; x < L; x++) {
+      const g = groupe(liste[x]) === k;
+      c.push(c[x] + (g ? 1 : 0));
+      v.push(v[x] + (g && visible(liste[x]) ? 1 : 0));
+    }
+    chez.push(c);
+    vus.push(v);
+  }
+  // Ordre lexicographique ramené à un seul nombre : la règle 3 vaut au plus
+  // n points, la règle 2 en vaut n + 1 par entrée, la règle 1 plus que tout.
+  const P2 = n + 1;
+  const P1 = (L + 1) * P2 * (n + 1);
+  const note = (k: number, j: number, i: number) =>
+    P2 * (chez[k][i] - chez[k][j])
+    + (j < i && groupe(liste[j]) === k ? 1 : 0)
+    - (vus[k][L] > 0 && vus[k][i] - vus[k][j] === 0 ? P1 : 0);
+
+  let retenu: { note: number; groupes: number[]; bornes: number[] } | null = null;
+  const autres = Array.from({ length: n - 1 }, (_, i) => i + 1);
+  for (const suite of permutations(autres)) {
+    const groupes = [0, ...suite];
+    // meilleur[p][i] : la meilleure note des i premières entrées réparties
+    // dans les tranches 0..p ; coupe[p][i] : début de la tranche p.
+    const meilleur: number[][] = [];
+    const coupe: number[][] = [];
+    for (let p = 0; p < n; p++) {
+      meilleur.push(new Array(L + 1).fill(0));
+      coupe.push(new Array(L + 1).fill(0));
+      for (let i = 0; i <= L; i++) {
+        if (p === 0) { meilleur[0][i] = note(0, 0, i); continue; }
+        let best = -Infinity;
+        let bestJ = 0;
+        for (let j = 0; j <= i; j++) {
+          const v = meilleur[p - 1][j] + note(groupes[p], j, i);
+          if (v > best) { best = v; bestJ = j; }
+        }
+        meilleur[p][i] = best;
+        coupe[p][i] = bestJ;
       }
-      // La tranche k couvre [j, i) ; on garde le j le plus PETIT à égalité.
-      let chez = 0;
-      let best = -1;
-      let bestJ = i;
-      const comptes: number[] = new Array(i + 1).fill(0);
-      for (let j = i - 1; j >= 0; j--) { chez += groupe(liste[j]) === k ? 1 : 0; comptes[j] = chez; }
-      for (let j = 0; j <= i; j++) {
-        const v = meilleur[k - 1][j] + comptes[j];
-        if (v > best) { best = v; bestJ = j; }
-      }
-      meilleur[k][i] = best;
-      coupe[k][i] = bestJ;
+    }
+    const total = meilleur[n - 1][L];
+    if (retenu && total <= retenu.note) continue;
+    const bornes = new Array(n + 1).fill(0);
+    bornes[n] = L;
+    for (let p = n - 1; p >= 1; p--) bornes[p] = coupe[p][bornes[p + 1]];
+    retenu = { note: total, groupes, bornes };
+  }
+  const { groupes, bornes } = retenu!;
+  const tranches: Tranche<T>[] = groupes.map((g, p) => ({ groupe: g, entrees: liste.slice(bornes[p], bornes[p + 1]) }));
+  // Pas d'intertitre sans au moins une entrée visible du groupe : la tranche
+  // se fond dans la précédente, à sa place.
+  for (let p = n - 1; p >= 1; p--) {
+    const t = tranches[p];
+    if (!t.entrees.some((it) => groupe(it) === t.groupe && visible(it))) {
+      tranches[p - 1].entrees.push(...t.entrees);
+      t.entrees = [];
     }
   }
-  const tranches: T[][] = new Array(n);
-  let fin = L;
-  for (let k = n - 1; k >= 1; k--) {
-    const debut = coupe[k][fin];
-    tranches[k] = liste.slice(debut, fin);
-    fin = debut;
-  }
-  tranches[0] = liste.slice(0, fin);
   return tranches;
 }
 
