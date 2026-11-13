@@ -31,6 +31,11 @@
   cases vides quand le cache du serveur avance. #7928 : « Chercher sur les
   services » sur un disque absent, qui ouvre ou lance le plus proche. #7929 :
   filtres par dossier Discogs, genre et style, avec leurs compteurs.
+
+  tune-server-rust#8672 (13/11/2026) : un disque « nulle part » s'associe à
+  la main à un album de la bibliothèque (« Associer à un album », recherche
+  préremplie, candidats de « plusieurs correspondants ») ; associé, il passe
+  « dans la bibliothèque » avec « Ouvrir l'album » et « Dissocier ».
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
@@ -45,7 +50,9 @@
     type Reglages, type SurUnService,
     SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
     pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices, raisonDuDisque, compteursDeRaison,
+    peutAssocier, associeALaMain, dissocierDeLAlbum, remplacerDisque,
   } from '../../lib/collectionPhysique';
+  import AssocierAlbumModale from './AssocierAlbumModale.svelte';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -310,6 +317,31 @@
     activeView.set('streamingalbum');
   }
 
+  /** #8672 : le disque dont « Associer à un album » est ouvert. */
+  let aAssocier = $state<Disque | null>(null);
+  let dissociation = $state<number | null>(null);
+
+  /** Le disque associé : remplacé tout de suite, puis la liste relue (les
+   *  compteurs et les filtres suivent). */
+  function associe(d: Disque) {
+    if (collection) collection = remplacerDisque(collection, d);
+    void chargerCollection();
+  }
+
+  async function dissocier(d: Disque) {
+    dissociation = d.release_id;
+    erreur = null;
+    try {
+      const r = await dissocierDeLAlbum(d.release_id);
+      if (collection) collection = remplacerDisque(collection, r.disque);
+      await chargerCollection();
+    } catch (e) {
+      erreur = e;
+    } finally {
+      dissociation = null;
+    }
+  }
+
   const toutFormat = () => filtrer(null, filtreEtat);
   const toutEtat = () => filtrer(format, null);
 
@@ -562,6 +594,7 @@
               {#if peutChercherSurLesServices(d)}
                 {@render rechercheServices(d)}
               {/if}
+              {@render association(d, true)}
             </div>
           {/each}
         </div>
@@ -586,6 +619,7 @@
                   {#if qualiteDe(album)}<span class="q">{qualiteDe(album)}</span>{/if}
                   {#if d.copie === true}<span class="q">{$t('collectionPhysique.copie' as any)}</span>{/if}
                   <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+                  {@render association(d, false)}
                 {:else if d.streaming.length}
                   {#each d.streaming as s (s.service)}
                     {@const ref = refDe(d, s)}
@@ -604,6 +638,7 @@
                     {@const r = raisonDuDisque(d)!}
                     <span class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</span>
                   {/if}
+                  {@render association(d, false)}
                 {/if}
                 {#if peutChercherSurLesServices(d)}
                   {@render rechercheServices(d)}
@@ -655,6 +690,31 @@
     {/if}
   </span>
 {/snippet}
+
+{#snippet association(d: Disque, grille: boolean)}
+  {#if peutAssocier(d)}
+    <span class="recherche">
+      <button class="mini" onclick={() => (aAssocier = d)} data-associer-disque={d.release_id}>
+        {$t('collectionPhysique.associer.bouton' as any)}
+      </button>
+    </span>
+  {:else if associeALaMain(d)}
+    {@const album = d.bibliotheque!}
+    <span class="recherche" data-associe-a-la-main={d.release_id}>
+      <span class="q">{$t('collectionPhysique.associer.manuel' as any)}</span>
+      {#if grille}
+        <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+      {/if}
+      <button class="mini" onclick={() => void dissocier(d)} disabled={dissociation === d.release_id} data-dissocier={d.release_id}>
+        {$t('collectionPhysique.associer.dissocier' as any)}
+      </button>
+    </span>
+  {/if}
+{/snippet}
+
+{#if aAssocier}
+  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} />
+{/if}
 
 {#if albumOuvert}
   <AlbumDetailV2 album={albumOuvert} onClose={fermerAlbum} />
