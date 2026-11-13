@@ -739,10 +739,13 @@ export interface Zone {
   aac_passthrough?: boolean;
   /**
    * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
-   * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par
-   * defaut (migration 46), donc explicitement optionnel.
+   * Porte par la ZONE, en base — c'est ce que lit le poller. Active par
+   * defaut depuis la rc12 (fil 2694, migration serveur 152 / PG 118) ;
+   * optionnel pour les serveurs anciens.
    */
   autoplay_enabled?: boolean;
+  /** Le mode precis (#2271) : `off`, `similar`, `random_album`… */
+  autoplay_mode?: string;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;

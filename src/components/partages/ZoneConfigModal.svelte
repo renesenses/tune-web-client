@@ -5,6 +5,7 @@
   import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
@@ -142,6 +143,25 @@
   let radioFinDeFile = $state(zone.autoplay_enabled ?? false);
   let radioFinDeFileSaving = $state(false);
   let radioFinDeFileError = $state('');
+  /** Le mode NOMMÉ (album au hasard…) d'avant la coupure : recocher le rend
+   *  tel quel au lieu de le ramener à « titres similaires ». */
+  let modeAvantCoupure: string | null = modeNomme(zone.autoplay_mode);
+
+  function modeNomme(mode: string | undefined | null): string | null {
+    return mode && mode !== 'off' ? mode : null;
+  }
+
+  // La case suit le serveur quand la zone change sous le panneau (autre
+  // client, bouton de la file) — sauf pendant notre propre écriture.
+  $effect(() => {
+    const actif = zone.autoplay_enabled;
+    const mode = zone.autoplay_mode;
+    untrack(() => {
+      if (radioFinDeFileSaving) return;
+      radioFinDeFile = actif ?? false;
+      modeAvantCoupure = modeNomme(mode) ?? modeAvantCoupure;
+    });
+  });
 
   async function setRadioFinDeFile(enabled: boolean) {
     if (zone.id === null) return;
@@ -150,7 +170,9 @@
     radioFinDeFileSaving = true;
     radioFinDeFileError = '';
     try {
-      const maj = await api.updateZoneAutoplay(zone.id, enabled);
+      const maj = enabled && modeAvantCoupure && modeAvantCoupure !== 'similar'
+        ? await api.updateZoneAutoplayMode(zone.id, modeAvantCoupure)
+        : await api.updateZoneAutoplay(zone.id, enabled);
       radioFinDeFile = maj?.autoplay_enabled ?? enabled;
       if (maj) syncZone(maj);
     } catch (e: any) {

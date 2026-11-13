@@ -1384,6 +1384,14 @@ export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   });
 }
 
+/** #2271 / fil 2694 — rétablir un mode nommé (album au hasard…) tel quel. */
+export function updateZoneAutoplayMode(id: number, mode: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ autoplay_mode: mode }),
+  });
+}
+
 export function updateZoneAutoplay(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

@@ -38,11 +38,14 @@ function zone(over: Partial<Zone> = {}): Zone {
 
 const patchAutoplay = vi.fn(async (id: number, enabled: boolean) => ({ ...zone({ id }), autoplay_enabled: enabled }));
 
+const patchMode = vi.fn(async (id: number, mode: string) => ({ ...zone({ id }), autoplay_enabled: true, autoplay_mode: mode }));
+
 vi.mock('../api', async (importOriginal) => {
   const reel = await importOriginal<typeof import('../api')>();
   return {
     ...reel,
     updateZoneAutoplay: (id: number, enabled: boolean) => patchAutoplay(id, enabled),
+    updateZoneAutoplayMode: (id: number, mode: string) => patchMode(id, mode),
   };
 });
 
@@ -51,6 +54,7 @@ let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
   patchAutoplay.mockClear();
+  patchMode.mockClear();
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })),
@@ -112,6 +116,28 @@ describe('fil 2694 — radio de fin de file dans le panneau de zone', () => {
     boite.dispatchEvent(new Event('change', { bubbles: true }));
     await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, false));
     await vi.waitFor(() => expect(boite.checked).toBe(false));
+  });
+});
+
+describe('fil 2694 — décocher puis recocher garde le mode nommé (#2271)', () => {
+  it('un « album au hasard » coupé puis remis revient en « album au hasard »', { timeout: DELAI_MONTAGE }, async () => {
+    const boite = interrupteur(ouvrir(zone({ autoplay_enabled: true, autoplay_mode: 'random_album' })));
+    boite.checked = false;
+    boite.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, false));
+    await vi.waitFor(() => expect(boite.disabled).toBe(false));
+    boite.checked = true;
+    boite.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(patchMode).toHaveBeenCalledWith(26, 'random_album'));
+    expect(patchAutoplay).toHaveBeenCalledTimes(1);
+  });
+
+  it('« titres similaires » se remet par le booléen', { timeout: DELAI_MONTAGE }, async () => {
+    const boite = interrupteur(ouvrir(zone({ autoplay_enabled: false, autoplay_mode: 'off' })));
+    boite.checked = true;
+    boite.dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, true));
+    expect(patchMode).not.toHaveBeenCalled();
   });
 });
 
