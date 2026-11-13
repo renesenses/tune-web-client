@@ -4319,6 +4319,7 @@ export default {
   "v2.sup.bugSendError": "发送失败。请重试，或将报告复制到论坛。",
   "v2.sup.bugRateLimited": "已达到发送上限：论坛每小时只接受有限数量的报告。请最多一小时后重试，或将报告复制到论坛。",
   "v2.sup.bugRateLimitedRetry": "已达到发送上限：论坛每小时只接受有限数量的报告。请{delay}重试，或将报告复制到论坛。",
+  "v2.sup.bugRejectedBySite": "论坛拒绝了此报告：原样重新发送仍会失败。论坛给出的原因见详细信息。",
   "v2.sup.bugImages": "屏幕截图和日志（可选）",
   "v2.sup.bugImagesHint": "最多 3 张图片（PNG、JPEG、GIF 或 WebP），每张 4 MB；以及最多 3 个日志（.log、.txt、.json 或 .zip），每个 10 MB。它们会附加到论坛帖子中。",
   "v2.sup.bugImagesTooMany": "截图过多：最多 {max} 张图片。",

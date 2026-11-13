@@ -4319,6 +4319,7 @@ export default {
   "v2.sup.bugSendError": "Senden fehlgeschlagen. Versuchen Sie es erneut oder kopieren Sie den Bericht ins Forum.",
   "v2.sup.bugRateLimited": "Sendelimit erreicht: Das Forum nimmt nur eine begrenzte Anzahl von Berichten pro Stunde an. Versuchen Sie es spätestens in einer Stunde erneut oder kopieren Sie den Bericht ins Forum.",
   "v2.sup.bugRateLimitedRetry": "Sendelimit erreicht: Das Forum nimmt nur eine begrenzte Anzahl von Berichten pro Stunde an. Versuchen Sie es {delay} erneut oder kopieren Sie den Bericht ins Forum.",
+  "v2.sup.bugRejectedBySite": "Das Forum hat diesen Bericht abgelehnt: Ein erneutes unverändertes Senden würde wieder fehlschlagen. Den vom Forum genannten Grund finden Sie in den Details.",
   "v2.sup.bugImages": "Bildschirmfotos und Protokolle (optional)",
   "v2.sup.bugImagesHint": "Bis zu 3 Bilder (PNG, JPEG, GIF oder WebP) zu je 4 MB und 3 Protokolle (.log, .txt, .json oder .zip) zu je 10 MB. Sie werden dem Forumsbeitrag hinzugefügt.",
   "v2.sup.bugImagesTooMany": "Zu viele Bildschirmfotos: höchstens {max} Bilder.",
