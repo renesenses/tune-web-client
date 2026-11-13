@@ -784,8 +784,13 @@
            dans l'écran de l'ancienne interface, monté par la coquille depuis
            `v2-heritage/`. Sans ce bouton la route existe et n'est atteinte par
            personne — le défaut qu'on vient de corriger deux fois ailleurs. -->
-      <button class="onglet gestion" onclick={() => activeView.set('playlistmanager')}
+      <button class="onglet gestion" data-ouvrir-gestionnaire onclick={() => activeView.set('playlistmanager')}
         >{$t('playlist.manager')}</button>
+      <!-- web#2971 — le Générateur de playlists (humeur, découverte, tempo…)
+           n'était qu'un onglet de l'écran complet ; l'entrée « Playlists » de
+           la barre mène désormais ICI, il a donc sa porte ici. -->
+      <button class="onglet gestion" data-ouvrir-generateur onclick={() => activeView.set('smart-ai')}
+        >{$t('smartai.title' as any)}</button>
     </nav>
   {/if}
 
