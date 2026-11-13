@@ -7,6 +7,14 @@
    * Dans Tune web seulement : ni push, ni mail. Lire une notification ne dit
    * rien à son émetteur. Serveur sans ces routes (404) : rien n'est affiché,
    * l'écran reste celui d'avant.
+   *
+   * web#2986 (recette rc12, Bertrand : « les notifications doivent disparaître
+   * une fois lues », « ou alors ne pas gêner la lecture de l'écran ») : la
+   * liste ne montre que les non lues ; une notification ouverte la quitte
+   * aussitôt (le cloud retient la lecture : rechargement, autre appareil).
+   * « Voir les anciennes » rouvre l'historique, replié par défaut. La section
+   * reste dans le flux de la page, sans panneau ni toast, et sa liste a une
+   * hauteur bornée : elle ne repousse ni ne couvre le reste de l'écran.
    */
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -22,10 +30,14 @@
   let reglagesOuverts = $state(false);
   let occupe = $state(false);
   let erreur = $state(false);
+  let anciennesOuvertes = $state(false);
+  let titre = $state<HTMLHeadingElement | null>(null);
 
   onMount(() => { void relireNotifications(); });
 
   const etat = $derived($notifsCercle);
+  const anciennes = $derived(etat.liste.filter((n) => n.read).length);
+  const affichees = $derived(anciennesOuvertes ? etat.liste : etat.liste.filter((n) => !n.read));
 
   function tr(cle: string, vars: Record<string, string | number> = {}): string {
     let s = $t(cle as any);
@@ -54,6 +66,11 @@
   function ouvrir(n: NotifCercle) {
     void geste(async () => { if (!n.read) await marquerLue(n.id); });
     onOuvrir?.(n);
+    // La ligne vient de quitter la liste : le focus ne se perd pas dans la page.
+    queueMicrotask(() => {
+      const actif = typeof document !== 'undefined' ? document.activeElement : null;
+      if (!actif || actif === document.body || !actif.isConnected) titre?.focus();
+    });
   }
 
   async function basculerReglages() {
@@ -78,7 +95,7 @@
 {#if etat.relais === 'ok' || etat.relais === 'indisponible'}
   <section class="bloc notifs-cercle" aria-labelledby="circle-notifs">
     <div class="notifs-tete">
-      <h2 id="circle-notifs">{$t('v2.circle.notif.title' as any)}</h2>
+      <h2 id="circle-notifs" tabindex="-1" bind:this={titre}>{$t('v2.circle.notif.title' as any)}</h2>
       {#if etat.nonLues > 0}
         <span class="notifs-compte">{tr('v2.circle.notif.unreadAria', { n: etat.nonLues })}</span>
         <button type="button" class="lnk tout-lu" disabled={occupe} onclick={() => void geste(toutMarquerLu)}>{$t('v2.circle.notif.markAll' as any)}</button>
@@ -89,9 +106,11 @@
     {/if}
     {#if etat.liste.length === 0}
       <p class="note notifs-vide">{$t('v2.circle.notif.empty' as any)}</p>
+    {:else if affichees.length === 0}
+      <p class="note notifs-vide">{$t('v2.circle.notif.noneUnread' as any)}</p>
     {:else}
       <ul class="notifs-liste">
-        {#each etat.liste as n (n.id)}
+        {#each affichees as n (n.id)}
           <li class="notif" class:non-lue={!n.read} data-genre={n.kind}>
             <button type="button" class="notif-ligne" disabled={occupe} onclick={() => ouvrir(n)}>
               <span class="notif-texte">{phrase(n)}</span>
@@ -100,6 +119,11 @@
           </li>
         {/each}
       </ul>
+    {/if}
+    {#if anciennes > 0 || anciennesOuvertes}
+      <button type="button" class="lnk voir-anciennes" aria-expanded={anciennesOuvertes} onclick={() => { anciennesOuvertes = !anciennesOuvertes; }}>
+        {anciennesOuvertes ? $t('v2.circle.notif.hideOld' as any) : tr('v2.circle.notif.showOld', { n: anciennes })}
+      </button>
     {/if}
     <button type="button" class="lnk notifs-reglages-bascule" aria-expanded={reglagesOuverts} onclick={() => void basculerReglages()}>
       {$t('v2.circle.notif.settings' as any)}
@@ -122,9 +146,12 @@
 <style>
   .bloc{display:flex; flex-direction:column; gap:8px}
   .bloc h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
+  .bloc h2:focus{outline:none}
   .notifs-tete{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
   .notifs-compte{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1)}
-  .notifs-liste{list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:2px}
+  /* web#2986 : hauteur bornée, défilement interne — la liste ne repousse pas l'écran. */
+  .notifs-liste{list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:2px;
+    max-height:min(40vh, 320px); overflow-y:auto; overscroll-behavior:contain}
   .notif-ligne{display:flex; justify-content:space-between; align-items:baseline; gap:12px; width:100%; text-align:left;
     border:0; background:transparent; color:var(--v2-txt2); font:400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 8px; border-radius:6px; cursor:pointer}
   .notif-ligne:hover{background:var(--v2-line)}
@@ -135,6 +162,7 @@
   .notif-date{flex:none}
   .note{font:400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); margin:4px 0}
   .alerte{color:var(--v2-danger)}
+  .voir-anciennes,.notifs-reglages-bascule{align-self:flex-start; text-align:left}
   .lnk{border:0; background:transparent; color:var(--v2-acc2); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; padding:2px 0}
   .lnk:disabled,.notif-ligne:disabled{opacity:.5; cursor:not-allowed}
   .notifs-reglages{display:flex; flex-direction:column; gap:8px; margin-top:8px}
