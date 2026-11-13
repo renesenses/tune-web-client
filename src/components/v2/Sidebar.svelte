@@ -32,8 +32,17 @@
    */
   export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
-  /** L'entrée correspond-elle à l'écran courant ? */
-  function estActif(it: Item, vue: View): boolean {
+  /**
+   * L'entrée correspond-elle à l'écran courant ?
+   *
+   * tune-server-rust#7901 (fil 2658) — « Bibliothèque » restait surlignée
+   * quand « Lecture en cours » était ouverte. L'entrée active se calcule
+   * d'après la ROUTE affichée (`activeView`), jamais d'après la vue
+   * précédente ni d'un préfixe commun : une vue n'allume qu'UNE entrée.
+   * Exportée pour que `barreEntreeActive7901.test.ts` le vérifie sur toutes
+   * les entrées de la barre.
+   */
+  export function estActif(it: Item, vue: View): boolean {
     return it.view === vue || (it.aussi?.includes(vue) ?? false);
   }
 
@@ -1274,7 +1283,9 @@
   .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
-  .grp-pli{border:0; background:transparent; cursor:pointer; text-align:start; width:100%; padding-inline:0}
+  /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
+     « Studio » 14 px plus à gauche que « Raccourcis » et que les icônes. */
+  .grp-pli{border:0; background:transparent; cursor:pointer; text-align:start; width:100%; padding-inline:14px}
   .grp-pli:hover{color:var(--v2-txt2)}
   .grp-pli:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .grp-pli .chev{width:12px; height:12px; flex:0 0 auto; order:2; transition:transform .15s}

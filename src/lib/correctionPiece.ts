@@ -110,10 +110,52 @@ export function placementType(p: Piece): { auditeur: Position; enceintes: Positi
   };
 }
 
-/** Le corps de `POST /simulations`. */
-export function entreeSimulation(p: Piece, s: Surfaces, zoneId: number | null): EntreeSimulation {
+/** Les positions de l'auditeur et des enceintes (repère de `modes.rs`). */
+export interface Placement { auditeur: Position; enceintes: Position[] }
+
+/** `modes.rs` : 1 à 4 enceintes (`ENCEINTES_MAX`), sinon `400 simulation_invalide`. */
+export const ENCEINTES_MIN = 1;
+export const ENCEINTES_MAX = 4;
+
+/** La cote de la pièce qui borne chaque axe : x ↔ longueur, y ↔ largeur, z ↔ hauteur. */
+export const COTE_DE_L_AXE: Record<keyof Position, keyof Piece> = { x: 'longueur_m', y: 'largeur_m', z: 'hauteur_m' };
+export const AXES: readonly (keyof Position)[] = ['x', 'y', 'z'];
+
+/**
+ * web#2803 — la première position qui sort de la pièce, ou `null`. Le
+ * serveur la refuserait (`400 simulation_invalide`, « … hors de la pièce ») :
+ * l'écran la signale avant d'envoyer. `qui` vaut `-1` pour l'auditeur, sinon
+ * l'indice de l'enceinte.
+ */
+export function positionHorsPiece(pl: Placement, p: Piece): { qui: number; axe: keyof Position } | null {
+  const dedans = (v: number, max: number) => Number.isFinite(v) && v >= 0 && v <= max;
+  const liste: [number, Position][] = [[-1, pl.auditeur], ...pl.enceintes.map((e, i) => [i, e] as [number, Position])];
+  for (const [qui, pos] of liste) {
+    for (const axe of AXES) {
+      if (!dedans(Number(pos[axe]), Number(p[COTE_DE_L_AXE[axe]]))) return { qui, axe };
+    }
+  }
+  return null;
+}
+
+/** Une enceinte de plus : au mur avant, au milieu de la largeur, à la hauteur des autres. */
+export function enceinteAjoutee(p: Piece, existantes: readonly Position[]): Position {
+  const type = placementType(p).enceintes[0];
+  return { x: type.x, y: arrondi(p.largeur_m / 2), z: existantes[0]?.z ?? type.z };
+}
+
+/**
+ * Le corps de `POST /simulations`. Sans placement saisi, la disposition type
+ * déduite des dimensions (`placementType`) ; avec, les positions saisies
+ * (web#2803, serveur tune-server-rust#8332).
+ */
+export function entreeSimulation(p: Piece, s: Surfaces, zoneId: number | null, placement?: Placement | null): EntreeSimulation {
   const piece = { longueur_m: Number(p.longueur_m), largeur_m: Number(p.largeur_m), hauteur_m: Number(p.hauteur_m) };
-  const e: EntreeSimulation = { piece, surfaces: { ...s }, ...placementType(piece) };
+  const pos = (q: Position): Position => ({ x: Number(q.x), y: Number(q.y), z: Number(q.z) });
+  const pl = placement
+    ? { auditeur: pos(placement.auditeur), enceintes: placement.enceintes.map(pos) }
+    : placementType(piece);
+  const e: EntreeSimulation = { piece, surfaces: { ...s }, ...pl };
   if (zoneId != null) e.zone_id = zoneId;
   return e;
 }
@@ -138,6 +180,9 @@ export interface ModeSimule {
 
 export interface Courbe { freqs_hz: number[]; db: number[] }
 
+/** Les bornes d'une demande de correction sur une estimation (`BornesEstimation`). */
+export interface BornesEstimation { bandes_defaut: number; coupe_defaut_db: number; bandes_max: number; coupe_max_db: number }
+
 export interface Simulation {
   id: string;
   estimation: boolean;
@@ -147,6 +192,12 @@ export interface Simulation {
   modes: ModeSimule[];
   reponse: Courbe;
   avertissements: string[];
+  /**
+   * tune-server-rust#8332 — les bornes prudentes et celles du mode expert.
+   * L'écran les LIT, il ne les recopie pas. Absent sur un serveur plus
+   * ancien : le mode expert n'est alors pas proposé.
+   */
+  bornes_correction?: { prudentes: BornesEstimation; expert: BornesEstimation };
 }
 
 export interface Bande { freq: number; gain: number; q: number; type: 'peak' | 'low_shelf' | 'high_shelf' }
@@ -161,6 +212,8 @@ export interface Proposition {
   pic_apres_db: number;
   courbes: { freqs_hz: number[]; mesure_db: number[]; cible_db: number[]; corrigee_db: number[] };
   avertissements: string[];
+  /** Vrai quand la proposition a été faite en mode expert (#8332). */
+  expert?: boolean;
 }
 
 export interface ProfilEnregistre { id: string; zone_id: number; appliquer: string; estimation: boolean }
@@ -172,17 +225,80 @@ export const LIBELLES_CIBLES: Record<TypeCible, string> = {
   plate: 'v2.room.targetFlat',
   harman: 'v2.room.targetHarman',
 };
-/** Le corps `DemandeCorrection` : cible seulement, les bornes restent celles du serveur. */
-export function demandeCorrection(cible: TypeCible): { cible: { type: TypeCible } } {
-  return { cible: { type: cible } };
+/**
+ * Le mode expert d'une estimation sans micro (tune-server-rust#8332) : le
+ * nombre de coupes et la coupe maximale, jusqu'aux bornes d'une mesure.
+ * `null` : mode prudent, les bornes restent celles du serveur.
+ */
+export interface ReglageExpert { bandes_max: number; coupe_max_db: number }
+
+/** Le réglage expert initial : les DÉFAUTS que le serveur annonce. */
+export const expertParDefaut = (b: BornesEstimation): ReglageExpert =>
+  ({ bandes_max: b.bandes_defaut, coupe_max_db: b.coupe_defaut_db });
+
+/**
+ * La plus petite coupe maximale acceptée, en dB. Le serveur refuse une coupe
+ * nulle ou négative (`coupe <= 0.0` dans `demande_prudente`, tune-calibration
+ * `modes.rs`, et dans `correction.rs`) : 0 donnait un 422 déroutant. 0,5 dB
+ * est le pas du champ, la première valeur strictement positive qu'il propose.
+ */
+export const COUPE_MIN_DB = 0.5;
+
+/** Le réglage ramené dans les bornes du serveur (1 … bandes_max, COUPE_MIN_DB … coupe_max_db). */
+export function expertBorne(r: ReglageExpert, b: BornesEstimation): ReglageExpert {
+  const borne = (v: number, min: number, max: number, defaut: number) =>
+    (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : defaut);
+  return {
+    bandes_max: Math.round(borne(Number(r.bandes_max), 1, b.bandes_max, b.bandes_defaut)),
+    coupe_max_db: borne(Number(r.coupe_max_db), COUPE_MIN_DB, b.coupe_max_db, b.coupe_defaut_db),
+  };
+}
+
+export interface DemandeCorrection {
+  cible: { type: TypeCible };
+  bandes_max?: number;
+  coupe_max_db?: number;
+  expert?: true;
+}
+
+/**
+ * Le corps `DemandeCorrection`. Sans réglage expert : la cible seulement, les
+ * bornes restent celles du serveur. Avec : `expert: true` et les deux bornes.
+ */
+export function demandeCorrection(cible: TypeCible, expert?: ReglageExpert | null): DemandeCorrection {
+  if (!expert) return { cible: { type: cible } };
+  return { cible: { type: cible }, bandes_max: expert.bandes_max, coupe_max_db: expert.coupe_max_db, expert: true };
 }
 
 /** Les modes qui se montrent : les plus graves, ceux qui font les bosses. */
 export function modesAffiches(modes: readonly ModeSimule[] | null | undefined, max = 12): ModeSimule[] {
   return [...(modes ?? [])].sort((a, b) => a.frequence_hz - b.frequence_hz).slice(0, max);
 }
-/** Un mode que la place d'écoute entend nettement (forme propre ≥ 0,5 en valeur absolue). */
-export const modeFort = (m: ModeSimule) => Math.abs(m.couplage) >= 0.5;
+/**
+ * Le couplage d'un mode ramené à une enceinte : `couplage` = Σ ψ(enceinte)·ψ(auditeur)
+ * va de −N à +N pour N enceintes (tune-server-rust#8332).
+ */
+export const couplageRelatif = (m: ModeSimule, nEnceintes = 1) => Math.abs(m.couplage) / Math.max(1, nEnceintes);
+
+/**
+ * web#2803 — où tombe la place d'écoute pour ce mode : sur un NŒUD (< 0,2, peu
+ * entendu, le greffon ne le corrige pas), sur un VENTRE (≥ 0,5), ou entre les deux.
+ */
+export type PositionMode = 'noeud' | 'entre' | 'ventre';
+export function positionDuMode(m: ModeSimule, nEnceintes = 1): PositionMode {
+  const c = couplageRelatif(m, nEnceintes);
+  if (c < 0.2) return 'noeud';
+  if (c >= 0.5) return 'ventre';
+  return 'entre';
+}
+export const LIBELLES_POSITIONS_MODE: Record<PositionMode, string> = {
+  noeud: 'v2.room.modeNode',
+  entre: 'v2.room.modePartial',
+  ventre: 'v2.room.modeStrong',
+};
+
+/** Un mode que la place d'écoute entend nettement (couplage relatif ≥ 0,5). */
+export const modeFort = (m: ModeSimule, nEnceintes = 1) => positionDuMode(m, nEnceintes) === 'ventre';
 
 // ─── Appels ────────────────────────────────────────────────────────────────
 
@@ -192,11 +308,11 @@ const appel = <T>(chemin: string, init?: RequestInit) =>
   api.fetchJSON<T>(`${RACINE_CALIBRATION}${chemin}`, init, undefined, true);
 
 export const simuler = (e: EntreeSimulation) => appel<Simulation>('/simulations', json(e));
-export const proposerSimulation = (id: string, cible: TypeCible) =>
-  appel<Proposition>(`/simulations/${encodeURIComponent(id)}/correction`, json(demandeCorrection(cible)));
-export const enregistrerProfilSimulation = (id: string, cible: TypeCible, zoneId: number) =>
+export const proposerSimulation = (id: string, cible: TypeCible, expert?: ReglageExpert | null) =>
+  appel<Proposition>(`/simulations/${encodeURIComponent(id)}/correction`, json(demandeCorrection(cible, expert)));
+export const enregistrerProfilSimulation = (id: string, cible: TypeCible, zoneId: number, expert?: ReglageExpert | null) =>
   appel<ProfilEnregistre>(`/simulations/${encodeURIComponent(id)}/correction/profil`,
-    json({ ...demandeCorrection(cible), zone_id: zoneId }));
+    json({ ...demandeCorrection(cible, expert), zone_id: zoneId }));
 
 export const appliquerProfilZone = (zoneId: number) =>
   api.fetchJSON<Application>(`${api.BASE}/room-correction/profiles/${zoneId}/apply`, { method: 'POST' }, undefined, true);
