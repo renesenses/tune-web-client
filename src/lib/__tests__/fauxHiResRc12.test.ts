@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // Décision du 13/11/2026 (rc12) — la détection des faux Hi-Res utilisable :
 // l'état et l'interrupteur, le filtre « Hi-Res vérifié / douteux ».
 import { afterEach, describe, expect, it, vi } from 'vitest';

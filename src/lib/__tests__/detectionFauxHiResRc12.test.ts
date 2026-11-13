@@ -42,7 +42,7 @@ it('éteint par défaut, avec la phrase d\'aide, sans rien envoyer au montage', 
 it("l'allumer envoie {active: true} et montre l'avancement", async () => {
   component = mount(DetectionFauxHiRes, { target: host }); await attendre();
   const i = interrupteur()!;
-  i.checked = true; i.dispatchEvent(new Event('change')); await attendre();
+  i.checked = true; i.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
   const post = requetes.find((r) => r.method === 'POST');
   expect(post?.url).toBe('/api/v1/library/hires-check');
   expect(JSON.parse(post!.body!)).toEqual({ active: true });
@@ -66,6 +66,6 @@ it('un échec du réglage le dit', async () => {
   component = mount(DetectionFauxHiRes, { target: host }); await attendre();
   vi.mocked(fetch).mockImplementation(async (_u, init?: RequestInit) => (init?.method === 'POST' ? response({}, 500) : response(etat)));
   const i = interrupteur()!;
-  i.checked = true; i.dispatchEvent(new Event('change')); await attendre();
+  i.checked = true; i.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("n'a pas pu changer");
 });
