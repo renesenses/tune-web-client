@@ -5838,6 +5838,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} tracks",
   "v2.circle.lib.more": "Show more",
   "v2.circle.lib.empty": "Nothing to show.",
+  "v2.circle.lib.coverFromMySources": "Cover from my sources",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Shared selections",
   "v2.circle.sel.hint": "Tick, one by one, the tags and smart collections this circle will see. Nothing is ticked in advance. Their name and their items are shared, never their rules.",

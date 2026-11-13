@@ -5840,6 +5840,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} titres",
   "v2.circle.lib.more": "Afficher plus",
   "v2.circle.lib.empty": "Rien à afficher.",
+  "v2.circle.lib.coverFromMySources": "Pochette de mes sources",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Sélections partagées",
   "v2.circle.sel.hint": "Cochez, une par une, les étiquettes et les collections intelligentes que ce cercle verra. Rien n'est coché d'avance. Partent leur nom et leurs éléments, jamais leurs règles.",

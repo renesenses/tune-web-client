@@ -5817,6 +5817,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} spår",
   "v2.circle.lib.more": "Visa fler",
   "v2.circle.lib.empty": "Inget att visa.",
+  "v2.circle.lib.coverFromMySources": "Omslag från mina källor",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Delade urval",
   "v2.circle.sel.hint": "Kryssa i, en i taget, de etiketter och smarta samlingar som den här kretsen ska se. Inget är ikryssat i förväg. Namn och innehåll delas, aldrig reglerna.",

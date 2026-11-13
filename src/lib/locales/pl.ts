@@ -5676,6 +5676,7 @@ export default {
   "v2.circle.lib.trackCount": "Utwory: {n}",
   "v2.circle.lib.more": "Pokaż więcej",
   "v2.circle.lib.empty": "Nic do pokazania.",
+  "v2.circle.lib.coverFromMySources": "Okładka z moich źródeł",
   "v2.circle.sel.title": "Udostępnione wybory",
   "v2.circle.sel.hint": "Zaznaczaj pojedynczo tagi i inteligentne kolekcje, które ten krąg zobaczy. Nic nie jest zaznaczone z góry. Udostępniana jest ich nazwa i zawartość, nigdy reguły.",
   "v2.circle.sel.needLibrary": "Najpierw udostępnij temu kręgowi bibliotekę tego serwera.",
