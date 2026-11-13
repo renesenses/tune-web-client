@@ -7,6 +7,8 @@
    * sans un geste (« Créer »).
    */
   import { t, tn, locale } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
@@ -67,6 +69,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.coll.proposeTitle' as any)}
     onclick={(e) => e.stopPropagation()} data-propositions-collections-ia>
     <h2>{$t('assistantIa.coll.proposeTitle' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
     <p class="note">{$t('assistantIa.coll.proposeIntro' as any)}</p>
     <div class="pied">
@@ -82,7 +85,7 @@
         <pre>{apercu.envoye.message}</pre>
       </details>
     {/if}
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
     {#each liste as c, i (i)}
       <section class="res">
         <h3>{c.name} <em class="note">({$t('assistantIa.coll.byAi' as any)})</em></h3>

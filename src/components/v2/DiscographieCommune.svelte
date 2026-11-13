@@ -32,9 +32,10 @@
   import { lireChoix, ecrireChoix, lireTexte } from '../../lib/preferencesEcran';
   import { libelleProvenance, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
-  import { tn, t } from '../../lib/i18n';
+  import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -105,6 +106,27 @@
      */
     rangeeSources?: boolean;
   }
+  /**
+   * #2961 — le compte d'un musicien de « Joue avec » : « N albums » quand le
+   * serveur dit que ses crédits tiennent tout l'album (`album_wide`, des
+   * balises qui recopient le personnel sur chaque piste), sinon « N titres ».
+   */
+  function compteJoueAvec(j: JoueAvec): string {
+    const parAlbum = j.album_wide === true && typeof j.shared_albums === 'number' && j.shared_albums > 0;
+    const n = parAlbum ? (j.shared_albums as number) : (j.shared_tracks ?? 0);
+    const cle = parAlbum
+      ? (n === 1 ? 'v2.disco.sharedAlbumOne' : 'v2.disco.sharedAlbums')
+      : (n === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks');
+    return $t(cle as any).replace('{n}', String(n));
+  }
+
+  /** #2961 — la cible du nom : la fiche par `artist_id`, sinon par le nom. */
+  function entiteJoueAvec(j: JoueAvec): Entite {
+    return typeof j.artist_id === 'number'
+      ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
+      : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } };
+  }
+
   let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
@@ -503,20 +525,21 @@
 
   <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
        (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
-       Un nom avec fiche (`artist_id`) ouvre sa page ; sans fiche (musicien de
-       séance), texte simple. Clé absente = pas de bloc, sans message. -->
+       #2961 — des puces qui passent à la ligne, nom ENTIER, compte discret
+       dans la police du texte (« 13 titres », ou « 1 album » quand le
+       serveur dit que les crédits tiennent tout l'album : `album_wide`).
+       CHAQUE nom est un lien : la fiche par `artist_id`, sinon par le nom
+       (`ouvrirArtisteDepuis` : fiche exacte, à défaut la Recherche). Clé
+       absente = pas de bloc, sans message. -->
   {#if joueAvec?.length}
     <section class="bloc" data-section="played-with">
       <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
       <ul class="liste-joue-avec">
         {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          {@const compte = compteJoueAvec(j)}
           <li data-joue-avec={j.artist_name}>
-            {#if typeof j.artist_id === 'number'}
-              <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
-            {:else}
-              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
-            {/if}
-            <span class="pistes-joue-avec">{$tn('v2.disco.sharedTracksN', j.shared_tracks ?? 0)}</span>
+            <span class="nom-joue-avec"><LienEntite titre={`${j.artist_name} · ${compte}`} entite={entiteJoueAvec(j)} /></span>
+            <span class="compte-joue-avec">{compte}</span>
           </li>
         {/each}
       </ul>
@@ -797,15 +820,18 @@
     font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
-  /* #2794 — « Joue avec » : une liste de noms, en colonnes, sans pochettes. */
+  /* #2794 / #2961 — « Joue avec » : des puces qui passent à la ligne, le nom
+     en entier (il se coupe plutôt que de se tronquer), le compte discret dans
+     la police du texte. */
   .liste-joue-avec {
     list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px;
+    display: flex; flex-wrap: wrap; gap: 8px;
   }
   .liste-joue-avec li {
-    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%;
+    padding: 4px 12px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill, 999px);
     font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
   }
-  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pistes-joue-avec { flex: none; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
+  .nom-joue-avec { min-width: 0; overflow-wrap: anywhere; }
+  .compte-joue-avec { flex: none; font-size: 0.92em; color: var(--v2-txt3); white-space: nowrap; }
 </style>

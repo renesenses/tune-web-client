@@ -31,7 +31,8 @@
    * PR serveur supprime. Ce repli disparaîtra une fois la version publiée ;
    * jusque-là, l'écran fonctionne contre les deux.
    */
-  import { onMount, untrack } from 'svelte';
+  import { onMount, untrack, tick } from 'svelte';
+  import { TRANCHE_GRILLE, trancheSuivante, montageJusqua, premierIndex } from '../../lib/grilleProgressive';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
@@ -711,6 +712,10 @@
   function reTirer(): void { graineTirage = graineAleatoire(); }
   async function chargerAlbums(e: Entree) {
     albumsChargement = true;
+    // web#2965 — une liste rechargée (ouverture, autre tri, règles
+    // enregistrées) repart d'une tranche, comme l'onglet Artistes : sinon,
+    // après un défilement complet, elle remonterait toutes ses cartes.
+    montees = TRANCHE_GRILLE;
     try {
       albums =
         ((e.sorte === 'smart'
@@ -926,10 +931,60 @@
     cleRail ? new Set(albumsVus.map(lettreDe)) : new Set<string>(),
   );
   let grilleEl: HTMLDivElement | undefined = $state();
-  function sauterA(L: string) {
+  async function sauterA(L: string) {
+    // web#2965 — la lettre peut être plus bas que les cartes montées : on
+    // monte jusqu'à elle (et une tranche dessous) AVANT de viser l'ancre.
+    const i = premierIndex(albumsVus, lettreDe, L);
+    if (i >= montees) {
+      montees = montageJusqua(i, montees, albumsVus.length);
+      await tick();
+    }
     grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  /**
+   * LA GRILLE PROGRESSIVE d'une collection OUVERTE — web#2965.
+   *
+   * Bertrand, recette rc12 sur le .18 (13/11/2026, ~9 500 albums) : ouvrir
+   * une collection intelligente est « très, trop lent ». Le serveur répond
+   * vite (« 🆕 Récents », 1 853 albums : 0,3 s) ; le temps passait dans le
+   * navigateur, qui montait TOUTES les cartes d'un coup — chacune avec
+   * `PochetteActions`, `AlbumArt` et `QualiteAlbum`. Même défaut, même remède
+   * que l'onglet Artistes (web#1716, `lib/grilleProgressive`) : une tranche à
+   * l'ouverture, la suivante quand la sentinelle approche du bas du cadre.
+   * L'ordre, le rail et « Tout lire » portent toujours sur la liste ENTIÈRE
+   * (`albumsVus`) ; seul le montage est différé.
+   */
+  let montees = $state(TRANCHE_GRILLE);
+  const albumsMontes = $derived(albumsVus.slice(0, montees));
+  /** Le conteneur qui DÉFILE : `.defil`, autour du rail et de la grille. */
+  const defilEl = $derived(grilleEl?.closest<HTMLElement>('.defil') ?? null);
+  let sentinelle = $state<HTMLElement | null>(null);
+  const AVANCE_PX = 800;
+  function basProche(): boolean {
+    if (!defilEl || !sentinelle) return false;
+    return sentinelle.getBoundingClientRect().top - defilEl.getBoundingClientRect().bottom < AVANCE_PX;
+  }
+  async function monterLaSuite() {
+    // Une tranche ne suffit pas toujours à repousser la sentinelle hors de
+    // l'avance (très grand écran) : on relit après chaque montage.
+    while (montees < albumsVus.length) {
+      montees = trancheSuivante(montees, albumsVus.length);
+      await tick();
+      if (!basProche()) break;
+    }
+  }
+  $effect(() => {
+    const racine = defilEl, cible = sentinelle;
+    if (!racine || !cible || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entrees) => { if (entrees.some((e) => e.isIntersecting)) void monterLaSuite(); },
+      { root: racine, rootMargin: `0px 0px ${AVANCE_PX}px 0px` },
+    );
+    io.observe(cible);
+    return () => io.disconnect();
+  });
 
 
   /**
@@ -1373,7 +1428,7 @@
         </div>
         {/if}
         <div class="grid" bind:this={grilleEl}>
-        {#each albumsVus as a (cleAlbum(a))}
+        {#each albumsMontes as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
@@ -1407,6 +1462,10 @@
             {/if}
           </div>
         {/each}
+        {#if montees < albumsVus.length}
+          <!-- web#2965 — la suite se monte quand ceci approche du cadre. -->
+          <div class="suite" bind:this={sentinelle} aria-hidden="true"></div>
+        {/if}
         </div>
       </div>
     {/if}
@@ -1782,6 +1841,7 @@
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
   .aveclettres .grid{flex:1; min-width:0}
+  .suite{grid-column:1 / -1; height:1px}
   /* web#1801 — GRANDES VIGNETTES : la même carte, un pas de grille plus
      large. */
   .grid.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}

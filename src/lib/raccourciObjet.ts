@@ -16,8 +16,8 @@
  *   • album de la bibliothèque, album d'un service → `lib/raccourciAlbum` ;
  *   • artiste → `lib/raccourciArtiste` (la page commune, #1501) ;
  *   • playlist locale ou de service → l'écran Playlists de la barre latérale
- *     (`playlistmanager`), clés de `PlaylistsV2` (`playlists:12`,
- *     `streamingplaylists:qobuz:123`) ;
+ *     (`playlists`, `PlaylistsV2` depuis web#2971), avec ses clés
+ *     (`playlists:12`, `streamingplaylists:qobuz:123`) ;
  *   • playlist intelligente → `smartplaylists:<id>` ;
  *   • collection, collection intelligente → `collections:` /
  *     `smartcollections:`.
@@ -67,14 +67,14 @@ export function propositionRaccourciObjet(o: ObjetMenu | null | undefined): Prop
       return proposition('streamingartist', cible);
     }
     case 'playlist': {
-      if (local) return proposition('playlistmanager', avecLibelle(`playlists:${o.id}`, { id: o.id, name: o.nom ?? '' }, o.nom));
+      if (local) return proposition('playlists', avecLibelle(`playlists:${o.id}`, { id: o.id, name: o.nom ?? '' }, o.nom));
       if (!service) return null;
       const pl = {
         source_id: o.sourceId!, name: o.nom ?? '', track_count: 0, duration_ms: 0,
         cover_path: o.pochette ?? null, source: service,
       };
       return proposition(
-        'playlistmanager',
+        'playlists',
         avecLibelle(`streamingplaylists:${service}:${o.sourceId}`, { kind: 'streaming', service, pl }, o.nom),
       );
     }
