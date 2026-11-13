@@ -11,6 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import RemplacerCheminDossier from '../../components/partages/RemplacerCheminDossier.svelte';
 import { lignesDApercu, messageDeFin, messageDeRefus } from '../remplacerChemin';
+import { oublierCapaciteRemplacerLeChemin } from '../api';
+import { notifications } from '../stores/notifications';
+import SettingsV2 from '../../components/v2/SettingsV2.svelte';
+import { v2SettingsTarget } from '../stores/v2SettingsNav';
+import { preferences } from '../stores/preferences';
 import { ONZE_LANGUES, dictionnaire, fr as frBrut } from './onzeDictionnaires';
 
 const fr = frBrut as Record<string, string>;
@@ -80,22 +85,31 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 const appels: { url: string; corps: any }[] = [];
 let reponseApercu: () => Response;
+let capacites: () => Response;
+let dossiers: string[];
 
 beforeEach(() => {
   appels.length = 0;
+  dossiers = ['/mnt/M'];
+  oublierCapaciteRemplacerLeChemin();
+  capacites = () => json({ bibliotheque: { remplacer_le_chemin: true } });
   reponseApercu = () => json({
     old_prefix: '/mnt/M', new_prefix: '/data/m', tracks: 3, checked: 3, found: 2, missing: 1,
     sampled: false, missing_examples: [{ old: '/mnt/M/c.flac', new: '/data/m/c.flac' }],
     conflicts: 0, refusal: null, can_apply: true,
   });
+  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as any);
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url);
     appels.push({ url: u, corps: init?.body ? JSON.parse(String(init.body)) : null });
+    if (u.endsWith('/system/capabilities')) return capacites();
+    if (u.endsWith('/system/config')) return json({ music_dirs: dossiers });
     if (u.endsWith('/system/music-dirs/move/preview')) return reponseApercu();
     if (u.endsWith('/system/music-dirs/move')) {
+      dossiers = ['/data/m'];
       return json({ applied: true, old_prefix: '/mnt/M', new_prefix: '/data/m', tracks_updated: 3, dirs: ['/data/m'] });
     }
-    return json({});
+    return json(/\/(zones|profiles|devices|outputs|playlists|shortcuts|groups|directories)(\?|$)/.test(u) ? [] : {});
   }));
 });
 
@@ -104,35 +118,46 @@ afterEach(() => {
   monte = null;
   hote?.remove();
   hote = null;
+  v2SettingsTarget.set(null);
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
-function monter(onRemplace = vi.fn()) {
+async function monter(onRemplace = vi.fn()) {
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(RemplacerCheminDossier, { target: hote, props: { dossier: '/mnt/M', onRemplace } });
   flushSync();
+  await attendre();
   return { el: hote, onRemplace };
 }
 
+function trouver(el: HTMLElement, cle: string): HTMLButtonElement | undefined {
+  return [...el.querySelectorAll('button')].find((x) => x.textContent?.trim() === fr[cle]);
+}
+
 function bouton(el: HTMLElement, cle: string): HTMLButtonElement {
-  const b = [...el.querySelectorAll('button')].find((x) => x.textContent?.trim() === fr[cle]);
+  const b = trouver(el, cle);
   expect(b, `bouton ${cle}`).toBeTruthy();
   return b!;
 }
 
+async function jusquALApercu(el: HTMLElement, nouveau = '/data/m') {
+  bouton(el, 'settings.moveFolderButton').click();
+  flushSync();
+  const champ = el.querySelector<HTMLInputElement>('[data-reglage="remplacer-chemin"] input')!;
+  expect(champ.value).toBe('/mnt/M');
+  champ.value = nouveau;
+  champ.dispatchEvent(new Event('input'));
+  flushSync();
+  bouton(el, 'settings.moveFolderPreview').click();
+  await attendre();
+}
+
 describe('Remplacer le chemin, à l’écran', () => {
   it('aperçu puis confirmation avec le nombre montré', { timeout: 30_000 }, async () => {
-    const { el, onRemplace } = monter();
-    bouton(el, 'settings.moveFolderButton').click();
-    flushSync();
-    const champ = el.querySelector<HTMLInputElement>('[data-reglage="remplacer-chemin"] input')!;
-    expect(champ.value).toBe('/mnt/M');
-    champ.value = '/data/m';
-    champ.dispatchEvent(new Event('input'));
-    flushSync();
-    bouton(el, 'settings.moveFolderPreview').click();
-    await attendre();
+    const { el, onRemplace } = await monter();
+    await jusquALApercu(el);
     expect(appels.at(-1)).toEqual({
       url: expect.stringContaining('/system/music-dirs/move/preview'),
       corps: { old_prefix: '/mnt/M', new_prefix: '/data/m' },
@@ -144,18 +169,61 @@ describe('Remplacer le chemin, à l’écran', () => {
     await attendre();
     const application = appels.find((a) => a.url.endsWith('/system/music-dirs/move'));
     expect(application?.corps).toEqual({ old_prefix: '/mnt/M', new_prefix: '/data/m', confirm_tracks: 3 });
-    expect(onRemplace).toHaveBeenCalledWith(['/data/m']);
-    expect(el.textContent).toContain(messageDeFin({ tracks_updated: 3, old_prefix: '/mnt/M', new_prefix: '/data/m' }, trFr));
+    expect(onRemplace).toHaveBeenCalledWith(
+      ['/data/m'],
+      messageDeFin({ tracks_updated: 3, old_prefix: '/mnt/M', new_prefix: '/data/m' }, trFr),
+    );
   });
 
   it("un aperçu refusé ne propose pas d'appliquer", { timeout: 30_000 }, async () => {
     reponseApercu = () => json({ old_prefix: '/mnt/M', new_prefix: '/x', tracks: 3, checked: 3, found: 0, refusal: 'none_found', can_apply: false });
-    const { el } = monter();
-    bouton(el, 'settings.moveFolderButton').click();
-    flushSync();
-    bouton(el, 'settings.moveFolderPreview').click();
-    await attendre();
+    const { el } = await monter();
+    await jusquALApercu(el, '/x');
     expect(el.querySelector('[role="alert"]')?.textContent).toBe(messageDeRefus({ refusal: 'none_found', new_prefix: '/x' }, trFr));
-    expect([...el.querySelectorAll('button')].some((b) => b.textContent?.trim() === fr['settings.moveFolderApply'])).toBe(false);
+    expect(trouver(el, 'settings.moveFolderApply')).toBeUndefined();
+  });
+
+  it('serveur sans la capacité : pas de bouton', { timeout: 30_000 }, async () => {
+    capacites = () => json({ version: '1.0.0-rc11' });
+    const { el } = await monter();
+    expect(trouver(el, 'settings.moveFolderButton')).toBeUndefined();
+  });
+
+  it('serveur ancien (capacités en 404) : pas de bouton, pas de bandeau', { timeout: 30_000 }, async () => {
+    capacites = () => new Response('', { status: 404 });
+    const erreurs = vi.spyOn(notifications, 'error');
+    const { el } = await monter();
+    expect(trouver(el, 'settings.moveFolderButton')).toBeUndefined();
+    expect(erreurs).not.toHaveBeenCalled();
+  });
+
+  it('route absente (404) au clic : le bouton disparaît, sans bandeau', { timeout: 30_000 }, async () => {
+    reponseApercu = () => new Response('', { status: 404 });
+    const erreurs = vi.spyOn(notifications, 'error');
+    const { el } = await monter();
+    await jusquALApercu(el);
+    expect(erreurs).not.toHaveBeenCalled();
+    expect(trouver(el, 'settings.moveFolderButton')).toBeUndefined();
+    expect(el.querySelector('[role="alert"]')).toBeNull();
+  });
+});
+
+describe('Remplacer le chemin, dans Réglages › Bibliothèque', () => {
+  it('le bilan et son geste de retour restent visibles après le changement de chemin', { timeout: 60_000 }, async () => {
+    preferences.update((p) => ({ ...p, settingsLevel: 'expert' }));
+    v2SettingsTarget.set({ tab: 'library', section: 'musicDirs' } as any);
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(SettingsV2, { target: hote, props: {} });
+    flushSync();
+    await attendre(12);
+    const ligne = () => [...hote!.querySelectorAll<HTMLElement>('[data-reglage="dossiers-declares"] .dir')];
+    expect(ligne().map((d) => d.querySelector('.dp')?.textContent)).toEqual(['/mnt/M']);
+    await jusquALApercu(ligne()[0]);
+    bouton(ligne()[0], 'settings.moveFolderApply').click();
+    await attendre(12);
+    expect(ligne().map((d) => d.querySelector('.dp')?.textContent)).toEqual(['/data/m']);
+    const bilan = hote.querySelector('[data-bilan-remplacement]');
+    expect(bilan?.textContent).toBe(messageDeFin({ tracks_updated: 3, old_prefix: '/mnt/M', new_prefix: '/data/m' }, trFr));
   });
 });

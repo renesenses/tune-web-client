@@ -5805,18 +5805,56 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
  * (une transaction, identifiants conservés). Les refus (400, 409, 422) portent
  * un corps lisible : `refusal` ou `error`, que `remplacerChemin.ts` traduit.
  */
-export function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
-  return fetchJSON<ApercuDeplacement>(`${BASE}/system/music-dirs/move/preview`, {
-    method: 'POST',
-    body: JSON.stringify({ old_prefix: oldPrefix, new_prefix: newPrefix }),
-  }, (s) => s === 400);
+export async function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
+  return appelDeplacement<ApercuDeplacement>('/system/music-dirs/move/preview', { old_prefix: oldPrefix, new_prefix: newPrefix });
 }
 
-export function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
-  return fetchJSON<BilanDeplacement>(`${BASE}/system/music-dirs/move`, {
-    method: 'POST',
-    body: JSON.stringify({ old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks }),
-  }, (s) => s === 400 || s === 409 || s === 422);
+export async function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
+  return appelDeplacement<BilanDeplacement>('/system/music-dirs/move', {
+    old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks,
+  });
+}
+
+/**
+ * Les refus (400, 409, 422) portent un corps lisible ; 404 et 405 veulent dire
+ * « serveur trop ancien » : ni bandeau ni exception, `{ error: 'unsupported' }`,
+ * et le geste disparaît de l'écran.
+ */
+async function appelDeplacement<T extends { error?: string }>(chemin: string, corps: unknown): Promise<T> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<T>(`${BASE}${chemin}`, { method: 'POST', body: JSON.stringify(corps) }, (s) => {
+      statut = s;
+      return s === 400 || s === 404 || s === 405 || s === 409 || s === 422;
+    });
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    return r;
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    throw e;
+  }
+}
+
+let remplacerLeCheminConnu: Promise<boolean> | null = null;
+
+/**
+ * #8676 — le serveur sait-il « Remplacer le chemin » ? Lu dans
+ * `GET /system/capabilities` (clé `bibliotheque.remplacer_le_chemin`, absente
+ * = non), une fois par chargement. Un serveur sans cette route (ancien) rend
+ * 404 : réponse « non », sans bandeau.
+ */
+export function remplacerLeCheminDisponible(): Promise<boolean> {
+  if (!remplacerLeCheminConnu) {
+    remplacerLeCheminConnu = fetchJSON<any>(`${BASE}/system/capabilities`, undefined, (s) => s === 404 || s === 405, true)
+      .then((c) => c?.bibliotheque?.remplacer_le_chemin === true)
+      .catch(() => false);
+  }
+  return remplacerLeCheminConnu;
+}
+
+/** Épreuves seulement : oublier la réponse mémorisée. */
+export function oublierCapaciteRemplacerLeChemin(): void {
+  remplacerLeCheminConnu = null;
 }
 
 /** Une entrée de l'explorateur de dossiers du serveur. */

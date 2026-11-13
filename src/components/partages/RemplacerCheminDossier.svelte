@@ -21,8 +21,14 @@
     /** Le dossier de musique déclaré : l'ancien chemin. */
     dossier: string;
     disabled?: boolean;
-    /** Appelé avec la liste des dossiers que rend le serveur après l'opération. */
-    onRemplace?: (musicDirs: string[]) => void;
+    /**
+     * Appelé après l'opération, avec la liste des dossiers que rend le
+     * serveur et le message de fin (geste de retour arrière compris). La
+     * liste est indexée par chemin : la ligne de CE dossier est démontée
+     * aussitôt, c'est donc à l'appelant d'afficher le message, hors de la
+     * ligne.
+     */
+    onRemplace?: (musicDirs: string[], message: string) => void;
   } = $props();
 
   let ouvert = $state(false);
@@ -31,10 +37,25 @@
   let occupe = $state(false);
   let apercu = $state<ApercuDeplacement | null>(null);
   let erreur = $state<string | null>(null);
-  let fin = $state<string | null>(null);
+  /** Le serveur sert-il la route ? Inconnu (`null`) : bouton caché. */
+  let disponible = $state<boolean | null>(null);
 
   const tr = (k: string) => get(t)(k as any);
   const nombre = (n: number) => get(formatNombre)(n);
+  $effect(() => {
+    let vivant = true;
+    api.remplacerLeCheminDisponible().then((d) => { if (vivant) disponible = d; });
+    return () => { vivant = false; };
+  });
+
+  /** Route absente (serveur plus ancien) : on cache le geste, sans bandeau. */
+  function siIndisponible(r: { error?: string } | null | undefined): boolean {
+    if (r?.error !== 'unsupported') return false;
+    disponible = false;
+    ouvert = false;
+    return true;
+  }
+
   const lignes = $derived(apercu && apercu.can_apply ? lignesDApercu(apercu, tr, nombre) : null);
 
   function ouvrir() {
@@ -42,7 +63,6 @@
     nouveau = dossier;
     apercu = null;
     erreur = null;
-    fin = null;
   }
 
   function fermer() {
@@ -58,6 +78,7 @@
     apercu = null;
     try {
       const a = await api.previewMoveMusicDir(dossier, nouveau.trim());
+      if (siIndisponible(a)) { occupe = false; return; }
       erreur = messageDeRefus(a, tr, nombre);
       apercu = a;
     } catch (e: any) {
@@ -72,11 +93,12 @@
     erreur = null;
     try {
       const b = await api.applyMoveMusicDir(dossier, apercu.new_prefix ?? nouveau.trim(), apercu.tracks ?? 0);
-      if (estApplique(b)) {
-        fin = messageDeFin(b, tr, nombre);
+      if (siIndisponible(b)) {
+        // rien : le geste disparaît
+      } else if (estApplique(b)) {
         ouvert = false;
         apercu = null;
-        onRemplace?.(Array.isArray(b.dirs) ? b.dirs : []);
+        onRemplace?.(Array.isArray(b.dirs) ? b.dirs : [], messageDeFin(b, tr, nombre));
       } else {
         erreur = messageDeRefus(b, tr, nombre);
         apercu = null;
@@ -90,11 +112,13 @@
 
 <!-- `display: contents` : le bouton est une cellule de la ligne du dossier
      (grille), le panneau s'étend sur toute la ligne. -->
-<div class="remplacer-chemin">
+<div class="remplacer-chemin-cellules">
+{#if disponible}
 <button class="lnk remplacer-chemin" type="button" disabled={disabled || occupe}
   title={$t('settings.moveFolderHint' as any)} onclick={ouvrir}>{$t('settings.moveFolderButton' as any)}</button>
-
-{#if fin}<p class="hint remplacer-chemin-fin" role="status">{fin}</p>{/if}
+{:else}
+<span class="remplacer-chemin-vide" aria-hidden="true"></span>
+{/if}
 
 {#if ouvert}
   <div class="remplacer-chemin-panneau" data-reglage="remplacer-chemin">
@@ -134,8 +158,7 @@
 </div>
 
 <style>
-  .remplacer-chemin { display: contents; }
-  .remplacer-chemin-fin { grid-column: 1 / -1; margin: 0; }
+  .remplacer-chemin-cellules { display: contents; }
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}

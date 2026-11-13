@@ -2327,6 +2327,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Bibliotheque : dossiers, analyse, planification ───────────────────
   let musicDirs = $state<string[]>([]);
+  /** #8676 — le message de fin du dernier « Remplacer le chemin ». */
+  let remplacementFait = $state<string | null>(null);
   // #1688 — null means the server does not expose the #4907 order route.
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
@@ -7156,7 +7158,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <!-- tune-server-rust#8676 — après une restauration venue
                            d'une autre machine : réécrire l'ancien chemin. -->
                       <RemplacerCheminDossier dossier={d} disabled={dirBusy}
-                        onRemplace={async (dirs) => { musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
+                        onRemplace={async (dirs, message) => { remplacementFait = message; musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
                       <button class="del avec-texte" disabled={dirBusy} onclick={() => removeDir(d)}
                         aria-label={$t('settings.removeFolderAria' as any)} title={$t('settings.removeFolderButton' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -7165,6 +7167,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   {/each}
                 </div>
+                <!-- tune-server-rust#8676 — le bilan de « Remplacer le chemin »,
+                     HORS de la ligne : celle-ci est démontée quand le chemin
+                     change (liste indexée par chemin). -->
+                {#if remplacementFait}<p class="hint" role="status" data-bilan-remplacement>{remplacementFait}</p>{/if}
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
