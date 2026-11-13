@@ -4573,6 +4573,62 @@ export function setEqHeadroomMode(zoneId: number, mode: HeadroomMode) {
   });
 }
 
+/**
+ * tune-server-rust#8554 — contour de loudness qui suit le volume (ISO 226:2003),
+ * réglé à côté de l'égaliseur de zone (`/zones/{id}/eq/loudness`).
+ */
+export interface LoudnessSettings {
+  enabled: boolean;
+  curve: string;
+  bass_only: boolean;
+  intensity_pct: number;
+  reference_volume_db: number;
+  reference_phon: number;
+  level_source: 'volume' | 'manual';
+  manual_level_db: number;
+}
+
+/** Ce que le contour fait sur la zone. */
+export type LoudnessStatus =
+  | 'disabled'
+  | 'active'
+  | 'bypassed_pure'
+  | 'bypassed_strict_bitperfect'
+  | 'level_unknown_fixed_volume'
+  | 'output_not_supported';
+
+export interface LoudnessState {
+  zone_id: number;
+  settings: LoudnessSettings;
+  status: LoudnessStatus;
+  curves: string[];
+  volume_db: number | null;
+  attenuation_db: number | null;
+  contour_db: { hz: number; db: number }[] | null;
+  /** PURE tient la zone : dit même quand le contour est désactivé. */
+  pure?: boolean;
+  /** Réponse de `POST` : `immediate`, `next_track`, `next_play`. */
+  applied?: string;
+}
+
+/** Sans bandeau : un serveur antérieur à #8554 répond 404, l'écran se tait. */
+export function getLoudness(zoneId: number) {
+  return fetchJSON<LoudnessState>(`${BASE}/zones/${zoneId}/eq/loudness`, undefined, undefined, true);
+}
+
+/**
+ * Écrit les SEULS champs donnés ; le serveur garde les autres. Sans bandeau :
+ * la carte dit elle-même le refus (un seul message, pas deux).
+ */
+export function setLoudness(zoneId: number, patch: Partial<LoudnessSettings>) {
+  return fetchJSON<LoudnessState>(
+    `${BASE}/zones/${zoneId}/eq/loudness`,
+    { method: 'POST', body: JSON.stringify(patch) },
+    undefined,
+    true,
+  );
+}
+
 // Résolution du mode Expert (10/15/31 bandes) — stockée serveur pour que tous
 // les clients partagent la même grille.
 export function getEqExpertSettings() {
