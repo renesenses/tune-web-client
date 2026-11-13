@@ -6267,6 +6267,49 @@ export async function importDatabase(file: File) {
   return res.json() as Promise<{ imported: boolean; engine: string; size: number; restart_required: boolean }>;
 }
 
+/**
+ * tune-server-rust#7478 — exclusions du scan PAR EMPLACEMENT (motifs glob,
+ * insensibles à la casse par défaut), à côté des exclusions globales
+ * (`scan_exclude_paths`, sous-chaînes), affichées en lecture.
+ */
+export interface ExclusionsDEmplacement {
+  root: string;
+  patterns: string[];
+  case_sensitive?: boolean;
+}
+
+export interface EtatExclusionsDuScan {
+  global: string[];
+  locations: ExclusionsDEmplacement[];
+  roots: string[];
+  tracks_to_remove?: number;
+}
+
+export interface ApercuExclusions {
+  tracks_to_remove: number;
+  examples: string[];
+}
+
+/** Sans bandeau : un serveur d'avant #7478 répond 404 et l'encadré ne s'affiche pas. */
+export function getScanExclusions() {
+  return fetchJSON<EtatExclusionsDuScan>(`${BASE}/system/scan-exclusions`, undefined, undefined, true);
+}
+
+export function previewScanExclusions(locations: ExclusionsDEmplacement[]) {
+  return fetchJSON<ApercuExclusions>(`${BASE}/system/scan-exclusions/preview`, {
+    method: 'POST',
+    body: JSON.stringify({ locations }),
+  }, undefined, true);
+}
+
+/** `confirm` : le nombre de pistes retirées que l'utilisateur a accepté (409 sinon). */
+export function saveScanExclusions(locations: ExclusionsDEmplacement[], confirm: number) {
+  return fetchJSON<EtatExclusionsDuScan>(`${BASE}/system/scan-exclusions`, {
+    method: 'PUT',
+    body: JSON.stringify({ locations, confirm }),
+  }, undefined, true);
+}
+
 export function getStreamingServices() {
   return fetchJSON<Record<string, StreamingServiceStatus>>(`${BASE}/streaming/services`);
 }

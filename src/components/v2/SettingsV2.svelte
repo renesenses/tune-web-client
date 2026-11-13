@@ -151,6 +151,7 @@
     relireAvantEnvoi, ecrireRelireAvantEnvoi,
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
+  import ExclusionsDuScanV2 from './ExclusionsDuScanV2.svelte';
   import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
@@ -7194,6 +7195,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <p class="hint">{$t('settings.enrichExcludedDirsHint' as any)}</p>
                   </div>
                 {/if}
+                <!-- tune-server-rust#7478 — exclure des sous-dossiers ou des
+                     motifs du scan, emplacement par emplacement. -->
+                <ExclusionsDuScanV2 />
                 <!-- tune-server-rust#6198 — réserver l'analyse acoustique
                      (ambiances) à certains genres, ou en écarter. -->
                 {#if clapGenresInclus !== null && clapGenresExclus !== null}
