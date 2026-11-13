@@ -5802,6 +5802,7 @@ export default {
   "v2.circle.lib.trackCount": "트랙 {n}개",
   "v2.circle.lib.more": "더 보기",
   "v2.circle.lib.empty": "표시할 항목이 없습니다.",
+  "v2.circle.lib.coverFromMySources": "내 소스의 커버",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "공유 셀렉션",
   "v2.circle.sel.hint": "이 서클에 보여 줄 태그와 스마트 컬렉션을 하나씩 선택하세요. 미리 선택된 항목은 없습니다. 이름과 항목만 공유되며 규칙은 공유되지 않습니다.",

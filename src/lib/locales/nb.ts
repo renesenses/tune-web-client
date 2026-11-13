@@ -5662,6 +5662,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} spor",
   "v2.circle.lib.more": "Vis mer",
   "v2.circle.lib.empty": "Ingenting å vise.",
+  "v2.circle.lib.coverFromMySources": "Omslag fra mine kilder",
   "v2.circle.sel.title": "Delte utvalg",
   "v2.circle.sel.hint": "Kryss av, ett etter ett, for taggene og de smarte samlingene denne sirkelen skal se. Ingenting er avkrysset på forhånd. Navnet og elementene deres deles, aldri reglene.",
   "v2.circle.sel.needLibrary": "Del først biblioteket til denne serveren med denne sirkelen.",

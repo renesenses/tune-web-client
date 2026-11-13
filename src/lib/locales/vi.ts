@@ -5665,6 +5665,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} bài hát",
   "v2.circle.lib.more": "Xem thêm",
   "v2.circle.lib.empty": "Không có gì để hiển thị.",
+  "v2.circle.lib.coverFromMySources": "Ảnh bìa từ nguồn của tôi",
   "v2.circle.sel.title": "Tuyển chọn được chia sẻ",
   "v2.circle.sel.hint": "Hãy chọn từng nhãn và bộ sưu tập thông minh mà vòng kết nối này sẽ thấy. Không có gì được chọn sẵn. Tên và các mục của chúng được chia sẻ, không bao giờ là các quy tắc.",
   "v2.circle.sel.needLibrary": "Hãy chia sẻ thư viện của máy chủ này với vòng kết nối này trước.",

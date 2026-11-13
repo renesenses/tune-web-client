@@ -5802,6 +5802,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} Titel",
   "v2.circle.lib.more": "Mehr anzeigen",
   "v2.circle.lib.empty": "Nichts anzuzeigen.",
+  "v2.circle.lib.coverFromMySources": "Cover aus meinen Quellen",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Geteilte Auswahlen",
   "v2.circle.sel.hint": "Wählen Sie einzeln die Etiketten und intelligenten Sammlungen, die dieser Kreis sehen wird. Nichts ist vorab ausgewählt. Geteilt werden Name und Elemente, nie die Regeln.",

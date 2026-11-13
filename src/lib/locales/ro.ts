@@ -5802,6 +5802,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} piese",
   "v2.circle.lib.more": "Afișează mai mult",
   "v2.circle.lib.empty": "Nimic de afișat.",
+  "v2.circle.lib.coverFromMySources": "Copertă din sursele mele",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Selecții partajate",
   "v2.circle.sel.hint": "Bifați, una câte una, etichetele și colecțiile inteligente pe care le va vedea acest cerc. Nimic nu este bifat dinainte. Se partajează numele și elementele lor, niciodată regulile.",

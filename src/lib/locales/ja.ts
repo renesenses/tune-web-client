@@ -5802,6 +5802,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} トラック",
   "v2.circle.lib.more": "もっと見る",
   "v2.circle.lib.empty": "表示する項目がありません。",
+  "v2.circle.lib.coverFromMySources": "自分のソースのジャケット",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "共有セレクション",
   "v2.circle.sel.hint": "このサークルに見せるタグとスマートコレクションを1つずつ選んでください。最初は何も選択されていません。共有されるのは名前と項目だけで、ルールは共有されません。",

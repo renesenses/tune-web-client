@@ -5756,6 +5756,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} sáv",
   "v2.circle.lib.more": "Továbbiak",
   "v2.circle.lib.empty": "Nincs megjeleníthető elem.",
+  "v2.circle.lib.coverFromMySources": "Borító a saját forrásaimból",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "Megosztott válogatások",
   "v2.circle.sel.hint": "Jelölje be egyenként azokat a címkéket és intelligens gyűjteményeket, amelyeket ez a kör látni fog. Előre semmi sincs bejelölve. A nevük és az elemeik kerülnek megosztásra, a szabályaik soha.",

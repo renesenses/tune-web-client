@@ -5802,6 +5802,7 @@ export default {
   "v2.circle.lib.trackCount": "{n} 首曲目",
   "v2.circle.lib.more": "显示更多",
   "v2.circle.lib.empty": "没有可显示的内容。",
+  "v2.circle.lib.coverFromMySources": "来自我的音源的封面",
   // Tune Circle T3 : sélections partagées (renesenses/tune-server-rust#5326)
   "v2.circle.sel.title": "共享精选",
   "v2.circle.sel.hint": "逐一勾选此圈子可以看到的标签和智能收藏集。默认不勾选任何项目。只共享名称和内容，从不共享规则。",

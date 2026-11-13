@@ -49,8 +49,9 @@
   import { dateCourte } from '../../lib/dates';
   import {
     statsContact, ligneVignettesContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
-    pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact, reprisePochetteAlbumContact,
+    pisteVersTrack, plusPartage, motifCercle,
     rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
+    albumsSansVignette, pochettesDeMesSources, pochettesAvecMesSources, type PochetteDeMesSources,
     ecoutePermise, ecouterChezContact, motifEcoute,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
     type MotifCercle, type PageContact, type PisteContact, type RayonContact, type ReferenceContact, type ComptesRayon,
@@ -211,6 +212,32 @@
     recharger();
   }
 
+  /**
+   * web#3001 (go de Bertrand du 13/11, rc12) — sans vignette du contact, la
+   * pochette du MÊME album dans mes sources (ma bibliothèque, puis Qobuz /
+   * TIDAL connectés), retrouvée par le serveur sur le titre + l'artiste. UNE
+   * demande par page arrivée, pour ses seuls albums sans vignette ; un album
+   * déjà demandé ne l'est plus pendant la vie de l'écran.
+   */
+  let mesPochettes = $state<Record<number, PochetteDeMesSources | null>>({});
+  const pochettesDemandees = new Set<number>();
+
+  async function chercherMesPochettes(page: AlbumContact[]) {
+    const lot = albumsSansVignette(page, pochettesDemandees);
+    if (lot.length === 0) return;
+    for (const a of lot) pochettesDemandees.add(a.id);
+    try {
+      const r = await pochettesDeMesSources(lot);
+      if (fini) return;
+      const suite = { ...mesPochettes };
+      lot.forEach((a, i) => { suite[a.id] = r[i] ?? null; });
+      mesPochettes = suite;
+    } catch {
+      // Panne : l'icône générique reste ; ces albums pourront être redemandés.
+      for (const a of lot) pochettesDemandees.delete(a.id);
+    }
+  }
+
   function chargerPage(n: number) {
     // Le filtre part par l'IDENTIFIANT d'artiste : c'est ce que le cloud attend.
     const q = { page: n, search: recherche, artist: onglet === 'albums' ? artiste?.id : undefined };
@@ -225,7 +252,7 @@
         (p) => { artistes = suite(artistes, p); page = p.page; derniere = p.derniere; });
     } else if (onglet === 'albums') {
       void lire(() => (r ? albumsRayon(uid, r.id, q) : albumsContact(uid, q)),
-        (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; });
+        (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; void chercherMesPochettes(p.items); });
     } else {
       void lire(() => (r ? pistesRayon(uid, r.id, q) : pistesContact(uid, q)), (p) => {
         const neuves = p.items.map(pisteVersTrack);
@@ -535,6 +562,10 @@
     aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [p.title, p.artist_name].filter(Boolean).join(' '))}
     onclick={() => chercherPiste(p)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
 {/snippet}
+{#snippet marquePochette()}
+  <!-- web#3001 : discret, dit d'où vient l'image (ce n'est pas celle du contact). -->
+  <span class="pochette-mienne" title={$t('v2.circle.lib.coverFromMySources' as any)}>{$t('v2.circle.lib.coverFromMySources' as any)}</span>
+{/snippet}
 {#snippet boutonLire(_p: Track, i: number)}
   {@const source = (album ? sourcesAlbum : sourcesPistes)[i]}
   <button class="lire-piste" disabled={ecouteEnCours != null || !source}
@@ -543,10 +574,11 @@
 {/snippet}
 
   {#if album}
+    {@const pt = pochettesAvecMesSources(album, contact.user_id, mesPochettes[album.id])}
     <div class="album-ouvert">
       <button class="lnk retour-albums" onclick={() => { album = null; pistesAlbum = []; }}>← {$t('v2.circle.lib.backToAlbums' as any)}</button>
       <div class="album-tete">
-        <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album, contact.user_id)} repli={reprisePochetteAlbumContact(album, contact.user_id)} albumId={null} size={0} alt={album.title} /></span>
+        <span class="pochette"><AlbumArt coverPath={pt.coverPath} repli={pt.repli} albumId={null} size={0} alt={album.title} />{#if pt.deMesSources}{@render marquePochette()}{/if}</span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
@@ -604,9 +636,10 @@
       {:else}
         <ul class="albums">
           {#each albums as a (a.id)}
+            {@const pa = pochettesAvecMesSources(a, contact.user_id, mesPochettes[a.id])}
             <li>
               <button class="album-contact" onclick={() => ouvrirAlbum(a)} title={a.title}>
-                <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(a, contact.user_id)} repli={reprisePochetteAlbumContact(a, contact.user_id)} albumId={null} size={0} alt={a.title} /></span>
+                <span class="pochette"><AlbumArt coverPath={pa.coverPath} repli={pa.repli} albumId={null} size={0} alt={a.title} />{#if pa.deMesSources}{@render marquePochette()}{/if}</span>
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>
@@ -696,7 +729,8 @@
   .albums{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:14px}
   .album-contact{display:flex; flex-direction:column; gap:4px; width:100%; border:0; background:transparent; color:var(--v2-txt);
     cursor:pointer; padding:0; text-align:left; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
-  .pochette{display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
+  .pochette{position:relative; display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
+  .pochette-mienne{position:absolute; left:4px; bottom:4px; max-width:calc(100% - 8px); padding:1px 5px; border-radius:var(--v2-r-sm, 4px); font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; background:rgba(0,0,0,.55); opacity:.85; pointer-events:none}
   .album-nom{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .album-contact .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .artistes{display:flex; flex-direction:column}
