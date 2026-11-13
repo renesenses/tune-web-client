@@ -11,8 +11,10 @@
  * d'affichage, lui, ne change pas : une entrée Avancée placée en tête reste
  * cachée au niveau Essentiel, et apparaît À SA PLACE choisie dès qu'elle est
  * visible. Tant que l'ordre est celui livré, la barre garde ses groupes et
- * leurs intertitres ; dès qu'il en diffère, elle devient une liste unique,
- * sans intertitre (« Sélections », « Studio » ne voudraient plus rien dire).
+ * leurs intertitres. Dès qu'il en diffère, la liste libre est DÉCOUPÉE en
+ * groupes (`repartirEnGroupes`) : les intertitres « Sélections » et « Studio »
+ * restent visibles (recette rc12 de Bertrand du 13/11/2026), et l'ordre
+ * enregistré est rendu tel quel, entrées venues d'un autre groupe comprises.
  *
  * Trois règles qui protègent un ordre ENREGISTRÉ :
  *   - une entrée que ce client ne connaît pas (écrite par une version plus
@@ -98,6 +100,121 @@ export function ordreModifie(defaut: readonly { view: string }[], choix: ChoixBa
   if (!c?.ordre.length) return false;
   const r = ordonnerEntrees(defaut, c.ordre);
   return r.some((it, i) => it !== defaut[i]);
+}
+
+/** Une tranche de la barre en liste libre : son groupe (son intertitre) et ses entrées. */
+export interface Tranche<T> {
+  groupe: number;
+  entrees: T[];
+}
+
+function permutations(l: number[]): number[][] {
+  if (l.length <= 1) return [l];
+  return l.flatMap((x, i) => permutations([...l.slice(0, i), ...l.slice(i + 1)]).map((r) => [x, ...r]));
+}
+
+/**
+ * Recette rc12 (Bertrand, 13/11/2026) — une liste libre garde ses intertitres.
+ *
+ * Avant, un ordre personnalisé rendait la barre en UNE liste sans intertitre :
+ * « Sélections » et « Studio » disparaissaient pour quiconque avait réordonné
+ * sa barre, même d'une seule entrée. On découpe désormais la liste ordonnée en
+ * `n` tranches CONTIGUËS : la première est le noyau (groupe 0, sans
+ * intertitre), les suivantes portent chacune un groupe (1 = Sélections,
+ * 2 = Studio), dans l'ordre où l'utilisateur les a mis — des Sélections
+ * descendues sous le Studio gardent leur intertitre, sous celui du Studio.
+ *
+ * L'ordre n'est jamais touché : « l'entrée reste où je l'ai mise » (Bertrand,
+ * 13/11) ; seuls les intertitres se placent, au plus près de leur place
+ * habituelle. Les coupures (et l'ordre des groupes) se choisissent, dans cet
+ * ordre de priorité :
+ *   1. aucune tranche sans entrée VISIBLE de son groupe quand ce groupe en a
+ *      une (sinon l'intertitre disparaît : relecture de web#2960, ordres
+ *      « noyau, Sélections, Avancé, Studio » et « Sélections après Studio ») ;
+ *   2. le plus d'entrées dans leur groupe d'origine ;
+ *   3. une tranche qui commence par une entrée de son groupe (l'intertitre
+ *      coiffe les siens) ; à égalité encore, l'ordre livré des groupes, puis
+ *      la coupure la plus tôt.
+ * Une tranche sans aucune entrée visible de son groupe (le Studio au niveau
+ * Essentiel) n'a pas d'intertitre à porter : ses entrées rejoignent la
+ * tranche précédente, à leur place.
+ *
+ * `visible` : les entrées réellement affichées (niveau, greffons, masquées).
+ * Par défaut, toutes. Le résultat compte toujours `n` tranches, la première
+ * du groupe 0 ; leur concaténation est `liste`, telle quelle.
+ */
+export function repartirEnGroupes<T>(
+  liste: readonly T[],
+  groupe: (it: T) => number,
+  n: number,
+  visible: (it: T) => boolean = () => true,
+): Tranche<T>[] {
+  const L = liste.length;
+  // Sommes cumulées par groupe : entrées du groupe, et entrées VISIBLES du groupe.
+  const chez: number[][] = [];
+  const vus: number[][] = [];
+  for (let k = 0; k < n; k++) {
+    const c = [0];
+    const v = [0];
+    for (let x = 0; x < L; x++) {
+      const g = groupe(liste[x]) === k;
+      c.push(c[x] + (g ? 1 : 0));
+      v.push(v[x] + (g && visible(liste[x]) ? 1 : 0));
+    }
+    chez.push(c);
+    vus.push(v);
+  }
+  // Ordre lexicographique ramené à un seul nombre : la règle 3 vaut au plus
+  // n points, la règle 2 en vaut n + 1 par entrée, la règle 1 plus que tout.
+  const P2 = n + 1;
+  const P1 = (L + 1) * P2 * (n + 1);
+  const note = (k: number, j: number, i: number) =>
+    P2 * (chez[k][i] - chez[k][j])
+    + (j < i && groupe(liste[j]) === k ? 1 : 0)
+    - (vus[k][L] > 0 && vus[k][i] - vus[k][j] === 0 ? P1 : 0);
+
+  let retenu: { note: number; groupes: number[]; bornes: number[] } | null = null;
+  const autres = Array.from({ length: n - 1 }, (_, i) => i + 1);
+  for (const suite of permutations(autres)) {
+    const groupes = [0, ...suite];
+    // meilleur[p][i] : la meilleure note des i premières entrées réparties
+    // dans les tranches 0..p ; coupe[p][i] : début de la tranche p.
+    const meilleur: number[][] = [];
+    const coupe: number[][] = [];
+    for (let p = 0; p < n; p++) {
+      meilleur.push(new Array(L + 1).fill(0));
+      coupe.push(new Array(L + 1).fill(0));
+      for (let i = 0; i <= L; i++) {
+        if (p === 0) { meilleur[0][i] = note(0, 0, i); continue; }
+        let best = -Infinity;
+        let bestJ = 0;
+        for (let j = 0; j <= i; j++) {
+          const v = meilleur[p - 1][j] + note(groupes[p], j, i);
+          if (v > best) { best = v; bestJ = j; }
+        }
+        meilleur[p][i] = best;
+        coupe[p][i] = bestJ;
+      }
+    }
+    const total = meilleur[n - 1][L];
+    if (retenu && total <= retenu.note) continue;
+    const bornes = new Array(n + 1).fill(0);
+    bornes[n] = L;
+    for (let p = n - 1; p >= 1; p--) bornes[p] = coupe[p][bornes[p + 1]];
+    retenu = { note: total, groupes, bornes };
+  }
+  const { groupes, bornes } = retenu!;
+  const tranches: Tranche<T>[] = groupes.map((g, p) => ({ groupe: g, entrees: liste.slice(bornes[p], bornes[p + 1]) }));
+  // Pas d'intertitre sans au moins une entrée visible du groupe : la tranche
+  // se fond dans la précédente, à sa place.
+  for (let p = n - 1; p >= 1; p--) {
+    const t = tranches[p];
+    if (!t.entrees.some((it) => groupe(it) === t.groupe && visible(it))) {
+      tranches[p - 1].entrees.push(...t.entrees);
+      t.entrees = [];
+    }
+  }
+  return tranches;
 }
 
 /** Déplace l'élément d'indice `de` à l'indice `vers` (bornés). */
