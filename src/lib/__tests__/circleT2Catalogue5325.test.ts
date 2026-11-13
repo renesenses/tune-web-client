@@ -374,7 +374,8 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     expect(tuiles[0].querySelector('.placeholder svg')).not.toBeNull();
     // …sans repli sur l'album LOCAL qui porterait le même numéro que celui de l'ami.
     expect(appels.filter((x) => !x.url.includes('/ext/circle') && /\/library\/albums\/\d+/.test(x.url))).toEqual([]);
-    expect(lecturesCatalogue()).toEqual(['/contacts/40/library/stats', '/contacts/40/library/albums?page=1&per_page=50']);
+    // web#2985 : la première page part AVANT les chiffres, qu'elle n'attend plus.
+    expect(lecturesCatalogue()).toEqual(['/contacts/40/library/albums?page=1&per_page=50', '/contacts/40/library/stats']);
 
     await cliquer(el, 'button.album-contact');
     expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/albums/11/tracks');
@@ -469,7 +470,7 @@ describe('T2 — contact révoqué, partage coupé : 404', () => {
     const avant = lecturesCatalogue().length;
     await ouvrirElise(el);
     expect(lecturesCatalogue().slice(avant)).toEqual([
-      '/contacts/40/library/stats', '/contacts/40/library/albums?page=1&per_page=50',
+      '/contacts/40/library/albums?page=1&per_page=50', '/contacts/40/library/stats',
     ]);
     expect(el.querySelector('.pistes-contact')).toBeNull();
     expect(noms(el, 'button.album-contact .album-nom')).toHaveLength(2);
