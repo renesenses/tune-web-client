@@ -7359,6 +7359,7 @@ export default {
   "app.task.writeMetadata": "Metaadatok írása a fájlokba…",
   "app.task.readMetadata": "Fájlok metaadatainak olvasása…",
   "app.task.readClassical": "Művek, tételek és együttesek beolvasása…",
+  "app.task.shareArtistImages": "Előadóképek megosztása a közösséggel…",
   "app.task.composers": "Zeneszerzők keresése…",
   "app.task.lyrics": "Dalszövegek lekérése…",
   "app.task.writeLyrics": "Dalszövegek írása a fájlokba…",

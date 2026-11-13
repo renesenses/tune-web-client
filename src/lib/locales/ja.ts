@@ -7400,6 +7400,7 @@ export default {
   "app.task.writeMetadata": "メタデータをファイルに書き込み中…",
   "app.task.readMetadata": "ファイルのメタデータを読み込み中…",
   "app.task.readClassical": "作品・楽章・アンサンブルを読み込み中…",
+  "app.task.shareArtistImages": "アーティスト画像をコミュニティと共有中…",
   "app.task.composers": "作曲者を検索中…",
   "app.task.lyrics": "歌詞を取得中…",
   "app.task.writeLyrics": "歌詞をファイルに書き込み中…",

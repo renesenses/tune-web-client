@@ -7399,6 +7399,7 @@ export default {
   "app.task.writeMetadata": "Skriver metadata till filer…",
   "app.task.readMetadata": "Läser filmetadata…",
   "app.task.readClassical": "Läser verk, satser och ensembler…",
+  "app.task.shareArtistImages": "Delar artistbilder med gemenskapen…",
   "app.task.composers": "Söker kompositörer…",
   "app.task.lyrics": "Hämtar låttexter…",
   "app.task.writeLyrics": "Skriver låttexter till filer…",

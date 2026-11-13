@@ -7252,6 +7252,7 @@ export default {
   "app.task.writeMetadata": "Đang ghi siêu dữ liệu vào tệp…",
   "app.task.readMetadata": "Đang đọc siêu dữ liệu của tệp…",
   "app.task.readClassical": "Đang đọc tác phẩm, chương nhạc và dàn nhạc…",
+  "app.task.shareArtistImages": "Đang chia sẻ ảnh nghệ sĩ với cộng đồng…",
   "app.task.composers": "Đang tìm nhạc sĩ sáng tác…",
   "app.task.lyrics": "Đang lấy lời bài hát…",
   "app.task.writeLyrics": "Đang ghi lời bài hát vào tệp…",
