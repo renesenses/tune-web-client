@@ -231,7 +231,8 @@ describe('#1827 — la barre suit le choix', () => {
     expect(sequenceLibre().slice(0, 6)).toEqual(['home', 'search', 'nowplaying', 'queue', 'history', 'favorites']);
     const sel = Array.from(hote!.querySelectorAll<HTMLElement>('nav[data-groupe="selections"] button.nav[data-vue]'))
       .map((b) => b.dataset.vue!);
-    expect(sel).toEqual(['collections', 'playlistmanager', 'ecouterplustard', 'tags']);
+    // web#2971 — `playlistmanager` enregistré se lit `playlists`, à sa place.
+    expect(sel).toEqual(['collections', 'playlists', 'ecouterplustard', 'tags']);
     const studio = Array.from(hote!.querySelectorAll<HTMLElement>('nav[data-groupe="studio"] button.nav[data-vue]'))
       .map((b) => b.dataset.vue!);
     // Son ordre à lui (Crossfeed en tête), filtré des greffons absents et des masquées.
