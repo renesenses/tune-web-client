@@ -4317,6 +4317,7 @@ export default {
   "v2.sup.bugSendError": "Invio non riuscito. Riprova, oppure copia il rapporto nel forum.",
   "v2.sup.bugRateLimited": "Limite di invio raggiunto: il forum accetta solo un numero limitato di rapporti all’ora. Riprova entro un’ora al massimo, oppure copia il rapporto nel forum.",
   "v2.sup.bugRateLimitedRetry": "Limite di invio raggiunto: il forum accetta solo un numero limitato di rapporti all’ora. Riprova {delay}, oppure copia il rapporto nel forum.",
+  "v2.sup.bugRejectedBySite": "Il forum ha rifiutato il rapporto: {reason} Copia il rapporto e pubblicalo direttamente nel forum.",
   "v2.sup.bugImages": "Schermate e registri (facoltativo)",
   "v2.sup.bugImagesHint": "Fino a 3 immagini (PNG, JPEG, GIF o WebP) da 4 MB ciascuna e 3 registri (.log, .txt, .json o .zip) da 10 MB ciascuno. Vengono aggiunti alla discussione del forum.",
   "v2.sup.bugImagesTooMany": "Troppe schermate: al massimo {max} immagini.",

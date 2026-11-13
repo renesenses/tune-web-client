@@ -4190,6 +4190,7 @@ export default {
   "v2.sup.bugSendError": "Sendingen mislyktes. Prøv igjen, eller kopier rapporten inn i forumet.",
   "v2.sup.bugRateLimited": "Sendegrensen er nådd: forumet tar bare imot et begrenset antall rapporter per time. Prøv igjen om en time på det meste, eller kopier rapporten inn i forumet.",
   "v2.sup.bugRateLimitedRetry": "Sendegrensen er nådd: forumet tar bare imot et begrenset antall rapporter per time. Prøv igjen {delay}, eller kopier rapporten inn i forumet.",
+  "v2.sup.bugRejectedBySite": "Forumet avviste rapporten: {reason} Kopier rapporten og publiser den direkte i forumet.",
   "v2.sup.bugImages": "Skjermbilder og logger (valgfritt)",
   "v2.sup.bugImagesHint": "Opptil 3 bilder (PNG, JPEG, GIF eller WebP) på 4 MB hver, og 3 logger (.log, .txt, .json eller .zip) på 10 MB hver. De legges til i forumtråden.",
   "v2.sup.bugImagesTooMany": "For mange skjermbilder: høyst {max} bilder.",

@@ -4194,6 +4194,7 @@ export default {
   "v2.sup.bugSendError": "Gửi thất bại. Hãy thử lại, hoặc sao chép báo cáo vào diễn đàn.",
   "v2.sup.bugRateLimited": "Đã đạt giới hạn gửi: diễn đàn chỉ chấp nhận một số lượng báo cáo giới hạn mỗi giờ. Hãy thử lại trong vòng tối đa một giờ, hoặc sao chép báo cáo vào diễn đàn.",
   "v2.sup.bugRateLimitedRetry": "Đã đạt giới hạn gửi: diễn đàn chỉ chấp nhận một số lượng báo cáo giới hạn mỗi giờ. Hãy thử lại {delay}, hoặc sao chép báo cáo vào diễn đàn.",
+  "v2.sup.bugRejectedBySite": "Diễn đàn đã từ chối báo cáo: {reason} Hãy sao chép báo cáo và đăng trực tiếp lên diễn đàn.",
   "v2.sup.bugImages": "Ảnh chụp màn hình và nhật ký (không bắt buộc)",
   "v2.sup.bugImagesHint": "Tối đa 3 ảnh (PNG, JPEG, GIF hoặc WebP), mỗi ảnh 4 MB, và 3 tệp nhật ký (.log, .txt, .json hoặc .zip), mỗi tệp 10 MB. Chúng sẽ được thêm vào chủ đề trên diễn đàn.",
   "v2.sup.bugImagesTooMany": "Quá nhiều ảnh chụp màn hình: tối đa {max} ảnh.",

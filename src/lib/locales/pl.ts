@@ -4190,6 +4190,7 @@ export default {
   "v2.sup.bugSendError": "Wysyłanie nie powiodło się. Spróbuj ponownie lub skopiuj raport na forum.",
   "v2.sup.bugRateLimited": "Osiągnięto limit wysyłania: forum przyjmuje ograniczoną liczbę raportów na godzinę. Spróbuj ponownie najpóźniej za godzinę lub skopiuj raport na forum.",
   "v2.sup.bugRateLimitedRetry": "Osiągnięto limit wysyłania: forum przyjmuje ograniczoną liczbę raportów na godzinę. Spróbuj ponownie {delay} lub skopiuj raport na forum.",
+  "v2.sup.bugRejectedBySite": "Forum odrzuciło raport: {reason} Skopiuj raport i opublikuj go bezpośrednio na forum.",
   "v2.sup.bugImages": "Zrzuty ekranu i dzienniki (opcjonalnie)",
   "v2.sup.bugImagesHint": "Do 3 obrazów (PNG, JPEG, GIF lub WebP), po 4 MB każdy, oraz 3 dzienniki (.log, .txt, .json lub .zip), po 10 MB każdy. Zostaną dodane do wątku na forum.",
   "v2.sup.bugImagesTooMany": "Zbyt wiele zrzutów ekranu: maksymalnie {max} obrazów.",

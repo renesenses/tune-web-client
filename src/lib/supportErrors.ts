@@ -151,3 +151,28 @@ export function messageLimiteRapportBogue(e: unknown, tr: Traduire, locale: stri
     ? tr('v2.sup.bugRateLimited')
     : tr('v2.sup.bugRateLimitedRetry', { delay: delaiLisible(secondes, locale) });
 }
+
+/**
+ * #8627 — le refus du site, avec son MOTIF, ou `null`.
+ *
+ * Quand le site refuse un rapport (422 : sa mise en forme aurait effacé le
+ * texte du testeur, site-mozaiklabs#529), le serveur rend désormais le statut
+ * 422, le code `site_rejected` et la phrase du site sous `site_message`.
+ * L'écran disait « Échec de l'envoi. Réessayez… » : réessayer le même rapport
+ * échoue pareil, et consomme un des envois de l'heure. On dit le motif, et on
+ * propose le forum.
+ *
+ * Sans motif lisible (serveur antérieur, corps vide), `null` : l'écran garde
+ * son message générique.
+ */
+export function messageRefusDuSiteRapportBogue(e: unknown, tr: Traduire): string | null {
+  const corps = (e as { corps?: unknown } | null | undefined)?.corps as
+    | { code?: unknown; error?: unknown; site_message?: unknown }
+    | null
+    | undefined;
+  const refus = corps?.code === 'site_rejected' || corps?.error === 'site_rejected' || statutHttp(e) === 422;
+  if (!refus) return null;
+  const motif = typeof corps?.site_message === 'string' ? corps.site_message.trim() : '';
+  if (!motif) return null;
+  return tr('v2.sup.bugRejectedBySite', { reason: motif });
+}
