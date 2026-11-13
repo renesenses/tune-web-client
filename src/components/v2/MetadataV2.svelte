@@ -753,10 +753,12 @@
     dBusy = false;
   }
 
-  async function chargerDouteuses() {
+  /** `discret` : relue sans repasser par « Chargement… », qui démonterait
+   *  la liste et le bilan qu'elle affiche (#8679). */
+  async function chargerDouteuses(discret = false) {
     if (dLoaded) return;
     dLoaded = true;
-    dLoading = true;
+    dLoading = !discret;
     const tous: PisteDouteuse[] = [];
     try {
       for (let offset = 0; ; offset += 1000) {
@@ -1289,7 +1291,9 @@
     {:else}
       <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
 
-      <PistesDouteuses pistes={doubtful} />
+      <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
+           vient du serveur, on la relit après l'écriture. -->
+      <PistesDouteuses pistes={doubtful} onEcrit={async () => { dLoaded = false; await chargerDouteuses(true); }} />
 
       {#if dGroupes.length}
         <div class="cpacts">
