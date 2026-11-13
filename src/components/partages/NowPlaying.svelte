@@ -1907,7 +1907,7 @@ import { ICONES } from '../../lib/menuPiste';
                  logo à l'écran. -->
             {#if isRadio && logoStation}
               <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
-                <AlbumArt coverPath={logoStation} albumId={null} size={64} alt={displayTrack.album_title || 'Radio'} />
+                <AlbumArt coverPath={logoStation} albumId={null} size={0} recadrer alt={displayTrack.album_title || 'Radio'} />
               </span>
             {/if}
             {#if !ytActive}
@@ -4495,12 +4495,14 @@ import { ICONES } from '../../lib/menuPiste';
     aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
-    background: #fff;
+    display: grid;
+    background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
     pointer-events: none;
   }
   .np-logo-coin :global(.album-art) {
+    border-radius: inherit;
     width: 100% !important;
     height: 100% !important;
     box-shadow: none !important;
