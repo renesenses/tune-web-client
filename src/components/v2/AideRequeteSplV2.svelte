@@ -23,6 +23,7 @@
 <div class="doc" data-requete-doc>
   <p>{$t('v2.spl.reqDoc.forme' as any)}</p>
   <p>{$t('v2.spl.reqDoc.vide' as any)}</p>
+  <p>{$t('v2.spl.reqDoc.motsTels' as any)}</p>
 
   <span class="lbl">{$t('v2.spl.reqDoc.titreOperateurs' as any)}</span>
   <table>
@@ -38,6 +39,7 @@
     </tbody>
   </table>
   <p>{$t('v2.spl.reqDoc.coPriorite' as any)}</p>
+  <p data-requete-niveaux>{$t('v2.spl.reqDoc.niveaux' as any)}</p>
 
   <span class="lbl">{$t('v2.spl.reqDoc.titreChamps' as any)}</span>
   {#each GROUPES as g (g.titreKey)}

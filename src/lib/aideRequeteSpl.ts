@@ -107,6 +107,6 @@ export const EXEMPLES: Ligne[] = [
   { ecriture: '(compositeur:Bach ou compositeur:Haendel) duree>10min', labelKey: 'v2.spl.reqDoc.exBach' },
   { ecriture: 'ecoutes>=5 derniere_ecoute<2025-01-01', labelKey: 'v2.spl.reqDoc.exOublies' },
   { ecriture: 'bits:24 frequence>=88200 non hires:douteux', labelKey: 'v2.spl.reqDoc.exHires' },
-  { ecriture: 'genre:classique non credit(role: producer)', labelKey: 'v2.spl.reqDoc.exClassique' },
+  { ecriture: 'genre:classical non credit(role: producer)', labelKey: 'v2.spl.reqDoc.exClassique' },
   { ecriture: 'ajout:30j source:local', labelKey: 'v2.spl.reqDoc.exAjouts' },
 ];

@@ -43,6 +43,10 @@ describe('l’aide de la requête avancée', () => {
     expect(doc.textContent).toContain('compositeur');
     expect(doc.textContent).toContain('derniere_ecoute');
     expect(doc.textContent).toContain(tr('v2.spl.reqDoc.chHires'));
+    // Une requête imbriquée ou niée s'essaie mais ne s'enregistre pas (relecture de site#532).
+    expect(doc.querySelector('[data-requete-niveaux]')?.textContent).toBe(tr('v2.spl.reqDoc.niveaux'));
+    expect(tr('v2.spl.reqDoc.niveaux')).toContain('ne s\'enregistre pas');
+    expect(doc.textContent).toContain(tr('v2.spl.reqDoc.motsTels'));
     bouton.click();
     flushSync();
     expect(cible.querySelector('[data-requete-doc]')).toBeNull();
