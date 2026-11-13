@@ -96,7 +96,7 @@ describe('web#2534 — le label dans Lecture en cours', () => {
   });
 
   it('la piste qui porte son label n’interroge pas l’album', async () => {
-    const racine = await poser({ ...LOCALE, label: 'Sire' });
+    const racine = await poser({ ...LOCALE, label: 'Sire', year: 1997 });
     await vi.waitFor(() => { flushSync(); expect(racine.querySelector('[data-np-label]')?.textContent).toContain('Sire'); });
     expect(appelsAlbum).toBe(0);
   });

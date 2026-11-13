@@ -67,6 +67,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
   import { labelDe } from '../../lib/artistesDuLabel';
+  import { anneeAlbum } from '../../lib/anneeAlbum';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -1201,25 +1202,38 @@ import { ICONES } from '../../lib/menuPiste';
    * piste de service sans label connu n'affiche rien : pas de lien mort.
    */
   let labelAlbum = $state<string | null>(null);
-  /** Les labels déjà lus, par album : un retour sur le même album ne relit rien. */
-  const labelsLus = new Map<number, string | null>();
-  const labelsEnVol = new Set<number>();
+  let anneeAlbumLue = $state<number | null>(null);
+  let anneeAffichee = $derived(displayTrack?.year || anneeAlbumLue);
+  // Une lecture commune pour le label et l’année : le now-playing peut
+  // porter l’année vide de la piste alors que l’album a une année connue.
+  const albumsLus = new Map<number, { label: string | null; annee: number | null }>();
+  const albumsEnVol = new Set<number>();
   $effect(() => {
     const direct = labelDe(displayTrack as any);
+    const anneeDirecte = displayTrack?.year;
     const brut = albumIdOf(displayTrack);
     const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
-    if (direct || id == null) { labelAlbum = direct; return; }
-    if (labelsLus.has(id)) { labelAlbum = labelsLus.get(id) ?? null; return; }
-    labelAlbum = null;
-    if (labelsEnVol.has(id)) return;
-    labelsEnVol.add(id);
+    labelAlbum = direct;
+    anneeAlbumLue = null;
+    if (id == null || (direct && anneeDirecte)) return;
+    const dejaLu = albumsLus.get(id);
+    if (dejaLu) {
+      labelAlbum = direct ?? dejaLu.label;
+      anneeAlbumLue = dejaLu.annee;
+      return;
+    }
+    if (albumsEnVol.has(id)) return;
+    albumsEnVol.add(id);
     api.getAlbum(id).then(
       (a) => {
-        labelsLus.set(id, labelDe(a as any));
-        if (albumIdOf(displayTrack) === id) labelAlbum = labelsLus.get(id) ?? null;
+        const meta = { label: labelDe(a as any), annee: anneeAlbum(a) };
+        albumsLus.set(id, meta);
+        if (albumIdOf(displayTrack) !== id) return;
+        labelAlbum = labelDe(displayTrack as any) ?? meta.label;
+        anneeAlbumLue = meta.annee;
       },
       () => {},
-    ).finally(() => labelsEnVol.delete(id));
+    ).finally(() => albumsEnVol.delete(id));
   });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
@@ -2083,7 +2097,7 @@ import { ICONES } from '../../lib/menuPiste';
                  l'année. Elle est désormais sa VOISINE, hors du bouton. -->
             <div class="track-album-ligne">
               <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
-              {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
+              {#if anneeAffichee}<LienEntite classe="track-year" entite={{ type: 'annee', annee: anneeAffichee }} texte={`(${anneeAffichee})`} />{/if}
             </div>
           {/if}
           {#if !isRadio && labelAlbum}
