@@ -11589,7 +11589,11 @@ export function getAlbumHiRes(albumId: number) {
 }
 /** tune-server-rust#6285 — l'état de la passe des faux Hi-Res : armée ou non,
  *  verdict « douteux » montré ou non, pistes restant à mesurer, pistes rangées. */
-export interface EtatFauxHiRes { active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number }
+export interface EtatFauxHiRes {
+  active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
+  /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
+  catalogue_hires_verdict?: boolean;
+}
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {
   return fetchJSON<EtatFauxHiRes>(`${BASE}/library/hires-check`, undefined, undefined, true);
