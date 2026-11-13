@@ -3110,6 +3110,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     refermerCalqueAlbumSansReculer();
   });
 
+  /** tune-server-rust#8668 — le pays cliqué sur la fiche d'un artiste :
+   *  « Pays de l'artiste », carte ouverte pour qu'on voie le filtre. */
+  function choisirPaysArtiste(code: string) {
+    sourcePays = 'artiste';
+    paysChoisi = paysArtisteChoisi(code);
+    carteOuverte = true;
+  }
+
   /**
    * web#2653 — un FORMAT ou une FRÉQUENCE demandés par une barre de l'écran
    * des statistiques. Même contrat que l'année ci-dessus (`$store`, pas
@@ -3124,14 +3132,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
-      else if ('frequence' in f) fRate = [f.frequence];
-      else {
-        // tune-server-rust#8668 — le pays cliqué sur la fiche d'un artiste :
-        // « Pays de l'artiste », carte ouverte pour qu'on voie le filtre.
-        sourcePays = 'artiste';
-        paysChoisi = paysArtisteChoisi(f.paysArtiste);
-        carteOuverte = true;
-      }
+      else if ('paysArtiste' in f) choisirPaysArtiste(f.paysArtiste);
+      else fRate = [f.frequence];
       tabChoisi = 'albums';
       refermerCalqueAlbumSansReculer();
     });
