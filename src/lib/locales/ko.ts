@@ -6395,7 +6395,6 @@ export default {
   "v2.radio.tabDirectory": "디렉터리",
   "v2.radio.dir.allCountries": "모든 국가",
   "v2.radio.dir.count": "방송국 {n}개",
-  "v2.radio.filters.toggle": "필터 더 보기",
   "v2.radio.filters.format": "포맷",
   "v2.radio.filters.anyFormat": "모든 포맷",
   "v2.radio.filters.bitrateMin": "최소 비트레이트",

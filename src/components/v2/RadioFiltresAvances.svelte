@@ -1,14 +1,19 @@
 <script lang="ts">
   /**
-   * tune-server-rust#7466 — « Plus de filtres » : la barre repliable des
-   * critères de recherche de radios, LA MÊME sur « Mes radios » et sur
-   * « Annuaire ». Format, qualité minimale (tune-server-rust#7718), sans perte, Hi-Res, Metadata+ et
-   * favoris ; le serveur les combine en ET.
+   * tune-server-rust#7466 — les critères de recherche de radios, LES MÊMES
+   * sur « Mes radios » et sur « Annuaire ». Format, qualité minimale
+   * (tune-server-rust#7718), sans perte, Hi-Res, Metadata+ et favoris ; le
+   * serveur les combine en ET.
+   *
+   * Recette rc12 (13/11) : plus de bouton « Plus de filtres » ni de barre
+   * repliée. Les critères sont toujours visibles, sur la MÊME ligne que la
+   * recherche et le filtre « Pays » : la racine est en `display: contents`,
+   * ses champs deviennent des éléments de la ligne flexible du parent, qui
+   * passe à la ligne sur un écran étroit. Ordre au clavier : recherche, pays,
+   * format, qualité, cases, puis « Effacer ».
    *
    * Le choix est retenu dans les préférences (`radioFiltres`), comme les
    * autres choix d'affichage : il suit le profil d'un appareil à l'autre.
-   * La barre se replie, mais reste ouverte d'elle-même quand un critère est
-   * actif, pour qu'un filtre ne cache jamais des stations sans le dire.
    */
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
@@ -26,8 +31,6 @@
 
   const filtres = $derived(normaliserFiltresRadio($preferences.radioFiltres));
   const actifs = $derived(nombreDeFiltresActifs(filtres));
-  let ouvert = $state(false);
-  const deplie = $derived(ouvert || actifs > 0);
 
   function poser(patch: Partial<FiltresRadio>) {
     const suivant = { ...filtres, ...patch };
@@ -38,65 +41,52 @@
   }
 </script>
 
-<div class="rfa">
-  <div class="tete">
-    <button class="v2-btn bascule" class:on={deplie} aria-expanded={deplie}
-      onclick={() => (ouvert = !deplie)} data-testid="radio-filtres-bascule">
-      {$t('v2.radio.filters.toggle' as any)}{#if actifs} <span class="n">{actifs}</span>{/if}
-    </button>
-    {#if total != null}
-      <span class="total" data-testid="radio-filtres-total">{$t('v2.radio.dir.count' as any).replace('{n}', String(total))}</span>
-    {/if}
-    {#if actifs}
-      <button class="lien" onclick={effacer}>{$t('v2.radio.filters.reset' as any)}</button>
-    {/if}
-  </div>
-  {#if deplie}
-    <div class="corps" data-testid="radio-filtres-corps">
-      <select class="choix" aria-label={$t('v2.radio.filters.format' as any)}
-        value={filtres.codec ?? ''}
-        onchange={(e) => poser({ codec: (e.currentTarget as HTMLSelectElement).value || null })}>
-        <option value="">{$t('v2.radio.filters.anyFormat' as any)}</option>
-        {#each FORMATS_RADIO as f (f)}
-          <option value={f}>{f.toUpperCase()}</option>
-        {/each}
-      </select>
-      <select class="choix" aria-label={$t('v2.radio.filters.qualityMin' as any)} data-testid="radio-filtres-qualite"
-        value={filtres.qualiteMin ?? ''}
-        onchange={(e) => poser({ qualiteMin: (e.currentTarget as HTMLSelectElement).value || null })}>
-        <option value="">{$t('v2.radio.filters.anyQuality' as any)}</option>
-        {#each DEBITS_RADIO as d (d)}
-          <option value={String(d)}>{$t('v2.radio.filters.kbps' as any).replace('{n}', String(d))}</option>
-        {/each}
-        {#each NIVEAUX_SANS_PERTE_RADIO as [v, q] (v)}
-          <option value={v}>{$t('v2.radio.filters.flac' as any).replace('{q}', q)}</option>
-        {/each}
-      </select>
-      <label class="case"><input type="checkbox" checked={filtres.lossless}
-        onchange={(e) => poser({ lossless: (e.currentTarget as HTMLInputElement).checked })} />
-        {$t('v2.radio.filters.lossless' as any)}</label>
-      <label class="case"><input type="checkbox" checked={filtres.hires}
-        onchange={(e) => poser({ hires: (e.currentTarget as HTMLInputElement).checked })} />
-        {$t('v2.radio.filters.hires' as any)}</label>
-      <label class="case"><input type="checkbox" checked={filtres.metadataPlus} data-testid="radio-filtres-mdp"
-        onchange={(e) => poser({ metadataPlus: (e.currentTarget as HTMLInputElement).checked })} />
-        <BadgeMetadataPlus /></label>
-      <label class="case"><input type="checkbox" checked={filtres.favoris}
-        onchange={(e) => poser({ favoris: (e.currentTarget as HTMLInputElement).checked })} />
-        {$t('v2.radio.filters.favorites' as any)}</label>
-    </div>
+<div class="rfa" data-testid="radio-filtres-corps">
+  <select class="choix" aria-label={$t('v2.radio.filters.format' as any)}
+    value={filtres.codec ?? ''}
+    onchange={(e) => poser({ codec: (e.currentTarget as HTMLSelectElement).value || null })}>
+    <option value="">{$t('v2.radio.filters.anyFormat' as any)}</option>
+    {#each FORMATS_RADIO as f (f)}
+      <option value={f}>{f.toUpperCase()}</option>
+    {/each}
+  </select>
+  <select class="choix" aria-label={$t('v2.radio.filters.qualityMin' as any)} data-testid="radio-filtres-qualite"
+    value={filtres.qualiteMin ?? ''}
+    onchange={(e) => poser({ qualiteMin: (e.currentTarget as HTMLSelectElement).value || null })}>
+    <option value="">{$t('v2.radio.filters.anyQuality' as any)}</option>
+    {#each DEBITS_RADIO as d (d)}
+      <option value={String(d)}>{$t('v2.radio.filters.kbps' as any).replace('{n}', String(d))}</option>
+    {/each}
+    {#each NIVEAUX_SANS_PERTE_RADIO as [v, q] (v)}
+      <option value={v}>{$t('v2.radio.filters.flac' as any).replace('{q}', q)}</option>
+    {/each}
+  </select>
+  <label class="case"><input type="checkbox" checked={filtres.lossless}
+    onchange={(e) => poser({ lossless: (e.currentTarget as HTMLInputElement).checked })} />
+    {$t('v2.radio.filters.lossless' as any)}</label>
+  <label class="case"><input type="checkbox" checked={filtres.hires} data-testid="radio-filtres-hires"
+    onchange={(e) => poser({ hires: (e.currentTarget as HTMLInputElement).checked })} />
+    {$t('v2.radio.filters.hires' as any)}</label>
+  <label class="case"><input type="checkbox" checked={filtres.metadataPlus} data-testid="radio-filtres-mdp"
+    onchange={(e) => poser({ metadataPlus: (e.currentTarget as HTMLInputElement).checked })} />
+    <BadgeMetadataPlus /></label>
+  <label class="case"><input type="checkbox" checked={filtres.favoris}
+    onchange={(e) => poser({ favoris: (e.currentTarget as HTMLInputElement).checked })} />
+    {$t('v2.radio.filters.favorites' as any)}</label>
+  {#if actifs}
+    <button class="lien" onclick={effacer} data-testid="radio-filtres-effacer">{$t('v2.radio.filters.reset' as any)}</button>
+  {/if}
+  {#if total != null}
+    <span class="total" data-testid="radio-filtres-total">{$t('v2.radio.dir.count' as any).replace('{n}', String(total))}</span>
   {/if}
 </div>
 
 <style>
-  .rfa{display:flex; flex-direction:column; gap:8px}
-  .tete{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
-  .bascule .n{font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); margin-left:4px; padding:0 5px; border-radius:var(--v2-r-pill);
-    background:var(--v2-acc2); color:var(--v2-on-acc)}
+  /* Les champs rejoignent la ligne flexible du parent (recherche, pays). */
+  .rfa{display:contents}
   .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .lien{background:none; border:0; padding:0; cursor:pointer; color:var(--v2-acc2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lien:hover{text-decoration:underline}
-  .corps{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
   .case{display:inline-flex; align-items:center; gap:6px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); cursor:pointer}

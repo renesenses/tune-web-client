@@ -6354,7 +6354,6 @@ export default {
   "v2.radio.tabDirectory": "Katalógus",
   "v2.radio.dir.allCountries": "Minden ország",
   "v2.radio.dir.count": "{n} állomás",
-  "v2.radio.filters.toggle": "További szűrők",
   "v2.radio.filters.format": "Formátum",
   "v2.radio.filters.anyFormat": "Minden formátum",
   "v2.radio.filters.bitrateMin": "Minimális bitráta",

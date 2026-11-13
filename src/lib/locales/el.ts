@@ -6246,7 +6246,6 @@ export default {
   "v2.radio.tabDirectory": "Κατάλογος",
   "v2.radio.dir.allCountries": "Όλες οι χώρες",
   "v2.radio.dir.count": "{n} σταθμοί",
-  "v2.radio.filters.toggle": "Περισσότερα φίλτρα",
   "v2.radio.filters.format": "Μορφή",
   "v2.radio.filters.anyFormat": "Όλες οι μορφές",
   "v2.radio.filters.bitrateMin": "Ελάχιστος ρυθμός bit",

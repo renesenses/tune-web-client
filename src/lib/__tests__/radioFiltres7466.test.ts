@@ -7,7 +7,7 @@ import {
 import { CHARGEURS } from '../locales';
 
 
-describe('critères de la barre « Plus de filtres »', () => {
+describe('critères de recherche des radios', () => {
   it('aucun critère : aucun paramètre, rien d’actif', () => {
     expect(parametresDesFiltres(FILTRES_RADIO_VIDES)).toEqual({});
     expect(nombreDeFiltresActifs(FILTRES_RADIO_VIDES)).toBe(0);
@@ -32,15 +32,17 @@ describe('critères de la barre « Plus de filtres »', () => {
   });
 });
 
-const CLES = ['toggle', 'format', 'anyFormat', 'bitrateMin', 'anyBitrate', 'kbps', 'lossless', 'hires', 'favorites', 'reset']
+const CLES = ['format', 'anyFormat', 'bitrateMin', 'anyBitrate', 'kbps', 'lossless', 'hires', 'favorites', 'reset']
   .map((k) => `v2.radio.filters.${k}`);
 
-describe('libellés de « Plus de filtres » dans toutes les langues', () => {
+describe('libellés des critères radio dans toutes les langues', () => {
   it.each(Object.keys(CHARGEURS))('%s', async (langue) => {
     const dict = (await CHARGEURS[langue as keyof typeof CHARGEURS]()).default;
     for (const cle of CLES) {
       expect(dict[cle], `${langue} : ${cle}`).toBeTruthy();
     }
     expect(dict['v2.radio.filters.kbps']).toContain('{n}');
+    // Recette rc12 (13/11) : le bouton « Plus de filtres » n'existe plus.
+    expect(dict['v2.radio.filters.toggle'], `${langue} : clé orpheline`).toBeUndefined();
   });
 });

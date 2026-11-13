@@ -222,7 +222,9 @@ describe('filtre par genre : des boutons partout', () => {
     onglet(1).click();
     await respirer();
     expect(hote.querySelectorAll('.annuaire .chip').length).toBe(3);
-    expect(hote.querySelectorAll('.annuaire select').length).toBe(1);
+    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12.
+    expect([...hote.querySelectorAll('.annuaire select')]
+      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]')).length).toBe(1);
   });
 });
 
