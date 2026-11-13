@@ -7362,6 +7362,22 @@ export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
 }
 
+/**
+ * tune-server-rust#8452 — Cover+ par station : la pochette du titre en cours,
+ * retrouvée d'après le titre ICY quand la station n'en donne pas. Actif par
+ * défaut ; `enabled: false` le coupe pour cette station.
+ */
+export function getRadioCoverPlus(id: number) {
+  return fetchJSON<{ id: number; enabled: boolean }>(`${BASE}/radios/${id}/cover-plus`);
+}
+
+export function setRadioCoverPlus(id: number, enabled: boolean) {
+  return fetchJSON<{ id: number; enabled: boolean }>(`${BASE}/radios/${id}/cover-plus`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 /** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
  *  (`tune-server/src/routes/radios.rs:937-982`) : `zone_id` — et non `id` —,
  *  le NOM de la radio dans `radio`, et l'état de la zone dans `state`. Les
