@@ -19,17 +19,32 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZone, currentZoneId } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
+  import { onDestroy, untrack } from 'svelte';
 
   let etat = $state<api.LoudnessState | null>(null);
   let erreur = $state(false);
   let enCours = $state(false);
 
+  /** Numéro de la dernière lecture ou écriture lancée : une réponse plus
+   *  ancienne qui reviendrait après une plus récente est jetée. */
+  let numero = 0;
+
+  /** Relire l'état de `zid`. `garder` : une lecture vide ne retire pas
+   *  l'état affiché (relecture après un changement de volume). */
+  function relire(zid: number, garder = false) {
+    const n = ++numero;
+    lire(zid).then((e) => {
+      if (n !== numero || !estLaZoneAffichee(zid)) return;
+      if (e || !garder) etat = e;
+    });
+  }
+
   $effect(() => {
     const zid = $currentZoneId;
     // L'état d'une autre zone ne reste jamais affiché pendant la lecture.
     etat = null;
-    if (zid == null) return;
-    lire(zid).then((e) => { if (estLaZoneAffichee(zid)) etat = e; });
+    if (zid == null) { numero++; return; }
+    relire(zid);
   });
 
   /** Une réponse arrivée après un changement de zone est jetée : elle
@@ -52,17 +67,24 @@
 
   // Le contour dépend du VOLUME : se relire quand il bouge, une demi-seconde
   // après le dernier cran (comme la compensation de niveau).
+  // Le magasin de zone change à chaque tic de position : seul un VRAI
+  // changement de volume relance la relecture. La minuterie vit hors du
+  // nettoyage de l'effet, sinon un tic de position l'annulerait et la
+  // relecture sauterait. Le premier passage (montage) ne relit rien.
   let volumeVu: number | undefined;
+  let monte = false;
+  let minuterie: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
     const vol = $currentZone?.volume;
-    const zid = $currentZoneId;
-    if (volumeVu === undefined || vol === volumeVu || zid == null || !etat) { volumeVu = vol; return; }
+    if (!monte) { monte = true; volumeVu = vol; return; }
+    if (vol === volumeVu) return;
     volumeVu = vol;
-    const h = setTimeout(() => {
-      lire(zid).then((e) => { if (e && estLaZoneAffichee(zid)) etat = e; });
-    }, 500);
-    return () => clearTimeout(h);
+    const zid = untrack(() => $currentZoneId);
+    if (zid == null) return;
+    if (minuterie) clearTimeout(minuterie);
+    minuterie = setTimeout(() => { minuterie = null; relire(zid, true); }, 500);
   });
+  onDestroy(() => { if (minuterie) clearTimeout(minuterie); });
 
   async function ecrire(patch: Partial<api.LoudnessSettings>) {
     const zid = zoneRequise();
@@ -71,13 +93,15 @@
     const avant = etat;
     etat = { ...etat, settings: { ...etat.settings, ...patch } };
     enCours = true;
+    // Une relecture lancée avant ce geste ne doit pas écraser sa réponse.
+    const n = ++numero;
     try {
       const res = await api.setLoudness(zid, patch);
-      if (!estLaZoneAffichee(zid)) return;
+      if (n !== numero || !estLaZoneAffichee(zid)) return;
       if (res?.settings) etat = res;
       erreur = false;
     } catch {
-      if (!estLaZoneAffichee(zid)) return;
+      if (n !== numero || !estLaZoneAffichee(zid)) return;
       etat = avant;
       erreur = true;
     } finally {

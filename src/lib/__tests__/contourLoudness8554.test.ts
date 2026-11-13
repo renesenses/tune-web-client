@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../api', () => mocks);
 
 import ContourLoudnessV2 from '../../components/v2/ContourLoudnessV2.svelte';
-import { currentZoneId } from '../stores/zones';
+import { currentZoneId, zones } from '../stores/zones';
 
 const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 const CLES = [
@@ -53,6 +53,7 @@ function etat(status: string, enabled = true, contour = [{ hz: 63, db: 7.6 }, { 
 
 beforeEach(() => {
   for (const m of Object.values(mocks)) m.mockReset();
+  zones.set([{ id: 1, volume: 0.5, position_ms: 0 } as any, { id: 2, volume: 0.5 } as any]);
   currentZoneId.set(1);
 });
 
@@ -158,6 +159,44 @@ describe('Contour de loudness (#8554)', () => {
     curseur.dispatchEvent(new Event('change', { bubbles: true }));
     await laisserCharger();
     expect(mocks.setLoudness).toHaveBeenCalledWith(1, { reference_phon: 85 });
+  });
+
+  it('🔴 un tic de position après un cran de volume ne fait pas sauter la relecture', async () => {
+    mocks.getLoudness.mockResolvedValue(etat('active'));
+    await poser();
+    expect(mocks.getLoudness).toHaveBeenCalledTimes(1);
+    zones.set([{ id: 1, volume: 0.1, position_ms: 0 } as any, { id: 2, volume: 0.5 } as any]);
+    flushSync();
+    await new Promise((r) => setTimeout(r, 200));
+    zones.set([{ id: 1, volume: 0.1, position_ms: 1000 } as any, { id: 2, volume: 0.5 } as any]);
+    flushSync();
+    await new Promise((r) => setTimeout(r, 450));
+    await laisserCharger();
+    expect(mocks.getLoudness, 'relu une fois après le cran de volume').toHaveBeenCalledTimes(2);
+    // Un tic de position seul ne relit rien.
+    zones.set([{ id: 1, volume: 0.1, position_ms: 2000 } as any, { id: 2, volume: 0.5 } as any]);
+    flushSync();
+    await new Promise((r) => setTimeout(r, 600));
+    expect(mocks.getLoudness).toHaveBeenCalledTimes(2);
+  });
+
+  it('🔴 deux relectures qui reviennent dans le désordre : la plus récente gagne', async () => {
+    const lachers: ((v: unknown) => void)[] = [];
+    mocks.getLoudness.mockImplementationOnce(() => Promise.resolve(etat('active')));
+    mocks.getLoudness.mockImplementation(() => new Promise((r) => { lachers.push(r); }));
+    const el = await poser();
+    zones.set([{ id: 1, volume: 0.1 } as any]);
+    flushSync();
+    await new Promise((r) => setTimeout(r, 600));
+    zones.set([{ id: 1, volume: 0.05 } as any]);
+    flushSync();
+    await new Promise((r) => setTimeout(r, 600));
+    expect(lachers.length).toBe(2);
+    lachers[1](etat('active', true, [{ hz: 63, db: 9.9 }, { hz: 10000, db: 2.0 }]));
+    await laisserCharger();
+    lachers[0](etat('active', true, [{ hz: 63, db: 1.1 }, { hz: 10000, db: 0.2 }]));
+    await laisserCharger();
+    expect(el.querySelector('[data-testid="contour-loudness-etat"]')!.textContent).toContain('+9.9 dB à 63 Hz');
   });
 
   it('dix-huit clés, quinze dictionnaires', () => {
