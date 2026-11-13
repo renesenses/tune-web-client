@@ -1638,18 +1638,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
          accès rapide vers la file d'attente ; une icône dédiée à côté de
          répéter ». La barre avait aléatoire et répéter, et rien vers la file.
-         web#2389 — FabienM, fil 2431 : le nombre de titres de la file est
-         DESSINÉ en médaillon, comme sur l'appli Android, et repris dans
-         l'infobulle (lib/medaillonFile). File vide : pas de médaillon. -->
+         web#2389 — FabienM, fil 2431 : un nombre est DESSINÉ en médaillon,
+         comme sur l'appli Android, et repris dans l'infobulle
+         (lib/medaillonFile). Recette rc12 du 13/11 : c'est le nombre de titres
+         À SUIVRE (`upNextCount`, celui de la page File), pas la longueur totale
+         de la file. Plus rien à suivre : pas de médaillon. -->
     <button
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={libelleBoutonFile($t, $queueTracks.length, $locale)}
-      title={libelleBoutonFile($t, $queueTracks.length, $locale)}
+      aria-label={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
+      title={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
     >
-      {#if texteMedaillonFile($queueTracks.length)}
-        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>
+      {#if texteMedaillonFile($upNextCount)}
+        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($upNextCount)}</span>
       {/if}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
