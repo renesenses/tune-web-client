@@ -1223,6 +1223,39 @@ import { ICONES } from '../../lib/menuPiste';
   });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
+  // Le now-playing de service n’a ni label ni album_id local. Résoudre
+  // l’album courant, puis lire son contexte de catalogue déjà disponible.
+  let labelService = $state<string | null>(null);
+  let labelAffiche = $derived(labelAlbum ?? labelService);
+  let cleLabelService = $derived.by(() => {
+    const source = displayTrack?.source;
+    const sourceId = displayTrack?.source_id;
+    const zid = zone?.id;
+    if (!source || source === 'local' || source === 'radio' || source === 'youtube'
+      || !sourceId || zid == null || labelDe(displayTrack as any)) return null;
+    return JSON.stringify([zid, source, sourceId]);
+  });
+  const contextesLabels = new Map<string, Promise<string | null>>();
+  $effect(() => {
+    const cle = cleLabelService;
+    labelService = null;
+    if (!cle) return;
+    const [zid, source] = JSON.parse(cle) as [number, string, string];
+    let annule = false;
+    void api.getZoneCurrentAlbum(zid, true).then(async (album) => {
+      if (annule || album?.kind !== 'streaming' || album.service !== source || !album.album_id) return;
+      const id = String(album.album_id);
+      const cache = JSON.stringify([source, id]);
+      let lecture = contextesLabels.get(cache);
+      if (!lecture) {
+        lecture = api.getStreamingAlbumContext(source, id).then(c => c?.label_name?.trim() || null);
+        contextesLabels.set(cache, lecture);
+      }
+      const nom = await lecture;
+      if (!annule) labelService = nom;
+    }).catch(() => {});
+    return () => { annule = true; };
+  });
   const channelsOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
@@ -2086,11 +2119,11 @@ import { ICONES } from '../../lib/menuPiste';
               {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
             </div>
           {/if}
-          {#if !isRadio && labelAlbum}
+          {#if !isRadio && labelAffiche}
             <!-- web#2534 — le label de l'album, qui ouvre ce label dans la Bibliothèque. -->
             <p class="track-label" data-np-label>
               <span class="track-label-tag">{$t('v2.tcol.label' as any)}</span>
-              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAlbum }} />
+              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAffiche }} />
             </p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
