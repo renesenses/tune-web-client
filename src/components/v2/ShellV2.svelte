@@ -243,7 +243,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
-  import { brancherHistoriqueCoquille } from '../../lib/historiqueCoquille';
+  import { brancherHistoriqueCoquille, revenirA } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
@@ -582,7 +582,9 @@
     const ou = $vueDeRetour;
     ficheAlbumService.set(null);
     vueDeRetour.set(null);
-    activeView.set(ou ?? 'nowplaying');
+    // Fil 2694 — c'est un RETOUR : l'écran d'arrivée (un service) reprend la
+    // page qu'il avait quittée au lieu de repartir de sa racine.
+    revenirA(ou ?? 'nowplaying');
   }
 
   /**

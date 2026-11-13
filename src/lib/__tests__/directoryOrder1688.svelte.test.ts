@@ -26,6 +26,8 @@ let calls: Call[];
 let order: string[];
 let oldServer: boolean;
 let failSave: boolean;
+/** tune-server-rust#7876 — écriture de `music_dirs` dans `/system/config` (null : ROOTS). */
+let rawRoots: string[] | null;
 let host: HTMLDivElement;
 let component: Record<string, unknown> | null;
 
@@ -35,6 +37,7 @@ beforeEach(() => {
   order = [...ROOTS];
   oldServer = false;
   failSave = false;
+  rawRoots = null;
   v2SettingsTarget.set({ tab: 'library', section: 'musicDirs' });
   vi.stubGlobal('ResizeObserver', Observer);
   vi.stubGlobal('IntersectionObserver', Observer);
@@ -50,11 +53,12 @@ beforeEach(() => {
       if (oldServer) return response({ error: 'missing' }, 404);
       if (method === 'PUT') {
         if (failSave) return response({ error: 'failed' }, 500);
-        order = (body as { ordre: string[] }).ordre;
+        // Le serveur normalise ce qu'il reçoit (séparateur final retiré).
+        order = (body as { ordre: string[] }).ordre.map((d) => d.replace(/\/+$/, ''));
       }
       return response({ ordre: order, music_dirs: ROOTS, regle: order });
     }
-    if (url.endsWith('/system/config')) return response({ music_dirs: ROOTS });
+    if (url.endsWith('/system/config')) return response({ music_dirs: rawRoots ?? ROOTS });
     return response([]);
   }));
   host = document.createElement('div');
@@ -111,5 +115,19 @@ describe('directory order in Library settings', () => {
     expect(move(ROOTS[1], 'up')).toBeNull();
     expect(card()?.querySelector('input[placeholder="/Volumes/Musique"]')).not.toBeNull();
     expect(card()?.querySelectorAll('button.scan-dir')).toHaveLength(3);
+  });
+
+  it('tune-server-rust#7876 — the arrows work when the server spells the folders differently', async () => {
+    // `/system/config` rend l'écriture brute (séparateur final), la route
+    // d'ordre l'écriture normalisée et sans `ordre_affiche` (serveur rc11).
+    rawRoots = ROOTS.map((d) => `${d}/`);
+    mountSettings();
+    await until(() => rows().length === 3 && move(rawRoots![1], 'up') !== null);
+    expect(rows()).toEqual(rawRoots);
+    move(rawRoots[1], 'up')!.click();
+    await until(() => puts().length === 1);
+    await until(() => rows()[0] === rawRoots![1]);
+    expect(rows()).toEqual([rawRoots[1], rawRoots[0], rawRoots[2]]);
+    expect(order).toEqual([ROOTS[1], ROOTS[0], ROOTS[2]]);
   });
 });

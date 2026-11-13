@@ -24,6 +24,38 @@ import { clearToken } from './auth';
 export const LARGEUR_SPECTROGRAMME = 1200;
 export const HAUTEUR_SPECTROGRAMME = 400;
 
+/**
+ * web#2707 (Bertrand, 07/11 ; discussion tune-server-rust#8304, reprise en
+ * rc12) — l'échelle de couleurs, en dBFS, à droite de l'image.
+ *
+ * Recopie EXACTE de `tune-core/src/audio/spectrogramme.rs` : `PLANCHER_DB`
+ * (noir) à 0 dBFS (blanc), sept couleurs réparties régulièrement entre les
+ * deux (`couleur`). Si le serveur change sa palette, ces valeurs suivent.
+ */
+export const PLANCHER_DB = -120;
+export const PALETTE_SPECTROGRAMME: readonly (readonly [number, number, number])[] = [
+  [0, 0, 0], [20, 10, 80], [110, 20, 140], [210, 50, 70], [250, 140, 20], [255, 230, 80], [255, 255, 255],
+];
+/** Les marges de l'image (en pixels sur 1200 × 400) : la zone tracée en est retranchée. */
+export const MARGES_SPECTROGRAMME = { haut: 8, bas: 22 } as const;
+
+/** Le dégradé CSS de l'échelle, du plancher (bas) à 0 dBFS (haut). */
+export function degradeEchelleDb(): string {
+  const n = PALETTE_SPECTROGRAMME.length - 1;
+  const arrets = PALETTE_SPECTROGRAMME.map(([r, g, b], i) => `rgb(${r}, ${g}, ${b}) ${Math.round((i / n) * 1000) / 10}%`);
+  return `linear-gradient(to top, ${arrets.join(', ')})`;
+}
+
+/** Les graduations : 0, −20, … jusqu'au plancher, avec leur hauteur en % depuis le bas. */
+export function graduationsDb(pas = 20): { db: number; bas: number }[] {
+  const out: { db: number; bas: number }[] = [];
+  for (let db = 0; db >= PLANCHER_DB; db -= pas) out.push({ db, bas: ((db - PLANCHER_DB) / -PLANCHER_DB) * 100 });
+  return out;
+}
+
+/** « −20 » avec le vrai signe moins ; « 0 » sans signe. */
+export const libelleDb = (db: number): string => (db === 0 ? '0' : `\u2212${Math.abs(db)}`);
+
 export type GenreErreurSpectrogramme =
   /** Pas de fichier local (piste de service, fichier absent du disque). */
   | 'non-locale'

@@ -19,7 +19,7 @@
    */
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
-  import type { GroupeCollaborations } from '../../lib/api';
+  import type { GroupeCollaborations, JoueAvec } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
@@ -80,6 +80,12 @@
      * section n'est alors pas rendue — jamais remplie depuis `reprises`.
      */
     ecriture?: Album[];
+    /**
+     * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les
+     * artistes audibles sur les mêmes pistes (`played_with`), dans l'ordre du
+     * serveur. Absente devant un serveur antérieur : pas de bloc.
+     */
+    joueAvec?: JoueAvec[];
     /** Le filtre « Source » de la Bibliothèque : la pastille cochée à l'ouverture. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -98,7 +104,7 @@
      */
     rangeeSources?: boolean;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [] }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -458,6 +464,28 @@
     </section>
   {/if}
 
+  <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
+       (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
+       Un nom avec fiche (`artist_id`) ouvre sa page ; sans fiche (musicien de
+       séance), texte simple. Clé absente = pas de bloc, sans message. -->
+  {#if joueAvec?.length}
+    <section class="bloc" data-section="played-with">
+      <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
+      <ul class="liste-joue-avec">
+        {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          <li data-joue-avec={j.artist_name}>
+            {#if typeof j.artist_id === 'number'}
+              <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
+            {:else}
+              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
+            {/if}
+            <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
   <!-- Lot 2 (web#2639) — section 3 sur 4, « Écriture et production » : la
        clé `writing` du serveur (tune-server-rust#7767). Absente devant un
        serveur antérieur, et la section avec elle : elle ne se remplit JAMAIS
@@ -643,4 +671,15 @@
     font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
+  /* #2794 — « Joue avec » : une liste de noms, en colonnes, sans pochettes. */
+  .liste-joue-avec {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px;
+  }
+  .liste-joue-avec li {
+    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+  }
+  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pistes-joue-avec { flex: none; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
 </style>

@@ -1,5 +1,8 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { untrack } from 'svelte';
+  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -31,7 +34,7 @@
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
-    BORNES_TAILLE, bornerTaille, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
+    BORNES_TAILLE, bornerTaille, clePlaylistVue, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
     lireEnteteCompact, ecrireEnteteCompact, type VuePlaylist,
   } from '../../lib/vuePlaylist';
   import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
@@ -235,12 +238,22 @@
    * web#2601 — vue en liste ou en pochettes, taille des vignettes de CHAQUE
    * vue, en-tête compact. Retenus, mais écrits sur geste seulement (#1650).
    */
-  let vue = $state<VuePlaylist>(lireVuePlaylist());
+  // tune-server-rust#7394 / web#2618 — retenue PAR PLAYLIST (`clePlaylistVue`).
+  const cleVue = $derived(clePlaylistVue(item));
+  let vue = $state<VuePlaylist>(lireVuePlaylist(clePlaylistVue(untrack(() => item))));
+  // Une autre playlist dans le même écran : sa vue à elle.
+  let cleVueLue = clePlaylistVue(untrack(() => item));
+  $effect(() => {
+    const c = cleVue;
+    if (c === cleVueLue) return;
+    cleVueLue = c;
+    vue = lireVuePlaylist(c);
+  });
   let tailleListe = $state(lireTaille('liste'));
   let taillePochettes = $state(lireTaille('pochettes'));
   let enteteCompact = $state(lireEnteteCompact());
   const tailleCourante = $derived(vue === 'liste' ? tailleListe : taillePochettes);
-  function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v); }
+  function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v, cleVue); }
   function regler(n: number) {
     const v = ecrireTaille(vue, n);
     if (vue === 'liste') tailleListe = v; else taillePochettes = bornerTaille('pochettes', v);
@@ -707,6 +720,17 @@
               </button>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
+              <!-- tune-server-rust#7394 — en pochettes, l'accès à l'album COMPLET :
+                   son nom ouvre sa fiche (bibliothèque ou service), comme la
+                   colonne Album de la liste. -->
+              {#if p.album_title && !estLigneRadio(p)}
+                {@const versAlbum = ouvertureAlbumDePiste(p, $gestesNavigationService)}
+                {#if versAlbum}
+                  <button type="button" class="palb" data-palbum title={p.album_title} onclick={versAlbum}>{p.album_title}</button>
+                {:else}
+                  <div class="part" title={p.album_title}>{p.album_title}</div>
+                {/if}
+              {/if}
               {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
               {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
@@ -818,6 +842,15 @@
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
   .art > svg{width:96px; height:96px}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
+  /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
+     pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
+     coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  @media (max-width:640px){
+    .v2-pldetail{padding:20px 16px 32px}
+    .head:not(.compact){flex-direction:column; gap:18px}
+    .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
+    .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  }
   .kind{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
   .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .rn{font-size:calc(32px * var(--v2-txt-echelle, 1)); font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
@@ -853,6 +886,9 @@
   .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .taille{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .taille input{width:140px; accent-color:var(--v2-acc2)}
+  .palb{display:block; width:100%; text-align:left; padding:0; border:0; background:transparent; cursor:pointer;
+    color:var(--v2-txt3); font:inherit; font-size:calc(12px * var(--v2-txt-echelle, 1)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
   .pvig{display:block; width:100%; aspect-ratio:1; padding:0; border:0; border-radius:8px; overflow:hidden; cursor:pointer;
