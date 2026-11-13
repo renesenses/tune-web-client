@@ -14,7 +14,7 @@
    * la table reste masqué — l'écran est celui d'avant.
    */
   import { onMount } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import * as api from '../../lib/api';
@@ -48,8 +48,7 @@
   }
 
   function compte(n: number): string {
-    return $t((n === 1 ? 'settings.macRangesCountOne' : 'settings.macRangesCount') as any)
-      .replace('{n}', $formatNombre(n));
+    return $tn('settings.macRangesCountN', n);
   }
 </script>
 

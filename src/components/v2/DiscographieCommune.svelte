@@ -31,7 +31,7 @@
   import { lireChoix, ecrireChoix, lireTexte } from '../../lib/preferencesEcran';
   import { libelleProvenance, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
@@ -479,7 +479,7 @@
             {:else}
               <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
             {/if}
-            <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
+            <span class="pistes-joue-avec">{$tn('v2.disco.sharedTracksN', j.shared_tracks ?? 0)}</span>
           </li>
         {/each}
       </ul>

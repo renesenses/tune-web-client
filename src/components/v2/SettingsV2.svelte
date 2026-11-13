@@ -24,7 +24,7 @@
    * l'écran actuel — jamais un cadre vide qui laisserait croire à un réglage
    * absent.
    */
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
@@ -2252,8 +2252,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * refuse d'ailleurs tout « 14 » littéral dans les onze traductions.
    */
   function graceJours(n: number): string {
-    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
-      .replace('{days}', String(n));
+    return $tn('settings.licenseGraceDaysN', n);
   }
   async function activateLic() {
     const k = licKey.trim();
@@ -4704,7 +4703,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {#if tab}
         <div class="panehead">
           {#if hiddenCount > 0}
-            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
+            <span class="masked">{$tn('v2.set.hiddenSectionsN', hiddenCount)}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>

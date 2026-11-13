@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // « JOUE AVEC » SUR LA PAGE ARTISTE — web#2794 (lot 2, PR 5, suite de #2639).
@@ -128,13 +129,13 @@ describe('web#2794 — branchements', () => {
     expect(art).toContain('{joueAvec}');
   });
 
-  it('les trois clés existent dans les 15 langues', () => {
+  it('les libellés existent dans les 15 langues', () => {
     for (const l of ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
-      for (const c of ['v2.disco.playedWith', 'v2.disco.sharedTracks', 'v2.disco.sharedTrackOne']) {
+      for (const c of ['v2.disco.playedWith', 'v2.disco.sharedTracksN']) {
         const m = src.match(new RegExp(`"${c.replace(/\./g, '\\.')}": "([^"]*)"`));
         expect(m, `${l} : ${c}`).not.toBeNull();
-        if (c !== 'v2.disco.playedWith') expect(m![1], `${l} : ${c} sans {n}`).toContain('{n}');
+        if (c !== 'v2.disco.playedWith') expect(formaterPluriel(m![1], 5, l), `${l} : ${c} sans nombre`).toContain('5');
       }
     }
   });

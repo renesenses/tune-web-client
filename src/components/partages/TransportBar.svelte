@@ -60,7 +60,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -1645,8 +1645,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={libelleBoutonFile($t, $queueTracks.length)}
-      title={libelleBoutonFile($t, $queueTracks.length)}
+      aria-label={libelleBoutonFile($t, $queueTracks.length, $locale)}
+      title={libelleBoutonFile($t, $queueTracks.length, $locale)}
     >
       {#if texteMedaillonFile($queueTracks.length)}
         <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>

@@ -337,8 +337,7 @@ export function phraseLecture(
   const l = c?.lecture;
   if (!l) return null;
   if (!l.active) return { cle: 'v2.health.running.playbackIdle', params: {} };
-  if (l.zones > 1) return { cle: 'v2.health.running.playbackMany', params: { n: l.zones } };
-  return { cle: 'v2.health.running.playbackOne', params: {} };
+  return { cle: 'v2.health.running.playbackN', params: { n: Math.max(1, l.zones) } };
 }
 
 /** Remplacer `{nom}` par sa valeur, comme le reste de l'écran. */

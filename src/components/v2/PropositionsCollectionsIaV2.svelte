@@ -6,7 +6,7 @@
    * règles et le nombre d'albums que le moteur retiendrait ; rien n'est créé
    * sans un geste (« Créer »).
    */
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
@@ -89,7 +89,7 @@
         {#if c.description}<p class="note">{c.description}</p>{/if}
         <ul class="regles">{#each c.rules as r, j (j)}<li><code>{r.field}</code> {r.op} <b>{valeurLisible(r.value)}</b></li>{/each}</ul>
         <p class="note">
-          {comptes[i] == null ? '' : $t('v2.smart.previewCount' as any).replace('{n}', String(comptes[i]))}
+          {comptes[i] == null ? '' : $tn('v2.smart.previewN', comptes[i])}
         </p>
         <button class="pri" disabled={creees.has(i)} onclick={() => creer(i)}>
           {creees.has(i) ? $t('assistantIa.coll.created' as any) : $t('assistantIa.coll.create' as any)}

@@ -52,7 +52,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
@@ -2681,9 +2681,7 @@ import { ICONES } from '../../lib/menuPiste';
                  « File d'attente » ; absente quand l'aperçu montre tout. -->
             {#if $upNextHiddenCount > 0}
               <button class="up-next-more" onclick={expandQueueSheet}>
-                {$upNextHiddenCount === 1
-                  ? $t('queue.upNextMoreOne')
-                  : $t('queue.upNextMore').replace('{count}', String($upNextHiddenCount))}
+                {$tn('queue.upNextMoreN', $upNextHiddenCount)}
               </button>
             {/if}
           </div>

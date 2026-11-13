@@ -92,7 +92,7 @@ describe("L'éditeur v2 de collection intelligente", () => {
     // Une règle mal posée ne se voit qu'à l'usage : « année > 2020 » sur une
     // discothèque de jazz peut ne rien rendre.
     expect(ed).toContain('api.previewSmartCollection(');
-    expect(ed).toContain('v2.smart.previewCount');
+    expect(ed).toContain('v2.smart.previewN');
     // 🔴 Sans `max_limit` : le serveur calcule `total` comme la LONGUEUR de la
     // liste rendue, donc le plafonner plafonne le compteur. Mesuré sur le .18,
     // même règle : `max_limit: 1` -> total 1 ; sans limite -> total 1853.
