@@ -151,3 +151,29 @@ export function messageLimiteRapportBogue(e: unknown, tr: Traduire, locale: stri
     ? tr('v2.sup.bugRateLimited')
     : tr('v2.sup.bugRateLimitedRetry', { delay: delaiLisible(secondes, locale) });
 }
+
+/**
+ * #8627 — le refus du site, ou `null`.
+ *
+ * Quand le site refuse un rapport (422 : sa mise en forme aurait effacé le
+ * texte du testeur, site-mozaiklabs#529), le serveur rend le statut 422, le
+ * code `site_rejected` et la phrase du site sous `site_message`. L'écran disait
+ * « Échec de l'envoi. Réessayez… » : réessayer le même rapport échoue pareil,
+ * et consomme un des envois de l'heure.
+ *
+ * La phrase affichée est TRADUITE ; `site_message`, écrit en français par le
+ * site, ne va que dans le « Détails » replié (#2417).
+ */
+export function refusDuSiteRapportBogue(
+  e: unknown,
+  tr: Traduire,
+): { message: string; detail: string } | null {
+  const corps = (e as { corps?: unknown } | null | undefined)?.corps as
+    | { code?: unknown; error?: unknown; site_message?: unknown }
+    | null
+    | undefined;
+  const refus = corps?.code === 'site_rejected' || corps?.error === 'site_rejected';
+  if (!refus) return null;
+  const detail = typeof corps?.site_message === 'string' ? corps.site_message.trim() : '';
+  return { message: tr('v2.sup.bugRejectedBySite'), detail };
+}
