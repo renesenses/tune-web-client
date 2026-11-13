@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * tune-server-rust#8676 — « Remplacer le chemin » d'un dossier de musique
  * (Réglages › Bibliothèque). Fil forum 2799 : base restaurée depuis une autre
