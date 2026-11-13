@@ -4345,6 +4345,7 @@ export default {
   "v2.sup.bugSendError": "Échec de l’envoi. Réessayez, ou copiez le rapport dans le forum.",
   "v2.sup.bugRateLimited": "Limite d’envoi atteinte : le forum n’accepte qu’un nombre limité de rapports par heure. Réessayez dans une heure au plus, ou copiez le rapport dans le forum.",
   "v2.sup.bugRateLimitedRetry": "Limite d’envoi atteinte : le forum n’accepte qu’un nombre limité de rapports par heure. Réessayez {delay}, ou copiez le rapport dans le forum.",
+  "v2.sup.bugRejectedBySite": "Le forum a refusé ce rapport : le renvoyer tel quel échouerait de nouveau. Le motif donné par le forum figure dans les détails.",
   "v2.sup.bugImages": "Captures d’écran et journaux (facultatif)",
   "v2.sup.bugImagesHint": "Jusqu’à 3 images (PNG, JPEG, GIF ou WebP) de 4 Mo chacune, et 3 journaux (.log, .txt, .json ou .zip) de 10 Mo chacun. Ils sont ajoutés au fil du forum.",
   "v2.sup.bugImagesTooMany": "Trop de captures : {max} images au maximum.",
