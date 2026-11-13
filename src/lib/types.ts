@@ -716,6 +716,7 @@ export interface Zone {
   dlna_native_flac?: boolean;
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
+  fixed_sample_rate?: number | null;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
