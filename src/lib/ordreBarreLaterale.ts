@@ -11,8 +11,10 @@
  * d'affichage, lui, ne change pas : une entrée Avancée placée en tête reste
  * cachée au niveau Essentiel, et apparaît À SA PLACE choisie dès qu'elle est
  * visible. Tant que l'ordre est celui livré, la barre garde ses groupes et
- * leurs intertitres ; dès qu'il en diffère, elle devient une liste unique,
- * sans intertitre (« Sélections », « Studio » ne voudraient plus rien dire).
+ * leurs intertitres. Dès qu'il en diffère, la liste libre est DÉCOUPÉE en
+ * groupes (`repartirEnGroupes`) : les intertitres « Sélections » et « Studio »
+ * restent visibles (recette rc12 de Bertrand du 13/11/2026), et l'ordre
+ * enregistré est rendu tel quel, entrées venues d'un autre groupe comprises.
  *
  * Trois règles qui protègent un ordre ENREGISTRÉ :
  *   - une entrée que ce client ne connaît pas (écrite par une version plus
@@ -98,6 +100,62 @@ export function ordreModifie(defaut: readonly { view: string }[], choix: ChoixBa
   if (!c?.ordre.length) return false;
   const r = ordonnerEntrees(defaut, c.ordre);
   return r.some((it, i) => it !== defaut[i]);
+}
+
+/**
+ * Recette rc12 (Bertrand, 13/11/2026) — une liste libre garde ses intertitres.
+ *
+ * Avant, un ordre personnalisé rendait la barre en UNE liste sans intertitre :
+ * « Sélections » et « Studio » disparaissaient pour quiconque avait réordonné
+ * sa barre, même d'une seule entrée. On découpe désormais la liste ordonnée en
+ * `n` tranches CONTIGUËS (0 = noyau et Avancé, 1 = Sélections, 2 = Studio), aux
+ * coupures qui laissent le plus d'entrées dans leur groupe d'origine. L'ordre
+ * n'est jamais touché : une entrée déplacée d'un groupe à l'autre reste à la
+ * place choisie, sous l'intertitre de ses voisines (les Favoris montés sous
+ * l'Historique restent dans le noyau). À égalité, la coupure la plus tôt.
+ *
+ * Calcul sur la liste COMPLÈTE (avant niveau, greffons, masquées) : une entrée
+ * ne change pas de groupe quand on change de niveau.
+ */
+export function repartirEnGroupes<T>(liste: readonly T[], groupe: (it: T) => number, n: number): T[][] {
+  const L = liste.length;
+  // meilleur[k][i] : le plus d'entrées « chez elles » pour les i premières
+  // réparties dans les tranches 0..k ; coupe[k][i] : début de la tranche k.
+  const meilleur: number[][] = [];
+  const coupe: number[][] = [];
+  for (let k = 0; k < n; k++) {
+    meilleur.push(new Array(L + 1).fill(-1));
+    coupe.push(new Array(L + 1).fill(0));
+    for (let i = 0; i <= L; i++) {
+      if (k === 0) {
+        let c = 0;
+        for (let j = 0; j < i; j++) if (groupe(liste[j]) === 0) c++;
+        meilleur[0][i] = c;
+        continue;
+      }
+      // La tranche k couvre [j, i) ; on garde le j le plus PETIT à égalité.
+      let chez = 0;
+      let best = -1;
+      let bestJ = i;
+      const comptes: number[] = new Array(i + 1).fill(0);
+      for (let j = i - 1; j >= 0; j--) { chez += groupe(liste[j]) === k ? 1 : 0; comptes[j] = chez; }
+      for (let j = 0; j <= i; j++) {
+        const v = meilleur[k - 1][j] + comptes[j];
+        if (v > best) { best = v; bestJ = j; }
+      }
+      meilleur[k][i] = best;
+      coupe[k][i] = bestJ;
+    }
+  }
+  const tranches: T[][] = new Array(n);
+  let fin = L;
+  for (let k = n - 1; k >= 1; k--) {
+    const debut = coupe[k][fin];
+    tranches[k] = liste.slice(debut, fin);
+    fin = debut;
+  }
+  tranches[0] = liste.slice(0, fin);
+  return tranches;
 }
 
 /** Déplace l'élément d'indice `de` à l'indice `vers` (bornés). */

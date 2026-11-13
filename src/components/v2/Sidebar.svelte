@@ -224,6 +224,12 @@
    * Une entrée garde le niveau de son groupe d'origine, où qu'on la place.
    */
   export const TOUTES_ENTREES: Item[] = [...CORE, ...ADVANCED, ...SELECTIONS, ...STUDIO];
+  /** Le groupe livré d'une entrée : 0 noyau et Avancé, 1 Sélections, 2 Studio. */
+  export function groupeOrigine(it: Item): number {
+    if (SELECTIONS.some((x) => x.view === it.view)) return 1;
+    if (STUDIO.some((x) => x.view === it.view)) return 2;
+    return 0;
+  }
   /**
    * rc12 — « simplification de l'interface » (go de Bertrand du 12/11/2026) :
    * au niveau Essentiel, les écrans d'expert ne sont plus proposés. Dans le
@@ -285,7 +291,7 @@
   import { updateAvailable, latestVersion, currentVersion, updateInstallable, updateInstallHint } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
-  import { estMasquee, ordonnerEntrees, ordreModifie } from '../../lib/ordreBarreLaterale';
+  import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -393,23 +399,32 @@
    *
    * Tant que l'ordre est celui livré, la barre garde ses groupes, leurs
    * intertitres et leurs dévoilements par niveau, à l'identique. Dès que
-   * l'ordre en diffère, elle rend UNE liste, sans intertitre : « Sélections »
-   * ou « Studio » ne voudraient plus rien dire au-dessus d'entrées mêlées.
+   * l'ordre en diffère, elle suit cet ordre À LA LETTRE, découpé en trois
+   * tranches contiguës (`repartirEnGroupes`) : le noyau, puis « Sélections »
+   * et « Studio » sous leurs intertitres, aux places habituelles (recette rc12
+   * de Bertrand, 13/11/2026 : avant, une liste libre perdait ses intertitres).
    * Chaque entrée y garde son niveau et sa condition de greffon : invisible
    * à ce niveau, elle est simplement absente, et reprend SA place choisie dès
    * qu'elle redevient visible. Masquer seul ne fait pas passer en liste libre.
    */
   const ordreLibre = $derived(ordreModifie(TOUTES_ENTREES, choixBarre));
-  const listeLibre = $derived.by(() => {
-    if (!ordreLibre) return [] as Item[];
+  const tranchesLibres = $derived.by(() => {
+    if (!ordreLibre) return [[], [], []] as Item[][];
     const disponibles = new Set<string>([
       ...CORE.filter(auNiveau), ...SELECTIONS,
       ...(showAdvanced ? avanceDisponibles : []),
       ...(showStudio ? studioDisponibles : []),
     ].map((it) => it.view));
-    return sansMasquees(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre)
-      .filter((it) => disponibles.has(it.view)));
+    // Découpe sur la liste COMPLÈTE : une entrée ne change pas d'intertitre
+    // selon le niveau ou les greffons ; on filtre ensuite.
+    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupeOrigine, 3)
+      .map((l) => sansMasquees(l.filter((it) => disponibles.has(it.view))));
   });
+  const listeLibre = $derived(tranchesLibres[0]);
+  /** Les entrées rendues sous « Sélections » et « Studio », groupes livrés ou liste libre. */
+  const selectionsRendues = $derived(ordreLibre ? tranchesLibres[1] : selectionsAffichees);
+  const studioRendu = $derived(ordreLibre ? tranchesLibres[2] : studioVisible);
+  const studioMontre = $derived(ordreLibre ? studioRendu.length > 0 : showStudio && studioVisible.length > 0);
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -1014,8 +1029,9 @@
     {/snippet}
 
     {#if ordreLibre}
-      <!-- web#1827 — la liste libre : une seule liste, sans intertitre. Les
-           sous-entrées (services, rayons) suivent leur parent. -->
+      <!-- web#1827 — la liste libre, première tranche (le noyau) ; « Sélections »
+           et « Studio » suivent sous leurs intertitres. Les sous-entrées
+           (services, rayons) suivent leur parent. -->
       <nav class="grp libre" data-ordre="libre">
         {#each listeLibre as it (it.view)}
           {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
@@ -1114,17 +1130,15 @@
       {/if}
     </nav>
 
-    {#if !ordreLibre && selectionsAffichees.length}
-    <nav class="grp">
+    {#if selectionsRendues.length}
+    <nav class="grp" data-groupe="selections">
       {@render intertitreRepliable('selections', 'v2.nav.selections')}
-      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, $activeView)) : selectionsAffichees) as it (it.view)}
+      {#each (repliee('selections') ? selectionsRendues.filter((it) => estActif(it, $activeView)) : selectionsRendues) as it (it.view)}
         {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
           {@render collectionsEtRayons(it)}
         {:else}
-          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-            <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
-          </button>
+          {@render boutonEntree(it)}
+          {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
         {/if}
       {/each}
     </nav>
@@ -1132,18 +1146,17 @@
 
     <!-- web#1827 : toutes ses entrées masquées, le groupe se referme avec
          son intitulé plutôt que de laisser « Studio » seul ; en liste libre,
-         ses entrées sont dans la liste unique. -->
-    {#if !ordreLibre}
-    <nav class="grp reveal" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
+         il reçoit la dernière tranche de l'ordre choisi (`tranchesLibres`). -->
+    <nav class="grp reveal" data-groupe="studio" class:show={studioMontre} aria-hidden={!studioMontre}>
       {@render intertitreRepliable('studio', 'v2.nav.studio')}
-      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, $activeView)) : studioVisible) as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      {#each (repliee('studio') ? studioRendu.filter((it) => estActif(it, $activeView)) : studioRendu) as it (it.view)}
+        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={studioMontre ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
+        {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
       {/each}
     </nav>
-    {/if}
   </div>
 
   <!-- 🔴 Le Support est la SEULE entrée qui n'avait aucune infobulle — même

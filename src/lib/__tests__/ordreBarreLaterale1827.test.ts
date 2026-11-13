@@ -8,8 +8,9 @@
 // Ce que ce témoin prouve, dans le DOM de composants réellement montés :
 //   - sans choix, la barre rend EXACTEMENT l'ordre livré, groupes et
 //     intertitres compris (rien ne change) ;
-//   - un ordre enregistré est suivi en LISTE LIBRE (arbitrage du 30/09) :
-//     une seule liste, sans intertitre, entrées mêlées d'un groupe à l'autre ;
+//   - un ordre enregistré est suivi en LISTE LIBRE (arbitrage du 30/09),
+//     découpée sous les intertitres « Sélections » et « Studio » (recette
+//     rc12 du 13/11), entrées mêlées d'un groupe à l'autre ;
 //   - une entrée Avancée reste cachée en Essentiel, puis s'affiche à sa place ;
 //   - une entrée masquée disparaît de la barre, Accueil jamais ;
 //   - une entrée INCONNUE de l'ordre enregistré est ignorée, sans erreur ;
@@ -31,9 +32,9 @@ import { activeView } from '../stores/navigation';
 import { activeStreamingService, streamingServices } from '../stores/streaming';
 import { shortcuts } from '../stores/shortcuts';
 import {
-  normaliserChoixBarre, ordonnerEntrees, ordreModifie, deplacer, avecOrdre, avecVisibilite,
+  normaliserChoixBarre, ordonnerEntrees, ordreModifie, deplacer, avecOrdre, avecVisibilite, repartirEnGroupes,
 } from '../ordreBarreLaterale';
-import Sidebar, { CORE, ADVANCED, SELECTIONS, STUDIO, TOUTES_ENTREES } from '../../components/v2/Sidebar.svelte';
+import Sidebar, { CORE, ADVANCED, SELECTIONS, STUDIO, TOUTES_ENTREES, groupeOrigine } from '../../components/v2/Sidebar.svelte';
 import OrdreBarreLateraleV2 from '../../components/v2/OrdreBarreLateraleV2.svelte';
 
 vi.setConfig({ testTimeout: 60_000 });
@@ -198,17 +199,61 @@ describe('#1827 — la barre suit le choix', () => {
     expect(toutes).toContain('home');
   });
 
-  it('un ordre enregistré mêle les groupes : une liste unique, sans intertitre de groupe', async () => {
+  it('un ordre enregistré mêle les groupes : suivi à la lettre, les intertitres restent (recette rc12)', async () => {
     // Étiquettes (Sélections) en tête, Égaliseur (Studio) sous Accueil.
     const ordre = ['tags', 'home', 'equalizer', ...TOUTES.filter((v) => !['tags', 'home', 'equalizer'].includes(v))];
     poserChoix({ ordre, masquees: [] });
     await monterBarre();
     expect(libre()).not.toBeNull();
     expect(sequenceLibre().slice(0, 3)).toEqual(['tags', 'home', 'equalizer']);
-    expect(intertitres()).not.toContain(SELECTIONS_FR);
-    expect(intertitres()).not.toContain('Studio');
+    expect(intertitres()).toContain(SELECTIONS_FR);
+    expect(intertitres()).toContain('Studio');
     // Chaque entrée une seule fois.
     expect(new Set(vuesRendues()).size).toBe(vuesRendues().length);
+  });
+
+  /**
+   * Recette rc12 de Bertrand (13/11/2026, .18) : « Sélections » n'apparaissait
+   * pas. Sa barre, réordonnée en rc11, est rendue en liste libre, qui rendait
+   * UNE liste sans intertitre. Valeur relue sur le .18 (`ui_preferences`).
+   */
+  it('🔴 disposition rc11 de Bertrand (à plat) : intertitres « Sélections » et « Studio » visibles, ordre conservé', async () => {
+    const ordre = ['home', 'search', 'nowplaying', 'queue', 'history', 'favorites', 'library', 'oxygen',
+      'streaming', 'radios', 'podcasts', 'ambiance', 'browse', 'mediaservers', 'zonemanager', 'tableaudebord',
+      'concerts', 'circle', 'collections', 'playlistmanager', 'ecouterplustard', 'tags', 'bannedtracks',
+      'crossfeed', 'converter', 'crossfeedpro', 'declick', 'alarms', 'equalizer', 'metadata', 'diagnostics'];
+    poserChoix({ ordre, masquees: ['declick', 'bannedtracks', 'alarms'] });
+    await monterBarre();
+    expect(intertitres()).toContain(SELECTIONS_FR);
+    expect(intertitres()).toContain('Studio');
+    // Les Favoris restent où il les a mis : sous l'Historique, dans le noyau.
+    expect(sequenceLibre().slice(0, 6)).toEqual(['home', 'search', 'nowplaying', 'queue', 'history', 'favorites']);
+    const sel = Array.from(hote!.querySelectorAll<HTMLElement>('nav[data-groupe="selections"] button.nav[data-vue]'))
+      .map((b) => b.dataset.vue!);
+    expect(sel).toEqual(['collections', 'playlistmanager', 'ecouterplustard', 'tags']);
+    const studio = Array.from(hote!.querySelectorAll<HTMLElement>('nav[data-groupe="studio"] button.nav[data-vue]'))
+      .map((b) => b.dataset.vue!);
+    // Son ordre à lui (Crossfeed en tête), filtré des greffons absents et des masquées.
+    const attendu = ordre.slice(23).filter((v) => !['declick', 'alarms'].includes(v));
+    expect(studio).toEqual(attendu.filter((v) => studio.includes(v)));
+    expect(studio.length).toBeGreaterThan(0);
+    expect(studio[0]).not.toBe('equalizer');
+    // Chaque entrée une seule fois, toutes groupes confondus.
+    expect(new Set(vuesRendues()).size).toBe(vuesRendues().length);
+  });
+
+  it('repartirEnGroupes : tranches contiguës, ordre intact, une entrée déplacée reste à sa place', () => {
+    const g = (v: string) => (v[0] === 's' ? 1 : v[0] === 't' ? 2 : 0);
+    const liste = ['a', 's1', 'b', 'c', 's2', 's3', 't1', 'a2', 't2'];
+    const r = repartirEnGroupes(liste, g, 3);
+    expect(r.flat()).toEqual(liste);
+    expect(r[0]).toEqual(['a', 's1', 'b', 'c']);
+    expect(r[1]).toEqual(['s2', 's3']);
+    expect(r[2]).toEqual(['t1', 'a2', 't2']);
+    // L'ordre livré se découpe exactement en ses groupes.
+    expect(repartirEnGroupes(TOUTES_ENTREES, groupeOrigine, 3).map(vues))
+      .toEqual([[...NOYAU, ...vues(ADVANCED)], vues(SELECTIONS), vues(STUDIO)]);
+    expect(repartirEnGroupes([], g, 3)).toEqual([[], [], []]);
   });
 
   it('niveau : une entrée Avancée placée en 2e reste cachée en Essentiel, puis s’affiche à sa place', async () => {
