@@ -142,6 +142,24 @@ describe('web#3001 — la pochette de mes sources quand la vignette manque', () 
     expect(rumours.querySelector('.pochette-mienne')).not.toBeNull();
   });
 
+  it('ma pochette qui ne se charge pas : repli sur Cover Art Archive, et la marque s’en va', async () => {
+    reponseMesSources = (corps) => [200, {
+      covers: corps.albums.map((a: any) => (a.title === 'Introuvable' ? { source: 'qobuz', cover_path: 'https://static.qobuz.com/x.jpg' } : null)),
+    }];
+    monter();
+    await souffler();
+    const t = tuile('Introuvable');
+    expect(t.querySelector('img')?.getAttribute('src')).toContain('static.qobuz.com');
+    expect(t.querySelector('.pochette-mienne')).not.toBeNull();
+    t.querySelector('img')!.dispatchEvent(new Event('error'));
+    await souffler();
+    const apres = tuile('Introuvable');
+    expect(apres.querySelector('img')?.getAttribute('src')).toContain('coverartarchive.org');
+    expect(apres.querySelector('.pochette-mienne')).toBeNull();
+    // Rien n'est redemandé au serveur pour autant.
+    expect(mesSources()).toHaveLength(1);
+  });
+
   it('un greffon sans la route (404) ou en panne laisse la grille comme avant', async () => {
     reponseMesSources = () => [404, { error: 'Not Found' }];
     monter();
