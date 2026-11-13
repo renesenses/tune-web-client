@@ -6,8 +6,9 @@
    * Un motif glob par ligne, lu depuis la racine de l'emplacement (un nom
    * à toute profondeur, ou un chemin relatif). Avant
    * d'enregistrer, le serveur dit combien de pistes de la bibliothèque
-   * seraient retirées ; rien n'est écrit sans confirmation de CE nombre. Le
-   * retrait se fait au scan suivant, les fichiers ne sont jamais touchés.
+   * seraient MASQUÉES ; rien n'est écrit sans confirmation de CE nombre.
+   * Décision de Bertrand du 13/11 : masquées, jamais supprimées — retirer le
+   * motif les fait revenir intactes (notes, favoris, historique).
    *
    * Les exclusions GLOBALES (`scan_exclude_paths`) restent ce qu'elles sont :
    * affichées ici, en lecture.
@@ -26,11 +27,15 @@
   let aConfirmer = $state<{ n: number; exemples: string[]; regles: ExclusionsDEmplacement[] } | null>(null);
   let enregistre = $state(false);
 
+  /** `/m/` et `/m` désignent le même emplacement. */
+  const memeRacine = (a: string, b: string) =>
+    a.replace(/[\\/]+$/, '') === b.replace(/[\\/]+$/, '');
+
   function remplir(e: EtatExclusionsDuScan) {
     etat = e;
     const s: Record<string, { texte: string; casse: boolean }> = {};
     for (const r of e.roots) {
-      const l = e.locations.find((x) => x.root === r);
+      const l = e.locations.find((x) => memeRacine(x.root, r));
       s[r] = { texte: (l?.patterns ?? []).join('\n'), casse: !!l?.case_sensitive };
     }
     saisie = s;
@@ -58,8 +63,19 @@
   }
 
   function messageDe(e: unknown): string {
-    const m = (e as { message?: string })?.message;
-    return m && m.length < 300 ? m : $t('v2.scanExcl.error' as any);
+    const err = e as { message?: string; status?: number };
+    // 409 : le nombre a changé entre l'aperçu et l'enregistrement.
+    if (err?.status === 409 || /confirmation_required/.test(err?.message ?? '')) {
+      return $t('v2.scanExcl.conflict' as any);
+    }
+    const m = err?.message;
+    return m && m.length < 300 && !m.trimStart().startsWith('{') ? m : $t('v2.scanExcl.error' as any);
+  }
+
+  function texteDeConfirmation(n: number): string {
+    return n === 1
+      ? $t('v2.scanExcl.confirmTextOne' as any)
+      : $t('v2.scanExcl.confirmText' as any).replace('{n}', String(n));
   }
 
   async function enregistrer(r: ExclusionsDEmplacement[], n: number) {
@@ -134,7 +150,7 @@
 
     {#if aConfirmer}
       <div class="confirmer" role="alert" data-exclusions-confirmer>
-        <p>{$t('v2.scanExcl.confirmText' as any).replace('{n}', String(aConfirmer.n))}</p>
+        <p>{texteDeConfirmation(aConfirmer.n)}</p>
         {#if aConfirmer.exemples.length}
           <ul class="exemples">{#each aConfirmer.exemples as ex (ex)}<li><code>{ex}</code></li>{/each}</ul>
         {/if}

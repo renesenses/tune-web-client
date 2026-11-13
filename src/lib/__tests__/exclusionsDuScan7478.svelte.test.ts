@@ -63,7 +63,8 @@ describe('exclusions du scan (#7478)', () => {
     ]);
     expect(mocks.saveScanExclusions).not.toHaveBeenCalled();
     const panneau = hote.querySelector('[data-exclusions-confirmer]')!;
-    expect(panneau.textContent).toContain('2 pistes seront retirées');
+    expect(panneau.textContent).toContain('2 pistes seront masquées');
+    expect(panneau.textContent).toContain('Rien n’est effacé');
     expect(panneau.textContent).toContain('/mnt/nas/Incoming/a.flac');
 
     hote.querySelector<HTMLButtonElement>('[data-exclusions-ok]')!.click();
@@ -85,6 +86,28 @@ describe('exclusions du scan (#7478)', () => {
       [{ root: '/mnt/disque', patterns: ['*.bak'], case_sensitive: false }],
       0,
     );
+  });
+
+  it('dit « 1 piste » au singulier, et rend un 409 lisible', async () => {
+    mocks.previewScanExclusions.mockResolvedValue({ tracks_to_remove: 1, examples: [] });
+    mocks.saveScanExclusions.mockRejectedValue(Object.assign(new Error('{"error":"confirmation_required"}'), { status: 409 }));
+    saisir('/mnt/nas', '*.bak');
+    hote.querySelector<HTMLButtonElement>('[data-exclusions-verifier]')!.click();
+    await respirer();
+    expect(hote.querySelector('[data-exclusions-confirmer]')!.textContent).toContain('1 piste sera masquée');
+    hote.querySelector<HTMLButtonElement>('[data-exclusions-ok]')!.click();
+    await respirer();
+    expect(hote.textContent).toContain('a changé entre-temps');
+    expect(hote.textContent).not.toContain('confirmation_required');
+  });
+
+  it('apparie une règle enregistrée à sa racine, barre finale ou non', async () => {
+    unmount(instance as any);
+    hote.innerHTML = '';
+    mocks.getScanExclusions.mockResolvedValue({ global: [], roots: ['/mnt/nas/'], locations: [{ root: '/mnt/nas', patterns: ['*.bak'] }] });
+    instance = mount(ExclusionsDuScanV2, { target: hote });
+    await respirer();
+    expect(hote.querySelector<HTMLTextAreaElement>('[data-exclusions-racine="/mnt/nas/"] textarea')!.value).toBe('*.bak');
   });
 
   it('se tait sur un serveur plus ancien (404)', async () => {
