@@ -5,20 +5,33 @@ import { formaterPluriel } from './pluriel';
  * lecture ». Discussion renesenses/tune-server-rust#7461, go de Bertrand du
  * 12/11/2026 (rc12).
  *
- * Le nombre porté est la LONGUEUR TOTALE de la file (`queueTracks.length`),
- * ce qu'affiche l'appli Android, et non les seuls titres à venir. Le
- * médaillon disparaît quand la file est vide ; au-delà de 99, « 99+ » pour
- * ne pas élargir la barre.
+ * Recette rc12 du 13/11 sur le .18 : la page File disait « 9 à suivre » et le
+ * médaillon « 18 » (album de 18 titres, 9e en cours). Le médaillon portait la
+ * LONGUEUR TOTALE de la file, titres déjà joués compris. Il porte désormais
+ * les titres À SUIVRE (`upNextCount`, le même dérivé que la page File et le
+ * bandeau de Lecture en cours) : il décroît pendant l'écoute et disparaît
+ * quand plus rien ne suit. Au-delà de 99, « 99+ » pour ne pas élargir la barre.
  */
 
-/** Texte du médaillon, ou `null` quand il n'y a rien à afficher. */
-export function texteMedaillonFile(n: number): string | null {
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return n > 99 ? '99+' : String(Math.floor(n));
+/** Texte du médaillon (titres à suivre), ou `null` quand il n'y a rien à afficher. */
+export function texteMedaillonFile(aSuivre: number): string | null {
+  if (!Number.isFinite(aSuivre) || aSuivre <= 0) return null;
+  return aSuivre > 99 ? '99+' : String(Math.floor(aSuivre));
 }
 
-/** Infobulle et nom accessible du bouton : le nom de la file et son nombre de titres. */
-export function libelleBoutonFile(traduire: (cle: string) => string, n: number, langue = 'fr'): string {
-  if (!Number.isFinite(n) || n <= 0) return traduire('nav.queue');
-  return formaterPluriel(traduire('transport.queueCountN'), Math.floor(n), langue);
+/**
+ * Infobulle et nom accessible du bouton : la file, son nombre total de titres
+ * (nommé comme tel) et, s'il en reste, le nombre à suivre — celui du médaillon.
+ * « File d'attente · 18 titres · 9 à suivre ».
+ */
+export function libelleBoutonFile(
+  traduire: (cle: string) => string,
+  total: number,
+  aSuivre: number,
+  langue = 'fr'
+): string {
+  if (!Number.isFinite(total) || total <= 0) return traduire('nav.queue');
+  const base = formaterPluriel(traduire('transport.queueCountN'), Math.floor(total), langue);
+  if (!Number.isFinite(aSuivre) || aSuivre <= 0) return base;
+  return `${base} · ${traduire('v2.queue.upNextCount').replace('{n}', String(Math.floor(aSuivre)))}`;
 }
