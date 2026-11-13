@@ -7713,4 +7713,13 @@ export default {
   "transport.queueCountOne": "Kö · 1 spår",
   "transport.queueCount": "Kö · {count} spår",
   "v2.radio.removeConfirmDirectory": "Ta bort ”{name}” från Mina radiokanaler? Kanalen finns kvar i Katalogen: du kan hitta den där och lägga till den igen.",
+  "settings.fauxHiRes": "Upptäck falsk hi-res",
+  "settings.fauxHiResHint": "Tune kontrollerar att dina förlustfria filer (FLAC, WAV, AIFF, ALAC…) verkligen innehåller det de anger: bitar som faktiskt används och spektrumets gräns, för att upptäcka en uppsamplad CD eller en fil gjord från MP3. Analysen körs i bakgrunden och viker undan under uppspelning; den lyssnar på 12 utdrag om 5 sekunder per spår, vilket kan ta flera timmar i ett stort bibliotek.",
+  "settings.fauxHiResProgress": "{d} spår analyserade, {r} kvar.",
+  "settings.fauxHiResDone": "Analysen klar: {d} spår analyserade.",
+  "settings.fauxHiResError": "Servern kunde inte ändra den här inställningen.",
+  "v2.lib.qualityHiresVerified": "Verifierad hi-res",
+  "v2.lib.qualityHiresDoubtful": "Tveksam hi-res",
+  "v2.lib.hiresFilterError": "Kunde inte läsa albumens hi-res-bedömning.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Katalogen kan ännu inte filtrera på hi-res-bedömningen: avmarkera ”Verifierad hi-res” och ”Tveksam hi-res” för att exportera den.",
 } as const;

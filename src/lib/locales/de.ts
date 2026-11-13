@@ -7714,6 +7714,15 @@ export default {
   "transport.queueCountOne": "Warteschlange · 1 Titel",
   "transport.queueCount": "Warteschlange · {count} Titel",
   "v2.radio.removeConfirmDirectory": "„{name}“ aus „Meine Radios“ entfernen? Der Sender bleibt im Verzeichnis verfügbar: Sie können ihn dort wiederfinden und erneut hinzufügen.",
+  "settings.fauxHiRes": "Falsches Hi-Res erkennen",
+  "settings.fauxHiResHint": "Tune prüft, ob Ihre verlustfreien Dateien (FLAC, WAV, AIFF, ALAC…) wirklich enthalten, was sie angeben: tatsächlich genutzte Bits und Spektrumgrenze, um eine hochgerechnete CD oder eine aus einer MP3 erzeugte Datei zu erkennen. Die Analyse läuft im Hintergrund und pausiert während der Wiedergabe; sie hört 12 Ausschnitte von 5 Sekunden pro Titel, was bei einer großen Bibliothek mehrere Stunden dauern kann.",
+  "settings.fauxHiResProgress": "{d} Titel analysiert, {r} verbleibend.",
+  "settings.fauxHiResDone": "Analyse abgeschlossen: {d} Titel analysiert.",
+  "settings.fauxHiResError": "Der Server konnte diese Einstellung nicht ändern.",
+  "v2.lib.qualityHiresVerified": "Hi-Res bestätigt",
+  "v2.lib.qualityHiresDoubtful": "Hi-Res zweifelhaft",
+  "v2.lib.hiresFilterError": "Das Hi-Res-Urteil der Alben konnte nicht gelesen werden.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Der Katalog kann noch nicht nach dem Hi-Res-Urteil filtern: Deaktivieren Sie „Hi-Res bestätigt“ und „Hi-Res zweifelhaft“, um ihn zu exportieren.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

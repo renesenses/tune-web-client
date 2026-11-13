@@ -7714,6 +7714,15 @@ export default {
   "transport.queueCountOne": "播放队列 · 1 首",
   "transport.queueCount": "播放队列 · {count} 首",
   "v2.radio.removeConfirmDirectory": "要将“{name}”从“我的电台”中移除吗？该电台仍保留在电台目录中，您可以随时在那里找到并重新添加。",
+  "settings.fauxHiRes": "检测伪高解析",
+  "settings.fauxHiResHint": "Tune 会检查您的无损文件（FLAC、WAV、AIFF、ALAC…）是否真的包含其所标称的内容：实际使用的位数和频谱截止，以发现升频的 CD 或由 MP3 转成的文件。分析在后台运行，播放时自动让路；每首曲目分析 12 段 5 秒的片段，大型音乐库可能需要数小时。",
+  "settings.fauxHiResProgress": "已分析 {d} 首，剩余 {r} 首。",
+  "settings.fauxHiResDone": "分析完成：已分析 {d} 首。",
+  "settings.fauxHiResError": "服务器无法更改此设置。",
+  "v2.lib.qualityHiresVerified": "高解析已验证",
+  "v2.lib.qualityHiresDoubtful": "可疑高解析",
+  "v2.lib.hiresFilterError": "无法读取专辑的高解析判定。",
+  "v2.lib.exportCatalogueHiResUnsupported": "目录尚不能按高解析判定筛选：请取消勾选“高解析已验证”和“可疑高解析”后再导出。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

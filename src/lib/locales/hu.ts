@@ -7673,6 +7673,15 @@ export default {
   "transport.queueCountOne": "Lejátszási sor · 1 szám",
   "transport.queueCount": "Lejátszási sor · {count} szám",
   "v2.radio.removeConfirmDirectory": "Eltávolítja a(z) „{name}” adót a Saját rádióim közül? Az adó továbbra is elérhető a Katalógusban: ott megtalálja, és újra hozzáadhatja.",
+  "settings.fauxHiRes": "Hamis hi-res felismerése",
+  "settings.fauxHiResHint": "A Tune ellenőrzi, hogy a veszteségmentes fájlok (FLAC, WAV, AIFF, ALAC…) valóban azt tartalmazzák-e, amit állítanak: a ténylegesen használt biteket és a spektrum levágását, hogy kiszűrje a felülmintavételezett CD-t vagy az MP3-ból készült fájlt. Az elemzés a háttérben fut, és lejátszás közben félreáll; számonként 12 darab 5 másodperces részletet hallgat meg, ami nagy könyvtárnál több órát is igénybe vehet.",
+  "settings.fauxHiResProgress": "{d} szám elemezve, {r} van hátra.",
+  "settings.fauxHiResDone": "Az elemzés kész: {d} szám elemezve.",
+  "settings.fauxHiResError": "A szerver nem tudta módosítani ezt a beállítást.",
+  "v2.lib.qualityHiresVerified": "Ellenőrzött hi-res",
+  "v2.lib.qualityHiresDoubtful": "Kétes hi-res",
+  "v2.lib.hiresFilterError": "Nem sikerült beolvasni az albumok hi-res ítéletét.",
+  "v2.lib.exportCatalogueHiResUnsupported": "A katalógus még nem tud a hi-res ítélet szerint szűrni: az exportáláshoz vegye ki a jelölést az „Ellenőrzött hi-res” és a „Kétes hi-res” elől.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

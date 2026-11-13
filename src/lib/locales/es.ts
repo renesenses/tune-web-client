@@ -7714,6 +7714,15 @@ export default {
   "transport.queueCountOne": "Cola · 1 pista",
   "transport.queueCount": "Cola · {count} pistas",
   "v2.radio.removeConfirmDirectory": "¿Quitar «{name}» de Mis radios? La emisora sigue disponible en el Directorio: podrá encontrarla allí y volver a añadirla.",
+  "settings.fauxHiRes": "Detectar falso Hi-Res",
+  "settings.fauxHiResHint": "Tune comprueba que tus archivos sin pérdida (FLAC, WAV, AIFF, ALAC…) contienen realmente lo que anuncian: bits realmente usados y corte del espectro, para detectar un CD sobremuestreado o un archivo procedente de un MP3. El análisis se ejecuta en segundo plano y se aparta durante la reproducción; escucha 12 fragmentos de 5 segundos por pista, lo que puede tardar varias horas en una biblioteca grande.",
+  "settings.fauxHiResProgress": "{d} pistas analizadas, {r} restantes.",
+  "settings.fauxHiResDone": "Análisis terminado: {d} pistas analizadas.",
+  "settings.fauxHiResError": "El servidor no pudo cambiar este ajuste.",
+  "v2.lib.qualityHiresVerified": "Hi-Res verificado",
+  "v2.lib.qualityHiresDoubtful": "Hi-Res dudoso",
+  "v2.lib.hiresFilterError": "No se pudo leer el veredicto Hi-Res de los álbumes.",
+  "v2.lib.exportCatalogueHiResUnsupported": "El catálogo aún no puede filtrar por el veredicto Hi-Res: desmarca «Hi-Res verificado» y «Hi-Res dudoso» para exportarlo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

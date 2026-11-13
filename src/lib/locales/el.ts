@@ -7559,5 +7559,14 @@ export default {
   "transport.queueCountOne": "Ουρά · 1 κομμάτι",
   "transport.queueCount": "Ουρά · {count} κομμάτια",
   "v2.radio.removeConfirmDirectory": "Αφαίρεση του «{name}» από τα Ραδιόφωνά μου; Ο σταθμός παραμένει διαθέσιμος στον Κατάλογο: μπορείτε να τον βρείτε εκεί και να τον προσθέσετε ξανά.",
+  "settings.fauxHiRes": "Εντοπισμός ψευδούς hi-res",
+  "settings.fauxHiResHint": "Το Tune ελέγχει αν τα αρχεία χωρίς απώλειες (FLAC, WAV, AIFF, ALAC…) περιέχουν πραγματικά ό,τι δηλώνουν: bit που χρησιμοποιούνται πράγματι και αποκοπή του φάσματος, για να εντοπίσει ένα CD με υπερδειγματοληψία ή ένα αρχείο που προήλθε από MP3. Η ανάλυση τρέχει στο παρασκήνιο και παραμερίζει κατά την αναπαραγωγή· ακούει 12 αποσπάσματα των 5 δευτερολέπτων ανά κομμάτι, κάτι που μπορεί να διαρκέσει αρκετές ώρες σε μεγάλη βιβλιοθήκη.",
+  "settings.fauxHiResProgress": "Αναλύθηκαν {d} κομμάτια, απομένουν {r}.",
+  "settings.fauxHiResDone": "Η ανάλυση ολοκληρώθηκε: αναλύθηκαν {d} κομμάτια.",
+  "settings.fauxHiResError": "Ο διακομιστής δεν μπόρεσε να αλλάξει αυτή τη ρύθμιση.",
+  "v2.lib.qualityHiresVerified": "Επαληθευμένο hi-res",
+  "v2.lib.qualityHiresDoubtful": "Αμφίβολο hi-res",
+  "v2.lib.hiresFilterError": "Δεν ήταν δυνατή η ανάγνωση της ετυμηγορίας hi-res των άλμπουμ.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Ο κατάλογος δεν μπορεί ακόμη να φιλτράρει με την ετυμηγορία hi-res: αποεπιλέξτε «Επαληθευμένο hi-res» και «Αμφίβολο hi-res» για να τον εξαγάγετε.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

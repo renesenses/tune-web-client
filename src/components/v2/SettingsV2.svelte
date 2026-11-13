@@ -7,6 +7,7 @@
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
+  import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -7070,6 +7071,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+              <!-- rc12 (décision du 13/11, tune-server-rust#6285) — la détection des faux Hi-Res, éteinte par défaut. -->
+              <div data-reglage="faux-hires"><DetectionFauxHiRes /></div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <div data-reglage="audit-integrite"><AuditIntegrite /></div>

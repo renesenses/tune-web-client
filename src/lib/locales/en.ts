@@ -7734,6 +7734,15 @@ export default {
   "transport.queueCountOne": "Queue · 1 track",
   "transport.queueCount": "Queue · {count} tracks",
   "v2.radio.removeConfirmDirectory": "Remove “{name}” from My Radios? The station stays available in the Directory: you can find it there and add it back.",
+  "settings.fauxHiRes": "Detect fake Hi-Res",
+  "settings.fauxHiResHint": "Tune checks that your lossless files (FLAC, WAV, AIFF, ALAC…) really contain what they claim: bits actually used and spectrum cutoff, to spot an upsampled CD or a file made from an MP3. The analysis runs in the background and steps aside during playback; it listens to 12 five-second excerpts per track, which can take several hours on a large library.",
+  "settings.fauxHiResProgress": "{d} tracks analysed, {r} remaining.",
+  "settings.fauxHiResDone": "Analysis complete: {d} tracks analysed.",
+  "settings.fauxHiResError": "The server could not change this setting.",
+  "v2.lib.qualityHiresVerified": "Verified Hi-Res",
+  "v2.lib.qualityHiresDoubtful": "Doubtful Hi-Res",
+  "v2.lib.hiresFilterError": "Could not read the albums' Hi-Res verdict.",
+  "v2.lib.exportCatalogueHiResUnsupported": "The catalogue cannot filter on the Hi-Res verdict yet: untick “Verified Hi-Res” and “Doubtful Hi-Res” to export it.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

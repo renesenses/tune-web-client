@@ -7714,6 +7714,15 @@ export default {
   "transport.queueCountOne": "대기열 · 1곡",
   "transport.queueCount": "대기열 · {count}곡",
   "v2.radio.removeConfirmDirectory": "“{name}”을(를) 내 라디오에서 제거할까요? 이 방송국은 디렉터리에 그대로 남아 있어 언제든 다시 추가할 수 있습니다.",
+  "settings.fauxHiRes": "가짜 하이레즈 감지",
+  "settings.fauxHiResHint": "Tune은 무손실 파일(FLAC, WAV, AIFF, ALAC…)이 표시된 내용을 실제로 담고 있는지 확인합니다. 실제로 사용된 비트와 스펙트럼 차단 주파수를 살펴 업샘플링된 CD나 MP3에서 만든 파일을 찾아냅니다. 분석은 백그라운드에서 실행되며 재생 중에는 물러납니다. 곡마다 5초 구간 12개를 분석하므로 큰 라이브러리에서는 몇 시간이 걸릴 수 있습니다.",
+  "settings.fauxHiResProgress": "{d}곡 분석됨, {r}곡 남음.",
+  "settings.fauxHiResDone": "분석 완료: {d}곡 분석됨.",
+  "settings.fauxHiResError": "서버가 이 설정을 변경하지 못했습니다.",
+  "v2.lib.qualityHiresVerified": "하이레즈 확인됨",
+  "v2.lib.qualityHiresDoubtful": "하이레즈 의심",
+  "v2.lib.hiresFilterError": "앨범의 하이레즈 판정을 읽을 수 없습니다.",
+  "v2.lib.exportCatalogueHiResUnsupported": "카탈로그는 아직 하이레즈 판정으로 거를 수 없습니다. 내보내려면 '하이레즈 확인됨'과 '하이레즈 의심'의 선택을 해제하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
