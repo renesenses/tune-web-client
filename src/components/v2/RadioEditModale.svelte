@@ -126,10 +126,11 @@
   let ecoute = $state(false);
   async function ecouter() {
     const adresse = flux.trim();
-    if (!adresse || !zoneEcoute || ecoute) return;
+    const zoneId = zoneEcoute?.id;
+    if (!adresse || zoneId == null || ecoute) return;
     ecoute = true;
     try {
-      await playAndSync(zoneEcoute.id, {
+      await playAndSync(zoneId, {
         source: 'radio',
         source_id: adresse,
         title: nom.trim() || adresse,
