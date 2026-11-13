@@ -52,6 +52,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
+  // tune-server-rust#8611 / #8636 (lot rc12) — contrôle parental : artiste
+  // bloqué pour ce profil (403, lecture ou fiche). Sans cette entrée, le
+  // refus restait muet pour l'enfant : rien ne jouait, rien ne s'affichait.
+  parental_content_blocked: 'playback.errorParentalBlocked',
 };
 
 /**
@@ -77,6 +81,8 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'zone_output_unavailable',
   // tune-server-rust#8088 — refus du contrôle parental, phrase traduite par le serveur.
   'parental_explicit_refused',
+  // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
+  'parental_content_blocked',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
