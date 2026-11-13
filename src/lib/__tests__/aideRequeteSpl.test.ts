@@ -11,11 +11,9 @@ import { readFileSync } from 'node:fs';
 import RequeteAvanceeV2 from '../../components/v2/RequeteAvanceeV2.svelte';
 import { COMBINAISONS, DATES, DOC_REQUETE_AVANCEE, EXEMPLES, GROUPES, OPERATEURS } from '../aideRequeteSpl';
 import { t } from '../i18n';
-import fr from '../locales/fr';
-import en from '../locales/en';
+import { dictionnaire, en, fr, ONZE_LANGUES } from './onzeDictionnaires';
 
 const tr = (cle: string) => get(t)(cle);
-const LANGUES = ['en', 'de', 'el', 'es', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh'];
 
 describe('l’aide de la requête avancée', () => {
   let cible: HTMLElement;
@@ -70,11 +68,11 @@ describe('l’aide de la requête avancée', () => {
     expect(lien.getAttribute('target')).toBe('_blank');
   });
 
-  it('chaque clé de l’aide est traduite dans les quinze langues', async () => {
+  it('chaque clé de l’aide est traduite dans les quinze langues', () => {
     const cles = Object.keys(fr).filter((k) => k.startsWith('v2.spl.reqDoc.'));
     expect(cles.length).toBeGreaterThan(70);
-    for (const lg of LANGUES) {
-      const dict = (await import(`../locales/${lg}.ts`)).default as Record<string, string>;
+    for (const lg of ONZE_LANGUES) {
+      const dict = dictionnaire(lg);
       const manquantes = cles.filter((k) => !dict[k]);
       expect(manquantes, lg).toEqual([]);
     }
