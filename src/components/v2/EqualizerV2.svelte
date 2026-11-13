@@ -39,6 +39,7 @@
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
+  import ContourLoudnessV2 from './ContourLoudnessV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
   import { bilanImportPeq, db, lignesApercu, lignesEcartees, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
@@ -1130,6 +1131,8 @@
       <!-- tune-server-rust#4685 — hors du choix de mode : la compensation vaut
            pour la courbe, quelle que soit la façon de la composer. -->
       <CompensationNiveauV2 revision={revisionDsp} />
+      <!-- tune-server-rust#8554 — contour de loudness qui suit le volume. -->
+      <ContourLoudnessV2 />
       </fieldset>
     {/if}
   </div>
