@@ -147,6 +147,17 @@ afterEach(() => {
 // web#2550 — décision de Bertrand du 12/11/2026 (rc12) : le logo, en petit,
 // dans un coin de la pochette du morceau, et plus à côté du nom.
 describe('web#2550 — Lecture en cours : le logo de la station en petit, dans le coin de la pochette', () => {
+  it('web#2953 — un logo rectangulaire remplit le badge sans bandes de contenir', async () => {
+    miennes = [FIP_MIENNE];
+    const h = await poser(RADIO);
+    const badge = h.querySelector('[data-logo-station]')!;
+    const image = badge.querySelector('img')!;
+    Object.defineProperties(image, { naturalWidth: { value: 160 }, naturalHeight: { value: 100 } });
+    image.dispatchEvent(new Event('load')); flushSync();
+    expect(image.classList.contains('entiere'), 'le logo ne doit pas laisser des bandes autour de son image').toBe(false);
+    expect(badge.querySelector('.album-art.fill'), 'le logo doit adopter les dimensions du badge').not.toBeNull();
+  });
+
   it('🔴 un seul logo : dans le coin de la pochette, plus sur la ligne du nom', async () => {
     miennes = [FIP_MIENNE];
     const h = await poser(RADIO);
