@@ -20,7 +20,7 @@ import { currentZoneId } from '../stores/zones';
 const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu', 'vi', 'el', 'nb', 'pl'];
 const CLES = [
   'title', 'hint', 'bassOnly', 'intensity', 'source', 'sourceVolume', 'sourceManual', 'manualLevel',
-  'reference', 'referenceHelp', 'statusActive', 'statusFlat', 'statusPure', 'statusStrict',
+  'reference', 'referencePhon', 'referenceHelp', 'statusActive', 'statusFlat', 'statusPure', 'statusStrict',
   'statusUnknown', 'statusUnsupported', 'errSave',
 ].map((k) => `v2.loud.${k}`);
 
@@ -39,9 +39,10 @@ async function poser(): Promise<HTMLDivElement> {
   return hote;
 }
 
-function etat(status: string, enabled = true, contour = [{ hz: 63, db: 7.6 }, { hz: 10000, db: 1.4 }]) {
+function etat(status: string, enabled = true, contour = [{ hz: 63, db: 7.6 }, { hz: 10000, db: 1.4 }], zone_id = 1, pure = false) {
   return {
-    zone_id: 1,
+    zone_id,
+    pure,
     settings: {
       enabled, curve: 'iso226_2003', bass_only: false, intensity_pct: 100,
       reference_volume_db: 0, reference_phon: 80, level_source: 'volume', manual_level_db: -20,
@@ -122,7 +123,44 @@ describe('Contour de loudness (#8554)', () => {
     expect(el.querySelector('.err')).not.toBeNull();
   });
 
-  it('dix-sept clés, quinze dictionnaires', () => {
+  it('🔴 PURE est dit même quand le contour est désactivé', async () => {
+    mocks.getLoudness.mockResolvedValue(etat('disabled', false, [], 1, true));
+    const el = await poser();
+    expect(el.querySelector('[data-testid="contour-loudness-pure"]')!.textContent)
+      .toBe('Contourné : PURE est actif sur cette zone');
+  });
+
+  it('🔴 une réponse en retard d’une autre zone est jetée, et rien n’est écrit sur la mauvaise zone', async () => {
+    let lacher: (v: unknown) => void = () => {};
+    mocks.getLoudness.mockImplementation((zid: number) =>
+      zid === 1
+        ? new Promise((r) => { lacher = r; })
+        : Promise.resolve(etat('disabled', false, [], 2)));
+    mocks.setLoudness.mockResolvedValue(etat('active', true, undefined, 2));
+    const el = await poser();
+    currentZoneId.set(2);
+    await laisserCharger();
+    lacher(etat('active', true, undefined, 1));
+    await laisserCharger();
+    expect(el.querySelector('[data-testid="contour-loudness-etat"]'), 'l’état de la zone 1 ne s’affiche pas').toBeNull();
+    (el.querySelector('.sw input') as HTMLInputElement).click();
+    await laisserCharger();
+    expect(mocks.setLoudness).toHaveBeenCalledWith(2, { enabled: true });
+  });
+
+  it('le niveau calibré (phones) s’écrit', async () => {
+    mocks.getLoudness.mockResolvedValue(etat('active'));
+    mocks.setLoudness.mockResolvedValue(etat('active'));
+    const el = await poser();
+    const curseur = el.querySelector('[data-testid="contour-loudness-phones"]') as HTMLInputElement;
+    expect([curseur.min, curseur.max]).toEqual(['40', '90']);
+    curseur.value = '85';
+    curseur.dispatchEvent(new Event('change', { bubbles: true }));
+    await laisserCharger();
+    expect(mocks.setLoudness).toHaveBeenCalledWith(1, { reference_phon: 85 });
+  });
+
+  it('dix-huit clés, quinze dictionnaires', () => {
     for (const code of LOCALES) {
       const dico = dictionnaire(code);
       for (const cle of CLES) expect(dico[cle], `${code} / ${cle}`).toBeTruthy();

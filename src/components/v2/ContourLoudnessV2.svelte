@@ -26,9 +26,18 @@
 
   $effect(() => {
     const zid = $currentZoneId;
-    if (zid == null) { etat = null; return; }
-    lire(zid).then((e) => { etat = e; });
+    // L'état d'une autre zone ne reste jamais affiché pendant la lecture.
+    etat = null;
+    if (zid == null) return;
+    lire(zid).then((e) => { if (estLaZoneAffichee(zid)) etat = e; });
   });
+
+  /** Une réponse arrivée après un changement de zone est jetée : elle
+   *  afficherait l'état d'une autre zone, et le geste suivant l'écrirait sur
+   *  la zone courante. */
+  function estLaZoneAffichee(zid: number): boolean {
+    return $currentZoneId === zid;
+  }
 
   /** `null` sur toute erreur, y compris un client de test qui ne fournit pas
    *  la route : l'écran de l'égaliseur ne doit jamais tomber à cause d'elle. */
@@ -50,22 +59,25 @@
     if (volumeVu === undefined || vol === volumeVu || zid == null || !etat) { volumeVu = vol; return; }
     volumeVu = vol;
     const h = setTimeout(() => {
-      lire(zid).then((e) => { if (e) etat = e; });
+      lire(zid).then((e) => { if (e && estLaZoneAffichee(zid)) etat = e; });
     }, 500);
     return () => clearTimeout(h);
   });
 
   async function ecrire(patch: Partial<api.LoudnessSettings>) {
     const zid = zoneRequise();
-    if (zid == null || !etat || enCours) return;
+    // L'état affiché doit être celui de la zone qu'on écrit.
+    if (zid == null || !etat || enCours || etat.zone_id !== zid) return;
     const avant = etat;
     etat = { ...etat, settings: { ...etat.settings, ...patch } };
     enCours = true;
     try {
       const res = await api.setLoudness(zid, patch);
+      if (!estLaZoneAffichee(zid)) return;
       if (res?.settings) etat = res;
       erreur = false;
     } catch {
+      if (!estLaZoneAffichee(zid)) return;
       etat = avant;
       erreur = true;
     } finally {
@@ -115,6 +127,9 @@
       </label>
     </div>
 
+    {#if !s.enabled && etat.pure}
+      <p class="etat" data-testid="contour-loudness-pure">{$t('v2.loud.statusPure' as any)}</p>
+    {/if}
     {#if s.enabled}
       <p class="etat" data-testid="contour-loudness-etat" data-status={etat.status}>{ligneEtat}</p>
 
@@ -140,16 +155,21 @@
       {#if s.level_source === 'manual'}
         <label class="curseur">
           <span>{$t('v2.loud.manualLevel' as any)} <b>{db(s.manual_level_db)} dB</b></span>
-          <input type="range" min="-60" max="0" step="1" value={s.manual_level_db} disabled={enCours}
+          <input type="range" min="-70" max="0" step="1" value={s.manual_level_db} disabled={enCours}
             onchange={(e) => ecrire({ manual_level_db: valeur(e) })} />
         </label>
       {:else}
         <label class="curseur">
           <span>{$t('v2.loud.reference' as any)} <b>{db(s.reference_volume_db)} dB</b></span>
-          <input type="range" min="-40" max="0" step="1" value={s.reference_volume_db} disabled={enCours}
+          <input type="range" min="-60" max="0" step="1" value={s.reference_volume_db} disabled={enCours}
             onchange={(e) => ecrire({ reference_volume_db: valeur(e) })} />
         </label>
       {/if}
+      <label class="curseur">
+        <span>{$t('v2.loud.referencePhon' as any)} <b>{Math.round(s.reference_phon)}</b></span>
+        <input type="range" min="40" max="90" step="1" value={s.reference_phon} disabled={enCours}
+          onchange={(e) => ecrire({ reference_phon: valeur(e) })} data-testid="contour-loudness-phones" />
+      </label>
       <span class="note">{$t('v2.loud.referenceHelp' as any)}</span>
     {/if}
     {#if erreur}<span class="err">{$t('v2.loud.errSave' as any)}</span>{/if}

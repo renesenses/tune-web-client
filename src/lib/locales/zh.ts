@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "手动电平",
   "v2.loud.manualLevel": "低于参考的聆听电平",
   "v2.loud.reference": "参考音量（补偿为零）",
+  "v2.loud.referencePhon": "参考处的聆听电平（方）",
   "v2.loud.referenceHelp": "将参考设为您以完整响度聆听时的音量。对于固定音量区域（电平在前级上调节），请选择手动电平。",
   "v2.loud.statusActive": "当前音量下 63 Hz {low} dB，10 kHz {high} dB",
   "v2.loud.statusFlat": "当前音量下为零（参考电平）",

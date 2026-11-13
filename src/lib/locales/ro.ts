@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "Nivel manual",
   "v2.loud.manualLevel": "Nivel de ascultare sub referință",
   "v2.loud.reference": "Volum de referință (contur nul)",
+  "v2.loud.referencePhon": "Nivel de ascultare la referință (foni)",
   "v2.loud.referenceHelp": "Setați referința la volumul la care ascultați la tărie deplină. Pe o zonă cu volum fix (nivel reglat pe un preamplificator), alegeți un nivel manual.",
   "v2.loud.statusActive": "{low} dB la 63 Hz, {high} dB la 10 kHz la volumul actual",
   "v2.loud.statusFlat": "Nul la volumul actual (nivel de referință)",

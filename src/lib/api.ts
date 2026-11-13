@@ -4592,6 +4592,8 @@ export interface LoudnessState {
   volume_db: number | null;
   attenuation_db: number | null;
   contour_db: { hz: number; db: number }[] | null;
+  /** PURE tient la zone : dit même quand le contour est désactivé. */
+  pure?: boolean;
   /** Réponse de `POST` : `immediate`, `next_track`, `next_play`. */
   applied?: string;
 }
@@ -4601,12 +4603,17 @@ export function getLoudness(zoneId: number) {
   return fetchJSON<LoudnessState>(`${BASE}/zones/${zoneId}/eq/loudness`, undefined, undefined, true);
 }
 
-/** Écrit les SEULS champs donnés ; le serveur garde les autres. */
+/**
+ * Écrit les SEULS champs donnés ; le serveur garde les autres. Sans bandeau :
+ * la carte dit elle-même le refus (un seul message, pas deux).
+ */
 export function setLoudness(zoneId: number, patch: Partial<LoudnessSettings>) {
-  return fetchJSON<LoudnessState>(`${BASE}/zones/${zoneId}/eq/loudness`, {
-    method: 'POST',
-    body: JSON.stringify(patch),
-  });
+  return fetchJSON<LoudnessState>(
+    `${BASE}/zones/${zoneId}/eq/loudness`,
+    { method: 'POST', body: JSON.stringify(patch) },
+    undefined,
+    true,
+  );
 }
 
 // Résolution du mode Expert (10/15/31 bandes) — stockée serveur pour que tous

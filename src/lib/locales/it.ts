@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "Livello manuale",
   "v2.loud.manualLevel": "Livello di ascolto sotto il riferimento",
   "v2.loud.reference": "Volume di riferimento (contorno nullo)",
+  "v2.loud.referencePhon": "Livello di ascolto al riferimento (phon)",
   "v2.loud.referenceHelp": "Imposta il riferimento sul volume a cui ascolti a piena sonorità. Su una zona a volume fisso (livello regolato su un preamplificatore), scegli un livello manuale.",
   "v2.loud.statusActive": "{low} dB a 63 Hz, {high} dB a 10 kHz al volume attuale",
   "v2.loud.statusFlat": "Nullo al volume attuale (livello di riferimento)",

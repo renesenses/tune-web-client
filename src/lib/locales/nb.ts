@@ -3533,6 +3533,7 @@ export default {
   "v2.loud.sourceManual": "Manuelt nivå",
   "v2.loud.manualLevel": "Lyttenivå under referansen",
   "v2.loud.reference": "Referansevolum (nøytral kontur)",
+  "v2.loud.referencePhon": "Lyttenivå ved referansen (phon)",
   "v2.loud.referenceHelp": "Sett referansen til volumet du lytter på med full hørestyrke. På en sone med fast volum (nivået stilles på et forforsterkertrinn), velg et manuelt nivå.",
   "v2.loud.statusActive": "{low} dB ved 63 Hz, {high} dB ved 10 kHz ved nåværende volum",
   "v2.loud.statusFlat": "Nøytral ved nåværende volum (referansenivå)",

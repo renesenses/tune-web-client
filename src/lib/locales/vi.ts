@@ -3535,6 +3535,7 @@ export default {
   "v2.loud.sourceManual": "Mức thủ công",
   "v2.loud.manualLevel": "Mức nghe dưới tham chiếu",
   "v2.loud.reference": "Âm lượng tham chiếu (không bù)",
+  "v2.loud.referencePhon": "Mức nghe tại tham chiếu (phon)",
   "v2.loud.referenceHelp": "Đặt tham chiếu ở âm lượng bạn nghe với độ to đầy đủ. Với vùng âm lượng cố định (mức chỉnh trên preamp), hãy chọn mức thủ công.",
   "v2.loud.statusActive": "{low} dB tại 63 Hz, {high} dB tại 10 kHz ở âm lượng hiện tại",
   "v2.loud.statusFlat": "Phẳng ở âm lượng hiện tại (mức tham chiếu)",

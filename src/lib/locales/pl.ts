@@ -3533,6 +3533,7 @@ export default {
   "v2.loud.sourceManual": "Poziom ręczny",
   "v2.loud.manualLevel": "Poziom odsłuchu poniżej odniesienia",
   "v2.loud.reference": "Głośność odniesienia (kontur płaski)",
+  "v2.loud.referencePhon": "Poziom odsłuchu przy odniesieniu (fony)",
   "v2.loud.referenceHelp": "Ustaw odniesienie na głośność, przy której słuchasz z pełną głośnością. W strefie o stałej głośności (poziom ustawiany na przedwzmacniaczu) wybierz poziom ręczny.",
   "v2.loud.statusActive": "{low} dB przy 63 Hz, {high} dB przy 10 kHz przy obecnej głośności",
   "v2.loud.statusFlat": "Płaski przy obecnej głośności (poziom odniesienia)",

@@ -3668,6 +3668,7 @@ export default {
   "v2.loud.sourceManual": "Manual level",
   "v2.loud.manualLevel": "Listening level below reference",
   "v2.loud.reference": "Reference volume (flat contour)",
+  "v2.loud.referencePhon": "Listening level at reference (phon)",
   "v2.loud.referenceHelp": "Set the reference to the volume at which you listen at full loudness. On a fixed-volume zone (level set on a preamp), choose a manual level.",
   "v2.loud.statusActive": "{low} dB at 63 Hz, {high} dB at 10 kHz at the current volume",
   "v2.loud.statusFlat": "Flat at the current volume (reference level)",

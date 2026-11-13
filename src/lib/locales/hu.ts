@@ -3608,6 +3608,7 @@ export default {
   "v2.loud.sourceManual": "Kézi szint",
   "v2.loud.manualLevel": "Hallgatási szint a referencia alatt",
   "v2.loud.reference": "Referencia-hangerő (semleges kontúr)",
+  "v2.loud.referencePhon": "Hallgatási szint a referencián (phon)",
   "v2.loud.referenceHelp": "A referenciát arra a hangerőre állítsa, amelyen teljes hangossággal hallgat. Fix hangerejű zónán (a szint előerősítőn állítva) válasszon kézi szintet.",
   "v2.loud.statusActive": "{low} dB 63 Hz-en, {high} dB 10 kHz-en a jelenlegi hangerőn",
   "v2.loud.statusFlat": "Semleges a jelenlegi hangerőn (referenciaszint)",

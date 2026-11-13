@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "手動レベル",
   "v2.loud.manualLevel": "基準より低い再生レベル",
   "v2.loud.reference": "基準音量（補正なし）",
+  "v2.loud.referencePhon": "基準での再生レベル（フォン）",
   "v2.loud.referenceHelp": "フルラウドネスで聴く音量を基準に設定してください。固定音量のゾーン（プリアンプでレベル調整）では手動レベルを選んでください。",
   "v2.loud.statusActive": "現在の音量で 63 Hz {low} dB、10 kHz {high} dB",
   "v2.loud.statusFlat": "現在の音量ではフラット（基準レベル）",

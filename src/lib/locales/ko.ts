@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "수동 레벨",
   "v2.loud.manualLevel": "기준보다 낮은 청취 레벨",
   "v2.loud.reference": "기준 볼륨 (보정 없음)",
+  "v2.loud.referencePhon": "기준에서의 청취 레벨 (폰)",
   "v2.loud.referenceHelp": "최대 음량감으로 듣는 볼륨을 기준으로 설정하세요. 고정 볼륨 존(프리앰프에서 레벨 조절)에서는 수동 레벨을 선택하세요.",
   "v2.loud.statusActive": "현재 볼륨에서 63 Hz {low} dB, 10 kHz {high} dB",
   "v2.loud.statusFlat": "현재 볼륨에서 평탄 (기준 레벨)",

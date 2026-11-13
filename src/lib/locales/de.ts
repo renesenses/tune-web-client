@@ -3654,6 +3654,7 @@ export default {
   "v2.loud.sourceManual": "Manueller Pegel",
   "v2.loud.manualLevel": "Abhörpegel unter der Referenz",
   "v2.loud.reference": "Referenzlautstärke (Kontur neutral)",
+  "v2.loud.referencePhon": "Abhörpegel bei der Referenz (Phon)",
   "v2.loud.referenceHelp": "Stellen Sie die Referenz auf die Lautstärke, bei der Sie mit voller Lautheit hören. Bei einer Zone mit fester Lautstärke (Pegel am Vorverstärker) wählen Sie einen manuellen Pegel.",
   "v2.loud.statusActive": "{low} dB bei 63 Hz, {high} dB bei 10 kHz bei der aktuellen Lautstärke",
   "v2.loud.statusFlat": "Neutral bei der aktuellen Lautstärke (Referenzpegel)",
