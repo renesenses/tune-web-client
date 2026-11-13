@@ -3693,6 +3693,7 @@ export default {
   "v2.ms.eyebrow": "Mạng",
   "v2.ms.title": "Máy chủ đa phương tiện",
   "v2.ms.searchIn": "Tìm kiếm trong {name}",
+  "v2.rech.dans": "Tìm kiếm trong {ecran}…",
   "v2.ms.searching": "Đang tìm máy chủ trên mạng…",
   "v2.ms.none": "Không tìm thấy máy chủ đa phương tiện nào trên mạng.",
   "v2.ms.noneHint": "Việc dò tìm dùng UPnP/DLNA: máy chủ từ xa phải được bật, ở cùng mạng cục bộ, và đã bật chia sẻ UPnP.",

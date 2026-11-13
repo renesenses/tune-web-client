@@ -3812,6 +3812,7 @@ export default {
   "v2.ms.eyebrow": "Netzwerk",
   "v2.ms.title": "Medienserver",
   "v2.ms.searchIn": "In {name} suchen",
+  "v2.rech.dans": "In {ecran} suchen…",
   "v2.ms.searching": "Server werden im Netzwerk gesucht…",
   "v2.ms.none": "Kein Medienserver im Netzwerk gefunden.",
   "v2.ms.noneHint": "Die Erkennung läuft über UPnP/DLNA: der entfernte Server muss eingeschaltet sein, im selben lokalen Netz, mit aktivierter UPnP-Freigabe.",

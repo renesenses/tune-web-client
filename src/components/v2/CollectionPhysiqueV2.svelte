@@ -64,6 +64,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dateEtHeure } from '../../lib/dates';
   import { dialogs } from '../../lib/stores/dialogs';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerDisques } from '../../lib/rechercheCollectionPhysique';
 
   let reglages = $state<Reglages | null>(null);
   let etat = $state<EtatSynchro | null>(null);
@@ -71,6 +73,10 @@
   let nom = $state('');
   let format = $state<Famille | null>(null);
   let filtreEtat = $state<EtatDisque | null>(null);
+  /** Recette rc12 (13/11) — la zone de recherche : titre, artiste, label,
+   *  n° de catalogue, code-barres, filtrés ici (`rechercheCollectionPhysique`). */
+  let recherche = $state('');
+  const disquesAffiches = $derived(collection ? filtrerDisques(collection.disques, recherche) : []);
   let erreur = $state<unknown>(null);
   let erreurLecture = $state<unknown>(null);
   let compteEnregistre = $state(false);
@@ -390,6 +396,7 @@
     </div>
     {#if collection?.statut === 'ok'}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$t('collectionPhysique.titre' as any)} />
         <div class="meta">
           {#if revalidation && enCours}<span data-mise-a-jour>{$t('collectionPhysique.miseAJour' as any)}</span>{/if}
           <span>{texte('collectionPhysique.compteur', { n: collection.compteurs.total })}</span>
@@ -535,11 +542,11 @@
           {/if}
         </div>
       {/if}
-      {#if !collection.disques.length}
+      {#if !disquesAffiches.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
       {:else if affichage === 'grid'}
         <div class="grid" data-grille-collection>
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <div class="card" data-disque={d.release_id} data-etat-disque={d.etat}>
               <button class="cover" onclick={() => ouvrir(d)} aria-label={d.titre} data-ouvrir-disque>
@@ -567,7 +574,7 @@
         </div>
       {:else}
         <ul class="list">
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <li class="ligne" data-disque={d.release_id} data-etat-disque={d.etat}>
               <span class="lcv">

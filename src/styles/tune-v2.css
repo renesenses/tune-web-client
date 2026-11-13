@@ -511,3 +511,15 @@
 @media (max-width:1000px){
   .tune-v2 .v2-rech{width:auto; flex:1 1 160px; min-width:130px}
 }
+
+/* Recette rc12 (13/11) — « harmonise la localisation de la zone de
+   recherche » : sous 780 px, LA MÊME règle sur tous les écrans, vue mini
+   comprise — le champ prend toute la largeur, sur sa ligne, sous le titre ;
+   onglets et boutons passent dessous. `.v2-shell` en tête : ces règles
+   doivent l'emporter sur la rangée sans retour de `vue-mini.css`. */
+@media (max-width:779px){
+  .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech){flex-wrap:wrap; row-gap:10px}
+  .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech) > .v2-titres{flex:1 0 100%; max-width:none}
+  .v2-shell .tune-v2 .v2-top > .v2-actions:has(> .v2-rech){flex:1 1 100%; flex-wrap:wrap; justify-content:flex-start}
+  .v2-shell .tune-v2 .v2-top > .v2-actions > .v2-rech{flex:1 1 100%; width:auto; min-width:0}
+}

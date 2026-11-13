@@ -28,6 +28,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
   import ImportPlaylistFichier from './ImportPlaylistFichier.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import {
     copierTout,
     motifSauvegardeImpossible,
@@ -704,15 +705,7 @@
       <h1>Playlists</h1>
     </div>
     <div class="v2-actions">
-    <label class="chercher">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" bind:value={recherche} placeholder={$t('v2.pl.searchPlaceholder' as any)}
-             aria-label={$t('v2.pl.searchPlaceholder' as any)} />
-      {#if recherche}
-        <button class="vider" onclick={() => (recherche = '')} aria-label={$t('common.clear' as any)}>×</button>
-      {/if}
-    </label>
+    <ChampRecherche bind:valeur={recherche} ecran="Playlists" />
     <!-- web#1719 — LE MÊME bouton que la Bibliothèque et les Favoris
          (`BasculeAffichage`). Hors de `showAdvanced` : choisir la forme de sa
          liste n'est pas une fonction avancée, et le niveau Essentiel a
@@ -1023,19 +1016,6 @@
     font-family:var(--v2-sans); overflow:hidden}
 
   .newp{display:flex; gap:8px}
-  /* La recherche vit dans l'en-tete, a cote des outils : elle porte sur tout
-     l'ecran, pas sur une seule de ses quatre listes. */
-  .chercher{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px; margin-left:auto;
-    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
-    color:var(--v2-txt3); min-width:210px}
-  .chercher:focus-within{border-color:var(--v2-acc2); color:var(--v2-txt2)}
-  .chercher svg{width:15px; height:15px; flex-shrink:0}
-  .chercher input{flex:1; min-width:0; border:0; background:transparent; color:var(--v2-txt);
-    font:calc(13.5px * var(--v2-txt-echelle, 1))/1 inherit; outline:none}
-  .chercher input::-webkit-search-cancel-button{display:none}
-  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:calc(17px * var(--v2-txt-echelle, 1));
-    line-height:1; padding:0 2px}
-  .vider:hover{color:var(--v2-txt)}
 
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:240px}

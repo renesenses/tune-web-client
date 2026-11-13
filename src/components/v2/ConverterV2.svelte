@@ -26,6 +26,7 @@
   import { frequencesProposees, ligneFormatsEcrits, presetEffectif } from '../../lib/convertisseurFrequence';
   import { nomDArchive } from '../../lib/convertisseurArchive';
   import ConvertisseurPistes from './ConvertisseurPistes.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import * as api from '../../lib/api';
   import { get } from 'svelte/store';
   import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
@@ -381,10 +382,7 @@
                faisait 240 px de large et 36 px de haut ici, 230 × 38 sur les
                Extensions, 320 × 40 sur le Streaming — trois dessins pour un
                seul geste. -->
-          <div class="v2-rech">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-          </div>
+          <ChampRecherche bind:valeur={q} ecran={$t('v2.conv.albumsToConvert' as any)} />
           <button class="go" disabled={!picked.size || !preset || !supported || starting} onclick={start}>
             {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
           </button>

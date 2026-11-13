@@ -3812,6 +3812,7 @@ export default {
   "v2.ms.eyebrow": "Rețea",
   "v2.ms.title": "Servere multimedia",
   "v2.ms.searchIn": "Caută în {name}",
+  "v2.rech.dans": "Caută în {ecran}…",
   "v2.ms.searching": "Se caută servere în rețea…",
   "v2.ms.none": "Niciun server multimedia detectat în rețea.",
   "v2.ms.noneHint": "Descoperirea se face prin UPnP/DLNA: serverul de la distanță trebuie să fie pornit, în aceeași rețea locală, cu difuzarea UPnP activată.",

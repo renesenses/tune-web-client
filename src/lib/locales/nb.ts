@@ -3691,6 +3691,7 @@ export default {
   "v2.ms.eyebrow": "Nettverk",
   "v2.ms.title": "Medieservere",
   "v2.ms.searchIn": "Søk i {name}",
+  "v2.rech.dans": "Søk i {ecran}…",
   "v2.ms.searching": "Leter etter servere på nettverket…",
   "v2.ms.none": "Ingen medieserver funnet på nettverket.",
   "v2.ms.noneHint": "Oppdagelsen bruker UPnP/DLNA: den eksterne serveren må være slått på, på samme lokalnett, med UPnP-deling aktivert.",
