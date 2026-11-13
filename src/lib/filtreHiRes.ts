@@ -5,9 +5,9 @@
  * Le verdict se lit au SERVEUR, par le filtre `GET /library/albums?hires_verdict=`
  * qui rend exactement les albums portant le badge : on en garde les
  * identifiants, et la grille filtre sur place comme pour le pays ou la portée
- * de dossier. Les deux entrées n'apparaissent que si la détection a servi
- * (allumée, ou des mesures déjà rangées) ; « douteux » seulement si le serveur
- * le montre.
+ * de dossier. Décision de Bertrand : détection éteinte = rien de visible. Les
+ * deux entrées n'apparaissent que si la détection est ALLUMÉE (même si des
+ * mesures restent en base) ; « douteux » seulement si le serveur le montre.
  */
 import type { EtatFauxHiRes } from './api';
 
@@ -23,7 +23,7 @@ export function estCleHiRes(cle: string): cle is CleHiRes {
 
 /** Les entrées du menu Qualité que l'état de la détection autorise. */
 export function entreesHiRes(etat: EtatFauxHiRes | null | undefined): { key: CleHiRes; label: string; cle: string }[] {
-  if (!etat || !(etat.active || (etat.rangees ?? 0) > 0)) return [];
+  if (!etat?.active) return [];
   const r: { key: CleHiRes; label: string; cle: string }[] = [
     { key: 'hires_verifie', label: 'Hi-Res ✓', cle: 'v2.lib.qualityHiresVerified' },
   ];

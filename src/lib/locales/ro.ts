@@ -7716,6 +7716,7 @@ export default {
   "v2.lib.qualityHiresVerified": "Hi-res verificat",
   "v2.lib.qualityHiresDoubtful": "Hi-res îndoielnic",
   "v2.lib.hiresFilterError": "Verdictul hi-res al albumelor nu a putut fi citit.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Catalogul nu poate încă filtra după verdictul hi-res: debifați „Hi-res verificat” și „Hi-res îndoielnic” pentru a-l exporta.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

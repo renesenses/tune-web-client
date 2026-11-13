@@ -24,17 +24,23 @@
       if (vivant && e && typeof e.active === 'boolean') etat = e;
     } catch { /* serveur antérieur : la ligne reste absente */ }
   }
-  async function basculer(active: boolean) {
+  async function basculer(active: boolean, caseACocher: HTMLInputElement) {
     enVol = true;
     erreur = '';
     try {
-      await api.setDetectionFauxHiRes(active);
+      const r = await api.setDetectionFauxHiRes(active);
+      if (!r || typeof r.active !== 'boolean') throw new Error('reponse_invalide');
+      // La réponse du réglage fait foi, même si la relecture échoue ensuite.
+      if (etat) etat = { ...etat, ...r };
       await relire();
     } catch {
       erreur = 'settings.fauxHiResError';
-      // L'interrupteur revient sur l'état du serveur.
-      if (etat) etat = { ...etat };
-    } finally { enVol = false; }
+    } finally {
+      enVol = false;
+      // Svelte 5 garde en cache la dernière valeur posée sur `checked` : un
+      // échec laisserait la case cochée. On la remet sur l'état connu du serveur.
+      caseACocher.checked = !!etat?.active;
+    }
   }
   onMount(() => {
     vivant = true;
@@ -59,7 +65,7 @@
     </div>
     <label class="sw">
       <input type="checkbox" checked={etat.active} disabled={enVol} aria-label={$t('settings.fauxHiRes' as any)}
-        onchange={(e) => basculer((e.currentTarget as HTMLInputElement).checked)} />
+        onchange={(e) => { const c = e.currentTarget as HTMLInputElement; void basculer(c.checked, c); }} />
       <span class="slider"></span>
     </label>
   </div>

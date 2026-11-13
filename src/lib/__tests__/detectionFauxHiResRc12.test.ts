@@ -68,4 +68,24 @@ it('un échec du réglage le dit', async () => {
   const i = interrupteur()!;
   i.checked = true; i.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
   expect(host.querySelector('[role="alert"]')?.textContent).toContain("n'a pas pu changer");
+  expect(interrupteur()?.checked, "l'interrupteur revient sur éteint").toBe(false);
+});
+
+it('réglage accepté mais relecture en échec : la case suit la réponse du réglage', async () => {
+  component = mount(DetectionFauxHiRes, { target: host }); await attendre();
+  vi.mocked(fetch).mockImplementation(async (_u, init?: RequestInit) =>
+    (init?.method === 'POST' ? response({ active: true, douteux_visible: true }) : Promise.reject(new Error('hors ligne'))));
+  const i = interrupteur()!;
+  i.checked = true; i.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
+  expect(interrupteur()?.checked).toBe(true);
+  expect(host.querySelector('[role="alert"]')).toBeNull();
+});
+
+it("un réglage refusé en l'éteignant laisse la case cochée", async () => {
+  Object.assign(etat, { active: true, douteux_visible: true });
+  component = mount(DetectionFauxHiRes, { target: host }); await attendre();
+  vi.mocked(fetch).mockImplementation(async (_u, init?: RequestInit) => (init?.method === 'POST' ? response({}, 500) : response(etat)));
+  const i = interrupteur()!;
+  i.checked = false; i.dispatchEvent(new Event('change', { bubbles: true })); await attendre();
+  expect(interrupteur()?.checked).toBe(true);
 });

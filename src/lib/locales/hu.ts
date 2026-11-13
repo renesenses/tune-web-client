@@ -7675,6 +7675,7 @@ export default {
   "v2.lib.qualityHiresVerified": "Ellenőrzött hi-res",
   "v2.lib.qualityHiresDoubtful": "Kétes hi-res",
   "v2.lib.hiresFilterError": "Nem sikerült beolvasni az albumok hi-res ítéletét.",
+  "v2.lib.exportCatalogueHiResUnsupported": "A katalógus még nem tud a hi-res ítélet szerint szűrni: az exportáláshoz vegye ki a jelölést az „Ellenőrzött hi-res” és a „Kétes hi-res” elől.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

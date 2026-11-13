@@ -7738,6 +7738,7 @@ export default {
   "v2.lib.qualityHiresVerified": "Hi-Res vérifié",
   "v2.lib.qualityHiresDoubtful": "Hi-Res douteux",
   "v2.lib.hiresFilterError": "Impossible de lire le verdict Hi-Res des albums.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Le catalogue ne sait pas encore filtrer sur le verdict Hi-Res : décochez « Hi-Res vérifié » et « Hi-Res douteux » pour l'exporter.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

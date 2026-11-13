@@ -7716,6 +7716,7 @@ export default {
   "v2.lib.qualityHiresVerified": "ハイレゾ確認済み",
   "v2.lib.qualityHiresDoubtful": "ハイレゾ疑わしい",
   "v2.lib.hiresFilterError": "アルバムのハイレゾ判定を読み込めませんでした。",
+  "v2.lib.exportCatalogueHiResUnsupported": "カタログはまだハイレゾ判定で絞り込めません。エクスポートするには「ハイレゾ確認済み」と「ハイレゾ疑わしい」のチェックを外してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

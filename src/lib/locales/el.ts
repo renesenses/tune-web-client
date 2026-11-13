@@ -7561,5 +7561,6 @@ export default {
   "v2.lib.qualityHiresVerified": "Επαληθευμένο hi-res",
   "v2.lib.qualityHiresDoubtful": "Αμφίβολο hi-res",
   "v2.lib.hiresFilterError": "Δεν ήταν δυνατή η ανάγνωση της ετυμηγορίας hi-res των άλμπουμ.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Ο κατάλογος δεν μπορεί ακόμη να φιλτράρει με την ετυμηγορία hi-res: αποεπιλέξτε «Επαληθευμένο hi-res» και «Αμφίβολο hi-res» για να τον εξαγάγετε.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

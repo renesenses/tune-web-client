@@ -7568,5 +7568,6 @@ export default {
   "v2.lib.qualityHiresVerified": "Hi-res đã xác minh",
   "v2.lib.qualityHiresDoubtful": "Hi-res đáng ngờ",
   "v2.lib.hiresFilterError": "Không thể đọc kết luận hi-res của các album.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Danh mục chưa thể lọc theo kết luận hi-res: bỏ chọn “Hi-res đã xác minh” và “Hi-res đáng ngờ” để xuất.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -7716,6 +7716,7 @@ export default {
   "v2.lib.qualityHiresVerified": "하이레즈 확인됨",
   "v2.lib.qualityHiresDoubtful": "하이레즈 의심",
   "v2.lib.hiresFilterError": "앨범의 하이레즈 판정을 읽을 수 없습니다.",
+  "v2.lib.exportCatalogueHiResUnsupported": "카탈로그는 아직 하이레즈 판정으로 거를 수 없습니다. 내보내려면 '하이레즈 확인됨'과 '하이레즈 의심'의 선택을 해제하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

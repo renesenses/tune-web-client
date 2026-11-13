@@ -7561,5 +7561,6 @@ export default {
   "v2.lib.qualityHiresVerified": "Bekreftet hi-res",
   "v2.lib.qualityHiresDoubtful": "Tvilsom hi-res",
   "v2.lib.hiresFilterError": "Kunne ikke lese albumenes hi-res-vurdering.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Katalogen kan ennå ikke filtrere på hi-res-vurderingen: fjern merket for «Bekreftet hi-res» og «Tvilsom hi-res» for å eksportere den.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

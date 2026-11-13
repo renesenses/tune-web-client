@@ -7716,6 +7716,7 @@ export default {
   "v2.lib.qualityHiresVerified": "Hi-Res bestätigt",
   "v2.lib.qualityHiresDoubtful": "Hi-Res zweifelhaft",
   "v2.lib.hiresFilterError": "Das Hi-Res-Urteil der Alben konnte nicht gelesen werden.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Der Katalog kann noch nicht nach dem Hi-Res-Urteil filtern: Deaktivieren Sie „Hi-Res bestätigt“ und „Hi-Res zweifelhaft“, um ihn zu exportieren.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

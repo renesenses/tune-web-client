@@ -7716,6 +7716,7 @@ export default {
   "v2.lib.qualityHiresVerified": "高解析已验证",
   "v2.lib.qualityHiresDoubtful": "可疑高解析",
   "v2.lib.hiresFilterError": "无法读取专辑的高解析判定。",
+  "v2.lib.exportCatalogueHiResUnsupported": "目录尚不能按高解析判定筛选：请取消勾选“高解析已验证”和“可疑高解析”后再导出。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

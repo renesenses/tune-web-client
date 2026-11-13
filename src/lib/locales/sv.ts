@@ -7715,4 +7715,5 @@ export default {
   "v2.lib.qualityHiresVerified": "Verifierad hi-res",
   "v2.lib.qualityHiresDoubtful": "Tveksam hi-res",
   "v2.lib.hiresFilterError": "Kunde inte läsa albumens hi-res-bedömning.",
+  "v2.lib.exportCatalogueHiResUnsupported": "Katalogen kan ännu inte filtrera på hi-res-bedömningen: avmarkera ”Verifierad hi-res” och ”Tveksam hi-res” för att exportera den.",
 } as const;

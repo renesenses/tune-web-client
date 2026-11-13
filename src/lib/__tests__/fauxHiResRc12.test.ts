@@ -4,6 +4,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { avancementFauxHiRes, entreesHiRes, estCleHiRes, idsParVerdictHiRes, PAGE_VERDICT } from '../filtreHiRes';
 import * as api from '../api';
+import { catalogueSuitLesFiltres } from '../catalogueExport';
+
+describe('catalogue', () => {
+  it("refuse de suivre l'écran quand un verdict Hi-Res est coché", () => {
+    expect(catalogueSuitLesFiltres(['hires', 'dsd'])).toBe(true);
+    expect(catalogueSuitLesFiltres(['hires_verifie'])).toBe(false);
+    expect(catalogueSuitLesFiltres(['cd', 'hires_douteux'])).toBe(false);
+  });
+});
 
 afterEach(() => { vi.unstubAllGlobals(); });
 
@@ -16,8 +25,8 @@ describe('entreesHiRes', () => {
     expect(entreesHiRes({ active: true, douteux_visible: false }).map((x) => x.key)).toEqual(['hires_verifie']);
     expect(entreesHiRes({ active: true, douteux_visible: true }).map((x) => x.key)).toEqual(['hires_verifie', 'hires_douteux']);
   });
-  it('garde les entrées après extinction si des mesures sont rangées', () => {
-    expect(entreesHiRes({ active: false, douteux_visible: false, rangees: 4 }).map((x) => x.key)).toEqual(['hires_verifie']);
+  it('détection éteinte = rien de visible, même avec des mesures rangées', () => {
+    expect(entreesHiRes({ active: false, douteux_visible: true, rangees: 4 })).toEqual([]);
   });
   it('reconnaît ses clés et seulement elles', () => {
     expect(estCleHiRes('hires_verifie')).toBe(true);

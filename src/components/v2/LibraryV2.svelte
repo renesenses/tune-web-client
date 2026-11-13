@@ -91,6 +91,7 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
+  import { catalogueSuitLesFiltres } from '../../lib/catalogueExport';
   import { entreesHiRes, estCleHiRes, idsParVerdictHiRes, VERDICT_DE_LA_CLE, type CleHiRes } from '../../lib/filtreHiRes';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums, chargerPistesDesAlbums } from '../../lib/porteeAleatoire';
@@ -2410,8 +2411,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * cochés, genre ou artiste ouvert, tri en cours. Voir `catalogueExport`.
    */
   let exportCatalogueEnCours = $state(false);
+  /** rc12 — un filtre « Hi-Res vérifié / douteux » que la route ne sait pas suivre. */
+  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality));
   async function exporterCatalogue() {
-    if (exportCatalogueEnCours) return;
+    if (exportCatalogueEnCours || exportCatalogueImpossible) return;
     exportCatalogueEnCours = true;
     try {
       await api.exportCatalogue({
@@ -3765,8 +3768,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <!-- web#2622 — le catalogue imprimable de la bibliothèque LOCALE : un
            dépôt distant n'a pas de route d'export chez nous. -->
       {#if !depot}
-        <button class="exportcat" onclick={exporterCatalogue} disabled={exportCatalogueEnCours}
-          aria-label={$tr('v2.lib.exportCatalogue' as any)} title={$tr('v2.lib.exportCatalogue' as any)}>
+        <button class="exportcat" onclick={exporterCatalogue} disabled={exportCatalogueEnCours || exportCatalogueImpossible}
+          aria-label={$tr('v2.lib.exportCatalogue' as any)}
+          title={exportCatalogueImpossible ? $tr('v2.lib.exportCatalogueHiResUnsupported' as any) : $tr('v2.lib.exportCatalogue' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>
         </button>
