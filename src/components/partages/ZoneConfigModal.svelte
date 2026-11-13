@@ -2,6 +2,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
+  import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -128,6 +129,35 @@
       gaplessError = e?.message || get(t)('common.error');
     } finally {
       gaplessSaving = false;
+    }
+  }
+
+  /**
+   * Forum, fil 2694 (Ilan) ; décision de Bertrand du 13/11 — « Continuer
+   * avec des titres similaires à la fin de la file », comme Roon. Activé par
+   * défaut côté serveur (tune-server-rust, migration 151 / PG 117) ; c'est
+   * ici qu'on le coupe pour une zone. Même patron que le gapless : on
+   * affiche ce que le serveur rend, un échec remet l'interrupteur.
+   */
+  let radioFinDeFile = $state(zone.autoplay_enabled ?? false);
+  let radioFinDeFileSaving = $state(false);
+  let radioFinDeFileError = $state('');
+
+  async function setRadioFinDeFile(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = radioFinDeFile;
+    radioFinDeFile = enabled;
+    radioFinDeFileSaving = true;
+    radioFinDeFileError = '';
+    try {
+      const maj = await api.updateZoneAutoplay(zone.id, enabled);
+      radioFinDeFile = maj?.autoplay_enabled ?? enabled;
+      if (maj) syncZone(maj);
+    } catch (e: any) {
+      radioFinDeFile = avant;
+      radioFinDeFileError = e?.message || get(t)('common.error');
+    } finally {
+      radioFinDeFileSaving = false;
     }
   }
 
@@ -685,6 +715,14 @@
         <span>{$t('zoneConfig.gaplessLabel')}</span>
       </label>
       {#if gaplessError}<div class="ir-message ir-error">{gaplessError}</div>{/if}
+
+      <label class="zc-toggle" data-radio-fin-de-file title={$t('zoneConfig.radioFinDeFileTip')}>
+        <input type="checkbox" checked={radioFinDeFile}
+          disabled={radioFinDeFileSaving || zone.id === null}
+          onchange={(e) => setRadioFinDeFile((e.target as HTMLInputElement).checked)} />
+        <span>{$t('zoneConfig.radioFinDeFileLabel')}</span>
+      </label>
+      {#if radioFinDeFileError}<div class="ir-message ir-error">{radioFinDeFileError}</div>{/if}
 
       <div class="zc-ligne">
         <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>

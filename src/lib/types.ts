@@ -368,6 +368,12 @@ export interface Track {
    * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
    */
   missing?: boolean;
+  /**
+   * Forum, fil 2694 — ligne de FILE ajoutée par la radio de fin de file
+   * (`GET /zones/{id}/queue`, tune-server-rust). Toujours posée par un
+   * serveur qui la connaît ; absente chez un plus ancien : pas de badge.
+   */
+  added_by_radio?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
   /**
