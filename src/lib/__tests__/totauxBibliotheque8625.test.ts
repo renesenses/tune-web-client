@@ -71,6 +71,10 @@ describe('#8625 — un seul total pour tous les écrans', () => {
     expect(bib).toContain('nbPistesServeur = lireTotaux(st).tracks;');
     expect(bib).not.toContain('nbPistesServeur = st?.tracks');
     expect(bib).toContain('title={infobulleTout}');
+    // « Tout », liste entière et sans filtre : le total du serveur, pas les cartes.
+    expect(bib).toContain('nu ? ($albumsPagines.total ?? 0) : !depot && toutActif ? $albums.length : affiches.length');
+    // « Tout », liste entière et sans filtre : le total du serveur, pas les cartes.
+    expect(bib).toMatch(/nu \? \(\$albumsPagines\.total \?\? 0\) : !depot && toutActif \? \$albums\.length : affiches\.length/);
     expect(lire('src/components/partages/OxygenFolderFacet.svelte')).toContain("$t('bibliotheque.dossiers.infobulle' as any)");
   });
 });

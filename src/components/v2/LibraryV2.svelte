@@ -2111,13 +2111,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     });
   });
 
-  /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
-  const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
   /**
-   * tune-server-rust#8625 — liste entière, sans filtre : « Tout » compte des
-   * CARTES (versions regroupées #7617, favoris des services #7780), pas les
-   * albums du serveur. L'écart est expliqué en infobulle.
+   * Le compte affiché sur « Tout » : en pages, le total du serveur.
+   * tune-server-rust#8625 (décision du 13/11, totaux cohérents) — liste
+   * entière et sans filtre : c'est AUSSI le total du serveur (les albums que
+   * `/library/albums` a rendus, le `library_totals.albums` de Statistiques),
+   * pas le nombre de CARTES de la grille (versions regroupées #7617, favoris
+   * des services #7780), dont l'écart est expliqué en infobulle.
    */
+  const matchCount: number = $derived.by(() =>
+    nu ? ($albumsPagines.total ?? 0) : !depot && toutActif ? $albums.length : affiches.length);
   const toutActif = $derived(!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee);
   const infobulleTout: string | undefined = $derived.by(() =>
     !nu && !depot && toutActif && affiches.length !== $albums.length
