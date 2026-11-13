@@ -10,6 +10,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import FirResponseCurve from '../../components/partages/FirResponseCurve.svelte';
 import { locale } from '../i18n';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const FR = lFr as Record<string, string>;
 
@@ -138,7 +139,7 @@ describe('web#1427 — courbe FIR : une trace par canal', () => {
   it('les libellés de la légende existent dans les 15 langues', async () => {
     const langues = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh'];
     for (const l of langues) {
-      const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const dict = dictionnaire(l);
       for (const k of ['firChannelLeft', 'firChannelRight', 'firChannelN', 'firChannelUnavailable']) {
         expect(dict[`zoneConfig.${k}`], `${l} ${k}`).toBeTruthy();
       }
