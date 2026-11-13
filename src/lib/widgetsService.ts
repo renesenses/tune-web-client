@@ -30,6 +30,7 @@
 import { exigerNonRetiree } from './rubriquesRetirees';
 import * as api from './api';
 import { limiteDe, playlistOuvrable, type Element, type Widget } from './accueilWidgets';
+import { nbTitresDe } from './nbTitresPlaylist';
 
 /*
  * Combien d'éléments par bande : `limiteDe(ctx)`, la même règle que
@@ -137,6 +138,8 @@ function playlistDistante(o: any, i: number, prefixe: string, service: string): 
     id: `${prefixe}${i}-${sid ?? ''}`,
     titre: texte(o, 'name', 'title') ?? '—',
     sous: texte(o, 'owner', 'description'),
+    // web#2750 point 7 — le nombre de titres, que les listes du service portent.
+    nbTitres: nbTitresDe(o),
     cover: texte(o, 'cover_path', 'image_url') ?? null,
     source: service,
     jouer: sid

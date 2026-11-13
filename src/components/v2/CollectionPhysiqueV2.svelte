@@ -44,7 +44,7 @@
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
     SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
-    pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices,
+    pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices, raisonDuDisque, compteursDeRaison,
   } from '../../lib/collectionPhysique';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
@@ -99,6 +99,12 @@
     let s = $t(cle as any) as string;
     for (const [k, v] of Object.entries(valeurs)) s = s.replace(`{${k}}`, String(v));
     return s;
+  }
+
+  /** #8070 — la phrase d'une raison ; sans nombre connu, la parenthèse tombe. */
+  function phraseRaison(cle: string, n: number | null): string {
+    const brute = $t(cle as any) as string;
+    return n == null ? brute.replace(/\s*[(（]\{n\}[)）]/, '') : brute.replace('{n}', String(n));
   }
 
   async function chargerCollection() {
@@ -478,6 +484,17 @@
             <button class="puce" class:on={filtreEtat === e} aria-pressed={filtreEtat === e} onclick={() => filtrer(format, e)} data-etat={e}>
               {$t(`collectionPhysique.etat.${e}` as any)} <span class="n">{compteEtat(e)}</span>
             </button>
+            {#if e === 'nulle_part' && compteursDeRaison(collection).length}
+              <!-- tune-server-rust#8070 — le compteur de chaque raison, à côté du filtre « nulle part ». -->
+              <span class="raisons" data-compteurs-raison aria-label={$t('collectionPhysique.raisonsNullePart' as any)}
+                title={$t('collectionPhysique.raisonsNullePart' as any)}>
+                {#each compteursDeRaison(collection) as r (r.raison)}
+                  <span class="raison-n" data-raison={r.raison} title={phraseRaison(`collectionPhysique.raison.${r.raison}`, null)}>
+                    {$t(`collectionPhysique.raisonCourte.${r.raison}` as any)} <span class="n">{r.n}</span>
+                  </span>
+                {/each}
+              </span>
+            {/if}
           {/if}
         {/each}
       </div>
@@ -537,6 +554,10 @@
               <button class="meta" onclick={() => ouvrir(d)}>
                 <div class="ct" title={d.titre}>{d.titre}</div>
                 <div class="ca" title={d.artiste}>{d.artiste}</div>
+                {#if raisonDuDisque(d)}
+                  {@const r = raisonDuDisque(d)!}
+                  <div class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</div>
+                {/if}
               </button>
               {#if peutChercherSurLesServices(d)}
                 {@render rechercheServices(d)}
@@ -579,6 +600,10 @@
                   {/each}
                 {:else}
                   <span class="badge {d.etat === 'a_verifier' ? 'av' : 'np'}">{$t(`collectionPhysique.etat.${d.etat}` as any)}</span>
+                  {#if raisonDuDisque(d)}
+                    {@const r = raisonDuDisque(d)!}
+                    <span class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</span>
+                  {/if}
                 {/if}
                 {#if peutChercherSurLesServices(d)}
                   {@render rechercheServices(d)}
@@ -652,6 +677,10 @@
   .puce{background:transparent; color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     padding:3px 10px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .puce.on{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  .raisons{display:inline-flex; flex-wrap:wrap; gap:4px 10px; align-items:center; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .raison-n .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-left:2px}
+  .raison{display:block; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.3; white-space:normal}
+  .ou .raison{display:inline; margin-right:6px}
   .puce .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
   .list{list-style:none; margin:0; padding:12px 30px 20px; display:flex; flex-direction:column; gap:1px}
   .vues{margin-left:auto}

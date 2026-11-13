@@ -177,6 +177,17 @@
     if (zone.id != null) save(() => api.updateZoneDlnaPlayDelay(zone.id!, ms));
   }
 
+  // web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes ».
+  // DLNA seulement (le serveur ne l'applique qu'à ce chemin), et seulement si
+  // le serveur publie le champ : un serveur plus ancien l'ignorerait, et
+  // proposer un réglage sans effet serait mentir.
+  let fluxContinuConnu = $derived(zone.output_type === 'dlna' && typeof zone.dlna_flux_continu === 'boolean');
+  let fluxContinu = $state(zone.dlna_flux_continu ?? false);
+  function setFluxContinu(v: boolean) {
+    fluxContinu = v;
+    if (zone.id != null) save(() => api.updateZoneDlnaFluxContinu(zone.id!, v));
+  }
+
   /* ------------------------------------------------------------------------
    * La configuration ENREGISTRÉE.
    *
@@ -390,6 +401,14 @@
         {/each}
       </div>
     </div>
+
+    {#if fluxContinuConnu}
+      <label class="rc-toggle" data-reglage="zone-flux-continu">
+        <input type="checkbox" checked={fluxContinu} onchange={(e) => setFluxContinu((e.target as HTMLInputElement).checked)} />
+        <span>{$t('renderer.fluxContinu')}</span>
+      </label>
+      <p class="rc-hint">{$t('renderer.fluxContinuHint')}</p>
+    {/if}
   </div>
 
   {#if compatibiliteReinitialisable(zone.output_type)}
