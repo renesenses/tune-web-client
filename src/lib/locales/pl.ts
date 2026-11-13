@@ -4705,6 +4705,8 @@ export default {
   "v2.lib.map.hintArtist": "Kraj głównego wykonawcy każdego albumu według MusicBrainz. Kliknij kraj, aby przefiltrować Bibliotekę.",
   "v2.lib.map.emptyArtist": "Nie znamy jeszcze żadnego kraju wykonawcy. Pochodzi z MusicBrainz i uzupełnia się w tle, wykonawca po wykonawcy; wykonawca bez identyfikatora MusicBrainz go nie ma.",
   "browse.playAllRecursive": "Odtwórz wszystko (z podfolderami)",
+  "browse.shuffleFolder": "Losowo",
+  "browse.shuffleFolderHint": "Odtwórz ten folder i jego podfoldery losowo",
   "browse.addAllRecursive": "Dodaj do kolejki (z podfolderami)",
   "browse.folderPlayError": "Nie można odtworzyć folderu: {erreur}",
   "browse.folderQueued": "Folder dodany do kolejki wraz z podfolderami",

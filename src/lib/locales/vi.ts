@@ -4709,6 +4709,8 @@ export default {
   "v2.lib.map.hintArtist": "Quốc gia của nghệ sĩ chính của mỗi album, theo MusicBrainz. Nhấp vào một quốc gia để lọc Thư viện.",
   "v2.lib.map.emptyArtist": "Chưa biết quốc gia nghệ sĩ nào. Thông tin này lấy từ MusicBrainz và được bổ sung dần trong nền, từng nghệ sĩ một; nghệ sĩ không có mã MusicBrainz thì không có.",
   "browse.playAllRecursive": "Phát tất cả (gồm thư mục con)",
+  "browse.shuffleFolder": "Ngẫu nhiên",
+  "browse.shuffleFolderHint": "Phát thư mục này và các thư mục con theo thứ tự ngẫu nhiên",
   "browse.addAllRecursive": "Thêm vào hàng đợi (gồm thư mục con)",
   "browse.folderPlayError": "Không thể phát thư mục: {erreur}",
   "browse.folderQueued": "Đã thêm thư mục vào hàng đợi, gồm cả thư mục con",

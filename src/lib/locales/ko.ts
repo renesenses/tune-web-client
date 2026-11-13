@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "MusicBrainz 기준 각 앨범 주 아티스트의 국가입니다. 국가를 클릭하면 라이브러리가 필터링됩니다.",
   "v2.lib.map.emptyArtist": "아직 알려진 아티스트 국가가 없습니다. MusicBrainz에서 가져오며 백그라운드에서 아티스트별로 채워집니다. MusicBrainz ID가 없는 아티스트에는 국가가 없습니다.",
   "browse.playAllRecursive": "모두 재생(하위 폴더 포함)",
+  "browse.shuffleFolder": "셔플",
+  "browse.shuffleFolderHint": "이 폴더와 하위 폴더를 무작위로 재생",
   "browse.addAllRecursive": "대기열에 추가(하위 폴더 포함)",
   "browse.folderPlayError": "폴더를 재생할 수 없습니다: {erreur}",
   "browse.folderQueued": "하위 폴더를 포함해 폴더를 대기열에 추가했습니다",

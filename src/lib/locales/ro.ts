@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "Țara artistului principal al fiecărui album, după MusicBrainz. Faceți clic pe o țară pentru a filtra Biblioteca.",
   "v2.lib.map.emptyArtist": "Încă nu se cunoaște nicio țară de artist. Vine de la MusicBrainz și se completează în fundal, artist cu artist; un artist fără identificator MusicBrainz nu are.",
   "browse.playAllRecursive": "Redă tot (inclusiv subdosarele)",
+  "browse.shuffleFolder": "Aleatoriu",
+  "browse.shuffleFolderHint": "Redă acest dosar și subdosarele sale în ordine aleatorie",
   "browse.addAllRecursive": "Adaugă în coadă (inclusiv subdosarele)",
   "browse.folderPlayError": "Dosarul nu poate fi redat: {erreur}",
   "browse.folderQueued": "Dosar adăugat în coadă, inclusiv subdosarele",

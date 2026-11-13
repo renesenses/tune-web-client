@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "Land des Hauptkünstlers jedes Albums, laut MusicBrainz. Klicken Sie auf ein Land, um die Bibliothek zu filtern.",
   "v2.lib.map.emptyArtist": "Noch kein Künstlerland bekannt. Es kommt von MusicBrainz und wird im Hintergrund Künstler für Künstler ergänzt; ein Künstler ohne MusicBrainz-ID hat keines.",
   "browse.playAllRecursive": "Alles abspielen (inkl. Unterordner)",
+  "browse.shuffleFolder": "Zufall",
+  "browse.shuffleFolderHint": "Diesen Ordner samt Unterordnern zufällig abspielen",
   "browse.addAllRecursive": "Zur Warteschlange hinzufügen (inkl. Unterordner)",
   "browse.folderPlayError": "Ordner kann nicht abgespielt werden: {erreur}",
   "browse.folderQueued": "Ordner samt Unterordnern zur Warteschlange hinzugefügt",

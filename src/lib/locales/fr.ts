@@ -4855,6 +4855,8 @@ export default {
   "v2.lib.map.hintArtist": "Pays de l’artiste principal de chaque album, d’après MusicBrainz. Cliquez sur un pays pour filtrer la Bibliothèque.",
   "v2.lib.map.emptyArtist": "Aucun pays d’artiste connu pour l’instant. Il vient de MusicBrainz et se remplit en arrière-plan, artiste par artiste ; un artiste sans identifiant MusicBrainz n’en a pas.",
   "browse.playAllRecursive": "Tout lire (sous-dossiers compris)",
+  "browse.shuffleFolder": "Aléatoire",
+  "browse.shuffleFolderHint": "Lire ce dossier et ses sous-dossiers en aléatoire",
   "browse.addAllRecursive": "Ajouter à la file (sous-dossiers compris)",
   "browse.folderPlayError": "Lecture du dossier impossible : {erreur}",
   "browse.folderQueued": "Dossier ajouté à la file, sous-dossiers compris",

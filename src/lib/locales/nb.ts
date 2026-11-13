@@ -4707,6 +4707,8 @@ export default {
   "v2.lib.map.hintArtist": "Landet til hovedartisten på hvert album, ifølge MusicBrainz. Klikk på et land for å filtrere biblioteket.",
   "v2.lib.map.emptyArtist": "Ingen artistland er kjent ennå. Det kommer fra MusicBrainz og fylles inn i bakgrunnen, artist for artist; en artist uten MusicBrainz-ID har ikke noe.",
   "browse.playAllRecursive": "Spill alle (inkludert undermapper)",
+  "browse.shuffleFolder": "Tilfeldig",
+  "browse.shuffleFolderHint": "Spill denne mappen og undermappene i tilfeldig rekkefølge",
   "browse.addAllRecursive": "Legg til i køen (inkludert undermapper)",
   "browse.folderPlayError": "Kunne ikke spille mappen: {erreur}",
   "browse.folderQueued": "Mappen er lagt til i køen, inkludert undermapper",

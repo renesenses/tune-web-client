@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "各アルバムのメインアーティストの国(MusicBrainz による)。国をクリックするとライブラリを絞り込みます。",
   "v2.lib.map.emptyArtist": "アーティストの国はまだわかっていません。MusicBrainz から取得し、バックグラウンドでアーティストごとに補完されます。MusicBrainz ID のないアーティストには国がありません。",
   "browse.playAllRecursive": "すべて再生（サブフォルダーを含む）",
+  "browse.shuffleFolder": "シャッフル",
+  "browse.shuffleFolderHint": "このフォルダーとサブフォルダーをシャッフル再生",
   "browse.addAllRecursive": "キューに追加（サブフォルダーを含む）",
   "browse.folderPlayError": "フォルダーを再生できません：{erreur}",
   "browse.folderQueued": "フォルダーをサブフォルダーごとキューに追加しました",

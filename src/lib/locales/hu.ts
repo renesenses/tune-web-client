@@ -4787,6 +4787,8 @@ export default {
   "v2.lib.map.hintArtist": "Az egyes albumok fő előadójának országa a MusicBrainz szerint. Kattintson egy országra a Könyvtár szűréséhez.",
   "v2.lib.map.emptyArtist": "Még nem ismert előadói ország. A MusicBrainzből származik, és a háttérben töltődik fel előadóról előadóra; a MusicBrainz-azonosító nélküli előadónak nincs.",
   "browse.playAllRecursive": "Összes lejátszása (almappákkal együtt)",
+  "browse.shuffleFolder": "Véletlen",
+  "browse.shuffleFolderHint": "A mappa és almappái lejátszása véletlen sorrendben",
   "browse.addAllRecursive": "Hozzáadás a sorhoz (almappákkal együtt)",
   "browse.folderPlayError": "A mappa nem játszható le: {erreur}",
   "browse.folderQueued": "A mappa az almappákkal együtt a sorba került",

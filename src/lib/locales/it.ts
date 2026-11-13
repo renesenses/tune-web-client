@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "Paese dell’artista principale di ogni album, secondo MusicBrainz. Fai clic su un paese per filtrare la Libreria.",
   "v2.lib.map.emptyArtist": "Nessun paese di artista ancora noto. Viene da MusicBrainz e si completa in background, artista per artista; un artista senza identificativo MusicBrainz non ne ha.",
   "browse.playAllRecursive": "Riproduci tutto (sottocartelle incluse)",
+  "browse.shuffleFolder": "Casuale",
+  "browse.shuffleFolderHint": "Riproduci questa cartella e le sue sottocartelle in ordine casuale",
   "browse.addAllRecursive": "Aggiungi alla coda (sottocartelle incluse)",
   "browse.folderPlayError": "Impossibile riprodurre la cartella: {erreur}",
   "browse.folderQueued": "Cartella aggiunta alla coda, sottocartelle incluse",

@@ -4833,6 +4833,8 @@ export default {
   "v2.lib.map.hintArtist": "每张专辑主艺人的国家,来自 MusicBrainz。点击某个国家即可筛选资料库。",
   "v2.lib.map.emptyArtist": "暂未获知任何艺人国家。它来自 MusicBrainz,在后台逐个艺人补全;没有 MusicBrainz ID 的艺人没有国家。",
   "browse.playAllRecursive": "全部播放（含子文件夹）",
+  "browse.shuffleFolder": "随机播放",
+  "browse.shuffleFolderHint": "随机播放此文件夹及其子文件夹",
   "browse.addAllRecursive": "加入队列（含子文件夹）",
   "browse.folderPlayError": "无法播放该文件夹：{erreur}",
   "browse.folderQueued": "文件夹（含子文件夹）已加入队列",

@@ -4853,6 +4853,8 @@ export default {
   "v2.lib.map.hintArtist": "Country of each album’s main artist, from MusicBrainz. Click a country to filter the Library.",
   "v2.lib.map.emptyArtist": "No artist country known yet. It comes from MusicBrainz and fills in the background, artist by artist; an artist without a MusicBrainz ID has none.",
   "browse.playAllRecursive": "Play all (including subfolders)",
+  "browse.shuffleFolder": "Shuffle",
+  "browse.shuffleFolderHint": "Play this folder and its subfolders shuffled",
   "browse.addAllRecursive": "Add to queue (including subfolders)",
   "browse.folderPlayError": "Could not play the folder: {erreur}",
   "browse.folderQueued": "Folder added to the queue, including subfolders",
