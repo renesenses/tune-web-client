@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': 'Keine Unterordner hier.',
   'oxygen.facetsTitle': 'Facetten',
   'oxygen.facetClear': 'Alle abwählen',
+  'oxygen.railWidth': 'Breite der Facettenspalte: ziehen oder Pfeiltasten links/rechts; Doppelklick für die Standardbreite',
   'oxygen.facetOpOr': 'Oder',
   'oxygen.facetOpAnd': 'Und',
   'oxygen.facetOpOrHelp': 'Die ausgewählten Werte werden mit ODER verknüpft: ein Titel hat mindestens einen davon. Klicken, um zu UND zu wechseln.',

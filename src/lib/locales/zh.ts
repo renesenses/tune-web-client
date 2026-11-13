@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': '此处没有子文件夹。',
   'oxygen.facetsTitle': '分面',
   'oxygen.facetClear': '全部取消选择',
+  'oxygen.railWidth': '筛选栏宽度：拖动，或使用左右方向键；双击恢复默认宽度',
   'oxygen.facetOpOr': '或',
   'oxygen.facetOpAnd': '且',
   'oxygen.facetOpOrHelp': '已选值以“或”组合：曲目至少具有其中一个。点击切换为“且”。',

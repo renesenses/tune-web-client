@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsTitle': 'ファセット',
   'oxygen.facetClear': 'すべて解除',
+  'oxygen.railWidth': 'ファセット列の幅：ドラッグ、または左右の矢印キー。ダブルクリックで既定の幅',
   'oxygen.facetOpOr': 'または',
   'oxygen.facetOpAnd': 'かつ',
   'oxygen.facetOpOrHelp': '選択した値は「または」で結合されます：いずれか1つを持つトラックが対象です。クリックで「かつ」に切り替えます。',

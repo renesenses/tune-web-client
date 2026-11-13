@@ -322,6 +322,7 @@ export default {
   "oxygen.folder.empty": "Brak podfolderów.",
   "oxygen.facetsTitle": "Filtry",
   "oxygen.facetClear": "Odznacz wszystko",
+  "oxygen.railWidth": "Szerokość kolumny filtrów: przeciągnij lub użyj strzałek w lewo i w prawo; dwuklik przywraca szerokość domyślną",
   "oxygen.facetOpOr": "Lub",
   "oxygen.facetOpAnd": "I",
   "oxygen.facetOpOrHelp": "Zaznaczone wartości są łączone operatorem LUB: utwór ma co najmniej jedną z nich. Kliknij, aby przełączyć na I.",

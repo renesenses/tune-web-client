@@ -322,6 +322,7 @@ export default {
   "oxygen.folder.empty": "Ingen undermapper her.",
   "oxygen.facetsTitle": "Fasetter",
   "oxygen.facetClear": "Fjern alle",
+  "oxygen.railWidth": "Bredde på fasettkolonnen: dra, eller piltast venstre/høyre; dobbeltklikk for standardbredde",
   "oxygen.facetOpOr": "Eller",
   "oxygen.facetOpAnd": "Og",
   "oxygen.facetOpOrHelp": "Valgte verdier kombineres med ELLER: et spor har minst én av dem. Klikk for å bytte til OG.",

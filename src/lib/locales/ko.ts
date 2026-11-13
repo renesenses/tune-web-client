@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': '하위 폴더가 없습니다.',
   'oxygen.facetsTitle': '패싯',
   'oxygen.facetClear': '모두 해제',
+  'oxygen.railWidth': '패싯 열 너비: 드래그 또는 왼쪽/오른쪽 화살표 키, 더블클릭하면 기본 너비',
   'oxygen.facetOpOr': '또는',
   'oxygen.facetOpAnd': '그리고',
   'oxygen.facetOpOrHelp': '선택한 값은 \'또는\'으로 결합됩니다: 트랙이 하나 이상을 가지면 됩니다. 클릭하면 \'그리고\'로 바뀝니다.',

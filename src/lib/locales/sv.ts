@@ -218,6 +218,7 @@ export default {
   'oxygen.facet.drHelp': 'Albumets dynamikomfång: taggen ALBUM DYNAMIC RANGE om den finns, annars det avrundade medelvärdet av spårens DR.',
   'oxygen.facetsTitle': 'Facetter',
   'oxygen.facetClear': 'Avmarkera alla',
+  'oxygen.railWidth': 'Bredd på facettkolumnen: dra, eller piltangenter vänster/höger; dubbelklicka för standardbredd',
   'oxygen.facetOpOr': 'Eller',
   'oxygen.facetOpAnd': 'Och',
   'oxygen.facetOpOrHelp': 'Markerade värden kombineras med ELLER: ett spår har minst ett av dem. Klicka för att byta till OCH.',

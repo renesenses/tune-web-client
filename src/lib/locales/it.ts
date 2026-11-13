@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': 'Nessuna sottocartella qui.',
   'oxygen.facetsTitle': 'Sfaccettature',
   'oxygen.facetClear': 'Deseleziona tutto',
+  'oxygen.railWidth': 'Larghezza della colonna dei filtri: trascina o frecce sinistra/destra; doppio clic per la larghezza predefinita',
   'oxygen.facetOpOr': 'O',
   'oxygen.facetOpAnd': 'E',
   'oxygen.facetOpOrHelp': 'I valori selezionati si combinano con O: un brano ne ha almeno uno. Clicca per passare a E.',

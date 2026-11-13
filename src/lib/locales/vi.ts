@@ -324,6 +324,7 @@ export default {
   "oxygen.folder.empty": "Không có thư mục con nào ở đây.",
   "oxygen.facetsTitle": "Bộ lọc nhóm",
   "oxygen.facetClear": "Bỏ chọn tất cả",
+  "oxygen.railWidth": "Độ rộng cột bộ lọc: kéo thả, hoặc phím mũi tên trái/phải; nhấp đúp để về độ rộng mặc định",
   "oxygen.facetOpOr": "Hoặc",
   "oxygen.facetOpAnd": "Và",
   "oxygen.facetOpOrHelp": "Các giá trị đã chọn được kết hợp bằng HOẶC: bài hát có ít nhất một trong số đó. Nhấn để chuyển sang VÀ.",
