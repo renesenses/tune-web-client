@@ -13,7 +13,7 @@
    * facette `country` en morceaux, sans le choix (voir `lib/bibliothequePays.ts`).
    */
   import { untrack } from 'svelte';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { FacetParam } from '../../lib/api';
   import { projeter, deprojeter, DEG, type Orientation } from '../../lib/champCercle/globe';
@@ -57,15 +57,10 @@
   }
   const enAlbums = $derived(agregat?.unite === 'albums');
 
-  const fmt = $derived(new Intl.NumberFormat($locale));
   const lignes = $derived((agregat?.pays ?? []).map((p) => ({ ...p, nom: nomPays(p.code, $locale) })));
   const parCode = $derived(new Map((agregat?.pays ?? []).map((p) => [p.code, p])));
-  const effectif = (n: number) => $t((enAlbums
-    ? (n === 1 ? 'v2.lib.map.albumOne' : 'v2.lib.map.albums')
-    : (n === 1 ? 'v2.lib.map.trackOne' : 'v2.lib.map.tracks')) as any).replace('{n}', fmt.format(n));
-  const horsCarte = (n: number) => $t((enAlbums
-    ? (n === 1 ? 'v2.lib.map.offMapAlbumOne' : 'v2.lib.map.offMapAlbums')
-    : (n === 1 ? 'v2.lib.map.offMapOne' : 'v2.lib.map.offMap')) as any).replace('{n}', fmt.format(n));
+  const effectif = (n: number) => $tn(enAlbums ? 'v2.lib.map.albumsN' : 'v2.lib.map.tracksN', n);
+  const horsCarte = (n: number) => $tn(enAlbums ? 'v2.lib.map.offMapAlbumsN' : 'v2.lib.map.offMapN', n);
   const pourArtiste = $derived(ancien === false && source === 'artiste');
 
   function choisir(code: string | null) {

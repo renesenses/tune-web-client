@@ -18,7 +18,7 @@
   import { albums } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { fold } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
@@ -131,7 +131,7 @@
       <div class="v2-eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
       <h1>{$t('v2.declick.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
+    {#if picked.size}<span class="cnt">{$tn('v2.tool.pickedN', picked.size)}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}

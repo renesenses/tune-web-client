@@ -1,3 +1,4 @@
+import { formaterPluriel } from './pluriel';
 /**
  * web#2389 — FabienM (fil 2431, rc7) : « comme sur l'appli Android, mettre le
  * médaillon du nombre de titres sur le bouton file d'attente de la barre de
@@ -17,8 +18,7 @@ export function texteMedaillonFile(n: number): string | null {
 }
 
 /** Infobulle et nom accessible du bouton : le nom de la file et son nombre de titres. */
-export function libelleBoutonFile(traduire: (cle: string) => string, n: number): string {
+export function libelleBoutonFile(traduire: (cle: string) => string, n: number, langue = 'fr'): string {
   if (!Number.isFinite(n) || n <= 0) return traduire('nav.queue');
-  if (n === 1) return traduire('transport.queueCountOne');
-  return traduire('transport.queueCount').replace('{count}', String(Math.floor(n)));
+  return formaterPluriel(traduire('transport.queueCountN'), Math.floor(n), langue);
 }

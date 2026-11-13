@@ -674,7 +674,7 @@
         <div class="scope">
           <button class:on={toutLeServeur} onclick={() => (toutLeServeur = true)}>{$t('v2.ms.wholeServer' as any)}</button>
           <button class:on={!toutLeServeur} onclick={() => (toutLeServeur = false)}>{$t('v2.ms.thisFolder' as any)}</button>
-          {#if trouve?.total_matches}<span class="cnt">{(trouve.total_matches > 1 ? $t('v2.ms.resultsMany' as any) : $t('v2.ms.resultsOne' as any)).replace('{count}', String(trouve.total_matches))}</span>{/if}
+          {#if trouve?.total_matches}<span class="cnt">{$tn('v2.ms.resultsN', trouve.total_matches)}</span>{/if}
         </div>
       {/if}
 

@@ -11,7 +11,7 @@
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
-  import { t as tr, locale } from '../../lib/i18n';
+  import { tn, t as tr, locale } from '../../lib/i18n';
   import { comparerAlphabetique, initialeAlbum, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
@@ -3858,7 +3858,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
-          {fYear} · {$tr((yearCount > 1 ? 'v2.lib.yearAlbumsMany' : 'v2.lib.yearAlbumsOne') as any).replace('{n}', String(yearCount))}
+          {fYear} · {$tn('v2.lib.yearAlbumsN', yearCount)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}

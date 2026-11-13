@@ -450,9 +450,6 @@
       <p class="note ecoute-note" use:bulleTexte>{$t('v2.circle.listen.hint' as any)}</p>
     {:else}
       <p class="note lecture-seule" use:bulleTexte>{$t('v2.circle.lib.readOnly' as any)}</p>
-      {#if !ouverte}
-        <p class="ecoute-fermee" role="note">{$t('v2.circle.listen.closed' as any)}</p>
-      {/if}
       {#if ouverte}
         <p class="note ecoute-premium" use:bulleTexte><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
       {/if}
@@ -732,8 +729,6 @@
   .lire-album,.lire-equivalent-album{margin-top:6px}
   .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
   .lire-piste:focus-visible,.lire-album:focus-visible,.lire-equivalent:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
-  .ecoute-fermee{margin:0; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .chercher-sources{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
     background:var(--v2-surface); color:var(--v2-txt); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .chercher-album,.chercher-album-carte,.lire-equivalent-carte{margin-top:6px}

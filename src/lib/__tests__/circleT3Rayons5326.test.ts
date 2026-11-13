@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // jsdom : sans `window`, `$effect` ne se déclenche pas et l'écran ne lirait
@@ -536,7 +537,7 @@ describe('T3 — couper le partage supprime les sélections (décision 4, site-m
     await cocherDansFamille(el, 'Jazz ECM', 'Vinyles rippés');
     const avant = gestes().length;
     await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
-    expect(dialogue()?.message).toBe(fr['v2.circle.sel.confirmStopMany'].replace('{n}', '2'));
+    expect(dialogue()?.message).toBe(formaterPluriel(fr['v2.circle.sel.confirmStopN'], 2, 'fr'));
     expect(dialogue()?.message).toMatch(/recocher/);
     await repondre(false);
     expect(gestes()).toHaveLength(avant);
@@ -551,7 +552,7 @@ describe('T3 — couper le partage supprime les sélections (décision 4, site-m
     const el = await poser();
     await cocherDansFamille(el, 'Jazz ECM');
     await cliquer(cercleDe(el, 'Famille'), 'button.interrupteur-partage');
-    expect(dialogue()?.message).toBe(fr['v2.circle.sel.confirmStopOne']);
+    expect(dialogue()?.message).toBe(formaterPluriel(fr['v2.circle.sel.confirmStopN'], 1, 'fr'));
   });
 
   it('aucune sélection cochée : pas de confirmation, DELETE tout de suite', async () => {
