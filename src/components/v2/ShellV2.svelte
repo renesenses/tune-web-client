@@ -190,6 +190,13 @@
    * permettre d'en créer une. « Écrit mais pas branché », une fois de plus.
    */
   import SmartPlaylistsView from '../v2-heritage/SmartPlaylistsView.svelte';
+  /**
+   * web#2971 — le Générateur de playlists (`smart-ai`), jusqu'ici onglet du
+   * seul écran de l'ancienne interface. L'entrée « Playlists » mène désormais
+   * à `PlaylistsV2`, qui y conduit par un onglet : la route était déclarée
+   * (`routeAuChargement`, alias de la barre) mais rien ne la montait.
+   */
+  import SmartAIView from '../v2-heritage/SmartAIView.svelte';
   import AmbianceView from '../v2-heritage/AmbianceView.svelte';
   // Portés de l'ancienne interface, seule à les offrir (phase 5, lot 4) :
   // l'allure reste celle d'origine, comme pour les autres vues héritées.
@@ -320,7 +327,7 @@
     crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', roomcorrection: 'v2.zone.roomCorrection', surechantillonnage: 'upsampling.title', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', statsbibliotheque: 'statsBibliotheque.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
-    smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
+    smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager', 'smart-ai': 'smartai.title',
   };
   const label = $derived(
     LABELS[$activeView] ? $t(LABELS[$activeView] as any) : $activeView,
@@ -981,6 +988,8 @@
         <TableauDeBordV2 />
       {:else if $activeView === 'smartplaylists'}
         <SmartPlaylistsView />
+      {:else if $activeView === 'smart-ai'}
+        <SmartAIView />
       {:else if $activeView === 'playlistmanager'}
         <!-- `onAddToPlaylist` non fournie, comme pour BrowseView : mieux vaut
              un bouton absent qu'un bouton mort. -->
