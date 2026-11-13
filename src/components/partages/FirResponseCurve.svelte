@@ -5,7 +5,11 @@
   // Courbe de réponse du filtre FIR (convolver) chargé sur une zone.
   // Le serveur pré-calcule ~200 points log 20 Hz → 20 kHz :
   //   GET /api/v1/zones/{id}/convolver/response
-  //   → { loaded, taps, sample_rate, latency_ms, points: [{ f, db, phase_deg }] }
+  //   → { loaded, taps, sample_rate, latency_ms, points: [{ f, db, phase_deg }],
+  //       channels?: [{ channel, taps, latency_ms, points }] }
+  // `points` = canal 0 (rétrocompatibilité). `channels` (tune-server-rust#8349)
+  // porte une entrée par canal de l'IR : à deux canaux ou plus, une trace par
+  // canal (gauche, droite, puis « Canal n »), web#1427.
   // Tolérance : endpoint absent (404/405), zone inconnue ou loaded:false
   // → on n'affiche rien, sans erreur visible.
 
@@ -14,12 +18,23 @@
     db: number;
     phase_deg?: number | null;
   }
+  interface ChannelResponse {
+    channel?: number;
+    taps?: number;
+    latency_ms?: number;
+    points?: ResponsePoint[];
+  }
   interface ConvolverResponse {
     loaded: boolean;
     taps?: number;
     sample_rate?: number;
     latency_ms?: number;
     points?: ResponsePoint[];
+    channels?: ChannelResponse[];
+  }
+  interface Trace {
+    index: number;
+    points: ResponsePoint[];
   }
 
   let {
@@ -56,6 +71,26 @@
     return () => { cancelled = true; };
   });
 
+  // Une trace par canal quand le serveur en donne au moins deux ; sinon
+  // (serveur plus ancien, IR mono) la seule courbe `points`.
+  let traces = $derived.by<Trace[]>(() => {
+    if (!data) return [];
+    const ch = Array.isArray(data.channels)
+      ? data.channels.filter(c => Array.isArray(c?.points) && c.points.length > 1)
+      : [];
+    if (ch.length >= 2) {
+      return ch.map((c, i) => ({ index: Number.isInteger(c.channel) ? (c.channel as number) : i, points: c.points! }));
+    }
+    return [{ index: 0, points: data.points ?? [] }];
+  });
+  let multi = $derived(traces.length > 1);
+
+  function channelLabel(index: number): string {
+    if (index === 0) return $t('zoneConfig.firChannelLeft');
+    if (index === 1) return $t('zoneConfig.firChannelRight');
+    return $t('zoneConfig.firChannelN').replace('{n}', String(index + 1));
+  }
+
   // --- Géométrie (même approche que ParametricEq.svelte) ---
   const W = 640;
   const H = 240;
@@ -73,8 +108,10 @@
   const DB_RANGES = [6, 12, 18, 24, 36, 48, 60];
   let dbMax = $derived.by(() => {
     let m = 0;
-    for (const p of data?.points ?? []) {
-      if (Number.isFinite(p.db)) m = Math.max(m, Math.abs(p.db));
+    for (const tr of traces) {
+      for (const p of tr.points) {
+        if (Number.isFinite(p.db)) m = Math.max(m, Math.abs(p.db));
+      }
     }
     for (const r of DB_RANGES) if (m <= r * 0.92) return r;
     return Math.ceil(m / 12) * 12;
@@ -100,21 +137,20 @@
     return H / 2 - (wrapDeg(deg) / 180) * (H / 2 - PAD_Y);
   }
 
-  let magPath = $derived.by(() => {
-    const pts = data?.points ?? [];
+  function magPath(points: ResponsePoint[]): string {
+    const pts = points.filter(p => Number.isFinite(p.f) && Number.isFinite(p.db));
     if (pts.length < 2) return '';
     return 'M ' + pts
-      .filter(p => Number.isFinite(p.f) && Number.isFinite(p.db))
       .map(p => `${xOf(p.f).toFixed(1)} ${yOf(p.db).toFixed(1)}`)
       .join(' L ');
-  });
+  }
 
-  let hasPhase = $derived((data?.points ?? []).some(p => Number.isFinite(p.phase_deg as number)));
+  let hasPhase = $derived(traces.some(tr => tr.points.some(p => Number.isFinite(p.phase_deg as number))));
 
   // La phase repliée saute de +180° à −180° : on coupe le tracé à chaque
   // repli (|Δ| > 180°) pour éviter les traits verticaux parasites.
-  let phasePath = $derived.by(() => {
-    const pts = (data?.points ?? []).filter(p => Number.isFinite(p.f) && Number.isFinite(p.phase_deg as number));
+  function phasePath(points: ResponsePoint[]): string {
+    const pts = points.filter(p => Number.isFinite(p.f) && Number.isFinite(p.phase_deg as number));
     if (pts.length < 2) return '';
     let d = '';
     let prev: number | null = null;
@@ -125,7 +161,7 @@
       prev = w;
     }
     return d.trim();
-  });
+  }
 
   const GRID_FREQS = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
   function freqLabel(f: number): string {
@@ -177,11 +213,23 @@
         {#each [-180, -90, 0, 90, 180] as deg}
           <text x={W - 4} y={yPhase(deg) - 3} class="grid-label phase-label">{deg > 0 ? '+' : ''}{deg}°</text>
         {/each}
-        <path d={phasePath} class="phase" />
+        {#each traces as tr, i (tr.index)}
+          <path d={phasePath(tr.points)} class="phase phase-{i % 4}" />
+        {/each}
       {/if}
-      <!-- Magnitude -->
-      <path d={magPath} class="magnitude" />
+      <!-- Magnitude : une trace par canal -->
+      {#each traces as tr, i (tr.index)}
+        <path d={magPath(tr.points)} class="magnitude trace-{i % 4}" data-channel={tr.index} />
+      {/each}
     </svg>
+
+    {#if multi}
+      <div class="fir-legend">
+        {#each traces as tr, i (tr.index)}
+          <span class="legend-item"><span class="legend-swatch trace-{i % 4}"></span>{channelLabel(tr.index)}</span>
+        {/each}
+      </div>
+    {/if}
 
     <div class="fir-meta">
       {#if data.taps != null}
@@ -248,6 +296,22 @@
   .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: calc(9px * var(--v2-txt-echelle, 1)); }
   .phase-label { text-anchor: end; }
   .magnitude { fill: none; stroke: #f59e0b; stroke-width: 2; }
+  .magnitude.trace-1 { stroke: #38bdf8; }
+  .magnitude.trace-2 { stroke: #a78bfa; }
+  .magnitude.trace-3 { stroke: #34d399; }
+  .fir-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    font-family: var(--font-body);
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text-muted);
+  }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-swatch { display: inline-block; width: 14px; height: 2px; background: #f59e0b; }
+  .legend-swatch.trace-1 { background: #38bdf8; }
+  .legend-swatch.trace-2 { background: #a78bfa; }
+  .legend-swatch.trace-3 { background: #34d399; }
   .phase {
     fill: none;
     stroke: rgba(255, 255, 255, 0.45);
