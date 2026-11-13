@@ -6373,6 +6373,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if spc?.enabled && spc?.receiver_error_code === 'spotify_premium_required'}
                   <div class="errline" data-spotify-premium-exige>{$t('settings.spotifyPremiumRequired' as any)}</div>
                 {/if}
+                <!-- tune-server-rust#8565 (13/11) — Spotify refuse les clés audio du compte. -->
+                {#if spc?.enabled && spc?.receiver_error_code === 'spotify_audio_key_refused'}
+                  <div class="errline" data-spotify-cles-refusees>{$t('playback.errorSpotifyAudioKeyRefused' as any)}</div>
+                {/if}
                 {#if spc?.enabled && spc?.session_error}
                   <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
