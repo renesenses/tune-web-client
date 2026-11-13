@@ -409,8 +409,30 @@
   const compteRayon = (r: RayonContact) =>
     r.count != null ? $t('v2.circle.sel.count' as any).replace('{n}', String(r.count)) : '';
 
-  // Première lecture : les chiffres, puis la première page d'albums et les rayons.
-  void lire(() => statsContact(contact.user_id), (s) => { stats = s; chargerPage(1); void lireRayons(); });
+  /**
+   * web#2985 — les chiffres du catalogue, À CÔTÉ de la première page.
+   *
+   * La première page d'albums attendait `/stats` : chez un grand catalogue
+   * (Tades, 37 610 albums, 752 395 titres) le cloud met 6 à 12 s à compter,
+   * et pendant ce temps aucune pochette ne pouvait partir. Les chiffres ne
+   * servent qu'à la ligne d'en-tête : ils ne passent plus par `lire` (dont le
+   * jeton jetterait la page arrivée après eux), ne bloquent rien, et un échec
+   * autre qu'un 404 laisse simplement la ligne absente. Un 404 ferme l'écran,
+   * comme avant.
+   */
+  async function lireStats(): Promise<void> {
+    try {
+      const s = await statsContact(contact.user_id);
+      if (!fini) stats = s;
+    } catch (e) {
+      if (!fini && plusPartage(e)) fermerPlusPartage();
+    }
+  }
+
+  // Première lecture : la première page d'albums, les chiffres et les rayons, ensemble.
+  chargerPage(1);
+  void lireStats();
+  void lireRayons();
   onDestroy(() => { fini = true; if (minuteurRecherche) clearTimeout(minuteurRecherche); });
 </script>
 
