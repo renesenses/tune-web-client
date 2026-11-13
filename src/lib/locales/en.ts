@@ -7721,6 +7721,18 @@ export default {
   "transport.queueCountOne": "Queue · 1 track",
   "transport.queueCount": "Queue · {count} tracks",
   "v2.radio.removeConfirmDirectory": "Remove “{name}” from My Radios? The station stays available in the Directory: you can find it there and add it back.",
+  "integrity.mode": "Mode",
+  "integrity.mode.full": "Full",
+  "integrity.mode.quick": "Quick",
+  "integrity.quickHint": "Quick mode checks FLAC frame and Ogg page checksums without decoding audio. It does not verify the decoded audio MD5; full mode is still needed for that.",
+  "integrity.startQuick": "New quick audit",
+  "integrity.trame": "Frame",
+  "integrity.page": "Page",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Faults",
+  "integrity.truncated": "Truncated file",
+  "integrity.noEnd": "End marker missing: the file is incomplete or was written without that marker.",
+  "integrity.quickUnsupported": "Quick mode does not apply: only FLAC and Ogg are supported.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

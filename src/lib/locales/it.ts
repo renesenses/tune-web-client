@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "Coda · 1 brano",
   "transport.queueCount": "Coda · {count} brani",
   "v2.radio.removeConfirmDirectory": "Rimuovere «{name}» da Le mie radio? La stazione resta disponibile nell'Elenco: potrai ritrovarla lì e aggiungerla di nuovo.",
+  "integrity.mode": "Modalità",
+  "integrity.mode.full": "Completa",
+  "integrity.mode.quick": "Rapida",
+  "integrity.quickHint": "La modalità rapida verifica le somme di controllo dei frame FLAC e delle pagine Ogg senza decodificare l’audio. Non verifica l’MD5 dell’audio decodificato; per questo serve la modalità completa.",
+  "integrity.startQuick": "Nuova verifica rapida",
+  "integrity.trame": "Frame",
+  "integrity.page": "Pagina",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Errori",
+  "integrity.truncated": "File troncato",
+  "integrity.noEnd": "Marcatore finale assente: il file è incompleto o è stato scritto senza tale marcatore.",
+  "integrity.quickUnsupported": "Modalità rapida non applicabile: sono supportati solo FLAC e Ogg.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

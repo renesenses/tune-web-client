@@ -7723,6 +7723,18 @@ export default {
   "transport.queueCountOne": "File d'attente · 1 titre",
   "transport.queueCount": "File d'attente · {count} titres",
   "v2.radio.removeConfirmDirectory": "Retirer « {name} » de Mes radios ? La station reste disponible dans l'annuaire : vous pourrez l'y retrouver et la rajouter.",
+  "integrity.mode": "Mode",
+  "integrity.mode.full": "Complet",
+  "integrity.mode.quick": "Rapide",
+  "integrity.quickHint": "Le mode rapide contrôle les sommes des trames FLAC et des pages Ogg sans décoder le son. Il ne vérifie pas le MD5 du son décodé ; le mode complet reste nécessaire pour cela.",
+  "integrity.startQuick": "Nouvel audit rapide",
+  "integrity.trame": "Trame",
+  "integrity.page": "Page",
+  "integrity.byte": "Octet",
+  "integrity.faults": "Défauts",
+  "integrity.truncated": "Fichier tronqué",
+  "integrity.noEnd": "Marque de fin absente : fichier incomplet ou écrit sans cette marque.",
+  "integrity.quickUnsupported": "Mode rapide non applicable : seuls FLAC et Ogg sont pris en charge.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "Warteschlange · 1 Titel",
   "transport.queueCount": "Warteschlange · {count} Titel",
   "v2.radio.removeConfirmDirectory": "„{name}“ aus „Meine Radios“ entfernen? Der Sender bleibt im Verzeichnis verfügbar: Sie können ihn dort wiederfinden und erneut hinzufügen.",
+  "integrity.mode": "Modus",
+  "integrity.mode.full": "Vollständig",
+  "integrity.mode.quick": "Schnell",
+  "integrity.quickHint": "Der Schnellmodus prüft die Prüfsummen von FLAC-Frames und Ogg-Seiten ohne Audiodekodierung. Er prüft nicht die MD5-Prüfsumme der dekodierten Audiodaten; dafür ist der vollständige Modus nötig.",
+  "integrity.startQuick": "Neue Schnellprüfung",
+  "integrity.trame": "Frame",
+  "integrity.page": "Seite",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Fehler",
+  "integrity.truncated": "Abgeschnittene Datei",
+  "integrity.noEnd": "Endmarkierung fehlt: Die Datei ist unvollständig oder wurde ohne diese Markierung geschrieben.",
+  "integrity.quickUnsupported": "Schnellmodus nicht anwendbar: Nur FLAC und Ogg werden unterstützt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

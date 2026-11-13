@@ -7546,5 +7546,17 @@ export default {
   "transport.queueCountOne": "Kolejka · 1 utwór",
   "transport.queueCount": "Kolejka · utwory: {count}",
   "v2.radio.removeConfirmDirectory": "Usunąć „{name}” z Moich radiów? Stacja pozostaje dostępna w Katalogu: możesz ją tam znaleźć i dodać ponownie.",
+  "integrity.mode": "Tryb",
+  "integrity.mode.full": "Pełny",
+  "integrity.mode.quick": "Szybki",
+  "integrity.quickHint": "Tryb szybki sprawdza sumy kontrolne ramek FLAC i stron Ogg bez dekodowania dźwięku. Nie sprawdza MD5 zdekodowanego dźwięku; do tego potrzebny jest tryb pełny.",
+  "integrity.startQuick": "Nowa szybka kontrola",
+  "integrity.trame": "Ramka",
+  "integrity.page": "Strona",
+  "integrity.byte": "Bajt",
+  "integrity.faults": "Błędy",
+  "integrity.truncated": "Ucięty plik",
+  "integrity.noEnd": "Brak znacznika końca: plik jest niekompletny lub został zapisany bez tego znacznika.",
+  "integrity.quickUnsupported": "Tryb szybki nie ma zastosowania: obsługiwane są tylko FLAC i Ogg.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

@@ -7546,5 +7546,17 @@ export default {
   "transport.queueCountOne": "Kø · 1 spor",
   "transport.queueCount": "Kø · {count} spor",
   "v2.radio.removeConfirmDirectory": "Fjerne «{name}» fra Mine radioer? Stasjonen er fortsatt tilgjengelig i Katalogen: du kan finne den der og legge den til igjen.",
+  "integrity.mode": "Modus",
+  "integrity.mode.full": "Fullstendig",
+  "integrity.mode.quick": "Rask",
+  "integrity.quickHint": "Rask modus sjekker kontrollsummene for FLAC-rammer og Ogg-sider uten å dekode lyden. Den sjekker ikke MD5 for dekodet lyd; det krever fullstendig modus.",
+  "integrity.startQuick": "Ny rask kontroll",
+  "integrity.trame": "Ramme",
+  "integrity.page": "Side",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Feil",
+  "integrity.truncated": "Avkortet fil",
+  "integrity.noEnd": "Sluttmarkør mangler: filen er ufullstendig eller ble skrevet uten markøren.",
+  "integrity.quickUnsupported": "Rask modus kan ikke brukes: bare FLAC og Ogg støttes.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

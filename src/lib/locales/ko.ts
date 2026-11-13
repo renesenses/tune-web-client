@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "대기열 · 1곡",
   "transport.queueCount": "대기열 · {count}곡",
   "v2.radio.removeConfirmDirectory": "“{name}”을(를) 내 라디오에서 제거할까요? 이 방송국은 디렉터리에 그대로 남아 있어 언제든 다시 추가할 수 있습니다.",
+  "integrity.mode": "모드",
+  "integrity.mode.full": "전체",
+  "integrity.mode.quick": "빠른 검사",
+  "integrity.quickHint": "빠른 모드는 오디오를 디코딩하지 않고 FLAC 프레임과 Ogg 페이지의 체크섬을 확인합니다. 디코딩된 오디오의 MD5는 확인하지 않으므로 이를 확인하려면 전체 모드가 필요합니다.",
+  "integrity.startQuick": "새 빠른 검사",
+  "integrity.trame": "프레임",
+  "integrity.page": "페이지",
+  "integrity.byte": "바이트",
+  "integrity.faults": "오류 수",
+  "integrity.truncated": "잘린 파일",
+  "integrity.noEnd": "종료 표시가 없습니다. 파일이 불완전하거나 종료 표시 없이 작성되었습니다.",
+  "integrity.quickUnsupported": "빠른 모드를 적용할 수 없습니다. FLAC과 Ogg만 지원합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "キュー · 1 曲",
   "transport.queueCount": "キュー · {count} 曲",
   "v2.radio.removeConfirmDirectory": "「{name}」をマイラジオから削除しますか？このステーションはディレクトリに残るので、そこからいつでも再追加できます。",
+  "integrity.mode": "モード",
+  "integrity.mode.full": "完全",
+  "integrity.mode.quick": "高速",
+  "integrity.quickHint": "高速モードは音声をデコードせず、FLACフレームとOggページのチェックサムを検証します。デコードした音声のMD5は検証しません。その検証には完全モードが必要です。",
+  "integrity.startQuick": "新しい高速検査",
+  "integrity.trame": "フレーム",
+  "integrity.page": "ページ",
+  "integrity.byte": "バイト",
+  "integrity.faults": "エラー数",
+  "integrity.truncated": "途中で切れたファイル",
+  "integrity.noEnd": "終端マーカーがありません。ファイルが不完全か、マーカーなしで作成されています。",
+  "integrity.quickUnsupported": "高速モードの対象外です。FLACとOggのみ対応しています。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

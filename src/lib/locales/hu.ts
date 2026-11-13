@@ -7660,6 +7660,18 @@ export default {
   "transport.queueCountOne": "Lejátszási sor · 1 szám",
   "transport.queueCount": "Lejátszási sor · {count} szám",
   "v2.radio.removeConfirmDirectory": "Eltávolítja a(z) „{name}” adót a Saját rádióim közül? Az adó továbbra is elérhető a Katalógusban: ott megtalálja, és újra hozzáadhatja.",
+  "integrity.mode": "Mód",
+  "integrity.mode.full": "Teljes",
+  "integrity.mode.quick": "Gyors",
+  "integrity.quickHint": "A gyors mód a FLAC-keretek és Ogg-lapok ellenőrzőösszegét vizsgálja a hang dekódolása nélkül. A dekódolt hang MD5-értékét nem ellenőrzi; ehhez a teljes mód szükséges.",
+  "integrity.startQuick": "Új gyors ellenőrzés",
+  "integrity.trame": "Keret",
+  "integrity.page": "Lap",
+  "integrity.byte": "Bájt",
+  "integrity.faults": "Hibák",
+  "integrity.truncated": "Csonkolt fájl",
+  "integrity.noEnd": "Hiányzik a végjelző: a fájl hiányos, vagy e jelző nélkül írták.",
+  "integrity.quickUnsupported": "A gyors mód nem alkalmazható: csak a FLAC és az Ogg támogatott.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

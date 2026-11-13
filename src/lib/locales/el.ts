@@ -7546,5 +7546,17 @@ export default {
   "transport.queueCountOne": "Ουρά · 1 κομμάτι",
   "transport.queueCount": "Ουρά · {count} κομμάτια",
   "v2.radio.removeConfirmDirectory": "Αφαίρεση του «{name}» από τα Ραδιόφωνά μου; Ο σταθμός παραμένει διαθέσιμος στον Κατάλογο: μπορείτε να τον βρείτε εκεί και να τον προσθέσετε ξανά.",
+  "integrity.mode": "Λειτουργία",
+  "integrity.mode.full": "Πλήρης",
+  "integrity.mode.quick": "Γρήγορη",
+  "integrity.quickHint": "Η γρήγορη λειτουργία ελέγχει τα αθροίσματα ελέγχου πλαισίων FLAC και σελίδων Ogg χωρίς αποκωδικοποίηση ήχου. Δεν ελέγχει το MD5 του αποκωδικοποιημένου ήχου· γι’ αυτό απαιτείται η πλήρης λειτουργία.",
+  "integrity.startQuick": "Νέος γρήγορος έλεγχος",
+  "integrity.trame": "Πλαίσιο",
+  "integrity.page": "Σελίδα",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Σφάλματα",
+  "integrity.truncated": "Περικομμένο αρχείο",
+  "integrity.noEnd": "Λείπει η σήμανση τέλους: το αρχείο είναι ελλιπές ή γράφτηκε χωρίς αυτή τη σήμανση.",
+  "integrity.quickUnsupported": "Η γρήγορη λειτουργία δεν εφαρμόζεται: υποστηρίζονται μόνο FLAC και Ogg.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

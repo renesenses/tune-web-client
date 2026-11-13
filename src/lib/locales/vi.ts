@@ -7553,5 +7553,17 @@ export default {
   "transport.queueCountOne": "Hàng đợi · 1 bài",
   "transport.queueCount": "Hàng đợi · {count} bài",
   "v2.radio.removeConfirmDirectory": "Xóa “{name}” khỏi Radio của tôi? Đài vẫn có trong Danh bạ: bạn có thể tìm lại và thêm lại ở đó.",
+  "integrity.mode": "Chế độ",
+  "integrity.mode.full": "Đầy đủ",
+  "integrity.mode.quick": "Nhanh",
+  "integrity.quickHint": "Chế độ nhanh kiểm tra tổng kiểm tra của khung FLAC và trang Ogg mà không giải mã âm thanh. Chế độ này không xác minh MD5 của âm thanh đã giải mã; việc đó cần chế độ đầy đủ.",
+  "integrity.startQuick": "Kiểm tra nhanh mới",
+  "integrity.trame": "Khung",
+  "integrity.page": "Trang",
+  "integrity.byte": "Byte",
+  "integrity.faults": "Lỗi",
+  "integrity.truncated": "Tệp bị cắt cụt",
+  "integrity.noEnd": "Thiếu dấu kết thúc: tệp không đầy đủ hoặc được ghi mà không có dấu này.",
+  "integrity.quickUnsupported": "Không áp dụng chế độ nhanh: chỉ hỗ trợ FLAC và Ogg.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

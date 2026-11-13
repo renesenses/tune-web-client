@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "Coadă · 1 piesă",
   "transport.queueCount": "Coadă · piese: {count}",
   "v2.radio.removeConfirmDirectory": "Elimini „{name}” din Radiourile mele? Postul rămâne disponibil în Director: îl poți regăsi acolo și adăuga din nou.",
+  "integrity.mode": "Mod",
+  "integrity.mode.full": "Complet",
+  "integrity.mode.quick": "Rapid",
+  "integrity.quickHint": "Modul rapid verifică sumele de control ale cadrelor FLAC și paginilor Ogg fără a decoda sunetul. Nu verifică MD5-ul sunetului decodat; pentru aceasta este necesar modul complet.",
+  "integrity.startQuick": "Verificare rapidă nouă",
+  "integrity.trame": "Cadru",
+  "integrity.page": "Pagină",
+  "integrity.byte": "Octet",
+  "integrity.faults": "Defecte",
+  "integrity.truncated": "Fișier trunchiat",
+  "integrity.noEnd": "Lipsește marcajul de sfârșit: fișierul este incomplet sau a fost scris fără acest marcaj.",
+  "integrity.quickUnsupported": "Modul rapid nu se aplică: sunt acceptate doar FLAC și Ogg.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -7701,6 +7701,18 @@ export default {
   "transport.queueCountOne": "播放队列 · 1 首",
   "transport.queueCount": "播放队列 · {count} 首",
   "v2.radio.removeConfirmDirectory": "要将“{name}”从“我的电台”中移除吗？该电台仍保留在电台目录中，您可以随时在那里找到并重新添加。",
+  "integrity.mode": "模式",
+  "integrity.mode.full": "完整",
+  "integrity.mode.quick": "快速",
+  "integrity.quickHint": "快速模式检查 FLAC 帧和 Ogg 页的校验和，不解码音频。它不验证解码后音频的 MD5；该验证仍需要完整模式。",
+  "integrity.startQuick": "新建快速检查",
+  "integrity.trame": "帧",
+  "integrity.page": "页",
+  "integrity.byte": "字节",
+  "integrity.faults": "错误数",
+  "integrity.truncated": "文件被截断",
+  "integrity.noEnd": "缺少结束标记：文件不完整，或写入时未包含该标记。",
+  "integrity.quickUnsupported": "快速模式不适用：仅支持 FLAC 和 Ogg。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
