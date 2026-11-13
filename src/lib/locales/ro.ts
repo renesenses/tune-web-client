@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsTitle': 'Fațete',
   'oxygen.facetClear': 'Deselectează tot',
+  'oxygen.railWidth': 'Lățimea coloanei de fațete: trage sau săgeți stânga/dreapta; dublu clic pentru lățimea implicită',
   'oxygen.facetOpOr': 'Sau',
   'oxygen.facetOpAnd': 'Și',
   'oxygen.facetOpOrHelp': 'Valorile bifate se combină cu SAU: o piesă are cel puțin una dintre ele. Clic pentru a trece la ȘI.',

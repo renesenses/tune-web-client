@@ -247,6 +247,7 @@ export default {
   'oxygen.folder.empty': 'No hay subcarpetas aquí.',
   'oxygen.facetsTitle': 'Facetas',
   'oxygen.facetClear': 'Desmarcar todo',
+  'oxygen.railWidth': 'Ancho de la columna de facetas: arrastrar o flechas izquierda/derecha; doble clic para el ancho predeterminado',
   'oxygen.facetOpOr': 'O',
   'oxygen.facetOpAnd': 'Y',
   'oxygen.facetOpOrHelp': 'Los valores marcados se combinan con O: una pista tiene al menos uno. Haz clic para pasar a Y.',
