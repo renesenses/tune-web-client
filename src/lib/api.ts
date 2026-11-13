@@ -3854,6 +3854,17 @@ export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
 }
 
+/**
+ * Go du 13/11 — chercher un artiste ou un genre dans TOUT le classement des
+ * statistiques (pas seulement les cent premiers). Réponse lue par
+ * `lireRecherche` (`lib/classementsBibliotheque`). Rejette sur un serveur
+ * plus ancien (route absente) : l'appelant se replie, sans bandeau d'erreur.
+ */
+export function chercherClassement(by: 'artist' | 'genre', q: string, limit = 100) {
+  const p = new URLSearchParams({ by, q, limit: String(limit) });
+  return fetchJSON<unknown>(`${BASE}/library/stats/rankings?${p}`, undefined, undefined, true);
+}
+
 // --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
 
 export type TypeNote = 'artist' | 'album' | 'track';
