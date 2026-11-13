@@ -16,6 +16,7 @@ import * as api from '../api';
 import { locale, t } from '../i18n';
 import { notifications } from '../stores/notifications';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 import lEn from '../locales/en';
 
 const LANGUES = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh'];
@@ -59,7 +60,7 @@ describe('web#2771 — l’enfant voit pourquoi un artiste bloqué ne joue pas',
 
   it('la phrase locale existe dans les 15 langues', async () => {
     for (const l of LANGUES) {
-      const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const dict = dictionnaire(l);
       expect(dict['playback.errorParentalBlocked'], l).toBeTruthy();
     }
   });
@@ -79,7 +80,7 @@ describe('web#2771 — les textes du parcours', () => {
 
   it('l’aide des plages dit comment passer minuit, dans les 15 langues', async () => {
     for (const l of LANGUES) {
-      const dict = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const dict = dictionnaire(l);
       expect(dict['parental.hours.hint'], l).toContain('23:59');
       expect(dict['parental.hours.hint'], l).toContain('00:00');
     }
