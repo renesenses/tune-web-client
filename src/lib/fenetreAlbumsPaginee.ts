@@ -40,6 +40,22 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
   let detruit = false;
   let trame = 0;
   let cible: number | null = null;
+  let revision = 0;
+  let ancre: { index: number; decalage: number } | null = null;
+  // Les cales restent des estimations. Une nouvelle première rangée peut
+  // avoir une autre hauteur : conserver la carte visible, pas son ancien
+  // scrollTop calculé avec une hauteur devenue différente.
+  const lireAncre = (horizontal: boolean) => {
+    const cadre = el.getBoundingClientRect();
+    for (const carte of el.querySelectorAll<HTMLElement>('[data-i]')) {
+      const rect = carte.getBoundingClientRect();
+      const debut = horizontal ? rect.left - cadre.left : rect.top - cadre.top;
+      const fin = horizontal ? rect.right - cadre.left : rect.bottom - cadre.top;
+      const vue = horizontal ? cadre.width : cadre.height;
+      if (fin > 0 && debut < vue) return { index: Number(carte.dataset.i), decalage: debut };
+    }
+    return null;
+  };
   const mesurer = () => {
     const style = getComputedStyle(el);
     const horizontal = o.mode === 'carousel';
@@ -54,30 +70,54 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
     trame = 0;
     if (detruit) return;
     const g = mesurer();
-    const position = cible == null ? (g.horizontal ? el.scrollLeft : el.scrollTop) : Math.floor(cible / g.colonnes) * g.pas;
+    const tour = ++revision;
+    if (cible == null && o.total > 600 && !g.horizontal) ancre ??= lireAncre(g.horizontal);
+    const index = cible ?? ancre?.index;
+    const position = index == null ? (g.horizontal ? el.scrollLeft : el.scrollTop) : Math.floor(index / g.colonnes) * g.pas;
     o.surFenetre(trancheAlbums(o.total, position, g.vue, g.colonnes, g.pas, g.espace));
+    if (ancre && cible == null) void tick().then(() => {
+      if (detruit || tour !== revision || !ancre || cible != null) return;
+      const carte = el.querySelector<HTMLElement>(`[data-i="${ancre.index}"]`);
+      if (carte) {
+        const rect = carte.getBoundingClientRect();
+        const cadre = el.getBoundingClientRect();
+        const delta = (g.horizontal ? rect.left - cadre.left : rect.top - cadre.top) - ancre.decalage;
+        if (Math.abs(delta) > 0.5) {
+          if (g.horizontal) el.scrollLeft += delta; else el.scrollTop += delta;
+        }
+      }
+      ancre = null;
+    });
   };
   const planifier = () => {
     if (!trame && !detruit) trame = requestAnimationFrame(calculer);
   };
   const aller = async (index: number) => {
+    ancre = null;
     cible = Math.max(0, Math.min(o.total - 1, index));
     calculer();
     await tick();
     if (detruit || cible == null) return;
     const g = mesurer();
-    const position = Math.floor(cible / g.colonnes) * g.pas;
+    const carte = el.querySelector<HTMLElement>(`[data-i="${cible}"]`);
+    const rect = carte?.getBoundingClientRect();
+    const cadre = el.getBoundingClientRect();
+    const position = rect && !g.horizontal
+      ? (g.horizontal ? el.scrollLeft + rect.left - cadre.left : el.scrollTop + rect.top - cadre.top)
+      : Math.floor(cible / g.colonnes) * g.pas;
     if (g.horizontal) el.scrollLeft = position; else el.scrollTop = position;
     cible = null;
   };
+  const defiler = () => { ancre = null; planifier(); };
   o.surPret(aller);
-  el.addEventListener('scroll', planifier, { passive: true });
+  el.addEventListener('scroll', defiler, { passive: true });
   window.addEventListener('resize', planifier);
   const taille = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(planifier);
   taille?.observe(el);
   calculer();
   return {
     update(n: Options) {
+      if (o.mode !== n.mode) ancre = null;
       o = n;
       // Les données peuvent grandir après un filtre ou l’arrivée des favoris.
       // Rendre leur nouvelle tranche dans ce cycle, sans attendre une frame.
@@ -88,7 +128,7 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
       detruit = true;
       cancelAnimationFrame(trame);
       taille?.disconnect();
-      el.removeEventListener('scroll', planifier);
+      el.removeEventListener('scroll', defiler);
       window.removeEventListener('resize', planifier);
       o.surPret(undefined);
     },
