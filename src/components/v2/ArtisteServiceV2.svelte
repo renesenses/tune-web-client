@@ -77,7 +77,7 @@
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
-  import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
+  import { chargerTitresPhares, titresPharesJouables } from '../../lib/titresPharesArtiste';
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
@@ -495,7 +495,10 @@
     // pose au chargement plutôt qu'à chaque geste : un seul endroit à ne pas
     // oublier, au lieu d'un par bouton.
     if (tt.status === 'fulfilled') {
-      titres = (tt.value ?? []).map((p) => ({ ...p, source: service })) as Track[];
+      // Recette rc12 (13/11) — `titresPharesJouables` garde la source que le
+      // serveur a posée (un fichier, un autre service) au lieu de l'écraser,
+      // et écarte un titre désigné par un appareil (CD sorti du lecteur).
+      titres = titresPharesJouables(tt.value as Track[], service);
       titresEnEchec = false;
     } else {
       // 🔴 #910 — UN REFUS N'EST PAS UNE ABSENCE.

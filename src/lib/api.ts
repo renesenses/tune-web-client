@@ -87,6 +87,10 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'parental_explicit_refused',
   // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
   'parental_content_blocked',
+  // Recette rc12 (13/11) — une piste du CD lancée sans disque : « Le disque
+  // n'est plus dans le lecteur… », traduite par le serveur, au lieu de
+  // « HTTP 500 — playback_error — aucun disque dans le lecteur ».
+  'cd_disc_absent',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
