@@ -4323,6 +4323,7 @@ export default {
   "v2.sup.bugSendError": "Trimiterea a eșuat. Reîncercați sau copiați raportul pe forum.",
   "v2.sup.bugRateLimited": "Limita de trimitere a fost atinsă: forumul acceptă doar un număr limitat de rapoarte pe oră. Reîncercați în cel mult o oră sau copiați raportul pe forum.",
   "v2.sup.bugRateLimitedRetry": "Limita de trimitere a fost atinsă: forumul acceptă doar un număr limitat de rapoarte pe oră. Reîncercați {delay} sau copiați raportul pe forum.",
+  "v2.sup.bugRejectedBySite": "Forumul a respins acest raport: retrimiterea lui neschimbată ar eșua din nou. Motivul dat de forum se află în detalii.",
   "v2.sup.bugImages": "Capturi de ecran și jurnale (opțional)",
   "v2.sup.bugImagesHint": "Cel mult 3 imagini (PNG, JPEG, GIF sau WebP) de 4 MB fiecare și 3 jurnale (.log, .txt, .json sau .zip) de 10 MB fiecare. Sunt adăugate în discuția de pe forum.",
   "v2.sup.bugImagesTooMany": "Prea multe capturi: cel mult {max} imagini.",
