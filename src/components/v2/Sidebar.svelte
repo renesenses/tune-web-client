@@ -25,10 +25,11 @@
   /**
    * `aussi` : les vues qui appartiennent à la MÊME entrée de menu.
    *
-   * Playlists en est le cas : l'entrée mène à l'écran complet
-   * (`playlistmanager`), mais on peut arriver sur `playlists` par les favoris
-   * ou comme écran de démarrage. Sans alias, l'utilisateur y serait sans
-   * qu'aucune entrée ne s'allume — il ne saurait plus où il est.
+   * Playlists en est le cas : l'entrée mène à `PlaylistsV2` (`playlists`,
+   * web#2971), mais on peut arriver sur l'écran complet (`playlistmanager`),
+   * les intelligentes ou le générateur depuis cet écran. Sans alias,
+   * l'utilisateur y serait sans qu'aucune entrée ne s'allume — il ne saurait
+   * plus où il est.
    */
   export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
@@ -165,18 +166,19 @@
     // titre que les étiquettes et les favoris. Dans le noyau, elles voisinaient
     // avec Bibliothèque et Radio — des SOURCES, pas des choix.
     { view: 'collections', labelKey: 'v2.nav.collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
-    // 🔴 MÈNE À L'ÉCRAN COMPLET, pas à `PlaylistsV2`.
+    // 🔴 MÈNE À `PlaylistsV2` — web#2971 (recette rc12, Bertrand, 13/11/2026).
     //
-    // `PlaylistsV2` fait 13 appels d'API ; l'écran complet en fait 31. Treize
-    // n'existent nulle part ailleurs en v2 : playlists collaboratives,
-    // fusionner, comparer, récupérer une playlist supprimée, liens,
-    // synchronisation, réordonner. L'ancienne interface a toujours fait
-    // pointer ce bouton là — `playlistmanager`, jamais `playlists`.
+    // Du 14/09 au 13/11/2026, l'entrée menait à l'écran de l'ancienne
+    // interface (`playlistmanager`) : toute la fiche playlist de la rc12
+    // (vue par playlist #2914, quatre commandes #2739, lignes radio #2864)
+    // restait invisible, puisque cet écran-là ne monte pas `PlaylistDetailV2`.
     //
-    // `PlaylistsV2` reste atteignable : les favoris y mènent
-    // (`ouvrirAilleurs('playlists', …)`) et il peut être écran de démarrage.
-    // D'où l'alias, sans quoi aucune entrée ne s'allumerait quand on y est.
-    { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'smart-ai'],
+    // L'écran complet reste atteignable depuis la v2, et l'entrée s'allume
+    // quand on y est (alias) : onglet « Gestionnaire de playlists » de
+    // `PlaylistsV2`, entrée du même nom dans le menu « … » de la fiche (ouvre
+    // la playlist là-bas : Vérifier la disponibilité, Transférer, Comparer),
+    // « Transférer » du menu d'une vignette. Le Générateur a son onglet.
+    { view: 'playlists', labelKey: 'v2.nav.playlists', aussi: ['playlistmanager', 'smartplaylists', 'smart-ai'],
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     /**
      * « Écouter plus tard » — web#1653, FabienM, fil 1986.

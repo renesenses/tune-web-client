@@ -15,6 +15,7 @@
  * code au lieu d'un bandeau « Server error ». Le serveur ne rend jamais 401
  * pour ces cas (le client y lirait une session expirée).
  */
+import { writable } from 'svelte/store';
 import { BASE, fetchJSON } from './api';
 
 const RACINE = `${BASE}/ext/assistant-ia`;
@@ -207,6 +208,47 @@ export interface LotIa {
 
 const accepter = (s: number) => s !== 401;
 
+/**
+ * web#2966 — l'assistant n'est pas ACTIF sur ce serveur : le greffon est
+ * dormant (`plugin_dormant_not_loaded … opt_in=false`) ou absent, ses routes
+ * ne sont pas montées, et le serveur rend le 404 générique de l'API —
+ * `{"error":"not found","path":…}`, sans `ok`. Recette rc12 sur le .18
+ * (13/11/2026) : « + Nouvelle › Suggérée par l'IA » appelait
+ * `/collections/proposer`, recevait ce 404, et l'écran ne disait RIEN (ni
+ * `ok:false`, ni `collections`). Une réponse vide compte de même.
+ */
+export function assistantAbsent(r: unknown): boolean {
+  if (r == null) return true;
+  if (typeof r !== 'object' || Array.isArray(r)) return false;
+  return !('ok' in (r as object)) && (r as { error?: unknown }).error === 'not found';
+}
+
+/** L'échec que les écrans disent quand l'assistant n'est pas actif. */
+export const CODE_ASSISTANT_INACTIF = 'assistant_inactif';
+
+/**
+ * Le dernier état CONSTATÉ : `true` quand une réponse de `/ext/assistant-ia/*`
+ * était le 404 de route absente, `false` dès qu'une réponse prouve le greffon
+ * monté (réglages lus, échec fonctionnel `ok:false`…). La sonde du démarrage
+ * (`sonderAssistantIa`) le pose une première fois ; chaque appel le tient à
+ * jour, sans requête de plus. Les fenêtres de l'assistant l'affichent par
+ * `AssistantIaInactifV2`.
+ */
+export const assistantIaAbsent = writable(false);
+
+/**
+ * Tout appel à `/ext/assistant-ia/*` passe par ici : un 404 de route absente
+ * devient un échec NOMMÉ (`assistant_inactif`), que chaque écran dit déjà
+ * par `messageDEchec` — au lieu d'une réponse qu'aucun ne reconnaît.
+ */
+export async function appelIa<T>(url: string, options?: RequestInit, sansBandeau = false): Promise<T | EchecIa> {
+  const r = await fetchJSON<unknown>(url, options, accepter, sansBandeau);
+  const absent = assistantAbsent(r);
+  assistantIaAbsent.set(absent);
+  if (absent) return { ok: false, error: CODE_ASSISTANT_INACTIF, message: '' };
+  return r as T;
+}
+
 export function estEchec(r: unknown): r is EchecIa {
   return !!r && typeof r === 'object' && (r as { ok?: unknown }).ok === false;
 }
@@ -223,38 +265,37 @@ export function estReglages(r: unknown): r is ReglagesIa {
 }
 
 export function lireReglagesIa(): Promise<ReglagesIa | EchecIa> {
-  return fetchJSON(`${RACINE}/reglages`, undefined, accepter);
+  return appelIa(`${RACINE}/reglages`, undefined);
 }
 
 export function changerReglagesIa(m: ModificationIa): Promise<ReglagesIa | EchecIa> {
-  return fetchJSON(`${RACINE}/reglages`, { method: 'PUT', body: JSON.stringify(m) }, accepter);
+  return appelIa(`${RACINE}/reglages`, { method: 'PUT', body: JSON.stringify(m) });
 }
 
 export function testerCleIa(): Promise<{ ok: true; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
-  return fetchJSON(`${RACINE}/tester`, { method: 'POST' }, accepter);
+  return appelIa(`${RACINE}/tester`, { method: 'POST' });
 }
 
 export function proposerPlaylistIa(
   phrase: string,
   cible: 'playlist' | 'collection' = 'playlist',
 ): Promise<{ ok: true; proposition: PropositionIa; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
-  return fetchJSON(`${RACINE}/playlist`, { method: 'POST', body: JSON.stringify({ phrase, cible }) }, accepter);
+  return appelIa(`${RACINE}/playlist`, { method: 'POST', body: JSON.stringify({ phrase, cible }) });
 }
 
 export function suggestionsAlbumIa(
   albumId: number,
 ): Promise<{ ok: true; suggestions: SuggestionIa[]; ecartees: EcarteeIa[]; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
-  return fetchJSON(`${RACINE}/albums/${albumId}/suggestions`, { method: 'POST' }, accepter);
+  return appelIa(`${RACINE}/albums/${albumId}/suggestions`, { method: 'POST' });
 }
 
 export function appliquerSuggestionsIa(
   albumId: number,
   lignes: { champ: string; valeur: string }[],
 ): Promise<{ ok: true; rapport: RapportIa } | EchecIa> {
-  return fetchJSON(
+  return appelIa(
     `${RACINE}/albums/${albumId}/appliquer`,
     { method: 'POST', body: JSON.stringify({ lignes }) },
-    accepter,
   );
 }
 
@@ -262,27 +303,25 @@ export function annulerSuggestionsIa(
   albumId: number,
   operationId?: string | null,
 ): Promise<{ ok: true; rapport: RapportIa } | EchecIa> {
-  return fetchJSON(
+  return appelIa(
     `${RACINE}/albums/${albumId}/annuler`,
     { method: 'POST', body: JSON.stringify(operationId ? { operation_id: operationId } : {}) },
-    accepter,
   );
 }
 
 export function suggestionsPistesIa(
   albumId: number,
 ): Promise<{ ok: true; suggestions: SuggestionPisteIa[]; ecartees: EcarteePisteIa[]; depuis_cache: boolean; cout_eur: number; plafond?: EtatPlafondIa } | EchecIa> {
-  return fetchJSON(`${RACINE}/albums/${albumId}/pistes/suggestions`, { method: 'POST' }, accepter);
+  return appelIa(`${RACINE}/albums/${albumId}/pistes/suggestions`, { method: 'POST' });
 }
 
 export function appliquerPistesIa(
   albumId: number,
   lignes: { piste_id: number; champ: string; valeur: string }[],
 ): Promise<{ ok: true; rapport: RapportIa } | EchecIa> {
-  return fetchJSON(
+  return appelIa(
     `${RACINE}/albums/${albumId}/pistes/appliquer`,
     { method: 'POST', body: JSON.stringify({ lignes }) },
-    accepter,
   );
 }
 
@@ -302,19 +341,19 @@ export function idsDuLot(ids: readonly (number | null | undefined)[], max = LOT_
 export function lotSuggestionsIa(albumIds: number[], budgetEur?: string): Promise<LotIa | EchecIa> {
   const corps: Record<string, unknown> = { album_ids: albumIds };
   if (budgetEur && budgetEur.trim()) corps.budget_eur = budgetEur.trim();
-  return fetchJSON(`${RACINE}/lot/suggestions`, { method: 'POST', body: JSON.stringify(corps) }, accepter);
+  return appelIa(`${RACINE}/lot/suggestions`, { method: 'POST', body: JSON.stringify(corps) });
 }
 
 export function lotAppliquerIa(
   albums: { album_id: number; lignes: { champ: string; valeur: string }[] }[],
 ): Promise<{ ok: true; rapports: ({ ok: true; album_id: number; rapport: RapportIa } | { ok: false; album_id: number; error: string })[] } | EchecIa> {
-  return fetchJSON(`${RACINE}/lot/appliquer`, { method: 'POST', body: JSON.stringify({ albums }) }, accepter);
+  return appelIa(`${RACINE}/lot/appliquer`, { method: 'POST', body: JSON.stringify({ albums }) });
 }
 
 export function lotAnnulerIa(
   operations: { album_id: number; operation_id: string | null }[],
 ): Promise<{ ok: true; rapports: unknown[] } | EchecIa> {
-  return fetchJSON(`${RACINE}/lot/annuler`, { method: 'POST', body: JSON.stringify({ operations }) }, accepter);
+  return appelIa(`${RACINE}/lot/annuler`, { method: 'POST', body: JSON.stringify({ operations }) });
 }
 
 /** L'écran peut-il modifier les réglages ? Un serveur de l'étape 1 ne dit rien : oui. */
@@ -332,6 +371,8 @@ export const CODES_ECHEC = [
   // tune-server-rust, 23/10/2026 : notes, diagnostic, collections.
   'premium_requis', 'apercu_requis', 'diagnostic_indisponible', 'aucune_collection',
   'aucun_paragraphe', 'regle_inconnue',
+  // web#2966 — le greffon n'est pas actif sur ce serveur (404 de route absente).
+  'assistant_inactif',
 ] as const;
 
 /** La clé i18n du message d'un échec. */
