@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
@@ -12,11 +13,13 @@
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
+  import { piloteDeLaZone } from '../../lib/zoneHorsBackend';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
   import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
-  import { upNextCount } from '../../lib/stores/queue';
+  import { upNextCount, queueTracks } from '../../lib/stores/queue';
+  import { texteMedaillonFile, libelleBoutonFile } from '../../lib/medaillonFile';
   import { ytPlayerState, ytLoading } from '../../lib/stores/ytPlayer';
   import { isBrowserZone, browserSetVolume, browserSeek } from '../../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -26,12 +29,16 @@
   import RadioFicheModale from './RadioFicheModale.svelte';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
+  import { ondePisteEnCours } from '../../lib/stores/ondePiste';
+  import { cibleClavier } from '../../lib/barreOnde';
+  import OndeProgression from './OndeProgression.svelte';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -484,6 +491,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   function handleBarClick(e: MouseEvent) {
+    // Le `click` qui suit un glisser relâché à côté de la barre de
+    // progression : la recherche est partie, rien d'autre à faire.
+    if (seekEnvoyeAuRelachement) { seekEnvoyeAuRelachement = false; return; }
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-selector')) return;
     if ((e.target as HTMLElement).closest('.transfer-selector')) return;
@@ -1053,14 +1063,93 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     displayTrack && displayTrack.source !== 'radio' ? (displayTrack.duration_ms || lastDurationMs) : 0
   );
 
+  // ── Glisser sur la barre (Bertrand, 12/11/2026, Discussion #8269) ──────
+  // Le même geste que la barre de Lecture en cours (`SeekBar`), sur la barre
+  // classique comme sur la forme d'onde : pendant le glisser, la barre et le
+  // compteur suivent le doigt ou la souris SANS rien envoyer ; une seule
+  // recherche part au relâchement.
+  let glisse = $state(false);
+  let positionGlisseMs = $state(0);
+  let pisteProgressionEl: HTMLElement | undefined = $state();
+  /** Le relâchement vient d'envoyer la recherche de ce geste : le `click`
+   *  que le navigateur fait suivre ne doit pas en envoyer une seconde
+   *  (ticket 193, même garde que `SeekBar`), ni ouvrir Lecture en cours sur
+   *  mobile s'il tombe à côté de la barre. Remis à zéro à chaque appui. */
+  let seekEnvoyeAuRelachement = false;
+
+  let positionAfficheeMs = $derived(glisse ? positionGlisseMs : $seekPositionMs);
+
   let progressPercent = $derived(
-    effectiveDurationMs ? Math.min(100, ($seekPositionMs / effectiveDurationMs) * 100) : 0
+    effectiveDurationMs ? Math.min(100, (positionAfficheeMs / effectiveDurationMs) * 100) : 0
   );
 
+  function positionDepuisX(x: number): number {
+    if (!pisteProgressionEl || !effectiveDurationMs) return 0;
+    const rect = pisteProgressionEl.getBoundingClientRect();
+    if (!rect.width) return 0;
+    const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    return Math.floor(pct * effectiveDurationMs);
+  }
+
+  function envoyerSeekGlisse(posMs: number) {
+    const zone = $currentZone;
+    if (!zone?.id) return;
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+    seekEnvoyeAuRelachement = true;
+  }
+
+  function handleProgressMouseDown(e: MouseEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || e.button !== 0) return;
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.clientX);
+    function onMove(ev: MouseEvent) {
+      positionGlisseMs = positionDepuisX(ev.clientX);
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function handleProgressTouchStart(e: TouchEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || !e.touches[0]) return;
+    e.stopPropagation();
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.touches[0].clientX);
+    function onMove(ev: TouchEvent) {
+      ev.preventDefault();
+      if (ev.touches[0]) positionGlisseMs = positionDepuisX(ev.touches[0].clientX);
+    }
+    function onEnd() {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
+  }
+
   function handleProgressSeek(e: MouseEvent) {
+    e.stopPropagation();
+    if (seekEnvoyeAuRelachement) {
+      seekEnvoyeAuRelachement = false;
+      return;
+    }
     const zone = $currentZone;
     if (!effectiveDurationMs || !zone?.id) return;
-    e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * effectiveDurationMs);
@@ -1071,6 +1160,23 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     if (isBrowserZone(zone)) browserSeek(posMs);
   }
+  /** Clavier sur le curseur (Discussion #8269) : ← / → 10 s, Début / Fin —
+   *  le même pas que le raccourci global de l'écran de lecture, qui ignore
+   *  la touche une fois qu'elle est prise ici (`preventDefault`). */
+  function handleProgressKey(e: KeyboardEvent) {
+    const zone = $currentZone;
+    if (!effectiveDurationMs || !zone?.id) return;
+    const posMs = cibleClavier(e.key, $seekPositionMs, effectiveDurationMs);
+    if (posMs === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+  }
+
+  // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique.
+  let onde = $derived($ondePisteEnCours);
   /*
     Témoin d'attente. Bertrand, 05/09/2026 : « l'ui ne repond plus aux demandes
     de play un autre album ou piste !! ».
@@ -1155,6 +1261,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 {#if deviceTypeLabel(z.output_type)}
                   <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
                 {/if}
+                <!-- tune-server-rust#7806 — le pilote réel d'une zone locale
+                     Windows : « This Computer » en WASAPI ne se confond plus
+                     avec la zone du DAC ASIO. -->
+                {#if piloteDeLaZone(z)}
+                  <span class="zone-popover-badge" data-pilote-local title={$t('v2.zone.piloteLocal' as any)}>{piloteDeLaZone(z)}</span>
+                {/if}
                 {#if z.recovery_started_at != null}
                   <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
                 {:else if z.online === false}
@@ -1230,9 +1342,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
-      <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
-        <div class="progress-fill" style="width: {progressPercent}%"></div>
+      <!-- Hors glisser, le compteur EST `seekPositionMs` : la carte de la
+           zone courante lit le même nombre (synchroProgressionSevy). -->
+      <span class="progress-time">{#if glisse}{formatTime(positionGlisseMs)}{:else}{formatTime($seekPositionMs)}{/if}</span>
+      <div class="progress-track" class:onde={!!onde} bind:this={pisteProgressionEl} onclick={handleProgressSeek} onmousedown={handleProgressMouseDown} ontouchstart={handleProgressTouchStart} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={positionAfficheeMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
+        {#if onde}
+          <OndeProgression points={onde} progress={progressPercent} />
+        {:else}
+          <div class="progress-fill" style="width: {progressPercent}%"></div>
+        {/if}
       </div>
       <span class="progress-time">{formatTime(effectiveDurationMs)}</span>
     </div>
@@ -1520,15 +1638,19 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
          accès rapide vers la file d'attente ; une icône dédiée à côté de
          répéter ». La barre avait aléatoire et répéter, et rien vers la file.
-         Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
-         reste compacte. -->
+         web#2389 — FabienM, fil 2431 : le nombre de titres de la file est
+         DESSINÉ en médaillon, comme sur l'appli Android, et repris dans
+         l'infobulle (lib/medaillonFile). File vide : pas de médaillon. -->
     <button
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={$t('nav.queue')}
-      title={$t('nav.queue')}
+      aria-label={libelleBoutonFile($t, $queueTracks.length)}
+      title={libelleBoutonFile($t, $queueTracks.length)}
     >
+      {#if texteMedaillonFile($queueTracks.length)}
+        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>
+      {/if}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
         <polygon points="17 10 22 13 17 16 17 10" fill="currentColor" stroke="none" />
@@ -1593,11 +1715,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           disabled={!volumeMobileAutorise}
           {...{ orient: 'vertical' }}
           aria-label="Volume"
+          aria-valuetext={libelleVolumeZone($currentZone as any, mobileVol) ?? undefined}
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
-          <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+          <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+          <span class="mobile-volume-value" data-volume-mobile>{libelleVolumeZone($currentZone as any, mobileVol) ?? Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
         <MentionGroupe zoneId={$currentZone?.id} />
@@ -1914,6 +2038,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
       <GainDeSortieNotes signalPath={zone.signal_path} />
+      <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+      <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
@@ -2092,6 +2218,32 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .tb-mini-viz {
     width: 80px;
     flex-shrink: 0;
+  }
+
+  /* Recette rc12 (13/11) — la colonne de gauche vaut un quart de la barre :
+     336 px à 1440 px. Pochette, cœur, crête-mètre (56 px) et visualiseur
+     (80 px) ne rétrécissent pas ; le titre et l'artiste, si : il leur restait
+     30 px (« Fla… », « M · I »). Les deux ornements cèdent donc leur place au
+     titre quand la colonne est étroite — le visualiseur d'abord, comme sous
+     1080 px de barre (plus haut), puis le crête-mètre. */
+  .transport-left {
+    container-type: inline-size;
+    container-name: tleft;
+  }
+  @container tleft (max-width: 439px) {
+    .tb-mini-viz { display: none; }
+  }
+  @container tleft (max-width: 359px) {
+    .tb-crete { display: none; }
+  }
+  /* Fenêtre de téléphone (colonne de ~150 px) : les pastilles « LOCAL » et
+     « FLAC 96/24 » passaient sur deux lignes, sous la barre, et le cœur
+     laissait 28 px au titre. Elles restent dans Lecture en cours. */
+  @container tleft (max-width: 239px) {
+    .transport-left .mini-badges { display: none; }
+  }
+  @container tleft (max-width: 199px) {
+    .transport-left .fav-btn { display: none; }
   }
 
   @media (max-width: 640px) {
@@ -2326,6 +2478,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     display: flex;
     align-items: center;
     cursor: pointer;
+    /* Le glisser au doigt ne doit pas faire défiler la page (comme SeekBar). */
+    touch-action: none;
   }
 
   .progress-track::before {
@@ -2351,6 +2505,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   .progress-track:hover .progress-fill {
     height: 6px;
+  }
+
+  /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
+     la hauteur de la piste de clic (22 px, 4 de plus que la barre classique). */
+  .progress-track.onde {
+    height: 22px;
+  }
+
+  .progress-track.onde::before {
+    display: none;
   }
 
   .control-btn {
@@ -2400,6 +2564,35 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     opacity: 1;
     color: var(--tune-accent);
   }
+
+  /* web#2389 — médaillon du nombre de titres de la file. Le bouton est
+     `.small` (opacité 0.5) : le médaillon, lui, reste lisible. */
+  .control-btn.queue-btn {
+    position: relative;
+    overflow: visible;
+  }
+  .queue-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--tune-accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Le bouton `.small` est à demi-opaque, ce qui éteindrait aussi son
+     médaillon : l'opacité passe sur l'icône seule. */
+  .control-btn.small.queue-btn { opacity: 1; }
+  .control-btn.small.queue-btn:not(.active) svg { opacity: 0.5; }
 
   .play-btn {
     background: var(--tune-accent) !important;

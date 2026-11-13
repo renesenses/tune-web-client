@@ -458,11 +458,11 @@
 <style>
   .v2-queue{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   /* `position: relative` n'est pas décoratif : il fait de ce conteneur
      l'offsetParent de la liste, ce qui rend `offsetTop` lisible sans
@@ -471,17 +471,17 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
   .sec{padding:6px 30px 20px}
-  .sec h2{font-size:16px; font-weight:700; padding-bottom:12px}
+  .sec h2{font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:12px}
 
   .now{display:flex; align-items:center; gap:18px; padding:14px 16px; border-radius:14px;
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .ncv{width:72px; height:72px; flex:0 0 auto; border-radius:8px; overflow:hidden; box-shadow:var(--v2-sh-card)}
   .nmeta{min-width:0; flex:1}
   .nt{display:flex; align-items:center; gap:8px; min-width:0;
-    font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .na{margin-top:3px; font-size:13px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ntk{margin-top:4px; font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .ndur{font:12px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+    font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .na{margin-top:3px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ntk{margin-top:4px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .ndur{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
 
   .list{display:flex; flex-direction:column; gap:1px}
   /* La place des lignes non construites. `flex:0 0 auto` : sans lui le
@@ -498,13 +498,13 @@
   .play{display:grid; grid-template-columns:26px 40px 1fr; align-items:center; gap:12px; min-width:0;
     border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:7px 0; font-family:inherit}
   .play:disabled{cursor:default}
-  .row .n{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .row .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .row .cv{width:40px; height:40px; border-radius:6px; overflow:hidden}
-  .row .ti{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .row .ti{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .row .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .row .tk{font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .row .dur{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .row .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .row .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .row .dur{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .ord{display:flex; gap:2px}
   .ord button, .del{width:26px; height:26px; border-radius:7px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
@@ -515,6 +515,6 @@
   .del svg{width:12px; height:12px}
   .v2-queue.depot{outline:2px dashed var(--v2-acc2); outline-offset:-6px}
   .depot-voile{position:sticky; top:0; z-index:5; padding:14px; text-align:center; border-radius:10px;
-    background:var(--v2-acc-soft); color:var(--v2-acc-tint); font:600 13px var(--v2-sans)}
-  .depot-barre{padding:8px 12px; font:12px var(--v2-sans); color:var(--v2-txt2)}
+    background:var(--v2-acc-soft); color:var(--v2-acc-tint); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .depot-barre{padding:8px 12px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
 </style>

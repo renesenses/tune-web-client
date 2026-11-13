@@ -42,6 +42,23 @@ export const CLE_MOTIF_DSD: Record<MotifTransportDsd, string> = {
   pilote_sans_dsd: 'v2.set.dsdDopDriverWithoutDsd',
 };
 
+/**
+ * tune-server-rust#8248 — sous Linux, le serveur sait maintenant ouvrir un DSD
+ * natif (ALSA `hw:` en `DSD_U32`) : `sortie_non_asio` y veut dire « cette
+ * sortie n'accepte pas le DSD natif » (PCM logiciel `plughw:`, `default`,
+ * PipeWire…), pas « ce n'est pas ASIO ». La précision ASIO n'est gardée que
+ * sur une sortie Windows (backend WASAPI ou ASIO), où l'absence d'ASIO est
+ * bien la cause. Sans backend publié, le texte général : il est vrai partout.
+ */
+export const CLE_DOP_SANS_DSD_NATIF = 'v2.set.dsdDopNoNativeDsd';
+
+const BACKENDS_WINDOWS = new Set(['wasapi', 'asio']);
+
+export function sortieWindows(z: Pick<Zone, 'audio_backend_status'> | null | undefined): boolean {
+  const b = z?.audio_backend_status;
+  return [b?.active, b?.requested].some((n) => typeof n === 'string' && BACKENDS_WINDOWS.has(n.toLowerCase()));
+}
+
 export interface DiagnosticDsd {
   /** Clé de traduction du message à afficher sous le sélecteur DSD. */
   cle: string;
@@ -50,7 +67,7 @@ export interface DiagnosticDsd {
 }
 
 export function diagnosticDsd(
-  z: Pick<Zone, 'dsd_mode' | 'dsd_transport' | 'dsd_transport_reason'> | null | undefined,
+  z: (Pick<Zone, 'dsd_mode' | 'dsd_transport' | 'dsd_transport_reason'> & Partial<Pick<Zone, 'audio_backend_status'>>) | null | undefined,
 ): DiagnosticDsd | null {
   if (!z || z.dsd_mode !== 'native') return null;
   const motif = z.dsd_transport_reason;
@@ -58,7 +75,10 @@ export function diagnosticDsd(
     return motif === 'capacite_non_sondee' ? { cle: CLE_MOTIF_DSD.capacite_non_sondee, genre: 'inconnue' } : null;
   }
   if (z.dsd_transport !== NATIF_SERVI_EN_DOP) return null;
-  if (motif === 'sortie_non_asio' || motif === 'pilote_sans_dsd') return { cle: CLE_MOTIF_DSD[motif], genre: 'dop' };
+  if (motif === 'sortie_non_asio') {
+    return { cle: sortieWindows(z) ? CLE_MOTIF_DSD.sortie_non_asio : CLE_DOP_SANS_DSD_NATIF, genre: 'dop' };
+  }
+  if (motif === 'pilote_sans_dsd') return { cle: CLE_MOTIF_DSD[motif], genre: 'dop' };
   // Serveur antérieur à #7372 (pas de motif) ou motif inconnu : la mention #1876.
   return { cle: 'v2.set.dsdNativeServedAsDop', genre: 'dop' };
 }

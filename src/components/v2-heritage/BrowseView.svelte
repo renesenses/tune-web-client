@@ -24,13 +24,26 @@
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { refusScanConcurrent } from '../../lib/scanDetenteur';
-  import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
+  import { lireDossier, ajouterDossierALaFile, lireDossierAleatoire } from '../../lib/lectureDossier';
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
+  import IndicateurLecture from '../v2/IndicateurLecture.svelte';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
 
   let zone = $derived($currentZone);
+
+  /**
+   * web#2606 (JeanPitre, fil 2595) : la piste EN COURS est repérée dans la
+   * liste du dossier, comme en 0.9. Même règle que les autres listes
+   * (`etatDeLaLigne`, #1845) : lecture, pause et arrêt ont chacun leur repère.
+   * Les magasins sont lus une fois ici, pas à chaque ligne.
+   */
+  const npId = $derived($currentTrackId);
+  const npPiste = $derived($currentTrack);
+  const npEtat = $derived($playbackState);
+  const etatDe = (t: Track) => etatDeLaLigne(t, npId, npPiste, npEtat);
   let loading = $state(false);
   let rescanning = $state(false);
 
@@ -427,6 +440,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M5 12h14" /></svg>
         {$tr('browse.addHere' as any)}
       </button>
+      <!-- web#2606 : la lecture aléatoire du dossier, sous-dossiers compris,
+           dans l'en-tête. C'est celle d'Oxygène (`api.shuffleAll` + `folder`). -->
+      <button
+        class="rescan-btn"
+        data-dossier-aleatoire
+        onclick={() => lireDossierAleatoire(zone?.id, browseResult?.path)}
+        disabled={!currentPath}
+        title={$tr('browse.shuffleFolderHint' as any)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        {$tr('browse.shuffleFolder' as any)}
+      </button>
       <button class="rescan-btn" onclick={rescanFolder} disabled={rescanning} use:tip={'tip.rescanFolder'}>
         {#if rescanning}
           <div class="spinner small"></div>
@@ -500,10 +525,11 @@
         </div>
         <div class="track-list">
           {#each browseResult.tracks as t, index}
+            {@const etat = etatDe(t)}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="track-item" onclick={() => t.id && playFromTrack(index)}>
-              <span class="track-num">{t.track_number ?? index + 1}</span>
+            <div class="track-item" class:en-lecture={etat !== null} aria-current={etat !== null ? 'true' : undefined} onclick={() => t.id && playFromTrack(index)}>
+              <span class="track-num">{#if etat}<IndicateurLecture {etat} />{:else}{t.track_number ?? index + 1}{/if}</span>
               <div class="track-info">
                 <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}
@@ -633,7 +659,7 @@
 
   .browse-header h2 {
     font-family: var(--font-label);
-    font-size: 28px;
+    font-size: calc(28px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: -0.8px;
   }
@@ -649,7 +675,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
     flex-shrink: 0;
   }
@@ -664,7 +690,7 @@
     align-items: center;
     gap: 4px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     min-width: 0;
     overflow: hidden;
   }
@@ -681,7 +707,7 @@
     cursor: pointer;
     padding: 0;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     white-space: nowrap;
     transition: color 0.12s;
   }
@@ -709,7 +735,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
     flex-shrink: 0;
     margin-left: auto;
@@ -772,13 +798,13 @@
 
   .root-name {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
   .root-path {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -788,14 +814,14 @@
 
   .root-warning {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-warning, #d9822b);
     margin-top: 2px;
   }
 
   .root-count {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     flex-shrink: 0;
   }
@@ -819,7 +845,7 @@
     cursor: pointer;
     text-align: left;
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     transition: background 0.12s ease-out;
     border-radius: var(--radius-sm);
   }
@@ -840,7 +866,7 @@
   }
 
   .dir-count {
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -863,7 +889,7 @@
 
   .tracks-count {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-secondary);
     text-transform: uppercase;
@@ -886,7 +912,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     transition: background 0.12s ease-out;
   }
@@ -933,11 +959,23 @@
     background: var(--tune-surface-hover);
   }
 
+  /* web#2606 : la piste en cours, repérée (filet d'accent + titre coloré,
+     en plus du repère d'état dans la colonne du numéro). Même marque
+     qu'Oxygène. */
+  .track-item.en-lecture {
+    box-shadow: inset 3px 0 0 0 var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+
+  .track-item.en-lecture .track-title {
+    color: var(--tune-accent);
+  }
+
   .track-num {
     width: 28px;
     text-align: center;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
@@ -952,26 +990,26 @@
 
   .track-title {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 700;
   }
 
   .track-artist {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
   .track-duration {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
   }
 
   .audio-format {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     letter-spacing: 0.3px;
     flex-shrink: 0;
@@ -985,7 +1023,7 @@
     background: none;
     color: var(--tune-text-secondary);
     cursor: pointer;
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     display: flex;
     align-items: center;
     justify-content: center;

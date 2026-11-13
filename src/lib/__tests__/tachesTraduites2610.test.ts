@@ -44,7 +44,7 @@ it('garde le secours inconnu, le nombre de tâches et la pause', () => {
 });
 
 it('nomme les tâches connues dans les quinze langues', async () => {
-  const ids = ['credits_enrich_auto', 'credits_enrich', 'credits_releases', 'artist_artwork', 'artwork', 'enrich_all', 'bios', 'identification_lot', 'identification_nuit', 'integrity', 'graver_dr', 'write_tags', 'edit_by_filter_files', 'rescan_metadata', 'compositeur_depuis_credits', 'lyrics_fetch', 'lyrics_write', 'reparer_compilations', 'types_de_sortie', 'dynamic_range', 'bpm_lot', 'discogs_lot'];
+  const ids = ['credits_enrich_auto', 'credits_enrich', 'credits_releases', 'artist_artwork', 'artwork', 'enrich_all', 'bios', 'identification_lot', 'identification_nuit', 'integrity', 'graver_dr', 'write_tags', 'edit_by_filter_files', 'rescan_metadata', 'relecture_classique', 'compositeur_depuis_credits', 'lyrics_fetch', 'lyrics_write', 'reparer_compilations', 'types_de_sortie', 'dynamic_range', 'bpm_lot', 'discogs_lot'];
   for (const langue of ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'vi', 'zh']) {
     await preparerLocale(langue as any); locale.set(langue as any);
     for (const id of ids) {

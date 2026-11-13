@@ -1,5 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
+  import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
   import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import DetailsServeur from '../partages/DetailsServeur.svelte';
@@ -24,7 +26,7 @@
    */
   import { t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
-  import { confortAuDessusDeLaSecurite, courseDb, fondDesZones, limiteDepuisDb, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
+  import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { diagnosticDsd } from '../../lib/transportDsd';
@@ -73,6 +75,9 @@
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
   import ReglagesAccesParCompte from './ReglagesAccesParCompte.svelte';
+  import VerificationSpotify from './spotify/VerificationSpotify.svelte';
+  import ClientIdEtRetourSpotify from './spotify/ClientIdEtRetourSpotify.svelte';
+  import { analyserClientIdSpotify, CODES_CLIENT_ID_INVALIDE } from '../../lib/saisieClientIdSpotify';
   import { chargerLienAcces, qrSvg, renouvelerLienAcces } from '../../lib/lienAccesDistant';
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
@@ -101,10 +106,11 @@
   import { decrireScanCourant, refusScanConcurrent } from '../../lib/scanDetenteur';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { offreChampArl, lireRetourArl, cleDuRetourArl, type RetourArl } from '../../lib/arlDeezer';
-  import { clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
+  import { clientIdEnPlace, cleEtapeSpotify, clientIdSpotifyManquant, lireRetourClientId, cleDuRetourClientId, gestesClientIdSpotify, effacerClientIdSpotify, type RetourClientId } from '../../lib/clientIdSpotify';
   import { cleDuRefus, rappelAboutitIci } from '../../lib/redirectionSpotify';
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -112,13 +118,16 @@
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
+  import { menusCompletsEffectifs } from '../../lib/menuPiste';
   import ImportLecteurV2 from './ImportLecteurV2.svelte';
+  import AssistantSpotify from './spotify/AssistantSpotify.svelte';
+  import RelaisSpotify from './spotify/RelaisSpotify.svelte';
+  import { avecOrigineSpotify, relaisSpotify } from '../../lib/relaisSpotify';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { CLE_SYNC_COMMUNAUTAIRE, reglageVrai, contributionDepuisConfig, type ContributionCommunautaire } from '../../lib/partageCommunautaire';
   import { CLE_ECOUTES_AU_COMPTE, URL_MES_ECOUTES } from '../../lib/ecoutesAuCompte';
   import { CLE_PARTAGE_COMMUNAUTAIRE } from '../../lib/notesCommunautaires';
   import { CLE_RECEPTION_MESURES, CLE_CONTRIBUTION_MESURES } from '../../lib/mesuresCommunautaires';
-  import { CLE_LEVER_LE_BRIDAGE } from '../../lib/temperatureProcesseur';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import EtatImportUpnp from '../partages/EtatImportUpnp.svelte';
@@ -187,6 +196,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -195,6 +205,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
+  import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -211,6 +222,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  // web#916 — « Accueil : suggestions écartées », le revers de « Pas pour moi ».
+  import SuggestionsEcarteesV2 from './SuggestionsEcarteesV2.svelte';
   import SauvegardeCloudV2 from './SauvegardeCloudV2.svelte';
   import ClesApiV2 from './ClesApiV2.svelte';
   import SortieAes67V2 from './SortieAes67V2.svelte';
@@ -238,6 +251,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
+  import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
   $effect(() => {
@@ -645,10 +659,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // de ses cœurs). `null` : serveur qui ne connaît pas le réglage, on le tait.
   let bgSpeed = $state<string | null>(null);
   let bgSpeedWidths = $state<Record<string, number>>({});
-  // tune-server-rust#6713 — lever le bridage des analyses quand la
-  // température est illisible : désactivé par défaut, niveau Expert, avec
-  // un avertissement à l'activation.
-  let levBridage = $state<boolean | null>(null);
   let audioDevices = $state<LocalAudioDevice[]>([]);
   let devicesLoaded = $state(false);
   let creatingBrowserZone = $state(false);
@@ -671,8 +681,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         const vitesse = c?.background_analysis_speed;
         bgSpeed = ['discreet', 'normal', 'fast'].includes(vitesse) ? vitesse : null;
         bgSpeedWidths = c?.background_analysis_speed_widths ?? {};
-        // tune-server-rust#6713 — `null` : serveur qui ne publie pas la clé, pas de case.
-        levBridage = c && CLE_LEVER_LE_BRIDAGE in c ? (c[CLE_LEVER_LE_BRIDAGE] === true || c[CLE_LEVER_LE_BRIDAGE] === 'true') : null;
       })
       .catch(() => {});
     api.withTimeout(api.getAudioDevices(), 8_000, '/devices/audio')
@@ -724,21 +732,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setBgSpeed(v: string) {
     const before = bgSpeed; bgSpeed = v;
     patch({ background_analysis_speed: v }, () => { bgSpeed = before; });
-  }
-  async function setLevBridage(ev: Event) {
-    const caseCochee = ev.currentTarget as HTMLInputElement | null;
-    const souhait = !!caseCochee?.checked;
-    // Lever le bridage se fait en connaissance de cause : l'avertissement
-    // d'abord, et un refus laisse la case décochée.
-    if (souhait && !(await dialogs.confirm($t('settings.analysisUnthrottleConfirm' as any), { danger: true }))) {
-      if (caseCochee) caseCochee.checked = false;
-      return;
-    }
-    const before = levBridage; levBridage = souhait;
-    patch({ [CLE_LEVER_LE_BRIDAGE]: souhait }, () => {
-      levBridage = before;
-      if (caseCochee) caseCochee.checked = !!before;
-    });
   }
   function libelleVitesse(v: string, cle: string): string {
     const n = bgSpeedWidths?.[v];
@@ -1912,7 +1905,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     svcErr = { ...svcErr, [name]: null };
     try {
       const c = cred[name];
-      const body = corpsDAuthentification(name, c);
+      // tune-server-rust#8198 — relais actif : Spotify reçoit aussi `origine`.
+      const body = avecOrigineSpotify(name, corpsDAuthentification(name, c));
       const res = await api.authenticateStreaming(name, body);
       // Le mot de passe ne survit pas a la reponse, quelle qu'elle soit.
       if (cred[name]) cred = { ...cred, [name]: { user: cred[name].user, pass: '' } };
@@ -2083,18 +2077,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let clientIdSaisi = $state('');
   let clientIdRetour = $state<RetourClientId | null>(null);
   async function enregistrerClientIdSpotify() {
-    const client_id = clientIdSaisi.trim();
-    if (!client_id) return;
+    // tune-server-rust#8198 — pas exactement 32 caractères hexadécimaux (ou
+    // l'adresse du tableau de bord, dont l'identifiant N'EST PAS le Client
+    // ID) : refusé ICI, rien ne part. Voir `lib/saisieClientIdSpotify`.
+    const analyse = analyserClientIdSpotify(clientIdSaisi);
+    if (analyse.etat === 'vide') return;
+    // tune-server-rust#8198 — une connexion ouverte AVANT ce Save porte
+    // l'ancien client_id dans son lien : Spotify la refuserait. Quel que soit
+    // le résultat, on l'abandonne (lien, sondage, adresse collée).
+    stopPoll('spotify');
+    deviceFlow = { ...deviceFlow, spotify: undefined };
+    spotifyRappelColle = '';
+    if (analyse.etat !== 'ok') {
+      clientIdRetour = { etat: 'refuse', message: get(t)('v2.spotify.cid.invalide' as any) };
+      return;
+    }
+    const client_id = analyse.clientId;
     svcBusy = 'spotify';
     svcErr = { ...svcErr, spotify: null };
     clientIdRetour = null;
     try {
-      clientIdRetour = lireRetourClientId(await api.saveServiceToken('spotify', { client_id }));
+      const r: any = await api.saveServiceToken('spotify', { client_id });
+      clientIdRetour = lireRetourClientId(r);
+      if (CODES_CLIENT_ID_INVALIDE.includes(r?.code)) {
+        clientIdRetour = { ...clientIdRetour, message: get(t)('v2.spotify.cid.invalide' as any) };
+      }
     } catch (e: any) {
       const motif = typeof e?.message === 'string' ? e.message.trim() : '';
       clientIdRetour = { etat: 'refuse', message: motif };
     }
-    if (clientIdRetour.etat === 'enregistre') {
+    if (clientIdEnPlace(clientIdRetour.etat)) {
       clientIdSaisi = '';
       spotifyClientIdManque = false;
       // Le service se déclare actif dès qu'il a un Client ID : relire son état.
@@ -2315,11 +2327,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
   let orderError = $state<string | null>(null);
-  const displayedMusicDirs = $derived(
-    directoryOrder === null ? musicDirs
-      : [...directoryOrder.filter((d) => musicDirs.includes(d)),
-        ...musicDirs.filter((d) => !directoryOrder?.includes(d))],
-  );
+  // tune-server-rust#7876 : comparaison sur l'écriture normalisée (lib/ordreDossiers).
+  const displayedMusicDirs = $derived(dossiersOrdonnes(musicDirs, directoryOrder));
   /**
    * tune-server-rust#5593 — les racines EXCLUES des analyses de fond
    * (ReplayGain, plage dynamique, empreintes, CLAP). `null` : le serveur ne
@@ -2606,6 +2615,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ytStatus = $state('absent');
   let ytBusy = $state(false);
   let ytPoll: ReturnType<typeof setInterval> | null = null;
+  /** web#2441 — la ligne « à jour / mise à jour / inconnue » du module. */
+  let ytLigne = $state<LigneModuleYoutube | null>(null);
 
   async function refreshYoutubePlayback() {
     try {
@@ -2614,6 +2625,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ytVersion = s.version ?? null;
       ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
       ytBusy = ytStatus === 'downloading';
+      ytLigne = ligneModuleYoutube(s);
       if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
     } catch { /* serveur antérieur à la route : la section reste en l'état */ }
   }
@@ -2639,6 +2651,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     paysTendancesYt = v;
     try { await api.updateConfig({ [CLE_PAYS_TENDANCES_YOUTUBE]: v }); }
     catch { paysTendancesYt = avant; }   // pas d'état menteur si le serveur refuse
+  }
+
+  /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
+  function remplirModuleYt(phrase: string, params: Record<string, string>): string {
+    return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
   }
 
   async function enableYoutubePlayback() {
@@ -2692,7 +2709,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function refreshDirectoryOrder() {
     try {
       const r = await api.getMusicDirectoryOrder();
-      directoryOrder = Array.isArray(r?.ordre) ? r.ordre : null;
+      directoryOrder = ordreDeLaReponse(r);
     } catch {
       directoryOrder = null; // Older server: keep the existing folder controls.
     }
@@ -2710,7 +2727,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     orderError = null;
     try {
       const r = await api.setMusicDirectoryOrder(next);
-      directoryOrder = r.ordre;
+      directoryOrder = ordreDeLaReponse(r) ?? directoryOrder;
     } catch {
       orderError = get(t)('settings.errDirectoryOrder' as any);
     } finally {
@@ -3898,6 +3915,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** Pastille d'état — reprise telle quelle du client actuel. */
   function stkDot(s: any): { color: string; label: string } {
     if (s.kind === 'no_auth') return { color: '#22c55e', label: get(t)('serviceTokens.statusAvailable') };
+    // tune-server-rust#8198 — Client ID enregistré, compte pas encore connecté.
+    const etapeSpotify = cleEtapeSpotify(s);
+    if (etapeSpotify) return { color: '#eab308', label: get(t)(etapeSpotify as any) };
     if (!s.configured) return { color: 'transparent', label: get(t)('serviceTokens.statusNotConfigured') };
     if (s.valid === true) return { color: '#22c55e', label: get(t)('serviceTokens.statusValid') };
     if (s.valid === false) return { color: '#ef4444', label: get(t)('serviceTokens.statusInvalid') };
@@ -3949,7 +3969,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let spotifyModifClientId = $state(false);
   async function enregistrerClientIdDepuisJetons() {
     await enregistrerClientIdSpotify();
-    if (clientIdRetour?.etat === 'enregistre') {
+    if (clientIdEnPlace(clientIdRetour?.etat)) {
       spotifyModifClientId = false;
       await loadTokens();
     }
@@ -4064,13 +4084,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       if (on) {
         if (spcZone == null) { spcErr = get(t)('settings.errPickZoneToExpose'); spcBusy = false; return; }
-        await api.enableSpotifyConnect(spcZone, spcName.trim() || null);
+        // '' : nom par défaut (« Tune ») ; le serveur garde le nom choisi.
+        await api.enableSpotifyConnect(spcZone, spcName.trim());
       } else {
         await api.disableSpotifyConnect();
       }
       spc = await api.getSpotifyConnectStatus();
     } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
     spcBusy = false;
+  }
+  // tune-server-rust#8570 — le nom se change à tout moment : récepteur actif,
+  // le serveur relance librespot sous le nouveau nom.
+  async function renommerSpc() {
+    if (!spc?.enabled) return;
+    const nom = spcName.trim();
+    if (nom === (spc.device_name ?? '')) return;
+    spcBusy = true; spcErr = null;
+    try {
+      await api.enableSpotifyConnect(spc.zone_id ?? spcZone ?? 1, nom);
+      spc = await api.getSpotifyConnectStatus();
+      spcName = spc?.device_name ?? nom;
+    } catch (e: any) { spcErr = e?.message ?? get(t)('settings.errActionFailed'); }
+    spcBusy = false;
+  }
+  // tune-server-rust#8565 — la session lancée depuis l'application Spotify
+  // n'a pas pu jouer : un code connu est traduit, un motif de sortie passe.
+  function erreurDeSessionSpc(code: string): string {
+    return erreurDeSessionSpotify(code, (cle) => get(t)(cle as any));
   }
   // #6018 — « Lecture Spotify (expérimental) », désactivée par défaut.
   async function toggleSpotifyLecture(on: boolean) {
@@ -4091,12 +4131,54 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .then((r) => { air = r; })
       .catch(() => { air = null; });
   });
-  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number }) {
+  async function reglerDevialetAir(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
     airBusy = true; airErr = null;
     try {
       air = await api.setDevialetAirReglages(corps);
-    } catch (e: any) { airErr = e?.message ?? get(t)('settings.errActionFailed'); }
-    airBusy = false;
+      return true;
+    } catch (e: any) {
+      // tune-server-rust#7205 — les deux refus de la course, dans la langue de l'écran.
+      const code = e?.code ?? (e?.corps as { error?: unknown } | undefined)?.error;
+      airErr = code === 'volume_range_invalid' ? texteCourseAir('v2.set.devialetAirRangeInvalid')
+        : code === 'volume_range_below_limit' ? get(t)('v2.set.devialetAirRangeBelowLimit' as any)
+        : e?.message ?? get(t)('settings.errActionFailed');
+      return false;
+    } finally {
+      airBusy = false;
+    }
+  }
+  /**
+   * tune-server-rust#7205 (discussion #7458, rc12) — la course du curseur de
+   * volume Devialet en dB d'ampli : bas et haut entre le plancher et le
+   * plafond (−80 et −10 dB), plafond infranchissable. Un serveur qui ne
+   * publie pas `volume_min_db` / `volume_max_db` n'a pas ces champs.
+   */
+  let airBas = $state('');
+  let airHaut = $state('');
+  let airCourseLue = $state<string | null>(null);
+  $effect(() => {
+    const cle = air && typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'
+      ? `${air.volume_min_db}|${air.volume_max_db}` : null;
+    if (cle === airCourseLue) return;
+    airCourseLue = cle;
+    if (cle && air) { airBas = texteLimiteDb(air.volume_min_db); airHaut = texteLimiteDb(air.volume_max_db); }
+  });
+  const airPlancher = $derived(air?.volume_floor_db ?? -80);
+  function texteCourseAir(cle: string): string {
+    return get(t)(cle as any)
+      .replaceAll('{floor}', String(airPlancher))
+      .replaceAll('{ceiling}', String(air?.volume_ceiling_db ?? -10))
+      .replaceAll('{gap}', String(ECART_MINIMAL_COURSE_DB));
+  }
+  const airCourseSaisie = $derived(air ? saisieCourse(airBas, airHaut, airPlancher, air.volume_ceiling_db) : null);
+  const airCourseChangee = $derived(!!airCourseSaisie && !('refus' in airCourseSaisie)
+    && (airCourseSaisie.min !== air?.volume_min_db || airCourseSaisie.max !== air?.volume_max_db));
+  async function enregistrerCourseAir() {
+    const c = airCourseSaisie;
+    if (!c || 'refus' in c) { airErr = texteCourseAir('v2.set.devialetAirRangeInvalid'); return; }
+    if (await reglerDevialetAir({ volume_min_db: c.min, volume_max_db: c.max })) {
+      notifications.success(get(t)('common.saved' as any));
+    }
   }
 
   // ── Base de donnees / exports ─────────────────────────────────────────
@@ -4769,6 +4851,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+            {:else if s.id === 'dismissedSuggestions'}
+              <SuggestionsEcarteesV2 />
+
             {:else if s.id === 'displayPrefs'}
               <!-- LA MATRICE. Première ligne : les modes. Première colonne :
                    les métadonnées. Une case à chaque intersection. -->
@@ -5052,6 +5137,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!-- rc12 — « Taille du texte » (go de Bertrand du 12/11/2026 ;
+                   testeurs : « des textes minuscules »). Un seul jeton,
+                   `--v2-txt-echelle`, multiplie toutes les tailles de police ;
+                   « Normale » = le rendu d'avant. Voir `lib/tailleTexte.ts`. -->
+              <div class="row" data-reglage="taille-texte">
+                <div class="lbl">
+                  <span>{$t('settings.textSize' as any)}</span>
+                  <span class="hint">{$t('settings.textSizeHint' as any)}</span>
+                </div>
+                <div class="seg4" role="group" aria-label={$t('settings.textSize' as any)}>
+                  {#each TAILLES_TEXTE as tt (tt)}
+                    <button class:on={$preferences.tailleTexte === tt} aria-pressed={$preferences.tailleTexte === tt}
+                      data-taille-texte={tt}
+                      onclick={() => preferences.update((pr) => ({ ...pr, tailleTexte: tt }))}>{$t(LIBELLE_TAILLE_TEXTE[tt] as any)}</button>
+                  {/each}
+                </div>
+              </div>
+
               <!-- #2527 — « Mon thème » : toutes les couleurs au choix, par profil.
                    Rien tant que le serveur ne porte pas le greffon. -->
               {#if $etatGreffonTheme !== 'absent' && $etatGreffonTheme !== 'inconnu'}
@@ -5109,6 +5212,24 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
                    comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
+              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
+                   décoché par défaut, les menus montrent les gestes courants et
+                   rangent le reste sous « Plus… ». -->
+              <div class="row" data-reglage="menus-complets">
+                <div class="lbl">
+                  <span>{$t('settings.fullMenus' as any)}</span>
+                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
+                    aria-label={$t('settings.fullMenus' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <div class="row" data-visualiseur-barre data-reglage="visualiseur-barre">
                 <div class="lbl">
                   <span>{$t('v2.set.barViz' as any)}</span>
@@ -5148,6 +5269,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="slider"></span>
                   </label>
                 </div>
+              </div>
+
+              <!-- Discussion #8269 (go de Bertrand, 12/11/2026) — la barre de
+                   progression en forme d'onde. Décochée par défaut : l'écran
+                   de qui n'a rien demandé ne bouge pas. Voir lib/barreOnde. -->
+              <div class="row" data-reglage="barre-onde">
+                <div class="lbl">
+                  <span>{$t('v2.set.barOnde' as any)}</span>
+                  <span class="hint">{$t('v2.set.barOndeHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.barreOnde === true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, barreOnde: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
               </div>
 
               <div class="row" data-reglage="langue">
@@ -5514,6 +5652,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ingest.file_writes_enabled === false}<p class="hint">{$t('fileWrites.offHint' as any)}</p>{/if}
                 {#if ingestErr}<div class="errline">{ingestErr}</div>{/if}
               {/if}
+
+            {:else if s.id === 'classicalTags'}
+              <BalisesClassiqueV2 />
 
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">
@@ -6121,10 +6262,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               </label>
                             </div>
                             <div class="inline">
-                              <button class="lnk" data-enregistrer-client-id disabled={svcBusy === 'spotify' || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <!-- tune-server-rust#8198 — une connexion en attente garde `svcBusy` posé
+                                   tout du long : elle ne doit pas empêcher de corriger le Client ID. -->
+                              <button class="lnk" data-enregistrer-client-id disabled={(svcBusy === 'spotify' && !deviceFlow.spotify) || !clientIdSaisi.trim()} onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
                               <button class="lnk" onclick={() => { spotifyModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
                             </div>
-                            {#if clientIdRetour && clientIdRetour.etat !== 'enregistre'}
+                            {#if clientIdRetour && !clientIdEnPlace(clientIdRetour.etat)}
                               <p class="hint bad">{$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{clientIdRetour.message ? ` : ${clientIdRetour.message}` : ''}</p>
                             {/if}
                           {:else}
@@ -6139,6 +6282,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           {/if}
                         </div>
                       {/if}
+                      <!-- tune-server-rust#8198 — début du Client ID, adresse de retour
+                           à déclarer et retour de « Enregistrer », au même endroit. -->
+                      <ClientIdEtRetourSpotify ligne={sv} uriSecours={spotifyRedirect.uri} retour={clientIdRetour} />
                     {/if}
 
                     {#if sv.help_url}
@@ -6212,11 +6358,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {#each $zones as z (z.id)}<option value={String(z.id)}>{z.name}</option>{/each}
                     </select>
                   </div>
-                  <div class="row" data-reglage="spotify-nom">
-                    <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
-                      <span class="hint">{$t('settings.blankForDefaultName' as any)}</span></div>
-                    <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
-                  </div>
+                {/if}
+                <!-- tune-server-rust#8570 — modifiable à tout moment. -->
+                <div class="row" data-reglage="spotify-nom">
+                  <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
+                    <span class="hint">{$t('settings.blankForDefaultName' as any)}</span>
+                    <span class="hint">{$t('settings.spotifyNameChangeHint' as any)}</span></div>
+                  <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName}
+                    disabled={spcBusy} onchange={renommerSpc} />
+                </div>
+                {#if spc?.enabled && spc?.receiver_error_code === 'spotify_premium_required'}
+                  <div class="errline" data-spotify-premium-exige>{$t('settings.spotifyPremiumRequired' as any)}</div>
+                {/if}
+                {#if spc?.enabled && spc?.session_error}
+                  <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
                 <div class="row" data-reglage="spotify-lecture-experimentale">
                   <div class="lbl">
@@ -6262,8 +6417,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </select>
                 </div>
+                {#if typeof air.volume_min_db === 'number' && typeof air.volume_max_db === 'number'}
+                  <div class="row" data-reglage="devialet-air-course">
+                    <div class="lbl">
+                      <span>{$t('v2.set.devialetAirRange' as any)}</span>
+                      <span class="hint">{texteCourseAir('v2.set.devialetAirRangeHint')}</span>
+                    </div>
+                    <div class="course-air">
+                      <label>{$t('v2.set.devialetAirRangeMin' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-bas bind:value={airBas} disabled={airBusy} />
+                      </label>
+                      <label>{$t('v2.set.devialetAirRangeMax' as any)}
+                        <input class="txt num" type="text" inputmode="decimal" data-course-haut bind:value={airHaut} disabled={airBusy} />
+                      </label>
+                      <button class="v2-btn sm" data-course-enregistrer disabled={airBusy || !airCourseChangee}
+                        onclick={enregistrerCourseAir}>{$t('common.save' as any)}</button>
+                    </div>
+                  </div>
+                  {#if airCourseSaisie && 'refus' in airCourseSaisie}
+                    <div class="errline" data-course-refus>{texteCourseAir('v2.set.devialetAirRangeInvalid')}</div>
+                  {/if}
+                {/if}
                 <p class="hint">{$t('v2.set.devialetAirLimits' as any).replace('{db}', String(air.volume_ceiling_db)).replace('{khz}', String(air.max_sample_rate / 1000))}</p>
-                {#if airErr}<div class="errline">{airErr}</div>{/if}
+                {#if airErr}<div class="errline" data-air-erreur>{airErr}</div>{/if}
               {/if}
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
@@ -6298,6 +6474,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
                         {#if zoneTypeLabel(z.output_type)}<span class="zt proto">{zoneTypeLabel(z.output_type)}</span>{/if}
+                        <!-- tune-server-rust#7806 — pilote réel (WASAPI / ASIO) d'une zone locale Windows. -->
+                        <BadgeHorsBackend zone={z} />
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
@@ -7707,6 +7885,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <span>{$t('v2.set.svcActive' as any)}</span>
                       </label>
 
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — assistant pas à pas (4 écrans). -->
+                        <AssistantSpotify uriServeur={spotifyRedirect.uri} clientIdManque={spotifyClientIdManque} />
+                      {/if}
+
                       {#if st.authenticated}
                         <button class="lnk danger" onclick={() => disconnectSvc(name)}>{$t('settings.signOut' as any)}</button>
 
@@ -7719,7 +7902,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
-                        {#if name === 'spotify' && !spotifyRappelIci}
+                        {#if name === 'spotify' && $relaisSpotify.actif}
+                          <!-- tune-server-rust#8198 — relais actif : Spotify revient
+                               seul sur Tune, le sondage voit la connexion. Le
+                               champ de collage reste, replié, en secours. -->
+                          <details class="sredir" data-spotify-repli>
+                            <summary>{$t('v2.spotify.relais.repli' as any)}</summary>
+                            <span>{$t('v2.spotify.relais.repliTexte' as any)}</span>
+                            <div class="sredir-colle">
+                              <input class="txt" type="text" bind:value={spotifyRappelColle}
+                                placeholder="…/api/v1/streaming/spotify/retour?code=…&state=…"
+                                aria-label={$t('v2.spotify.relais.repliTexte' as any)} />
+                              <button class="lnk" disabled={!spotifyRappelColle.trim()} onclick={validerRappelSpotify}>{$t('v2.set.spotifyPasteSubmit' as any)}</button>
+                            </div>
+                          </details>
+                        {:else if name === 'spotify' && !spotifyRappelIci}
                           <!-- #2680 — Tune sur une autre machine : le rappel
                                127.0.0.1 ne s'ouvre pas ici, son adresse porte
                                le code, le serveur l'en extrait. -->
@@ -7815,9 +8012,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/if}
 
                       {#if name === 'spotify' && clientIdRetour}
-                        <div class={clientIdRetour.etat === 'enregistre' ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
+                        <div class={clientIdEnPlace(clientIdRetour.etat) ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
                           {$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{#if clientIdRetour.message} — {clientIdRetour.message}{/if}
                         </div>
+                      {/if}
+
+                      {#if name === 'spotify'}
+                        <!-- tune-server-rust#8198 — vérificateur de configuration ;
+                             masqué sur un serveur qui ne le connaît pas (404). -->
+                        <VerificationSpotify connecte={!!st.authenticated} />
                       {/if}
 
                       {#if name === 'deezer' && arlRetour}
@@ -7826,7 +8029,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </div>
                       {/if}
 
-                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri}
+                      {#if name === 'spotify' && !st.authenticated && !flow}
+                        <!-- tune-server-rust#8198 — retour par mozaiklabs.fr, désactivé par défaut. -->
+                        <RelaisSpotify />
+                      {/if}
+
+                      {#if name === 'spotify' && !st.authenticated && spotifyRedirect.uri && !$relaisSpotify.actif}
                         <!-- #2680 — l'URI à recopier À L'IDENTIQUE dans
                              l'application Spotify de l'utilisateur. -->
                         {@const cleRefus = cleDuRefus(spotifyRedirect.refus)}
@@ -7863,6 +8071,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </button>
                 {/if}
               </div>
+              <!-- web#2441 — version installée ET dernière publiée : « à jour »,
+                   « une mise à jour existe », ou pourquoi on ne sait pas. -->
+              {#if ytLigne}
+                <div class={ytLigne.etat === 'a_jour' ? 'hint' : 'errline'} data-module-youtube={ytLigne.etat}>
+                  {remplirModuleYt($t(ytLigne.cle as any), ytLigne.params)}
+                </div>
+              {/if}
               {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
               <!-- tune-server-rust#5247 — pays des Tendances de l'onglet Découvrir. -->
@@ -8478,22 +8693,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   </div>
                 {/if}
-                <!-- tune-server-rust#6713 — niveau Expert seulement : rend la
-                     vitesse réglée quand la température est illisible. -->
-                {#if levBridage !== null && voit('expert', s.id)}
-                  <div class="row" data-reglage="lever-bridage">
-                    <div class="lbl">
-                      <span>{$t('settings.analysisUnthrottle' as any)}</span>
-                      <span class="hint">{$t('settings.analysisUnthrottleHint' as any)}</span>
-                    </div>
-                    <label class="sw">
-                      <input type="checkbox" data-cle={CLE_LEVER_LE_BRIDAGE} checked={levBridage}
-                        aria-label={$t('settings.analysisUnthrottle' as any)}
-                        onchange={setLevBridage} />
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                {/if}
                 {#if remesure}
                   <div class="row" data-remesure="lancer" data-reglage="remesure-replaygain">
                     <div class="lbl">
@@ -8643,7 +8842,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .notes{margin-top:12px; max-height:420px; overflow-y:auto; padding-right:6px}
   .note{padding:8px 0; border-bottom:1px solid var(--v2-line)}
   .note.courante{border-left:2px solid var(--v2-acc1); padding-left:10px}
-  .note-items{margin:4px 0 8px 18px; font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
+  .note-items{margin:4px 0 8px 18px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
      C'est la même règle que le tableau de pistes lui-même. */
@@ -8653,12 +8852,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     align-items:center; gap:8px; padding:8px 12px}
   .mrow:not(.mhead):hover{background:var(--v2-hover)}
   .mhead{background:var(--v2-surface2); border-bottom:1px solid var(--v2-line2)}
-  .mhead .mcell{font:600 11px var(--v2-sans); letter-spacing:.04em;
+  .mhead .mcell{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.04em;
     text-transform:uppercase; color:var(--v2-txt3); text-align:center}
   .mcell{display:flex; align-items:center; justify-content:center; min-width:0}
   .mnom{justify-content:flex-start; flex-direction:column; align-items:flex-start;
-    gap:1px; font-size:13px; color:var(--v2-txt2); min-width:0}
-  .mnote{font:10.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3);
+    gap:1px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); min-width:0}
+  .mnote{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%}
   /* Grisé ET dit : une case inerte qui ressemble à une case active serait
      exactement le défaut qu'on corrige ailleurs. */
@@ -8674,8 +8873,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
+     la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
+     chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le
+     titre réserve la place de la grappe (avatar, signet). Vue mini exclue :
+     elle a sa propre mise en page (`styles/vue-mini.css`). */
+  @media (max-width:720px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{flex-wrap:wrap; align-items:center; row-gap:12px; padding-right:30px}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  }
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-settings > .v2-top > .v2-titres{padding-right:0}
+  }
   .tab{position:relative; display:inline-flex; align-items:center; gap:8px; padding:11px 14px 13px; border:0;
-    background:transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer;
+    background:transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
     white-space:nowrap; transition:.15s}
   .tab svg{width:16px; height:16px; flex:0 0 auto}
   .tab:hover{color:var(--v2-txt)}
@@ -8690,7 +8902,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
-  .masked{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .masked{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
   .card.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
@@ -8705,24 +8917,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   @media (prefers-reduced-motion: reduce){
     .pane :global(.reglage-eclaire){animation:none; box-shadow:0 0 0 3px var(--v2-focus)}
   }
-  .force-niveau{margin-top:8px; font-size:12.5px; color:var(--v2-txt2); border-left:3px solid var(--v2-acc2); padding:4px 10px}
+  .force-niveau{margin-top:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); border-left:3px solid var(--v2-acc2); padding:4px 10px}
   /* #2354 — bloc « Outils de la bibliothèque ». L'intertitre ouvre le bloc,
      un écart plus large le ferme ; « Vider » y est une ZONE DANGEREUSE :
      bordure et étiquette de danger, séparée des deux autres outils. */
-  .groupe{font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
+  .groupe{font-size:calc(12px * var(--v2-txt-echelle, 1)); font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2); margin:4px 2px -4px}
   .card.fin-groupe{margin-bottom:14px}
   .card.zone-danger{border-color:var(--v2-danger-bd); background:var(--v2-danger-soft); margin-top:10px}
-  .danger-tag{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
+  .danger-tag{font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--v2-danger);
     border:1px solid var(--v2-danger-bd); border-radius:var(--v2-r-pill); padding:1px 8px}
   .cardhead{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .cardhead h3{font-size:15px; font-weight:700}
+  .cardhead h3{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
 
   .row{display:flex; align-items:center; justify-content:space-between; gap:20px; margin-top:12px}
   /* #2527 — l'éditeur de « Mon thème » prend toute la largeur, sous son libellé. */
   .row.row-mon-theme{flex-direction:column; align-items:stretch}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:13.5px; font-weight:500}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  /* Recette rc12 (13/11) — fenêtre étroite : un contrôle large (les pastilles
+     du thème, Petite / Normale / Grande) écrasait son libellé en une colonne
+     d'un mot par ligne. Il passe sous le libellé ; un interrupteur, étroit,
+     reste à côté. */
+  @media (max-width:640px){
+    .row{flex-wrap:wrap; row-gap:8px}
+    .row > .lbl{flex:1 1 200px}
+  }
+  .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}
@@ -8735,20 +8955,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar2 span{display:block; height:100%; border-radius:4px;
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
-  .hint code{font:11px var(--v2-mono); color:var(--v2-acc2)}
+  .hint code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .urls{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .url{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 10px; border-radius:8px}
   .url:hover{background:var(--v2-hover)}
-  .up{font:12.5px var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .up{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zlist{display:flex; flex-direction:column; gap:9px; margin-top:12px}
   .zc{padding:13px 15px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-bg)}
   .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
-  .zn{font-size:14px; font-weight:700}
+  .zn{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .tt-proposer{margin-left:auto; align-self:center; background:transparent; border:1px solid var(--v2-line2);
-    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 11.5px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); border-radius:var(--v2-r-pill); padding:3px 10px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .tt-proposer:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
-  .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zt{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
   .hint.jumelle{margin:4px 0 0}
   .hint.err{color:var(--v2-danger)}
@@ -8756,7 +8976,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
   .apercu{display:inline-block; min-width:150px}
-  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
+  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
      par réglage, le libellé à gauche en casse normale, le contrôle à droite,
@@ -8764,13 +8984,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      aux champs, liste « titre radio » étirée sur toute la largeur). */
   .zch-photo{margin-left:auto; align-self:center; width:40px; height:40px; border-radius:8px; overflow:hidden; flex:0 0 auto}
   .zgrp{margin-top:14px; border-top:1px solid var(--v2-line); padding-top:6px}
-  .zgt{font:600 10.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
+  .zgt{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:4px 0 2px}
   .zf{display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:7px 0; min-width:0}
-  .zf .dsd-dop{flex-basis:100%; font:11.5px/1.35 var(--v2-sans); color:var(--v2-txt2)}
-  .zf > span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf .dsd-dop{flex-basis:100%; font:calc(11.5px * var(--v2-txt-echelle, 1))/1.35 var(--v2-sans); color:var(--v2-txt2)}
+  .zf > span{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .zf.chk{justify-content:flex-start; gap:8px; cursor:pointer}
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .zf.chk span{font:12.5px var(--v2-sans); color:var(--v2-txt2)}
+  .zf.chk span{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .fz-ligne{display:flex; align-items:center; justify-content:space-between; gap:10px}
   .fz-ligne > .zf{flex:1 1 auto}
   .fz-ctl{display:inline-flex; align-items:center; gap:8px; flex:0 0 auto}
@@ -8780,14 +9000,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zsec > summary::-webkit-details-marker{display:none}
   .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
   .zsec[open] > summary::before{content:'▾'}
-  .zsec-t{font:600 13px var(--v2-sans); color:var(--v2-txt)}
-  .zsec-r{font-size:11.5px; color:var(--v2-txt3)}
+  .zsec-t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .zsec-r{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le titre du composant partagé répète celui du repli : on le tait ici. */
   .zsec-fir :global(.fir-tl){display:none}
-  .sel.sm{min-width:130px; height:32px; font-size:12.5px}
+  .sel.sm{min-width:130px; height:32px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
-  .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  .monote{margin-top:9px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
   /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
      gabarit que « Bit-perfect strict » ci-dessous. */
   .publi-bloc .monote{margin-top:4px}
@@ -8796,27 +9016,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
   .canaux{padding:3px 0}
-  .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .trim .tl{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
-  .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
+  .trim .tv{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); min-width:62px}
   .trim .tv.neutre{color:var(--v2-txt3)}
   /* #6541 — limites de volume : deux champs courts sur la ligne du trim. */
   .limites-volume{flex-direction:column; align-items:stretch; gap:0; margin-top:2px}
-  .limites-volume .tl{font:12.5px var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
-  .limites-volume .lim{width:4.5em; font:12px var(--v2-mono)}
+  .limites-volume .tl{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
+  .limites-volume .lim{width:4.5em; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .limites-volume .tv{min-width:0}
   .bande-zones-volume{height:6px;border-radius:3px;margin:4px 0 2px;max-width:220px}
-  .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
+  .trim .tf{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
-  .radv summary{cursor:pointer; font:600 12px var(--v2-mono); letter-spacing:.05em;
+  .radv summary{cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em;
     color:var(--v2-acc1); list-style:none}
   .radv summary::-webkit-details-marker{display:none}
   .radv summary::before{content:'▸ '; display:inline-block; transition:transform .12s}
   .radv[open] summary::before{content:'▾ '}
   .radv > :global(.rc){margin-top:11px}
   .fvbox{margin-top:13px; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-danger-bd)}
-  .fvbox p{font-size:12.5px; line-height:1.55; color:var(--v2-txt2)}
+  .fvbox p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt2)}
   .fvbox b{color:var(--v2-txt)}
   .fvbox .inline{margin-top:11px}
   .txt.wide{width:320px}
@@ -8826,10 +9046,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
   .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; color:var(--v2-txt2)}
+  .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
-  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:13px; color:var(--v2-txt2)}
+  .clap-genres label{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres label span{min-width:9em}
   .clap-genres input{flex:1 1 16em; min-width:0}
   .clap-genres textarea{flex:1 1 16em; min-width:0; font:inherit}
@@ -8849,19 +9069,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .scan-avance .jauge.mini{height:3px}
   .dir:hover{background:var(--v2-hover)}
   .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
-  .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dp{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .rows{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .kv{display:flex; align-items:baseline; justify-content:space-between; gap:20px; padding:9px 10px; border-radius:8px}
   .kv:hover{background:var(--v2-hover)}
-  .kv span{font-size:13px; color:var(--v2-txt2)}
-  .kv b{font:600 13px var(--v2-sans); color:var(--v2-txt)}
-  .kv b.mono{font-family:var(--v2-mono); font-size:12px}
-  .tierb{text-transform:uppercase; font-family:var(--v2-mono); font-size:11px; letter-spacing:.1em; color:var(--v2-txt3)}
+  .kv span{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .kv b{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .kv b.mono{font-family:var(--v2-mono); font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .tierb{text-transform:uppercase; font-family:var(--v2-mono); font-size:calc(11px * var(--v2-txt-echelle, 1)); letter-spacing:.1em; color:var(--v2-txt3)}
   .tierb.prem{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
     border-radius:999px; padding:3px 11px}
-  .hs{font-family:var(--v2-mono); font-size:12px; color:var(--v2-danger)}
+  .hs{font-family:var(--v2-mono); font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
   .hs.ok{color:var(--v2-acc1)}
-  .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
+  .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .okbox .decompte{display:block; margin-top:4px}
@@ -8869,11 +9089,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
      centaines d'entrées : elle défile chez elle, sans pousser le reste de
      l'écran. */
-  .ecartes{margin-top:10px; font:13px/1.5 var(--v2-sans); color:var(--v2-txt2)}
+  .ecartes{margin-top:10px; font:calc(13px * var(--v2-txt-echelle, 1))/1.5 var(--v2-sans); color:var(--v2-txt2)}
   .ecartes summary{cursor:pointer; color:var(--v2-txt); font-weight:600}
   .ecartes-titre{margin:10px 0 4px; font-weight:600; color:var(--v2-txt)}
   .ecartes-liste{margin:0; padding:0 0 0 18px; max-height:220px; overflow:auto;
-    font-family:var(--v2-mono, ui-monospace, monospace); font-size:12px}
+    font-family:var(--v2-mono, ui-monospace, monospace); font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .ecartes-liste li{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .warnbox b,.okbox b{color:var(--v2-txt)}
 
@@ -8881,36 +9101,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      `.okbox` (fenêtre en cours — rassurant) ou de `.warnbox` (fenêtre écoulée,
      jamais vérifiée). */
   .graceblock{display:flex; flex-direction:column; gap:4px}
-  .gracerule{margin:10px 0 0; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
-  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
+  .gracerule{margin:10px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
   .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}
-  .comp{font:10px var(--v2-mono); padding:3px 9px; border-radius:999px;
+  .comp{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:3px 9px; border-radius:999px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .comp.ok{color:var(--v2-acc1); border-color:var(--v2-acc2)}
   .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
   .svc:hover{background:var(--v2-hover)}
-  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:14px; font-weight:600;
+  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
     text-transform:capitalize}
-  .sst{font:9px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
+  .sst{font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
   .sst.ok{color:var(--v2-acc1)} .sst.off{color:var(--v2-txt3)}
-  .sname em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
+  .sname em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
   .sname em.sub{color:var(--v2-acc2)}
   .flow{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
-  .ucode{font:700 15px var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
+  .ucode{font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); border-radius:9px; padding:6px 13px}
-  .waiting{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .serr{flex-basis:100%; font-size:11.5px; color:var(--v2-danger)}
-  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--v2-txt3)}
-  .sredir code{font:11px var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
+  .waiting{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .serr{flex-basis:100%; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
+  .sredir{flex-basis:100%; display:flex; flex-direction:column; gap:6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .sredir code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); user-select:all; word-break:break-all}
   .sredir-refus{color:var(--v2-danger)}
   .sredir-colle{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
   .sredir-colle .txt{flex:1; min-width:0}
-  .unavail{font:11px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .unavail{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .lbl b{color:var(--v2-acc-tint); font-weight:700}
   .seg4{display:flex; gap:2px; padding:3px; border-radius:12px; flex:0 0 auto;
     background:var(--v2-surface2); border:1px solid var(--v2-line)}
-  .seg4 button{border:0; background:transparent; color:var(--v2-txt2); font:600 11.5px var(--v2-sans);
+  .seg4 button{border:0; background:transparent; color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:7px 11px; border-radius:9px; cursor:pointer; transition:.15s; white-space:nowrap}
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -8920,15 +9140,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     border-radius:9px; cursor:pointer; color:var(--v2-txt2)}
   .dev:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .dev input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
-  .dev .dn{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .dev .dt{font:10px var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
+  .dev .dn{font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dev .dt{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); flex:0 0 auto}
   .danger-box{margin-top:12px; padding:13px 15px; border-radius:11px;
     border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .danger-box p{font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
-  .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:13px; font-weight:600}
+  .danger-box p{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2)}
+  .confirm{display:flex; align-items:center; gap:12px; margin-top:12px; cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600}
   .rng{flex:0 0 auto; width:200px; accent-color:var(--v2-acc1)}
+  .course-air{display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 12px}
+  .course-air label{display:flex; flex-direction:column; gap:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .course-air .txt{width:84px}
   .sel{flex:0 0 auto; height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .themerow{display:flex; gap:7px; flex:0 0 auto}
   .sw2{position:relative; width:30px; height:30px; border-radius:9px; cursor:pointer; padding:0;
@@ -8942,38 +9165,38 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .wrow{display:flex; align-items:center; gap:11px; flex:1; min-width:0; border:0; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; padding:6px 0; font-family:inherit}
   .wifi.sel .wrow{color:var(--v2-txt)}
-  .okline{margin-top:10px; padding:9px 12px; border-radius:10px; font-size:12px; color:var(--v2-acc-tint);
+  .okline{margin-top:10px; padding:9px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .mono{font:11.5px var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
+  .mono{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); word-break:break-all; text-align:right}
   a.link{color:var(--v2-acc-tint); text-decoration:none}
   a.link:hover{text-decoration:underline}
   .brqr{width:184px; margin:10px 0 4px; padding:8px; background:#fff; border-radius:8px; line-height:0}
   .brqr :global(svg){width:100%; height:auto; display:block}
   .tok{display:flex; flex-direction:column; gap:7px; margin-top:12px; padding:12px;
     border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .tok .tlab{font:10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
-  .tok code{font:11.5px var(--v2-mono); color:var(--v2-txt); word-break:break-all}
-  .warnline{font-size:11.5px; line-height:1.45; color:var(--v2-acc-tint)}
+  .tok .tlab{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tok code{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt); word-break:break-all}
+  .warnline{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-acc-tint)}
   .inline{display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:0 0 auto}
   .actions-serveur{display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0 4px}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:210px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 11px; outline:none; width:210px}
   .txt.num{width:78px; font-family:var(--v2-mono)}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .subhead{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:16px;
-    padding-top:12px; border-top:1px solid var(--v2-line); font:700 12px var(--v2-sans); color:var(--v2-txt2)}
-  .badge{font:10px var(--v2-mono); letter-spacing:.05em; padding:3px 9px; border-radius:999px; flex:0 0 auto;
+    padding-top:12px; border-top:1px solid var(--v2-line); font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .badge{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; padding:3px 9px; border-radius:999px; flex:0 0 auto;
     color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .badge.up{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .diag{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .dl{display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:11px; padding:8px 4px}
-  .di{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 11px var(--v2-sans);
+  .di{width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .di.info{color:var(--v2-txt3); border-color:var(--v2-line2)}
   .di.ok{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .dlab{font-size:13px; color:var(--v2-txt2)}
-  .dval{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .warn{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:12px; line-height:1.45;
+  .dlab{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .dval{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .warn{margin-top:10px; padding:10px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45;
     color:var(--v2-txt2); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
@@ -8989,30 +9212,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.ign.ko .dt{color:var(--v2-danger)}
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
-  .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
+  .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}
-  .dev .pmsg{font:11px var(--v2-sans); color:var(--v2-acc-tint)}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:0 9px; outline:none}
+  .dev .pmsg{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
   .del{width:26px; height:26px; border-radius:7px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:0 0 auto}
   .del:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .del svg{width:13px; height:13px}
   .del.avec-texte{width:auto; padding:0 8px; display:flex; gap:5px; align-items:center;
-    border-color:var(--v2-line, transparent); font:11px var(--v2-sans); white-space:nowrap}
+    border-color:var(--v2-line, transparent); font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap}
   .foot{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px;
     padding-top:12px; border-top:1px solid var(--v2-line)}
   .foot .hint{flex:1; min-width:200px}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
+    border-radius:999px; padding:6px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .empty{padding:30px 4px; color:var(--v2-txt3); font-size:14px}
+  .empty{padding:30px 4px; color:var(--v2-txt3); font-size:calc(14px * var(--v2-txt-echelle, 1))}
   .svc{border:1px solid var(--v2-line2); border-radius:12px; padding:14px; margin-top:12px}
   .svchead{display:flex; align-items:center; gap:9px}
   .svcdot{width:9px; height:9px; border-radius:50%; border:1px solid var(--v2-line2); flex:none}
   .svcname{font-weight:700}
-  .svcstate{margin-left:auto; font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3)}
+  .svcstate{margin-left:auto; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3)}
   .svcfields{display:flex; flex-direction:column; gap:8px; margin-top:10px}
-  .svcfield{display:flex; flex-direction:column; gap:4px; font-size:12.5px; color:var(--v2-txt2)}
+  .svcfield{display:flex; flex-direction:column; gap:4px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .svcfield input{width:100%}
   .svcsub{margin-top:12px; padding-top:10px; border-top:1px solid var(--v2-line2);
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
@@ -9032,5 +9255,5 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpv:hover .zpveil, .zpv:focus-visible .zpveil{opacity:1}
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
   /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
-  .zpattente{margin:0; font-size:12px; color:var(--tune-warning)}
+  .zpattente{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--tune-warning)}
 </style>

@@ -24,8 +24,13 @@
 export type ProgressionTache = {
   processed: number;
   total: number;
-  /** Sous-phase : `MusicBrainz`, `Images`… */
+  /** Sous-phase : `MusicBrainz`, `Images`… (texte français du serveur). */
   detail: string;
+  /** tune-server-rust#8282 — code stable de la sous-phase (`credits`,
+   *  `source`…). Absent d'un serveur antérieur. */
+  detail_code?: string;
+  /** tune-server-rust#8282 — paramètres du code, ex. `{ name: 'MusicBrainz' }`. */
+  detail_params?: Record<string, unknown>;
 };
 
 /** Une tâche de fond telle que le serveur la sérialise. */
@@ -232,6 +237,8 @@ const LIBELLES_TACHES: Record<string, string> = {
   write_tags: 'app.task.writeMetadata',
   edit_by_filter_files: 'app.task.writeMetadata',
   rescan_metadata: 'app.task.readMetadata',
+  // tune-server-rust#8325 — la relecture unique des balises classiques.
+  relecture_classique: 'app.task.readClassical',
   compositeur_depuis_credits: 'app.task.composers',
   lyrics_fetch: 'app.task.lyrics',
   lyrics_write: 'app.task.writeLyrics',
@@ -270,6 +277,50 @@ export function libellePhase(detail: string | null | undefined, traduire?: (cle:
 }
 
 /**
+ * tune-server-rust#8282 — le serveur publie la sous-phase sous un CODE stable
+ * (`detail_code`) et ses paramètres (`detail_params`). Table littérale : un
+ * code inconnu (serveur plus récent) retombe sur le texte, par `libellePhase`.
+ */
+const CLES_CODES_PHASES: Record<string, string> = {
+  credits: 'app.task.phase.credits',
+  files: 'app.task.phase.files',
+  lrcFiles: 'app.task.phase.lrcFiles',
+  metadata: 'app.task.phase.metadata',
+  tags: 'app.task.phase.tags',
+  composer: 'app.task.phase.composer',
+  compilations: 'app.task.phase.compilations',
+  albums: 'app.task.phase.albums',
+  labels: 'app.task.phase.labels',
+  images: 'app.task.phase.images',
+  dynamicRange: 'app.task.phase.dynamicRange',
+  waitingPlayback: 'app.task.phase.waitingPlayback',
+  waitingHeat: 'app.task.phase.waitingHeat',
+  waitingSlot: 'app.task.phase.waitingSlot',
+  paused: 'app.task.phase.paused',
+  done: 'app.task.phase.done',
+  source: 'app.task.phase.source',
+};
+
+/** La sous-phase d'un avancement, dans la langue de l'interface. */
+export function libelleProgression(
+  p: Pick<ProgressionTache, 'detail' | 'detail_code' | 'detail_params'> | null | undefined,
+  traduire?: (cle: string) => string,
+): string {
+  if (!p) return '';
+  const code = typeof p.detail_code === 'string' ? p.detail_code : '';
+  const cle = code && Object.hasOwn(CLES_CODES_PHASES, code) ? CLES_CODES_PHASES[code] : null;
+  if (cle && traduire) {
+    const modele = traduire(cle);
+    if (modele && modele !== cle) {
+      const params = p.detail_params ?? {};
+      return modele.replace(/\{(\w+)\}/g, (tout, nom: string) =>
+        Object.hasOwn(params, nom) ? String(params[nom]) : tout);
+    }
+  }
+  return libellePhase(p.detail, traduire);
+}
+
+/**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
  * tourne — c'est ce `null` qui referme le bandeau.
  *
@@ -295,7 +346,7 @@ export function libelleBanniereEnrichissement(
   // tune-core tourne avant le premier `write_progress`, le registre rend alors
   // 0/0, et afficher « 0/0 » se lit comme un arrêt.
   const p = premiere.progress;
-  const phase = p ? libellePhase(p.detail, traduire) : '';
+  const phase = p ? libelleProgression(p, traduire) : '';
   const avancement = p && p.total > 0 ? ` — ${phase ? `${phase} ` : ''}${p.processed}/${p.total}` : '';
 
   const surnumeraires = taches.length > 1 ? ` (+${taches.length - 1})` : '';

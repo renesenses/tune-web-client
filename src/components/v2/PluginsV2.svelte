@@ -38,8 +38,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   } from '../../lib/greffonsAudioNatifs';
   import { licenseState, isPremium } from '../../lib/stores/license';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
-  import { notifications } from '../../lib/stores/notifications';
+  import { redemarrerServeurConfirme } from '../../lib/redemarrerServeur';
   import '../../styles/tune-v2.css';
 
   const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
@@ -106,24 +105,11 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
 
   /** Redémarrer pour activer le greffon : la route de toujours
    *  (`POST /system/restart`), après confirmation, puis recharger quand le
-   *  serveur répond — le même geste que Réglages. */
+   *  serveur répond — le même geste que Réglages (`lib/redemarrerServeur`). */
   let redemarrage = $state(false);
   async function redemarrerPourActiver() {
-    if (!(await dialogs.confirm($t('settings.restartConfirm' as any), { danger: true }))) return;
     redemarrage = true;
-    try {
-      await api.restartServer();
-    } catch (e) {
-      // « Failed to fetch » = le redémarrage a commencé ; seule une erreur
-      // applicative arrête ici (même règle que Réglages).
-      const msg = errText(e);
-      if (msg !== null) { redemarrage = false; notifications.error(msg); return; }
-    }
-    attendreRetourEtRecharger({
-      sonder: () => api.getHealth(),
-      recharger: () => window.location.reload(),
-      renoncer: () => { redemarrage = false; notifications.error($t('settings.updateReloadGaveUp' as any)); },
-    });
+    if (!(await redemarrerServeurConfirme(() => (redemarrage = false)))) redemarrage = false;
   }
 
   async function installerDuCatalogue(id: string) {
@@ -303,7 +289,14 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
   {#if restartNeeded}
-    <div class="restart">{$t('v2.plug.restartNeeded' as any)}</div>
+    <!-- web#2534 (fil 2533) : le bouton À CÔTÉ du message, pour ne pas
+         aller le chercher dans Réglages. -->
+    <div class="restart">
+      <span>{$t('v2.plug.restartNeeded' as any)}</span>
+      <button class="lnk redemarrer-bandeau" disabled={redemarrage} onclick={redemarrerPourActiver}>
+        {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
+      </button>
+    </div>
   {/if}
   <!-- tune-server-rust#4861 : greffons payants absents d'un compte Premium. -->
   <BandeauReinstallerGreffons onReinstalle={(r) => { if (r) restartNeeded = true; reload(); }} />
@@ -498,24 +491,24 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
     font-family:var(--v2-sans); overflow:hidden}
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
-  .tabs button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+  .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .tabs button.on span{color:var(--v2-on-acc); opacity:.75}
 
-  .err,.restart{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:12.5px}
+  .err,.restart{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
   .restart{border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
-  .docs{margin:0 30px 10px; font-size:12.5px}
+  .docs{margin:0 30px 10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .docs a{color:var(--v2-acc-tint)}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:10px}
-  .sect{margin:22px 0 10px; font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  .etat{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px;
+  .sect{margin:22px 0 10px; font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .etat{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px;
     color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .etat.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
   .pl.err .etat{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
@@ -525,25 +518,26 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   .pl.err{border-color:var(--v2-danger-bd)}
   .pi{flex:1; min-width:0}
   .ph{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
-  .ph h2{font-size:15px; font-weight:700}
-  .ver{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  .cat,.upd,.ko,.prem{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
+  .ph h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .ver{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .cat,.upd,.ko,.prem{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
   .cat{color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .upd{color:var(--v2-acc-tint); border:1px solid var(--v2-acc2)}
   .ko{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .prem{color:var(--v2-acc-tint); background:var(--v2-acc-soft)}
-  .pd{margin-top:7px; font-size:12.5px; line-height:1.55; color:var(--v2-txt2); max-width:74ch}
-  .pa{margin-top:5px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
-  .why{margin-top:8px; font-size:11.5px; color:var(--v2-txt3)}
+  .pd{margin-top:7px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt2); max-width:74ch}
+  .pa{margin-top:5px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .why{margin-top:8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .why.bad{color:var(--v2-danger)}
   .pl.grise{opacity:.55}
 
   .pact{display:flex; align-items:center; gap:12px; flex:0 0 auto}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk.danger:hover:not(:disabled){border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .lnk:disabled{opacity:.45; cursor:default}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .restart .redemarrer-bandeau{margin-left:auto}
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .sw{position:relative; width:44px; height:25px; cursor:pointer; flex:0 0 auto}

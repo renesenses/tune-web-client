@@ -125,7 +125,7 @@
 
   .mz-item{display:flex; align-items:center; gap:11px; width:100%; min-height:40px; padding:9px 10px;
     border:0; border-radius:8px; background:transparent; color:var(--v2-txt);
-    font:13px var(--v2-sans); text-align:left; cursor:pointer}
+    font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align:left; cursor:pointer}
   .mz-item svg{width:16px; height:16px; flex:0 0 auto; color:var(--v2-txt3)}
   .mz-item span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .mz-item:hover{background:var(--v2-surface2)}

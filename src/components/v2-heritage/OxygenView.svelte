@@ -38,6 +38,13 @@
     sample_rate: { label: 'oxygen.col.sampleRate', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
     bit_depth: { label: 'oxygen.col.bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
     disc_subtitle: { label: 'oxygen.col.discSubtitle', get: t => t.disc_subtitle ?? '' },
+    // #2762 — servis par `/library/tracks` depuis tune-server-rust#8325 ;
+    // ABSENTS d'une piste qui n'en porte pas, ou d'un serveur plus ancien :
+    // la cellule reste vide.
+    conductor: { label: 'oxygen.col.conductor', get: t => t.conductor ?? '' },
+    ensemble: { label: 'oxygen.col.ensemble', get: t => t.ensemble ?? '' },
+    work: { label: 'oxygen.col.work', get: t => t.work ?? '' },
+    movement: { label: 'oxygen.col.movement', get: t => t.movement ?? '' },
     // Champs deja portes par `Track`, donc deja dans la charge utile de la
     // liste : les exposer en colonne ne coute rien de plus au serveur.
     // L'inspecteur les affichait deja ; seule la table les ignorait, et un
@@ -109,7 +116,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
   // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
   // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
   //
@@ -215,6 +222,8 @@
   const FACET_PARAM: Record<string, string> = {
     genre: 'genre', label: 'label', year: 'year', original_year: 'original_year',
     artist: 'artist', composer: 'composer', format: 'format',
+    // #2762 — chef, ensemble, œuvre (tune-server-rust#8325).
+    conductor: 'conductor', ensemble: 'ensemble', work: 'work',
     sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
     mood: 'mood', source: 'source_media', rating: 'rating',
     collection: 'collection', favorite: 'favorite', playlist: 'playlist',
@@ -1060,8 +1069,8 @@
   .bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; padding-right: var(--v2-grappe-w, 172px); border-bottom: 1px solid var(--tune-border); flex-shrink: 0; }
   .icnbtn { background: var(--tune-surface); border: 1px solid var(--tune-border); color: var(--tune-text-secondary); width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
   .icnbtn:hover { color: var(--tune-text); border-color: var(--tune-accent); }
-  .titleblock .eyebrow { font-size: 11px; letter-spacing: .04em; color: var(--tune-accent); }
-  .titleblock h1 { font-size: 19px; font-weight: 700; margin: 1px 0 0; }
+  .titleblock .eyebrow { font-size: calc(11px * var(--v2-txt-echelle, 1)); letter-spacing: .04em; color: var(--tune-accent); }
+  .titleblock h1 { font-size: calc(19px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 1px 0 0; }
   .seg { display: inline-flex; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 9px; padding: 3px; }
   .seg button { background: none; border: 0; color: var(--tune-text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: grid; place-items: center; }
   .seg button.on { background: var(--tune-accent); color: #1a1206; }
@@ -1069,17 +1078,17 @@
   .search svg { position: absolute; left: 11px; color: var(--tune-text-muted); }
   .search input { width: 100%; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 20px; color: var(--tune-text); font: inherit; padding: 8px 12px 8px 32px; outline: none; }
   .search input:focus { border-color: var(--tune-accent); }
-  .count { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
+  .count { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
   .count.partial { color: var(--tune-text-secondary); }
   .cslash { opacity: .5; margin: 0 2px; }
   .more { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px 8px 4px; }
-  .moretxt { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
-  .morebtn { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; }
+  .moretxt { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .morebtn { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font: inherit; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 7px 16px; cursor: pointer; }
   .morebtn:hover:not(:disabled) { border-color: var(--tune-accent); color: var(--tune-accent); }
   .morebtn:disabled { opacity: .6; cursor: default; }
 
   .crumbs { display: flex; gap: 8px; padding: 8px 18px 0; flex-wrap: wrap; }
-  .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+  .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer; }
   .crumb .x { opacity: .7; margin-left: 3px; }
 
   .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
@@ -1106,7 +1115,7 @@
     .body.norail { grid-template-columns: 1fr; }
   }
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
-  .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; z-index: 2; }
+  .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer; z-index: 2; }
   /* Tablet: inspector becomes a right slide-over. */
   @media (max-width: 1150px) {
     .body { grid-template-columns: 200px 1fr; }
@@ -1132,30 +1141,30 @@
   .mur .tuile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
   .mur .tuile:hover img, .mur .tuile:focus-visible img { transform: scale(1.04); }
   .mur .tuile:focus-visible { box-shadow: inset 0 0 0 2px var(--tune-accent, #fff); }
-  .mur .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-grey5); font-size: 28px; }
+  .mur .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-grey5); font-size: calc(28px * var(--v2-txt-echelle, 1)); }
   .card { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
   .pov { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .card:hover .pov, .pov:focus { display: inline-flex; }
   .aplay { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
-  .aplay.aq { background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); font-size: 15px; }
+  .aplay.aq { background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); font-size: calc(15px * var(--v2-txt-echelle, 1)); }
   .trkrow { display: flex; align-items: center; gap: 4px; }
   .trkrow .trk { flex: 1; min-width: 0; }
   .trkacts { display: none; flex: none; gap: 2px; }
   .trkrow:hover .trkacts { display: inline-flex; }
-  .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+  .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 2px 4px; border-radius: 4px; }
   .tact:hover { color: var(--tune-accent); background: var(--tune-surface); }
   .hov { position: absolute; right: 8px; top: 8px; z-index: 2; }
   .ahheart { display: inline-flex; align-items: center; flex: none; }
   .tact-h { display: inline-flex; align-items: center; }
   .cwrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.35); aspect-ratio: 1; }
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
-  .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
+  .cvr.ph { display: grid; place-items: center; font-size: calc(30px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .card:hover .cwrap { transform: translateY(-3px); transition: transform .15s; }
   /* La qualité a quitté la pochette pour la troisième ligne de la carte
      (Alex Campbell, 12/09/2026 ; même décision que `v2/QualiteAlbum`). */
   .cq { margin-top: 3px; display: flex; min-width: 0; }
-  .ct { margin-top: 9px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ca { color: var(--tune-text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct { margin-top: 9px; font-weight: 600; font-size: calc(13px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ca { color: var(--tune-text-secondary); font-size: calc(12px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .albums { display: flex; flex-direction: column; }
   .album { display: grid; grid-template-columns: 116px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--tune-border); }
@@ -1165,12 +1174,12 @@
   .aart { align-self: start; height: 116px; }
   .aart .cvr { border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
   .ahead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .at { font-size: 16px; font-weight: 700; }
-  .aa { color: var(--tune-text-secondary); font-size: 13px; margin-top: 1px; }
+  .at { font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 700; }
+  .aa { color: var(--tune-text-secondary); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin-top: 1px; }
   .atracks { margin-top: 10px; display: flex; flex-direction: column; }
   .dischead { display: flex; align-items: baseline; gap: 10px; padding: 8px 8px 4px; margin-top: 2px; }
-  .discno { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tune-text-muted); }
-  .discsub { font-size: 12.5px; font-weight: 600; color: var(--tune-text-secondary); }
+  .discno { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tune-text-muted); }
+  .discsub { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text-secondary); }
   .trk { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; color: var(--tune-text); font: inherit; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
   .trk:hover { background: var(--tune-surface-hover); }
   .trk.sel { background: var(--tune-surface-selected); }
@@ -1179,21 +1188,21 @@
      couleur d'accent — deux signaux qui se superposent sans se masquer. */
   .trk.playing { box-shadow: inset 3px 0 0 0 var(--tune-accent); }
   .trk.playing .tt { color: var(--tune-accent); font-weight: 600; }
-  .trk .tn { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-muted); text-align: right; }
-  .trk .tt { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-secondary); }
+  .trk .tn { font-family: ui-monospace, Menlo, monospace; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); text-align: right; }
+  .trk .tt { font-size: calc(13.5px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
 
   /* Bounded height so THIS element is the scroll viewport (not .main): a
      sticky header only sticks within its own scroll container, and the
      horizontal scrollbar stays pinned to the bottom of the visible area
      instead of being buried under a full-height table (Oxygen table view). */
   .tablescroll { border: 1px solid var(--tune-border); border-radius: 12px; background: var(--tune-surface); overflow: auto; max-height: 100%; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   /* box-shadow, not border-bottom: with border-collapse the collapsed bottom
      border detaches from a sticky th and scrolls away; the inset shadow rides along. */
   /* --tune-bg-secondary is not defined by the themes: without the fallback the
      declaration is invalid and the sticky header scrolls with a transparent bg. */
-  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary, var(--tune-surface)); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary, var(--tune-surface)); text-align: left; font-size: calc(10.5px * var(--v2-txt-echelle, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
   th.n, td.n { width: 34px; text-align: right; color: var(--tune-text-muted); }
   th.r, td.r { text-align: right; }
   tbody td { padding: 7px 12px; border-bottom: 1px solid var(--tune-border); white-space: nowrap; }
@@ -1227,25 +1236,25 @@
 
   .inspector { border-left: 1px solid var(--tune-border); background: var(--tune-surface); padding: 18px; overflow-y: auto; min-height: 0; }
   .inspector.empty { display: grid; place-items: center; }
-  .insp-title { font-size: 17px; font-weight: 700; }
-  .insp-sub { color: var(--tune-text-secondary); font-size: 13px; margin-top: 2px; }
+  .insp-title { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; }
+  .insp-sub { color: var(--tune-text-secondary); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin-top: 2px; }
   .insp-badges { margin: 12px 0 4px; }
   .mgroup { margin-top: 16px; }
-  .mgroup h4 { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
+  .mgroup h4 { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
   .field { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; align-items: baseline; }
-  .field .k { color: var(--tune-text-secondary); font-size: 12px; flex-shrink: 0; }
+  .field .k { color: var(--tune-text-secondary); font-size: calc(12px * var(--v2-txt-echelle, 1)); flex-shrink: 0; }
   /* Long extra-metadata values (MusicBrainz ids, ReplayGain peaks, raw tags)
      were capped at 60% width and truncated with an ellipsis — only visible via
      the hover tooltip, impossible on touch, so extra metadata couldn't be fully
      read (Bertrand). Let the value take the remaining width and wrap instead of
      truncating, so every character is visible without a horizontal scrollbar in
      the narrow (340px) inspector. */
-  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .field .v { color: var(--tune-text); font-size: calc(12.5px * var(--v2-txt-echelle, 1)); text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .field.isnew .k, .field.isnew .v { color: var(--tune-accent); }
-  .tag { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
+  .tag { font-size: calc(8.5px * var(--v2-txt-echelle, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
   .state { padding: 40px 20px; text-align: center; color: var(--tune-text-muted); }
   .state.err { color: var(--tune-danger, var(--tune-error)); }
-  .state.small { padding: 20px 4px; font-size: 12.5px; }
+  .state.small { padding: 20px 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); }
   /* Discrète par construction : on la lit quand on la cherche, elle ne dispute
      pas l'attention à la musique. Chiffres tabulaires pour qu'ils ne dansent
      pas quand les comptes changent. */
@@ -1258,13 +1267,13 @@
   .acard:hover { border-color: var(--tune-accent); }
   .acover { width: 74px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: var(--tune-grey2); }
   .acover img { width: 100%; height: 100%; object-fit: cover; }
-  .acover .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-text-muted); font-size: 22px; }
+  .acover .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-text-muted); font-size: calc(22px * var(--v2-txt-echelle, 1)); }
   .ainfo { min-width: 0; flex: 1; }
-  .aartist { font-size: 12px; color: var(--tune-text-secondary); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .atitle { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .aartist { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .atitle { font-size: calc(13.5px * var(--v2-txt-echelle, 1)); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Grille clé/valeur : les valeurs s'alignent quelle que soit la longueur du
      libellé, y compris en allemand où « Aufnahmejahr » double la largeur. */
-  .ameta { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 5px 0 6px; font-size: 11px; }
+  .ameta { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 5px 0 6px; font-size: calc(11px * var(--v2-txt-echelle, 1)); }
   .ameta dt { color: var(--tune-text-muted); }
   .ameta dd { margin: 0; color: var(--tune-text-secondary); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .statusbar {
@@ -1277,7 +1286,7 @@
     border-top: 1px solid var(--tune-border);
     background: var(--tune-surface);
     color: var(--tune-text-muted);
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--v2-txt-echelle, 1));
     font-variant-numeric: tabular-nums;
   }
   .statusbar .sb-sep { opacity: .5; }

@@ -35,10 +35,14 @@
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { questionRetraitMesRadios } from '../../lib/mesRadios';
 
   interface Props {
     /** Une station vient d'entrer dans « Mes radios » (ou d'y changer). */
     onAjoutee?: (station: RadioStation) => void;
+    /** Une station vient de quitter « Mes radios » depuis l'annuaire (#7522). */
+    onRetiree?: (id: number) => void;
     q?: string;
     pays?: string | null;
     genre?: string | null;
@@ -51,7 +55,7 @@
     /** Le titre en cours de la zone, quand c'est une de ces stations qui joue. */
     titreEnCours?: string | null;
   }
-  let { onAjoutee, enDirect = null, onJoue, titreEnCours = null, q = $bindable(''), pays = $bindable(null), genre = $bindable(null), limiteInitiale = 120, onCharge }: Props = $props();
+  let { onAjoutee, onRetiree, enDirect = null, onJoue, titreEnCours = null, q = $bindable(''), pays = $bindable(null), genre = $bindable(null), limiteInitiale = 120, onCharge }: Props = $props();
 
   const PAGE = 120;
 
@@ -161,6 +165,36 @@
     }
   }
 
+  /**
+   * tune-server-rust#7522 (alec_eiffel ; discussion #7563, go de Bertrand du
+   * 12/11/2026) — retirer une station de « Mes radios » SANS quitter
+   * l'annuaire. Le même appel (`deleteRadio`) et la même confirmation que
+   * l'écran « Mes radios » (#7523 : elle dit que la station reste ici).
+   * La fiche perd son badge « Dans mes radios » et retrouve « Ajouter ».
+   */
+  // Anti double clic : une station en cours de retrait (question ouverte ou
+  // appel en vol) ne relance ni une seconde question ni un second DELETE.
+  const enRetrait = new Set<string>();
+
+  async function retirer(f: FicheAnnuaireRadio) {
+    const id = f.my_radio_id;
+    if (id == null || enRetrait.has(f.external_id)) return;
+    enRetrait.add(f.external_id);
+    try {
+      if (!(await dialogs.confirm(questionRetraitMesRadios((k) => $t(k as any), f.name, true), { danger: true }))) return;
+      await api.deleteRadio(id);
+      items = items.map((x) => x.external_id === f.external_id
+        ? { ...x, my_radio_id: null, my_radio_favorite: false }
+        : x);
+      notifications.success($t('v2.radio.removed' as any).replace('{name}', f.name));
+      onRetiree?.(id);
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      enRetrait.delete(f.external_id);
+    }
+  }
+
   /** Le cœur : met la station dans « Mes radios » ET en favori, ou l'en retire
    *  des favoris (elle reste dans « Mes radios »). */
   async function basculerFavori(f: FicheAnnuaireRadio) {
@@ -218,6 +252,8 @@
               libelleAjouter={$t('v2.radio.dir.add' as any)}
               onVoir={() => (enFiche = f)}
               libelleVoir={$t('v2.radio.view' as any)}
+              onRetirer={f.my_radio_id != null ? () => retirer(f) : null}
+              libelleRetirer={$t('v2.radio.removeFromMine' as any)}
               onLire={() => ecouter(f)}
               onOuvrir={() => (enFiche = f)}
               objet={f.my_radio_id != null ? objetRadio({ id: f.my_radio_id, name: f.name }) : null}
@@ -239,7 +275,9 @@
             {#if f.radio_metadata_key || f.now_playing}<BadgeMetadataPlus />{/if}
             {#if f.codec}<span class="tk">{f.codec}{f.bitrate ? ` ${f.bitrate}` : ''}</span>{/if}
             {#if f.my_radio_id != null}
-              <span class="dedans">{$t('v2.radio.dir.inMine' as any)}</span>
+              <!-- #7522 — le badge passait inaperçu (texte gris de 9,5 px) :
+                   pastille à la couleur d'accent, avec une coche. -->
+              <span class="dedans"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{$t('v2.radio.dir.inMine' as any)}</span>
             {/if}
           </span>
         </div>
@@ -272,22 +310,23 @@
   .annuaire{display:flex; flex-direction:column; gap:10px; padding:4px 30px 30px}
   .filtres{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 11.5px var(--v2-sans); max-width:220px}
-  .total{font:11px var(--v2-mono); color:var(--v2-txt3)}
+    border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
+  .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .etat{padding:20px 0; color:var(--v2-txt3)} .etat.err{color:var(--v2-danger)}
   .grille{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .fiche{position:relative; display:flex; flex-direction:column; min-width:0}
   .vignette{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .fiche:hover .vignette{box-shadow:0 10px 24px var(--v2-glow)}
-  .nm{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .gn,.encours{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .gn,.encours{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .encours{color:var(--v2-acc2)}
   .pied{display:flex; align-items:center; gap:6px; margin-top:4px; min-height:22px}
-  .tk{font:9.5px var(--v2-mono); color:var(--v2-acc2)}
-  .dedans{margin-left:auto; font:600 9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tk{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .dedans{margin-left:auto; display:inline-flex; align-items:center; gap:3px; padding:1px 6px; border:1px solid currentColor; border-radius:999px; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); white-space:nowrap}
+  .dedans svg{width:10px; height:10px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round}
   .suite{display:flex; justify-content:center; padding-top:8px}
-  .source{margin-top:14px; font:11px var(--v2-sans); color:var(--v2-txt3)}
+  .source{margin-top:14px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .source a{color:var(--v2-acc2); text-decoration:none}
   .source a:hover{text-decoration:underline}
   .horsligne{color:var(--v2-txt2)}

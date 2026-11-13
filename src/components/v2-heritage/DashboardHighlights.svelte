@@ -19,7 +19,8 @@
   import { playFromHere } from '../../lib/playback';
   import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { texteRaison } from '../../lib/raisonSuggestion';
   import * as api from '../../lib/api';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -255,6 +256,12 @@
                 <span class="mix-count">{mix.track_count} {$t('home.tracks').toLowerCase()}</span>
               {/if}
             </div>
+            <!-- web#916, go du 13/10/2026 — pourquoi ce mix : un des genres
+                 que l'historique compte le plus (`raison` du serveur). -->
+            {#if mix.raison}
+              {@const pourquoi = texteRaison(mix.raison, $t as any, $locale)}
+              {#if pourquoi}<span class="mix-reason" title={pourquoi}>{pourquoi}</span>{/if}
+            {/if}
           </button>
         {/each}
       </div>
@@ -387,7 +394,7 @@
 
   .section-title {
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     margin: 0;
@@ -427,7 +434,7 @@
 
   .artist-rank {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-accent);
     min-width: 20px;
@@ -435,14 +442,14 @@
 
   .artist-card-name {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     white-space: nowrap;
   }
 
   .play-count-badge {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-accent);
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12);
@@ -503,7 +510,7 @@
 
   .track-rank {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-text-muted);
     min-width: 24px;
@@ -534,7 +541,7 @@
 
   .top-track-title {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     transition: color 0.12s;
@@ -546,7 +553,7 @@
     padding: 0;
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     transition: color 0.12s;
   }
@@ -589,7 +596,7 @@
 
   .rec-title {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     max-width: 140px;
     transition: color 0.12s;
@@ -597,7 +604,7 @@
 
   .rec-artist {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     max-width: 140px;
   }
@@ -624,7 +631,7 @@
 
   .dash-big-number {
     font-family: var(--font-display);
-    font-size: 36px;
+    font-size: calc(36px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-text);
     line-height: 1;
@@ -632,7 +639,7 @@
 
   .dash-big-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     text-align: center;
   }
@@ -659,7 +666,7 @@
 
   .dash-chart-label {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-secondary);
     letter-spacing: 0.3px;
@@ -695,14 +702,14 @@
 
   .dash-bar-count {
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-text);
   }
 
   .dash-bar-label {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     text-transform: capitalize;
   }
@@ -719,7 +726,7 @@
     align-items: center;
     gap: 6px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     padding: 6px 14px;
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.05);
@@ -735,7 +742,7 @@
 
   .genre-count {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: var(--tune-accent);
   }
@@ -782,7 +789,7 @@
 
   .mix-genre {
     font-family: var(--font-label);
-    font-size: 15px;
+    font-size: calc(15px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     color: white;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
@@ -790,8 +797,20 @@
 
   .mix-count {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  .mix-reason {
+    width: 160px;
+    margin-top: 4px;
+    font-family: var(--font-body);
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text-secondary);
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Radio picks */
@@ -828,7 +847,7 @@
 
   .dash-empty-hint {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
   }
@@ -841,7 +860,7 @@
 
   .dash-empty-label {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;

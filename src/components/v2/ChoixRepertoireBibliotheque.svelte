@@ -97,7 +97,7 @@
     background: transparent;
     color: var(--tune-accent);
     font: inherit;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     padding: 4px 10px;
     cursor: pointer;
   }
@@ -108,7 +108,7 @@
   .err {
     margin: 0;
     padding: 6px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 </style>

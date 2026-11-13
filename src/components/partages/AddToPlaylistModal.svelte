@@ -409,7 +409,7 @@
 
   .modal-header h3 {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
@@ -488,20 +488,20 @@
 
   .pl-name {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
   .pl-count {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
   .empty-hint {
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     text-align: center;
     padding: 16px;
   }
@@ -513,7 +513,7 @@
     margin: 8px 20px 4px;
     color: var(--tune-text-muted);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -528,7 +528,7 @@
     gap: 6px;
     margin-bottom: 8px;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
   .create-ou button {
@@ -539,7 +539,7 @@
     color: var(--tune-text-secondary);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .create-ou button.on {
     border-color: var(--tune-accent);
@@ -563,7 +563,7 @@
     color: var(--tune-text-secondary);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s;
   }
 
@@ -586,7 +586,7 @@
     padding: 6px 10px;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     outline: none;
   }
 
@@ -602,7 +602,7 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     white-space: nowrap;
   }
@@ -633,7 +633,7 @@
 
   .success-state p {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
 

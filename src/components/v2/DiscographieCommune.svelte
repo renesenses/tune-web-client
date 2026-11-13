@@ -19,7 +19,7 @@
    */
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
-  import type { GroupeCollaborations } from '../../lib/api';
+  import type { GroupeCollaborations, JoueAvec } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
@@ -80,6 +80,12 @@
      * section n'est alors pas rendue — jamais remplie depuis `reprises`.
      */
     ecriture?: Album[];
+    /**
+     * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les
+     * artistes audibles sur les mêmes pistes (`played_with`), dans l'ordre du
+     * serveur. Absente devant un serveur antérieur : pas de bloc.
+     */
+    joueAvec?: JoueAvec[];
     /** Le filtre « Source » de la Bibliothèque : la pastille cochée à l'ouverture. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -98,7 +104,7 @@
      */
     rangeeSources?: boolean;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [] }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -458,6 +464,28 @@
     </section>
   {/if}
 
+  <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
+       (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
+       Un nom avec fiche (`artist_id`) ouvre sa page ; sans fiche (musicien de
+       séance), texte simple. Clé absente = pas de bloc, sans message. -->
+  {#if joueAvec?.length}
+    <section class="bloc" data-section="played-with">
+      <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
+      <ul class="liste-joue-avec">
+        {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          <li data-joue-avec={j.artist_name}>
+            {#if typeof j.artist_id === 'number'}
+              <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
+            {:else}
+              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
+            {/if}
+            <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
   <!-- Lot 2 (web#2639) — section 3 sur 4, « Écriture et production » : la
        clé `writing` du serveur (tune-server-rust#7767). Absente devant un
        serveur antérieur, et la section avec elle : elle ne se remplit JAMAIS
@@ -548,9 +576,9 @@
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt3); cursor: pointer;
-    border-radius: var(--v2-r-pill); padding: 5px 12px; font: 600 12px var(--v2-sans);
+    border-radius: var(--v2-r-pill); padding: 5px 12px; font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
-  .pill b { font: 700 10px var(--v2-mono); opacity: .75; }
+  .pill b { font: 700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity: .75; }
   .pill:hover { color: var(--v2-txt); }
   .pill.on { color: var(--v2-acc-tint); border-color: var(--v2-acc2); background: var(--v2-acc-soft); }
   .pill.raz { border-style: dashed; }
@@ -559,12 +587,12 @@
   .focus {
     display: inline-flex; align-items: center; gap: 4px;
     border: 0; background: transparent; cursor: pointer; padding: 0;
-    font: 600 13px var(--v2-sans); color: var(--v2-txt2);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
   .focus svg { width: 14px; height: 14px; transition: transform .12s ease; }
   .focus.ouvert svg { transform: rotate(90deg); }
   .focus.actif, .focus:hover { color: var(--v2-acc1); }
-  .cpt { font: 11px var(--v2-mono); color: var(--v2-txt3); }
+  .cpt { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
   .panneau {
     display: flex; flex-wrap: wrap; gap: 18px 40px; align-items: flex-start;
     padding: 14px 18px; margin: 0 0 16px;
@@ -572,19 +600,19 @@
   }
   .axe { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
   .axe h3 {
-    margin: 0 0 2px; font: 600 11px var(--v2-sans); color: var(--v2-txt3);
+    margin: 0 0 2px; font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
     text-transform: uppercase; letter-spacing: .06em;
   }
-  .case { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v2-txt2); cursor: pointer; }
+  .case { display: flex; align-items: center; gap: 7px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); cursor: pointer; }
   .case span:first-of-type { text-transform: capitalize; }
-  .case .n { font: 11px var(--v2-mono); color: var(--v2-txt3); }
+  .case .n { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
   /* Le « Tout afficher » du panneau Focus. PAS `.raz` : ce nom est aussi celui
      de la pastille « Toutes » (`.pill.raz`), et cette règle, de même poids que
      `.pill` mais écrite après, lui ôtait bordure et marge et la posait en bas
      de la rangée (#1873). */
   .raz-focus {
     align-self: flex-end; border: 0; background: transparent; cursor: pointer; padding: 0;
-    font: 600 12px var(--v2-sans); color: var(--v2-acc1);
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-acc1);
   }
   .gr {
     display: grid;
@@ -599,7 +627,7 @@
   .versions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 5px; }
   .version {
     display: inline-flex; align-items: center; gap: 4px;
-    font: 10px var(--v2-mono); color: var(--v2-txt3); white-space: nowrap;
+    font: calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); white-space: nowrap;
   }
   .version .res { color: var(--v2-txt2); }
   .biblio {
@@ -613,12 +641,12 @@
   }
   .ct {
     display: block; margin-top: 9px;
-    font: 600 12.5px var(--v2-sans); line-height: 1.25;
+    font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height: 1.25;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .ca {
     display: block; margin-top: 2px;
-    font: 11px var(--v2-mono); color: var(--v2-txt3);
+    font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .connexes { margin-top: 28px; }
@@ -628,19 +656,30 @@
   .bloc ~ .bloc { margin-top: 34px; }
   .titre-section {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
-    font: 600 15px var(--v2-sans); color: var(--v2-txt);
+    font: 600 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
   }
   .bloc > .connexes:first-of-type { margin-top: 0; }
   .roles {
     display: block; margin-top: 2px;
-    font: 10.5px var(--v2-sans); color: var(--v2-txt3);
+    font: calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .groupe + .groupe { margin-top: 20px; }
-  .titre-groupe { margin: 0 0 12px; font: 500 12.5px var(--v2-sans); color: var(--v2-txt3); }
+  .titre-groupe { margin: 0 0 12px; font: 500 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
   .titre-connexes {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
-    font: 600 13px var(--v2-sans); color: var(--v2-txt2);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
-  .etat { padding: 22px 0; color: var(--v2-txt3); font-size: 13.5px; }
+  .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
+  /* #2794 — « Joue avec » : une liste de noms, en colonnes, sans pochettes. */
+  .liste-joue-avec {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px;
+  }
+  .liste-joue-avec li {
+    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+  }
+  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pistes-joue-avec { flex: none; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
 </style>

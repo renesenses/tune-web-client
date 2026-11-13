@@ -24,6 +24,8 @@
  *    montré : il NOMME ce qui ne va pas.
  */
 
+import { cleCodeSpotify } from './messagesSpotify';
+
 export type NatureErreurConnexion = 'identifiants' | 'application' | 'brut' | 'texte';
 
 export const CODE_IDENTIFIANTS_REFUSES = 'invalid_credentials';
@@ -55,6 +57,9 @@ export function natureErreurConnexion(
 ): NatureErreurConnexion {
   if (e?.code === CODE_APPLICATION_REFUSEE) return 'application';
   if (e?.code === CODE_IDENTIFIANTS_REFUSES) return 'identifiants';
+  // tune-server-rust#8198 — un refus Spotify nommé : `fetchJSON` a déjà mis
+  // sa phrase traduite dans `message` ; le JSON brut de `detail` n'y change rien.
+  if (cleCodeSpotify(e?.code)) return 'texte';
   // #2417 : le message montré est désormais traduit ou générique ; le texte
   // brut du serveur est dans `detail`. Les deux sont lus.
   const message = [e?.message, e?.detail].filter((x): x is string => typeof x === 'string').join(' ');

@@ -21,8 +21,8 @@
 
 <style>
   .voile-pur{display:flex; gap:10px; align-items:flex-start; padding:11px 14px; margin-bottom:16px;
-    border-radius:10px; font-size:12.5px; line-height:1.5; color:var(--v2-txt2);
+    border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt2);
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .badge{flex:0 0 auto; font:700 10px var(--v2-mono); letter-spacing:.08em; color:var(--v2-acc-tint);
+  .badge{flex:0 0 auto; font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:var(--v2-r-pill); padding:2px 8px}
 </style>

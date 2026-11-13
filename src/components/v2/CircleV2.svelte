@@ -85,6 +85,7 @@
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
+  import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
   import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation } from '../../lib/circleMessagerie';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
@@ -691,6 +692,7 @@
 
       <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
       <MessagerieCercleV2 />
+      <CerclesGenerauxV2 />
 
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>
@@ -1115,54 +1117,54 @@
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px}
   /* rc8 : la scène prend toute la largeur ; les blocs de gestion gardent leur colonne lisible. */
   .scroll > :not(.hero){max-width:880px}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}
-  .intro{font-size:13px; color:var(--v2-txt2); margin:0}
+  .intro{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); margin:0}
   /* web#2546 : visible tant qu'on lit ce qu'une notification a ouvert. */
   .retour-notifs{position:sticky; top:0; z-index:2; align-self:flex-start; padding:6px 10px; border-radius:8px; background:var(--v2-surface2)}
-  .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px}
+  .err,.ok{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .ok{border:1px solid var(--v2-line); background:var(--v2-acc-soft); color:var(--v2-txt)}
   .panne,.retour,.retour-invitation{margin:0}
   .bloc{display:flex; flex-direction:column; gap:8px}
-  .bloc h2{font-size:15px; font-weight:700; margin:0}
+  .bloc h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
   .sous-bloc{display:flex; flex-direction:column; gap:8px; margin-top:8px}
-  .sous-bloc h3{font-size:14px; font-weight:700; margin:0}
+  .sous-bloc h3{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
   .sous-bloc ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .bloc ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px;
-    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
+    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .vide{margin:0}
   .gestes{display:flex; gap:10px; align-items:center}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .champ{height:34px; padding:0 12px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt); font:13px var(--v2-sans); min-width:0}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
   .champ:focus-visible,.go:focus-visible,.lnk:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .email{flex:1 1 220px}
   .cercle, .cercle-membre{display:flex; flex-direction:column; gap:6px; padding:12px 14px; border-radius:var(--v2-r-card);
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .cercle-tete{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .cercle-nom{font-size:14px; font-weight:700; margin:0; flex:1; min-width:0; overflow-wrap:anywhere}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .cercle-nom{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; flex:1; min-width:0; overflow-wrap:anywhere}
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .danger{color:var(--v2-danger)}
   /* #6935 : bloquer, confirmation dans la ligne et personnes bloquées. */
   .confirmer-blocage{grid-column:1 / -1; display:flex; flex-direction:column; gap:8px; padding:10px 12px; border-radius:10px;
-    border:1px solid var(--v2-danger-bd); background:var(--v2-danger-soft); font-size:12.5px}
+    border:1px solid var(--v2-danger-bd); background:var(--v2-danger-soft); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .confirmer-blocage p{margin:0; color:var(--v2-txt)}
   .risque{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-danger-bd); cursor:pointer;
-    font:700 12.5px var(--v2-sans); color:var(--v2-danger); background:var(--v2-surface)}
+    font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-danger); background:var(--v2-surface)}
   .risque:disabled{opacity:.35; cursor:not-allowed}
   .risque:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .annonce-blocage{margin:0}
   .annonce-blocage.muette{padding:0; border:0; background:transparent}
-  .bloquees summary{cursor:pointer; font-size:14px; font-weight:700}
+  .bloquees summary{cursor:pointer; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .bloquees summary:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .bloquees .note{margin:0}
   .partage{display:flex; flex-direction:column; gap:4px; padding:4px 0 6px; border-bottom:1px solid var(--v2-line)}
@@ -1170,7 +1172,7 @@
   .avis-synchro{margin:0}
   .avis-synchro.alerte{color:var(--v2-danger)}
   .interrupteur{display:inline-flex; align-items:center; gap:10px; border:0; background:transparent; color:var(--v2-txt);
-    font:600 13px var(--v2-sans); cursor:pointer; padding:2px 0; align-self:flex-start}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; padding:2px 0; align-self:flex-start}
   .interrupteur:disabled{opacity:.35; cursor:not-allowed}
   .interrupteur:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .piste-interrupteur{position:relative; width:34px; height:20px; border-radius:10px; background:var(--v2-line2); flex:none; transition:background .15s}
@@ -1183,8 +1185,8 @@
   .rayons-quoi{margin:0}
   .rayons-listes{display:flex; flex-direction:column; gap:10px; padding-top:4px}
   .groupe-rayons{border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; min-width:0}
-  .groupe-rayons legend{font-size:12.5px; font-weight:700; color:var(--v2-txt2); padding:0; margin-bottom:2px}
-  .case-rayon{display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; min-width:0}
+  .groupe-rayons legend{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); font-weight:700; color:var(--v2-txt2); padding:0; margin-bottom:2px}
+  .case-rayon{display:flex; align-items:center; gap:8px; font-size:calc(13px * var(--v2-txt-echelle, 1)); cursor:pointer; min-width:0}
   .case-rayon input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .nom-rayon{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}

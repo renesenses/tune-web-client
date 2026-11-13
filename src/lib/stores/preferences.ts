@@ -3,6 +3,7 @@ import type { Locale } from '../i18n';
 import { resoudreLangue } from '../langueParDefaut';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
+import { appliquerTailleTexte, estTailleTexte, TAILLE_TEXTE_DEFAUT, type TailleTexte } from '../tailleTexte';
 import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
@@ -71,7 +72,7 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
  *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
  *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
@@ -80,7 +81,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 6;
+const OXYGEN_FACETS_REV = 7;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -107,6 +108,11 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // main, au niveau Expert. Activée une fois chez ceux qui ont déjà des
   // préférences, comme `dr` à la révision 4 ; décochée ensuite, elle le reste.
   6: ['folder'],
+  // #2762 (demande HCFR) — chef d'orchestre, ensemble / orchestre et œuvre,
+  // servis par le serveur depuis tune-server-rust#8325. Une facette vide ne
+  // s'affiche pas : sur une bibliothèque sans classique, ou face à un serveur
+  // qui ne les sert pas encore (rc11), le rail reste tel qu'il était.
+  7: ['conductor', 'ensemble', 'work'],
 };
 /**
  * #1636 — les défauts livrés jusqu'à la révision 4, qui oubliaient `dr`.
@@ -233,6 +239,15 @@ export interface Preferences {
    * #1428). Sans effet quand la barre à VU-mètres est allumée, qui le remplace.
    */
   visualiseurBarre: boolean;
+  /**
+   * Barre de progression en forme d'onde — Discussion #8269, go de Bertrand
+   * du 12/11/2026 (rc12). Coché, la barre de « Lecture en cours » et celle de
+   * la barre de lecture dessinent l'enveloppe de la piste locale ; sans
+   * enveloppe (streaming, radio, calcul en cours), la barre classique.
+   * AFFICHAGE seulement. DÉCOCHÉ par défaut (la règle de #1428). Voir
+   * `lib/barreOnde.ts`.
+   */
+  barreOnde: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -457,6 +472,12 @@ export interface Preferences {
    */
   ascenseursLarges: boolean;
   /**
+   * « Taille du texte » — rc12 (go de Bertrand du 12/11/2026). Petite /
+   * Normale / Grande ; « Normale » par défaut = le rendu d'avant. Voir
+   * `lib/tailleTexte.ts`.
+   */
+  tailleTexte: TailleTexte;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -485,6 +506,21 @@ export interface Preferences {
    * `null` : rien de décidé. Voir `lib/typesSourcesBarre`.
    */
   sourcesBarre: ChoixTypesBarre | null;
+  /**
+   * rc12 — « barre latérale et menus allégés » (go de Bertrand du 12/11/2026).
+   * Les groupes à intertitre de la barre (Sélections, Studio) se replient d'un
+   * clic sur leur intertitre ; la liste des groupes REPLIÉS est retenue. Vide
+   * par défaut : la barre s'affiche comme avant tant qu'on n'a rien replié.
+   */
+  barreGroupesReplies: string[];
+  /**
+   * rc12 — les menus « … » des pistes et des fiches montrent d'abord les
+   * gestes courants, le reste sous « Plus… ». `null` (défaut) : SELON LE
+   * NIVEAU — complets à l'Expert (le niveau des installations existantes :
+   * rien ne change pour elles), courts à l'Essentiel et à l'Avancé. Un choix
+   * explicite (Réglages › Interface) l'emporte sur le niveau.
+   */
+  menusComplets: boolean | null;
   /**
    * #2117 — l'instant (ms) du dernier geste sur ces cases, pour qu'un choix
    * fait sur un autre appareil du même profil arrive ici. `0` : jamais daté.
@@ -531,7 +567,7 @@ const defaults: Preferences = {
   oxygenView: 'detail',
   // `dr` en fait partie depuis #1636 : sans lui, un Oxygen neuf n'a pas de DR.
   // #1640 — `folder` (Répertoire) : « circonscrire la recherche » à un dossier.
-  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
+  oxygenFacets: ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
   oxygenFacetLimit: 200,
   oxygenFacetsRev: OXYGEN_FACETS_REV,
   albumSort: 'title',
@@ -559,6 +595,8 @@ const defaults: Preferences = {
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
   visualiseurBarre: true,
+  // Discussion #8269 — décoché : l'écran de qui n'a rien demandé ne bouge pas.
+  barreOnde: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // ESSENTIEL pour une installation NEUVE (Bertrand, 09/11/2026, #2735) —
@@ -590,6 +628,8 @@ const defaults: Preferences = {
   ouvrirFileAuDefilement: false,
   // web#2798 : DÉCOCHÉ — l'ascenseur large se demande dans Réglages.
   ascenseursLarges: false,
+  // rc12 : « Normale » — le rendu d'avant, au pixel près.
+  tailleTexte: TAILLE_TEXTE_DEFAUT,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -597,6 +637,10 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  // rc12 : rien de replié — la barre comme avant.
+  barreGroupesReplies: [],
+  // rc12 : selon le niveau (complets à l'Expert, courts sinon).
+  menusComplets: null,
   sourcesBarreMaj: 0,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
@@ -759,6 +803,10 @@ function lirePrefs(stored: string | null): Preferences {
       if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
         p.v2Theme = V2_THEME_DEFAULT;
       }
+      // rc12 — taille du texte : une valeur inconnue retombe sur « Normale ».
+      if (!estTailleTexte((raw as { tailleTexte?: unknown })?.tailleTexte)) {
+        p.tailleTexte = TAILLE_TEXTE_DEFAUT;
+      }
       // Photo d'avatar : on n'accepte QUE ce que ce client sait avoir écrit,
       // une data-URL d'image. Ce blob ne vient pas seulement d'ici — il est
       // relu depuis `ui_preferences`, donc depuis le serveur (voir
@@ -767,6 +815,13 @@ function lirePrefs(stored: string | null): Preferences {
       // « aucune photo », ce qui redonne le dégradé au lieu d'un rond cassé.
       if (!estDataUrlImage((raw as { avatarImage?: unknown })?.avatarImage)) {
         p.avatarImage = '';
+      }
+      // rc12 — une liste de groupes repliés illisible retombe sur « rien de replié ».
+      {
+        const r = (raw as { barreGroupesReplies?: unknown })?.barreGroupesReplies;
+        p.barreGroupesReplies = Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string') : [];
+        const m = (raw as { menusComplets?: unknown })?.menusComplets;
+        p.menusComplets = typeof m === 'boolean' ? m : null;
       }
       // Le propriétaire de la photo est comparé à une identité de compte : une
       // valeur qui n'est pas une chaîne ne peut apparier personne, et la garder
@@ -999,6 +1054,8 @@ export const preferences = createPreferences();
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
 appliquerAscenseursLarges(loadPrefs().ascenseursLarges === true);
+// rc12 — la taille du texte dès le premier rendu (pas de saut de police).
+appliquerTailleTexte(loadPrefs().tailleTexte);
 
 const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
 

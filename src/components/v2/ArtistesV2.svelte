@@ -80,6 +80,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import { objetArtiste } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
+  import { favoriteArtistIds } from '../../lib/stores/profile';
+  import { seulementFavoris as seulementFavorisDe } from '../../lib/uniquementFavoris';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -102,8 +104,10 @@
     idsPortee?: Set<number> | null;
     /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
     nomPortee?: string | null;
+    /** tune-server-rust#7586 — « Uniquement favoris » : les artistes favoris du profil. */
+    seulementFavoris?: boolean;
   }
-  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null, seulementFavoris = false }: Props = $props();
   /** tune-server-rust#6474 — « Trier les artistes par nom de famille » (réglage
    *  du profil, gardé par le serveur dans `ui_preferences`). `!== false` : un
    *  blob d'avant le réglage garde l'ordre livré, celui du nom de tri. */
@@ -179,7 +183,10 @@
   const dansLaPortee = $derived(
     idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
   );
-  const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
+  const artistesRecherche = $derived(
+    (seulementFavoris ? seulementFavorisDe(dansLaPortee, $favoriteArtistIds) : dansLaPortee)
+      .filter(a => plier(a.name).includes(plier(q))),
+  );
   const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
     [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
@@ -522,10 +529,10 @@
   .meta.centre { text-align: center; }
   .ct {
     display: block; margin-top: 9px;
-    font: 600 12.5px var(--v2-sans); line-height: 1.25;
+    font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height: 1.25;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .etat { padding: 30px; color: var(--v2-txt3); font-size: 13.5px; }
+  .etat { padding: 30px; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
   .etat.err { color: var(--v2-danger); }
 
   .rail {
@@ -535,7 +542,7 @@
   }
   .rail button {
     border: 0; background: transparent; cursor: pointer;
-    font: 600 10px var(--v2-mono); color: var(--v2-txt3);
+    font: 600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
     padding: 1px 4px; border-radius: 4px; line-height: 1.35;
   }
   .rail button.chaud { color: var(--v2-txt2); }

@@ -92,8 +92,11 @@ describe('#1636 — la facette DR dans Oxygen', () => {
     expect(p.oxygenFacets).not.toContain('dr');
     // Même quand ce qui reste est exactement l'ancienne liste par défaut :
     // à la révision courante, c'est un choix, pas une empreinte. (Les défauts
-    // portent `folder` depuis #1640, d'où sa présence ici.)
-    expect([...p.oxygenFacets].sort()).toEqual([...DEFAUTS_REV4, 'folder'].sort());
+    // portent `folder` depuis #1640, et chef / ensemble / œuvre depuis #2762,
+    // d'où leur présence ici.)
+    expect([...p.oxygenFacets].sort()).toEqual(
+      [...DEFAUTS_REV4, 'folder', 'conductor', 'ensemble', 'work'].sort(),
+    );
     expect((await recharger()).oxygenFacets).not.toContain('dr');
   });
 });

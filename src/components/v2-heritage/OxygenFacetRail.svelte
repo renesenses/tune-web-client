@@ -373,31 +373,31 @@
      rail de 240 px, et ne jamais voler l'attention aux valeurs elles-mêmes. */
   .alpha { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 2px 6px; }
   .alpha .al { min-width: 18px; padding: 2px 0; background: none; border: 0; border-radius: 4px;
-               color: var(--tune-text-muted); font: inherit; font-size: 10.5px; font-weight: 700;
+               color: var(--tune-text-muted); font: inherit; font-size: calc(10.5px * var(--v2-txt-echelle, 1)); font-weight: 700;
                cursor: pointer; text-align: center; }
   .alpha .al:hover { color: var(--tune-text); background: var(--tune-surface-hover); }
   .alpha .al.on { background: var(--tune-accent); color: #1a1206; }
-  .rht { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: var(--tune-text-muted); }
-  .allbtn { display: flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 11px; padding: 3px 6px; border-radius: 6px; cursor: pointer; }
+  .rht { font-size: calc(11px * var(--v2-txt-echelle, 1)); letter-spacing: .05em; text-transform: uppercase; font-weight: 700; color: var(--tune-text-muted); }
+  .allbtn { display: flex; align-items: center; gap: 5px; margin-left: auto; background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: calc(11px * var(--v2-txt-echelle, 1)); padding: 3px 6px; border-radius: 6px; cursor: pointer; }
   .allbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
   .group { margin-bottom: 4px; }
   .ghead { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 8px 5px; }
-  .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
+  .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: calc(11px * var(--v2-txt-echelle, 1)); letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
   /* #5075 : le libellé dans son propre élément, qui rétrécit et s'élide. Nu
      dans le bouton, c'était un élément flex anonyme large d'un mot entier :
      quand « Tout afficher » s'ajoutait, « COMPOSITEURS » débordait sur « A→Z ». */
   .ghlabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
+  .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: calc(10px * var(--v2-txt-echelle, 1)); font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
   .sortbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
   /* Nombre de valeurs cochées + « tout décocher ». Discret tant qu'on ne le
      survole pas : c'est un repère, pas une action qu'on veut déclencher par
      mégarde. */
-  .clearbtn { display: flex; align-items: center; gap: 3px; background: var(--tune-accent); border: 0; color: #1a1206; font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; cursor: pointer; flex: none; }
+  .clearbtn { display: flex; align-items: center; gap: 3px; background: var(--tune-accent); border: 0; color: #1a1206; font: inherit; font-size: calc(10px * var(--v2-txt-echelle, 1)); font-weight: 700; padding: 1px 5px; border-radius: 8px; cursor: pointer; flex: none; }
   .clearbtn:hover { filter: brightness(1.12); }
-  .clearbtn .x { font-size: 11px; line-height: 1; }
+  .clearbtn .x { font-size: calc(11px * var(--v2-txt-echelle, 1)); line-height: 1; }
   /* #2108 — l'opérateur entre valeurs cochées : discret en « Ou » (défaut),
      plein en « Et » pour que le filtre plus strict se voie. */
-  .opbtn { background: none; border: 1px solid var(--tune-accent); color: var(--tune-accent); font: inherit; font-size: 10px; font-weight: 700; padding: 0 5px; border-radius: 8px; cursor: pointer; flex: none; text-transform: uppercase; }
+  .opbtn { background: none; border: 1px solid var(--tune-accent); color: var(--tune-accent); font: inherit; font-size: calc(10px * var(--v2-txt-echelle, 1)); font-weight: 700; padding: 0 5px; border-radius: 8px; cursor: pointer; flex: none; text-transform: uppercase; }
   .opbtn.et { background: var(--tune-accent); color: #1a1206; }
   .opbtn:hover { filter: brightness(1.12); }
   /* La case à cocher d'une valeur de facette. */
@@ -407,15 +407,15 @@
   .chev.closed { transform: rotate(-90deg); }
   /* Discret comme `.sortbtn` : c'est une issue, pas l'action principale de la
      ligne. Il ne s'affiche que sur une facette réellement tronquée. */
-  .allvals { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; white-space: nowrap; }
+  .allvals { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: calc(10px * var(--v2-txt-echelle, 1)); font-weight: 700; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; white-space: nowrap; }
   .allvals:hover { background: var(--tune-surface-hover); }
-  .gn { margin-left: auto; font-size: 10px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .gn { margin-left: auto; font-size: calc(10px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   .values { display: flex; flex-direction: column; }
   .val { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--tune-text-secondary); font: inherit; text-align: left; padding: 5px 8px; border-radius: 7px; cursor: pointer; }
   .val:hover { background: var(--tune-surface-hover); color: var(--tune-text); }
   .val.active { background: var(--tune-surface-selected); color: var(--tune-accent); }
-  .vl { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
-  .vc { font-size: 10.5px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .vl { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .vc { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   .val.active .vc { color: var(--tune-accent); }
-  .note { font-size: 10.5px; color: var(--tune-text-muted); line-height: 1.5; padding: 12px 8px 0; }
+  .note { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); line-height: 1.5; padding: 12px 8px 0; }
 </style>

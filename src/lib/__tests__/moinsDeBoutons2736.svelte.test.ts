@@ -165,12 +165,14 @@ describe('la fiche album : trois boutons et un menu', () => {
     return b;
   }
 
-  it('l’en-tête ne garde que Lecture (et sa flèche), Aléatoire, Favori et « … »', async () => {
+  // rc12 (Bertrand, 12/11/2026) : « un seul bouton Play » — Aléatoire quitte
+  // la rangée pour la flèche de Lecture (voir `boutonPlayUnique`).
+  it('l’en-tête ne garde que Lecture (et sa flèche), Favori et « … »', async () => {
     poser(AlbumDetailV2, { album: LOCAL });
     await jusqua(() => hote!.querySelectorAll('.tracks [data-track-id], .tracks .row, .tracks tr').length > 0, 1500);
     const boutons = Array.from(hote!.querySelectorAll<HTMLButtonElement>('.actions:not(.local) > button, .actions:not(.local) > .bl > button'));
     expect(boutons.map((b) => b.getAttribute('aria-label') ?? b.textContent?.trim())).toEqual([
-      tr('v2.album.play'), tr('v2.menu.playOptions'), tr('v2.album.shuffle'),
+      tr('v2.album.play'), tr('v2.menu.playOptions'),
       tr('favorites.addAlbum'), tr('v2.cover.more'),
     ]);
   });

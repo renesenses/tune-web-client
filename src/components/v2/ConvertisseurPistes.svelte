@@ -80,17 +80,17 @@
 <style>
   .pistes{margin:0 0 16px; padding:14px 16px; border-radius:13px; border:1px solid var(--v2-line2); background:var(--v2-acc-soft)}
   .ph{display:flex; align-items:center; gap:12px; margin-bottom:10px}
-  .ph strong{font:700 13px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ph .n{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
-  .etat{color:var(--v2-txt3); font-size:12px}
-  label{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--v2-txt2)}
+  .ph strong{font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ph .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
+  .etat{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  label{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .tout{font-weight:600; color:var(--v2-txt); margin-bottom:8px}
   .dossier{margin-top:8px}
-  .dl code{font:11.5px var(--v2-mono); color:var(--v2-txt)}
+  .dl code{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt)}
   ul{list-style:none; margin:4px 0 0; padding:0 0 0 22px; display:grid; gap:3px}
-  .no{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:18px; text-align:right}
+  .no{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); min-width:18px; text-align:right}
   .ti{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:5px 12px; font:600 11.5px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:5px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 </style>

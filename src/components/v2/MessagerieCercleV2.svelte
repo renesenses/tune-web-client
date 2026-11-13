@@ -10,7 +10,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -39,9 +39,21 @@
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
 
   /** rc11 — un cercle a « # » pour avatar ; un contact, ses initiales. */
-  function avatar(c: ConversationCercle) { return c.kind === 'circle' ? '#' : initiales(c.contact.name); }
-  /** L'auteur d'un message reçu : le contact en privé ; dans un cercle, son nom tant qu'il est membre. */
-  function auteur(c: ConversationCercle, m: MessageCercle) { return c.kind === 'circle' ? (m.sender_name ?? tr('v2.circle.msg.formerMember')) : c.contact.name; }
+  function avatar(c: ConversationCercle) { return c.kind === 'direct' ? initiales(c.contact.name) : '#'; }
+  /** L'auteur d'un message reçu : le contact en privé ; dans un cercle (rc11) ou un cercle général (rc12), son nom tant qu'il est membre. */
+  function auteur(c: ConversationCercle, m: MessageCercle) { return c.kind === 'direct' ? c.contact.name : (m.sender_name ?? tr('v2.circle.msg.formerMember')); }
+  /** rc12 — avant le premier texte ou la première carte dans un cercle général :
+   *  l'acceptation du pseudo, enregistrée par le cloud. `false` : refus, rien n'est envoyé. */
+  async function pseudoAccepte(id: number): Promise<boolean> {
+    if (choix?.kind !== 'general' || choix.id !== id || !choix.name_consent_required) return true;
+    const tour = generation;
+    if (!(await dialogs.confirm(tr('v2.circle.general.nameConsent').replace('{circle}', choix.circle.name))) || fini || tour !== generation || choix?.id !== id) return false;
+    await consentirPseudo(id);
+    if (fini || tour !== generation || choix?.kind !== 'general' || choix.id !== id) return false;
+    choix = { ...choix, name_consent_required: false };
+    liste = liste.map((c) => c.id === id && c.kind === 'general' ? { ...c, name_consent_required: false } : c);
+    return true;
+  }
   async function regler(write: EcritureCercle) {
     if (choix?.kind !== 'circle' || !choix.circle.mine) return;
     const id = choix.id; const cercle = choix.circle.id;
@@ -64,7 +76,7 @@
   function ajusterSaisie() { if (saisie) { saisie.style.height = 'auto'; saisie.style.height = `${Math.min(saisie.scrollHeight, 158)}px`; } }
   async function bas() { await tick(); if (defilement) defilement.scrollTop = defilement.scrollHeight; }
   function clavier(ev: KeyboardEvent) {
-    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
+    if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
   }
   async function ajouterEmoji(e: string) {
     const r = insererEmoji(texte, saisie?.selectionStart, saisie?.selectionEnd, e);
@@ -77,6 +89,12 @@
   function retour() { generation++; choix = null; messages = []; selection = []; viderBrouillons(); }
   function viderBrouillons() { texte = ''; emojis = false; accuse = ''; menuMessage = null; ajusterSaisie(); commentaire = ''; raison = 'harassment'; signalement = false; }
   function echec(e: unknown) {
+    if (refusFautePseudo(e)) {
+      // Le cloud a perdu (ou jamais reçu) l'acceptation : on la redemandera au prochain envoi.
+      if (choix?.kind === 'general') choix = { ...choix, name_consent_required: true };
+      erreur = tr('v2.circle.general.nameConsentNeeded');
+      return;
+    }
     if ((e as any)?.status === 404 || (e as any)?.status === 412) { generation++; choix = null; messages = []; liste = []; selection = []; viderBrouillons(); }
     erreur = (e as any)?.code === 'circle.card_not_found' ? tr('v2.circle.msg.notFound') : tr(motifCercle(e).cle);
   }
@@ -134,7 +152,14 @@
     if (!d || occupe) return;
     demandeConversation.set(null);
     void geste(async () => {
-      if (d.cercle) {
+      if (d.general) {
+        erreurOuvertureConversation.set(null);
+        const c = await ouvrirFilGeneral(d.general);
+        if (fini) return;
+        disponible = true;
+        if (!liste.some((l) => l.id === c.id)) liste = [c, ...liste];
+        await ouvrir(c);
+      } else if (d.cercle) {
         erreurOuvertureConversation.set(null);
         const c = await ouvrirConversationCercle(d.cercle);
         if (fini) return;
@@ -167,7 +192,7 @@
     if (!choix || !ecritureOuverte(choix) || !messageEnvoyable(texte, null)) return;
     const id = choix.id; const brouillon = raccourcisActifs() ? convertirRaccourcis(texte) : texte; const cercle = choix.kind === 'circle' ? choix.circle.id : null;
     emojis = false;
-    await geste(async () => { await (cercle !== null ? envoyerAuCercle(cercle, brouillon) : envoyerMessage(id, brouillon)); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
+    await geste(async () => { if (!(await pseudoAccepte(id))) return; await (cercle !== null ? envoyerAuCercle(cercle, brouillon) : envoyerMessage(id, brouillon)); if (choix?.id === id) { texte = ''; await tick(); ajusterSaisie(); } await charger(); if (choix?.id === id) await bas(); });
   }
   async function supprimer(m: MessageCercle) {
     if (!choix || !m.mine || !(await dialogs.confirm(tr('v2.circle.msg.deleteConfirm'), { danger: true }))) return;
@@ -188,7 +213,17 @@
     const tour = () => { if (!document.hidden && !occupe && Date.now() - dernierTour >= RELECTURE_MESSAGES_MS) void charger(); };
     const timer = setInterval(tour, RELECTURE_MESSAGES_MS);
     document.addEventListener('visibilitychange', tour);
-    return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); };
+    // rc12 — quitter un cercle général : son fil disparaît tout de suite, ouvert ou non.
+    const adhesion = (ev: Event) => {
+      const general = (ev as CustomEvent<{ general?: number }>).detail?.general;
+      const parti = (c: ConversationCercle) => c.kind === 'general' && (general === undefined || c.circle.id === general);
+      generation++;
+      liste = liste.filter((c) => !parti(c));
+      if (choix && parti(choix)) { choix = null; messages = []; selection = []; viderBrouillons(); }
+      void charger();
+    };
+    window.addEventListener(ADHESION_GENERALE_CHANGEE, adhesion);
+    return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); window.removeEventListener(ADHESION_GENERALE_CHANGEE, adhesion); };
   });
 </script>
 
@@ -204,15 +239,15 @@
         {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{/if}
         {#each liste as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
-            <span class="avatar" class:avatar-cercle={c.kind === 'circle'} aria-hidden="true">{avatar(c)}</span>
-            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
+            <span class="avatar" class:avatar-cercle={c.kind !== 'direct'} aria-hidden="true">{avatar(c)}</span>
+            <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{:else if c.kind === 'general'}<span class="extrait" use:bulleTexte>{tr('v2.circle.general.label')}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
             <span class="repere"><time datetime={c.last_message?.created_at}>{heure(c.last_message?.created_at ?? '', true)}</time>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}</span>
           </button>
         {/each}
       </nav>
       {#if choix}
         <div class="fil">
-          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind === 'circle'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
+          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind !== 'direct'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
             {#if choix.kind === 'circle' && choix.circle.mine}
               <label class="reglage-ecriture">{tr('v2.circle.msg.writeSetting')}
                 <select value={choix.circle.write} disabled={occupe} onchange={(ev) => void regler(ev.currentTarget.value as EcritureCercle)}>
@@ -269,7 +304,7 @@
             <button class="envoi" type="submit" aria-label={tr('v2.circle.msg.send')} disabled={occupe || !messageEnvoyable(texte, null)}><span aria-hidden="true">↑</span></button>
             {#if longueurMessage(texte) >= 3500}<span class="compteur note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>{/if}
           </form>{/if}
-          <p class="note moderation"><span aria-hidden="true">ⓘ</span> {tr(choix.kind === 'circle' ? 'v2.circle.msg.circlePrivacy' : 'v2.circle.msg.privacy')}</p>
+          <p class="note moderation"><span aria-hidden="true">ⓘ</span> {tr(choix.kind === 'circle' ? 'v2.circle.msg.circlePrivacy' : choix.kind === 'general' ? 'v2.circle.general.privacy' : 'v2.circle.msg.privacy')}</p>
           {#if selection.length}<button type="button" onclick={() => signalement = !signalement}>{tr('v2.circle.msg.report')} ({selection.length})</button>{/if}
           {#if signalement}
             <form class="signalement" onsubmit={signaler}>
@@ -291,25 +326,25 @@
 
 <style>
   .messagerie{margin:24px 0;color:var(--v2-txt);scroll-margin-top:24px}
-  h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0;min-width:0;overflow-wrap:anywhere}
+  h2{font-size:calc(18px * var(--v2-txt-echelle, 1));margin:0 0 12px}h3{font-size:calc(15px * var(--v2-txt-echelle, 1));margin:0;min-width:0;overflow-wrap:anywhere}
   .volets{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,3fr);border:1px solid var(--v2-line);border-radius:16px;overflow:hidden;background:var(--v2-bg)}
   nav{display:flex;flex-direction:column;gap:2px;padding:8px;border-right:1px solid var(--v2-line);max-height:620px;overflow:auto}
   button,select,textarea{font:inherit;color:inherit;border:1px solid var(--v2-line);background:var(--v2-surface2);border-radius:8px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
   button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}
   .conversation{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 8px;border:0;background:transparent;min-width:0}.conversation:hover{background:var(--v2-hover)}.conversation.choisie{background:var(--v2-active1)}
-  .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:12px;font-weight:600;color:var(--v2-txt)}
-  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.extrait{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--v2-txt2);margin-top:4px}
-  .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:10px;color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:11px}
-  .avatar-cercle{font-size:16px;color:var(--v2-acc1)}.reglage-ecriture{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--v2-txt2)}.reglage-ecriture select{padding:4px 6px;font-size:12px}.lecture-seule{margin:12px 16px 4px}
+  .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt)}
+  .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(13px * var(--v2-txt-echelle, 1))}.extrait{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);margin-top:4px}
+  .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:calc(10px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(11px * var(--v2-txt-echelle, 1))}
+  .avatar-cercle{font-size:calc(16px * var(--v2-txt-echelle, 1));color:var(--v2-acc1)}.reglage-ecriture{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.reglage-ecriture select{padding:4px 6px;font-size:calc(12px * var(--v2-txt-echelle, 1))}.lecture-seule{margin:12px 16px 4px}
   .fil{min-width:0;display:flex;flex-direction:column}.entete-fil{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
-  .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:12px}
+  .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .messages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}.message{align-self:flex-start;max-width:70%;min-width:0;overflow-wrap:anywhere}.message.mon-message{align-self:flex-end}.message.groupe{margin-top:-6px}
   .bulle{padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--v2-surface2);color:var(--v2-txt)}.mon-message .bulle{background:color-mix(in srgb,var(--v2-acc1) 14%,var(--v2-surface));border-radius:16px 16px 4px 16px}
-  .auteur{font-size:11px;font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:14px;line-height:1.5;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol'}.texte.grands-emojis{font-size:34px;line-height:1.25}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:10px;padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
-  .jour{align-self:stretch;display:flex;justify-content:center;margin:10px 0;color:var(--v2-txt2);font-size:11px}.jour span{padding:3px 10px;border-radius:12px;background:var(--v2-bg2)}
-  .actions-message{position:relative}.menu-bouton{opacity:0;pointer-events:none;border:0;background:transparent;padding:0 5px;line-height:20px;font-size:18px}.message:hover .menu-bouton,.message:focus-within .menu-bouton{opacity:1;pointer-events:auto}.menu-message{position:absolute;bottom:24px;left:0;z-index:2;display:flex;flex-direction:column;gap:8px;padding:10px;min-width:140px;background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:10px;font-size:12px;color:var(--v2-txt)}.mon-message .menu-message{left:auto;right:0}
-  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:22px;line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:24px}.compteur{width:100%;text-align:right}
-  .note{font-size:12px;color:var(--v2-txt2)}.moderation{font-size:11px;line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:12px}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .auteur{font-size:calc(11px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:calc(14px * var(--v2-txt-echelle, 1));line-height:1.5;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol'}.texte.grands-emojis{font-size:calc(34px * var(--v2-txt-echelle, 1));line-height:1.25}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:calc(10px * var(--v2-txt-echelle, 1));padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
+  .jour{align-self:stretch;display:flex;justify-content:center;margin:10px 0;color:var(--v2-txt2);font-size:calc(11px * var(--v2-txt-echelle, 1))}.jour span{padding:3px 10px;border-radius:12px;background:var(--v2-bg2)}
+  .actions-message{position:relative}.menu-bouton{opacity:0;pointer-events:none;border:0;background:transparent;padding:0 5px;line-height:20px;font-size:calc(18px * var(--v2-txt-echelle, 1))}.message:hover .menu-bouton,.message:focus-within .menu-bouton{opacity:1;pointer-events:auto}.menu-message{position:absolute;bottom:24px;left:0;z-index:2;display:flex;flex-direction:column;gap:8px;padding:10px;min-width:140px;background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:10px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt)}.mon-message .menu-message{left:auto;right:0}
+  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(24px * var(--v2-txt-echelle, 1))}.compteur{width:100%;text-align:right}
+  .note{font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.moderation{font-size:calc(11px * var(--v2-txt-echelle, 1));line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:calc(12px * var(--v2-txt-echelle, 1))}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   @media(hover:none){.menu-bouton{opacity:1;pointer-events:auto}}
   @media(max-width:699px){.volets{grid-template-columns:minmax(0,1fr)}nav{border-right:0;max-height:65dvh}.fil-ouvert nav{display:none}.retour{display:block;border:0;background:transparent}.attente{display:none}.defilement{height:clamp(180px,40dvh,400px);padding:10px 12px}.message{max-width:72%}.composeur{padding:10px 12px 4px}.moderation{margin:8px 12px 12px}}
 </style>

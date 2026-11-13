@@ -64,7 +64,7 @@ function corpsPour(url: string): unknown {
       id: 700 + i, name: `Radio ${i + 1}`, logo_url: null,
     }));
   }
-  if (url.includes('/library/recommendations')) {
+  if (url.includes('/home/recommendations')) {
     return Array.from({ length: 12 }, (_, i) => ({
       id: 300 + i, title: `Album ${i + 1}`, artist_name: `Artiste ${i + 1}`, cover_path: null,
     }));

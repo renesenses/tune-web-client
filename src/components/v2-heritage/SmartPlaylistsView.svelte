@@ -10,6 +10,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import BoutonLectureV2 from '../v2/BoutonLectureV2.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import PochetteActions from '../v2/PochetteActions.svelte';
   import { cibleSmartPlaylist } from '../../lib/cibleEtiquette';
@@ -743,14 +744,11 @@
       </div>
 
       <div class="sp-detail-actions">
-        <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
-          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
-          {$tr('smartPlaylists.playAll')} ({spTracks.length})
-        </button>
-        <button class="edit-btn" onclick={playShuffle} disabled={spTracks.length === 0} title={$tr('library.shuffle')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
-          {$tr('library.shuffle')}
-        </button>
+        <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire passe sous sa flèche. -->
+        <BoutonLectureV2 cle="smartPlaylists.playAll" suffixe={` (${spTracks.length})`} classeLire="play-all-btn"
+          onLire={playAll} desactive={spTracks.length === 0}
+          aleatoire={{ faire: playShuffle, desactive: spTracks.length === 0 }}
+          attrsAleatoire={{ 'data-aleatoire-smart': true }} />
         <button class="edit-btn" onclick={() => { const sp = selectedSp!; fermerSpSansReculer(); startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
           {$tr('smartPlaylists.edit')}
@@ -1034,26 +1032,26 @@
   .sp-view { padding: var(--space-lg) 28px; overflow-y: auto; height: 100%; }
   /* L’écran est monté dans la coquille : son en-tête laisse la place à la grappe. */
   .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); padding-right: var(--v2-grappe-w, 172px); }
-  .sp-list-header h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
-  .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; transition: opacity 0.12s; }
+  .sp-list-header h2 { font-family: var(--font-label); font-size: calc(28px * var(--v2-txt-echelle, 1)); font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
+  .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; transition: opacity 0.12s; }
   .create-btn:hover { opacity: 0.85; }
 
   /* Create form */
   .sp-create-form { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
-  .sp-input { background: var(--tune-bg); border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text); font-family: var(--font-body); font-size: 14px; outline: none; }
+  .sp-input { background: var(--tune-bg); border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text); font-family: var(--font-body); font-size: calc(14px * var(--v2-txt-echelle, 1)); outline: none; }
   .sp-input:focus { border-color: var(--tune-accent); }
   .sp-input-sm { flex: 1; min-width: 100px; }
   .sp-input-num { width: 80px; }
-  .sp-select { background: var(--tune-bg); border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-xs) var(--space-sm); color: var(--tune-text); font-family: var(--font-body); font-size: 13px; outline: none; }
-  .sp-rules-builder h4 { font-family: var(--font-label); font-size: 12px; font-weight: 600; color: var(--tune-text-secondary); margin: 0; }
+  .sp-select { background: var(--tune-bg); border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-xs) var(--space-sm); color: var(--tune-text); font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); outline: none; }
+  .sp-rules-builder h4 { font-family: var(--font-label); font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text-secondary); margin: 0; }
   .sp-rule-row { display: flex; align-items: center; gap: var(--space-sm); margin-top: var(--space-xs); }
   .sp-remove-rule { background: none; border: none; color: var(--tune-text-muted); cursor: pointer; padding: 2px; }
   .sp-remove-rule:hover { color: #ef4444; }
-  .sp-add-rule { background: none; border: none; color: var(--tune-accent); cursor: pointer; font-family: var(--font-body); font-size: 13px; padding: var(--space-xs) 0; }
+  .sp-add-rule { background: none; border: none; color: var(--tune-accent); cursor: pointer; font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: var(--space-xs) 0; }
   .sp-options { display: flex; flex-wrap: wrap; gap: var(--space-md); }
-  .sp-options label { display: flex; align-items: center; gap: var(--space-xs); font-family: var(--font-body); font-size: 13px; color: var(--tune-text-secondary); }
+  .sp-options label { display: flex; align-items: center; gap: var(--space-xs); font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .sp-form-actions { display: flex; gap: var(--space-sm); }
-  .cancel-btn { background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-label); font-size: 13px; }
+  .cancel-btn { background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); }
 
   /* ------------------------------------------------------------------------
      La GRILLE, reprise telle quelle de `v2/CollectionsV2` (22/09/2026).
@@ -1076,13 +1074,13 @@
      disparaître le `role="button"` de l'ancienne carte. */
   .meta { display: flex; flex-direction: column; gap: 6px; width: 100%; border: 0; background: transparent;
     padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; min-width: 0; }
-  .ct { font-weight: 600; font-size: 13.5px; color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ca { font: 11px var(--v2-mono); color: var(--v2-txt3); display: flex; align-items: center; gap: 6px; }
+  .ct { font-weight: 600; font-size: calc(13.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ca { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); display: flex; align-items: center; gap: 6px; }
   /* Le résumé des règles : une ligne, l'infobulle porte le reste. */
-  .cd { font-size: 11.5px; color: var(--v2-txt3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cd { font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
   .grid.grandes { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
-  .grid.grandes .ct { font-size: 15px; }
+  .grid.grandes .ct { font-size: calc(15px * var(--v2-txt-echelle, 1)); }
   /* La liste : la même grille couchée, comme dans Collections. Une carte par
      ligne, la mosaïque réduite ; les gestes de la pochette et le titre
      cliquable restent ceux de la grille. */
@@ -1092,14 +1090,14 @@
   .grid.liste .cv { width: 48px; flex: 0 0 48px; }
   .grid.liste .meta { flex-direction: row; align-items: baseline; gap: 12px; flex: 1; }
   .grid.liste .meta .ct { max-width: 60%; min-width: 0; }
-  .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
+  .sp-empty { font-family: var(--font-body); font-size: calc(14px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
 
   /* Tri de la liste — mêmes commandes que Collections. */
   .sp-barre { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding-right: var(--v2-grappe-w, 172px); }
   .tricol { display: inline-flex; align-items: center; gap: 8px; }
-  .tricol span { font: 9.5px var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-txt3); }
+  .tricol span { font: calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-txt3); }
   .tricol select { height: 30px; padding: 0 8px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill);
-    background: var(--v2-surface2); color: var(--v2-txt2); font: 12.5px inherit; cursor: pointer; }
+    background: var(--v2-surface2); color: var(--v2-txt2); font: calc(12.5px * var(--v2-txt-echelle, 1)) inherit; cursor: pointer; }
   .tricol select:hover { border-color: var(--v2-acc2); color: var(--v2-txt); }
   .tricol .sens { width: 30px; height: 30px; display: grid; place-items: center; padding: 0;
     border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill); background: var(--v2-surface2);
@@ -1116,7 +1114,7 @@
     padding: 10px 12px 10px 4px; margin-right: 6px; position: sticky; top: 0; align-self: flex-start;
     border-right: 1px solid var(--v2-line); }
   .rl { width: 22px; height: 20px; display: grid; place-items: center; border: 0; background: transparent;
-    font: 600 11px var(--v2-mono); color: var(--v2-txt3); cursor: pointer; border-radius: 5px; transition: .12s; }
+    font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); cursor: pointer; border-radius: 5px; transition: .12s; }
   .rl:disabled { opacity: .22; cursor: default; }
   .rl.hot { color: var(--v2-txt2); }
   .rl.hot:hover { color: var(--v2-on-acc); background: linear-gradient(135deg, var(--v2-acc1), var(--v2-acc2)); }
@@ -1124,19 +1122,19 @@
 
   /* Detail */
   .sp-header { margin-bottom: var(--space-md); }
-  .back-btn { display: flex; align-items: center; gap: var(--space-xs); background: none; border: none; color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-body); font-size: 13px; padding: 0; }
+  .back-btn { display: flex; align-items: center; gap: var(--space-xs); background: none; border: none; color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 0; }
   .back-btn:hover { color: var(--tune-accent); }
   .sp-detail-header { display: flex; align-items: flex-start; gap: var(--space-lg); margin-bottom: var(--space-md); }
   .sp-icon { color: var(--tune-accent); padding: var(--space-md); background: var(--tune-surface); border-radius: var(--radius-lg); }
-  .sp-detail-info h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
-  .sp-desc { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-secondary); margin: 2px 0; }
-  .sp-meta { font-family: var(--font-body); font-size: 12px; color: var(--tune-text-muted); margin: 0; }
+  .sp-detail-info h2 { font-family: var(--font-label); font-size: calc(28px * var(--v2-txt-echelle, 1)); font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
+  .sp-desc { font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); margin: 2px 0; }
+  .sp-meta { font-family: var(--font-body); font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin: 0; }
   .sp-rules-display { display: flex; flex-wrap: wrap; gap: 4px; margin-top: var(--space-xs); }
-  .sp-rule-chip { font-family: var(--font-body); font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
+  .sp-rule-chip { font-family: var(--font-body); font-size: calc(11px * var(--v2-txt-echelle, 1)); padding: 2px 8px; border-radius: 10px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
   .sp-detail-actions { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); }
-  .play-all-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; }
+  .play-all-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; }
   .play-all-btn:disabled { opacity: 0.5; cursor: default; }
-  .edit-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; color: var(--tune-text-secondary); transition: border-color 0.12s, color 0.12s; }
+  .edit-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-lg); background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text-secondary); transition: border-color 0.12s, color 0.12s; }
   .edit-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
 
   /* Tracks list */
@@ -1146,12 +1144,12 @@
   .play-from-here-btn { width: 28px; height: 28px; border: 1px solid var(--tune-border); border-radius: var(--radius-sm); background: none; color: var(--tune-text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.12s ease-out; opacity: 0; flex-shrink: 0; }
   .sp-track-row:hover .play-from-here-btn { opacity: 1; }
   .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
-  .sp-track-num { font-family: var(--font-label); font-size: 13px; color: var(--tune-text-muted); min-width: 28px; text-align: right; }
+  .sp-track-num { font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); min-width: 28px; text-align: right; }
   .sp-track-art { flex-shrink: 0; }
   .sp-track-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
-  .sp-track-title { font-family: var(--font-body); font-size: 14px; font-weight: 600; color: var(--tune-text); }
-  .sp-track-artist { font-family: var(--font-body); font-size: 13px; color: var(--tune-text-secondary); }
-  .sp-track-duration { font-family: var(--font-label); font-size: 12px; color: var(--tune-text-muted); }
-  .audio-format { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 8px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
+  .sp-track-title { font-family: var(--font-body); font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); }
+  .sp-track-artist { font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
+  .sp-track-duration { font-family: var(--font-label); font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .audio-format { font-size: calc(9px * var(--v2-txt-echelle, 1)); font-weight: 600; padding: 2px 6px; border-radius: 8px; background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.1); color: var(--tune-accent); }
   .loading { display: flex; justify-content: center; padding: var(--space-xl); }
 </style>

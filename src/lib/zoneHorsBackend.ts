@@ -19,6 +19,41 @@ export interface SignalementHorsBackend {
   noteAsio: boolean;
 }
 
+/**
+ * tune-server-rust#7806 — le pilote réel d'une zone locale Windows, en
+ * capitales (« WASAPI », « ASIO »), ou `null` quand le serveur ne le dit pas
+ * (hors Windows, serveur antérieur, sortie inconnue). Le testeur du fil 2248
+ * lisait son DSD sur « This Computer » en croyant lire en ASIO : la zone était
+ * en WASAPI, et le DSD y était converti en PCM.
+ */
+export function piloteDeLaZone(z: Pick<Zone, 'pilote_local'>): 'WASAPI' | 'ASIO' | null {
+  const p = (z.pilote_local ?? '').trim().toLowerCase();
+  if (p === 'asio') return 'ASIO';
+  if (p === 'wasapi') return 'WASAPI';
+  return null;
+}
+
+/** Une sortie ASIO présente qu'aucune zone ne porte (`GET /zones/asio-sans-zone`). */
+export interface SortieAsioSansZone {
+  device_id: string;
+  name: string;
+  backend?: string;
+}
+
+/**
+ * tune-server-rust#7806 — les sorties ASIO à signaler : celles du serveur,
+ * moins celles qu'une zone de la liste porte déjà (la zone vient d'être créée,
+ * la liste du serveur n'est pas encore relue).
+ */
+export function sortiesAsioAAvertir(
+  sorties: SortieAsioSansZone[] | null | undefined,
+  zones: Pick<Zone, 'output_device_id'>[],
+): SortieAsioSansZone[] {
+  return (sorties ?? []).filter(
+    (s) => !!s?.device_id && !zones.some((z) => z.output_device_id === s.device_id),
+  );
+}
+
 export function signalementHorsBackend(
   z: Pick<Zone, 'backend_sortie' | 'hors_backend_choisi'>,
 ): SignalementHorsBackend | null {

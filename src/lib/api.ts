@@ -23,6 +23,8 @@ import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
 import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
+import { cleCodeSpotify } from './messagesSpotify';
+import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -42,6 +44,10 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   // désactivée par défaut : le serveur refuse proprement (409) tant qu'elle
   // ne l'est pas. Un état de réglage, pas une panne.
   spotify_playback_disabled: 'playback.errorSpotifyDisabled',
+  // Compte Spotify gratuit : Spotify n'autorise l'écoute dans une application
+  // tierce qu'avec Premium (409 `spotify_premium_required`, refus de librespot
+  // ou `PREMIUM_REQUIRED` de l'API Web). Un état du compte, pas une panne.
+  spotify_premium_required: 'playback.errorSpotifyPremium',
   // tune-server-rust#8088 — contrôle parental : contenu marqué explicite refusé
   // (403). Repli quand le serveur n'a pas envoyé sa phrase.
   parental_explicit_refused: 'playback.errorParentalExplicit',
@@ -714,6 +720,12 @@ export async function fetchJSON<T>(
           notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
+      } else if (cleCodeSpotify(err.code)) {
+        // tune-server-rust#8198 — un refus de connexion Spotify : la phrase
+        // traduite qui dit quoi faire, à la place du texte du serveur
+        // (français sans accents). Pas de bandeau : l'écran qui a lancé la
+        // connexion l'affiche à sa place.
+        err.message = get(t)(cleCodeSpotify(err.code) as any);
       } else if (key) {
         const traduit = get(t)(key as any);
         notifications.error(traduit);
@@ -945,6 +957,33 @@ export function supprimerArretProgramme(): Promise<EtatArretProgramme> {
   return fetchJSON(`${BASE}/system/settings/scheduled-stop`, { method: 'DELETE' }, undefined, true);
 }
 
+/**
+ * tune-server-rust#8325 / ESL63P — réglage « Balises du classique » : les
+ * balises lues par rôle et le sort de BAND. Un PUT qui change le réglage
+ * relance la relecture de fond des balises (`reread_started`), pas un scan.
+ */
+export interface EtatBalisesClassique {
+  classical_tags: import('./balisesClassique').BalisesClassique;
+  defaults: import('./balisesClassique').BalisesClassique;
+  standard_names?: { conductor: string; work: string; movement: string };
+  max_tags_per_role?: number;
+  reread_started?: boolean;
+}
+
+export function getBalisesClassique(): Promise<EtatBalisesClassique> {
+  // Sans bandeau : un serveur d'avant le réglage répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, undefined, undefined, true);
+}
+
+export function setBalisesClassique(
+  reglage: Partial<import('./balisesClassique').BalisesClassique>,
+): Promise<EtatBalisesClassique> {
+  return fetchJSON(`${BASE}/system/settings/classical-tags`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
@@ -992,6 +1031,47 @@ export interface CandidatRattachement {
   device_id: string;
   name: string;
   backend: string;
+}
+/** tune-server-rust#7806 — les sorties ASIO présentes qu'aucune zone visible
+ *  ne porte. Un serveur antérieur (404) ou injoignable rend une liste vide :
+ *  l'avertissement se tait, l'écran s'affiche. */
+export async function getSortiesAsioSansZone(): Promise<import('./zoneHorsBackend').SortieAsioSansZone[]> {
+  try {
+    const r = await fetchJSON<{ sorties?: import('./zoneHorsBackend').SortieAsioSansZone[] }>(
+      `${BASE}/zones/asio-sans-zone`, undefined, undefined, true,
+    );
+    return Array.isArray(r?.sorties) ? r.sorties : [];
+  } catch {
+    return [];
+  }
+}
+/** tune-server-rust#7836 — une zone supprimée (masquée), restaurable. */
+export interface ZoneSupprimee {
+  id: number;
+  name: string;
+  output_device_id: string | null;
+  output_type: string | null;
+  motif: string | null;
+  masquee_le: string | null;
+  appareil_detecte: boolean;
+}
+/**
+ * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
+ * serveur ne publie pas la route (antérieur à la rc12), l'écran n'en dit rien.
+ */
+export async function getZonesSupprimees(): Promise<ZoneSupprimee[] | null> {
+  try {
+    const r = await fetchJSON<{ items?: ZoneSupprimee[] }>(
+      `${BASE}/zones/supprimees`, undefined, undefined, true,
+    );
+    return Array.isArray(r?.items) ? r.items : null;
+  } catch {
+    return null;
+  }
+}
+/** tune-server-rust#7836 — rend visible une zone supprimée, réglages gardés. */
+export function restaurerZone(id: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}/restaurer`, { method: 'POST' });
 }
 /** Les sorties ASIO présentes qu'aucune autre zone ne porte. */
 export function getRattachementCandidats(id: number) {
@@ -1217,6 +1297,17 @@ export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'rel
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_radio_title: mode }),
+  });
+}
+
+/** web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » : sur
+ *  un renderer DLNA qui raccorde mal deux pistes, une suite de pistes de même
+ *  format part en un seul flux WAV. Par zone, désactivé par défaut ; pris en
+ *  compte à la lecture suivante. */
+export function updateZoneDlnaFluxContinu(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ dlna_flux_continu: enabled }),
   });
 }
 
@@ -2789,7 +2880,17 @@ export interface AlbumsArtisteSections {
    * excluent la discographie et ne disent rien des pistes.
    */
   credit_counts?: CompteursCredits;
+  /**
+   * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les artistes
+   * audibles sur les mêmes pistes que lui, déjà triés par le serveur
+   * (`shared_tracks` décroissant, puis nom), 20 au plus. Absente : serveur
+   * antérieur, ou personne — jamais `[]`. Le client ne retrie pas.
+   */
+  played_with?: JoueAvec[];
 }
+
+/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
+export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
@@ -2825,6 +2926,8 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
     // Lot 2 — recopiées telles quelles : ABSENTE reste absente.
     writing: o.writing,
     credit_counts: o.credit_counts,
+    // #2794 — recopiée telle quelle, sans valeur par défaut.
+    played_with: o.played_with,
   };
 }
 
@@ -3320,6 +3423,10 @@ export async function getFilteredTracks(opts: {
   source?: FacetParam;
   label?: FacetParam;
   composer?: FacetParam;
+  /** #2762 — chef, ensemble / orchestre, œuvre (tune-server-rust#8325). */
+  conductor?: FacetParam;
+  ensemble?: FacetParam;
+  work?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3357,7 +3464,8 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
     'all_of',
@@ -5706,6 +5814,8 @@ export function estimateMusicDir(path: string): Promise<EstimationDossier> {
 /** Effective reading order of configured music directories (#1688 / server #4907). */
 export interface MusicDirectoryOrder {
   ordre: string[];
+  /** tune-server-rust#7876 — `ordre` dans l'écriture de `GET /system/config` (absent avant). */
+  ordre_affiche?: string[];
   music_dirs: string[];
   regle: string[];
 }
@@ -6138,7 +6248,9 @@ export function authenticateStreaming(
   service: string,
   // `callback_url` — #2680 : l'adresse de rappel Spotify collée depuis un
   // autre poste, où le rappel 127.0.0.1 ne peut pas aboutir.
-  body?: { username?: string; password?: string; callback_url?: string },
+  // `origine` — tune-server-rust#8198 : l'adresse de cette page, envoyée
+  // quand le retour par mozaiklabs.fr est actif (`lib/relaisSpotify`).
+  body?: { username?: string; password?: string; callback_url?: string; origine?: string },
 ) {
   return fetchJSON<StreamingAuthResponse>(`${BASE}/streaming/${encodeURIComponent(service)}/auth`, {
     method: 'POST',
@@ -6191,6 +6303,13 @@ export interface SpotifyConnectStatus {
   error?: string;
   /** #6018 — « Lecture Spotify (expérimental) » : désactivée par défaut. */
   lecture_experimentale?: boolean;
+  /** tune-server-rust#8565 — pourquoi la dernière session lancée depuis
+   *  l'application Spotify n'a pas joué dans la zone exposée (code stable,
+   *  `exposed_zone_missing`, ou motif de la sortie). Absent : elle a joué. */
+  session_error?: string | null;
+  /** tune-server-rust#8565 — `spotify_premium_required` : Spotify a refusé
+   *  le compte, qui n'est pas Premium (Spotify Connect l'exige). */
+  receiver_error_code?: string | null;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -6247,6 +6366,11 @@ export interface DevialetAirReglages {
   source_index_max: number;
   volume_ceiling_db: number;
   max_sample_rate: number;
+  /** #6918 — la course du curseur en dB (bas, haut) et son plancher ; absents
+   *  d'un serveur antérieur : l'écran ne propose pas de les régler. */
+  volume_floor_db?: number;
+  volume_min_db?: number;
+  volume_max_db?: number;
 }
 
 export function getDevialetAirReglages() {
@@ -6254,7 +6378,7 @@ export function getDevialetAirReglages() {
 }
 
 /** Chaque champ est facultatif : seul ce qui est passé change. */
-export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number }) {
+export function setDevialetAirReglages(corps: { enabled?: boolean; source_index?: number; volume_min_db?: number; volume_max_db?: number }) {
   return fetchJSON<DevialetAirReglages>(`${BASE}/devialet-air/reglages`, {
     method: 'POST',
     body: JSON.stringify(corps),
@@ -6470,7 +6594,7 @@ export function getZoneCurrentAlbum(zoneId: number) {
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
-    undefined, undefined, true,
+    undefined, undefined, true, noterRetrait(service, 'titres-phares'),
   );
 }
 
@@ -6564,11 +6688,14 @@ export function getStreamingFeatured(service: string, section: string, limit = 2
 }
 
 export function getStreamingNewReleases(service: string, limit = 50) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/new-releases?limit=${limit}`);
+  // tune-server-rust#8578 — `x-tune-rubrique-retiree` : voir `rubriquesRetirees.ts`.
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/new-releases?limit=${limit}`,
+    undefined, undefined, false, noterRetrait(service, 'nouveautes'));
 }
 
 export function getStreamingFeaturedPlaylists(service: string) {
-  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`);
+  return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured`,
+    undefined, undefined, false, noterRetrait(service, 'selection'));
 }
 
 /** Une catégorie de playlists éditoriales et sa rangée, telle que le service
@@ -6602,7 +6729,8 @@ export function getStreamingGenrePlaylists(service: string, genreId: string) {
 
 export function getStreamingGenres(service: string, parentId?: string) {
   const params = parentId ? `?parent_id=${encodeURIComponent(parentId)}` : '';
-  return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
+  return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`,
+    undefined, undefined, false, parentId ? undefined : noterRetrait(service, 'genres'));
 }
 
 /**
@@ -6689,7 +6817,7 @@ export function createStreamingPlaylist(service: string, name: string) {
  * visite de l'écran, pour un simple nom manquant.
  */
 export function getStreamingPlaylist(service: string, id: string) {
-  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
+  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string; track_count?: number | null }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
     undefined, undefined, true,
   );
@@ -6741,6 +6869,12 @@ export interface StreamingFavorite {
   title?: string | null;
   artist?: string | null;
   album?: string | null;
+  /**
+   * web#2759 — l'identifiant de l'album chez le service (page d'album pour
+   * Bandcamp), pour un favori PISTE. Pas encore servi par le serveur au
+   * 12/11/2026 : lu s'il arrive, sinon `undefined`.
+   */
+  album_id_service?: string | null;
   cover_url?: string | null;
   /**
    * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).
@@ -8119,6 +8253,17 @@ export function setCrossfader(zoneId: number, position: number) {
   return fetchJSON<any>(`${BASE}/dj/crossfader/${zoneId}`, { method: 'POST', body: JSON.stringify({ position }) });
 }
 
+/** Enveloppe d'une piste de BIBLIOTHÈQUE (`GET /library/tracks/{id}/waveform`,
+ *  200 points dans [0, 1], `waveform: null` sans fichier lisible) — celle de la
+ *  barre de progression en forme d'onde (Discussion #8269). À ne pas confondre
+ *  avec `getWaveform` juste dessous, qui vise le greffon DJ. `sansBandeau` :
+ *  un échec se replie sur la barre classique, il n'a rien à annoncer. */
+export function getTrackWaveform(trackId: number) {
+  return fetchJSON<{ track_id: number; waveform: number[] | null; error?: string }>(
+    `${BASE}/library/tracks/${trackId}/waveform`, undefined, undefined, true,
+  );
+}
+
 export function getWaveform(trackId: number) {
   return fetchJSON<{ track_id: number; waveform: number[]; bpm: number | null }>(`${BASE}/dj/waveform/${trackId}`);
 }
@@ -8233,12 +8378,6 @@ export function setNormalization(zoneId: number, enabled: boolean, targetLufs = 
 // --- DSP / Crossfeed ---
 
 
-// --- Recommendations ---
-
-export function getRecommendations(limit = 20) {
-  return fetchJSON<any>(`${BASE}/library/recommendations?limit=${limit}`);
-}
-
 // --- Listening Dashboard ---
 
 export function getHistoryDashboard() {
@@ -8290,8 +8429,36 @@ export function deleteCollaborativePlaylist(playlistId: number) {
 export function setAlarm(zoneId: number, time: string | null, opts?: { album_id?: number; playlist_id?: number; radio_id?: number; fade_seconds?: number }) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'POST', body: JSON.stringify({ time, ...opts }) });
 }
-export function getAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`); }
-export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`, { method: 'DELETE' }); }
+/**
+ * Un réveil de la zone, tel que `GET /zones/{id}/alarm` le rend.
+ *
+ * web#2534 (fil d'alec_eiffel, alarme FIP) — la route rend une LISTE, triée
+ * par heure (`tune-server/src/routes/playback.rs`, `get_alarms`) : tous les
+ * réveils de la table `alarms` posés sur cette zone, ceux de Lecture en cours
+ * comme ceux de l'écran Réveils. L'écran de lecture lisait `r.time` sur ce
+ * tableau : il ne voyait jamais un réveil actif, donc jamais son « Annuler ».
+ */
+export interface ReveilDeZone {
+  id: number;
+  zone_id: number | null;
+  time: string;
+  enabled: boolean;
+  days?: string | null;
+  source_type?: string | null;
+}
+export async function getAlarm(zoneId: number): Promise<ReveilDeZone[]> {
+  const r = await fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm`);
+  const liste: any[] = Array.isArray(r) ? r : r && typeof r === 'object' && r.time ? [r] : [];
+  return liste.filter((a) => a && typeof a.time === 'string' && a.id != null) as ReveilDeZone[];
+}
+/**
+ * Supprime UN réveil de la zone — `DELETE /zones/{id}/alarm/{alarm_id}`.
+ * La route sans identifiant (`DELETE /zones/{id}/alarm`) n'existe pas côté
+ * serveur : « Annuler » échouait en silence.
+ */
+export function cancelAlarm(zoneId: number, alarmId: number) {
+  return fetchJSON<any>(`${BASE}/zones/${zoneId}/alarm/${alarmId}`, { method: 'DELETE' });
+}
 
 // --- Quick Favorites ---
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
@@ -9190,7 +9357,17 @@ export function getArtistsWithoutImage(limit = 200, offset = 0) {
 // YouTube playback: managed yt-dlp helper (opt-in). YouTube blocked Tune's
 // native extraction server-side, so playback goes through yt-dlp.
 export function getYoutubeStatus() {
-  return fetchJSON<{ installed: boolean; version: string | null; status: string }>(
+  // web#2441 — `latest_version`, `up_to_date`, `latest_error` : la dernière
+  // version publiée de yt-dlp (tune-server-rust#7166) ; absents d'un serveur
+  // antérieur. Lus par `lib/moduleYoutube`.
+  return fetchJSON<{
+    installed: boolean;
+    version: string | null;
+    status: string;
+    latest_version?: string | null;
+    up_to_date?: boolean | null;
+    latest_error?: string | null;
+  }>(
     `${BASE}/system/youtube/status`
   );
 }
@@ -9282,15 +9459,12 @@ export function getServerDiagnostics() {
     // capteur lisible (macOS, Windows, conteneur, VM). Optionnel : un serveur
     // antérieur n'envoie pas le champ. Lu par `lib/temperatureProcesseur.ts`.
     cpu_temp_c?: number | null;
-    // tune-server-rust#5410 — `null` si la garde thermique mesure, sinon le
-    // motif du bridage des analyses de fond (`temperature_illisible`,
-    // `temperature_figee`). Absent chez un serveur antérieur.
-    analyses_bridees?: string | null;
-    analyses_bridees_largeur?: number | null;
-    // tune-server-rust#6713 — le motif quand la température est illisible
-    // MAIS que l'utilisateur a levé le bridage ; `null` sinon. Absent chez
-    // un serveur antérieur.
-    analyses_bridage_leve?: string | null;
+    // tune-server-rust#6450 / #8011 — `null` si la garde thermique mesure,
+    // sinon le motif (`temperature_illisible`, `temperature_figee`) : les
+    // analyses de fond tournent à la vitesse réglée sans surveillance de la
+    // chaleur. Remplace `analyses_bridees` et `analyses_bridage_leve`.
+    // Absent chez un serveur antérieur.
+    temperature_illisible?: string | null;
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
@@ -10268,8 +10442,9 @@ export function getTrackVersions(id: number, streaming = true) {
   );
 }
 
-export function getHomeRecommendations() {
-  return fetchJSON<any[]>(`${BASE}/home/recommendations`);
+export function getHomeRecommendations(limit?: number) {
+  const q = limit != null ? `?limit=${limit}` : '';
+  return fetchJSON<any[]>(`${BASE}/home/recommendations${q}`);
 }
 
 export function getTopMixes() {
@@ -10278,6 +10453,51 @@ export function getTopMixes() {
 
 export function getRadioPicks() {
   return fetchJSON<any[]>(`${BASE}/home/radio-picks`);
+}
+
+/**
+ * Une suggestion d'accueil écartée par « Pas pour moi » (web#916), telle que
+ * le serveur la range (`tune-core/src/db/suggestions_ecartees.rs`).
+ *
+ * - `album` : `source: 'local'` + l'id de la bibliothèque, ou un service + son
+ *   `source_id` ;
+ * - `playlist` : une playlist de SERVICE ;
+ * - `artist` : `source: 'nom'`, `item_id` = le nom en minuscules, espaces
+ *   réduits — écarté chez tous les services à la fois.
+ */
+export interface SuggestionEcartee {
+  item_type: 'album' | 'artist' | 'playlist' | 'radio';
+  source: string;
+  item_id: string;
+  title?: string | null;
+  subtitle?: string | null;
+  cover_url?: string | null;
+  created_at?: string | null;
+}
+
+/** `GET /home/dismissed-suggestions` — par profil (`X-Profile-Id`). */
+export function getSuggestionsEcartees() {
+  return fetchJSON<{ profile_id: number; total: number; items: SuggestionEcartee[] }>(
+    `${BASE}/home/dismissed-suggestions`,
+  );
+}
+
+/** `POST /home/dismissed-suggestions` — « Pas pour moi ». 400 si rien n'est désigné. */
+export function ecarterSuggestion(s: SuggestionEcartee) {
+  return apiPost('/home/dismissed-suggestions', s) as Promise<{
+    profile_id: number;
+    dismissed: boolean;
+    item: SuggestionEcartee;
+  }>;
+}
+
+/** `POST /home/dismissed-suggestions/restore` — « Annuler » / « Rétablir ». Idempotent. */
+export function retablirSuggestion(s: Pick<SuggestionEcartee, 'item_type' | 'source' | 'item_id'>) {
+  return apiPost('/home/dismissed-suggestions/restore', {
+    item_type: s.item_type,
+    source: s.source,
+    item_id: s.item_id,
+  }) as Promise<{ profile_id: number; restored: boolean }>;
 }
 
 // --- Onboarding ---
@@ -11196,6 +11416,27 @@ export function defaireCoffretManuel(id: number) {
     `${BASE}/library/coffrets/${id}/defaire-manuel`,
     { method: 'POST' },
   );
+}
+/**
+ * tune-server-rust#8571 (fil 2763) — les albums d'un coffret composé à la
+ * main, dans l'ordre de ses disques. 409 `pas_un_coffret_manuel` ou
+ * `ordre_indisponible` (coffret qui ne retient plus l'album de chaque
+ * disque). N'existe que si la fiche d'édition annonce `ordre_coffret`.
+ */
+export function getOrdreCoffret(id: number) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`);
+}
+/**
+ * tune-server-rust#8571 — RÉORDONNE les albums d'un coffret composé à la
+ * main : `membres` cite chaque `membre` de `getOrdreCoffret` une fois, dans
+ * l'ordre voulu. Les disques sont renumérotés à la suite. Rend le nouvel
+ * ordre ; 422 `ordre_invalide` sur une liste incomplète.
+ */
+export function reordonnerCoffret(id: number, membres: number[]) {
+  return fetchJSON<import('./ordreCoffret').OrdreCoffret>(`${BASE}/library/coffrets/${id}/ordre`, {
+    method: 'PUT',
+    body: JSON.stringify({ membres }),
+  });
 }
 /**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.

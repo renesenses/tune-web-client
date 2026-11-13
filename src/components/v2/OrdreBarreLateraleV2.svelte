@@ -146,10 +146,10 @@
   .ordre-barre{margin-top:12px}
   .tete{display:flex; align-items:center; justify-content:space-between; gap:20px}
   .lbl{display:flex; flex-direction:column; gap:3px; min-width:0}
-  .lbl > span:first-child{font-size:13.5px; font-weight:500}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
+  .lbl > span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .retablir{flex:0 0 auto; height:32px; padding:0 12px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:inherit; font-size:12.5px; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt); font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); cursor:pointer}
   .retablir:disabled{opacity:.45; cursor:default}
   ol{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:2px}
   li{display:flex; align-items:center; gap:8px; padding:4px 8px; border-radius:8px;
@@ -157,13 +157,13 @@
   li.masquee .nom, li.masquee svg{opacity:.45}
   li.survol{border-color:var(--v2-acc1)}
   li.glisse{opacity:.5}
-  .poignee{cursor:grab; color:var(--v2-txt3); font-size:12px; letter-spacing:-2px; user-select:none}
+  .poignee{cursor:grab; color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); letter-spacing:-2px; user-select:none}
   li svg{width:16px; height:16px; flex:0 0 auto}
-  .nom{flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .niveau{flex:0 0 auto; font-size:10.5px; padding:1px 7px; border-radius:999px;
+  .nom{flex:1; min-width:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .niveau{flex:0 0 auto; font-size:calc(10.5px * var(--v2-txt-echelle, 1)); padding:1px 7px; border-radius:999px;
     border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .fl{width:28px; height:28px; border-radius:7px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt); cursor:pointer; font-size:13px; line-height:1}
+    color:var(--v2-txt); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1}
   .fl:disabled{opacity:.3; cursor:default}
   .fl:focus-visible, .retablir:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
   .annonce{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}

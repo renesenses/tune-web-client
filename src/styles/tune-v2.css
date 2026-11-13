@@ -36,6 +36,15 @@
 
 */
 
+/* ── 0. Taille du texte (rc12, go de Bertrand du 12/11/2026) ──────────────
+   Toute taille de police du client est écrite `calc(Npx * var(--v2-txt-echelle, 1))` :
+   ce jeton est l'UNIQUE levier. Réglages › Interface › Taille du texte pose
+   `data-v2-taille-texte` sur <html> (voir `lib/tailleTexte.ts`, mêmes valeurs).
+   « Normale » = 1 : le rendu d'avant, au pixel près. Seul le texte grandit. */
+:root{ --v2-txt-echelle:1; }
+:root[data-v2-taille-texte="petite"]{ --v2-txt-echelle:.9; }
+:root[data-v2-taille-texte="grande"]{ --v2-txt-echelle:1.15; }
+
 /* ── 1. Noir / Vert — thème par défaut, la base de Levente ─────────────── */
 .tune-v2{
   /* Égaliseur paramétrique : une couleur par canal (G, D, les deux),
@@ -436,6 +445,11 @@
    masque sa propre grappe haut-droite sur « Lecture en cours »
    (`App.svelte`, `$activeView !== 'nowplaying'`). */
 .v2-shell{--v2-grappe-w:172px; --v2-grappe-h:66px}
+/* Recette rc12 (13/11) — la coquille n'a PAS de barre d'onglets du bas (seule
+   la vue mini en a une, `BarreOngletsMini`). Sous 768 px, la barre de lecture
+   lui réservait pourtant `--tab-bar-height` (56 px, `tune-theme.css`) : une
+   bande vide sous la barre, à 768 comme à 400 px. */
+.v2-shell:not(.mini){--tab-bar-height:0px}
 
 .tune-v2 .v2-top{
   display:flex; align-items:flex-end; gap:20px;
@@ -445,9 +459,9 @@
   transition:padding-right .18s ease-out;
 }
 .tune-v2 .v2-top .v2-titres{margin-right:auto; min-width:0}
-.tune-v2 .v2-eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-.tune-v2 .v2-top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-.tune-v2 .v2-sous{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}
+.tune-v2 .v2-eyebrow{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
+.tune-v2 .v2-top h1{font-size:calc(30px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; margin-top:4px}
+.tune-v2 .v2-sous{color:var(--v2-txt2); font-size:calc(13.5px * var(--v2-txt-echelle, 1)); margin-top:6px; max-width:60ch}
 
 /* La grappe d'actions de l'écran. `flex-wrap` : sur une fenêtre étroite les
    boutons passent à la ligne au lieu de rétrécir jusqu'à l'illisible. */
@@ -458,7 +472,7 @@
 .tune-v2 .v2-btn{
   display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
   border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
-  color:var(--v2-txt2); font:600 12.5px var(--v2-sans); cursor:pointer;
+  color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer;
   white-space:nowrap; transition:border-color .15s, color .15s;
 }
 .tune-v2 .v2-btn svg{width:16px; height:16px; flex:0 0 auto}
@@ -482,7 +496,7 @@
 .tune-v2 .v2-rech > svg{position:absolute; left:13px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
 .tune-v2 .v2-rech input{
   width:100%; height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-  background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans);
+  background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   padding:0 32px 0 37px; outline:none;
 }
 .tune-v2 .v2-rech input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}

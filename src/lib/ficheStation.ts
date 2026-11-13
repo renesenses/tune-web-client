@@ -154,6 +154,35 @@ export function ordonnerFluxParQualite(flux: readonly FluxRadio[]): FluxRadio[] 
     .map(({ f }) => f);
 }
 
+/**
+ * Le flux que la fiche coche « par défaut ». Pure.
+ *
+ * web#2801 (tune-server-rust#8122) : la fiche cochait le flux PRINCIPAL. Pour
+ * BBC Radio 6 Music écoutée de France, le principal est réservé au
+ * Royaume-Uni : la fiche montrait comme défaut un flux qui ne joue pas, alors
+ * que le serveur (rc11, #8111) en choisit un autre.
+ *
+ *  1. une station de « Mes radios » garde son flux enregistré (`fluxActuel`) ;
+ *  2. sinon le flux marqué `par_defaut` par le serveur (rc12) ;
+ *  3. serveur qui pose les drapeaux mais n'en marque aucun : le premier flux
+ *     de la liste qui n'est pas interdit dans le pays, sinon aucun ;
+ *  4. serveur ancien (aucun drapeau) : le principal, sinon le premier.
+ *
+ * `flux` : la liste telle que la fiche l'affiche (`ordonnerFluxParQualite`),
+ * pour que « le premier » soit celui du haut.
+ */
+export function fluxParDefautDeFiche(
+  flux: readonly FluxRadio[],
+  fluxActuel?: string | null,
+): string | null {
+  if (fluxActuel && flux.some((f) => f.url === fluxActuel)) return fluxActuel;
+  const marque = flux.find((f) => f.par_defaut === true);
+  if (marque) return marque.url;
+  const serveurRecent = flux.some((f) => typeof f.par_defaut === 'boolean');
+  if (serveurRecent) return flux.find((f) => f.autorise !== false)?.url ?? null;
+  return (flux.find((f) => f.primary) ?? flux[0])?.url ?? null;
+}
+
 /** Un flux est-il lu en HLS (transport segmenté) plutôt qu'en direct ? Pure. */
 export function estHls(f: FluxRadio): boolean {
   return f.hls === true || (f.codec ?? '').trim().toUpperCase() === 'HLS' || /\.m3u8(\?|$)/i.test(f.url);
@@ -194,8 +223,63 @@ export async function stationDeLecture(np: Lecture): Promise<StationDeLecture> {
   const nom = np?.album_title ?? '';
   if (!nom) return AUCUNE;
   const a = await api.getAnnuaireRadios({ q: nom, limit: 20 });
-  const f = a.items.find((x) => fold(x.name) === fold(nom)) ?? null;
+  // tune-server-rust#7547 (rc12) — à défaut du nom exact, la fiche dont le
+  // flux est celui qui joue : un nom affiché par le flux diffère souvent de
+  // celui de l'annuaire (« FIP Hi-Fi » contre « FIP »).
+  const flux = np?.source_id ?? '';
+  let f = a.items.find((x) => fold(x.name) === fold(nom))
+    ?? a.items.find((x) => ficheAuFlux(x, flux))
+    ?? null;
+  // Relecture du 12/11 : l'annuaire n'accepte pas de recherche par flux, et
+  // sa recherche exige CHAQUE mot dans un même champ — « FIP Hi-Fi » ne rend
+  // pas « FIP ». Seconde recherche, plus large (le premier mot du nom), puis
+  // rapprochement par le flux seulement : jamais par un nom approché.
+  if (!f && flux) {
+    const large = premierMot(nom);
+    if (large && fold(large) !== fold(nom)) {
+      const b = await api.getAnnuaireRadios({ q: large, limit: 300 });
+      f = b.items.find((x) => ficheAuFlux(x, flux)) ?? null;
+    }
+  }
   return { fiche: f ? ficheDeAnnuaire(f) : null, mienne: null, annuaire: f };
+}
+
+/** Une adresse de flux comparable : sans espaces, schéma, casse ni « / » final. Pure. */
+function fluxComparable(u: string | null | undefined): string {
+  return (u ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '').toLowerCase();
+}
+
+/**
+ * La fiche d'annuaire publie-t-elle ce flux — son flux principal
+ * (`stream_url`) ou l'un de ses autres flux (`streams[]`) ? Pure.
+ */
+export function ficheAuFlux(f: Pick<FicheAnnuaireRadio, 'stream_url' | 'streams'>, flux: string | null | undefined): boolean {
+  const cible = fluxComparable(flux);
+  if (!cible) return false;
+  return [f.stream_url, ...(f.streams ?? []).map((s) => s?.url)].some((u) => fluxComparable(u) === cible);
+}
+
+/** Le premier mot d'au moins deux lettres du nom, pour une recherche large. */
+function premierMot(nom: string): string | null {
+  return nom.split(/[\s\-–—_/|:·.,()]+/).find((m) => m.trim().length >= 2)?.trim() ?? null;
+}
+
+/**
+ * tune-server-rust#7547 (alec_eiffel, rc9, go de Bertrand le 12/11/2026 pour
+ * la rc12) — le flux qui joue, s'il peut entrer TEL QUEL dans « Mes radios » :
+ * une adresse `http(s)://`. Sert à la station que ni « Mes radios » ni
+ * l'annuaire ne connaissent : avant, elle n'avait pas de bouton du tout.
+ * `null` sinon. Pure.
+ */
+export function fluxAjoutable(sourceId: string | null | undefined): string | null {
+  const u = (sourceId ?? '').trim();
+  if (!u || u.length > 2048 || /\s/.test(u)) return null;
+  try {
+    const url = new URL(u);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? u : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Le logo de la fiche d'annuaire de ce nom exact, ou `null` (jamais d'échec). */

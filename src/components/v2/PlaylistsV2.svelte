@@ -40,6 +40,7 @@
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t } from '../../lib/i18n';
   import { quatreDistinctes } from '../../lib/mosaique';
+  import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
@@ -434,6 +435,29 @@
     if (!sources.includes(source)) source = LOCAL;
   });
 
+  /**
+   * web#2805 (suite de tune-server-rust#7465, FabienM fil 2271) — « Tous /
+   * Par vous / Par Qobuz » sur la pastille d'un SERVICE, comme Streaming ›
+   * Qobuz › Playlists (#2231). Même module, mêmes règles
+   * (`lib/filtreAuteurPlaylists`) : `editable: true` = à vous, `false` =
+   * suivie ; sans drapeau, la playlist reste dans « Tous » seulement.
+   *
+   * - Appliqué APRÈS la recherche ; les compteurs disent ce qui reste.
+   * - Offert seulement si la liste du service a une playlist de chaque côté
+   *   (`filtreAuteurUtile`, mesuré AVANT la recherche pour que les pastilles
+   *   ne clignotent pas à la frappe). Sinon le choix retombe sur « Tous ».
+   * - Changer de pastille de source remet « Tous » : un choix posé sur Qobuz
+   *   ne doit pas vider l'écran de Tidal.
+   * - Les playlists locales ne sont jamais filtrées (pas de drapeau).
+   */
+  let filtreAuteur = $state<FiltreAuteur>('tous');
+  const listeService = $derived(source === LOCAL ? [] : (services[source] ?? []));
+  const auteurOffert = $derived(filtreAuteurUtile(compterParAuteur(listeService)));
+  const serviceSaisi = $derived(listeService.filter((pl) => correspond(pl?.name)));
+  const comptesAuteur = $derived(compterParAuteur(serviceSaisi));
+  const serviceVu = $derived(filtrerParAuteur(serviceSaisi, auteurOffert ? filtreAuteur : 'tous'));
+  const nomService = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+
   let smart = $state<any[]>([]);
   let smartCharge = false;
   let smartMosaiques = $state<Record<number, string[]>>({});
@@ -729,7 +753,7 @@
   {#if sources.length > 1}
     <nav class="srcs">
       {#each sources as sc (sc)}
-        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; }}>
+        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; filtreAuteur = 'tous'; }}>
           {sc === LOCAL ? $t('v2.pl.here' as any) : sc}
           <span class="cpt">{sc === LOCAL ? local.length : (services[sc]?.length ?? 0)}</span>
         </button>
@@ -805,7 +829,19 @@
     {#if source !== LOCAL}
       <!-- Un service : ses playlists seules, sans en-tête de groupe — la
            pastille active dit déjà de qui il s'agit. -->
-      {@const liste = (services[source] ?? []).filter((pl) => correspond(pl?.name))}
+      {@const liste = serviceVu}
+      {#if auteurOffert}
+        <div class="auteur" role="group" aria-label={$t('v2.str.plAuthorGroup' as any)}>
+          {#each [
+            { id: 'tous' as FiltreAuteur, libelle: $t('v2.str.plAuthorAll' as any), n: comptesAuteur.tous },
+            { id: 'moi' as FiltreAuteur, libelle: $t('v2.str.plAuthorMe' as any), n: comptesAuteur.moi },
+            { id: 'service' as FiltreAuteur, libelle: $t('v2.str.plAuthorService' as any).replace('{s}', nomService(source)), n: comptesAuteur.service },
+          ] as f (f.id)}
+            <button class="chip" class:active={filtreAuteur === f.id} aria-pressed={filtreAuteur === f.id}
+              data-auteur={f.id} onclick={() => (filtreAuteur = f.id)}>{f.libelle} <span class="n">{f.n}</span></button>
+          {/each}
+        </div>
+      {/if}
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
@@ -990,15 +1026,15 @@
   .chercher:focus-within{border-color:var(--v2-acc2); color:var(--v2-txt2)}
   .chercher svg{width:15px; height:15px; flex-shrink:0}
   .chercher input{flex:1; min-width:0; border:0; background:transparent; color:var(--v2-txt);
-    font:13.5px/1 inherit; outline:none}
+    font:calc(13.5px * var(--v2-txt-echelle, 1))/1 inherit; outline:none}
   .chercher input::-webkit-search-cancel-button{display:none}
-  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:17px;
+  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:calc(17px * var(--v2-txt-echelle, 1));
     line-height:1; padding:0 2px}
   .vider:hover{color:var(--v2-txt)}
 
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:240px}
-  .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:240px}
+  .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:10px 0 40px}
@@ -1007,7 +1043,7 @@
 
   .grp{padding:14px 30px 8px}
   .grp.creer{display:flex; justify-content:flex-end; padding-bottom:0}
-  .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
+  .grp h2{font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
   /* web#1719 — LA LISTE, c'est la même grille couchée. Une colonne, une carte
@@ -1015,7 +1051,7 @@
      cinq actions, la pochette et le titre cliquable sont ceux de la grille. */
   /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
   .grid.grandes{grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px}
-  .grid.grandes .ct{font-size:15px}
+  .grid.grandes .ct{font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .grid.liste{grid-template-columns:1fr; gap:2px}
   .grid.liste .card{flex-direction:row; align-items:center; gap:14px;
     padding:6px 10px; border-radius:9px}
@@ -1028,46 +1064,53 @@
   .outils{display:flex; align-items:center; gap:8px}
   .ghost{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
-    color:var(--v2-txt2); font:600 13px var(--v2-sans); padding:8px 14px}
+    color:var(--v2-txt2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px}
   .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
   .ghost svg{width:15px; height:15px}
-  .ghost.sm{padding:5px 11px; font-size:12px}
+  .ghost.sm{padding:5px 11px; font-size:calc(12px * var(--v2-txt-echelle, 1))}
 
   /* Premier niveau : PASTILLES, comme les services de l'écran Streaming. */
   .srcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 0}
   .srcs button{display:inline-flex; align-items:baseline; gap:8px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:9px 16px; border-radius:var(--v2-r-pill); transition:.15s}
   .srcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .srcs button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .srcs .cpt{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+  /* web#2805 — « Tous / Par vous / Par <service> », les puces de Streaming. */
+  .auteur{display:flex; gap:7px; flex-wrap:wrap; padding:0 30px 12px}
+  .auteur .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill)}
+  .auteur .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .auteur .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
      pas celui d'une alerte : rien n'est en panne. */
-  .sans-pl{margin:6px 30px 0; font-size:12px; color:var(--v2-txt3)}
+  .sans-pl{margin:6px 30px 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}
   .onglet.gestion{margin-left:auto; opacity:.75}
   .onglet{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
-    color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
+    color:var(--v2-txt3); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:10px 12px}
   .onglet:hover{color:var(--v2-txt2)}
   .onglet.actif{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
 
   .sauv{margin:10px 30px 0; padding:14px 16px; border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-card); background:var(--v2-surface)}
   .sauv-tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .sauv-tete h2{font-size:14px; font-weight:700}
-  .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:13px}
+  .sauv-tete h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* Le bouton qui retire un filet se distingue de celui qui le pose. La
      couleur ne porte pas l'information seule : le libellé dit « Supprimer »,
      et une confirmation `danger` s'interpose. */
   .sauv-liste{margin-top:10px; list-style:none; display:flex; flex-direction:column; gap:6px}
-  .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:13px}
+  .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .sd{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .sd{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card);
@@ -1086,6 +1129,6 @@
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left;
     padding:0; color:inherit; font:inherit; cursor:pointer}
   .meta .ct, .meta .ca{display:block}
-  .ct{margin-top:10px; font:600 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:10px; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

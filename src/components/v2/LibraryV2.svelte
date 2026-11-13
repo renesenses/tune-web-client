@@ -51,7 +51,7 @@
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
-  import type { PaysDeLaBibliotheque } from '../../lib/bibliothequePays';
+  import { filtreDuPays, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
@@ -98,7 +98,7 @@
   import { preferences } from '../../lib/stores/preferences';
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
+  import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
   import { formatDeFichier } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
@@ -116,7 +116,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
-  import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
+  import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
   import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -448,7 +449,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
-  type CleQualite = QualityTier | 'hires' | 'multichannel';
+  type CleQualite = QualityTier | 'hires' | 'multichannel' | 'stereo';
   const QUALITES_DE_BASE: { key: CleQualite; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
@@ -457,6 +458,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // serveur plus ancien ne sert pas : sans lui, la puce n'est pas proposée.
   const QUALITES_AVEC_MULTICANAL = [
     ...QUALITES_DE_BASE,
+    // tune-server-rust#8560 (fil 2713) — « Stéréo » à côté de « Multicanal » :
+    // les albums en une ou deux voies, sans ce qui n'est que multicanal.
+    { key: 'stereo' as const, label: 'Stereo', cle: 'v2.lib.qualityStereo' },
     { key: 'multichannel' as const, label: 'Multicanal', cle: 'v2.lib.qualityMultichannel' },
   ];
   const QUALITIES = $derived(src.some(porteSesCanaux) ? QUALITES_AVEC_MULTICANAL : QUALITES_DE_BASE);
@@ -504,6 +508,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let fIncomplets = $state(false);
   let idsIncomplets = $state<Set<number>>(new Set());
+
+  /**
+   * tune-server-rust#7586 (FabienM, fil « 1.0.0RC9: Divers bugs », point 13 ;
+   * go de Bertrand du 12/11 : rc12) — « Uniquement favoris » sur TOUS les
+   * onglets : Albums (albums favoris), Artistes, Pistes, et Genres / Années /
+   * Labels (les valeurs mises en favori). Favoris de la bibliothèque locale
+   * seulement, pas ceux des services : un album de service (bibliothèque
+   * élargie) n'a pas d'identifiant local, il sort. Voir `lib/uniquementFavoris`.
+   */
+  let fFavoris = $state(false);
+  /** L'album est-il un favori LOCAL ? `id` nul = album de service : non. */
+  const estAlbumFavori = (a: Album): boolean => a.id != null && $favoriteAlbumIds.has(a.id);
+  /** Le filtre vaut pour les ALBUMS sur l'onglet Albums seulement. Une fonction :
+   *  `tab` est déclaré plus bas, lu paresseusement. */
+  function favorisSurLesAlbums(): boolean { return fFavoris && tab === 'albums'; }
   $effect(() => {
     // Bibliothèque d'un AUTRE serveur : ses identifiants ne sont pas les nôtres.
     if (depot) return;
@@ -525,6 +544,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let carteOuverte = $state(false);
   let paysChoisi = $state<PaysDeLaBibliotheque | null>(null);
+  /** #2800 — pays de l'artiste (défaut) ou de l'édition, gardé quand la carte se referme. */
+  let sourcePays = $state<SourcePays>('artiste');
   let idsPays = $state<Set<number> | null>(null);
   $effect(() => {
     const p = paysChoisi;
@@ -532,7 +553,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     idsPays = null;
     if (!p || depot) return;
     let perime = false;
-    const filtres: Record<string, api.FacetParam> = d ? { country: p.valeurs, folder: d } : { country: p.valeurs };
+    // #2800 — `artist_country=<code>` (pays de l'artiste) ou `country=<valeurs>` (édition).
+    const filtres: Record<string, api.FacetParam> = d ? { ...filtreDuPays(p), folder: d } : filtreDuPays(p);
     idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed(filtres, limite, rang))
       .then((ids) => { if (!perime) idsPays = ids; })
       .catch(() => {
@@ -692,6 +714,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   function tierMatches(a: Album, key: string): boolean {
     if (key === 'multichannel') return estMulticanal(a);
+    if (key === 'stereo') return estStereo(a);
     const t = getQualityTier(a);
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
@@ -725,6 +748,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
+    // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
+    // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
+    if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
     if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
@@ -945,9 +971,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     periode: periodeAppliquee ? periode : null,
     format: fFormat, profondeur: fDepth, recherche: q,
     compilation: fCompilation, provenance: fProvenance,
+    favoris: favorisSurLesAlbums(),
   });
   const outilsFacettes = $derived<Outils>({
-    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
+    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe, estFavori: estAlbumFavori,
     albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,
   });
 
@@ -1814,7 +1841,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const filtreActif = $derived(
     fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
       || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
-      || paysChoisi != null,
+      || paysChoisi != null || fFavoris,
   );
 
   /**
@@ -1853,6 +1880,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     }
     if (fCompilation != null) r.push({ cle: 'compilation', libelle: t('v2.lib.compilations'), retirer: () => (fCompilation = null) });
     if (fIncomplets) r.push({ cle: 'incomplete', libelle: t('v2.lib.incomplete'), retirer: () => (fIncomplets = false) });
+    if (fFavoris) r.push({ cle: 'favorites', libelle: t('v2.lib.onlyFavorites'), retirer: () => (fFavoris = false) });
     if (fProvenance) r.push({ cle: 'source', libelle: `${t('v2.lib.source')} · ${libelleProvenance(fProvenance)}`, retirer: () => (fProvenance = null) });
     if (paysChoisi) r.push({ cle: 'country', libelle: `${t('v2.lib.map.chip')} · ${nomPays(paysChoisi.code, $locale)}`, retirer: () => (paysChoisi = null) });
     if (fYear != null) r.push({ cle: 'year', libelle: String(fYear), retirer: () => (fYear = null) });
@@ -2155,9 +2183,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * `artists` n'y figure pas : un artiste a un IDENTIFIANT, son coeur passe
    * donc par la table des favoris normale, pas par celle des facettes.
    */
-  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = {
-    genres: 'genre', years: 'year', labels: 'label',
-  };
+  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = FACETTE_SERVEUR_DES_ONGLETS;
 
   /** Un depot distant n'a pas de facettes chez nous : ses genres viennent de
    *  SON catalogue, et un favori local ne saurait pas les reselectionner. */
@@ -2265,7 +2291,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    const tous = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
+    // #7586 — « Uniquement favoris » : les valeurs mises en favori (cœur de la
+    // liste), seulement les réelles — « Sans genre » ne se met pas en favori.
+    const out = fFavoris
+      ? tous.filter((g) => g.reel && estFacetteFavoriteDe(tab, g.key, $favoriteFacetKeys))
+      : tous;
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -2457,7 +2488,59 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const h = setTimeout(() => (qPistes = v), 250);
     return () => clearTimeout(h);
   });
-  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier');
+  // #7586 — « Uniquement favoris » sur les Pistes : les pistes favorites,
+  // servies par les favoris du profil (`api.getFavorites`), pas la fenêtre
+  // paginée de toute la bibliothèque.
+  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris);
+  //
+  // Les requêtes sont comptées (relecture du 12/11) : `getFavorites` relit
+  // chaque objet favori un par un. On ne demande donc QUE les pistes
+  // (`'track'`), UNE fois à l'activation du filtre — pas les albums, artistes
+  // et playlists favoris, et pas à chaque cœur. Un cœur ôté retire la piste
+  // sur place (filtre sur `$favoriteTrackIds`) ; un cœur posé ne relit que la
+  // piste ajoutée (`getTrack`).
+  let pistesFavoritesLues = $state.raw<Track[]>([]);
+  let pistesFavoritesEnCharge = $state(false);
+  let pistesFavoritesErreur = $state<string | null>(null);
+  /** La lecture initiale a abouti : les ajouts se relisent alors un par un. */
+  let pistesFavoritesPretes = $state(false);
+  /** Les pistes ajoutées déjà demandées — un cœur ne relit sa piste qu'une fois. */
+  const pistesFavoritesDemandees = new Set<number>();
+  const filtreFavorisPistes = $derived(fFavoris && tab === 'tracks' && !depot && $currentProfileId != null);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (!filtreFavorisPistes || pid == null) return;
+    let perime = false;
+    pistesFavoritesPretes = false;
+    pistesFavoritesDemandees.clear();
+    pistesFavoritesEnCharge = untrack(() => pistesFavoritesLues.length === 0);
+    pistesFavoritesErreur = null;
+    api.getFavorites(pid, 'track')
+      .then((f: any) => {
+        if (perime) return;
+        pistesFavoritesLues = Array.isArray(f?.tracks) ? f.tracks : [];
+        pistesFavoritesPretes = true;
+      })
+      .catch((e: any) => { if (!perime) pistesFavoritesErreur = e?.message ?? $tr('common.error' as any); })
+      .finally(() => { if (!perime) pistesFavoritesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const ids = $favoriteTrackIds;
+    if (!filtreFavorisPistes || !pistesFavoritesPretes) return;
+    const connues = new Set(untrack(() => pistesFavoritesLues).map((t) => t.id));
+    for (const id of ids) {
+      if (connues.has(id) || pistesFavoritesDemandees.has(id)) continue;
+      pistesFavoritesDemandees.add(id);
+      api.getTrack(id)
+        .then((t: Track) => {
+          if (t && !pistesFavoritesLues.some((x) => x.id === t.id)) pistesFavoritesLues = [...pistesFavoritesLues, t];
+        })
+        .catch(() => { pistesFavoritesDemandees.delete(id); });
+    }
+  });
+  /** Les pistes favorites AFFICHÉES : celles dont le cœur est encore posé. */
+  const pistesFavorites = $derived(pistesFavoritesLues.filter((t) => t.id != null && $favoriteTrackIds.has(t.id)));
   /** La fenêtre AFFICHÉE : la précédente reste à l'écran tant que la
    *  nouvelle (tri, recherche…) n'a pas rendu sa première page. */
   let fenetrePistes = $state.raw<FenetrePistes | null>(null);
@@ -2654,7 +2737,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    return tracks.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+    const base = fFavoris ? pistesFavorites : tracks;
+    return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
   // dans le navigateur et avec la règle du serveur (`trierPistes`).
@@ -3059,7 +3143,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; periode = SANS_PERIODE; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fIncomplets = false; fFavoris = false; fProvenance = null; fDrMin = null; fDrMax = null; paysChoisi = null; periode = SANS_PERIODE; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -3431,6 +3515,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </div>
         </div>
       {/if}
+      <!-- tune-server-rust#7586 — « Uniquement favoris », sur tous les onglets
+           de la Bibliothèque (pas les Ajouts récents ni les coffrets, qui ont
+           leur propre source ; pas un dépôt distant, dont les favoris ne sont
+           pas ceux de ce profil). -->
+      {#if showSearch && !depot && ONGLETS_UNIQUEMENT_FAVORIS.includes(tab as any)}
+        <button class="chip" class:active={fFavoris} data-filtre-favoris aria-pressed={fFavoris}
+          title={$tr('v2.lib.onlyFavoritesHint' as any)}
+          onclick={() => (fFavoris = !fFavoris)}>{$tr('v2.lib.onlyFavorites' as any)}</button>
+      {/if}
       {#if showSearch && !depot}
         <!-- #7597 (suite) — RÉPERTOIRE : poser la portée de dossier sans
              passer par l'écran Répertoires. Même magasin (`libraryFolderScope`),
@@ -3675,7 +3768,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   </div>
 
   {#if carteOuverte && showFilters && !depot}
-    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null}
+    <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
       onChoisir={(p) => (paysChoisi = p)} />
   {/if}
 
@@ -3868,7 +3961,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            déduction depuis les albums chargés. Ils ne passent donc pas par les
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
            albums ne sont pas encore arrivés a déjà ses artistes. -->
-      <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
+      <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
@@ -3952,12 +4045,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {:else if tab === 'tracks'}
         <div class="tracklist">
-          {#if tracksLoading}
+          {#if fFavoris ? pistesFavoritesEnCharge : tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
-          {:else if tracksError}
-            <div class="state">{tracksError}</div>
+          {:else if fFavoris ? pistesFavoritesErreur : tracksError}
+            <div class="state">{fFavoris ? pistesFavoritesErreur : tracksError}</div>
           {:else if !visibleTracks.length}
-            <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
+            <div class="state" data-favoris-vide={fFavoris || undefined}>{fFavoris ? $tr('v2.lib.onlyFavoritesNone' as any) : tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             <!-- `ouvertureAlbum` est une FABRIQUE : seule la Bibliothèque sait
                  si l'album de CETTE piste est dans son magasin. Un gestionnaire
@@ -4461,19 +4554,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* Meme gouttiere que la ligne de filtres juste au-dessus : la barre s'aligne
      avec elle au lieu de flotter. */
   .anbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:2px 30px 12px}
-  .ancl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .ancl{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .anmodes{display:flex; gap:7px; flex-wrap:wrap}
   .anmodes button, .anord{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 11.5px var(--v2-sans)}
+    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .anmodes button:hover, .anord:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .anmodes button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   /* La couverture est posee DANS la puce : c'est ce qui evite de basculer sur
      un mode qui ne date presque rien sans l'avoir vu. */
-  .anc{margin-left:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .anc{margin-left:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .anord{margin-left:auto}
-  .andelta{padding:0 30px 12px; margin-top:-6px; font-size:12px; color:var(--v2-txt3)}
-  .dist{font:11px var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
-  .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:13px;
+  .andelta{padding:0 30px 12px; margin-top:-6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .dist{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
+  .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(13px * var(--v2-txt-echelle, 1));
     color:var(--v2-danger); border:1px solid var(--v2-danger); background:var(--v2-danger-soft)}
   .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
@@ -4484,8 +4577,29 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      passe désormais à la ligne, alignée à droite, et un onglet ne se coupe
      jamais en deux. */
   .tabs{margin-left:auto; display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end; min-width:0}
+  /* Recette rc12 (13/11) — neuf onglets ne tiennent pas À CÔTÉ du titre :
+     « Statistiques » passait à la ligne dès 1440 px, et à 400 px la rangée
+     s'empilait par-dessus « Bibliothèque ». Les onglets passent SOUS le titre,
+     sur toute la largeur, alignés à gauche comme les filtres qui suivent. Seul
+     le titre réserve la place de la grappe (avatar, signet), qui ne descend
+     pas jusqu'à la rangée d'onglets. La vue mini (téléphone) garde sa
+     mise en page à elle (`styles/vue-mini.css`). */
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{flex-wrap:wrap; align-items:center; row-gap:10px; padding-right:30px}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+  :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{margin-left:0; justify-content:flex-start}
+  /* Fenêtre étroite : UNE rangée qui défile au doigt, plutôt que trois. Et le
+     titre passe SOUS la grappe, qui occupe alors presque toute la largeur. */
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{padding-right:0}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs, :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions::-webkit-scrollbar{display:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap}
+  }
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
-    font:600 14px var(--v2-sans); cursor:pointer; white-space:nowrap}
+    font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .tab:hover{color:var(--v2-txt)}
   .tab.active{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
@@ -4493,7 +4607,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* web#2198 — les gestes de l'écran, poussés au bout de la rangée. */
   .gestes-lib{margin-left:auto}
   .chip{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 15px; border-radius:var(--v2-r-pill);
-    background:var(--v2-surface); border:1px solid transparent; color:var(--v2-txt2); font:600 13.5px var(--v2-sans); cursor:pointer; transition:.15s}
+    background:var(--v2-surface); border:1px solid transparent; color:var(--v2-txt2); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; transition:.15s}
   .chip:hover{color:var(--v2-txt)}
   .chip svg{width:12px; height:12px; opacity:.7}
   .chip.count{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt)}
@@ -4502,7 +4616,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      portent sur chaque valeur, une bascule n'en a qu'une à annoncer.
      `currentColor` à l'état actif, sinon le chiffre resterait gris sur le
      dégradé et deviendrait illisible. */
-  .chip em{font:9.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:-2px}
+  .chip em{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:-2px}
   .chip.active em{color:currentColor; opacity:.8}
   .drop{position:relative}
   .drop .menu{position:absolute; top:44px; left:0; z-index:20; min-width:150px; padding:6px;
@@ -4513,13 +4627,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      pointeur quitte `.drop` avant d'atteindre le menu et `:hover` tombe : le
      menu est visible mais inatteignable. Transparent, donc invisible. */
   .drop::after{content:""; position:absolute; left:0; right:0; top:36px; height:8px}
-  .drop .menu button{text-align:left; border:0; background:transparent; color:var(--v2-txt2); font:600 13px var(--v2-mono);
+  .drop .menu button{text-align:left; border:0; background:transparent; color:var(--v2-txt2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     padding:8px 10px; border-radius:8px; cursor:pointer}
   .drop .menu button:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
-  .chargement-albums{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; color:var(--v2-txt2); font-size:14px}
+  .chargement-albums{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; color:var(--v2-txt2); font-size:calc(14px * var(--v2-txt-echelle, 1))}
   /*
     #929 — EN CARROUSEL, LE RAIL PASSE SOUS LA BANDE.
 
@@ -4537,10 +4651,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     pochettes.
   */
   .body.encarrousel{flex-direction:column-reverse}
-  .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
+  .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .state:has(.cause-vide), .state:has(.gestes-vide){align-content:center; gap:10px}
   .state .gestes-vide{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center}
-  .state .cause-vide{max-width:46ch; text-align:center; font-size:13px; line-height:1.5}
+  .state .cause-vide{max-width:46ch; text-align:center; font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.5}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
      illisible et impossible a cliquer juste. */
@@ -4556,7 +4670,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     overflow-x:auto; scrollbar-width:none;
     border-right:0; border-top:1px solid var(--v2-line)}
   .rl{width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent;
-    font:600 11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
+    font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
   .rl:disabled{opacity:.22; cursor:default}
   .rl.hot{color:var(--v2-txt2)}
   .rl.hot:hover{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -4564,7 +4678,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* Bascule entre les deux repères de navigation : alphabet ou époque. */
   .navmode{display:flex; align-items:center; gap:4px; padding:2px 30px 10px}
   .navmode > button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); cursor:pointer; transition:.15s}
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); cursor:pointer; transition:.15s}
   .navmode > button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .navmode > button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -4608,7 +4722,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .curseur{position:absolute; top:0; bottom:0; transform:translateX(-50%);
     width:auto; min-width:12px; display:grid; place-items:center; border-radius:3px; pointer-events:none;
     background:linear-gradient(180deg,var(--v2-acc1),var(--v2-acc2));
-    color:var(--v2-on-acc); font:700 8px var(--v2-mono); letter-spacing:.04em;
+    color:var(--v2-on-acc); font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em;
     writing-mode:vertical-rl; text-orientation:mixed; padding:3px 0;
     box-shadow:0 2px 10px var(--v2-glow-strong);
     transition:left .12s ease, opacity .12s}
@@ -4619,26 +4733,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .curseur.creux{background:var(--v2-line2); color:var(--v2-txt2); box-shadow:none}
   .decs{position:relative; height:16px; margin-top:9px}
   /* web#2695 — la période : champs, compte, poignées. */
-  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:12px; color:var(--v2-txt2)}
+  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .periode label{display:inline-flex; align-items:center; gap:6px}
   .periode input{width:5.2em; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
-    font:12px var(--v2-mono); padding:4px 6px; border-radius:6px}
+    font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:4px 6px; border-radius:6px}
   .periode input:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   .periode-n{color:var(--v2-acc-tint)}
   .periode-sans{color:var(--v2-txt3)}
   .periode-effacer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    font:600 11px var(--v2-sans); padding:4px 11px; border-radius:var(--v2-r-pill); cursor:pointer}
+    font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:4px 11px; border-radius:var(--v2-r-pill); cursor:pointer}
   .periode-effacer:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .tick.hors{opacity:.28}
   .poignee{position:absolute; bottom:-6px; width:10px; height:calc(100% + 4px); transform:translateX(-50%);
     border-radius:3px; background:var(--v2-txt3); cursor:ew-resize; touch-action:none; opacity:.55}
   .poignee.posee{background:var(--v2-acc1); opacity:1}
   .poignee:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px; opacity:1}
-  .dec{position:absolute; transform:translateX(-50%); font:10.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .dec{position:absolute; transform:translateX(-50%); font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
 
   /* Contrôles de droite : tri et bascule d'affichage. */
   .drop.right{margin-left:0}
-  .menu button em{font:9.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:6px}
+  .menu button em{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:6px}
   /* Une valeur que la combinaison courante ne rend pas : visible, pour que le
      menu ne saute pas sous le doigt, mais inerte et sourde. */
   .menu button:disabled{opacity:.38; cursor:default}
@@ -4676,12 +4790,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px}
   .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
-    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
+    border-radius:var(--v2-r-pill); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .pchip svg{width:14px; height:14px; flex:none}
   .pchip button{display:flex; align-items:center; justify-content:center; width:18px; height:18px;
-    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 14px var(--v2-sans);
+    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     background:transparent; color:inherit; line-height:1}
   .pchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
   .pchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -4710,12 +4824,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .lglogo{display:flex; align-items:center; justify-content:center; aspect-ratio:1/1;
     border-radius:10px; overflow:hidden; background:var(--v2-hover)}
   .lglogo img{width:100%; height:100%; object-fit:contain; background:#fff}
-  .lgmono{font-size:34px; font-weight:600; letter-spacing:.02em; color:var(--v2-txt2)}
-  .lgnom{font-size:14px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lgn{font-size:12px; color:var(--v2-txt3, var(--v2-txt2))}
+  .lgmono{font-size:calc(34px * var(--v2-txt-echelle, 1)); font-weight:600; letter-spacing:.02em; color:var(--v2-txt2)}
+  .lgnom{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lgn{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3, var(--v2-txt2))}
   /* web#2790 — la ligne « Logos en attente » : discrète, même ton que les
      notes de l'écran (`.state`), sur toute la largeur de la liste ou de la grille. */
-  .lgpause{grid-column:1 / -1; margin:0 0 4px; font-size:13px; color:var(--v2-txt3, var(--v2-txt2))}
+  .lgpause{grid-column:1 / -1; margin:0 0 4px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3, var(--v2-txt2))}
   .fl:hover{background:var(--v2-hover)}
   .flnom{display:flex; align-items:center; gap:10px; flex:1; min-width:0;
     padding:10px 12px; border:0; background:transparent; cursor:pointer;
@@ -4723,14 +4837,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .fl:hover .flnom{color:var(--v2-txt)}
   .flnom:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:-2px; border-radius:9px}
   .flnom .fk{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    font-size:14px}
+    font-size:calc(14px * var(--v2-txt-echelle, 1))}
   /* Le retour vers la liste. Sans lui, on serait entré dans un genre sans
      pouvoir en sortir autrement qu'en changeant d'onglet. */
   /* web#2138 : hors de `.facets` (qui défile), il ne s'étire pas dans la
      colonne flex et ne rétrécit pas : il reste à l'écran. */
   .fretour{flex:none; align-self:flex-start; display:inline-flex; align-items:center; gap:6px; margin:8px 30px 0;
     padding:7px 12px 7px 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .fretour:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .fretour:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .fretour svg{width:15px; height:15px}
@@ -4740,9 +4854,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      ligne, hors de `.facets` qui défile. */
   .fentete{flex:none; display:flex; align-items:center; gap:14px; min-width:0; padding:8px 30px 6px}
   .fentete .fretour{margin:0}
-  .fentete h2{display:flex; align-items:center; gap:10px; min-width:0; margin:0; font-size:17px; font-weight:700}
+  .fentete h2{display:flex; align-items:center; gap:10px; min-width:0; margin:0; font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700}
   .fentete .fk{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .fentete .fc{font:10px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
+  .fentete .fc{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
     border-radius:999px; padding:2px 8px; flex:none}
   /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
      pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
@@ -4811,17 +4925,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .lmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{display:flex; align-items:center; gap:7px; min-width:0;
-    font-size:13.5px; font-weight:600; color:var(--v2-txt)}
+    font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt)}
   /* C'est le TITRE qui s'elide, pas la pastille : une pastille tronquee ne
      dirait plus rien, alors qu'un titre coupe reste identifiable. */
   .lrow .ltt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lrow .la{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right; font-variant-numeric:tabular-nums}
+  .lrow .la{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lrow .ly{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right; font-variant-numeric:tabular-nums}
   /* La cellule du badge existe meme vide : c'est elle qui tient la colonne. */
   .lrow .lb{display:flex; justify-content:center; min-width:0}
   /* Ferre a DROITE : les fiches techniques n'ont pas la meme longueur, et
      c'est leur bord droit qui doit s'aligner d'une ligne a l'autre. */
-  .lrow .lq{font:10px var(--v2-mono); color:var(--v2-acc2); text-align:right;
+  .lrow .lq{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); text-align:right;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums}
   .bdg.flat{position:static; align-self:center}
 
@@ -4835,18 +4949,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .tclick{display:grid; grid-template-columns:40px 1fr; align-items:center; gap:14px; min-width:0;
     padding:8px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .trk .tn{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .trk .tt{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .trk .tn{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .trk .tt{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .trk .tt em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .trk .td{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .trk .tt em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .trk .td{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   /* #1313 : l'intertitre d'année traverse toute la grille (`1 / -1`) et reste
      collé en haut pendant le défilement, pour qu'on sache toujours où l'on est. */
   .yinter{grid-column:1 / -1; position:sticky; top:0; z-index:2; display:flex; align-items:baseline; gap:8px;
     margin:0; padding:6px 0 5px; background:var(--v2-bg); border-bottom:1px solid var(--v2-line);
-    font:700 15px var(--v2-sans); color:var(--v2-txt)}
-  .yinter .yn{font:600 11px var(--v2-mono); color:var(--v2-txt3)}
+    font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .yinter .yn{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
@@ -4947,27 +5061,27 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
   .cover{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   /* #6482 — la provenance d'un album favori d'un service. */
-  .prov{position:absolute; right:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
+  .prov{position:absolute; right:6px; top:6px; font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:4px; color:var(--v2-on-acc); background:var(--v2-acc2); pointer-events:none}
   .prov.inline{position:static; margin-left:6px; vertical-align:middle}
   /* tune-server-rust#7617 — l'œuvre a plusieurs versions : la fiche les propose. */
-  .nver{position:absolute; left:6px; bottom:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
+  .nver{position:absolute; left:6px; bottom:6px; font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint); pointer-events:none}
-  .bdg{position:absolute; left:6px; top:6px; font:700 8px var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
+  .bdg{position:absolute; left:6px; top:6px; font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:2px 5px;
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}
   /* #2731 — les canaux, dans le même badge que DSD / Hi-Res, après un filet. */
   .cnx{margin-left:4px; padding-left:4px; border-left:1px solid currentColor}
   /* Seul dans le badge (multicanal sans DSD / Hi-Res) : pas de filet. Classe
      posée par le gabarit — `:first-child` ignore le texte « DSD » qui précède. */
   .cnx.seul{margin-left:0; padding-left:0; border-left:0}
-  .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* Troisieme ligne d'une vignette : la provenance et la qualite, puis la
      pastille « compilation ». `min-width:0` sur les deux enfants, sinon le
      badge de qualite refuse de retrecir et pousse la pastille hors carte. */
   .cbot{display:flex; align-items:center; gap:6px; min-width:0}
   .cbot > :global(*){min-width:0}
-  .cq{margin-top:4px; font:9.5px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cq{margin-top:4px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .chip.dr{display:inline-flex; align-items:center; gap:5px}
   .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}
   /* #5074 : la liste déroulée d'un <select> natif est dessinée par le système,

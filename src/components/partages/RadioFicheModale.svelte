@@ -35,7 +35,7 @@
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import {
-    estHls, ficheDeAnnuaire, ficheDeLecture, ficheDeStation, joueCetteStation, libelleFlux,
+    estHls, ficheDeAnnuaire, ficheDeLecture, ficheDeStation, fluxParDefautDeFiche, joueCetteStation, libelleFlux,
     ordonnerFluxParQualite, titreEnCoursRadio, type FicheStation,
   } from '../../lib/ficheStation';
   import { radioGenreLabel, radioGenreRayon } from '../../lib/radioGenres';
@@ -141,12 +141,12 @@
   const pays = $derived(fiche ? nomDuPays(fiche.paysCode, $locale, fiche.pays) : '');
   // web#2552 : du meilleur flux au moins bon (sans perte, puis débit).
   const fluxRanges = $derived(ordonnerFluxParQualite(fiche?.flux ?? []));
-  /** Le flux que Tune lit par défaut : celui de la station, sinon le principal. */
-  const fluxParDefaut = $derived.by(() => {
-    const flux = fiche?.flux ?? [];
-    if (fiche?.fluxActuel && flux.some((f) => f.url === fiche!.fluxActuel)) return fiche.fluxActuel;
-    return flux.find((f) => f.primary)?.url ?? null;
-  });
+  /**
+   * Le flux que Tune lit par défaut : celui de la station, sinon celui que le
+   * serveur marque `par_defaut` (web#2801), sinon le principal (serveur ancien).
+   * L'ordre de repli vit dans `fluxParDefautDeFiche`, pure et testée.
+   */
+  const fluxParDefaut = $derived(fluxParDefautDeFiche(fluxRanges, fiche?.fluxActuel));
 
   /** On peut lancer cette station : elle est dans « Mes radios » ou dans l'annuaire. */
   const jouable = $derived(!!fiche && (fiche.idMienne != null || !!fiche.annuaireId));
@@ -180,11 +180,18 @@
         idMienne = null;
       }
       let refusAnnonce = false;
+      // web#2801 : `stream_url` n'est envoyé que si l'auditeur a choisi un
+      // AUTRE flux que celui du serveur. Sinon POST sans corps : le serveur
+      // choisit seul le meilleur flux permis, et passe au suivant si le
+      // diffuseur refuse (tune-server-rust#8397). Renvoyer le défaut affiché
+      // ferait jouer, sur un serveur ancien, un principal refusé chez
+      // l'auditeur (#7658).
+      const choisi = url && url !== fluxParDefaut ? url : undefined;
       const ok = await ecouterFicheAnnuaire(
         { external_id: f.annuaireId ?? '', my_radio_id: idMienne },
         zid,
         () => { refusAnnonce = true; },
-        idMienne == null ? url : undefined,
+        idMienne == null ? choisi : undefined,
       );
       if (!ok) {
         if (!refusAnnonce) notifications.error($t('v2.radio.dir.playFailed' as any).replace('{name}', f.nom));
@@ -320,9 +327,11 @@
           <ul aria-label={$t('v2.radio.fiche.streams' as any)}>
             {#each fluxRanges as f (f.url)}
               {@const joue = enDirect && lecture?.source_id === f.url}
-              <li class:actuel={f.url === fluxParDefaut} class:joue>
+              {@const interdit = f.autorise === false}
+              <li class:actuel={f.url === fluxParDefaut} class:joue class:interdit data-flux={f.url}>
                 {#if jouable}
-                  <button class="flux-lire" disabled={enCours !== null} aria-current={joue ? 'true' : undefined}
+                  <!-- web#2801 : un flux réservé à d'autres pays ne se choisit pas. -->
+                  <button class="flux-lire" disabled={enCours !== null || interdit} aria-current={joue ? 'true' : undefined}
                     aria-label={`${$t('common.play' as any)} — ${libelleFlux(f) || f.url}`}
                     onclick={() => lire(f.url)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
@@ -336,6 +345,11 @@
                     <span class="transport">{estHls(f) ? $t('v2.radio.fiche.hls' as any) : $t('v2.radio.fiche.direct' as any)}</span>
                     {#if f.url === fluxParDefaut}<span class="prin">{$t('v2.radio.fiche.default' as any)}</span>{/if}
                   </span>
+                {/if}
+                {#if interdit}
+                  <span class="pays-refus">{$t('v2.radio.fiche.notInCountry' as any)}</span>
+                {:else if f.autorise === null}
+                  <span class="pays-inconnu">{$t('v2.radio.fiche.countryUnknown' as any)}</span>
                 {/if}
                 <span class="url" title={f.url}>{f.url}</span>
               </li>
@@ -357,7 +371,7 @@
     border-radius:var(--v2-r-card); padding:20px 22px 22px; font-family:var(--v2-sans)}
   .panneau:focus{outline:none}
   .fermer{position:absolute; top:12px; right:12px; z-index:2; width:28px; height:28px; border:0; border-radius:8px;
-    background:transparent; color:var(--v2-txt3); font-size:20px; line-height:1; cursor:pointer}
+    background:transparent; color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .fermer:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   button:focus-visible, a:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .tete{display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center; margin-bottom:12px}
@@ -372,35 +386,39 @@
   .lecture svg{width:26px; height:26px; fill:currentColor; margin-left:2px}
   .titres{display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; max-width:100%}
   .nomligne{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; min-width:0}
-  h2{font-size:20px; font-weight:700}
-  h3{font:700 13px var(--v2-sans); margin:16px 0 6px}
+  h2{font-size:calc(20px * var(--v2-txt-echelle, 1)); font-weight:700}
+  h3{font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); margin:16px 0 6px}
   .coeur{display:grid; place-items:center; width:30px; height:30px; padding:0; border:0; border-radius:8px; cursor:pointer;
     background:transparent; color:var(--v2-txt2)}
   .coeur:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .coeur.actif{color:var(--v2-acc1)}
   .coeur svg{width:18px; height:18px}
-  .meta{font:12px var(--v2-sans); color:var(--v2-txt2)}
+  .meta{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .genres{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; list-style:none; padding:0; margin:0 0 8px}
-  .genres li{padding:2px 9px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); font:600 11px var(--v2-sans); color:var(--v2-txt2)}
-  .encours{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 8px; margin:4px 0 8px; font:13px var(--v2-sans)}
-  .direct{padding:1px 8px; border-radius:var(--v2-r-pill); background:var(--v2-acc1); color:var(--v2-on-acc); font:700 10px var(--v2-sans); text-transform:uppercase; letter-spacing:.04em}
+  .genres li{padding:2px 9px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .encours{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 8px; margin:4px 0 8px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .direct{padding:1px 8px; border-radius:var(--v2-r-pill); background:var(--v2-acc1); color:var(--v2-on-acc); font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform:uppercase; letter-spacing:.04em}
   .titre-en-cours{color:var(--v2-acc2); font-weight:600}
-  .desc{font:13.5px/1.5 var(--v2-sans); color:var(--v2-txt); margin:8px 0}
-  .site{display:inline-block; margin-top:6px; color:var(--v2-acc2); font:600 13px var(--v2-sans)}
-  .vide{color:var(--v2-txt3); font:13px var(--v2-sans); margin-top:8px}
-  .aide{font:12px var(--v2-sans); color:var(--v2-txt3); margin:0 0 6px}
+  .desc{font:calc(13.5px * var(--v2-txt-echelle, 1))/1.5 var(--v2-sans); color:var(--v2-txt); margin:8px 0}
+  .site{display:inline-block; margin-top:6px; color:var(--v2-acc2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .vide{color:var(--v2-txt3); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); margin-top:8px}
+  .aide{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); margin:0 0 6px}
   .flux ul{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px}
   .flux li{display:flex; flex-direction:column; gap:2px; padding:7px 10px;
     border:1px solid var(--v2-line2); border-radius:10px}
   .flux li.actuel{border-color:var(--v2-acc1)}
   .flux li.joue{background:var(--v2-surface2)}
+  /* web#2801 — réservé à d'autres pays : grisé, pas choisissable. */
+  .flux li.interdit{opacity:.5}
+  .flux li.interdit .flux-lire:disabled{cursor:not-allowed; opacity:1}
+  .pays-refus, .pays-inconnu{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .flux-lire{display:flex; align-items:center; gap:8px; width:100%; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; text-align:left; cursor:pointer}
   .flux-lire:disabled{cursor:progress; opacity:.7}
   .flux-lire.statique{cursor:default}
   .flux-lire svg{width:14px; height:14px; flex:none; color:var(--v2-acc1)}
-  .lib{font:600 12.5px var(--v2-sans)}
-  .transport{font:600 10px var(--v2-mono); color:var(--v2-txt2); padding:0 6px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill)}
-  .prin{font:600 10px var(--v2-mono); color:var(--v2-acc2)}
-  .url{font:10.5px var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lib{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .transport{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); padding:0 6px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill)}
+  .prin{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .url{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

@@ -58,10 +58,15 @@ export const REGLAGES: Reglage[] = [
   { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },
   // ── Général › Interface ──────────────────────────────────────────────
   { id: 'theme', section: 'interface', labelKey: 'settings.theme', descKey: 'settings.themePalettesHint', termesKey: 'reglages.termes.theme' },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'taille-texte', section: 'interface', labelKey: 'settings.textSize', descKey: 'settings.textSizeHint', termesKey: 'reglages.termes.tailleTexte' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
   { id: 'crete-metre', section: 'interface', labelKey: 'v2.set.peakMeter', descKey: 'v2.set.peakMeterHint', termesKey: 'reglages.termes.creteMetre', techniques: ['DAT', 'PCM-7030', 'IEC'] },
+  // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
+  { id: 'menus-complets', section: 'interface', labelKey: 'settings.fullMenus', descKey: 'settings.fullMenusHint', termesKey: 'reglages.termes.menusComplets' },
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },
   { id: 'barre-vu-metres', section: 'interface', labelKey: 'v2.set.barVu', descKey: 'v2.set.barVuHint', techniques: ['VU'] },
+  { id: 'barre-onde', section: 'interface', labelKey: 'v2.set.barOnde', descKey: 'v2.set.barOndeHint', termesKey: 'reglages.termes.barreOnde', techniques: ['waveform'] },
   { id: 'langue', section: 'interface', labelKey: 'settings.language', termesKey: 'reglages.termes.langue' },
   { id: 'ecran-demarrage', section: 'interface', labelKey: 'settings.startupView', descKey: 'v2.hint.startupView', termesKey: 'reglages.termes.ecranDemarrage' },
   { id: 'lienLectureVersSource', section: 'interface', labelKey: 'settings.nowPlayingLinkToSource', descKey: 'settings.nowPlayingLinkToSourceHint' },
@@ -88,7 +93,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'replaygain-anti-ecretage', section: 'localAudio', labelKey: 'settings.replayGainPreventClipping', descKey: 'v2.hint.replayGainPreventClipping', techniques: ['ReplayGain', 'clipping', 'true-peak'], min: 'expert' },
   { id: 'replaygain-source', section: 'localAudio', labelKey: 'settings.replaygainSource', descKey: 'settings.replaygainSourceTagsAnalysis', techniques: ['ReplayGain', 'tags'], min: 'intermediate' },
   { id: 'vitesse-analyses', section: 'localAudio', labelKey: 'settings.analysisSpeed', descKey: 'settings.analysisSpeedHint', termesKey: 'reglages.termes.vitesseAnalyses', techniques: ['CPU'], min: 'intermediate' },
-  { id: 'lever-bridage', section: 'localAudio', labelKey: 'settings.analysisUnthrottle', descKey: 'settings.analysisUnthrottleHint', techniques: ['CPU'], min: 'expert' },
   { id: 'remesure-replaygain', section: 'localAudio', labelKey: 'settings.rgReanalyze', descKey: 'settings.rgReanalyzeHint', techniques: ['ReplayGain'], min: 'intermediate' },
   { id: 'sorties-locales-visibles', section: 'localAudio', labelKey: 'settings.audioOutputs', techniques: ['DAC', 'USB'] },
   { id: 'zone-navigateur', section: 'localAudio', labelKey: 'settings.createBrowserZone', descKey: 'settings.playHereHint' },
@@ -166,6 +170,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'rangement-dossier-cible', section: 'ingest', labelKey: 'v2.lbl.targetFolder' },
   { id: 'rangement-modele', section: 'ingest', labelKey: 'ingest.template' },
   { id: 'rangement-ecrire-tags', section: 'ingest', labelKey: 'settings.writeTags', descKey: 'settings.writeTagsHint', techniques: ['tags'] },
+  // tune-server-rust#8325 / ESL63P — Bibliothèque › Balises du classique.
+  { id: 'balises-classique', section: 'classicalTags', labelKey: 'classicalTags.title', descKey: 'classicalTags.hint', composant: 'BalisesClassiqueV2.svelte', techniques: ['BAND', 'CHOIR', 'CHORUS', 'CONDUCTOR', 'WORK', 'MOVEMENTNAME', 'TXXX'] },
   { id: 'vue-oxygen', section: 'oxygen', labelKey: 'v2.lbl.oxygenView', descKey: 'settings.facetsNavHint', techniques: ['Oxygen'] },
   { id: 'valeurs-facettes', section: 'oxygen', labelKey: 'oxygen.facetValues', descKey: 'settings.facetValuesHint', techniques: ['Oxygen'] },
 
@@ -197,6 +203,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'sauvegarde-reglages-appareils', section: 'sauvegardeReglages', labelKey: 'v2.dev.backupTitle', descKey: 'v2.dev.backupIntro', techniques: ['backup', 'JSON'] },
   { id: 'devialet-air', section: 'devialetAir', labelKey: 'v2.set.devialetAirEnable', descKey: 'v2.set.devialetAirDiscoveryHint', techniques: ['Devialet', 'AIR', 'D200', 'D400'] },
   { id: 'devialet-air-source', section: 'devialetAir', labelKey: 'v2.set.devialetAirSource', techniques: ['Devialet'] },
+  { id: 'devialet-air-course', section: 'devialetAir', labelKey: 'v2.set.devialetAirRange', techniques: ['Devialet', 'dB'] },
 
   // ── Affichage ────────────────────────────────────────────────────────
   { id: 'colonnes-pistes', section: 'displayPrefs', labelKey: 'settings.trackColumns', descKey: 'settings.trackColumnsHint' },
@@ -210,6 +217,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'cadence-animations', section: 'displayPrefs', labelKey: 'settings.animationRate', descKey: 'settings.animationRateHint', techniques: ['CPU', 'GPU', 'fps'] },
   { id: 'ouvrir-file-defilement', section: 'displayPrefs', labelKey: 'settings.openQueueOnScroll', descKey: 'settings.openQueueOnScrollHint' },
   { id: 'disposition-file', section: 'displayPrefs', labelKey: 'settings.queuePlacement', descKey: 'settings.queuePlacementHint', termesKey: 'reglages.termes.dispositionFile' },
+  // ── Affichage › Accueil : suggestions écartées (web#916) ─────────────
+  { id: 'suggestions-ecartees', section: 'dismissedSuggestions', labelKey: 'v2.dismiss.settingsTitle', descKey: 'v2.dismiss.settingsIntro', composant: 'SuggestionsEcarteesV2.svelte' },
 
   // ── Extensions ───────────────────────────────────────────────────────
   { id: 'extensions', section: 'plugins', labelKey: 'settings.tabExtensions', techniques: ['plugins'] },

@@ -99,8 +99,8 @@
 
 <style>
   .pays-ecoute { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:12px 18px; border-bottom:1px solid var(--v2-line); }
-  label { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--v2-txt2); font-size:12px; }
+  label { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--v2-txt2); font-size:calc(12px * var(--v2-txt-echelle, 1)); }
   select { max-width:min(100%, 260px); min-height:32px; color:var(--v2-txt); background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:8px; padding:4px 8px; }
-  .aide { flex-basis:100%; margin:0; font-size:11px; color:var(--v2-txt3); }
-  .erreur { margin:0; color:var(--v2-danger); font-size:12px; }
+  .aide { flex-basis:100%; margin:0; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); }
+  .erreur { margin:0; color:var(--v2-danger); font-size:calc(12px * var(--v2-txt-echelle, 1)); }
 </style>

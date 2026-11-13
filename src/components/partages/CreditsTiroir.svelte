@@ -216,9 +216,9 @@
 {/snippet}
 
 <style>
-  .objet { margin: 4px 0 0; font-size: 14px; color: var(--tune-text); }
+  .objet { margin: 4px 0 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .contexte {
-    margin: 2px 0 0; font-size: 12px; color: var(--tune-text-muted);
+    margin: 2px 0 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted);
     display: flex; flex-wrap: wrap; gap: 0 8px;
   }
   .corps {
@@ -227,13 +227,13 @@
   }
   .en-ligne .corps { padding: 4px 0 0; overflow: visible; max-width: 760px; }
   .en-ligne .role { text-align: left; }
-  .etat { padding: 12px; color: var(--tune-text-muted); font-size: 13px; text-align: center; }
+  .etat { padding: 12px; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); text-align: center; }
   .etat.err { color: #ef4444; }
   .vide { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 8px; text-align: center; }
-  .vide p { margin: 0; color: var(--tune-text-muted); font-size: 13px; line-height: 1.5; }
+  .vide p { margin: 0; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); line-height: 1.5; }
   .enrichir {
     padding: 8px 14px; border-radius: 6px; cursor: pointer;
-    font-family: var(--font-label); font-size: 12px; font-weight: 600;
+    font-family: var(--font-label); font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600;
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15);
     border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
     color: var(--tune-accent);
@@ -242,7 +242,7 @@
   .bloc h4 {
     margin: 0 0 8px;
     font-family: var(--font-label);
-    font-size: 13px; font-weight: 600;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600;
     color: var(--tune-text);
   }
   .ligne {
@@ -251,18 +251,18 @@
   }
   .role {
     font-family: var(--font-label);
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); text-transform: uppercase; letter-spacing: 0.05em;
     color: var(--tune-text-muted); text-align: right;
   }
   .noms { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .nom { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
   .lien {
     background: none; border: none; padding: 0; cursor: pointer;
-    font: inherit; font-size: 14px; font-weight: 600; color: var(--tune-accent);
+    font: inherit; font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-accent);
     text-align: left;
   }
   .lien:hover { text-decoration: underline; }
-  .texte { font-size: 14px; font-weight: 600; color: var(--tune-text); }
-  .pistes { font-size: 11px; color: var(--tune-text-muted); }
-  .wikidata { font-size: 11px; font-style: italic; color: var(--tune-text-muted); }
+  .texte { font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); }
+  .pistes { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .wikidata { font-size: calc(11px * var(--v2-txt-echelle, 1)); font-style: italic; color: var(--tune-text-muted); }
 </style>
