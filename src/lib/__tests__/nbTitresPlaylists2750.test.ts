@@ -16,6 +16,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import * as api from '../api';
 import { widgetParId, versElement, type Widget } from '../accueilWidgets';
 import { compterTitresDeService, libelleNbTitres, nbTitresDe } from '../nbTitresPlaylist';
+import { formaterPluriel } from '../pluriel';
 import { dictionnaire } from './onzeDictionnaires';
 import PageWidgets from '../../components/v2/PageWidgets.svelte';
 import { currentProfileId } from '../stores/profile';
@@ -38,8 +39,9 @@ describe('nbTitresDe / libelleNbTitres', () => {
   });
 
   it('« 1 titre » / « 12 titres »', () => {
-    expect(libelleNbTitres(1, trFr)).toBe('1 titre');
-    expect(libelleNbTitres(12, trFr)).toBe('12 titres');
+    const tnFr = (k: string, n: number) => formaterPluriel(trFr(k), n, 'fr');
+    expect(libelleNbTitres(1, tnFr)).toBe('1 titre');
+    expect(libelleNbTitres(12, tnFr)).toBe('12 titres');
   });
 
   it('un service qui refuse rend `null`, jamais « 0 titre »', async () => {

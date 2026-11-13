@@ -2,6 +2,7 @@ import { writable, derived, get } from 'svelte/store';
 import { CHARGEURS, type Locale, type Dictionnaire } from './locales';
 export type { Locale, Dictionnaire } from './locales';
 import { langueDuNavigateur } from './langueParDefaut';
+import { formaterPluriel } from './pluriel';
 export const localeNames: Record<Locale, string> = {
   fr: 'Français',
   en: 'English',
@@ -130,4 +131,20 @@ export const locale = {
 export const t = derived([langue, revision], ([$l]) => {
   const dict = chargees.has($l) ? messages[$l] : messages.en;
   return (key: string) => dict[key] ?? messages.en[key] ?? key;
+});
+
+/**
+ * `$tn(cle, n)` : une clé PLURIELLE (format ICU `{n, plural, one {…} other {…}}`,
+ * voir `pluriel.ts`), rendue pour `n` selon les règles CLDR de la langue dont
+ * vient la chaîne — celle de l'interface, ou l'anglais quand la clé y manque.
+ * `{n}` et `{count}` hors bloc ICU sont remplacés par le nombre, comme le
+ * faisaient les appelants à la main.
+ */
+export const tn = derived([langue, revision], ([$l]) => {
+  const source: Locale = chargees.has($l) ? $l : 'en';
+  return (key: string, n: number) => {
+    const local = messages[source][key];
+    const [message, lang] = local !== undefined ? [local, source] : [messages.en[key] ?? key, 'en'];
+    return formaterPluriel(message, n, lang).replace(/\{(?:n|count)\}/g, String(n));
+  };
 });

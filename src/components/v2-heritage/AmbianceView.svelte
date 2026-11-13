@@ -3,7 +3,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -433,7 +433,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
           {lastQuery}
         </h3>
-        <span class="track-count">{$t((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
+        <span class="track-count">{$tn('v2.common.trackCountN', tracks.length)}</span>
         <div class="results-actions">
           <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; l'aléatoire passe sous sa flèche. -->
           <BoutonLectureV2 cle="v2.ambiance.playAll" classeLire="play-all-btn" onLire={() => playAll(false)}

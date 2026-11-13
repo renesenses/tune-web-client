@@ -56,7 +56,7 @@
   import * as api from '../../lib/api';
   import { dialogs } from '../../lib/stores/dialogs';
   import { notifications } from '../../lib/stores/notifications';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -316,7 +316,7 @@
   function sousTitreListe(pl: any): string {
     if (pl?.smart) return $t('v2.pl.rule' as any);
     const n = pl?.track_count ?? 0;
-    return $t((n > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(n));
+    return $tn('v2.common.trackCountN', n);
   }
 
   /*

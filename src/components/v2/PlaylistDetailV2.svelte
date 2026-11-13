@@ -16,7 +16,7 @@
   import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, tn } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -601,7 +601,7 @@
         {#if badge}<div class="desc badge-cercle" data-badge-cercle>{badge}</div>{/if}
       {/if}
       <div class="facts">
-        <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
+        <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
       </div>
       <!-- web#2736 (Bertrand, 09/11/2026) — même principe que la fiche album :
