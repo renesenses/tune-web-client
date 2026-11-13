@@ -41,6 +41,7 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
   let trame = 0;
   let cible: number | null = null;
   let revision = 0;
+  let pasPrecedent: number | null = null;
   let ancre: { index: number; decalage: number } | null = null;
   // Les cales restent des estimations. Une nouvelle première rangée peut
   // avoir une autre hauteur : conserver la carte visible, pas son ancien
@@ -72,7 +73,14 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
     const g = mesurer();
     const tour = ++revision;
     if (cible == null && o.total > 600 && !g.horizontal) ancre ??= lireAncre(g.horizontal);
-    const index = cible ?? ancre?.index;
+    // Une mesure différente change les cales estimées. Convertir la position
+    // dans cette nouvelle échelle avant de choisir la fenêtre ; l’ancre ne
+    // sert ensuite qu’à retrouver le décalage exact de la carte après rendu.
+    if (cible == null && ancre && pasPrecedent != null && pasPrecedent !== g.pas) {
+      el.scrollTop *= g.pas / pasPrecedent;
+    }
+    pasPrecedent = g.pas;
+    const index = cible;
     const position = index == null ? (g.horizontal ? el.scrollLeft : el.scrollTop) : Math.floor(index / g.colonnes) * g.pas;
     o.surFenetre(trancheAlbums(o.total, position, g.vue, g.colonnes, g.pas, g.espace));
     if (ancre && cible == null) void tick().then(() => {
@@ -102,8 +110,8 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
     const carte = el.querySelector<HTMLElement>(`[data-i="${cible}"]`);
     const rect = carte?.getBoundingClientRect();
     const cadre = el.getBoundingClientRect();
-    const position = rect && !g.horizontal
-      ? (g.horizontal ? el.scrollLeft + rect.left - cadre.left : el.scrollTop + rect.top - cadre.top)
+    const position = rect && rect.height > 0 && !g.horizontal
+      ? el.scrollTop + rect.top - cadre.top
       : Math.floor(cible / g.colonnes) * g.pas;
     if (g.horizontal) el.scrollLeft = position; else el.scrollTop = position;
     cible = null;
