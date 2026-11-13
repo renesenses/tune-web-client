@@ -4106,6 +4106,18 @@ export function browseDirectory(path: string) {
   return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}`);
 }
 
+/**
+ * tune-server-rust discussion #8273 (rc13) — la vignette d'un dossier de la
+ * vue « Répertoires » : `folder.jpg` / `cover.jpg` / `front.jpg` du dossier,
+ * sinon la pochette d'un album rangé dessous. Le serveur rend TOUJOURS une
+ * vignette (case de `CASES_VIGNETTE`), jamais l'image d'origine, et `404`
+ * quand il n'y a rien : l'écran garde alors son icône de dossier. Par le pont,
+ * une `<img>` ne porte pas l'en-tête du jeton : `urlNavigateur` l'ajoute.
+ */
+export function folderCoverUrl(path: string, size = 80): string {
+  return urlNavigateur(`${BASE}/library/browse/cover?path=${encodeURIComponent(path)}&size=${size}`);
+}
+
 // --- Media Servers (UPnP/DLNA) ---
 
 /**
@@ -7344,10 +7356,44 @@ export function getRadio(id: number) {
   return fetchJSON<import('./types').RadioStation>(`${BASE}/radios/${id}`);
 }
 
-export function createRadio(data: { name: string; stream_url: string; logo_url?: string; genre?: string; codec?: string; country?: string; homepage_url?: string; favorite?: boolean }) {
+export function createRadio(data: { name: string; stream_url: string; logo_url?: string; genre?: string; codec?: string; bitrate?: number; country?: string; homepage_url?: string; favorite?: boolean }) {
   return fetchJSON<import('./types').RadioStation>(`${BASE}/radios`, {
     method: 'POST',
     body: JSON.stringify(data),
+  });
+}
+
+/**
+ * tune-server-rust discussion #8273 (rc13) — ce que le serveur apprend d'une
+ * adresse collée (`POST /radios/probe`) : l'adresse du flux à enregistrer
+ * (une liste `.pls` / `.m3u` est déréférencée), codec, débit et en-têtes ICY.
+ * Rien n'est enregistré. Une adresse que `POST /radios` refuserait est
+ * refusée de même (400, `error` + `message` traduit).
+ */
+export interface SondeRadio {
+  stream_url: string;
+  playlist_url?: string | null;
+  reachable: boolean;
+  hls: boolean;
+  content_type?: string | null;
+  codec?: string | null;
+  bitrate?: number | null;
+  sample_rate?: number | null;
+  channels?: number | null;
+  name?: string | null;
+  genre?: string | null;
+  description?: string | null;
+  homepage_url?: string | null;
+  logo_url?: string | null;
+  country?: string | null;
+  existing_id?: number | null;
+  existing_name?: string | null;
+}
+
+export function probeRadio(url: string) {
+  return fetchJSON<SondeRadio>(`${BASE}/radios/probe`, {
+    method: 'POST',
+    body: JSON.stringify({ url }),
   });
 }
 

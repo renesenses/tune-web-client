@@ -8,6 +8,7 @@
   import * as api from '../../lib/api';
   import { formatTime, formatAudioBadge } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import VignetteDossier from './VignetteDossier.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../../lib/types';
   import { t as tr } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -498,11 +499,11 @@
       <!-- Subdirectories -->
       {#if browseResult.directories.length > 0}
         <div class="dir-list">
-          {#each browseResult.directories as dir}
+          {#each browseResult.directories as dir (dir.path)}
             <button class="dir-item" onclick={() => navigateTo(dir.path)}>
-              <svg class="dir-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
+              <!-- tune-server-rust discussion #8273 : la pochette du dossier,
+                   l'icône tant qu'elle n'est pas là (ou s'il n'y en a pas). -->
+              <VignetteDossier path={dir.path} />
               <span class="dir-name">{dir.name}</span>
               <span class="dir-count">{dir.track_count}</span>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
@@ -852,12 +853,6 @@
 
   .dir-item:hover {
     background: var(--tune-surface-hover);
-  }
-
-  .dir-icon {
-    flex-shrink: 0;
-    color: var(--tune-text-secondary);
-    opacity: 0.7;
   }
 
   .dir-name {
