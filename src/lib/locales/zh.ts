@@ -6937,7 +6937,6 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE 切换：从 {position} 继续播放",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：此区域的音量已被 PURE 锁定，为保护您的听力和音箱，播放从 0% 开始。请在设备上或在 Tune 中调高音量。",
   "erreursServeur.track_file_damaged": "「{title}」：文件从 {position} 起已损坏，Tune 已跳过该曲目的剩余部分。",
-  "v2.pl.serviceNoPlaylists": "{s} 不提供播放列表。",
   "v2.dev.listAria": "设备和分区",
   "v2.dev.filterLabel": "筛选设备",
   "v2.dev.filterPlaceholder": "搜索设备…",
