@@ -24,6 +24,7 @@
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
     filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
+    rangerParType, SECTIONS_PAR_TYPE, SEUIL_SECTIONS_PAR_TYPE, type SectionParType,
     detailEdition, editionsCachees,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
@@ -281,6 +282,44 @@
   const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
 
   /*
+   * web#3032 (Bertrand, recette du 14/11/2026, page Miles Davis) — au-delà de
+   * `SEUIL_SECTIONS_PAR_TYPE` vignettes dans la discographie ENTIÈRE (pas la
+   * filtrée : cocher une pastille ne fait pas basculer la mise en page), elle
+   * se range en sections par type, repliables, chacune avec son compte ; le
+   * tri de la page (par année par défaut) vaut dans chaque section. En
+   * dessous, rien ne change.
+   */
+  const parType = $derived(toutes.length > SEUIL_SECTIONS_PAR_TYPE);
+  const sectionsType = $derived(rangerParType(triees));
+  const LIBELLES_TYPE: Record<SectionParType, string> = {
+    studio: 'v2.disco.studioAlbums', live: 'v2.disco.live', compilations: 'v2.disco.compilations',
+    'bandes-originales': 'v2.disco.soundtracks', eps: 'v2.disco.eps', singles: 'v2.disco.singles',
+    autres: 'v2.disco.otherReleases',
+  };
+  /** Les `data-section` d'avant sont gardés pour Live, EP et Singles. */
+  const DATA_TYPE: Record<SectionParType, string> = {
+    studio: 'albums-studio', live: 'live', compilations: 'compilations-artiste',
+    'bandes-originales': 'bandes-originales', eps: 'eps', singles: 'singles', autres: 'autres',
+  };
+  /** Les sections repliées, retenues d'une fiche à l'autre comme le tri. */
+  const CLE_REPLIES = 'v2.art.disco.replies';
+  function relireReplies(): Set<string> {
+    try {
+      const v = JSON.parse(lireTexte(CLE_REPLIES) ?? '[]');
+      return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+  let replies = $state<Set<string>>(relireReplies());
+  function basculerRepli(cle: string) {
+    const n = new Set(replies);
+    if (n.has(cle)) n.delete(cle); else n.add(cle);
+    replies = n;
+    ecrireChoix(CLE_REPLIES, JSON.stringify([...n].sort()));
+  }
+
+  /*
    * Les sections #4767 : même filtre « Source » et même TRI que la
    * discographie — un seul réglage pour toute la page. Une section (ou un
    * groupe « Avec … ») que le filtre vide ne se rend pas.
@@ -419,7 +458,30 @@
     {#if triees.length}
     <section class="bloc" data-section="discographie">
     <h3 class="titre-section">{$t('v2.disco.discography' as any)} <span class="cpt">{triees.length}</span></h3>
-    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
+    {#if parType}
+      <!-- web#3032 — les sections par type, repliables. Une section vide
+           n'est pas rendue. -->
+      {#each SECTIONS_PAR_TYPE as s (s)}
+        {#if sectionsType[s].length}
+          {@const ouverte = !replies.has(s)}
+          <section class="connexes" data-section={DATA_TYPE[s]} data-repliee={ouverte ? null : ''}>
+            <h3 class="titre-connexes">
+              <button class="replier" aria-expanded={ouverte} aria-controls={`disco-type-${s}`} onclick={() => basculerRepli(s)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                {$t(LIBELLES_TYPE[s] as any)} <span class="cpt">{sectionsType[s].length}</span>
+              </button>
+            </h3>
+            {#if ouverte}
+              <div class="gr" id={`disco-type-${s}`}>
+                {#each sectionsType[s] as e (e.cle)}
+                  {@render carte(e)}
+                {/each}
+              </div>
+            {/if}
+          </section>
+        {/if}
+      {/each}
+    {:else if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -490,7 +552,19 @@
        collaborations). -->
   {#if apparaitSurCompte}
     <section class="bloc" data-section="appears-on">
-      <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {#if parType}
+        <!-- web#3032 — repliable aussi quand la discographie l'est. -->
+        <h3 class="titre-section">
+          <button class="replier" aria-expanded={!replies.has('apparait-sur')} aria-controls="disco-apparait-sur" onclick={() => basculerRepli('apparait-sur')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            {$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span>
+          </button>
+        </h3>
+      {:else}
+        <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {/if}
+      {#if !parType || !replies.has('apparait-sur')}
+      <div id="disco-apparait-sur">
       {#if apparitionsTriees.length}
         <div class="groupe" data-section="apparitions">
           <div class="gr">
@@ -519,6 +593,8 @@
             {/each}
           </div>
         </div>
+      {/if}
+      </div>
       {/if}
     </section>
   {/if}
@@ -819,6 +895,17 @@
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
     font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
+  /* web#3032 — le titre d'une section repliable est un bouton : même police
+     que le titre, un chevron qui tourne quand elle est ouverte. */
+  .replier {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    border: 0; background: transparent; padding: 0; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+  }
+  .replier svg { width: 14px; height: 14px; align-self: center; transition: transform .12s ease; }
+  .replier[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .replier:hover { color: var(--v2-acc1); }
+  .replier:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
   /* #2794 / #2961 — « Joue avec » : des puces qui passent à la ligne, le nom
      en entier (il se coupe plutôt que de se tronquer), le compte discret dans

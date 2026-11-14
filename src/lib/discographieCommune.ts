@@ -184,6 +184,105 @@ export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
 }
 
 /**
+ * web#3032 — À PARTIR DE COMBIEN DE VIGNETTES la discographie se range en
+ * sections repliables par type (Bertrand, recette du 14/11/2026, page Miles
+ * Davis : « beaucoup d'albums, il faudrait faciliter la navigation »). En
+ * dessous, la grille reste celle d'avant, telle quelle.
+ */
+export const SEUIL_SECTIONS_PAR_TYPE = 12;
+
+/** Les sections de #3032, dans l'ordre de la page. */
+export const SECTIONS_PAR_TYPE = ['studio', 'live', 'compilations', 'bandes-originales', 'eps', 'singles', 'autres'] as const;
+export type SectionParType = (typeof SECTIONS_PAR_TYPE)[number];
+
+/** Les types secondaires d'une entrée, repliés, tous exemplaires réunis. */
+function secondairesDe(entree: EntreeDiscographie): string[][] {
+  return entree.exemplaires.map((ex) => (ex.album.release_secondary_types ?? []).map((t) => (t ?? '').trim().toLowerCase()));
+}
+
+/**
+ * web#3032 — l'entrée est-elle une BANDE ORIGINALE ? Le type secondaire
+ * MusicBrainz `soundtrack` (balise `RELEASETYPE`, serveur #5616) d'abord. Les
+ * services n'en publient pas : sans aucun type secondaire, seules des
+ * EXPRESSIONS sans ambiguïté du titre décident (« Original Motion Picture
+ * Soundtrack », « Bande originale du film »…) — jamais le mot « soundtrack »
+ * seul (« Soundtrack to My Life »), comme `titreAnnonceUnLive` ne lit pas
+ * « Alive ».
+ */
+export function estBandeOriginale(entree: EntreeDiscographie): boolean {
+  const secondaires = secondairesDe(entree);
+  if (secondaires.some((types) => types.includes('soundtrack'))) return true;
+  if (secondaires.some((types) => types.length > 0)) return false;
+  return entree.exemplaires.some((ex) => titreAnnonceUneBandeOriginale(ex.album.title ?? ''));
+}
+
+/** Les expressions qui, dans un titre, annoncent une bande originale (mots repliés). */
+const EXPRESSIONS_BANDE_ORIGINALE: string[][] = [
+  ['original', 'soundtrack'],
+  ['original', 'motion', 'picture', 'soundtrack'],
+  ['motion', 'picture', 'soundtrack'],
+  ['original', 'score'],
+  ['original', 'film', 'score'],
+  ['original', 'motion', 'picture', 'score'],
+  ['music', 'from', 'the', 'motion', 'picture'],
+  ['bande', 'originale'],
+  ['banda', 'sonora', 'original'],
+  ['colonna', 'sonora', 'originale'],
+];
+
+/** web#3032 — le titre annonce-t-il une bande originale ? Expressions entières seulement. */
+export function titreAnnonceUneBandeOriginale(titre: string): boolean {
+  const mots = titre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return EXPRESSIONS_BANDE_ORIGINALE.some((expr) =>
+    mots.some((_, i) => expr.every((m, k) => mots[i + k] === m)));
+}
+
+/**
+ * web#3032 — l'entrée est-elle une compilation DE L'ARTISTE (best of,
+ * anthologie) ? Le drapeau `is_compilation` de la bibliothèque, ou le type
+ * secondaire `compilation`. Les compilations d'AUTRUI où il figure restent
+ * sous « Apparaît sur » (serveur #4767) : elles n'arrivent pas ici.
+ */
+export function estCompilation(entree: EntreeDiscographie): boolean {
+  if (entree.exemplaires.some((ex) => ex.album.is_compilation === true)) return true;
+  return secondairesDe(entree).some((types) => types.includes('compilation'));
+}
+
+/**
+ * web#3032 — un type connu ? L'explicite ou le déduit (`typeDeSortie`), ou un
+ * type secondaire, sur au moins un exemplaire. Sans rien de tout cela, la
+ * vignette va sous « Autres » plutôt que d'être appelée « album studio ».
+ */
+function typeConnu(entree: EntreeDiscographie): boolean {
+  return entree.exemplaires.some((ex) => typeDeSortie(ex.album) !== undefined)
+    || secondairesDe(entree).some((types) => types.length > 0);
+}
+
+/**
+ * web#3032 — LA DISCOGRAPHIE EN SECTIONS PAR TYPE, au-delà de
+ * `SEUIL_SECTIONS_PAR_TYPE` vignettes. Une entrée va dans UNE section, la
+ * première qui la reconnaît : Live (`estLive`, comme avant), Bande originale,
+ * Compilation, puis EP et Singles (`rangDeSortie`, comme avant), Albums
+ * studio pour un type connu, Autres sinon. L'ordre reçu (le tri de la page)
+ * est conservé dans chaque section.
+ */
+export function rangerParType(entrees: EntreeDiscographie[]): Record<SectionParType, EntreeDiscographie[]> {
+  const sections = Object.fromEntries(SECTIONS_PAR_TYPE.map((s) => [s, [] as EntreeDiscographie[]])) as Record<SectionParType, EntreeDiscographie[]>;
+  for (const entree of entrees) {
+    let section: SectionParType;
+    if (estLive(entree)) section = 'live';
+    else if (estBandeOriginale(entree)) section = 'bandes-originales';
+    else if (estCompilation(entree)) section = 'compilations';
+    else {
+      const r = rangDeSortie(entree);
+      section = r === 'ep' ? 'eps' : r === 'single' ? 'singles' : typeConnu(entree) ? 'studio' : 'autres';
+    }
+    sections[section].push(entree);
+  }
+  return sections;
+}
+
+/**
  * Le titre replié : sans accents, sans casse, sans ponctuation.
  *
  * « C’est déjà ça » (apostrophe typographique chez un service) et « C'est deja
