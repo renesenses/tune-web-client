@@ -39,7 +39,9 @@ beforeEach(() => {
     let corps: any = null;
     try { corps = init?.body ? JSON.parse(String(init.body)) : null; } catch { corps = init?.body; }
     appels.push({ url, methode: init?.method ?? 'GET', corps });
-    return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    // Les relectures (GET) rendent des listes vides ; les écritures, `{}`.
+    const vide = (init?.method ?? 'GET') === 'GET' ? '[]' : '{}';
+    return new Response(vide, { status: 200, headers: { 'Content-Type': 'application/json' } });
   }));
 });
 
