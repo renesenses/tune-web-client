@@ -205,7 +205,10 @@ describe('la pilule dans la barre de filtres', () => {
     // prétendrait qu'aucun filtre n'est posé.
     // Le FAIT, pas la fin exacte de la ligne : d'autres filtres (tranche DR,
     // phase 5 lot 5) s'ajoutent à la même condition sans la changer.
-    const actif = SOURCE_LIBRARYV2.match(/class:active=\{([^}]*)\} onclick=\{reset\}/)?.[1] ?? '';
+    // tune-server-rust#8625 — la condition vit dans `toutActif` (partagée avec
+    // l'infobulle de « Tout »), le bouton la lit.
+    expect(SOURCE_LIBRARYV2).toMatch(/class:active=\{toutActif\} onclick=\{reset\}/);
+    const actif = SOURCE_LIBRARYV2.match(/const toutActif = \$derived\(([^;]*)\);/)?.[1] ?? '';
     expect(actif, 'la condition du bouton « Tout » est introuvable').not.toBe('');
     expect(actif).toContain('!fProvenance');
   });

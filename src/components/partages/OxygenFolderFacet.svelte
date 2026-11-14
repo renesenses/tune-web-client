@@ -35,7 +35,8 @@
         <button class="val" onclick={() => onDrill(ch.path)}>
           <svg class="ficon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
           <span class="vl" title={ch.path}>{ch.name}</span>
-          <span class="vc">{ch.count.toLocaleString('fr')}</span>
+          <!-- tune-server-rust#8625 — ce qu'un dossier ne compte pas. -->
+          <span class="vc" title={$t('bibliotheque.dossiers.infobulle' as any)}>{ch.count.toLocaleString('fr')}</span>
           {#if ch.has_children}
             <svg class="chev" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 6 6 6-6 6"/></svg>
           {/if}
