@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroPisteAffiche } from '../../lib/numeroPiste';
   import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
@@ -547,7 +548,7 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="track-item" class:en-lecture={etat !== null} aria-current={etat !== null ? 'true' : undefined} onclick={() => t.id && playFromTrack(index)}>
-              <span class="track-num">{#if etat}<IndicateurLecture {etat} />{:else}{t.track_number ?? index + 1}{/if}</span>
+              <span class="track-num">{#if etat}<IndicateurLecture {etat} />{:else}{numeroPisteAffiche(t.track_number) || index + 1}{/if}</span>
               <div class="track-info">
                 <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}

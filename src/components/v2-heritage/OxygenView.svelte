@@ -28,6 +28,8 @@
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
   import ChampRecherche from '../v2/ChampRecherche.svelte';
   import type { Track } from '../../lib/types';
+  import { metadonneesVisibles } from '../../lib/clesMetadonneesInternes';
+  import { numeroPisteAffiche, comparerNumeroPiste } from '../../lib/numeroPiste';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
   const LOAD_LIMIT = 3000; // client window; full-library facets = server index (Phase 2b)
@@ -54,7 +56,7 @@
     // champ coche dans les reglages mais absent d'ici etait ecarte en silence
     // par le filtre de `columns` (Bertrand, 9 aout 2026).
     album_artist: { label: 'oxygen.col.albumArtist', get: t => t.album_artist ?? '' },
-    track_number: { label: 'oxygen.col.trackNumber', get: t => t.track_number != null ? String(t.track_number) : '' },
+    track_number: { label: 'oxygen.col.trackNumber', get: t => numeroPisteAffiche(t.track_number) },
     format: { label: 'oxygen.col.format', get: t => t.format ?? '' },
     channels: { label: 'oxygen.col.channels', get: t => t.channels != null ? String(t.channels) : '' },
     isrc: { label: 'oxygen.col.isrc', get: t => t.isrc ?? '' },
@@ -343,6 +345,8 @@
       if (!d.subtitle && t.disc_subtitle) d.subtitle = t.disc_subtitle;
       d.tracks.push(t);
     }
+    // Pistes sans numéro (UPnP sans `originalTrackNumber`) après les numérotées.
+    for (const d of m.values()) d.tracks.sort((a, b) => comparerNumeroPiste(a.track_number, b.track_number));
     return [...m.values()].sort((a, b) => a.disc - b.disc);
   }
 
@@ -366,7 +370,7 @@
     selected = t; ext = {};
     if (t.id == null) return;
     extLoading = true;
-    try { ext = await getTrackExtendedMetadata(t.id); } catch { ext = {}; } finally { extLoading = false; }
+    try { ext = metadonneesVisibles(await getTrackExtendedMetadata(t.id)); } catch { ext = {}; } finally { extLoading = false; }
   }
   function openAlbum(g: AlbumGroup) {
     albumFilter = g.key; albumFilterLabel = `${g.title} — ${g.artist}`;
@@ -993,7 +997,7 @@
                     {#each d.tracks as t (t.id)}
                       <div class="trkrow">
                         <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                          <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</span>
+                          <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{numeroPisteAffiche(t.track_number)}{/if}</span>
                           <span class="tt" use:bulleTexte>{t.title}</span>
                           <span class="td">{fmtDur(t.duration_ms)}</span>
                         </button>
@@ -1023,7 +1027,7 @@
                 <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={(e) => {
                   if (!(e.target instanceof Element && e.target.closest('[role="link"]'))) void playFromTrack(t);
                 }}>
-                  <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
+                  <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{numeroPisteAffiche(t.track_number)}{/if}</td>
                   <td class="title" use:bulleTexte>{t.title}</td>
                   <td class="dim" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: t.artist_name, artiste: artisteDePisteEcoutee(t) }} /></td>
                   <td class="dim" use:bulleTexte><LienEntite entite={{ type: 'album', nom: t.album_title, piste: t }} /></td>
