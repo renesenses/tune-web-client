@@ -2975,9 +2975,8 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
  * le tableau nu que lisent les clients natifs et le serveur média.
  */
 export function getArtistAlbumsSections(id: number, dossier?: string | null) {
-  const params = new URLSearchParams({ sections: '1' });
-  if (dossier) params.set('folder', dossier);
-  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?${params}`)
+  const portee = dossier ? `&${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1${portee}`)
     .then(sectionsDepuisReponse);
 }
 
