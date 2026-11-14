@@ -6442,7 +6442,6 @@ export default {
   "v2.radio.fiche.site": "电台网站",
   "v2.radio.fiche.nothing": "此电台暂无简介。",
   "v2.radio.fiche.unknown": "此电台暂无信息。",
-  "v2.radio.view": "查看",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "当前曲目和艺人由 radio-metadata.fr 提供",
   "v2.radio.fiche.genres": "流派",

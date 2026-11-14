@@ -6291,7 +6291,6 @@ export default {
   "v2.radio.fiche.site": "Strona internetowa stacji",
   "v2.radio.fiche.nothing": "Brak opisu tej stacji.",
   "v2.radio.fiche.unknown": "Brak informacji o tej stacji.",
-  "v2.radio.view": "Zobacz",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Bieżący tytuł i wykonawca z radio-metadata.fr",
   "v2.radio.fiche.genres": "Gatunki",

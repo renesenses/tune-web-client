@@ -6441,7 +6441,6 @@ export default {
   "v2.radio.fiche.site": "Kanalens webbplats",
   "v2.radio.fiche.nothing": "Ingen beskrivning finns för den här kanalen.",
   "v2.radio.fiche.unknown": "Ingen information finns för den här kanalen.",
-  "v2.radio.view": "Visa",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Aktuell titel och artist från radio-metadata.fr",
   "v2.radio.fiche.genres": "Genrer",

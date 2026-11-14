@@ -87,23 +87,23 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la saisie manuelle', () => {
+describe('Mes radios : la fiche par le logo, « Modifier » pour la saisie manuelle', () => {
   // web#2795 (décision du 11/11) : « Modifier » revient sur une station de
-  // l'annuaire, en surcharge locale ; l'œil garde son coin.
-  it('🔴 FIP (annuaire) : Voir et Retirer, et Modifier (surcharge locale, web#2795)', async () => {
+  // l'annuaire, en surcharge locale. rc12 (retour de Rémi, point 17) : plus
+  // d'œil « Voir », le « − » prend le coin haut droit.
+  it('🔴 FIP (annuaire) : Retirer et Modifier (surcharge locale, web#2795), sans œil', async () => {
     await monter(RadiosV2);
     const t = titres(tuile('FIP'));
-    expect(t).toContain('Voir');
-    expect(t).toContain('Retirer de Mes radios');
-    expect(t).toContain('Modifier');
-    expect(tuile('FIP').querySelector('button.coin.tr')?.getAttribute('title')).toBe('Voir');
+    expect(t).toEqual(expect.arrayContaining(['Retirer de Mes radios', 'Modifier']));
+    expect(tuile('FIP').querySelector('button.coin.tr')?.getAttribute('title')).toBe('Retirer de Mes radios');
+    expect(tuile('FIP').querySelector('button.coin.tr2')?.getAttribute('title')).toBe('Modifier');
   });
 
-  it('CONTRE-ÉPREUVE : la station saisie à la main garde Modifier, sans Voir', async () => {
+  it('CONTRE-ÉPREUVE : la station saisie à la main garde Modifier seul', async () => {
     await monter(RadiosV2);
     const t = titres(tuile('Radio Maison'));
     expect(t).toContain('Modifier');
-    expect(t).not.toContain('Voir');
+    expect(t).not.toContain('Retirer de Mes radios');
   });
 
   it('🔴 badge Metadata+ sur la station qui a une clé, pas sur l’autre', async () => {
@@ -112,9 +112,9 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
     expect(tuile('Radio Maison').querySelector('.mdp')).toBeNull();
   });
 
-  it('🔴 l’œil ouvre la fiche : description, genres, pays, site, flux disponibles', async () => {
+  it('🔴 le logo ouvre la fiche : description, genres, pays, site, flux disponibles', async () => {
     await monter(RadiosV2);
-    (tuile('FIP').querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (tuile('FIP').querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
     const d = dialogue()!;
     expect(d).not.toBeNull();
@@ -133,7 +133,7 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
   it('🔴 choisir un autre flux l’enregistre et met la tuile à jour', async () => {
     mocks.choisirFluxPrefere.mockResolvedValue({ ...FIP, stream_url: MP3, codec: 'mp3' });
     await monter(RadiosV2);
-    (tuile('FIP').querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (tuile('FIP').querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
     mocks.playRadio.mockResolvedValue({});
     const mp3 = [...dialogue()!.querySelectorAll<HTMLButtonElement>('.flux li')]
@@ -149,7 +149,7 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
   });
 });
 
-describe('Annuaire : l’œil et le badge', () => {
+describe('Annuaire : la fiche par le logo, et le badge', () => {
   it('🔴 la fiche s’ouvre depuis l’annuaire ; badge sur la fiche à clé seulement', async () => {
     await monter(RadiosV2);
     (hote.querySelectorAll<HTMLButtonElement>('.sections button')[1]).click();
@@ -158,8 +158,7 @@ describe('Annuaire : l’œil et le badge', () => {
     const autre = tuile('Radio Sans Cle', '.grille .fiche');
     expect(fip.querySelector('.mdp')).not.toBeNull();
     expect(autre.querySelector('.mdp')).toBeNull();
-    expect(titres(autre)).toContain('Voir');
-    (autre.querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (autre.querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
     const d = dialogue()!;
     expect(d.querySelector('h2')?.textContent).toBe('Radio Sans Cle');

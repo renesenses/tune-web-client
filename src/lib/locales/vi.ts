@@ -6297,7 +6297,6 @@ export default {
   "v2.radio.fiche.site": "Trang web của đài",
   "v2.radio.fiche.nothing": "Chưa có mô tả cho đài này.",
   "v2.radio.fiche.unknown": "Chưa có thông tin cho đài này.",
-  "v2.radio.view": "Xem",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Tên bài và nghệ sĩ đang phát do radio-metadata.fr cung cấp",
   "v2.radio.fiche.genres": "Thể loại",

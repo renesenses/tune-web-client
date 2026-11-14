@@ -6401,7 +6401,6 @@ export default {
   "v2.radio.fiche.site": "Az adó weboldala",
   "v2.radio.fiche.nothing": "Ehhez az adóhoz nincs leírás.",
   "v2.radio.fiche.unknown": "Ehhez az adóhoz nincs információ.",
-  "v2.radio.view": "Megtekintés",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Az aktuális címet és előadót a radio-metadata.fr adja",
   "v2.radio.fiche.genres": "Műfajok",

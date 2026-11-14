@@ -6293,7 +6293,6 @@ export default {
   "v2.radio.fiche.site": "Ιστότοπος του σταθμού",
   "v2.radio.fiche.nothing": "Δεν υπάρχει διαθέσιμη περιγραφή για αυτόν τον σταθμό.",
   "v2.radio.fiche.unknown": "Δεν υπάρχουν διαθέσιμες πληροφορίες για αυτόν τον σταθμό.",
-  "v2.radio.view": "Προβολή",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Τρέχων τίτλος και καλλιτέχνης από το radio-metadata.fr",
   "v2.radio.fiche.genres": "Είδη",
