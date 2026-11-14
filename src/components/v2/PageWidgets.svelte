@@ -1795,7 +1795,7 @@
                 {#each et.chiffres as c (c.id ?? c.cle)}
                   {#if c.vue}
                     <button class="stat" onclick={() => activeView.set(c.vue as any)}
-                            title={$t('v2.home.statOpen' as any)}>
+                            title={c.infobulle ?? $t('v2.home.statOpen' as any)}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1804,7 +1804,7 @@
                       <span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span>
                     </button>
                   {:else}
-                    <div class="stat">
+                    <div class="stat" title={c.infobulle}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"

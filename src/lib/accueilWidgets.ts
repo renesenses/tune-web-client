@@ -31,7 +31,8 @@ import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 import { artisteDAlbum } from './lienEntite';
 import { estAParaitre } from './albumAParaitre';
-import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
+import { CHOIX_DEFAUT, cartes, formaterNombre, sourcesNecessaires } from './chiffresAccueil';
+import { infobulleTotaux } from './totauxBibliotheque';
 import {
   chargerFavorisFusionnes,
   collectionsFavorites,
@@ -392,6 +393,8 @@ export interface ChiffreAffiche {
   id?: string;
   icone?: string;
   vue?: string | null;
+  /** tune-server-rust#8625 — l'infobulle des totaux, comme Statistiques. */
+  infobulle?: string;
 }
 
 export interface Contexte {
@@ -1978,12 +1981,18 @@ export const WIDGETS: Widget[] = [
           ? api.getGenres().then((g: any[]) => g.length).catch(() => null)
           : Promise.resolve(null),
       ]);
-      return cartes(ids, { bibliotheque, ecoute, genres }, ctx.langue ?? 'fr').map((c) => ({
+      const langue = ctx.langue ?? 'fr';
+      return cartes(ids, { bibliotheque, ecoute, genres }, langue).map((c) => ({
         cle: c.cleLibelle,
         valeur: c.texte,
         id: c.id,
         icone: c.icone,
         vue: c.vue,
+        // #8625, fil 2831 — la même infobulle que Statistiques : ce que
+        // comptent les listes, et ce que les tables gardent sans le montrer.
+        ...(c.totaux
+          ? { infobulle: infobulleTotaux(c.totaux, (k) => get(t)(k as any), (n) => formaterNombre(n, langue)) }
+          : {}),
       }));
     },
   },
