@@ -1298,6 +1298,8 @@ export default {
   "nowplaying.generationError": "생성 중 오류",
   "nowplaying.alarmSetAt": "알람 설정 시각",
   "nowplaying.alarmError": "알람 오류",
+  "nowplaying.alarmSourceRequired": "재생 중인 항목은 알람 소스로 쓸 수 없습니다(보관함에 없는 서비스 트랙이거나 재생 중인 항목 없음). 라디오, 앨범 또는 재생목록을 선택하세요.",
+  "nowplaying.alarmChooseSource": "소스 선택",
   "nowplaying.alarmCancelled": "알람 취소됨",
   "nowplaying.sleepTimerError": "취침 타이머 오류",
   "nowplaying.clearQueueError": "대기열을 비우는 중 오류",

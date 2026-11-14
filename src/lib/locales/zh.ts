@@ -1318,6 +1318,8 @@ export default {
   "nowplaying.generationError": "生成时出错",
   "nowplaying.alarmSetAt": "闹钟设定于",
   "nowplaying.alarmError": "闹钟错误",
+  "nowplaying.alarmSourceRequired": "正在播放的内容无法作为闹钟来源（不在您资料库中的服务曲目，或没有正在播放的内容）。请选择电台、专辑或播放列表。",
+  "nowplaying.alarmChooseSource": "选择来源",
   "nowplaying.alarmCancelled": "闹钟已取消",
   "nowplaying.sleepTimerError": "睡眠定时器错误",
   "nowplaying.clearQueueError": "清空队列时出错",

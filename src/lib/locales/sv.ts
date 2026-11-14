@@ -1262,6 +1262,8 @@ export default {
   "nowplaying.generationError": "Fel under generering",
   "nowplaying.alarmSetAt": "Alarm inställt till",
   "nowplaying.alarmError": "Alarmfel",
+  "nowplaying.alarmSourceRequired": "Det som spelas kan inte bli larmets källa (ett spår från en tjänst utanför ditt bibliotek, eller inget som spelas). Välj en radiostation, ett album eller en spellista.",
+  "nowplaying.alarmChooseSource": "Välj källa",
   "nowplaying.alarmCancelled": "Alarm avbrutet",
   "nowplaying.sleepTimerError": "Fel med insomningstimer",
   "nowplaying.clearQueueError": "Fel vid rensning av kön",

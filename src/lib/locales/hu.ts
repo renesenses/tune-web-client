@@ -1411,6 +1411,8 @@ export default {
   "nowplaying.generationError": "Hiba a generálás közben",
   "nowplaying.alarmSetAt": "Ébresztő beállítva ekkorra:",
   "nowplaying.alarmError": "Ébresztési hiba",
+  "nowplaying.alarmSourceRequired": "Ami most szól, az nem lehet az ébresztő forrása (a könyvtáradon kívüli szolgáltatás száma, vagy nincs lejátszás). Válassz rádióállomást, albumot vagy lejátszási listát.",
+  "nowplaying.alarmChooseSource": "Forrás kiválasztása",
   "nowplaying.alarmCancelled": "Az ébresztő törölve",
   "nowplaying.sleepTimerError": "Elalvásidőzítő-hiba",
   "nowplaying.clearQueueError": "Hiba a várólista ürítésekor",

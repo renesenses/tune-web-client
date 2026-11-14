@@ -1467,6 +1467,8 @@ export default {
   "nowplaying.generationError": "Error during generation",
   "nowplaying.alarmSetAt": "Alarm set for",
   "nowplaying.alarmError": "Alarm error",
+  "nowplaying.alarmSourceRequired": "What is playing cannot become the alarm source (a service track outside your library, or nothing playing). Choose a radio station, an album or a playlist.",
+  "nowplaying.alarmChooseSource": "Choose the source",
   "nowplaying.alarmCancelled": "Alarm cancelled",
   "nowplaying.sleepTimerError": "Sleep timer error",
   "nowplaying.clearQueueError": "Error clearing the queue",

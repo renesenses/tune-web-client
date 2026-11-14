@@ -1318,6 +1318,8 @@ export default {
   "nowplaying.generationError": "Error durante la generación",
   "nowplaying.alarmSetAt": "Alarma programada para",
   "nowplaying.alarmError": "Error de alarma",
+  "nowplaying.alarmSourceRequired": "Lo que suena no puede ser la fuente de la alarma (una canción de un servicio fuera de tu biblioteca, o nada en reproducción). Elige una radio, un álbum o una lista de reproducción.",
+  "nowplaying.alarmChooseSource": "Elegir la fuente",
   "nowplaying.alarmCancelled": "Alarma cancelada",
   "nowplaying.sleepTimerError": "Error del temporizador de apagado",
   "nowplaying.clearQueueError": "Error al vaciar la cola",

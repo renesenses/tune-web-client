@@ -1318,6 +1318,8 @@ export default {
   "nowplaying.generationError": "生成中にエラーが発生しました",
   "nowplaying.alarmSetAt": "アラームを設定:",
   "nowplaying.alarmError": "アラームエラー",
+  "nowplaying.alarmSourceRequired": "再生中のものはアラームのソースにできません（ライブラリにないサービスの曲、または再生なし）。ラジオ局、アルバム、プレイリストのいずれかを選んでください。",
+  "nowplaying.alarmChooseSource": "ソースを選ぶ",
   "nowplaying.alarmCancelled": "アラームをキャンセルしました",
   "nowplaying.sleepTimerError": "スリープタイマーエラー",
   "nowplaying.clearQueueError": "キューのクリア中にエラーが発生しました",
