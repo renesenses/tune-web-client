@@ -260,7 +260,11 @@
       const updated = await api.uploadAlbumArtwork(album.id, file);
       coverPath = updated.cover_path ?? null;
       coverMessage = $t('metadata.coverFound');
-      onSaved?.(updated);
+      // web#3045 (fil 2822) — `onSaved` FERME l'éditeur chez tous les
+      // appelants : appelé ici, il refermait la fenêtre dès le fichier
+      // choisi, sans laisser enregistrer le reste. La pochette est reportée
+      // à la fermeture (voir `fermer`).
+      pochetteTeleversee = { ...album, ...updated, id: album.id };
     } catch (e) {
       console.error('Upload cover error:', e);
       coverMessage = $t('metadata.saveError');
@@ -312,12 +316,30 @@
     dragOver = false;
   }
 
+  /** L'album à la pochette téléversée, pas encore reporté à l'écran appelant. */
+  let pochetteTeleversee: Album | null = null;
+
+  /**
+   * Fermer l'éditeur. Une pochette téléversée (déjà enregistrée par le
+   * serveur) est reportée à l'écran appelant par `onSaved`, qui ferme aussi :
+   * la grille montre la nouvelle pochette sans rechargement.
+   */
+  function fermer() {
+    const maj = pochetteTeleversee;
+    pochetteTeleversee = null;
+    if (maj && onSaved) onSaved(maj);
+    else onClose();
+  }
+
   function handleBackdropClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) onClose();
+    // Pendant un téléversement, un clic perdu sur le fond (le double-clic du
+    // sélecteur de fichiers) ne ferme pas : la pochette serait perdue.
+    if (uploading) return;
+    if (e.target === e.currentTarget) fermer();
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape') fermer();
   }
 
   $effect(() => {
@@ -339,7 +361,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('metadata.editAlbum')}</h3>
-        <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
+        <button class="close-btn" onclick={fermer} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
@@ -528,7 +550,7 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
+        <button type="button" class="btn-cancel" onclick={fermer}>{$t('common.cancel')}</button>
         {#if !album.source || album.source === 'local'}
           <button class="btn-write-tags" onclick={saveThenWriteTags} disabled={writingTags || saving} use:tip={'tip.writeTags'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
