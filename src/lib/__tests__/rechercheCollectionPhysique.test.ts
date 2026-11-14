@@ -3,6 +3,8 @@
  * recherche : titre, artiste, label, n° de catalogue, code-barres.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import fr from '../locales/fr';
 import { disqueRepondA, filtrerDisques } from '../rechercheCollectionPhysique';
 
 const KIND = { titre: 'Kind of Blue', artiste: 'Miles Davis', labels: ['Columbia'], numeros_catalogue: ['CBS 62066'], codes_barres: ['5099749522428'] };
@@ -40,15 +42,13 @@ describe('Ma collection physique — recherche', () => {
 });
 
 describe('Ma collection physique — l’écran', () => {
-  it('une recherche sans résultat se dit, et ne se lit pas comme une collection vide', async () => {
-    const { readFileSync } = await import('node:fs');
+  it('une recherche sans résultat se dit, et ne se lit pas comme une collection vide', () => {
     const s = readFileSync('src/components/v2/CollectionPhysiqueV2.svelte', 'utf8');
     const i = s.indexOf("collectionPhysique.aucunResultat");
     const j = s.indexOf("collectionPhysique.aucunDisque' as any)}</div>");
     expect(i).toBeGreaterThan(0);
     expect(i, 'le cas « recherche sans résultat » doit passer AVANT le vide').toBeLessThan(j);
     expect(s).toMatch(/\{#if !disquesAffiches\.length && recherche\.trim\(\) && collection\.disques\.length\}/);
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
-    expect(fr['collectionPhysique.aucunResultat']).toContain('{q}');
+    expect((fr as Record<string, string>)['collectionPhysique.aucunResultat']).toContain('{q}');
   });
 });
