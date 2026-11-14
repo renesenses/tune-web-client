@@ -15,6 +15,10 @@
  *   GET  /collection[?format=&etat=&dossier=&genre=&style=] → { statut, compteurs, disques, attribution }
  *   GET  /parcourir          → { par_dossier, par_genre, par_style } (#7929)
  *   GET  /disques/{release}/services → « Chercher sur les services » (#7928)
+ *   GET  /disques/{release}/albums[?q=] → « Associer à un album » (#8672) :
+ *                              { requete, proposee, candidats, albums, association }
+ *   PUT  /disques/{release}/association { album_id } → { disque } (#8672)
+ *   DELETE /disques/{release}/association → « Dissocier » → { disque } (#8672)
  *   GET  /cd?mb_release=     → { dans_la_collection, copie, disque }
  *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur ;
  *                              503 `pochettes_limitees` + Retry-After quand
@@ -121,7 +125,9 @@ export interface AlbumDeLaBibliotheque {
   /** La pochette de l'album local (`albums.cover_path`), servie par
    *  `/library/artwork` ; `null` s'il n'en a pas. */
   cover_path?: string | null;
-  par: string;
+  /** Comment le disque a été rapproché ; `manuel` : associé à la main
+   *  (#8672), il se dissocie. `null` dans une liste de recherche. */
+  par: string | null;
 }
 
 export interface SurUnService {
@@ -292,6 +298,49 @@ export function versSurUnService(p: PropositionService): SurUnService {
  *  bibliothèque, ni déjà trouvé sur un service. */
 export const peutChercherSurLesServices = (d: Disque) => !d.bibliotheque && d.streaming.length === 0;
 
+// ─── « Associer à un album » (tune-server-rust#8672) ───────────────────────
+
+export interface AlbumsAAssocier {
+  release_id: number;
+  /** La recherche faite : `q`, sinon celle que le serveur propose. */
+  requete: string;
+  /** La recherche préremplie : premier artiste + titre. */
+  proposee: string;
+  /** « Plusieurs correspondants » : les albums entre lesquels le
+   *  rapprochement n'a pas choisi ; vide sinon. */
+  candidats: AlbumDeLaBibliotheque[];
+  albums: AlbumDeLaBibliotheque[];
+  /** L'album associé à la main, s'il y en a un. */
+  association: number | null;
+}
+
+const urlDisque = (releaseId: number) => `${RACINE}/disques/${encodeURIComponent(String(releaseId))}`;
+
+/** La recherche dans la bibliothèque ; sans `q`, celle que le serveur
+ *  propose (artiste + titre) et les candidats. */
+export const albumsAAssocier = (releaseId: number, q?: string | null) =>
+  fetchJSON<AlbumsAAssocier>(
+    `${urlDisque(releaseId)}/albums${q != null ? `?q=${encodeURIComponent(q)}` : ''}`, undefined, undefined, true,
+  );
+
+export const associerALAlbum = (releaseId: number, albumId: number) =>
+  fetchJSON<{ disque: Disque }>(`${urlDisque(releaseId)}/association`, JSON_PUT({ album_id: albumId }), undefined, true);
+
+export const dissocierDeLAlbum = (releaseId: number) =>
+  fetchJSON<{ disque: Disque }>(`${urlDisque(releaseId)}/association`, { method: 'DELETE' }, undefined, true);
+
+/** « Associer à un album » : seulement pour un disque « nulle part ». */
+export const peutAssocier = (d: Disque) => d.etat === 'nulle_part' && !d.bibliotheque;
+
+/** Associé à la main : « Dissocier » s'offre. */
+export const associeALaMain = (d: Disque) => d.bibliotheque?.par === 'manuel';
+
+/** Remplace le disque relu (après une association) dans la collection, sans
+ *  attendre la relecture complète. Pure. */
+export function remplacerDisque(c: Collection, d: Disque): Collection {
+  return { ...c, disques: c.disques.map((x) => (x.release_id === d.release_id ? { ...d, instance_id: x.instance_id } : x)) };
+}
+
 // ─── L'état des pochettes (tune-server-rust#7927) ──────────────────────────
 
 /** La phrase discrète de l'état des pochettes, ou `null` s'il n'y a rien à
@@ -367,6 +416,8 @@ const ERREURS_CONNUES = new Set([
   'collection_privee', 'utilisateur_inconnu', 'discogs_limite', 'discogs_indisponible',
   'musicbrainz_indisponible', 'bibliotheque_illisible', 'jeton_personnel_absent',
   'jeton_refuse', 'nom_invalide', 'aucun_compte', 'ecriture',
+  // #8672 : « Associer à un album ».
+  'album_inconnu', 'disque_inconnu',
 ]);
 
 /** La clé i18n d'une erreur (de synchronisation ou de refus). */
