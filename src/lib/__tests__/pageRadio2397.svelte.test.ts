@@ -222,9 +222,10 @@ describe('filtre par genre : des boutons partout', () => {
     onglet(1).click();
     await respirer();
     expect(hote.querySelectorAll('.annuaire .chip').length).toBe(3);
-    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12.
+    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12 ;
+    // la liste du pays est rendue PAR eux depuis le 14/11 (`radio-pays`).
     expect([...hote.querySelectorAll('.annuaire select')]
-      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]')).length).toBe(1);
+      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]') || s.getAttribute('data-testid') === 'radio-pays').length).toBe(1);
   });
 });
 

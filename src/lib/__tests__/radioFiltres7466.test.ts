@@ -14,11 +14,12 @@ describe('critères de recherche des radios', () => {
   });
 
   it('chaque critère actif donne son paramètre serveur, et lui seul', () => {
-    const f = { codec: 'flac', qualiteMin: '320', lossless: true, hires: true, metadataPlus: true, favoris: true };
+    const f = { codec: 'flac', qualiteMin: '320', lossless: true, hauteQualite: true, hires: true, metadataPlus: true, favoris: true };
     expect(parametresDesFiltres(f)).toEqual({
-      codec: 'flac', quality_min: '320', lossless: 'true', hires: 'true', metadata_plus: 'true', favorites_only: 'true',
+      codec: 'flac', quality_min: '320', lossless: 'true', haute_qualite: 'true', hires: 'true', metadata_plus: 'true', favorites_only: 'true',
     });
-    expect(nombreDeFiltresActifs(f)).toBe(6);
+    expect(nombreDeFiltresActifs(f)).toBe(7);
+    expect(parametresDesFiltres({ ...f, hauteQualite: false })).not.toHaveProperty('haute_qualite');
     // Contre-épreuve : un critère à `false` n'envoie rien.
     expect(parametresDesFiltres({ ...f, lossless: false, metadataPlus: false })).not.toHaveProperty('lossless');
     expect(parametresDesFiltres({ ...f, metadataPlus: false })).not.toHaveProperty('metadata_plus');
@@ -32,7 +33,8 @@ describe('critères de recherche des radios', () => {
   });
 });
 
-const CLES = ['format', 'anyFormat', 'bitrateMin', 'anyBitrate', 'kbps', 'lossless', 'hires', 'favorites', 'reset']
+const CLES = ['format', 'anyFormat', 'bitrateMin', 'anyBitrate', 'kbps', 'lossless', 'hires', 'favorites', 'reset',
+  'highQuality', 'losslessTip', 'highQualityTip', 'hiresTip', 'anyQuality']
   .map((k) => `v2.radio.filters.${k}`);
 
 describe('libellés des critères radio dans toutes les langues', () => {
