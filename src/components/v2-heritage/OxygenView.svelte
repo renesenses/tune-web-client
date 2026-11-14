@@ -26,6 +26,7 @@
   import { t } from '../../lib/i18n';
   import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeurRail, retablirLargeurRail, RAIL_MIN_PX, plafondRail } from '../../lib/largeurRailOxygen';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
   import type { Track } from '../../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -807,10 +808,8 @@
       </button>
     </div>
 
-    <div class="search">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input placeholder={$t('oxygen.filter')} bind:value={query} />
-    </div>
+    <!-- Recette rc12 (13/11) — le champ partagé de tous les écrans. -->
+    <ChampRecherche bind:valeur={query} ecran={$t('v2.nav.oxygen' as any)} />
     {#if albumFilter == null}
       <!-- tune-server-rust#7128 — tout le résultat filtré, pas la fenêtre chargée. -->
       <OxygenEtiquetageFiltre
@@ -1124,10 +1123,6 @@
   .seg { display: inline-flex; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 9px; padding: 3px; }
   .seg button { background: none; border: 0; color: var(--tune-text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: grid; place-items: center; }
   .seg button.on { background: var(--tune-accent); color: #1a1206; }
-  .search { flex: 1; max-width: 320px; position: relative; display: flex; align-items: center; }
-  .search svg { position: absolute; left: 11px; color: var(--tune-text-muted); }
-  .search input { width: 100%; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 20px; color: var(--tune-text); font: inherit; padding: 8px 12px 8px 32px; outline: none; }
-  .search input:focus { border-color: var(--tune-accent); }
   .count { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
   .count.partial { color: var(--tune-text-secondary); }
   .cslash { opacity: .5; margin: 0 2px; }
