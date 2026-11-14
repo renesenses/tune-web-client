@@ -17,7 +17,8 @@
  *   GET  /disques/{release}/services → « Chercher sur les services » (#7928)
  *   GET  /disques/{release}/albums[?q=] → « Associer à un album » (#8672) :
  *                              { requete, proposee, candidats, albums, association }
- *   PUT  /disques/{release}/association { album_id } → { disque } (#8672)
+ *   PUT  /disques/{release}/association { album_id } → { disque } (#8672) ;
+ *        409 deja_associe si le disque est déjà rattaché à un autre album (#8678)
  *   DELETE /disques/{release}/association → « Dissocier » → { disque } (#8672)
  *   GET  /cd?mb_release=     → { dans_la_collection, copie, disque }
  *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur ;
@@ -418,6 +419,8 @@ const ERREURS_CONNUES = new Set([
   'jeton_refuse', 'nom_invalide', 'aucun_compte', 'ecriture',
   // #8672 : « Associer à un album ».
   'album_inconnu', 'disque_inconnu',
+  // #8678 : le disque est déjà rattaché à un autre album (409).
+  'deja_associe',
 ]);
 
 /** La clé i18n d'une erreur (de synchronisation ou de refus). */

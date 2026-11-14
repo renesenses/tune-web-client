@@ -151,8 +151,11 @@ describe('#8672 — quand le bouton s’offre', () => {
   it('les refus du serveur sont traduits, dans les 15 langues', () => {
     expect(cleErreur('album_inconnu')).toBe('collectionPhysique.erreur.album_inconnu');
     expect(cleErreur('disque_inconnu')).toBe('collectionPhysique.erreur.disque_inconnu');
-    const cles = Object.keys(fr).filter((k) => k.startsWith('collectionPhysique.associer.') || /erreur\.(album|disque)_inconnu$/.test(k));
-    expect(cles.length).toBe(12);
+    // #8678 : 409 quand le disque est déjà rattaché à un autre album.
+    expect(cleErreur('deja_associe')).toBe('collectionPhysique.erreur.deja_associe');
+    expect(fr['collectionPhysique.erreur.deja_associe']).toBe('Ce disque est déjà associé à un autre album. Dissociez-le d’abord.');
+    const cles = Object.keys(fr).filter((k) => k.startsWith('collectionPhysique.associer.') || /erreur\.((album|disque)_inconnu|deja_associe)$/.test(k));
+    expect(cles.length).toBe(13);
     for (const langue of dictionnaires.ONZE_LANGUES) {
       const dico = (dictionnaires as unknown as Record<string, Record<string, string>>)[langue];
       for (const cle of cles) expect(dico[cle], `${langue} : ${cle}`).toBeTruthy();

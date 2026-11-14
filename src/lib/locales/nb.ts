@@ -7100,6 +7100,7 @@ export default {
   "collectionPhysique.associer.manuel": "Knyttet manuelt",
   "collectionPhysique.erreur.album_inconnu": "Dette albumet er ikke lenger i biblioteket.",
   "collectionPhysique.erreur.disque_inconnu": "Denne platen er ikke lenger i samlingen: synkroniser den.",
+  "collectionPhysique.erreur.deja_associe": "Denne platen er allerede koblet til et annet album. Fjern koblingen først.",
   "collectionPhysique.effacerCacheConfirmer": "Tømme samlingens hurtigbuffer (omslag, liste og utgivelsesdata)? Neste synkronisering leser alt fra Discogs på nytt.",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz-finjustering: {n} gjenstår",
   "collectionPhysique.aucunCompte": "Skriv inn Discogs-brukernavnet ditt for å begynne.",

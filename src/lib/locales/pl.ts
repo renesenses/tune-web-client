@@ -7100,6 +7100,7 @@ export default {
   "collectionPhysique.associer.manuel": "Powiązano ręcznie",
   "collectionPhysique.erreur.album_inconnu": "Tego albumu nie ma już w bibliotece.",
   "collectionPhysique.erreur.disque_inconnu": "Tej płyty nie ma już w kolekcji: zsynchronizuj ją.",
+  "collectionPhysique.erreur.deja_associe": "Ta płyta jest już powiązana z innym albumem. Najpierw usuń powiązanie.",
   "collectionPhysique.effacerCacheConfirmer": "Wyczyścić pamięć podręczną kolekcji (okładki, lista i dane wydań)? Następna synchronizacja ponownie odczyta wszystko z Discogs.",
   "collectionPhysique.affinageMusicbrainz": "Doprecyzowanie MusicBrainz: pozostało {n}",
   "collectionPhysique.aucunCompte": "Podaj nazwę użytkownika Discogs, aby rozpocząć.",

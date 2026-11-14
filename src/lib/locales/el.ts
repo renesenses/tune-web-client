@@ -7100,6 +7100,7 @@ export default {
   "collectionPhysique.associer.manuel": "Συνδέθηκε χειροκίνητα",
   "collectionPhysique.erreur.album_inconnu": "Αυτό το άλμπουμ δεν βρίσκεται πια στη βιβλιοθήκη.",
   "collectionPhysique.erreur.disque_inconnu": "Αυτός ο δίσκος δεν βρίσκεται πια στη συλλογή: συγχρονίστε την.",
+  "collectionPhysique.erreur.deja_associe": "Αυτός ο δίσκος είναι ήδη συνδεδεμένος με άλλο άλμπουμ. Αποσυνδέστε τον πρώτα.",
   "collectionPhysique.effacerCacheConfirmer": "Εκκαθάριση της προσωρινής μνήμης της συλλογής (εξώφυλλα, λίστα και στοιχεία); Ο επόμενος συγχρονισμός θα διαβάσει ξανά τα πάντα από το Discogs.",
   "collectionPhysique.affinageMusicbrainz": "Βελτίωση MusicBrainz: απομένουν {n}",
   "collectionPhysique.aucunCompte": "Εισαγάγετε το όνομα χρήστη σας στο Discogs για να ξεκινήσετε.",

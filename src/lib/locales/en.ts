@@ -7275,6 +7275,7 @@ export default {
   "collectionPhysique.associer.manuel": "Linked manually",
   "collectionPhysique.erreur.album_inconnu": "This album is no longer in the library.",
   "collectionPhysique.erreur.disque_inconnu": "This record is no longer in the collection: sync it.",
+  "collectionPhysique.erreur.deja_associe": "This record is already linked to another album. Unlink it first.",
   "collectionPhysique.effacerCacheConfirmer": "Clear the collection cache (covers, list and release data)? The next sync will read everything from Discogs again.",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz refinement: {n} remaining",
   "collectionPhysique.aucunCompte": "Enter your Discogs username to get started.",

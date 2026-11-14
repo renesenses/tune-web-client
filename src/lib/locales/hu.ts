@@ -7214,6 +7214,7 @@ export default {
   "collectionPhysique.associer.manuel": "Kézzel hozzárendelve",
   "collectionPhysique.erreur.album_inconnu": "Ez az album már nincs a könyvtárban.",
   "collectionPhysique.erreur.disque_inconnu": "Ez a lemez már nincs a gyűjteményben: szinkronizálja.",
+  "collectionPhysique.erreur.deja_associe": "Ez a lemez már egy másik albumhoz van társítva. Először szüntesse meg a társítást.",
   "collectionPhysique.effacerCacheConfirmer": "Törli a gyűjtemény gyorsítótárát (borítók, lista és adatlapok)? A következő szinkronizálás mindent újra beolvas a Discogsról.",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz-finomítás: {n} van hátra",
   "collectionPhysique.aucunCompte": "A kezdéshez adja meg Discogs-felhasználónevét.",

@@ -7255,6 +7255,7 @@ export default {
   "collectionPhysique.associer.manuel": "已手动关联",
   "collectionPhysique.erreur.album_inconnu": "此专辑已不在资料库中。",
   "collectionPhysique.erreur.disque_inconnu": "此唱片已不在收藏中：请同步。",
+  "collectionPhysique.erreur.deja_associe": "此唱片已关联到另一张专辑。请先取消关联。",
   "collectionPhysique.effacerCacheConfirmer": "清除收藏的缓存（封面、列表和发行信息）？下次同步将从 Discogs 重新读取全部内容。",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz 细化：剩余 {n} 张",
   "collectionPhysique.aucunCompte": "请输入您的 Discogs 用户名以开始。",

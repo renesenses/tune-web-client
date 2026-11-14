@@ -7255,6 +7255,7 @@ export default {
   "collectionPhysique.associer.manuel": "Asociat manual",
   "collectionPhysique.erreur.album_inconnu": "Acest album nu mai este în bibliotecă.",
   "collectionPhysique.erreur.disque_inconnu": "Acest disc nu mai este în colecție: sincronizați-o.",
+  "collectionPhysique.erreur.deja_associe": "Acest disc este deja asociat cu alt album. Mai întâi disociați-l.",
   "collectionPhysique.effacerCacheConfirmer": "Golești memoria cache a colecției (coperți, listă și fișe)? Următoarea sincronizare va citi din nou totul de pe Discogs.",
   "collectionPhysique.affinageMusicbrainz": "Rafinare MusicBrainz: {n} rămase",
   "collectionPhysique.aucunCompte": "Introduceți numele de utilizator Discogs pentru a începe.",

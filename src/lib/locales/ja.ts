@@ -7255,6 +7255,7 @@ export default {
   "collectionPhysique.associer.manuel": "手動で関連付け済み",
   "collectionPhysique.erreur.album_inconnu": "このアルバムはもうライブラリにありません。",
   "collectionPhysique.erreur.disque_inconnu": "このディスクはもうコレクションにありません。同期してください。",
+  "collectionPhysique.erreur.deja_associe": "このディスクはすでに別のアルバムに関連付けられています。先に関連付けを解除してください。",
   "collectionPhysique.effacerCacheConfirmer": "コレクションのキャッシュ（ジャケット、リスト、リリース情報）を消去しますか？次回の同期で Discogs からすべて読み直します。",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz で精査中：残り {n} 枚",
   "collectionPhysique.aucunCompte": "はじめに Discogs のユーザー名を入力してください。",

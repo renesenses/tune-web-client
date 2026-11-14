@@ -7107,6 +7107,7 @@ export default {
   "collectionPhysique.associer.manuel": "Đã liên kết thủ công",
   "collectionPhysique.erreur.album_inconnu": "Album này không còn trong thư viện.",
   "collectionPhysique.erreur.disque_inconnu": "Đĩa này không còn trong bộ sưu tập: hãy đồng bộ lại.",
+  "collectionPhysique.erreur.deja_associe": "Đĩa này đã được liên kết với một album khác. Hãy hủy liên kết trước.",
   "collectionPhysique.effacerCacheConfirmer": "Xóa bộ nhớ đệm của bộ sưu tập (ảnh bìa, danh sách và thông tin bản phát hành)? Lần đồng bộ tiếp theo sẽ đọc lại mọi thứ từ Discogs.",
   "collectionPhysique.affinageMusicbrainz": "Tinh chỉnh MusicBrainz: còn {n}",
   "collectionPhysique.aucunCompte": "Hãy nhập tên người dùng Discogs của bạn để bắt đầu.",

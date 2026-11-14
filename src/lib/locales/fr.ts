@@ -7277,6 +7277,7 @@ export default {
   "collectionPhysique.associer.manuel": "Associé à la main",
   "collectionPhysique.erreur.album_inconnu": "Cet album n’est plus dans la bibliothèque.",
   "collectionPhysique.erreur.disque_inconnu": "Ce disque n’est plus dans la collection : synchronisez-la.",
+  "collectionPhysique.erreur.deja_associe": "Ce disque est déjà associé à un autre album. Dissociez-le d’abord.",
   "collectionPhysique.effacerCacheConfirmer": "Effacer le cache de la collection (pochettes, liste et fiches) ? La prochaine synchronisation relira tout chez Discogs.",
   "collectionPhysique.affinageMusicbrainz": "Affinage MusicBrainz : {n} restants",
   "collectionPhysique.aucunCompte": "Indiquez votre nom d’utilisateur Discogs pour commencer.",

@@ -7254,6 +7254,7 @@ export default {
   "collectionPhysique.associer.manuel": "Kopplad manuellt",
   "collectionPhysique.erreur.album_inconnu": "Det här albumet finns inte längre i biblioteket.",
   "collectionPhysique.erreur.disque_inconnu": "Den här skivan finns inte längre i samlingen: synkronisera den.",
+  "collectionPhysique.erreur.deja_associe": "Den här skivan är redan kopplad till ett annat album. Ta bort kopplingen först.",
   "collectionPhysique.effacerCacheConfirmer": "Tömma samlingens cacheminne (omslag, lista och utgåvedata)? Nästa synkronisering läser allt från Discogs igen.",
   "collectionPhysique.affinageMusicbrainz": "MusicBrainz-förfining: {n} kvar",
   "collectionPhysique.aucunCompte": "Ange ditt Discogs-användarnamn för att börja.",
