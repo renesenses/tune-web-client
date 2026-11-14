@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // Tune Circle — poser sa ville sans connaître ses coordonnées (retour de
@@ -221,7 +222,7 @@ describe('Tune Circle — un lieu déjà posé', () => {
     (el.querySelector('.vue-monde') as HTMLButtonElement).click();
     await laisserFaire();
     expect([...el.querySelectorAll('.sc-ligne-nom')].map(texte).join(' ')).toContain('Dijon');
-    expect(texte(el.querySelector('.sc-sans-ville'))).toBe(fr['v2.circle.scene.world.unplacedOne']);
+    expect(texte(el.querySelector('.sc-sans-ville'))).toBe(formaterPluriel(fr['v2.circle.scene.world.unplacedN'], 1, 'fr'));
     await laisserFaire();
     expect(appels.filter((a) => /\/me\/location/.test(a.url) && a.method !== 'GET')).toHaveLength(0);
   });

@@ -1,3 +1,4 @@
+import { formaterPluriel } from './pluriel';
 /**
  * La phrase qui dit POURQUOI une suggestion de l'accueil est là
  * (renesenses/tune-web-client#916, FabienM, fil forum 1527).
@@ -21,6 +22,11 @@ export type RaisonSuggestion =
   | { type: 'genre_frequent'; genre: string }
   | { type: 'artiste_favori'; artiste: string }
   | { type: 'artiste_possede'; artiste: string; albums: number }
+  // Discussion tune-server-rust#8280 — « À découvrir » varie ses raisons.
+  /** Décennie la plus écoutée ; `decennie` est sa première année (1970). */
+  | { type: 'meme_epoque'; decennie: number }
+  /** 1 à 3 écoutes, aucune depuis un mois. */
+  | { type: 'peu_ecoute'; ecoutes: number }
   | { type: 'autre_version'; titre: string }
   | { type: 'ajout_recent'; ajoute_le?: number | null }
   // Go du 13/10/2026 — les autres rangées.
@@ -75,9 +81,17 @@ export function texteRaison(raison: unknown, traduire: Traduire, langue = 'fr'):
       const artiste = texte(r.artiste);
       const n = typeof r.albums === 'number' && Number.isFinite(r.albums) ? Math.floor(r.albums) : 0;
       if (!artiste || n < 1) return null;
-      return traduire(n === 1 ? 'v2.why.ownedArtistOne' : 'v2.why.ownedArtistMany')
-        .replace('{artiste}', artiste)
-        .replace('{n}', String(n));
+      return formaterPluriel(traduire('v2.why.ownedArtistN'), n, langue).replace('{artiste}', artiste);
+    }
+    case 'meme_epoque': {
+      const d = typeof r.decennie === 'number' && Number.isInteger(r.decennie) ? r.decennie : 0;
+      if (d < 1000 || d % 10 !== 0) return null;
+      return traduire('v2.why.sameEra').replace('{decennie}', String(d));
+    }
+    case 'peu_ecoute': {
+      const n = typeof r.ecoutes === 'number' && Number.isFinite(r.ecoutes) ? Math.floor(r.ecoutes) : 0;
+      if (n < 1) return null;
+      return traduire(n === 1 ? 'v2.why.rarelyPlayedOne' : 'v2.why.rarelyPlayedMany').replace('{n}', String(n));
     }
     case 'autre_version': {
       const titre = texte(r.titre);

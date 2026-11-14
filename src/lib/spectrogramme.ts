@@ -61,8 +61,10 @@ export type GenreErreurSpectrogramme =
   | 'non-locale'
   /** Le fichier existe mais l'image n'a pas pu être produite. */
   | 'impossible'
-  /** Piste inconnue, ou serveur trop ancien pour la route. */
+  /** Serveur trop ancien pour la route (404 sans corps de piste, 405). */
   | 'indisponible'
+  /** La piste n'existe pas (404 « track not found » du serveur). */
+  | 'introuvable'
   /** Session expirée (401). */
   | 'session'
   /** Réseau coupé, 5xx, tout le reste. */
@@ -79,7 +81,9 @@ export class ErreurSpectrogramme extends Error {
 /** Classe un refus du serveur à partir de son statut et de son corps. */
 export function genreDeRefus(statut: number, corps: string): GenreErreurSpectrogramme {
   if (statut === 401) return 'session';
-  if (statut === 404) return 'indisponible';
+  // Le serveur dit « track not found » ; une route absente rend un 404 sans
+  // ce texte (serveur antérieur à la fonction).
+  if (statut === 404) return /track not found/i.test(corps) ? 'introuvable' : 'indisponible';
   if (statut === 422) {
     return /no local file|file not found/i.test(corps) ? 'non-locale' : 'impossible';
   }

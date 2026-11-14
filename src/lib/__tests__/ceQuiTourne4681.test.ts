@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // « Ce qui tourne » dans État du serveur — renesenses/tune-server-rust#4681,
@@ -103,6 +104,22 @@ describe('ceQuiTourne — la logique', () => {
     expect(c.freins?.fichiersDeScanRetenus).toBe(12);
   });
 
+  it('le renvoi des images d\'artistes (rc12) se range sous la ligne des images d\'artistes', () => {
+    const base = instantane();
+    const inst = instantane({
+      tasks: [
+        ...base.tasks,
+        { id: 'renvoi_images_artistes', label: 'Partage des images d\'artistes…', kind: 'enrichment', progress: { processed: 12, total: 40, detail: 'Images' } },
+      ],
+      pausable: base.pausable.map((p: any) => (p.id === 'artist_images' ? { ...p, state: 'en_cours' } : p)),
+    });
+    const c = ceQuiTourne(inst)!;
+    const images = c.lignes.filter((l) => l.id === 'artist_images');
+    expect(images).toHaveLength(1);
+    expect(images[0].avancement).toEqual({ fait: 12, total: 40, detail: 'Images' });
+    expect(c.lignes.find((l) => l.id === 'tache:renvoi_images_artistes')).toBeUndefined();
+  });
+
   it('l\'interrupteur général se dit comme tel', () => {
     const inst = instantane({ all_paused: true });
     const c = ceQuiTourne(inst)!;
@@ -129,9 +146,9 @@ describe('ceQuiTourne — la logique', () => {
   });
 
   it('la phrase de lecture suit le nombre de zones et les freins coupés', () => {
-    expect(phraseLecture(ceQuiTourne(instantane()))!.cle).toBe('v2.health.running.playbackOne');
+    expect(phraseLecture(ceQuiTourne(instantane()))!.cle).toBe('v2.health.running.playbackN');
     expect(phraseLecture(ceQuiTourne(instantane({ playback_priority: priorite({ playing_zone_ids: [1, 2] }) })))).toEqual({
-      cle: 'v2.health.running.playbackMany', params: { n: 2 },
+      cle: 'v2.health.running.playbackN', params: { n: 2 },
     });
     expect(phraseLecture(ceQuiTourne(instantane({ playback_priority: priorite({ playback_active: false, playing_zone_ids: [] }) })))!.cle)
       .toBe('v2.health.running.playbackIdle');
@@ -215,7 +232,7 @@ describe('« Ce qui tourne » — l\'écran monté', () => {
     expect(section, 'la section « Ce qui tourne » doit être rendue').not.toBeNull();
     const texte = section!.textContent ?? '';
     expect(texte).toContain(fr['v2.health.running.title']);
-    expect(texte).toContain(fr['v2.health.running.playbackOne']);
+    expect(texte).toContain(formaterPluriel(fr['v2.health.running.playbackN'], 1, 'fr'));
 
     const rg = section!.querySelector('[data-tache="replaygain"]') as HTMLElement;
     expect(rg.dataset.etat).toBe('cedee');

@@ -62,7 +62,7 @@
   import { dureeLisible, avancementsParTraitement, fusionnerAvancements, ligneAvancement, type AnalyseDeFond } from '../../lib/analysesDeFond';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
@@ -969,7 +969,7 @@
           <h2>{$t('v2.health.running.title' as any)}</h2>
           {#if lectureEnTete}
             <div class="sub">
-              {remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
+              {typeof lectureEnTete.params.n === 'number' ? $tn(lectureEnTete.cle, lectureEnTete.params.n) : remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
               {#if tourne.lecture?.active && tourne.lecture.depuisEpochS}
                 {remplir($t('v2.health.running.since' as any), { h: $heureSeule(tourne.lecture.depuisEpochS * 1000) })}
               {/if}

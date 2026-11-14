@@ -24,7 +24,9 @@
   import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
   import { basculerOperateur, parametreEt } from '../../lib/facettesEtOu';
   import { t } from '../../lib/i18n';
+  import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeurRail, retablirLargeurRail, RAIL_MIN_PX, plafondRail } from '../../lib/largeurRailOxygen';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
   import type { Track } from '../../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
@@ -203,6 +205,39 @@
   // ≤780px : le rail est un tiroir, pas une colonne — le bouton bascule alors
   // le tiroir et non le repli.
   let isPhone = $state(false);
+
+  // Largeur de la colonne des facettes, réglable en tirant son bord droit
+  // (recette rc12 du 13/11 : à 220 px fixes, artistes, labels et chemins
+  // finissaient tous en « … »). `railVoulu` est le réglage retenu ;
+  // `railLargeur` est ce qu'on applique, borné par la place du moment pour
+  // ne jamais laisser la liste centrale sous 360 px — voir lib/largeurRailOxygen.
+  let railVoulu = $state(lireLargeurRail());
+  let largeurCorps = $state(0);
+  // Au-dessus de 1150 px, l'inspecteur est une colonne de 322 px de la grille.
+  let placeRail = $derived(largeurCorps > 0 ? largeurCorps - (!isNarrow && !inspectorCollapsed ? 322 : 0) : null);
+  let railLargeur = $derived(bornerLargeurRail(railVoulu, placeRail));
+  let railTire: { x: number; depart: number } | null = $state(null);
+  function debutTirerRail(e: PointerEvent) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    railTire = { x: e.clientX, depart: railLargeur };
+  }
+  function suivreTirerRail(e: PointerEvent) {
+    if (!railTire) return;
+    railVoulu = bornerLargeurRail(railTire.depart + e.clientX - railTire.x, placeRail);
+  }
+  function finirTirerRail() {
+    if (!railTire) return;
+    railTire = null;
+    railVoulu = ecrireLargeurRail(railVoulu);
+  }
+  function railAuClavier(e: KeyboardEvent) {
+    const v = largeurRailAuClavier(e.key, railLargeur, placeRail);
+    if (v == null) return;
+    e.preventDefault();
+    railVoulu = ecrireLargeurRail(v);
+  }
 
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
   let columns = $derived(($displayFields ?? []).filter(k => k in COLUMN_DEFS));
@@ -773,10 +808,8 @@
       </button>
     </div>
 
-    <div class="search">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input placeholder={$t('oxygen.filter')} bind:value={query} />
-    </div>
+    <!-- Recette rc12 (13/11) — le champ partagé de tous les écrans. -->
+    <ChampRecherche bind:valeur={query} ecran={$t('v2.nav.oxygen' as any)} />
     {#if albumFilter == null}
       <!-- tune-server-rust#7128 — tout le résultat filtré, pas la fenêtre chargée. -->
       <OxygenEtiquetageFiltre
@@ -823,8 +856,22 @@
     </div>
   {/if}
 
-  <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
+  <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed} class:tire={railTire != null} style="--rail-w:{railLargeur}px" bind:clientWidth={largeurCorps}>
     <aside class="railwrap" class:open={mobileRail}>
+      {#if !isPhone}
+        <!-- La poignée de LARGEUR de la colonne, sur son bord droit. Sous
+             780 px le rail est un tiroir : pas de poignée. -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div class="railpoignee" class:active={railTire != null} data-poignee-rail
+          role="separator" tabindex="0" aria-orientation="vertical"
+          aria-valuenow={railLargeur} aria-valuemin={RAIL_MIN_PX} aria-valuemax={plafondRail(placeRail)}
+          aria-label={$t('oxygen.railWidth')} title={$t('oxygen.railWidth')}
+          onpointerdown={debutTirerRail} onpointermove={suivreTirerRail}
+          onpointerup={finirTirerRail} onpointercancel={finirTirerRail} onlostpointercapture={finirTirerRail}
+          ondblclick={() => { railVoulu = retablirLargeurRail(); }}
+          onkeydown={railAuClavier}></div>
+      {/if}
       <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} enEt={facetEt} onBasculerOperateur={basculerOperateurFacette} sansPlafond={sansPlafond} onToutAfficher={toutAfficher} />
       <!-- Le tiroir mobile ne se referme PLUS à chaque clic : depuis #2168 on
            coche plusieurs valeurs de suite, et le refermer entre deux cases
@@ -1076,10 +1123,6 @@
   .seg { display: inline-flex; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 9px; padding: 3px; }
   .seg button { background: none; border: 0; color: var(--tune-text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: grid; place-items: center; }
   .seg button.on { background: var(--tune-accent); color: #1a1206; }
-  .search { flex: 1; max-width: 320px; position: relative; display: flex; align-items: center; }
-  .search svg { position: absolute; left: 11px; color: var(--tune-text-muted); }
-  .search input { width: 100%; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 20px; color: var(--tune-text); font: inherit; padding: 8px 12px 8px 32px; outline: none; }
-  .search input:focus { border-color: var(--tune-accent); }
   .count { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
   .count.partial { color: var(--tune-text-secondary); }
   .cslash { opacity: .5; margin: 0 2px; }
@@ -1093,10 +1136,11 @@
   .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer; }
   .crumb .x { opacity: .7; margin-left: 3px; }
 
-  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr) 322px; position: relative; }
+  .body.tire { cursor: col-resize; user-select: none; }
   /* Desktop only: the mobile slide-over (≤1150px) keeps its own open/close. */
   @media (min-width: 1151px) {
-    .body.noinsp { grid-template-columns: 220px 1fr; }
+    .body.noinsp { grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr); }
     .body.noinsp .inspector { display: none; }
   }
   /* Le bouton existe à toutes les largeurs : tiroir sous 780px, repli de la
@@ -1120,7 +1164,7 @@
   .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer; z-index: 2; }
   /* Tablet: inspector becomes a right slide-over. */
   @media (max-width: 1150px) {
-    .body { grid-template-columns: 200px 1fr; }
+    .body { grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr); }
     .inspector { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 88vw; transform: translateX(100%); transition: transform .22s ease; z-index: 40; box-shadow: -8px 0 30px rgba(0,0,0,.4); }
     .inspector.open { transform: none; }
   }
@@ -1132,7 +1176,17 @@
   }
   @media (prefers-reduced-motion: reduce) { .inspector, .railwrap { transition: none; } }
 
-  .railwrap { border-right: 1px solid var(--tune-border); background: var(--tune-surface); min-height: 0; display: flex; }
+  .railwrap { border-right: 1px solid var(--tune-border); background: var(--tune-surface); min-height: 0; min-width: 0; display: flex; }
+  /* Ancre de la poignée — au-dessus de 780 px seulement : en dessous, le rail
+     est un tiroir en `position: absolute` qu'il ne faut pas écraser. */
+  @media (min-width: 781px) { .railwrap { position: relative; } }
+  /* La poignée chevauche le bord droit du rail : 7 px de prise, un trait
+     d'accent au survol, au focus et pendant qu'on tire. */
+  .railpoignee { position: absolute; top: 0; bottom: 0; right: -4px; width: 7px; cursor: col-resize; z-index: 5; touch-action: none; }
+  .railpoignee::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: transparent; transition: background .12s; }
+  .railpoignee:hover::after, .railpoignee:focus-visible::after, .railpoignee.active::after { background: var(--tune-accent); width: 2px; left: 2px; }
+  .railpoignee:focus-visible { outline: none; }
+  @media (max-width: 780px) { .railpoignee { display: none; } }
   .railwrap :global(.rail) { flex: 1; }
   .main { min-width: 0; min-height: 0; overflow: auto; padding: 14px 18px 20px; }
 

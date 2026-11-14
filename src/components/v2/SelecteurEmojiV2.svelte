@@ -4,7 +4,7 @@
   // clavier (flèches, Entrée, Échap) et doigt.
   import { onMount, tick } from 'svelte';
   import { t, locale } from '../../lib/i18n';
-  import { CATEGORIES, chercherEmojis, lireRecents, noterRecent, emojiConnu, nomEmoji, raccourcisActifs, reglerRaccourcis, type Emoji, type IdCategorie } from '../../lib/emojis';
+  import { CATEGORIES, chercherEmojis, lireRecents, noterRecent, emojiConnu, nomEmoji, raccourcisActifs, reglerRaccourcis, suggestionsActives, reglerSuggestions, type Emoji, type IdCategorie } from '../../lib/emojis';
 
   let { onchoisir, onfermer, id = 'selecteur-emoji' }: { onchoisir: (e: string) => void; onfermer: () => void; id?: string } = $props();
   const tr = (k: string) => $t(k as any);
@@ -14,6 +14,7 @@
   let requete = $state('');
   let actif = $state(0);
   let raccourcis = $state(raccourcisActifs());
+  let suggestions = $state(suggestionsActives());
   let recherche = $state<HTMLInputElement>();
   let grille = $state<HTMLDivElement>();
 
@@ -72,6 +73,7 @@
   </div>
   {#if !affiches.length}<p class="vide" role="status">{tr('v2.circle.emoji.none')}</p>{/if}
   <label class="raccourcis"><input type="checkbox" bind:checked={raccourcis} onkeydown={(ev) => { if (ev.key === 'Enter') ev.preventDefault(); }} onchange={() => reglerRaccourcis(raccourcis)} />{tr('v2.circle.emoji.shortcuts')}</label>
+  <label class="raccourcis"><input data-option-suggestions type="checkbox" bind:checked={suggestions} onkeydown={(ev) => { if (ev.key === 'Enter') ev.preventDefault(); }} onchange={() => reglerSuggestions(suggestions)} />{tr('v2.circle.emoji.suggestions')}</label>
 </div>
 
 <style>
