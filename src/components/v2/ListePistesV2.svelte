@@ -87,8 +87,8 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    cleEnTeteColonne, cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
-    valeurColonne, type CleColonne, type Colonne,
+    avecColonneAjout, cleEnTeteColonne, cleInfobulleColonne, colonnesRemplies, colonnesRetenues,
+    gabaritGrille, largeurMinimale, valeurColonne, type CleColonne, type Colonne,
   } from '../../lib/colonnesPistes';
   import {
     appliquerLargeurs, fixerLargeur, largeurMin, largeurNominale, largeursColonnes, largeursDe,
@@ -421,6 +421,21 @@
      * Absente, RIEN ne change : ni poignée, ni largeur retenue.
      */
     ecranColonnes?: EcranColonnes | null;
+    /**
+     * web#3043 — Favoris des services — OPT-IN.
+     *
+     * `colonnesVidesMasquees` : une colonne qui n'a AUCUNE valeur dans la
+     * liste n'est pas rendue (le titre reste toujours). Une liste venue d'un
+     * service n'a ni écoutes, ni BPM, ni genre : la grille Expert y montrait
+     * six colonnes vides sur douze.
+     *
+     * `colonneAjout` : la colonne « Date d'ajout » (`COLONNE_AJOUT`), pour une
+     * liste de FAVORIS — la date du cœur, que la route des favoris rend.
+     *
+     * Absentes, RIEN ne change.
+     */
+    colonnesVidesMasquees?: boolean;
+    colonneAjout?: boolean;
   }
   let {
     contexte = {},
@@ -439,6 +454,7 @@
     virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
     tri = null, triables = null, onTrier = null,
     ecranColonnes = null,
+    colonnesVidesMasquees = false, colonneAjout = false,
   }: Props = $props();
   const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
   const selectionnable = $derived(selection != null);
@@ -542,7 +558,13 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const colonnesBrutes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  const colonnesDeLEcran = $derived.by(() => {
+    const base = lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode;
+    return colonneAjout ? avecColonneAjout(base) : base;
+  });
+  const colonnesBrutes = $derived(
+    colonnesVidesMasquees ? colonnesRemplies(colonnesDeLEcran, pistes, cellule) : colonnesDeLEcran,
+  );
   /**
    * web#2139 — la colonne Qualité prend la largeur de la pastille la plus
    * longue de CETTE liste (calculée en px, jamais `auto` : voir le gabarit) ;

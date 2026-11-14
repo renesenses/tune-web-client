@@ -73,6 +73,11 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { COLONNES_TRIABLES_NAVIGATEUR, trierPistes, triSuivant, type Tri } from '../../lib/pistesPaginees';
+  import type { CleColonne } from '../../lib/colonnesPistes';
+  const colonnesFavorisTriables = new Set<CleColonne>([
+    ...COLONNES_TRIABLES_NAVIGATEUR, 'added', 'quality',
+  ]);
   import ChampRecherche from './ChampRecherche.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
@@ -400,6 +405,7 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  let triFavoris = $state<Tri | null>(null);
   /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
   let favSuiteEnCours = $state(false);
   let seqFavoris = 0;
@@ -655,7 +661,7 @@
   const playlistsVues = $derived(filtrerParAuteur(playlistsSaisies, auteurOffert ? filtreAuteur : 'tous'));
   const favAlbumsVus = $derived(filtrerParSaisie(favAlbums, q));
   const favArtistsVus = $derived(filtrerParSaisie(favArtists, q));
-  const favTracksVus = $derived(filtrerParSaisie(favTracks, q));
+  const favTracksVus = $derived(trierPistes(filtrerParSaisie(favTracks, q), triFavoris));
   const genreAlbumsVus = $derived(filtrerParSaisie(genreAlbums, q));
   const bandesGenreVues = $derived(
     bandesGenre
@@ -729,6 +735,7 @@
     // web#2587 — rien à charger pour un service dont la session a expiré.
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
+    triFavoris = null;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
@@ -1943,6 +1950,9 @@
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
             <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" pochetteEnTableau
+              colonnesVidesMasquees colonneAjout
+              tri={triFavoris} triables={colonnesFavorisTriables}
+              onTrier={(cle) => { triFavoris = triSuivant(triFavoris, cle); }}
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
