@@ -131,6 +131,17 @@
    * sans objet.
    */
   const provenance = $derived(estLocal ? (cible?.provenance ?? null) : null);
+  // Une portée demandée n'est effective que si CE serveur la prend en charge.
+  let dossierVerifie = $state<string | null>(null);
+  const dossier = $derived(estLocal ? dossierVerifie : null);
+  const nomDossier = $derived(dossier?.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dossier || '');
+  function retirerDossier() {
+    ficheArtisteService.update((c) => c && c.service == null ? { ...c, dossier: null } : c);
+  }
+  function chargerPistesLocales(id: number) {
+    return dossier ? api.getArtistTracks(id, dossier) : api.getArtistTracks(id);
+  }
+
   /**
    * rc12 — l'objet que « Lire ensuite » et « Ajouter à la file » du bouton
    * Lecture mettent en file : les gestes de la carte d'artiste (`gestesObjet`),
@@ -141,7 +152,7 @@
    */
   const objetFile = $derived.by((): ObjetMenu | null => {
     if (cible == null) return null;
-    if (estLocal) return artisteLocal?.id != null && provenance == null ? objetArtiste(artisteLocal) : null;
+    if (estLocal) return artisteLocal?.id != null && provenance == null && dossier == null ? objetArtiste(artisteLocal) : null;
     return titres.length ? objetArtiste({ source: cible.service, source_id: cible.id, name: artiste?.name || cible.nom }) : null;
   });
 
@@ -546,7 +557,7 @@
    * sur un IDENTIFIANT, et chercher « M » dans la table qui porte « -M- » est
    * exactement l'échec que la prop `ouvrirId` d'`ArtistesV2` avait corrigé.
    */
-  async function chargerLocal(id: number) {
+  async function chargerLocal(id: number, dossierDemande: string | null) {
     const mien = ++jeton;
     chargement = true;
     artiste = null;
@@ -574,10 +585,22 @@
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
     void chargerMetadonnees(id);
+    dossierVerifie = null;
+    let portee: string | null = null;
+    if (dossierDemande) {
+      try {
+        const capacites = await api.fetchJSON<{ bibliotheque?: { artiste_par_dossier?: boolean } }>(`${api.BASE}/system/capabilities`);
+        if (capacites?.bibliotheque?.artiste_par_dossier === true) portee = dossierDemande;
+      } catch {
+        // Serveur ancien ou capacité indisponible : ne pas annoncer un filtre ignoré.
+      }
+      if (mien !== jeton) return;
+    }
+    dossierVerifie = portee;
     const [a, d] = await Promise.allSettled([
       api.getArtist(id),
       // #4767 — la discographie ET ses deux sections, en un aller-retour.
-      api.getArtistAlbumsSections(id),
+      portee ? api.getArtistAlbumsSections(id, portee) : api.getArtistAlbumsSections(id),
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled' && a.value) {
@@ -779,7 +802,7 @@
       const n = Number(c.id);
       // Un identifiant local qui n'est pas un nombre n'est pas une route : on
       // ne fabrique pas d'appel mort.
-      if (Number.isFinite(n)) void chargerLocal(n);
+      if (Number.isFinite(n)) void chargerLocal(n, c.dossier || null);
       return;
     }
     void charger(c.service, c.id);
@@ -981,7 +1004,8 @@
       try {
         const n = await lireArtisteBibliotheque(idLocal, {
           lire: (c) => playAndSync(zid, c as any),
-          titres: (id) => api.getArtistTracks(id),
+          titres: async (id) => ((await chargerPistesLocales(id)) ?? []).filter((p) => provenance == null || dansSource(p, provenance)),
+          porteeRestreinte: dossier != null,
         });
         if (n === 0) notifications.error($tr('library.noTracks' as any));
       } catch (e: any) {
@@ -1015,8 +1039,8 @@
     }
     enMasseLocale = true;
     try {
-      if (provenance != null) {
-        const pistes = ((await api.getArtistTracks(a.id)) ?? []).filter((p) => dansSource(p, provenance));
+      if (provenance != null || dossier != null) {
+        const pistes = ((await chargerPistesLocales(a.id)) ?? []).filter((p) => provenance == null || dansSource(p, provenance));
         // #5284 — l'aléatoire rencontre le plafond de la file, comme partout.
         const n = await lirePistesSource(zid, a, aleatoire ? tirageAleatoire(pistes, await plafondFileAleatoire()) : pistes);
         if (!n) notifications.error($tr('library.noTracks' as any));
@@ -1082,13 +1106,19 @@
     provenance={estLocal ? $tr('library.title' as any) : (cible?.service ?? null)}
     imagePath={artiste?.image_path || cible?.image || null}
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
-    sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
+    sousTitre={estLocal ? `${dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
     compteurs={estLocal ? compteurs : null}
     pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : null}
     onPays={(code) => { pendingLibraryFiltre.set({ paysArtiste: code }); activeView.set('library'); }}
     onRetour={retour}>
     {#snippet actions()}
+      {#if dossier}
+        <button class="v2-btn ghost" data-dossier-artiste title={$tr('v2.lib.scopedClear' as any)} onclick={retirerDossier}>
+          {$tr('v2.lib.scopedFolder' as any).replace('{d}', nomDossier)}
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg>
+        </button>
+      {/if}
       <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
            12) : 50 titres de l'artiste au hasard, bibliothèque ou service. -->
       <!-- rc12 (Bertrand, 12/11/2026) : « un seul bouton Play pour Play /
@@ -1132,7 +1162,7 @@
       <!-- PORTÉS de la fiche de bibliothèque, et seulement quand elle connaît
            cet artiste : voir `lireDiscographieLocale` (#1356). -->
       {#if artisteLocal?.id != null}
-        <button class="v2-btn" disabled={enMasseLocale} onclick={() => lireDiscographieLocale(false)}
+        <button class="v2-btn" data-toutes-pistes-artiste disabled={enMasseLocale} onclick={() => lireDiscographieLocale(false)}
           title={$tr('library.playAllArtist' as any)}>
           {$tr('library.playAllArtist' as any)}
         </button>
