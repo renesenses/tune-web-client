@@ -8,6 +8,9 @@
 // Deux causes : `onSaved`, qui FERME l'éditeur chez tous ses appelants, était
 // appelé dès la fin du téléversement ; et le serveur rend `{ album, hash,
 // size }`, lu comme s'il était l'album (`cover_path` et `id` absents).
+// Et deux gardes de `ArtistEditModal` manquaient : le clic fantôme du
+// sélecteur de fichiers fermait l'éditeur, et un fichier lâché à côté de la
+// zone de dépôt était ouvert par le navigateur (`file:///`).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import AlbumEditModal from '../../components/partages/AlbumEditModal.svelte';
@@ -95,5 +98,24 @@ describe('web#3045 — téléverser une pochette', () => {
     hote.querySelector<HTMLButtonElement>('.close-btn')!.click();
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('🔴 le clic fantôme du sélecteur de fichiers ne ferme pas, un fichier lâché à côté n’est pas ouvert', () => {
+    const onClose = vi.fn();
+    const hote = document.createElement('div');
+    document.body.appendChild(hote);
+    hotes.push(hote);
+    montes.push(mount(AlbumEditModal, { target: hote, props: { album: ALBUM, onClose } as any }));
+    flushSync();
+    const fond = hote.querySelector<HTMLElement>('.modal-backdrop')!;
+    const entree = hote.querySelector<HTMLInputElement>('input[type="file"]')!;
+    entree.click = () => {};
+    hote.querySelector<HTMLElement>('.cover-actions .btn-secondary')!.click();
+    fond.click();
+    expect(onClose, 'clic sur le fond pendant le sélecteur').not.toHaveBeenCalled();
+
+    const lacher = new Event('drop', { bubbles: true, cancelable: true });
+    fond.dispatchEvent(lacher);
+    expect(lacher.defaultPrevented, 'le navigateur n’ouvre pas le fichier (file:///)').toBe(true);
   });
 });

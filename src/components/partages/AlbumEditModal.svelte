@@ -331,10 +331,26 @@
     else onClose();
   }
 
+  // web#3045 — les gardes déjà posées dans `ArtistEditModal`. Le double-clic
+  // qui choisit le fichier dans le sélecteur du système laisse un clic
+  // fantôme sur le fond, qui fermait l'éditeur ; on l'ignore jusqu'au retour
+  // du focus. Et un fichier lâché à côté de la zone de dépôt n'est plus
+  // ouvert par le navigateur (Firefox : « ne peut pas … établir un lien vers
+  // file:/// »).
+  let fileDialogOpen = false;
+  function openFileDialog() {
+    fileDialogOpen = true;
+    fileInput.click();
+    window.addEventListener('focus', () => {
+      setTimeout(() => { fileDialogOpen = false; }, 300);
+    }, { once: true });
+  }
+  function preventDrop(e: DragEvent) { e.preventDefault(); }
+
   function handleBackdropClick(e: MouseEvent) {
-    // Pendant un téléversement, un clic perdu sur le fond (le double-clic du
-    // sélecteur de fichiers) ne ferme pas : la pochette serait perdue.
-    if (uploading) return;
+    // Ni pendant le sélecteur de fichiers, ni pendant un téléversement : la
+    // pochette serait perdue.
+    if (fileDialogOpen || uploading) return;
     if (e.target === e.currentTarget) fermer();
   }
 
@@ -351,7 +367,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
+<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} ondragover={preventDrop} ondrop={preventDrop}>
   <div class="modal">
     {#if success}
       <div class="success-state">
@@ -377,8 +393,8 @@
             ondragleave={handleDragLeave}
             role="button"
             tabindex="0"
-            onclick={() => fileInput.click()}
-            onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+            onclick={openFileDialog}
+            onkeydown={(e) => e.key === 'Enter' && openFileDialog()}
           >
             {#if coverPath}
               <img src={artworkSrc(coverPath)} alt="Album cover" class="cover-preview" />
@@ -405,7 +421,7 @@
             onchange={handleFileSelect}
           />
           <div class="cover-actions">
-            <button class="btn-secondary" onclick={() => fileInput.click()} disabled={uploading}>
+            <button class="btn-secondary" onclick={openFileDialog} disabled={uploading}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
               {$t('metadata.uploadCover')}
             </button>
