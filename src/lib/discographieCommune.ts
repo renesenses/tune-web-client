@@ -192,7 +192,8 @@ export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
 export const SEUIL_SECTIONS_PAR_TYPE = 12;
 
 /** Les sections de #3032, dans l'ordre de la page. */
-export const SECTIONS_PAR_TYPE = ['studio', 'live', 'compilations', 'bandes-originales', 'eps', 'singles', 'autres'] as const;
+// Live en premier, dans les deux modes (Bertrand, 14/11/2026 ; #6464).
+export const SECTIONS_PAR_TYPE = ['live', 'studio', 'compilations', 'bandes-originales', 'eps', 'singles', 'autres'] as const;
 export type SectionParType = (typeof SECTIONS_PAR_TYPE)[number];
 
 /** Les types secondaires d'une entrée, repliés, tous exemplaires réunis. */
@@ -206,8 +207,9 @@ function secondairesDe(entree: EntreeDiscographie): string[][] {
  * services n'en publient pas : sans aucun type secondaire, seules des
  * EXPRESSIONS sans ambiguïté du titre décident (« Original Motion Picture
  * Soundtrack », « Bande originale du film »…) — jamais le mot « soundtrack »
- * seul (« Soundtrack to My Life »), comme `titreAnnonceUnLive` ne lit pas
- * « Alive ».
+ * seul (« Soundtrack to My Life »), ni « Original Soundtrack » (« The
+ * Original Soundtrack » est un album studio de 10cc), comme
+ * `titreAnnonceUnLive` ne lit pas « Alive ».
  */
 export function estBandeOriginale(entree: EntreeDiscographie): boolean {
   const secondaires = secondairesDe(entree);
@@ -218,14 +220,14 @@ export function estBandeOriginale(entree: EntreeDiscographie): boolean {
 
 /** Les expressions qui, dans un titre, annoncent une bande originale (mots repliés). */
 const EXPRESSIONS_BANDE_ORIGINALE: string[][] = [
-  ['original', 'soundtrack'],
   ['original', 'motion', 'picture', 'soundtrack'],
   ['motion', 'picture', 'soundtrack'],
-  ['original', 'score'],
+  ['original', 'film', 'soundtrack'],
   ['original', 'film', 'score'],
   ['original', 'motion', 'picture', 'score'],
   ['music', 'from', 'the', 'motion', 'picture'],
-  ['bande', 'originale'],
+  ['bande', 'originale', 'du', 'film'],
+  ['bande', 'originale', 'de', 'la', 'serie'],
   ['banda', 'sonora', 'original'],
   ['colonna', 'sonora', 'originale'],
 ];
@@ -249,21 +251,26 @@ export function estCompilation(entree: EntreeDiscographie): boolean {
 }
 
 /**
- * web#3032 — un type connu ? L'explicite ou le déduit (`typeDeSortie`), ou un
- * type secondaire, sur au moins un exemplaire. Sans rien de tout cela, la
- * vignette va sous « Autres » plutôt que d'être appelée « album studio ».
+ * web#3032 — « Autres » : SEULEMENT les types explicites `other` et
+ * `broadcast`, sur tous les exemplaires qui portent un type. Un album SANS
+ * type reste dans « Albums studio », comme il restait dans la grille Albums :
+ * Deezer, Spotify, YouTube et Amazon ne publient aucun type, et la fiche
+ * d'un artiste de ces services ne doit pas se réduire à une section
+ * « Autres ».
  */
-function typeConnu(entree: EntreeDiscographie): boolean {
-  return entree.exemplaires.some((ex) => typeDeSortie(ex.album) !== undefined)
-    || secondairesDe(entree).some((types) => types.length > 0);
+const TYPES_AUTRES = new Set(['other', 'broadcast']);
+function estAutre(entree: EntreeDiscographie): boolean {
+  const types = entree.exemplaires.map((ex) => typeDeSortie(ex.album)).filter((t): t is string => !!t);
+  return types.length > 0 && types.every((t) => TYPES_AUTRES.has(t));
 }
 
 /**
  * web#3032 — LA DISCOGRAPHIE EN SECTIONS PAR TYPE, au-delà de
  * `SEUIL_SECTIONS_PAR_TYPE` vignettes. Une entrée va dans UNE section, la
  * première qui la reconnaît : Live (`estLive`, comme avant), Bande originale,
- * Compilation, puis EP et Singles (`rangDeSortie`, comme avant), Albums
- * studio pour un type connu, Autres sinon. L'ordre reçu (le tri de la page)
+ * Compilation, puis EP et Singles (`rangDeSortie`, comme avant), Autres
+ * pour les types `other`/`broadcast`, Albums studio pour tout le reste — un
+ * album sans type compris. L'ordre reçu (le tri de la page)
  * est conservé dans chaque section.
  */
 export function rangerParType(entrees: EntreeDiscographie[]): Record<SectionParType, EntreeDiscographie[]> {
@@ -275,7 +282,7 @@ export function rangerParType(entrees: EntreeDiscographie[]): Record<SectionParT
     else if (estCompilation(entree)) section = 'compilations';
     else {
       const r = rangDeSortie(entree);
-      section = r === 'ep' ? 'eps' : r === 'single' ? 'singles' : typeConnu(entree) ? 'studio' : 'autres';
+      section = r === 'ep' ? 'eps' : r === 'single' ? 'singles' : estAutre(entree) ? 'autres' : 'studio';
     }
     sections[section].push(entree);
   }

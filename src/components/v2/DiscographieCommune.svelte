@@ -283,13 +283,14 @@
 
   /*
    * web#3032 (Bertrand, recette du 14/11/2026, page Miles Davis) — au-delà de
-   * `SEUIL_SECTIONS_PAR_TYPE` vignettes dans la discographie ENTIÈRE (pas la
-   * filtrée : cocher une pastille ne fait pas basculer la mise en page), elle
+   * `SEUIL_SECTIONS_PAR_TYPE` vignettes de la BIBLIOTHÈQUE (pas la discographie
+   * filtrée : cocher une pastille ne fait pas basculer la mise en page ; ni
+   * les albums des services : leur arrivée ne la fait pas basculer non plus), elle
    * se range en sections par type, repliables, chacune avec son compte ; le
    * tri de la page (par année par défaut) vaut dans chaque section. En
    * dessous, rien ne change.
    */
-  const parType = $derived(toutes.length > SEUIL_SECTIONS_PAR_TYPE);
+  const parType = $derived(toutes.filter((e) => e.sources.includes(BIBLIOTHEQUE)).length > SEUIL_SECTIONS_PAR_TYPE);
   const sectionsType = $derived(rangerParType(triees));
   const LIBELLES_TYPE: Record<SectionParType, string> = {
     studio: 'v2.disco.studioAlbums', live: 'v2.disco.live', compilations: 'v2.disco.compilations',
@@ -469,7 +470,7 @@
           {@const ouverte = !replies.has(s)}
           <section class="connexes" data-section={DATA_TYPE[s]} data-repliee={ouverte ? null : ''}>
             <h3 class="titre-connexes">
-              <button class="replier" aria-expanded={ouverte} aria-controls={`disco-type-${s}`} onclick={() => basculerRepli(s)}>
+              <button class="replier" aria-expanded={ouverte} aria-controls={ouverte ? `disco-type-${s}` : undefined} onclick={() => basculerRepli(s)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
                 {$t(LIBELLES_TYPE[s] as any)} <span class="cpt">{sectionsType[s].length}</span>
               </button>
@@ -558,7 +559,7 @@
       {#if parType}
         <!-- web#3032 — repliable aussi quand la discographie l'est. -->
         <h3 class="titre-section">
-          <button class="replier" aria-expanded={!replies.has(REPLI_APPARAIT)} aria-controls={ID_APPARAIT} onclick={() => basculerRepli(REPLI_APPARAIT)}>
+          <button class="replier" aria-expanded={!replies.has(REPLI_APPARAIT)} aria-controls={replies.has(REPLI_APPARAIT) ? undefined : ID_APPARAIT} onclick={() => basculerRepli(REPLI_APPARAIT)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
             {$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span>
           </button>

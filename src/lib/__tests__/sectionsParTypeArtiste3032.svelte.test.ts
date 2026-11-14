@@ -25,7 +25,7 @@ const fr = lFr as unknown as Record<string, string>;
 const album = (id: number, title: string, year: number, extra: Partial<Album> = {}): Album =>
   ({ id, title, year, source: 'local', ...extra }) as Album;
 
-/** Une discographie à la Miles Davis : 16 vignettes, de tous les types. */
+/** Une discographie à la Miles Davis : 17 vignettes, de tous les types — une sans type. */
 const MILES: Album[] = [
   album(1, 'Kind of Blue', 1959, { release_type: 'album' }),
   album(2, 'Bitches Brew', 1970, { release_type: 'album' }),
@@ -41,8 +41,9 @@ const MILES: Album[] = [
   album(12, 'Siesta (Original Motion Picture Soundtrack)', 1987),
   album(13, 'Jean Pierre', 1982, { release_type: 'ep' }),
   album(14, 'Tutu', 1986, { release_type: 'album' }),
-  album(15, 'Bootleg Box', 2000),
-  album(16, 'Rarities', 1992),
+  album(15, 'Bootleg Box', 2000, { release_type: 'broadcast' }),
+  album(16, 'Rarities', 1992, { release_type: 'other' }),
+  album(17, 'Round About Midnight', 1957),
 ];
 
 class ResizeObserverInerte {
@@ -91,8 +92,9 @@ describe('web#3032 — beaucoup d’albums : des sections par type', () => {
     const racine = poserGrille({ locaux: MILES });
     const ordre = [...racine.querySelectorAll('[data-section="discographie"] > section[data-section]')]
       .map((n) => n.getAttribute('data-section'));
-    expect(ordre).toEqual(['albums-studio', 'live', 'compilations-artiste', 'bandes-originales', 'eps', 'autres']);
-    expect(compteDe(racine, 'albums-studio')).toBe('7');
+    // Live en premier, dans les deux modes (Bertrand, 14/11/2026).
+    expect(ordre).toEqual(['live', 'albums-studio', 'compilations-artiste', 'bandes-originales', 'eps', 'autres']);
+    expect(compteDe(racine, 'albums-studio')).toBe('8');
     expect(compteDe(racine, 'live')).toBe('2');
     expect(compteDe(racine, 'compilations-artiste')).toBe('2');
     expect(compteDe(racine, 'bandes-originales')).toBe('2');
@@ -110,15 +112,42 @@ describe('web#3032 — beaucoup d’albums : des sections par type', () => {
   it('l’ordre chronologique (tri par défaut) vaut dans chaque section', () => {
     const racine = poserGrille({ locaux: MILES });
     expect(titresDe(racine, 'albums-studio')).toEqual([
-      'Birth of the Cool', 'Kind of Blue', 'Sketches of Spain', 'Miles Smiles', 'In a Silent Way', 'Bitches Brew', 'Tutu',
+      'Birth of the Cool', 'Round About Midnight', 'Kind of Blue', 'Sketches of Spain', 'Miles Smiles', 'In a Silent Way', 'Bitches Brew', 'Tutu',
     ]);
     expect(titresDe(racine, 'live')).toEqual(['Live at the Plugged Nickel', 'Agharta']);
     expect(titresDe(racine, 'bandes-originales')).toEqual(["Ascenseur pour l'échafaud", 'Siesta (Original Motion Picture Soundtrack)']);
   });
 
-  it('sans type connu, l’album va sous « Autres »', () => {
+  it('« Autres » ne garde que les types explicites other/broadcast ; sans type, l’album reste un album', () => {
     const racine = poserGrille({ locaux: MILES });
     expect(titresDe(racine, 'autres')).toEqual(['Rarities', 'Bootleg Box']);
+    expect(titresDe(racine, 'albums-studio')).toContain('Round About Midnight');
+  });
+
+  it('fiche de SERVICE sans types (> 12 albums) : pas de sections, la grille d’avant', () => {
+    const sansType = MILES.map((a) => ({ id: null, source_id: `dz${a.id}`, title: a.title, year: a.year, artist_name: 'Miles Davis' }) as unknown as Album);
+    const racine = poserGrille({ services: [{ service: 'deezer', albums: sansType }], nomArtiste: 'Miles Davis' });
+    expect(racine.querySelectorAll('[data-section="discographie"] .ct').length).toBeGreaterThan(SEUIL_SECTIONS_PAR_TYPE);
+    expect(racine.querySelector('[data-section="autres"]')).toBeNull();
+    expect(racine.querySelector('.replier')).toBeNull();
+  });
+
+  it('fiche bibliothèque : un album présent seulement chez un service, sans type, va sous « Albums studio »', () => {
+    const racine = poserGrille({
+      locaux: MILES,
+      services: [{ service: 'deezer', albums: [{ id: null, source_id: 'dz1', title: 'Water Babies', year: 1976, artist_name: 'Miles Davis' } as unknown as Album] }],
+      nomArtiste: 'Miles Davis',
+    });
+    expect(titresDe(racine, 'albums-studio')).toContain('Water Babies');
+    expect(titresDe(racine, 'autres')).not.toContain('Water Babies');
+  });
+
+  it('le seuil ne compte que la bibliothèque : 12 albums locaux et des services ne basculent pas', () => {
+    const douze = MILES.filter((a) => ![7, 8, 13].includes(a.id!)).slice(0, 12);
+    const services = [{ service: 'deezer', albums: ['A', 'B', 'C'].map((t, i) => ({ id: null, source_id: `x${i}`, title: t, year: 1990, artist_name: 'Miles Davis' }) as unknown as Album) }];
+    const racine = poserGrille({ locaux: douze, services, nomArtiste: 'Miles Davis' });
+    expect(racine.querySelectorAll('[data-section="discographie"] .ct')).toHaveLength(15);
+    expect(racine.querySelector('.replier')).toBeNull();
   });
 
   it('une section se replie et se rouvre ; le choix est retenu à la fiche suivante', () => {
@@ -129,9 +158,11 @@ describe('web#3032 — beaucoup d’albums : des sections par type', () => {
     flushSync();
     expect(bouton().getAttribute('aria-expanded')).toBe('false');
     expect(racine.querySelector('[data-section="live"] .gr')).toBeNull();
+    // Repliée, la section ne vise pas un identifiant absent.
+    expect(bouton().hasAttribute('aria-controls')).toBe(false);
     expect(compteDe(racine, 'live')).toBe('2');
     // Les autres sections restent ouvertes.
-    expect(titresDe(racine, 'albums-studio')).toHaveLength(7);
+    expect(titresDe(racine, 'albums-studio')).toHaveLength(8);
 
     // Une autre fiche : « Live » reste replié.
     unmount(monte!);
@@ -181,13 +212,15 @@ describe('web#3032 — les règles de rangement', () => {
   it('bande originale par le titre : des expressions entières, jamais « soundtrack » seul', () => {
     expect(titreAnnonceUneBandeOriginale('Siesta (Original Motion Picture Soundtrack)')).toBe(true);
     expect(titreAnnonceUneBandeOriginale('Ascenseur pour l’échafaud (Bande originale du film)')).toBe(true);
-    expect(titreAnnonceUneBandeOriginale('Dingo (Original Score)')).toBe(true);
+    expect(titreAnnonceUneBandeOriginale('Dingo (Original Motion Picture Score)')).toBe(true);
     expect(titreAnnonceUneBandeOriginale('Soundtrack to My Life')).toBe(false);
+    // 10cc, 1975 : un album studio.
+    expect(titreAnnonceUneBandeOriginale('The Original Soundtrack')).toBe(false);
     expect(titreAnnonceUneBandeOriginale('The Original Quintet')).toBe(false);
   });
 
   it('un type secondaire explicite n’est jamais contredit par le titre', () => {
-    const [e] = fusionnerDiscographie([album(1, 'Jack Johnson (Original Soundtrack)', 1971, { release_secondary_types: ['remix'] })], []);
+    const [e] = fusionnerDiscographie([album(1, 'Jack Johnson (Original Motion Picture Soundtrack)', 1971, { release_secondary_types: ['remix'] })], []);
     expect(rangerParType([e]).studio).toHaveLength(1);
   });
 
