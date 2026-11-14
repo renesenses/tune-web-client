@@ -713,6 +713,8 @@
   let dRetenus = $state<Set<string>>(new Set());
   let dBusy = $state(false);
   let dBilan = $state<string | null>(null);
+  /** #8679 — le bilan de « Écrire l'artiste du dossier », tenu par le parent. */
+  let dDossierBilan = $state<string | null>(null);
   let dGroupes = $derived(grouperParArtisteDevine(doubtful));
   let dSansIndice = $derived(
     doubtful.filter((p) => p.reasons?.includes('missing_artist')).length
@@ -753,10 +755,12 @@
     dBusy = false;
   }
 
-  async function chargerDouteuses() {
+  /** `discret` : relue sans repasser par « Chargement… », qui démonterait
+   *  la liste et le bilan qu'elle affiche (#8679). */
+  async function chargerDouteuses(discret = false) {
     if (dLoaded) return;
     dLoaded = true;
-    dLoading = true;
+    dLoading = !discret;
     const tous: PisteDouteuse[] = [];
     try {
       for (let offset = 0; ; offset += 1000) {
@@ -1282,14 +1286,21 @@
         </div>
       {/if}
 
-    {:else if dLoading}
+    {:else}
+      <!-- tune-server-rust#8679 — le bilan de « Écrire l'artiste du dossier »
+           vit ICI, hors de la liste : après l'écriture, la liste relue peut
+           ne plus avoir de piste concernée, ou plus aucune piste du tout. -->
+      {#if dDossierBilan}<p class="note" data-bilan-dossier aria-live="polite">{dDossierBilan}</p>{/if}
+    {#if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
       <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
 
-      <PistesDouteuses pistes={doubtful} />
+      <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
+           vient du serveur, on la relit après l'écriture. -->
+      <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }} />
 
       {#if dGroupes.length}
         <div class="cpacts">
@@ -1328,6 +1339,7 @@
       {#if dSansIndice > 0}
         <p class="source">{$t('v2.meta.dArtistNoClue' as any).replace('{count}', $formatNombre(dSansIndice))}</p>
       {/if}
+    {/if}
     {/if}
 
     <!-- Pas de bouton « ouvrir l'éditeur » : la vue `metadata` est CET écran
