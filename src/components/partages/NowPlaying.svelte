@@ -68,6 +68,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
+  import CreditsEnLigne from './CreditsEnLigne.svelte';
   import { labelDe } from '../../lib/artistesDuLabel';
   import { anneeAlbum } from '../../lib/anneeAlbum';
   import { gestesNavigationService } from '../../lib/stores/navigation';
@@ -2126,7 +2127,7 @@ import { ICONES } from '../../lib/menuPiste';
                  lien (identifiant de `artists` quand le crédit en a un, sinon
                  le nom, par correspondance exacte puis la Recherche). -->
             <p class="inline-credits" title={inlineCredits}>
-              {#each creditsEnLigne as g, gi (g.role)}{#if gi > 0}<span class="inline-credits-sep"> · </span>{/if}{formatRole(g.role)}: {#each g.membres as m, mi (mi)}{#if mi > 0}, {/if}<LienEntite entite={{ type: 'personne', nom: m.artist_name, artiste: m.artist_id ? { id: m.artist_id, name: m.artist_name, source: 'local' } : { name: m.artist_name } }} />{#if m.instrument} ({m.instrument}){/if}{/each}{#if g.reste}, …{/if}{/each}
+              <CreditsEnLigne groupes={creditsEnLigne} libelle={formatRole} />
             </p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
@@ -3483,8 +3484,8 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   /* web#2770 — l'artiste, l'année et les crédits sont des `LienEntite` : le
-     soulignement et la couleur au survol viennent du composant. */
-  .inline-credits-sep { color: var(--tune-text-muted); }
+     soulignement et la couleur au survol viennent du composant. Le
+     séparateur des crédits vit dans `CreditsEnLigne`. */
 
   .track-album {
     font-family: var(--font-body);
