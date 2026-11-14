@@ -978,6 +978,9 @@ export default {
   'signal.network': 'Network',
   'signal.checksum': 'Checksum',
   'signal.verified': 'Verified',
+  'signal.adjust': 'Adjust',
+  'signal.adjustStep': 'Adjust {name}',
+  'signal.adjustDisabled': 'Off — adjust',
   'signal.decisions': 'Pipeline decisions',
 
   // Artist detail
@@ -6411,7 +6414,6 @@ export default {
   "v2.radio.tabDirectory": "Directory",
   "v2.radio.dir.allCountries": "All countries",
   "v2.radio.dir.count": "{n} stations",
-  "v2.radio.filters.toggle": "More filters",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "All formats",
   "v2.radio.filters.bitrateMin": "Minimum bitrate",

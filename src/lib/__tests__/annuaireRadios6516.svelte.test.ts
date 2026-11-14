@@ -102,7 +102,9 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
   it('les filtres pays et genre viennent des facettes du serveur', async () => {
     await ouvrirAnnuaire();
     // #2397 : le pays reste une liste, le genre passe en BOUTONS.
-    const choix = hote.querySelectorAll<HTMLSelectElement>('.annuaire select');
+    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12.
+    const choix = [...hote.querySelectorAll<HTMLSelectElement>('.annuaire select')]
+      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]'));
     expect(choix.length).toBe(1);
     expect(choix[0].options.length).toBe(3); // tous + FR + US
     const puces = [...hote.querySelectorAll('.annuaire .chip')].map((c) => c.textContent ?? '');

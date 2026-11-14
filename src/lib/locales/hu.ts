@@ -944,6 +944,9 @@ export default {
   "signal.network": "Hálózat",
   "signal.checksum": "Ellenőrzőösszeg",
   "signal.verified": "Ellenőrizve",
+  "signal.adjust": "Beállítás",
+  "signal.adjustStep": "{name} beállítása",
+  "signal.adjustDisabled": "Kikapcsolva — beállítás",
   "signal.decisions": "A feldolgozási lánc döntései",
   // Előadó részletei
   "artist.similarArtists": "Hasonló előadók",
@@ -6350,7 +6353,6 @@ export default {
   "v2.radio.tabDirectory": "Katalógus",
   "v2.radio.dir.allCountries": "Minden ország",
   "v2.radio.dir.count": "{n} állomás",
-  "v2.radio.filters.toggle": "További szűrők",
   "v2.radio.filters.format": "Formátum",
   "v2.radio.filters.anyFormat": "Minden formátum",
   "v2.radio.filters.bitrateMin": "Minimális bitráta",

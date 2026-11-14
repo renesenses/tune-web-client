@@ -851,6 +851,9 @@ export default {
   'signal.network': 'Red',
   'signal.checksum': 'Suma de verificación',
   'signal.verified': 'Verificado',
+  'signal.adjust': 'Ajustar',
+  'signal.adjustStep': 'Ajustar {name}',
+  'signal.adjustDisabled': 'Desactivado — ajustar',
   'signal.decisions': 'Decisiones del pipeline',
 
   // Artist detail
@@ -6391,7 +6394,6 @@ export default {
   "v2.radio.tabDirectory": "Directorio",
   "v2.radio.dir.allCountries": "Todos los países",
   "v2.radio.dir.count": "{n} emisoras",
-  "v2.radio.filters.toggle": "Más filtros",
   "v2.radio.filters.format": "Formato",
   "v2.radio.filters.anyFormat": "Todos los formatos",
   "v2.radio.filters.bitrateMin": "Tasa de bits mínima",

@@ -291,7 +291,7 @@
   });
 
   /**
-   * tune-server-rust#7466 — « Plus de filtres » sur « Mes radios ». Format,
+   * tune-server-rust#7466 — les critères de recherche sur « Mes radios ». Format,
    * débit, sans perte, Hi-Res, Metadata+ et favoris se jugent au SERVEUR
    * (`GET /radios/search`, critères seuls) : la fréquence, la note et
    * Metadata+ ne sont connues que par la fiche d'annuaire de la station. Le
@@ -476,8 +476,9 @@
             {/each}
           </select>
         {/if}
+        <!-- Recette rc12 (13/11) : les critères, dépliés, sur la ligne du pays. -->
+        <RadioFiltresAvances total={shown.length} />
       </div>
-      <div class="filtres"><RadioFiltresAvances total={shown.length} /></div>
       {#if showFilters && rayons.length}
         <div class="filtres">
           <RadioChipsGenres

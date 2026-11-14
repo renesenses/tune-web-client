@@ -1,6 +1,6 @@
 // Recherche de radios par critères (tune-server-rust#7466).
 //
-// Les critères que la barre « Plus de filtres » de l'écran Radio envoie au
+// Les critères de recherche de l'écran Radio (RadioFiltresAvances), envoyés au
 // serveur, sur l'annuaire (`GET /radios/directory`) comme sur « Mes radios »
 // (`GET /radios/search`). Le serveur les combine en ET ; un critère absent ne
 // filtre rien. Le choix est retenu dans les préférences (`radioFiltres`),
@@ -18,7 +18,7 @@ export interface FiltresRadio {
   qualiteMin: string | null;
   /** Un flux sans perte (FLAC, ALAC…). */
   lossless: boolean;
-  /** Un flux au-delà de 48 kHz. */
+  /** Un flux SANS PERTE au-delà de 48 kHz (jugé au serveur, flux par flux). */
   hires: boolean;
   /** Le titre en cours est publié par radio-metadata.fr (badge Metadata+). */
   metadataPlus: boolean;

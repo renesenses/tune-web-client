@@ -851,6 +851,9 @@ export default {
   'signal.network': '네트워크',
   'signal.checksum': '체크섬',
   'signal.verified': '확인됨',
+  'signal.adjust': '조정',
+  'signal.adjustStep': '{name} 조정',
+  'signal.adjustDisabled': '꺼짐 — 조정',
   'signal.decisions': '파이프라인 결정',
 
   // Artist detail
@@ -6391,7 +6394,6 @@ export default {
   "v2.radio.tabDirectory": "디렉터리",
   "v2.radio.dir.allCountries": "모든 국가",
   "v2.radio.dir.count": "방송국 {n}개",
-  "v2.radio.filters.toggle": "필터 더 보기",
   "v2.radio.filters.format": "포맷",
   "v2.radio.filters.anyFormat": "모든 포맷",
   "v2.radio.filters.bitrateMin": "최소 비트레이트",

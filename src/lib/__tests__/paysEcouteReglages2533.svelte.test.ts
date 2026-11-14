@@ -56,7 +56,10 @@ async function monter(Composant: any) {
   flushSync(); await respirer();
   return hote;
 }
-const choix = (el: Element) => el.querySelector('select');
+// Les listes des critères radio (format, qualité) sont toujours visibles
+// depuis la recette rc12 : seule compte la liste du PAYS.
+const choix = (el: Element) => [...el.querySelectorAll('select')]
+  .find((s) => !s.closest('[data-testid="radio-filtres-corps"]')) ?? null;
 
 describe('web#2533 — carte des Réglages', () => {
   it('le pays d’écoute est dans Général, et nulle part ailleurs', () => {

@@ -838,6 +838,9 @@ export default {
   'signal.network': 'Nätverk',
   'signal.checksum': 'Kontrollsumma',
   'signal.verified': 'Verifierad',
+  'signal.adjust': 'Justera',
+  'signal.adjustStep': 'Justera {name}',
+  'signal.adjustDisabled': 'Av — justera',
   'signal.decisions': 'Pipeline-beslut',
 
   // Artist detail
@@ -6390,7 +6393,6 @@ export default {
   "v2.radio.tabDirectory": "Katalog",
   "v2.radio.dir.allCountries": "Alla länder",
   "v2.radio.dir.count": "{n} kanaler",
-  "v2.radio.filters.toggle": "Fler filter",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "Alla format",
   "v2.radio.filters.bitrateMin": "Lägsta bithastighet",

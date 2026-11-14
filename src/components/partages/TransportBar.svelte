@@ -27,6 +27,8 @@
   import * as api from '../../lib/api';
   import LienEntite from './LienEntite.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
   import { ondePisteEnCours } from '../../lib/stores/ondePiste';
@@ -814,6 +816,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   let showSignalPath = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'barre') return;
+    cheminARouvrir.set(null);
+    showSignalPath = true;
+  });
 
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
@@ -2033,6 +2041,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
+              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
             </div>
           </div>
         {/each}

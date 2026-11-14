@@ -851,6 +851,9 @@ export default {
   'signal.network': '网络',
   'signal.checksum': '校验和',
   'signal.verified': '已验证',
+  'signal.adjust': '调整',
+  'signal.adjustStep': '调整{name}',
+  'signal.adjustDisabled': '已关闭 — 调整',
   'signal.decisions': '管道决策',
 
   // Artist detail
@@ -6391,7 +6394,6 @@ export default {
   "v2.radio.tabDirectory": "电台目录",
   "v2.radio.dir.allCountries": "所有国家",
   "v2.radio.dir.count": "{n} 个电台",
-  "v2.radio.filters.toggle": "更多筛选",
   "v2.radio.filters.format": "格式",
   "v2.radio.filters.anyFormat": "所有格式",
   "v2.radio.filters.bitrateMin": "最低码率",

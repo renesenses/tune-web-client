@@ -851,6 +851,9 @@ export default {
   'signal.network': 'ネットワーク',
   'signal.checksum': 'チェックサム',
   'signal.verified': '検証済み',
+  'signal.adjust': '調整',
+  'signal.adjustStep': '{name} を調整',
+  'signal.adjustDisabled': 'オフ — 調整',
   'signal.decisions': 'パイプライン判定',
 
   // Artist detail
@@ -6391,7 +6394,6 @@ export default {
   "v2.radio.tabDirectory": "ディレクトリ",
   "v2.radio.dir.allCountries": "すべての国",
   "v2.radio.dir.count": "{n} 局",
-  "v2.radio.filters.toggle": "その他のフィルター",
   "v2.radio.filters.format": "フォーマット",
   "v2.radio.filters.anyFormat": "すべてのフォーマット",
   "v2.radio.filters.bitrateMin": "最低ビットレート",

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// tune-server-rust#7466 — « Plus de filtres » sur l'écran Radio : « Mes
+// tune-server-rust#7466 — les critères de recherche sur l'écran Radio : « Mes
 // radios » garde les stations que le serveur retient, l'annuaire reçoit les
 // critères, et le choix est retenu dans les préférences.
 import { clearViewContext } from '../stores/navigation';
@@ -58,13 +58,40 @@ async function monter() {
 const noms = () => [...hote.querySelectorAll('.nm')].map((n) => n.textContent?.trim());
 const total = () => hote.querySelector('[data-testid="radio-filtres-total"]')?.textContent?.trim();
 
-describe('tune-server-rust#7466 — « Plus de filtres »', () => {
-  it('sans critère : toutes mes radios, aucune requête de critères, barre repliée', async () => {
+describe('tune-server-rust#7466 — critères de recherche radio', () => {
+  it('sans critère : toutes mes radios, aucune requête de critères, critères visibles', async () => {
     await monter();
     expect(noms()).toEqual(['Jazz Sans Perte', 'Rock Compresse']);
     expect(mocks.rechercherRadiosParCriteres).not.toHaveBeenCalled();
-    expect(hote.querySelector('[data-testid="radio-filtres-corps"]')).toBeNull();
+    expect(hote.querySelector('[data-testid="radio-filtres-corps"]')).not.toBeNull();
     expect(total()).toBe('2 stations');
+  });
+
+  it('🔴 recette rc12 — plus de « Plus de filtres » : critères dépliés sur la ligne du pays', async () => {
+    await monter();
+    expect(hote.querySelector('[data-testid="radio-filtres-bascule"]')).toBeNull();
+    expect(hote.textContent).not.toContain('Plus de filtres');
+    // La case Hi-Res est là sans rien ouvrir, dans la MÊME ligne que la recherche.
+    const hires = hote.querySelector<HTMLInputElement>('[data-testid="radio-filtres-hires"]')!;
+    expect(hires).not.toBeNull();
+    expect(hires.closest('.filtres.ligne')).not.toBeNull();
+    expect(hires.closest('.filtres.ligne')!.querySelector('.v2-rech')).not.toBeNull();
+    hires.click();
+    await respirer();
+    expect(get(preferences).radioFiltres?.hires).toBe(true);
+    expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { hires: 'true' });
+
+    // L'annuaire : les critères suivent le filtre « Pays », dans la même ligne.
+    [...hote.querySelectorAll<HTMLButtonElement>('.sections button')]
+      .find((b) => b.textContent?.trim() === fr['v2.radio.tabDirectory'])!.click();
+    await respirer();
+    const ligne = hote.querySelector('.annuaire .filtres')!;
+    const champs = [...ligne.querySelectorAll('select, input')];
+    const pays = champs.findIndex((c) => c.getAttribute('aria-label') === fr['v2.radio.country']);
+    const qualite = champs.findIndex((c) => c.getAttribute('data-testid') === 'radio-filtres-qualite');
+    expect(pays).toBeGreaterThanOrEqual(0);
+    expect(qualite).toBeGreaterThan(pays);
+    expect(ligne.querySelector('[data-testid="radio-filtres-bascule"]')).toBeNull();
   });
 
   it('🔴 « Sans perte » : seules les stations que le serveur retient, et le compteur suit', async () => {
@@ -73,14 +100,11 @@ describe('tune-server-rust#7466 — « Plus de filtres »', () => {
     expect(mocks.rechercherRadiosParCriteres).toHaveBeenCalledWith('', { lossless: 'true' });
     expect(noms()).toEqual(['Jazz Sans Perte']);
     expect(total()).toBe('1 stations');
-    // La barre reste ouverte quand un critère est actif.
     expect(hote.querySelector('[data-testid="radio-filtres-corps"]')).not.toBeNull();
   });
 
   it('🔴 la case Metadata+ est retenue dans les préférences et part vers l’annuaire', async () => {
     await monter();
-    hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bascule"]')!.click();
-    flushSync();
     const mdp = hote.querySelector<HTMLInputElement>('[data-testid="radio-filtres-mdp"]')!;
     expect(mdp.closest('label')?.textContent).toContain(fr['v2.radio.metadataPlus']);
     mdp.click();
@@ -97,8 +121,6 @@ describe('tune-server-rust#7466 — « Plus de filtres »', () => {
 
   it('🔴 tune-server-rust#7718 — la qualité minimale se choisit dans la liste et part vers l’annuaire', async () => {
     await monter();
-    hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bascule"]')!.click();
-    flushSync();
     const liste = hote.querySelector<HTMLSelectElement>('[data-testid="radio-filtres-qualite"]')!;
     expect(liste.getAttribute('aria-label')).toBe(fr['v2.radio.filters.qualityMin']);
     const options = [...liste.options].map((o) => o.textContent?.trim());

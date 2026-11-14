@@ -851,6 +851,9 @@ export default {
   'signal.network': 'Netzwerk',
   'signal.checksum': 'Prüfsumme',
   'signal.verified': 'Verifiziert',
+  'signal.adjust': 'Einstellen',
+  'signal.adjustStep': '{name} einstellen',
+  'signal.adjustDisabled': 'Aus — einstellen',
   'signal.decisions': 'Pipeline-Entscheidungen',
 
   // Artist detail
@@ -6391,7 +6394,6 @@ export default {
   "v2.radio.tabDirectory": "Verzeichnis",
   "v2.radio.dir.allCountries": "Alle Länder",
   "v2.radio.dir.count": "{n} Sender",
-  "v2.radio.filters.toggle": "Weitere Filter",
   "v2.radio.filters.format": "Format",
   "v2.radio.filters.anyFormat": "Alle Formate",
   "v2.radio.filters.bitrateMin": "Mindestbitrate",
