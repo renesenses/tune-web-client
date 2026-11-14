@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // tune-server-rust#8325 / ESL63P — Réglages › Bibliothèque › Balises du
-// classique : puces éditables par rôle, choix BAND, « Revenir aux valeurs
+// classique : puces éditables par rôle, BAND conservé côté serveur, « Revenir aux valeurs
 // par défaut », validation alignée sur le serveur, 15 langues.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
@@ -96,7 +96,8 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
     await monter();
     expect(puces('ensemble')).toEqual(['ENSEMBLE', 'ORCHESTRA', 'CHOIR']);
     expect(puces('conductor')).toEqual(['CONDUCTOR']);
-    expect(hote.querySelector<HTMLInputElement>('input[type=radio][value=classical]')!.checked).toBe(true);
+    expect(hote.querySelector('[data-band]'), 'le choix BAND est retiré (#2980)').toBeNull();
+    expect(hote.querySelector('input[type=radio]')).toBeNull();
     expect(enregistrer().disabled, 'rien de modifié').toBe(true);
     expect(defauts().disabled, 'déjà aux défauts').toBe(true);
     expect(mocks.setBalisesClassique).not.toHaveBeenCalled();
@@ -132,17 +133,19 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
     flushSync();
     expect(alerte(), 'le refus doit tomber quand la saisie change').toBeNull();
     // Le champ vidé, le refus d'avant ne bloque pas l'enregistrement.
-    hote.querySelector<HTMLInputElement>('input[type=radio][value=ignored]')!.click();
+    hote.querySelector<HTMLButtonElement>('[data-role=movement] [data-balise=MOVEMENTNAME] .retirer')!.click();
     flushSync();
     enregistrer().click();
     await respirer();
     expect(mocks.setBalisesClassique).toHaveBeenCalledTimes(1);
-    expect(mocks.setBalisesClassique.mock.calls[0][0]).toMatchObject({ band: 'ignored', ensemble: ['ENSEMBLE', 'ORCHESTRA', 'CHOIR'] });
+    expect(mocks.setBalisesClassique.mock.calls[0][0]).toMatchObject({ band: 'classical', movement: [], ensemble: ['ENSEMBLE', 'ORCHESTRA', 'CHOIR'] });
   });
 
-  it('🔴 BAND ignoré, retrait d’une puce, puis retour aux défauts par `{}`', async () => {
+  it('conserve un ancien BAND ignoré, même au retour des rôles aux défauts (#2980)', async () => {
+    mocks.getBalisesClassique.mockResolvedValue(etat({ ...DEFAUTS_CLASSIQUE, band: 'ignored' }));
     await monter();
-    hote.querySelector<HTMLInputElement>('input[type=radio][value=ignored]')!.click();
+    expect(enregistrer().disabled).toBe(true);
+    expect(defauts().disabled).toBe(true);
     hote.querySelector<HTMLButtonElement>('[data-role=ensemble] [data-balise=CHOIR] .retirer')!.click();
     flushSync();
     enregistrer().click();
@@ -151,8 +154,20 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
     expect(defauts().disabled).toBe(false);
     defauts().click();
     await respirer();
-    expect(mocks.setBalisesClassique.mock.calls[1][0]).toEqual({});
+    expect(mocks.setBalisesClassique.mock.calls[1][0]).toEqual({ ...DEFAUTS_CLASSIQUE, band: 'ignored' });
+    expect(enregistrer().disabled).toBe(true);
+    expect(defauts().disabled).toBe(true);
     expect(puces('ensemble')).toEqual(['ENSEMBLE', 'ORCHESTRA', 'CHOIR']);
+  });
+
+  it('désactive Enregistrer si l’on annule sa modification (#2980)', async () => {
+    await monter();
+    saisir('ensemble', 'CHORUS');
+    expect(enregistrer().disabled).toBe(false);
+    hote.querySelector<HTMLButtonElement>('[data-balise=CHORUS] .retirer')!.click();
+    flushSync();
+    expect(enregistrer().disabled).toBe(true);
+    expect(mocks.setBalisesClassique).not.toHaveBeenCalled();
   });
 
   it('un serveur d’avant le réglage (404) le dit au lieu d’un formulaire', async () => {
@@ -165,7 +180,7 @@ describe('Réglages › Bibliothèque › Balises du classique', () => {
   it('les 15 langues portent toutes les clés de la section', () => {
     const fr = dictionnaires['../locales/fr.ts'].default;
     const cles = Object.keys(fr).filter((k) => k.startsWith('classicalTags.'));
-    expect(cles.length).toBeGreaterThanOrEqual(24);
+    expect(cles.length).toBeGreaterThanOrEqual(20);
     for (const l of LANGUES) {
       const d = dictionnaires[`../locales/${l}.ts`]?.default;
       expect(d, l).toBeTruthy();

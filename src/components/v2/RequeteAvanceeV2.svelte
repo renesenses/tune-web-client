@@ -12,6 +12,7 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import AideRequeteSplV2 from './AideRequeteSplV2.svelte';
   import { decouperALaPosition, essayerRequete, LONGUEUR_MAX_REQUETE, type ResultatRequete } from '../../lib/requeteTextuelle';
 
   interface Props {
@@ -27,6 +28,13 @@
   let enCours = $state(false);
   let resultat = $state<ResultatRequete | null>(null);
   let jeton = 0;
+  let docOuverte = $state(false);
+
+  /** Un exemple de l'aide recopié dans la requête, prêt à essayer. */
+  function prendreExemple(requete: string) {
+    q = requete;
+    resultat = null;
+  }
 
   async function essayer() {
     const texte = q.trim();
@@ -45,8 +53,14 @@
 </script>
 
 <section class="requete" data-requete-avancee>
-  <span class="lbl">{$t('v2.spl.requeteTitre' as any)}</span>
+  <div class="tete">
+    <span class="lbl">{$t('v2.spl.requeteTitre' as any)}</span>
+    <button type="button" class="lnk" aria-expanded={docOuverte} onclick={() => (docOuverte = !docOuverte)} data-requete-aide>
+      {$t('v2.spl.reqDoc.bouton' as any)}
+    </button>
+  </div>
   <p class="aide">{$t('v2.spl.requeteAide' as any)}</p>
+  {#if docOuverte}<AideRequeteSplV2 onExemple={prendreExemple} />{/if}
   <textarea class="txt" rows="2" maxlength={LONGUEUR_MAX_REQUETE} bind:value={q}
     placeholder={'credit(artiste: "Bill Evans", instrument: piano) annee:1955..1965'}
     aria-label={$t('v2.spl.requeteTitre' as any)}
@@ -92,6 +106,7 @@
 
 <style>
   .requete { display: flex; flex-direction: column; gap: 6px; }
+  .tete { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .aide, .precision { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2, var(--tune-text-muted)); }
   textarea { font-family: var(--v2-mono, ui-monospace, monospace); resize: vertical; }
   .gestes { display: flex; gap: 10px; }

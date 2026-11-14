@@ -29,6 +29,7 @@
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import ImportPlaylistFichier from '../v2/ImportPlaylistFichier.svelte';
   import BasculeAffichage from '../v2/BasculeAffichage.svelte';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   /**
@@ -2070,15 +2071,8 @@
         {/if}
       </div>
       <div class="pm-header-right">
-        <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder={$tr('playlist.searchPlaceholder')} bind:value={searchQuery} />
-          {#if searchQuery}
-            <button class="search-clear" onclick={() => searchQuery = ''}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          {/if}
-        </div>
+        <!-- Recette rc12 (13/11) — le champ partagé de tous les écrans. -->
+        <ChampRecherche bind:valeur={searchQuery} ecran={$tr('playlist.manager')} />
         <!--
           Le bouton vit dans l'en-tête COMMUN aux onglets du gestionnaire, mais
           le formulaire qu'il ouvre n'est rendu que dans la branche de l'onglet
@@ -3269,55 +3263,6 @@
 
   .filter-chip.active {
     font-weight: 700;
-  }
-
-  /* Search */
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--tune-grey2);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    padding: 4px 10px;
-    transition: border-color 0.12s;
-  }
-
-  .search-box:focus-within {
-    border-color: var(--tune-accent);
-  }
-
-  .search-icon {
-    color: var(--tune-text-muted);
-    flex-shrink: 0;
-  }
-
-  .search-box input {
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--tune-text);
-    font-family: var(--font-body);
-    font-size: calc(13px * var(--v2-txt-echelle, 1));
-    width: 180px;
-  }
-
-  .search-box input::placeholder {
-    color: var(--tune-text-muted);
-  }
-
-  .search-clear {
-    background: none;
-    border: none;
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-  }
-
-  .search-clear:hover {
-    color: var(--tune-text);
   }
 
   /* Source badge */

@@ -7,6 +7,7 @@
   import DetailsServeur from '../partages/DetailsServeur.svelte';
   import { detailServeur } from '../../lib/messageServeur';
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
+  import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Réglages du nouveau client (direction Levente).
@@ -24,7 +25,7 @@
    * l'écran actuel — jamais un cadre vide qui laisserait croire à un réglage
    * absent.
    */
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
@@ -177,6 +178,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
+  import RemplacerCheminDossier from '../partages/RemplacerCheminDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
   import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
   import {
@@ -1948,6 +1950,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         [name]:
           nature === 'application'
             ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'reseau'
+            ? get(t)('settings.errNetworkRefused' as any).replace('{service}', nomAffiche(name))
           : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'
@@ -2253,8 +2257,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * refuse d'ailleurs tout « 14 » littéral dans les onze traductions.
    */
   function graceJours(n: number): string {
-    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
-      .replace('{days}', String(n));
+    return $tn('settings.licenseGraceDaysN', n);
   }
   async function activateLic() {
     const k = licKey.trim();
@@ -2325,6 +2328,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Bibliotheque : dossiers, analyse, planification ───────────────────
   let musicDirs = $state<string[]>([]);
+  /** #8676 — le message de fin du dernier « Remplacer le chemin ». */
+  let remplacementFait = $state<string | null>(null);
   // #1688 — null means the server does not expose the #4907 order route.
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
@@ -4705,7 +4710,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {#if tab}
         <div class="panehead">
           {#if hiddenCount > 0}
-            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
+            <span class="masked">{$tn('v2.set.hiddenSectionsN', hiddenCount)}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
@@ -6372,6 +6377,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if spc?.enabled && spc?.receiver_error_code === 'spotify_premium_required'}
                   <div class="errline" data-spotify-premium-exige>{$t('settings.spotifyPremiumRequired' as any)}</div>
                 {/if}
+                <!-- tune-server-rust#8565 (13/11) — Spotify refuse les clés audio du compte. -->
+                {#if spc?.enabled && spc?.receiver_error_code === 'spotify_audio_key_refused'}
+                  <div class="errline" data-spotify-cles-refusees>{$t('playback.errorSpotifyAudioKeyRefused' as any)}</div>
+                {/if}
                 {#if spc?.enabled && spc?.session_error}
                   <div class="errline" data-spotify-session-erreur>{erreurDeSessionSpc(spc.session_error)}</div>
                 {/if}
@@ -7070,6 +7079,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+              <!-- rc12 (décision du 13/11, tune-server-rust#6285) — la détection des faux Hi-Res, éteinte par défaut. -->
+              <div data-reglage="faux-hires"><DetectionFauxHiRes /></div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
               <div data-reglage="audit-integrite"><AuditIntegrite /></div>
@@ -7145,6 +7156,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
                         </label>
                       {/if}
+                      <!-- tune-server-rust#8676 — après une restauration venue
+                           d'une autre machine : réécrire l'ancien chemin. -->
+                      <RemplacerCheminDossier dossier={d} disabled={dirBusy}
+                        onRemplace={async (dirs, message) => { remplacementFait = message; musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
                       <button class="del avec-texte" disabled={dirBusy} onclick={() => removeDir(d)}
                         aria-label={$t('settings.removeFolderAria' as any)} title={$t('settings.removeFolderButton' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -7153,6 +7168,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   {/each}
                 </div>
+                <!-- tune-server-rust#8676 — le bilan de « Remplacer le chemin »,
+                     HORS de la ligne : celle-ci est démontée quand le chemin
+                     change (liste indexée par chemin). -->
+                {#if remplacementFait}<p class="hint" role="status" data-bilan-remplacement>{remplacementFait}</p>{/if}
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
@@ -9055,10 +9074,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
-  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
-  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
-  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto auto}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}

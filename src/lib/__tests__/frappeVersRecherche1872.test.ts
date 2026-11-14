@@ -223,13 +223,16 @@ describe('#1872 — branchement dans la Bibliothèque', () => {
 
   it('le champ est relié et le gestionnaire posé sur la fenêtre', () => {
     expect(lib).toContain("import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche'");
-    expect(lib).toMatch(/<input bind:this=\{champRecherche\}[^>]*bind:value=\{q\}/);
+    // Recette rc12 (13/11) : le champ est `ChampRecherche`, qui rend son <input>.
+    expect(lib).toMatch(/<ChampRecherche bind:valeur=\{q\} bind:champ=\{champRecherche\}/);
     expect(lib).toContain("window.addEventListener('keydown', surFrappe)");
     expect(lib).toContain("window.removeEventListener('keydown', surFrappe)");
   });
 
   it('le champ s’annonce et annonce « / » aux technologies d’assistance', () => {
-    expect(lib).toMatch(/<input bind:this=\{champRecherche\}[^>]*aria-label=[^>]*aria-keyshortcuts="\/"/);
+    expect(lib).toMatch(/<ChampRecherche [^>]*bind:champ=\{champRecherche\}[^>]*raccourci="\/"/);
+    const champ = readFileSync(resolve(process.cwd(), 'src/components/v2/ChampRecherche.svelte'), 'utf-8');
+    expect(champ).toMatch(/<input bind:this=\{champ\}[^>]*aria-label=\{invite\}[^>]*aria-keyshortcuts=\{raccourci\}/);
   });
 
   it('inerte sous un calque, un menu, ou dans un serveur multimédia', () => {

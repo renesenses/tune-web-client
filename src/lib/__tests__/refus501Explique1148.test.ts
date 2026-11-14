@@ -42,7 +42,6 @@
  * Chaque garde a sa contre-épreuve : un VRAI 5xx (500, 502, 503) doit
  * continuer d'alerter, partout. Sans elle, on aurait éteint l'alarme.
  */
-import { attendreDetailsReplie } from './detailsReplies2417';
 import { get } from 'svelte/store';
 import { t } from '../i18n';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -179,14 +178,21 @@ describe('Écran Playlists — un service qui ne fournit pas de playlists', () =
     expect(erreurs(), `bandeau levé : ${erreurs().join(' | ')}`).toEqual([]);
   });
 
-  it("dit POURQUOI Bandcamp n'est pas là, dans sa langue ; la phrase du serveur repliée (#2417)", async () => {
+  /**
+   * Recette du 14/11/2026 (.18) — décision : le service qui ne fournit pas de
+   * playlists N'APPARAÎT PAS. Ni phrase « Bandcamp ne propose pas de
+   * playlists. », ni « Détails — HTTP 501 », ni pastille. (#1148 puis #2417
+   * les avaient posées ; ces deux lignes mal alignées ne servaient à rien.)
+   */
+  it("🔴 un 501 : Bandcamp n'apparaît pas, et rien n'en parle", async () => {
     serveur(501);
     await ouvrirEcran();
-    attendreDetailsReplie(
-      target,
-      get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', 'Bandcamp'),
-      MOTIF,
-    );
+    const texte = target.textContent ?? '';
+    expect(texte, 'une ligne parle encore de Bandcamp').not.toMatch(/bandcamp/i);
+    expect(texte).not.toContain(MOTIF);
+    expect(texte).not.toContain('501');
+    expect(target.querySelector('details'), 'un « Détails » replié subsiste').toBeNull();
+    expect(target.querySelector('.sans-pl')).toBeNull();
   });
 
   it("n'empêche pas les autres services de s'afficher", async () => {

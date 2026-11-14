@@ -31,16 +31,19 @@
    * PR serveur supprime. Ce repli disparaîtra une fois la version publiée ;
    * jusque-là, l'écran fonctionne contre les deux.
    */
-  import { onMount, untrack } from 'svelte';
+  import { onMount, untrack, tick } from 'svelte';
+  import { TRANCHE_GRILLE, trancheSuivante, montageJusqua, premierIndex } from '../../lib/grilleProgressive';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { champsRepondent } from '../../lib/filtreTexte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
@@ -178,7 +181,14 @@
   // `rayons` : l'arbre de rangement (tune-server-rust#4853). L'onglet n'existe
   // que si le serveur sert l'arbre ; sinon l'écran reste ses deux listes plates.
   type Onglet = 'smart' | 'manuelle' | 'rayons';
-  let onglet = $state<Onglet>('smart');
+  // Fil 2809 (JLuc, 13/11) : l'écran rouvre sur le dernier onglet choisi
+  // (Collections, Smart Collections ou Rayons) au lieu de toujours « Smart ».
+  const ONGLETS: readonly Onglet[] = ['smart', 'manuelle', 'rayons'];
+  let onglet = $state<Onglet>(lireChoix<Onglet>('v2.collections.onglet', ONGLETS, 'smart'));
+  // Enregistré au CLIC seulement : un repli automatique (rayons indisponibles)
+  // ou l'ouverture d'une collection depuis la barre latérale ne changent pas
+  // le choix de l'utilisateur.
+  function choisirOnglet(o: Onglet) { onglet = o; ecrireChoix('v2.collections.onglet', o); }
   let rayons = $state<EtatRayons>({ mode: 'plat' });
   async function chargerLesRayons() {
     rayons = await rafraichirRayons(api.getCollectionFolders);
@@ -293,6 +303,9 @@
    * sans geste de l'utilisateur.
    */
   let horsRayonSeul = $state(false);
+  /** Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   *  nom affiché, nom stocké, description, sur la liste déjà chargée. */
+  let recherche = $state('');
   const rangees = $derived(rayons.mode === 'arbre' ? clesRangees(rayons.arbre) : new Set<string>());
   /**
    * web#2256 — TOUTE la liste d'une sorte dans l'ordre manuel : les rangées à
@@ -309,6 +322,7 @@
     entrees
       .filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale'))
       .filter((e) => !(onglet === 'smart' && horsRayonSeul && rangees.has(`smart:${e.id}`)))
+      .filter((e) => champsRepondent([libelleTradu(e), e.nom, descriptionTraduite(e)], recherche))
       .slice()
       .sort(
         tri === 'manuel' ? manuelDe(onglet === 'smart' ? 'smart' : 'normale')
@@ -711,6 +725,10 @@
   function reTirer(): void { graineTirage = graineAleatoire(); }
   async function chargerAlbums(e: Entree) {
     albumsChargement = true;
+    // web#2965 — une liste rechargée (ouverture, autre tri, règles
+    // enregistrées) repart d'une tranche, comme l'onglet Artistes : sinon,
+    // après un défilement complet, elle remonterait toutes ses cartes.
+    montees = TRANCHE_GRILLE;
     try {
       albums =
         ((e.sorte === 'smart'
@@ -926,10 +944,60 @@
     cleRail ? new Set(albumsVus.map(lettreDe)) : new Set<string>(),
   );
   let grilleEl: HTMLDivElement | undefined = $state();
-  function sauterA(L: string) {
+  async function sauterA(L: string) {
+    // web#2965 — la lettre peut être plus bas que les cartes montées : on
+    // monte jusqu'à elle (et une tranche dessous) AVANT de viser l'ancre.
+    const i = premierIndex(albumsVus, lettreDe, L);
+    if (i >= montees) {
+      montees = montageJusqua(i, montees, albumsVus.length);
+      await tick();
+    }
     grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  /**
+   * LA GRILLE PROGRESSIVE d'une collection OUVERTE — web#2965.
+   *
+   * Bertrand, recette rc12 sur le .18 (13/11/2026, ~9 500 albums) : ouvrir
+   * une collection intelligente est « très, trop lent ». Le serveur répond
+   * vite (« 🆕 Récents », 1 853 albums : 0,3 s) ; le temps passait dans le
+   * navigateur, qui montait TOUTES les cartes d'un coup — chacune avec
+   * `PochetteActions`, `AlbumArt` et `QualiteAlbum`. Même défaut, même remède
+   * que l'onglet Artistes (web#1716, `lib/grilleProgressive`) : une tranche à
+   * l'ouverture, la suivante quand la sentinelle approche du bas du cadre.
+   * L'ordre, le rail et « Tout lire » portent toujours sur la liste ENTIÈRE
+   * (`albumsVus`) ; seul le montage est différé.
+   */
+  let montees = $state(TRANCHE_GRILLE);
+  const albumsMontes = $derived(albumsVus.slice(0, montees));
+  /** Le conteneur qui DÉFILE : `.defil`, autour du rail et de la grille. */
+  const defilEl = $derived(grilleEl?.closest<HTMLElement>('.defil') ?? null);
+  let sentinelle = $state<HTMLElement | null>(null);
+  const AVANCE_PX = 800;
+  function basProche(): boolean {
+    if (!defilEl || !sentinelle) return false;
+    return sentinelle.getBoundingClientRect().top - defilEl.getBoundingClientRect().bottom < AVANCE_PX;
+  }
+  async function monterLaSuite() {
+    // Une tranche ne suffit pas toujours à repousser la sentinelle hors de
+    // l'avance (très grand écran) : on relit après chaque montage.
+    while (montees < albumsVus.length) {
+      montees = trancheSuivante(montees, albumsVus.length);
+      await tick();
+      if (!basProche()) break;
+    }
+  }
+  $effect(() => {
+    const racine = defilEl, cible = sentinelle;
+    if (!racine || !cible || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entrees) => { if (entrees.some((e) => e.isIntersecting)) void monterLaSuite(); },
+      { root: racine, rootMargin: `0px 0px ${AVANCE_PX}px 0px` },
+    );
+    io.observe(cible);
+    return () => io.disconnect();
+  });
 
 
   /**
@@ -1373,7 +1441,7 @@
         </div>
         {/if}
         <div class="grid" bind:this={grilleEl}>
-        {#each albumsVus as a (cleAlbum(a))}
+        {#each albumsMontes as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
@@ -1407,6 +1475,10 @@
             {/if}
           </div>
         {/each}
+        {#if montees < albumsVus.length}
+          <!-- web#2965 — la suite se monte quand ceci approche du cadre. -->
+          <div class="suite" bind:this={sentinelle} aria-hidden="true"></div>
+        {/if}
         </div>
       </div>
     {/if}
@@ -1419,6 +1491,9 @@
       <h1>{$t('v2.col.title' as any)}</h1>
       </div>
       <div class="v2-actions">
+      {#if onglet !== 'rayons'}
+        <ChampRecherche bind:valeur={recherche} ecran={$t('v2.col.title' as any)} />
+      {/if}
       <!-- web#2736 — UN bouton « + Nouvelle » : Manuelle, Intelligente ou
            Suggérée par l'IA. Chaque sorte est NOMMÉE dans le menu : un seul
            bouton qui changerait de sens selon l'onglet serait un piège. -->
@@ -1436,12 +1511,12 @@
 
     <nav class="tabs" role="tablist">
       <button class="tab" class:active={onglet === 'smart'} role="tab"
-        aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.col.tabSmart' as any)}</button>
+        aria-selected={onglet === 'smart'} onclick={() => choisirOnglet('smart')}>{$t('v2.col.tabSmart' as any)}</button>
       <button class="tab" class:active={onglet === 'manuelle'} role="tab"
-        aria-selected={onglet === 'manuelle'} onclick={() => (onglet = 'manuelle')}>{$t('v2.col.tabManual' as any)}</button>
+        aria-selected={onglet === 'manuelle'} onclick={() => choisirOnglet('manuelle')}>{$t('v2.col.tabManual' as any)}</button>
       {#if rayons.mode === 'arbre'}
         <button class="tab" class:active={onglet === 'rayons'} role="tab"
-          aria-selected={onglet === 'rayons'} onclick={() => (onglet = 'rayons')}>{$t('v2.rayons.tab' as any)}</button>
+          aria-selected={onglet === 'rayons'} onclick={() => choisirOnglet('rayons')}>{$t('v2.rayons.tab' as any)}</button>
       {/if}
       <!-- Le total de l'onglet COURANT. Absent tant qu'une collection n'a pas
            rendu son compte : une somme partielle serait pire que rien. -->
@@ -1495,7 +1570,7 @@
       <!-- Vide de CET onglet : l'autre peut fort bien être plein, la phrase ne
            doit donc pas dire « aucune collection » tout court. -->
       <div class="state">
-        {$t('v2.col.noneInTab' as any)}
+        {recherche.trim() ? $t('v2.rech.aucun' as any).replace('{q}', recherche.trim()) : $t('v2.col.noneInTab' as any)}
         {#if onglet === 'manuelle'}
           <button class="lnkcrea" onclick={() => (creation = true)}>{$t('v2.col.create' as any)}</button>
         {:else}
@@ -1581,10 +1656,7 @@
             {#if e.manquants}
               <button class="mq" title={$t('collections.missingHint' as any)}
                 onclick={(ev) => { ev.stopPropagation(); manquantsOuverts = e; void chargerResolutions(e); }}
-                >{(e.manquants > 1
-                  ? $t('collections.missingMany' as any)
-                  : $t('collections.missingOne' as any)
-                ).replace('{count}', String(e.manquants))}</button>
+                >{$tn('collections.missingN', e.manquants)}</button>
             {/if}
           </div>
         {/each}
@@ -1785,6 +1857,7 @@
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
   .aveclettres .grid{flex:1; min-width:0}
+  .suite{grid-column:1 / -1; height:1px}
   /* web#1801 — GRANDES VIGNETTES : la même carte, un pas de grille plus
      large. */
   .grid.grandes{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:24px}

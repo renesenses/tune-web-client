@@ -72,13 +72,31 @@ export function blocsPluriels(message: string): Bloc[] {
   return blocs;
 }
 
+// Les dictionnaires sont stables ; une grille peut rendre le même compteur
+// des milliers de fois. Le nombre courant n'appartient jamais à ces caches.
+const formatsParLangue = new Map<string, { regles: Intl.PluralRules; nombre: Intl.NumberFormat }>();
+const messagesAnalyses = new Map<string, Bloc[] | null>();
+
+function formats(langue: string) {
+  let format = formatsParLangue.get(langue);
+  if (!format) {
+    format = { regles: new Intl.PluralRules(langue), nombre: new Intl.NumberFormat(langue) };
+    formatsParLangue.set(langue, format);
+  }
+  return format;
+}
+
 /** Rend `message` pour le nombre `n` dans `langue`. Sans bloc ICU, le message revient tel quel. */
 export function formaterPluriel(message: string, n: number, langue: string): string {
-  let blocs: Bloc[];
-  try { blocs = blocsPluriels(message); } catch { return message; }
-  if (!blocs.length) return message;
-  const regles = new Intl.PluralRules(langue);
-  const nombre = new Intl.NumberFormat(langue).format(n);
+  if (!messagesAnalyses.has(message)) {
+    try { messagesAnalyses.set(message, blocsPluriels(message)); }
+    catch { messagesAnalyses.set(message, null); }
+  }
+  const blocs = messagesAnalyses.get(message);
+  if (!blocs?.length) return message;
+  const format = formats(langue);
+  const regles = format.regles;
+  const nombre = format.nombre.format(n);
   let sortie = '';
   let curseur = 0;
   for (const b of blocs) {
@@ -95,7 +113,7 @@ export function formaterPluriel(message: string, n: number, langue: string): str
  * (un million pile) n'en fait pas partie : il retombe sur `other`.
  */
 export function categoriesExigees(langue: string): CategoriePluriel[] {
-  const regles = new Intl.PluralRules(langue);
+  const regles = formats(langue).regles;
   const vues = new Set<CategoriePluriel>(['other']);
   for (let n = 0; n <= 1000; n++) vues.add(regles.select(n));
   return CATEGORIES.filter((c) => vues.has(c as CategoriePluriel)) as CategoriePluriel[];

@@ -6,7 +6,8 @@
 // posé.
 //
 // Attendu : une rangée séparée, tout en haut, AVANT les choix Mes radios /
-// Annuaire / Carte, la même partout ; une ligne au plus, « Voir plus » déplie.
+// Annuaire / Carte ; une ligne au plus, « Voir plus » déplie. Depuis la rc12
+// (retour de Rémi du 9/11, point 1), elle n'est montrée que dans « Mes radios ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { clearViewContext } from '../stores/navigation';
@@ -69,14 +70,16 @@ describe('#2783 — « Dernières écoutées » séparée de la liste et de l’
     expect(sec!.closest('.scroll'), 'la rangée est encore dans la liste filtrée').toBeNull();
   });
 
-  it('🔴 elle reste affichée dans l’Annuaire et sur la Carte', async () => {
+  // rc12 (14/11, retour de Rémi point 1) : la rangée n'est plus montrée dans
+  // l'Annuaire ; elle revient avec « Mes radios ».
+  it('🔴 absente de l’Annuaire, de retour dans Mes radios', async () => {
     await monter([A, B, C]);
     onglet(1).click();
     await respirer();
-    expect(noms(), 'la rangée disparaît dans l’Annuaire').toEqual(['Charlie', 'Alpha']);
-    onglet(2).click();
+    expect(recentes(), 'la rangée s’affiche encore dans l’Annuaire').toBeNull();
+    onglet(0).click();
     await respirer();
-    expect(noms(), 'la rangée disparaît sur la Carte').toEqual(['Charlie', 'Alpha']);
+    expect(noms()).toEqual(['Charlie', 'Alpha']);
   });
 
   it('🔴 un filtre de « Mes radios » ne l’efface pas, l’onglet Favoris non plus', async () => {

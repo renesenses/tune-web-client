@@ -52,12 +52,14 @@ import { ICONES } from '../../lib/menuPiste';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { gainIgnoreParPure } from '../../lib/pureReplayGain';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import SortiesDuGroupe from './SortiesDuGroupe.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -67,6 +69,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
   import { labelDe } from '../../lib/artistesDuLabel';
+  import { anneeAlbum } from '../../lib/anneeAlbum';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -84,6 +87,12 @@ import { ICONES } from '../../lib/menuPiste';
   let isFavorite = $state(false);
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'lecture') return;
+    cheminARouvrir.set(null);
+    showSignalDetail = true;
+  });
   let showTrackDetail = $state(false);
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
@@ -1201,28 +1210,74 @@ import { ICONES } from '../../lib/menuPiste';
    * piste de service sans label connu n'affiche rien : pas de lien mort.
    */
   let labelAlbum = $state<string | null>(null);
-  /** Les labels déjà lus, par album : un retour sur le même album ne relit rien. */
-  const labelsLus = new Map<number, string | null>();
-  const labelsEnVol = new Set<number>();
+  let anneeAlbumLue = $state<number | null>(null);
+  let anneeAffichee = $derived(displayTrack?.year || anneeAlbumLue);
+  // Une lecture commune pour le label et l’année : le now-playing peut
+  // porter l’année vide de la piste alors que l’album a une année connue.
+  const albumsLus = new Map<number, { label: string | null; annee: number | null }>();
+  const albumsEnVol = new Set<number>();
   $effect(() => {
     const direct = labelDe(displayTrack as any);
+    const anneeDirecte = displayTrack?.year;
     const brut = albumIdOf(displayTrack);
     const id = typeof brut === 'number' && Number.isInteger(brut) && brut > 0 ? brut : null;
-    if (direct || id == null) { labelAlbum = direct; return; }
-    if (labelsLus.has(id)) { labelAlbum = labelsLus.get(id) ?? null; return; }
-    labelAlbum = null;
-    if (labelsEnVol.has(id)) return;
-    labelsEnVol.add(id);
+    labelAlbum = direct;
+    anneeAlbumLue = null;
+    if (id == null || (direct && anneeDirecte)) return;
+    const dejaLu = albumsLus.get(id);
+    if (dejaLu) {
+      labelAlbum = direct ?? dejaLu.label;
+      anneeAlbumLue = dejaLu.annee;
+      return;
+    }
+    if (albumsEnVol.has(id)) return;
+    albumsEnVol.add(id);
     api.getAlbum(id).then(
       (a) => {
-        labelsLus.set(id, labelDe(a as any));
-        if (albumIdOf(displayTrack) === id) labelAlbum = labelsLus.get(id) ?? null;
+        const meta = { label: labelDe(a as any), annee: anneeAlbum(a) };
+        albumsLus.set(id, meta);
+        if (albumIdOf(displayTrack) !== id) return;
+        labelAlbum = labelDe(displayTrack as any) ?? meta.label;
+        anneeAlbumLue = meta.annee;
       },
       () => {},
-    ).finally(() => labelsEnVol.delete(id));
+    ).finally(() => albumsEnVol.delete(id));
   });
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'artist_id' in t ? (t.artist_id ?? undefined) : undefined;
+  // Le now-playing de service n’a ni label ni album_id local. Résoudre
+  // l’album courant, puis lire son contexte de catalogue déjà disponible.
+  let labelService = $state<string | null>(null);
+  let labelAffiche = $derived(labelAlbum ?? labelService);
+  let cleLabelService = $derived.by(() => {
+    const source = displayTrack?.source;
+    const sourceId = displayTrack?.source_id;
+    const zid = zone?.id;
+    if (!source || source === 'local' || source === 'radio' || source === 'youtube'
+      || !sourceId || zid == null || labelDe(displayTrack as any)) return null;
+    return JSON.stringify([zid, source, sourceId]);
+  });
+  const contextesLabels = new Map<string, Promise<string | null>>();
+  $effect(() => {
+    const cle = cleLabelService;
+    labelService = null;
+    if (!cle) return;
+    const [zid, source] = JSON.parse(cle) as [number, string, string];
+    let annule = false;
+    void api.getZoneCurrentAlbum(zid, true).then(async (album) => {
+      if (annule || album?.kind !== 'streaming' || album.service !== source || !album.album_id) return;
+      const id = String(album.album_id);
+      const cache = JSON.stringify([source, id]);
+      let lecture = contextesLabels.get(cache);
+      if (!lecture) {
+        lecture = api.getStreamingAlbumContext(source, id).then(c => c?.label_name?.trim() || null);
+        contextesLabels.set(cache, lecture);
+      }
+      const nom = await lecture;
+      if (!annule) labelService = nom;
+    }).catch(() => {});
+    return () => { annule = true; };
+  });
   const channelsOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
@@ -1892,9 +1947,13 @@ import { ICONES } from '../../lib/menuPiste';
                  d'alec_eiffel, fil 2560). Il quitte la ligne du nom : un seul
                  logo à l'écran. -->
             {#if isRadio && logoStation}
-              <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
-                <AlbumArt coverPath={logoStation} albumId={null} size={64} alt={displayTrack.album_title || 'Radio'} />
-              </span>
+              <!-- Rémi (retour rc11, décision du 14/11, rc12) — le logo reste
+                   petit mais ouvre la fiche de la station, comme le nom. -->
+              <button type="button" class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}
+                aria-label={displayTrack.album_title || 'Radio'}
+                onclick={(e) => { e.stopPropagation(); ficheStationOuverte = true; }}>
+                <AlbumArt coverPath={logoStation} albumId={null} size={0} recadrer alt={displayTrack.album_title || 'Radio'} />
+              </button>
             {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
@@ -1904,7 +1963,10 @@ import { ICONES } from '../../lib/menuPiste';
           </div>
           <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
                de lecture n'a pas. -->
-          {#if styleCrete !== 'off'}
+          <!-- Rémi (retour rc11, décision du 14/11, rc12) — une radio n'a qu'UN
+               visuel sur cet écran : le spectre du bas. La crête sous la
+               pochette reste pour la musique. -->
+          {#if styleCrete !== 'off' && !isRadio}
             <!-- 28/09/2026 — les deux voies sont enfin NOMMÉES (`L`/`R`, dans
                  la toile, en face de leur barre), et la disposition de canaux
                  se lit à droite quand la piste est multicanale. En stéréo, pas
@@ -2083,14 +2145,14 @@ import { ICONES } from '../../lib/menuPiste';
                  l'année. Elle est désormais sa VOISINE, hors du bouton. -->
             <div class="track-album-ligne">
               <button type="button" class="track-album truncate clickable" title={displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}</button>
-              {#if displayTrack.year}<LienEntite classe="track-year" entite={{ type: 'annee', annee: displayTrack.year }} texte={`(${displayTrack.year})`} />{/if}
+              {#if anneeAffichee}<LienEntite classe="track-year" entite={{ type: 'annee', annee: anneeAffichee }} texte={`(${anneeAffichee})`} />{/if}
             </div>
           {/if}
-          {#if !isRadio && labelAlbum}
+          {#if !isRadio && labelAffiche}
             <!-- web#2534 — le label de l'album, qui ouvre ce label dans la Bibliothèque. -->
             <p class="track-label" data-np-label>
               <span class="track-label-tag">{$t('v2.tcol.label' as any)}</span>
-              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAlbum }} />
+              <LienEntite classe="track-label-lien" entite={{ type: 'label', nom: labelAffiche }} />
             </p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
@@ -2460,6 +2522,7 @@ import { ICONES } from '../../lib/menuPiste';
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
+                          <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="lecture" onouvrir={() => showSignalDetail = false} />
                         </div>
                       </div>
                     {/each}
@@ -2681,9 +2744,7 @@ import { ICONES } from '../../lib/menuPiste';
                  « File d'attente » ; absente quand l'aperçu montre tout. -->
             {#if $upNextHiddenCount > 0}
               <button class="up-next-more" onclick={expandQueueSheet}>
-                {$upNextHiddenCount === 1
-                  ? $t('queue.upNextMoreOne')
-                  : $t('queue.upNextMore').replace('{count}', String($upNextHiddenCount))}
+                {$tn('queue.upNextMoreN', $upNextHiddenCount)}
               </button>
             {/if}
           </div>
@@ -4481,12 +4542,19 @@ import { ICONES } from '../../lib/menuPiste';
     aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
-    background: #fff;
+    display: grid;
+    background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-    pointer-events: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .np-logo-coin:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
   .np-logo-coin :global(.album-art) {
+    border-radius: inherit;
     width: 100% !important;
     height: 100% !important;
     box-shadow: none !important;

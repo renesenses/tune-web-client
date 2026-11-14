@@ -6,7 +6,9 @@
    * règles et le nombre d'albums que le moteur retiendrait ; rien n'est créé
    * sans un geste (« Créer »).
    */
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
@@ -67,6 +69,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.coll.proposeTitle' as any)}
     onclick={(e) => e.stopPropagation()} data-propositions-collections-ia>
     <h2>{$t('assistantIa.coll.proposeTitle' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
     <p class="note">{$t('assistantIa.coll.proposeIntro' as any)}</p>
     <div class="pied">
@@ -82,14 +85,14 @@
         <pre>{apercu.envoye.message}</pre>
       </details>
     {/if}
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
     {#each liste as c, i (i)}
       <section class="res">
         <h3>{c.name} <em class="note">({$t('assistantIa.coll.byAi' as any)})</em></h3>
         {#if c.description}<p class="note">{c.description}</p>{/if}
         <ul class="regles">{#each c.rules as r, j (j)}<li><code>{r.field}</code> {r.op} <b>{valeurLisible(r.value)}</b></li>{/each}</ul>
         <p class="note">
-          {comptes[i] == null ? '' : $t('v2.smart.previewCount' as any).replace('{n}', String(comptes[i]))}
+          {comptes[i] == null ? '' : $tn('v2.smart.previewN', comptes[i])}
         </p>
         <button class="pri" disabled={creees.has(i)} onclick={() => creer(i)}>
           {creees.has(i) ? $t('assistantIa.coll.created' as any) : $t('assistantIa.coll.create' as any)}
