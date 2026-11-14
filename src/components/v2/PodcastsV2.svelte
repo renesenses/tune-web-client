@@ -29,6 +29,7 @@
   import { fold, formatDuration } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import CartePodcasts from './CartePodcasts.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
@@ -740,10 +741,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     </div>
     <div class="v2-actions">
     {#if tab === 'subs'}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.pod.tabSubs' as any)} aide={$t('v2.pod.filterSubs' as any)} />
     {/if}
     {#if showDiscover && tab !== 'subs' && tab !== 'map'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux

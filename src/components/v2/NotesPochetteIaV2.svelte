@@ -7,6 +7,8 @@
    * son coût estimé ; rien n'est écrit dans la fiche de l'album.
    */
   import { onMount } from 'svelte';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import { estEchec, messageDEchec } from '../../lib/assistantIa';
@@ -59,6 +61,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.notes.title' as any)}
     onclick={(e) => e.stopPropagation()} data-notes-pochette-ia>
     <h2>{$t('assistantIa.notes.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
     <p class="note">{$t('assistantIa.notes.intro' as any)}</p>
 
@@ -86,7 +89,7 @@
       </details>
     {/if}
 
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
 
     <div class="pied">
       {#if notes}<button class="sec" disabled={occupe} onclick={effacer}>{$t('assistantIa.notes.erase' as any)}</button>{/if}

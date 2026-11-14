@@ -9,6 +9,8 @@
    * reste le bouton habituel de l'éditeur.
    */
   import { t, locale } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import * as api from '../../lib/api';
   import { estEchec, messageDEchec, valeurLisible, type RegleIa } from '../../lib/assistantIa';
   import { affinerCollectionIa, nommerCollectionIa, ecartAlbums, type EcartReglesIa } from '../../lib/assistantIaRc8';
@@ -96,7 +98,8 @@
     <button class="lnk" disabled={occupe} onclick={nommer} data-coll-nommer>{$t('assistantIa.coll.name' as any)}</button>
     {#if avant}<button class="lnk" onclick={annuler} data-coll-annuler>{$t('assistantIa.coll.undo' as any)}</button>{/if}
   </div>
-  {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+  <AssistantIaInactifV2 />
+  {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
   {#if proposition && ecart}
     <div class="prop" data-coll-ecart>
       <p class="note">

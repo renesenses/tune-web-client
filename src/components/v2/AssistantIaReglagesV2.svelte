@@ -19,6 +19,8 @@
   import { t, locale } from '../../lib/i18n';
   import { noterReglagesIa } from '../../lib/assistantIaDialogue';
   import AlertePlafondIaV2 from './AlertePlafondIaV2.svelte';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { transcriptionDesReglages } from '../../lib/assistantIaRc8';
   import {
     lireReglagesIa, changerReglagesIa, testerCleIa, estEchec, estReglages, messageDEchec, peutModifier,
@@ -269,7 +271,8 @@
   {/if}
 
   {#if message}<p class="ok" role="status">{message}</p>{/if}
-  {#if erreur}<p class="errline" role="alert">{erreur}</p>{/if}
+  <AssistantIaInactifV2 />
+  {#if erreur && !$assistantIaAbsent}<p class="errline" role="alert">{erreur}</p>{/if}
   {#if r}
     <p class="hint" data-ia-conso>{resume}</p>
     {#if r.consommation.plafond_atteint}<p class="errline">{$t('assistantIa.capReached' as any)}</p>{/if}

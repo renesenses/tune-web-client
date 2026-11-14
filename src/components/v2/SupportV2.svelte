@@ -22,7 +22,7 @@
   import { licenseState } from '../../lib/stores/license';
   import { currentZone } from '../../lib/stores/zones';
   import { t, locale } from '../../lib/i18n';
-  import { messageErreurSupport, messageLimiteRapportBogue } from '../../lib/supportErrors';
+  import { messageErreurSupport, messageLimiteRapportBogue, refusDuSiteRapportBogue } from '../../lib/supportErrors';
   import {
     cumulerFichiers, retirerFichier, refusPieceJointe,
     ACCEPT_PIECES_JOINTES, EXTENSIONS_PIECES_JOINTES, MAX_PIECE_JOINTE_OCTETS,
@@ -237,6 +237,15 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
       const limite = messageLimiteRapportBogue(e, tr1, get(locale));
       if (limite) {
         bogueErreur = limite;
+        bogueEnvoi = false;
+        return;
+      }
+      // #8627 — le site a refusé CE rapport : réessayer échouerait pareil.
+      // Phrase traduite ; le motif du site (en français) reste replié (#2417).
+      const refus = refusDuSiteRapportBogue(e, tr1);
+      if (refus) {
+        bogueErreur = refus.message;
+        bogueDetail = refus.detail || detailServeur(e);
         bogueEnvoi = false;
         return;
       }

@@ -14,7 +14,6 @@ export const ROLES_CLASSIQUES: readonly RoleClassique[] = ['conductor', 'ensembl
 /** `classical` : comportement historique (défaut) ; `if_different` : BAND n'est
  *  l'ensemble que s'il diffère des artistes ; `ignored` : jamais lu. */
 export type ModeBand = 'classical' | 'if_different' | 'ignored';
-export const MODES_BAND: readonly ModeBand[] = ['classical', 'if_different', 'ignored'];
 
 export interface BalisesClassique {
   conductor: string[];

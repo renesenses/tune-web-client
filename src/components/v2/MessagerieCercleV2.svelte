@@ -3,6 +3,7 @@
   // #2527 — la carte « thème » (Mon thème) dans le fil.
   import CarteThemeCercleV2 from './CarteThemeCercleV2.svelte';
   // #2853 — emojis : sélecteur, raccourcis « :) » à l'envoi, grands emojis seuls.
+  import SuggestionEmojiV2 from './SuggestionEmojiV2.svelte';
   import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
   import { insererEmoji, convertirRaccourcis, raccourcisActifs, grandsEmojis } from '../../lib/emojis';
   import { t, locale } from '../../lib/i18n';
@@ -73,7 +74,21 @@
     const d = dateValide(v); if (!d) return '';
     return courte && jour(v) !== jour(new Date().toISOString()) ? d.toLocaleDateString($locale, { day: 'numeric', month: 'short' }) : d.toLocaleTimeString($locale, { hour: '2-digit', minute: '2-digit' });
   }
-  function ajusterSaisie() { if (saisie) { saisie.style.height = 'auto'; saisie.style.height = `${Math.min(saisie.scrollHeight, 158)}px`; } }
+  // Recette rc12 (14/11) : `scrollHeight` n'inclut pas les bordures alors que
+  // le champ est en `box-sizing:border-box` — la hauteur posée manquait de
+  // 2 px, et l'`overflow:auto` natif sortait l'ascenseur de 14 px qui
+  // mangeait le texte indicatif. On ajoute les bordures et l'ascenseur ne
+  // revient qu'au-delà de la hauteur maximale. Garde : composeurSansAscenseur.test.ts.
+  const SAISIE_MAX = 158;
+  function ajusterSaisie() {
+    if (!saisie) return;
+    saisie.style.height = 'auto';
+    const bords = saisie.offsetHeight - saisie.clientHeight;
+    const voulue = saisie.scrollHeight + Math.max(0, bords);
+    saisie.style.height = `${Math.min(voulue, SAISIE_MAX)}px`;
+    saisie.style.overflowY = voulue > SAISIE_MAX ? 'auto' : 'hidden';
+  }
+  $effect(() => { if (saisie) ajusterSaisie(); });
   async function bas() { await tick(); if (defilement) defilement.scrollTop = defilement.scrollHeight; }
   function clavier(ev: KeyboardEvent) {
     if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); ev.stopPropagation(); if (!occupe && messageEnvoyable(texte, null)) formulaire?.requestSubmit(); }
@@ -298,6 +313,7 @@
           <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques.at(-1)?.body ?? chronologiques.at(-1)?.card?.title ?? ''}</p>
           {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else}
           <form class="composeur" bind:this={formulaire} onsubmit={envoyer} onfocusout={(ev) => { if (emojis && ev.relatedTarget instanceof Node && !formulaire?.contains(ev.relatedTarget)) emojis = false; }}>
+      <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
             {#if emojis}<div class="ligne-emojis"><SelecteurEmojiV2 id="message-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { fermerEmojis(false); boutonEmoji?.focus(); }} /></div>{/if}
             <button class="bouton-emoji" type="button" bind:this={boutonEmoji} aria-label={tr('v2.circle.emoji.open')} title={tr('v2.circle.emoji.open')} aria-expanded={emojis} aria-controls={emojis ? 'message-emojis' : undefined} disabled={occupe} onclick={() => emojis = !emojis}><span aria-hidden="true">🙂</span></button>
             <textarea id="message-texte" aria-label={tr('v2.circle.msg.write')} placeholder={tr('v2.circle.msg.write')} bind:this={saisie} bind:value={texte} oninput={ajusterSaisie} onkeydown={clavier} rows="1" maxlength="8000" disabled={occupe}></textarea>
@@ -343,7 +359,7 @@
   .auteur{font-size:calc(11px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:calc(14px * var(--v2-txt-echelle, 1));line-height:1.5;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol'}.texte.grands-emojis{font-size:calc(34px * var(--v2-txt-echelle, 1));line-height:1.25}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:calc(10px * var(--v2-txt-echelle, 1));padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
   .jour{align-self:stretch;display:flex;justify-content:center;margin:10px 0;color:var(--v2-txt2);font-size:calc(11px * var(--v2-txt-echelle, 1))}.jour span{padding:3px 10px;border-radius:12px;background:var(--v2-bg2)}
   .actions-message{position:relative}.menu-bouton{opacity:0;pointer-events:none;border:0;background:transparent;padding:0 5px;line-height:20px;font-size:calc(18px * var(--v2-txt-echelle, 1))}.message:hover .menu-bouton,.message:focus-within .menu-bouton{opacity:1;pointer-events:auto}.menu-message{position:absolute;bottom:24px;left:0;z-index:2;display:flex;flex-direction:column;gap:8px;padding:10px;min-width:140px;background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:10px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt)}.mon-message .menu-message{left:auto;right:0}
-  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(24px * var(--v2-txt-echelle, 1))}.compteur{width:100%;text-align:right}
+  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{position:relative;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.composeur :global([data-suggestion-emoji]){position:absolute;bottom:100%;inset-inline-start:16px;max-width:calc(100% - 32px);z-index:2}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box;overflow-x:hidden;overflow-y:hidden}.composeur textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(24px * var(--v2-txt-echelle, 1))}.compteur{width:100%;text-align:right}
   .note{font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.moderation{font-size:calc(11px * var(--v2-txt-echelle, 1));line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:calc(12px * var(--v2-txt-echelle, 1))}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   @media(hover:none){.menu-bouton{opacity:1;pointer-events:auto}}
   @media(max-width:699px){.volets{grid-template-columns:minmax(0,1fr)}nav{border-right:0;max-height:65dvh}.fil-ouvert nav{display:none}.retour{display:block;border:0;background:transparent}.attente{display:none}.defilement{height:clamp(180px,40dvh,400px);padding:10px 12px}.message{max-width:72%}.composeur{padding:10px 12px 4px}.moderation{margin:8px 12px 12px}}

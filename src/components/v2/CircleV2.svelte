@@ -1,6 +1,6 @@
 <script lang="ts">
   import { bulleTexte } from '../../lib/infobulleTexte';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   /**
    * Extensions → Tune Circle — renesenses/tune-server-rust#5018 (étape T1,
    * avenant « plusieurs cercles » du 25/09/2026).
@@ -534,8 +534,7 @@
       const d = await getRayonsCercle(c.id);
       const n = [...d.tags, ...d.smart_collections].filter((r) => r.shared).length;
       if (n === 0) return null;
-      return n === 1 ? $t('v2.circle.sel.confirmStopOne' as any)
-        : $t('v2.circle.sel.confirmStopMany' as any).replace('{n}', String(n));
+      return $tn('v2.circle.sel.confirmStopN', n);
     } catch (e) {
       return plusPartage(e) ? null : $t('v2.circle.sel.confirmStopUnknown' as any);
     }

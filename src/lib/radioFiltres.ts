@@ -1,6 +1,6 @@
 // Recherche de radios par critères (tune-server-rust#7466).
 //
-// Les critères que la barre « Plus de filtres » de l'écran Radio envoie au
+// Les critères de recherche de l'écran Radio (RadioFiltresAvances), envoyés au
 // serveur, sur l'annuaire (`GET /radios/directory`) comme sur « Mes radios »
 // (`GET /radios/search`). Le serveur les combine en ET ; un critère absent ne
 // filtre rien. Le choix est retenu dans les préférences (`radioFiltres`),
@@ -16,9 +16,15 @@ export interface FiltresRadio {
    * perte (`'flac_24_96'`). La station passe si l'un de ses flux l'atteint.
    */
   qualiteMin: string | null;
-  /** Un flux sans perte (FLAC, ALAC…). */
+  /** Bouton « Sans perte » : un flux sans perte par son codec réel (FLAC, ALAC, WAV…). */
   lossless: boolean;
-  /** Un flux au-delà de 48 kHz. */
+  /**
+   * Recette rc12 (14/11, Rémi) — bouton « Haute qualité » : un flux sans perte
+   * OU d'au moins 256 kbit/s (un FLAC sans débit publié en est). Jugé au
+   * serveur, flux par flux (`haute_qualite=true`).
+   */
+  hauteQualite: boolean;
+  /** Un flux SANS PERTE au-delà de 48 kHz (jugé au serveur, flux par flux). */
   hires: boolean;
   /** Le titre en cours est publié par radio-metadata.fr (badge Metadata+). */
   metadataPlus: boolean;
@@ -30,6 +36,7 @@ export const FILTRES_RADIO_VIDES: FiltresRadio = Object.freeze({
   codec: null,
   qualiteMin: null,
   lossless: false,
+  hauteQualite: false,
   hires: false,
   metadataPlus: false,
   favoris: false,
@@ -83,6 +90,7 @@ export function normaliserFiltresRadio(v: unknown): FiltresRadio {
     codec,
     qualiteMin: qualiteLue(o),
     lossless: o.lossless === true,
+    hauteQualite: o.hauteQualite === true,
     hires: o.hires === true,
     metadataPlus: o.metadataPlus === true,
     favoris: o.favoris === true,
@@ -91,7 +99,7 @@ export function normaliserFiltresRadio(v: unknown): FiltresRadio {
 
 /** Combien de critères sont actifs (pour le bouton replié). */
 export function nombreDeFiltresActifs(f: FiltresRadio): number {
-  return [f.codec != null, f.qualiteMin != null, f.lossless, f.hires, f.metadataPlus, f.favoris]
+  return [f.codec != null, f.qualiteMin != null, f.lossless, f.hauteQualite, f.hires, f.metadataPlus, f.favoris]
     .filter(Boolean).length;
 }
 
@@ -100,9 +108,32 @@ export function parametresDesFiltres(f: FiltresRadio): Record<string, string> {
   const p: Record<string, string> = {};
   if (f.codec) p.codec = f.codec;
   if (f.qualiteMin) p.quality_min = f.qualiteMin;
+  // `lossless` et non `sans_perte` : le même critère, que tout serveur depuis
+  // tune-server-rust#7466 comprend (`sans_perte` en est l'alias, rc12).
   if (f.lossless) p.lossless = 'true';
+  if (f.hauteQualite) p.haute_qualite = 'true';
   if (f.hires) p.hires = 'true';
   if (f.metadataPlus) p.metadata_plus = 'true';
   if (f.favoris) p.favorites_only = 'true';
   return p;
+}
+
+/**
+ * Recette rc12 (14/11, Rémi) — la liste « Pays » dans l'ordre alphabétique de
+ * la LANGUE EN COURS (« Allemagne, Belgique… » en français, « Belgium,
+ * Germany… » en anglais), et non plus par nombre de stations. `nom` rend le
+ * nom affiché d'un code ; `Intl.Collator` range accents et casse comme la
+ * langue le veut. Sans `Intl.Collator` utilisable : `localeCompare`.
+ */
+export function trierLesPays<T>(pays: readonly T[], nom: (p: T) => string, langue: string): T[] {
+  let comparer: (a: string, b: string) => number;
+  try {
+    comparer = new Intl.Collator(langue || undefined, { sensitivity: 'base', numeric: true }).compare;
+  } catch {
+    comparer = (a, b) => a.localeCompare(b);
+  }
+  return pays
+    .map((p) => [p, nom(p)] as const)
+    .sort((a, b) => comparer(a[1], b[1]))
+    .map(([p]) => p);
 }

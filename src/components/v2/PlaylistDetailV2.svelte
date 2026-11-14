@@ -2,7 +2,8 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { untrack } from 'svelte';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
-  import { gestesNavigationService } from '../../lib/stores/navigation';
+  import { gestesNavigationService, activeView } from '../../lib/stores/navigation';
+  import { pendingPlaylistId } from '../../lib/stores/playlists';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -25,6 +26,8 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import { pochettesDePlaylist } from '../../lib/mosaique';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import BoutonMenuV2 from './BoutonMenuV2.svelte';
@@ -63,6 +66,14 @@
   let { item, onClose, onChanged }: { item: Item; onClose: () => void; onChanged?: () => void } = $props();
 
   let tracks = $state<Track[]>([]);
+  /**
+   * Recette du 14/11/2026 : l'en-tête d'une playlist LOCALE montrait toujours
+   * le pictogramme orange, alors que la grille des Playlists affichait la
+   * mosaïque de la même playlist. Même source que la grille
+   * (`pochettesDePlaylist`, sur les pistes chargées) ; le pictogramme ne reste
+   * que si aucune piste n'a de pochette.
+   */
+  const mosaiqueEntete = $derived(pochettesDePlaylist(tracks));
   let loading = $state(true);
   let error = $state<string | null>(null);
   let renaming = $state(false);
@@ -170,6 +181,16 @@
     if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
     // EXPORT : la route ne connaît que les playlists locales.
     if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
+    // web#2971 — l'entrée « Playlists » de la barre ouvre désormais CETTE fiche,
+    // plus celle de l'écran complet. Ce qu'elle ne sait pas faire (Vérifier la
+    // disponibilité, Transférer, Comparer, fusionner, liens…) reste à un geste :
+    // l'écran complet, ouvert SUR cette playlist (`pendingPlaylistId`, le
+    // chemin de « Transférer » dans `gestesObjet`).
+    if (isLocal && item.kind === 'local' && item.pl.id != null) {
+      const id = item.pl.id;
+      l.push({ cle: 'playlist.manager', faire: () => { pendingPlaylistId.set(id); activeView.set('playlistmanager'); },
+        attrs: { 'data-ouvrir-gestionnaire-playlist': true } });
+    }
     // tune-server-rust#8066 — seulement s'il y a des titres indisponibles là où l'on peut écrire.
     if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
       faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });
@@ -580,8 +601,10 @@
   </button>
 
   <div class="head" class:compact={enteteCompact}>
-    <div class="art" class:stream={!isLocal}>
-      {#if isLocal}
+    <div class="art" class:stream={!isLocal} class:mos={isLocal && mosaiqueEntete.length > 0} data-entete-pochette>
+      {#if isLocal && mosaiqueEntete.length}
+        <MosaiquePochettes pochettes={mosaiqueEntete} initiales={title?.slice(0, 1)} alt={title ?? ''} />
+      {:else if isLocal}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
       {:else}
         <AlbumArt coverPath={item.kind === 'streaming' ? item.pl.cover_path : null} albumId={null} size={0} alt={title} fallbackInitials={title?.slice(0,1)} />
@@ -726,7 +749,10 @@
               {#if p.album_title && !estLigneRadio(p)}
                 {@const versAlbum = ouvertureAlbumDePiste(p, $gestesNavigationService)}
                 {#if versAlbum}
-                  <button type="button" class="palb" data-palbum title={p.album_title} onclick={versAlbum}>{p.album_title}</button>
+                  <!-- Recette du 14/11 : le nom d'album est SON geste, jamais celui
+                       de la vignette (lecture). Le clic s'arrête ici. -->
+                  <button type="button" class="palb" data-palbum title={p.album_title}
+                    onclick={(e) => { e.preventDefault(); e.stopPropagation(); versAlbum(); }}>{p.album_title}</button>
                 {:else}
                   <div class="part" title={p.album_title}>{p.album_title}</div>
                 {/if}
@@ -818,7 +844,9 @@
 
 <style>
   .v2-pldetail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
-    font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
+    font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px;
+    /* Recette du 14/11 (point 102) : la règle étroite se mesure sur la FICHE. */
+    container-type:inline-size; container-name:pldetail}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2); display:grid; place-items:center}
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
@@ -840,13 +868,22 @@
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg);
     display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
+  .art.mos{display:block; background:none; color:inherit}
   .art > svg{width:96px; height:96px}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
   /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
      pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
      coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  /* Recette du 14/11 (point 102, web#2895 NON) : la règle ne regardait que la
+     largeur de la FENÊTRE. La fiche s'ouvre dans la zone principale, à côté de
+     la barre latérale et du panneau de lecture : une fenêtre de 900 px y laisse
+     moins de 640 px, et la pochette de 240 px restait à côté du titre. La
+     requête de CONTENEUR mesure la fiche elle-même — fenêtre étroite comprise,
+     puisque la fiche y est alors étroite aussi. */
   @media (max-width:640px){
     .v2-pldetail{padding:20px 16px 32px}
+  }
+  @container pldetail (max-width:640px){
     .head:not(.compact){flex-direction:column; gap:18px}
     .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
     .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}

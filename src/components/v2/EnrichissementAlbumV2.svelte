@@ -14,6 +14,7 @@
    *  - INSTRUMENTS : la fiche Wikidata des musiciens crédités sans
    *    instrument ; ils s'affichent ensuite dans les Crédits.
    */
+  import { numeroPisteAffiche } from '../../lib/numeroPiste';
   import * as api from '../../lib/api';
   import LiensExternes from './LiensExternes.svelte';
   import { t, locale } from '../../lib/i18n';
@@ -238,7 +239,7 @@
       {#each pistes as p (p.id)}
         {@const b = p.id != null ? bpmParPiste.get(p.id) : undefined}
         <li>
-          <span class="no">{p.track_number ?? ''}</span>
+          <span class="no">{numeroPisteAffiche(p.track_number)}</span>
           <span class="titre" title={p.title ?? ''}>{p.title ?? ''}</span>
           <span class="valeur">{bpmAffiche(b) ? `${bpmAffiche(b)} BPM` : '—'}</span>
           <span class="source">{sourceBpm(b)}</span>

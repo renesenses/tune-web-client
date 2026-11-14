@@ -27,6 +27,8 @@
   import * as api from '../../lib/api';
   import LienEntite from './LienEntite.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
   import { ondePisteEnCours } from '../../lib/stores/ondePiste';
@@ -60,7 +62,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -814,6 +816,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   let showSignalPath = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'barre') return;
+    cheminARouvrir.set(null);
+    showSignalPath = true;
+  });
 
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
@@ -1439,7 +1447,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           {/if}
         </div>
       </div>
-      {#if getFavKind(displayTrack) !== 'none'}
+      <!-- Rémi (retour rc11, décision de Bertrand du 14/11, rc12) — pour une
+           RADIO, la vignette n'a ni cœur ni bargraphes (« on n'est pas chez
+           Winamp ») : la place revient au titre qui passe. Le cœur du titre
+           capté (`/radio-favorites`) reste dans Lecture en cours ; les
+           visuels restent sur Lecture en cours. La musique ne change pas. -->
+      {#if displayTrack.source !== 'radio' && getFavKind(displayTrack) !== 'none'}
         <button class="fav-btn control-btn" class:is-fav={isFavorite} class:fav-pulse={favPulse} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? $t('favorites.removeTrack') : $t('favorites.addTrack')}>
           <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -1449,6 +1462,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       <!-- #452 — le crête-mètre. `styleSurLaBarre` impose les LAMPES : « la
            barre de lecture n'affiche jamais DAT ni IEC (trop large) », et elle
            honore l'extinction. La règle vit dans `lib/peakMetre`, pas ici. -->
+      {#if displayTrack.source !== 'radio'}
       {#if !vuActif && styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
         <div class="tb-crete">
           <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
@@ -1468,6 +1482,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           format={displayTrack.format}
         />
       </div>
+      {/if}
       {/if}
     {/if}
     <!-- Le cadran GAUCHE, au bout de la colonne du titre : c'est ce que montre
@@ -1638,18 +1653,20 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
          accès rapide vers la file d'attente ; une icône dédiée à côté de
          répéter ». La barre avait aléatoire et répéter, et rien vers la file.
-         web#2389 — FabienM, fil 2431 : le nombre de titres de la file est
-         DESSINÉ en médaillon, comme sur l'appli Android, et repris dans
-         l'infobulle (lib/medaillonFile). File vide : pas de médaillon. -->
+         web#2389 — FabienM, fil 2431 : un nombre est DESSINÉ en médaillon,
+         comme sur l'appli Android, et repris dans l'infobulle
+         (lib/medaillonFile). Recette rc12 du 13/11 : c'est le nombre de titres
+         À SUIVRE (`upNextCount`, celui de la page File), pas la longueur totale
+         de la file. Plus rien à suivre : pas de médaillon. -->
     <button
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={libelleBoutonFile($t, $queueTracks.length)}
-      title={libelleBoutonFile($t, $queueTracks.length)}
+      aria-label={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
+      title={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
     >
-      {#if texteMedaillonFile($queueTracks.length)}
-        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($queueTracks.length)}</span>
+      {#if texteMedaillonFile($upNextCount)}
+        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($upNextCount)}</span>
       {/if}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
@@ -2031,6 +2048,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
+              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
             </div>
           </div>
         {/each}

@@ -286,7 +286,7 @@ export const pendingLibraryYear = writable<number | null>(null);
  * de l'écran des statistiques de la bibliothèque. Même contrat que
  * `pendingLibraryYear` : la Bibliothèque le consomme puis le remet à `null`.
  */
-export const pendingLibraryFiltre = writable<{ format: string } | { frequence: number } | null>(null);
+export const pendingLibraryFiltre = writable<{ format: string } | { frequence: number } | { paysArtiste: string } | null>(null);
 
 export interface NavContext {
   view: View;

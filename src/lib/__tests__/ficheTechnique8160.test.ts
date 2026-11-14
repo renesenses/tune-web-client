@@ -225,7 +225,7 @@ describe('#8160 — le panneau', () => {
     expect(t).toContain(fr['fiche.hires.verifie']);
     expect(t).toContain(fr['fiche.integrity.sain']);
     expect(t).toContain(fr['fiche.spectro.absent']);
-    expect(t).toContain(fr['fiche.waveform.soon']);
+    expect(t).toContain(fr['fiche.waveform.compute']);
     // Dates : celle du DR, de l'audit et du fichier sont écrites.
     expect(t).toContain(fr['fiche.measuredOn'].split('{date}')[0].trim());
     expect(t).toContain(fr['fiche.auditedOn'].split('{date}')[0].trim());

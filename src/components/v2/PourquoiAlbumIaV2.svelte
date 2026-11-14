@@ -5,6 +5,8 @@
    * CET album. Seules les règles et les champs de l'album partent.
    */
   import { onMount } from 'svelte';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
@@ -40,10 +42,11 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.coll.whyTitle' as any)}
     onclick={(e) => e.stopPropagation()} data-pourquoi-album-ia>
     <h2>{$t('assistantIa.coll.whyTitle' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
     <p class="note">{titre}</p>
     {#if occupe}<p class="note">{$t('assistantIa.playlist.thinking' as any)}</p>{/if}
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
     {#if explication}
       <p class="bandeau">{$t('assistantIa.coll.byAi' as any)}</p>
       <p>{explication}</p>

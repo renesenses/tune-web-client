@@ -5,6 +5,7 @@
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
   import { carteAPartager, ouvrirConversation, cerclesGeneraux, ouvrirFilGeneral, consentirPseudo, type CercleGeneral, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteCercle } from '../../lib/circleMessagerie';
   // #2853 — emojis : le même sélecteur que la messagerie, raccourcis « :) » à l'envoi.
+  import SuggestionEmojiV2 from './SuggestionEmojiV2.svelte';
   import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
   import { insererEmoji, convertirRaccourcis, raccourcisActifs } from '../../lib/emojis';
   let { carte }: { carte: CarteCercle } = $props();
@@ -89,6 +90,7 @@
         {#each generaux as c (c.id)}<option value={`general:${c.id}`}>{tr('v2.circle.general.label')} · # {c.name}</option>{/each}
       </select>
       <label for="message-partage-texte">{tr('v2.circle.msg.write')}</label>
+      <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
       <textarea id="message-partage-texte" bind:this={saisie} bind:value={texte} rows="3" maxlength="8000" disabled={occupe}></textarea>
       <div class="ligne-saisie">
         <button class="bouton-emoji" type="button" bind:this={boutonEmoji} aria-label={tr('v2.circle.emoji.open')} title={tr('v2.circle.emoji.open')} aria-expanded={emojis} aria-controls={emojis ? 'partage-emojis' : undefined} disabled={occupe} onclick={() => emojis = !emojis}><span aria-hidden="true">🙂</span></button>

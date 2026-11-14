@@ -3,6 +3,7 @@
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
   import StatsBibliothequeV2 from './StatsBibliothequeV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -11,7 +12,7 @@
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
-  import { t as tr, locale } from '../../lib/i18n';
+  import { tn, t as tr, locale } from '../../lib/i18n';
   import { comparerAlphabetique, initialeAlbum, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
@@ -51,7 +52,7 @@
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
   // renesenses/tune-web-client#2645 — la carte du monde par pays, et le filtre qu'elle pose.
   import CartePaysBibliothequeV2 from './CartePaysBibliothequeV2.svelte';
-  import { filtreDuPays, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
+  import { filtreDuPays, paysArtisteChoisi, type PaysDeLaBibliotheque, type SourcePays } from '../../lib/bibliothequePays';
   import { nomPays } from '../../lib/paysMonde';
   import { choisirDossierBibliotheque, restaurerDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../../lib/dossierBibliotheque';
   import { lireDossier, ajouterDossierALaFile } from '../../lib/lectureDossier';
@@ -101,7 +102,7 @@
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
-  import { formatDeFichier } from '../../lib/typeDeFichier';
+  import { formatDeFichier, formatRetenu, formatsBrutsDe } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -118,6 +119,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
+  import { lireTotaux } from '../../lib/totauxBibliotheque';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
@@ -605,6 +607,28 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return () => { perime = true; };
   });
   const filtresCarte = $derived<Record<string, api.FacetParam>>(dossierPortee ? { folder: dossierPortee } : {});
+  /**
+   * tune-server-rust#8668 — les albums que la grille garde sous ses AUTRES
+   * filtres (source, qualité, fréquence, format, DR, favoris, recherche,
+   * année…), le pays exclu : la carte compte parmi eux. Au .18, avec Source ·
+   * QOBUZ, la carte annonçait « États-Unis 20 albums » (toute la
+   * bibliothèque) et le clic n'en montrait aucun.
+   * `null` (mode paginé, liste pas encore là, dépôt) : la carte retombe sur
+   * les facettes du serveur. Calculé seulement carte ouverte.
+   */
+  const retenusCarte = $derived.by((): Set<number> | null => {
+    if (!carteOuverte || depot || nu || (porteeActive && idsPortee == null) || $libraryLoading) return null;
+    const ids = new Set<number>();
+    for (const a of src) if (a.id != null && matchesSaufPays(a)) ids.add(a.id);
+    return ids;
+  });
+  /** #8668 — un filtre autre que le pays est posé : la carte dit d'où viennent ses comptes. */
+  // `$derived.by` : `q`, `fYear` et `nu` sont déclarés plus bas — lus paresseusement.
+  const filtresHorsPaysPoses = $derived.by(() =>
+    fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null || fIncomplets
+      || fFavoris || q.trim() !== '' || fYear != null || periodeAppliquee,
+  );
 
   /**
    * SOURCE — de quelle bibliothèque l'album vient (#4152).
@@ -760,7 +784,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
   }
-  function matches(a: Album): boolean {
+  function matches(a: Album): boolean { return matchesSelon(a, true); }
+  /** #8668 — tous les critères SAUF le pays : ce que la carte des pays croise
+   *  pour compter comme la grille. Fonctions distinctes, pas un paramètre par
+   *  défaut : `matches` est passée telle quelle à `.filter`, qui lui donne
+   *  l'indice en second argument. */
+  function matchesSaufPays(a: Album): boolean { return matchesSelon(a, false); }
+  function matchesSelon(a: Album, avecPays: boolean): boolean {
     // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
     // facettes cochées le sont toutes les deux (ET) — #898.
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
@@ -768,14 +798,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
-    return matchesHorsAnnees(a);
+    return horsAnneesSelon(a, avecPays);
   }
   /** Tous les critères de `matches` SAUF l'année et la période : ce que le
    *  compteur de la période doit croiser pour parler de la grille (tune-server-rust#8162). */
-  function matchesHorsAnnees(a: Album): boolean {
+  function matchesHorsAnnees(a: Album): boolean { return horsAnneesSelon(a, true); }
+  function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
     if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
-    if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+    if (!formatRetenu(a, fFormat)) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
       // Un album sans DR ne répond pas à une question de DR : il sort.
@@ -792,7 +823,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
     // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
     if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
-    if (paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
+    if (avecPays && paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
     if (!dansSource(a, fProvenance)) return false;
     // #4319 — même règle que les comptes : artiste de piste et dossier
     // compris, portée ou non (`idsTexteServeur`).
@@ -1683,6 +1714,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * sur une barre filtrante des statistiques, le referme.
    */
   let statsOuvertes = $state(false);
+  /** Les Statistiques sont À L'ÉCRAN (jamais sur un dépôt distant). */
+  const statsAffichees = $derived(statsOuvertes && !depot);
+  /** Le champ « Chercher un artiste » des Statistiques (web#2969). */
+  function champStatsArtiste(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>('[data-stats-bibliotheque] [data-recherche-classement="by_artist"]');
+  }
   let tabChoisi = $state<Tab>(
     // Lu UNE fois, au montage : c'est l'onglet d'arrivée, pas un suivi.
     untrack(() => (depot ? null : ongletDeLaCoquille($ongletCourant))) ?? lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'),
@@ -2168,8 +2205,28 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     });
   });
 
-  /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
-  const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
+  /**
+   * Le compte affiché sur « Tout » : en pages, le total du serveur.
+   * tune-server-rust#8625 (décision du 13/11, totaux cohérents) — liste
+   * entière et sans filtre : c'est AUSSI le total du serveur (les albums que
+   * `/library/albums` a rendus, le `library_totals.albums` de Statistiques),
+   * pas le nombre de CARTES de la grille (versions regroupées #7617, favoris
+   * des services #7780), dont l'écart est expliqué en infobulle.
+   */
+  const matchCount: number = $derived.by(() =>
+    nu ? ($albumsPagines.total ?? 0) : totalServeurValable ? $albums.length : affiches.length);
+  const toutActif = $derived(!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee);
+  /** Relecture du 14/11 — le total du serveur ne vaut que pour la grille
+   *  ENTIÈRE : ni portée de dossier, ni « Favoris seulement », ni année
+   *  survolée sur la frise (que `toutActif` ne voit pas). Sinon, le compte de
+   *  la grille, et pas d'infobulle « N cartes pour M albums ». */
+  const totalServeurValable = $derived(!depot && toutActif && !porteeActive && !fFavoris && hoverYear == null);
+  const infobulleTout: string | undefined = $derived.by(() =>
+    !nu && totalServeurValable && affiches.length !== $albums.length
+      ? $tr('bibliotheque.albums.infobulleCartes' as any)
+        .replace('{shown}', $formatNombre(affiches.length))
+        .replace('{total}', $formatNombre($albums.length))
+      : undefined);
   /** Les comptes des menus ne valent que sur la liste entière. */
   const comptesPrets = $derived(!!depot || bibliothequeEntiere);
   /**
@@ -2412,13 +2469,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let exportCatalogueEnCours = $state(false);
   /** rc12 — un filtre « Hi-Res vérifié / douteux » que la route ne sait pas suivre. */
-  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality));
+  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality, etatFauxHiRes?.catalogue_hires_verdict === true));
   async function exporterCatalogue() {
     if (exportCatalogueEnCours || exportCatalogueImpossible) return;
     exportCatalogueEnCours = true;
     try {
       await api.exportCatalogue({
-        qualites: fQuality, formats: fFormat, tri: sortKey, ordreAnnee,
+        // Recette 14/11 — la route compare le format BRUT de l'album : « DSD »
+        // coché lui part en « dsf » et « dsd », ceux que la grille a comptés.
+        qualites: fQuality, formats: formatsBrutsDe(src, fFormat), tri: sortKey, ordreAnnee,
         genre: tab === 'genres' ? facetteOuverte : null,
         artiste: tab === 'artists' ? facetteOuverte : null,
         langue: $locale,
@@ -2764,7 +2823,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // premier sans traîner l'inventaire des zones et des sorties.
     // Sous portée, le total du serveur porte sur TOUTE la bibliothèque : on
     // n'annonce pas un compte qu'on ne servira pas.
-    if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
+    if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = lireTotaux(st).tracks; }).catch(() => {});
     (d ? pistesDistantes(d)
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
        : demanderToutesLesPistes(annulation.signal))
@@ -3123,6 +3182,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     refermerCalqueAlbumSansReculer();
   });
 
+  /** tune-server-rust#8668 — le pays cliqué sur la fiche d'un artiste :
+   *  « Pays de l'artiste », carte ouverte pour qu'on voie le filtre. */
+  function choisirPaysArtiste(code: string) {
+    sourcePays = 'artiste';
+    paysChoisi = paysArtisteChoisi(code);
+    carteOuverte = true;
+  }
+
   /**
    * web#2653 — un FORMAT ou une FRÉQUENCE demandés par une barre de l'écran
    * des statistiques. Même contrat que l'année ci-dessus (`$store`, pas
@@ -3137,6 +3204,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       statsOuvertes = false;
       reset();
       if ('format' in f) fFormat = [f.format];
+      else if ('paysArtiste' in f) choisirPaysArtiste(f.paysArtiste);
       else fRate = [f.frequence];
       tabChoisi = 'albums';
       refermerCalqueAlbumSansReculer();
@@ -3171,7 +3239,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   $effect(() => {
     if (depot) return;
     const surFrappe = gestionnaireFrappeVersRecherche({
-      champ: () => champRecherche,
+      // Recette 14/11 — sur les Statistiques, la frappe va à « Chercher un
+      // artiste », pas au champ des Albums, masqués (et retiré de l'en-tête).
+      champ: () => (statsAffichees ? champStatsArtiste() : champRecherche),
       disponible: () => !opened && !enEdition && !ddOpen,
     });
     window.addEventListener('keydown', surFrappe);
@@ -3460,6 +3530,36 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
+    <!-- Recette rc12 (13/11) — « harmonise la localisation de la zone de
+         recherche » : le champ quitte la rangée des filtres pour l'en-tête,
+         en PREMIER, comme sur tous les autres écrans (`ChampRecherche`). Son
+         invite nomme l'onglet ouvert : « Rechercher dans Albums… ». -->
+    <!-- Recette 14/11 — sur l'onglet Statistiques, PAS de champ d'en-tête : il
+         cherchait « dans Albums », onglet masqué, et rien ne bougeait à
+         l'écran. Les cartes Artistes et Genres ont chacune la leur (web#2969,
+         règle de web#3019). La PLACE reste, comme sur les Ajouts récents. -->
+    {#if showSearch && !statsAffichees}
+      <!-- web#2142 — l'infobulle garde la précision « bibliothèque LOCALE ». -->
+      <ChampRecherche bind:valeur={q} bind:champ={champRecherche} raccourci="/"
+        ecran={depot ? depot.nom : $tr((ONGLETS.find((o) => o.id === tab)?.label ?? 'library.title') as any)}
+        aide={depot ? undefined : $tr('v2.lib.searchPlaceholder' as any)} />
+      <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
+           sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
+           route. Elle part du texte déjà tapé. -->
+      {#if !depot}
+        <button class="req-av" data-requete-avancee-bib onclick={() => (requeteOuverte = true)}
+          aria-label={$tr('requeteAvancee.open' as any)} title={$tr('requeteAvancee.open' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        </button>
+      {/if}
+    {:else}
+      <!-- Ajouts récents, Coffrets : pas de recherche (#1367, elle y serait
+           inerte), mais sa PLACE reste — sinon les onglets glissent sous le
+           pointeur au changement d'onglet. -->
+      <span class="v2-rech" data-place-recherche aria-hidden="true"></span>
+      {#if !depot}<span class="req-av place" aria-hidden="true"></span>{/if}
+    {/if}
     <nav class="tabs">
       <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
            offert sur un dépôt distant, faute de route chez lui. -->
@@ -3523,7 +3623,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', nbPistesAnnonce == null ? '…' : $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
+      <button class="chip count" class:active={toutActif} onclick={reset} title={infobulleTout} data-albums-tout>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -3708,31 +3808,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {/if}
     {/if}
-    <!-- Le champ partagé (`.v2-rech`), comme sur tous les autres écrans. Il
-         faisait ici 320 × 42 avec sa loupe en flux, ailleurs 300 × 40 avec la
-         loupe en absolu : deux dessins pour un seul geste. -->
-    {#if showSearch}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input bind:this={champRecherche} placeholder={$tr('v2.lib.searchPlaceholder' as any)}
-               aria-label={$tr('v2.lib.searchPlaceholder' as any)} aria-keyshortcuts="/" bind:value={q} />
-        {#if q}
-          <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
-      <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
-           sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
-           route. Elle part du texte déjà tapé. -->
-      {#if !depot}
-        <button class="req-av" data-requete-avancee-bib onclick={() => (requeteOuverte = true)}
-          aria-label={$tr('requeteAvancee.open' as any)} title={$tr('requeteAvancee.open' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-        </button>
-      {/if}
-    {/if}
 
     <!-- 🔴 Le TRI part sur les Ajouts récents, la BASCULE reste.
          `AjoutsRecentsV2` est trié par date d'ajout, c'est sa définition : lui
@@ -3830,6 +3905,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   {#if carteOuverte && showFilters && !depot}
     <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
+      retenus={retenusCarte} filtresPoses={filtresHorsPaysPoses}
       onChoisir={(p) => (paysChoisi = p)} />
   {/if}
 
@@ -3858,7 +3934,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
-          {fYear} · {$tr((yearCount > 1 ? 'v2.lib.yearAlbumsMany' : 'v2.lib.yearAlbumsOne') as any).replace('{n}', String(yearCount))}
+          {fYear} · {$tn('v2.lib.yearAlbumsN', yearCount)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -4665,10 +4741,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   @media (max-width:640px){
     :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
     :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{padding-right:0}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs, :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions::-webkit-scrollbar{display:none}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
+    /* La recherche, elle, garde sa ligne entière (règle commune sous 780 px,
+       `tune-v2.css`) : c'est la rangée d'onglets seule qui défile. */
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap; flex:1 1 0; min-width:0; overflow-x:auto; scrollbar-width:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs::-webkit-scrollbar{display:none}
   }
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
     font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
@@ -4840,6 +4917,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .req-av{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .req-av:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .req-av.place{visibility:hidden}
   .req-av svg{width:16px; height:16px}
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus

@@ -9,6 +9,7 @@
  * Ce que la route sait faire, et rien de plus :
  * - `quality` : `dsd`, `hires`, `cd`, `lossy`, plusieurs en OU (virgules) ;
  * - `format` : plusieurs en OU ;
+ * - `hires_verdict` (rc12) : `verifie`, `douteux`, en OU avec `quality` ;
  * - `genre`, `artist` : la facette ouverte de l'onglet Genres ou Artistes ;
  * - `sort` : `title`, `artist`, `year` ; `order` : `asc` / `desc` ;
  * - `lang` : `fr` ou `en` (le reste retombe sur l'anglais côté serveur).
@@ -31,15 +32,18 @@ export interface FiltresCatalogue {
 
 const QUALITES_CONNUES = new Set(['dsd', 'hires', 'cd', 'lossy']);
 
+/** rc12 — les clés « Hi-Res vérifié / douteux » de l'écran, et leur mot côté serveur. */
+const VERDICTS_HIRES: Record<string, string> = { hires_verifie: 'verifie', hires_douteux: 'douteux' };
+
 /**
- * rc12 — « Hi-Res vérifié » / « Hi-Res douteux » (`hires_verifie`,
- * `hires_douteux`) filtrent l'écran, mais la route du catalogue ne connaît
- * pas le verdict hi-res : elle rendrait des albums que l'écran cache. Tant
- * qu'un de ces filtres est coché, le catalogue ne suit PAS l'écran, et
- * l'export est refusé plutôt que de livrer autre chose que ce qu'on voit.
+ * rc12 — « Hi-Res vérifié » / « Hi-Res douteux » filtrent l'écran. Un serveur
+ * qui annonce `catalogue_hires_verdict` (`GET /library/hires-check`) les suit
+ * par `hires_verdict=` ; devant un serveur plus ancien, qui ignorerait le
+ * paramètre et rendrait des albums que l'écran cache, l'export est refusé
+ * plutôt que de livrer autre chose que ce qu'on voit.
  */
-export function catalogueSuitLesFiltres(qualites: readonly string[]): boolean {
-  return !qualites.some((q) => q === 'hires_verifie' || q === 'hires_douteux');
+export function catalogueSuitLesFiltres(qualites: readonly string[], serveurSuitLeVerdict = false): boolean {
+  return serveurSuitLeVerdict || !qualites.some((q) => q in VERDICTS_HIRES);
 }
 
 /** Le chemin de la route, avec sa requête, relatif à la base de l'API. */
@@ -47,6 +51,9 @@ export function adresseCatalogue(f: FiltresCatalogue): string {
   const p = new URLSearchParams();
   const qualites = f.qualites.map((q) => q.toLowerCase()).filter((q) => QUALITES_CONNUES.has(q));
   if (qualites.length) p.set('quality', qualites.join(','));
+  // OU avec `quality` côté serveur, comme les pastilles de l'écran.
+  const verdicts = f.qualites.filter((q) => q in VERDICTS_HIRES).map((q) => VERDICTS_HIRES[q]);
+  if (verdicts.length) p.set('hires_verdict', verdicts.join(','));
   const formats = f.formats.map((x) => x.trim().toLowerCase()).filter(Boolean);
   if (formats.length) p.set('format', formats.join(','));
   if (f.genre?.trim()) p.set('genre', f.genre.trim());

@@ -67,7 +67,7 @@
           deleted++;
         } catch {}
       }
-      cleanupResult = (deleted > 1 ? $t('multiroom.zonesDeletedPlural') : $t('multiroom.zonesDeleted')).replace('{count}', String(deleted));
+      cleanupResult = $tn('multiroom.zonesDeletedN', deleted);
     } catch (e) {
       cleanupResult = $t('multiroom.cleanupError');
     } finally {

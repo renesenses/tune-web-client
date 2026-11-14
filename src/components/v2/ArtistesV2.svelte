@@ -62,6 +62,7 @@
   import { onMount, tick, untrack } from 'svelte';
   import { saveDetailScroll, restoreDetailScroll, positionMemorisee } from '../../lib/stores/navigation';
   import { TRANCHE_GRILLE, trancheSuivante, montageJusqua, premierIndex } from '../../lib/grilleProgressive';
+  import { libraryFolderScope } from '../../lib/stores/library';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { initialesArtiste } from '../../lib/initialesArtiste';
@@ -151,7 +152,7 @@
     // AVANT de basculer : la vue va être démontée, et une position mesurée
     // après coup vaudrait toujours zéro.
     saveDetailScroll(CLE_DEFILEMENT, () => grilleEl);
-    void ouvrirArtisteDepuis({ id: a.id, name: a.name, source: 'local' }, 'library', { provenance });
+    void ouvrirArtisteDepuis({ id: a.id, name: a.name, source: 'local' }, 'library', { provenance, dossier: $libraryFolderScope });
   }
 
   /** Sans accents ni casse : « Éric » doit se ranger et se chercher comme « Eric ». */

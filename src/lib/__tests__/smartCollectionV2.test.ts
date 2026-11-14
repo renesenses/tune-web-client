@@ -92,7 +92,7 @@ describe("L'éditeur v2 de collection intelligente", () => {
     // Une règle mal posée ne se voit qu'à l'usage : « année > 2020 » sur une
     // discothèque de jazz peut ne rien rendre.
     expect(ed).toContain('api.previewSmartCollection(');
-    expect(ed).toContain('v2.smart.previewCount');
+    expect(ed).toContain('v2.smart.previewN');
     // 🔴 Sans `max_limit` : le serveur calcule `total` comme la LONGUEUR de la
     // liste rendue, donc le plafonner plafonne le compteur. Mesuré sur le .18,
     // même règle : `max_limit: 1` -> total 1 ; sans limite -> total 1853.
@@ -185,7 +185,7 @@ describe("Les albums d'une collection ouverte", () => {
     // Bertrand, 05/09/2026 : « smart collection, aucun CTA sur les covers
     // d'album. Pas normal ! ». La grille était un simple bouton avec une
     // pochette nue.
-    const grille = col.slice(col.indexOf('{#each albumsVus as a'), col.indexOf('{/each}', col.indexOf('{#each albumsVus as a')));
+    const grille = col.slice(col.indexOf('{#each albumsMontes as a'), col.indexOf('{/each}', col.indexOf('{#each albumsMontes as a')));
     expect(grille).toContain('<PochetteActions');
     expect(grille).toContain('favori={a.id != null ? { albumId: a.id } : null}');
     // 25/09/2026 : la cible d'un album passe par la règle unique des vignettes.
@@ -200,14 +200,14 @@ describe("Les albums d'une collection ouverte", () => {
   it("cliquer une carte OUVRE l'album, il ne le lance plus", () => {
     // Toutes les autres grilles du nouveau client ouvrent et laissent les
     // gestes à la pochette : lancer sur un simple clic était l'exception.
-    const grille = col.slice(col.indexOf('{#each albumsVus as a'), col.indexOf('{/each}', col.indexOf('{#each albumsVus as a')));
+    const grille = col.slice(col.indexOf('{#each albumsMontes as a'), col.indexOf('{/each}', col.indexOf('{#each albumsMontes as a')));
     expect(grille, 'la carte lance encore la lecture').not.toContain('onclick={(ev) => lireAlbum(a, ev)}');
     expect(grille).toMatch(/<button class="meta" onclick=\{\(\) => \{[^}]*fiche = a;/);
   });
 
   it("la carte n'est plus un <button>", () => {
     // Elle contient cinq boutons : des boutons imbriqués sont du HTML invalide.
-    const grille = col.slice(col.indexOf('{#each albumsVus as a'), col.indexOf('{/each}', col.indexOf('{#each albumsVus as a')));
+    const grille = col.slice(col.indexOf('{#each albumsMontes as a'), col.indexOf('{/each}', col.indexOf('{#each albumsMontes as a')));
     expect(grille).not.toContain('<button class="card"');
     // La carte porte desormais sa lettre, pour l'ascenseur alphabetique (Lulu,
     // 05/09/2026) : on verifie la BALISE, pas l'attribut.

@@ -35,11 +35,19 @@
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import { cleDeBannissement, debannir, surchargesBannissement } from '../../lib/titreBanni';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerParTexte } from '../../lib/filtreTexte';
 
   let items = $state<api.BannedTrack[]>([]);
   let chargement = $state(true);
   let erreur = $state(false);
   let occupe = $state<string | null>(null);
+  /** Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   *  titre, artiste, album, service — la liste est rendue entière. */
+  let recherche = $state('');
+  const trouves = $derived(filtrerParTexte(items, recherche, (b) => [
+    b.title, b.artist, b.album_title, b.track_id == null && b.source ? nomDuService(b.source) : null,
+  ]));
 
   /** La ligne comme une piste : son `id` local, ou sa paire de service. */
   const commePiste = (b: api.BannedTrack) => ({
@@ -129,6 +137,7 @@
     </div>
     {#if items.length}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$t('ban.title' as any)} />
         <div class="meta"><span>{$t('ban.count' as any).replace('{n}', String(items.length))}</span></div>
       </div>
     {/if}
@@ -144,9 +153,11 @@
       </div>
     {:else if !items.length}
       <div class="state vide">{$t('ban.empty' as any)}</div>
+    {:else if !trouves.length}
+      <div class="state vide" data-recherche-vide>{$t('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
       <ul class="list">
-        {#each items as b (cleDe(b))}
+        {#each trouves as b (cleDe(b))}
           <li class="ligne" class:orphelin={!b.resolved} data-service={b.track_id == null ? b.source : undefined}>
             <span class="cv">
               {#if b.track_id == null}

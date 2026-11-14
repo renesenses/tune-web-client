@@ -500,6 +500,8 @@
   padding:0 32px 0 37px; outline:none;
 }
 .tune-v2 .v2-rech input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+/* `type="search"` : la croix native ferait doublon avec `.clr`. */
+.tune-v2 .v2-rech input::-webkit-search-cancel-button{-webkit-appearance:none; display:none}
 .tune-v2 .v2-rech .clr{
   position:absolute; right:9px; width:19px; height:19px; border:0; border-radius:50%;
   background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;
@@ -510,4 +512,18 @@
 /* Fenêtre étroite : la recherche cède sa largeur fixe avant les boutons. */
 @media (max-width:1000px){
   .tune-v2 .v2-rech{width:auto; flex:1 1 160px; min-width:130px}
+}
+
+/* Recette rc12 (13/11) — « harmonise la localisation de la zone de
+   recherche » : sous 780 px, LA MÊME règle sur tous les écrans, vue mini
+   comprise — le champ prend toute la largeur, sur sa ligne, sous le titre ;
+   onglets et boutons passent dessous. `:root .v2-shell` en tête : ces règles
+   doivent l'emporter sur la rangée sans retour de `vue-mini.css`, chargée
+   APRÈS cette feuille (`ShellV2.svelte`) — à spécificité égale, elle
+   gagnerait. Garde : `champRechercheEmplacement.test.ts`. */
+@media (max-width:779px){
+  :root .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech){flex-wrap:wrap; row-gap:10px}
+  :root .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech) > .v2-titres{flex:1 0 100%; max-width:none}
+  :root .v2-shell .tune-v2 .v2-top > .v2-actions:has(> .v2-rech){flex:1 1 100%; flex-wrap:wrap; justify-content:flex-start}
+  :root .v2-shell .tune-v2 .v2-top > .v2-actions > .v2-rech{flex:1 1 100%; width:auto; min-width:0}
 }
