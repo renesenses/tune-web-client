@@ -36,9 +36,11 @@
       {#if piste?.artist_name}<span class="t2" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: piste.artist_name, artiste: artisteDePisteEcoutee(piste) }} />{#if piste.album_title} · {#if piste.source === 'radio'}<LienEntite entite={{ type: 'radio', nom: piste.album_title, ouvrir: null }} />{:else}<LienEntite entite={{ type: 'album', nom: piste.album_title, ouvrir: () => void ouvrirAlbumDeLaZoneCourante() }} />{/if}{/if}</span>{/if}
     </span>
   </button>
+  {#if piste?.source !== 'radio'}
   <button class="act" onclick={() => feuilleMini.set('file')} aria-label={$t('nav.queue' as any)} data-ouvrir-file>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h12M4 12h12M4 18h8"/><path d="M17 15v6l4-3z" fill="currentColor"/></svg>
   </button>
+  {/if}
   <button class="rond" onclick={() => controls.togglePlayPause($currentZone, piste, $playbackState)}
     aria-label={enLecture ? $t('mini.pause' as any) : $t('common.play' as any)} data-lecture-pause>
     {#if enLecture}

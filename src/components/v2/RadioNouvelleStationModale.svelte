@@ -2,15 +2,28 @@
   /**
    * « Nouvelle station » : trois chemins, comme chez Roon (rapport de Rémi,
    * RC7, #2397).
+   *
+   * Retour de Rémi sur la rc11 (point 2, décidé le 14/11) : l'import d'une
+   * liste M3U/PLS quitte l'en-tête de la page et devient le quatrième choix.
+   * Le fichier choisi part à l'écran (`onImporter`), qui l'envoie au serveur
+   * et relit « Mes radios ».
    */
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
 
   import { URL_PROPOSER } from '../../lib/mesRadios';
 
-  let { onAnnuaire, onSaisie, onClose }: {
-    onAnnuaire: () => void; onSaisie: () => void; onClose: () => void;
+  let { onAnnuaire, onSaisie, onImporter, onClose }: {
+    onAnnuaire: () => void; onSaisie: () => void; onImporter: (f: File) => void; onClose: () => void;
   } = $props();
+
+  let champFichier = $state<HTMLInputElement | undefined>(undefined);
+  function fichierChoisi(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (f) onImporter(f);
+  }
 </script>
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') onClose(); }} />
@@ -32,6 +45,12 @@
       <b>{$t('v2.radio.new.local' as any)}</b>
       <span>{$t('v2.radio.new.localHint' as any)}</span>
     </button>
+    <!-- Un bouton, et non un <label> : il se rejoint au clavier comme les trois autres. -->
+    <button class="choix" data-choix="import" onclick={() => champFichier?.click()}>
+      <b>{$t('v2.radio.new.import' as any)}</b>
+      <span>{$t('v2.radio.new.importHint' as any)}</span>
+    </button>
+    <input bind:this={champFichier} type="file" accept=".m3u,.m3u8,.pls" onchange={fichierChoisi} hidden />
   </div>
 </div>
 

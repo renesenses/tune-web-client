@@ -11,6 +11,11 @@
   import FileMini from './FileMini.svelte';
   import ZonesMini from './ZonesMini.svelte';
   import { feuilleMini } from '../../../lib/vueMini';
+  import { currentTrack } from '../../../lib/stores/nowPlaying';
+
+  $effect(() => {
+    if ($currentTrack?.source === 'radio' && $feuilleMini === 'file') feuilleMini.set(null);
+  });
   import { t } from '../../../lib/i18n';
 
   function fermer() { feuilleMini.set(null); }

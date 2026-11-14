@@ -23,6 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { pochettesDePlaylist } from '../mosaique';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const mosaique = () => lire('../../components/v2/MosaiquePochettes.svelte');
@@ -94,10 +95,14 @@ describe('Playlists — l’alimentation de la mosaïque', () => {
 
   it('les pochettes retenues sont DISTINCTES', () => {
     // Deux titres du même album ne doivent pas occuper deux cases.
+    // Recette du 14/11 : la règle vit dans `pochettesDePlaylist`, partagée
+    // avec l'en-tête de la fiche. L'écran l'appelle ; on la juge sur pièces.
+    expect(ecran().includes('pochettesDePlaylist(pistes'), 'l’écran ne passe plus par la règle partagée').toBe(true);
+    const douze = Array.from({ length: 12 }, () => ({ cover_path: '/c/meme.jpg' }));
     expect(
-      ecran().includes('if (c && !vues.includes(c)) vues.push(c)'),
+      pochettesDePlaylist([...douze, { cover_path: '/c/autre.jpg' }]),
       'la déduplication a disparu : un album de douze titres remplirait les quatre cases.',
-    ).toBe(true);
+    ).toEqual(['/c/meme.jpg', '/c/autre.jpg']);
   });
 
   it('le chargement ne bloque pas la grille', () => {

@@ -24,6 +24,7 @@
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
     filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
+    rangerParType, SECTIONS_PAR_TYPE, SEUIL_SECTIONS_PAR_TYPE, type SectionParType,
     detailEdition, editionsCachees,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
@@ -35,6 +36,7 @@
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -105,6 +107,27 @@
      */
     rangeeSources?: boolean;
   }
+  /**
+   * #2961 — le compte d'un musicien de « Joue avec » : « N albums » quand le
+   * serveur dit que ses crédits tiennent tout l'album (`album_wide`, des
+   * balises qui recopient le personnel sur chaque piste), sinon « N titres ».
+   */
+  function compteJoueAvec(j: JoueAvec): string {
+    const parAlbum = j.album_wide === true && typeof j.shared_albums === 'number' && j.shared_albums > 0;
+    const n = parAlbum ? (j.shared_albums as number) : (j.shared_tracks ?? 0);
+    const cle = parAlbum
+      ? (n === 1 ? 'v2.disco.sharedAlbumOne' : 'v2.disco.sharedAlbums')
+      : (n === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks');
+    return $t(cle as any).replace('{n}', String(n));
+  }
+
+  /** #2961 — la cible du nom : la fiche par `artist_id`, sinon par le nom. */
+  function entiteJoueAvec(j: JoueAvec): Entite {
+    return typeof j.artist_id === 'number'
+      ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
+      : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } };
+  }
+
   let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
@@ -259,6 +282,48 @@
   const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
 
   /*
+   * web#3032 (Bertrand, recette du 14/11/2026, page Miles Davis) — au-delà de
+   * `SEUIL_SECTIONS_PAR_TYPE` vignettes de la BIBLIOTHÈQUE (pas la discographie
+   * filtrée : cocher une pastille ne fait pas basculer la mise en page ; ni
+   * les albums des services : leur arrivée ne la fait pas basculer non plus), elle
+   * se range en sections par type, repliables, chacune avec son compte ; le
+   * tri de la page (par année par défaut) vaut dans chaque section. En
+   * dessous, rien ne change.
+   */
+  const parType = $derived(toutes.filter((e) => e.sources.includes(BIBLIOTHEQUE)).length > SEUIL_SECTIONS_PAR_TYPE);
+  const sectionsType = $derived(rangerParType(triees));
+  const LIBELLES_TYPE: Record<SectionParType, string> = {
+    studio: 'v2.disco.studioAlbums', live: 'v2.disco.live', compilations: 'v2.disco.compilations',
+    'bandes-originales': 'v2.disco.soundtracks', eps: 'v2.disco.eps', singles: 'v2.disco.singles',
+    autres: 'v2.disco.otherReleases',
+  };
+  /** Les `data-section` d'avant sont gardés pour Live, EP et Singles. */
+  const DATA_TYPE: Record<SectionParType, string> = {
+    studio: 'albums-studio', live: 'live', compilations: 'compilations-artiste',
+    'bandes-originales': 'bandes-originales', eps: 'eps', singles: 'singles', autres: 'autres',
+  };
+  /** Les sections repliées, retenues d'une fiche à l'autre comme le tri. */
+  const CLE_REPLIES = 'v2.art.disco.replies';
+  /** La clé de repli et l'identifiant du bloc « Apparaît sur ». */
+  const REPLI_APPARAIT = 'appears-on';
+  const ID_APPARAIT = 'disco-appears-on';
+  function relireReplies(): Set<string> {
+    try {
+      const v = JSON.parse(lireTexte(CLE_REPLIES) ?? '[]');
+      return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+  let replies = $state<Set<string>>(relireReplies());
+  function basculerRepli(cle: string) {
+    const n = new Set(replies);
+    if (n.has(cle)) n.delete(cle); else n.add(cle);
+    replies = n;
+    ecrireChoix(CLE_REPLIES, JSON.stringify([...n].sort()));
+  }
+
+  /*
    * Les sections #4767 : même filtre « Source » et même TRI que la
    * discographie — un seul réglage pour toute la page. Une section (ou un
    * groupe « Avec … ») que le filtre vide ne se rend pas.
@@ -397,7 +462,30 @@
     {#if triees.length}
     <section class="bloc" data-section="discographie">
     <h3 class="titre-section">{$t('v2.disco.discography' as any)} <span class="cpt">{triees.length}</span></h3>
-    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
+    {#if parType}
+      <!-- web#3032 — les sections par type, repliables. Une section vide
+           n'est pas rendue. -->
+      {#each SECTIONS_PAR_TYPE as s (s)}
+        {#if sectionsType[s].length}
+          {@const ouverte = !replies.has(s)}
+          <section class="connexes" data-section={DATA_TYPE[s]} data-repliee={ouverte ? null : ''}>
+            <h3 class="titre-connexes">
+              <button class="replier" aria-expanded={ouverte} aria-controls={ouverte ? `disco-type-${s}` : undefined} onclick={() => basculerRepli(s)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                {$t(LIBELLES_TYPE[s] as any)} <span class="cpt">{sectionsType[s].length}</span>
+              </button>
+            </h3>
+            {#if ouverte}
+              <div class="gr" id={`disco-type-${s}`}>
+                {#each sectionsType[s] as e (e.cle)}
+                  {@render carte(e)}
+                {/each}
+              </div>
+            {/if}
+          </section>
+        {/if}
+      {/each}
+    {:else if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -468,7 +556,19 @@
        collaborations). -->
   {#if apparaitSurCompte}
     <section class="bloc" data-section="appears-on">
-      <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {#if parType}
+        <!-- web#3032 — repliable aussi quand la discographie l'est. -->
+        <h3 class="titre-section">
+          <button class="replier" aria-expanded={!replies.has(REPLI_APPARAIT)} aria-controls={replies.has(REPLI_APPARAIT) ? undefined : ID_APPARAIT} onclick={() => basculerRepli(REPLI_APPARAIT)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            {$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span>
+          </button>
+        </h3>
+      {:else}
+        <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {/if}
+      {#if !parType || !replies.has(REPLI_APPARAIT)}
+      <div id={ID_APPARAIT}>
       {#if apparitionsTriees.length}
         <div class="groupe" data-section="apparitions">
           <div class="gr">
@@ -498,25 +598,28 @@
           </div>
         </div>
       {/if}
+      </div>
+      {/if}
     </section>
   {/if}
 
   <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
        (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
-       Un nom avec fiche (`artist_id`) ouvre sa page ; sans fiche (musicien de
-       séance), texte simple. Clé absente = pas de bloc, sans message. -->
+       #2961 — des puces qui passent à la ligne, nom ENTIER, compte discret
+       dans la police du texte (« 13 titres », ou « 1 album » quand le
+       serveur dit que les crédits tiennent tout l'album : `album_wide`).
+       CHAQUE nom est un lien : la fiche par `artist_id`, sinon par le nom
+       (`ouvrirArtisteDepuis` : fiche exacte, à défaut la Recherche). Clé
+       absente = pas de bloc, sans message. -->
   {#if joueAvec?.length}
     <section class="bloc" data-section="played-with">
       <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
       <ul class="liste-joue-avec">
         {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          {@const compte = compteJoueAvec(j)}
           <li data-joue-avec={j.artist_name}>
-            {#if typeof j.artist_id === 'number'}
-              <LienEntite classe="nom-joue-avec" entite={{ type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }} />
-            {:else}
-              <span class="nom-joue-avec" data-sans-fiche title={j.artist_name}>{j.artist_name}</span>
-            {/if}
-            <span class="pistes-joue-avec">{$t((j.shared_tracks === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks') as any).replace('{n}', String(j.shared_tracks ?? 0))}</span>
+            <span class="nom-joue-avec"><LienEntite titre={`${j.artist_name} · ${compte}`} entite={entiteJoueAvec(j)} /></span>
+            <span class="compte-joue-avec">{compte}</span>
           </li>
         {/each}
       </ul>
@@ -796,16 +899,30 @@
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
     font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
+  /* web#3032 — le titre d'une section repliable est un bouton : même police
+     que le titre, un chevron qui tourne quand elle est ouverte. */
+  .replier {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    border: 0; background: transparent; padding: 0; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+  }
+  .replier svg { width: 14px; height: 14px; align-self: center; transition: transform .12s ease; }
+  .replier[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .replier:hover { color: var(--v2-acc1); }
+  .replier:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
-  /* #2794 — « Joue avec » : une liste de noms, en colonnes, sans pochettes. */
+  /* #2794 / #2961 — « Joue avec » : des puces qui passent à la ligne, le nom
+     en entier (il se coupe plutôt que de se tronquer), le compte discret dans
+     la police du texte. */
   .liste-joue-avec {
     list-style: none; margin: 0; padding: 0;
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px 18px;
+    display: flex; flex-wrap: wrap; gap: 8px;
   }
   .liste-joue-avec li {
-    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%;
+    padding: 4px 12px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill, 999px);
     font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
   }
-  .liste-joue-avec :global(.nom-joue-avec) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pistes-joue-avec { flex: none; font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
+  .nom-joue-avec { min-width: 0; overflow-wrap: anywhere; }
+  .compte-joue-avec { flex: none; font-size: 0.92em; color: var(--v2-txt3); white-space: nowrap; }
 </style>

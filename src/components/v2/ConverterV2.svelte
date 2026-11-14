@@ -26,6 +26,7 @@
   import { frequencesProposees, ligneFormatsEcrits, presetEffectif } from '../../lib/convertisseurFrequence';
   import { nomDArchive } from '../../lib/convertisseurArchive';
   import ConvertisseurPistes from './ConvertisseurPistes.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import * as api from '../../lib/api';
   import { get } from 'svelte/store';
   import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
@@ -34,7 +35,7 @@
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -205,7 +206,7 @@
         Number.isFinite(rate) && rate > 0 ? rate : null,
         Number.isFinite(depth) && depth > 0 ? depth : null,
       );
-      const libelle = `${preset.label} — ${(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}`;
+      const libelle = `${preset.label} — ${$tn('v2.tool.pickedN', picked.size)}`;
       tachesConversion.update((ts) => ajouter(ts, res.job_id, libelle));
     } catch (e: any) {
       error = e?.message ?? $t('v2.tool.errStart' as any);
@@ -294,7 +295,7 @@
       <div class="v2-eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
       <h1>{$t('v2.conv.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
+    {#if picked.size}<span class="cnt">{$tn('v2.tool.pickedN', picked.size)}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
@@ -381,10 +382,7 @@
                faisait 240 px de large et 36 px de haut ici, 230 × 38 sur les
                Extensions, 320 × 40 sur le Streaming — trois dessins pour un
                seul geste. -->
-          <div class="v2-rech">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-          </div>
+          <ChampRecherche bind:valeur={q} ecran={$t('v2.conv.albumsToConvert' as any)} />
           <button class="go" disabled={!picked.size || !preset || !supported || starting} onclick={start}>
             {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
           </button>

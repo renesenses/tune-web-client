@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroPisteAffiche } from '../../lib/numeroPiste';
   import { untrack } from 'svelte';
   import { tip } from '../../lib/tooltip';
   import { get } from 'svelte/store';
@@ -509,7 +510,7 @@
             <div class="tracks-list">
               {#each tracks as t}
                 <button class="track-row" onclick={() => editingTrackId = t.id} disabled={!t.id}>
-                  <span class="track-num">{t.track_number ?? '—'}</span>
+                  <span class="track-num">{numeroPisteAffiche(t.track_number) || '—'}</span>
                   <span class="track-title">{t.title}</span>
                   <span class="track-meta">{t.duration_ms ? Math.floor(t.duration_ms / 60000) + ':' + String(Math.floor(t.duration_ms / 1000) % 60).padStart(2, '0') : ''}</span>
                 </button>

@@ -1,6 +1,7 @@
 import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
+import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -87,6 +88,10 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'parental_explicit_refused',
   // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
   'parental_content_blocked',
+  // Recette rc12 (13/11) — une piste du CD lancée sans disque : « Le disque
+  // n'est plus dans le lecteur… », traduite par le serveur, au lieu de
+  // « HTTP 500 — playback_error — aucun disque dans le lecteur ».
+  'cd_disc_absent',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
@@ -1385,6 +1390,14 @@ export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_native_flac: enabled }),
+  });
+}
+
+/** #2271 / fil 2694 — rétablir un mode nommé (album au hasard…) tel quel. */
+export function updateZoneAutoplayMode(id: number, mode: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ autoplay_mode: mode }),
   });
 }
 
@@ -2912,8 +2925,20 @@ export interface AlbumsArtisteSections {
   played_with?: JoueAvec[];
 }
 
-/** Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et les pistes partagées. */
-export interface JoueAvec { artist_id: number | null; artist_name: string; shared_tracks: number }
+/**
+ * Un artiste de « Joue avec » : sa fiche quand elle existe (`null` sinon), et
+ * les enregistrements partagés. #2961 (tune-server-rust, lot rc12) :
+ * `shared_albums` (albums distincts) et `album_wide` (crédité sur presque
+ * tout chacun de ses albums partagés : compter des titres ne dit rien) —
+ * absents devant un serveur antérieur.
+ */
+export interface JoueAvec {
+  artist_id: number | null;
+  artist_name: string;
+  shared_tracks: number;
+  shared_albums?: number;
+  album_wide?: boolean;
+}
 
 /** Un compteur de l'en-tête : albums et pistes distincts. */
 export interface CompteurCredits { albums: number; tracks: number }
@@ -2958,8 +2983,9 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
  * `?sections=1` et non une route à part : sans le drapeau, la même route rend
  * le tableau nu que lisent les clients natifs et le serveur média.
  */
-export function getArtistAlbumsSections(id: number) {
-  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+export function getArtistAlbumsSections(id: number, dossier?: string | null) {
+  const portee = dossier ? `&${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1${portee}`)
     .then(sectionsDepuisReponse);
 }
 
@@ -3353,8 +3379,9 @@ export function enrichArtist(artistId: number) {
   return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/metadata/artists/${artistId}/enrich`);
 }
 
-export function getArtistTracks(id: number) {
-  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
+export function getArtistTracks(id: number, dossier?: string | null) {
+  const suite = dossier ? `?${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks${suite}`);
 }
 
 // reportArtistImage (POST /library/artists/{id}/image/report) est remplacé par
@@ -3522,6 +3549,28 @@ export async function getLibraryFacets(
   if (limit != null) params.set('limit', String(limit));
   const raw = await fetchJSON<any>(`${BASE}/library/facets?${params}`);
   return (raw && typeof raw === 'object') ? raw : {};
+}
+
+/**
+ * tune-server-rust#8668 — le pays de CHAQUE album (`[id, pays]`), en une
+ * réponse : `artist` = pays de l'artiste principal (MusicBrainz), `release` =
+ * pays de l'édition (balise RELEASECOUNTRY, sinon release MusicBrainz). La
+ * carte des pays le croise avec les albums que la grille garde, pour compter
+ * sous les MÊMES filtres que la grille. `null` : serveur antérieur (route
+ * absente) ou réponse illisible — la carte retombe sur les facettes, sans
+ * bandeau d'erreur.
+ */
+export async function getLibraryAlbumCountries(
+  source: 'artist' | 'release',
+): Promise<[number, string][] | null> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/album-countries?source=${source}`, undefined, undefined, true);
+    if (!raw || typeof raw !== 'object' || !Array.isArray(raw.albums)) return null;
+    return (raw.albums as unknown[]).filter((p): p is [number, string] =>
+      Array.isArray(p) && typeof p[0] === 'number' && typeof p[1] === 'string');
+  } catch {
+    return null;
+  }
 }
 
 /** Une carte album d'Oxygen : les agrégats calculés PAR LE SERVEUR sur la
@@ -3818,6 +3867,17 @@ export function getLibraryStats() {
   // web#2653 — `distributions` (tune-server-rust#7849) : absente d'un serveur
   // plus ancien, `null` si sa lecture a échoué. Lue par `lireRepartitions`.
   return fetchJSON<{ tracks: number; albums: number; artists: number; distributions?: unknown }>(`${BASE}/library/stats`);
+}
+
+/**
+ * Go du 13/11 — chercher un artiste ou un genre dans TOUT le classement des
+ * statistiques (pas seulement les cent premiers). Réponse lue par
+ * `lireRecherche` (`lib/classementsBibliotheque`). Rejette sur un serveur
+ * plus ancien (route absente) : l'appelant se replie, sans bandeau d'erreur.
+ */
+export function chercherClassement(by: 'artist' | 'genre', q: string, limit = 100) {
+  const p = new URLSearchParams({ by, q, limit: String(limit) });
+  return fetchJSON<unknown>(`${BASE}/library/stats/rankings?${p}`, undefined, undefined, true);
 }
 
 // --- Notes personnelles en Markdown (web#2653, tune-server-rust#7849) ---
@@ -5838,6 +5898,63 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
+/**
+ * #8676 — « Remplacer le chemin » : l'aperçu (n'écrit rien) et l'application
+ * (une transaction, identifiants conservés). Les refus (400, 409, 422) portent
+ * un corps lisible : `refusal` ou `error`, que `remplacerChemin.ts` traduit.
+ */
+export async function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
+  return appelDeplacement<ApercuDeplacement>('/system/music-dirs/move/preview', { old_prefix: oldPrefix, new_prefix: newPrefix });
+}
+
+export async function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
+  return appelDeplacement<BilanDeplacement>('/system/music-dirs/move', {
+    old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks,
+  });
+}
+
+/**
+ * Les refus (400, 409, 422) portent un corps lisible ; 404 et 405 veulent dire
+ * « serveur trop ancien » : ni bandeau ni exception, `{ error: 'unsupported' }`,
+ * et le geste disparaît de l'écran.
+ */
+async function appelDeplacement<T extends { error?: string }>(chemin: string, corps: unknown): Promise<T> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<T>(`${BASE}${chemin}`, { method: 'POST', body: JSON.stringify(corps) }, (s) => {
+      statut = s;
+      return s === 400 || s === 404 || s === 405 || s === 409 || s === 422;
+    });
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    return r;
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    throw e;
+  }
+}
+
+let remplacerLeCheminConnu: Promise<boolean> | null = null;
+
+/**
+ * #8676 — le serveur sait-il « Remplacer le chemin » ? Lu dans
+ * `GET /system/capabilities` (clé `bibliotheque.remplacer_le_chemin`, absente
+ * = non), une fois par chargement. Un serveur sans cette route (ancien) rend
+ * 404 : réponse « non », sans bandeau.
+ */
+export function remplacerLeCheminDisponible(): Promise<boolean> {
+  if (!remplacerLeCheminConnu) {
+    remplacerLeCheminConnu = fetchJSON<any>(`${BASE}/system/capabilities`, undefined, (s) => s === 404 || s === 405, true)
+      .then((c) => c?.bibliotheque?.remplacer_le_chemin === true)
+      .catch(() => false);
+  }
+  return remplacerLeCheminConnu;
+}
+
+/** Épreuves seulement : oublier la réponse mémorisée. */
+export function oublierCapaciteRemplacerLeChemin(): void {
+  remplacerLeCheminConnu = null;
+}
+
 /** Une entrée de l'explorateur de dossiers du serveur. */
 export interface DossierServeur {
   name: string;
@@ -6677,8 +6794,8 @@ export interface AlbumEnCours {
  * identifiant. Le corps porte alors `reason`. L'appelant doit retomber sur son
  * geste d'avant plutôt que d'afficher une erreur.
  */
-export function getZoneCurrentAlbum(zoneId: number) {
-  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
+export function getZoneCurrentAlbum(zoneId: number, sansBandeau = false) {
+  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`, undefined, undefined, sansBandeau);
 }
 
 /** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
@@ -8908,20 +9025,29 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 // --- CSV Export ---
 
+export type ModeIntegrite = 'full' | 'quick';
 export interface EtatIntegrite {
+  /** Estimation publiée par le serveur ; absente sur un serveur ancien. */
+  eta_seconds?: number | null;
+  mode?: ModeIntegrite;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
   non_verifiables: number; alertes_taille: number; erreur: string | null;
   lecture_prioritaire: boolean;
 }
 export interface LigneIntegrite {
+  mode?: ModeIntegrite;
   id: number; chemin: string; taille_sans_nouvelle_date: boolean;
   resultat: { verdict: 'sain' | 'corrompu' | 'non_verifiable'; code: string;
-    erreur: string | null; position_trames: number | null; trames_decodees: number };
+    erreur: string | null; position_trames: number | null; trames_decodees: number;
+    localisation?: { unite: 'trame' | 'page'; numero: number; octet: number; echantillon: number | null } | null;
+    fautes?: number | null; unites_controlees?: number | null };
 }
 export function getIntegrityStatus() { return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity`); }
-export function startIntegrity(resume = false) {
-  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}`, { method: 'POST' });
+export function startIntegrity(resume = false, mode: ModeIntegrite = 'full') {
+  // Une reprise garde le mode enregistré par le serveur, quel que soit le sélecteur.
+  const choix = !resume && mode === 'quick' ? '&mode=quick' : '';
+  return fetchJSON<EtatIntegrite>(`${BASE}/library/integrity?resume=${resume}${choix}`, { method: 'POST' });
 }
 export function pauseIntegrity() { return fetchJSON<void>(`${BASE}/library/integrity/pause`, { method: 'POST' }); }
 export function getIntegrityReport(offset = 0, verdict = '') {
@@ -11637,7 +11763,11 @@ export function getAlbumHiRes(albumId: number) {
 }
 /** tune-server-rust#6285 — l'état de la passe des faux Hi-Res : armée ou non,
  *  verdict « douteux » montré ou non, pistes restant à mesurer, pistes rangées. */
-export interface EtatFauxHiRes { active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number }
+export interface EtatFauxHiRes {
+  active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
+  /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
+  catalogue_hires_verdict?: boolean;
+}
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {
   return fetchJSON<EtatFauxHiRes>(`${BASE}/library/hires-check`, undefined, undefined, true);

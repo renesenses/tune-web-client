@@ -31,7 +31,7 @@
   import PistesDouteuses from './PistesDouteuses.svelte';
   import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
   import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
   import { grouperParAlbums, questionDeRetrait, type CoupleAlbums } from '../../lib/albumsEnDouble';
@@ -861,7 +861,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   <span class="new">{p.proposed ?? '—'}</span>
                 </div>
-                <div class="src">{$t((p.servers_count > 1 ? 'v2.meta.libsWithValueMany' : 'v2.meta.libsWithValueOne') as any).replace('{n}', $formatNombre(p.servers_count))}</div>
+                <div class="src">{$tn('v2.meta.libsWithValueN', p.servers_count)}</div>
               </div>
               <div class="pa">
                 <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>

@@ -73,6 +73,7 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
   import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
@@ -1464,21 +1465,10 @@
     </div>
     <div class="v2-actions">
     {#if active}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input bind:this={champRecherche} placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))}
-               aria-label={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q}
-               onkeydown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); viderRecherche(); } }} />
-        <!-- Fil 2208 (Didier) — la croix de la Bibliothèque, ici aussi : sans
-             elle, il fallait sélectionner tout le texte pour sortir de la
-             recherche. Même place que le témoin d'attente, qu'elle remplace. -->
-        {#if searching}<span class="spin" aria-hidden="true"></span>
-        {:else if q}
-          <button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
+      <!-- Fil 2208 (Didier) — la croix et Échap effacent ; le curseur reste
+           dans le champ (`viderRecherche`). -->
+      <ChampRecherche bind:valeur={q} bind:champ={champRecherche} ecran={label(active)}
+        enCours={searching} onvider={viderRecherche} />
     {/if}
     </div>
   </header>
@@ -2196,9 +2186,6 @@
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);
-    border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
-  @keyframes sp{to{transform:rotate(360deg)}}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
