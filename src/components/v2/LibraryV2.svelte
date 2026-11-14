@@ -2442,7 +2442,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let exportCatalogueEnCours = $state(false);
   /** rc12 — un filtre « Hi-Res vérifié / douteux » que la route ne sait pas suivre. */
-  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality));
+  const exportCatalogueImpossible = $derived(!catalogueSuitLesFiltres(fQuality, etatFauxHiRes?.catalogue_hires_verdict === true));
   async function exporterCatalogue() {
     if (exportCatalogueEnCours || exportCatalogueImpossible) return;
     exportCatalogueEnCours = true;
