@@ -4156,6 +4156,45 @@ export function setTracksArtist(trackIds: number[], artistName: string) {
   );
 }
 
+/** L'aperçu de « Écrire l'artiste du dossier » : rien n'est écrit. */
+export interface ApercuArtisteDuDossier {
+  tracks: number;
+  artists: { name: string; tracks: number }[];
+  file_writes_enabled: boolean;
+}
+
+/** Le bilan de « Écrire l'artiste du dossier ». */
+export interface BilanArtisteDuDossier {
+  updated: number;
+  errors: number;
+  artists_created: number;
+  artists_linked: number;
+  albums_updated: number;
+  file_writes_enabled: boolean;
+  files_scheduled: number;
+}
+
+/**
+ * renesenses/tune-server-rust#8679 — écrire l'artiste que donne le dossier
+ * des pistes douteuses sans balise d'artiste. `trackIds` absent : toute la
+ * liste. En base toujours ; dans le fichier seulement si le réglage
+ * « Écrire les modifications dans les fichiers audio » est coché.
+ * Réservé à l'administrateur.
+ */
+export function apercuArtisteDuDossier(trackIds?: number[]) {
+  return fetchJSON<ApercuArtisteDuDossier>(`${BASE}/metadata/doubtful/artist-from-folder`, {
+    method: 'POST',
+    body: JSON.stringify({ ...(trackIds ? { track_ids: trackIds } : {}), dry_run: true }),
+  });
+}
+
+export function ecrireArtisteDuDossier(trackIds?: number[]) {
+  return fetchJSON<BilanArtisteDuDossier>(`${BASE}/metadata/doubtful/artist-from-folder`, {
+    method: 'POST',
+    body: JSON.stringify(trackIds ? { track_ids: trackIds } : {}),
+  });
+}
+
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
