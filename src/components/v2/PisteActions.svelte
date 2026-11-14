@@ -93,6 +93,7 @@
   import { actionsReduites } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste, rangerMenuPiste } from '../../lib/menuPiste';
+  import { idAnalyseDe } from '../../lib/spectrogramme';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
@@ -462,6 +463,8 @@
         // service n'a ni voisins acoustiques, ni versions. (Les étiquettes,
         // si : `etiquetable` ci-dessous, #1238.)
         idBibliotheque: local && piste.id != null ? piste.id : null,
+        // Go du 13/11 — spectrogramme et fiche d'une piste Qobuz / TIDAL.
+        idAnalyse: local ? null : idAnalyseDe(piste),
         artistId: piste.artist_id ?? null,
         albumId: typeof piste.album_id === 'number' ? piste.album_id : null,
         albumDeService,
@@ -697,14 +700,14 @@
   {/await}
 {/if}
 
-{#if panneauSpectro && local && piste.id != null}
+{#if panneauSpectro && (local || idAnalyseDe(piste) != null) && piste.id != null}
   {#await import('./SpectrogrammePanneau.svelte') then m}
-    <m.default trackId={piste.id} titre={piste.title}
+    <m.default trackId={piste.id} titre={piste.title} source={local ? null : piste.source ?? null}
       onClose={() => (panneauSpectro = false)} />
   {/await}
 {/if}
 
-{#if panneauFiche && local && piste.id != null}
+{#if panneauFiche && (local || idAnalyseDe(piste) != null) && piste.id != null}
   {#await import('./FicheTechniquePanneau.svelte') then m}
     <m.default trackId={piste.id} titre={piste.title}
       onClose={() => (panneauFiche = false)} />

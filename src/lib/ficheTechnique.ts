@@ -39,6 +39,8 @@ export interface SectionSpectrogramme {
   octets?: number;
   calcule_le?: string;
   duree_calcul_ms?: number | null;
+  /** Qobuz / TIDAL (go du 13/11) : l'image se calcule par téléchargement. */
+  service?: string;
 }
 
 export interface SectionDr {
@@ -140,8 +142,8 @@ export function sectionsVisibles(f: FicheTechnique): CleSection[] {
   const s: CleSection[] = [];
   if (f.format && Object.keys(f.format).length > 0) s.push('format');
   if (f.spectrogramme) s.push('spectrogramme');
-  // Fil 2793 : la forme d'onde, seulement pour un fichier local — même règle
-  // que le spectrogramme ; une piste de service n'en a pas.
+  // Fil 2793 : la forme d'onde, pour un fichier local — et, depuis le go du
+  // 13/11, pour une piste Qobuz / TIDAL, dont le serveur rend la section.
   if (f.a_un_fichier || f.forme_d_onde) s.push('formeDOnde');
   if (f.dynamic_range) s.push('dynamicRange');
   if (f.faux_hires) s.push('fauxHires');

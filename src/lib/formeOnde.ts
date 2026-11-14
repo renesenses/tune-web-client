@@ -13,13 +13,16 @@
  * (`debut_s`, `fin_s`) sert au zoom et se calcule à chaque fois.
  *
  * Même règle que le spectrogramme : une piste de service, sans fichier
- * local, n'a pas de forme d'onde (422). Un serveur antérieur à la route
+ * local, n'a pas de forme d'onde (422) — sauf une piste QOBUZ ou TIDAL (go du
+ * 13/11), que le serveur télécharge pour le calcul puis efface ; sa section
+ * porte alors `service`, et seule la piste entière se calcule (le zoom se
+ * découpe dans la forme entière, sans requête). Un serveur antérieur à la route
  * répond 404 / 405 : l'écran dit alors que la fonction n'est pas disponible ;
  * un 404 « track not found » dit que la piste n'existe plus.
  */
 import { authHeaders, BASE } from './api';
 import { clearToken } from './auth';
-import { genreDeRefus, type GenreErreurSpectrogramme } from './spectrogramme';
+import { genreDeRefus, raisonDeRefus, type GenreErreurSpectrogramme, type RaisonService } from './spectrogramme';
 
 /** Colonnes demandées : le défaut du serveur. */
 export const COLONNES_FORME_ONDE = 1000;
@@ -48,6 +51,8 @@ export interface SectionFormeOnde {
   url: string;
   colonnes: number;
   sonie?: SonieR128 | null;
+  /** Qobuz / TIDAL : calculée par téléchargement, piste entière seulement. */
+  service?: string;
 }
 
 export interface ChiffresOnde {
@@ -88,9 +93,11 @@ export type GenreErreurFormeOnde = GenreErreurSpectrogramme;
 
 export class ErreurFormeOnde extends Error {
   genre: GenreErreurFormeOnde;
-  constructor(genre: GenreErreurFormeOnde, detail = '') {
+  raison: RaisonService | null;
+  constructor(genre: GenreErreurFormeOnde, detail = '', raison: RaisonService | null = null) {
     super(`forme d'onde: ${genre}${detail ? ` (${detail})` : ''}`);
     this.genre = genre;
+    this.raison = raison;
   }
 }
 
@@ -118,7 +125,7 @@ export async function chargerFormeOnde(
     const corps = await resp.text().catch(() => '');
     const genre = resp.status === 405 ? 'indisponible' : genreDeRefus(resp.status, corps);
     if (genre === 'session') clearToken();
-    throw new ErreurFormeOnde(genre, `${resp.status}`);
+    throw new ErreurFormeOnde(genre, `${resp.status}`, raisonDeRefus(corps));
   }
   const f = (await resp.json()) as FormeOnde;
   if (!f || !Array.isArray(f.voies)) throw new ErreurFormeOnde('impossible', 'contrat');

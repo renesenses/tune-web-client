@@ -150,6 +150,12 @@ export interface CapacitesPiste {
   jouable: boolean;
   /** Piste de la BIBLIOTHÈQUE portant un identifiant numérique. */
   idBibliotheque: number | null;
+  /**
+   * Go du 13/11 — piste QOBUZ ou TIDAL de la bibliothèque (identifiant
+   * numérique) : son spectrogramme et sa fiche technique se calculent par
+   * téléchargement (`lib/spectrogramme`, `idAnalyseDe`).
+   */
+  idAnalyse?: number | null;
   artistId: number | null;
   albumId: number | null;
   /**
@@ -485,16 +491,18 @@ export function entreesMenuPiste(
   /**
    * « Spectrogramme » — tune-server-rust#7857 (PR #7897). Une piste de la
    * BIBLIOTHÈQUE seulement : la route prend un `i64` de `tracks` et lit le
-   * fichier local. Absente d'une piste de service, pas grisée.
+   * fichier local. Absente d'une piste de service, pas grisée — sauf une
+   * piste Qobuz / TIDAL de la bibliothèque (go du 13/11, `idAnalyse`), que
+   * le serveur télécharge pour le calcul.
    */
-  pousser(deLaBibliotheque, 'spectro.menu', ICONES.spectro, g.spectrogramme);
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'spectro.menu', ICONES.spectro, g.spectrogramme);
   /**
    * « Fiche technique » — tune-server-rust#8160 (go de Bertrand du 09/11).
    * Même règle que le spectrogramme : la route prend l'`i64` de `tracks`.
    * Une piste de la bibliothèque SANS fichier (service) l'a aussi : la fiche
    * n'y montre que ce qui existe.
    */
-  pousser(deLaBibliotheque, 'fiche.menu', ICONES.fiche, g.ficheTechnique);
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'fiche.menu', ICONES.fiche, g.ficheTechnique);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *
