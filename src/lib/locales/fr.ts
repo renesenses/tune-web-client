@@ -6440,7 +6440,6 @@ export default {
   "v2.radio.fiche.site": "Site web de la station",
   "v2.radio.fiche.nothing": "Aucune description n’est disponible pour cette station.",
   "v2.radio.fiche.unknown": "Aucune information n’est disponible pour cette station.",
-  "v2.radio.view": "Voir",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Titre et artiste en cours fournis par radio-metadata.fr",
   "v2.radio.fiche.genres": "Genres",

@@ -6418,7 +6418,6 @@ export default {
   "v2.radio.fiche.site": "Site-ul postului",
   "v2.radio.fiche.nothing": "Nu există descriere pentru acest post.",
   "v2.radio.fiche.unknown": "Nu există informații pentru acest post.",
-  "v2.radio.view": "Vezi",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Titlul și artistul curente furnizate de radio-metadata.fr",
   "v2.radio.fiche.genres": "Genuri",

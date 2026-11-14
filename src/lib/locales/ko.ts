@@ -6418,7 +6418,6 @@ export default {
   "v2.radio.fiche.site": "방송국 웹사이트",
   "v2.radio.fiche.nothing": "이 방송국에 대한 설명이 없습니다.",
   "v2.radio.fiche.unknown": "이 방송국에 대한 정보가 없습니다.",
-  "v2.radio.view": "보기",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "현재 곡명과 아티스트는 radio-metadata.fr에서 제공",
   "v2.radio.fiche.genres": "장르",

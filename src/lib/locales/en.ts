@@ -6438,7 +6438,6 @@ export default {
   "v2.radio.fiche.site": "Station website",
   "v2.radio.fiche.nothing": "No description is available for this station.",
   "v2.radio.fiche.unknown": "No information is available for this station.",
-  "v2.radio.view": "View",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Current title and artist provided by radio-metadata.fr",
   "v2.radio.fiche.genres": "Genres",

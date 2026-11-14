@@ -343,9 +343,9 @@
   const others = $derived(shown.filter((r) => !r.favorite));
 
   /**
-   * web#2443 — la station de l'annuaire dont la fiche « Voir » est ouverte.
-   * Une entrée de l'annuaire se VOIT (œil) ; une station saisie à la main se
-   * modifie (crayon).
+   * web#2443 — la station dont la fiche est ouverte. Retour de Rémi sur la
+   * rc11 (point 17, décidé le 14/11) : plus d'œil, la fiche s'ouvre par un
+   * clic sur le logo (`onOuvrir`), hors de ▶ et des autres boutons.
    */
   let enFiche = $state<RadioStation | null>(null);
 
@@ -596,8 +596,6 @@
           ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
           : null}
         onEditer={r.id != null ? () => (enEdition = r) : null}
-        onVoir={r.id != null && estDeLAnnuaire(r) ? () => (enFiche = r) : null}
-        libelleVoir={$t('v2.radio.view' as any)}
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}

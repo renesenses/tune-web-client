@@ -112,8 +112,10 @@ describe('web#2795 — modifier chez soi une station de l’annuaire', () => {
     expect(dialogue()).toBeNull();
     const t = tuile('FIP chez moi');
     expect(t.querySelector('.surch')?.getAttribute('title')).toBe('Modifiée chez vous');
-    // « Voir » reste disponible, et l'œil garde son coin.
-    expect(t.querySelector('button.coin.tr')?.getAttribute('title')).toBe('Voir');
+    // rc12 (retour de Rémi, point 17) : plus d'œil ; « − » garde le coin haut
+    // droit, le crayon se range à sa gauche.
+    expect(t.querySelector('button.coin.tr')?.getAttribute('title')).toBe('Retirer de Mes radios');
+    expect(t.querySelector('button.coin.tr2')?.getAttribute('title')).toBe('Modifier');
   });
 
   it('🔴 « Revenir à la fiche de l’annuaire » efface la surcharge', async () => {

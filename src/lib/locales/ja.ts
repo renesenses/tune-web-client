@@ -6418,7 +6418,6 @@ export default {
   "v2.radio.fiche.site": "局のウェブサイト",
   "v2.radio.fiche.nothing": "この局の説明はありません。",
   "v2.radio.fiche.unknown": "この局の情報はありません。",
-  "v2.radio.view": "表示",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "再生中の曲名とアーティストは radio-metadata.fr が提供",
   "v2.radio.fiche.genres": "ジャンル",

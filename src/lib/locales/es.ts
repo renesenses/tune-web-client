@@ -6418,7 +6418,6 @@ export default {
   "v2.radio.fiche.site": "Sitio web de la emisora",
   "v2.radio.fiche.nothing": "No hay descripción disponible para esta emisora.",
   "v2.radio.fiche.unknown": "No hay información disponible para esta emisora.",
-  "v2.radio.view": "Ver",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Título y artista actuales proporcionados por radio-metadata.fr",
   "v2.radio.fiche.genres": "Géneros",

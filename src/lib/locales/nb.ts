@@ -6269,7 +6269,6 @@ export default {
   "v2.radio.fiche.site": "Kanalens nettsted",
   "v2.radio.fiche.nothing": "Ingen beskrivelse er tilgjengelig for denne kanalen.",
   "v2.radio.fiche.unknown": "Ingen informasjon er tilgjengelig for denne kanalen.",
-  "v2.radio.view": "Vis",
   "v2.radio.metadataPlus": "Metadata+",
   "v2.radio.metadataPlusTip": "Gjeldende tittel og artist levert av radio-metadata.fr",
   "v2.radio.fiche.genres": "Sjangre",
