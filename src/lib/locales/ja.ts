@@ -3837,6 +3837,7 @@ export default {
   "v2.ms.eyebrow": "ネットワーク",
   "v2.ms.title": "メディアサーバー",
   "v2.rech.dans": "{ecran} 内を検索…",
+  "v2.rech.aucun": "「{q}」に一致する項目はありません。",
   "v2.ms.searching": "ネットワーク上のサーバーを検索中…",
   "v2.ms.none": "ネットワーク上にメディアサーバーが見つかりません。",
   "v2.ms.noneHint": "検出は UPnP/DLNA で行われます。リモートサーバーの電源が入っていて、同じローカルネットワーク上にあり、UPnP 配信が有効である必要があります。",

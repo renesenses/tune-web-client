@@ -51,6 +51,12 @@ const ECRANS: Record<string, 'entete' | 'barre' | 'panneau' | 'rangee-radios'> =
   'src/components/v2/ConverterV2.svelte': 'panneau',         // filtre du sélecteur d'albums
   'src/components/v2/DeclickV2.svelte': 'panneau',
   'src/components/v2/RadioRecherche.svelte': 'rangee-radios', // Mes radios + Annuaire
+  // Décisions de Bertrand, 14/11 : cinq écrans de liste reçoivent la zone.
+  'src/components/v2/HistoriqueV2.svelte': 'entete',
+  'src/components/v2/CollectionsV2.svelte': 'entete',
+  'src/components/v2/TitresBannisV2.svelte': 'entete',
+  'src/components/v2-heritage/BrowseView.svelte': 'barre',
+  'src/components/v2-heritage/SmartPlaylistsView.svelte': 'barre',
 };
 
 describe('la spécificité calculée par la garde', () => {
@@ -97,7 +103,7 @@ describe('un seul champ de recherche, le même partout', () => {
       const actions = bloc.indexOf('class="v2-actions');
       const rech = bloc.indexOf('<ChampRecherche');
       if (actions < 0 || rech < actions) fautifs.push(`${f} : hors de .v2-actions`);
-      for (const apres of ['class="v2-btn', 'class="tabs"', '<nav class="tabs', 'class="tab"', 'class="meta"']) {
+      for (const apres of ['class="v2-btn', 'class="tabs"', '<nav class="tabs', 'class="tab"', 'class="meta"', '<BoutonMenuV2']) {
         const i = bloc.indexOf(apres, actions);
         if (i >= 0 && i < rech) fautifs.push(`${f} : ${apres} avant la recherche`);
       }
