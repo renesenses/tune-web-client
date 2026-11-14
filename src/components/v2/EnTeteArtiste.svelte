@@ -29,7 +29,9 @@
    */
   import type { Snippet } from 'svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { nomPays } from '../../lib/paysMonde';
+  import { drapeauPays } from '../../lib/bibliothequePays';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import type { PorteEcoutes } from '../../lib/ecoutesCommunaute';
   import type { CompteursCredits } from '../../lib/api';
@@ -68,6 +70,13 @@
      * 0 album » n'apprend rien (choix conservateur, à trancher par Bertrand).
      */
     compteurs?: CompteursCredits | null;
+    /**
+     * tune-server-rust#8668 — le pays de l'artiste (code ISO, MusicBrainz),
+     * tel que `/library/artists/{id}` le rend. Rien s'il est inconnu.
+     */
+    pays?: string | null;
+    /** #8668 — un clic sur le pays : la Bibliothèque, albums filtrés sur ce pays. */
+    onPays?: ((code: string) => void) | null;
   }
   let {
     nom,
@@ -79,7 +88,10 @@
     actions,
     ecoutes = null,
     compteurs = null,
+    pays = null,
+    onPays = null,
   }: Props = $props();
+  const codePays = $derived(pays && drapeauPays(pays) ? pays.trim().toUpperCase() : null);
 
   const ligneCompteur = (cle: string, c: { albums: number; tracks: number }) =>
     $t(cle as any).replace('{albums}', String(c.albums)).replace('{tracks}', String(c.tracks));
@@ -121,6 +133,14 @@
     <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
     {#if provenance}<span class="prov">{provenance}</span>{/if}
     {#if sousTitre}<span class="cpt">{sousTitre}</span>{/if}
+    {#if codePays}
+      <!-- #8668 — le pays de l'artiste, lien vers les albums de ce pays. -->
+      <button type="button" class="pays" data-pays-artiste={codePays} disabled={!onPays}
+        title={$t('v2.art.countryLink' as any).replace('{pays}', nomPays(codePays, $locale))}
+        onclick={() => onPays?.(codePays!)}>
+        <span class="drapeau" aria-hidden="true">{drapeauPays(codePays)}</span>{nomPays(codePays, $locale)}
+      </button>
+    {/if}
     {#if compteurs && (compteurs.performing?.tracks || compteurs.writing?.tracks)}
       <span class="cpt credits" data-compteurs>
         {#if compteurs.performing?.tracks}<span data-compteur="performing">{ligneCompteur('v2.disco.performingCount', compteurs.performing)}</span>{/if}
@@ -173,5 +193,11 @@
     text-transform:uppercase; letter-spacing:.06em}
   .cpt{display:block; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:3px}
   .credits{display:flex; flex-wrap:wrap; gap:4px 14px}
+  .pays{display:inline-flex; align-items:center; gap:6px; margin-top:6px; padding:2px 10px; border:1px solid var(--v2-line2);
+    border-radius:999px; background:none; color:var(--v2-txt2); font:inherit; font-size:calc(12px * var(--v2-txt-echelle, 1)); cursor:pointer}
+  .pays:hover:not(:disabled){background:var(--v2-hover); color:var(--v2-txt)}
+  .pays:disabled{cursor:default}
+  .pays:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .drapeau{font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
 </style>

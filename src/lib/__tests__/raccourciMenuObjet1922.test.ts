@@ -109,9 +109,9 @@ describe('web#1922 — la proposition, objet par objet', () => {
 
   it('playlists, playlist intelligente, collections : les clés des écrans qui les rouvrent', () => {
     expect(propositionRaccourciObjet(objetPlaylist({ id: 42, name: 'Nocturnes' })))
-      .toMatchObject({ view: 'playlistmanager', state: { target: { key: 'playlists:42', restore: { id: 42 } } } });
+      .toMatchObject({ view: 'playlists', state: { target: { key: 'playlists:42', restore: { id: 42 } } } });
     const q = propositionRaccourciObjet(objetPlaylist({ source: 'qobuz', source_id: '777', name: 'Cosy Jazz' }));
-    expect(q).toMatchObject({ view: 'playlistmanager', state: { target: { key: 'streamingplaylists:qobuz:777' } } });
+    expect(q).toMatchObject({ view: 'playlists', state: { target: { key: 'streamingplaylists:qobuz:777' } } });
     expect(q!.state.target.restore).toMatchObject({ kind: 'streaming', service: 'qobuz', pl: { source_id: '777', name: 'Cosy Jazz' } });
     expect(propositionRaccourciObjet(objetPlaylistIntelligente({ id: 3, name: 'X' })))
       .toMatchObject({ view: 'smartplaylists', state: { target: { key: 'smartplaylists:3' } } });

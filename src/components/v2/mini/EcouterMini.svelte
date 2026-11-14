@@ -100,7 +100,7 @@
 
   <div class="volume">
     <div class="vc"><VolumeControl enDb /></div>
-    {#if !replie}
+    {#if !replie && piste?.source !== 'radio'}
       <button class="tb petit" onclick={() => feuilleMini.set('file')} aria-label={$t('nav.queue' as any)} data-ouvrir-file>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h12M4 12h12M4 18h8"/><path d="M17 15v6l4-3z" fill="currentColor"/></svg>
       </button>

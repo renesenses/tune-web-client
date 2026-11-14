@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { clearViewContext } from '../stores/navigation';
 //
-// web#2400 — la carte des radios, troisième onglet de la page Radio.
+// web#2400 — la carte des radios, troisième onglet de la page Radio (masqué en rc12).
 // Les données viennent de l'annuaire du serveur (`/radios/directory`), les
 // réseaux des mots-clés de chaque fiche (tune-server-rust#7194), l'écoute et
 // l'ajout passent par les gestes de l'onglet Annuaire.
@@ -16,7 +16,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
-import RadiosV2 from '../../components/v2/RadiosV2.svelte';
+// rc12 (14/11, retour de Rémi point 32) : l'onglet « Carte » est masqué dans
+// la page Radio ; le composant reste, et se monte ici directement.
+import CarteRadios from '../../components/v2/CarteRadios.svelte';
 import { locale } from '../i18n';
 import fr from '../locales/fr';
 
@@ -64,12 +66,7 @@ afterEach(() => {
 async function ouvrirCarte() {
   hote = document.createElement('div');
   document.body.append(hote);
-  instance = mount(RadiosV2, { target: hote, props: {} });
-  await respirer();
-  const onglet = [...hote.querySelectorAll<HTMLButtonElement>('.sections button')]
-    .find((b) => b.textContent?.trim() === fr['v2.radio.tabMap']);
-  expect(onglet, 'l’onglet « Carte » manque').toBeTruthy();
-  onglet!.click();
+  instance = mount(CarteRadios, { target: hote, props: {} });
   await respirer();
 }
 const bouton = (texte: string) => [...hote.querySelectorAll<HTMLButtonElement>('button')]

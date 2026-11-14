@@ -419,7 +419,7 @@
               <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti" use:bulleTexte>{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+                <span class="ti" use:bulleTexte>{t.title}<em>{#if t.added_by_radio}<span class="par-radio" title={$tr('queue.addedByRadioTip' as any)}>{$tr('queue.addedByRadio' as any)}</span>{/if}{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
@@ -503,6 +503,10 @@
   .row .ti{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .row .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  /* Fil 2694 — titre ajouté par la radio de fin de file. */
+  .row .ti em .par-radio{display:inline-block; margin-right:6px; padding:0 5px; border-radius:4px;
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.04em;
+    color:var(--v2-txt2); background:var(--v2-acc-soft)}
   .row .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .row .dur{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .ord{display:flex; gap:2px}

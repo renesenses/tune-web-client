@@ -185,3 +185,83 @@ describe('PartageMessageV2', () => {
     expect(ouverte).not.toBeNull();
   });
 });
+
+describe('suggestions explicites #2982', () => {
+  async function ouvrir(partage = false) {
+    if (partage) {
+      carteAPartager.set({ type: 'album', title: 'Kind of Blue' });
+      vue = mount(Partage, { target: hote, props: { carte: { type: 'album', title: 'Kind of Blue' } } });
+    } else {
+      vue = mount(Messagerie, { target: hote }); await finir();
+      demandeConversation.set({ contact: 7 });
+    }
+    await finir();
+    return hote.querySelector(partage ? '#message-partage-texte' : '#message-texte') as HTMLTextAreaElement;
+  }
+  async function taper(el: HTMLTextAreaElement, texte: string) {
+    el.focus(); el.value = texte; el.setSelectionRange(texte.length, texte.length);
+    el.dispatchEvent(new Event('input', { bubbles: true })); await finir();
+  }
+  it.each([false, true])('Tab ajoute après hello sans envoyer, partage=%s', async (partage) => {
+    const el = await ouvrir(partage); await taper(el, 'hello');
+    expect(hote.querySelector('[data-suggestion-emoji]')?.textContent ?? '', 'hello doit proposer la main sans envoyer').toContain('👋');
+    expect(envoyes()).toEqual([]);
+    touche(el, 'Tab'); await finir();
+    expect(el.value).toBe('hello 👋');
+    expect(el.selectionStart).toBe(el.value.length);
+    expect(envoyes()).toEqual([]);
+    expect(hote.querySelector('[data-suggestion-emoji]')).toBeNull();
+  });
+  it('propose un mot français sans accents et accepte le clic', async () => {
+    const el = await ouvrir(); await taper(el, 'coeur');
+    const bouton = hote.querySelector('[data-suggestion-emoji] button') as HTMLButtonElement;
+    expect(bouton).not.toBeNull(); bouton.click(); await finir();
+    expect(el.value).toMatch(/^coeur .+/u); expect(envoyes()).toEqual([]);
+  });
+  it('Échap ignore la suggestion sans fermer le partage', async () => {
+    const el = await ouvrir(true); await taper(el, 'hello');
+    touche(el, 'Escape'); await finir();
+    expect(el.value).toBe('hello'); expect(hote.querySelector('[data-suggestion-emoji]')).toBeNull();
+    let carte: unknown; carteAPartager.subscribe((v) => carte = v)(); expect(carte).not.toBeNull();
+    expect(envoyes()).toEqual([]);
+  });
+  it('ne détourne pas Tab pendant une composition, une sélection ou après un préfixe', async () => {
+    const el = await ouvrir(); await taper(el, 'hel');
+    expect(hote.querySelector('[data-suggestion-emoji]')).toBeNull();
+    await taper(el, 'hello'); el.setSelectionRange(0, 5); el.dispatchEvent(new Event('select')); await finir();
+    expect(hote.querySelector('[data-suggestion-emoji]')).toBeNull();
+    await taper(el, 'hello'); el.dispatchEvent(new CompositionEvent('compositionstart')); await finir();
+    touche(el, 'Tab'); await finir(); expect(el.value).toBe('hello');
+    el.dispatchEvent(new CompositionEvent('compositionend')); await finir();
+    expect(hote.querySelector('[data-suggestion-emoji]')).not.toBeNull();
+    expect(envoyes()).toEqual([]);
+  });
+  it('laisse Tab naviguer après les mots-outils et garde la région d’annonce montée', async () => {
+    const el = await ouvrir();
+    const annonce = hote.querySelector('.annonce[aria-live="polite"]');
+    expect(annonce).not.toBeNull(); expect(annonce?.textContent).toBe('');
+    for (const mot of ['le', 'de', 'il a', 'je', 'il', 'on', 'me', 'ok', 'sur', 'oui', 'non', 'the', 'you', 'with']) {
+      await taper(el, mot);
+      expect(hote.querySelector('[data-suggestion-emoji]'), `pas de suggestion sur le mot-outil ${mot}`).toBeNull();
+      const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      el.dispatchEvent(tab); await finir();
+      expect(tab.defaultPrevented, `Tab doit rester libre après ${mot}`).toBe(false);
+      expect(el.value).toBe(mot);
+    }
+    await taper(el, 'hello');
+    expect(hote.querySelector('[data-suggestion-emoji]')?.textContent).toContain('👋');
+    expect(hote.querySelector('.annonce[aria-live="polite"]')).toBe(annonce);
+    expect(annonce?.textContent).not.toBe('');
+    expect(envoyes()).toEqual([]);
+  });
+  it('le réglage du sélecteur désactive les suggestions et persiste', async () => {
+    const el = await ouvrir(); await taper(el, 'hello');
+    (hote.querySelector('.bouton-emoji') as HTMLButtonElement).click(); await finir();
+    const option = hote.querySelector('[data-option-suggestions]') as HTMLInputElement;
+    expect(option.checked).toBe(true); option.click(); await finir();
+    touche(option, 'Escape'); await finir(); await taper(el, 'hello');
+    expect(hote.querySelector('[data-suggestion-emoji]')).toBeNull();
+    expect(localStorage.getItem('tune.circle.emojis.suggestions')).toBe('non');
+    expect(envoyes()).toEqual([]);
+  });
+});

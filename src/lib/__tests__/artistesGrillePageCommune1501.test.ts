@@ -376,8 +376,8 @@ describe('#1501 — la Bibliothèque n’a plus de fiche d’artiste', () => {
 
   it('`ArtistesV2` passe par le chemin de référence, et ne tient plus de calque', () => {
     const src = sansCommentaires(lire('src/components/v2/ArtistesV2.svelte'));
-    // Avec la SOURCE choisie dans le menu de la Bibliothèque (#4201).
-    expect(src, 'le clic ne passe plus par `ouvrirArtisteDepuis`').toMatch(/ouvrirArtisteDepuis\(\{ id: a\.id, name: a\.name, source: 'local' \}, 'library', \{ provenance \}\)/);
+    // Avec la source (#4201) et le répertoire (#3021) choisis dans la Bibliothèque.
+    expect(src, 'le clic ne passe plus par `ouvrirArtisteDepuis`').toMatch(/ouvrirArtisteDepuis\(\{ id: a\.id, name: a\.name, source: 'local' \}, 'library', \{ provenance, dossier: \$libraryFolderScope \}\)/);
     for (const trace of ['ouvrirDetail(', 'cleDetailArtiste', 'detailOuvert', '<EnTeteArtiste', '<DiscographieCommune', '<AlbumDetailV2', 'ouvrirId', 'onComptesFiche']) {
       expect(src, `la fiche est de retour dans ArtistesV2 : « ${trace} »`).not.toContain(trace);
     }

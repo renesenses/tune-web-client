@@ -201,7 +201,7 @@
               <span class="cv"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={38} alt={p.title ?? ''} /></span>
               <span class="tx">
                 <span class="t1" use:bulleTexte>{p.title ?? ''}</span>
-                <span class="t2" use:bulleTexte>{p.artist_name ?? ''}</span>
+                <span class="t2" use:bulleTexte>{#if p.added_by_radio}<span class="par-radio" title={$t('queue.addedByRadioTip' as any)}>{$t('queue.addedByRadio' as any)}</span>{/if}{p.artist_name ?? ''}</span>
               </span>
               <span class="du">{dureeCompacte(p.duration_ms)}</span>
             </button>
@@ -253,6 +253,10 @@
   .tx{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
   .t1{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .t2{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* Fil 2694 — titre ajouté par la radio de fin de file. */
+  .t2 .par-radio{display:inline-block; margin-right:5px; padding:0 4px; border-radius:4px;
+    font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.04em;
+    background:var(--v2-acc-soft)}
   .du{flex:0 0 auto; font:500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); padding-left:4px}
   .plus{flex:0 0 36px; height:44px; display:grid; place-items:center; border:0; background:none; color:var(--v2-txt2); cursor:pointer}
   .plus svg{width:16px; height:16px}

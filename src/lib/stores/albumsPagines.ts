@@ -310,8 +310,22 @@ export function demanderBibliothequeEntiere(): Promise<Album[]> {
   const promesse = api.getAllAlbums(2000, null, null)
     .then((liste) => {
       // Un scan passé entre-temps : cette liste décrit une bibliothèque
-      // d'avant, on ne l'écrit pas.
-      if (get(generation) !== gen) return get(albums);
+      // d'avant. Une liste DÉJÀ À L'ÉCRAN la garde : l'invalidation l'a
+      // marquée périmée, l'écran qui la montre en redemande une neuve.
+      //
+      // 🔴 Recette rc12 du .18 (14/11, « Source · Local » → « Tout (0) ») —
+      // mais une liste VIDE ne doit pas le rester. Rien ne la redemandait :
+      // n'étant pas « périmée », l'effet de l'écran ne se rejouait pas, et
+      // la Bibliothèque restait sans albums tant qu'un `library.updated`
+      // (synchronisation UPnP, scan) tombait pendant le chargement. On
+      // l'écrit donc, marquée PÉRIMÉE : elle s'affiche, et l'écran la
+      // remplace par celle de la génération courante (fil 2134).
+      if (get(generation) !== gen) {
+        if (get(albums).length) return get(albums);
+        albums.set(liste);
+        listePerimee.set(true);
+        return liste;
+      }
       albums.set(liste);
       listePerimee.set(false);
       return liste;

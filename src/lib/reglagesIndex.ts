@@ -127,6 +127,7 @@ export const REGLAGES: Reglage[] = [
   // ── Bibliothèque › Outils ────────────────────────────────────────────
   { id: 'analyser-bibliotheque', section: 'library', labelKey: 'settings.scanLibraryV2', descKey: 'settings.scanModesHint', termesKey: 'reglages.termes.analyserBibliotheque', techniques: ['scan', 'rescan'] },
   { id: 'bibliotheque-etendue', section: 'library', labelKey: 'settings.extendedLibrary', descKey: 'settings.extendedLibraryHint' },
+  { id: 'faux-hires', section: 'library', labelKey: 'settings.fauxHiRes', descKey: 'settings.fauxHiResHint', techniques: ['Hi-Res', 'FLAC'] },
   { id: 'audit-integrite', section: 'library', labelKey: 'integrity.title', descKey: 'integrity.hint' },
   { id: 'etat-import-upnp', section: 'library', labelKey: 'v2.set.upnpImportTitle', techniques: ['UPnP'] },
   { id: 'dedoublonnage-meme-racine', section: 'libraryCleanup', labelKey: 'settings.dedupSameRootOnly', descKey: 'settings.dedupSameRootOnlyHint', techniques: ['NAS'] },

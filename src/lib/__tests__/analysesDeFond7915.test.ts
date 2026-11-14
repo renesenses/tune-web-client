@@ -143,6 +143,27 @@ describe('#7915 — les analyses qui suivent le scan se voient dans la barre', (
   });
 });
 
+describe('web#2950 — lancement sans rechargement', () => {
+  it('affiche la relance reçue avant le premier résultat puis suit sa fin', async () => {
+    monter();
+    // Laisser finir le GET initial vide : la suite utilise seulement le bus vivant.
+    await respirer();
+    await respirer();
+    expect(indicateur()).toBeNull();
+    emettre('system.background_tasks', {
+      tasks: [], pausable: [{ id: 'fingerprints', state: 'en_cours', paused: false,
+        progress: { processed: 0, total: 100, eta_seconds: null } }],
+    });
+    expect(indicateur(), 'la relance doit apparaître sans rafraîchir').not.toBeNull();
+    expect(indicateur()!.textContent).toContain(fr['v2.nav.bgTask.fingerprints']);
+    // Le registre émet aussi des instantanés partiels pour les autres tâches.
+    emettre('system.background_tasks', { tasks: [] });
+    expect(indicateur()).not.toBeNull();
+    emettre('system.background_tasks', { tasks: [], pausable: [] });
+    expect(indicateur()).toBeNull();
+  });
+});
+
 describe('#7915 — lecture des chiffres du serveur', () => {
   it('un serveur antérieur (sans `progress`) laisse la barre muette', () => {
     expect(depuisInstantane({ tasks: [], pausable: [{ id: 'fingerprints', state: 'en_cours', paused: false }] })).toBeNull();

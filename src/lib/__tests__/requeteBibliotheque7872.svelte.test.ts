@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // tune-server-rust#7872 — la requête avancée de la Bibliothèque
@@ -154,7 +155,7 @@ describe('le panneau de la Bibliothèque', () => {
       : PAGE);
     monter(ISSUE);
     await attendre();
-    expect(cible.textContent).toContain(tr('requeteAvancee.count').replace('{n}', '3'));
+    expect(cible.textContent).toContain(formaterPluriel(tr('requeteAvancee.countN'), 3, 'fr'));
     expect(cible.textContent).toContain('Allegro con brio');
     const plus = [...cible.querySelectorAll('button')].find((b) => b.textContent?.trim() === tr('requeteAvancee.more'))!;
     expect(plus).toBeTruthy();
@@ -172,7 +173,7 @@ describe('le panneau de la Bibliothèque', () => {
     monter('year:1963 ratng:5');
     await attendre();
     expect(cible.querySelector('mark')?.textContent).toBe('r');
-    expect(cible.textContent).not.toContain(tr('requeteAvancee.count').replace('{n}', '3'));
+    expect(cible.textContent).not.toContain(formaterPluriel(tr('requeteAvancee.countN'), 3, 'fr'));
   });
 });
 
@@ -210,7 +211,7 @@ describe('l’éditeur des collections intelligentes', () => {
       await attendre();
       const apercu = appels.filter((a) => a.url.endsWith('/preview')).at(-1)!;
       expect(apercu.corps.expression).toBe('conductor:karajan');
-      expect(cible.querySelector('.apercu')?.textContent).toContain(tr('v2.smart.previewCount').replace('{n}', '4'));
+      expect(cible.querySelector('.apercu')?.textContent).toContain(formaterPluriel(tr('v2.smart.previewN'), 4, 'fr'));
 
       // Une expression fautive : le repère sous le champ.
       champ.value = 'year:1963 ratng:5';

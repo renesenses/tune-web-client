@@ -81,3 +81,65 @@ describe('garde : chaque clé plurielle a toutes les formes de SA langue', () =>
     expect(categoriesExigees('pl')).toEqual(['one', 'few', 'many', 'other']);
   });
 });
+
+// Suite #2932 : une grille rend souvent le même compteur pour des nombres
+// différents. Le cache porte les règles et le message, jamais le résultat.
+describe('cache des pluriels', () => {
+  it('réutilise les objets Intl par langue et analyse chaque message une seule fois', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    const { formaterPluriel: rendre } = await import('../pluriel');
+    const Regles = Intl.PluralRules;
+    const Nombre = Intl.NumberFormat;
+    const regles = vi.spyOn(Intl, 'PluralRules').mockImplementation(function (lang, options) {
+      return new Regles(lang, options);
+    });
+    const nombres = vi.spyOn(Intl, 'NumberFormat').mockImplementation(function (lang, options) {
+      return new Nombre(lang, options);
+    });
+    const exec = RegExp.prototype.exec;
+    let analyses = 0;
+    const espion = vi.spyOn(RegExp.prototype, 'exec').mockImplementation(function (this: RegExp, s: string) {
+      if (this.source === String.raw`\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*plural\s*,` && this.lastIndex === 0) analyses++;
+      return exec.call(this, s);
+    });
+    try {
+      const message = '{n, plural, one {# album} few {# albumy} many {# albumów} other {# albums}}';
+      expect(rendre(message, 1, 'pl')).toBe('1 album');
+      expect(rendre(message, 5, 'pl')).toBe('5 albumów');
+      expect(rendre(message, 22, 'pl')).toBe('22 albumy');
+      expect(rendre(message, 0, 'en')).toBe('0 albums');
+      expect(rendre(message, 1, 'pl')).toBe('1 album');
+      expect(analyses).toBe(1);
+      expect(regles).toHaveBeenCalledTimes(2);
+      expect(nombres).toHaveBeenCalledTimes(2);
+      expect(rendre('{n, plural, one {# x} other {# xs}}', 3, 'en')).toBe('3 xs');
+      expect(analyses).toBe(2);
+      expect(regles).toHaveBeenCalledTimes(2);
+      expect(nombres).toHaveBeenCalledTimes(2);
+    } finally {
+      espion.mockRestore(); regles.mockRestore(); nombres.mockRestore();
+    }
+  });
+});
+
+describe('compteurs migrés après #2932', () => {
+  it('accorde les résultats en polonais et les albums en roumain', () => {
+    locale.set('pl');
+    expect(get(tn)('v2.ms.resultsN', 1)).toBe('1 wynik');
+    expect(get(tn)('v2.ms.resultsN', 3)).toBe('3 wyniki');
+    expect(get(tn)('v2.ms.resultsN', 5)).toBe('5 wyników');
+    expect(get(tn)('v2.ms.resultsN', 22)).toBe('22 wyniki');
+    locale.set('ro');
+    expect(get(tn)('v2.lib.yearAlbumsN', 3)).toBe('3 albume');
+    expect(get(tn)('v2.lib.yearAlbumsN', 20)).toBe('20 de albume');
+    expect(get(tn)('v2.lib.yearAlbumsN', 101)).toBe('101 albume');
+  });
+  it('préserve les messages de sélection vide et les variables du message choisi', () => {
+    locale.set('fr');
+    expect(get(tn)('v2.selection.countN', 0)).toBe('Aucune piste sélectionnée');
+    expect(get(tn)('v2.why.ownedArtistN', 3).replace('{artiste}', 'Bach')).toBe('Bach : 3 albums dans votre bibliothèque');
+    locale.set('en');
+    expect(get(tn)('settings.macRangesCountN', 0)).toBe('0 ranges');
+  });
+});

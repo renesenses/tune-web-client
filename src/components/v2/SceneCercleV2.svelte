@@ -36,7 +36,7 @@
    */
   import type { Snippet } from 'svelte';
   import { tick } from 'svelte';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import { nomDuPays } from '../../lib/paysAffichage';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
@@ -186,8 +186,7 @@
   const enCommun = $derived(grappes.some((g) => g.moi && g.membres.length > 0));
   /** Contacts qui n'ont pas posé leur ville : le globe le dit, au lieu de les taire. */
   const sansVille = $derived(relais === 'ok' ? contactsScene.filter((c) => !c.lieu).length : 0);
-  const texteSansVille = $derived(sansVille === 0 ? '' : sansVille === 1
-    ? tr('v2.circle.scene.world.unplacedOne') : tr('v2.circle.scene.world.unplacedMany', { n: sansVille }));
+  const texteSansVille = $derived(sansVille === 0 ? '' : $tn('v2.circle.scene.world.unplacedN', sansVille));
 
   // ── Lectures ────────────────────────────────────────────────────────────
   async function chargerFond() {
@@ -555,7 +554,7 @@
   const resume = $derived.by(() => {
     const parts: string[] = [];
     const n = contacts.length;
-    parts.push(n === 0 ? tr('v2.circle.scene.summaryNone') : n === 1 ? tr('v2.circle.scene.summaryOne') : tr('v2.circle.scene.summaryMany', { n }));
+    parts.push($tn('v2.circle.scene.summaryN', n));
     const communs = grappes.filter((g) => g.membres.length > 0);
     if (communs.length) {
       parts.push(tr('v2.circle.scene.summaryGenres', {

@@ -13,6 +13,8 @@
    * `onResume` : le rapport de bug ne le joint que si l'utilisateur coche.
    */
   import { t, locale } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { estEchec, messageDEchec } from '../../lib/assistantIa';
   import {
     apercuDiagnosticIa, envoyerDiagnosticIa, coutLisible,
@@ -65,6 +67,7 @@
 
 <section class="diag-ia" data-diagnostic-ia>
   <h3>{$t('assistantIa.diag.title' as any)}</h3>
+  <AssistantIaInactifV2 />
   <p class="sub">{$t('assistantIa.diag.intro' as any)}</p>
   <div class="ligne">
     <select bind:value={zoneId} aria-label={$t('assistantIa.diag.zone' as any)}>
@@ -95,7 +98,7 @@
     </div>
   {/if}
 
-  {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+  {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
 
   {#if diag}
     <div class="res" data-diag-resultat>

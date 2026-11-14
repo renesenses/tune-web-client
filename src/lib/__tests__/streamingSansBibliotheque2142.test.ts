@@ -180,7 +180,9 @@ describe('web#2142 — Bibliothèque : une recherche locale sans résultat mène
 
   it('le champ dit qu’il ne cherche que dans la bibliothèque LOCALE', async () => {
     const el = await poserEcran();
-    expect(el.querySelector<HTMLInputElement>('.v2-rech input')!.placeholder).toBe(fr['v2.lib.searchPlaceholder']);
+    // Recette rc12 (13/11) : l'invite est la commune (« Rechercher dans
+    // Albums… ») ; la précision LOCALE passe en infobulle.
+    expect(el.querySelector<HTMLInputElement>('.v2-rech input')!.title).toBe(fr['v2.lib.searchPlaceholder']);
     expect(fr['v2.lib.searchPlaceholder']).toMatch(/locale/);
   });
 });

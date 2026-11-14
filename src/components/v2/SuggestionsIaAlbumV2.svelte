@@ -14,6 +14,8 @@
    * que des vides.
    */
   import { onMount } from 'svelte';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import {
@@ -171,12 +173,13 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.album.title' as any)}
     onclick={(e) => e.stopPropagation()} data-suggestions-ia>
     <h2>{$t('assistantIa.album.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
 
     {#if chargement}
       <p class="note">{$t('assistantIa.playlist.thinking' as any)}</p>
     {:else}
-      {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+      {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
 
       {#if suggestions.length}
         <table class="ecart" data-ia-ecart>

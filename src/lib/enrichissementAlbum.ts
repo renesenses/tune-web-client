@@ -1,3 +1,4 @@
+import { formaterPluriel } from './pluriel';
 /**
  * #4805 lot 1 — enrichissement d'un album, d'après MetaRust, de Xavier Joly
  * (code offert à Tune le 05/10/2026) : complétude par rapport à l'édition
@@ -111,8 +112,7 @@ export function phraseDesManquantes(missing: PisteManquante[], plusieursDisques:
       ? `${numeros} ${t('v2.completeness.disc').replace('{n}', String(disque))}`
       : numeros;
   });
-  const cle = missing.length === 1 ? 'v2.completeness.missingOne' : 'v2.completeness.missingMany';
-  return t(cle).replace('{list}', morceaux.join(' ; '));
+  return formaterPluriel(t('v2.completeness.missingN'), missing.length, langue).replace('{list}', morceaux.join(' ; '));
 }
 
 /** Le BPM tel qu'on l'affiche : un entier, ou rien. */

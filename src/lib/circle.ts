@@ -382,6 +382,88 @@ export function reprisePochetteAlbumContact(
   return pochettesAlbumContact(a, userId)[1] ?? null;
 }
 
+// ─── web#3001 : la pochette de MES sources quand la vignette manque ─────────
+
+/**
+ * Une pochette retrouvée dans MES sources pour un album de contact
+ * (`POST /ext/circle/my-sources/album-covers`) : `source` vaut `local` (ma
+ * bibliothèque) ou le service (`qobuz`, `tidal`) ; `cover_path` est une
+ * adresse servable telle quelle (`/api/v1/library/artwork/…` ou celle du
+ * service, que `artworkUrl` relaie).
+ */
+export interface PochetteDeMesSources {
+  source: string;
+  cover_path: string;
+  album_id?: number;
+}
+
+/** Une page d'écran fait 50 albums : jamais davantage en une demande. */
+export const POCHETTES_PAR_DEMANDE = 50;
+
+/** L'album a-t-il une vignette envoyée par le serveur du contact ? */
+export function aUneVignette(a: { thumbnail?: string | null }): boolean {
+  return typeof a.thumbnail === 'string' && SHA256.test(a.thumbnail);
+}
+
+/**
+ * Les albums d'une page à faire chercher dans mes sources : sans vignette,
+ * avec un titre et un artiste, pas déjà cherchés (`connus`), au plus
+ * [`POCHETTES_PAR_DEMANDE`].
+ */
+export function albumsSansVignette<A extends Pick<AlbumContact, 'id' | 'title' | 'artist_name'> & { thumbnail?: string | null }>(
+  page: A[],
+  connus: { has(id: number): boolean },
+): A[] {
+  return page
+    .filter((a) => !aUneVignette(a) && !connus.has(a.id) && (a.title ?? '').trim() !== '' && (a.artist_name ?? '').trim() !== '')
+    .slice(0, POCHETTES_PAR_DEMANDE);
+}
+
+/**
+ * UNE demande pour toute une page : la pochette de chaque album dans mes
+ * sources, dans l'ordre, `null` quand rien ne correspond. Un greffon plus
+ * ancien (404) rend une liste de `null`.
+ */
+export async function pochettesDeMesSources(
+  albums: Pick<AlbumContact, 'title' | 'artist_name'>[],
+): Promise<(PochetteDeMesSources | null)[]> {
+  if (albums.length === 0) return [];
+  let r: { covers?: unknown } | null = null;
+  try {
+    r = await envoyer<{ covers?: unknown }>(`${BASE}/ext/circle/my-sources/album-covers`, 'POST', {
+      albums: albums.slice(0, POCHETTES_PAR_DEMANDE).map((a) => ({ title: a.title, artist_name: a.artist_name })),
+    });
+  } catch (e) {
+    if (plusPartage(e)) return albums.map(() => null);
+    throw e;
+  }
+  const covers = Array.isArray(r?.covers) ? r.covers : [];
+  return albums.map((_, i) => {
+    const c = covers[i] as Partial<PochetteDeMesSources> | null | undefined;
+    return c && typeof c.cover_path === 'string' && c.cover_path !== '' && typeof c.source === 'string'
+      ? { source: c.source, cover_path: c.cover_path, ...(typeof c.album_id === 'number' ? { album_id: c.album_id } : {}) }
+      : null;
+  });
+}
+
+/**
+ * Les pochettes à essayer pour un album de contact, ma pochette comprise :
+ * la vignette du contact gagne toujours ; sans elle, la pochette de mes
+ * sources passe avant Cover Art Archive, et l'écran le signale
+ * (`deMesSources`).
+ */
+export function pochettesAvecMesSources(
+  a: Pick<AlbumContact, 'id' | 'musicbrainz_release_group_id'> & { thumbnail?: string | null },
+  userId: number | null | undefined,
+  mienne: PochetteDeMesSources | null | undefined,
+): { coverPath: string | null; repli: string | null; deMesSources: boolean } {
+  const sources = pochettesAlbumContact(a, userId);
+  if (!aUneVignette(a) && mienne) {
+    return { coverPath: mienne.cover_path, repli: sources[0] ?? null, deMesSources: true };
+  }
+  return { coverPath: sources[0] ?? null, repli: sources[1] ?? null, deMesSources: false };
+}
+
 // ─── #6521 : partager les pochettes avec mon cercle (réglage de CE serveur) ──
 
 /**

@@ -1053,7 +1053,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     const n = lot.length;
     demandeCercle.set({
       mode: 'ajout',
-      nom: [album.title, $tr((n === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(n))]
+      nom: [album.title, $tn('v2.selection.countN', n)]
         .filter(Boolean).join(' · '),
       pistes: async () => lot,
     });
@@ -2160,7 +2160,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              ceux des boutons de l'album : ce sont les mêmes gestes. -->
         <div class="barre-selection" role="toolbar" aria-label={$tr('v2.selection.toolbar' as any)}>
           <span class="sel-compte" data-sel-compte aria-live="polite">
-            {$tr((choisies.length === 0 ? 'v2.selection.countNone' : choisies.length === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(choisies.length))}
+            {$tn('v2.selection.countN', choisies.length)}
           </span>
           <button class="sel-btn" data-sel-tout onclick={() => (sel = toutOuRien(sel, ordreSelection))}>
             {$tr((toutChoisi ? 'v2.selection.none' : 'v2.selection.all') as any)}

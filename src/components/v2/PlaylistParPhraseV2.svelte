@@ -8,6 +8,8 @@
    * enregistrer par la route habituelle.
    */
   import { t } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { portail } from '../../lib/portail';
   import {
     proposerPlaylistIa, estEchec, messageDEchec, cleDeRaison, valeurLisible,
@@ -65,6 +67,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.playlist.title' as any)}
     onclick={(e) => e.stopPropagation()} data-playlist-par-phrase>
     <h2>{$t('assistantIa.playlist.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
 
     <form onsubmit={proposer}>
@@ -78,7 +81,7 @@
       </div>
     </form>
 
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
     {#if erreur && (ecartees.length || nonTraduit.length)}
       <section class="res" data-ia-sans-regle>
         {#if nonTraduit.length}

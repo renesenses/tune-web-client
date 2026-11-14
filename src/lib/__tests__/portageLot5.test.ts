@@ -28,10 +28,12 @@ describe('radios : supprimer, importer, exporter', () => {
     expect(c).toContain('{ danger: true }');
     expect(R).toContain('onDeleted={(id) => { radios = radios.filter((x) => x.id !== id);');
   });
-  it('import M3U et export sont offerts', () => {
-    expect(R).toContain('onchange={importerM3u}');
+  // rc12 (14/11, retour de Rémi points 2 et 3) : l'import passe par le choix
+  // « Nouvelle station » ; « Exporter M3U » quitte l'écran.
+  it('import M3U offert par « Nouvelle station », plus d’export sur l’écran', () => {
+    expect(R).toContain('onImporter={importerM3u}');
     expect(corps(R, 'importerM3u')).toContain('api.importRadios(f)');
-    expect(R).toContain('href={api.exportRadiosUrl()}');
+    expect(R).not.toContain('exportRadiosUrl');
   });
 });
 

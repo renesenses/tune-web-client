@@ -67,3 +67,83 @@ export function lireClassements(stats: unknown): Classements | null {
 export function estTronque(c: Classement): boolean {
   return c.total > c.items.length;
 }
+
+/*
+ * CHERCHER DANS TOUT LE CLASSEMENT — go de Bertrand du 13/11 (lot rc12).
+ *
+ * Les cartes ne montrent que les cent premiers (« Les 100 premiers sur
+ * 2 957 ») : un artiste ou un genre plus loin n'y était pas trouvable.
+ * `GET /library/stats/rankings?by=artist|genre&q=…&limit=…` cherche dans le
+ * classement ENTIER, côté serveur, et rend le RANG de chaque entrée dans ce
+ * classement complet :
+ *
+ * ```json
+ * { "by": "artist", "items": [{ "rank": 151, "value": "Antonín Dvořák", "tracks": 12 }],
+ *   "matched": 1, "total": 2957 }
+ * ```
+ *
+ * Serveur plus ancien (route absente) : la recherche se replie sur les
+ * entrées déjà reçues (`filtrerLocalement`), et l'écran le dit.
+ */
+
+/** Le paramètre `by` de la route, pour chaque carte. */
+export const PARAM_CLASSEMENT: Record<CleClassement, 'artist' | 'genre'> = {
+  by_artist: 'artist',
+  by_genre: 'genre',
+};
+
+export interface EntreeTrouvee extends EntreeClassement {
+  /** Rang dans le classement COMPLET, à partir de 1. */
+  rank: number;
+}
+
+export interface ResultatRecherche {
+  items: EntreeTrouvee[];
+  /** Combien d'entrées correspondent en tout (au-delà de `items`). */
+  matched: number;
+  /** Taille du classement complet. */
+  total: number;
+}
+
+/** La réponse de `/library/stats/rankings`, ou `null` si elle est illisible. */
+export function lireRecherche(brut: unknown): ResultatRecherche | null {
+  if (!brut || typeof brut !== 'object' || Array.isArray(brut)) return null;
+  const o = brut as Record<string, unknown>;
+  if (!Array.isArray(o.items)) return null;
+  const items: EntreeTrouvee[] = [];
+  for (const e of o.items) {
+    if (!e || typeof e !== 'object') continue;
+    const r = e as Record<string, unknown>;
+    if (typeof r.value !== 'string' || !r.value.trim()) continue;
+    const rank = entier(r.rank);
+    if (!rank) continue;
+    items.push({ value: r.value, tracks: entier(r.tracks), rank });
+  }
+  return {
+    items,
+    matched: Math.max(entier(o.matched), items.length),
+    total: Math.max(entier(o.total), items.length),
+  };
+}
+
+/** Accents et casse repliés : « dvorak » trouve « Dvořák ». */
+export function plier(s: string): string {
+  return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+}
+
+/**
+ * Repli sans la route (serveur plus ancien) : chercher parmi les entrées
+ * reçues, dans l'ordre du classement, rang = position + 1. `q` vide : tout.
+ */
+export function filtrerLocalement(c: Classement, q: string): ResultatRecherche {
+  const aiguille = plier(q.trim());
+  const items = c.items
+    .map((e, i) => ({ ...e, rank: i + 1 }))
+    .filter((e) => !aiguille || plier(e.value).includes(aiguille));
+  return { items, matched: items.length, total: c.total };
+}
+
+/** Les lignes d'une carte sans recherche : les premiers, numérotés. */
+export function numeroter(c: Classement): EntreeTrouvee[] {
+  return c.items.map((e, i) => ({ ...e, rank: i + 1 }));
+}

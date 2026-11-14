@@ -91,6 +91,9 @@ export interface Artist {
    *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
    *  inconnu. Absent d'un serveur ancien. */
   musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
+  /** tune-server-rust#8668 — pays de l'artiste (MusicBrainz, #8090), code ISO
+   *  en majuscules ; `null` inconnu ; absent d'un serveur antérieur. */
+  country?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
@@ -368,6 +371,12 @@ export interface Track {
    * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
    */
   missing?: boolean;
+  /**
+   * Forum, fil 2694 — ligne de FILE ajoutée par la radio de fin de file
+   * (`GET /zones/{id}/queue`, tune-server-rust). Toujours posée par un
+   * serveur qui la connaît ; absente chez un plus ancien : pas de badge.
+   */
+  added_by_radio?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
   /**
@@ -733,10 +742,13 @@ export interface Zone {
   aac_passthrough?: boolean;
   /**
    * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
-   * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par
-   * defaut (migration 46), donc explicitement optionnel.
+   * Porte par la ZONE, en base — c'est ce que lit le poller. Active par
+   * defaut depuis la rc12 (fil 2694, migration serveur 152 / PG 118) ;
+   * optionnel pour les serveurs anciens.
    */
   autoplay_enabled?: boolean;
+  /** Le mode precis (#2271) : `off`, `similar`, `random_album`… */
+  autoplay_mode?: string;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;

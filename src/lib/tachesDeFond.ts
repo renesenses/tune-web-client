@@ -239,6 +239,8 @@ const LIBELLES_TACHES: Record<string, string> = {
   rescan_metadata: 'app.task.readMetadata',
   // tune-server-rust#8325 — la relecture unique des balises classiques.
   relecture_classique: 'app.task.readClassical',
+  // tune-server-rust rc12 — le renvoi unique des images d'artistes perdues par le site.
+  renvoi_images_artistes: 'app.task.shareArtistImages',
   compositeur_depuis_credits: 'app.task.composers',
   lyrics_fetch: 'app.task.lyrics',
   lyrics_write: 'app.task.writeLyrics',

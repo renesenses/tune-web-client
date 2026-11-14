@@ -19,7 +19,7 @@ import { flushSync, mount, unmount, tick } from 'svelte';
 import PlagesMacV2 from '../../components/v2/PlagesMacV2.svelte';
 import { etatPlage, filtrerTable, lireTableOui, plageAffichee, type TableOuiAudio } from '../plagesMac';
 import { V2_SETTINGS } from '../v2Settings';
-import { locale } from '../i18n';
+import { locale, preparerLocale } from '../i18n';
 
 const TABLE: TableOuiAudio = {
   vendors: [
@@ -138,6 +138,19 @@ afterEach(() => {
 });
 
 describe('PlagesMacV2 monté', () => {
+  it('le compteur monté suit les formes polonaises, puis change de langue', async () => {
+    await preparerLocale('pl');
+    locale.set('pl');
+    routeOui = () => reponse({ vendors: [{ name: 'Témoin', prefixes: ['00:00:01', '00:00:02', '00:00:03', '00:00:04', '00:00:05'] }], total: 5 });
+    const el = monter({});
+    await attendre();
+    expect(el.querySelector('.pm-compte')?.textContent?.trim()).toBe('5 zakresów');
+    await preparerLocale('ro');
+    locale.set('ro');
+    await attendre();
+    expect(el.querySelector('.pm-compte')?.textContent?.trim()).toBe('5 intervale');
+  });
+
   it('chaque appareil montre sa plage et sa marque, jamais sa MAC complète', async () => {
     const el = monter({ appareils: APPAREILS_RECENTS });
     await attendre();
