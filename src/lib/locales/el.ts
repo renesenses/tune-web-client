@@ -6789,7 +6789,6 @@ export default {
   "avisServeur.pure_resumed_at_position": "Εναλλαγή PURE: συνέχιση στο {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: η ένταση αυτής της ζώνης είναι κλειδωμένη από το PURE, γι' αυτό η αναπαραγωγή ξεκίνησε στο 0% για να προστατέψει τα αυτιά και τα ηχεία σας. Αυξήστε την ένταση στη συσκευή ή στο Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: το αρχείο είναι κατεστραμμένο από το {position}. Το Tune παρέλειψε το υπόλοιπο του κομματιού.",
-  "v2.pl.serviceNoPlaylists": "Το {s} δεν παρέχει λίστες αναπαραγωγής.",
   "v2.dev.listAria": "Συσκευές και ζώνες",
   "v2.dev.filterLabel": "Φιλτράρισμα συσκευών",
   "v2.dev.filterPlaceholder": "Αναζήτηση συσκευής…",

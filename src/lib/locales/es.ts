@@ -6944,7 +6944,6 @@ export default {
   "avisServeur.pure_resumed_at_position": "Cambio PURE: reanudado en {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: el volumen de esta zona está bloqueado por PURE, así que la reproducción empezó al 0 % para proteger tus oídos y tus altavoces. Sube el volumen en el dispositivo o en Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: el archivo está dañado a partir de {position}. Tune ha omitido el resto de la pista.",
-  "v2.pl.serviceNoPlaylists": "{s} no ofrece listas de reproducción.",
   "v2.dev.listAria": "Dispositivos y zonas",
   "v2.dev.filterLabel": "Filtrar dispositivos",
   "v2.dev.filterPlaceholder": "Buscar un dispositivo…",

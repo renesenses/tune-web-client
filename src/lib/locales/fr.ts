@@ -6966,7 +6966,6 @@ export default {
   "avisServeur.pure_resumed_at_position": "Bascule PURE : reprise à {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2 : le volume de cette zone est verrouillé par PURE, la lecture a donc démarré à 0 % pour protéger vos oreilles et vos enceintes. Montez le volume sur l'appareil ou dans Tune.",
   "erreursServeur.track_file_damaged": "« {title} » : le fichier est abîmé à partir de {position}. Tune a sauté la fin de la piste.",
-  "v2.pl.serviceNoPlaylists": "{s} ne propose pas de playlists.",
   "v2.dev.listAria": "Appareils et zones",
   "v2.dev.filterLabel": "Filtrer les appareils",
   "v2.dev.filterPlaceholder": "Rechercher un appareil…",
