@@ -7235,6 +7235,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "サービス未接続",
   "collectionPhysique.raisonsNullePart": "「どこにもなし」の理由",
   "collectionPhysique.aucunDisque": "この条件に一致する盤はありません。",
+  "collectionPhysique.aucunResultat": "「{q}」に一致するディスクはありません。",
   "collectionPhysique.copie": "取り込み済み",
   "collectionPhysique.nonCopie": "未取り込み：挿入すると取り込めます",
   "collectionPhysique.pastilleNonCopie": "未リッピング",

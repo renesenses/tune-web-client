@@ -7235,6 +7235,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "未连接服务",
   "collectionPhysique.raisonsNullePart": "为何“均无”",
   "collectionPhysique.aucunDisque": "没有符合此筛选条件的唱片。",
+  "collectionPhysique.aucunResultat": "没有与“{q}”匹配的唱片。",
   "collectionPhysique.copie": "已抓取",
   "collectionPhysique.nonCopie": "尚未抓取：放入光盘即可抓取",
   "collectionPhysique.pastilleNonCopie": "尚未抓取",

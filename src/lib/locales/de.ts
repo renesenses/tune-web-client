@@ -7235,6 +7235,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Kein Dienst verbunden",
   "collectionPhysique.raisonsNullePart": "Warum „nirgends“",
   "collectionPhysique.aucunDisque": "Kein Tonträger entspricht diesem Filter.",
+  "collectionPhysique.aucunResultat": "Kein Tonträger passt zu „{q}“.",
   "collectionPhysique.copie": "Gerippt",
   "collectionPhysique.nonCopie": "Noch nicht gerippt: Legen Sie sie zum Rippen ein",
   "collectionPhysique.pastilleNonCopie": "Noch nicht gerippt",

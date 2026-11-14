@@ -542,7 +542,11 @@
           {/if}
         </div>
       {/if}
-      {#if !disquesAffiches.length}
+      {#if !disquesAffiches.length && recherche.trim() && collection.disques.length}
+        <!-- Relecture de #3019 : une recherche sans résultat n'est pas une
+             collection vide. -->
+        <div class="state vide" data-recherche-vide>{$t('collectionPhysique.aucunResultat' as any).replace('{q}', recherche.trim())}</div>
+      {:else if !disquesAffiches.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
       {:else if affichage === 'grid'}
         <div class="grid" data-grille-collection>

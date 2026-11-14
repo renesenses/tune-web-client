@@ -7080,6 +7080,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Ingen tjeneste tilkoblet",
   "collectionPhysique.raisonsNullePart": "Hvorfor «ingen steder»",
   "collectionPhysique.aucunDisque": "Ingen plater samsvarer med filteret.",
+  "collectionPhysique.aucunResultat": "Ingen plate samsvarer med «{q}».",
   "collectionPhysique.copie": "Rippet",
   "collectionPhysique.nonCopie": "Ikke rippet ennå: sett den inn for å rippe den",
   "collectionPhysique.pastilleNonCopie": "Ikke rippet ennå",

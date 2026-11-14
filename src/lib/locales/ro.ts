@@ -7235,6 +7235,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Niciun serviciu conectat",
   "collectionPhysique.raisonsNullePart": "De ce „nicăieri”",
   "collectionPhysique.aucunDisque": "Niciun disc nu corespunde acestui filtru.",
+  "collectionPhysique.aucunResultat": "Niciun disc nu corespunde cu „{q}”.",
   "collectionPhysique.copie": "Copiat",
   "collectionPhysique.nonCopie": "Încă necopiat: introduceți-l pentru a-l extrage",
   "collectionPhysique.pastilleNonCopie": "Încă necopiat",

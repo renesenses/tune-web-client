@@ -17,6 +17,23 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, globSync } from 'node:fs';
 
 const lire = (f: string) => readFileSync(f, 'utf8');
+
+/** Spécificité CSS [id, classes, types] — Sélecteurs niveau 4 : `:has()`,
+ *  `:not()`, `:is()` valent leur argument, `:where()` rien, `:root` une classe. */
+function specificite(sel: string): [number, number, number] {
+  let s = sel.replace(/:where\([^)]*\)/g, '');
+  const args: string[] = [];
+  s = s.replace(/:(?:has|not|is)\(([^)]*)\)/g, (_, a) => { args.push(a); return ''; });
+  const base: [number, number, number] = [
+    (s.match(/#[\w-]+/g) ?? []).length,
+    (s.match(/\.[\w-]+|\[[^\]]*\]|:(?!:)[\w-]+/g) ?? []).length,
+    (s.replace(/[.#:][\w-]+|\[[^\]]*\]/g, ' ').match(/(^|[\s>+~])[a-z][\w-]*/gi) ?? []).length,
+  ];
+  for (const a of args) { const x = specificite(a.replace(/^\s*[>+~]\s*/, '')); base[0] += x[0]; base[1] += x[1]; base[2] += x[2]; }
+  return base;
+}
+const comparer = (a: number[], b: number[]) => (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]);
+
 const balisage = (f: string) => { const s = lire(f); const i = s.lastIndexOf('<style'); return i < 0 ? s : s.slice(0, i); };
 
 /** Les écrans à recherche, et où le champ se pose. */
@@ -41,6 +58,15 @@ const ECRANS: Record<string, 'entete' | 'barre' | 'panneau' | 'rangee-radios'> =
   'src/components/v2-heritage/BrowseView.svelte': 'barre',
   'src/components/v2-heritage/SmartPlaylistsView.svelte': 'barre',
 };
+
+describe('la spécificité calculée par la garde', () => {
+  it('compte comme le navigateur', () => {
+    expect(specificite('.v2-shell.mini .tune-v2 .v2-top .v2-actions')).toEqual([0, 5, 0]);
+    expect(specificite('.v2-shell .tune-v2 .v2-top > .v2-actions:has(> .v2-rech)')).toEqual([0, 5, 0]);
+    expect(specificite(':root .v2-shell .tune-v2 .v2-top > .v2-actions:has(> .v2-rech)')).toEqual([0, 6, 0]);
+    expect(specificite('html .a:where(.b)')).toEqual([0, 1, 1]);
+  });
+});
 
 describe('un seul champ de recherche, le même partout', () => {
   it('chaque écran listé importe et emploie ChampRecherche', () => {
@@ -98,6 +124,43 @@ describe('un seul champ de recherche, le même partout', () => {
     const bloc = css.slice(css.indexOf('@media (max-width:779px)'));
     expect(bloc).toMatch(/\.v2-top:has\(> \.v2-actions > \.v2-rech\)\{flex-wrap:wrap/);
     expect(bloc).toMatch(/\.v2-actions > \.v2-rech\{flex:1 1 100%/);
+  });
+
+  it('🔴 sous 780 px, la règle l’EMPORTE sur la vue mini (spécificité, pas ordre de chargement)', () => {
+    // Relecture de #3019 : `vue-mini.css` est chargée APRÈS `tune-v2.css` ;
+    // à spécificité égale, sa rangée `nowrap` gagnait et la recherche
+    // partageait la ligne des onglets. On exige donc une spécificité
+    // STRICTEMENT supérieure, propriété par propriété.
+    const css = lire('src/styles/tune-v2.css');
+    const mini = lire('src/styles/vue-mini.css').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const bloc = css.slice(css.indexOf('@media (max-width:779px)'));
+    const regles = [...bloc.slice(0, bloc.indexOf('\n}\n')).matchAll(/^\s*([^{\n@]+)\{([^}]*)\}/gm)]
+      .map((m) => ({ sel: m[1].trim(), props: m[2] }));
+    expect(regles.length).toBe(4);
+    // [cible dans la vue mini, propriété disputée, règle à nous qui la pose]
+    const duels: [RegExp, string][] = [
+      [/\.v2-top > \.v2-actions:has/, 'flex-wrap'],
+      [/> \.v2-titres$/, 'max-width'],
+      [/\.v2-top:has\(> \.v2-actions > \.v2-rech\)$/, 'flex-wrap'],
+      [/> \.v2-rech$/, 'flex'],
+    ];
+    const miniRegles = [...mini.matchAll(/([^{}]+)\{([^}]*)\}/g)].map((m) => ({ sel: m[1].trim(), props: m[2] }));
+    const derniere = (s: string) => s.split(/[\s>]+/).filter(Boolean).pop()!.replace(/:has\(.*$/, '');
+    for (const [motif, prop] of duels) {
+      const notre = regles.find((r) => motif.test(r.sel));
+      expect(notre, String(motif)).toBeTruthy();
+      expect(notre!.props).toContain(`${prop}:`);
+      const cible = derniere(notre!.sel.replace(/:has\([^)]*\)/g, ''));
+      const rivales = miniRegles.filter((r) => r.sel.split(',').some((s) => derniere(s.trim()) === cible)
+        && new RegExp(`(^|[;\\s])${prop}\\s*:`).test(r.props));
+      expect(rivales.length, `aucune règle rivale trouvée pour ${cible} (${prop}) : la garde ne mesure plus rien`).toBeGreaterThan(0);
+      for (const r of rivales) {
+        for (const s of r.sel.split(',')) {
+          if (derniere(s.trim()) !== cible) continue;
+          expect(comparer(specificite(notre!.sel), specificite(s.trim())), `${notre!.sel}  vs  ${s.trim()} (${prop})`).toBeGreaterThan(0);
+        }
+      }
+    }
   });
 
   it('l’invite existe dans les quinze langues, avec son {ecran}', () => {

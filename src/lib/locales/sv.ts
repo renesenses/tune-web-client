@@ -7234,6 +7234,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Ingen tjänst ansluten",
   "collectionPhysique.raisonsNullePart": "Varför ”ingenstans”",
   "collectionPhysique.aucunDisque": "Ingen skiva matchar filtret.",
+  "collectionPhysique.aucunResultat": "Ingen skiva matchar ”{q}”.",
   "collectionPhysique.copie": "Rippad",
   "collectionPhysique.nonCopie": "Inte rippad än: sätt i den för att rippa den",
   "collectionPhysique.pastilleNonCopie": "Inte rippad än",

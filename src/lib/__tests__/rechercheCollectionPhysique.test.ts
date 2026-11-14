@@ -38,3 +38,17 @@ describe('Ma collection physique — recherche', () => {
     expect(disqueRepondA({ titre: 'X', artiste: 'Y', labels: null, numeros_catalogue: null }, '123')).toBe(false);
   });
 });
+
+describe('Ma collection physique — l’écran', () => {
+  it('une recherche sans résultat se dit, et ne se lit pas comme une collection vide', async () => {
+    const { readFileSync } = await import('node:fs');
+    const s = readFileSync('src/components/v2/CollectionPhysiqueV2.svelte', 'utf8');
+    const i = s.indexOf("collectionPhysique.aucunResultat");
+    const j = s.indexOf("collectionPhysique.aucunDisque' as any)}</div>");
+    expect(i).toBeGreaterThan(0);
+    expect(i, 'le cas « recherche sans résultat » doit passer AVANT le vide').toBeLessThan(j);
+    expect(s).toMatch(/\{#if !disquesAffiches\.length && recherche\.trim\(\) && collection\.disques\.length\}/);
+    const fr = (await import('../locales/fr')).default as Record<string, string>;
+    expect(fr['collectionPhysique.aucunResultat']).toContain('{q}');
+  });
+});

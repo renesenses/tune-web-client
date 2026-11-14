@@ -7235,6 +7235,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Nessun servizio collegato",
   "collectionPhysique.raisonsNullePart": "Perché «da nessuna parte»",
   "collectionPhysique.aucunDisque": "Nessun disco corrisponde a questo filtro.",
+  "collectionPhysique.aucunResultat": "Nessun disco corrisponde a «{q}».",
   "collectionPhysique.copie": "Copiato",
   "collectionPhysique.nonCopie": "Non ancora copiato: inseriscilo per estrarlo",
   "collectionPhysique.pastilleNonCopie": "Non ancora copiato",
