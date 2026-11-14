@@ -29,6 +29,7 @@ import type { PagePistesServeur } from './api';
 import type { Track } from './types';
 import { fold } from './utils';
 import { provenanceDe } from './provenanceBibliotheque';
+import { dateDe } from './favorisTriFiltre';
 
 /** Une page : assez pour remplir trois écrans, assez peu pour partir vite. */
 export const TAILLE_PAGE = 200;
@@ -365,6 +366,16 @@ function cleDeTri(cle: CleColonne): (p: Track) => string | number | null {
       const d = a(p).last_played_at;
       return d ? Date.parse(String(d)) : null;
     });
+    // web#3043 — favoris d'un service : la date du cœur, par la même règle
+    // que l'écran Favoris (`dateDe`). Sans date : en fin de liste.
+    case 'added': return (p) => dateDe(p);
+    // La qualité : la profondeur d'abord, puis la fréquence (24/44,1 passe
+    // devant 16/44,1, 24/192 devant 24/96). Inconnue : en fin de liste.
+    case 'quality': return (p) => {
+      const bits = Number(p.bit_depth) || 0;
+      const freq = Number(p.sample_rate) || 0;
+      return bits || freq ? bits * 1e7 + freq : null;
+    };
     default: return () => null;
   }
 }
