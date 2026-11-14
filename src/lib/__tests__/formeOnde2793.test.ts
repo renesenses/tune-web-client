@@ -292,7 +292,7 @@ describe('fil 2793 — l’écran', () => {
     statutRoute = 422;
     poser(FormeOnde, { trackId: 7, section: null });
     boutonTexte(fr['fiche.waveform.compute'])!.click();
-    expect(await attendreQue(() => (document.body.textContent ?? '').includes(fr['fiche.waveform.notLocal']))).toBe(true);
+    expect(await attendreQue(() => (document.body.textContent ?? '').includes(fr['fiche.waveform.unavailableSource']))).toBe(true);
     expect(boutonTexte(fr['fiche.waveform.compute'])).toBeUndefined();
   });
 

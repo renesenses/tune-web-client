@@ -38,6 +38,7 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { idAnalyseDe } from '../../lib/spectrogramme';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -114,6 +115,9 @@
    * `cibleEtiquettes` ci-dessous, #1238.)
    */
   const idBibliotheque = $derived(local && piste.id != null ? piste.id : null);
+  /** Go du 13/11 — spectrogramme et fiche d'une piste Qobuz / TIDAL de la bibliothèque. */
+  const idAnalyse = $derived(local ? null : idAnalyseDe(piste));
+  const idSpectro = $derived(idBibliotheque ?? idAnalyse);
   const jouable = $derived(corpsDeLecture(piste) != null);
   /** Bannie ? (#4806) — même lecture que `PisteActions`, même module. */
   const bannie = $derived(estBannie(piste, $surchargesBannissement));
@@ -220,6 +224,7 @@
   const capacites = $derived({
     jouable,
     idBibliotheque,
+    idAnalyse,
     champsDeService: pisteService != null,
     similairesDeService: pisteSimilaires != null,
     creditsDeService: pisteCredits != null,
@@ -389,15 +394,15 @@
       onClose={() => (tiroirCredits = false)} />
   {/await}
 {/if}
-{#if panneauSpectro && idBibliotheque != null}
+{#if panneauSpectro && idSpectro != null}
   {#await import('../v2/SpectrogrammePanneau.svelte') then m}
-    <m.default trackId={idBibliotheque} titre={piste.title}
+    <m.default trackId={idSpectro} titre={piste.title} source={idAnalyse != null ? piste.source ?? null : null}
       onClose={() => (panneauSpectro = false)} />
   {/await}
 {/if}
-{#if panneauFiche && idBibliotheque != null}
+{#if panneauFiche && idSpectro != null}
   {#await import('../v2/FicheTechniquePanneau.svelte') then m}
-    <m.default trackId={idBibliotheque} titre={piste.title}
+    <m.default trackId={idSpectro} titre={piste.title}
       onClose={() => (panneauFiche = false)} />
   {/await}
 {/if}

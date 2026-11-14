@@ -171,7 +171,9 @@
               <p class="date">{date('fiche.computedOn', spectro.calcule_le)}</p>
             {/if}
             {#if calcul === 'encours'}
-              <p class="etat" role="status" aria-live="polite">{$t('spectro.loading' as any)}</p>
+              <p class="etat" role="status" aria-live="polite" data-telechargement={spectro.service ? true : undefined}>
+                {$t((spectro.service ? 'analyse.downloading' : 'spectro.loading') as any)}
+              </p>
             {:else}
               {#if calcul === 'echec'}<p class="etat" role="alert">{$t('fiche.spectro.failed' as any)}</p>{/if}
               <button class="bouton" onclick={recalculer}>
