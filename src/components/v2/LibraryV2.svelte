@@ -102,7 +102,7 @@
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
-  import { formatDeFichier } from '../../lib/typeDeFichier';
+  import { formatCanonique, formatDeFichier, formatsBrutsDe } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -805,7 +805,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
     if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
-    if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+    if (fFormat.length && !fFormat.includes(formatCanonique(a.format, a.bit_depth) ?? '')) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
       // Un album sans DR ne répond pas à une question de DR : il sort.
@@ -1713,6 +1713,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * sur une barre filtrante des statistiques, le referme.
    */
   let statsOuvertes = $state(false);
+  /** Les Statistiques sont À L'ÉCRAN (jamais sur un dépôt distant). */
+  const statsAffichees = $derived(statsOuvertes && !depot);
+  /** Le champ « Chercher un artiste » des Statistiques (web#2969). */
+  function champStatsArtiste(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>('[data-stats-bibliotheque] [data-recherche-classement="by_artist"]');
+  }
   let tabChoisi = $state<Tab>(
     // Lu UNE fois, au montage : c'est l'onglet d'arrivée, pas un suivi.
     untrack(() => (depot ? null : ongletDeLaCoquille($ongletCourant))) ?? lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'),
@@ -2448,7 +2454,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     exportCatalogueEnCours = true;
     try {
       await api.exportCatalogue({
-        qualites: fQuality, formats: fFormat, tri: sortKey, ordreAnnee,
+        // Recette 14/11 — la route compare le format BRUT de l'album : « DSD »
+        // coché lui part en « dsf » et « dsd », ceux que la grille a comptés.
+        qualites: fQuality, formats: formatsBrutsDe(src, fFormat), tri: sortKey, ordreAnnee,
         genre: tab === 'genres' ? facetteOuverte : null,
         artiste: tab === 'artists' ? facetteOuverte : null,
         langue: $locale,
@@ -3210,7 +3218,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   $effect(() => {
     if (depot) return;
     const surFrappe = gestionnaireFrappeVersRecherche({
-      champ: () => champRecherche,
+      // Recette 14/11 — sur les Statistiques, la frappe va à « Chercher un
+      // artiste », pas au champ des Albums, masqués (et retiré de l'en-tête).
+      champ: () => (statsAffichees ? champStatsArtiste() : champRecherche),
       disponible: () => !opened && !enEdition && !ddOpen,
     });
     window.addEventListener('keydown', surFrappe);
@@ -3503,7 +3513,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          recherche » : le champ quitte la rangée des filtres pour l'en-tête,
          en PREMIER, comme sur tous les autres écrans (`ChampRecherche`). Son
          invite nomme l'onglet ouvert : « Rechercher dans Albums… ». -->
-    {#if showSearch}
+    <!-- Recette 14/11 — sur l'onglet Statistiques, PAS de champ d'en-tête : il
+         cherchait « dans Albums », onglet masqué, et rien ne bougeait à
+         l'écran. Les cartes Artistes et Genres ont chacune la leur (web#2969,
+         règle de web#3019). La PLACE reste, comme sur les Ajouts récents. -->
+    {#if showSearch && !statsAffichees}
       <!-- web#2142 — l'infobulle garde la précision « bibliothèque LOCALE ». -->
       <ChampRecherche bind:valeur={q} bind:champ={champRecherche} raccourci="/"
         ecran={depot ? depot.nom : $tr((ONGLETS.find((o) => o.id === tab)?.label ?? 'library.title') as any)}

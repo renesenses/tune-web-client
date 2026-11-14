@@ -1,5 +1,6 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
 import { dansPeriode, type Periode } from './periodeAnnees';
+import { formatCanonique } from './typeDeFichier';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -180,7 +181,7 @@ export function correspond(
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
   if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
   if (sauf !== 'format' && f.format.length
-      && !f.format.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+      && !f.format.includes(formatCanonique(a.format, a.bit_depth) ?? '')) return false;
   if (sauf !== 'profondeur' && f.profondeur.length
       && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
   // `?? false` : un album servi par une route qui ne porte pas le champ, ou
@@ -287,7 +288,9 @@ export function comptesFormat(
 ): [string, number][] {
   const m = new Map<string, number>();
   for (const a of assiette(albums, f, o, 'format')) {
-    const v = a.format?.trim().toUpperCase();
+    // Recette 14/11 — le codec (`formatCanonique`) : « MPEG » et « MP3 » ne
+    // font qu'une entrée, comme dans les Statistiques.
+    const v = formatCanonique(a.format, a.bit_depth);
     if (v) m.set(v, (m.get(v) ?? 0) + 1);
   }
   return [...m.entries()].sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));

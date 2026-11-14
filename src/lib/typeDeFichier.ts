@@ -49,3 +49,55 @@ export function qualiteCompacte(objet: ObjetQualite | null | undefined): string 
   const chiffres = khz ? `${khz}${bits ? '/' + bits : ''}` : null;
   return [fmt, chiffres].filter(Boolean).join(' ') || null;
 }
+
+/**
+ * Recette de Bertrand (14/11) — la carte « Formats » des Statistiques listait
+ * « MPEG » (146) ET « MP3 » (143), « DSF » et « DSD », « MP4 » à côté de
+ * « AAC » / « ALAC ». Sur le .18, MPEG, DSD et MP4 viennent tous des pistes
+ * UPnP : le serveur multimédia donne un type MIME (`audio/mpeg`, `audio/dsd`,
+ * `audio/mp4`), pas une extension.
+ *
+ * `formatCanonique` : le format d'une STATISTIQUE et du filtre Format de la
+ * Bibliothèque — le CODEC, pas le conteneur :
+ *  - MPEG (et MPGA) → MP3 ;
+ *  - DSF, DFF et DSD → DSD : même flux DSD ; le DSD d'un serveur UPnP ne dit
+ *    pas son conteneur, et le séparer de DSF comptait deux fois la même chose.
+ *    La vignette d'album garde le conteneur (`qualiteCompacte`, #1901) ;
+ *  - MP4 / M4A → ALAC si la piste a une profondeur de bits (codec sans perte),
+ *    AAC sinon (un AAC n'en a jamais) — sur le .18 : 111 pistes MP4, toutes à
+ *    24 bits, et 11 492 AAC, toutes sans.
+ * Même règle côté serveur (`repartitions_bibliotheque.rs`) ; elle est
+ * idempotente : « MP3 », « DSD », « AAC » restent eux-mêmes.
+ */
+const CODEC_DE: Record<string, string> = {
+  MPEG: 'MP3', MPGA: 'MP3',
+  DSF: 'DSD', DFF: 'DSD', DSDIFF: 'DSD',
+};
+
+export function formatCanonique(format: string | null | undefined, bitDepth?: number | null): string | null {
+  const f = formatDeFichier(format);
+  if (!f) return null;
+  if (f === 'MP4' || f === 'M4A') return (bitDepth ?? 0) > 0 ? 'ALAC' : 'AAC';
+  return CODEC_DE[f] ?? f;
+}
+
+/**
+ * Les formats BRUTS (en minuscules) des albums dont le codec est coché : ce
+ * qu'attend une route qui compare `album.format` tel quel (export du
+ * catalogue). Sans album correspondant, le codec lui-même, en minuscules.
+ */
+export function formatsBrutsDe(
+  albums: readonly { format?: string | null; bit_depth?: number | null }[],
+  coches: readonly string[],
+): string[] {
+  if (!coches.length) return [];
+  const bruts = new Set<string>();
+  for (const a of albums) {
+    const c = formatCanonique(a.format, a.bit_depth);
+    const brut = String(a.format ?? '').trim().toLowerCase();
+    if (c && brut && coches.includes(c)) bruts.add(brut);
+  }
+  const trouves = new Set(albums.map((a) => formatCanonique(a.format, a.bit_depth)));
+  for (const c of coches) if (!trouves.has(c)) bruts.add(c.toLowerCase());
+  return [...bruts].sort();
+}

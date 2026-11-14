@@ -23,6 +23,8 @@
  * Node.
  */
 
+import { formatCanonique, formatDeFichier } from './typeDeFichier';
+
 export type CleRepartition = 'by_codec' | 'by_sample_rate' | 'by_decade' | 'by_credit_role';
 
 export const CLES_REPARTITION: CleRepartition[] = ['by_codec', 'by_sample_rate', 'by_decade', 'by_credit_role'];
@@ -80,6 +82,33 @@ function liste(brut: unknown): EntreeRepartition[] {
 }
 
 /**
+ * Recette 14/11 — le codec d'une case Format (`formatCanonique`) : « mpeg »
+ * rejoint « mp3 », « dsf » rejoint « dsd ». Un « mp4 » reste lui-même : sans
+ * profondeur de bits, on ne sait pas s'il est AAC ou ALAC (le serveur, qui la
+ * connaît, l'a déjà rangé ; seul un serveur plus ancien en envoie encore).
+ */
+function codecDe(value: string): string {
+  const f = formatDeFichier(value);
+  if (!f) return value;
+  return (f === 'MP4' || f === 'M4A' ? f : formatCanonique(f) ?? f).toLowerCase();
+}
+
+/** Les cases Format fusionnées par codec, de la plus fournie à la plus rare. */
+function parCodec(entrees: EntreeRepartition[]): EntreeRepartition[] {
+  const m = new Map<string, number>();
+  const inconnues: EntreeRepartition[] = [];
+  for (const e of entrees) {
+    if (e.value === null) { inconnues.push(e); continue; }
+    const c = codecDe(String(e.value));
+    m.set(c, (m.get(c) ?? 0) + e.tracks);
+  }
+  const connues = [...m.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([value, tracks]) => ({ value, tracks }));
+  return [...connues, ...inconnues];
+}
+
+/**
  * Les répartitions d'une réponse de `/library/stats`, ou `null` quand le
  * serveur ne les sert pas (clé absente, `null`, ou d'une autre forme).
  */
@@ -89,7 +118,7 @@ export function lireRepartitions(stats: unknown): Repartitions | null {
   if (!d || typeof d !== 'object' || Array.isArray(d)) return null;
   const o = d as Record<string, unknown>;
   return {
-    by_codec: liste(o.by_codec),
+    by_codec: parCodec(liste(o.by_codec)),
     by_sample_rate: liste(o.by_sample_rate),
     by_decade: liste(o.by_decade),
     by_credit_role: liste(o.by_credit_role),
@@ -135,8 +164,9 @@ export function filtreDe(cle: CleRepartition, value: string | number | null): Fi
   if (value === null) return null;
   switch (cle) {
     case 'by_codec': {
-      // La Bibliothèque compare `album.format` en MAJUSCULES (`LibraryV2`).
-      const f = String(value).trim().toUpperCase();
+      // La Bibliothèque compare le CODEC de l'album (`formatCanonique`), en
+      // MAJUSCULES : la barre « MP3 » ouvre aussi les albums « MPEG ».
+      const f = codecDe(String(value).trim()).toUpperCase();
       return f ? { format: f } : null;
     }
     case 'by_sample_rate': {
