@@ -114,3 +114,12 @@ it.each(['absente', 'fausse', 'route absente'])('ne promet pas de dossier si la 
   await attendre(() => expect(jouer).toHaveBeenCalledTimes(1));
   expect(urls.find((u) => u.pathname.endsWith('/7/tracks'))?.searchParams.has('folder')).toBe(false);
 });
+
+it('retire la portée locale en passant à une fiche de service (#3021)', async () => {
+  ficheArtisteService.set({ service: null, id: '7', nom: ARTISTE.name, dossier: DOSSIER });
+  await monterFiche();
+  expect(hote.querySelector('[data-dossier-artiste]')).not.toBeNull();
+  ficheArtisteService.set({ service: 'qobuz', id: '42', nom: 'Artiste Qobuz' });
+  flushSync();
+  expect(hote.querySelector('[data-dossier-artiste]'), 'le dossier local ne doit pas survivre sur une fiche de service').toBeNull();
+});

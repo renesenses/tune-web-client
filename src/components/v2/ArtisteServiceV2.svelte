@@ -132,7 +132,8 @@
    */
   const provenance = $derived(estLocal ? (cible?.provenance ?? null) : null);
   // Une portée demandée n'est effective que si CE serveur la prend en charge.
-  let dossier = $state<string | null>(null);
+  let dossierVerifie = $state<string | null>(null);
+  const dossier = $derived(estLocal ? dossierVerifie : null);
   const nomDossier = $derived(dossier?.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dossier || '');
   function retirerDossier() {
     ficheArtisteService.update((c) => c && c.service == null ? { ...c, dossier: null } : c);
@@ -584,7 +585,7 @@
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
     void chargerMetadonnees(id);
-    dossier = null;
+    dossierVerifie = null;
     let portee: string | null = null;
     if (dossierDemande) {
       try {
@@ -595,7 +596,7 @@
       }
       if (mien !== jeton) return;
     }
-    dossier = portee;
+    dossierVerifie = portee;
     const [a, d] = await Promise.allSettled([
       api.getArtist(id),
       // #4767 — la discographie ET ses deux sections, en un aller-retour.
