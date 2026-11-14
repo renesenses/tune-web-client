@@ -1947,9 +1947,13 @@ import { ICONES } from '../../lib/menuPiste';
                  d'alec_eiffel, fil 2560). Il quitte la ligne du nom : un seul
                  logo à l'écran. -->
             {#if isRadio && logoStation}
-              <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
+              <!-- Rémi (retour rc11, décision du 14/11, rc12) — le logo reste
+                   petit mais ouvre la fiche de la station, comme le nom. -->
+              <button type="button" class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}
+                aria-label={displayTrack.album_title || 'Radio'}
+                onclick={(e) => { e.stopPropagation(); ficheStationOuverte = true; }}>
                 <AlbumArt coverPath={logoStation} albumId={null} size={0} recadrer alt={displayTrack.album_title || 'Radio'} />
-              </span>
+              </button>
             {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
@@ -1959,7 +1963,10 @@ import { ICONES } from '../../lib/menuPiste';
           </div>
           <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
                de lecture n'a pas. -->
-          {#if styleCrete !== 'off'}
+          <!-- Rémi (retour rc11, décision du 14/11, rc12) — une radio n'a qu'UN
+               visuel sur cet écran : le spectre du bas. La crête sous la
+               pochette reste pour la musique. -->
+          {#if styleCrete !== 'off' && !isRadio}
             <!-- 28/09/2026 — les deux voies sont enfin NOMMÉES (`L`/`R`, dans
                  la toile, en face de leur barre), et la disposition de canaux
                  se lit à droite quand la piste est multicanale. En stéréo, pas
@@ -4539,7 +4546,12 @@ import { ICONES } from '../../lib/menuPiste';
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-    pointer-events: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .np-logo-coin:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
   .np-logo-coin :global(.album-art) {
     border-radius: inherit;

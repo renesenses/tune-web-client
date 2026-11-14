@@ -14,9 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 vi.mock('../zoneRequise', () => ({ zoneRequise: () => 3 }));
 
-import RadiosV2 from '../../components/v2/RadiosV2.svelte';
+// rc12 (14/11, retour de Rémi point 32) : l'onglet « Carte » est masqué dans
+// la page Radio ; le composant reste, et se monte ici directement.
+import CarteRadios from '../../components/v2/CarteRadios.svelte';
 import { locale } from '../i18n';
-import fr from '../locales/fr';
 
 const fiche = (o: Record<string, unknown>) => ({
   external_id: 'S100001', name: 'OuiFM Blues & Rock', logo_url: null, country_code: 'FR',
@@ -59,10 +60,7 @@ afterEach(() => {
 async function ouvrirCarte() {
   hote = document.createElement('div');
   document.body.append(hote);
-  instance = mount(RadiosV2, { target: hote, props: {} });
-  await respirer();
-  [...hote.querySelectorAll<HTMLButtonElement>('.sections button')]
-    .find((b) => b.textContent?.trim() === fr['v2.radio.tabMap'])!.click();
+  instance = mount(CarteRadios, { target: hote, props: {} });
   await respirer();
 }
 const groupes = () => [...hote.querySelectorAll<HTMLButtonElement>('.noeuds .groupe')].map((b) => b.getAttribute('aria-label'));

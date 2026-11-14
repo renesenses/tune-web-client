@@ -3,6 +3,7 @@
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   import CoffretsV2 from './CoffretsV2.svelte';
   import StatsBibliothequeV2 from './StatsBibliothequeV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -3498,6 +3499,32 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
+    <!-- Recette rc12 (13/11) — « harmonise la localisation de la zone de
+         recherche » : le champ quitte la rangée des filtres pour l'en-tête,
+         en PREMIER, comme sur tous les autres écrans (`ChampRecherche`). Son
+         invite nomme l'onglet ouvert : « Rechercher dans Albums… ». -->
+    {#if showSearch}
+      <!-- web#2142 — l'infobulle garde la précision « bibliothèque LOCALE ». -->
+      <ChampRecherche bind:valeur={q} bind:champ={champRecherche} raccourci="/"
+        ecran={depot ? depot.nom : $tr((ONGLETS.find((o) => o.id === tab)?.label ?? 'library.title') as any)}
+        aide={depot ? undefined : $tr('v2.lib.searchPlaceholder' as any)} />
+      <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
+           sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
+           route. Elle part du texte déjà tapé. -->
+      {#if !depot}
+        <button class="req-av" data-requete-avancee-bib onclick={() => (requeteOuverte = true)}
+          aria-label={$tr('requeteAvancee.open' as any)} title={$tr('requeteAvancee.open' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        </button>
+      {/if}
+    {:else}
+      <!-- Ajouts récents, Coffrets : pas de recherche (#1367, elle y serait
+           inerte), mais sa PLACE reste — sinon les onglets glissent sous le
+           pointeur au changement d'onglet. -->
+      <span class="v2-rech" data-place-recherche aria-hidden="true"></span>
+      {#if !depot}<span class="req-av place" aria-hidden="true"></span>{/if}
+    {/if}
     <nav class="tabs">
       <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
            offert sur un dépôt distant, faute de route chez lui. -->
@@ -3744,31 +3771,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {/each}
           </div>
         </div>
-      {/if}
-    {/if}
-    <!-- Le champ partagé (`.v2-rech`), comme sur tous les autres écrans. Il
-         faisait ici 320 × 42 avec sa loupe en flux, ailleurs 300 × 40 avec la
-         loupe en absolu : deux dessins pour un seul geste. -->
-    {#if showSearch}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input bind:this={champRecherche} placeholder={$tr('v2.lib.searchPlaceholder' as any)}
-               aria-label={$tr('v2.lib.searchPlaceholder' as any)} aria-keyshortcuts="/" bind:value={q} />
-        {#if q}
-          <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
-      <!-- tune-server-rust#7872 — la requête avancée (`composer:… year:…`),
-           sur la bibliothèque LOCALE seulement : un dépôt distant n'a pas la
-           route. Elle part du texte déjà tapé. -->
-      {#if !depot}
-        <button class="req-av" data-requete-avancee-bib onclick={() => (requeteOuverte = true)}
-          aria-label={$tr('requeteAvancee.open' as any)} title={$tr('requeteAvancee.open' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-        </button>
       {/if}
     {/if}
 
@@ -4704,10 +4706,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   @media (max-width:640px){
     :global(.v2-shell:not(.mini)) .v2-lib > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
     :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-titres{padding-right:0}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs, :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top > .v2-actions::-webkit-scrollbar{display:none}
-    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs + .tab{flex:0 0 auto}
+    /* La recherche, elle, garde sa ligne entière (règle commune sous 780 px,
+       `tune-v2.css`) : c'est la rangée d'onglets seule qui défile. */
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs{flex-wrap:nowrap; flex:1 1 0; min-width:0; overflow-x:auto; scrollbar-width:none}
+    :global(.v2-shell:not(.mini)) .v2-lib > .v2-top .tabs::-webkit-scrollbar{display:none}
   }
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
     font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
@@ -4879,6 +4882,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .req-av{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .req-av:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .req-av.place{visibility:hidden}
   .req-av svg{width:16px; height:16px}
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus

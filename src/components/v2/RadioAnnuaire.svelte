@@ -258,8 +258,6 @@
               favoriExterne={{ actif: !!f.my_radio_favorite, basculer: () => basculerFavori(f) }}
               onAjouter={f.my_radio_id == null ? () => ajouter(f) : null}
               libelleAjouter={$t('v2.radio.dir.add' as any)}
-              onVoir={() => (enFiche = f)}
-              libelleVoir={$t('v2.radio.view' as any)}
               onRetirer={f.my_radio_id != null ? () => retirer(f) : null}
               libelleRetirer={$t('v2.radio.removeFromMine' as any)}
               onLire={() => ecouter(f)}

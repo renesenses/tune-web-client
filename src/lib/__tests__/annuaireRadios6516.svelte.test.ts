@@ -70,9 +70,10 @@ async function ouvrirAnnuaire() {
   instance = mount(RadiosV2, { target: hote, props: {} });
   flushSync();
   await respirer();
-  const onglets = hote.querySelectorAll<HTMLButtonElement>('.sections button');
-  // Trois depuis web#2400 : « Carte » rejoint Mes radios et Annuaire.
-  expect(onglets.length, 'les onglets Mes radios / Annuaire / Carte manquent').toBe(3);
+  const onglets = hote.querySelectorAll<HTMLButtonElement>('.sections [role=tab]');
+  // Trois depuis web#2400 (« Carte ») ; deux en rc12, la Carte étant masquée
+  // (retour de Rémi, point 32).
+  expect(onglets.length, 'les onglets Mes radios / Annuaire manquent').toBe(2);
   onglets[1].click();
   await respirer();
   await new Promise((r) => setTimeout(r, 10));

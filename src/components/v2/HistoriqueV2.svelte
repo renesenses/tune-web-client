@@ -51,6 +51,8 @@
   import { colonnesRetenues } from '../../lib/colonnesPistes';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import '../../styles/tune-v2.css';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerParTexte } from '../../lib/filtreTexte';
 
   /**
    * 🔴 LA LIGNE D'OBJET S'ALIGNE SUR LE TABLEAU DES PISTES — #1009.
@@ -149,7 +151,14 @@
    * reste la forme dominante de l'écran — c'est aussi ce que montre le schéma
    * de FabienM, où des titres nus voisinent avec des objets.
    */
-  const tranches = $derived(enTranches(regrouperParContexte(entrees)));
+  /** Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   *  titre, artiste, album, ce qui a été lancé, la zone — sur les écoutes
+   *  chargées (`/library/history` n'a pas de paramètre texte). */
+  let recherche = $state('');
+  const trouvees = $derived(filtrerParTexte(entrees, recherche, (x: any) => [
+    x.track?.title, x.track?.artist_name, x.track?.album_title, x.contexte?.nom, x.zoneName,
+  ]));
+  const tranches = $derived(enTranches(regrouperParContexte(trouvees)));
 
   /**
    * #988 — le nom (et la pochette) d'une playlist de SERVICE jouée. Le
@@ -392,6 +401,7 @@
     </div>
     {#if entrees.length}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$tr('history.title')} />
         <div class="meta"><span>{entrees.length} {$tr('history.plays')}</span></div>
         <button class="v2-btn danger" onclick={vider} disabled={vidage}>{$tr('history.clear')}</button>
       </div>
@@ -401,6 +411,8 @@
   <div class="scroll">
     {#if !entrees.length}
       <div class="state">{$tr('history.noHistory')}</div>
+    {:else if !trouvees.length}
+      <div class="state" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
       <!-- #1149 — les deux colonnes de queue du tableau, posées une fois pour
            toutes les lignes d'objet de l'écran. `--col1` reste sur la ligne

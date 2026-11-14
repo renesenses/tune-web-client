@@ -118,7 +118,9 @@ describe('#7857 — l’appel à la route', () => {
     expect(genreDeRefus(422, 'track has no local file')).toBe('non-locale');
     expect(genreDeRefus(422, 'track file not found')).toBe('non-locale');
     expect(genreDeRefus(422, 'spectrogram failed: decode')).toBe('impossible');
-    expect(genreDeRefus(404, 'track not found')).toBe('indisponible');
+    // #2945 : la piste inconnue n'est pas une fonction absente.
+    expect(genreDeRefus(404, 'track not found')).toBe('introuvable');
+    expect(genreDeRefus(404, '')).toBe('indisponible');
     expect(genreDeRefus(401, '')).toBe('session');
     expect(genreDeRefus(500, 'boom')).toBe('reseau');
     reponse = { statut: 422, corps: 'track has no local file' };

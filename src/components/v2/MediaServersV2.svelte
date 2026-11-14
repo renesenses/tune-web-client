@@ -43,6 +43,7 @@
   import { estUnServeurTune, ouvertureParDefaut, RAYONS_TUNE } from '../../lib/mediaServerHome';
   import { depotDistant } from '../../lib/tuneRemote';
   import LibraryV2 from './LibraryV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import UpnpLibrarySourcesV2 from './UpnpLibrarySourcesV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
   import {
@@ -490,13 +491,7 @@
            « Rechercher dans … » et « Effacer » s'affichaient tels quels dans
            une interface anglaise — le défaut qu'Alex Campbell a signalé le
            08/09/2026. -->
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.ms.searchIn' as any).replace('{name}', open.name)}
-          aria-label={$t('v2.ms.searchIn' as any).replace('{name}', open.name)} bind:value={q} />
-        {#if cherche}<span class="spin" aria-hidden="true"></span>
-        {:else if q}<button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)}>×</button>{/if}
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={open.name} enCours={cherche} onvider={viderRecherche} />
     {/if}
     </div>
   </header>

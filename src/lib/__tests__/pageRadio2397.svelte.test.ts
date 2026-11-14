@@ -77,17 +77,15 @@ describe('recherche : même emplacement sur Mes radios et Annuaire', () => {
   });
 });
 
-describe('import / export M3U : Mes radios seulement', () => {
-  it('🔴 présents sur Mes radios, absents sur Annuaire', async () => {
+describe('import / export M3U : plus dans l’en-tête (rc12, retour de Rémi)', () => {
+  it('🔴 ni import ni export sur la page, dans aucun onglet', async () => {
     await monter();
-    expect(hote.querySelector('a[download="radios.m3u"]')).not.toBeNull();
-    onglet(1).click();
-    await respirer();
-    expect(hote.querySelector('a[download="radios.m3u"]')).toBeNull();
-    expect(hote.querySelector('input[type=file]')).toBeNull();
-    onglet(0).click();
-    await respirer();
-    expect(hote.querySelector('a[download="radios.m3u"]')).not.toBeNull();
+    for (const i of [0, 1]) {
+      onglet(i).click();
+      await respirer();
+      expect(hote.querySelector('a[download]'), 'lien d’export présent').toBeNull();
+      expect(hote.querySelector('input[type=file]'), 'import présent hors du choix').toBeNull();
+    }
   });
 });
 
@@ -258,10 +256,10 @@ describe('Annuaire relu à chaque ouverture', () => {
   });
 });
 
-describe('« Nouvelle station » : trois choix', () => {
+describe('« Nouvelle station » : quatre choix', () => {
   const ouvrir = async () => {
     await monter();
-    (hote.querySelector('.v2-btn.primaire') as HTMLButtonElement).click();
+    (hote.querySelector('.sections .nouvelle') as HTMLButtonElement).click();
     await respirer();
   };
   const choix = (k: string) => document.querySelector(`[data-choix=${k}]`) as HTMLElement;
@@ -271,6 +269,7 @@ describe('« Nouvelle station » : trois choix', () => {
     expect(choix('annuaire')).not.toBeNull();
     expect(choix('proposer')).not.toBeNull();
     expect(choix('saisie')).not.toBeNull();
+    expect(choix('import')).not.toBeNull();
     expect(document.querySelector('form'), 'le formulaire s’ouvre d’emblée').toBeNull();
   });
 

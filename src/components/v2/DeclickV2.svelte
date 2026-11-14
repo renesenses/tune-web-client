@@ -14,6 +14,7 @@
   import { onDestroy } from 'svelte';
   import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
   import { formatNombre } from '../../lib/formats';
+  import ChampRecherche from './ChampRecherche.svelte';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
@@ -208,10 +209,7 @@
     <div class="ph">
       <span class="cl">{$t('v2.declick.albumsToProcess' as any)}</span>
       <!-- Même champ que partout ailleurs : `.v2-rech`. -->
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.declick.albumsToProcess' as any)} />
       <button class="go" disabled={!picked.size || starting} onclick={start}>{starting ? $t('v2.tool.starting' as any) : $t('v2.declick.start' as any)}</button>
     </div>
 

@@ -1,6 +1,7 @@
 import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
+import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -1389,6 +1390,14 @@ export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_native_flac: enabled }),
+  });
+}
+
+/** #2271 / fil 2694 — rétablir un mode nommé (album au hasard…) tel quel. */
+export function updateZoneAutoplayMode(id: number, mode: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ autoplay_mode: mode }),
   });
 }
 
@@ -5846,6 +5855,63 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/**
+ * #8676 — « Remplacer le chemin » : l'aperçu (n'écrit rien) et l'application
+ * (une transaction, identifiants conservés). Les refus (400, 409, 422) portent
+ * un corps lisible : `refusal` ou `error`, que `remplacerChemin.ts` traduit.
+ */
+export async function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
+  return appelDeplacement<ApercuDeplacement>('/system/music-dirs/move/preview', { old_prefix: oldPrefix, new_prefix: newPrefix });
+}
+
+export async function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
+  return appelDeplacement<BilanDeplacement>('/system/music-dirs/move', {
+    old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks,
+  });
+}
+
+/**
+ * Les refus (400, 409, 422) portent un corps lisible ; 404 et 405 veulent dire
+ * « serveur trop ancien » : ni bandeau ni exception, `{ error: 'unsupported' }`,
+ * et le geste disparaît de l'écran.
+ */
+async function appelDeplacement<T extends { error?: string }>(chemin: string, corps: unknown): Promise<T> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<T>(`${BASE}${chemin}`, { method: 'POST', body: JSON.stringify(corps) }, (s) => {
+      statut = s;
+      return s === 400 || s === 404 || s === 405 || s === 409 || s === 422;
+    });
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    return r;
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    throw e;
+  }
+}
+
+let remplacerLeCheminConnu: Promise<boolean> | null = null;
+
+/**
+ * #8676 — le serveur sait-il « Remplacer le chemin » ? Lu dans
+ * `GET /system/capabilities` (clé `bibliotheque.remplacer_le_chemin`, absente
+ * = non), une fois par chargement. Un serveur sans cette route (ancien) rend
+ * 404 : réponse « non », sans bandeau.
+ */
+export function remplacerLeCheminDisponible(): Promise<boolean> {
+  if (!remplacerLeCheminConnu) {
+    remplacerLeCheminConnu = fetchJSON<any>(`${BASE}/system/capabilities`, undefined, (s) => s === 404 || s === 405, true)
+      .then((c) => c?.bibliotheque?.remplacer_le_chemin === true)
+      .catch(() => false);
+  }
+  return remplacerLeCheminConnu;
+}
+
+/** Épreuves seulement : oublier la réponse mémorisée. */
+export function oublierCapaciteRemplacerLeChemin(): void {
+  remplacerLeCheminConnu = null;
 }
 
 /** Une entrée de l'explorateur de dossiers du serveur. */
