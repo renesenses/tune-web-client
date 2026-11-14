@@ -172,8 +172,10 @@ describe('ceQuiTourne — la logique', () => {
 // ── L'écran monté ──────────────────────────────────────────────────────────
 const VIDE = /\/(zones|devices|profiles|shortcuts|collections)(\?|\/|$)/;
 let corpsTaches: unknown = null;
+let corpsAudit: Record<string, unknown> | null = null;
 
 function corpsPour(chemin: string): unknown {
+  if (chemin.includes('/library/integrity')) return corpsAudit;
   if (chemin.includes('/system/background-tasks')) return corpsTaches;
   if (chemin.includes('/system/scan/status')) return { scanning: false };
   if (VIDE.test(chemin)) return [];
@@ -193,6 +195,7 @@ let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
+  corpsAudit = null;
   vi.stubGlobal('fetch', vi.fn(async (url: any) => {
     const brut = String(typeof url === 'string' ? url : (url?.url ?? ''));
     return enveloppe(corpsPour(brut.replace(/^https?:\/\/[^/]+/, '').split('?')[0]));
@@ -206,6 +209,7 @@ afterEach(() => {
   hote = null;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 const souffler = (ms = 60) => new Promise((r) => setTimeout(r, ms));
@@ -268,5 +272,40 @@ describe('« Ce qui tourne » — le calcul de fond, écran monté (#6310)', () 
     corpsTaches = instantane();
     const h = await monterLEcran();
     expect(h.querySelector('[data-testid="background-compute"]')).toBeNull();
+  });
+});
+
+
+describe('web#2981 — avancement de l’audit dans Ce qui tourne', () => {
+  function audit() {
+    corpsTaches = instantane({ tasks: [{ id: 'integrity', label: 'Audit d’intégrité', kind: 'integrity' }], pausable: [], playback_priority: priorite({ playback_active: false }) });
+    corpsAudit = { status: 'running', traites: 25, total: 100, lecture_prioritaire: false, eta_seconds: 7500 };
+  }
+  it('affiche les comptes et le temps fourni par le serveur, puis actualise même si seul l’audit tourne', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    audit();
+    const h = await monterLEcran();
+    const ligne = () => h.querySelector('[data-avancement-integrite]');
+    expect(ligne(), 'l’audit doit annoncer son avancement').not.toBeNull();
+    expect(ligne()!.textContent).toContain('25 / 100');
+    expect(ligne()!.textContent).toContain('2 h 05');
+    corpsAudit = { ...corpsAudit, traites: 50, eta_seconds: 3600 };
+    await vi.advanceTimersByTimeAsync(5000); await souffler(150); flushSync();
+    expect(ligne()!.textContent).toContain('50 / 100');
+    expect(ligne()!.textContent).toContain('1 h');
+  });
+  it('ne fabrique pas de durée sur un serveur ancien', async () => {
+    audit(); delete corpsAudit!.eta_seconds;
+    const h = await monterLEcran();
+    const texte = h.querySelector('[data-avancement-integrite]')?.textContent;
+    expect(texte).toContain('25 / 100');
+    expect(texte).not.toContain('encore');
+  });
+  it('ne montre pas une estimation périmée pendant la pause', async () => {
+    audit(); corpsAudit!.status = 'paused';
+    const h = await monterLEcran();
+    const texte = h.querySelector('[data-avancement-integrite]')?.textContent;
+    expect(texte).toContain('25 / 100');
+    expect(texte).not.toContain('2 h 05');
   });
 });

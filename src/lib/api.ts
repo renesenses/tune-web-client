@@ -8986,6 +8986,8 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 export type ModeIntegrite = 'full' | 'quick';
 export interface EtatIntegrite {
+  /** Estimation publiée par le serveur ; absente sur un serveur ancien. */
+  eta_seconds?: number | null;
   mode?: ModeIntegrite;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
