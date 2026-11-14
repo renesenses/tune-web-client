@@ -10,6 +10,7 @@
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import OxygenEtiquetageFiltre from './OxygenEtiquetageFiltre.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
+  import { lireTotaux, infobulleTotaux, type TotauxBibliotheque } from '../../lib/totauxBibliotheque';
   import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../../lib/api/metadata';
   import { displayFields } from '../../lib/stores/displayFields';
@@ -78,6 +79,7 @@
    *  en permanence). Un seul appel, au montage — ces nombres ne bougent qu'au
    *  scan. */
   let libStats = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  let libTotaux = $state<TotauxBibliotheque | null>(null);
   /** Séparateur de milliers selon la langue : 55 234 se lit, 55234 se compte. */
   const nf = (n: number) => n.toLocaleString();
 
@@ -726,7 +728,12 @@
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
     // Échec silencieux : la barre d'état se contente alors du compte filtré.
     // Une bibliothèque qui n'annonce pas son total vaut mieux qu'un écran en erreur.
-    getLibraryStats().then(st => { libStats = st; }).catch(() => {});
+    // tune-server-rust#8625 — les totaux des listes, pas le compte des tables.
+    getLibraryStats().then(st => {
+      const tot = lireTotaux(st);
+      libTotaux = tot;
+      libStats = { ...st, tracks: tot.tracks, albums: tot.albums };
+    }).catch(() => {});
     return () => {
       mq.removeEventListener('change', upd);
       mqPhone.removeEventListener('change', updPhone);
@@ -1096,7 +1103,7 @@
        deux derniers ne s'affichent que s'ils apportent quelque chose. -->
   <footer class="statusbar">
     {#if libStats}
-      <span class="sb-lib">
+      <span class="sb-lib" title={libTotaux ? infobulleTotaux(libTotaux, (c) => $t(c as any), nf) : undefined}>
         {nf(libStats.tracks)} {$t('oxygen.status.tracks')} ·
         {nf(libStats.albums)} {$t('oxygen.status.albums')} ·
         {nf(libStats.artists)} {$t('oxygen.status.artists')}
