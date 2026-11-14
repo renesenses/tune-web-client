@@ -7256,6 +7256,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Sans service connecté",
   "collectionPhysique.raisonsNullePart": "Pourquoi « nulle part »",
   "collectionPhysique.aucunDisque": "Aucun disque ne correspond à ce filtre.",
+  "collectionPhysique.aucunResultat": "Aucun disque ne correspond à « {q} ».",
   "collectionPhysique.copie": "Copié",
   "collectionPhysique.nonCopie": "Pas encore copié : insérez-le pour l’extraire",
   "collectionPhysique.pastilleNonCopie": "Pas encore copié",

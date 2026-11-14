@@ -7079,6 +7079,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Brak połączonej usługi",
   "collectionPhysique.raisonsNullePart": "Dlaczego „nigdzie”",
   "collectionPhysique.aucunDisque": "Żadna płyta nie pasuje do tego filtra.",
+  "collectionPhysique.aucunResultat": "Żadna płyta nie pasuje do „{q}”.",
   "collectionPhysique.copie": "Zgrana",
   "collectionPhysique.nonCopie": "Jeszcze niezgrana: włóż ją, aby ją zgrać",
   "collectionPhysique.pastilleNonCopie": "Jeszcze nie zgrany",

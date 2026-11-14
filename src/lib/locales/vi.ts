@@ -7086,6 +7086,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Chưa kết nối dịch vụ",
   "collectionPhysique.raisonsNullePart": "Vì sao “không ở đâu”",
   "collectionPhysique.aucunDisque": "Không có đĩa nào khớp với bộ lọc này.",
+  "collectionPhysique.aucunResultat": "Không có đĩa nào khớp với “{q}”.",
   "collectionPhysique.copie": "Đã chép",
   "collectionPhysique.nonCopie": "Chưa chép: hãy đưa đĩa vào để trích xuất",
   "collectionPhysique.pastilleNonCopie": "Chưa sao chép",

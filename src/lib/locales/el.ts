@@ -7079,6 +7079,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Χωρίς συνδεδεμένη υπηρεσία",
   "collectionPhysique.raisonsNullePart": "Γιατί «πουθενά»",
   "collectionPhysique.aucunDisque": "Κανένας δίσκος δεν αντιστοιχεί σε αυτό το φίλτρο.",
+  "collectionPhysique.aucunResultat": "Κανένας δίσκος δεν ταιριάζει με «{q}».",
   "collectionPhysique.copie": "Αντιγράφηκε",
   "collectionPhysique.nonCopie": "Δεν έχει αντιγραφεί ακόμη: τοποθετήστε τον για εξαγωγή",
   "collectionPhysique.pastilleNonCopie": "Δεν έχει αντιγραφεί ακόμη",

@@ -7193,6 +7193,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "Nincs csatlakoztatott szolgáltatás",
   "collectionPhysique.raisonsNullePart": "Miért „sehol”",
   "collectionPhysique.aucunDisque": "Egy lemez sem felel meg a szűrőnek.",
+  "collectionPhysique.aucunResultat": "Egyetlen lemez sem felel meg ennek: „{q}”.",
   "collectionPhysique.copie": "Bemásolva",
   "collectionPhysique.nonCopie": "Még nincs bemásolva: helyezze be a bemásoláshoz",
   "collectionPhysique.pastilleNonCopie": "Még nincs bemásolva",

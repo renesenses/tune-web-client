@@ -7234,6 +7234,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "연결된 서비스 없음",
   "collectionPhysique.raisonsNullePart": "‘어디에도 없음’인 이유",
   "collectionPhysique.aucunDisque": "이 필터에 맞는 음반이 없습니다.",
+  "collectionPhysique.aucunResultat": "“{q}”와(과) 일치하는 음반이 없습니다.",
   "collectionPhysique.copie": "리핑됨",
   "collectionPhysique.nonCopie": "아직 리핑 안 됨: 넣으면 리핑할 수 있습니다",
   "collectionPhysique.pastilleNonCopie": "아직 리핑 안 됨",

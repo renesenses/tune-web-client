@@ -7254,6 +7254,7 @@ export default {
   "collectionPhysique.raisonCourte.service_non_interroge": "No service connected",
   "collectionPhysique.raisonsNullePart": "Why “nowhere”",
   "collectionPhysique.aucunDisque": "No release matches this filter.",
+  "collectionPhysique.aucunResultat": "No record matches “{q}”.",
   "collectionPhysique.copie": "Ripped",
   "collectionPhysique.nonCopie": "Not ripped yet: insert it to rip it",
   "collectionPhysique.pastilleNonCopie": "Not ripped yet",
