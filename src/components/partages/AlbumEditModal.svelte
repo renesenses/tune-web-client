@@ -260,7 +260,11 @@
       const updated = await api.uploadAlbumArtwork(album.id, file);
       coverPath = updated.cover_path ?? null;
       coverMessage = $t('metadata.coverFound');
-      onSaved?.(updated);
+      // web#3045 (fil 2822) — `onSaved` FERME l'éditeur chez tous les
+      // appelants : appelé ici, il refermait la fenêtre dès le fichier
+      // choisi, sans laisser enregistrer le reste. La pochette est reportée
+      // à la fermeture (voir `fermer`).
+      pochetteTeleversee = { ...album, ...updated, id: album.id };
     } catch (e) {
       console.error('Upload cover error:', e);
       coverMessage = $t('metadata.saveError');
@@ -312,12 +316,46 @@
     dragOver = false;
   }
 
+  /** L'album à la pochette téléversée, pas encore reporté à l'écran appelant. */
+  let pochetteTeleversee: Album | null = null;
+
+  /**
+   * Fermer l'éditeur. Une pochette téléversée (déjà enregistrée par le
+   * serveur) est reportée à l'écran appelant par `onSaved`, qui ferme aussi :
+   * la grille montre la nouvelle pochette sans rechargement.
+   */
+  function fermer() {
+    const maj = pochetteTeleversee;
+    pochetteTeleversee = null;
+    if (maj && onSaved) onSaved(maj);
+    else onClose();
+  }
+
+  // web#3045 — les gardes déjà posées dans `ArtistEditModal`. Le double-clic
+  // qui choisit le fichier dans le sélecteur du système laisse un clic
+  // fantôme sur le fond, qui fermait l'éditeur ; on l'ignore jusqu'au retour
+  // du focus. Et un fichier lâché à côté de la zone de dépôt n'est plus
+  // ouvert par le navigateur (Firefox : « ne peut pas … établir un lien vers
+  // file:/// »).
+  let fileDialogOpen = false;
+  function openFileDialog() {
+    fileDialogOpen = true;
+    fileInput.click();
+    window.addEventListener('focus', () => {
+      setTimeout(() => { fileDialogOpen = false; }, 300);
+    }, { once: true });
+  }
+  function preventDrop(e: DragEvent) { e.preventDefault(); }
+
   function handleBackdropClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) onClose();
+    // Ni pendant le sélecteur de fichiers, ni pendant un téléversement : la
+    // pochette serait perdue.
+    if (fileDialogOpen || uploading) return;
+    if (e.target === e.currentTarget) fermer();
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape') fermer();
   }
 
   $effect(() => {
@@ -329,7 +367,7 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
+<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown} ondragover={preventDrop} ondrop={preventDrop}>
   <div class="modal">
     {#if success}
       <div class="success-state">
@@ -339,7 +377,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('metadata.editAlbum')}</h3>
-        <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
+        <button class="close-btn" onclick={fermer} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
@@ -355,8 +393,8 @@
             ondragleave={handleDragLeave}
             role="button"
             tabindex="0"
-            onclick={() => fileInput.click()}
-            onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+            onclick={openFileDialog}
+            onkeydown={(e) => e.key === 'Enter' && openFileDialog()}
           >
             {#if coverPath}
               <img src={artworkSrc(coverPath)} alt="Album cover" class="cover-preview" />
@@ -383,7 +421,7 @@
             onchange={handleFileSelect}
           />
           <div class="cover-actions">
-            <button class="btn-secondary" onclick={() => fileInput.click()} disabled={uploading}>
+            <button class="btn-secondary" onclick={openFileDialog} disabled={uploading}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
               {$t('metadata.uploadCover')}
             </button>
@@ -528,7 +566,7 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" onclick={onClose}>{$t('common.cancel')}</button>
+        <button type="button" class="btn-cancel" onclick={fermer}>{$t('common.cancel')}</button>
         {#if !album.source || album.source === 'local'}
           <button class="btn-write-tags" onclick={saveThenWriteTags} disabled={writingTags || saving} use:tip={'tip.writeTags'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>

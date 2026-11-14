@@ -521,6 +521,23 @@
   }
 
   // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
+  // 🔴 web#3045 — une clé en DOUBLE fait lever `each_key_duplicate` à Svelte :
+  // la mise à jour s'interrompt et plus rien ne se rend jusqu'au rechargement
+  // (titres phares figés sur « Chargement », navigation morte ; précédent
+  // web#1856). Quelle que soit la donnée reçue, une clé déjà vue est repliée sur
+  // le rang ; la boucle garantit qu'aucune autre clé ne la rejoint.
+  const clesUniques = $derived.by(() => {
+    const vues = new Set<string | number>();
+    return pistes.map((p, i) => {
+      let k: string | number = clef(p, i);
+      if (vues.has(k)) {
+        k = `doublon:${i}`;
+        while (vues.has(k)) k = `${k}+`;
+      }
+      vues.add(k);
+      return k;
+    });
+  });
   const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
   // web#1862 — les sections GROUPING (#2130) À L'INTÉRIEUR d'un disque, sous
   // la même prop : seule la fiche d'album rend les pistes d'UN album dans
@@ -972,7 +989,7 @@
     </div>
     {@render intercalaire(espaceAvant, 'avant')}
 
-    {#each pistes as p, i (clef(p, i))}
+    {#each pistes as p, i (clesUniques[i])}
       {@const etat = etatDe(p)}
       {@render enTeteDisque(i)}
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible

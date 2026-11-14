@@ -4045,7 +4045,14 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
   if (!response.ok) {
     throw await apiError(response);
   }
-  return response.json();
+  // web#3045 (fil 2822) — le serveur rend `{ album, hash, size }`, pas
+  // l'album lui-même (`upload_album_artwork`). Lu tel quel, `cover_path` et
+  // `id` manquaient : la nouvelle pochette n'apparaissait qu'au
+  // rechargement de la page. On rend l'album, ou à défaut sa pochette.
+  const corps = await response.json();
+  if (corps?.album && typeof corps.album === 'object') return corps.album as Album;
+  if (typeof corps?.hash === 'string') return { id: albumId, cover_path: corps.hash } as Album;
+  return corps as Album;
 }
 
 /**

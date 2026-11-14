@@ -25,7 +25,7 @@
   import * as api from '../../lib/api';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { TITRES_PHARES_MAX } from '../../lib/titresPharesArtiste';
+  import { TITRES_PHARES_MAX, clefTitrePhare } from '../../lib/titresPharesArtiste';
   import AttributionBio from './AttributionBio.svelte';
   import type { BioProvenance } from '../../lib/library/attributionBio';
   import TexteDeBio from './TexteDeBio.svelte';
@@ -106,7 +106,7 @@
     <h2>{$t('v2.fas.topTracks' as any)}</h2>
     <ListePistesV2 pistes={titres} numerotation="rang" pochetteEnTableau
       onLire={(_p, i) => lireDepuis(i)}
-      clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
+      clef={clefTitrePhare} />
   </section>
 {:else if titresRetiresPar && !titresEnCharge}
   <section class="bloc" data-rubrique-retiree>

@@ -66,13 +66,44 @@ export const SOURCES_DE_CATALOGUE: readonly string[] = [
  * `SOURCES_DE_CATALOGUE`) — un serveur d'avant le correctif en rend encore.
  */
 export function titresPharesJouables(titres: readonly Track[] | null | undefined, service: string): Track[] {
-  return (titres ?? [])
+  const jouables = (titres ?? [])
     .filter((t) => {
       if (estDeBibliotheque(t)) return true;
       const s = String(t.source ?? '').trim().toLowerCase();
       return s === '' || s === service || SOURCES_DE_CATALOGUE.includes(s);
     })
     .map((t) => ({ ...t, source: (t.source ?? service) as Track['source'] }));
+  return sansDoublonDeClef(jouables);
+}
+
+/**
+ * La clé de rendu d'un titre phare dans `ListePistesV2` : sa source et son
+ * identifiant (`id`, sinon `source_id`), repliée sur le rang.
+ */
+export function clefTitrePhare(p: Track, i: number): string {
+  const x = p as Track & { source_id?: string | null };
+  return String(x.source ?? 'local') + ':' + String(x.id ?? x.source_id ?? i);
+}
+
+/**
+ * 🔴 web#3045 (John Rasfig, fil 2822) — page artiste de Supertramp : « Titres
+ * phares » restait sur « Chargement » et toute l'interface se figeait. Deux
+ * titres de la réponse de `top-tracks` désignaient le même enregistrement
+ * (l'ajout « mes plus écoutés » du serveur, #7416). Ils portaient donc la même
+ * clé, et Svelte s'arrête sur `each_key_duplicate` (précédent : web#1856).
+ * Un titre déjà présent sous la même clé est écarté, et le premier est gardé.
+ * Un titre sans identifiant n'est jamais écarté.
+ */
+function sansDoublonDeClef(titres: Track[]): Track[] {
+  const vues = new Set<string>();
+  return titres.filter((t) => {
+    const x = t as Track & { source_id?: string | null };
+    if (x.id == null && (x.source_id == null || x.source_id === '')) return true;
+    const k = clefTitrePhare(t, -1);
+    if (vues.has(k)) return false;
+    vues.add(k);
+    return true;
+  });
 }
 
 /**
