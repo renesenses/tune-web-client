@@ -147,10 +147,13 @@ describe('web#2198 — en-tête compact, filtres conservés', () => {
     expect(gestes, 'les gestes ne sont pas dans la rangée des filtres').not.toBeNull();
     expect(gestes!.querySelector('button[data-lire-selection]'), 'Lire').not.toBeNull();
     expect(gestes!.querySelectorAll('button.v2-btn').length).toBeGreaterThanOrEqual(3);
-    // Ils ferment la rangée : après le champ de recherche et les outils.
-    const champ = rangee.querySelector('.v2-rech');
-    expect(champ).not.toBeNull();
-    expect(champ!.compareDocumentPosition(gestes!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Ils ferment la rangée. Le champ de recherche, lui, est passé dans
+    // l'en-tête, en premier, comme sur tous les écrans (recette rc12, 13/11 —
+    // `champRechercheEmplacement.test.ts`).
+    expect(rangee.querySelector('.v2-rech'), 'la recherche est restée dans la rangée').toBeNull();
+    const champ = entete.querySelector('.v2-actions > .v2-rech');
+    expect(champ, 'la recherche manque à l’en-tête').not.toBeNull();
+    expect(champ!.compareDocumentPosition(entete.querySelector('nav.tabs')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(rangee.lastElementChild).toBe(gestes);
   });
 

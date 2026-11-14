@@ -28,6 +28,7 @@
   import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import EtatGreffonsV2 from './EtatGreffonsV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
 import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { sonderCrosstalk } from '../../lib/stores/crosstalk';
@@ -276,10 +277,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
       <!-- La recherche AVANT les onglets, comme partout ailleurs. Et son invite
            était « Filtrer » en dur : du français dans une interface anglaise,
            exactement ce qu'Alex Campbell a signalé le 08/09/2026. -->
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.nav.plugins' as any)} />
       <nav class="tabs">
         <button class:on={tab === 'installed'} onclick={() => (tab = 'installed')}>{$t('v2.plug.installedTab' as any)}<span>{installedCount}</span></button>
         <button class:on={tab === 'all'} onclick={() => (tab = 'all')}>{$t('v2.lbl.catalogue' as any)}<span>{plugins.length}</span></button>
