@@ -131,7 +131,8 @@
    * sans objet.
    */
   const provenance = $derived(estLocal ? (cible?.provenance ?? null) : null);
-  const dossier = $derived(estLocal ? (cible?.dossier || null) : null);
+  // Une portée demandée n'est effective que si CE serveur la prend en charge.
+  let dossier = $state<string | null>(null);
   const nomDossier = $derived(dossier?.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dossier || '');
   function retirerDossier() {
     ficheArtisteService.update((c) => c && c.service == null ? { ...c, dossier: null } : c);
@@ -555,7 +556,7 @@
    * sur un IDENTIFIANT, et chercher « M » dans la table qui porte « -M- » est
    * exactement l'échec que la prop `ouvrirId` d'`ArtistesV2` avait corrigé.
    */
-  async function chargerLocal(id: number) {
+  async function chargerLocal(id: number, dossierDemande: string | null) {
     const mien = ++jeton;
     chargement = true;
     artiste = null;
@@ -583,10 +584,22 @@
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
     void chargerMetadonnees(id);
+    dossier = null;
+    let portee: string | null = null;
+    if (dossierDemande) {
+      try {
+        const capacites = await api.fetchJSON<{ bibliotheque?: { artiste_par_dossier?: boolean } }>(`${api.BASE}/system/capabilities`);
+        if (capacites?.bibliotheque?.artiste_par_dossier === true) portee = dossierDemande;
+      } catch {
+        // Serveur ancien ou capacité indisponible : ne pas annoncer un filtre ignoré.
+      }
+      if (mien !== jeton) return;
+    }
+    dossier = portee;
     const [a, d] = await Promise.allSettled([
       api.getArtist(id),
       // #4767 — la discographie ET ses deux sections, en un aller-retour.
-      dossier ? api.getArtistAlbumsSections(id, dossier) : api.getArtistAlbumsSections(id),
+      portee ? api.getArtistAlbumsSections(id, portee) : api.getArtistAlbumsSections(id),
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled' && a.value) {
@@ -788,7 +801,7 @@
       const n = Number(c.id);
       // Un identifiant local qui n'est pas un nombre n'est pas une route : on
       // ne fabrique pas d'appel mort.
-      if (Number.isFinite(n)) void chargerLocal(n);
+      if (Number.isFinite(n)) void chargerLocal(n, c.dossier || null);
       return;
     }
     void charger(c.service, c.id);

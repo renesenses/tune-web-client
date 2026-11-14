@@ -82,7 +82,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   if (trouve !== null) {
     // Le nom RETENU, pas celui reçu : la fiche de « Daft Punk feat. Pharrell
     // Williams » est celle de Daft Punk, et c'est ce nom-là qu'elle affiche.
-    ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance, options.image, options.dossier);
+    ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance, undefined, options.dossier);
     return;
   }
   /**
