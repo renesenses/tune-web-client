@@ -42,6 +42,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { objetAlbum } from '../../lib/gestesObjet';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
 
   interface Props {
     /** Les albums de la bibliothèque — vide pour un artiste qu'elle ne connaît pas. */
@@ -348,6 +350,32 @@
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
+
+  /*
+   * tune-web-client#3041 (Didier, forum 2818) — « Je cherche donc le petit
+   * cœur sur ces albums [Qobuz de la fiche artiste] mais il n'y en a pas. »
+   * Une vignette SANS exemplaire de bibliothèque n'avait pas de cœur : le
+   * favori ne savait viser qu'un `albumId` local. Un album de service a le
+   * sien, dans `streaming_favorites` — le MÊME chemin que les vignettes de
+   * l'écran Streaming et de la recherche (`favoriExterneService`, règle du
+   * 08/10 : miroir du service, local au profil). La désignation service +
+   * identifiant vient d'`objetAlbum`, qui sait déjà la clé serveur et le cas
+   * Bandcamp (l'URL tient lieu d'identifiant).
+   */
+  function coeurDeService(e: EntreeDiscographie, keys: ReadonlySet<string>) {
+    if (local(e)?.id != null || e.principal.source === BIBLIOTHEQUE) return null;
+    const al = e.principal.album;
+    const o = objetAlbum(al, e.principal.source ?? null);
+    if (!o.service || !o.sourceId) return null;
+    return favoriExterneService(keys, {
+      itemType: 'album',
+      service: o.service,
+      serviceId: o.sourceId,
+      title: al.title ?? undefined,
+      artist: al.artist_name ?? nomArtiste ?? undefined,
+      coverUrl: al.cover_path ?? undefined,
+    });
+  }
 
   /*
    * Le menu « … » des vignettes de cet écran vient de `lib/actionsPochette` et
@@ -666,6 +694,7 @@
     <div class="cv">
       <PochetteActions
         favori={loc?.id != null ? { albumId: loc.id } : null}
+        favoriExterne={coeurDeService(e, $favoriteStreamingKeys)}
         etiquettes={cibleEtiquetteAlbum(al, e.principal.source)}
         onLire={() => onLire(e.principal)}
         onOuvrir={() => onOuvrir(e.principal, origine)}
