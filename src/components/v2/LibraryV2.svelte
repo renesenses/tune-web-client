@@ -2208,10 +2208,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * des services #7780), dont l'écart est expliqué en infobulle.
    */
   const matchCount: number = $derived.by(() =>
-    nu ? ($albumsPagines.total ?? 0) : !depot && toutActif ? $albums.length : affiches.length);
+    nu ? ($albumsPagines.total ?? 0) : totalServeurValable ? $albums.length : affiches.length);
   const toutActif = $derived(!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fIncomplets && !fProvenance && fDrMin == null && fDrMax == null && !paysChoisi && !periodeAppliquee);
+  /** Relecture du 14/11 — le total du serveur ne vaut que pour la grille
+   *  ENTIÈRE : ni portée de dossier, ni « Favoris seulement », ni année
+   *  survolée sur la frise (que `toutActif` ne voit pas). Sinon, le compte de
+   *  la grille, et pas d'infobulle « N cartes pour M albums ». */
+  const totalServeurValable = $derived(!depot && toutActif && !porteeActive && !fFavoris && hoverYear == null);
   const infobulleTout: string | undefined = $derived.by(() =>
-    !nu && !depot && toutActif && affiches.length !== $albums.length
+    !nu && totalServeurValable && affiches.length !== $albums.length
       ? $tr('bibliotheque.albums.infobulleCartes' as any)
         .replace('{shown}', $formatNombre(affiches.length))
         .replace('{total}', $formatNombre($albums.length))
