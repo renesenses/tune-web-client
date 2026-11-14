@@ -3832,6 +3832,7 @@ export default {
   "v2.ms.eyebrow": "Network",
   "v2.ms.title": "Media servers",
   "v2.rech.dans": "Search in {ecran}…",
+  "v2.rech.aucun": "Nothing matches “{q}”.",
   "v2.ms.searching": "Looking for servers on the network…",
   "v2.ms.none": "No media server found on the network.",
   "v2.ms.noneHint": "Discovery uses UPnP/DLNA: the remote server must be switched on, on the same local network, with UPnP sharing enabled.",

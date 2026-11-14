@@ -3813,6 +3813,7 @@ export default {
   "v2.ms.eyebrow": "Rete",
   "v2.ms.title": "Server multimediali",
   "v2.rech.dans": "Cerca in {ecran}…",
+  "v2.rech.aucun": "Nessun risultato per «{q}».",
   "v2.ms.searching": "Ricerca dei server sulla rete…",
   "v2.ms.none": "Nessun server multimediale rilevato sulla rete.",
   "v2.ms.noneHint": "Il rilevamento avviene tramite UPnP/DLNA: il server remoto deve essere acceso, sulla stessa rete locale, con la diffusione UPnP attivata.",

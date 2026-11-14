@@ -3692,6 +3692,7 @@ export default {
   "v2.ms.eyebrow": "Sieć",
   "v2.ms.title": "Serwery multimedialne",
   "v2.rech.dans": "Szukaj w: {ecran}…",
+  "v2.rech.aucun": "Nic nie pasuje do „{q}”.",
   "v2.ms.searching": "Wyszukiwanie serwerów w sieci…",
   "v2.ms.none": "Nie wykryto w sieci żadnego serwera multimedialnego.",
   "v2.ms.noneHint": "Wykrywanie odbywa się przez UPnP/DLNA: zdalny serwer musi być włączony, w tej samej sieci lokalnej i z włączonym udostępnianiem UPnP.",
