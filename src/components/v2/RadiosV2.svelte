@@ -45,7 +45,7 @@
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
-  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
+  import { normaliserFiltresRadio, parametresDesFiltres, trierLesPays } from '../../lib/radioFiltres';
   import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
@@ -325,7 +325,8 @@
   const paysDeMesRadios = $derived.by(() => {
     const m = new Map<string, number>();
     for (const r of radios) if (r.country_code) m.set(r.country_code, (m.get(r.country_code) ?? 0) + 1);
-    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // Recette rc12 (14/11) : dans l'ordre alphabétique de la langue en cours.
+    return trierLesPays([...m.entries()], ([code]) => nomDuPays(code, $locale, code), $locale);
   });
 
   function matches(r: RadioStation): boolean {
@@ -417,6 +418,18 @@
   }
 </script>
 
+<!-- Recette rc12 (14/11) : la liste « Pays », rendue par RadioFiltresAvances après ses boutons. -->
+{#snippet listePays()}
+  {#if paysDeMesRadios.length > 1}
+    <select class="choix" data-testid="radio-pays" bind:value={paysChoisi} aria-label={$t('v2.radio.country' as any)}>
+      <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+      {#each paysDeMesRadios as [code, n] (code)}
+        <option value={code}>{nomDuPays(code, $locale, code)} ({n})</option>
+      {/each}
+    </select>
+  {/if}
+{/snippet}
+
 <section class="v2-radios tune-v2">
   <!-- En-tête partagé (`styles/tune-v2.css`). L'ordre est le même sur tous les
        écrans : titre, RECHERCHE, actions secondaires, action primaire. Ici la
@@ -475,16 +488,9 @@
     {#if section === 'mes'}
       <div class="filtres ligne">
         <RadioRecherche bind:valeur={q} />
-        {#if paysDeMesRadios.length > 1}
-          <select class="choix" bind:value={paysChoisi} aria-label={$t('v2.radio.country' as any)}>
-            <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
-            {#each paysDeMesRadios as [code, n] (code)}
-              <option value={code}>{nomDuPays(code, $locale, code)} ({n})</option>
-            {/each}
-          </select>
-        {/if}
-        <!-- Recette rc12 (13/11) : les critères, dépliés, sur la ligne du pays. -->
-        <RadioFiltresAvances total={shown.length} />
+        <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+             puis la liste « Pays », sur une seule ligne. -->
+        <RadioFiltresAvances total={shown.length} pays={listePays} />
       </div>
       {#if showFilters && rayons.length}
         <div class="filtres">

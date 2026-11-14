@@ -71,8 +71,8 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
     await monter();
     expect(hote.querySelector('[data-testid="radio-filtres-bascule"]')).toBeNull();
     expect(hote.textContent).not.toContain('Plus de filtres');
-    // La case Hi-Res est là sans rien ouvrir, dans la MÊME ligne que la recherche.
-    const hires = hote.querySelector<HTMLInputElement>('[data-testid="radio-filtres-hires"]')!;
+    // Le bouton Hi-Res est là sans rien ouvrir, dans la MÊME ligne que la recherche.
+    const hires = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-hires"]')!;
     expect(hires).not.toBeNull();
     expect(hires.closest('.filtres.ligne')).not.toBeNull();
     expect(hires.closest('.filtres.ligne')!.querySelector('.v2-rech')).not.toBeNull();
@@ -95,7 +95,7 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
   });
 
   it('🔴 « Sans perte » : seules les stations que le serveur retient, et le compteur suit', async () => {
-    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, qualiteMin: null, lossless: true, hires: false, metadataPlus: false, favoris: false } }));
+    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, qualiteMin: null, lossless: true, hauteQualite: false, hires: false, metadataPlus: false, favoris: false } }));
     await monter();
     expect(mocks.rechercherRadiosParCriteres).toHaveBeenCalledWith('', { lossless: 'true' });
     expect(noms()).toEqual(['Jazz Sans Perte']);
@@ -103,10 +103,11 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
     expect(hote.querySelector('[data-testid="radio-filtres-corps"]')).not.toBeNull();
   });
 
-  it('🔴 la case Metadata+ est retenue dans les préférences et part vers l’annuaire', async () => {
+  it('🔴 le bouton Metadata+ est retenu dans les préférences et part vers l’annuaire', async () => {
     await monter();
-    const mdp = hote.querySelector<HTMLInputElement>('[data-testid="radio-filtres-mdp"]')!;
-    expect(mdp.closest('label')?.textContent).toContain(fr['v2.radio.metadataPlus']);
+    const mdp = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-mdp"]')!;
+    expect(mdp.tagName).toBe('BUTTON');
+    expect(mdp.textContent).toContain(fr['v2.radio.metadataPlus']);
     mdp.click();
     await respirer();
     expect(get(preferences).radioFiltres?.metadataPlus).toBe(true);
