@@ -34,7 +34,7 @@
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
   import { preferences } from '../../lib/stores/preferences';
-  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
+  import { normaliserFiltresRadio, parametresDesFiltres, trierLesPays } from '../../lib/radioFiltres';
   import { dialogs } from '../../lib/stores/dialogs';
   import { questionRetraitMesRadios } from '../../lib/mesRadios';
 
@@ -66,7 +66,7 @@
   /** web#2443 — la fiche « Voir » ouverte (œil de la vignette). */
   let enFiche = $state<FicheAnnuaireRadio | null>(null);
 
-  /** tune-server-rust#7466 — les critères de « Plus de filtres ». */
+  /** tune-server-rust#7466 — les critères de recherche (RadioFiltresAvances). */
   const criteres = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
   const cleCriteres = $derived(JSON.stringify(criteres));
   /** web#2693 — « Tous » suit les filtres actifs (genre mis à part). */
@@ -100,7 +100,7 @@
         nouvelles.push(...r.items);
       } while (nouvelles.length < cible && r.items.length > 0 && debut + nouvelles.length < r.total);
       page = r;
-      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total);
+      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total, r.total_all_genres);
       items = suite ? [...items, ...nouvelles] : nouvelles;
       premiereLecture = false;
       await tick();
@@ -135,6 +135,8 @@
     return genres;
   });
   const nomPays = (code: string | null | undefined) => nomDuPays(code, $locale, code);
+  /** Recette rc12 (14/11) : les pays dans l'ordre alphabétique de la langue en cours. */
+  const paysTries = $derived(trierLesPays(page?.countries ?? [], (c) => nomPays(c.code), $locale));
 
   async function ecouter(f: FicheAnnuaireRadio) {
     const zid = zoneRequise();
@@ -209,23 +211,29 @@
   }
 </script>
 
+<!-- Recette rc12 (14/11) : la liste « Pays », rendue par RadioFiltresAvances après ses boutons. -->
+{#snippet listePays()}
+  <select class="choix" data-testid="radio-pays" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
+    <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+    {#if pays && !page?.countries.some(c => c.code === pays)}
+      <option value={pays}>{nomPays(pays)}</option>
+    {/if}
+    {#each paysTries as c (c.code)}
+      <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
+    {/each}
+  </select>
+{/snippet}
+
 <div class="annuaire">
   <div class="filtres">
     <RadioRecherche bind:valeur={q} />
-    <select class="choix" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
-      <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
-      {#if pays && !page?.countries.some(c => c.code === pays)}
-        <option value={pays}>{nomPays(pays)}</option>
-      {/if}
-      {#each page?.countries ?? [] as c (c.code)}
-        <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
-      {/each}
-    </select>
+    <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+         puis la liste « Pays », sur une seule ligne. -->
+    <RadioFiltresAvances pays={listePays} />
     {#if page}
       <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
     {/if}
   </div>
-  <RadioFiltresAvances />
   {#if genresAffiches.length}
     <RadioChipsGenres
       genres={genresAffiches}
@@ -250,8 +258,6 @@
               favoriExterne={{ actif: !!f.my_radio_favorite, basculer: () => basculerFavori(f) }}
               onAjouter={f.my_radio_id == null ? () => ajouter(f) : null}
               libelleAjouter={$t('v2.radio.dir.add' as any)}
-              onVoir={() => (enFiche = f)}
-              libelleVoir={$t('v2.radio.view' as any)}
               onRetirer={f.my_radio_id != null ? () => retirer(f) : null}
               libelleRetirer={$t('v2.radio.removeFromMine' as any)}
               onLire={() => ecouter(f)}

@@ -74,11 +74,12 @@
     'non-locale': 'spectro.notLocal',
     impossible: 'spectro.failed',
     indisponible: 'spectro.unavailable',
+    introuvable: 'fiche.trackNotFound',
     session: 'spectro.session',
     reseau: 'spectro.network',
   };
   /** Un fichier qui n'est pas local ne se « retente » pas. */
-  const retentable = $derived(etat.v === 'erreur' && etat.genre !== 'non-locale' && etat.genre !== 'indisponible');
+  const retentable = $derived(etat.v === 'erreur' && etat.genre !== 'non-locale' && etat.genre !== 'indisponible' && etat.genre !== 'introuvable');
 
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') { e.stopPropagation(); fermer(); }

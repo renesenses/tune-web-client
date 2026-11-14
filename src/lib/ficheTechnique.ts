@@ -11,10 +11,12 @@
  * `POST /library/tracks/{id}/spectrogramme` recalcule l'image sans lire le
  * cache et rend la section `spectrogramme`.
  *
- * La forme d'onde (#8159) est à l'étude : `forme_d_onde` vaut toujours `null`
- * aujourd'hui, l'écran lui réserve sa place.
+ * La forme d'onde (fil du forum 2793) : `forme_d_onde` porte son état et son
+ * URL (`lib/formeOnde`) ; `null` pour une piste sans fichier, ou d'un serveur
+ * antérieur — l'écran tente alors la route et se replie s'il ne la trouve pas.
  */
 import { BASE, fetchJSON, type ApiError } from './api';
+import type { SectionFormeOnde } from './formeOnde';
 
 export interface FormatReel {
   codec?: string;
@@ -93,7 +95,7 @@ export interface FicheTechnique {
   integrite: SectionIntegrite | null;
   provenance: SectionProvenance | null;
   note: { texte_md: string; maj_le: string } | null;
-  forme_d_onde: unknown | null;
+  forme_d_onde: SectionFormeOnde | null;
 }
 
 /** Ce que l'écran sait dire d'un échec de chargement. */
@@ -138,9 +140,9 @@ export function sectionsVisibles(f: FicheTechnique): CleSection[] {
   const s: CleSection[] = [];
   if (f.format && Object.keys(f.format).length > 0) s.push('format');
   if (f.spectrogramme) s.push('spectrogramme');
-  // #8159 : place réservée à la forme d'onde, seulement pour un fichier
-  // local — une piste de service garde la barre classique.
-  if (f.a_un_fichier) s.push('formeDOnde');
+  // Fil 2793 : la forme d'onde, seulement pour un fichier local — même règle
+  // que le spectrogramme ; une piste de service n'en a pas.
+  if (f.a_un_fichier || f.forme_d_onde) s.push('formeDOnde');
   if (f.dynamic_range) s.push('dynamicRange');
   if (f.faux_hires) s.push('fauxHires');
   if (f.integrite) s.push('integrite');

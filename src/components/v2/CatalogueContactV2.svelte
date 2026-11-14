@@ -221,6 +221,18 @@
    */
   let mesPochettes = $state<Record<number, PochetteDeMesSources | null>>({});
   const pochettesDemandees = new Set<number>();
+  /**
+   * Ma pochette qui ne se charge pas : on l'oublie pour cet album. L'écran
+   * retombe sur Cover Art Archive (ou l'icône) SANS la marque « Pochette de
+   * mes sources », qui ne dirait plus vrai.
+   */
+  let mesPochettesKo = $state<Record<number, true>>({});
+  const maPochette = (id: number) => (mesPochettesKo[id] ? null : mesPochettes[id]);
+  function siMaPochetteEchoue(id: number, deMesSources: boolean) {
+    return (e: Event) => {
+      if (deMesSources && (e.target as Element | null)?.tagName === 'IMG') mesPochettesKo = { ...mesPochettesKo, [id]: true };
+    };
+  }
 
   async function chercherMesPochettes(page: AlbumContact[]) {
     const lot = albumsSansVignette(page, pochettesDemandees);
@@ -574,11 +586,11 @@
 {/snippet}
 
   {#if album}
-    {@const pt = pochettesAvecMesSources(album, contact.user_id, mesPochettes[album.id])}
+    {@const pt = pochettesAvecMesSources(album, contact.user_id, maPochette(album.id))}
     <div class="album-ouvert">
       <button class="lnk retour-albums" onclick={() => { album = null; pistesAlbum = []; }}>← {$t('v2.circle.lib.backToAlbums' as any)}</button>
       <div class="album-tete">
-        <span class="pochette"><AlbumArt coverPath={pt.coverPath} repli={pt.repli} albumId={null} size={0} alt={album.title} />{#if pt.deMesSources}{@render marquePochette()}{/if}</span>
+        <span class="pochette" onerrorcapture={siMaPochetteEchoue(album.id, pt.deMesSources)}><AlbumArt coverPath={pt.coverPath} repli={pt.repli} albumId={null} size={0} alt={album.title} />{#if pt.deMesSources}{@render marquePochette()}{/if}</span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
@@ -636,10 +648,10 @@
       {:else}
         <ul class="albums">
           {#each albums as a (a.id)}
-            {@const pa = pochettesAvecMesSources(a, contact.user_id, mesPochettes[a.id])}
+            {@const pa = pochettesAvecMesSources(a, contact.user_id, maPochette(a.id))}
             <li>
               <button class="album-contact" onclick={() => ouvrirAlbum(a)} title={a.title}>
-                <span class="pochette"><AlbumArt coverPath={pa.coverPath} repli={pa.repli} albumId={null} size={0} alt={a.title} />{#if pa.deMesSources}{@render marquePochette()}{/if}</span>
+                <span class="pochette" onerrorcapture={siMaPochetteEchoue(a.id, pa.deMesSources)}><AlbumArt coverPath={pa.coverPath} repli={pa.repli} albumId={null} size={0} alt={a.title} />{#if pa.deMesSources}{@render marquePochette()}{/if}</span>
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>

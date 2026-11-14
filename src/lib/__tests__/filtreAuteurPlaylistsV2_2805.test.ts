@@ -116,7 +116,7 @@ describe('PlaylistsV2 — « Tous / Par vous / Par Qobuz » sur la pastille d’
   it('🔴 le filtre s’applique APRÈS la recherche, compteurs compris', async () => {
     const h = await poser();
     await cliquer(pastille(h, 'qobuz'));
-    const champ = h.querySelector<HTMLInputElement>('label.chercher input');
+    const champ = h.querySelector<HTMLInputElement>('header .v2-rech input');
     expect(champ).not.toBeNull();
     // « s » écarte « Inconnue » (sans drapeau) et garde les trois autres.
     champ!.value = 's';

@@ -51,7 +51,7 @@
 <style>
   .folder { display: flex; flex-direction: column; }
   .crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; padding: 2px 6px 8px; }
-  .crumb { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); padding: 2px 5px; border-radius: 5px; cursor: pointer; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crumb { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); padding: 2px 5px; border-radius: 5px; cursor: pointer; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .crumb:hover { color: var(--tune-text); background: var(--tune-surface-hover); }
   .crumb.active { color: var(--tune-accent); font-weight: 600; }
   .crumb.home { display: inline-flex; align-items: center; padding: 3px 5px; }

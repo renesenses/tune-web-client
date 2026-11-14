@@ -57,6 +57,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
   import BasculeAffichage from './BasculeAffichage.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
@@ -976,10 +977,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       <h1>{$t('nav.favorites' as any)}</h1>
     </div>
     <div class="v2-actions">
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('nav.favorites' as any)} />
       <nav class="tabs">
         {#each TABS as t (t.id)}
           <button class:on={tab === t.id} onclick={() => choisirOnglet(t.id)}>{t.label}<span>{t.n}</span></button>

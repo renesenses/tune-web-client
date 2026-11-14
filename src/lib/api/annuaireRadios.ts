@@ -74,6 +74,11 @@ export interface FacetteAnnuaire {
 
 export interface AnnuaireRadios {
   total: number;
+  /**
+   * Recette rc12 (14/11) — le compte de « Tous les genres » : la recherche, le
+   * pays et les critères, AUCUN genre. Absent d'un serveur plus ancien.
+   */
+  total_all_genres?: number;
   offset: number;
   limit: number;
   count: number;

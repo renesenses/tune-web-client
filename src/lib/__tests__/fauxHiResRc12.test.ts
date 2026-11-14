@@ -4,13 +4,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { avancementFauxHiRes, entreesHiRes, estCleHiRes, idsParVerdictHiRes, PAGE_VERDICT } from '../filtreHiRes';
 import * as api from '../api';
-import { catalogueSuitLesFiltres } from '../catalogueExport';
+import { adresseCatalogue, catalogueSuitLesFiltres } from '../catalogueExport';
 
 describe('catalogue', () => {
   it("refuse de suivre l'écran quand un verdict Hi-Res est coché", () => {
     expect(catalogueSuitLesFiltres(['hires', 'dsd'])).toBe(true);
     expect(catalogueSuitLesFiltres(['hires_verifie'])).toBe(false);
     expect(catalogueSuitLesFiltres(['cd', 'hires_douteux'])).toBe(false);
+  });
+  it('suit le verdict Hi-Res devant un serveur qui annonce catalogue_hires_verdict', () => {
+    expect(catalogueSuitLesFiltres(['hires_verifie'], true)).toBe(true);
+    const p = new URLSearchParams(adresseCatalogue({ qualites: ['cd', 'hires_verifie', 'hires_douteux'], formats: [], tri: 'title', ordreAnnee: 'asc' }).split('?')[1]);
+    expect(p.get('quality')).toBe('cd');
+    expect(p.get('hires_verdict')).toBe('verifie,douteux');
+    const sans = new URLSearchParams(adresseCatalogue({ qualites: ['hires'], formats: [], tri: 'title', ordreAnnee: 'asc' }).split('?')[1]);
+    expect(sans.has('hires_verdict')).toBe(false);
   });
 });
 

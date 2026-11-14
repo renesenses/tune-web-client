@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { numeroPisteAffiche } from '../../lib/numeroPiste';
   import { detailServeur, estMessageGenerique } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
@@ -27,6 +28,8 @@
   import { lireDossier, ajouterDossierALaFile, lireDossierAleatoire } from '../../lib/lectureDossier';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
   import IndicateurLecture from '../v2/IndicateurLecture.svelte';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
+  import { filtrerParTexte } from '../../lib/filtreTexte';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -51,6 +54,17 @@
   let roots = $state<BrowseRootEntry[]>([]);
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
+  /**
+   * Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   * un NOM DE DOSSIER, dans ce qui est déjà chargé (les emplacements, ou les
+   * sous-dossiers du dossier ouvert). Aucun parcours du disque. Les pistes ne
+   * sont pas filtrées : « Tout lire » et « Lire à partir d'ici » comptent sur
+   * leur position dans le dossier. Elle repart vide à chaque dossier ouvert.
+   */
+  let recherche = $state('');
+  $effect(() => { void currentPath; untrack(() => (recherche = '')); });
+  const racinesTrouvees = $derived(filtrerParTexte(roots, recherche, (r) => [r.name, r.path]));
+  const dossiersTrouves = $derived(filtrerParTexte(browseResult?.directories ?? [], recherche, (d) => [d.name]));
 
   /**
    * 🔴 LE DOSSIER OUVERT EST UNE CIBLE DE RACCOURCI — #2050.
@@ -431,6 +445,9 @@
           {/if}
         {/each}
       </nav>
+      {#if browseResult.directories.length > 0}
+        <ChampRecherche bind:valeur={recherche} ecran={$tr('browse.title')} />
+      {/if}
       <button
         class="rescan-btn"
         onclick={() => (showAddHere = true)}
@@ -496,9 +513,11 @@
       {/if}
 
       <!-- Subdirectories -->
-      {#if browseResult.directories.length > 0}
+      {#if browseResult.directories.length > 0 && !dossiersTrouves.length}
+        <div class="empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
+      {:else if browseResult.directories.length > 0}
         <div class="dir-list">
-          {#each browseResult.directories as dir}
+          {#each dossiersTrouves as dir}
             <button class="dir-item" onclick={() => navigateTo(dir.path)}>
               <svg class="dir-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -529,7 +548,7 @@
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="track-item" class:en-lecture={etat !== null} aria-current={etat !== null ? 'true' : undefined} onclick={() => t.id && playFromTrack(index)}>
-              <span class="track-num">{#if etat}<IndicateurLecture {etat} />{:else}{t.track_number ?? index + 1}{/if}</span>
+              <span class="track-num">{#if etat}<IndicateurLecture {etat} />{:else}{numeroPisteAffiche(t.track_number) || index + 1}{/if}</span>
               <div class="track-info">
                 <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}
@@ -578,6 +597,9 @@
     <!-- Roots view -->
     <div class="browse-header">
       <h2>{$tr('browse.title')}</h2>
+      {#if roots.length > 0}
+        <ChampRecherche bind:valeur={recherche} ecran={$tr('browse.title')} />
+      {/if}
     </div>
 
     <div class="browse-body">
@@ -588,9 +610,11 @@
       </div>
     {:else if roots.length === 0}
       <div class="empty">{$tr('browse.noRoots')}</div>
+    {:else if !racinesTrouvees.length}
+      <div class="empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
       <div class="roots-list">
-        {#each roots as root}
+        {#each racinesTrouvees as root}
           {@const missing = root.exists === false}
           {@const empty = !missing && root.track_count === 0}
           <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path, missing)}>

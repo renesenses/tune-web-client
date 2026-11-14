@@ -26,7 +26,7 @@
 
 import { cleCodeSpotify } from './messagesSpotify';
 
-export type NatureErreurConnexion = 'identifiants' | 'application' | 'brut' | 'texte';
+export type NatureErreurConnexion = 'identifiants' | 'application' | 'reseau' | 'brut' | 'texte';
 
 export const CODE_IDENTIFIANTS_REFUSES = 'invalid_credentials';
 
@@ -36,6 +36,14 @@ export const CODE_IDENTIFIANTS_REFUSES = 'invalid_credentials';
  * s'affichait « mot de passe incorrect ».
  */
 export const CODE_APPLICATION_REFUSEE = 'service_app_refused';
+
+/**
+ * Le service refuse le RÉSEAU de l'utilisateur (VPN, pays…), avant même son
+ * API — tune-server-rust#8694 : la périphérie Akamai de Qobuz répondait
+ * « Access Denied » à toutes les requêtes d'un testeur, qui revérifiait son
+ * mot de passe. Le serveur ne rend ce code qu'après l'échec du relais.
+ */
+export const CODE_RESEAU_REFUSE = 'service_network_refused';
 
 const NOMS: Record<string, string> = {
   tidal: 'TIDAL',
@@ -56,6 +64,7 @@ export function natureErreurConnexion(
   e: { code?: unknown; message?: unknown; detail?: unknown } | null | undefined,
 ): NatureErreurConnexion {
   if (e?.code === CODE_APPLICATION_REFUSEE) return 'application';
+  if (e?.code === CODE_RESEAU_REFUSE) return 'reseau';
   if (e?.code === CODE_IDENTIFIANTS_REFUSES) return 'identifiants';
   // tune-server-rust#8198 — un refus Spotify nommé : `fetchJSON` a déjà mis
   // sa phrase traduite dans `message` ; le JSON brut de `detail` n'y change rien.

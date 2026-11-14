@@ -58,6 +58,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { gainDeSortieCourant, libelleRabot } from '../../lib/gainDeSortie';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
   import SortiesDuGroupe from './SortiesDuGroupe.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -66,6 +68,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { artisteLocalParNom, ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import LienEntite from './LienEntite.svelte';
+  import CreditsEnLigne from './CreditsEnLigne.svelte';
   import { labelDe } from '../../lib/artistesDuLabel';
   import { anneeAlbum } from '../../lib/anneeAlbum';
   import { gestesNavigationService } from '../../lib/stores/navigation';
@@ -85,6 +88,12 @@ import { ICONES } from '../../lib/menuPiste';
   let isFavorite = $state(false);
   let favChecking = $state(false);
   let showSignalDetail = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'lecture') return;
+    cheminARouvrir.set(null);
+    showSignalDetail = true;
+  });
   let showTrackDetail = $state(false);
   let showCredits = $state(false);
   let npCredits: TrackCredit[] = $state([]);
@@ -1939,9 +1948,13 @@ import { ICONES } from '../../lib/menuPiste';
                  d'alec_eiffel, fil 2560). Il quitte la ligne du nom : un seul
                  logo à l'écran. -->
             {#if isRadio && logoStation}
-              <span class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}>
+              <!-- Rémi (retour rc11, décision du 14/11, rc12) — le logo reste
+                   petit mais ouvre la fiche de la station, comme le nom. -->
+              <button type="button" class="np-logo-coin" data-logo-station title={displayTrack.album_title || 'Radio'}
+                aria-label={displayTrack.album_title || 'Radio'}
+                onclick={(e) => { e.stopPropagation(); ficheStationOuverte = true; }}>
                 <AlbumArt coverPath={logoStation} albumId={null} size={0} recadrer alt={displayTrack.album_title || 'Radio'} />
-              </span>
+              </button>
             {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
@@ -1951,7 +1964,10 @@ import { ICONES } from '../../lib/menuPiste';
           </div>
           <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
                de lecture n'a pas. -->
-          {#if styleCrete !== 'off'}
+          <!-- Rémi (retour rc11, décision du 14/11, rc12) — une radio n'a qu'UN
+               visuel sur cet écran : le spectre du bas. La crête sous la
+               pochette reste pour la musique. -->
+          {#if styleCrete !== 'off' && !isRadio}
             <!-- 28/09/2026 — les deux voies sont enfin NOMMÉES (`L`/`R`, dans
                  la toile, en face de leur barre), et la disposition de canaux
                  se lit à droite quand la piste est multicanale. En stéréo, pas
@@ -2111,7 +2127,7 @@ import { ICONES } from '../../lib/menuPiste';
                  lien (identifiant de `artists` quand le crédit en a un, sinon
                  le nom, par correspondance exacte puis la Recherche). -->
             <p class="inline-credits" title={inlineCredits}>
-              {#each creditsEnLigne as g, gi (g.role)}{#if gi > 0}<span class="inline-credits-sep"> · </span>{/if}{formatRole(g.role)}: {#each g.membres as m, mi (mi)}{#if mi > 0}, {/if}<LienEntite entite={{ type: 'personne', nom: m.artist_name, artiste: m.artist_id ? { id: m.artist_id, name: m.artist_name, source: 'local' } : { name: m.artist_name } }} />{#if m.instrument} ({m.instrument}){/if}{/each}{#if g.reste}, …{/if}{/each}
+              <CreditsEnLigne groupes={creditsEnLigne} libelle={formatRole} />
             </p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
@@ -2507,6 +2523,7 @@ import { ICONES } from '../../lib/menuPiste';
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
+                          <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="lecture" onouvrir={() => showSignalDetail = false} />
                         </div>
                       </div>
                     {/each}
@@ -3467,8 +3484,8 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   /* web#2770 — l'artiste, l'année et les crédits sont des `LienEntite` : le
-     soulignement et la couleur au survol viennent du composant. */
-  .inline-credits-sep { color: var(--tune-text-muted); }
+     soulignement et la couleur au survol viennent du composant. Le
+     séparateur des crédits vit dans `CreditsEnLigne`. */
 
   .track-album {
     font-family: var(--font-body);
@@ -4530,7 +4547,12 @@ import { ICONES } from '../../lib/menuPiste';
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.35);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-    pointer-events: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .np-logo-coin:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
   .np-logo-coin :global(.album-art) {
     border-radius: inherit;

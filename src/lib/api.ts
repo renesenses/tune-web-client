@@ -1,6 +1,7 @@
 import { avecLangueSignal } from './langueRequete';
 // REST API client for tune-server
 
+import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -87,6 +88,10 @@ const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>([
   'parental_explicit_refused',
   // tune-server-rust#8611 / #8636 — artiste bloqué, phrase traduite par le serveur.
   'parental_content_blocked',
+  // Recette rc12 (13/11) — une piste du CD lancée sans disque : « Le disque
+  // n'est plus dans le lecteur… », traduite par le serveur, au lieu de
+  // « HTTP 500 — playback_error — aucun disque dans le lecteur ».
+  'cd_disc_absent',
 ]);
 
 /** Current UI locale, sent as Accept-Language so server-provided strings
@@ -1385,6 +1390,14 @@ export function updateZoneDlnaNativeFlac(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ dlna_native_flac: enabled }),
+  });
+}
+
+/** #2271 / fil 2694 — rétablir un mode nommé (album au hasard…) tel quel. */
+export function updateZoneAutoplayMode(id: number, mode: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ autoplay_mode: mode }),
   });
 }
 
@@ -2970,8 +2983,9 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
  * `?sections=1` et non une route à part : sans le drapeau, la même route rend
  * le tableau nu que lisent les clients natifs et le serveur média.
  */
-export function getArtistAlbumsSections(id: number) {
-  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+export function getArtistAlbumsSections(id: number, dossier?: string | null) {
+  const portee = dossier ? `&${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1${portee}`)
     .then(sectionsDepuisReponse);
 }
 
@@ -3365,8 +3379,9 @@ export function enrichArtist(artistId: number) {
   return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/metadata/artists/${artistId}/enrich`);
 }
 
-export function getArtistTracks(id: number) {
-  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
+export function getArtistTracks(id: number, dossier?: string | null) {
+  const suite = dossier ? `?${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks${suite}`);
 }
 
 // reportArtistImage (POST /library/artists/{id}/image/report) est remplacé par
@@ -5842,6 +5857,63 @@ export async function removeMusicDir(path: string, confirmPurge?: number) {
     body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/**
+ * #8676 — « Remplacer le chemin » : l'aperçu (n'écrit rien) et l'application
+ * (une transaction, identifiants conservés). Les refus (400, 409, 422) portent
+ * un corps lisible : `refusal` ou `error`, que `remplacerChemin.ts` traduit.
+ */
+export async function previewMoveMusicDir(oldPrefix: string, newPrefix: string): Promise<ApercuDeplacement> {
+  return appelDeplacement<ApercuDeplacement>('/system/music-dirs/move/preview', { old_prefix: oldPrefix, new_prefix: newPrefix });
+}
+
+export async function applyMoveMusicDir(oldPrefix: string, newPrefix: string, confirmTracks: number): Promise<BilanDeplacement> {
+  return appelDeplacement<BilanDeplacement>('/system/music-dirs/move', {
+    old_prefix: oldPrefix, new_prefix: newPrefix, confirm_tracks: confirmTracks,
+  });
+}
+
+/**
+ * Les refus (400, 409, 422) portent un corps lisible ; 404 et 405 veulent dire
+ * « serveur trop ancien » : ni bandeau ni exception, `{ error: 'unsupported' }`,
+ * et le geste disparaît de l'écran.
+ */
+async function appelDeplacement<T extends { error?: string }>(chemin: string, corps: unknown): Promise<T> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<T>(`${BASE}${chemin}`, { method: 'POST', body: JSON.stringify(corps) }, (s) => {
+      statut = s;
+      return s === 400 || s === 404 || s === 405 || s === 409 || s === 422;
+    });
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    return r;
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { error: 'unsupported' } as T;
+    throw e;
+  }
+}
+
+let remplacerLeCheminConnu: Promise<boolean> | null = null;
+
+/**
+ * #8676 — le serveur sait-il « Remplacer le chemin » ? Lu dans
+ * `GET /system/capabilities` (clé `bibliotheque.remplacer_le_chemin`, absente
+ * = non), une fois par chargement. Un serveur sans cette route (ancien) rend
+ * 404 : réponse « non », sans bandeau.
+ */
+export function remplacerLeCheminDisponible(): Promise<boolean> {
+  if (!remplacerLeCheminConnu) {
+    remplacerLeCheminConnu = fetchJSON<any>(`${BASE}/system/capabilities`, undefined, (s) => s === 404 || s === 405, true)
+      .then((c) => c?.bibliotheque?.remplacer_le_chemin === true)
+      .catch(() => false);
+  }
+  return remplacerLeCheminConnu;
+}
+
+/** Épreuves seulement : oublier la réponse mémorisée. */
+export function oublierCapaciteRemplacerLeChemin(): void {
+  remplacerLeCheminConnu = null;
 }
 
 /** Une entrée de l'explorateur de dossiers du serveur. */
@@ -8916,6 +8988,8 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 
 export type ModeIntegrite = 'full' | 'quick';
 export interface EtatIntegrite {
+  /** Estimation publiée par le serveur ; absente sur un serveur ancien. */
+  eta_seconds?: number | null;
   mode?: ModeIntegrite;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'error';
   total: number; traites: number; sains: number; corrompus: number;
@@ -11650,7 +11724,11 @@ export function getAlbumHiRes(albumId: number) {
 }
 /** tune-server-rust#6285 — l'état de la passe des faux Hi-Res : armée ou non,
  *  verdict « douteux » montré ou non, pistes restant à mesurer, pistes rangées. */
-export interface EtatFauxHiRes { active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number }
+export interface EtatFauxHiRes {
+  active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
+  /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
+  catalogue_hires_verdict?: boolean;
+}
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {
   return fetchJSON<EtatFauxHiRes>(`${BASE}/library/hires-check`, undefined, undefined, true);
