@@ -1030,7 +1030,7 @@
         {/each}
         {#if smartPlaylists.length === 0 && !showCreate}
           <p class="sp-empty">{$tr('smartPlaylists.emptyList')}</p>
-        {:else if !visibles.length}
+        {:else if recherche.trim() && !visibles.length}
           <p class="sp-empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</p>
         {/if}
       </div>
