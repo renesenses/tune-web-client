@@ -369,6 +369,8 @@
       const nature = natureErreurConnexion(e);
       qobuzAuthError = nature === 'application'
         ? get(t)('settings.errAppRefused' as any).replace('{service}', 'Qobuz')
+        : nature === 'reseau'
+          ? get(t)('settings.errNetworkRefused' as any).replace('{service}', 'Qobuz')
         : nature === 'identifiants'
           ? get(t)('settings.wrongCredentials')
           : get(t)('settings.connectionError');

@@ -3455,6 +3455,7 @@ export default {
   "settings.errCredentialsRejected": "凭据被拒绝。",
   "settings.errCredentialsNotRecognised": "{service} 无法识别该邮箱或密码。",
   "settings.errAppRefused": "{service} 拒绝了 Tune 应用。这不是密码问题，请稍后再试。",
+  "settings.errNetworkRefused": "{service} 拒绝来自您网络的连接（VPN、国家/地区等）。这不是密码问题：请关闭 VPN 或换一个网络再试。",
   "settings.errNoAuthLink": "服务未返回链接。",
   "settings.usernameOnlyPlaceholder": "Bandcamp 用户名",
   "settings.usernameOnlyHint": "您的 Bandcamp 页面用户名。无需密码：个人资料页是公开的。",

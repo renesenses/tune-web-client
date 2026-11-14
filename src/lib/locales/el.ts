@@ -2112,6 +2112,7 @@ export default {
   "settings.errCredentialsRejected": "Τα διαπιστευτήρια απορρίφθηκαν.",
   "settings.errCredentialsNotRecognised": "Το email ή ο κωδικός πρόσβασης δεν αναγνωρίστηκε από το {service}.",
   "settings.errAppRefused": "Το {service} απορρίπτει την εφαρμογή Tune. Δεν φταίει ο κωδικός σας: δοκιμάστε ξανά αργότερα.",
+  "settings.errNetworkRefused": "Το {service} απορρίπτει τις συνδέσεις από το δίκτυό σας (VPN, χώρα…). Δεν φταίει ο κωδικός σας: απενεργοποιήστε το VPN ή δοκιμάστε από άλλο δίκτυο.",
   "settings.errNoAuthLink": "Η υπηρεσία δεν επέστρεψε σύνδεσμο.",
   "settings.usernameOnlyPlaceholder": "Όνομα χρήστη Bandcamp",
   "settings.usernameOnlyHint": "Το όνομα χρήστη της σελίδας σας στο Bandcamp. Χωρίς κωδικό πρόσβασης: η σελίδα προφίλ είναι δημόσια.",

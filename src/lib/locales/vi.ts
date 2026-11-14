@@ -2114,6 +2114,7 @@ export default {
   "settings.errCredentialsRejected": "Thông tin đăng nhập bị từ chối.",
   "settings.errCredentialsNotRecognised": "{service} không nhận ra email hoặc mật khẩu.",
   "settings.errAppRefused": "{service} từ chối ứng dụng Tune. Đây không phải lỗi mật khẩu: hãy thử lại sau.",
+  "settings.errNetworkRefused": "{service} từ chối kết nối từ mạng của bạn (VPN, quốc gia…). Đây không phải lỗi mật khẩu: hãy tắt VPN hoặc thử từ mạng khác.",
   "settings.errNoAuthLink": "Dịch vụ không trả về liên kết.",
   "settings.usernameOnlyPlaceholder": "Tên người dùng Bandcamp",
   "settings.usernameOnlyHint": "Tên người dùng của trang Bandcamp của bạn. Không cần mật khẩu: trang hồ sơ là công khai.",

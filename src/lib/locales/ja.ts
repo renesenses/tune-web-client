@@ -3455,6 +3455,7 @@ export default {
   "settings.errCredentialsRejected": "認証情報が拒否されました。",
   "settings.errCredentialsNotRecognised": "メールアドレスまたはパスワードが {service} で認識されませんでした。",
   "settings.errAppRefused": "{service} が Tune アプリを拒否しています。パスワードの問題ではありません。しばらくしてからもう一度お試しください。",
+  "settings.errNetworkRefused": "{service} があなたのネットワーク（VPN、国など）からの接続を拒否しています。パスワードの問題ではありません。VPN をオフにするか、別のネットワークからお試しください。",
   "settings.errNoAuthLink": "サービスがリンクを返しませんでした。",
   "settings.usernameOnlyPlaceholder": "Bandcamp のユーザー名",
   "settings.usernameOnlyHint": "Bandcamp ページのユーザー名です。プロフィールページは公開されているため、パスワードは不要です。",
