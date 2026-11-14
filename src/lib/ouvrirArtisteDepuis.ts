@@ -44,6 +44,8 @@ import type { Source } from './types';
  */
 export interface OptionsOuvrirArtiste {
   provenance?: string | null;
+  /** #3021 / serveur #8715 : portée locale transmise par la grille. */
+  dossier?: string | null;
   /**
    * tune-server-rust#6463 (FabienM, fil 2302, point 3) — la vignette que
    * montrait la tuile cliquée. Le meilleur résultat de la Recherche FUSIONNE
@@ -61,7 +63,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   if (a.id != null && estDeBibliotheque(a)) {
     // #1494 — la PAGE COMMUNE, plus la fiche de la Bibliothèque : voir
     // `ouvrirFicheArtisteLocale` en bas de ce module.
-    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance, options.image);
+    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance, options.image, options.dossier);
     return;
   }
   if (a.source && a.source_id) {
@@ -80,7 +82,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   if (trouve !== null) {
     // Le nom RETENU, pas celui reçu : la fiche de « Daft Punk feat. Pharrell
     // Williams » est celle de Daft Punk, et c'est ce nom-là qu'elle affiche.
-    ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance);
+    ouvrirFicheArtisteLocale(trouve.id, trouve.nom, depuis, options.provenance, options.image, options.dossier);
     return;
   }
   /**
@@ -419,6 +421,7 @@ export function ouvrirFicheArtisteLocale(
   depuis: View,
   provenance?: string | null,
   image?: string | null,
+  dossier?: string | null,
 ): void {
   vueDeRetour.set(depuis);
   ficheAlbumDeRetour.set(null);
@@ -428,6 +431,7 @@ export function ouvrirFicheArtisteLocale(
     nom: nom ?? '',
     ...(provenance != null ? { provenance } : {}),
     ...(image ? { image } : {}),
+    ...(dossier ? { dossier } : {}),
   });
   activeView.set('streamingartist');
 }

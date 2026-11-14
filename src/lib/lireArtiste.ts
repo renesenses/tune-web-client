@@ -17,6 +17,8 @@ import { tirageAleatoire } from './porteeAleatoire';
 export const PLAFOND_ARTISTE = 50;
 
 export type GestesLireArtiste = {
+  /** #3021 : le serveur ne doit pas tirer hors de la liste déjà restreinte. */
+  porteeRestreinte?: boolean;
   /** `playAndSync(zid, corps)`. */
   lire: (corps: Record<string, unknown>) => Promise<unknown>;
   /** `api.getArtistTracks(id)`. */
@@ -35,11 +37,13 @@ export function serveurSansArtistId(e: unknown): boolean {
  * Rend `0` quand le repli ne trouve rien de jouable (à dire à l'écran).
  */
 export async function lireArtisteBibliotheque(artistId: number, g: GestesLireArtiste): Promise<number | null> {
-  try {
-    await g.lire({ artist_id: artistId });
-    return null;
-  } catch (e) {
-    if (!serveurSansArtistId(e)) throw e;
+  if (!g.porteeRestreinte) {
+    try {
+      await g.lire({ artist_id: artistId });
+      return null;
+    } catch (e) {
+      if (!serveurSansArtistId(e)) throw e;
+    }
   }
   const jouables = ((await g.titres(artistId)) ?? []).filter((p) => p?.id != null && !p.banned);
   const tires = tirageAleatoire(jouables, PLAFOND_ARTISTE);

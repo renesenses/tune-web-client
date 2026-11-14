@@ -2974,8 +2974,10 @@ export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
  * `?sections=1` et non une route à part : sans le drapeau, la même route rend
  * le tableau nu que lisent les clients natifs et le serveur média.
  */
-export function getArtistAlbumsSections(id: number) {
-  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+export function getArtistAlbumsSections(id: number, dossier?: string | null) {
+  const params = new URLSearchParams({ sections: '1' });
+  if (dossier) params.set('folder', dossier);
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?${params}`)
     .then(sectionsDepuisReponse);
 }
 
@@ -3369,8 +3371,9 @@ export function enrichArtist(artistId: number) {
   return fetchJSON<import('./types').ArtistMetadata>(`${BASE}/metadata/artists/${artistId}/enrich`);
 }
 
-export function getArtistTracks(id: number) {
-  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks`);
+export function getArtistTracks(id: number, dossier?: string | null) {
+  const suite = dossier ? `?${new URLSearchParams({ folder: dossier })}` : '';
+  return fetchJSON<Track[]>(`${BASE}/library/artists/${id}/tracks${suite}`);
 }
 
 // reportArtistImage (POST /library/artists/{id}/image/report) est remplacé par
