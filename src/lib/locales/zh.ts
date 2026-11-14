@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "下载以供分析耗时过长。请重试。",
   "analyse.raison.telechargement_impossible": "下载以供分析失败。请重试。",
   "analyse.raison.zoom_non_disponible": "对于流媒体曲目，只能分析整首曲目。",
+  "analyse.raison.source_reseau": "波形和频谱图不可用：此曲目来自媒体服务器（UPnP），且资料库中没有其本地副本。",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "技术信息",
   "fiche.title": "技术信息",

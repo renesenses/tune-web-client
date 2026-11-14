@@ -7439,6 +7439,7 @@ export default {
   "analyse.raison.delai_depasse": "Downloading for analysis took too long. Try again.",
   "analyse.raison.telechargement_impossible": "Downloading for analysis failed. Try again.",
   "analyse.raison.zoom_non_disponible": "For a streaming track, only the whole track can be analysed.",
+  "analyse.raison.source_reseau": "Waveform and spectrogram unavailable: this track comes from a media server (UPnP) and the library has no local copy of it.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Technical sheet",
   "fiche.title": "Technical sheet",

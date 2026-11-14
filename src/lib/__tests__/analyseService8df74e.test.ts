@@ -202,3 +202,30 @@ describe('go du 13/11 — le spectrogramme d’une piste de service', () => {
     expect(document.body.textContent).not.toContain(fr['spectro.notLocal']);
   });
 });
+
+describe('recette du 14/11 — un refus ne laisse jamais l’écran sur « Calcul… »', () => {
+  const enAttente = () => !!document.querySelector('[role="status"][aria-live="polite"]');
+
+  it('422 texte « track has no local file » : message, plus de calcul en cours', async () => {
+    repondeur = async () => repondre(422, 'track has no local file');
+    poser(FormeOnde, { trackId: 190466, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => document.body.textContent!.includes(fr['fiche.waveform.notLocal']))).toBe(true);
+    expect(enAttente()).toBe(false);
+  });
+
+  it('422 `source_reseau` (piste UPnP sans copie locale) : la raison traduite', async () => {
+    repondeur = async () => refus('source_reseau');
+    poser(FormeOnde, { trackId: 190466, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => !!document.querySelector('[data-raison="source_reseau"]'))).toBe(true);
+    expect(document.body.textContent).toContain(fr['analyse.raison.source_reseau']);
+    expect(enAttente()).toBe(false);
+    expect(bouton(fr['fiche.waveform.compute'])).toBeUndefined();
+  });
+
+  it('toute autre erreur (500, réseau) sort aussi de l’attente', async () => {
+    repondeur = async () => { throw new TypeError('Failed to fetch'); };
+    poser(FormeOnde, { trackId: 7, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => !enAttente())).toBe(true);
+    expect(bouton(fr['fiche.waveform.compute'])).toBeDefined();
+  });
+});

@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "Il download per l’analisi ha richiesto troppo tempo. Riprova.",
   "analyse.raison.telechargement_impossible": "Il download per l’analisi non è riuscito. Riprova.",
   "analyse.raison.zoom_non_disponible": "Per un brano di un servizio si analizza solo il brano intero.",
+  "analyse.raison.source_reseau": "Forma d’onda e spettrogramma non disponibili: questo brano proviene da un server multimediale (UPnP) e la libreria non ne ha una copia locale.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Scheda tecnica",
   "fiche.title": "Scheda tecnica",

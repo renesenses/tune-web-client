@@ -7264,6 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Nedlastingen for analyse tok for lang tid. Prøv igjen.",
   "analyse.raison.telechargement_impossible": "Nedlastingen for analyse mislyktes. Prøv igjen.",
   "analyse.raison.zoom_non_disponible": "For et strømmespor kan bare hele sporet analyseres.",
+  "analyse.raison.source_reseau": "Bølgeform og spektrogram er ikke tilgjengelig: sporet kommer fra en medieserver (UPnP), og biblioteket har ingen lokal kopi av det.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Teknisk ark",
   "fiche.title": "Teknisk ark",

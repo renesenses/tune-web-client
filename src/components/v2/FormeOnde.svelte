@@ -83,7 +83,12 @@
       const f = await chargerFormeOnde(trackId, { signal: c.signal });
       if (!c.signal.aborted) etat = { v: 'pret', forme: f };
     } catch (e) {
-      if ((e as { name?: string })?.name === 'AbortError') return;
+      // Recette du 14/11 : une requête annulée qui était encore la COURANTE
+      // ne laisse jamais l'écran sur « Calcul… » — retour au bouton.
+      if ((e as { name?: string })?.name === 'AbortError') {
+        if (controle === c) etat = { v: 'repos' };
+        return;
+      }
       etat = e instanceof ErreurFormeOnde
         ? { v: 'erreur', genre: e.genre, raison: e.raison }
         : { v: 'erreur', genre: 'reseau' };

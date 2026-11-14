@@ -7418,6 +7418,7 @@ export default {
   "analyse.raison.delai_depasse": "Nedladdningen för analys tog för lång tid. Försök igen.",
   "analyse.raison.telechargement_impossible": "Nedladdningen för analys misslyckades. Försök igen.",
   "analyse.raison.zoom_non_disponible": "För ett strömmat spår kan bara hela spåret analyseras.",
+  "analyse.raison.source_reseau": "Vågform och spektrogram är inte tillgängliga: spåret kommer från en medieserver (UPnP) och biblioteket har ingen lokal kopia av det.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Tekniskt blad",
   "fiche.title": "Tekniskt blad",

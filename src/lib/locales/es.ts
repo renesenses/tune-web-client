@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "La descarga para el análisis tardó demasiado. Vuelve a intentarlo.",
   "analyse.raison.telechargement_impossible": "La descarga para el análisis falló. Vuelve a intentarlo.",
   "analyse.raison.zoom_non_disponible": "En una pista de un servicio, solo se analiza la pista completa.",
+  "analyse.raison.source_reseau": "Forma de onda y espectrograma no disponibles: esta pista viene de un servidor multimedia (UPnP) y la biblioteca no tiene una copia local.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Ficha técnica",
   "fiche.title": "Ficha técnica",

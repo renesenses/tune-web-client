@@ -7264,6 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Pobieranie do analizy trwało zbyt długo. Spróbuj ponownie.",
   "analyse.raison.telechargement_impossible": "Pobieranie do analizy nie powiodło się. Spróbuj ponownie.",
   "analyse.raison.zoom_non_disponible": "W przypadku utworu z serwisu analizuje się tylko cały utwór.",
+  "analyse.raison.source_reseau": "Przebieg i spektrogram niedostępne: ten utwór pochodzi z serwera multimediów (UPnP), a biblioteka nie ma jego lokalnej kopii.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Karta techniczna",
   "fiche.title": "Karta techniczna",

@@ -7378,6 +7378,7 @@ export default {
   "analyse.raison.delai_depasse": "Az elemzéshez szükséges letöltés túl sokáig tartott. Próbáld újra.",
   "analyse.raison.telechargement_impossible": "Az elemzéshez szükséges letöltés sikertelen. Próbáld újra.",
   "analyse.raison.zoom_non_disponible": "Streamelt számnál csak a teljes szám elemezhető.",
+  "analyse.raison.source_reseau": "A hullámforma és a spektrogram nem érhető el: a szám médiaszerverről (UPnP) származik, és a könyvtárban nincs helyi másolata.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Műszaki adatlap",
   "fiche.title": "Műszaki adatlap",

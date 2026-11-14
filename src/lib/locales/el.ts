@@ -7264,6 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Η λήψη για ανάλυση άργησε πολύ. Δοκιμάστε ξανά.",
   "analyse.raison.telechargement_impossible": "Η λήψη για ανάλυση απέτυχε. Δοκιμάστε ξανά.",
   "analyse.raison.zoom_non_disponible": "Για κομμάτι υπηρεσίας αναλύεται μόνο ολόκληρο το κομμάτι.",
+  "analyse.raison.source_reseau": "Η κυματομορφή και το φασματογράφημα δεν είναι διαθέσιμα: το κομμάτι προέρχεται από διακομιστή πολυμέσων (UPnP) και η βιβλιοθήκη δεν έχει τοπικό αντίγραφο.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Τεχνικό δελτίο",
   "fiche.title": "Τεχνικό δελτίο",

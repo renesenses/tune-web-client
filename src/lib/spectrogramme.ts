@@ -83,6 +83,8 @@ export function idAnalyseDe(piste: { id?: unknown; source?: unknown } | null | u
 export const RAISONS_SERVICE = [
   'service_non_connecte', 'service_inactif', 'non_diffusable', 'region',
   'trop_volumineux', 'delai_depasse', 'telechargement_impossible', 'zoom_non_disponible',
+  /** Recette du 14/11 — piste d'un serveur multimédia (UPnP) sans copie locale. */
+  'source_reseau',
 ] as const;
 export type RaisonService = (typeof RAISONS_SERVICE)[number];
 
@@ -106,6 +108,7 @@ const CLES_RAISONS: Record<RaisonService, string> = {
   delai_depasse: 'analyse.raison.delai_depasse',
   telechargement_impossible: 'analyse.raison.telechargement_impossible',
   zoom_non_disponible: 'analyse.raison.zoom_non_disponible',
+  source_reseau: 'analyse.raison.source_reseau',
 };
 
 /** La clé i18n d'une raison de refus. */

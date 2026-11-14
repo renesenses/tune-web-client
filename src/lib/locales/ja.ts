@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "解析用のダウンロードに時間がかかりすぎました。もう一度お試しください。",
   "analyse.raison.telechargement_impossible": "解析用のダウンロードに失敗しました。もう一度お試しください。",
   "analyse.raison.zoom_non_disponible": "ストリーミングのトラックは、トラック全体のみ解析できます。",
+  "analyse.raison.source_reseau": "波形とスペクトログラムは利用できません。このトラックはメディアサーバー（UPnP）のもので、ライブラリにローカルのコピーがありません。",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "技術情報",
   "fiche.title": "技術情報",

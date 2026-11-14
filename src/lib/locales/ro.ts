@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "Descărcarea pentru analiză a durat prea mult. Încearcă din nou.",
   "analyse.raison.telechargement_impossible": "Descărcarea pentru analiză a eșuat. Încearcă din nou.",
   "analyse.raison.zoom_non_disponible": "Pentru o piesă de la un serviciu se analizează doar piesa întreagă.",
+  "analyse.raison.source_reseau": "Forma de undă și spectrograma nu sunt disponibile: piesa provine de la un server media (UPnP), iar biblioteca nu are o copie locală.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Fișă tehnică",
   "fiche.title": "Fișă tehnică",

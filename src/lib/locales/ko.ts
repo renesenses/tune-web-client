@@ -7419,6 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "분석용 다운로드가 너무 오래 걸렸습니다. 다시 시도하세요.",
   "analyse.raison.telechargement_impossible": "분석용 다운로드에 실패했습니다. 다시 시도하세요.",
   "analyse.raison.zoom_non_disponible": "스트리밍 트랙은 전체 트랙만 분석할 수 있습니다.",
+  "analyse.raison.source_reseau": "파형과 스펙트로그램을 사용할 수 없습니다. 이 트랙은 미디어 서버(UPnP)에서 온 것이며 라이브러리에 로컬 사본이 없습니다.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "기술 정보",
   "fiche.title": "기술 정보",
