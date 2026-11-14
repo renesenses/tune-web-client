@@ -2107,6 +2107,7 @@ export default {
   "settings.errCredentialsRejected": "Påloggingsopplysningene ble avvist.",
   "settings.errCredentialsNotRecognised": "E-post eller passord ble ikke gjenkjent av {service}.",
   "settings.errAppRefused": "{service} avviser Tune-appen. Det skyldes ikke passordet ditt: prøv igjen senere.",
+  "settings.errNetworkRefused": "{service} avviser tilkoblinger fra nettverket ditt (VPN, land …). Det skyldes ikke passordet ditt: slå av VPN eller prøv fra et annet nettverk.",
   "settings.errNoAuthLink": "Tjenesten returnerte ingen lenke.",
   "settings.usernameOnlyPlaceholder": "Bandcamp-brukernavn",
   "settings.usernameOnlyHint": "Brukernavnet til Bandcamp-siden din. Uten passord: profilsiden er offentlig.",

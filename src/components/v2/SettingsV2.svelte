@@ -1949,6 +1949,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         [name]:
           nature === 'application'
             ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'reseau'
+            ? get(t)('settings.errNetworkRefused' as any).replace('{service}', nomAffiche(name))
           : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'

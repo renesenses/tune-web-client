@@ -3404,6 +3404,7 @@ export default {
   "settings.errCredentialsRejected": "A hitelesítő adatok elutasítva.",
   "settings.errCredentialsNotRecognised": "A(z) {service} nem ismerte fel az e-mail-címet vagy a jelszót.",
   "settings.errAppRefused": "A(z) {service} elutasítja a Tune alkalmazást. Nem a jelszóval van baj: próbálja újra később.",
+  "settings.errNetworkRefused": "A(z) {service} elutasítja a hálózatáról érkező kapcsolatokat (VPN, ország…). Nem a jelszóval van baj: kapcsolja ki a VPN-t, vagy próbálja másik hálózatról.",
   "settings.errNoAuthLink": "A szolgáltatás nem adott vissza hivatkozást.",
   "settings.usernameOnlyPlaceholder": "Bandcamp felhasználónév",
   "settings.usernameOnlyHint": "A Bandcamp-oldalának felhasználóneve. Nincs jelszó: a profiloldal nyilvános.",

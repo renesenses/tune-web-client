@@ -3450,6 +3450,7 @@ export default {
   "settings.errCredentialsRejected": "인증 정보가 거부되었습니다.",
   "settings.errCredentialsNotRecognised": "{service}에서 이메일 또는 비밀번호를 인식하지 못했습니다.",
   "settings.errAppRefused": "{service}에서 Tune 앱을 거부하고 있습니다. 비밀번호 문제가 아닙니다. 나중에 다시 시도하세요.",
+  "settings.errNetworkRefused": "{service}에서 사용 중인 네트워크(VPN, 국가 등)의 연결을 거부하고 있습니다. 비밀번호 문제가 아닙니다. VPN을 끄거나 다른 네트워크에서 시도하세요.",
   "settings.errNoAuthLink": "서비스가 링크를 반환하지 않았습니다.",
   "settings.usernameOnlyPlaceholder": "Bandcamp 사용자 이름",
   "settings.usernameOnlyHint": "Bandcamp 페이지의 사용자 이름입니다. 프로필 페이지가 공개되어 있으므로 비밀번호는 필요 없습니다.",

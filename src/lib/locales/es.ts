@@ -3450,6 +3450,7 @@ export default {
   "settings.errCredentialsRejected": "Credenciales rechazadas.",
   "settings.errCredentialsNotRecognised": "Correo o contraseña no reconocidos por {service}.",
   "settings.errAppRefused": "{service} rechaza la aplicación Tune. No es su contraseña: inténtelo de nuevo más tarde.",
+  "settings.errNetworkRefused": "{service} rechaza las conexiones desde su red (VPN, país…). No es su contraseña: desactive la VPN o inténtelo desde otra red.",
   "settings.errNoAuthLink": "El servicio no devolvió ningún enlace.",
   "settings.usernameOnlyPlaceholder": "Usuario de Bandcamp",
   "settings.usernameOnlyHint": "El usuario de tu página de Bandcamp. Sin contraseña: la página de perfil es pública.",

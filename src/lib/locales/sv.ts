@@ -3449,6 +3449,7 @@ export default {
   "settings.errCredentialsRejected": "Inloggningsuppgifter nekade.",
   "settings.errCredentialsNotRecognised": "E-postadressen eller lösenordet känns inte igen av {service}.",
   "settings.errAppRefused": "{service} nekar Tune-appen. Det beror inte på ditt lösenord: försök igen senare.",
+  "settings.errNetworkRefused": "{service} nekar anslutningar från ditt nätverk (VPN, land…). Det beror inte på ditt lösenord: stäng av VPN eller försök från ett annat nätverk.",
   "settings.errNoAuthLink": "Tjänsten returnerade ingen länk.",
   "settings.usernameOnlyPlaceholder": "Bandcamp-användarnamn",
   "settings.usernameOnlyHint": "Användarnamnet för din Bandcamp-sida. Inget lösenord: profilsidan är offentlig.",

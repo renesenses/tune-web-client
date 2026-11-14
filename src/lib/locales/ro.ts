@@ -3450,6 +3450,7 @@ export default {
   "settings.errCredentialsRejected": "Date de autentificare refuzate.",
   "settings.errCredentialsNotRecognised": "E-mailul sau parola nu au fost recunoscute de {service}.",
   "settings.errAppRefused": "{service} refuză aplicația Tune. Nu este vorba de parolă: încercați din nou mai târziu.",
+  "settings.errNetworkRefused": "{service} refuză conexiunile din rețeaua dvs. (VPN, țară…). Nu este vorba de parolă: dezactivați VPN-ul sau încercați din altă rețea.",
   "settings.errNoAuthLink": "Serviciul nu a returnat niciun link.",
   "settings.usernameOnlyPlaceholder": "Nume de utilizator Bandcamp",
   "settings.usernameOnlyHint": "Numele de utilizator al paginii dvs. Bandcamp. Fără parolă: pagina de profil este publică.",
