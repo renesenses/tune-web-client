@@ -303,6 +303,9 @@
   };
   /** Les sections repliées, retenues d'une fiche à l'autre comme le tri. */
   const CLE_REPLIES = 'v2.art.disco.replies';
+  /** La clé de repli et l'identifiant du bloc « Apparaît sur ». */
+  const REPLI_APPARAIT = 'appears-on';
+  const ID_APPARAIT = 'disco-appears-on';
   function relireReplies(): Set<string> {
     try {
       const v = JSON.parse(lireTexte(CLE_REPLIES) ?? '[]');
@@ -555,7 +558,7 @@
       {#if parType}
         <!-- web#3032 — repliable aussi quand la discographie l'est. -->
         <h3 class="titre-section">
-          <button class="replier" aria-expanded={!replies.has('apparait-sur')} aria-controls="disco-apparait-sur" onclick={() => basculerRepli('apparait-sur')}>
+          <button class="replier" aria-expanded={!replies.has(REPLI_APPARAIT)} aria-controls={ID_APPARAIT} onclick={() => basculerRepli(REPLI_APPARAIT)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
             {$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span>
           </button>
@@ -563,8 +566,8 @@
       {:else}
         <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
       {/if}
-      {#if !parType || !replies.has('apparait-sur')}
-      <div id="disco-apparait-sur">
+      {#if !parType || !replies.has(REPLI_APPARAIT)}
+      <div id={ID_APPARAIT}>
       {#if apparitionsTriees.length}
         <div class="groupe" data-section="apparitions">
           <div class="gr">
