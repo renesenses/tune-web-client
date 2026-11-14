@@ -22,6 +22,7 @@
   import { t, locale } from '../../lib/i18n';
   import { texteRaison } from '../../lib/raisonSuggestion';
   import * as api from '../../lib/api';
+  import { lireTotaux, infobulleTotaux } from '../../lib/totauxBibliotheque';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
@@ -44,7 +45,14 @@
 
   let zone = $derived($currentZone);
 
-  let stats: { tracks: number; albums: number; artists: number } | null = $state(null);
+  let stats: { tracks: number; albums: number; artists: number; library_totals?: unknown } | null = $state(null);
+  /** tune-server-rust#8625, fil 2831 — les totaux des LISTES (`library_totals`),
+   *  repli sur le compte des tables face à un serveur plus ancien. Les
+   *  artistes restent `artists` : `library_totals` ne les compte pas. */
+  const totauxListes = $derived(stats ? lireTotaux(stats) : null);
+  const infobulleListes = $derived(totauxListes
+    ? infobulleTotaux(totauxListes, (c) => $t(c as any), (n) => $formatNombre(n))
+    : undefined);
   let topArtists: TopArtist[] = $state([]);
   let topArtistsLoaded = $state(false);
   let topTracks: TopTrack[] = $state([]);
@@ -305,16 +313,16 @@
         <div class="dash-empty-library">
           <span class="dash-empty-label">{$t('home.emptyState.libraryStats')}</span>
           <div class="dash-empty-stats">
-            <button class="dash-big-stat clickable" onclick={() => goToLibrary('albums')}>
-              <span class="dash-big-number">{$formatNombre(stats.albums)}</span>
+            <button class="dash-big-stat clickable" onclick={() => goToLibrary('albums')} title={infobulleListes}>
+              <span class="dash-big-number">{$formatNombre(totauxListes?.albums ?? stats.albums)}</span>
               <span class="dash-big-label">{$t('common.albums')}</span>
             </button>
             <button class="dash-big-stat clickable" onclick={() => goToLibrary('artists')}>
               <span class="dash-big-number">{$formatNombre(stats.artists)}</span>
               <span class="dash-big-label">{$t('common.artists')}</span>
             </button>
-            <button class="dash-big-stat clickable" onclick={() => goToLibrary('tracks')}>
-              <span class="dash-big-number">{$formatNombre(stats.tracks)}</span>
+            <button class="dash-big-stat clickable" onclick={() => goToLibrary('tracks')} title={infobulleListes}>
+              <span class="dash-big-number">{$formatNombre(totauxListes?.tracks ?? stats.tracks)}</span>
               <span class="dash-big-label">{$t('home.tracks').toLowerCase()}</span>
             </button>
           </div>
