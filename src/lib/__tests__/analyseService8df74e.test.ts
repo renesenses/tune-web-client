@@ -102,6 +102,12 @@ describe('go du 13/11 — les règles pures', () => {
     // Spotify, YouTube… : le serveur garde le texte d'avant.
     expect(genreDeRefus(422, '{"error":"track has no local file","raison":"service_non_pris_en_charge"}')).toBe('non-locale');
     expect(genreDeRefus(422, 'waveform failed: boom')).toBe('impossible');
+    // Recette du 14/11 (D10) : tout autre refus 4xx dit « indisponible pour
+    // cette source » ; 408 et 429 restent passagers.
+    expect(genreDeRefus(403, 'forbidden')).toBe('non-locale');
+    expect(genreDeRefus(400, '')).toBe('non-locale');
+    expect(genreDeRefus(429, '')).toBe('reseau');
+    expect(genreDeRefus(408, '')).toBe('reseau');
   });
 
   it('Qobuz et TIDAL seulement, avec un identifiant de bibliothèque', () => {
@@ -162,7 +168,7 @@ describe('go du 13/11 — la forme d’onde d’une piste de service', () => {
     flushSync();
     expect(await attendreQue(() => !!document.querySelector('[data-telechargement]'))).toBe(true);
     expect(document.body.textContent).toContain(fr['analyse.downloading']);
-    expect(document.body.textContent).not.toContain(fr['fiche.waveform.notLocal']);
+    expect(document.body.textContent).not.toContain(fr['fiche.waveform.unavailableSource']);
     lacher();
     expect(await attendreQue(() => document.querySelectorAll('.canal').length === 2)).toBe(true);
     bouton(fr['fiche.waveform.zoomIn'])!.click();
@@ -209,17 +215,24 @@ describe('recette du 14/11 — un refus ne laisse jamais l’écran sur « Calcu
   it('422 texte « track has no local file » : message, plus de calcul en cours', async () => {
     repondeur = async () => repondre(422, 'track has no local file');
     poser(FormeOnde, { trackId: 190466, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
-    expect(await attendreQue(() => document.body.textContent!.includes(fr['fiche.waveform.notLocal']))).toBe(true);
+    expect(await attendreQue(() => document.body.textContent!.includes(fr['fiche.waveform.unavailableSource']))).toBe(true);
     expect(enAttente()).toBe(false);
   });
 
-  it('422 `source_reseau` (piste UPnP sans copie locale) : la raison traduite', async () => {
+  it('422 `source_reseau` (piste UPnP) : « Forme d’onde indisponible pour cette source »', async () => {
     repondeur = async () => refus('source_reseau');
     poser(FormeOnde, { trackId: 190466, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
-    expect(await attendreQue(() => !!document.querySelector('[data-raison="source_reseau"]'))).toBe(true);
-    expect(document.body.textContent).toContain(fr['analyse.raison.source_reseau']);
+    expect(await attendreQue(() => !!document.querySelector('[data-indisponible-source]'))).toBe(true);
+    expect(document.body.textContent).toContain(fr['fiche.waveform.unavailableSource']);
     expect(enAttente()).toBe(false);
     expect(bouton(fr['fiche.waveform.compute'])).toBeUndefined();
+  });
+
+  it('tout autre refus 4xx (403) : le même message, plus d’attente', async () => {
+    repondeur = async () => repondre(403, 'forbidden');
+    poser(FormeOnde, { trackId: 190466, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => !!document.querySelector('[data-indisponible-source]'))).toBe(true);
+    expect(enAttente()).toBe(false);
   });
 
   it('toute autre erreur (500, réseau) sort aussi de l’attente', async () => {

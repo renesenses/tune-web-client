@@ -7419,7 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "Der Download zur Analyse hat zu lange gedauert. Bitte erneut versuchen.",
   "analyse.raison.telechargement_impossible": "Der Download zur Analyse ist fehlgeschlagen. Bitte erneut versuchen.",
   "analyse.raison.zoom_non_disponible": "Bei einem Streaming-Titel lässt sich nur der ganze Titel analysieren.",
-  "analyse.raison.source_reseau": "Wellenform und Spektrogramm nicht verfügbar: Dieser Titel stammt von einem Medienserver (UPnP), und die Bibliothek hat keine lokale Kopie davon.",
+  "analyse.raison.source_reseau": "Spektrogramm für diese Quelle nicht verfügbar: Der Titel stammt von einem Medienserver (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Technisches Datenblatt",
   "fiche.title": "Technisches Datenblatt",
@@ -7456,7 +7456,7 @@ export default {
   "fiche.waveform.loading": "Wellenform wird berechnet…",
   "fiche.waveform.failed": "Die Berechnung der Wellenform ist fehlgeschlagen. Bitte erneut versuchen.",
   "fiche.waveform.unavailable": "Dieser Server bietet die Wellenform noch nicht an. Bitte Tune aktualisieren.",
-  "fiche.waveform.notLocal": "Keine Wellenform: dieser Titel ist keine lokale Datei.",
+  "fiche.waveform.unavailableSource": "Wellenform für diese Quelle nicht verfügbar.",
   "fiche.waveform.tools": "Wellenform-Anzeige",
   "fiche.waveform.scale": "Skala",
   "fiche.waveform.linear": "Linear",

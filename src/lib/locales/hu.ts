@@ -7378,7 +7378,7 @@ export default {
   "analyse.raison.delai_depasse": "Az elemzéshez szükséges letöltés túl sokáig tartott. Próbáld újra.",
   "analyse.raison.telechargement_impossible": "Az elemzéshez szükséges letöltés sikertelen. Próbáld újra.",
   "analyse.raison.zoom_non_disponible": "Streamelt számnál csak a teljes szám elemezhető.",
-  "analyse.raison.source_reseau": "A hullámforma és a spektrogram nem érhető el: a szám médiaszerverről (UPnP) származik, és a könyvtárban nincs helyi másolata.",
+  "analyse.raison.source_reseau": "A spektrogram ehhez a forráshoz nem érhető el: a szám médiaszerverről (UPnP) származik.",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Műszaki adatlap",
   "fiche.title": "Műszaki adatlap",
@@ -7415,7 +7415,7 @@ export default {
   "fiche.waveform.loading": "Hullámforma számítása…",
   "fiche.waveform.failed": "A hullámforma kiszámítása nem sikerült. Próbálja újra.",
   "fiche.waveform.unavailable": "Ez a szerver még nem kínál hullámformát. Frissítse a Tune-t.",
-  "fiche.waveform.notLocal": "Nincs hullámforma: a szám nem helyi fájl.",
+  "fiche.waveform.unavailableSource": "A hullámforma ehhez a forráshoz nem érhető el.",
   "fiche.waveform.tools": "Hullámforma megjelenítése",
   "fiche.waveform.scale": "Skála",
   "fiche.waveform.linear": "Lineáris",

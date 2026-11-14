@@ -205,7 +205,10 @@
     {$t((parTelechargement ? 'analyse.downloading' : 'fiche.waveform.loading') as any)}
   </p>
 {:else if etat.v === 'erreur'}
-  {#if etat.genre === 'service' && etat.raison}
+  {#if etat.genre === 'non-locale' || (etat.genre === 'service' && etat.raison === 'source_reseau')}
+    <!-- Recette du 14/11 (D10) : piste UPnP, ou tout refus 4xx de la source. -->
+    <p class="etat" role="status" data-indisponible-source>{$t('fiche.waveform.unavailableSource' as any)}</p>
+  {:else if etat.genre === 'service' && etat.raison}
     <p class="etat" role="alert" data-raison={etat.raison}>{$t(cleRaisonService(etat.raison) as any)}</p>
     {#if raisonRetentable(etat.raison)}
       <button class="bouton" onclick={charger}>{$t('fiche.waveform.compute' as any)}</button>
@@ -214,8 +217,6 @@
     <p class="etat" role="status">{$t('fiche.waveform.unavailable' as any)}</p>
   {:else if etat.genre === 'introuvable'}
     <p class="etat" role="status">{$t('fiche.trackNotFound' as any)}</p>
-  {:else if etat.genre === 'non-locale'}
-    <p class="etat" role="status">{$t('fiche.waveform.notLocal' as any)}</p>
   {:else}
     <p class="etat" role="alert">{$t('fiche.waveform.failed' as any)}</p>
     <button class="bouton" onclick={charger}>{$t('fiche.waveform.compute' as any)}</button>

@@ -154,6 +154,10 @@ export function genreDeRefus(statut: number, corps: string): GenreErreurSpectrog
     if (raisonDeRefus(corps)) return 'service';
     return /no local file|file not found/i.test(corps) ? 'non-locale' : 'impossible';
   }
+  // Recette du 14/11 (D10) — tout autre refus du client (400, 403, 410…) :
+  // l'analyse n'existe pas pour cette source, et l'écran le dit au lieu
+  // d'attendre. 408 et 429 restent des incidents passagers.
+  if (statut >= 400 && statut < 500 && statut !== 408 && statut !== 429) return 'non-locale';
   return 'reseau';
 }
 

@@ -7419,7 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "La descarga para el análisis tardó demasiado. Vuelve a intentarlo.",
   "analyse.raison.telechargement_impossible": "La descarga para el análisis falló. Vuelve a intentarlo.",
   "analyse.raison.zoom_non_disponible": "En una pista de un servicio, solo se analiza la pista completa.",
-  "analyse.raison.source_reseau": "Forma de onda y espectrograma no disponibles: esta pista viene de un servidor multimedia (UPnP) y la biblioteca no tiene una copia local.",
+  "analyse.raison.source_reseau": "Espectrograma no disponible para esta fuente: la pista viene de un servidor multimedia (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Ficha técnica",
   "fiche.title": "Ficha técnica",
@@ -7456,7 +7456,7 @@ export default {
   "fiche.waveform.loading": "Calculando la forma de onda…",
   "fiche.waveform.failed": "El cálculo de la forma de onda ha fallado. Inténtalo de nuevo.",
   "fiche.waveform.unavailable": "Este servidor aún no ofrece la forma de onda. Actualiza Tune.",
-  "fiche.waveform.notLocal": "Sin forma de onda: la pista no es un archivo local.",
+  "fiche.waveform.unavailableSource": "Forma de onda no disponible para esta fuente.",
   "fiche.waveform.tools": "Visualización de la forma de onda",
   "fiche.waveform.scale": "Escala",
   "fiche.waveform.linear": "Lineal",

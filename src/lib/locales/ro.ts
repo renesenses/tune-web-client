@@ -7419,7 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "Descărcarea pentru analiză a durat prea mult. Încearcă din nou.",
   "analyse.raison.telechargement_impossible": "Descărcarea pentru analiză a eșuat. Încearcă din nou.",
   "analyse.raison.zoom_non_disponible": "Pentru o piesă de la un serviciu se analizează doar piesa întreagă.",
-  "analyse.raison.source_reseau": "Forma de undă și spectrograma nu sunt disponibile: piesa provine de la un server media (UPnP), iar biblioteca nu are o copie locală.",
+  "analyse.raison.source_reseau": "Spectrograma nu este disponibilă pentru această sursă: piesa provine de la un server media (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Fișă tehnică",
   "fiche.title": "Fișă tehnică",
@@ -7456,7 +7456,7 @@ export default {
   "fiche.waveform.loading": "Se calculează forma de undă…",
   "fiche.waveform.failed": "Calculul formei de undă a eșuat. Încercați din nou.",
   "fiche.waveform.unavailable": "Acest server nu oferă încă forma de undă. Actualizați Tune.",
-  "fiche.waveform.notLocal": "Fără formă de undă: piesa nu este un fișier local.",
+  "fiche.waveform.unavailableSource": "Forma de undă nu este disponibilă pentru această sursă.",
   "fiche.waveform.tools": "Afișarea formei de undă",
   "fiche.waveform.scale": "Scară",
   "fiche.waveform.linear": "Liniară",

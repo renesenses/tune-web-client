@@ -7439,7 +7439,7 @@ export default {
   "analyse.raison.delai_depasse": "Downloading for analysis took too long. Try again.",
   "analyse.raison.telechargement_impossible": "Downloading for analysis failed. Try again.",
   "analyse.raison.zoom_non_disponible": "For a streaming track, only the whole track can be analysed.",
-  "analyse.raison.source_reseau": "Waveform and spectrogram unavailable: this track comes from a media server (UPnP) and the library has no local copy of it.",
+  "analyse.raison.source_reseau": "Spectrogram unavailable for this source: the track comes from a media server (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Technical sheet",
   "fiche.title": "Technical sheet",
@@ -7476,7 +7476,7 @@ export default {
   "fiche.waveform.loading": "Computing the waveform…",
   "fiche.waveform.failed": "Computing the waveform failed. Please try again.",
   "fiche.waveform.unavailable": "This server does not provide the waveform yet. Please update Tune.",
-  "fiche.waveform.notLocal": "No waveform: this track is not a local file.",
+  "fiche.waveform.unavailableSource": "Waveform unavailable for this source.",
   "fiche.waveform.tools": "Waveform display",
   "fiche.waveform.scale": "Scale",
   "fiche.waveform.linear": "Linear",

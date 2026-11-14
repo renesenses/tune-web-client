@@ -7264,7 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Η λήψη για ανάλυση άργησε πολύ. Δοκιμάστε ξανά.",
   "analyse.raison.telechargement_impossible": "Η λήψη για ανάλυση απέτυχε. Δοκιμάστε ξανά.",
   "analyse.raison.zoom_non_disponible": "Για κομμάτι υπηρεσίας αναλύεται μόνο ολόκληρο το κομμάτι.",
-  "analyse.raison.source_reseau": "Η κυματομορφή και το φασματογράφημα δεν είναι διαθέσιμα: το κομμάτι προέρχεται από διακομιστή πολυμέσων (UPnP) και η βιβλιοθήκη δεν έχει τοπικό αντίγραφο.",
+  "analyse.raison.source_reseau": "Το φασματογράφημα δεν είναι διαθέσιμο για αυτή την πηγή: το κομμάτι προέρχεται από διακομιστή πολυμέσων (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Τεχνικό δελτίο",
   "fiche.title": "Τεχνικό δελτίο",
@@ -7301,7 +7301,7 @@ export default {
   "fiche.waveform.loading": "Υπολογισμός κυματομορφής…",
   "fiche.waveform.failed": "Ο υπολογισμός της κυματομορφής απέτυχε. Δοκιμάστε ξανά.",
   "fiche.waveform.unavailable": "Αυτός ο διακομιστής δεν παρέχει ακόμη κυματομορφή. Ενημερώστε το Tune.",
-  "fiche.waveform.notLocal": "Χωρίς κυματομορφή: το κομμάτι δεν είναι τοπικό αρχείο.",
+  "fiche.waveform.unavailableSource": "Η κυματομορφή δεν είναι διαθέσιμη για αυτή την πηγή.",
   "fiche.waveform.tools": "Προβολή κυματομορφής",
   "fiche.waveform.scale": "Κλίμακα",
   "fiche.waveform.linear": "Γραμμική",

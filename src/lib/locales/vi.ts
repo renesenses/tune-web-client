@@ -7271,7 +7271,7 @@ export default {
   "analyse.raison.delai_depasse": "Việc tải xuống để phân tích mất quá nhiều thời gian. Hãy thử lại.",
   "analyse.raison.telechargement_impossible": "Tải xuống để phân tích thất bại. Hãy thử lại.",
   "analyse.raison.zoom_non_disponible": "Với bản nhạc từ dịch vụ, chỉ có thể phân tích toàn bộ bản nhạc.",
-  "analyse.raison.source_reseau": "Không có dạng sóng và phổ âm: bản nhạc này đến từ máy chủ đa phương tiện (UPnP) và thư viện không có bản sao cục bộ.",
+  "analyse.raison.source_reseau": "Không có phổ âm cho nguồn này: bản nhạc đến từ máy chủ đa phương tiện (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Thông số kỹ thuật",
   "fiche.title": "Thông số kỹ thuật",
@@ -7308,7 +7308,7 @@ export default {
   "fiche.waveform.loading": "Đang tính dạng sóng…",
   "fiche.waveform.failed": "Không tính được dạng sóng. Vui lòng thử lại.",
   "fiche.waveform.unavailable": "Máy chủ này chưa cung cấp dạng sóng. Vui lòng cập nhật Tune.",
-  "fiche.waveform.notLocal": "Không có dạng sóng: bài hát không phải tệp cục bộ.",
+  "fiche.waveform.unavailableSource": "Không có dạng sóng cho nguồn này.",
   "fiche.waveform.tools": "Hiển thị dạng sóng",
   "fiche.waveform.scale": "Thang đo",
   "fiche.waveform.linear": "Tuyến tính",

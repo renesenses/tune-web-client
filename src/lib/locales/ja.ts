@@ -7419,7 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "解析用のダウンロードに時間がかかりすぎました。もう一度お試しください。",
   "analyse.raison.telechargement_impossible": "解析用のダウンロードに失敗しました。もう一度お試しください。",
   "analyse.raison.zoom_non_disponible": "ストリーミングのトラックは、トラック全体のみ解析できます。",
-  "analyse.raison.source_reseau": "波形とスペクトログラムは利用できません。このトラックはメディアサーバー（UPnP）のもので、ライブラリにローカルのコピーがありません。",
+  "analyse.raison.source_reseau": "このソースではスペクトログラムを利用できません。このトラックはメディアサーバー（UPnP）のものです。",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "技術情報",
   "fiche.title": "技術情報",
@@ -7456,7 +7456,7 @@ export default {
   "fiche.waveform.loading": "波形を計算中…",
   "fiche.waveform.failed": "波形の計算に失敗しました。もう一度お試しください。",
   "fiche.waveform.unavailable": "このサーバーはまだ波形に対応していません。Tune を更新してください。",
-  "fiche.waveform.notLocal": "波形なし：このトラックはローカルファイルではありません。",
+  "fiche.waveform.unavailableSource": "このソースでは波形を利用できません。",
   "fiche.waveform.tools": "波形の表示",
   "fiche.waveform.scale": "スケール",
   "fiche.waveform.linear": "リニア",

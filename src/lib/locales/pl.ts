@@ -7264,7 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Pobieranie do analizy trwało zbyt długo. Spróbuj ponownie.",
   "analyse.raison.telechargement_impossible": "Pobieranie do analizy nie powiodło się. Spróbuj ponownie.",
   "analyse.raison.zoom_non_disponible": "W przypadku utworu z serwisu analizuje się tylko cały utwór.",
-  "analyse.raison.source_reseau": "Przebieg i spektrogram niedostępne: ten utwór pochodzi z serwera multimediów (UPnP), a biblioteka nie ma jego lokalnej kopii.",
+  "analyse.raison.source_reseau": "Spektrogram niedostępny dla tego źródła: utwór pochodzi z serwera multimediów (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Karta techniczna",
   "fiche.title": "Karta techniczna",
@@ -7301,7 +7301,7 @@ export default {
   "fiche.waveform.loading": "Obliczanie przebiegu…",
   "fiche.waveform.failed": "Nie udało się obliczyć przebiegu. Spróbuj ponownie.",
   "fiche.waveform.unavailable": "Ten serwer nie udostępnia jeszcze przebiegu. Zaktualizuj Tune.",
-  "fiche.waveform.notLocal": "Brak przebiegu: utwór nie jest plikiem lokalnym.",
+  "fiche.waveform.unavailableSource": "Przebieg niedostępny dla tego źródła.",
   "fiche.waveform.tools": "Wyświetlanie przebiegu",
   "fiche.waveform.scale": "Skala",
   "fiche.waveform.linear": "Liniowa",

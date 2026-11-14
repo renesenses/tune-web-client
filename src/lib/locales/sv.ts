@@ -7418,7 +7418,7 @@ export default {
   "analyse.raison.delai_depasse": "Nedladdningen för analys tog för lång tid. Försök igen.",
   "analyse.raison.telechargement_impossible": "Nedladdningen för analys misslyckades. Försök igen.",
   "analyse.raison.zoom_non_disponible": "För ett strömmat spår kan bara hela spåret analyseras.",
-  "analyse.raison.source_reseau": "Vågform och spektrogram är inte tillgängliga: spåret kommer från en medieserver (UPnP) och biblioteket har ingen lokal kopia av det.",
+  "analyse.raison.source_reseau": "Spektrogram är inte tillgängligt för den här källan: spåret kommer från en medieserver (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Tekniskt blad",
   "fiche.title": "Tekniskt blad",
@@ -7455,7 +7455,7 @@ export default {
   "fiche.waveform.loading": "Beräknar vågformen…",
   "fiche.waveform.failed": "Beräkningen av vågformen misslyckades. Försök igen.",
   "fiche.waveform.unavailable": "Den här servern har inte vågformen än. Uppdatera Tune.",
-  "fiche.waveform.notLocal": "Ingen vågform: spåret är inte en lokal fil.",
+  "fiche.waveform.unavailableSource": "Vågform är inte tillgänglig för den här källan.",
   "fiche.waveform.tools": "Visning av vågform",
   "fiche.waveform.scale": "Skala",
   "fiche.waveform.linear": "Linjär",

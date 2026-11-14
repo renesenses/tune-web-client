@@ -7419,7 +7419,7 @@ export default {
   "analyse.raison.delai_depasse": "下载以供分析耗时过长。请重试。",
   "analyse.raison.telechargement_impossible": "下载以供分析失败。请重试。",
   "analyse.raison.zoom_non_disponible": "对于流媒体曲目，只能分析整首曲目。",
-  "analyse.raison.source_reseau": "波形和频谱图不可用：此曲目来自媒体服务器（UPnP），且资料库中没有其本地副本。",
+  "analyse.raison.source_reseau": "此来源不提供频谱图：该曲目来自媒体服务器（UPnP）。",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "技术信息",
   "fiche.title": "技术信息",
@@ -7456,7 +7456,7 @@ export default {
   "fiche.waveform.loading": "正在计算波形…",
   "fiche.waveform.failed": "波形计算失败，请重试。",
   "fiche.waveform.unavailable": "此服务器尚不提供波形，请更新 Tune。",
-  "fiche.waveform.notLocal": "无波形：此曲目不是本地文件。",
+  "fiche.waveform.unavailableSource": "此来源不提供波形。",
   "fiche.waveform.tools": "波形显示",
   "fiche.waveform.scale": "刻度",
   "fiche.waveform.linear": "线性",

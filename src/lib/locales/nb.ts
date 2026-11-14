@@ -7264,7 +7264,7 @@ export default {
   "analyse.raison.delai_depasse": "Nedlastingen for analyse tok for lang tid. Prøv igjen.",
   "analyse.raison.telechargement_impossible": "Nedlastingen for analyse mislyktes. Prøv igjen.",
   "analyse.raison.zoom_non_disponible": "For et strømmespor kan bare hele sporet analyseres.",
-  "analyse.raison.source_reseau": "Bølgeform og spektrogram er ikke tilgjengelig: sporet kommer fra en medieserver (UPnP), og biblioteket har ingen lokal kopi av det.",
+  "analyse.raison.source_reseau": "Spektrogram er ikke tilgjengelig for denne kilden: sporet kommer fra en medieserver (UPnP).",
   // tune-server-rust#8160 — la fiche technique d'une piste.
   "fiche.menu": "Teknisk ark",
   "fiche.title": "Teknisk ark",
@@ -7301,7 +7301,7 @@ export default {
   "fiche.waveform.loading": "Beregner bølgeformen…",
   "fiche.waveform.failed": "Beregningen av bølgeformen mislyktes. Prøv igjen.",
   "fiche.waveform.unavailable": "Denne serveren tilbyr ikke bølgeformen ennå. Oppdater Tune.",
-  "fiche.waveform.notLocal": "Ingen bølgeform: sporet er ikke en lokal fil.",
+  "fiche.waveform.unavailableSource": "Bølgeform er ikke tilgjengelig for denne kilden.",
   "fiche.waveform.tools": "Visning av bølgeform",
   "fiche.waveform.scale": "Skala",
   "fiche.waveform.linear": "Lineær",
