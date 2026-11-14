@@ -853,6 +853,9 @@ export default {
   'signal.network': 'ネットワーク',
   'signal.checksum': 'チェックサム',
   'signal.verified': '検証済み',
+  'signal.adjust': '調整',
+  'signal.adjustStep': '{name} を調整',
+  'signal.adjustDisabled': 'オフ — 調整',
   'signal.decisions': 'パイプライン判定',
 
   // Artist detail

@@ -853,6 +853,9 @@ export default {
   'signal.network': '네트워크',
   'signal.checksum': '체크섬',
   'signal.verified': '확인됨',
+  'signal.adjust': '조정',
+  'signal.adjustStep': '{name} 조정',
+  'signal.adjustDisabled': '꺼짐 — 조정',
   'signal.decisions': '파이프라인 결정',
 
   // Artist detail
