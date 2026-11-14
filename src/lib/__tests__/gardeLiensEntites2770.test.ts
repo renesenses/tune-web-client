@@ -63,6 +63,7 @@ const ECRANS: Record<string, string[]> = {
   'components/partages/TransportBar.svelte': ['displayTrack.artist_name', 'displayTrack.album_title'],
   'components/v2/mini/MiniBarreLecture.svelte': ['piste.artist_name', 'piste.album_title'],
   'components/partages/NowPlaying.svelte': ['displayTrack.artist_name', 'nextTrack.artist_name', 'queueTrack.artist_name', 'm.artist_name'],
+  'components/partages/CreditsEnLigne.svelte': ['m.artist_name'],
   'components/v2/LibraryV2.svelte': ['a.artist_name', 'albumYear(a)'],
   'components/v2/SearchV2.svelte': ['a.artist_name', 'pi.artist_name'],
   'components/v2/FavoritesV2.svelte': ['a.artist_name', 'r.name'],
