@@ -23,7 +23,7 @@
  * Node.
  */
 
-import { formatCanonique, formatDeFichier } from './typeDeFichier';
+import { formatCanonique } from './typeDeFichier';
 
 export type CleRepartition = 'by_codec' | 'by_sample_rate' | 'by_decade' | 'by_credit_role';
 
@@ -82,15 +82,14 @@ function liste(brut: unknown): EntreeRepartition[] {
 }
 
 /**
- * Recette 14/11 — le codec d'une case Format (`formatCanonique`) : « mpeg »
- * rejoint « mp3 », « dsf » rejoint « dsd ». Un « mp4 » reste lui-même : sans
- * profondeur de bits, on ne sait pas s'il est AAC ou ALAC (le serveur, qui la
- * connaît, l'a déjà rangé ; seul un serveur plus ancien en envoie encore).
+ * Recette 14/11 — le codec d'une case Format : la MÊME clé que le filtre de
+ * la Bibliothèque (`formatCanonique`). « mpeg » rejoint « mp3 », « dsf »
+ * rejoint « dsd », et un « mp4 » / « m4a » sans profondeur connue devient
+ * « m4a » (codec non lu) — le serveur qui suit la règle a déjà rangé en
+ * « alac » ceux qui en ont une.
  */
 function codecDe(value: string): string {
-  const f = formatDeFichier(value);
-  if (!f) return value;
-  return (f === 'MP4' || f === 'M4A' ? f : formatCanonique(f) ?? f).toLowerCase();
+  return (formatCanonique(value) ?? value).toLowerCase();
 }
 
 /** Les cases Format fusionnées par codec, de la plus fournie à la plus rare. */

@@ -102,7 +102,7 @@
 import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
-  import { formatCanonique, formatDeFichier, formatsBrutsDe } from '../../lib/typeDeFichier';
+  import { formatDeFichier, formatRetenu, formatsBrutsDe } from '../../lib/typeDeFichier';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -805,7 +805,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
     if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
-    if (fFormat.length && !fFormat.includes(formatCanonique(a.format, a.bit_depth) ?? '')) return false;
+    if (!formatRetenu(a, fFormat)) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
       // Un album sans DR ne répond pas à une question de DR : il sort.

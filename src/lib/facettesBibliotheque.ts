@@ -1,6 +1,6 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
 import { dansPeriode, type Periode } from './periodeAnnees';
-import { formatCanonique } from './typeDeFichier';
+import { formatCanonique, formatRetenu } from './typeDeFichier';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -181,7 +181,7 @@ export function correspond(
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
   if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
   if (sauf !== 'format' && f.format.length
-      && !f.format.includes(formatCanonique(a.format, a.bit_depth) ?? '')) return false;
+      && !formatRetenu(a, f.format)) return false;
   if (sauf !== 'profondeur' && f.profondeur.length
       && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
   // `?? false` : un album servi par une route qui ne porte pas le champ, ou
