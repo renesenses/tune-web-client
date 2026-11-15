@@ -2538,10 +2538,14 @@
   .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px !important;
     --bloc-marge:20px}
   .icone-bloc{width:20px; height:20px; flex:0 0 auto; color:var(--v2-acc1)}
-  @container (max-width: 1100px){
-    .mosaique.fluide{grid-template-columns:repeat(4, minmax(0,1fr))}
+  /* Vérification sur le .18 (15/11) : sous ~1 500 px de contenu, six tuiles
+     par rangée coupent les chiffres et réduisent les titres à trois lettres.
+     Trois par rangée : chaque bloc, tuile ou tiers, prend un tiers. */
+  @container (max-width: 1500px){
+    .mosaique.fluide{grid-template-columns:repeat(3, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 1}
   }
-  @container (max-width: 720px){
+  @container (max-width: 900px){
     .mosaique.fluide{grid-template-columns:repeat(2, minmax(0,1fr))}
     .mosaique.fluide > .bloc.etendu{grid-column:span 2}
   }

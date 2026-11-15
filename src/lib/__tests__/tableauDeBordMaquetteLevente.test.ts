@@ -26,6 +26,16 @@ import {
   periodeActive,
 } from '../tableauDeBordPeriode';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { compile } from 'svelte/compiler';
+
+/** La feuille compilée d'un composant, espaces retirés. jsdom n'évalue pas
+ *  les requêtes de conteneur ni de média : on vérifie les règles écrites. */
+function feuille(chemin: string): string {
+  const src = readFileSync(resolve(process.cwd(), chemin), 'utf-8');
+  return (compile(src, { css: 'external', filename: chemin }).css?.code ?? '').replace(/\s+/g, '');
+}
 
 vi.setConfig({ testTimeout: 40_000, hookTimeout: 40_000 });
 
@@ -167,5 +177,27 @@ describe('l’écran monté', () => {
     });
     expect(page.querySelector('header select')).toBeNull();
     expect(page.querySelector('.fluide')).toBeNull();
+  });
+});
+
+describe('vérification du 15/11 sur le .18 — la mise en page tient à 1 440 px et sur téléphone', () => {
+  it('sous 1 500 px de contenu, trois blocs par rangée (et plus six tuiles serrées)', () => {
+    const css = feuille('src/components/v2/PageWidgets.svelte');
+    expect(css).toMatch(/@container\(max-width:1500px\)\{\.mosaique\.fluide\.svelte-[a-z0-9]+\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}/);
+  });
+
+  it('une valeur de barre ne se coupe jamais (« 84 h 48 »)', () => {
+    const css = feuille('src/components/v2/blocs/BlocBarres.svelte');
+    expect(css).toMatch(/\.val\.svelte-[a-z0-9]+\{[^}]*white-space:nowrap/);
+  });
+
+  it('les cases de « Hour of day » ne s’élargissent pas pour leur chiffre', () => {
+    const css = feuille('src/components/v2/blocs/BlocHeures.svelte');
+    expect(css).toContain('grid-template-columns:repeat(24,minmax(0,1fr))');
+  });
+
+  it('sur téléphone, le menu de période et « Modifier » passent sous le titre', () => {
+    const css = feuille('src/components/v2/TableauDeBordV2.svelte');
+    expect(css).toMatch(/@media\(max-width:640px\)\{[^@]*\.v2-top\.v2-actions\{flex:10100%/);
   });
 });

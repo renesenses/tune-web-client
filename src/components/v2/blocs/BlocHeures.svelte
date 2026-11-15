@@ -42,6 +42,7 @@
     <span class="quoi">{$t('dashboard.section.hourly' as any)}</span>
   </div>
   {/if}
+  <div class="cadre">
   <div class="rangee">
     {#each parHeure as plays, h (h)}
       <div
@@ -53,6 +54,7 @@
         <span class="h">{h}</span>
       </div>
     {/each}
+  </div>
   </div>
   {#if max === 0}
     <p class="pied">
@@ -76,15 +78,22 @@
 
   /* Vingt-quatre colonnes ÉGALES : `1fr` et non une largeur fixe, donc la
      rangée se comprime au lieu de déborder sur un téléphone. */
-  .rangee { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 0 var(--bloc-marge, 30px); }
+  /* `minmax(0, 1fr)` : une case ne s'élargit jamais pour son chiffre, sinon
+     la rangée déborde de sa carte (vérification du 15/11 sur le .18). */
+  .cadre { container-type: inline-size; }
+  .rangee { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; padding: 0 var(--bloc-marge, 30px); }
   .case {
-    aspect-ratio: 1; background: var(--v2-acc1); border-radius: 4px;
+    min-width: 0; overflow: hidden; aspect-ratio: 1; background: var(--v2-acc1); border-radius: 4px;
     display: grid; place-items: center;
   }
   /* L'heure de pointe est CERNÉE, pas recolorée : une seconde teinte ferait
      le « tableau de bord d'aéroport » que Bertrand refuse. */
   .case.pointe { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
   .h { font: 600 calc(9px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-on-acc); opacity: 0.75; }
+
+  /* Dans un tiers de page, vingt-quatre chiffres ne tiennent plus : ils se
+     taisent, l'infobulle et l'heure de pointe en grand restent. */
+  @container (max-width: 560px) { .h { display: none; } }
 
   @media (max-width: 1024px) {
     .tete, .rangee { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); }

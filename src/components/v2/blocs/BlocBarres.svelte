@@ -79,8 +79,10 @@
     background: color-mix(in srgb, var(--v2-acc1) 12%, transparent);
   }
   .jauge { display: block; height: 100%; border-radius: 5px; background: var(--v2-acc1); }
+  /* La valeur ne se coupe jamais (« 84 h 48 » sur deux lignes, vérification
+     du 15/11 sur le .18) : elle prend sa largeur, la barre cède la place. */
   .val {
-    flex: 0 0 48px; text-align: right; font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    flex: 0 0 auto; min-width: 36px; white-space: nowrap; text-align: right; font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color: var(--v2-txt2); font-variant-numeric: tabular-nums;
   }
 
@@ -98,6 +100,5 @@
     /* Un libellé sur 116 px ne laisse plus de place à la barre sur un
        téléphone : il se réduit, la barre garde le reste. */
     .nom { flex-basis: 84px; font-size: calc(12px * var(--v2-txt-echelle, 1)); }
-    .val { flex-basis: 36px; }
   }
 </style>

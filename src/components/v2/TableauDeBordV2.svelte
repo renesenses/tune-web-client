@@ -84,6 +84,9 @@
   </label>
 {/snippet}
 
+<!-- `display: contents` : l'enveloppe ne crée aucune boîte, elle ne sert
+     qu'à porter la règle de l'en-tête sur téléphone (voir le style). -->
+<div class="tdb">
 {#key periode}
   <PageWidgets
     catalogue={BLOCS_TABLEAU_DE_BORD}
@@ -98,6 +101,7 @@
     actionsEntete={choixPeriode}
   />
 {/key}
+</div>
 
 <style>
   /* Le menu natif garde le clavier et le lecteur d'écran ; il prend l'habit
@@ -114,4 +118,14 @@
   /* Sous 640 px, l'en-tête n'a plus la place de deux boutons à icône à côté
      du titre : le menu garde son libellé et perd son icône. */
   @media (max-width: 640px) { .periode svg { display: none; } }
+  /* Vérification du 15/11 sur le .18 : sur téléphone, « 7 days » et
+     « Modifier » chevauchaient le titre. Ils passent DESSOUS, alignés à
+     gauche. Règle portée par cet écran seul : l'en-tête des autres pages
+     n'en sait rien. */
+  .tdb { display: contents; }
+  @media (max-width: 640px) {
+    .tdb :global(.v2-top) { flex-wrap: wrap; align-items: flex-start; }
+    .tdb :global(.v2-top .v2-titres) { flex: 1 0 100%; }
+    .tdb :global(.v2-top .v2-actions) { flex: 1 0 100%; justify-content: flex-start; }
+  }
 </style>
