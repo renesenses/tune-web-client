@@ -38,7 +38,7 @@ export function ongletValide(demande: OngletArtiste, liste: readonly OngletArtis
   return liste.includes(demande) ? demande : 'apercu';
 }
 
-export type IconeChiffre = 'albums' | 'interprete' | 'ecriture';
+export type IconeChiffre = 'albums' | 'interprete' | 'ecriture' | 'ecoutes';
 export interface ChiffreArtiste {
   cle: string;
   valeur: number;
@@ -51,6 +51,9 @@ export interface ChiffreArtiste {
 export function chiffresEnTete(
   o: {
     albums?: number | null;
+    /** #2298 — écoutes de la communauté Tune ; `null` sous le seuil. Dans la
+     *  maquette elles quittent le titre (« Pink Floyd (308) ») pour la colonne. */
+    ecoutes?: number | null;
     compteurs?: { performing?: { tracks?: number; albums?: number } | null; writing?: { tracks?: number; albums?: number } | null } | null;
   },
   libelle: (cle: string) => string,
@@ -68,6 +71,7 @@ export function chiffresEnTete(
   pousser('albums', o.albums, 'artist.page.statAlbums', 'albums');
   pousser('interprete', o.compteurs?.performing?.tracks, 'artist.page.statPerforming', 'interprete', o.compteurs?.performing?.albums);
   pousser('ecriture', o.compteurs?.writing?.tracks, 'artist.page.statWriting', 'ecriture', o.compteurs?.writing?.albums);
+  pousser('ecoutes', o.ecoutes, 'library.communityListensTip', 'ecoutes');
   return out;
 }
 

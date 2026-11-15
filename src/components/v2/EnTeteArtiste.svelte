@@ -148,7 +148,9 @@
     <AlbumArt coverPath={imagePath} albumId={null} size={0} recadrer alt={nom} fallbackInitials={initiales} />
   </div>
   <div class="ident">
-    <h1>{nom}<EcoutesCommunaute objet={ecoutes} /></h1>
+    <!-- Maquette : les écoutes de la communauté passent dans les chiffres
+         (vérification sur le .18 du 15/11 : « Pink Floyd (308) »). -->
+    <h1>{nom}{#if !maquette}<EcoutesCommunaute objet={ecoutes} />{/if}</h1>
     {#if provenance}<span class="prov">{provenance}</span>{/if}
     {#if sousTitre}<span class="cpt">{sousTitre}</span>{/if}
     {#if codePays}
@@ -176,6 +178,7 @@
         <li data-chiffre={c.cle}>
           <svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             {#if c.icone === 'albums'}<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+            {:else if c.icone === 'ecoutes'}<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3zM3 19a2 2 0 0 0 2 2h1v-6H3z"/>
             {:else if c.icone === 'interprete'}<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>
             {:else}<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>{/if}
           </svg>
@@ -261,7 +264,9 @@
       justify-content:flex-start}
   }
   @media (max-width: 640px){
-    .tete.maquette{gap:16px}
+    /* Les icônes fixes du haut de la coquille (recherche, signet, avatar)
+       recouvraient le surtitre (vérification sur le .18 du 15/11). */
+    .tete.maquette{gap:16px; padding-top:64px}
     .tete.maquette .portrait{width:96px; height:96px}
     .tete.maquette .ident h1{font-size:calc(30px * var(--v2-txt-echelle, 1))}
     .chiffres{gap:8px 14px}

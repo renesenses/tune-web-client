@@ -110,6 +110,7 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import ArtistesSimilaires from './ArtistesSimilaires.svelte';
+  import { ecoutesDe } from '../../lib/ecoutesCommunaute';
   import { chiffresEnTete, ongletsArtiste, ongletValide, portraitsSimilaires, type OngletArtiste, type PortraitSimilaire } from '../../lib/pageArtisteMaquette';
 
   const cible = $derived($ficheArtisteService);
@@ -837,7 +838,7 @@
    * Les règles de forme sont dans `pageArtisteMaquette.ts`.
    */
   const albumsCompte = $derived(estLocal ? (dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)) : null);
-  const chiffres = $derived(chiffresEnTete({ albums: albumsCompte, compteurs: estLocal ? compteurs : null }, (k) => $tr(k as any)));
+  const chiffres = $derived(chiffresEnTete({ albums: albumsCompte, ecoutes: estLocal ? ecoutesDe(artiste) : null, compteurs: estLocal ? compteurs : null }, (k) => $tr(k as any)));
   const aDiscographie = $derived(!!(albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length
     || apparitions.length || collaborations.length || ecriture.length || reprises.length || joueAvec.length));
   const similairesFiche = $derived(artisteEditable ? (metaFiche?.similar_artists ?? []) : []);

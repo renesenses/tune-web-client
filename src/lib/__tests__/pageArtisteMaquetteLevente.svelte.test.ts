@@ -13,6 +13,7 @@
 //    la rangée), les onglets Aperçu / Albums / Artistes similaires, la grille
 //    des similaires et son ouverture.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import ShellV2 from '../../components/v2/ShellV2.svelte';
@@ -96,6 +97,24 @@ describe('maquette de Levente — en-tête', () => {
     // La ligne « 60 albums » reste dans le DOM (#1356) — c'est le CSS qui la
     // cède à la colonne des chiffres.
     expect(h.querySelector('.ident .cpt')?.textContent).toContain('60');
+  });
+
+  it('vérification du .18 (15/11) : les écoutes quittent le titre pour les chiffres ; place pour les icônes fixes sur mobile', () => {
+    expect(chiffresEnTete({ ecoutes: 308 }, (k) => k).map((c) => [c.cle, c.valeur, c.libelle]))
+      .toEqual([['ecoutes', 308, 'library.communityListensTip']]);
+    expect(chiffresEnTete({ ecoutes: null }, (k) => k)).toEqual([]);
+    const h = poser({ nom: 'Pink Floyd', disposition: 'maquette', ecoutes: { community_listens: 308 },
+      chiffres: [{ cle: 'ecoutes', valeur: 308, libelle: 'Tune community listens', icone: 'ecoutes' }] });
+    expect(h.querySelector('h1')!.textContent?.trim()).toBe('Pink Floyd');
+    expect(h.querySelector('[data-chiffre="ecoutes"] .valeur')?.textContent).toMatch(/308/);
+    const src = readFileSync('src/components/v2/EnTeteArtiste.svelte', 'utf8');
+    const mobile = src.slice(src.lastIndexOf('@media (max-width: 640px)'));
+    expect(mobile).toMatch(/\.tete\.maquette\{[^}]*padding-top:\s*\d+px/);
+  });
+
+  it('disposition standard : les écoutes restent à côté du nom', () => {
+    const h = poser({ nom: 'Pink Floyd', ecoutes: { community_listens: 308 } });
+    expect(h.querySelector('h1 [data-ecoutes-communaute]')).not.toBeNull();
   });
 
   it('disposition standard (défaut) : rien ne change, même si des chiffres sont passés', () => {
