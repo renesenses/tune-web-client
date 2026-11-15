@@ -85,13 +85,13 @@
     {#if lignes.length > 0}
       <div class="rapport">
         <table>
-          <thead><tr><th>{$t('integrity.path')}</th><th>{$t('integrity.mode')}</th><th>{$t('integrity.result')}</th><th>{$t('integrity.error')}</th><th>{$t('integrity.position')}</th></tr></thead>
+          <thead><tr><th class="chemin">{$t('integrity.path')}</th><th class="court">{$t('integrity.mode')}</th><th class="court">{$t('integrity.result')}</th><th class="motif">{$t('integrity.error')}</th><th class="court">{$t('integrity.position')}</th></tr></thead>
           <tbody>{#each lignes as ligne (ligne.id)}
             <tr>
-              <td><button class="fichier" title={$t('trackTags.title')} onclick={() => fichierOuvert = ligne.id}>{ligne.chemin}</button></td>
-              <td>{$t('integrity.mode.' + (ligne.mode ?? 'full'))}</td>
-              <td>{$t('integrity.' + ligne.resultat.verdict)}</td>
-              <td>
+              <td class="chemin"><button class="fichier" title={$t('trackTags.title')} onclick={() => fichierOuvert = ligne.id}>{ligne.chemin}</button></td>
+              <td class="court">{$t('integrity.mode.' + (ligne.mode ?? 'full'))}</td>
+              <td class="court">{$t('integrity.' + ligne.resultat.verdict)}</td>
+              <td class="motif">
                 {#if ligne.resultat.code === 'tronque'}{$t('integrity.truncated')}
                 {:else if ligne.resultat.code === 'fin_de_flux_absente'}{$t('integrity.noEnd')}
                 {:else if ligne.resultat.code === 'mode_rapide_non_applicable'}{$t('integrity.quickUnsupported')}
@@ -102,7 +102,7 @@
                 {:else if ligne.resultat.code !== 'sain'}{ligne.resultat.erreur ?? ligne.resultat.code}{/if}
                 {#if ligne.taille_sans_nouvelle_date}<p>{$t('integrity.sizeChanged')}</p>{/if}
               </td>
-              <td>
+              <td class="court">
                 {#if ligne.resultat.localisation}
                   {$t('integrity.' + ligne.resultat.localisation.unite)} {ligne.resultat.localisation.numero} · {$t('integrity.byte')} {ligne.resultat.localisation.octet}
                 {:else}{ligne.resultat.position_trames ?? $t('integrity.unknownPosition')}{/if}
@@ -137,5 +137,13 @@
   progress { width: 100%; accent-color: var(--v2-acc2); }
   .rapport { overflow-x: auto; margin-block: 12px; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { font-size: calc(12px * var(--v2-txt-echelle, 1)); text-align: start; padding: 8px; border-bottom: 1px solid var(--v2-line2); overflow-wrap: anywhere; }
+  th, td { font-size: calc(12px * var(--v2-txt-echelle, 1)); text-align: start; vertical-align: top; padding: 8px; border-bottom: 1px solid var(--v2-line2); }
+  /* Recette du .18 (15/11) — « Full », « Healthy » s'écrivaient une lettre
+     par ligne : `overflow-wrap:anywhere` valait pour TOUTES les colonnes.
+     Seul le CHEMIN se coupe n'importe où ; les colonnes courtes ne se
+     coupent jamais ; le motif passe à la ligne entre les mots. Si la place
+     manque, le tableau défile dans son cadre (`.rapport`). */
+  .chemin { overflow-wrap: anywhere; min-width: 16em; }
+  .court { white-space: nowrap; }
+  .motif { min-width: 9em; }
 </style>
