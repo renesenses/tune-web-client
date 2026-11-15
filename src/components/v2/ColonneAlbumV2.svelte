@@ -163,6 +163,8 @@
   .grille dt{color:var(--v2-txt2); overflow-wrap:anywhere}
   .grille dd{margin:0; color:var(--v2-txt); overflow-wrap:anywhere}
   .entete{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .entete h2{min-width:0}
+  .entete .lien{flex:0 0 auto; white-space:nowrap}
   .vignettes{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px}
   .vignette{display:flex; flex-direction:column; gap:6px; min-width:0}
   .vtitre{all:unset; cursor:pointer; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2);
