@@ -10,6 +10,7 @@
 import { blocsDeCredits, libelleLigne, type CreditAvecPiste } from './library/credits';
 import { resolution, type VersionAlbum } from './oeuvres';
 import { libelleNombreCanaux } from './utils';
+import { trouverArtisteExact } from './libraryNavigation';
 
 /** Une ligne du bloc « Détails de l'album » : la clé i18n et la valeur. */
 export interface LigneDetail { cle: string; valeur: string }
@@ -72,9 +73,20 @@ export function interpretesAlbum(
 }
 
 /**
- * Les pastilles d'une version : année, canaux, format, résolution — ce qui
- * est connu seulement. Le numéro de catalogue de la maquette n'est pas servi
- * par `/library/albums/{id}/versions` : il n'apparaît pas.
+ * Le numéro de catalogue d'une version (« CL 1355 »), que le serveur ajoute à
+ * `/library/albums/{id}/versions` pour la rc12. Les deux graphies sont
+ * acceptées ; un serveur antérieur ne l'envoie pas : `null`, rien affiché.
+ */
+export function numeroCatalogue(v: VersionAlbum): string | null {
+  const brut = (v as { catalog_number?: unknown; catalogNumber?: unknown }).catalog_number
+    ?? (v as { catalogNumber?: unknown }).catalogNumber;
+  const t = typeof brut === 'string' ? brut.trim() : typeof brut === 'number' ? String(brut) : '';
+  return t || null;
+}
+
+/**
+ * Les pastilles d'une version : année, canaux, format, résolution, numéro de
+ * catalogue — ce qui est connu seulement.
  */
 export function pastillesVersion(v: VersionAlbum): string[] {
   return [
@@ -82,6 +94,7 @@ export function pastillesVersion(v: VersionAlbum): string[] {
     libelleNombreCanaux(v.max_channels) ?? '',
     v.format ? v.format.toUpperCase() : '',
     resolution(v),
+    numeroCatalogue(v) ?? '',
   ].filter(Boolean);
 }
 
@@ -110,4 +123,31 @@ export function autresAlbumsDeLArtiste<A extends { id?: number | null }>(
     if (sortie.length >= max) break;
   }
   return sortie;
+}
+
+type ChercherArtistes = (nom: string) => Promise<{ artists?: { id?: number | null; name?: string | null; image_path?: string | null }[] } | null | undefined>;
+
+/**
+ * Le portrait de chaque interprète présent dans la BIBLIOTHÈQUE, retrouvé par
+ * son nom EXACT (`trouverArtisteExact`, la règle des artistes similaires de la
+ * page artiste) : jamais une image approchante. Le serveur n'a pas de route
+ * groupée par noms : une recherche par interprète, `max` au plus, et un échec
+ * laisse ce seul nom sans portrait (ses initiales).
+ */
+export async function portraitsInterpretes(
+  noms: readonly string[],
+  chercher: ChercherArtistes,
+  max = 6,
+): Promise<Record<string, string>> {
+  const uniques = [...new Set(noms.map((n) => n?.trim()).filter((n): n is string => !!n))].slice(0, Math.max(0, max));
+  const res = await Promise.allSettled(uniques.map(async (nom) => {
+    const r = await chercher(nom);
+    const id = trouverArtisteExact(r?.artists, nom);
+    if (id == null) return null;
+    const image = r?.artists?.find((a) => a?.id === id)?.image_path;
+    return image ? ([nom, image] as const) : null;
+  }));
+  const out: Record<string, string> = {};
+  for (const r of res) if (r.status === 'fulfilled' && r.value) out[r.value[0]] = r.value[1];
+  return out;
 }

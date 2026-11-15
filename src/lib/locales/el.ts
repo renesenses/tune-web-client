@@ -4540,6 +4540,7 @@ export default {
   "v2.album.fiche.moreFrom": "Περισσότερα από {artist}",
   "v2.album.fiche.seeAll": "Όλα",
   "v2.album.fiche.openVersion": "Άνοιγμα αυτής της έκδοσης",
+  "v2.album.fiche.readMore": "Διαβάστε περισσότερα",
   "favoris.artistAlso.message": "{artist}: προσθήκη και στα αγαπημένα;",
   "favoris.artistAlso.action": "Προσθήκη καλλιτέχνη",
   "favoris.artistAlso.unknown": "αυτόν τον καλλιτέχνη",

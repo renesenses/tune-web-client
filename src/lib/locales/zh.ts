@@ -4665,6 +4665,7 @@ export default {
   "v2.album.fiche.moreFrom": "{artist} 的更多作品",
   "v2.album.fiche.seeAll": "查看全部",
   "v2.album.fiche.openVersion": "打开此版本",
+  "v2.album.fiche.readMore": "阅读更多",
   "favoris.artistAlso.message": "{artist}：也加入收藏吗？",
   "favoris.artistAlso.action": "添加艺人",
   "favoris.artistAlso.unknown": "该艺人",

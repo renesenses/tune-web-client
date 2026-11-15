@@ -4664,6 +4664,7 @@ export default {
   "v2.album.fiche.moreFrom": "Mer från {artist}",
   "v2.album.fiche.seeAll": "Visa alla",
   "v2.album.fiche.openVersion": "Öppna den här versionen",
+  "v2.album.fiche.readMore": "Läs mer",
   "favoris.artistAlso.message": "{artist}: lägga till i favoriter också?",
   "favoris.artistAlso.action": "Lägg till artist",
   "favoris.artistAlso.unknown": "den här artisten",

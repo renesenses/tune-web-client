@@ -4542,6 +4542,7 @@ export default {
   "v2.album.fiche.moreFrom": "Thêm từ {artist}",
   "v2.album.fiche.seeAll": "Xem tất cả",
   "v2.album.fiche.openVersion": "Mở phiên bản này",
+  "v2.album.fiche.readMore": "Đọc thêm",
   "favoris.artistAlso.message": "{artist}: thêm vào mục yêu thích luôn?",
   "favoris.artistAlso.action": "Thêm nghệ sĩ",
   "favoris.artistAlso.unknown": "nghệ sĩ này",

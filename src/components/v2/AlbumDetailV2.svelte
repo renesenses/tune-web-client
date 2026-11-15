@@ -1541,27 +1541,42 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bioSegments = null;
     bioLangue = AUCUNE_LANGUE;
     bioErreur = false;
+    // Décision de Bertrand (15/11, maquette de Levente) : la présentation
+    // s'affiche sous le titre DÈS l'ouverture. C'est le MÊME appel que
+    // l'onglet « Notes / Bio » — chargé une fois, l'onglet le réutilise.
+    // L'inconvénient noté plus haut (requête sortante vers mozaiklabs.fr
+    // quand la notice manque) est accepté par lui.
+    if (id != null) untrack(() => void chargerBio());
   });
 
   async function basculerBio() {
     bioOuverte = !bioOuverte;
+    if (bioOuverte) await chargerBio();
+  }
+
+  /** Lit la présentation de l'album UNE fois (en-tête et onglet la partagent). */
+  /** L'album dont la présentation est EN VOL : un changement d'album pendant
+   *  la requête ne doit ni bloquer la suivante, ni recevoir l'ancienne. */
+  let bioEnVol: number | null = null;
+  async function chargerBio() {
     const id = album.id;
-    if (!bioOuverte || id == null || bio !== null || bioChargement) return;
+    if (id == null || bio !== null || bioEnVol === id) return;
+    bioEnVol = id;
     bioChargement = true;
     bioErreur = false;
     try {
       const r = await api.getAlbumBio(id);
       // Course : l'utilisateur a pu changer d'album pendant la requête.
       if (album.id === id) {
-        bio = r.bio ?? '';
+        bio = r?.bio ?? '';
         bioProvenance = provenanceDe(r);
-        bioSegments = r.bio_segments ?? null;
+        bioSegments = r?.bio_segments ?? null;
         bioLangue = langueBioDe(r);
       }
     } catch {
       if (album.id === id) bioErreur = true;
     }
-    bioChargement = false;
+    if (bioEnVol === id) { bioEnVol = null; bioChargement = false; }
   }
 
   /**
@@ -1909,6 +1924,15 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         <button type="button" class="artist lien" onclick={allerArtiste}>{nomArtiste}</button>
       {:else}
         <div class="artist">{nomArtiste}</div>
+      {/if}
+      <!-- Maquette de Levente (Figma 611:5805) — la présentation de l'album en
+           italique, trois lignes au plus, infobulle et « Lire la suite » vers
+           l'onglet Notes / Bio. Vide ou en erreur : rien. -->
+      {#if bio && bio.trim()}
+        <div class="description" data-description-album>
+          <p title={bio} lang={bioLangue.langue ?? undefined}>{bio}</p>
+          <button type="button" class="lire-suite" data-lire-suite onclick={() => choisirOnglet('bio')}>{$tr('v2.album.fiche.readMore' as any)}</button>
+        </div>
       {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
@@ -2355,6 +2379,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     text-align:left; cursor:pointer}
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
+  .description{display:flex; flex-direction:column; align-items:flex-start; gap:4px; max-width:70ch}
+  .description p{margin:0; font-style:italic; color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1.45;
+    display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .lire-suite{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
+  .lire-suite:hover{text-decoration:underline}
+  .lire-suite:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
   .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--tune-accent)}

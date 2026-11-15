@@ -4665,6 +4665,7 @@ export default {
   "v2.album.fiche.moreFrom": "{artist}의 다른 앨범",
   "v2.album.fiche.seeAll": "모두 보기",
   "v2.album.fiche.openVersion": "이 버전 열기",
+  "v2.album.fiche.readMore": "더 보기",
   "favoris.artistAlso.message": "{artist}: 즐겨찾기에도 추가할까요?",
   "favoris.artistAlso.action": "아티스트 추가",
   "favoris.artistAlso.unknown": "이 아티스트",

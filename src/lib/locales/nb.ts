@@ -4540,6 +4540,7 @@ export default {
   "v2.album.fiche.moreFrom": "Mer fra {artist}",
   "v2.album.fiche.seeAll": "Vis alle",
   "v2.album.fiche.openVersion": "Åpne denne versjonen",
+  "v2.album.fiche.readMore": "Les mer",
   "favoris.artistAlso.message": "{artist}: legge til i favoritter også?",
   "favoris.artistAlso.action": "Legg til artist",
   "favoris.artistAlso.unknown": "denne artisten",

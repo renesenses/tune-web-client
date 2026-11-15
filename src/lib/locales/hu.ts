@@ -4619,6 +4619,7 @@ export default {
   "v2.album.fiche.moreFrom": "Még több tőle: {artist}",
   "v2.album.fiche.seeAll": "Összes",
   "v2.album.fiche.openVersion": "Változat megnyitása",
+  "v2.album.fiche.readMore": "Tovább",
   "favoris.artistAlso.message": "{artist}: a kedvencekhez is hozzáadod?",
   "favoris.artistAlso.action": "Előadó hozzáadása",
   "favoris.artistAlso.unknown": "ezt az előadót",

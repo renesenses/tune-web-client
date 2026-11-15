@@ -4665,6 +4665,7 @@ export default {
   "v2.album.fiche.moreFrom": "Mai multe de la {artist}",
   "v2.album.fiche.seeAll": "Vezi tot",
   "v2.album.fiche.openVersion": "Deschide această versiune",
+  "v2.album.fiche.readMore": "Citește mai mult",
   "favoris.artistAlso.message": "{artist}: îl adaugi și la favorite?",
   "favoris.artistAlso.action": "Adaugă artistul",
   "favoris.artistAlso.unknown": "acest artist",

@@ -118,16 +118,34 @@ describe('la fiche album porte enfin une présentation', () => {
   });
 
   /**
-   * 🔴 La route n'est PAS une lecture locale : `albums::album_bio` sort sur
+   * La route n'est PAS une lecture locale : `albums::album_bio` sort sur
    * `https://mozaiklabs.fr/api/v1/albums/bio` dès que la notice stockée est
-   * vide, et ne met en cache que les réponses non vides. Charger d'office
-   * ferait partir une requête sortante à chaque album ouvert. Ce témoin tient
-   * ce choix : sans clic, aucun appel.
+   * vide. Jusqu'au 15/11 elle n'était lue qu'au clic ; Bertrand a tranché le
+   * 15/11 (maquette de Levente) : la présentation s'affiche sous le titre dès
+   * l'ouverture. Ce témoin tient la nouvelle règle : UN appel à l'ouverture,
+   * partagé avec l'onglet, et la notice dans l'en-tête.
    */
-  it('ne demande RIEN tant que personne n’a cliqué', async () => {
-    poser();
+  it('lit la présentation UNE fois à l’ouverture et la montre sous le titre (15/11)', async () => {
+    getAlbumBio.mockResolvedValue({ bio: 'Enregistré en 1959.', source: null });
+    const el = poser();
     await attendre();
-    expect(getAlbumBio).not.toHaveBeenCalled();
+    expect(getAlbumBio).toHaveBeenCalledTimes(1);
+    expect(el.querySelector('[data-description-album]')?.textContent).toContain('Enregistré en 1959.');
+    bouton(el)!.click();
+    await attendre();
+    expect(getAlbumBio).toHaveBeenCalledTimes(1);
+  });
+
+  it('vide ou en erreur : pas de description en tête', async () => {
+    getAlbumBio.mockResolvedValue({ bio: '  ', source: null });
+    const el = poser();
+    await attendre();
+    expect(el.querySelector('[data-description-album]')).toBeNull();
+    unmount(monte!); monte = null; hote!.remove();
+    getAlbumBio.mockRejectedValue(new Error('500'));
+    const el2 = poser();
+    await attendre();
+    expect(el2.querySelector('[data-description-album]')).toBeNull();
   });
 
   it('ne redemande pas la même notice au second clic', async () => {
@@ -151,11 +169,12 @@ describe('la fiche album porte enfin une présentation', () => {
     const el = poser();
     bouton(el)!.click();
     await attendre();
-    expect(el.textContent).toContain('Une notice.');
+    expect(el.querySelector('[data-panneau-bio]')?.textContent).toContain('Une notice.');
     // web#2736 — « Notes / Bio » est un onglet : on le quitte pour « Pistes ».
     el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
     await attendre();
-    expect(el.textContent).not.toContain('Une notice.');
+    // Le panneau se replie ; la description d'en-tête (15/11) reste.
+    expect(el.querySelector('[data-panneau-bio]')).toBeNull();
   });
 
   /**

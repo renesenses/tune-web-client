@@ -17,8 +17,10 @@
   import PochetteActions from './PochetteActions.svelte';
   import { chargerCreditsAlbum } from '../../lib/library/chargerCredits';
   import {
-    autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, type Interprete,
+    autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, portraitsInterpretes, type Interprete,
   } from '../../lib/ficheAlbumMaquette';
+  import { initialesArtiste } from '../../lib/initialesArtiste';
+  import { ARTISTES_A_LIRE } from '../../lib/libraryNavigation';
 
   interface Props {
     /** L'album affiché ; `id` nul (service, dépôt) : seuls les détails restent. */
@@ -43,6 +45,33 @@
   let artiste = $state.raw<Artist | null>(null);
   let autres = $state.raw<Album[]>([]);
   let interpretes = $state.raw<Interprete[]>([]);
+  /** Portrait de la bibliothèque par nom d'interprète ; absent : initiales. */
+  let portraits = $state.raw<Record<string, string>>({});
+  let blocInterpretes = $state<HTMLElement | null>(null);
+
+  /**
+   * Les portraits se lisent PARESSEUSEMENT : quand le bloc entre à l'écran
+   * (sur un téléphone, il est sous les pistes). Sans `IntersectionObserver`,
+   * tout de suite. Une recherche par interprète, six au plus : le serveur n'a
+   * pas de route groupée par noms.
+   */
+  $effect(() => {
+    const el = blocInterpretes, liste = interpretes;
+    portraits = {};
+    if (!el || !liste.length) return;
+    let vivant = true;
+    const charger = () => {
+      void portraitsInterpretes(liste.map((p) => p.nom), async (n) => {
+        try { return await api.searchLibrary(n, ARTISTES_A_LIRE); } catch { return null; }
+      }).then((p) => { if (vivant) portraits = p; });
+    };
+    if (typeof IntersectionObserver === 'undefined') { charger(); return () => { vivant = false; }; }
+    const io = new IntersectionObserver((entrees) => {
+      if (entrees.some((e) => e.isIntersecting)) { io.disconnect(); charger(); }
+    }, { rootMargin: '200px' });
+    io.observe(el);
+    return () => { vivant = false; io.disconnect(); };
+  });
 
   $effect(() => {
     const id = artistId;
@@ -95,17 +124,27 @@
   {/if}
 
   {#if interpretes.length}
-    <section class="bloc" data-bloc-interpretes>
+    <section class="bloc" data-bloc-interpretes bind:this={blocInterpretes}>
       <h2>
         {#if onCredits}
           <button type="button" class="titre-lien" onclick={onCredits}>{$tr('v2.album.fiche.recording' as any)}</button>
         {:else}{$tr('v2.album.fiche.recording' as any)}{/if}
       </h2>
-      <dl class="grille">
+      <ul class="interpretes">
         {#each interpretes as p (p.artist_id ?? p.nom)}
-          <dt>{p.nom}</dt><dd>{p.roles.join(', ')}</dd>
+          <li data-interprete={p.nom}>
+            <span class="avatar" data-portrait={portraits[p.nom] ? '' : undefined}>
+              {#if portraits[p.nom]}
+                <AlbumArt coverPath={portraits[p.nom]} size={0} recadrer round alt={p.nom} fallbackInitials={initialesArtiste(p.nom)} />
+              {:else}
+                <span class="initiales" aria-hidden="true">{initialesArtiste(p.nom)}</span>
+              {/if}
+            </span>
+            <span class="inom">{p.nom}</span>
+            <span class="irole">{p.roles.join(', ')}</span>
+          </li>
         {/each}
-      </dl>
+      </ul>
     </section>
   {/if}
 
@@ -162,6 +201,14 @@
     font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .grille dt{color:var(--v2-txt2); overflow-wrap:anywhere}
   .grille dd{margin:0; color:var(--v2-txt); overflow-wrap:anywhere}
+  .interpretes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;
+    font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .interpretes li{display:grid; grid-template-columns:32px minmax(0,1fr) minmax(0,1fr); align-items:center; gap:10px}
+  .avatar{width:32px; height:32px; border-radius:50%; overflow:hidden; background:var(--v2-surface2);
+    display:flex; align-items:center; justify-content:center}
+  .initiales{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .inom{color:var(--v2-txt); overflow-wrap:anywhere}
+  .irole{color:var(--v2-txt2); overflow-wrap:anywhere}
   .bloc-tete{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
   .bloc-tete h2{min-width:0}
   .bloc-tete .lien{flex:0 0 auto; white-space:nowrap}

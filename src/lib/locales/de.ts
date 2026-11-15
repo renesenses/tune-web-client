@@ -4665,6 +4665,7 @@ export default {
   "v2.album.fiche.moreFrom": "Mehr von {artist}",
   "v2.album.fiche.seeAll": "Alle anzeigen",
   "v2.album.fiche.openVersion": "Diese Version öffnen",
+  "v2.album.fiche.readMore": "Weiterlesen",
   "favoris.artistAlso.message": "{artist}: auch zu den Favoriten hinzufügen?",
   "favoris.artistAlso.action": "Künstler hinzufügen",
   "favoris.artistAlso.unknown": "diesen Künstler",

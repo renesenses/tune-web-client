@@ -13,6 +13,7 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 const getArtist = vi.fn();
 const getArtistAlbums = vi.fn();
 const getAlbumCredits = vi.fn();
+const searchLibrary = vi.fn();
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>();
   return {
@@ -20,11 +21,12 @@ vi.mock('../api', async (importOriginal) => {
     getArtist: (...a: unknown[]) => getArtist(...a),
     getArtistAlbums: (...a: unknown[]) => getArtistAlbums(...a),
     getAlbumCredits: (...a: unknown[]) => getAlbumCredits(...a),
+    searchLibrary: (...a: unknown[]) => searchLibrary(...a),
   };
 });
 
 import {
-  autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, pastillesVersion, titreVersion,
+  autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, numeroCatalogue, pastillesVersion, portraitsInterpretes, titreVersion,
 } from '../ficheAlbumMaquette';
 import type { OeuvreAlbum, VersionAlbum } from '../oeuvres';
 import ColonneAlbumV2 from '../../components/v2/ColonneAlbumV2.svelte';
@@ -72,6 +74,27 @@ describe('ficheAlbumMaquette — mise en forme sans invention', () => {
     expect(titreVersion(V({ version_name: ' ' }))).toBe('Kind of Blue');
   });
 
+  it('numéro de catalogue : les deux graphies, rien quand il manque (serveur du .18)', () => {
+    expect(numeroCatalogue(V({ catalog_number: ' CL 1355 ' } as any))).toBe('CL 1355');
+    expect(numeroCatalogue(V({ catalogNumber: 'CS 8163' } as any))).toBe('CS 8163');
+    expect(numeroCatalogue(V({}))).toBeNull();
+    expect(numeroCatalogue(V({ catalog_number: '' } as any))).toBeNull();
+    expect(pastillesVersion(V({ year: 1959, catalog_number: 'CL 1355' } as any))).toEqual(['1959', 'CL 1355']);
+  });
+
+  it('portraits des interprètes : nom EXACT de la bibliothèque, sinon rien (initiales)', async () => {
+    const chercher = vi.fn(async (n: string) => ({
+      'Bill Evans': { artists: [{ id: 3, name: 'Bill Evans Trio', image_path: '/x.jpg' }, { id: 4, name: 'bill evans', image_path: '/be.jpg' }] },
+      'Jimmy Cobb': { artists: [{ id: 5, name: 'Jimmy Cobb', image_path: null }] },
+      'Paul Chambers': { artists: [{ id: 6, name: 'Paul Chambers Quintet', image_path: '/pc.jpg' }] },
+    } as Record<string, any>)[n] ?? null);
+    const p = await portraitsInterpretes(['Bill Evans', 'Jimmy Cobb', 'Paul Chambers', 'Bill Evans'], chercher);
+    expect(p).toEqual({ 'Bill Evans': '/be.jpg' });
+    expect(chercher).toHaveBeenCalledTimes(3);
+    const echec = await portraitsInterpretes(['A'], async () => { throw new Error('500'); });
+    expect(echec).toEqual({});
+  });
+
   it('« Plus de » : sans l’album affiché ni ses autres versions, trois au plus', () => {
     const l = [1, 2, 3, 4, 5, 6].map((id) => ({ id }));
     expect(autresAlbumsDeLArtiste(l, [1, 3]).map((a) => a.id)).toEqual([2, 4, 5]);
@@ -86,7 +109,8 @@ describe('ColonneAlbumV2 — un bloc sans donnée disparaît', () => {
   let cible: HTMLElement;
   beforeEach(() => {
     cible = document.createElement('div'); document.body.appendChild(cible);
-    getArtist.mockReset(); getArtistAlbums.mockReset(); getAlbumCredits.mockReset();
+    getArtist.mockReset(); getArtistAlbums.mockReset(); getAlbumCredits.mockReset(); searchLibrary.mockReset();
+    searchLibrary.mockResolvedValue({ artists: [] });
   });
   afterEach(() => { cible.remove(); });
 
@@ -120,12 +144,29 @@ describe('ColonneAlbumV2 — un bloc sans donnée disparaît', () => {
     await attendre();
     expect(cible.querySelector('[data-bloc-artiste]')?.textContent).toContain('Trompettiste américain.');
     expect(cible.querySelector('[data-bloc-interpretes]')?.textContent).toContain('Bill Evans');
+    // Pas de portrait trouvé : les initiales, jamais une image approchante.
+    expect(cible.querySelector('[data-interprete="Bill Evans"] .initiales')?.textContent).toBe('BE');
     expect(cible.querySelector('[data-bloc-details]')?.textContent).toContain('Columbia');
     const plus = cible.querySelector('[data-bloc-plus-de]')!;
     expect(plus.textContent).toContain('Sketches of Spain');
     expect(plus.textContent).not.toContain('KoB Legacy');
     (plus.querySelector('.vtitre') as HTMLButtonElement).click();
     expect(ouverts).toEqual([3]);
+    unmount(c);
+  });
+
+  it('interprète présent dans la bibliothèque : son portrait', async () => {
+    getArtist.mockRejectedValue(new Error('404'));
+    getArtistAlbums.mockResolvedValue([]);
+    getAlbumCredits.mockResolvedValue([{ track_id: 1, role: 'performer', instrument: 'piano', artist_id: null, artist_name: 'Bill Evans' }]);
+    searchLibrary.mockResolvedValue({ artists: [{ id: 4, name: 'Bill Evans', image_path: '/be.jpg' }] });
+    const c = mount(ColonneAlbumV2, { target: cible, props: {
+      album: { id: 1, title: 'Kind of Blue', source: 'local' } as any, artistId: 7, nomArtiste: 'Miles Davis', annee: null,
+      pistes: [], avecCredits: true, onAlbum: () => {},
+    } });
+    await attendre(); await attendre();
+    expect(searchLibrary).toHaveBeenCalledTimes(1);
+    expect(cible.querySelector('[data-interprete="Bill Evans"] [data-portrait]')).not.toBeNull();
     unmount(c);
   });
 
@@ -190,7 +231,7 @@ describe('AlbumDetailV2 — câblage de la maquette', () => {
     const langues = ['en', 'fr', 'de', 'es', 'it', 'zh', 'ko', 'ja', 'nb', 'sv', 'pl', 'ro', 'hu', 'el', 'vi'];
     for (const l of langues) {
       const t = readFileSync(resolve(__dirname, `../locales/${l}.ts`), 'utf8');
-      for (const k of ['eyebrow', 'tabVersions', 'about', 'viewArtist', 'recording', 'details', 'release', 'genre', 'label', 'format', 'moreFrom', 'seeAll', 'openVersion']) {
+      for (const k of ['readMore', 'eyebrow', 'tabVersions', 'about', 'viewArtist', 'recording', 'details', 'release', 'genre', 'label', 'format', 'moreFrom', 'seeAll', 'openVersion']) {
         expect(t, `${l} v2.album.fiche.${k}`).toContain(`"v2.album.fiche.${k}"`);
       }
     }

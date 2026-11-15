@@ -4665,6 +4665,7 @@ export default {
   "v2.album.fiche.moreFrom": "{artist} のその他の作品",
   "v2.album.fiche.seeAll": "すべて表示",
   "v2.album.fiche.openVersion": "このバージョンを開く",
+  "v2.album.fiche.readMore": "続きを読む",
   "favoris.artistAlso.message": "{artist}：お気に入りにも追加しますか？",
   "favoris.artistAlso.action": "アーティストを追加",
   "favoris.artistAlso.unknown": "このアーティスト",
