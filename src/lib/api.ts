@@ -3,6 +3,7 @@ import { avecLangueSignal } from './langueRequete';
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
+import { notifierTraduit } from './notificationTraduite';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
@@ -109,7 +110,8 @@ function showNetworkError() {
   const now = Date.now();
   if (now - _lastNetworkError < 30000) return;
   _lastNetworkError = now;
-  notifications.error(get(t)('common.serverUnreachable' as any));
+  // Souvent au démarrage, avant la langue choisie : retraduite (voir `notificationTraduite`).
+  notifierTraduit((m) => notifications.error(m), (tr) => tr('common.serverUnreachable'));
 }
 
 import type {
