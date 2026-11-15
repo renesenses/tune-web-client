@@ -52,7 +52,37 @@ interface AlbumDetaille {
  * texte que la fiche affiche déjà (`formatAnneeAlbum`), pour que les deux
  * endroits disent la même chose.
  */
-export function detailsAlbum(a: AlbumDetaille, annee: string | null | undefined): LigneDetail[] {
+/**
+ * Ce que la fiche CONNAÎT déjà en dehors de l'objet album — un album de
+ * service (Qobuz, TIDAL…) n'a souvent ni genre, ni format, ni label sur
+ * l'album lui-même, mais ses PISTES les portent et l'en-tête les affiche
+ * (recette du .18, 15/11, « Animals 50 » : seule la sortie restait).
+ */
+export interface ComplementDetails {
+  genres?: string[];
+  label?: string | null;
+  format?: string | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
+  disques?: number | null;
+  titres?: number | null;
+  /** La durée déjà mise en forme par la fiche. */
+  duree?: string | null;
+}
+
+/** Les genres des pistes, sans doublon, dans l'ordre (chaîne JSON comprise). */
+export function genresDesPistes(pistes: ReadonlyArray<{ genre?: unknown; genres?: unknown }> | null | undefined): string[] {
+  const vus = new Set<string>();
+  const out: string[] = [];
+  for (const p of pistes ?? []) {
+    for (const g of [...listeDeGenres(p?.genres), ...listeDeGenres(p?.genre)]) {
+      if (!vus.has(g.toLowerCase())) { vus.add(g.toLowerCase()); out.push(g); }
+    }
+  }
+  return out;
+}
+
+export function detailsAlbum(a: AlbumDetaille, annee: string | null | undefined, c: ComplementDetails = {}): LigneDetail[] {
   const lignes: LigneDetail[] = [];
   const ajouter = (cle: string, v: string | null | undefined) => {
     const t = (v ?? '').trim();
@@ -60,10 +90,15 @@ export function detailsAlbum(a: AlbumDetaille, annee: string | null | undefined)
   };
   ajouter('v2.album.fiche.release', annee);
   const genres = listeDeGenres(a.genres);
-  ajouter('v2.album.fiche.genre', genres.length ? genres.join(', ') : listeDeGenres(a.genre).join(', '));
-  ajouter('v2.album.fiche.label', a.label);
-  const res = resolution({ sample_rate: a.sample_rate ?? null, bit_depth: a.bit_depth ?? null });
-  ajouter('v2.album.fiche.format', [a.format ? a.format.toUpperCase() : '', res].filter(Boolean).join(' · '));
+  const genreAlbum = genres.length ? genres : listeDeGenres(a.genre);
+  ajouter('v2.album.fiche.genre', (genreAlbum.length ? genreAlbum : (c.genres ?? []).slice(0, 4)).join(', '));
+  ajouter('v2.album.fiche.label', a.label || c.label);
+  const format = a.format || c.format;
+  const res = resolution({ sample_rate: a.sample_rate ?? c.sample_rate ?? null, bit_depth: a.bit_depth ?? c.bit_depth ?? null });
+  ajouter('v2.album.fiche.format', [format ? format.toUpperCase() : '', res].filter(Boolean).join(' · '));
+  if (c.disques != null && c.disques > 1) ajouter('v2.album.fiche.discs', String(c.disques));
+  if (c.titres != null && c.titres > 0) ajouter('v2.album.fiche.tracks', String(c.titres));
+  ajouter('v2.album.fiche.duration', c.duree);
   return lignes;
 }
 
@@ -149,6 +184,9 @@ export function autresAlbumsDeLArtiste<A extends { id?: number | null }>(
   return sortie;
 }
 
+/** Un interprète retrouvé dans la bibliothèque : sa fiche, et son portrait s'il en a un. */
+export interface ArtisteTrouve { id: number; image: string | null }
+
 type ChercherArtistes = (nom: string) => Promise<{ artists?: { id?: number | null; name?: string | null; image_path?: string | null }[] } | null | undefined>;
 
 /**
@@ -162,16 +200,16 @@ export async function portraitsInterpretes(
   noms: readonly string[],
   chercher: ChercherArtistes,
   max = 6,
-): Promise<Record<string, string>> {
+): Promise<Record<string, ArtisteTrouve>> {
   const uniques = [...new Set(noms.map((n) => n?.trim()).filter((n): n is string => !!n))].slice(0, Math.max(0, max));
   const res = await Promise.allSettled(uniques.map(async (nom) => {
     const r = await chercher(nom);
     const id = trouverArtisteExact(r?.artists, nom);
     if (id == null) return null;
-    const image = r?.artists?.find((a) => a?.id === id)?.image_path;
-    return image ? ([nom, image] as const) : null;
+    const image = r?.artists?.find((a) => a?.id === id)?.image_path || null;
+    return [nom, { id, image }] as const;
   }));
-  const out: Record<string, string> = {};
+  const out: Record<string, ArtisteTrouve> = {};
   for (const r of res) if (r.status === 'fulfilled' && r.value) out[r.value[0]] = r.value[1];
   return out;
 }

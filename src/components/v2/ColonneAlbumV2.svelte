@@ -17,10 +17,10 @@
   import PochetteActions from './PochetteActions.svelte';
   import { chargerCreditsAlbum } from '../../lib/library/chargerCredits';
   import {
-    autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, portraitsInterpretes, type Interprete,
+    autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, portraitsInterpretes, type ArtisteTrouve, type ComplementDetails, type Interprete,
   } from '../../lib/ficheAlbumMaquette';
   import { initialesArtiste } from '../../lib/initialesArtiste';
-  import { ARTISTES_A_LIRE } from '../../lib/libraryNavigation';
+  import { ARTISTES_A_LIRE, trouverArtisteExact } from '../../lib/libraryNavigation';
 
   interface Props {
     /** L'album affiché ; `id` nul (service, dépôt) : seuls les détails restent. */
@@ -39,14 +39,46 @@
     onArtiste?: (() => void) | null;
     onAlbum: (id: number) => void;
     onCredits?: (() => void) | null;
+    /** Ce que la fiche affiche déjà hors de l'objet album (pistes, en-tête). */
+    complement?: ComplementDetails;
+    /** Le nombre de blocs affichés, pour que la fiche n'en réserve pas la
+     *  largeur quand la colonne est presque vide. */
+    onBlocs?: ((n: number) => void) | null;
+    /** Ouvre la page d'un artiste : par sa fiche de bibliothèque (`id`), sinon
+     *  par son nom — la fiche se referme d'abord (voir `AlbumDetailV2`). */
+    onOuvrirArtiste?: ((a: { id: number | null; nom: string }) => void) | null;
   }
-  let { album, artistId, nomArtiste, annee, pistes, exclus = [], avecCredits, onArtiste = null, onAlbum, onCredits = null }: Props = $props();
+  let { album, artistId, nomArtiste, annee, pistes, exclus = [], avecCredits, onArtiste = null, onAlbum, onCredits = null,
+    complement = {}, onBlocs = null, onOuvrirArtiste = null }: Props = $props();
+
+  /**
+   * L'artiste LOCAL : son identifiant s'il est connu, sinon — album de service
+   * (Qobuz, TIDAL…) — l'artiste de la bibliothèque qui porte EXACTEMENT ce nom
+   * (`trouverArtisteExact`, la règle des portraits). Pas trouvé : les blocs
+   * « À propos » et « Plus de » restent masqués.
+   */
+  let artisteLocalTrouve = $state<number | null>(null);
+  $effect(() => {
+    const id = artistId, n = (nomArtiste ?? '').trim();
+    artisteLocalTrouve = null;
+    if (id != null || !n) return;
+    let vivant = true;
+    (async () => {
+      try {
+        const r = await api.searchLibrary(n, ARTISTES_A_LIRE);
+        const t = trouverArtisteExact(r?.artists, n);
+        if (vivant && t != null) artisteLocalTrouve = t;
+      } catch { /* blocs masqués */ }
+    })();
+    return () => { vivant = false; };
+  });
+  const idArtiste = $derived(artistId ?? artisteLocalTrouve);
 
   let artiste = $state.raw<Artist | null>(null);
   let autres = $state.raw<Album[]>([]);
   let interpretes = $state.raw<Interprete[]>([]);
   /** Portrait de la bibliothèque par nom d'interprète ; absent : initiales. */
-  let portraits = $state.raw<Record<string, string>>({});
+  let portraits = $state.raw<Record<string, ArtisteTrouve>>({});
   let blocInterpretes = $state<HTMLElement | null>(null);
 
   /**
@@ -74,7 +106,7 @@
   });
 
   $effect(() => {
-    const id = artistId;
+    const id = idArtiste;
     artiste = null; autres = [];
     if (id == null) return;
     let vivant = true;
@@ -102,8 +134,13 @@
   });
 
   const bio = $derived((artiste?.bio ?? '').trim());
-  const details = $derived(detailsAlbum(album as any, annee));
+  const details = $derived(detailsAlbum(album as any, annee, complement));
   const plusDe = $derived(autresAlbumsDeLArtiste(autres, [...(album.id != null ? [album.id] : []), ...exclus]));
+  const nbBlocs = $derived(
+    (artiste && (bio || artiste.image_path) ? 1 : 0) + (interpretes.length ? 1 : 0)
+    + (details.length ? 1 : 0) + (plusDe.length ? 1 : 0),
+  );
+  $effect(() => { const n = nbBlocs; onBlocs?.(n); });
   const nom = $derived(nomArtiste || artiste?.name || '');
 </script>
 
@@ -111,7 +148,11 @@
   {#if artiste && (bio || artiste.image_path)}
     <section class="bloc artiste" data-bloc-artiste>
       {#if artiste.image_path}
-        <div class="portrait"><AlbumArt coverPath={artiste.image_path} size={0} recadrer alt={nom} fallbackInitials={nom.slice(0, 1)} /></div>
+        <button type="button" class="portrait vers-artiste" data-ouvrir-artiste
+          aria-label={`${$tr('library.goToArtist' as any)} — ${nom}`} title={nom}
+          onclick={() => onOuvrirArtiste?.({ id: artiste?.id ?? idArtiste ?? null, nom })}>
+          <AlbumArt coverPath={artiste.image_path} size={0} recadrer alt="" fallbackInitials={nom.slice(0, 1)} />
+        </button>
       {/if}
       <div class="texte">
         <h2>{$tr('v2.album.fiche.about' as any).replace('{artist}', nom)}</h2>
@@ -133,14 +174,20 @@
       <ul class="interpretes">
         {#each interpretes as p (p.artist_id ?? p.nom)}
           <li data-interprete={p.nom}>
-            <span class="avatar" data-portrait={portraits[p.nom] ? '' : undefined}>
-              {#if portraits[p.nom]}
-                <AlbumArt coverPath={portraits[p.nom]} size={0} recadrer round alt={p.nom} fallbackInitials={initialesArtiste(p.nom)} />
-              {:else}
-                <span class="initiales" aria-hidden="true">{initialesArtiste(p.nom)}</span>
-              {/if}
-            </span>
-            <span class="inom">{p.nom}</span>
+            <!-- Bertrand (15/11) : « rends les covers d'artistes cliquables » —
+                 portrait (ou initiales) et nom ouvrent la page de l'artiste. -->
+            <button type="button" class="vers-artiste" data-ouvrir-interprete
+              aria-label={`${$tr('library.goToArtist' as any)} — ${p.nom}`} title={p.nom}
+              onclick={() => onOuvrirArtiste?.({ id: p.artist_id ?? portraits[p.nom]?.id ?? null, nom: p.nom })}>
+              <span class="avatar" data-portrait={portraits[p.nom]?.image ? '' : undefined}>
+                {#if portraits[p.nom]?.image}
+                  <AlbumArt coverPath={portraits[p.nom].image} size={0} recadrer round alt="" fallbackInitials={initialesArtiste(p.nom)} />
+                {:else}
+                  <span class="initiales" aria-hidden="true">{initialesArtiste(p.nom)}</span>
+                {/if}
+              </span>
+              <span class="inom">{p.nom}</span>
+            </button>
             <span class="irole">{p.roles.join(', ')}</span>
           </li>
         {/each}
@@ -203,7 +250,12 @@
   .grille dd{margin:0; color:var(--v2-txt); overflow-wrap:anywhere}
   .interpretes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;
     font-size:calc(13px * var(--v2-txt-echelle, 1))}
-  .interpretes li{display:grid; grid-template-columns:32px minmax(0,1fr) minmax(0,1fr); align-items:center; gap:10px}
+  .interpretes li{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:10px}
+  .vers-artiste{all:unset; cursor:pointer; display:flex; align-items:center; gap:10px; min-width:0; border-radius:6px}
+  .vers-artiste:hover .inom{color:var(--v2-acc-tint); text-decoration:underline}
+  .vers-artiste:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .portrait.vers-artiste{display:block; width:120px; height:120px; flex:0 0 auto; border-radius:6px; overflow:hidden}
+  .avatar{flex:0 0 auto}
   .avatar{width:32px; height:32px; border-radius:50%; overflow:hidden; background:var(--v2-surface2);
     display:flex; align-items:center; justify-content:center}
   .initiales{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}

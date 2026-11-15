@@ -26,7 +26,7 @@ vi.mock('../api', async (importOriginal) => {
 });
 
 import {
-  autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, listeDeGenres, numeroCatalogue, pastillesVersion, portraitsInterpretes, titreVersion,
+  autresAlbumsDeLArtiste, detailsAlbum, genresDesPistes, interpretesAlbum, listeDeGenres, numeroCatalogue, pastillesVersion, portraitsInterpretes, titreVersion,
 } from '../ficheAlbumMaquette';
 import type { OeuvreAlbum, VersionAlbum } from '../oeuvres';
 import ColonneAlbumV2 from '../../components/v2/ColonneAlbumV2.svelte';
@@ -60,6 +60,20 @@ describe('ficheAlbumMaquette — mise en forme sans invention', () => {
     expect(listeDeGenres('Jazz; Bebop')).toEqual(['Jazz', 'Bebop']);
     expect(listeDeGenres('["Rock"')).toEqual(['Rock']);
     expect(listeDeGenres(null)).toEqual([]);
+  });
+
+  it('album de service (« Animals 50 », recette du .18) : les détails viennent de ce que la fiche affiche', () => {
+    const l = detailsAlbum({ label: null }, '2027', {
+      genres: genresDesPistes([{ genre: 'Rock' }, { genre: '["Rock"]' }]), label: 'Columbia/Legacy',
+      format: 'flac', sample_rate: 192000, bit_depth: 24, disques: 2, titres: 28, duree: '4h 20min',
+    });
+    expect(l.map((x) => [x.cle.replace('v2.album.fiche.', ''), x.valeur])).toEqual([
+      ['release', '2027'], ['genre', 'Rock'], ['label', 'Columbia/Legacy'], ['format', 'FLAC · 24/192'],
+      ['discs', '2'], ['tracks', '28'], ['duration', '4h 20min'],
+    ]);
+    // L'album prime sur le complément ; un seul disque ne fait pas de ligne.
+    expect(detailsAlbum({ label: 'Columbia' }, null, { label: 'Autre', disques: 1 })).toEqual([{ cle: 'v2.album.fiche.label', valeur: 'Columbia' }]);
+    expect(detailsAlbum({}, null, {})).toEqual([]);
   });
 
   it('interprètes : une fois chacun, avec ses instruments ; la production n’y est pas', () => {
@@ -99,7 +113,7 @@ describe('ficheAlbumMaquette — mise en forme sans invention', () => {
       'Paul Chambers': { artists: [{ id: 6, name: 'Paul Chambers Quintet', image_path: '/pc.jpg' }] },
     } as Record<string, any>)[n] ?? null);
     const p = await portraitsInterpretes(['Bill Evans', 'Jimmy Cobb', 'Paul Chambers', 'Bill Evans'], chercher);
-    expect(p).toEqual({ 'Bill Evans': '/be.jpg' });
+    expect(p).toEqual({ 'Bill Evans': { id: 4, image: '/be.jpg' }, 'Jimmy Cobb': { id: 5, image: null } });
     expect(chercher).toHaveBeenCalledTimes(3);
     const echec = await portraitsInterpretes(['A'], async () => { throw new Error('500'); });
     expect(echec).toEqual({});
@@ -180,6 +194,61 @@ describe('ColonneAlbumV2 — un bloc sans donnée disparaît', () => {
     unmount(c);
   });
 
+  it('album de service : l’artiste de la bibliothèque au nom EXACT donne « À propos » et « Plus de »', async () => {
+    searchLibrary.mockResolvedValue({ artists: [{ id: 3, name: 'Pink Floyd Tribute' }, { id: 9, name: 'Pink Floyd' }] });
+    getArtist.mockResolvedValue({ id: 9, name: 'Pink Floyd', bio: 'Groupe britannique.', image_path: null });
+    getArtistAlbums.mockResolvedValue([{ id: 40, title: 'Meddle' }]);
+    const blocs: number[] = [];
+    const c = mount(ColonneAlbumV2, { target: cible, props: {
+      album: { id: null, title: 'Animals 50', source: 'qobuz' } as any, artistId: null, nomArtiste: 'Pink Floyd', annee: '2027',
+      pistes: [], avecCredits: false, onAlbum: () => {}, complement: { titres: 28 }, onBlocs: (n: number) => blocs.push(n),
+    } });
+    await attendre(); await attendre();
+    expect(getArtist).toHaveBeenCalledWith(9);
+    expect(cible.querySelector('[data-bloc-artiste]')?.textContent).toContain('Groupe britannique.');
+    expect(cible.querySelector('[data-bloc-plus-de]')?.textContent).toContain('Meddle');
+    expect(cible.querySelector('[data-bloc-details]')?.textContent).toContain('28');
+    expect(blocs.at(-1)).toBe(3);
+    unmount(c);
+  });
+
+  it('album de service sans artiste exact dans la bibliothèque : blocs artiste masqués', async () => {
+    searchLibrary.mockResolvedValue({ artists: [{ id: 3, name: 'Pink Floyd Tribute' }] });
+    const blocs: number[] = [];
+    const c = mount(ColonneAlbumV2, { target: cible, props: {
+      album: { id: null, title: 'Animals 50', source: 'qobuz' } as any, artistId: null, nomArtiste: 'Pink Floyd', annee: '2027',
+      pistes: [], avecCredits: false, onAlbum: () => {}, onBlocs: (n: number) => blocs.push(n),
+    } });
+    await attendre(); await attendre();
+    expect(getArtist).not.toHaveBeenCalled();
+    expect(cible.querySelector('[data-bloc-artiste]')).toBeNull();
+    expect(blocs.at(-1)).toBe(1);
+    unmount(c);
+  });
+
+  it('portraits et noms cliquables : la fiche de bibliothèque par id, sinon le nom (Bertrand, 15/11)', async () => {
+    getArtist.mockResolvedValue({ id: 7, name: 'Miles Davis', bio: 'Trompettiste.', image_path: '/md.jpg' });
+    getArtistAlbums.mockResolvedValue([]);
+    getAlbumCredits.mockResolvedValue([
+      { track_id: 1, role: 'performer', instrument: 'piano', artist_id: null, artist_name: 'Bill Evans' },
+      { track_id: 1, role: 'performer', instrument: 'drums', artist_id: null, artist_name: 'Jimmy Cobb' },
+    ]);
+    searchLibrary.mockImplementation(async (n: string) => (n === 'Bill Evans' ? { artists: [{ id: 4, name: 'Bill Evans', image_path: '/be.jpg' }] } : { artists: [] }));
+    const ouverts: Array<{ id: number | null; nom: string }> = [];
+    const c = mount(ColonneAlbumV2, { target: cible, props: {
+      album: { id: 1, title: 'Kind of Blue', source: 'local' } as any, artistId: 7, nomArtiste: 'Miles Davis', annee: null,
+      pistes: [], avecCredits: true, onAlbum: () => {}, onOuvrirArtiste: (a: { id: number | null; nom: string }) => ouverts.push(a),
+    } });
+    await attendre(); await attendre();
+    const bill = cible.querySelector<HTMLButtonElement>('[data-interprete="Bill Evans"] [data-ouvrir-interprete]')!;
+    expect(bill.getAttribute('aria-label')).toContain('Bill Evans');
+    bill.click();
+    cible.querySelector<HTMLButtonElement>('[data-interprete="Jimmy Cobb"] [data-ouvrir-interprete]')!.click();
+    cible.querySelector<HTMLButtonElement>('[data-ouvrir-artiste]')!.click();
+    expect(ouverts).toEqual([{ id: 4, nom: 'Bill Evans' }, { id: null, nom: 'Jimmy Cobb' }, { id: 7, nom: 'Miles Davis' }]);
+    unmount(c);
+  });
+
   it('album hors bibliothèque : pas de crédits demandés', async () => {
     getArtistAlbums.mockResolvedValue([]);
     const c = mount(ColonneAlbumV2, { target: cible, props: {
@@ -247,7 +316,7 @@ describe('AlbumDetailV2 — câblage de la maquette', () => {
     const langues = ['en', 'fr', 'de', 'es', 'it', 'zh', 'ko', 'ja', 'nb', 'sv', 'pl', 'ro', 'hu', 'el', 'vi'];
     for (const l of langues) {
       const t = readFileSync(resolve(__dirname, `../locales/${l}.ts`), 'utf8');
-      for (const k of ['readMore', 'eyebrow', 'tabVersions', 'about', 'viewArtist', 'recording', 'details', 'release', 'genre', 'label', 'format', 'moreFrom', 'seeAll', 'openVersion']) {
+      for (const k of ['discs', 'tracks', 'duration', 'readMore', 'eyebrow', 'tabVersions', 'about', 'viewArtist', 'recording', 'details', 'release', 'genre', 'label', 'format', 'moreFrom', 'seeAll', 'openVersion']) {
         expect(t, `${l} v2.album.fiche.${k}`).toContain(`"v2.album.fiche.${k}"`);
       }
     }
