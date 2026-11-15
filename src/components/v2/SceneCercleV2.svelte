@@ -80,8 +80,10 @@
     onOuvrirPlaylist?: (id: IdOpaque) => void;
     /** La lire sur la zone courante. */
     onLirePlaylist?: (p: PlaylistCercleResume) => void;
+    /** rc12 — les lieux de mes contacts, lus ici, partagés avec l'écran (ville de Mon cercle, compteur Pays). */
+    onLieux?: (lieux: Map<number, Lieu>) => void;
   }
-  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
+  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux }: Props = $props();
   let paysMonde = $state<PaysMonde | null>(null);
   let montrerPays = $state(true);
   const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
@@ -95,6 +97,7 @@
   let relais = $state<EtatRelais | null>(null);
   let monLieu = $state<Lieu | null>(null);
   let lieux = $state.raw<Map<number, Lieu>>(new Map());
+  $effect(() => { onLieux?.(lieux); });
   let resumes = $state<Record<number, ResumeBibliotheque | null>>({});
   let mes = $state.raw<ResumeBibliotheque>({ albums: null, genres: [] });
   let monNom = $state<string | null>(null);

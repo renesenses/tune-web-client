@@ -43,7 +43,11 @@
 
 <style>
   .case-rond{display:inline-block;border-radius:50%;background:var(--v2-acc2);opacity:.45}
-  .pays-monde{padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
+  .pays-monde{padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt);
+    font-family:var(--v2-sans);font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  /* `.lnk` et `.note` venaient des feuilles de l'écran parent : un style Svelte est local, le bouton restait brut. */
+  .lnk{border:0;background:transparent;padding:4px 0;cursor:pointer;color:var(--v2-acc-tint);font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .note{margin:8px 0 4px;font-size:calc(11.5px * var(--v2-txt-echelle, 1));color:var(--v2-txt3)}
   .pays-legende{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;padding:0}
   .pays-legende li{display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .pays-teinte{display:inline-block;width:18px;height:12px;background:var(--v2-acc2);border:1px solid currentColor;border-radius:2px}

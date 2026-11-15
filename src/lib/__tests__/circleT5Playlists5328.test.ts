@@ -333,7 +333,7 @@ describe('T5 — la liste des playlists de cercle', () => {
     expect(bloc).not.toBeNull();
     const lignes = [...bloc.querySelectorAll('li.playlist-cercle')].map(texte);
     expect(lignes[0]).toContain('Dimanche');
-    expect(lignes[0]).toContain('4 morceaux');
+    expect(lignes[0]).toContain('4 titres');
     expect(lignes[0]).toContain('de Élise');
     // La mienne : pas de « de Moi ».
     expect(lignes[1]).toContain('Famille en voiture');
