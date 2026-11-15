@@ -42,6 +42,7 @@
   import { t } from '../../lib/i18n';
   import {
     PERIODES,
+    PERIODE_DEFAUT,
     choisirPeriode,
     clePeriode,
     delaiPour,
@@ -56,6 +57,10 @@
    * période et son message vide la nomme. Rien n'est enregistré : l'écran
    * rouvre sur sept jours, la requête partagée avec l'accueil.
    */
+  // `active` est une variable de MODULE : elle survivrait au démontage de
+  // l'écran. On la remet à sept jours à chaque montage, pour que l'écran
+  // rouvre bien sur sept jours.
+  choisirPeriode(PERIODE_DEFAUT);
   let periode = $state<DashboardPeriod>(periodeActive());
 
   function changer(p: DashboardPeriod) {

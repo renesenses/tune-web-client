@@ -143,6 +143,14 @@ describe('l’écran monté', () => {
     expect(page.querySelector<HTMLSelectElement>('header select')!.value).toBe('30d');
   });
 
+  it('l’écran rouvre sur sept jours, même si 30 jours était choisi avant de le quitter', async () => {
+    choisirPeriode('30d');
+    const page = await poser(TableauDeBordV2);
+    expect(periodeActive()).toBe('7d');
+    expect(page.querySelector<HTMLSelectElement>('header select')!.value).toBe('7d');
+    expect(vi.mocked(api.getDashboard).mock.calls.every((c) => c[0] === '7d')).toBe(true);
+  });
+
   it('les tuiles portent leur icône devant le titre', async () => {
     const page = await poser(TableauDeBordV2);
     const avecIcone = BLOCS_TABLEAU_DE_BORD.filter((w) => w.bloc?.icone).length;
