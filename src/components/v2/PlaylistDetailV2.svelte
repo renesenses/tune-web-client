@@ -213,7 +213,11 @@
     if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
       faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });
     // #2098 — une playlist de SERVICE ne s'édite que si l'utilisateur en est propriétaire.
-    if (editable) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
+    // rc12 (15/11) — la croix « Retirer » ne dépend plus d'« Éditer » : le mode
+    // ne porte plus que le réordonnancement, le renommage, la suppression et
+    // l'ajout de radio, tous réservés à une playlist TUNE (`commitRename` ne
+    // renomme qu'une locale). Sur une playlist de service, il ne montrerait rien.
+    if (isLocal) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
       faire: () => { edition = !edition; renaming = false; }, attrs: { 'data-editer-playlist': true } });
     if (edition && isLocal) {
       l.push({ cle: 'v2.pl.rename', faire: () => { draft = item.pl.name; renaming = true; }, attrs: { 'data-renommer-playlist': true } });
