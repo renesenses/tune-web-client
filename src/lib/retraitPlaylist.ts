@@ -68,3 +68,60 @@ export function creerRetraitPlaylist(deps: DependancesRetrait) {
     },
   };
 }
+
+/* ------------------------- Playlists DU SERVICE (web#2098, #3067) ------------------------- */
+
+type AvecEditable = { source_id?: unknown; editable?: boolean | null };
+
+/**
+ * Une playlist de service dont l'utilisateur est propriétaire : seulement
+ * quand le serveur l'affirme (`editable: true`, web#2097). Absent ou faux
+ * (playlist suivie, éditoriale, serveur plus ancien) : lecture seule.
+ */
+export function aMoiChezLeService(pl: AvecEditable | null | undefined): boolean {
+  return pl?.editable === true;
+}
+
+/**
+ * web#3067 — `get_playlist` (Qobuz) rend `editable: None` : une fiche ouverte
+ * depuis la recherche, les étiquettes ou un widget ne sait pas si la playlist
+ * est à l'utilisateur. `GET /streaming/{service}/playlists` (les playlists du
+ * compte) porte le drapeau : on l'y retrouve par l'identifiant. Rend le
+ * drapeau déjà porté sans requête ; `null` quand rien ne le dit.
+ */
+export async function retrouverEditable(
+  lister: (service: string) => Promise<unknown>,
+  service: string,
+  pl: AvecEditable,
+): Promise<boolean | null> {
+  if (typeof pl.editable === 'boolean') return pl.editable;
+  if (pl.source_id == null || !service) return null;
+  try {
+    const liste = await lister(service);
+    if (!Array.isArray(liste)) return null;
+    const id = String(pl.source_id);
+    const trouvee = (liste as AvecEditable[]).find((p) => String(p?.source_id) === id);
+    return typeof trouvee?.editable === 'boolean' ? trouvee.editable : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Retire un titre d'une playlist DU SERVICE — toutes ses occurrences (Qobuz
+ * retire par `source_id`). Rend la liste sans ce titre ; `null` quand rien
+ * n'est parti (titre sans `source_id`) ; lève quand le service refuse, la
+ * liste restant alors celle d'avant.
+ */
+export async function retirerTitreDuService(
+  retirer: (service: string, playlistId: string, trackIds: string[]) => Promise<unknown>,
+  service: string,
+  playlistId: string,
+  pistes: readonly Track[],
+  piste: Track,
+): Promise<Track[] | null> {
+  if (piste.source_id == null) return null;
+  const sid = String(piste.source_id);
+  await retirer(service, playlistId, [sid]);
+  return pistes.filter((x) => String(x.source_id) !== sid);
+}

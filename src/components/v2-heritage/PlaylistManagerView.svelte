@@ -8,7 +8,7 @@
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
-  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
+  import { creerRetraitPlaylist, aMoiChezLeService, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { shareLink } from '../../lib/playlistShare';
   import { formatTime, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
@@ -1532,6 +1532,27 @@
   }
 
   /**
+   * web#3067 — retirer un titre d'une playlist DU SERVICE dont l'utilisateur
+   * est propriétaire (`editable: true`), comme la fiche V2 (#2098) : toutes
+   * ses occurrences, par la même règle (`lib/retraitPlaylist`).
+   */
+  let retraitService = $state(false);
+  async function retirerDuService(t: Track) {
+    const pl = selectedStreamingPl;
+    const service = selectedService;
+    if (!pl || !aMoiChezLeService(pl) || !service || retraitService) return;
+    retraitService = true;
+    try {
+      const reste = await retirerTitreDuService(api.removeStreamingPlaylistTracks, service, String(pl.source_id), detailTracks, t);
+      if (reste && selectedStreamingPl?.source_id === pl.source_id) detailTracks = reste;
+    } catch {
+      notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
+    } finally {
+      retraitService = false;
+    }
+  }
+
+  /**
    * Réordonne une playlist LOCALE : la piste au rang `de` va au rang `vers`.
    *
    * Appelé par la liste commune (`onReordonner`), au glisser comme au clavier.
@@ -2037,7 +2058,7 @@
           onLire={(_p, i) => playFromIndex(i)} onLireDepuis={(_p, i) => playFromIndex(i)}
           clef={(_p, i) => i}
           reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}
-          apres={selectedPlaylist ? retirer : undefined} largeurApres="36px"
+          apres={selectedPlaylist ? retirer : aMoiChezLeService(selectedStreamingPl) ? retirerService : undefined} largeurApres="36px"
           etiquetteIndispo="playlist.unavailable" />
         <!-- Le rang pour clé : une playlist peut contenir DEUX fois la même
              piste, et deux clés identiques arrêtent Svelte
@@ -2048,6 +2069,15 @@
                n'a pas, parce qu'il n'a de sens que dans une playlist locale. -->
           <button class="remove-btn" onclick={() => removeTrack(index)} disabled={retraitEnCours}
             title={$tr('playlist.remove')} aria-label={$tr('playlist.remove')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/snippet}
+        {#snippet retirerService(t: Track)}
+          <!-- web#3067 — playlist du service à soi (`editable: true`) : le
+               retrait part chez le service. Suivie ou éditoriale : rien. -->
+          <button class="remove-btn retrait-service" onclick={() => retirerDuService(t)} disabled={retraitService}
+            title={$tr('v2.pl.removeFromService' as any).replace('{service}', selectedService)}
+            aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', selectedService)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         {/snippet}

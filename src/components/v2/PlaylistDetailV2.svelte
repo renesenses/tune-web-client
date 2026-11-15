@@ -14,7 +14,7 @@
    */
   import * as api from '../../lib/api';
   import { ligneBadgeCercles } from '../../lib/suiviCercle';
-  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
+  import { creerRetraitPlaylist, aMoiChezLeService as estAMoi, retrouverEditable, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr, tn } from '../../lib/i18n';
@@ -160,9 +160,26 @@
    * l'utilisateur est propriétaire : on peut en retirer un titre. Seulement
    * quand le serveur l'affirme (`editable: true`, web#2097) ; absent ou faux
    * (playlist suivie, éditoriale, serveur plus ancien) : lecture seule.
+   *
+   * web#3067 — ouverte depuis la recherche, les étiquettes ou un widget, la
+   * playlist vient de `get_playlist`, qui ne porte pas le drapeau chez Qobuz :
+   * on le retrouve dans la liste du compte (`lib/retraitPlaylist`).
    */
+  let editableRetrouve = $state<boolean | null>(null);
+  $effect(() => {
+    if (item.kind !== 'streaming') return;
+    const service = item.service;
+    const pl = item.pl;
+    editableRetrouve = null;
+    if (typeof pl.editable === 'boolean') return;
+    let vivant = true;
+    void retrouverEditable(api.getStreamingPlaylists, service, pl).then((v) => {
+      if (vivant) editableRetrouve = v;
+    });
+    return () => { vivant = false; };
+  });
   const aMoiChezLeService = $derived(
-    item.kind === 'streaming' && (item.pl as StreamingPlaylist & { editable?: boolean | null }).editable === true,
+    item.kind === 'streaming' && (estAMoi(item.pl) || editableRetrouve === true),
   );
   const editable = $derived(isLocal || aMoiChezLeService);
 
@@ -443,11 +460,10 @@
   async function retirerDuService(t: Track) {
     if (item.kind !== 'streaming' || !aMoiChezLeService || retraitService || t.source_id == null) return;
     const service = item.service;
-    const sid = String(t.source_id);
     retraitService = true;
     try {
-      await api.removeStreamingPlaylistTracks(service, String(item.pl.source_id), [sid]);
-      tracks = tracks.filter((x) => String(x.source_id) !== sid);
+      const reste = await retirerTitreDuService(api.removeStreamingPlaylistTracks, service, String(item.pl.source_id), tracks, t);
+      if (reste) tracks = reste;
       onChanged?.();
     } catch {
       notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
