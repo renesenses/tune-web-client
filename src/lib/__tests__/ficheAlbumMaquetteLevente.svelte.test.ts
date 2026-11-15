@@ -171,6 +171,17 @@ describe('AlbumDetailV2 — câblage de la maquette', () => {
     expect(src).toContain('<VersionsAlbumV2');
     expect(src).not.toContain('<div class="versions"');
   });
+  it('aléatoire : le geste d’aujourd’hui, pas de bouton « Shuffle » séparé (Bertrand, 15/11)', () => {
+    // La maquette montre un bouton Shuffle à part : décision de Bertrand, la
+    // lecture aléatoire reste sous la flèche du bouton Lecture (rc12, 12/11).
+    expect(src).toMatch(/<BoutonLectureV2 onLire=\{\(\) => playAlbum\(0\)\}[\s\S]{0,160}aleatoire=\{\{ faire: shuffle/);
+    expect(src).toContain("attrsAleatoire={{ 'data-aleatoire-album': true }}");
+    expect((src.match(/onclick=\{shuffle\}/g) ?? []).length).toBe(0);
+    for (const f of ['ColonneAlbumV2', 'VersionsAlbumV2']) {
+      const c = readFileSync(resolve(__dirname, `../../components/v2/${f}.svelte`), 'utf8');
+      expect(c, f).not.toMatch(/shuffle|aleatoire/i);
+    }
+  });
   it('la colonne de droite est montée, et le surtitre traduit', () => {
     expect(src).toContain('<ColonneAlbumV2');
     expect(src).toContain("'v2.album.fiche.eyebrow'");
