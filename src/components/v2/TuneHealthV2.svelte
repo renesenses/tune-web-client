@@ -933,7 +933,7 @@
 </script>
 
 <section class="v2-health tune-v2">
-  <header class="v2-top">
+  <header class="v2-top sante-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$t('v2.health.eyebrow' as any)}</div>
       <h1>{$t('v2.nav.processing' as any)}</h1>
@@ -1378,6 +1378,20 @@
     .resume{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:12px}
     .tuile{padding:4px 12px}
     .tuile + .tuile{border-left:0}
+    /* « Tune 1.0.0-dev » se coupait : la tuile d'état prend la rangée. */
+    .tuile.etat{grid-column:1 / -1}
+    /* Variante LOCALE de l'en-tête partagé `.v2-top` (vérif .18, 15/11) :
+       sur téléphone, le surtitre, l'heure et les boutons passaient sur le
+       titre. Titres sur leur ligne (seuls à laisser la place à la grappe du
+       coin), puis l'heure, puis les boutons sur toute la largeur. La vue
+       mini a ses propres règles (`vue-mini.css`) : on n'y touche pas. */
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top{flex-wrap:wrap; align-items:flex-start; row-gap:10px;
+      padding-left:16px; padding-right:16px}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres{flex:1 0 100%; margin-right:0;
+      padding-right:var(--v2-grappe-w, 172px); box-sizing:border-box}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres h1{font-size:calc(24px * var(--v2-txt-echelle, 1))}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top .meta{flex-basis:100%; margin-left:0}
     .rangee > section, .rangee > .bloc-large{flex-basis:100%}
     .bloc-tete{flex-wrap:wrap}
     /* Le bouton « Gérer les extensions » passe sous le titre. */
