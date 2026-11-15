@@ -103,7 +103,8 @@ describe('#1068 — le branchement', () => {
     expect(vue).toContain('aDesEcarts(scanReport)');
     expect(vue).toContain('groupesEcartes(scanReport)');
     expect(vue).toContain('motifsDesFeuilles(scanReport)');
-    expect(vue).toContain("<details class=\"ecartes\">");
+    // Recette du 15/11 : la liste porte aussi `pleine-largeur` (hors colonne de 720 px).
+    expect(vue).toMatch(/<details class="ecartes( pleine-largeur)?">/);
     // 🔴 replié par défaut : pas d'attribut `open`.
     const i = vue.indexOf('<details class="ecartes"');
     expect(vue.slice(i, i + 40)).not.toContain('open');
