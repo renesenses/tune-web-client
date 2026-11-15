@@ -6009,7 +6009,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'import'}
               <!-- Phase 5 (web#1257) : import Roon / Plex, aperçu puis confirmation. -->
-              <div data-reglage="import-autre-lecteur"><ImportLecteurV2 /></div>
+              <div class="pleine-largeur" data-reglage="import-autre-lecteur"><ImportLecteurV2 /></div>
 
             {:else if s.id === 'database'}
               <div class="rows">
@@ -7178,7 +7178,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   ouvre quand on cherche, pas une alerte.
                 -->
                 {#if aDesEcarts(scanReport)}
-                  <details class="ecartes">
+                  <details class="ecartes pleine-largeur">
                     <summary>{$t('v2.scan.discarded' as any)}</summary>
                     {#if listeTronquee(scanReport)}
                       <!-- Le serveur plafonne ses listes et le DIT : une liste
@@ -7218,7 +7218,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="faux-hires"><DetectionFauxHiRes /></div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
-              <div data-reglage="audit-integrite"><AuditIntegrite /></div>
+              <div class="pleine-largeur" data-reglage="audit-integrite"><AuditIntegrite /></div>
               <!-- tune-server-rust#4201 — l'état de la bibliothèque UPnP
                    synchronisée (dernier bilan persisté de chaque source). -->
               <div data-reglage="etat-import-upnp"><EtatImportUpnp /></div>
@@ -9091,6 +9091,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      défile toujours sur toute la largeur ; la COLONNE des réglages, elle,
      s'arrête à 720 px. */
   .pane > *{width:100%; max-width:720px; box-sizing:border-box}
+  /* Recette du .18 (15/11, Bertrand : « Écran réglages Library pas bon !! »)
+     — les TABLEAUX et listes de résultats (audit d'intégrité, import d'un
+     autre lecteur, chemins écartés du scan) écrasés dans 720 px : une lettre
+     par ligne. Un bloc large porte la classe `pleine-largeur` : sa carte
+     prend toute la largeur du panneau, et le TEXTE des réglages de cette
+     carte reste, lui, à 720 px. */
+  .pane > .card:has(.pleine-largeur){max-width:none}
+  .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:720px}
+  .pane .pleine-largeur{max-width:none; min-width:0; overflow-x:auto}
   .panehead.cache{display:none}
   /* Intertitres d'une longue carte (Interface) : des blocs titrés. */
   .sous-titre{margin:20px 0 -2px; padding-top:14px; border-top:1px solid var(--v2-line);
