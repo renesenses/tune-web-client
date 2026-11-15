@@ -22,20 +22,34 @@ import { notifications } from './stores/notifications';
 export type Traduire = (cle: string) => string;
 
 /**
+ * Les notifications déjà suivies, par identifiant. Une erreur persistante
+ * répétée (`common.serverUnreachable`, toutes les 5 s quand le serveur est
+ * muet) est DÉDOUBLONNÉE par `push`, qui rend le même id : sans ce registre,
+ * chaque répétition ajoutait une paire d'abonnements (`t` + `notifications`)
+ * sur la même notification — ~720 en une heure de serveur muet.
+ */
+const suivies = new Map<number, () => void>();
+
+/**
  * Pousse une notification par `pousser` (ex. `(m) => notifications.info(m, 12000)`),
  * avec le texte `rendre(t)`, puis la retraduit tant qu'elle est affichée.
- * Rend l'identifiant de la notification.
+ * Rend l'identifiant de la notification. Un id déjà suivi ne s'abonne pas
+ * une seconde fois.
  */
 export function notifierTraduit(pousser: (message: string) => number, rendre: (tr: Traduire) => string): number {
   const id = pousser(rendre(get(t)));
+  if (suivies.has(id)) return id;
   let fini = false;
   let arreterT: (() => void) | undefined;
   let arreterN: (() => void) | undefined;
   const arreter = () => {
+    if (fini) return;
     fini = true;
+    suivies.delete(id);
     arreterT?.();
     arreterN?.();
   };
+  suivies.set(id, arreter);
   arreterN = notifications.subscribe((liste) => {
     if (!fini && !liste.some((n) => n.id === id)) arreter();
   });
@@ -45,4 +59,9 @@ export function notifierTraduit(pousser: (message: string) => number, rendre: (t
   });
   if (fini) arreterT();
   return id;
+}
+
+/** Pour les tests : combien de notifications sont suivies en ce moment. */
+export function _nombreDeSuivies(): number {
+  return suivies.size;
 }
