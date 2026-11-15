@@ -121,10 +121,13 @@ describe('Menu de compte — retouches de Levente (15/11/2026)', () => {
     expect(svg).not.toBeNull();
     expect(svg!.getAttribute('viewBox')).toBe('0 0 24 24');
     expect(svg!.getAttribute('stroke')).toBe('currentColor');
+    expect(svg!.getAttribute('stroke-width')).toBe('2');
+    // Lucide « settings » (ISC), tracés repris tels quels du fichier de Levente.
     const chemins = Array.from(svg!.querySelectorAll('path')).map((p) => p.getAttribute('d') ?? '');
-    expect(chemins).toHaveLength(2);
-    expect(chemins[0].startsWith('M9.671 4.136')).toBe(true);
-    expect(chemins[1].startsWith('M15 12C15 13.6569')).toBe(true);
+    expect(chemins).toHaveLength(1);
+    expect(chemins[0].startsWith('M9.671 4.136a2.34 2.34 0 0 1 4.659 0')).toBe(true);
+    const rond = svg!.querySelector('circle');
+    expect([rond?.getAttribute('cx'), rond?.getAttribute('cy'), rond?.getAttribute('r')]).toEqual(['12', '12', '3']);
   });
 
   it('sous INTERFACE, la phrase courte (6)', async () => {
