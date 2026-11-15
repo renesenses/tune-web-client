@@ -2345,7 +2345,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .principal{min-width:0}
   @container (min-width:1080px){
     .fiche-grille{grid-template-columns:minmax(0,1fr) minmax(300px,440px); gap:36px}
-    .fiche-grille > :global([data-colonne-album]){border-left:1px solid var(--v2-line2); padding-left:28px}
+    /* Recette du .18 (15/11) : au défilement, la colonne passait SOUS la
+       grappe fixe du coin haut-droit (recherche, signet, avatar). Elle reste
+       collée juste en dessous (`--v2-grappe-h`, la réserve commune) et défile
+       en elle-même quand elle dépasse la fenêtre. */
+    .fiche-grille > :global([data-colonne-album]){border-left:1px solid var(--v2-line2); padding-left:28px;
+      position:sticky; top:calc(var(--v2-grappe-h, 66px) + 8px); align-self:start;
+      max-height:calc(100dvh - var(--v2-grappe-h, 66px) - 120px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin}
   }
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}

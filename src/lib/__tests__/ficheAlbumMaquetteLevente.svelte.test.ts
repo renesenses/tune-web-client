@@ -233,6 +233,12 @@ describe('AlbumDetailV2 — câblage de la maquette', () => {
       expect(c, f).not.toMatch(/shuffle|aleatoire/i);
     }
   });
+  it('recette du .18 (15/11) : la colonne reste sous la grappe fixe, les gestes Qobuz sont habillés', () => {
+    expect(src).toMatch(/position:sticky; top:calc\(var\(--v2-grappe-h/);
+    const q = readFileSync(resolve(__dirname, '../../components/v2/ApportsQobuzAlbum.svelte'), 'utf8');
+    expect(q).not.toContain('class="ghost"');
+    expect((q.match(/class="v2-btn"/g) ?? []).length).toBe(3);
+  });
   it('la colonne de droite est montée, et le surtitre traduit', () => {
     expect(src).toContain('<ColonneAlbumV2');
     expect(src).toContain("'v2.album.fiche.eyebrow'");
