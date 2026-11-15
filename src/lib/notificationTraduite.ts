@@ -29,6 +29,8 @@ export type Traduire = (cle: string) => string;
  * sur la même notification — ~720 en une heure de serveur muet.
  */
 const suivies = new Map<number, () => void>();
+/** Paires d'abonnements vivantes — ce que les tests comptent. */
+let suivisActifs = 0;
 
 /**
  * Pousse une notification par `pousser` (ex. `(m) => notifications.info(m, 12000)`),
@@ -45,11 +47,13 @@ export function notifierTraduit(pousser: (message: string) => number, rendre: (t
   const arreter = () => {
     if (fini) return;
     fini = true;
-    suivies.delete(id);
+    suivisActifs--;
+    if (suivies.get(id) === arreter) suivies.delete(id);
     arreterT?.();
     arreterN?.();
   };
   suivies.set(id, arreter);
+  suivisActifs++;
   arreterN = notifications.subscribe((liste) => {
     if (!fini && !liste.some((n) => n.id === id)) arreter();
   });
@@ -61,7 +65,7 @@ export function notifierTraduit(pousser: (message: string) => number, rendre: (t
   return id;
 }
 
-/** Pour les tests : combien de notifications sont suivies en ce moment. */
+/** Pour les tests : combien de suivis (paires d'abonnements) sont vivants. */
 export function _nombreDeSuivies(): number {
-  return suivies.size;
+  return suivisActifs;
 }
