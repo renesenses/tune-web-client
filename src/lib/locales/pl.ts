@@ -572,7 +572,7 @@ export default {
   "playlist.noPlaylists": "Brak playlist",
   "playlist.remove": "Usuń",
   "playlist.addToPlaylist": "Dodaj do playlisty",
-  "playlist.addedTo": "Dodano do <strong>{name}</strong>",
+  "playlist.addedTo": "Dodano do {name}",
   "playlist.noExisting": "Brak istniejących playlist",
   "playlist.noMatch": "Żadna playlista nie pasuje",
   "playlist.addFailed": "Nie udało się dodać utworu: usługa odrzuciła tę playlistę.",

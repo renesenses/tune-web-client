@@ -251,9 +251,14 @@
 <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
   <div class="modal">
     {#if success}
+      <!-- Le NOM de la playlist vient du serveur ou d'un service, brut : il
+           est rendu en TEXTE, en gras par un élément Svelte, jamais par une
+           chaîne HTML. La traduction porte `{name}` sans balisage ; elle est
+           coupée autour de ce repère, le nom prend la place. -->
+      {@const [avantLeNom, apresLeNom = ''] = $t('playlist.addedTo').split('{name}')}
       <div class="success-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polyline points="20 6 9 17 4 12" /></svg>
-        <p>{@html $t('playlist.addedTo').replace('{name}', success)}</p>
+        <p data-ajout-confirme>{avantLeNom}<strong>{success}</strong>{apresLeNom}</p>
       </div>
     {:else}
       <div class="modal-header">
