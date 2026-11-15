@@ -52,6 +52,8 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import BoutonMenuV2 from './BoutonMenuV2.svelte';
   import type { EntreeMenu } from '../../lib/menuPiste';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import ColonneAlbumV2 from './ColonneAlbumV2.svelte';
+  import VersionsAlbumV2 from './VersionsAlbumV2.svelte';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -1180,6 +1182,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         } as any)
       : getQualityTier(album),
   );
+  /** Maquette rc12 — le genre de la ligne de faits : `genre`, sinon le
+   *  premier de la liste `genres` (#1821). Rien quand aucun n'est connu. */
+  const genreAffiche = $derived(
+    ((albumAffiche as any).genre ?? String((albumAffiche as any).genres ?? '').split(/[;,]/)[0] ?? '').trim(),
+  );
   const qLabel = $derived.by(() => {
     if (!qualite) return null;
     if (tier === 'dsd') return 'DSD';
@@ -1600,17 +1607,20 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * de l'onglet, comme il se lisait au clic (la route de la bio sort sur le
    * réseau, voir `basculerBio`).
    */
-  type Onglet = 'pistes' | 'credits' | 'bio' | 'presentation';
+  type Onglet = 'pistes' | 'credits' | 'versions' | 'bio' | 'presentation';
   let onglet = $state<Onglet>('pistes');
   const LIBELLES_ONGLETS: Record<Onglet, string> = {
     pistes: 'v2.menu.tabTracks',
     credits: 'artist.credits',
+    // Maquette de Levente (rc12) — les versions de l'œuvre (#7617) en onglet.
+    versions: 'v2.album.fiche.tabVersions',
     bio: 'library.notesBio',
     presentation: 'v2.album.presentation',
   };
   const onglets = $derived<Onglet[]>([
     'pistes',
     ...(creditsPossibles || creditsDeService || onglet === 'credits' ? ['credits' as const] : []),
+    ...(oeuvre ? ['versions' as const] : []),
     ...(album.id != null ? ['bio' as const] : []),
     ...(presentationCible || presentation?.etat === 'refus' ? ['presentation' as const] : []),
   ]);
@@ -1851,6 +1861,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     <span>{$tr('common.back' as any)}</span>
   </button>
 
+  <div class="fiche-grille">
+  <div class="principal">
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
          vient du service, sinon la fiche reste un carré gris à l'initiale. -->
@@ -1885,6 +1897,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              (bibliothèque locale seulement : la règle porte un album_id local). -->
         {#if creditsPossibles}<BadgeReaffectation cible="album" id={album.id} />{/if}
       </div>
+      <!-- Maquette de Levente (Figma 611:5805, rc12) : le surtitre « Album ». -->
+      <p class="surtitre" data-surtitre-album>{$tr('v2.album.fiche.eyebrow' as any)}</p>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
            Pas d'`<a href>` non plus — cette coquille ne route rien par l'URL,
@@ -1896,25 +1910,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       {:else}
         <div class="artist">{nomArtiste}</div>
       {/if}
-      {#if oeuvre}
-        <div class="versions" data-versions={oeuvre.versions.length}>
-          <label>
-            <span>{$tr('v2.album.versions' as any).replace('{n}', String(oeuvre.versions.length))}</span>
-            <select value={album.id} onchange={(e) => changerVersion(Number(e.currentTarget.value))}>
-              {#each oeuvre.versions as v (v.id)}
-                <option value={v.id}>{libelleVersion(v)}{v.id === oeuvre.preferred_id ? ' ★' : ''}</option>
-              {/each}
-            </select>
-          </label>
-          {#if album.id === oeuvre.preferred_id}
-            <span class="vpref">★ {$tr('v2.album.preferredVersion' as any)}</span>
-          {:else}
-            <button type="button" class="vchoix" onclick={preferer}>{$tr('v2.album.setPreferredVersion' as any)}</button>
-          {/if}
-        </div>
-      {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
+        <!-- Maquette rc12 : « 1959 · Jazz » — le genre, seulement s'il est connu. -->
+        {#if genreAffiche}<span data-genre-album>{genreAffiche}</span>{/if}
         <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,
@@ -2072,6 +2071,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {/key}
       {/if}
     </div>
+  {:else if onglet === 'versions' && oeuvre}
+    <!-- Maquette de Levente (Figma 611:5807) — les versions de l'œuvre
+         (#7617) : une ligne ouvre la version dans cette fiche. -->
+    <div class="panneau" role="tabpanel" id="album-panneau-versions" aria-labelledby="album-onglet-versions" data-panneau-versions>
+      <VersionsAlbumV2 {oeuvre} courante={album.id ?? null} onChoisir={changerVersion} onPreferer={preferer} />
+    </div>
   {:else if onglet === 'bio'}
     <!-- Présentation de l'album (#3586) : lue au premier choix de l'onglet, la
          route sort sur le réseau (voir `basculerBio`). -->
@@ -2211,6 +2216,16 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       />
     {/if}
   </div>
+  </div>
+  <!-- Maquette de Levente (Figma 611:5805) — la colonne de droite : artiste,
+       interprètes, détails, autres albums. Chaque bloc sans donnée disparaît. -->
+  <ColonneAlbumV2 album={albumAffiche as Album} artistId={depot || service || bandcamp ? null : (albumAffiche.artist_id ?? null)}
+    {nomArtiste} annee={$formatAnneeAlbum(albumAffiche) || null} pistes={tracks}
+    exclus={oeuvre ? oeuvre.versions.map((v) => v.id) : []} avecCredits={creditsPossibles}
+    onArtiste={nomArtiste && (albumAffiche.artist_id != null || artisteDeService) ? allerArtiste : null}
+    onAlbum={changerVersion}
+    onCredits={onglets.includes('credits') ? () => choisirOnglet('credits') : null} />
+  </div>
 </div>
 
 <!-- Le PANNEAU partagé, chargé à la demande — exactement ce que fait
@@ -2295,6 +2310,17 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .close svg{width:18px; height:18px; flex:none}
 
+  /* Maquette de Levente (Figma 611:5805, rc12) : la fiche en deux colonnes
+     quand la place le permet — en-tête, onglets et pistes à gauche, la
+     colonne de l'artiste et des détails à droite. En dessous de 1080 px de
+     fiche, la colonne passe sous les pistes. */
+  .v2-detail{container-type:inline-size}
+  .fiche-grille{display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+  .principal{min-width:0}
+  @container (min-width:1080px){
+    .fiche-grille{grid-template-columns:minmax(0,1fr) minmax(300px,440px); gap:36px}
+    .fiche-grille > :global([data-colonne-album]){border-left:1px solid var(--v2-line2); padding-left:28px}
+  }
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
@@ -2316,7 +2342,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .qbadge.cue.douteux{border-color:var(--v2-danger-bd)}
   .qbadge{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
+  /* Maquette de Levente (rc12) : surtitre « ALBUM » à l'accent, titre en
+     capitales de la police d'affichage (repli Georgia déjà déclaré). */
+  .surtitre{margin:0 0 -6px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--v2-acc1)}
+  .meta h1{font-family:var(--font-display, var(--v2-sans)); font-size:calc(46px * var(--v2-txt-echelle, 1)); font-weight:600; letter-spacing:0; line-height:1.05}
   .artist{font-size:calc(18px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   /* Le bouton doit se lire comme le texte qu'il remplace : même taille, même
      couleur, aligné à gauche. Ce qui l'annonce comme un lien, c'est le
@@ -2326,12 +2356,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  /* tune-server-rust#7617 — le choix de la version à lire. */
-  .versions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  .versions label{display:flex; align-items:center; gap:8px}
-  .versions select{max-width:100%; font:inherit; color:var(--v2-txt); background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:6px; padding:3px 6px}
-  .vpref{color:var(--v2-acc2)}
-  .vchoix{font:inherit; color:var(--v2-acc2); background:transparent; border:1px solid var(--v2-line2); border-radius:6px; padding:3px 8px; cursor:pointer}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
   .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--tune-accent)}
   .lien-label:hover{text-decoration:underline}
