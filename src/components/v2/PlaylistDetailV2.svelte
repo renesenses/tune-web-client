@@ -784,7 +784,7 @@
                 {/if}
               {/if}
               {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
+              {#if editable || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
@@ -802,28 +802,13 @@
              selon l'état se résoudrait différemment dans l'en-tête et dans
              les lignes, et les colonnes ne tomberaient plus en face —
              `colonnesPistes` garde précisément cela. -->
-        <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
-             du mode édition : c'est le seul geste qui l'efface, il doit être
-             à portée. -->
-        {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
-            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-          </button>
-        {/if}
-        <!-- web#2806 — même règle pour une station qui a quitté « Mes radios ». -->
-        {#if !edition && isLocal && radioIndisponible(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
-            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-          </button>
-        {/if}
-        {#if !edition && peutRemplacer(_t, editable)}
-          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
-            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
-          </button>
-        {/if}
+        <!-- rc12 (Bertrand, 15/11/2026) : « Croix de suppression d'une piste
+             dans une playlist ! Important !! ». La croix « Retirer de la
+             playlist » est VISIBLE sur chaque ligne d'une playlist modifiable
+             (Tune, ou de service à soi), sans passer par « Éditer » — qui ne
+             sert plus qu'au réordonnancement. Retrait PAR OCCURRENCE : le rang
+             réel (ou l'`entry_id`, #6687) via `removeAt`. Couvre aussi les
+             lignes introuvables (#6179) et les radios parties (web#2806). -->
         {#if edition && isLocal}
           <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
@@ -833,14 +818,23 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours} aria-label={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+        {/if}
+        {#if isLocal}
+          <button class="rm retrait-titre" data-retirer-titre onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
-        {:else if edition && aMoiChezLeService}
-          <button class="rm retrait-service" onclick={() => retirerDuService(_t)} disabled={retraitService}
+        {:else if aMoiChezLeService}
+          <button class="rm retrait-service" data-retirer-titre onclick={() => retirerDuService(_t)} disabled={retraitService}
             aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
             title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        {/if}
+        {#if !edition && peutRemplacer(_t, editable)}
+          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
+            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
           </button>
         {/if}
       {/snippet}

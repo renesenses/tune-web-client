@@ -3362,7 +3362,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3608,7 +3608,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3627,7 +3627,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3649,7 +3649,10 @@
   }
 
   /* « Retirer de la playlist » — le suffixe de la liste commune, compilé ici.
-     Discret au repos, visible au survol de la ligne ou au focus. */
+     rc12 (Bertrand, 15/11/2026, « Elle manque cette croix ! ») : la croix est
+     VISIBLE au repos — elle était à `opacity: 0` hors survol, donc introuvable
+     et jamais affichée sur un écran tactile. Couleur atténuée au repos,
+     pleine au survol de la ligne ou au focus. */
   .remove-btn {
     background: none;
     border: none;
@@ -3657,7 +3660,7 @@
     cursor: pointer;
     padding: 6px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
     display: flex;
     align-items: center;
