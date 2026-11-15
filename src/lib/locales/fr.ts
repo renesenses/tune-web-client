@@ -1613,6 +1613,8 @@ export default {
   "settings.replayGainAlbum": "Par album",
   "settings.replayGainPreamp": "Pré-ampli",
   "settings.replayGainPreventClipping": "Éviter l'écrêtage",
+  "settings.replayGainServices": "ReplayGain pour Qobuz et TIDAL",
+  "settings.replayGainServicesHint": "Appliquer aux services le mode piste ou album choisi ci-dessus. Désactivé par défaut ; sans effet en PURE ou en bit-perfect strict.",
   "settings.replayGainHint": "Égalise le niveau entre les morceaux, à partir du gain lu dans les tags ou mesuré par le serveur. Désactivé, l'audio n'est pas touché.",
   "settings.logLevel": "Niveau de log",
   "settings.logLevelError": "Erreur changement niveau de log",

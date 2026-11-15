@@ -1610,6 +1610,8 @@ export default {
   "settings.replayGainAlbum": "Per album",
   "settings.replayGainPreamp": "Pre-amp",
   "settings.replayGainPreventClipping": "Prevent clipping",
+  "settings.replayGainServices": "ReplayGain for Qobuz and TIDAL",
+  "settings.replayGainServicesHint": "Apply the track or album mode selected above to streaming services. Off by default; bypassed in PURE or strict bit-perfect mode.",
   "settings.replayGainHint": "Evens out the level between tracks, using the gain read from the tags or measured by the server. Off keeps the audio untouched.",
   "settings.logLevel": "Log level",
   "settings.logLevelError": "Failed to change log level",

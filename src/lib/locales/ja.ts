@@ -1461,6 +1461,8 @@ export default {
   "settings.replayGainAlbum": "アルバムごと",
   "settings.replayGainPreamp": "プリアンプ",
   "settings.replayGainPreventClipping": "クリッピングを防ぐ",
+  "settings.replayGainServices": "QobuzとTIDALのReplayGain",
+  "settings.replayGainServicesHint": "上で選んだトラックまたはアルバムモードをサービスに適用します。初期設定は無効。PUREまたは厳密なビットパーフェクトでは適用されません。",
   "settings.replayGainHint": "タグのゲインまたはサーバーの測定値を使って、曲間の音量差をそろえます。オフでは音声に手を加えません。",
   "settings.logLevel": "ログレベル",
   "settings.logLevelError": "ログレベルの変更に失敗しました",

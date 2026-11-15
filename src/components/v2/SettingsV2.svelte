@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ReplayGainServices from "./ReplayGainServices.svelte";
   import { notifierErreur } from '../../lib/notifierErreur';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
@@ -655,6 +656,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
+  let rgServices = $state<boolean | null>(null);
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
@@ -678,6 +680,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
+        rgServices = typeof c?.replaygain_services_enabled === 'boolean' ? c.replaygain_services_enabled : null;
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
@@ -8679,6 +8682,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
                   </div>
                 </div>
+                <ReplayGainServices value={rgServices} />
                 {#if rgMode !== 'off' && voit('expert', s.id)}
                   <div class="row" data-reglage="replaygain-preampli">
                     <div class="lbl">

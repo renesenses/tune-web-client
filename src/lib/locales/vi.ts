@@ -1467,6 +1467,8 @@ export default {
   "settings.replayGainAlbum": "Theo album",
   "settings.replayGainPreamp": "Tiền khuếch đại",
   "settings.replayGainPreventClipping": "Chống méo (clipping)",
+  "settings.replayGainServices": "ReplayGain cho Qobuz và TIDAL",
+  "settings.replayGainServicesHint": "Áp dụng chế độ bài hát hoặc album đã chọn ở trên cho dịch vụ. Mặc định tắt; bỏ qua trong PURE hoặc bit-perfect nghiêm ngặt.",
   "settings.replayGainHint": "Cân bằng mức âm lượng giữa các bài hát, dựa trên gain đọc từ thẻ hoặc do máy chủ đo. Khi tắt, âm thanh được giữ nguyên.",
   "settings.logLevel": "Mức nhật ký",
   "settings.logLevelError": "Không thể thay đổi mức nhật ký",

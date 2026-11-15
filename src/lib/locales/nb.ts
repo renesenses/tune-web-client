@@ -1465,6 +1465,8 @@ export default {
   "settings.replayGainAlbum": "Per album",
   "settings.replayGainPreamp": "Forforsterker",
   "settings.replayGainPreventClipping": "Hindre klipping",
+  "settings.replayGainServices": "ReplayGain for Qobuz og TIDAL",
+  "settings.replayGainServicesHint": "Bruk spor- eller albummodusen valgt ovenfor på strømmetjenester. Av som standard; omgås i PURE eller streng bit-perfect-modus.",
   "settings.replayGainHint": "Jevner ut nivået mellom spor, med forsterkningen lest fra taggene eller målt av serveren. Av lar lyden stå urørt.",
   "settings.logLevel": "Loggnivå",
   "settings.logLevelError": "Kunne ikke endre loggnivået",

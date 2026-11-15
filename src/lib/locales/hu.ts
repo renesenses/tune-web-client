@@ -1554,6 +1554,8 @@ export default {
   "settings.replayGainAlbum": "Albumonként",
   "settings.replayGainPreamp": "Előerősítés",
   "settings.replayGainPreventClipping": "Torzítás megelőzése",
+  "settings.replayGainServices": "ReplayGain a Qobuzhoz és a TIDALhoz",
+  "settings.replayGainServicesHint": "A fent kiválasztott szám- vagy albummód alkalmazása a szolgáltatásokra. Alapból kikapcsolva; PURE és szigorú bit-perfect módban nincs hatása.",
   "settings.replayGainHint": "Kiegyenlíti a számok közötti hangerőt a címkékből olvasott vagy a szerver által mért erősítés alapján. Kikapcsolva a hang érintetlen marad.",
   "settings.logLevel": "Naplózási szint",
   "settings.logLevelError": "A naplózási szint módosítása nem sikerült",
