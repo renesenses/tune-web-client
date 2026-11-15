@@ -306,7 +306,9 @@
   let creditsFiche = $state<TrackCredit[]>([]);
   // Recette du 15/11 : des crédits SANS instrument laissaient « CRÉDITS » seul,
   // sans rien dessous. Le titre ne s'ouvre que sur un instrument à montrer.
-  const instrumentsFiche = $derived(uniqueInstruments(creditsFiche));
+  // Une réponse qui n'est pas une liste (serveur ancien, objet d'erreur) ne
+  // doit pas faire tomber la fiche : pas d'instrument, pas de titre.
+  const instrumentsFiche = $derived(Array.isArray(creditsFiche) ? uniqueInstruments(creditsFiche) : []);
   let enrichissement = $state(false);
   let jetonMeta = 0;
   /** L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…). */
@@ -325,7 +327,7 @@
     ]);
     if (jeton !== jetonMeta) return;
     metaFiche = m;
-    creditsFiche = c ?? [];
+    creditsFiche = Array.isArray(c) ? c : [];
   }
 
   /*
