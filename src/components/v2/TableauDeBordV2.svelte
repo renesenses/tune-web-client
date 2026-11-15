@@ -49,17 +49,9 @@
     periodeActive,
   } from '../../lib/tableauDeBordPeriode';
 
-  /*
-   * MAQUETTE « MY LISTENING » DE LEVENTE (rc12, Figma 615:5809).
-   *
-   * La période revient dans l'en-tête, à côté de « Modifier ». Changer de
-   * période REMONTE la page (`{#key}`) : chaque bloc recharge sur la nouvelle
-   * période et son message vide la nomme. Rien n'est enregistré : l'écran
-   * rouvre sur sept jours, la requête partagée avec l'accueil.
-   */
-  // `active` est une variable de MODULE : elle survivrait au démontage de
-  // l'écran. On la remet à sept jours à chaque montage, pour que l'écran
-  // rouvre bien sur sept jours.
+  // Maquette « My listening » de Levente (rc12, Figma 615:5809) : la période
+  // dans l'en-tête ; la changer remonte la page (`{#key}`). `active` est une
+  // variable de module : remise à sept jours à chaque montage.
   choisirPeriode(PERIODE_DEFAUT);
   let periode = $state<DashboardPeriod>(periodeActive());
 
@@ -84,8 +76,7 @@
   </label>
 {/snippet}
 
-<!-- `display: contents` : l'enveloppe ne crée aucune boîte, elle ne sert
-     qu'à porter la règle de l'en-tête sur téléphone (voir le style). -->
+<!-- `display: contents` : porte seulement la règle d'en-tête sur téléphone. -->
 <div class="tdb">
 {#key periode}
   <PageWidgets
@@ -104,8 +95,7 @@
 </div>
 
 <style>
-  /* Le menu natif garde le clavier et le lecteur d'écran ; il prend l'habit
-     des boutons de l'en-tête (`v2-btn`), sans couleur propre. */
+  /* Menu natif (clavier, lecteur d'écran) à l'habit de `v2-btn`. */
   .periode { position: relative; cursor: pointer; }
   .periode select {
     appearance: none; -webkit-appearance: none; border: 0; background: transparent;
@@ -115,13 +105,8 @@
   }
   .periode select:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 3px; border-radius: 4px; }
   .periode option { color: var(--v2-txt); background: var(--v2-surface); }
-  /* Sous 640 px, l'en-tête n'a plus la place de deux boutons à icône à côté
-     du titre : le menu garde son libellé et perd son icône. */
-  @media (max-width: 640px) { .periode svg { display: none; } }
-  /* Vérification du 15/11 sur le .18 : sur téléphone, « 7 days » et
-     « Modifier » chevauchaient le titre. Ils passent DESSOUS, alignés à
-     gauche. Règle portée par cet écran seul : l'en-tête des autres pages
-     n'en sait rien. */
+  /* Vérification du 15/11 sur le .18 : sur téléphone, la période et
+     « Modifier » chevauchaient le titre ; ils passent dessous (cet écran seul). */
   .tdb { display: contents; }
   @media (max-width: 640px) {
     .tdb :global(.v2-top) { flex-wrap: wrap; align-items: flex-start; }
