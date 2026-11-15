@@ -211,7 +211,9 @@
   .ouvrir{border:0; background:transparent; padding:0; text-align:left; color:var(--v2-txt); cursor:pointer; min-width:0; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .ouvrir strong{display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .voir-tout:focus-visible,.rang-bouton:focus-visible,.ajouter:focus-visible,.lire:focus-visible,.ouvrir:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
-  @media (max-width: 1100px){
+  /* La colonne de droite ne prend sa place qu'en grand écran : en dessous, le globe garde toute
+     la largeur (ses noms de membres se serrent vite quand il rétrécit). */
+  @media (max-width: 1400px){
     .decouvrir-haut{grid-template-columns:minmax(0, 1fr)}
     .colonne-droite{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr))}
   }

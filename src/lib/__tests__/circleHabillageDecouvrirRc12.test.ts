@@ -100,3 +100,15 @@ describe('rc12 — Découvrir', () => {
     for (const mot of ['près de vous', 'en ligne', 'monde entier']) expect(t).not.toContain(mot);
   });
 });
+
+describe('rc12 — relecture sur le .18 : légende de la carte du monde', () => {
+  it('PaysMondeV2 habille lui-même son interrupteur et ses notes (les styles du parent ne le traversent pas)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(__dirname, '../../components/v2/PaysMondeV2.svelte'), 'utf8');
+    const style = src.slice(src.indexOf('<style>'));
+    expect(style).toMatch(/\.lnk\{[^}]*font:/);
+    expect(style).toMatch(/\.note\{/);
+    expect(style).toMatch(/\.pays-monde\{[^}]*font-family:var\(--v2-sans\)/);
+  });
+});
