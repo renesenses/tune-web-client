@@ -374,8 +374,8 @@
   /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
   function ouvrirNotification(n: NotifCercle) {
     if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
-    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; onglet = 'messages'; demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
-    if (n.kind === 'contact_request') { retourNotifs = true; onglet = 'cercle'; document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' }); }
+    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; onglet = 'messages'; demandeConversation.set({ conversation: n.conversation_id }); void tick().then(() => document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' })); return; }
+    if (n.kind === 'contact_request') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' })); }
   }
 
   function inviter(ev: SubmitEvent) {
@@ -689,7 +689,8 @@
   <header class="v2-top tete-circle">
     <div class="v2-titres">
       <h1 class="titre-circle">{$t('v2.circle.title' as any)}</h1>
-      <p class="sous-titre">{$t('v2.circle.tagline' as any)}</p>
+      <!-- Sous 640 px, Découvrir montre déjà le slogan dans la scène : un seul des deux. -->
+      <p class="sous-titre" class:double-sur-mobile={!!connecte && onglet === 'decouvrir' && playlistOuverte == null && !contactOuvert}>{$t('v2.circle.tagline' as any)}</p>
     </div>
     {#if connecte && playlistOuverte == null && !contactOuvert}
       <button type="button" class="inviter-entete" onclick={() => void allerInviter()}>
@@ -710,7 +711,7 @@
             {:else}<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19a6 6 0 0 1 12 0M15 15a5 5 0 0 1 6 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>{/if}
           </span>
           <span class="libelle-onglet">{$t(LIBELLES_ONGLETS[o] as any)}</span>
-          {#if o === 'messages' && $nonLusMessagerie > 0}<span class="pastille-onglet" aria-label={$t('v2.circle.tab.unread' as any).replace('{n}', String($nonLusMessagerie))}>{$nonLusMessagerie}</span>{/if}
+          {#if o === 'messages' && $nonLusMessagerie > 0}<span class="pastille-onglet" aria-label={$tn('v2.circle.tab.unread', $nonLusMessagerie)}>{$nonLusMessagerie}</span>{/if}
         </button>
       {/each}
     </div>
@@ -1178,9 +1179,9 @@
   .panneau-cercle > .bloc, .panneau-playlists > .recuperables{max-width:880px}
   /* rc12 — en-tête et onglets des maquettes de Levente (15/11). */
   .tete-circle{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap}
-  .titre-circle{font-family:var(--v2-titre, Georgia, 'Times New Roman', serif); font-weight:600; letter-spacing:-.01em;
+  .titre-circle{font-family:var(--font-display, Georgia, serif); font-weight:600; letter-spacing:-.01em;
     font-size:calc(34px * var(--v2-txt-echelle, 1)); line-height:1.1; margin:0}
-  .sous-titre{margin:4px 0 0; color:var(--v2-txt2); font-family:var(--v2-titre, Georgia, 'Times New Roman', serif);
+  .sous-titre{margin:4px 0 0; color:var(--v2-txt2); font-family:var(--font-display, Georgia, serif);
     font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .inviter-entete{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-acc1); background:transparent; color:var(--v2-acc-tint); cursor:pointer;
@@ -1292,7 +1293,10 @@
   @media (max-width: 640px){
     .bloc ul.grille-membres{grid-template-columns:repeat(2, minmax(0, 1fr))}
     .scroll{padding:6px 16px 32px}
-    .onglets-circle{padding:0 16px}
+    .onglets-circle{padding:0 16px;
+      /* La barre défile : un fondu au bord droit dit qu'il reste des onglets. */
+      -webkit-mask-image:linear-gradient(to right, #000 82%, transparent); mask-image:linear-gradient(to right, #000 82%, transparent)}
+    .sous-titre.double-sur-mobile{display:none}
     .onglet{padding:10px 12px}
     .titre-circle{font-size:calc(26px * var(--v2-txt-echelle, 1))}
     .ligne{grid-template-columns:minmax(0,1fr) auto}

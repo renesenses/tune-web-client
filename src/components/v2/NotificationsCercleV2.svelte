@@ -17,7 +17,7 @@
    * hauteur bornée : elle ne repousse ni ne couvre le reste de l'écran.
    */
   import { onMount } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { dateCourte } from '../../lib/dates';
   import {
     notifsCercle, relireNotifications, marquerLue, toutMarquerLu, lireReglages, reglerType,
@@ -97,7 +97,7 @@
     <div class="notifs-tete">
       <h2 id="circle-notifs" tabindex="-1" bind:this={titre}>{$t('v2.circle.notif.title' as any)}</h2>
       {#if etat.nonLues > 0}
-        <span class="notifs-compte">{tr('v2.circle.notif.unreadAria', { n: etat.nonLues })}</span>
+        <span class="notifs-compte">{$tn('v2.circle.notif.unreadAria', etat.nonLues)}</span>
         <button type="button" class="lnk tout-lu" disabled={occupe} onclick={() => void geste(toutMarquerLu)}>{$t('v2.circle.notif.markAll' as any)}</button>
       {/if}
     </div>

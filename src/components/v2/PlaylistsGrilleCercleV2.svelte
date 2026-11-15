@@ -14,7 +14,7 @@
    * `button.ouvrir-playlist` sont celles de l'ancienne liste : les bancs T5 et
    * #2434 les lisent.
    */
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { CercleNomme, CercleOuJeSuisInvite } from '../../lib/circle';
   import type { IdOpaque, PlaylistCercleResume } from '../../lib/circlePlaylists';
@@ -59,7 +59,14 @@
     return TEINTES[h % TEINTES.length];
   }
   function choisir(fn: () => void) { menu = null; fn(); }
+  /** Échap ou un clic hors du menu le ferment. */
+  function clavier(ev: KeyboardEvent) { if (ev.key === 'Escape' && menu) { menu = null; } }
+  function clicDehors(ev: MouseEvent) {
+    if (menu && !(ev.target instanceof Element && ev.target.closest('.menu-ancre'))) menu = null;
+  }
 </script>
+
+<svelte:window onkeydown={clavier} onclick={clicDehors} />
 
 <div class="bandeau-playlists">
   <div class="bandeau-texte">
@@ -144,7 +151,7 @@
             <button type="button" class="ouvrir-playlist" aria-label={tr('v2.circle.pl.openNamed').replace('{name}', p.name)} onclick={() => onOuvrir(p.id)}>
               <span class="nom" use:bulleTexte>{p.name}</span>
             </button>
-            <span class="note meta-playlist" use:bulleTexte>{tr('v2.circle.pl.count').replace('{n}', String(p.count))}{#if p.circle_name}{' · '}{p.circle_name}{/if}</span>
+            <span class="note meta-playlist" use:bulleTexte>{$tn('v2.common.trackCountN', p.count)}{#if p.circle_name}{' · '}{p.circle_name}{/if}</span>
             {#if proprietaire}
               <span class="proprietaire"><span class="avatar-mini" aria-hidden="true">{initiales(proprietaire)}</span><span class="note">{tr('v2.circle.pl.by').replace('{name}', proprietaire)}</span></span>
             {/if}
@@ -163,7 +170,7 @@
             <span class="vignette mini teinte-{teinte(p)}" aria-hidden="true">♪</span>
             <button type="button" class="ouvrir-ma-playlist" onclick={() => onOuvrir(p.id)}>
               <strong use:bulleTexte>{p.name}</strong>
-              <span class="note">{tr('v2.circle.pl.count').replace('{n}', String(p.count))}</span>
+              <span class="note">{$tn('v2.common.trackCountN', p.count)}</span>
             </button>
             <button type="button" class="lire-ma-playlist" disabled={occupe || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)} onclick={() => onLire(p)}>
@@ -181,7 +188,7 @@
     border:1px solid var(--v2-line); border-radius:var(--v2-r-card); position:relative;
     background:radial-gradient(120% 140% at 100% 0%, var(--v2-acc-soft), transparent 60%), var(--v2-surface)}
   .bandeau-texte{display:flex; flex-direction:column; gap:10px; max-width:520px; min-width:0}
-  .bandeau-texte h2{font-family:var(--v2-titre, Georgia, 'Times New Roman', serif); font-weight:600; font-size:calc(26px * var(--v2-txt-echelle, 1)); margin:0}
+  .bandeau-texte h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(26px * var(--v2-txt-echelle, 1)); margin:0}
   .bandeau-texte .note{margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); line-height:1.5}
   .actions-bandeau{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px}
   .menu-ancre{position:relative}
@@ -245,7 +252,7 @@
   .en-liste .carte-playlist:hover .vignette .lire-playlist-ligne,.en-liste .vignette .lire-playlist-ligne:focus-visible{opacity:1; background:var(--v2-scrim)}
   .en-liste .infos-playlist{flex:1}
   .pl-own{padding:18px 20px; border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface); max-width:520px}
-  .pl-own h3{font-family:var(--v2-titre, Georgia, 'Times New Roman', serif); font-size:calc(17px * var(--v2-txt-echelle, 1)); margin:0 0 10px}
+  .pl-own h3{font-family:var(--font-display, Georgia, serif); font-size:calc(17px * var(--v2-txt-echelle, 1)); margin:0 0 10px}
   .pl-own ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
   .ma-playlist{display:flex; align-items:center; gap:12px; min-width:0}
   .vignette.mini{width:44px; height:44px; aspect-ratio:auto; flex:none; border-radius:8px; color:var(--v2-on-acc); font-size:calc(16px * var(--v2-txt-echelle, 1))}

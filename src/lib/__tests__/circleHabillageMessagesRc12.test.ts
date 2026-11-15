@@ -53,7 +53,7 @@ describe('rc12 — liste des conversations', () => {
     vue = mount(Messagerie, { target: hote }); await finir();
     expect(get(nonLusMessagerie)).toBe(3);
     expect(get(apercuConversations).map((c) => c.id)).toEqual([12, 13, 14]);
-    expect(texte(hote.querySelector('.pastille-non-lus'))).toBe(fr['v2.circle.tab.unread'].replace('{n}', '3'));
+    expect(texte(hote.querySelector('.pastille-non-lus'))).toBe('3 non lus');
   });
 
   it('filtres Tout · Directs · Groupes, sans filtre « Playlists » (aucun genre de conversation ne le porte)', async () => {
@@ -82,6 +82,18 @@ describe('rc12 — liste des conversations', () => {
     (hote.querySelector('.conversation') as HTMLButtonElement).click(); await finir();
     const t = texte(hote).toLowerCase();
     for (const mot of ['en ligne', 'online', 'appel', 'vidéo']) expect(t).not.toContain(mot);
+  });
+});
+
+describe('rc12 — relecture : pluriel des non-lus', () => {
+  it('« 1 non lu », jamais « 1 non lus »', async () => {
+    appel.mockImplementation(async (url: any) => {
+      const u = String(url);
+      if (u.endsWith('/conversations')) return { conversations: [{ ...famille, unread_count: 1 }] } as any;
+      return { unread_count: 0 } as any;
+    });
+    vue = mount(Messagerie, { target: hote }); await finir();
+    expect(texte(hote.querySelector('.pastille-non-lus'))).toBe('1 non lu');
   });
 });
 

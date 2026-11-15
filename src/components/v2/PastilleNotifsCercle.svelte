@@ -4,14 +4,14 @@
    * côté de l'entrée « Tune Circle » de la barre latérale. Rien quand le
    * serveur ne connaît pas les notifications (404), sans session, ou à zéro.
    */
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { notifsCercle } from '../../lib/circleNotifications';
 
   const n = $derived($notifsCercle.relais === 'ok' ? $notifsCercle.nonLues : 0);
 </script>
 
 {#if n > 0}
-  <span class="pastille-notifs" role="status" aria-label={$t('v2.circle.notif.unreadAria' as any).split('{n}').join(String(n))}>{n > 99 ? '99+' : n}</span>
+  <span class="pastille-notifs" role="status" aria-label={$tn('v2.circle.notif.unreadAria', n)}>{n > 99 ? '99+' : n}</span>
 {/if}
 
 <style>

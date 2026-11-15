@@ -6,7 +6,7 @@
   import SuggestionEmojiV2 from './SuggestionEmojiV2.svelte';
   import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
   import { insererEmoji, convertirRaccourcis, raccourcisActifs, grandsEmojis } from '../../lib/emojis';
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { FILTRES_CONVERSATIONS, filtrerConversations, partagesDuFil, type FiltreConversations } from '../../lib/circleHabillage';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -260,7 +260,7 @@
     {#if accuse}<p role="status" class="note">{accuse}</p>{/if}
     <div class="volets" class:fil-ouvert={choix !== null}>
       <nav aria-label={tr('v2.circle.msg.title')}>
-        <div class="tete-liste"><span class="titre-liste">{tr('v2.circle.msg.title')}</span>{#if total}<span class="pastille pastille-non-lus">{tr('v2.circle.tab.unread').replace('{n}', String(total))}</span>{/if}</div>
+        <div class="tete-liste"><span class="titre-liste">{tr('v2.circle.msg.title')}</span>{#if total}<span class="pastille pastille-non-lus">{$tn('v2.circle.tab.unread', total)}</span>{/if}</div>
         {#if liste.length}
           <label class="recherche-conversations"><span class="sr-only">{tr('v2.circle.msg.search')}</span>
             <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -380,7 +380,7 @@
   /* rc12 — deux colonnes de la maquette de Levente : la liste et le fil, deux cartes côte à côte. */
   .volets{display:grid;grid-template-columns:minmax(240px,1fr) minmax(0,2fr);gap:16px;align-items:start}
   nav{display:flex;flex-direction:column;gap:2px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-card);background:var(--v2-surface);max-height:680px;overflow:auto}
-  .tete-liste{display:flex;align-items:center;gap:10px;padding:4px 6px 10px}.titre-liste{font-family:var(--v2-titre,Georgia,'Times New Roman',serif);font-size:calc(19px * var(--v2-txt-echelle, 1));font-weight:600}
+  .tete-liste{display:flex;align-items:center;gap:10px;padding:4px 6px 10px}.titre-liste{font-family:var(--font-display,Georgia,serif);font-size:calc(19px * var(--v2-txt-echelle, 1));font-weight:600}
   .pastille-non-lus{background:var(--v2-acc-soft);color:var(--v2-acc-tint)}
   .recherche-conversations{display:flex;align-items:center;gap:8px;margin:0 4px 8px;padding:0 12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-pill);background:var(--v2-surface2);color:var(--v2-txt3)}
   .recherche-conversations:focus-within{outline:2px solid var(--v2-acc1);outline-offset:2px}
@@ -390,7 +390,7 @@
   .puce[aria-pressed='true']{background:var(--v2-acc1);border-color:var(--v2-acc1);color:var(--v2-on-acc);font-weight:600}
   .aucun-resultat{padding:8px}
   .partages-fil{margin-top:16px;padding:16px;border:1px solid var(--v2-line);border-radius:var(--v2-r-card);background:var(--v2-surface)}
-  .partages-fil h3{font-family:var(--v2-titre,Georgia,'Times New Roman',serif);font-size:calc(17px * var(--v2-txt-echelle, 1));margin:0 0 12px}
+  .partages-fil h3{font-family:var(--font-display,Georgia,serif);font-size:calc(17px * var(--v2-txt-echelle, 1));margin:0 0 12px}
   .grille-partages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px}
   .partage-fil{display:flex;flex-direction:column;gap:3px;min-width:0}.partage-fil strong{font-size:calc(13px * var(--v2-txt-echelle, 1))}.partage-coupe{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pochette-partage{aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--v2-surface2);display:grid;place-items:center;color:var(--v2-txt3);font-size:calc(28px * var(--v2-txt-echelle, 1));margin-bottom:6px}.pochette-partage img{width:100%;height:100%;object-fit:cover}

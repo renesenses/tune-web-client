@@ -52,7 +52,7 @@ describe('rc12 — grille des playlists partagées', () => {
     expect(cartes).toHaveLength(3);
     const dimanche = cartes.find((c) => texte(c.querySelector('.nom')) === 'Dimanche')!;
     expect(dimanche.querySelector('.vignette button.lire-playlist-ligne')?.getAttribute('aria-label')).toBe('Lire la playlist Dimanche');
-    expect(texte(dimanche)).toContain('12 morceaux');
+    expect(texte(dimanche)).toContain('12 titres');
     expect(texte(dimanche)).toContain('Famille');
     expect(texte(dimanche.querySelector('.proprietaire'))).toContain('de Élise');
     expect(texte(dimanche.querySelector('.avatar-mini'))).toBe('É');
@@ -151,5 +151,25 @@ describe('rc12 — fonctions pures de Découvrir', () => {
     const c = (id: number, at: string | null) => ({ id, kind: 'direct', contact: { user_id: id, name: 'X' }, unread_count: 0, last_message: at ? { id, created_at: at } : null }) as any;
     expect(conversationsRecentes([c(1, '2026-11-01'), c(2, null), c(3, '2026-11-05')]).map((x) => x.id)).toEqual([3, 1]);
     expect(initiales('jean  pierre robbe')).toBe('JP');
+  });
+});
+
+describe('rc12 — relecture : menus et pluriels', () => {
+  it('Échap et un clic à l’extérieur ferment le menu Créer', () => {
+    poser();
+    clic(hote.querySelector('.creer-une-playlist'));
+    expect(hote.querySelector('.menu-cercles')).not.toBeNull();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); flushSync();
+    expect(hote.querySelector('.menu-cercles')).toBeNull();
+    clic(hote.querySelector('.creer-une-playlist'));
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true })); flushSync();
+    expect(hote.querySelector('.menu-cercles')).toBeNull();
+  });
+
+  it('pluriel : « 1 titre », jamais « 1 morceaux »', () => {
+    poser({ playlists: [pl('u', 'Seul', { count: 1 })] });
+    const t = texte(hote.querySelector('li.playlist-cercle'));
+    expect(t).toContain('1 titre');
+    expect(t).not.toContain('1 titres');
   });
 });
