@@ -7909,4 +7909,12 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Tveksam hi-res",
   "v2.lib.hiresFilterError": "Kunde inte läsa albumens hi-res-bedömning.",
   "v2.lib.exportCatalogueHiResUnsupported": "Katalogen kan ännu inte filtrera på hi-res-bedömningen: avmarkera ”Verifierad hi-res” och ”Tveksam hi-res” för att exportera den.",
+  "artist.page.overview": "Översikt",
+  "artist.page.tabs": "Avsnitt på artistsidan",
+  "artist.page.seeAll": "Visa alla",
+  "artist.page.moreActions": "Fler åtgärder",
+  "artist.page.similarIntro": "Artister med liknande stil, epok eller musikaliskt inflytande som {nom}.",
+  "artist.page.statAlbums": "Album",
+  "artist.page.statPerforming": "Spår som artist",
+  "artist.page.statWriting": "Spår som upphovsperson",
 } as const;

@@ -7755,5 +7755,13 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Tvilsom hi-res",
   "v2.lib.hiresFilterError": "Kunne ikke lese albumenes hi-res-vurdering.",
   "v2.lib.exportCatalogueHiResUnsupported": "Katalogen kan ennå ikke filtrere på hi-res-vurderingen: fjern merket for «Bekreftet hi-res» og «Tvilsom hi-res» for å eksportere den.",
+  "artist.page.overview": "Oversikt",
+  "artist.page.tabs": "Deler av artistsiden",
+  "artist.page.seeAll": "Vis alle",
+  "artist.page.moreActions": "Flere handlinger",
+  "artist.page.similarIntro": "Artister med lignende stil, epoke eller musikalsk innflytelse som {nom}.",
+  "artist.page.statAlbums": "Album",
+  "artist.page.statPerforming": "Spor som utøver",
+  "artist.page.statWriting": "Spor som låtskriver",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

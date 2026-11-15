@@ -7910,6 +7910,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Hi-res îndoielnic",
   "v2.lib.hiresFilterError": "Verdictul hi-res al albumelor nu a putut fi citit.",
   "v2.lib.exportCatalogueHiResUnsupported": "Catalogul nu poate încă filtra după verdictul hi-res: debifați „Hi-res verificat” și „Hi-res îndoielnic” pentru a-l exporta.",
+  "artist.page.overview": "Prezentare",
+  "artist.page.tabs": "Secțiunile paginii artistului",
+  "artist.page.seeAll": "Vezi tot",
+  "artist.page.moreActions": "Mai multe acțiuni",
+  "artist.page.similarIntro": "Artiști cu un stil, o epocă sau o influență muzicală asemănătoare cu {nom}.",
+  "artist.page.statAlbums": "Albume",
+  "artist.page.statPerforming": "Piese ca interpret",
+  "artist.page.statWriting": "Piese ca autor",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

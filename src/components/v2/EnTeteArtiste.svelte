@@ -35,6 +35,7 @@
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import type { PorteEcoutes } from '../../lib/ecoutesCommunaute';
   import type { CompteursCredits } from '../../lib/api';
+  import type { ChiffreArtiste } from '../../lib/pageArtisteMaquette';
 
   interface Props {
     /** Le nom affiché. */
@@ -77,6 +78,19 @@
     pays?: string | null;
     /** #8668 — un clic sur le pays : la Bibliothèque, albums filtrés sur ce pays. */
     onPays?: ((code: string) => void) | null;
+    /**
+     * Maquette de Levente (Figma 616:5810, rc12) — `maquette` : grand portrait,
+     * provenance en surtitre, nom en caractères de titre, et les CHIFFRES à
+     * droite. `standard` (défaut) : la forme d'avant, inchangée.
+     */
+    disposition?: 'standard' | 'maquette';
+    /**
+     * Les chiffres de la colonne de droite (`chiffresEnTete`) — seulement en
+     * disposition `maquette`, et seulement ceux qui ont une donnée. Quand ils
+     * sont là, le compte d'albums et les compteurs de la ligne d'identité y
+     * passent : la même donnée n'est pas lue deux fois.
+     */
+    chiffres?: ChiffreArtiste[];
   }
   let {
     nom,
@@ -90,7 +104,11 @@
     compteurs = null,
     pays = null,
     onPays = null,
+    disposition = 'standard',
+    chiffres = [],
   }: Props = $props();
+  const maquette = $derived(disposition === 'maquette');
+  const avecChiffres = $derived(maquette && chiffres.length > 0);
   const codePays = $derived(pays && drapeauPays(pays) ? pays.trim().toUpperCase() : null);
 
   const ligneCompteur = (cle: string, c: { albums: number; tracks: number }) =>
@@ -122,7 +140,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
 </div>
-<header class="tete" bind:this={tete}>
+<header class="tete" class:maquette class:avec-chiffres={avecChiffres} bind:this={tete}>
   <button class="retour" onclick={onRetour} aria-label={$t('common.back' as any)}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
@@ -151,6 +169,22 @@
       <div class="gestes">{@render actions()}</div>
     {/if}
   </div>
+  {#if avecChiffres}
+    <!-- Maquette de Levente : les chiffres de l'artiste, à droite. -->
+    <ul class="chiffres" data-chiffres-artiste>
+      {#each chiffres as c (c.cle)}
+        <li data-chiffre={c.cle}>
+          <svg class="ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            {#if c.icone === 'albums'}<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/>
+            {:else if c.icone === 'interprete'}<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>
+            {:else}<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>{/if}
+          </svg>
+          <span class="valeur">{c.valeur.toLocaleString($locale)}</span>
+          <span class="libelle">{c.libelle}</span>
+        </li>
+      {/each}
+    </ul>
+  {/if}
 </header>
 
 <style>
@@ -200,4 +234,35 @@
   .pays:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .drapeau{font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+
+  /* ── Maquette de Levente (Figma 616:5810, rc12) ──────────────────────────
+     Le portrait reste ROND (arbitrage du 20/09, #1356) : la maquette le
+     dessine carré à coins arrondis, ce point est laissé à Bertrand. */
+  .tete.maquette{align-items:flex-start; gap:28px; padding:22px 0 26px}
+  .tete.maquette .portrait{width:160px; height:160px}
+  .tete.maquette .ident{display:flex; flex-direction:column; align-items:flex-start; flex:1; min-width:0}
+  .tete.maquette .ident h1{font:500 calc(46px * var(--v2-txt-echelle, 1))/1.08 var(--font-display, Georgia, serif);
+    color:var(--v2-txt); overflow-wrap:anywhere}
+  .tete.maquette .prov{order:-1; margin:4px 0 6px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    letter-spacing:.1em; color:var(--v2-acc1)}
+  .tete.maquette .gestes{margin-top:16px; align-items:center}
+  .tete.avec-chiffres .ident .cpt{display:none}
+  .chiffres{list-style:none; margin:0; padding:6px 0 6px 28px; border-left:1px solid var(--v2-line2);
+    display:flex; gap:8px 26px; flex:none; align-self:center}
+  .chiffres li{display:flex; flex-direction:column; align-items:center; text-align:center; min-width:76px; gap:3px}
+  .chiffres .ic{color:var(--v2-acc1); margin-bottom:6px}
+  .chiffres .valeur{font:600 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .chiffres .libelle{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:110px}
+  @media (max-width: 1100px){
+    .tete.maquette{flex-wrap:wrap}
+    .chiffres{order:3; flex-basis:100%; border-left:0; border-top:1px solid var(--v2-line2); padding:14px 0 0;
+      justify-content:flex-start}
+  }
+  @media (max-width: 640px){
+    .tete.maquette{gap:16px}
+    .tete.maquette .portrait{width:96px; height:96px}
+    .tete.maquette .ident h1{font-size:calc(30px * var(--v2-txt-echelle, 1))}
+    .chiffres{gap:8px 14px}
+    .chiffres li{min-width:64px}
+  }
 </style>
