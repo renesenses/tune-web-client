@@ -141,6 +141,11 @@ export interface Element {
    * sur ses pistes, et un geste qui échoue vaut moins qu'un geste absent.
    */
   aParaitre?: boolean;
+  /**
+   * « 2026 · Jazz » — l'année et le genre d'un album, quand l'objet les porte
+   * (maquette de Levente du 15/11/2026). Absent sinon : jamais inventé.
+   */
+  details?: string | null;
   /** La date annoncée, telle que le service la donne (époque, secondes). */
   parution?: number | null;
   /**
@@ -594,10 +599,34 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     jouer: geste(o, service, opts.genre ?? 'album', opts.historique ?? false),
     aParaitre,
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
+    details: (opts.genre ?? 'album') === 'album' ? detailsAlbum(o) : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
     ...artisteDuSousDe(o, service, opts.genre ?? 'album'),
     ...(opts.genre === 'playlist' ? { nbTitres: nbTitresDe(o) } : {}),
   };
+}
+
+/**
+ * « 2026 · Jazz » — maquette « Home Dashboard with Album Grid » de Levente,
+ * 15/11/2026. L'année vient de `year`, ou des quatre premiers chiffres d'une
+ * date de sortie ; le genre, de `genre` ou du premier de `genres`. Ce que
+ * l'objet ne porte pas est TU : `null` si ni l'un ni l'autre.
+ */
+export function detailsAlbum(o: any): string | null {
+  const an = (() => {
+    const y = Number(o?.year);
+    if (Number.isInteger(y) && y > 0) return String(y);
+    for (const k of ['release_date', 'releaseDate', 'date']) {
+      const m = typeof o?.[k] === 'string' ? /^(\d{4})/.exec(o[k]) : null;
+      if (m) return m[1];
+    }
+    return null;
+  })();
+  const premier = Array.isArray(o?.genres) ? o.genres[0] : null;
+  const g = [o?.genre, typeof premier === 'string' ? premier : premier?.name]
+    .find((x) => typeof x === 'string' && x.trim());
+  const parts = [an, g ? String(g).trim() : null].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
 }
 
 /** web#2770 — l'artiste du sous-titre d'un album ou d'une piste, ou rien. */
@@ -1709,6 +1738,7 @@ export const WIDGETS: Widget[] = [
             // web#916 — « Parce que vous aimez X » / « X : N albums dans votre
             // bibliothèque » : l'annotation du groupe, dite pour la parution.
             raison: raisonDe(r),
+            details: detailsAlbum(r),
             suggestion: true,
             artisteSuggere: champ(a, 'artist_name') ?? null,
           });
@@ -2212,8 +2242,15 @@ export const DISPOSITION_DEFAUT = [
    * c'est `charger()` qui le dit, et rien ici ne réécrit ce qui est rangé.
    */
   'premiere-ligne',
-  'reprendre',
+  /**
+   * 15/11/2026 — maquette de Levente « Home Dashboard with Album Grid » : sous
+   * la ligne d'en-tête, les NOUVEAUTÉS (« New & Notable Albums »). Seul
+   * changement d'ordre : « Nouveautés de vos artistes » passe devant
+   * « Reprendre l'écoute ». Rien n'entre ni ne sort du défaut, et une
+   * disposition enregistrée l'emporte toujours.
+   */
   'nouveautes-artistes',
+  'reprendre',
   'recemment-ajoutes',
   'statistiques',
   'top-artistes',

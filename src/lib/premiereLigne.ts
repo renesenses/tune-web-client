@@ -31,8 +31,18 @@
 /** La HAUTEUR de la ligne, et le côté de la carte de zone. Une seule valeur. */
 export const COTE_L1 = 315;
 
-/** Largeur du panneau des genres — une colonne de pastilles, rien de plus. */
-export const LARGEUR_GENRES = 150;
+/**
+ * Largeur MINIMALE du panneau des genres — deux colonnes de tuiles (maquette
+ * « Home Dashboard with Album Grid » de Levente, 15/11/2026). C'était une
+ * colonne de pastilles de 150 px ; les tuiles en demandent deux.
+ *
+ * Depuis le 15/11, la largeur d'un panneau est un PLANCHER : sur un écran
+ * large, les panneaux se partagent la ligne à parts égales (`PanneauL1`).
+ */
+export const LARGEUR_GENRES = 240;
+
+/** Combien de tuiles de genre au plus — trois rangées de deux, la maquette. */
+export const TUILES_GENRES = 6;
 
 /**
  * Largeur des panneaux « concerts » et « statistiques » : celle d'une carte.
@@ -159,6 +169,11 @@ export function classerGenresDuPanneau<T extends GenreServi>(servis: readonly T[
 
 /** #2614 — les panneaux se choisissent indépendamment des zones actives. */
 export const PANNEAUX_L1 = [
+  // Maquette de Levente du 15/11/2026 : la ligne s'ouvre sur un panneau qui
+  // LISTE les zones (toutes, avec leur bouton lecture/pause) au lieu d'une
+  // carte carrée par zone qui joue. Décoché, les cartes reviennent : rien de
+  // ce qu'elles portent ne disparaît.
+  { id: 'zones', cle: 'v2.home.l1Zones' },
   { id: 'genres', cle: 'common.genres' },
   { id: 'concerts', cle: 'concerts.titre' },
   { id: 'stats', cle: 'dashboard.title' },
@@ -170,4 +185,28 @@ export function panneauxDeLaLigne(valeur: unknown): string[] {
   return Array.isArray(valeur)
     ? [...new Set(valeur.filter((id): id is string => typeof id === 'string'))]
     : PANNEAUX_L1.map((p) => p.id);
+}
+
+/**
+ * LES ZONES DU PANNEAU « Zones » (maquette du 15/11/2026).
+ *
+ * Toutes les zones, et non seulement celles qui jouent : c'est la différence
+ * avec `zonesDeLaLigne`, qui choisit les CARTES. Le panneau est un tableau de
+ * bord des zones — une zone à l'arrêt y a sa ligne et son bouton lecture.
+ *
+ * Celles qui jouent ou sont en pause passent en tête, dans l'ordre du serveur ;
+ * les autres suivent, dans l'ordre du serveur aussi. Une zone sans identifiant
+ * n'est pas pilotable : elle est écartée.
+ */
+export function zonesDuPanneau<T extends { id?: number | null; state?: string }>(
+  zones: readonly T[] | null | undefined,
+): T[] {
+  const utiles = (zones ?? []).filter((z) => z?.id != null);
+  const active = (z: T) => z.state === 'playing' || z.state === 'paused';
+  return [...utiles.filter(active), ...utiles.filter((z) => !active(z))];
+}
+
+/** Le nombre de zones actives — celles qui jouent ou sont en pause. */
+export function nbZonesActives(zones: readonly { state?: string }[] | null | undefined): number {
+  return (zones ?? []).filter((z) => z?.state === 'playing' || z?.state === 'paused').length;
 }

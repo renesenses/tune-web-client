@@ -113,6 +113,7 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
+  import PanneauZones from './ligne1/PanneauZones.svelte';
   import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
@@ -1567,6 +1568,9 @@
         {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
         {#if pourquoi}<span class="cw" title={pourquoi}>{pourquoi}</span>{/if}
       {/if}
+      <!-- 15/11/2026, maquette de Levente — « 2026 · Jazz » sous l'artiste,
+           sur l'accueil seul, et seulement quand l'objet le porte. -->
+      {#if salut && el.details}<span class="ca cd" title={el.details}>{el.details}</span>{/if}
       {#if el.aParaitre}
         {@const d = dateDeParution({ released_at: el.parution })}
         <span class="cp">{d
@@ -1584,7 +1588,10 @@
   </div>
 {/snippet}
 
-<section class="v2-home tune-v2">
+<!-- 15/11/2026 — `accueil` : la variante de la maquette de Levente, posée
+     sur l'ACCUEIL seul (`salut`). Les pages éditoriales Qobuz / TIDAL qui
+     montent aussi cette page gardent leur apparence. -->
+<section class="v2-home tune-v2" class:accueil={salut}>
   <!-- C'est l'en-tête de l'ACCUEIL et de l'HISTORIQUE : celui dont Bertrand a
        dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
        rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
@@ -1932,9 +1939,16 @@
                      Une zone démarrée ensuite n'apparaissait jamais, et une
                      zone arrêtée gardait sa carte. Le filtre vit dans
                      `lib/premiereLigne`, avec son test. -->
-                {#each zonesDeLaLigne($zones) as z (z.id)}
-                  <CarteZoneL1 zone={z} />
-                {/each}
+                <!-- 15/11/2026, maquette de Levente : le panneau « Zones » LISTE
+                     toutes les zones et remplace les cartes carrées. Décoché
+                     en mode « Modifier », les cartes reviennent. -->
+                {#if panneaux.includes('zones')}
+                  <PanneauZones />
+                {:else}
+                  {#each zonesDeLaLigne($zones) as z (z.id)}
+                    <CarteZoneL1 zone={z} />
+                  {/each}
+                {/if}
                 {#if panneaux.includes('genres')}<PanneauGenres />{/if}
                 {#if panneaux.includes('concerts')}<PanneauConcerts />{/if}
                 {#if panneaux.includes('stats')}<PanneauStats />{/if}
@@ -2207,6 +2221,7 @@
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+
 
   /* Point 10 — la date d'un album annoncé, sous son titre. */
   .cp{display:block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
@@ -2570,5 +2585,27 @@
   @media (max-width: 640px){
     .vt-tete, .contenu{padding-left:16px; padding-right:16px}
     .contenu.grille{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:14px 12px}
+  }
+  /* ── L'ACCUEIL selon la maquette de Levente (« Home Dashboard with Album
+     Grid », 15/11/2026) ────────────────────────────────────────────────────
+     Variante posée par `class:accueil={salut}` : les autres pages montées sur
+     ce composant ne changent pas. Titres à empattements (`--font-display`,
+     jeton de la coquille, repli Georgia), vignettes plus grandes, sous-titres
+     en sans-serif. Aucune couleur écrite ici : tout vient des jetons `--v2-`. */
+  .accueil .v2-eyebrow{font-family:var(--v2-sans); font-size:calc(12px * var(--v2-txt-echelle, 1)); text-transform:uppercase; letter-spacing:.12em}
+  .accueil .v2-top h1{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(36px * var(--v2-txt-echelle, 1)); letter-spacing:0}
+  .accueil .tete h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(22px * var(--v2-txt-echelle, 1))}
+  .accueil .bande{gap:20px}
+  .accueil .bande .carte{flex-basis:176px; max-width:176px; gap:8px; contain-intrinsic-size:auto 240px}
+  .accueil .pochette :global(img){border-radius:var(--v2-r-md)}
+  .accueil .ct{font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .accueil .ca{font-family:var(--v2-sans); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .accueil .ca.cd{color:var(--v2-txt3)}
+  /* Sous 640 px, la vignette reprend sa taille d'avant : deux colonnes et
+     demie restent visibles sur un téléphone. */
+  @media (max-width: 640px){
+    .accueil .bande .carte{flex-basis:140px; max-width:140px}
+    .accueil .v2-top h1{font-size:calc(28px * var(--v2-txt-echelle, 1))}
+    .accueil .tete h2{font-size:calc(18px * var(--v2-txt-echelle, 1))}
   }
 </style>
