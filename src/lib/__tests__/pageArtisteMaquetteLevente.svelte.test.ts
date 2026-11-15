@@ -110,6 +110,9 @@ describe('maquette de Levente — en-tête', () => {
     const src = readFileSync('src/components/v2/EnTeteArtiste.svelte', 'utf8');
     const mobile = src.slice(src.lastIndexOf('@media (max-width: 640px)'));
     expect(mobile).toMatch(/\.tete\.maquette\{[^}]*padding-top:\s*\d+px/);
+    // Recette du 15/11 : hors mobile, les chiffres laissent la place de la
+    // grappe fixe du haut à droite (réserve commune, comme la fiche album).
+    expect(src).toMatch(/@media \(min-width: 641px\)\{\s*\.tete\.maquette\{padding-right:var\(--v2-grappe-w, 172px\)\}/);
   });
 
   it('disposition standard : les écoutes restent à côté du nom', () => {
@@ -134,12 +137,13 @@ const META = {
 const COLLECTIONS =
   /\/(profiles|zones|playlists|devices|shortcuts|collections|tags|favorites|history|radios|podcasts|artists|albums|tracks|top-artists|recent|genres)(\?|\/|$)/;
 let urls: string[] = [];
+let CREDITS: unknown[] = [];
 
 function reponsePour(url: string) {
   let corps: unknown;
   if (url.includes(`/library/artists/${ID_LOCAL}/albums`)) corps = ALBUMS_LOCAUX;
   else if (url.includes(`/library/artists/${ID_LOCAL}/metadata`)) corps = META;
-  else if (url.includes(`/library/artists/${ID_LOCAL}/credits`)) corps = [];
+  else if (url.includes(`/library/artists/${ID_LOCAL}/credits`)) corps = CREDITS;
   else if (url.includes(`/library/artists/${ID_LOCAL}/bio`)) corps = { bio: null };
   else if (url.includes(`/library/artists/${ID_LOCAL}`)) corps = ARTISTE_LOCAL;
   else if (url.includes('/library/search') && url.includes('Burt')) corps = { artists: [{ id: 77, name: 'Burt Bacharach', image_path: '/covers/burt.jpg' }] };
@@ -173,6 +177,7 @@ const onglet = (f: HTMLElement, o: string) => f.querySelector<HTMLButtonElement>
 describe('maquette de Levente — la page artiste montée', () => {
   beforeEach(() => {
     urls = [];
+    CREDITS = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string) => { urls.push(String(url)); return reponsePour(String(url)); }));
     vi.stubGlobal('ResizeObserver', ObservateurInerte);
     vi.stubGlobal('WebSocket', class { close() {} addEventListener() {} removeEventListener() {} send() {} } as unknown as typeof WebSocket);
@@ -237,6 +242,22 @@ describe('maquette de Levente — la page artiste montée', () => {
     flushSync();
     expect(document.querySelector('[data-aleatoire-artiste]'), 'l’entrée « aléatoire » de la flèche a disparu').not.toBeNull();
     expect(menu.querySelector('[data-aleatoire-artiste]')).toBeNull();
+  });
+
+  it('recette du 15/11 : des crédits sans instrument n’ouvrent pas un titre « Crédits » vide', async () => {
+    CREDITS = [{ role: 'producer', track_id: 1 }, { role: 'composer', track_id: 2 }];
+    const f = await ouvrirFiche();
+    const apropos = f.querySelector<HTMLElement>('.apropos')!;
+    expect(apropos.textContent).toContain('Burt Bacharach');
+    expect(apropos.textContent, 'titre « Crédits » sans contenu').not.toContain(libelle('artist.credits'));
+  });
+
+  it('recette du 15/11 : avec un instrument, « Crédits » et l’instrument sont là', async () => {
+    CREDITS = [{ role: 'performer', instrument: 'Vibraphone', track_id: 1 }];
+    const f = await ouvrirFiche();
+    const apropos = f.querySelector<HTMLElement>('.apropos')!;
+    expect(apropos.textContent).toContain(libelle('artist.credits'));
+    expect(apropos.textContent).toContain('Vibraphone');
   });
 
   it('les chiffres de l’en-tête : le compte d’albums de la bibliothèque, rien d’inventé', async () => {

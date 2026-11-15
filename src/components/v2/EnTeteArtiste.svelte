@@ -243,6 +243,12 @@
      Le portrait reste ROND (arbitrage du 20/09, #1356) : la maquette le
      dessine carré à coins arrondis, ce point est laissé à Bertrand. */
   .tete.maquette{align-items:flex-start; gap:28px; padding:22px 0 26px}
+  /* Recette du 15/11 : les chiffres venaient sous la grappe fixe du haut à
+     droite (recherche, signet, avatar). La réserve commune `--v2-grappe-w`
+     (comme la fiche album, #3064) leur laisse la place. */
+  @media (min-width: 641px){
+    .tete.maquette{padding-right:var(--v2-grappe-w, 172px)}
+  }
   .tete.maquette .portrait{width:160px; height:160px}
   .tete.maquette .ident{display:flex; flex-direction:column; align-items:flex-start; flex:1; min-width:0}
   .tete.maquette .ident h1{font:500 calc(46px * var(--v2-txt-echelle, 1))/1.08 var(--font-display, Georgia, serif);

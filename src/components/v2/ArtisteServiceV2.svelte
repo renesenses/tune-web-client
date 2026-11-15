@@ -304,6 +304,9 @@
     try { titre.scrollIntoView({ block: 'start' }); } catch { /* jsdom, vieux moteur */ }
   });
   let creditsFiche = $state<TrackCredit[]>([]);
+  // Recette du 15/11 : des crédits SANS instrument laissaient « CRÉDITS » seul,
+  // sans rien dessous. Le titre ne s'ouvre que sur un instrument à montrer.
+  const instrumentsFiche = $derived(uniqueInstruments(creditsFiche));
   let enrichissement = $state(false);
   let jetonMeta = 0;
   /** L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…). */
@@ -1331,7 +1334,7 @@
     {/if}
 
     {#if onglet === 'apercu'}
-    <div class="apercu-haut" class:avec-cote={!!(artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length))}>
+    <div class="apercu-haut" class:avec-cote={!!(artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length))}>
       <div class="apercu-principal">
       <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
            fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
@@ -1343,7 +1346,7 @@
            Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
            sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
            les titres phares et la discographie. -->
-      {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
+      {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length)}
         <section class="apropos">
           {#if metaFiche?.similar_artists?.length}
             <div class="apropos-titre">
@@ -1366,10 +1369,10 @@
               {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
             </ul>
           {/if}
-          {#if creditsFiche.length}
+          {#if instrumentsFiche.length}
             <h3>{$tr('artist.credits' as any)}</h3>
             <div class="puces">
-              {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+              {#each instrumentsFiche as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
             </div>
           {/if}
         </section>
