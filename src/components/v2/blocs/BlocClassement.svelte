@@ -167,8 +167,10 @@
      étroite, pas la fenêtre. */
   .liste { container-type: inline-size; }
   @container (max-width: 320px) {
-    .liste li { flex-wrap: wrap; }
-    .art { max-width: none; flex: 1 0 100%; text-align: left; padding: 0 0 6px 70px; }
+    .liste li { flex-wrap: wrap; row-gap: 0; }
+    /* `flex-basis: 0` : le titre ne pousse jamais le rang à la ligne. */
+    .corps { flex: 1 1 0; }
+    .art { max-width: none; flex: 1 0 100%; text-align: left; padding: 0 0 6px 81px; margin-top: -6px; }
   }
 
   @media (max-width: 1024px) { .liste { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); } }
