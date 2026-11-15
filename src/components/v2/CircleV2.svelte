@@ -689,8 +689,8 @@
   <header class="v2-top tete-circle">
     <div class="v2-titres">
       <h1 class="titre-circle">{$t('v2.circle.title' as any)}</h1>
-      <!-- Sous 640 px, Découvrir montre déjà le slogan dans la scène : un seul des deux. -->
-      <p class="sous-titre" class:double-sur-mobile={!!connecte && onglet === 'decouvrir' && playlistOuverte == null && !contactOuvert}>{$t('v2.circle.tagline' as any)}</p>
+      <!-- Découvrir montre déjà le slogan dans la scène : un seul des deux, à toute largeur. -->
+      <p class="sous-titre" class:doublon-decouvrir={!!connecte && onglet === 'decouvrir' && playlistOuverte == null && !contactOuvert}>{$t('v2.circle.tagline' as any)}</p>
     </div>
     {#if connecte && playlistOuverte == null && !contactOuvert}
       <button type="button" class="inviter-entete" onclick={() => void allerInviter()}>
@@ -1181,6 +1181,7 @@
   .tete-circle{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap}
   .titre-circle{font-family:var(--font-display, Georgia, serif); font-weight:600; letter-spacing:-.01em;
     font-size:calc(34px * var(--v2-txt-echelle, 1)); line-height:1.1; margin:0}
+  .sous-titre.doublon-decouvrir{display:none}
   .sous-titre{margin:4px 0 0; color:var(--v2-txt2); font-family:var(--font-display, Georgia, serif);
     font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .inviter-entete{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border-radius:var(--v2-r-pill);
@@ -1296,7 +1297,6 @@
     .onglets-circle{padding:0 16px;
       /* La barre défile : un fondu au bord droit dit qu'il reste des onglets. */
       -webkit-mask-image:linear-gradient(to right, #000 82%, transparent); mask-image:linear-gradient(to right, #000 82%, transparent)}
-    .sous-titre.double-sur-mobile{display:none}
     .onglet{padding:10px 12px}
     .titre-circle{font-size:calc(26px * var(--v2-txt-echelle, 1))}
     .ligne{grid-template-columns:minmax(0,1fr) auto}

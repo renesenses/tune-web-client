@@ -72,6 +72,25 @@ describe('rc12 — en-tête', () => {
   });
 });
 
+describe('rc12 — relecture sur le .18 : un seul slogan sur Découvrir', () => {
+  it('le sous-titre de l’en-tête s’efface sur Découvrir (la scène porte le slogan), et revient ailleurs', async () => {
+    const el = await poser();
+    expect(el.querySelector('.sous-titre')?.classList.contains('doublon-decouvrir')).toBe(true);
+    (el.querySelector('#circle-onglet-messages') as HTMLButtonElement).click(); await laisserFaire();
+    expect(el.querySelector('.sous-titre')?.classList.contains('doublon-decouvrir')).toBe(false);
+  });
+  it('la règle qui l’efface vaut à toute largeur (hors de toute media query)', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const src = readFileSync(resolve(__dirname, '../../components/v2/CircleV2.svelte'), 'utf8');
+    const style = src.slice(src.indexOf('<style>'));
+    const avantMedia = style.slice(0, style.indexOf('@media'));
+    expect(avantMedia).toContain('.sous-titre.doublon-decouvrir{display:none}');
+    const dec = readFileSync(resolve(__dirname, '../../components/v2/DecouvrirCercleV2.svelte'), 'utf8');
+    expect(dec).toMatch(/\.rangee-membres\{[^}]*flex-wrap:wrap/);
+  });
+});
+
 describe('rc12 — onglets', () => {
   it('quatre onglets, Découvrir choisi ; un seul panneau visible ; les vues existantes restent montées', async () => {
     const el = await poser();

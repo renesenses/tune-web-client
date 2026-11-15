@@ -192,7 +192,8 @@
     background:linear-gradient(140deg, var(--v2-acc1), var(--v2-acc2)); color:var(--v2-on-acc); border:2px solid var(--v2-acc-tint)}
   .avatar.plus{background:transparent; color:var(--v2-txt2); border:1px dashed var(--v2-line2); font-weight:300; font-size:calc(26px * var(--v2-txt-echelle, 1))}
   .avatar.icone{color:var(--v2-acc-tint)}
-  .rangee-membres{display:flex; gap:16px; overflow-x:auto; padding-bottom:4px}
+  /* Passe à la ligne plutôt que de couper le dernier membre (vérifié sur le .18). */
+  .rangee-membres{display:flex; flex-wrap:wrap; gap:16px; padding-bottom:4px}
   .membre{flex:none; width:84px; display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .membre .coupe{max-width:100%}
   .ajouter{display:flex; flex-direction:column; align-items:center; gap:4px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
