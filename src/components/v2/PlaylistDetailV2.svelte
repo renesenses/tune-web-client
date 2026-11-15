@@ -27,6 +27,7 @@
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import PochetteActions from './PochetteActions.svelte';
   import { pochettesDePlaylist } from '../../lib/mosaique';
   import ListePistesV2 from './ListePistesV2.svelte';
   import BoutonLectureV2 from './BoutonLectureV2.svelte';
@@ -735,19 +736,28 @@
       {#if vue === 'pochettes'}
         <div class="pgrille" data-pgrille style="--ptaille:{taillePochettes}px">
           {#each pistesVues as p, i (i)}
+            {@const versAlbum = p.album_title && !estLigneRadio(p) ? ouvertureAlbumDePiste(p, $gestesNavigationService) : null}
+            {@const injouable = estIntrouvable(p) || radioIndisponible(p)}
             <div class="pcarte">
-              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p) || radioIndisponible(p)}
+              <!-- Recette rc12 du 15/11 (B97) : la vignette se comporte comme
+                   celles des grilles d'albums — MÊME enveloppe `PochetteActions`.
+                   Le Play est au centre (au survol ; toujours visible en tactile),
+                   et c'est LUI seul qui lance la lecture. Un clic ailleurs sur
+                   la pochette ouvre l'album de la piste, comme dans la
+                   Bibliothèque ; sans album ouvrable, il ne fait rien. -->
+              <div class="pvig" class:injouable data-pvig
                 title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
-                <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
-                  alt={p.title ?? ''} source={mixte ? null : p.source} />
-              </button>
+                <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={p.title ?? ''}>
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
+                    alt={p.title ?? ''} source={mixte ? null : p.source} />
+                </PochetteActions>
+              </div>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
               <!-- tune-server-rust#7394 — en pochettes, l'accès à l'album COMPLET :
                    son nom ouvre sa fiche (bibliothèque ou service), comme la
                    colonne Album de la liste. -->
               {#if p.album_title && !estLigneRadio(p)}
-                {@const versAlbum = ouvertureAlbumDePiste(p, $gestesNavigationService)}
                 {#if versAlbum}
                   <!-- Recette du 14/11 : le nom d'album est SON geste, jamais celui
                        de la vignette (lecture). Le clic s'arrête ici. -->
@@ -928,10 +938,9 @@
   .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
-  .pvig{display:block; width:100%; aspect-ratio:1; padding:0; border:0; border-radius:8px; overflow:hidden; cursor:pointer;
+  .pvig{display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
     background:var(--v2-surface2); line-height:0}
-  .pvig:disabled{opacity:.5; cursor:default}
-  .pvig:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .pvig.injouable{opacity:.5}
   .pnom{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .part{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pact{display:flex; gap:6px}
