@@ -39,11 +39,12 @@ describe('maquette de Levente — règles de forme', () => {
     const l = (k: string) => `<${k}>`;
     expect(chiffresEnTete({ albums: null, compteurs: null }, l)).toEqual([]);
     expect(chiffresEnTete({ albums: 0, compteurs: { performing: { tracks: 0 }, writing: undefined } }, l)).toEqual([]);
-    const c = chiffresEnTete({ albums: 11, compteurs: { performing: { tracks: 120 }, writing: { tracks: 4 } } }, l);
-    expect(c.map((x) => [x.cle, x.valeur, x.libelle])).toEqual([
-      ['albums', 11, '<artist.page.statAlbums>'],
-      ['interprete', 120, '<artist.page.statPerforming>'],
-      ['ecriture', 4, '<artist.page.statWriting>'],
+    const c = chiffresEnTete({ albums: 11, compteurs: { performing: { tracks: 120, albums: 9 }, writing: { tracks: 4, albums: 0 } } }, l);
+    expect(c.map((x) => [x.cle, x.valeur, x.libelle, x.albums])).toEqual([
+      ['albums', 11, '<artist.page.statAlbums>', undefined],
+      // Relecture du 15/11 : le compte d'albums des compteurs reste lisible.
+      ['interprete', 120, '<artist.page.statPerforming>', 9],
+      ['ecriture', 4, '<artist.page.statWriting>', undefined],
     ]);
   });
 
@@ -78,7 +79,7 @@ describe('maquette de Levente — en-tête', () => {
   };
   const CHIFFRES = [
     { cle: 'albums', valeur: 60, libelle: 'Albums', icone: 'albums' },
-    { cle: 'interprete', valeur: 500, libelle: 'Tracks as performer', icone: 'interprete' },
+    { cle: 'interprete', valeur: 500, libelle: 'Tracks as performer', icone: 'interprete', albums: 37 },
   ];
 
   it('disposition `maquette` : les chiffres à droite, la ligne d’identité ne les répète pas', () => {
@@ -89,6 +90,9 @@ describe('maquette de Levente — en-tête', () => {
     const items = [...h.querySelectorAll('[data-chiffres-artiste] li')];
     expect(items.map((li) => li.getAttribute('data-chiffre'))).toEqual(['albums', 'interprete']);
     expect(items[1].querySelector('.valeur')!.textContent).toMatch(/500/);
+    // Le nombre d'albums du compteur, masqué de la ligne d'identité, reste sous le chiffre.
+    expect(items[1].querySelector('[data-chiffre-albums]')?.textContent).toMatch(/37/);
+    expect(items[0].querySelector('[data-chiffre-albums]')).toBeNull();
     // La ligne « 60 albums » reste dans le DOM (#1356) — c'est le CSS qui la
     // cède à la colonne des chiffres.
     expect(h.querySelector('.ident .cpt')?.textContent).toContain('60');
@@ -186,6 +190,13 @@ describe('maquette de Levente — la page artiste montée', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     flushSync();
     expect(menu.hidden).toBe(true);
+    // Relecture du 15/11 : un geste choisi dans le menu le referme.
+    bouton.click();
+    flushSync();
+    expect(menu.hidden).toBe(false);
+    menu.querySelector<HTMLButtonElement>('[data-toutes-pistes-artiste]')!.click();
+    flushSync();
+    expect(menu.hidden, 'le menu reste ouvert après un geste').toBe(true);
   });
 
   it('ALÉATOIRE (décision de Bertrand, 15/11) : il reste sous la flèche du bouton Lire, aucun bouton « Shuffle » séparé', async () => {

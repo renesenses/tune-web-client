@@ -44,24 +44,30 @@ export interface ChiffreArtiste {
   valeur: number;
   libelle: string;
   icone: IconeChiffre;
+  /** Le nombre d'albums de ce compteur, sous le chiffre (« 4 albums »). */
+  albums?: number;
 }
 
 export function chiffresEnTete(
   o: {
     albums?: number | null;
-    compteurs?: { performing?: { tracks?: number } | null; writing?: { tracks?: number } | null } | null;
+    compteurs?: { performing?: { tracks?: number; albums?: number } | null; writing?: { tracks?: number; albums?: number } | null } | null;
   },
   libelle: (cle: string) => string,
 ): ChiffreArtiste[] {
   const out: ChiffreArtiste[] = [];
-  const pousser = (cle: string, valeur: number | null | undefined, cleLibelle: string, icone: IconeChiffre) => {
+  const pousser = (cle: string, valeur: number | null | undefined, cleLibelle: string, icone: IconeChiffre, albums?: number) => {
     if (typeof valeur === 'number' && Number.isFinite(valeur) && valeur > 0) {
-      out.push({ cle, valeur, libelle: libelle(cleLibelle), icone });
+      const c: ChiffreArtiste = { cle, valeur, libelle: libelle(cleLibelle), icone };
+      // Le compte d'albums des compteurs « interprète » et « écriture » reste
+      // lisible (il l'était dans la ligne d'identité) ; zéro n'apprend rien.
+      if (typeof albums === 'number' && albums > 0) c.albums = albums;
+      out.push(c);
     }
   };
   pousser('albums', o.albums, 'artist.page.statAlbums', 'albums');
-  pousser('interprete', o.compteurs?.performing?.tracks, 'artist.page.statPerforming', 'interprete');
-  pousser('ecriture', o.compteurs?.writing?.tracks, 'artist.page.statWriting', 'ecriture');
+  pousser('interprete', o.compteurs?.performing?.tracks, 'artist.page.statPerforming', 'interprete', o.compteurs?.performing?.albums);
+  pousser('ecriture', o.compteurs?.writing?.tracks, 'artist.page.statWriting', 'ecriture', o.compteurs?.writing?.albums);
   return out;
 }
 

@@ -860,6 +860,10 @@
 
   let plusOuvert = $state(false);
   let zonePlus = $state<HTMLElement | null>(null);
+  function fermerPlusApresGeste(e: MouseEvent) {
+    const cible = e.target as Element | null;
+    if (cible?.closest('button') && !cible.closest('.report-wrap')) plusOuvert = false;
+  }
   function fermerPlusDehors(e: MouseEvent) {
     if (plusOuvert && zonePlus && !zonePlus.contains(e.target as Node)) plusOuvert = false;
   }
@@ -1214,7 +1218,10 @@
           onclick={() => (plusOuvert = !plusOuvert)}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
         </button>
-        <div class="plus-menu" data-plus-gestes hidden={!plusOuvert}>
+        <!-- Un geste choisi referme le menu. Sauf « Signaler », qui ouvre son
+             propre menu de motifs DANS celui-ci. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <div class="plus-menu" data-plus-gestes hidden={!plusOuvert} onclick={fermerPlusApresGeste}>
       {#if titres.length}
         <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
           {$tr('v2.fas.bestOf' as any)}

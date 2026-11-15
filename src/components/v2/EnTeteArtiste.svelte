@@ -181,6 +181,7 @@
           </svg>
           <span class="valeur">{c.valeur.toLocaleString($locale)}</span>
           <span class="libelle">{c.libelle}</span>
+          {#if c.albums}<span class="detail" data-chiffre-albums>{c.albums.toLocaleString($locale)} {$t('v2.art.albums' as any)}</span>{/if}
         </li>
       {/each}
     </ul>
@@ -252,6 +253,7 @@
   .chiffres li{display:flex; flex-direction:column; align-items:center; text-align:center; min-width:76px; gap:3px}
   .chiffres .ic{color:var(--v2-acc1); margin-bottom:6px}
   .chiffres .valeur{font:600 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .chiffres .detail{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .chiffres .libelle{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:110px}
   @media (max-width: 1100px){
     .tete.maquette{flex-wrap:wrap}
