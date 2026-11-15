@@ -9,6 +9,7 @@
    * `vi.stubGlobal(…)` des témoins ne déclenche toujours rien (#1333).
    */
   import type { View } from '../../lib/stores/navigation';
+  import IconeReglages from './IconeReglages.svelte';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -979,7 +980,8 @@
       <button class="reglages" class:active={$activeView === 'settings'} onclick={() => go('settings')}
         aria-label={$t('v2.nav.settings' as any)} title={$t('v2.nav.settings' as any)}
         aria-current={$activeView === 'settings' ? 'page' : undefined}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <!-- Icône de Levente (15/11/2026), même source que le menu de compte. -->
+        <IconeReglages taille={17} />
       </button>
       <button class="collapse" onclick={toggleCollapse}
         aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
@@ -1285,7 +1287,6 @@
   .reglages:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .reglages.active{color:var(--v2-acc1)}
   .reglages:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .reglages svg{width:17px; height:17px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
   .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}
