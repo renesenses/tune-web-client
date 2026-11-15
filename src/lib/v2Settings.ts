@@ -52,6 +52,16 @@ export interface V2SettingsSection {
   group?: 'libraryTools';
   /** La section est une zone dangereuse : isolée et signalée à l'écran. */
   danger?: boolean;
+  /**
+   * Maquette de Levente (Figma 620:5837, 15/11/2026) : « Long settings, eg.
+   * Sidebar, moving to a second screen can also help the better overview ».
+   * La section ne s'affiche pas en carte dans son onglet : une ligne y mène
+   * à un ÉCRAN SECONDAIRE qui la montre seule, avec un retour. La recherche
+   * et les ancres l'ouvrent d'office.
+   */
+  sousEcran?: boolean;
+  /** Clé i18n de la ligne qui ouvre l'écran secondaire : ce qu'on y trouve. */
+  resumeKey?: string;
 }
 
 export interface V2SettingsTab {
@@ -88,6 +98,12 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
       // l'onglet Radios ne le propose que tant qu'il n'est pas renseigné.
+      // Maquette de Levente (15/11/2026) : la barre latérale — ses sources
+      // (venues d'Affichage) et son ordre (venu d'Interface) — sur un écran
+      // secondaire, ouvert depuis une ligne de l'onglet.
+      { id: 'sidebar', titleKey: 'reglages.barreLaterale.titre', from: 'general', min: 'beginner', sousEcran: true,
+        resumeKey: 'reglages.barreLaterale.resume',
+        keywords: ['barre latérale', 'sidebar', 'sources', 'ordre', 'menu', 'entrées', 'masquer', 'navigation'] },
       { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
         keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },

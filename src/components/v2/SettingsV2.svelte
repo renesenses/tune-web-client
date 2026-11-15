@@ -376,6 +376,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   let tabId = $state<V2SettingsTabId>('general');
   let highlight = $state<string | null>(null);
+  /**
+   * Maquette de Levente (Figma 620:5837, 15/11/2026) — l'ÉCRAN SECONDAIRE
+   * ouvert (section `sousEcran` de lib/v2Settings), ou null. Ouvert, le
+   * panneau ne montre que cette section, sous un bouton de retour.
+   */
+  let sousEcran = $state<string | null>(null);
+  function estSousEcran(id: string | null | undefined): boolean {
+    return !!id && V2_SETTINGS.some((t2) => t2.sections.some((x) => x.id === id && x.sousEcran));
+  }
   /** #1006 — la zone visée par la carte de l'écran Zones, mise en avant dans « Par zone ». */
   let cibleZone = $state<number | null>(null);
   // web#2451 — la zone dont la carte de détails est ouverte sous la liste
@@ -486,6 +495,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // une cible qui nomme encore son ancien onglet.
     tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
+    sousEcran = estSousEcran(target.section) ? target.section! : null;
     cibleZone = target.zone ?? null;
     // web#2451 — une cible de zone (roue crantée, carte de zone, FIR) ouvre
     // d'office les détails de CETTE zone : sans cela, la carte visée n'existe
@@ -515,7 +525,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
-  const sections = $derived((tab?.sections ?? []).filter((s) => (atLeast(level, s.min) || s.id === sectionForcee) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  const sectionsDeLOnglet = $derived((tab?.sections ?? []).filter((s) => (atLeast(level, s.min) || s.id === sectionForcee) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  // Écran secondaire ouvert : sa section seule. Sinon, tout l'onglet — la
+  // section d'un écran secondaire y est une ligne qui l'ouvre.
+  const sections = $derived(sousEcran ? sectionsDeLOnglet.filter((s) => s.id === sousEcran) : sectionsDeLOnglet);
   // Le greffon absent n'est pas une section « masquée par le niveau » : on ne le compte pas.
   const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min) && s.id !== sectionForcee).length);
 
@@ -4604,7 +4617,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; }
+  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; }
+  /** Ouvre un écran secondaire (« Barre latérale »), depuis n'importe quel onglet. */
+  function ouvrirSousEcran(id: string) {
+    tabId = ongletDeLaSection(tabId, id);
+    highlight = null;
+    sousEcran = id;
+    tick().then(() => document.querySelector('.v2-settings .pane')?.scrollTo?.({ top: 0 }));
+  }
+  /** Retour à l'onglet : la ligne qui menait à l'écran secondaire revient sous les yeux. */
+  function fermerSousEcran() {
+    const quitte = sousEcran;
+    sousEcran = null;
+    if (quitte) tick().then(() => amenerSousEntete(document.querySelector(`[data-ouvre-sous-ecran="${quitte}"]`)));
+  }
 
   /**
    * #2735 — aller à UN réglage : ouvrir son onglet (et sa section, si le
@@ -4626,6 +4652,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function allerAuReglage(r: Reglage) {
     tabId = ongletDuReglage(r);
     highlight = null;
+    sousEcran = estSousEcran(r.section) ? r.section : null;
     const masque = masqueAuNiveau(r, level);
     sectionForcee = masque ? r.section : null;
     reglageForce = masque ? r : null;
@@ -4708,7 +4735,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   <div class="body">
     <div class="pane">
       {#if tab}
-        <div class="panehead">
+        {#if sousEcran && sections.length}
+          <!-- Maquette de Levente (15/11/2026) : écran secondaire, avec son
+               retour vers l'onglet qui le porte. -->
+          <div class="sous-ecran-tete" data-sous-ecran={sousEcran}>
+            <button type="button" class="retour-sous-ecran" data-retour-sous-ecran onclick={fermerSousEcran}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+              <span>{$t('settings.titleV2' as any)} · {tabLabel(tab, (k) => $t(k as any))}</span>
+            </button>
+          </div>
+        {/if}
+        <div class="panehead" class:cache={!!sousEcran}>
           {#if hiddenCount > 0}
             <span class="masked">{$tn('v2.set.hiddenSectionsN', hiddenCount)}</span>
           {/if}
@@ -4725,6 +4762,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {#if s.group && sections[i - 1]?.group !== s.group}
             <h2 class="groupe" data-groupe={s.group}>{$t('settings.libraryTools' as any)}</h2>
           {/if}
+          {#if s.sousEcran && sousEcran !== s.id}
+            <button type="button" class="card lien-sous-ecran" class:hl={highlight === s.id}
+              data-section={s.id} data-ouvre-sous-ecran={s.id} onclick={() => ouvrirSousEcran(s.id)}>
+              <span class="lbl">
+                <span>{title(s)}</span>
+                {#if s.resumeKey}<span class="hint">{$t(s.resumeKey as any)}</span>{/if}
+              </span>
+              <!-- Maquette (reglages-1) : « Manage Sidebar », une pastille à droite. -->
+              <span class="pastille-sous-ecran">{$t('reglages.barreLaterale.ouvrir' as any)}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span>
+            </button>
+          {:else}
           <section class="card" class:hl={highlight === s.id} class:zone-danger={s.danger}
             class:fin-groupe={!!s.group && sections[i + 1]?.group !== s.group}
             data-section={s.id} data-groupe={s.group ?? null}>
@@ -4827,6 +4876,50 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'scheduledStop'}
               <ArretProgrammeV2 />
+            {:else if s.id === 'sidebar'}
+              <!-- Maquette de Levente (Figma 620:5837, 15/11/2026) : la barre
+                   latérale sur son écran secondaire — quelles sources elle
+                   montre, puis l'ordre de ses entrées (web#1827). -->
+              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
+                   toutes les sources connues dans la barre, grisées quand
+                   elles sont indisponibles, et une case par TYPE. Par défaut,
+                   seuls les types présents sur la machine sont cochés. -->
+              <div class="row" data-reglage="sources-barre">
+                <div class="lbl">
+                  <span>{$t('settings.sidebarSources' as any)}</span>
+                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                </div>
+              </div>
+              {#each TYPES_SOURCE_BARRE as type (type)}
+                <div class="row">
+                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
+                  <label class="sw">
+                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
+                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/each}
+              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
+                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
+                  <div class="lbl">
+                    <span>{greffonEntreeAudio === 'a_installer'
+                      ? $t('v2.sources.greffonManque' as any)
+                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
+                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
+                  </div>
+                  {#if greffonEntreeAudio === 'a_installer'}
+                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
+                      onclick={installerGreffonEntreeAudio}>
+                      {installationEntreeAudio
+                        ? $t('v2.sources.greffonInstallation' as any)
+                        : $t('v2.sources.greffonInstaller' as any)}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+
+              <OrdreBarreLateraleV2 />
             {:else if s.id === 'radiosCountry'}
               <div data-reglage="pays-ecoute-radios"><PaysEcouteRadios /></div>
 
@@ -4997,44 +5090,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
-              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
-                   toutes les sources connues dans la barre, grisées quand
-                   elles sont indisponibles, et une case par TYPE. Par défaut,
-                   seuls les types présents sur la machine sont cochés. -->
-              <div class="row" data-reglage="sources-barre">
+              <!-- Maquette de Levente (15/11/2026) : les sources de la barre
+                   latérale vivent sur l'écran secondaire « Barre latérale ».
+                   Cette ligne y mène : qui les cherchait ici les retrouve. -->
+              <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.sidebarSources' as any)}</span>
-                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                  <span class="hint">{$t('reglages.barreLaterale.deplace' as any)}</span>
                 </div>
+                <button class="lnk" type="button" data-ouvre-sous-ecran="sidebar" onclick={() => ouvrirSousEcran('sidebar')}>
+                  {$t('reglages.barreLaterale.ouvrir' as any)}
+                </button>
               </div>
-              {#each TYPES_SOURCE_BARRE as type (type)}
-                <div class="row">
-                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
-                  <label class="sw">
-                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
-                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
-                    <span class="slider"></span>
-                  </label>
-                </div>
-              {/each}
-              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
-                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
-                  <div class="lbl">
-                    <span>{greffonEntreeAudio === 'a_installer'
-                      ? $t('v2.sources.greffonManque' as any)
-                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
-                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
-                  </div>
-                  {#if greffonEntreeAudio === 'a_installer'}
-                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
-                      onclick={installerGreffonEntreeAudio}>
-                      {installationEntreeAudio
-                        ? $t('v2.sources.greffonInstallation' as any)
-                        : $t('v2.sources.greffonInstaller' as any)}
-                    </button>
-                  {/if}
-                </div>
-              {/if}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
@@ -5123,6 +5190,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'parental'}
               <ControleParentalV2 />
             {:else if s.id === 'interface'}
+              <!-- Maquette de Levente (15/11/2026) : la longue carte Interface
+                   découpée en blocs titrés, pour la parcourir d'un coup d'œil. -->
+              <h4 class="sous-titre">{$t('reglages.interface.apparence' as any)}</h4>
               <div class="row" data-reglage="theme">
                 <div class="lbl">
                   <span>{$t('settings.theme' as any)}</span>
@@ -5193,6 +5263,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
+                   décoché par défaut, les menus montrent les gestes courants et
+                   rangent le reste sous « Plus… ». -->
+              <div class="row" data-reglage="menus-complets">
+                <div class="lbl">
+                  <span>{$t('settings.fullMenus' as any)}</span>
+                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
+                    aria-label={$t('settings.fullMenus' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <h4 class="sous-titre">{$t('reglages.interface.barreLecture' as any)}</h4>
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
                    pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
@@ -5219,24 +5308,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
                    comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
-              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
-                   décoché par défaut, les menus montrent les gestes courants et
-                   rangent le reste sous « Plus… ». -->
-              <div class="row" data-reglage="menus-complets">
-                <div class="lbl">
-                  <span>{$t('settings.fullMenus' as any)}</span>
-                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
-                </div>
-                <label class="sw">
-                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
-                    aria-label={$t('settings.fullMenus' as any)}
-                    onchange={(e) => preferences.update((pr) => ({
-                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
-                    }))} />
-                  <span class="slider"></span>
-                </label>
-              </div>
-
               <div class="row" data-visualiseur-barre data-reglage="visualiseur-barre">
                 <div class="lbl">
                   <span>{$t('v2.set.barViz' as any)}</span>
@@ -5295,6 +5366,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <h4 class="sous-titre">{$t('reglages.interface.navigation' as any)}</h4>
               <div class="row" data-reglage="langue">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'en'}
@@ -5338,12 +5410,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
-              <!-- web#1827 — Bertrand, 30/09/2026 : l'ordre de la barre
-                   latérale, glisser-déposer ou flèches au clavier, entrées
-                   masquables, « Rétablir l'ordre par défaut ». Rangé à côté
-                   des autres réglages de navigation. -->
-              <OrdreBarreLateraleV2 />
-
               <div class="row" data-reglage="zone-defaut">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>
@@ -5360,6 +5426,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               {#if voit('intermediate', s.id)}
+                <h4 class="sous-titre">{$t('reglages.interface.details' as any)}</h4>
                 <div class="row" data-reglage="affichage-volume">
                   <div class="lbl">
                     <span>{$t('settings.volumeDisplay' as any)}</span>
@@ -8840,6 +8907,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="plages-mac"><PlagesMacV2 appareils={$devices} /></div>
             {/if}
           </section>
+          {/if}
         {/each}
 
         {#if !sections.length}
@@ -8934,6 +9002,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
+  /* Maquette de Levente (Figma 620:5837, 15/11/2026) : « Settings section to
+     keep @720px wide so the users can easily read the text ». Le panneau
+     défile toujours sur toute la largeur ; la COLONNE des réglages, elle,
+     s'arrête à 720 px. */
+  .pane > *{width:100%; max-width:720px; box-sizing:border-box}
+  .panehead.cache{display:none}
+  /* Intertitres d'une longue carte (Interface) : des blocs titrés. */
+  .sous-titre{margin:20px 0 -2px; padding-top:14px; border-top:1px solid var(--v2-line);
+    font-size:calc(11.5px * var(--v2-txt-echelle, 1)); font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--v2-txt2)}
+  .cardhead + .sous-titre, .force-niveau + .sous-titre{margin-top:12px; padding-top:0; border-top:0}
+  /* Ligne qui ouvre un écran secondaire : une carte entière, cliquable. */
+  .lien-sous-ecran{display:flex; align-items:center; justify-content:space-between; gap:16px;
+    text-align:left; color:inherit; font:inherit; cursor:pointer}
+  .lien-sous-ecran .lbl span:first-child{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .pastille-sous-ecran{display:inline-flex; align-items:center; gap:4px; flex:0 0 auto; white-space:nowrap;
+    padding:6px 10px 6px 14px; border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill);
+    color:var(--v2-acc1); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .pastille-sous-ecran svg{width:14px; height:14px}
+  .lien-sous-ecran:hover{border-color:var(--v2-line2); background:var(--v2-hover)}
+  .lien-sous-ecran:hover .pastille-sous-ecran{background:var(--v2-active1)}
+  @media (max-width:640px){ .lien-sous-ecran{flex-wrap:wrap} }
+  .lien-sous-ecran:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
+  .sous-ecran-tete{display:flex; align-items:center}
+  .retour-sous-ecran{display:inline-flex; align-items:center; gap:6px; padding:6px 10px 6px 4px;
+    border:0; border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
+  .retour-sous-ecran svg{width:16px; height:16px}
+  .retour-sous-ecran:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .retour-sous-ecran:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
   .masked{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
