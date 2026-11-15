@@ -198,6 +198,12 @@ describe('vérification du 15/11 sur le .18 — la mise en page tient à 1 440 p
 
   it('sur téléphone, le menu de période et « Modifier » passent sous le titre', () => {
     const css = feuille('src/components/v2/TableauDeBordV2.svelte');
-    expect(css).toMatch(/@media\(max-width:640px\)\{[^@]*\.v2-top\.v2-actions\{flex:10100%/);
+    expect(css).toMatch(/@media\(max-width:640px\)\{[^@]*\.v2-top:has\(\[data-tdb-periode\]\)\.v2-actions\{flex:10100%/);
+  });
+
+  it('🔴 aucune enveloppe autour de PageWidgets : elle rétrécissait la page à ~620 px sur le .18', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/components/v2/TableauDeBordV2.svelte'), 'utf-8');
+    const balisage = src.replace(/<script[\s\S]*?<\/script>/, '').replace(/<style[\s\S]*?<\/style>/, '').replace(/{#snippet[\s\S]*?{\/snippet}/, '');
+    expect(balisage.trim().startsWith('{#key periode}')).toBe(true);
   });
 });

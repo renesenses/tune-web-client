@@ -62,7 +62,7 @@
 </script>
 
 {#snippet choixPeriode()}
-  <label class="v2-btn periode" title={$t('dashboard.periodChoice' as any)}>
+  <label class="v2-btn periode" data-tdb-periode title={$t('dashboard.periodChoice' as any)}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
     <select
       aria-label={$t('dashboard.periodChoice' as any)}
@@ -76,8 +76,6 @@
   </label>
 {/snippet}
 
-<!-- `display: contents` : porte seulement la règle d'en-tête sur téléphone. -->
-<div class="tdb">
 {#key periode}
   <PageWidgets
     catalogue={BLOCS_TABLEAU_DE_BORD}
@@ -92,7 +90,6 @@
     actionsEntete={choixPeriode}
   />
 {/key}
-</div>
 
 <style>
   /* Menu natif (clavier, lecteur d'écran) à l'habit de `v2-btn`. */
@@ -107,10 +104,10 @@
   .periode option { color: var(--v2-txt); background: var(--v2-surface); }
   /* Vérification du 15/11 sur le .18 : sur téléphone, la période et
      « Modifier » chevauchaient le titre ; ils passent dessous (cet écran seul). */
-  .tdb { display: contents; }
+  /* Sans enveloppe : une boîte autour de PageWidgets la rétrécissait (.18). */
   @media (max-width: 640px) {
-    .tdb :global(.v2-top) { flex-wrap: wrap; align-items: flex-start; }
-    .tdb :global(.v2-top .v2-titres) { flex: 1 0 100%; }
-    .tdb :global(.v2-top .v2-actions) { flex: 1 0 100%; justify-content: flex-start; }
+    :global(.v2-top:has([data-tdb-periode])) { flex-wrap: wrap; align-items: flex-start; }
+    :global(.v2-top:has([data-tdb-periode]) .v2-titres) { flex: 1 0 100%; }
+    :global(.v2-top:has([data-tdb-periode]) .v2-actions) { flex: 1 0 100%; justify-content: flex-start; }
   }
 </style>
