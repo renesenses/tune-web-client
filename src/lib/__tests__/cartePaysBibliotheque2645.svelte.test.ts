@@ -11,6 +11,7 @@ import CartePaysBibliothequeV2 from '../../components/v2/CartePaysBibliothequeV2
 import { albums, libraryLoading, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { locale } from '../i18n';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 let hote: HTMLDivElement;
 let montes: Record<string, any>[] = [];
@@ -39,6 +40,7 @@ async function stabiliser() {
   for (let i = 0; i < 10; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); }
 }
 function poser(C: any, props: Record<string, unknown>) {
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   const m = mount(C, { target: hote, props: props as any });
   montes.push(m);
   flushSync();

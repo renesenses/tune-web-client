@@ -22,6 +22,7 @@ import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryLoading, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { preferences } from '../stores/preferences';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 /** Six albums : quatre avec un DR (6, 8, 12, 14), deux sans. */
 const ALBUMS = [6, 8, 12, 14, null, null].map((dr, i) => ({
@@ -71,6 +72,7 @@ function colonneDr(cochee: boolean) {
 async function ecranMonte(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   monte = mount(LibraryV2, { target: hote, props: {} });
   await attendreQue(() => !!hote!.querySelector('button.chip.count'));
   return hote;

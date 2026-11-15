@@ -15,6 +15,7 @@ import { albums as albumsStore } from '../stores/library';
 import { currentProfileId, favoriteTrackIds, favoriteAlbumIds } from '../stores/profile';
 import { locale } from '../i18n';
 import type { Album } from '../types';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -59,6 +60,7 @@ async function poserEcranPistesFavorites(): Promise<HTMLElement> {
   albumsStore.set([...ALBUMS]);
   hote = document.createElement('div');
   document.body.appendChild(hote);
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   monte = mount(LibraryV2, { target: hote, props: {} as never });
   await laisserFiler();
   const onglet = hote.querySelector<HTMLButtonElement>('nav.tabs button.tab[data-onglet="tracks"]');

@@ -83,6 +83,6 @@ describe('Retours de Bilou sur le forum (05/09/2026)', () => {
     expect(lib).toContain("sortKey = sortKey === 'added' ? 'title' : 'added'");
     // Elle n'apparaît que si la donnée existe — un tri qui ne trie rien est
     // pire qu'un tri absent.
-    expect(lib).toMatch(/\{#if hasAddedAt\}\s*\n\s*<button class="chip" class:active=\{sortKey === 'added'\}/);
+    expect(lib).toMatch(/\{#if hasAddedAt(?: && montre\('recent', sortKey === 'added'\))?\}\s*\n\s*<button class="chip" class:active=\{sortKey === 'added'\}/);
   });
 });
