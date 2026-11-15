@@ -188,6 +188,27 @@ describe('maquette de Levente — la page artiste montée', () => {
     expect(menu.hidden).toBe(true);
   });
 
+  it('ALÉATOIRE (décision de Bertrand, 15/11) : il reste sous la flèche du bouton Lire, aucun bouton « Shuffle » séparé', async () => {
+    const f = await ouvrirFiche();
+    const gestes = f.querySelector<HTMLElement>('header.tete .gestes')!;
+    const lecture = gestes.querySelector<HTMLElement>('[data-bouton-lecture]')!;
+    const fleche = lecture.querySelector<HTMLButtonElement>('[data-lecture-options]');
+    expect(fleche, 'la flèche du bouton Lire, qui porte l’aléatoire, a disparu').not.toBeNull();
+    const menu = gestes.querySelector<HTMLElement>('[data-plus-gestes]')!;
+    expect(menu.contains(lecture), 'le bouton Lire est passé dans le menu « … »').toBe(false);
+    // Aucun bouton séparé : ni dans la rangée, ni dans le menu « … ».
+    const aleatoire = libelle('library.shuffleArtist');
+    const separes = [...gestes.querySelectorAll<HTMLButtonElement>('button')]
+      .filter((b) => !lecture.contains(b))
+      .filter((b) => b.hasAttribute('data-aleatoire-artiste') || (b.textContent ?? '').trim() === aleatoire || b.title === aleatoire);
+    expect(separes, 'un bouton « Lecture aléatoire » séparé est apparu').toHaveLength(0);
+    // Le même geste qu'avant : la flèche ouvre l'entrée « aléatoire ».
+    fleche!.click();
+    flushSync();
+    expect(document.querySelector('[data-aleatoire-artiste]'), 'l’entrée « aléatoire » de la flèche a disparu').not.toBeNull();
+    expect(menu.querySelector('[data-aleatoire-artiste]')).toBeNull();
+  });
+
   it('les chiffres de l’en-tête : le compte d’albums de la bibliothèque, rien d’inventé', async () => {
     const f = await ouvrirFiche();
     const items = [...f.querySelectorAll('[data-chiffres-artiste] li')].map((li) => li.getAttribute('data-chiffre'));
