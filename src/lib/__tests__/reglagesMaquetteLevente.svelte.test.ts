@@ -20,6 +20,8 @@ import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { V2_SETTINGS, type V2SettingsTabId } from '../v2Settings';
 import { reglageParId, ongletDuReglage } from '../reglagesIndex';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
@@ -160,6 +162,15 @@ describe('Réglages — écran monté', () => {
     await attendre();
     expect(el.querySelector('[data-sous-ecran="sidebar"]')).not.toBeNull();
     expect(el.querySelector('[data-reglage="sources-barre"]')).not.toBeNull();
+
+    // Relecture du 15/11 : ouvert depuis Affichage, le retour ramène à Affichage.
+    const retour = el.querySelector<HTMLButtonElement>('[data-retour-sous-ecran]')!;
+    expect(retour.textContent).toContain(get(t)('settings.tabDisplay' as any));
+    retour.click();
+    await attendre();
+    expect(el.querySelector('[data-sous-ecran]')).toBeNull();
+    expect(el.querySelector('[data-section="displayPrefs"]'), 'le retour n’a pas ramené à Affichage').not.toBeNull();
+    expect(el.querySelector('[data-section="playback"]')).toBeNull();
   });
 
   it('changer d’onglet referme l’écran secondaire', { timeout: 60_000 }, async () => {

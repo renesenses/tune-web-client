@@ -382,6 +382,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * panneau ne montre que cette section, sous un bouton de retour.
    */
   let sousEcran = $state<string | null>(null);
+  /** L'onglet d'où l'écran secondaire a été ouvert (Affichage, par son renvoi) :
+   *  le retour y ramène. null : l'onglet qui porte la section. */
+  let ongletRetour = $state<V2SettingsTabId | null>(null);
   function estSousEcran(id: string | null | undefined): boolean {
     return !!id && V2_SETTINGS.some((t2) => t2.sections.some((x) => x.id === id && x.sousEcran));
   }
@@ -496,6 +499,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
     sousEcran = estSousEcran(target.section) ? target.section! : null;
+    ongletRetour = null;
     cibleZone = target.zone ?? null;
     // web#2451 — une cible de zone (roue crantée, carte de zone, FIR) ouvre
     // d'office les détails de CETTE zone : sans cela, la carte visée n'existe
@@ -4617,10 +4621,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; }
+  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
   /** Ouvre un écran secondaire (« Barre latérale »), depuis n'importe quel onglet. */
   function ouvrirSousEcran(id: string) {
-    tabId = ongletDeLaSection(tabId, id);
+    const porteur = ongletDeLaSection(tabId, id);
+    ongletRetour = porteur !== tabId ? tabId : null;
+    tabId = porteur;
     highlight = null;
     sousEcran = id;
     tick().then(() => document.querySelector('.v2-settings .pane')?.scrollTo?.({ top: 0 }));
@@ -4629,6 +4635,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function fermerSousEcran() {
     const quitte = sousEcran;
     sousEcran = null;
+    if (ongletRetour) { tabId = ongletRetour; ongletRetour = null; }
     if (quitte) tick().then(() => amenerSousEntete(document.querySelector(`[data-ouvre-sous-ecran="${quitte}"]`)));
   }
 
@@ -4653,6 +4660,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     tabId = ongletDuReglage(r);
     highlight = null;
     sousEcran = estSousEcran(r.section) ? r.section : null;
+    ongletRetour = null;
     const masque = masqueAuNiveau(r, level);
     sectionForcee = masque ? r.section : null;
     reglageForce = masque ? r : null;
@@ -4741,7 +4749,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           <div class="sous-ecran-tete" data-sous-ecran={sousEcran}>
             <button type="button" class="retour-sous-ecran" data-retour-sous-ecran onclick={fermerSousEcran}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
-              <span>{$t('settings.titleV2' as any)} · {tabLabel(tab, (k) => $t(k as any))}</span>
+              <span>{$t('settings.titleV2' as any)} · {tabLabel(V2_SETTINGS.find((x) => x.id === ongletRetour) ?? tab, (k) => $t(k as any))}</span>
             </button>
           </div>
         {/if}
