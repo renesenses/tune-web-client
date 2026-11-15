@@ -155,11 +155,11 @@ describe('2 — vue pochettes : le nom d’album ouvre l’album', () => {
     expect(lien.disabled).toBe(false);
   });
 
-  it('CONTRE-ÉPREUVE : la vignette, elle, lance toujours la lecture', async () => {
+  it('CONTRE-ÉPREUVE : le Play de la vignette, lui, lance toujours la lecture (B97, 15/11)', async () => {
     const h = await enPochettes();
-    (h.querySelector('[data-pgrille] .pvig') as HTMLElement).click();
+    (h.querySelector('[data-pgrille] .pvig .centre') as HTMLElement).click();
     flushSync(); await tourner(2);
-    expect(lectures().length, 'la vignette ne lance plus la lecture').toBeGreaterThan(0);
+    expect(lectures().length, 'le Play de la vignette ne lance plus la lecture').toBeGreaterThan(0);
     expect(get(activeView)).toBe('playlists');
   });
 });
