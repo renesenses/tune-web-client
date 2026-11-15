@@ -14,6 +14,8 @@
    * chercher ici. La rangée, elle, donne la forme de la journée.
    */
   import { t } from '../../../lib/i18n';
+  import VideBloc from './VideBloc.svelte';
+  import { cleVide, ICONES } from '../../../lib/tableauDeBordPeriode';
 
   export interface MatiereHeures {
     /** Vingt-quatre valeurs, indexées par l'heure. Une heure sans écoute vaut 0. */
@@ -28,16 +30,18 @@
   const pointe = $derived(max > 0 ? parHeure.indexOf(max) : -1);
 </script>
 
-{#if !parHeure.length || max === 0}
+{#if !parHeure.length}
   <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
        derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
        vide ne dit rien de l'historique plus ancien. -->
-  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
+  <VideBloc message={$t(cleVide() as any)} icone={ICONES.durees} />
 {:else}
+  {#if max > 0}
   <div class="tete">
     <div class="grand">{pointe}h</div>
     <span class="quoi">{$t('dashboard.section.hourly' as any)}</span>
   </div>
+  {/if}
   <div class="rangee">
     {#each parHeure as plays, h (h)}
       <div
@@ -50,12 +54,20 @@
       </div>
     {/each}
   </div>
+  {#if max === 0}
+    <p class="pied">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">{@html ICONES.durees}</svg>
+      {$t(cleVide() as any)}
+    </p>
+  {/if}
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
+  .pied { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0;
+    padding: 0 var(--bloc-marge, 30px); color: var(--v2-txt3); font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align: center; }
+  .pied svg { width: 18px; height: 18px; flex: 0 0 auto; }
 
-  .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 30px 12px; }
+  .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 var(--bloc-marge, 30px) 12px; }
   .grand {
     font: 700 calc(32px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
@@ -64,7 +76,7 @@
 
   /* Vingt-quatre colonnes ÉGALES : `1fr` et non une largeur fixe, donc la
      rangée se comprime au lieu de déborder sur un téléphone. */
-  .rangee { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 0 30px; }
+  .rangee { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 0 var(--bloc-marge, 30px); }
   .case {
     aspect-ratio: 1; background: var(--v2-acc1); border-radius: 4px;
     display: grid; place-items: center;
@@ -75,10 +87,10 @@
   .h { font: 600 calc(9px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-on-acc); opacity: 0.75; }
 
   @media (max-width: 1024px) {
-    .tete, .rangee { padding-left: 22px; padding-right: 22px; }
+    .tete, .rangee { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); }
   }
   @media (max-width: 640px) {
-    .tete, .rangee { padding-left: 16px; padding-right: 16px; }
+    .tete, .rangee { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
     .grand { font-size: calc(26px * var(--v2-txt-echelle, 1)); }
     .rangee { gap: 2px; }
     /* Sous 640 px, 24 chiffres dans 288 px feraient 12 px par case : le

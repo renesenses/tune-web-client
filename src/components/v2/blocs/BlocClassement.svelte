@@ -28,6 +28,8 @@
    */
   import type { Element } from '../../../lib/accueilWidgets';
   import { t } from '../../../lib/i18n';
+  import VideBloc from './VideBloc.svelte';
+  import { cleVide, ICONES } from '../../../lib/tableauDeBordPeriode';
   import { currentZone } from '../../../lib/stores/zones';
   import { get } from 'svelte/store';
   import { ouvrirArtisteDepuis } from '../../../lib/ouvrirArtisteDepuis';
@@ -85,7 +87,7 @@
   <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
        derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
        vide ne dit rien de l'historique plus ancien. -->
-  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
+  <VideBloc message={$t(cleVide() as any)} icone={ICONES.titres} />
 {:else}
   <ol class="liste">
     {#each elements as el, rang (el.id)}
@@ -123,9 +125,8 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  .liste { list-style: none; margin: 0; padding: 0 30px; display: flex; flex-direction: column; gap: 3px; }
+  .liste { list-style: none; margin: 0; padding: 0 var(--bloc-marge, 30px); display: flex; flex-direction: column; gap: 3px; }
   .liste li { display: flex; align-items: center; gap: 8px; min-width: 0; border-radius: 10px; }
   .liste li:hover { background: var(--v2-hover); }
   .rang {
@@ -159,9 +160,9 @@
   }
   .art:hover { color: var(--v2-acc1); }
 
-  @media (max-width: 1024px) { .liste { padding-left: 22px; padding-right: 22px; } }
+  @media (max-width: 1024px) { .liste { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); } }
   @media (max-width: 640px) {
-    .liste { padding-left: 16px; padding-right: 16px; }
+    .liste { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
     /* Sur téléphone, titre ET artiste sur la même ligne se disputent la
        largeur et s'élident tous les deux. L'artiste passe dessous. */
     .liste li { flex-wrap: wrap; }

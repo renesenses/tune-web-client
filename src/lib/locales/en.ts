@@ -1060,6 +1060,10 @@ export default {
   'dashboard.empty': 'No listening history yet. Start something 🎶',
   "dashboard.onThisDayEmpty": "No plays on this date in previous years.",
   "dashboard.emptyLast7Days": "Nothing to show for the last 7 days.",
+  "dashboard.emptyToday": "Nothing to show for today.",
+  "dashboard.emptyLast30Days": "Nothing to show for the last 30 days.",
+  "dashboard.emptyAllTime": "Nothing to show yet.",
+  "dashboard.periodChoice": "Period",
 
   // Equalizer
   'settings.eqBandsTitle': "Expert equalizer",

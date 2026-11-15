@@ -1024,6 +1024,10 @@ export default {
   "dashboard.empty": "Még nincs hallgatási előzmény. Indíts el valamit 🎶",
   "dashboard.onThisDayEmpty": "A korábbi években ezen a napon nem volt lejátszás.",
   "dashboard.emptyLast7Days": "Az elmúlt 7 napból nincs megjeleníthető adat.",
+  "dashboard.emptyToday": "Ma nincs megjeleníthető adat.",
+  "dashboard.emptyLast30Days": "Az elmúlt 30 napból nincs megjeleníthető adat.",
+  "dashboard.emptyAllTime": "Még nincs megjeleníthető adat.",
+  "dashboard.periodChoice": "Időszak",
   // Hangszínszabályzó
   "settings.eqBandsTitle": "Szakértői hangszínszabályzó",
   "settings.eqBandsHint": "A sávok száma Szakértő módban. A jelenlegi görbéd megmarad (újramintavételezve) váltáskor. ISO-rácsok — ugyanazok a viszonyítási pontok, mint a REW-ben.",

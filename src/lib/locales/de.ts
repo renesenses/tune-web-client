@@ -933,6 +933,10 @@ export default {
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
   "dashboard.onThisDayEmpty": "Keine Wiedergaben an diesem Datum in den Vorjahren.",
   "dashboard.emptyLast7Days": "Nichts anzuzeigen für die letzten 7 Tage.",
+  "dashboard.emptyToday": "Heute nichts anzuzeigen.",
+  "dashboard.emptyLast30Days": "Nichts anzuzeigen für die letzten 30 Tage.",
+  "dashboard.emptyAllTime": "Noch nichts anzuzeigen.",
+  "dashboard.periodChoice": "Zeitraum",
 
   // Equalizer
   'settings.eqBandsTitle': "Experten-Equalizer",

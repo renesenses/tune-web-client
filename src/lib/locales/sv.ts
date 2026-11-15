@@ -920,6 +920,10 @@ export default {
   'dashboard.empty': 'Ingen lyssningshistorik än. Sätt igång något 🎶',
   "dashboard.onThisDayEmpty": "Inga lyssningar på detta datum tidigare år.",
   "dashboard.emptyLast7Days": "Inget att visa för de senaste 7 dagarna.",
+  "dashboard.emptyToday": "Inget att visa i dag.",
+  "dashboard.emptyLast30Days": "Inget att visa för de senaste 30 dagarna.",
+  "dashboard.emptyAllTime": "Inget att visa ännu.",
+  "dashboard.periodChoice": "Period",
 
   // Equalizer
   'eq.myPresets': 'Mina förinställningar',
