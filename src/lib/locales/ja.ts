@@ -5731,6 +5731,7 @@ export default {
   "v2.circle.plx.statPlaylists": "プレイリスト",
   "v2.circle.plx.statTracks": "曲",
   "v2.circle.plx.yours": "あなたのプレイリスト",
+  "v2.circle.addMember": "メンバーを追加",
   "v2.circle.notInstalled": "Tune Circle 拡張機能が有効になっていません。拡張機能からインストールし、Tune を再起動してください。",
   "v2.circle.notConnected": "Tune Circle は Mozaiklabs アカウントを使用します。親しい人を招待し、招待を確認するには、このサーバーを Mozaiklabs に接続してください。",
   "v2.circle.signIn": "Mozaiklabs にサインイン",

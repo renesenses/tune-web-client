@@ -5753,6 +5753,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Playlists",
   "v2.circle.plx.statTracks": "Morceaux",
   "v2.circle.plx.yours": "Vos playlists",
+  "v2.circle.addMember": "Ajouter un membre",
   "v2.circle.notInstalled": "L'extension Tune Circle n'est pas active. Installez-la depuis les Extensions, puis redémarrez Tune.",
   "v2.circle.notConnected": "Tune Circle passe par votre compte Mozaiklabs : connectez ce serveur à Mozaiklabs pour inviter vos proches et voir vos invitations.",
   "v2.circle.signIn": "Se connecter à Mozaiklabs",

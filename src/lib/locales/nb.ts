@@ -5592,6 +5592,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Spillelister",
   "v2.circle.plx.statTracks": "Spor",
   "v2.circle.plx.yours": "Dine spillelister",
+  "v2.circle.addMember": "Legg til medlem",
   "v2.circle.notInstalled": "Utvidelsen Tune Circle er ikke aktiv. Installer den fra Utvidelser, og start deretter Tune på nytt.",
   "v2.circle.notConnected": "Tune Circle bruker Mozaiklabs-kontoen din: koble denne serveren til Mozaiklabs for å invitere folk nær deg og se invitasjonene dine.",
   "v2.circle.signIn": "Logg inn på Mozaiklabs",

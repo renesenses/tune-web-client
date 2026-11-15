@@ -5731,6 +5731,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Listas",
   "v2.circle.plx.statTracks": "Pistas",
   "v2.circle.plx.yours": "Tus listas",
+  "v2.circle.addMember": "Añadir miembro",
   "v2.circle.notInstalled": "La extensión Tune Circle no está activa. Instálala desde Extensiones y reinicia Tune.",
   "v2.circle.notConnected": "Tune Circle usa tu cuenta de Mozaiklabs: conecta este servidor a Mozaiklabs para invitar a tus allegados y ver tus invitaciones.",
   "v2.circle.signIn": "Iniciar sesión en Mozaiklabs",

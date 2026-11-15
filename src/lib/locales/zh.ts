@@ -5731,6 +5731,7 @@ export default {
   "v2.circle.plx.statPlaylists": "歌单",
   "v2.circle.plx.statTracks": "曲目",
   "v2.circle.plx.yours": "你的歌单",
+  "v2.circle.addMember": "添加成员",
   "v2.circle.notInstalled": "Tune Circle 扩展未启用。请在“扩展”中安装，然后重启 Tune。",
   "v2.circle.notConnected": "Tune Circle 使用您的 Mozaiklabs 账户：请将此服务器连接到 Mozaiklabs，以邀请亲友并查看您的邀请。",
   "v2.circle.signIn": "登录 Mozaiklabs",

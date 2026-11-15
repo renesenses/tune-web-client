@@ -5594,6 +5594,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Danh sách phát",
   "v2.circle.plx.statTracks": "Bài",
   "v2.circle.plx.yours": "Danh sách phát của bạn",
+  "v2.circle.addMember": "Thêm thành viên",
   "v2.circle.notInstalled": "Tiện ích Tune Circle chưa được kích hoạt. Hãy cài đặt từ mục Tiện ích mở rộng, sau đó khởi động lại Tune.",
   "v2.circle.notConnected": "Tune Circle sử dụng tài khoản Mozaiklabs của bạn: hãy kết nối máy chủ này với Mozaiklabs để mời người thân và xem lời mời của bạn.",
   "v2.circle.signIn": "Đăng nhập Mozaiklabs",

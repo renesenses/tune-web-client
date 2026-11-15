@@ -5685,6 +5685,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Listák",
   "v2.circle.plx.statTracks": "Számok",
   "v2.circle.plx.yours": "Saját listáid",
+  "v2.circle.addMember": "Tag hozzáadása",
   "v2.circle.notInstalled": "A Tune Circle bővítmény nem aktív. Telepítse a Bővítmények között, majd indítsa újra a Tune-t.",
   "v2.circle.notConnected": "A Tune Circle a Mozaiklabs-fiókját használja: csatlakoztassa ezt a szervert a mozaiklabshoz, hogy meghívhassa közeli ismerőseit és lássa a meghívásait.",
   "v2.circle.signIn": "Bejelentkezés a mozaiklabsba",

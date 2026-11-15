@@ -5730,6 +5730,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Spellistor",
   "v2.circle.plx.statTracks": "Spår",
   "v2.circle.plx.yours": "Dina spellistor",
+  "v2.circle.addMember": "Lägg till medlem",
   "v2.circle.notInstalled": "Tillägget Tune Circle är inte aktivt. Installera det under Tillägg och starta sedan om Tune.",
   "v2.circle.notConnected": "Tune Circle använder ditt Mozaiklabs-konto: anslut den här servern till Mozaiklabs för att bjuda in nära och kära och se dina inbjudningar.",
   "v2.circle.signIn": "Logga in på Mozaiklabs",

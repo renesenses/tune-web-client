@@ -5592,6 +5592,7 @@ export default {
   "v2.circle.plx.statPlaylists": "Λίστες",
   "v2.circle.plx.statTracks": "Κομμάτια",
   "v2.circle.plx.yours": "Οι λίστες σας",
+  "v2.circle.addMember": "Προσθήκη μέλους",
   "v2.circle.notInstalled": "Η επέκταση Tune Circle δεν είναι ενεργή. Εγκαταστήστε την από τις Επεκτάσεις και, στη συνέχεια, επανεκκινήστε το Tune.",
   "v2.circle.notConnected": "Το Tune Circle χρησιμοποιεί τον λογαριασμό σας στο Mozaiklabs: συνδέστε αυτόν τον διακομιστή με το Mozaiklabs για να προσκαλέσετε κοντινά σας πρόσωπα και να δείτε τις προσκλήσεις σας.",
   "v2.circle.signIn": "Σύνδεση στο Mozaiklabs",

@@ -87,6 +87,8 @@
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
   import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
   import PlaylistsGrilleCercleV2 from './PlaylistsGrilleCercleV2.svelte';
+  import { initiales } from '../../lib/circleHabillage';
+  import type { Lieu } from '../../lib/champCercle/scene';
   import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation, nonLusMessagerie } from '../../lib/circleMessagerie';
   import { ONGLETS_CIRCLE, ongletVoisin, type OngletCircle } from '../../lib/circleOnglets';
   import type { NotifCercle } from '../../lib/circleNotifications';
@@ -341,6 +343,8 @@
    * l'autre. Une conversation demandée (Écrire, notification) mène à Messages.
    */
   let onglet = $state<OngletCircle>('decouvrir');
+  /** Les lieux de mes contacts, lus par la scène (`onLieux`) : vide tant qu'aucun n'est connu. */
+  let lieux = $state.raw<Map<number, Lieu>>(new Map());
   const LIBELLES_ONGLETS: Record<OngletCircle, string> = {
     decouvrir: 'v2.circle.tab.discover', messages: 'v2.circle.tab.messages',
     playlists: 'v2.circle.tab.playlists', cercle: 'v2.circle.tab.myCircle',
@@ -765,7 +769,7 @@
       <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
       <div class="hero">
       <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
-        playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} />
+        playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
       </div>
       </div>
       <div class="panneau panneau-messages" id="circle-panneau-messages" role="tabpanel" aria-labelledby="circle-onglet-messages" hidden={onglet !== 'messages'}>
@@ -849,10 +853,15 @@
         {#if contacts.length === 0}
           <p class="note vide">{$t('v2.circle.noContacts' as any)}</p>
         {:else}
-          <ul>
+          <!-- rc12 (maquettes de Levente) : la grille des membres — avatar (initiales : le cloud ne rend
+               pas de photo), nom, ville si le contact a choisi de la montrer, et « Ajouter un membre ». -->
+          <ul class="grille-membres">
             {#each contacts as c (c.user_id)}
-              <li class="ligne contact">
+              {@const lieu = lieux.get(c.user_id)}
+              <li class="ligne contact carte-membre">
+                <span class="avatar-membre" aria-hidden="true">{initiales(c.name)}</span>
                 <span class="nom" use:bulleTexte>{c.name}</span>
+                {#if lieu}<span class="note ville-membre" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code.toUpperCase()}{/if}</span>{/if}
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
                   {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
@@ -865,6 +874,12 @@
                 </span>
               </li>
             {/each}
+            <li class="ajouter-membre-case">
+              <button type="button" class="ajouter-membre" onclick={() => void allerInviter()}>
+                <span class="plus-membre" aria-hidden="true">+</span>
+                <span>{$t('v2.circle.addMember' as any)}</span>
+              </button>
+            </li>
           </ul>
         {/if}
       </section>
@@ -1251,7 +1266,26 @@
   .case-rayon input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .nom-rayon{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  /* rc12 — Mon cercle : la grille des membres. */
+  .bloc ul.grille-membres{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px}
+  .ligne.carte-membre{display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px; padding:16px 10px 12px;
+    border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface2); min-width:0}
+  .carte-membre .nom{max-width:100%; font-weight:600}
+  .ville-membre{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .carte-membre .gestes{flex-wrap:wrap; justify-content:center; margin-top:4px}
+  .avatar-membre{width:64px; height:64px; border-radius:50%; display:grid; place-items:center; margin-bottom:6px;
+    background:linear-gradient(140deg, var(--v2-acc1), var(--v2-acc2)); color:var(--v2-on-acc); border:2px solid var(--v2-acc-tint);
+    font-weight:700; font-size:calc(20px * var(--v2-txt-echelle, 1))}
+  .ajouter-membre-case{display:flex}
+  .ajouter-membre{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:150px;
+    border:1px dashed var(--v2-line2); border-radius:var(--v2-r-card); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .ajouter-membre:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  .ajouter-membre:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .plus-membre{width:56px; height:56px; border-radius:50%; border:1px dashed currentColor; display:grid; place-items:center;
+    font-size:calc(26px * var(--v2-txt-echelle, 1)); font-weight:300}
   @media (max-width: 640px){
+    .bloc ul.grille-membres{grid-template-columns:repeat(2, minmax(0, 1fr))}
     .scroll{padding:6px 16px 32px}
     .onglets-circle{padding:0 16px}
     .onglet{padding:10px 12px}
