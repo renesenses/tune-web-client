@@ -87,6 +87,7 @@
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
   import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
   import PlaylistsGrilleCercleV2 from './PlaylistsGrilleCercleV2.svelte';
+  import DecouvrirCercleV2 from './DecouvrirCercleV2.svelte';
   import { initiales } from '../../lib/circleHabillage';
   import type { Lieu } from '../../lib/champCercle/scene';
   import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation, nonLusMessagerie } from '../../lib/circleMessagerie';
@@ -766,11 +767,15 @@
       <div class="panneau panneau-decouvrir" id="circle-panneau-decouvrir" role="tabpanel" aria-labelledby="circle-onglet-decouvrir" hidden={onglet !== 'decouvrir'}>
       <p class="intro">{$t('v2.circle.intro' as any)}</p>
 
-      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
-      <div class="hero">
+      <DecouvrirCercleV2 {contacts} {lieux} playlists={t5 ? playlists : null} occupe={occupe !== null}
+        onOnglet={(o) => void choisirOnglet(o)} onInviter={() => void allerInviter()}
+        onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
+        {#snippet scene()}
       <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
         playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
-      </div>
+        {/snippet}
+      </DecouvrirCercleV2>
+      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
       </div>
       <div class="panneau panneau-messages" id="circle-panneau-messages" role="tabpanel" aria-labelledby="circle-onglet-messages" hidden={onglet !== 'messages'}>
       <MessagerieCercleV2 />
