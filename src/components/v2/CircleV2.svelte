@@ -360,7 +360,10 @@
     champ?.scrollIntoView?.({ block: 'center' });
     champ?.focus();
   }
-  $effect(() => { if ($demandeConversation) onglet = 'messages'; });
+  // Abonnement direct, pas un `$effect` : la messagerie consomme la demande (remise à `null`)
+  // dans le même tour, avant qu'un effet ne la voie.
+  const finDemande = demandeConversation.subscribe((d) => { if (d) onglet = 'messages'; });
+  onDestroy(finDemande);
 
   /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
   function ouvrirNotification(n: NotifCercle) {
