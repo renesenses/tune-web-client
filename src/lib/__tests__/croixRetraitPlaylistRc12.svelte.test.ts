@@ -16,6 +16,7 @@ import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import { entreesMenuPiste } from '../menuPiste';
+import { entreeParLibelle } from './aides/menuFiche';
 import lFr from '../locales/fr';
 
 const fr = lFr as unknown as Record<string, string>;
@@ -195,5 +196,22 @@ describe('rc12 — « Supprimer de cette playlist » dans le menu « … » de l
   it('playlist Qobuz suivie (editable: false) : pas d’entrée', async () => {
     await ouvrirQobuz(false);
     expect(await entreeSupprimer(0)).toBeNull();
+  });
+});
+
+describe('rc12 — « Éditer » réservé aux playlists Tune', () => {
+  const editer = () => entreeParLibelle(hote!, fr['v2.pl.edit']);
+  it('playlist Tune : « Éditer » est dans « … », et ouvre le réordonnancement', async () => {
+    await ouvrirLocale();
+    expect(editer(), 'entrée « Éditer » absente').toBeTruthy();
+    editer()!.click();
+    await attendreQue(() => !!hote!.querySelector('[data-fin-edition-playlist]'), 'le mode édition');
+    expect(hote!.querySelectorAll(`button[aria-label="${fr['playlist.moveDown']}"]`).length).toBe(3);
+  });
+
+  it('playlist de service à soi : pas d’« Éditer » (rien à y montrer), les croix restent', async () => {
+    await ouvrirQobuz(true);
+    expect(editer()).toBeNull();
+    expect(croix().length).toBe(2);
   });
 });

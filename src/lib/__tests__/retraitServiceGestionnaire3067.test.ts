@@ -202,15 +202,15 @@ async function ouvrirFiche(pl: Record<string, unknown>) {
 const boutonEditer = () => entreeParLibelle(hote!, fr['v2.pl.edit']) ?? undefined;
 
 describe('(2) #3067 — fiche venue de la recherche / d’un widget : `editable` absent', () => {
-  it('🔴 retrouvé dans la liste du compte : Éditer, croix, retrait', async () => {
+  it('🔴 retrouvé dans la liste du compte : croix, retrait (sans « Éditer »)', async () => {
     // Ce que rend `get_playlist` (Qobuz) : pas de drapeau.
     await ouvrirFiche({ source_id: 'q-11', name: 'Ma playlist', track_count: 2, editable: null });
     expect(requetes.some((r) => r.method === 'GET' && /\/streaming\/qobuz\/playlists$/.test(r.url)),
       'la liste du compte n’a pas été consultée').toBe(true);
-    await attendreQue(() => !!boutonEditer(), 'l’entrée Éditer');
-    boutonEditer()!.click();
-    await souffler();
-    expect(croix().length).toBe(2);
+    // rc12 (15/11) — la croix vient avec `editable` retrouvé ; « Éditer » est
+    // réservé aux playlists Tune.
+    await attendreQue(() => croix().length === 2, 'les croix');
+    expect(boutonEditer()).toBeUndefined();
     croix()[1].click();
     await souffler();
     expect(retraits()[0]?.url).toMatch(/\/streaming\/qobuz\/playlists\/q-11\/tracks\/remove$/);
