@@ -4984,7 +4984,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .menu button:disabled:hover{background:transparent}
   /* Maquette de Levente (biblio-3) — le choix des filtres affichés. Les cases
      épinglées gardent l'apparence « on » des autres menus. */
-  .filtres-choix{min-width:240px; max-width:min(320px, calc(100vw - 32px))}
+  .drop .menu.filtres-choix{min-width:260px; max-width:min(320px, calc(100vw - 32px))}
+  .filtres-choix button{white-space:nowrap}
   .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
   .filtres-choix .case{display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px;
     margin-right:8px; border:1px solid currentColor; border-radius:3px; font-size:10px; line-height:1}
