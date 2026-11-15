@@ -165,6 +165,8 @@ describe('filtres épinglés — la Bibliothèque montée', { timeout: 30_000 },
     // « Derniers ajouts » allumé, puis désépinglé : il ne disparaît pas.
     hote!.querySelector<HTMLButtonElement>('.filters [data-puce="recent"]')!.click();
     flushSync();
+    // Cliquer la puce, hors du menu, l'a refermé : on le rouvre.
+    if (!choix('recent')) { bouton()!.click(); flushSync(); }
     choix('recent')!.click();
     flushSync();
     expect(puce('recent'), 'un filtre actif a disparu de la rangée').not.toBeNull();

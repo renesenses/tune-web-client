@@ -3870,6 +3870,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
           {$tr('v2.lib.filtres.bouton' as any)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+        <!-- Rendu seulement OUVERT (comme « Répertoire ») : un `.menu[role=menu]`
+             toujours présent passerait pour le menu ouvert de la page. -->
+        {#if ddOpen === 'filtres'}
         <div class="menu filtres-choix" role="menu" aria-label={$tr('v2.lib.filtres.titre' as any)}>
           <p class="filtres-aide">{$tr('v2.lib.filtres.aide' as any)}</p>
           {#each filtresDisponibles as f (f.id)}
@@ -3882,6 +3885,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {/each}
           <button data-filtres-defaut disabled={estParDefaut(filtresEpingles)} onclick={filtresParDefaut}>{$tr('v2.lib.filtres.defaut' as any)}</button>
         </div>
+        {/if}
       </div>
     {/if}
 
@@ -4988,7 +4992,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .filtres-choix button{white-space:nowrap}
   .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
   .filtres-choix .case{display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px;
-    margin-right:8px; border:1px solid currentColor; border-radius:3px; font-size:10px; line-height:1}
+    margin-right:8px; border:1px solid currentColor; border-radius:3px; font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1}
   .filtres-choix button[data-filtres-defaut]{margin-top:4px; border-top:1px solid var(--v2-line); border-radius:0}
   .chip.plain{gap:7px}
   .chip.plain svg:first-child{width:14px; height:14px}
