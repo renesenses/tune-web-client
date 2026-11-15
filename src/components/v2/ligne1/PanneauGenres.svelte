@@ -38,8 +38,11 @@
   import * as api from '../../../lib/api';
   import { t } from '../../../lib/i18n';
   import { activeView } from '../../../lib/stores/navigation';
-  import { LARGEUR_GENRES, TUILES_GENRES, classerGenresDuPanneau } from '../../../lib/premiereLigne';
+  import { LARGEUR_GENRES, LARGEUR_GENRES_LEVENTE, TUILES_GENRES, classerGenresDuPanneau } from '../../../lib/premiereLigne';
   import PanneauL1 from './PanneauL1.svelte';
+
+  /** La présentation de Levente (15/11/2026) : des tuiles sur deux colonnes. */
+  let { levente = false }: { levente?: boolean } = $props();
 
   let phase = $state<'attente' | 'charge' | 'echec'>('attente');
   let genres = $state<{ name: string; count?: number; plays?: number }[]>([]);
@@ -75,7 +78,7 @@
   }
 </script>
 
-<PanneauL1 titre={$t('nav.genres' as any)} largeur={LARGEUR_GENRES}>
+<PanneauL1 titre={$t('nav.genres' as any)} largeur={levente ? LARGEUR_GENRES_LEVENTE : LARGEUR_GENRES} {levente}>
   {#snippet icone()}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
          stroke-linecap="round"><circle cx="7" cy="18" r="3"/><path d="M10 18V5l10-2v13"/><circle cx="17" cy="16" r="3"/></svg>
@@ -87,12 +90,12 @@
     <p class="etat">{$t('v2.home.widgetFailed' as any)}</p>
   {:else if !genres.length}
     <p class="etat">{$t('v2.home.widgetEmpty' as any)}</p>
-  {:else}
+  {:else if levente}
     <!-- 15/11/2026, maquette de Levente : des TUILES sur deux colonnes, et
          non plus une colonne de pastilles. La maquette pose une photo derrière
          chaque genre ; le serveur n'en a pas — la tuile prend une teinte de
          l'accent du thème, jamais une couleur écrite ici. -->
-    <ul>
+    <ul class="tuiles">
       {#each genres.slice(0, TUILES_GENRES) as g, i (g.name)}
         <li>
           <button class="tuile" data-teinte={i % 3} onclick={() => ouvrir(g.name)} title={g.name}>
@@ -103,14 +106,31 @@
         </li>
       {/each}
     </ul>
+  {:else}
+    <ul>
+      {#each genres as g (g.name)}
+        <li>
+          <button onclick={() => ouvrir(g.name)} title={g.name}>{g.name}</button>
+        </li>
+      {/each}
+    </ul>
   {/if}
 </PanneauL1>
 
 <style>
   .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
   li { min-width: 0; }
+  button {
+    display: block; width: 100%; text-align: left; min-width: 0;
+    padding: 5px 10px; border-radius: var(--v2-r-pill);
+    border: 1px solid var(--v2-line2); background: var(--v2-surface);
+    color: var(--v2-txt2); font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  button:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }
+  ul.tuiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .tuile {
     display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 60px;
     padding: 0 12px; border-radius: var(--v2-r-md); text-align: left; cursor: pointer;
@@ -128,6 +148,10 @@
   }
   .tuile:hover { border-color: var(--v2-acc1); }
   .tuile svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v2-acc1); }
-  .tuile span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Le nom du genre n'est JAMAIS tronqué (« Pop-… », vérification du .18) :
+     il passe sur deux lignes, la tuile garde sa hauteur. */
+  .tuile { white-space: normal; padding: 0 10px; gap: 6px; }
+  .tuile span { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; text-overflow: clip;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 
 </style>

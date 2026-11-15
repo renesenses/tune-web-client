@@ -113,7 +113,7 @@
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
   import PanneauZones from './ligne1/PanneauZones.svelte';
-  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
+  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, PANNEAUX_L1_LEVENTE, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -237,6 +237,11 @@
 
   const clePanneaux = $derived(`${CLE}_panneaux`);
   let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
+  /** Les panneaux du widget « première ligne, présentation de Levente »
+   *  (15/11/2026) — une préférence À PART : cocher « Zones » dans l'un ne
+   *  touche pas l'autre. */
+  const clePanneauxLevente = $derived(`${CLE}_panneaux_levente`);
+  let panneauxLevente = $state<string[]>(panneauxDeLaLigne(undefined, PANNEAUX_L1_LEVENTE));
   let disposition = $state<string[]>([...dispositionDefaut]);
   /**
    * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
@@ -500,6 +505,7 @@
       chiffresEnregistres = lu.enregistres;
       migrationAFaire = lu.aMigrer;
       panneaux = panneauxDeLaLigne(prefs?.[clePanneaux]);
+      panneauxLevente = panneauxDeLaLigne(prefs?.[clePanneauxLevente], PANNEAUX_L1_LEVENTE);
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -613,6 +619,7 @@
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
         [clePanneaux]: panneaux,
+        [clePanneauxLevente]: panneauxLevente,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
         // #2410 — SA disposition est une décision : le marqueur de la première
         // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
@@ -1914,16 +1921,9 @@
                      Une zone démarrée ensuite n'apparaissait jamais, et une
                      zone arrêtée gardait sa carte. Le filtre vit dans
                      `lib/premiereLigne`, avec son test. -->
-                <!-- 15/11/2026, maquette de Levente : le panneau « Zones » LISTE
-                     toutes les zones et remplace les cartes carrées. Décoché
-                     en mode « Modifier », les cartes reviennent. -->
-                {#if panneaux.includes('zones')}
-                  <PanneauZones />
-                {:else}
-                  {#each zonesDeLaLigne($zones) as z (z.id)}
-                    <CarteZoneL1 zone={z} />
-                  {/each}
-                {/if}
+                {#each zonesDeLaLigne($zones) as z (z.id)}
+                  <CarteZoneL1 zone={z} />
+                {/each}
                 {#if panneaux.includes('genres')}<PanneauGenres />{/if}
                 {#if panneaux.includes('concerts')}<PanneauConcerts />{/if}
                 {#if panneaux.includes('stats')}<PanneauStats />{/if}
@@ -1939,6 +1939,57 @@
                             panneaux = panneaux.includes(panneau.id)
                               ? panneaux.filter((id) => id !== panneau.id)
                               : [...panneaux, panneau.id];
+                            void enregistrer();
+                          }} />
+                        <span>{$t(panneau.cle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+            {:else if w.forme === 'premiere-ligne-levente'}
+              <!-- LA PREMIÈRE LIGNE, PRÉSENTATION DE LEVENTE — Bertrand,
+                   15/11/2026 : « garde en widget le widget de la première
+                   ligne et crée-en un nouveau à partir du design de Levente ».
+
+                   Les MÊMES composants que la ligne d'origine, avec `levente` :
+                   panneau « Zones » (toutes les zones), panneaux qui se
+                   partagent la largeur, titres à empattements, tuiles de
+                   genre. Même hauteur posée une fois (`--l1-h`), même
+                   défilement, même lecture du magasin vivant. Ses panneaux
+                   cochés ont leur PROPRE préférence (`_panneaux_levente`). -->
+              <!-- 🔴 UNE GRILLE, pas une bande qui défile (vérification du .18
+                   à 1440 px, 15/11) : les quatre panneaux tiennent TOUJOURS
+                   dans la largeur, quitte à passer sur deux rangées. Jamais
+                   un panneau coupé au bord. -->
+              <div class="l1 grille-levente"
+                   style:--l1-h="{COTE_L1}px"
+                   role="group" aria-label={$t(w.cleTitre as any)}>
+                <!-- Le panneau « Zones » remplace les cartes carrées ; décoché
+                     en mode « Modifier », les cartes reviennent. -->
+                {#if panneauxLevente.includes('zones')}
+                  <PanneauZones />
+                {:else}
+                  {#each zonesDeLaLigne($zones) as z (z.id)}
+                    <CarteZoneL1 zone={z} />
+                  {/each}
+                {/if}
+                {#if panneauxLevente.includes('genres')}<PanneauGenres levente />{/if}
+                {#if panneauxLevente.includes('concerts')}<PanneauConcerts levente />{/if}
+                {#if panneauxLevente.includes('stats')}<PanneauStats levente />{/if}
+              </div>
+
+              {#if edition}
+                <div class="choix-chiffres" role="group" aria-label={$t(w.cleTitre as any)}>
+                  <div class="opts">
+                    {#each PANNEAUX_L1_LEVENTE as panneau (panneau.id)}
+                      <label class="opt" class:on={panneauxLevente.includes(panneau.id)}>
+                        <input type="checkbox" checked={panneauxLevente.includes(panneau.id)}
+                          onchange={() => {
+                            panneauxLevente = panneauxLevente.includes(panneau.id)
+                              ? panneauxLevente.filter((id) => id !== panneau.id)
+                              : [...panneauxLevente, panneau.id];
                             void enregistrer();
                           }} />
                         <span>{$t(panneau.cle as any)}</span>
@@ -2266,6 +2317,14 @@
   .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
       scrollbar-width:thin}
 
+  /* Le widget « nouvelle présentation » (Levente, 15/11/2026) : une GRILLE.
+     Quatre colonnes dès qu’il y a la place (≥ 260 px chacune, soit un écran de 1440 px avec la barre latérale), trois ou deux
+     sinon, une seule sur téléphone. Chaque case contient son panneau en
+     entier : rien ne déborde, rien n'est coupé. Une carte de zone (panneau
+     « Zones » décoché) prend la largeur de sa case. */
+  .l1.grille-levente{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); overflow-x:visible}
+  .grille-levente > :global(*){min-width:0; max-width:100%}
+  .grille-levente > :global(.carte){width:auto}
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}

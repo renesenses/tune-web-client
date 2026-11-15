@@ -31,15 +31,16 @@
 /** La HAUTEUR de la ligne, et le côté de la carte de zone. Une seule valeur. */
 export const COTE_L1 = 315;
 
+/** Largeur du panneau des genres — une colonne de pastilles, rien de plus. */
+export const LARGEUR_GENRES = 150;
+
 /**
- * Largeur MINIMALE du panneau des genres — deux colonnes de tuiles (maquette
- * « Home Dashboard with Album Grid » de Levente, 15/11/2026). C'était une
- * colonne de pastilles de 150 px ; les tuiles en demandent deux.
- *
- * Depuis le 15/11, la largeur d'un panneau est un PLANCHER : sur un écran
- * large, les panneaux se partagent la ligne à parts égales (`PanneauL1`).
+ * Présentation de Levente (15/11/2026, widget `premiere-ligne-levente`) :
+ * largeur MINIMALE du panneau des genres, deux colonnes de tuiles. Dans cette
+ * présentation, la largeur d'un panneau est un plancher : les panneaux se
+ * partagent la ligne à parts égales (`PanneauL1`, `levente`).
  */
-export const LARGEUR_GENRES = 240;
+export const LARGEUR_GENRES_LEVENTE = 240;
 
 /** Combien de tuiles de genre au plus — trois rangées de deux, la maquette. */
 export const TUILES_GENRES = 6;
@@ -169,22 +170,31 @@ export function classerGenresDuPanneau<T extends GenreServi>(servis: readonly T[
 
 /** #2614 — les panneaux se choisissent indépendamment des zones actives. */
 export const PANNEAUX_L1 = [
-  // Maquette de Levente du 15/11/2026 : la ligne s'ouvre sur un panneau qui
-  // LISTE les zones (toutes, avec leur bouton lecture/pause) au lieu d'une
-  // carte carrée par zone qui joue. Décoché, les cartes reviennent : rien de
-  // ce qu'elles portent ne disparaît.
-  { id: 'zones', cle: 'v2.home.l1Zones' },
   { id: 'genres', cle: 'common.genres' },
   { id: 'concerts', cle: 'concerts.titre' },
   { id: 'stats', cle: 'dashboard.title' },
 ] as const;
 
-export function panneauxDeLaLigne(valeur: unknown): string[] {
+/**
+ * Les panneaux du widget `premiere-ligne-levente` (Bertrand, 15/11/2026 :
+ * « garde en widget le widget de la première ligne et crée-en un nouveau à
+ * partir du design de Levente »). Le panneau « Zones » LISTE toutes les
+ * zones ; décoché, les cartes carrées reviennent.
+ */
+export const PANNEAUX_L1_LEVENTE = [
+  { id: 'zones', cle: 'v2.home.l1Zones' },
+  ...PANNEAUX_L1,
+] as const;
+
+export function panneauxDeLaLigne(
+  valeur: unknown,
+  catalogue: readonly { id: string }[] = PANNEAUX_L1,
+): string[] {
   // Une liste vide est un choix. Garder les identifiants inconnus permet
   // de relire une préférence écrite par une version plus récente.
   return Array.isArray(valeur)
     ? [...new Set(valeur.filter((id): id is string => typeof id === 'string'))]
-    : PANNEAUX_L1.map((p) => p.id);
+    : catalogue.map((p) => p.id);
 }
 
 /**

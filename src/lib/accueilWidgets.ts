@@ -267,7 +267,12 @@ export interface Element {
  * propre composant. Un panneau en panne — le greffon Concerts absent, par
  * exemple — ne retient donc ni les autres panneaux ni les cartes.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc' | 'premiere-ligne';
+/**
+ * `premiere-ligne-levente` (15/11/2026) : la même ligne d'en-tête, dans la
+ * présentation de Levente — un widget À PART, que l'on ajoute depuis
+ * « Modifier ». La ligne d'origine reste la seule du défaut.
+ */
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc' | 'premiere-ligne' | 'premiere-ligne-levente';
 
 /**
  * CE QUE PORTE UN WIDGET `forme: 'bloc'`, en plus de son identité.
@@ -602,7 +607,9 @@ export function detailsAlbum(o: any): string | null {
   const an = (() => {
     const y = Number(o?.year);
     if (Number.isInteger(y) && y > 0) return String(y);
-    for (const k of ['release_date', 'releaseDate', 'date']) {
+    // Pas le champ générique `date` : selon l'objet, c'est une date d'ajout,
+    // d'écoute ou d'évènement, pas l'année de l'album (relecture du 15/11).
+    for (const k of ['release_date', 'releaseDate']) {
       const m = typeof o?.[k] === 'string' ? /^(\d{4})/.exec(o[k]) : null;
       if (m) return m[1];
     }
@@ -1507,6 +1514,22 @@ export const WIDGETS: Widget[] = [
     // moteur attend une promesse pour faire passer le widget en « chargé »,
     // et parce qu'un widget sans chargeur serait un cas de plus dans un moteur
     // qui n'en a pas besoin.
+    charger: async () => [],
+  },
+  {
+    /**
+     * LA PREMIÈRE LIGNE, PRÉSENTATION DE LEVENTE — Bertrand, 15/11/2026 :
+     * « garde en widget le widget de la première ligne et crée-en un nouveau
+     * à partir du design de Levente » (maquette Figma 612:5808).
+     *
+     * Hors du défaut : il s'ajoute depuis « Modifier ». Comme la ligne
+     * d'origine, il lit le magasin VIVANT au rendu et n'a aucune matière à
+     * charger (correctif du 27/09/2026) ; pas de titre hors édition.
+     */
+    id: 'premiere-ligne-levente',
+    cleTitre: 'v2.home.wFirstRowLevente',
+    forme: 'premiere-ligne-levente',
+    sansTitre: true,
     charger: async () => [],
   },
   {
