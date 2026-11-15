@@ -9,6 +9,11 @@
 // la fenêtre laisse l'erreur remonter au lieu de recharger sans fin. Sans
 // stockage utilisable (navigation privée, accès refusé), on ne recharge PAS :
 // mieux vaut une erreur visible qu'une boucle.
+//
+// tune-web-client#3054 : « visible » pour de bon. Quand la garde refuse le
+// rechargement, le message de la garde de démarrage (`index.html`,
+// `window.__tuneDemarrage`) s'affiche : « Nouvelle version : rechargez la
+// page », au lieu d'un écran noir ou d'un écran à moitié chargé.
 
 export const CLE_RECHARGEMENT_PRECHARGEMENT = 'tune-rechargement-preload-error';
 export const FENETRE_ANTI_BOUCLE_MS = 60_000;
@@ -47,6 +52,21 @@ export function installerRechargementApresMiseAJour(fenetre: Window = window): v
     if (doitRechargerApresEchecDePrechargement(stockageDeSession(fenetre), Date.now())) {
       evenement.preventDefault();
       fenetre.location.reload();
+    } else {
+      fenetre.__tuneDemarrage?.message();
     }
   });
+}
+
+/** L'interface est montée : la garde de démarrage d'`index.html` se retire. */
+export function signalerInterfaceMontee(fenetre: Window = window): void {
+  fenetre.__tuneDemarrage?.monte();
+}
+
+/**
+ * Le démarrage a échoué : la garde d'`index.html` recharge une fois, puis
+ * affiche son message. Sans garde (banc, page sans `index.html`), rien.
+ */
+export function signalerEchecDuDemarrage(fenetre: Window = window): void {
+  fenetre.__tuneDemarrage?.echec();
 }
