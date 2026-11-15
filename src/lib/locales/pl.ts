@@ -4141,6 +4141,7 @@ export default {
   "v2.label.retour": "Wstecz",
   "v2.rech.albums": "Albumy",
   "v2.stream.favIndex": "Spis ulubionych",
+  "v2.stream.genreSections": "Działy gatunku",
   "v2.fas.topTracks": "Najpopularniejsze utwory",
   "v2.art.bio": "Biografia",
   "v2.art.bioReadMore": "Czytaj dalej",

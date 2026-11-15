@@ -4143,6 +4143,7 @@ export default {
   "v2.label.retour": "Quay lại",
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Mục lục yêu thích",
+  "v2.stream.genreSections": "Các mục của thể loại",
   "v2.fas.topTracks": "Bài hát nổi bật",
   "v2.art.bio": "Tiểu sử",
   "v2.art.bioReadMore": "Đọc thêm",

@@ -4141,6 +4141,7 @@ export default {
   "v2.label.retour": "Πίσω",
   "v2.rech.albums": "Άλμπουμ",
   "v2.stream.favIndex": "Ευρετήριο αγαπημένων",
+  "v2.stream.genreSections": "Ενότητες του είδους",
   "v2.fas.topTracks": "Κορυφαία κομμάτια",
   "v2.art.bio": "Βιογραφία",
   "v2.art.bioReadMore": "Περισσότερα",

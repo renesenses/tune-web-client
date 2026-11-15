@@ -4220,6 +4220,7 @@ export default {
   "v2.label.retour": "Vissza",
   "v2.rech.albums": "Albumok",
   "v2.stream.favIndex": "Kedvencek tartalomjegyzéke",
+  "v2.stream.genreSections": "A műfaj rovatai",
   "v2.fas.topTracks": "Népszerű dalok",
   "v2.art.bio": "Életrajz",
   "v2.art.bioReadMore": "Tovább olvasom",

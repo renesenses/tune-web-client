@@ -4266,6 +4266,7 @@ export default {
   "v2.label.retour": "返回",
   "v2.rech.albums": "专辑",
   "v2.stream.favIndex": "收藏目录",
+  "v2.stream.genreSections": "该流派的栏目",
   "v2.fas.topTracks": "热门单曲",
   "v2.art.bio": "简介",
   "v2.art.bioReadMore": "展开全文",
