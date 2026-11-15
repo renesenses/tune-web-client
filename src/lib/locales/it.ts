@@ -4266,6 +4266,7 @@ export default {
   "v2.label.retour": "Indietro",
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Indice dei preferiti",
+  "v2.stream.genreSections": "Sezioni del genere",
   "v2.fas.topTracks": "Brani principali",
   "v2.art.bio": "Biografia",
   "v2.art.bioReadMore": "Leggi tutto",

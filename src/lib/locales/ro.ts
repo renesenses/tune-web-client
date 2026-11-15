@@ -4266,6 +4266,7 @@ export default {
   "v2.label.retour": "Înapoi",
   "v2.rech.albums": "Albume",
   "v2.stream.favIndex": "Cuprinsul favoritelor",
+  "v2.stream.genreSections": "Secțiunile genului",
   "v2.fas.topTracks": "Piese populare",
   "v2.art.bio": "Biografie",
   "v2.art.bioReadMore": "Citește mai mult",

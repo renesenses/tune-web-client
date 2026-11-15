@@ -4141,6 +4141,7 @@ export default {
   "v2.label.retour": "Tilbake",
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Favorittindeks",
+  "v2.stream.genreSections": "Seksjoner i sjangeren",
   "v2.fas.topTracks": "Mest spilte spor",
   "v2.art.bio": "Biografi",
   "v2.art.bioReadMore": "Les mer",

@@ -4266,6 +4266,7 @@ export default {
   "v2.label.retour": "뒤로",
   "v2.rech.albums": "앨범",
   "v2.stream.favIndex": "즐겨찾기 목차",
+  "v2.stream.genreSections": "이 장르의 섹션",
   "v2.fas.topTracks": "인기 트랙",
   "v2.art.bio": "약력",
   "v2.art.bioReadMore": "더 읽기",

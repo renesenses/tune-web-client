@@ -4265,6 +4265,7 @@ export default {
   "v2.label.retour": "Tillbaka",
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Favoritindex",
+  "v2.stream.genreSections": "Avsnitt i genren",
   "v2.fas.topTracks": "Toppspår",
   "v2.art.bio": "Biografi",
   "v2.art.bioReadMore": "Läs mer",
