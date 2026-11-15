@@ -4652,7 +4652,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   $effect(() => {
     void tabId;
     tick().then(() => {
-      navOnglets?.querySelector<HTMLElement>('.tab.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      // Défilement HORIZONTAL de la seule barre : pas de « scroll into view »,
+      // qui ferait aussi bouger la page (garde amenerSousEntete).
+      const n = navOnglets;
+      const on = n?.querySelector<HTMLElement>('.tab.on');
+      if (n && on) {
+        const g = on.offsetLeft - 40, d = on.offsetLeft + on.offsetWidth + 40 - n.clientWidth;
+        if (n.scrollLeft > g) n.scrollLeft = Math.max(0, g);
+        else if (n.scrollLeft < d) n.scrollLeft = d;
+      }
       mesurerOnglets();
     });
   });
