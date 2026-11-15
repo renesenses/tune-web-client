@@ -87,21 +87,23 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la saisie manuelle', () => {
-  it('🔴 FIP (annuaire) : Voir et Retirer, pas Modifier', async () => {
+describe('Mes radios : la fiche par le logo, « Modifier » pour la saisie manuelle', () => {
+  // web#2795 (décision du 11/11) : « Modifier » revient sur une station de
+  // l'annuaire, en surcharge locale. rc12 (retour de Rémi, point 17) : plus
+  // d'œil « Voir », le « − » prend le coin haut droit.
+  it('🔴 FIP (annuaire) : Retirer et Modifier (surcharge locale, web#2795), sans œil', async () => {
     await monter(RadiosV2);
     const t = titres(tuile('FIP'));
-    expect(t).toContain('Voir');
-    expect(t).toContain('Retirer de Mes radios');
-    expect(t).not.toContain('Modifier');
-    expect(tuile('FIP').querySelector('button.coin.tr')?.getAttribute('title')).toBe('Voir');
+    expect(t).toEqual(expect.arrayContaining(['Retirer de Mes radios', 'Modifier']));
+    expect(tuile('FIP').querySelector('button.coin.tr')?.getAttribute('title')).toBe('Retirer de Mes radios');
+    expect(tuile('FIP').querySelector('button.coin.tr2')?.getAttribute('title')).toBe('Modifier');
   });
 
-  it('CONTRE-ÉPREUVE : la station saisie à la main garde Modifier, sans Voir', async () => {
+  it('CONTRE-ÉPREUVE : la station saisie à la main garde Modifier seul', async () => {
     await monter(RadiosV2);
     const t = titres(tuile('Radio Maison'));
     expect(t).toContain('Modifier');
-    expect(t).not.toContain('Voir');
+    expect(t).not.toContain('Retirer de Mes radios');
   });
 
   it('🔴 badge Metadata+ sur la station qui a une clé, pas sur l’autre', async () => {
@@ -110,9 +112,9 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
     expect(tuile('Radio Maison').querySelector('.mdp')).toBeNull();
   });
 
-  it('🔴 l’œil ouvre la fiche : description, genres, pays, site, flux disponibles', async () => {
+  it('🔴 le logo ouvre la fiche : description, genres, pays, site, flux disponibles', async () => {
     await monter(RadiosV2);
-    (tuile('FIP').querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (tuile('FIP').querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
     const d = dialogue()!;
     expect(d).not.toBeNull();
@@ -121,27 +123,33 @@ describe('Mes radios : « Voir » pour l’annuaire, « Modifier » pour la sais
     expect([...d.querySelectorAll('.genres li')].length).toBe(2);
     expect(d.querySelector<HTMLAnchorElement>('a.site')!.href).toBe('https://www.fip.fr/');
     expect(d.querySelector<HTMLAnchorElement>('a.site')!.rel).toContain('noopener');
-    const choix = [...d.querySelectorAll<HTMLInputElement>('input[type=radio]')];
-    expect(choix.map((c) => c.value)).toEqual([AAC, MP3]);
-    expect(choix[0].checked).toBe(true);
+    // Flux classés par qualité (AAC 192 avant MP3 128), le flux par défaut marqué.
+    const flux = [...d.querySelectorAll('.flux li')];
+    expect(flux.map((l) => l.querySelector('.url')?.textContent)).toEqual([AAC, MP3]);
+    expect(flux[0].classList.contains('actuel')).toBe(true);
+    expect(flux[0].querySelector('.prin')?.textContent).toBe('par défaut');
   });
 
   it('🔴 choisir un autre flux l’enregistre et met la tuile à jour', async () => {
     mocks.choisirFluxPrefere.mockResolvedValue({ ...FIP, stream_url: MP3, codec: 'mp3' });
     await monter(RadiosV2);
-    (tuile('FIP').querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (tuile('FIP').querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
-    const mp3 = dialogue()!.querySelector<HTMLInputElement>(`input[value="${MP3}"]`)!;
-    mp3.checked = true;
-    mp3.dispatchEvent(new Event('change', { bubbles: true }));
+    mocks.playRadio.mockResolvedValue({});
+    const mp3 = [...dialogue()!.querySelectorAll<HTMLButtonElement>('.flux li')]
+      .find((l) => l.querySelector('.url')?.textContent === MP3)!;
+    mp3.querySelector<HTMLButtonElement>('button.flux-lire')!.click();
     await respirer();
     expect(mocks.choisirFluxPrefere).toHaveBeenCalledWith(7, MP3);
-    expect(dialogue()!.querySelector<HTMLInputElement>(`input[value="${MP3}"]`)!.checked).toBe(true);
+    expect(mocks.playRadio).toHaveBeenCalledWith(7, 3);
+    const apres = [...dialogue()!.querySelectorAll('.flux li')]
+      .find((l) => l.querySelector('.url')?.textContent === MP3)!;
+    expect(apres.classList.contains('actuel')).toBe(true);
     expect(tuile('FIP').querySelector('.tk')?.textContent).toContain('MP3');
   });
 });
 
-describe('Annuaire : l’œil et le badge', () => {
+describe('Annuaire : la fiche par le logo, et le badge', () => {
   it('🔴 la fiche s’ouvre depuis l’annuaire ; badge sur la fiche à clé seulement', async () => {
     await monter(RadiosV2);
     (hote.querySelectorAll<HTMLButtonElement>('.sections button')[1]).click();
@@ -150,19 +158,18 @@ describe('Annuaire : l’œil et le badge', () => {
     const autre = tuile('Radio Sans Cle', '.grille .fiche');
     expect(fip.querySelector('.mdp')).not.toBeNull();
     expect(autre.querySelector('.mdp')).toBeNull();
-    expect(titres(autre)).toContain('Voir');
-    (autre.querySelector('button.coin.tr') as HTMLButtonElement).click();
+    (autre.querySelector('button.ouvrir') as HTMLButtonElement).click();
     await respirer();
     const d = dialogue()!;
     expect(d.querySelector('h2')?.textContent).toBe('Radio Sans Cle');
-    // Pas dans « Mes radios » : le flux se lit, il ne se choisit pas.
-    expect(d.querySelector('input[type=radio]')).toBeNull();
+    // Pas dans « Mes radios » : un seul flux, lisible par la route de l'annuaire.
+    expect(d.querySelectorAll('.flux li').length).toBe(1);
   });
 
   it('une fiche déjà dans Mes radios se relit là pour choisir son flux', async () => {
     await monter(RadioFicheModale, { annuaire: ANNUAIRE.items[0], onClose: () => {} });
     expect(mocks.getRadios).toHaveBeenCalled();
-    expect(dialogue()!.querySelectorAll('input[type=radio]').length).toBe(2);
+    expect(dialogue()!.querySelectorAll('.flux li').length).toBe(2);
   });
 });
 

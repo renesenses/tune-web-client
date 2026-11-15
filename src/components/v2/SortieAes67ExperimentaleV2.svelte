@@ -83,10 +83,10 @@
 <style>
   .exp { display: flex; flex-direction: column; gap: 10px; }
   .avertissement {
-    margin: 0; padding: 8px 10px; border-radius: 6px; font-size: 12px;
+    margin: 0; padding: 8px 10px; border-radius: 6px; font-size: calc(12px * var(--v2-txt-echelle, 1));
     border: 1px solid var(--tune-warning, #d97706); color: var(--tune-warning, #d97706);
   }
   .case { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-  .hint { margin: 0; font-size: 12px; color: var(--tune-text-muted); }
+  .hint { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .alerte { color: var(--tune-warning, #d97706); }
 </style>

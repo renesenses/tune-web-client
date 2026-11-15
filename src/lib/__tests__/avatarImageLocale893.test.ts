@@ -267,14 +267,17 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     );
   });
 
-  it('🔴 le ROND DU PANNEAU ouvre l’explorateur, sans étape intermédiaire', () => {
-    // Un clic, on choisit, la photo remplace l'ancienne. Pas de rubrique à
-    // déplier, pas de bouton « Choisir » à lire.
+  it('🔴 le ROND DU PANNEAU ouvre l’explorateur, sans étape s’il n’y a rien à retirer', () => {
+    // Un clic, on choisit, la photo remplace l'ancienne. Bertrand, 15/11/2026
+    // (#3057) : avec une photo LOCALE, le rond propose « Changer » / « Retirer »
+    // ; sans elle, il ouvre l'explorateur directement, comme avant.
     const src = menu();
     const rond = src.indexOf('<button class="avatar sm"');
     expect(rond, 'le rond du panneau n’est plus un bouton').toBeGreaterThan(-1);
     const balise = src.slice(rond, src.indexOf('>', rond));
-    expect(balise).toContain('onclick={ouvrirExplorateur}');
+    expect(balise).toContain('onclick={clicSurLeRond}');
+    const i = src.indexOf('function clicSurLeRond');
+    expect(src.slice(i, i + 160)).toMatch(/if \(photoLocale\) \{ choixPhoto = !choixPhoto; return; \}\s*ouvrirExplorateur\(\);/);
     expect(src, 'une rubrique dépliable est revenue s’intercaler').not.toContain('photoActions');
   });
 

@@ -54,6 +54,13 @@ export const versPiste = (f: api.StreamingFavorite) =>
     title: f.title ?? '',
     artist_name: f.artist ?? '',
     album_title: f.album ?? '',
+    /*
+     * web#2759 — l'album CHEZ LE SERVICE, si le serveur le sert. Additif : un
+     * serveur qui ne l'envoie pas laisse `null`, et la complétion par la piste
+     * (`albumDesEcoutes`) prend le relais pour Qobuz, Tidal, Deezer… Bandcamp,
+     * lui, n'a pas de fiche de piste : sans ce champ, pas de lien.
+     */
+    album_id_service: f.album_id_service ?? null,
     cover_path: f.cover_url ?? null,
     source: f.service,
     source_id: f.service_id,

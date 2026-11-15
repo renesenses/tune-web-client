@@ -13,6 +13,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { albumsConnusDePistes, completerAlbumsDePistes } from '../../lib/albumDesEcoutes';
   import { urlNavigateur } from '../../lib/bridge';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -29,7 +30,8 @@
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
-  import { etatMiroirFavoris } from '../../lib/stores/favorisMiroir';
+  import { etatMiroirFavoris, servicesEnEchec, type EchecMiroir } from '../../lib/stores/favorisMiroir';
+  import { nomService } from '../../lib/convertisseurPlaylists';
   import {
     chargerFavorisFusionnes,
     collectionsFavorites,
@@ -43,13 +45,19 @@
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import RadioFicheModale from '../partages/RadioFicheModale.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
+  import { compterTitresDeService, libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import FavorisRadioQobuzModale from './FavorisRadioQobuzModale.svelte';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
   import BasculeAffichage from './BasculeAffichage.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import { GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
@@ -69,7 +77,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tick, untrack } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
-  import { t } from '../../lib/i18n';
+  import { t, tn } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import '../../styles/tune-v2.css';
 
@@ -143,6 +151,71 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
+  /** web#2749 — le dernier chargement ; une complétion plus ancienne ne s'applique pas. */
+  let tourAlbumsFavoris = 0;
+  /**
+   * web#2759 (relecture du 12/11) — les pistes de la fusion telles que
+   * chargées (sans proxy `$state`), et jusqu'où, dans l'ordre de l'écran,
+   * les albums ont été demandés. Le premier chargement s'arrête aux pistes
+   * visibles et à la tranche suivante ; le défilement pousse l'horizon.
+   */
+  let pistesDeBase: Track[] = [];
+  let horizonAlbums = 0;
+  const TRANCHE_ALBUMS = 40;
+  let listeTitres = $state<HTMLDivElement | null>(null);
+
+  /** Les albums connus, posés sur les pistes du chargement en cours. */
+  function poserAlbumsConnus(tour: number) {
+    if (tour !== tourAlbumsFavoris) return;
+    const maj = albumsConnusDePistes(pistesDeBase);
+    if (maj) tracks = maj;
+  }
+
+  /**
+   * Demande les albums des pistes affichées jusqu'au rang `jusqua` (ordre de
+   * l'écran, `vTracks`). Rien n'est redemandé : `albumDesEcoutes` mémorise
+   * les réponses et écarte les demandes en vol. Les liens apparaissent par
+   * paquets, sans attendre la dernière réponse.
+   */
+  function demanderAlbumsJusqua(jusqua: number) {
+    if (jusqua <= horizonAlbums) return;
+    horizonAlbums = jusqua;
+    const tour = tourAlbumsFavoris;
+    const ordre = vTracks.slice(0, horizonAlbums);
+    void completerAlbumsDePistes(pistesDeBase, api.getStreamingTrack, {
+      plafond: ordre.length,
+      ordre,
+      ordreSeul: true,
+      paquet: TRANCHE_ALBUMS,
+      surPaquet: () => poserAlbumsConnus(tour),
+    }).then(() => poserAlbumsConnus(tour));
+  }
+
+  /**
+   * Au défilement de l'onglet Titres : le dernier rang visible, estimé sur la
+   * hauteur de la liste (toutes les lignes sont rendues, de même hauteur).
+   * Quand il approche de l'horizon, la tranche suivante est demandée.
+   */
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    let attente = 0;
+    const regarder = () => {
+      attente = 0;
+      const el = listeTitres;
+      const n = vTracks.length;
+      if (!el || !n) return;
+      const r = el.getBoundingClientRect();
+      if (r.height <= 0) return;
+      const visible = Math.ceil((window.innerHeight - r.top) / (r.height / n));
+      if (visible + TRANCHE_ALBUMS > horizonAlbums) demanderAlbumsJusqua(Math.min(n, visible + 2 * TRANCHE_ALBUMS));
+    };
+    const surDefilement = () => { if (!attente) attente = requestAnimationFrame(regarder); };
+    window.addEventListener('scroll', surDefilement, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener('scroll', surDefilement, { capture: true } as any);
+      if (attente) cancelAnimationFrame(attente);
+    };
+  });
   let artists = $state<Artist[]>([]);
   /**
    * Playlists et collections en favori. Bertrand, 05/09/2026 : « il manque les
@@ -246,6 +319,26 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       tracks = fusion.tracks;
       artists = fusion.artists;
       /*
+       * 🔴 web#2749 (FabienM, fil 2723, point 10) — un Titre favori d'un
+       * service n'a que le TITRE de son album (`versPiste` : le favori de
+       * service ne porte pas d'identifiant d'album). La colonne Album restait
+       * du texte et « Aller à l'album » manquait au menu. L'album se demande
+       * à la piste chez son service, comme dans l'Historique (web#2209).
+       */
+      // Un tableau `$state` est un proxy : on compare des tours, pas des tableaux.
+      ++tourAlbumsFavoris;
+      /*
+       * web#2759 — plus de plafond fixe de 40 sur l'ordre de la FUSION : les
+       * pistes sont demandées dans l'ordre de l'écran (`vTracks`, tri et
+       * filtre compris). Relecture du 12/11 : pas toutes d'un coup — les
+       * pistes visibles et la tranche suivante d'abord (deux tranches), le
+       * reste au défilement ; les liens s'affichent par paquets.
+       */
+      pistesDeBase = fusion.tracks;
+      horizonAlbums = 0;
+      poserAlbumsConnus(tourAlbumsFavoris);
+      demanderAlbumsJusqua(2 * TRANCHE_ALBUMS);
+      /*
        * 🔴 LE QUATRIÈME SEAU — #3822, moitié « lecture ».
        *
        * Cette ligne ne prenait que `f.playlists`, la bibliothèque. Une playlist
@@ -286,6 +379,22 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   // Rechargé si le profil change : les favoris sont personnels.
   $effect(() => { void $currentProfileId; reload(); });
+
+  /**
+   * web#2679 — le bandeau d'échec NOMME le service et dit le motif. L'en-tête
+   * ne porte qu'un état global ; le détail est lu à part, seulement quand il
+   * y a un échec à expliquer. Lecture impossible : le texte d'avant.
+   */
+  let echecsMiroir = $state<EchecMiroir[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if ($etatMiroirFavoris !== 'echec' || pid == null) { echecsMiroir = []; return; }
+    let vivant = true;
+    api.getEtatMiroirFavorisParService(pid)
+      .then((d) => { if (vivant) echecsMiroir = servicesEnEchec(d); })
+      .catch(() => { if (vivant) echecsMiroir = []; });
+    return () => { vivant = false; };
+  });
 
   function match(s: string | null | undefined): boolean {
     return !q || fold(s).includes(fold(q));
@@ -403,9 +512,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const clefMosaique = (pl: any): string | null =>
     pl?.id == null ? null : `${pl.smart ? 's' : 'p'}${pl.id}`;
 
+  /**
+   * web#2750 point 6 — le nombre de titres d'une playlist DE SERVICE en
+   * favori. `streaming_favorites` ne le garde pas : on le demande à la
+   * playlist (`GET /streaming/{service}/playlists/{id}`), une fois, à
+   * l'ouverture de l'onglet — comme les mosaïques des playlists locales.
+   */
+  let titresPl = $state<Record<string, number>>({});
+  const clefService = (pl: any): string | null =>
+    pl?.id == null && pl?.source && pl?.source_id ? `${pl.source}:${pl.source_id}` : null;
+  const nbTitresPl = (pl: any): number | null =>
+    pl?.track_count ?? (clefService(pl) ? titresPl[clefService(pl)!] ?? null : null);
+
   async function chargerMosaiques(liste: any[]): Promise<void> {
     await Promise.allSettled(
       liste.map(async (pl) => {
+        const ks = clefService(pl);
+        if (ks && pl.track_count == null && !demandees.has(ks)) {
+          demandees.add(ks);
+          const n = await compterTitresDeService(pl.source, pl.source_id);
+          if (n != null) titresPl = { ...titresPl, [ks]: n };
+          return;
+        }
         const k = clefMosaique(pl);
         if (!k || demandees.has(k)) return;
         demandees.add(k);
@@ -449,6 +577,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
   const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
+  /**
+   * web#2759 — un autre tri ou un autre filtre montre d'autres pistes en
+   * tête : l'horizon repart de l'écran, les pistes déjà résolues ne sont pas
+   * redemandées.
+   */
+  $effect(() => {
+    void q; void sourceFiltre; void tri;
+    untrack(() => {
+      if (!pistesDeBase.length) return;
+      horizonAlbums = 0;
+      demanderAlbumsJusqua(2 * TRANCHE_ALBUMS);
+    });
+  });
   const vArtists = $derived(trierEtFiltrer(fArtists, sourceFiltre, tri));
 
   /** Nom lisible d'une source : la bibliotheque se traduit, un service porte son nom. */
@@ -504,6 +645,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
   const vStations = $derived(stations.filter((r) => match(r.name) || match(r.genre)));
+
+  /** web#2770 — la fiche de la station ouverte par son nom (`RadioFicheModale`). */
+  let ficheStation = $state<any>(null);
 
   /** Lancer une station depuis l'écran Favoris, comme depuis l'écran Radios. */
   async function lireStation(r: any) {
@@ -833,10 +977,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       <h1>{$t('nav.favorites' as any)}</h1>
     </div>
     <div class="v2-actions">
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('nav.favorites' as any)} />
       <nav class="tabs">
         {#each TABS as t (t.id)}
           <button class:on={tab === t.id} onclick={() => choisirOnglet(t.id)}>{t.label}<span>{t.n}</span></button>
@@ -884,12 +1025,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     <div class="barre">
       {#if tab === 'tracks' && vTracks.length}
         <div class="masse">
-          <button class="fab" onclick={() => lireLesPistes(false)} disabled={masseEnCours} title={$t('collections.playAll' as any)}>
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
-          </button>
-          <button class="fab creux" onclick={() => lireLesPistes(true)} disabled={masseEnCours} title={$t('collections.shuffleAll' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
-          </button>
+          <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Tout lire au
+               hasard » passe sous sa flèche (`data-aleatoire-favoris`). -->
+          <BoutonLectureV2 onLire={() => lireLesPistes(false)} cle="collections.playAll" cleBulle="collections.playAll"
+            desactive={masseEnCours} attrsLire={{ 'data-lire-favoris': true }}
+            aleatoire={{ faire: () => lireLesPistes(true), desactive: masseEnCours, bulle: 'collections.shuffleAll' }}
+            attrsAleatoire={{ 'data-aleatoire-favoris': true }} />
         </div>
       {/if}
       {#if sourcesOnglet.length > 1}
@@ -935,7 +1076,22 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        serveur réessaiera. Rien pour ok, aucun, ou un serveur ancien. -->
   {#if $etatMiroirFavoris === 'en_attente' || $etatMiroirFavoris === 'echec'}
     <p class="miroir-etat" role="status" data-testid="miroir-favoris-etat">
-      {$etatMiroirFavoris === 'en_attente' ? $t('v2.fav.miroirEnAttente' as any) : $t('v2.fav.miroirEchec' as any)}
+      {#if $etatMiroirFavoris === 'en_attente'}
+        {$t('v2.fav.miroirEnAttente' as any)}
+      {:else if echecsMiroir.length > 0}
+        {$t('v2.fav.miroirEchecService' as any).replace('{services}', echecsMiroir.map((e) => nomService(e.service)).join(', '))}
+        {#each echecsMiroir.filter((e) => e.erreur) as e (e.service)}
+          <!-- #2417 : le motif du serveur est rédigé en français
+               (favorites_mirror.rs) ; l'écran dit une phrase traduite, le
+               texte brut reste lisible, replié, pour le diagnostic. -->
+          <details class="miroir-motif" data-testid="miroir-favoris-motif">
+            <summary>{nomService(e.service)} — {$t('v2.fav.miroirMotif' as any)}</summary>
+            <code>{e.erreur}</code>
+          </details>
+        {/each}
+      {:else}
+        {$t('v2.fav.miroirEchec' as any)}
+      {/if}
     </p>
   {/if}
 
@@ -985,8 +1141,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct" title={a.title}>{a.title}</span>
-              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+              <!-- web#2770 (lot 3) — le titre ouvre l'album (seule la pochette
+                   le faisait), l'artiste ouvre sa fiche. -->
+              <span class="ct" title={a.title}><LienEntite entite={{ type: 'album', nom: a.title, ouvrir: () => { ouvrirCalqueAlbum(a); opened = a; } }} /></span>
+              <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
             </div>
           {/each}
         </div>
@@ -1014,7 +1172,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           deux sens. Le retrait passe par lui : il sait déjà distinguer une
           piste de la bibliothèque d'une piste de service.
         -->
-        <div class="list">
+        <div class="list" bind:this={listeTitres}>
           <!-- ⚠️ `clef` : `id` est NUL sur toute piste de service. Deux entrées
                de clé `null` arrêtent Svelte sur `each_key_duplicate`, et
                l'écran entier disparaît. `clef()` existe ici pour ça. -->
@@ -1083,10 +1241,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                  playlist intelligente — la distinction que porte le picto.
                  Élidée à la largeur de la carte, elle porte donc son `title`
                  (Bilou, 05/09/2026). -->
+            {@const nbTitres = nbTitresPl(pl)}
             {@const sousTitre = pl.smart
               ? $t('v2.pl.rule' as any)
-              : pl.track_count != null
-                ? $t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))
+              : nbTitres != null
+                ? libelleNbTitres(nbTitres, $tn)
                 : ''}
             <div class="card">
               <span class="cv pl" class:img={!!mos || (!locale && !!pl.cover_path)}>
@@ -1153,7 +1312,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 {@render visuelPl(pl, mosaiquesPl[clefMosaique(pl) ?? ''])}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
-              {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
+              {#if nbTitresPl(pl) != null}<span class="sc">{nbTitresPl(pl)}</span>{/if}
               <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
                    pochette et exige un enfant ; cette liste porte une icône. On
                    réemploie le geste, pas l'habillage. -->
@@ -1269,8 +1428,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                      à défaut. Il reste hors du bouton de lecture pour ne pas
                      changer la cible du clic ni la place du cœur. -->
                 <span class="stlogo"><AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} vignette alt={r.name} fallbackInitials={r.name?.slice(0,1)} /></span>
+                <!-- web#2770 (lot 4) — le NOM ouvre la fiche de la station ;
+                     la lecture reste au bouton qui l'entoure. -->
                 <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
-                  <span class="stnom">{r.name}</span>
+                  <span class="stnom"><LienEntite entite={{ type: 'radio', nom: r.name, ouvrir: () => (ficheStation = r) }} /></span>
                   {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
                 </button>
                 <button class="sfav on" disabled={retraitStation === r.id}
@@ -1294,7 +1455,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         {/if}
       {:else}
         <div class="rf-actions">
-          <span class="rf-cpt">{$t((radio.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(radio.length))}</span>
+          <span class="rf-cpt">{$tn('v2.common.trackCountN', radio.length)}</span>
           <button class="rf-btn accent" onclick={() => (creationPlaylist = true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             {$t('v2.fav.radioMakePlaylist' as any)}
@@ -1403,8 +1564,14 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   {/if}
 </section>
 
+<!-- web#2770 — la fiche d'une station favorite, ouverte par son nom. -->
+{#if ficheStation}
+  <RadioFicheModale station={ficheStation} onClose={() => (ficheStation = null)}
+    onChange={(st) => { stations = stations.map((x) => (x.id === st.id ? st : x)); ficheStation = st; }} />
+{/if}
+
 <style>
-  .rf-titre{font:700 12px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3);
+  .rf-titre{font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3);
     text-transform:uppercase; padding:14px 30px 8px}
   .stgrille{display:grid; gap:10px; padding:0 30px 18px;
     grid-template-columns:repeat(auto-fill, minmax(190px, 1fr))}
@@ -1423,43 +1590,43 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .stlire{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
     flex:1; min-width:0; padding:0; border:0; background:transparent;
     color:inherit; font:inherit; cursor:pointer}
-  .stnom{font:600 13.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis;
+  .stnom{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; max-width:100%}
-  .stgenre{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .stgenre{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .barre{display:flex; align-items:center; justify-content:space-between; gap:18px;
     flex-wrap:wrap; padding:0 30px 12px}
   .puces{display:flex; gap:7px; flex-wrap:wrap}
   .puces button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 11.5px var(--v2-sans);
+    cursor:pointer; border-radius:999px; padding:5px 13px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     text-transform:capitalize}
   .puces button:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .puces button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .tris{display:flex; align-items:center; gap:9px; margin-left:auto}
-  .tris > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3);
+  .tris > span{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3);
     text-transform:uppercase}
   .barre .sel{height:32px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans);
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:0 10px; outline:none; cursor:pointer}
   .barre .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .rf-actions{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0 0 14px}
-  .rf-cpt{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:4px}
+  .rf-cpt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-right:4px}
   .rf-btn{display:inline-flex; align-items:center; gap:7px; text-decoration:none; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
-    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); padding:7px 13px}
+    color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 13px}
   .rf-btn:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .rf-btn svg{width:14px; height:14px}
   .rf-btn.accent{border-color:transparent; background:var(--v2-acc1); color:var(--v2-on-acc)}
   .rf-btn.danger{color:var(--v2-danger); border-color:var(--v2-danger)}
   .rf-btn:disabled{opacity:.5; cursor:default}
-  .lst{font:10.5px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .lst{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .rf-fond{position:fixed; inset:0; z-index:900; background:rgba(0,0,0,.55); display:grid; place-items:center; padding:20px}
   .rf-modale{display:flex; flex-direction:column; gap:10px; width:min(400px,100%); padding:20px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card)}
-  .rf-modale h2{font-size:16px; font-weight:700}
-  .rf-sub{color:var(--v2-txt2); font-size:12.5px}
+  .rf-modale h2{font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .rf-sub{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .rf-modale input{background:var(--v2-bg); border:1px solid var(--v2-line2); border-radius:8px;
-    color:var(--v2-txt); font:inherit; font-size:13.5px; padding:9px 11px}
+    color:var(--v2-txt); font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:9px 11px}
   .rf-pied{display:flex; justify-content:flex-end; gap:8px}
   .v2-fav{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
@@ -1493,35 +1660,54 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .simple .sv.img{background:none}
   .simple .sv svg{width:20px; height:20px; opacity:.9}
-  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
-  .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .simple .sc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
      LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
   .aide-facettes{margin:0 0 14px; padding:12px 14px; border-radius:10px; background:var(--v2-hover);
-    font-size:13px; color:var(--v2-txt2)}
+    font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .aide-facettes p{margin:0 0 8px; line-height:1.45}
   .aide-facettes .liens{display:flex; flex-wrap:wrap; gap:8px}
   .aide-facettes .liens button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    cursor:pointer; font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   .aide-facettes .liens button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .simple:disabled{cursor:default; opacity:.55}
   .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
 
-  .tabs{display:flex; gap:4px}
+  .tabs{display:flex; gap:4px; flex-wrap:wrap}
+  /* Recette rc12 (13/11) — même en-tête que la Bibliothèque : le titre sur sa
+     ligne, le filtre et les sept onglets dessous, alignés à gauche. À côté du
+     titre, ils ne tenaient pas : « Votre sélection » passait sur deux lignes
+     à 1440 px, et à 1024 px la rangée d'onglets recouvrait « Favoris ». La vue
+     mini (téléphone) garde sa mise en page (`styles/vue-mini.css`). */
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{flex-wrap:wrap; align-items:center; row-gap:10px; padding-right:30px}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{flex:1 0 100%; padding-right:calc(var(--v2-grappe-w, 172px) - 30px); box-sizing:border-box}
+  :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+  @media (max-width:640px){
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top{padding-top:var(--v2-grappe-h, 66px)}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top > .v2-titres{padding-right:0}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .v2-rech{flex:1 1 100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; min-width:0; max-width:100%}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs::-webkit-scrollbar{display:none}
+    :global(.v2-shell:not(.mini)) .v2-fav > .v2-top .tabs button{flex:0 0 auto; white-space:nowrap}
+  }
   .tabs button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
-  .tabs button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
+  .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .tabs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .tabs button.on span{color:var(--v2-on-acc); opacity:.75}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
-  .miroir-etat{margin:0 30px 8px; font-size:12px; color:var(--v2-txt3)}
+  .miroir-etat{margin:0 30px 8px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .miroir-motif{display:block; margin-top:2px; overflow-wrap:anywhere}
+  .miroir-motif summary{cursor:pointer}
+  .miroir-motif code{display:block; margin-top:2px; font-size:calc(11px * var(--v2-txt-echelle, 1))}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
@@ -1550,8 +1736,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .hot{color:var(--v2-acc1)}
   .hot:hover{background:var(--v2-danger-bd); color:#fff}
   .hot:disabled{opacity:.5; cursor:default}
@@ -1564,11 +1750,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .play{display:grid; grid-template-columns:40px 1fr; align-items:center; gap:13px; min-width:0; border:0;
     background:transparent; color:inherit; cursor:pointer; text-align:left; padding:7px 0; font-family:inherit}
   .cv.sm{width:40px; height:40px; aspect-ratio:auto; border-radius:6px; box-shadow:none}
-  .ti{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .ti{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .row .tk{font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .row .dur{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .row .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .row .dur{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .hot.flat{width:28px; height:28px; border:0; border-radius:8px; background:transparent; cursor:pointer;
     display:grid; place-items:center}
   .hot.flat svg{width:14px; height:14px}
@@ -1579,13 +1765,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   /* Point 11 (fil 1780) : le nom est un BOUTON qui ouvre la fiche, comme la
      pochette. Même dessin qu'avant : rien ne bouge à l'œil. */
-  .an{margin-top:10px; font:600 13px var(--v2-sans); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  .an{margin-top:10px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     border:0; background:transparent; color:inherit; cursor:pointer; padding:0; text-align:center}
   .an:hover{color:var(--v2-acc-tint)}
   .masse{display:inline-flex; align-items:center; gap:10px}
   .fab{display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 14px;
     border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
-    font:700 12.5px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
+    font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
     background:linear-gradient(135deg, var(--v2-acc1), var(--v2-acc2))}
   .fab.creux{background:transparent; color:var(--v2-txt, inherit); border:1px solid var(--v2-line2)}
   .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
@@ -1616,9 +1802,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .lcv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   /* `min-width: 0` sur chaque cellule : sans lui, `minmax(0,…)` ne suffit pas
      à autoriser la coupure — le contenu impose sa largeur et la ligne déborde. */
-  .lt{min-width:0; font:600 13px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .la{min-width:0; font:12.5px var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lst{min-width:0; font:11px var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lt{min-width:0; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .la{min-width:0; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lst{min-width:0; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le bouton de retrait de la LIGNE : `.hot.round` est positionné pour la
      vignette d'artiste (absolu, décalé de 58 px) et se serait posé de travers. */
   .lrow .hot.round{position:static; transform:none; opacity:0; width:28px; height:28px;

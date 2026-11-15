@@ -571,6 +571,8 @@ export function signalerMiroirEnAttente(service: string, motif: string | null | 
 export function signalerRecopieManquee(service: string, e: unknown): void {
   const status = (e as { status?: number } | null)?.status;
   if (status === 501) return;
+  // tune-server-rust#8579 — déjà dit, avec son bouton (`fetchJSON`).
+  if ((e as { dejaAnnonce?: boolean } | null)?.dejaAnnonce) return;
   const motif = e instanceof Error && e.message ? e.message : String(e ?? '');
   notifications.error(
     get(t)('favorites.serviceSyncFailed').replace('{service}', service).replace('{motif}', motif),

@@ -1,5 +1,9 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { untrack } from 'svelte';
+  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { gestesNavigationService, activeView } from '../../lib/stores/navigation';
+  import { pendingPlaylistId } from '../../lib/stores/playlists';
   /**
    * Fiche playlist du nouveau client (direction Levente). Ouvre par-dessus la
    * grille (la section hôte est `position:relative`). Gère deux natures :
@@ -10,10 +14,10 @@
    */
   import * as api from '../../lib/api';
   import { ligneBadgeCercles } from '../../lib/suiviCercle';
-  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
+  import { creerRetraitPlaylist, aMoiChezLeService as estAMoi, retrouverEditable, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, tn } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -22,12 +26,19 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import PochetteActions from './PochetteActions.svelte';
+  import { pochettesDePlaylist } from '../../lib/mosaique';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
+  import BoutonMenuV2 from './BoutonMenuV2.svelte';
+  import type { EntreeMenu } from '../../lib/menuPiste';
+  import { lireListe, lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
-    BORNES_TAILLE, bornerTaille, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
+    BORNES_TAILLE, bornerTaille, clePlaylistVue, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
     lireEnteteCompact, ecrireEnteteCompact, type VuePlaylist,
   } from '../../lib/vuePlaylist';
   import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
@@ -44,6 +55,8 @@
   } from '../../lib/remplacementIndisponibles';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
+  import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
+  import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
   import { circleCharge } from '../../lib/circle';
 
@@ -54,6 +67,14 @@
   let { item, onClose, onChanged }: { item: Item; onClose: () => void; onChanged?: () => void } = $props();
 
   let tracks = $state<Track[]>([]);
+  /**
+   * Recette du 14/11/2026 : l'en-tête d'une playlist LOCALE montrait toujours
+   * le pictogramme orange, alors que la grille des Playlists affichait la
+   * mosaïque de la même playlist. Même source que la grille
+   * (`pochettesDePlaylist`, sur les pistes chargées) ; le pictogramme ne reste
+   * que si aucune piste n'a de pochette.
+   */
+  const mosaiqueEntete = $derived(pochettesDePlaylist(tracks));
   let loading = $state(true);
   let error = $state<string | null>(null);
   let renaming = $state(false);
@@ -139,12 +160,74 @@
    * l'utilisateur est propriétaire : on peut en retirer un titre. Seulement
    * quand le serveur l'affirme (`editable: true`, web#2097) ; absent ou faux
    * (playlist suivie, éditoriale, serveur plus ancien) : lecture seule.
+   *
+   * web#3067 — ouverte depuis la recherche, les étiquettes ou un widget, la
+   * playlist vient de `get_playlist`, qui ne porte pas le drapeau chez Qobuz :
+   * on le retrouve dans la liste du compte (`lib/retraitPlaylist`).
    */
+  let editableRetrouve = $state<boolean | null>(null);
+  $effect(() => {
+    if (item.kind !== 'streaming') return;
+    const service = item.service;
+    const pl = item.pl;
+    editableRetrouve = null;
+    if (typeof pl.editable === 'boolean') return;
+    let vivant = true;
+    void retrouverEditable(api.getStreamingPlaylists, service, pl).then((v) => {
+      if (vivant) editableRetrouve = v;
+    });
+    return () => { vivant = false; };
+  });
   const aMoiChezLeService = $derived(
-    item.kind === 'streaming' && (item.pl as StreamingPlaylist & { editable?: boolean | null }).editable === true,
+    item.kind === 'streaming' && (estAMoi(item.pl) || editableRetrouve === true),
   );
   const editable = $derived(isLocal || aMoiChezLeService);
+
+  /**
+   * web#2736 — le menu « … » de la fiche : les gestes qui étaient des boutons
+   * de l'en-tête, chacun sous SA garde d'avant (absent quand il ne s'applique
+   * pas, jamais grisé sauf pendant sa requête).
+   */
+  function supprimerPlaylist() {
+    if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
+  }
+  function entreesPlus(): EntreeMenu[] {
+    const l: EntreeMenu[] = [];
+    if (cibleEtiquettes) l.push({ cle: 'v2.cover.tags', faire: () => (etiquettesOuvertes = true),
+      attrs: { 'data-etiquettes-playlist': true, 'aria-haspopup': 'dialog' } });
+    const partager = partagerAvecUnCercle;
+    if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
+    // EXPORT : la route ne connaît que les playlists locales.
+    if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
+    // web#2971 — l'entrée « Playlists » de la barre ouvre désormais CETTE fiche,
+    // plus celle de l'écran complet. Ce qu'elle ne sait pas faire (Vérifier la
+    // disponibilité, Transférer, Comparer, fusionner, liens…) reste à un geste :
+    // l'écran complet, ouvert SUR cette playlist (`pendingPlaylistId`, le
+    // chemin de « Transférer » dans `gestesObjet`).
+    if (isLocal && item.kind === 'local' && item.pl.id != null) {
+      const id = item.pl.id;
+      l.push({ cle: 'playlist.manager', faire: () => { pendingPlaylistId.set(id); activeView.set('playlistmanager'); },
+        attrs: { 'data-ouvrir-gestionnaire-playlist': true } });
+    }
+    // tune-server-rust#8066 — seulement s'il y a des titres indisponibles là où l'on peut écrire.
+    if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
+      faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });
+    // #2098 — une playlist de SERVICE ne s'édite que si l'utilisateur en est propriétaire.
+    // rc12 (15/11) — la croix « Retirer » ne dépend plus d'« Éditer » : le mode
+    // ne porte plus que le réordonnancement, le renommage, la suppression et
+    // l'ajout de radio, tous réservés à une playlist TUNE (`commitRename` ne
+    // renomme qu'une locale). Sur une playlist de service, il ne montrerait rien.
+    if (isLocal) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
+      faire: () => { edition = !edition; renaming = false; }, attrs: { 'data-editer-playlist': true } });
+    if (edition && isLocal) {
+      l.push({ cle: 'v2.pl.rename', faire: () => { draft = item.pl.name; renaming = true; }, attrs: { 'data-renommer-playlist': true } });
+      l.push({ cle: 'common.delete', danger: true, faire: supprimerPlaylist, attrs: { 'data-supprimer-playlist': true } });
+    }
+    return l;
+  }
   const title = $derived(item.pl.name);
+  /** web#2806 — le sélecteur de radio de l'éditeur est ouvert. */
+  let choixRadio = $state(false);
 
   /**
    * ÉTIQUETER LA PLAYLIST DEPUIS SA FICHE — le même trou que la fiche album.
@@ -198,12 +281,22 @@
    * web#2601 — vue en liste ou en pochettes, taille des vignettes de CHAQUE
    * vue, en-tête compact. Retenus, mais écrits sur geste seulement (#1650).
    */
-  let vue = $state<VuePlaylist>(lireVuePlaylist());
+  // tune-server-rust#7394 / web#2618 — retenue PAR PLAYLIST (`clePlaylistVue`).
+  const cleVue = $derived(clePlaylistVue(item));
+  let vue = $state<VuePlaylist>(lireVuePlaylist(clePlaylistVue(untrack(() => item))));
+  // Une autre playlist dans le même écran : sa vue à elle.
+  let cleVueLue = clePlaylistVue(untrack(() => item));
+  $effect(() => {
+    const c = cleVue;
+    if (c === cleVueLue) return;
+    cleVueLue = c;
+    vue = lireVuePlaylist(c);
+  });
   let tailleListe = $state(lireTaille('liste'));
   let taillePochettes = $state(lireTaille('pochettes'));
   let enteteCompact = $state(lireEnteteCompact());
   const tailleCourante = $derived(vue === 'liste' ? tailleListe : taillePochettes);
-  function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v); }
+  function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v, cleVue); }
   function regler(n: number) {
     const v = ecrireTaille(vue, n);
     if (vue === 'liste') tailleListe = v; else taillePochettes = bornerTaille('pochettes', v);
@@ -251,7 +344,8 @@
     if (zid == null) return;
     melangeEnCours = true;
     try {
-      const n = await lireListeAleatoire(tracks, gestesDeLaPlaylist(zid, true));
+      // web#2806 — une radio ne part pas en piste : le mélange client la laisse.
+      const n = await lireListeAleatoire(tracks.filter((p) => !estLigneRadio(p)), gestesDeLaPlaylist(zid, true));
       if (!n) notifications.error($tr('library.noTracks'));
     } catch (e) {
       notifierErreur($tr('common.error'), e, { motifSeul: true });
@@ -261,10 +355,21 @@
   function playFrom(startIndex = 0) {
     const zid = zoneRequise();
     if (zid == null) return;
+    // web#2806 — une ligne RADIO se lit par la playlist (`playlist_id` +
+    // son rang RÉEL) : seul le serveur sait mettre son flux en file.
+    const cliquee = pistesVues[startIndex];
+    if (item.kind === 'local' && cliquee && estLigneRadio(cliquee)) {
+      if (radioIndisponible(cliquee)) return;
+      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: rangReel(cliquee) }).catch(signalerEchecLecture);
+      return;
+    }
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
-    // playlist — `start_index` du serveur ne connaît que ce dernier.
+    // playlist — `start_index` du serveur ne connaît que ce dernier. Les
+    // radios n'y vont pas : elles ne s'envoient pas en pistes.
     if (!ordreNaturel) {
-      void lireListe(pistesVues.slice(startIndex), gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+      const pistes = sansRadios(pistesVues.slice(startIndex));
+      if (!pistes.length) { notifications.error($tr('library.noTracks')); return; }
+      void lireListe(pistes, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
       return;
     }
     if (item.kind === 'local') {
@@ -281,6 +386,14 @@
       // lecture en cours » — cliquer Lire relançait le morceau du moment.
       // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
       // charge les pistes deux lignes plus haut.
+      //
+      // web#2687 — playlist MIXTE (titres « Indisponible » / « À paraître ») :
+      // `streaming_playlist_id` mettrait toute la liste en file. On envoie la
+      // liste nous-mêmes, sans les titres grisés, dans le contexte de la playlist.
+      if (pistesVues.some(pisteIndisponible)) {
+        void lireListeDepuis(pistesVues, startIndex, gestesDeLaPlaylist(zid)).catch(signalerEchecLecture);
+        return;
+      }
       playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(signalerEchecLecture);
     }
   }
@@ -303,7 +416,8 @@
   async function enfiler(position: number | undefined, cle: string) {
     const zid = zoneRequise();
     if (zid == null || fileOccupee) return;
-    const corps = corpsDeFileListe(pistesVues, position);
+    // web#2806 — les radios restent hors de la file : ce ne sont pas des pistes.
+    const corps = corpsDeFileListe(sansRadios(pistesVues), position);
     if (!corps) { notifications.error($tr('library.noTracks')); return; }
     fileOccupee = true;
     try {
@@ -350,11 +464,10 @@
   async function retirerDuService(t: Track) {
     if (item.kind !== 'streaming' || !aMoiChezLeService || retraitService || t.source_id == null) return;
     const service = item.service;
-    const sid = String(t.source_id);
     retraitService = true;
     try {
-      await api.removeStreamingPlaylistTracks(service, String(item.pl.source_id), [sid]);
-      tracks = tracks.filter((x) => String(x.source_id) !== sid);
+      const reste = await retirerTitreDuService(api.removeStreamingPlaylistTracks, service, String(item.pl.source_id), tracks, t);
+      if (reste) tracks = reste;
       onChanged?.();
     } catch {
       notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
@@ -509,8 +622,10 @@
   </button>
 
   <div class="head" class:compact={enteteCompact}>
-    <div class="art" class:stream={!isLocal}>
-      {#if isLocal}
+    <div class="art" class:stream={!isLocal} class:mos={isLocal && mosaiqueEntete.length > 0} data-entete-pochette>
+      {#if isLocal && mosaiqueEntete.length}
+        <MosaiquePochettes pochettes={mosaiqueEntete} initiales={title?.slice(0, 1)} alt={title ?? ''} />
+      {:else if isLocal}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h11M4 12h11M4 17h7M17 17V7l4 2"/></svg>
       {:else}
         <AlbumArt coverPath={item.kind === 'streaming' ? item.pl.cover_path : null} albumId={null} size={0} alt={title} fallbackInitials={title?.slice(0,1)} />
@@ -530,86 +645,51 @@
         {#if badge}<div class="desc badge-cercle" data-badge-cercle>{badge}</div>{/if}
       {/if}
       <div class="facts">
-        <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
+        <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
       </div>
+      <!-- web#2736 (Bertrand, 09/11/2026) — même principe que la fiche album :
+           [ ▶ Lecture | ▾ ]  [ ⤮ ]  [ ♡ ]  [ … ]. « Lire ensuite » (#1574) et
+           « Ajouter à la file » passent sous la flèche du bouton Lecture ;
+           étiquettes, partage, export, réparation et édition dans « … ». -->
       <div class="actions">
-        <button class="play" onclick={() => playFrom(0)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('common.play' as any)}
-        </button>
-        <button class="ghost" onclick={lireAleatoire} disabled={melangeEnCours}
-          title={$tr('library.shuffle')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$tr('library.shuffle')}
-        </button>
-        <!-- « Lire ensuite » — #1574 : le geste de la fiche album, même icône,
-             même libellé, même rang (`rangLireEnsuite`). -->
-        <button class="ghost lire-ensuite" onclick={lireEnsuite} disabled={fileOccupee}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
-        </button>
-        <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.ms.addToQueue' as any)}
-        </button>
-        <!-- Le CŒUR d'abord : il vaut pour les deux sortes de playlist, la
-             locale par son identifiant, celle d'un service par la paire
-             service + `source_id`. Deux tables, deux chemins. -->
-        <button class="ghost sm coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+        <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Lecture
+             aléatoire » passe sous la flèche, avec son `data-aleatoire-playlist`. -->
+        <BoutonLectureV2 onLire={() => playFrom(0)} cle="common.play"
+          aleatoire={{ faire: lireAleatoire, desactive: melangeEnCours }} attrsAleatoire={{ 'data-aleatoire-playlist': true }}
+          ensuite={{ faire: lireEnsuite, desactive: fileOccupee }}
+          file={{ faire: addQueue, desactive: fileOccupee }} />
+        <!-- Le CŒUR : il vaut pour les deux sortes de playlist, la locale par
+             son identifiant, celle d'un service par la paire service +
+             `source_id`. Deux tables, deux chemins. -->
+        <button class="ghost carre coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
           aria-pressed={enFavori}
-          title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
-          <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+          aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+          <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
-
-        <!-- ÉTIQUETTES — vaut pour les deux sortes de playlist, la locale par
-             son identifiant, celle d'un service par la paire. Absent quand il
-             n'y a rien à désigner : voir `cibleEtiquettes`. -->
-        {#if cibleEtiquettes}
-          <button class="ghost sm" onclick={() => (etiquettesOuvertes = true)}
-            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
-            title={$tr('v2.cover.tags' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
-            {$tr('v2.cover.tags' as any)}
+        <BoutonMenuV2 entrees={entreesPlus} etiquette={$tr('v2.cover.more' as any)} largeur={240}>
+          {#snippet declencheur(p)}
+            <button class="ghost carre plus" {...p} data-menu-playlist
+              aria-label={$tr('v2.cover.more' as any)} title={$tr('v2.cover.more' as any)}>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+            </button>
+          {/snippet}
+        </BoutonMenuV2>
+        {#if edition}
+          <!-- Le mode édition se DIT, et se quitte d'un geste : sans ce
+               bouton, il faudrait rouvrir « … » pour le refermer. -->
+          <button class="ghost sm" class:on={edition} onclick={() => { edition = false; renaming = false; }} aria-pressed={edition} data-fin-edition-playlist>
+            {$tr('v2.pl.editDone' as any)}
           </button>
-        {/if}
-
-        {#if partagerAvecUnCercle}
-          <button class="ghost sm partager-cercle" onclick={() => partagerAvecUnCercle?.()} data-partager-cercle>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
-            {$tr('v2.circle.pl.shareWithCircle' as any)}
-          </button>
-        {/if}
-
-        <!-- EXPORT : la route ne connaît que les playlists locales, une playlist
-             de service n'ayant pas d'identifiant chez nous. -->
-        {#if isLocal}
-          <button class="ghost sm" onclick={exporter} disabled={exportEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-            {$tr('v2.pl.export' as any)}
-          </button>
+          {#if isLocal}
+            <!-- web#2806 — une radio rejoint la playlist depuis l'éditeur. -->
+            <button class="ghost sm" onclick={() => (choixRadio = true)} data-bouton-ajouter-radio aria-haspopup="dialog">
+              {$tr('v2.pl.addRadio' as any)}
+            </button>
+          {/if}
         {/if}
 
-        <!-- tune-server-rust#8066 — « Réparer la playlist » : seulement s'il y a
-             des titres indisponibles là où l'on peut écrire. -->
-        {#if reparable}
-          <button class="ghost sm reparer" data-reparer-playlist onclick={reparerPlaylist} disabled={reparationEnCours}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>
-            {$tr((reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair') as any)}
-          </button>
-        {/if}
-
-        <!-- Une playlist de SERVICE ne s'édite pas, sauf celle dont
-             l'utilisateur est propriétaire (#2098) : on peut alors en retirer
-             des titres — ni renommer, ni supprimer, ni réordonner. -->
-        {#if editable}
-          <button class="ghost sm" class:on={edition} onclick={() => { edition = !edition; renaming = false; }}
-            aria-pressed={edition}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            {$tr(edition ? 'v2.pl.editDone' as any : 'v2.pl.edit' as any)}
-          </button>
-        {/if}
-        {#if edition && isLocal}
-          <button class="ghost sm" onclick={() => { draft = item.pl.name; renaming = true; }}>{$tr('v2.pl.rename' as any)}</button>
-          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>{$tr('common.delete' as any)}</button>
-        {/if}
         <!-- On DIT pourquoi il n'y a pas de bouton, au lieu de laisser chercher.
              Le client porte bien une fonction `importPlaylist`, mais elle vise
              `POST /playlists/import`, qui n'existe pas : le serveur n'a que
@@ -676,22 +756,47 @@
       {#if vue === 'pochettes'}
         <div class="pgrille" data-pgrille style="--ptaille:{taillePochettes}px">
           {#each pistesVues as p, i (i)}
+            {@const versAlbum = p.album_title && !estLigneRadio(p) ? ouvertureAlbumDePiste(p, $gestesNavigationService) : null}
+            {@const injouable = estIntrouvable(p) || radioIndisponible(p)}
             <div class="pcarte">
-              <button type="button" class="pvig" onclick={() => playFrom(i)} disabled={estIntrouvable(p)}
-                title={p.title}>
-                <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
-                  alt={p.title ?? ''} source={mixte ? null : p.source} />
-              </button>
+              <!-- Recette rc12 du 15/11 (B97) : la vignette se comporte comme
+                   celles des grilles d'albums — MÊME enveloppe `PochetteActions`.
+                   Le Play est au centre (au survol ; toujours visible en tactile),
+                   et c'est LUI seul qui lance la lecture. Un clic ailleurs sur
+                   la pochette ouvre l'album de la piste, comme dans la
+                   Bibliothèque ; sans album ouvrable, il ne fait rien. -->
+              <div class="pvig" class:injouable data-pvig
+                title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
+                <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={p.title ?? ''}>
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
+                    alt={p.title ?? ''} source={mixte ? null : p.source} />
+                </PochetteActions>
+              </div>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && estIntrouvable(p)) || peutRemplacer(p, editable)}
+              <!-- tune-server-rust#7394 — en pochettes, l'accès à l'album COMPLET :
+                   son nom ouvre sa fiche (bibliothèque ou service), comme la
+                   colonne Album de la liste. -->
+              {#if p.album_title && !estLigneRadio(p)}
+                {#if versAlbum}
+                  <!-- Recette du 14/11 : le nom d'album est SON geste, jamais celui
+                       de la vignette (lecture). Le clic s'arrête ici. -->
+                  <button type="button" class="palb" data-palbum title={p.album_title}
+                    onclick={(e) => { e.preventDefault(); e.stopPropagation(); versAlbum(); }}>{p.album_title}</button>
+                {:else}
+                  <div class="part" title={p.album_title}>{p.album_title}</div>
+                {/if}
+              {/if}
+              {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
+              {#if editable || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
           {/each}
         </div>
       {:else}
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px"
+        retirerDe={isLocal ? (t) => removeAt(rangReel(t)) : aMoiChezLeService ? (t) => retirerDuService(t) : null} />
       {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
@@ -702,21 +807,13 @@
              selon l'état se résoudrait différemment dans l'en-tête et dans
              les lignes, et les colonnes ne tomberaient plus en face —
              `colonnesPistes` garde précisément cela. -->
-        <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
-             du mode édition : c'est le seul geste qui l'efface, il doit être
-             à portée. -->
-        {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
-            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-          </button>
-        {/if}
-        {#if !edition && peutRemplacer(_t, editable)}
-          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
-            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
-          </button>
-        {/if}
+        <!-- rc12 (Bertrand, 15/11/2026) : « Croix de suppression d'une piste
+             dans une playlist ! Important !! ». La croix « Retirer de la
+             playlist » est VISIBLE sur chaque ligne d'une playlist modifiable
+             (Tune, ou de service à soi), sans passer par « Éditer » — qui ne
+             sert plus qu'au réordonnancement. Retrait PAR OCCURRENCE : le rang
+             réel (ou l'`entry_id`, #6687) via `removeAt`. Couvre aussi les
+             lignes introuvables (#6179) et les radios parties (web#2806). -->
         {#if edition && isLocal}
           <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
@@ -726,20 +823,34 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours} aria-label={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+        {/if}
+        {#if isLocal}
+          <button class="rm retrait-titre" data-retirer-titre onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
-        {:else if edition && aMoiChezLeService}
-          <button class="rm retrait-service" onclick={() => retirerDuService(_t)} disabled={retraitService}
+        {:else if aMoiChezLeService}
+          <button class="rm retrait-service" data-retirer-titre onclick={() => retirerDuService(_t)} disabled={retraitService}
             aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
             title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        {/if}
+        {#if !edition && peutRemplacer(_t, editable)}
+          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
+            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
           </button>
         {/if}
       {/snippet}
     {/if}
   </div>
 </div>
+
+{#if choixRadio && item.kind === 'local' && item.pl.id != null}
+  <ChoixRadioPlaylistV2 playlistId={item.pl.id} onClose={() => (choixRadio = false)}
+    onAjoutee={() => { load(); onChanged?.(); }} />
+{/if}
 
 {#if remplacement}
   <RemplacerIndisponibleModale titreDisparu={remplacement.piste.title ?? ''} candidats={remplacement.candidats}
@@ -758,7 +869,9 @@
 
 <style>
   .v2-pldetail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
-    font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
+    font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px;
+    /* Recette du 14/11 (point 102) : la règle étroite se mesure sur la FICHE. */
+    container-type:inline-size; container-name:pldetail}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2); display:grid; place-items:center}
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
@@ -771,25 +884,44 @@
   .head.compact .art{width:64px; height:64px; border-radius:6px}
   .head.compact .art > svg{width:30px; height:30px}
   .head.compact .meta{gap:4px; padding-top:0}
-  .head.compact .meta h1{font-size:24px}
+  .head.compact .meta h1{font-size:calc(24px * var(--v2-txt-echelle, 1))}
   .head.compact .desc{display:none}
-  .head.compact .actions{margin-top:2px}
-  .head.compact .play,.head.compact .ghost,.head.compact .ghost.sm{height:36px}
+  /* `--bl-h` : la hauteur du bouton Lecture partagé (`BoutonLectureV2`). */
+  .head.compact .actions{margin-top:2px; --bl-h:36px}
+  .head.compact .ghost,.head.compact .ghost.sm{height:36px}
+  .head.compact .ghost.carre{width:36px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg);
     display:grid; place-items:center; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .art.stream{background:none; color:inherit; box-shadow:var(--v2-sh-lg)}
+  .art.mos{display:block; background:none; color:inherit}
   .art > svg{width:96px; height:96px}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
-  .kind{font:700 11px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
-  .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
-  .rn{font-size:32px; font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
+  /* Recette rc12 (13/11) — fenêtre étroite (téléphone, demi-écran) : la
+     pochette de 240 px et le titre côte à côte ne tenaient pas ; le titre se
+     coupait mot à mot ou sortait du cadre. La pochette passe au-dessus. */
+  /* Recette du 14/11 (point 102, web#2895 NON) : la règle ne regardait que la
+     largeur de la FENÊTRE. La fiche s'ouvre dans la zone principale, à côté de
+     la barre latérale et du panneau de lecture : une fenêtre de 900 px y laisse
+     moins de 640 px, et la pochette de 240 px restait à côté du titre. La
+     requête de CONTENEUR mesure la fiche elle-même — fenêtre étroite comprise,
+     puisque la fiche y est alors étroite aussi. */
+  @media (max-width:640px){
+    .v2-pldetail{padding:20px 16px 32px}
+  }
+  @container pldetail (max-width:640px){
+    .head:not(.compact){flex-direction:column; gap:18px}
+    .head:not(.compact) .art{width:min(240px, 100%); height:auto; aspect-ratio:1 / 1}
+    .head:not(.compact) .meta h1{font-size:calc(28px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  }
+  .kind{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint)}
+  .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
+  .rn{font-size:calc(32px * var(--v2-txt-echelle, 1)); font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:4px 10px; outline:none}
-  .desc{font-size:14px; color:var(--v2-txt2); max-width:60ch}
-  .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .desc{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); max-width:60ch}
+  .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:12px; margin-top:8px; flex-wrap:wrap}
-  .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
-    font:700 14px var(--v2-sans); cursor:pointer; border:0}
-  .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
+  .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
+    font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; border:0}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   /* Le mode ÉDITION se voit : sinon on ne sait pas pourquoi des croix sont
@@ -797,33 +929,39 @@
   .ghost.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .chez{align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
-  .ghost.sm{height:44px; padding:0 14px; font-size:13px}
-  .ghost.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .play svg,.ghost svg{width:16px; height:16px}
+  .chez{align-self:center; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
+  .ghost.sm{height:44px; padding:0 14px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .ghost svg{width:16px; height:16px}
+  /* web#2736 — les boutons d'icône seule. */
+  .ghost.carre{width:44px; padding:0; justify-content:center; flex:0 0 auto}
+  .ghost[aria-expanded="true"]{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .ghost:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .ghost:disabled{opacity:.55; cursor:default}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .tri{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:0 0 10px}
   .vuebar{display:inline-flex; align-items:center; gap:14px; flex-wrap:wrap}
   .vues{display:inline-flex; border:1px solid var(--v2-line2); border-radius:9px; overflow:hidden}
   .vbtn{height:32px; padding:0 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12.5px var(--v2-sans)}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .vbtn.basc{border:1px solid var(--v2-line2); border-radius:9px}
   .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
-  .taille{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .taille{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .taille input{width:140px; accent-color:var(--v2-acc2)}
+  .palb{display:block; width:100%; text-align:left; padding:0; border:0; background:transparent; cursor:pointer;
+    color:var(--v2-txt3); font:inherit; font-size:calc(12px * var(--v2-txt-echelle, 1)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
-  .pvig{display:block; width:100%; aspect-ratio:1; padding:0; border:0; border-radius:8px; overflow:hidden; cursor:pointer;
+  .pvig{display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
     background:var(--v2-surface2); line-height:0}
-  .pvig:disabled{opacity:.5; cursor:default}
-  .pvig:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .pnom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .part{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pvig.injouable{opacity:.5}
+  .pnom{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .part{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .pact{display:flex; gap:6px}
-  .tricol{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .tricol{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .tricol select{height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 8px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 8px}
   .tricol .sens{width:32px; height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
   .tricol .sens svg{width:15px; height:15px}
@@ -835,13 +973,13 @@
   .trk.np{color:var(--v2-acc1)}
   .trk .pl{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; border:0; background:transparent;
     color:inherit; cursor:pointer; text-align:left; padding:11px 0}
-  .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .trk .n{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .trk.np .n{color:var(--v2-acc1)}
-  .trk .ti{min-width:0; font-size:14px; font-weight:500; display:flex; flex-direction:column; gap:2px;
+  .trk .ti{min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .trk .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
-  .trk .tk{font:10px var(--v2-mono); color:var(--v2-acc2)}
-  .trk .dur{font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .trk .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  .trk .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
+  .trk .dur{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .rm{width:30px; height:30px; border-radius:8px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
   .rm:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}

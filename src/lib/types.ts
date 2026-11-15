@@ -91,6 +91,9 @@ export interface Artist {
    *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
    *  inconnu. Absent d'un serveur ancien. */
   musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
+  /** tune-server-rust#8668 — pays de l'artiste (MusicBrainz, #8090), code ISO
+   *  en majuscules ; `null` inconnu ; absent d'un serveur antérieur. */
+  country?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
@@ -139,6 +142,11 @@ export interface Album {
    * d'un serveur plus ancien : le filtre Multicanal ne s'affiche pas.
    */
   max_channels?: number | null;
+  /**
+   * tune-server-rust#8560 — le plus petit nombre de canaux parmi les pistes
+   * de l'album, pour le filtre Stéréo. Absent d'un serveur plus ancien.
+   */
+  min_channels?: number | null;
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -260,6 +268,13 @@ export interface Track {
    *  d'un disque (mouvements, bonus, ensembles), là où `disc_subtitle` nomme le
    *  disque entier. Absent de la réponse quand la piste n'en porte pas (#2130). */
   grouping?: string | null;
+  /** #2762 — chef(s), ensemble(s) / orchestre(s), œuvre et mouvement, joints
+   *  par « ; », servis par `/library/tracks` (tune-server-rust#8325). ABSENTS
+   *  quand la piste n'en porte pas, ou d'un serveur plus ancien. */
+  conductor?: string | null;
+  ensemble?: string | null;
+  work?: string | null;
+  movement?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
@@ -356,8 +371,24 @@ export interface Track {
    * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
    */
   missing?: boolean;
+  /**
+   * Forum, fil 2694 — ligne de FILE ajoutée par la radio de fin de file
+   * (`GET /zones/{id}/queue`, tune-server-rust). Toujours posée par un
+   * serveur qui la connaît ; absente chez un plus ancien : pas de badge.
+   */
+  added_by_radio?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
+  /**
+   * web#2806 (tune-server-rust#8412) — la ligne de playlist est une RADIO de
+   * « Mes radios » : `source = 'radio'`, `source_id` = `radio_id` en texte,
+   * le nom en titre, le logo en pochette, `duration_ms = 0`. Passer par
+   * `lib/lignePlaylistRadio.ts`.
+   */
+  radio?: boolean;
+  radio_id?: number | null;
+  /** Ligne radio : la station a quitté « Mes radios ». Grisée, sautée à la lecture. */
+  unavailable?: boolean;
 }
 
 export interface Playlist {
@@ -433,6 +464,30 @@ export interface SignalPath {
   /** tune-server-rust#4384 — ReplayGain armé, piste sans gain stocké : le
    *  préampli n'est pas appliqué. Absent sinon, sous PURE, ou d'un vieux serveur. */
   replaygain_untagged?: { mode?: string; preamp_db?: number } | null;
+  /** tune-server-rust#8419 — lecture groupée : chaque sortie du groupe et
+   *  son étage final. Absent hors groupe, ou d'un serveur antérieur. */
+  group_outputs?: SortiesDuGroupe | null;
+}
+
+/** tune-server-rust#8419 — une sortie d'un groupe de lecture. */
+export interface SortieDuGroupe {
+  zone_id: number;
+  name: string;
+  output_type?: string | null;
+  /** La zone dont on lit le chemin du signal. */
+  this_zone: boolean;
+  leader: boolean;
+  state: 'playing' | 'paused' | 'stopped';
+  bit_perfect?: boolean | null;
+  rate_conversion?: { from_hz: number; to_hz: number } | null;
+  /** La dernière étape du chemin du signal de CETTE sortie : ce qu'elle reçoit. */
+  final_stage?: SignalPathStep | null;
+}
+
+export interface SortiesDuGroupe {
+  group_id?: number | null;
+  leader_id?: number | null;
+  outputs: SortieDuGroupe[];
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -595,10 +650,23 @@ export interface Zone {
    *  zone WASAPI quand ASIO est choisi). La zone reste jouable ; elle est
    *  signalée. */
   hors_backend_choisi?: boolean;
+  /** tune-server-rust#7806 — le pilote que la sortie locale de cette zone
+   *  emprunte vraiment sous Windows (`wasapi` ou `asio`), que ce soit ou non
+   *  le backend choisi. Absent hors Windows et d'un serveur antérieur. */
+  pilote_local?: string;
   /** tune-server-rust#6120 — zone locale dont la sortie n'est pas
    *  enregistrée (pilote disparu, renommé) : elle peut être rattachée à la
    *  main à une sortie ASIO présente. Absent d'un serveur antérieur. */
   sortie_absente?: boolean;
+  /** tune-server-rust#7279 / #7838 — zone `dlna` ou `openhome` dont aucune
+   *  sortie de lecture n'est enregistrée. Absent d'un serveur antérieur. */
+  sortie_reseau_absente?: boolean;
+  /** tune-server-rust#7838 — posé seulement quand la découverte VOIT
+   *  l'appareil : pourquoi il ne peut pas jouer. Absent = hors ligne ordinaire
+   *  (voir `lib/raisonSortieReseau`). */
+  raison_sortie_absente?: 'services_de_rendu_manquants' | 'sortie_non_enregistree';
+  /** Les services de rendu UPnP que l'appareil n'annonce pas. */
+  services_manquants?: Array<'avtransport' | 'renderingcontrol' | string>;
   /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
    *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
   presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
@@ -641,13 +709,23 @@ export interface Zone {
    * `dop_active`, détecté sur les octets pendant la lecture. Absent des
    * serveurs qui ne le publient pas : l'interface n'affirme alors rien.
    */
-  dsd_transport?: string;
+  dsd_transport?: string | null;
+  /**
+   * #2513 (tune-server-rust#7372) — le motif du diagnostic `dsd_transport` :
+   * `capacite_non_sondee` (capacité native encore inconnue, `dsd_transport`
+   * vaut alors `null`), `sortie_non_asio` ou `pilote_sans_dsd` (cause connue
+   * du repli DoP), `null` quand il n'y a rien à expliquer.
+   */
+  dsd_transport_reason?: 'capacite_non_sondee' | 'sortie_non_asio' | 'pilote_sans_dsd' | string | null;
+  /** `output_capability` : capacité de la sortie, pas transport réel de la piste. */
+  dsd_transport_scope?: string | null;
   /** Décalage des paroles synchronisées, en ms. Positif = paroles retardées,
    *  pour compenser la latence serveur → oreille propre à l'appareil (#1328). */
   lyrics_offset_ms?: number;
   dlna_native_flac?: boolean;
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
+  fixed_sample_rate?: number | null;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
@@ -664,10 +742,13 @@ export interface Zone {
   aac_passthrough?: boolean;
   /**
    * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
-   * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par
-   * defaut (migration 46), donc explicitement optionnel.
+   * Porte par la ZONE, en base — c'est ce que lit le poller. Active par
+   * defaut depuis la rc12 (fil 2694, migration serveur 152 / PG 118) ;
+   * optionnel pour les serveurs anciens.
    */
   autoplay_enabled?: boolean;
+  /** Le mode precis (#2271) : `off`, `similar`, `random_album`… */
+  autoplay_mode?: string;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;
@@ -733,6 +814,13 @@ export interface Zone {
    * Absent sur un vieux serveur ⇒ le sélecteur n'est pas proposé.
    */
   dlna_radio_title?: 'off' | 'next' | 'reload';
+  /**
+   * web#2799 (tune-server-rust#8082) — « Flux continu entre les pistes » :
+   * les pistes consécutives de même format partent en un seul flux WAV vers
+   * un renderer DLNA qui raccorde mal. Toujours présent sur un serveur qui
+   * connaît le réglage ; absent ⇒ l'interrupteur n'est pas proposé.
+   */
+  dlna_flux_continu?: boolean;
   /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
@@ -887,6 +975,10 @@ export interface DiscoveredDevice {
   mac_prefix?: string | null;
   /** Marque que la table OUI associe à cette plage ; `null` si elle n'y est pas. */
   mac_vendor?: string | null;
+  /** tune-server-rust#7279 — `false` : trouvé, mais aucune de ses identités
+   *  n'est une sortie de lecture (service de rendu manquant). Absent d'un
+   *  serveur antérieur : traiter l'absence comme `true`. */
+  registered?: boolean;
 }
 
 export interface LocalAudioDevice {
@@ -1219,6 +1311,13 @@ export interface ZoneGroupResponse {
   zone_ids: number[];
   auto_synced: boolean;
   group_manufacturer: string;
+  /** Numéro du groupe dans `zone_groups` (`group_id` en est la chaîne). */
+  id?: number;
+  name?: string;
+  /** tune-server-rust#8445 — volume maître (gain 0..1) et décalage de chaque
+   *  membre (clé : id de zone en chaîne), tels que le serveur les garde. */
+  master_volume?: number;
+  offsets?: Record<string, number>;
 }
 
 /** Filtre de la vue Métadonnées.
@@ -1614,6 +1713,12 @@ export interface RadioStation {
     /** Les flux publiés de la fiche, le principal d'abord (#7177). */
     streams?: FluxRadio[];
   } | null;
+  /**
+   * web#2795 — la station de l'annuaire a été modifiée CHEZ SOI (nom, logo ou
+   * flux) : le relevé de l'annuaire ne la touche plus, et « Revenir à la fiche
+   * de l'annuaire » efface la surcharge. Absent d'un serveur antérieur.
+   */
+  surcharge_locale?: boolean;
 }
 
 /**
@@ -1629,6 +1734,18 @@ export interface FluxRadio {
   hls?: boolean;
   /** Le flux principal de la fiche. */
   primary?: boolean;
+  /**
+   * web#2801 (tune-server-rust#7515, rc12) — le flux que le serveur joue si
+   * l'auditeur n'en choisit aucun ; jamais un flux réservé à d'autres pays.
+   * Au plus un par fiche. Absent d'un serveur plus ancien.
+   */
+  par_defaut?: boolean;
+  /**
+   * web#2801 — `true` : libre ou ouvert au pays d'écoute ; `false` : réservé
+   * à d'autres pays (ou invalide) ; `null` : restreint alors que le pays
+   * d'écoute n'est pas renseigné. Absent d'un serveur plus ancien.
+   */
+  autorise?: boolean | null;
 }
 
 export interface RadioImportResult {

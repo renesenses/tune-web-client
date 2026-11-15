@@ -35,7 +35,23 @@ const ORIGINE = 'http://tune.local:8888';
 
 type Ecouteur = (e: any) => void;
 
-function bac(texte: string, opts: { reseau?: 'ok' | 'coupe'; cachesInitiaux?: string[] } = {}) {
+type OptionsBac = {
+  reseau?: 'ok' | 'coupe';
+  cachesInitiaux?: string[];
+  /** Corps de `/` servi par le réseau. */
+  coquille?: string;
+  /** Chemins auxquels le serveur répond 404 (morceaux d'un autre build). */
+  introuvables?: string[];
+};
+
+function typeDe(chemin: string): string {
+  if (chemin.endsWith('.js')) return 'text/javascript';
+  if (chemin.endsWith('.css')) return 'text/css';
+  if (chemin.endsWith('.png')) return 'image/png';
+  return 'text/html';
+}
+
+function bac(texte: string, opts: OptionsBac = {}) {
   const ecouteurs = new Map<string, Ecouteur>();
   const magasins = new Map<string, Map<string, Response>>();
   for (const n of opts.cachesInitiaux ?? []) magasins.set(n, new Map());
@@ -63,7 +79,10 @@ function bac(texte: string, opts: { reseau?: 'ok' | 'coupe'; cachesInitiaux?: st
     const url = typeof entree === 'string' ? new URL(entree, ORIGINE).href : entree.url;
     appelsFetch.push({ url, init: init ?? (typeof entree === 'string' ? undefined : { cache: entree.cache }) });
     if (opts.reseau === 'coupe') throw new TypeError('Failed to fetch');
-    return new Response(`reseau:${url}`, { status: 200, headers: { 'content-type': 'text/html' } });
+    const chemin = new URL(url).pathname;
+    if (opts.introuvables?.includes(chemin)) return new Response('', { status: 404 });
+    const corps = chemin === '/' && opts.coquille !== undefined ? opts.coquille : `reseau:${url}`;
+    return new Response(corps, { status: 200, headers: { 'content-type': typeDe(chemin) } });
   };
   const self = {
     location: { origin: ORIGINE },
@@ -194,9 +213,9 @@ describe('fetch', () => {
     const b = bac(sw('B2'));
     expect(await b.declencher('fetch', { request: b.requete('https://fonts.googleapis.com/css2') })).toBeUndefined();
   });
-  it('ressource : réseau d’abord, mise en cache du build, cache hors ligne', async () => {
+  it('ressource sans empreinte : réseau d’abord, mise en cache du build, cache hors ligne', async () => {
     const b = bac(sw('B2'));
-    const req = b.requete('/assets/index-abc.js');
+    const req = b.requete('/icons/icone-192.png');
     await b.declencher('fetch', { request: req });
     await b.tick();
     expect(b.magasins.get('tune-B2')!.has(req.url)).toBe(true);
@@ -204,5 +223,95 @@ describe('fetch', () => {
     hl.magasins.set('tune-B2', b.magasins.get('tune-B2')!);
     const r = await hl.declencher('fetch', { request: req });
     expect(await r!.text()).toBe(`reseau:${req.url}`);
+  });
+});
+
+// tune-web-client#3054 — écran noir après une mise à jour : une coquille
+// servie hors ligne (serveur en redémarrage) dont le bundle d'entrée n'était
+// pas dans le cache du build.
+const COQUILLE_N = [
+  '<!doctype html><html><head>',
+  '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato" />',
+  '<script type="module" crossorigin src="/assets/index-N.js"></script>',
+  '<link rel="stylesheet" crossorigin href="/assets/index-N.css">',
+  '</head><body><div id="app"></div></body></html>',
+].join('');
+
+describe('fichiers à empreinte et coquille du même build (#3054)', () => {
+  it('install : la coquille ET les /assets/ qu’elle cite entrent dans le cache du build', async () => {
+    const b = bac(sw('N'), { coquille: COQUILLE_N });
+    await b.declencher('install');
+    const cles = [...b.magasins.get('tune-N')!.keys()].sort();
+    expect(cles).toEqual([`${ORIGINE}/`, `${ORIGINE}/assets/index-N.css`, `${ORIGINE}/assets/index-N.js`]);
+    // Les polices d'une autre origine ne sont pas demandées.
+    expect(b.appelsFetch.some((a) => a.url.includes('fonts.googleapis'))).toBe(false);
+  });
+
+  it('install : un morceau introuvable n’est pas mis en cache, et l’installation aboutit', async () => {
+    const b = bac(sw('N'), { coquille: COQUILLE_N, introuvables: ['/assets/index-N.js'] });
+    await expect(b.declencher('install')).resolves.toBeUndefined();
+    expect(b.magasins.get('tune-N')!.has(`${ORIGINE}/assets/index-N.js`)).toBe(false);
+    expect(b.magasins.get('tune-N')!.has(`${ORIGINE}/assets/index-N.css`)).toBe(true);
+  });
+
+  it('fichier à empreinte en cache : servi sans aller au réseau', async () => {
+    const b = bac(sw('N'), { cachesInitiaux: ['tune-N'] });
+    b.magasins.get('tune-N')!.set(`${ORIGINE}/assets/index-N.js`, new Response('cache:N'));
+    const r = await b.declencher('fetch', { request: b.requete('/assets/index-N.js') });
+    expect(await r!.text()).toBe('cache:N');
+    expect(b.appelsFetch).toHaveLength(0);
+  });
+
+  it('fichier à empreinte absent du cache : réseau, puis mis en cache', async () => {
+    const b = bac(sw('N'));
+    const req = b.requete('/assets/Bibliotheque-x1.js');
+    const r = await b.declencher('fetch', { request: req });
+    expect(await r!.text()).toBe(`reseau:${req.url}`);
+    await b.tick();
+    expect(b.magasins.get('tune-N')!.has(req.url)).toBe(true);
+  });
+
+  it('fichier à empreinte : ni un 404 ni une page HTML de repli ne sont gardés', async () => {
+    const b = bac(sw('N'), { introuvables: ['/assets/disparu-N.js'] });
+    const r404 = await b.declencher('fetch', { request: b.requete('/assets/disparu-N.js') });
+    expect(r404!.status).toBe(404);
+    const rHtml = await b.declencher('fetch', { request: b.requete('/assets/route-inconnue') });
+    expect(rHtml!.headers.get('content-type')).toContain('text/html');
+    await b.tick();
+    expect(b.magasins.get('tune-N')?.size ?? 0).toBe(0);
+  });
+
+  it('serveur revenu avec N+1 : la coquille N servie hors ligne retrouve ses morceaux N', async () => {
+    // Installation de N : coquille et morceaux en cache.
+    const n = bac(sw('N'), { coquille: COQUILLE_N });
+    await n.declencher('install');
+    // Navigation pendant le redémarrage : coquille N du cache.
+    const panne = bac(sw('N'), { reseau: 'coupe' });
+    panne.magasins.set('tune-N', n.magasins.get('tune-N')!);
+    const nav = await panne.declencher('fetch', { request: panne.requete('/', { mode: 'navigate' }) });
+    expect(await nav!.text()).toContain('/assets/index-N.js');
+    // Le serveur est revenu avec N+1 : les morceaux N n'y sont plus.
+    const revenu = bac(sw('N'), { introuvables: ['/assets/index-N.js', '/assets/index-N.css'] });
+    revenu.magasins.set('tune-N', n.magasins.get('tune-N')!);
+    const js = await revenu.declencher('fetch', { request: revenu.requete('/assets/index-N.js') });
+    expect(js!.status).toBe(200);
+    expect(await js!.text()).toBe(`reseau:${ORIGINE}/assets/index-N.js`);
+  });
+
+  it('navigation, réseau joignable : toujours la coquille du réseau, jamais celle du cache', async () => {
+    const b = bac(sw('N'), { coquille: 'coquille-N1', cachesInitiaux: ['tune-N'] });
+    b.magasins.get('tune-N')!.set(`${ORIGINE}/`, new Response('coquille-N-en-cache'));
+    const r = await b.declencher('fetch', { request: b.requete('/', { mode: 'navigate' }) });
+    expect(await r!.text()).toBe('coquille-N1');
+  });
+
+  it('activation de N+1 : les caches de N (coquille et morceaux) sont purgés', async () => {
+    const n = bac(sw('N'), { coquille: COQUILLE_N });
+    await n.declencher('install');
+    const n1 = bac(sw('N1'), { cachesInitiaux: ['tune-N1'] });
+    n1.magasins.set('tune-N', n.magasins.get('tune-N')!);
+    await n1.declencher('activate');
+    expect([...n1.magasins.keys()]).toEqual(['tune-N1']);
+    expect(n1.traces.claim).toBe(1);
   });
 });

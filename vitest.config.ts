@@ -28,6 +28,6 @@ export default defineConfig({
     // Le stockage d'abord (#1555) : sous Node ≥ 25, le `localStorage` natif de
     // Node masque celui de jsdom et vaut `undefined` — `getToken()` levait,
     // et pontRoonImport4349 tombait à 10 rouges sur 10 sous Node 26.
-    setupFiles: ['src/lib/__tests__/setupStockageWeb.ts', 'src/lib/__tests__/setupLocales.ts'],
+    setupFiles: ['src/lib/__tests__/setupStockageWeb.ts', 'src/lib/__tests__/setupNiveauExpertDesBancs.ts', 'src/lib/__tests__/setupLocales.ts'],
   },
 });

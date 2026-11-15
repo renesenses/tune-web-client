@@ -148,7 +148,7 @@
   }
   .apr-explication {
     margin: 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     line-height: 1.45;
     color: var(--v2-txt);
   }
@@ -158,13 +158,13 @@
     align-items: baseline;
     gap: 8px;
     margin-top: 6px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--v2-txt);
   }
   .apr-compte,
   .apr-note,
   .apr-detail {
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--v2-txt2);
   }
   .apr-note {
@@ -173,7 +173,7 @@
   }
   .apr-erreur {
     margin: 0;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--v2-danger);
   }
   .apr-liste {
@@ -196,7 +196,7 @@
   }
   .apr-nom {
     grid-area: nom;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--v2-txt);
     overflow-wrap: anywhere;
   }
@@ -208,11 +208,11 @@
   }
   .apr-ici {
     margin-left: 6px;
-    font: 10px var(--v2-mono);
+    font: calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     color: var(--v2-acc1);
   }
   .apr-lien {
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--v2-acc1);
   }
 </style>

@@ -76,9 +76,9 @@
 <style>
   .row.nuit{display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:12px}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:13.5px; font-weight:500}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3)}
-  .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
+  .lbl span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
   .sw{position:relative; flex:0 0 auto; width:44px; height:25px; cursor:pointer}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}

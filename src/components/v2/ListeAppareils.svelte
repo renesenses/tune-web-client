@@ -109,7 +109,7 @@
     background:var(--v2-bg); color:var(--v2-txt); font:inherit}
   .la-type{padding:8px 10px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
     color:var(--v2-txt); font:inherit}
-  .la-n{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .la-n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .la-vide{margin:4px 0}
   .la-liste{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
   .ligne{width:100%; display:flex; align-items:center; gap:12px; padding:9px 12px; text-align:left;
@@ -120,11 +120,11 @@
   .ligne.sel{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .ic{display:inline-flex; color:var(--v2-txt2); flex:none}
   .nom{display:flex; flex-direction:column; min-width:0; flex:1}
-  .zn{font-size:14px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .app{font-size:11.5px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zn{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .app{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .zt{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2); flex:none}
-  .etat{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); flex:none; min-width:78px}
+  .etat{display:inline-flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); flex:none; min-width:78px}
   .pt{width:8px; height:8px; border-radius:50%; background:var(--v2-txt3)}
   .etat-playing .pt{background:var(--v2-acc2)}
   .etat-offline{color:var(--v2-txt3)}

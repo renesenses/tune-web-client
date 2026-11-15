@@ -103,15 +103,12 @@ describe('reconnaître un refus premium', () => {
 });
 
 describe('le panneau EQ de Lecture en cours devant une licence absente', () => {
-  it('reçoit l’état de licence — `isPremium` ne peut plus être absent du fichier', () => {
-    expect(
-      // Un ou deux crans : `NowPlaying` est rangé dans `partages/` depuis la
-      // phase 1 du chantier de bascule. Ce que la garde exige est l'IMPORT de
-      // l'état de licence, pas la profondeur du fichier.
-      /from '\.\.\/(\.\.\/)?lib\/stores\/license'/.test(NOW_PLAYING),
-      'NowPlaying.svelte n’importe toujours pas l’état de licence',
-    ).toBe(true);
-    expect(NOW_PLAYING).toMatch(/\$isPremium/);
+  // web#2387 — l'égaliseur est GRATUIT (`check_feature` accorde toujours
+  // `Feature::DspEq`) : le cadenas ne suit plus `$isPremium`, seulement un
+  // refus réel du serveur. Ce témoin-ci exigeait l'inverse ; le comportement
+  // est éprouvé sur le composant monté dans `egaliseurLectureGratuit2387`.
+  it('ne lit plus l’état de licence pour verrouiller l’égaliseur (web#2387)', () => {
+    expect(NOW_PLAYING).not.toMatch(/\$isPremium/);
   });
 
   it('transmet le verrou au panneau', () => {

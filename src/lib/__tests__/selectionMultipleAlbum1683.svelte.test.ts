@@ -1,3 +1,4 @@
+import { formaterPluriel } from '../pluriel';
 // @vitest-environment jsdom
 //
 // web#1683, point 3 — Levente Toth, fil forum 1998 : « maybe there would be a
@@ -32,6 +33,7 @@ import {
   SELECTION_VIDE, appliquerGenre, basculer, choisiesDansLOrdre, corpsArtistePistes,
   restreindre, toutOuRien,
 } from '../selectionPistes';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -111,7 +113,8 @@ function poser(props: Record<string, unknown>) {
   flushSync();
 }
 
-const boutonSelection = () => hote?.querySelector<HTMLButtonElement>('[data-selection-album]') ?? null;
+// web#2736 — « Sélectionner des pistes » est une entrée du menu « … » de la fiche.
+const boutonSelection = () => (hote ? entreeDuMenu(hote, '[data-selection-album]') : null);
 const cases = () => Array.from(hote?.querySelectorAll<HTMLInputElement>('input[data-case-piste]') ?? []);
 const caseDe = (id: number) => hote!.querySelector<HTMLInputElement>(`input[data-case-piste="${id}"]`)!;
 const barre = (attr: string) => hote!.querySelector<HTMLButtonElement>(`.barre-selection [${attr}]`)!;
@@ -140,7 +143,7 @@ describe.each(['beginner', 'intermediate'] as const)('la fiche d’un album de l
     cliquer(caseDe(13));
     cliquer(caseDe(11));
     expect(hote!.querySelector('[data-sel-compte]')?.textContent?.trim())
-      .toBe(get(t)('v2.selection.countMany' as any).replace('{n}', '2'));
+      .toBe(formaterPluriel(get(t)('v2.selection.countN'), 2, 'fr'));
     cliquer(barre('data-sel-file'));
     await jusqua(() => envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/).length > 0);
     const file = envois(/\/zones\/1\/queue\/add(?:\?lang=[a-z]{2})?$/);

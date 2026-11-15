@@ -300,7 +300,7 @@
   }
   .panel-header h3 {
     margin: 0;
-    font-size: 1.1rem;
+    font-size: calc(1.1rem * var(--v2-txt-echelle, 1));
   }
   .create-form {
     background: var(--tune-bg-secondary, #1a1a2e);
@@ -326,7 +326,7 @@
   }
   .endpoint-addr {
     font-family: monospace;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .add-endpoint-row {
     display: flex;
@@ -343,7 +343,7 @@
   }
   .input-sm {
     padding: 0.35rem;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .input-port {
     width: 80px;
@@ -380,7 +380,7 @@
     font-weight: 600;
   }
   .badge {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--v2-txt-echelle, 1));
     padding: 0.15rem 0.5rem;
     border-radius: 10px;
     text-transform: uppercase;
@@ -396,7 +396,7 @@
   }
   .endpoint-count {
     color: var(--tune-text-secondary, #888);
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .group-details {
     padding: 0 1rem 1rem;
@@ -409,7 +409,7 @@
     padding: 0.75rem 0;
   }
   .volume-control label {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #888);
     white-space: nowrap;
   }
@@ -417,12 +417,12 @@
     flex: 1;
   }
   .volume-label {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     font-family: monospace;
     min-width: 3ch;
   }
   .offset-label {
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #888);
   }
   .endpoints-list {
@@ -452,7 +452,7 @@
     flex: 1;
   }
   .ep-state {
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #888);
     text-transform: capitalize;
   }
@@ -467,7 +467,7 @@
   }
   .ep-addr {
     font-family: monospace;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, #888);
   }
   .loading, .empty {
@@ -476,7 +476,7 @@
     color: var(--tune-text-secondary, #888);
   }
   .hint {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     margin-top: 0.5rem;
   }
   .btn-primary {
@@ -486,7 +486,7 @@
     padding: 0.5rem 1rem;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .btn-primary:disabled {
     opacity: 0.5;
@@ -499,7 +499,7 @@
     padding: 0.3rem 0.6rem;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
   }
   .btn-xs {
     background: transparent;
@@ -507,7 +507,7 @@
     border: none;
     padding: 0.15rem 0.4rem;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
   }
   .btn-danger {
     color: var(--tune-error, #ef4444);

@@ -37,7 +37,7 @@
   // déclarées non gérables) sur le TOTAL, et nomment les non gérées.
   import { jaugeTraiteesPlageDynamique, jaugeTraiteesReplayGain, ligneNonGerees } from '../../lib/santeJaugeTraitees';
   // tune-server-rust#5189 — la température du processeur (`cpu_temp_c`).
-  import { bridageDesAnalyses, temperatureProcesseur, bridageLeve } from '../../lib/temperatureProcesseur';
+  import { avertissementTemperature, temperatureProcesseur } from '../../lib/temperatureProcesseur';
   // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
   // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
   // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
@@ -47,14 +47,22 @@
     freinesParLaLecture,
     FREIN_SCAN,
     serveurSaitSuspendre,
+    libelleProgression,
     type InstantaneTachesDeFond,
     type PrioriteDr,
     type RattrapageRapportsDr,
   } from '../../lib/tachesDeFond';
+  // tune-server-rust#4681 (étape 4) — « Ce qui tourne » : quelles tâches de
+  // fond travaillent, cèdent à la lecture ou sont en pause, et pourquoi.
+  import { ceQuiTourne, phraseCalcul, phraseLecture, remplir, type CeQuiTourne } from '../../lib/ceQuiTourne';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
   import { lireBlocAcoustid, carteAcoustid, type BlocAcoustid } from '../../lib/acoustid';
   import { heureSeule } from '../../lib/dates';
-  import { t } from '../../lib/i18n';
+  import { carteEmpreintes, carteDeFondCiblee, TRAITEMENT_EMPREINTES } from '../../lib/carteEmpreintes';
+  import { dureeLisible, avancementsParTraitement, fusionnerAvancements, ligneAvancement, type AnalyseDeFond } from '../../lib/analysesDeFond';
+  import { tick } from 'svelte';
+  import { get } from 'svelte/store';
+  import { tn, t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
@@ -68,6 +76,10 @@
   // passe en cours, dernière passe, bouton « Lancer la passe ».
   import { boutonPasseActif, carteLogosLabels, cartePochettesAlbums, estCarteImages, type OutilsCarte } from '../../lib/santeImages';
   import { dateEtHeure } from '../../lib/dates';
+  // 15/11/2026 — maquette de Levente (« image 5 ») : bandeau de tête et
+  // pictogrammes. Rien n'y est inventé : voir `lib/etatServeurEnTete.ts`.
+  import IconeEtatServeur from './IconeEtatServeur.svelte';
+  import { lireEnTete, tailleBibliotheque, type EnTeteEtatServeur } from '../../lib/etatServeurEnTete';
 
   type Card = {
     id: string;
@@ -127,6 +139,8 @@
     }
   }
   let loading = $state(true);
+  /** Maquette de Levente — le bandeau : en ligne, albums, titres, taille. */
+  let enTete = $state<EnTeteEtatServeur>({ enLigne: null, version: null, albums: null, pistes: null, octets: null });
   let lastAt = $state<string | null>(null);
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
@@ -135,15 +149,12 @@
    *  capteur) ou `undefined` (serveur antérieur, ou rapport illisible). */
   let tempCpu = $state<unknown>(undefined);
   const temperature = $derived(temperatureProcesseur(tempCpu, $t('v2.health.cpuTempUnavailable' as any)));
-  /** tune-server-rust#5410 — `analyses_bridees` brut (motif, `null` ou absent). */
-  let motifBridage = $state<unknown>(undefined);
-  const bridage = $derived(bridageDesAnalyses(motifBridage, {
-    illisible: $t('v2.health.analysesBrideesIllisible' as any),
-    figee: $t('v2.health.analysesBrideesFigee' as any),
+  /** tune-server-rust#8011 — `temperature_illisible` brut (motif, `null` ou absent). */
+  let motifTemperature = $state<unknown>(undefined);
+  const avertissementChaleur = $derived(avertissementTemperature(motifTemperature, {
+    illisible: $t('v2.health.temperatureIllisible' as any),
+    figee: $t('v2.health.temperatureFigee' as any),
   }));
-  /** tune-server-rust#6713 — `analyses_bridage_leve` brut : bridage levé par l'utilisateur. */
-  let motifBridageLeve = $state<unknown>(undefined);
-  const bridageLeveTexte = $derived(bridageLeve(motifBridageLeve, $t('v2.health.analysesBridageLeve' as any)));
 
   // ── #1352 : la pause des traitements de fond ───────────────────────────
   //
@@ -157,6 +168,9 @@
   /** tune-server-rust#6330 — ce que la lecture ralentit ou arrête, par
    *  identifiant serveur (`FREIN_SCAN` pour le scan). */
   let freins = $state<Set<string>>(new Set());
+  /** web#2675 — l'avancement de chaque passe en cours (titres traités, total,
+   *  temps restant), par identifiant serveur ; vide face à un serveur ancien. */
+  let avancements = $state<Record<string, AnalyseDeFond>>({});
   /** L'identifiant de frein d'une carte : son traitement, ou le scan. */
   const freinDe = (c: Card) => (c.id === 'scan' ? FREIN_SCAN : c.traitement);
   let pausePossible = $state(false);
@@ -171,12 +185,20 @@
     pausePossible = serveurSaitSuspendre(inst);
     pauses = pausesParTraitement(inst);
     freins = freinesParLaLecture(inst);
+    avancements = avancementsParTraitement(inst);
     toutEnPause = !!inst?.all_paused;
     prioriteDr = choixPrioriteDr(inst);
     rattrapageDr = inst?.dynamic_range_sidecar ?? null;
     etatServeurDr = etatServeurPlageDynamique(inst);
     blocAcoustid = lireBlocAcoustid(inst);
+    tourne = ceQuiTourne(inst);
   }
+  /** #4681 — la section « Ce qui tourne » ; `null` face à un serveur qui ne
+   *  publie ni `pausable` ni `playback_priority` : la section se tait. */
+  let tourne = $state<CeQuiTourne | null>(null);
+  let auditIntegrite = $state<api.EtatIntegrite | null>(null);
+  const lectureEnTete = $derived(phraseLecture(tourne));
+  const calculEnTete = $derived(phraseCalcul(tourne));
   /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
    *  à un serveur qui ne le publie pas : aucune carte. */
   let blocAcoustid: BlocAcoustid | null = null;
@@ -308,6 +330,9 @@
    */
   function boutonSurLaCarte(c: Card): boolean {
     if (!pausePossible || !c.traitement) return false;
+    // tune-server-rust#8346 — les empreintes se suspendent aussi AU REPOS :
+    // qui n'en veut pas les coupe avant la prochaine passe, pas pendant.
+    if (c.traitement === TRAITEMENT_EMPREINTES) return true;
     return c.etat === 'running' || !!pauses[c.traitement];
   }
 
@@ -359,16 +384,21 @@
     if (reseauOuvert) void lireReseau();
   }
 
-  const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
+  const anyRunning = $derived(cards.some((c) => c.etat === 'running')
+    || tourne?.lignes.some((l) => l.id === 'tache:integrity' && l.etat !== 'en_pause'));
 
   async function collect() {
     refreshing = true;
     const out: Card[] = [];
 
     // ── Analyse de la bibliothèque ────────────────────────────────────────
-    const [scan, report, stats] = await Promise.allSettled([
-      api.getScanStatus(), api.getScanReport(), api.getLibraryStats(),
+    const [scan, report, stats, sante] = await Promise.allSettled([
+      api.getScanStatus(), api.getScanReport(), api.getLibraryStats(), api.getHealth(),
     ]);
+    enTete = lireEnTete(
+      sante.status === 'fulfilled' ? { ok: true, valeur: sante.value } : { ok: false },
+      stats.status === 'fulfilled' ? stats.value : null,
+    );
     const totalTracks = stats.status === 'fulfilled' ? (stats.value?.tracks ?? 0) : 0;
     if (scan.status === 'fulfilled') {
       const scanning = !!scan.value?.scanning;
@@ -540,6 +570,39 @@
     // passage réglé (tune-server-rust#5169).
     const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
     rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    // Le registre nomme l’audit, son avancement persistant est sur cette route.
+    // Aucun sondage supplémentaire lorsqu’aucun audit n’est inscrit.
+    if (tourne?.lignes.some((l) => l.id === 'tache:integrity')) {
+      try { auditIntegrite = await api.getIntegrityStatus(); }
+      catch { auditIntegrite = null; }
+    } else auditIntegrite = null;
+
+
+    // ── Empreintes audio (tune-server-rust#8346) ──────────────────────────
+    // Deuxième rang de la cascade, entre ReplayGain et la plage dynamique.
+    // C'est la passe que l'on voit rééchantillonner en 11 kHz dans le
+    // journal : la carte dit à quoi elle sert et porte sa pause. Pas de
+    // carte face à un serveur qui ne publie pas `fingerprints` dans `pausable`.
+    const fp = carteEmpreintes(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    if (fp) {
+      const reste = fp.resteSecondes !== null
+        ? $t('v2.nav.bgAnalysisEta' as any).replace('{d}', dureeLisible(fp.resteSecondes, (k) => $t(k as any)))
+        : null;
+      out.push({
+        id: 'fp', traitement: TRAITEMENT_EMPREINTES,
+        titre: $t('v2.health.running.task.fingerprints' as any),
+        sous: $t('v2.health.cardFpSub' as any),
+        etat: fp.etat,
+        ligne: fp.total !== undefined
+          ? $t('v2.health.fpLine' as any)
+              .replace('{n}', $formatNombre(fp.fait ?? 0))
+              .replace('{t}', $formatNombre(fp.total)) + (reste ? ' · ' + reste : '')
+          : $t('v2.health.fpIdle' as any),
+        fait: fp.fait,
+        total: fp.total,
+        detail: $t('v2.health.fpPauseHint' as any),
+      });
+    }
 
     const drc = await Promise.allSettled([api.getCompletenessStats()]);
     if (drc[0].status === 'fulfilled' && drc[0].value?.with_dynamic_range !== undefined) {
@@ -766,8 +829,7 @@
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
-    motifBridage = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridees : undefined;
-    motifBridageLeve = diag[0].status === 'fulfilled' ? diag[0].value?.analyses_bridage_leve : undefined;
+    motifTemperature = diag[0].status === 'fulfilled' ? diag[0].value?.temperature_illisible : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
@@ -776,12 +838,33 @@
     refreshing = false;
   }
 
+  /**
+   * tune-server-rust#8346 — l'indicateur d'activité de la barre latérale
+   * ouvre cet écran SUR la carte de la passe qui tourne : c'est là qu'est sa
+   * pause. Lue et vidée une fois, quand la carte existe.
+   */
+  $effect(() => { if ($carteDeFondCiblee && !loading) void amenerLaCarteCiblee(); });
+  async function amenerLaCarteCiblee() {
+    const cible = get(carteDeFondCiblee);
+    if (!cible) return;
+    carteDeFondCiblee.set(null);
+    if (!cards.some((c) => c.traitement === cible)) return;
+    await tick();
+    const el = document.querySelector<HTMLElement>(`article[data-traitement="${cible}"]`);
+    el?.scrollIntoView?.({ block: 'center' });
+    el?.focus({ preventScroll: true });
+  }
+
   $effect(() => { collect(); });
 
   // #1518 — les chiffres de l'analyse arrivent par `library.scan.progress`.
   // Sans cet abonnement la carte resterait muette : `GET /scan/status`, seul,
   // ne porte qu'un booléen.
   $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  // web#2675 — les cartes suivent `library.analysis.progress` entre deux relevés.
+  $effect(() => tuneWS.onEvent((e: { type?: string; data?: any }) => {
+    if (e?.type === 'library.analysis.progress') avancements = fusionnerAvancements(avancements, e.data);
+  }));
 
   // Sondage UNIQUEMENT tant qu'un traitement tourne : un écran de santé qui
   // interroge le serveur en boucle alors que rien ne bouge est lui-même un
@@ -850,7 +933,7 @@
 </script>
 
 <section class="v2-health tune-v2">
-  <header class="v2-top">
+  <header class="v2-top sante-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$t('v2.health.eyebrow' as any)}</div>
       <h1>{$t('v2.nav.processing' as any)}</h1>
@@ -879,7 +962,8 @@
           {$t((toutEnPause ? 'v2.health.resumeAll' : 'v2.health.pauseAll') as any)}
         </button>
       {/if}
-      <button class="v2-btn" onclick={() => collect()} disabled={refreshing}>
+      <button class="v2-btn rafraichir" onclick={() => collect()} disabled={refreshing}>
+        <IconeEtatServeur nom="actualiser" taille={16} />
         {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
       </button>
     </div>
@@ -889,13 +973,115 @@
     {#if loading}
       <div class="state">{$t('v2.health.loading' as any)}</div>
     {:else}
+      <!-- Maquette de Levente (15/11/2026) — le bandeau. Chaque tuile ne
+           paraît que si le serveur a servi son chiffre (règle 1). -->
+      {#if enTete.enLigne !== null}
+        <section class="resume" data-testid="server-summary">
+          <div class="tuile etat {enTete.enLigne ? 'en-ligne' : 'hors-ligne'}" data-resume="etat">
+            <span class="pastille"><IconeEtatServeur nom={enTete.enLigne ? 'valide' : 'alerte'} taille={26} /></span>
+            <div>
+              <div class="tuile-titre">{$t((enTete.enLigne ? 'v2.health.summary.online' : 'v2.health.summary.offline') as any)}</div>
+              {#if enTete.enLigne && enTete.version}
+                <div class="tuile-sous">{$t('v2.health.summary.version' as any).replace('{v}', enTete.version)}</div>
+              {/if}
+            </div>
+          </div>
+          {#if enTete.albums !== null}
+            <div class="tuile" data-resume="albums">
+              <IconeEtatServeur nom="couches" taille={26} />
+              <div><div class="tuile-titre">{$formatNombre(enTete.albums)}</div><div class="tuile-sous">{$t('v2.health.summary.albums' as any)}</div></div>
+            </div>
+          {/if}
+          {#if enTete.pistes !== null}
+            <div class="tuile" data-resume="tracks">
+              <IconeEtatServeur nom="note" taille={26} />
+              <div><div class="tuile-titre">{$formatNombre(enTete.pistes)}</div><div class="tuile-sous">{$t('v2.health.summary.tracks' as any)}</div></div>
+            </div>
+          {/if}
+          {#if enTete.octets !== null}
+            <div class="tuile" data-resume="size">
+              <IconeEtatServeur nom="disque" taille={26} />
+              <div><div class="tuile-titre">{tailleBibliotheque(enTete.octets, $locale)}</div><div class="tuile-sous">{$t('v2.health.summary.size' as any)}</div></div>
+            </div>
+          {/if}
+        </section>
+      {/if}
+      {#if tourne}
+        <!-- tune-server-rust#4681 — ce qui tourne, et pourquoi. Rien n'y est
+             inventé : chaque ligne vient d'un champ publié par le serveur. -->
+        <section class="modules tourne" data-testid="running-tasks">
+          <h2>{$t('v2.health.running.title' as any)}</h2>
+          {#if lectureEnTete}
+            <div class="sub">
+              {typeof lectureEnTete.params.n === 'number' ? $tn(lectureEnTete.cle, lectureEnTete.params.n) : remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
+              {#if tourne.lecture?.active && tourne.lecture.depuisEpochS}
+                {remplir($t('v2.health.running.since' as any), { h: $heureSeule(tourne.lecture.depuisEpochS * 1000) })}
+              {/if}
+            </div>
+          {/if}
+          {#if tourne.lecture?.freinsDesactives}
+            <div class="sub bridage">{$t('v2.health.running.brakesOff' as any)}</div>
+          {/if}
+          {#if tourne.lignes.length === 0}
+            <div class="sub">{$t('v2.health.running.nothing' as any)}</div>
+          {:else}
+            <ul class="tourne-liste">
+              {#each tourne.lignes as l (l.id)}
+                <li data-tache={l.id} data-etat={l.etat}>
+                  <span class="tourne-nom">{l.nomCle ? $t(l.nomCle as any) : l.libelle}</span>
+                  <span class="badge {l.etat === 'en_cours' ? 'run' : l.etat === 'en_pause' ? 'pause' : 'idle'}">{$t(`v2.health.running.state.${l.etat}` as any)}</span>
+                  {#if l.raisonCle}
+                    <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
+                  {/if}
+                  {#if l.id === 'tache:integrity' && auditIntegrite && auditIntegrite.total > 0}
+                    <span class="tourne-pourquoi" data-avancement-integrite aria-label={$t('integrity.progress' as any)}>
+                      {$formatNombre(auditIntegrite.traites)} / {$formatNombre(auditIntegrite.total)}
+                      {#if auditIntegrite.status === 'running' && !auditIntegrite.lecture_prioritaire && typeof auditIntegrite.eta_seconds === 'number' && Number.isFinite(auditIntegrite.eta_seconds) && auditIntegrite.eta_seconds > 0}
+                        · {$t('v2.nav.bgAnalysisEta' as any).replace('{d}', dureeLisible(auditIntegrite.eta_seconds, (k) => $t(k as any)))}
+                      {/if}
+                    </span>
+                  {:else if l.avancement}
+                    <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: libelleProgression(l.avancement, (k) => $t(k as any)), fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if tourne.auRepos > 0}
+            <div class="sub">{remplir($t('v2.health.running.idleCount' as any), { n: tourne.auRepos })}</div>
+          {/if}
+          {#if tourne.freins && tourne.lecture?.active}
+            <div class="sub">{remplir($t('v2.health.running.brakes' as any), {
+              scan: $formatNombre(tourne.freins.fichiersDeScanRetenus),
+              lect: $formatNombre(tourne.freins.lecturesDifferees),
+              lms: $formatNombre(tourne.freins.lecturesDiffereesMs),
+              ecr: $formatNombre(tourne.freins.ecrituresDifferees),
+              ems: $formatNombre(tourne.freins.ecrituresDiffereesMs),
+            })}</div>
+          {/if}
+          <!-- tune-server-rust#4681 (étape 3) — le calcul de fond en basse
+               priorité, tel que le serveur le publie. -->
+          {#if calculEnTete}
+            <div class="sub" data-testid="background-compute">
+              {remplir($t(calculEnTete.cle as any), calculEnTete.params)}
+              {#if calculEnTete.cpuCle}
+                {remplir($t('v2.health.running.compute.cpu' as any), { p: $t(calculEnTete.cpuCle as any) })}
+              {/if}
+              {#if calculEnTete.ioCle}
+                {remplir($t('v2.health.running.compute.io' as any), { p: $t(calculEnTete.ioCle as any) })}
+              {/if}
+            </div>
+          {/if}
+        </section>
+      {/if}
       <div class="cards">
         {#each cards as c (c.id)}
           {@const p = pct(c)}
           {@const enPause = !!(c.traitement && pauses[c.traitement])}
-          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}">
+          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
             <div class="chead">
-              <div>
+              <span class="cicone"><IconeEtatServeur nom={c.id} /></span>
+              <div class="ctitres">
                 <h2>{c.titre}</h2>
                 <div class="sub">{c.sous}</div>
               </div>
@@ -910,6 +1096,13 @@
             </div>
 
             <div class="line">{c.ligne}</div>
+            <!-- web#2675 — titres traités, total et temps restant de la passe
+                 en cours. La carte Empreintes les porte déjà dans sa ligne. -->
+            {#if !enPause && c.id !== 'fp' && c.traitement && avancements[c.traitement]}
+              <div class="reste" data-avancement-analyse={c.traitement}>
+                {ligneAvancement(avancements[c.traitement], (k) => $t(k as any), (n) => $formatNombre(n))}
+              </div>
+            {/if}
 
             <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
                  POURQUOI : le serveur cède la place à la lecture. Pas sur une
@@ -1013,27 +1206,45 @@
         {/each}
       </div>
 
-      <!-- tune-server-rust#5189 — une ligne, sans seuil ni alerte. Absente
-           face à un serveur qui ne publie pas `cpu_temp_c`. -->
-      {#if temperature !== null}
-        <section class="modules">
-          <h2>{$t('v2.health.cpuTemp' as any)}</h2>
-          <div class="sub">{temperature}</div>
-          <!-- tune-server-rust#5410 — sans température lisible, les analyses
-               de fond tournent à un fichier à la fois : on le dit. -->
-          {#if bridage}<div class="sub bridage">{bridage}</div>{/if}
-          <!-- tune-server-rust#6713 — bridage levé par l'utilisateur : on le dit. -->
-          {#if bridageLeveTexte}<div class="sub bridage" data-bridage="leve">{bridageLeveTexte}</div>{/if}
-        </section>
-      {/if}
+      <!-- Maquette de Levente — deux rangées : température et modules de
+           sortie, puis journaux et diagnostic réseau. Sous 640 px, tout
+           passe en une colonne. -->
+      <div class="rangee">
+        <!-- tune-server-rust#5189 — la température, sans seuil ni alerte.
+             Absente face à un serveur qui ne publie pas `cpu_temp_c`. Pas de
+             courbe : le serveur ne garde aucun historique de température. -->
+        {#if temperature !== null}
+          <section class="modules bloc-temp">
+            <div class="bloc-tete">
+              <IconeEtatServeur nom="thermometre" />
+              <h2>{$t('v2.health.cpuTemp' as any)}</h2>
+            </div>
+            {#if typeof tempCpu === 'number'}
+              <div class="temp-valeur" data-temperature="valeur">{temperature}</div>
+            {:else}
+              <div class="sub">{temperature}</div>
+            {/if}
+            <!-- tune-server-rust#8011 — sans température lisible, les analyses
+                 de fond tournent à la vitesse réglée SANS surveillance de la
+                 chaleur (#6450 : plus de bridage) : on le dit. -->
+            {#if avertissementChaleur}<div class="sub bridage" data-temperature="illisible">{avertissementChaleur}</div>{/if}
+          </section>
+        {/if}
 
-      {#if modulesSortie}
-        <section class="modules">
-          <h2>{$t('diagnostics.outputModules' as any)}</h2>
-          <div class="sub">{$t('diagnostics.outputModulesHint' as any)}</div>
-          <OutputModulesPanel tableau={modulesSortie} variante="v2" />
-        </section>
-      {/if}
+        {#if modulesSortie}
+          <section class="modules bloc-large">
+            <div class="bloc-tete">
+              <IconeEtatServeur nom="hautParleur" />
+              <div class="ctitres">
+                <h2>{$t('diagnostics.outputModules' as any)}</h2>
+                <div class="sub">{$t('diagnostics.outputModulesHint' as any)}</div>
+              </div>
+              <button class="lnk gerer" onclick={() => activeView.set('plugins')}>{$t('v2.health.summary.manageModules' as any)}</button>
+            </div>
+            <OutputModulesPanel tableau={modulesSortie} variante="v2" />
+          </section>
+        {/if}
+      </div>
 
       {#if asioBloque || asioRearme}
         <section class="modules" role={asioRearme ? undefined : 'alert'}>
@@ -1049,59 +1260,68 @@
         </section>
       {/if}
 
-      <section class="modules">
-        <button class="lnk" onclick={basculerReseau} aria-expanded={reseauOuvert}>{$t('diagnostics.network' as any)}</button>
-        {#if reseauOuvert}
-          {#if reseauChargement}
-            <div class="sub">{$t('common.loading' as any)}</div>
-          {:else if reseau}
-            {@const d = lireDiagnosticReseau(reseau)}
-            <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
-                 Un champ absent se lit « inconnu » (❔), jamais en échec. -->
-            <ul class="reseau" data-diag="reseau">
-              {#each d.ecoutes as e (e.cle)}
-                <li data-ecoute={e.cle} data-verdict={e.verdict}>
-                  {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
-                  {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
-                  {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
-                  {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
-                  {#if e.message}<div class="ind">{e.message}</div>{/if}
-                </li>
-              {/each}
-              <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
-              {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
-                <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
-              {/each}
-              <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
-              <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
-            </ul>
-          {:else}
-            <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
+      <div class="rangee">
+        <!-- #865 — les JOURNAUX. Le bloc ne dépend d'aucune route
+             facultative : il doit être là même — surtout — quand le serveur
+             va mal. -->
+        <section class="journaux">
+          <div class="bloc-tete">
+            <IconeEtatServeur nom="journal" />
+            <div class="ctitres">
+              <h2>{$t('v2.health.cardLogs' as any)}</h2>
+              <div class="sub">{$t('settings.downloadLogsTitle' as any)}</div>
+            </div>
+          </div>
+          <div class="jactions">
+            <button class="lnk" onclick={basculerJournaux} disabled={journauxEnCours}>
+              {$t((journauxOuverts ? 'diagnostics.hideLogs' : 'diagnostics.showLogs') as any)}
+            </button>
+            <button class="lnk" onclick={exporterJournaux} disabled={exportEnCours}>
+              {$t((exportEnCours ? 'diagnostics.exporting' : 'diagnostics.exportLogs') as any)}
+            </button>
+            {#if journauxSource && journauxOuverts}
+              <span class="jsrc">{journauxSource}</span>
+            {/if}
+          </div>
+          {#if journauxOuverts}
+            <pre class="jtexte">{journauxEnCours ? $t('common.loading' as any) : journaux}</pre>
           {/if}
-        {/if}
-      </section>
+        </section>
 
-      <!-- #865 — les JOURNAUX. Le bloc est en dehors du `{#if modulesSortie}`
-           et ne dépend d'aucune route facultative : il doit être là même —
-           surtout — quand le serveur va mal. -->
-      <section class="journaux">
-        <h2>{$t('v2.health.cardLogs' as any)}</h2>
-        <div class="sub">{$t('settings.downloadLogsTitle' as any)}</div>
-        <div class="jactions">
-          <button class="lnk" onclick={basculerJournaux} disabled={journauxEnCours}>
-            {$t((journauxOuverts ? 'diagnostics.hideLogs' : 'diagnostics.showLogs') as any)}
-          </button>
-          <button class="lnk" onclick={exporterJournaux} disabled={exportEnCours}>
-            {$t((exportEnCours ? 'diagnostics.exporting' : 'diagnostics.exportLogs') as any)}
-          </button>
-          {#if journauxSource && journauxOuverts}
-            <span class="jsrc">{journauxSource}</span>
+        <section class="modules bloc-large bloc-reseau">
+          <!-- Le diagnostic réseau se lit À LA DEMANDE : l'ouvrir lance la
+               lecture, comme avant la maquette. -->
+          <button class="bloc-bascule" onclick={basculerReseau} aria-expanded={reseauOuvert}><IconeEtatServeur nom="wifi" /><span class="bloc-bascule-titre">{$t('diagnostics.network' as any)}</span><svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+          {#if reseauOuvert}
+            {#if reseauChargement}
+              <div class="sub">{$t('common.loading' as any)}</div>
+            {:else if reseau}
+              {@const d = lireDiagnosticReseau(reseau)}
+              <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
+                   Un champ absent se lit « inconnu » (❔), jamais en échec. -->
+              <ul class="reseau" data-diag="reseau">
+                {#each d.ecoutes as e (e.cle)}
+                  <li data-ecoute={e.cle} data-verdict={e.verdict}>
+                    {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
+                    {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
+                    {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
+                    {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
+                    {#if e.message}<div class="ind">{e.message}</div>{/if}
+                  </li>
+                {/each}
+                <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+                {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
+                  <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
+                {/each}
+                <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+                <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              </ul>
+            {:else}
+              <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
+            {/if}
           {/if}
-        </div>
-        {#if journauxOuverts}
-          <pre class="jtexte">{journauxEnCours ? $t('common.loading' as any) : journaux}</pre>
-        {/if}
-      </section>
+        </section>
+      </div>
 
       <p class="foot">
         {$t('v2.hint.processingFromSettings' as any)}
@@ -1114,28 +1334,88 @@
 <style>
   .v2-health{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:14px; margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:14px; margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .meta .live{color:var(--v2-acc1)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk:disabled{opacity:.5; cursor:default}
-  .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .rafraichir{display:inline-flex; align-items:center; gap:7px}
+
+  /* Maquette de Levente — le bandeau de tête. */
+  .resume{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); margin-bottom:16px;
+    border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:14px 6px}
+  .tuile{display:flex; align-items:center; gap:14px; padding:4px 20px; min-width:0; color:var(--v2-acc-tint)}
+  .tuile + .tuile{border-left:1px solid var(--v2-line)}
+  .tuile-titre{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; color:var(--v2-txt); font-variant-numeric:tabular-nums}
+  .tuile-sous{margin-top:2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .pastille{display:grid; place-items:center; width:42px; height:42px; border-radius:50%; flex:none}
+  .en-ligne .pastille{color:var(--v2-crete-vert); background:color-mix(in srgb, var(--v2-crete-vert) 16%, transparent)}
+  .hors-ligne .pastille{color:var(--v2-danger); background:var(--v2-danger-soft)}
+
+  /* Maquette de Levente — les rangées du bas. */
+  .rangee{display:flex; flex-wrap:wrap; gap:16px; margin-top:16px}
+  .rangee > section{margin-top:0; flex:1 1 280px; min-width:0}
+  .rangee > .bloc-large{flex:2 1 420px}
+  .rangee:empty{display:none}
+  .bloc-tete{display:flex; align-items:flex-start; gap:12px; color:var(--v2-acc-tint)}
+  .bloc-tete h2{color:var(--v2-txt)}
+  .bloc-tete .gerer{margin-left:auto; flex:none}
+  .temp-valeur{margin-top:14px; font-size:calc(30px * var(--v2-txt-echelle, 1)); font-weight:700; font-variant-numeric:tabular-nums}
+  .bloc-bascule{display:flex; align-items:center; gap:12px; width:100%; border:0; background:transparent; padding:0;
+    cursor:pointer; color:var(--v2-acc-tint); text-align:left; font:inherit}
+  .bloc-bascule-titre{flex:1; color:var(--v2-txt); font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .bloc-bascule:hover .bloc-bascule-titre{color:var(--v2-acc-tint)}
+  .bloc-bascule .chevron{color:var(--v2-txt2); transition:transform .2s ease}
+  .bloc-bascule[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+  .bloc-bascule:focus-visible{outline:2px solid var(--v2-focus); outline-offset:4px; border-radius:6px}
+
+  @media (max-width: 640px){
+    .scroll{padding:6px 16px 32px}
+    .resume{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:12px}
+    .tuile{padding:4px 12px}
+    .tuile + .tuile{border-left:0}
+    /* « Tune 1.0.0-dev » se coupait : la tuile d'état prend la rangée. */
+    .tuile.etat{grid-column:1 / -1}
+    /* Variante LOCALE de l'en-tête partagé `.v2-top` (vérif .18, 15/11) :
+       sur téléphone, le surtitre, l'heure et les boutons passaient sur le
+       titre. Titres sur leur ligne (seuls à laisser la place à la grappe du
+       coin), puis l'heure, puis les boutons sur toute la largeur. La vue
+       mini a ses propres règles (`vue-mini.css`) : on n'y touche pas. */
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top{flex-wrap:wrap; align-items:flex-start; row-gap:10px;
+      padding-left:16px; padding-right:16px}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres{flex:1 0 100%; margin-right:0;
+      padding-right:var(--v2-grappe-w, 172px); box-sizing:border-box}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres h1{font-size:calc(24px * var(--v2-txt-echelle, 1))}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top .meta{flex-basis:100%; margin-left:0}
+    .rangee > section, .rangee > .bloc-large{flex-basis:100%}
+    .bloc-tete{flex-wrap:wrap}
+    /* Le bouton « Gérer les extensions » passe sous le titre. */
+    .bloc-tete .ctitres{flex-basis:calc(100% - 40px)}
+    .bloc-tete .gerer{margin-left:34px}
+  }
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
-  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px}
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .card.run{border-color:var(--v2-acc2)}
-  .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
-  .chead h2{font-size:15px; font-weight:700}
-  .sub{margin-top:3px; font-size:11.5px; color:var(--v2-txt3)}
-  .badge{flex:0 0 auto; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase;
+  .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
+  /* Maquette de Levente — le pictogramme de la carte, à gauche du titre. */
+  .cicone{flex:none; margin-top:1px; color:var(--v2-acc-tint)}
+  .ctitres{flex:1; min-width:0}
+  .chead h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .sub{margin-top:3px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .badge{flex:0 0 auto; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase;
     padding:3px 9px; border-radius:999px; border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .badge.run{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .badge.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
+  /* Maquette de Levente — « Terminée » en pastille verte (jeton des crêtes). */
+  .badge.ok{color:var(--v2-crete-vert); border-color:color-mix(in srgb, var(--v2-crete-vert) 45%, transparent);
+    background:color-mix(in srgb, var(--v2-crete-vert) 14%, transparent)}
   .badge.unk{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   /* #1352 — une carte suspendue se distingue d'une carte au repos SANS passer
      pour une erreur : c'est un état voulu, pas une panne. */
@@ -1144,30 +1424,35 @@
   .cactions{margin-top:13px; display:flex; gap:10px; flex-wrap:wrap}
   /* tune-server-rust#5169 — le choix d'ordre de la plage dynamique. */
   .prio{margin-top:13px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
-  .prio-label{font-size:11.5px; color:var(--v2-txt2)}
+  .prio-label{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .prio-select{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
-    border-radius:8px; padding:5px 8px; font:12px var(--v2-sans); max-width:100%}
+    border-radius:8px; padding:5px 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:100%}
   .prio-select:disabled{opacity:.5}
-  .prio-hint{flex-basis:100%; font-size:11px; color:var(--v2-txt3); line-height:1.45}
+  .prio-hint{flex-basis:100%; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.45}
 
-  .line{margin-top:13px; font-size:13px; color:var(--v2-txt2); line-height:1.5}
+  .line{margin-top:13px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); line-height:1.5}
   .bar{margin-top:11px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar span{display:block; height:100%; border-radius:4px;
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s ease}
-  .pct{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
-  .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
-  .frein{margin-top:9px; font-size:11.5px; color:var(--v2-txt2)}
-  .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:12.5px}
+  .pct{margin-top:6px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .nogauge{margin-top:11px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-style:italic}
+  .reste{margin-top:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); font-variant-numeric:tabular-nums}
+  .detail{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .frein{margin-top:9px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .sansportrait{list-style:none; margin:8px 0 0; padding:0; max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .sansportrait li{display:flex; align-items:baseline; justify-content:space-between; gap:10px; min-width:0}
   .nomartiste{border:0; background:transparent; padding:2px 0; color:var(--v2-txt2); cursor:pointer; text-align:left; font:inherit; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
   .nomartiste:hover{color:var(--v2-acc-tint); text-decoration:underline}
-  .sansportrait .nature{flex:none; font-size:11px; color:var(--v2-txt3)}
-  .foot{margin-top:22px; font-size:12.5px; color:var(--v2-txt3)}
-  .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--v2-txt2)}
+  .sansportrait .nature{flex:none; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .foot{margin-top:22px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .reseau .ind{padding-left:18px}
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
-  .modules h2{font-size:15px; font-weight:700}
+  .modules h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .tourne-liste{list-style:none; margin:0 0 10px; padding:0; display:flex; flex-direction:column; gap:8px}
+  .tourne-liste li{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 10px}
+  .tourne-nom{font-weight:600}
+  .tourne-pourquoi{flex-basis:100%; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .modules .sub{margin-bottom:12px}
   /* tune-server-rust#5410 — les analyses bridées faute de thermomètre. */
   .modules .sub.bridage{color:var(--v2-acc2)}
@@ -1176,13 +1461,14 @@
      l'écran plutôt qu'avec un style à lui. */
   .journaux{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px;
     background:var(--v2-surface2); padding:16px 18px 18px}
-  .journaux h2{font-size:15px; font-weight:700}
+  .journaux h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .journaux .sub{margin-bottom:12px}
+  .modules .bloc-tete, .journaux .bloc-tete{margin-bottom:4px}
   .jactions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
-  .jsrc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .jsrc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* Le journal est long et ses lignes le sont aussi : il défile dans les deux
      sens, et la page, elle, ne déborde pas. */
   .jtexte{margin-top:12px; max-height:380px; overflow:auto; padding:12px;
     border:1px solid var(--v2-line2); border-radius:10px; background:var(--v2-bg);
-    font:11.5px/1.55 var(--v2-mono); color:var(--v2-txt2); white-space:pre; tab-size:2}
+    font:calc(11.5px * var(--v2-txt-echelle, 1))/1.55 var(--v2-mono); color:var(--v2-txt2); white-space:pre; tab-size:2}
 </style>

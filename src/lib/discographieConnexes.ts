@@ -31,8 +31,10 @@
  * ## Ce qui reste dans la discographie
  *
  *  - l'album dont `artist_id` est celui que la fiche a résolu chez ce service ;
- *  - l'album dont l'artiste principal porte LE MÊME NOM replié (`nomNormalise`,
- *    la règle de #1373) — un service peut tenir deux entités homonymes ;
+ *    quand les deux identifiants sont connus, eux seuls décident (#8478) : un
+ *    homonyme sous un autre identifiant est un autre artiste ;
+ *  - à défaut d'identifiant, l'album dont l'artiste principal porte LE MÊME
+ *    NOM replié (`nomNormalise`, la règle de #1373) ;
  *  - l'album qui ne dit RIEN de son artiste (YouTube rend `artist_id: null`,
  *    `artist_name: ""`) : sans indice, on ne déplace pas.
  *
@@ -50,7 +52,12 @@ export function estDeLArtiste(album: Album, artistId: string | null | undefined,
   const aid = al?.artist_id;
   const anom = al?.artist_name;
   if (vide(aid) && vide(anom)) return true;
-  if (!vide(aid) && !vide(artistId) && String(aid) === String(artistId)) return true;
+  // tune-server-rust#8478 (Ronin22, ASR #169, rc11) — L'IDENTIFIANT D'ABORD.
+  // Quand l'album ET la fiche portent chacun un identifiant de ce service,
+  // lui seul décide : un autre identifiant est un AUTRE artiste, même s'il
+  // porte le même nom (« Cannons », « Moonchild » : plusieurs groupes
+  // homonymes). Le nom ne départage plus que là où un identifiant manque.
+  if (!vide(aid) && !vide(artistId)) return String(aid) === String(artistId);
   const cible = nomNormalise(nom ?? '');
   if (cible && !vide(anom) && nomNormalise(String(anom)) === cible) return true;
   // Un identifiant qui ne correspond pas, alors que la fiche n'a résolu aucun

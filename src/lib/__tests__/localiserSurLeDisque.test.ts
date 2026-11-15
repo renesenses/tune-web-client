@@ -95,8 +95,10 @@ describe('le bouton est BRANCHÉ, pas seulement écrit', () => {
     expect(fiche).toContain('dossierDeLAlbum(tracks)');
     expect(fiche).toContain('ouvrirLeRepertoire(dossier)');
     expect(fiche).toContain("activeView.set('browse')");
-    // Le bouton n'existe que s'il y a un dossier.
-    expect(fiche).toContain('{#if dossier}');
+    // Le bouton n'existe que s'il y a un dossier (web#2736 : une entrée du
+    // menu « … », sous la même garde).
+    // rc12 : outil d'expert — absent à l'Essentiel, sous « Plus… » ailleurs.
+    expect(fiche).toMatch(/if \(dossier && !essentiel\) \{\s*l\.push\(\{ groupe: biblio, secondaire: true, cle: 'v2\.album\.locate'/);
     expect(fiche).toContain("v2.album.locate");
   });
 

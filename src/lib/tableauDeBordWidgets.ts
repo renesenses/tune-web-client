@@ -39,6 +39,10 @@
  * extraits de l'accueil, donc partagée avec eux quand les deux écrans se
  * suivent.
  *
+ * ✅ rc12 (maquette « My listening » de Levente, 15/11/2026) : le sélecteur
+ * de période est revenu, dans l'en-tête de `TableauDeBordV2` — voir
+ * `tableauDeBordPeriode.ts`. Le reste du paragraphe vaut pour l'export CSV.
+ *
  * ⚠️ RELIQUAT ASSUMÉ : le nouvel écran n'a pas le sélecteur de période
  * (aujourd'hui / 7 j / 30 j / tout) ni l'export CSV de l'ancien. `PageWidgets`
  * n'offre pas de commande partagée par toute la page, et en ajouter une
@@ -55,6 +59,7 @@
 import type { Element, Widget } from './accueilWidgets';
 import { tableauDeBord } from './accueilWidgets';
 import * as api from './api';
+import { ICONES, PERIODE_DEFAUT, joursTendance, periodeActive } from './tableauDeBordPeriode';
 import BlocBarres from '../components/v2/blocs/BlocBarres.svelte';
 import BlocCeJourLa from '../components/v2/blocs/BlocCeJourLa.svelte';
 import BlocClassement from '../components/v2/blocs/BlocClassement.svelte';
@@ -97,9 +102,14 @@ export function largeurBloc(n: 1 | 2): number {
  *  🔴 #1781 : le message vide des blocs de période (`dashboard.emptyLast7Days`)
  *  NOMME ces sept jours. Changer la période, c'est changer ce texte aussi —
  *  `tableauDeBordVide1781.test.ts` le rappelle. */
-export const PERIODE = '7d' as const;
-/** Combien de jours la tendance dessine — la période, jour pour jour. */
-const JOURS_TENDANCE = 7;
+export const PERIODE = PERIODE_DEFAUT;
+/**
+ * Maquette « My listening » de Levente (rc12, 15/11/2026) — la période est
+ * désormais CHOISIE dans l'en-tête (`tableauDeBordPeriode`). `PERIODE` reste
+ * celle de l'ouverture ; chaque bloc lit la période active, et son message
+ * vide la nomme (`cleVide`).
+ */
+const periode = (): api.DashboardPeriod => periodeActive();
 /** Au-delà, les genres se replient derrière « voir plus » (comme avant). */
 const PLAFOND_GENRES = 20;
 
@@ -120,8 +130,9 @@ function nombre(n: number, langue: string): string {
  * jours qui portent une écoute, et une semaine à cinq barres se lirait comme
  * une semaine de cinq jours. On remplit à zéro.
  */
-function joursPleins(trend: { day: string; plays: number }[]): { jour: string; plays: number }[] {
+function joursPleins(trend: { day: string; plays: number }[], p: api.DashboardPeriod = PERIODE): { jour: string; plays: number }[] {
   const par = new Map(trend.map((d) => [d.day, d.plays]));
+  const JOURS_TENDANCE = joursTendance(p, trend.length);
   const base = new Date();
   base.setHours(0, 0, 0, 0);
   const out: { jour: string; plays: number }[] = [];
@@ -260,8 +271,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       composant: BlocTendance,
       hauteur: GRAND,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
-        const jours = joursPleins(d.trend ?? []);
+        const d = await tableauDeBord(periode(), ctx.signal);
+        const jours = joursPleins(d.trend ?? [], periode());
         return {
           jours,
           total: nombre(d.totals?.plays ?? 0, ctx.langue ?? 'fr'),
@@ -280,8 +291,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       composant: BlocSemaineHeures,
       hauteur: MOYEN,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
-        return { grille: grilleSemaine(d.weekday_hourly ?? []), periode: PERIODE };
+        const d = await tableauDeBord(periode(), ctx.signal);
+        return { grille: grilleSemaine(d.weekday_hourly ?? []), periode: periode() };
       },
     },
   },
@@ -295,7 +306,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       composant: BlocHeures,
       hauteur: PETIT,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         const par = Array(24).fill(0);
         for (const h of d.hourly ?? []) {
           if (h.hour >= 0 && h.hour < 24) par[h.hour] = h.plays;
@@ -310,9 +321,10 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.albums,
       composant: BlocClassement,
       hauteur: GRAND,
-      donnees: async (ctx) => elementsAlbums(await tableauDeBord(PERIODE, ctx.signal)),
+      donnees: async (ctx) => elementsAlbums(await tableauDeBord(periode(), ctx.signal)),
     },
   },
   {
@@ -321,9 +333,10 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.titres,
       composant: BlocClassement,
       hauteur: GRAND,
-      donnees: async (ctx) => elementsTitres(await tableauDeBord(PERIODE, ctx.signal)),
+      donnees: async (ctx) => elementsTitres(await tableauDeBord(periode(), ctx.signal)),
     },
   },
   {
@@ -332,6 +345,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.genres,
       composant: BlocBarres,
       hauteur: GRAND,
       donnees: async (ctx) => {
@@ -339,7 +353,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
         // confort de regroupement : sans lui, tout retombe sur « Hors arbre »,
         // ce qui reste plus utile qu'un bloc en échec.
         const [d, arbre] = await Promise.all([
-          tableauDeBord(PERIODE, ctx.signal),
+          tableauDeBord(periode(), ctx.signal),
           api.getGenreTree().then((r: any) => r?.tree ?? {}).catch(() => ({})),
         ]);
         return { lignes: branches(d.by_genre ?? [], arbre), plafond: PLAFOND_GENRES };
@@ -352,10 +366,11 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.zones,
       composant: BlocBarres,
       hauteur: MOYEN,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         return {
           lignes: (d.by_zone ?? []).map((z) => ({
             label: z.zone_name ?? `#${z.zone_id ?? '?'}`,
@@ -371,10 +386,11 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.sources,
       composant: BlocBarres,
       hauteur: MOYEN,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         return {
           lignes: (d.by_source ?? []).map((s) => ({ label: s.source ?? '—', valeur: s.plays })),
         };
@@ -388,9 +404,10 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.radios,
       composant: BlocBarres,
       hauteur: MOYEN,
-      donnees: async (ctx) => ({ lignes: lignesRadios(await tableauDeBord(PERIODE, ctx.signal)) }),
+      donnees: async (ctx) => ({ lignes: lignesRadios(await tableauDeBord(periode(), ctx.signal)) }),
     },
   },
   {
@@ -399,10 +416,12 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.ceJourLa,
+      etendue: 2,
       composant: BlocCeJourLa,
       hauteur: MOYEN,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         return {
           lignes: (d.on_this_day ?? []).slice(0, 8).map((o) => ({
             annee: o.year ?? null,
@@ -419,10 +438,12 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.serie,
+      etendue: 2,
       composant: BlocSerie,
       hauteur: PETIT,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         return { courante: d.streak?.current ?? 0, record: d.streak?.best ?? 0 };
       },
     },
@@ -433,10 +454,12 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      icone: ICONES.durees,
+      etendue: 2,
       composant: BlocCompletion,
       hauteur: PETIT,
       donnees: async (ctx) => {
-        const d = await tableauDeBord(PERIODE, ctx.signal);
+        const d = await tableauDeBord(periode(), ctx.signal);
         return { completes: d.completion?.completed ?? 0, passes: d.completion?.skipped ?? 0 };
       },
     },

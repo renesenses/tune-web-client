@@ -21,12 +21,17 @@
 
   let pistes = $state<Track[] | null>(null);
 
+  /** web#2806 — une demande de RADIO n'a pas de pistes à lire. */
+  const radioIds = $derived(demande.radioIds?.length ? demande.radioIds : null);
+
   $effect(() => {
     const d = demande;
+    if (d.radioIds?.length || !d.pistes) return;
+    const lire = d.pistes;
     // Résolue AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
     const vide = $t('collections.noTracks' as any);
     let vivant = true;
-    d.pistes()
+    lire()
       .then((l) => {
         if (!vivant) return;
         if (!l?.length) { notifications.error(vide); onClose(); return; }
@@ -37,6 +42,8 @@
   });
 </script>
 
-{#if pistes?.length}
+{#if radioIds}
+  <AddToPlaylistModal {radioIds} {onClose} />
+{:else if pistes?.length}
   <AddToPlaylistModal track={pistes[0]} tracks={pistes} {onClose} />
 {/if}

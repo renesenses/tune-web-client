@@ -86,6 +86,8 @@ function poserLeServeur() {
       else if (u.includes('/library/artists/7')) corps = { id: 7, name: 'Nick Cave', image_path: '/a/7.jpg' };
       else if (u.includes('/library/tracks/42'))
         corps = { id: 42, title: 'Around the World', artist_name: 'Daft Punk', album_id: 12, cover_path: '/c/12.jpg' };
+      else if (u.includes('/library/albums/12/tracks')) corps = [];
+      else if (u.includes('/library/albums/12')) corps = { id: 12, title: 'Discovery', artist_name: 'Daft Punk' };
       else if (u.includes('/playlists/5/tracks'))
         corps = [{ title: 'A', cover_path: '/c/a.jpg' }, { title: 'B', cover_path: '/c/b.jpg' }];
       else if (u.includes('/playlists/5')) corps = { id: 5, name: 'Mes dimanches', track_count: 2 };
@@ -208,12 +210,16 @@ describe('Accueil — six widgets de favoris par type : montés, ils affichent e
     expect(get(ficheArtisteService)).toMatchObject({ service: 'qobuz', id: '36819' });
   });
 
-  it('« Pistes favorites » : le clic JOUE la piste, locale par `track_id`, de service par la paire', async () => {
+  // web#2770 (lot 4) : « clic = navigation, jamais lecture ». Un titre de la
+  // bibliothèque OUVRE son album (`album_id`) ; un titre de service, sans
+  // identifiant d'album ici, garde la lecture par la paire.
+  it('« Pistes favorites » : un titre de la bibliothèque OUVRE son album ; un titre de service se JOUE', async () => {
     const page = await poserLaPage('favoris-pistes');
     expect(titres(page)).toEqual(['Around the World', 'Get Lucky']);
-    await cliquerTitre(page, 0);
     const lectures = () => appels.filter((a) => a.url.includes('/zones/1/play')).map((a) => a.corps);
-    expect(lectures().at(-1)).toEqual({ track_id: 42 });
+    await cliquerTitre(page, 0);
+    expect(lectures(), 'le clic sur un titre de la bibliothèque ne doit plus le LANCER').toEqual([]);
+    expect(appels.some((a) => /\/library\/albums\/12/.test(a.url)), 'l’album du titre n’a pas été ouvert').toBe(true);
     await cliquerTitre(page, 1);
     expect(lectures().at(-1)).toEqual({ source: 'qobuz', source_id: '9140031' });
   });

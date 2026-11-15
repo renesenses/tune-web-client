@@ -2,8 +2,10 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
+  import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
@@ -128,6 +130,56 @@
       gaplessError = e?.message || get(t)('common.error');
     } finally {
       gaplessSaving = false;
+    }
+  }
+
+  /**
+   * Forum, fil 2694 (Ilan) ; décision de Bertrand du 13/11 — « Continuer
+   * avec des titres similaires à la fin de la file », comme Roon. Activé par
+   * défaut côté serveur (tune-server-rust, migration 152 / PG 118) ; c'est
+   * ici qu'on le coupe pour une zone. Même patron que le gapless : on
+   * affiche ce que le serveur rend, un échec remet l'interrupteur.
+   */
+  let radioFinDeFile = $state(zone.autoplay_enabled ?? false);
+  let radioFinDeFileSaving = $state(false);
+  let radioFinDeFileError = $state('');
+  /** Le mode NOMMÉ (album au hasard…) d'avant la coupure : recocher le rend
+   *  tel quel au lieu de le ramener à « titres similaires ». */
+  let modeAvantCoupure: string | null = modeNomme(zone.autoplay_mode);
+
+  function modeNomme(mode: string | undefined | null): string | null {
+    return mode && mode !== 'off' ? mode : null;
+  }
+
+  // La case suit le serveur quand la zone change sous le panneau (autre
+  // client, bouton de la file) — sauf pendant notre propre écriture.
+  $effect(() => {
+    const actif = zone.autoplay_enabled;
+    const mode = zone.autoplay_mode;
+    untrack(() => {
+      if (radioFinDeFileSaving) return;
+      radioFinDeFile = actif ?? false;
+      modeAvantCoupure = modeNomme(mode) ?? modeAvantCoupure;
+    });
+  });
+
+  async function setRadioFinDeFile(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = radioFinDeFile;
+    radioFinDeFile = enabled;
+    radioFinDeFileSaving = true;
+    radioFinDeFileError = '';
+    try {
+      const maj = enabled && modeAvantCoupure && modeAvantCoupure !== 'similar'
+        ? await api.updateZoneAutoplayMode(zone.id, modeAvantCoupure)
+        : await api.updateZoneAutoplay(zone.id, enabled);
+      radioFinDeFile = maj?.autoplay_enabled ?? enabled;
+      if (maj) syncZone(maj);
+    } catch (e: any) {
+      radioFinDeFile = avant;
+      radioFinDeFileError = e?.message || get(t)('common.error');
+    } finally {
+      radioFinDeFileSaving = false;
     }
   }
 
@@ -686,6 +738,14 @@
       </label>
       {#if gaplessError}<div class="ir-message ir-error">{gaplessError}</div>{/if}
 
+      <label class="zc-toggle" data-radio-fin-de-file title={$t('zoneConfig.radioFinDeFileTip')}>
+        <input type="checkbox" checked={radioFinDeFile}
+          disabled={radioFinDeFileSaving || zone.id === null}
+          onchange={(e) => setRadioFinDeFile((e.target as HTMLInputElement).checked)} />
+        <span>{$t('zoneConfig.radioFinDeFileLabel')}</span>
+      </label>
+      {#if radioFinDeFileError}<div class="ir-message ir-error">{radioFinDeFileError}</div>{/if}
+
       <div class="zc-ligne">
         <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>
         <select class="zc-select" value={dsdMode}
@@ -870,7 +930,7 @@
 
   .rename-input {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text);
     background: var(--tune-bg);
@@ -888,13 +948,13 @@
 
   .btn-sm {
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     flex-shrink: 0;
   }
 
   .type-badge {
     font-family: var(--font-label);
-    font-size: 9px;
+    font-size: calc(9px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -931,7 +991,7 @@
     border-radius: var(--radius-sm);
     color: #ef4444;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .modal-section {
@@ -940,7 +1000,7 @@
 
   .section-title {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -950,14 +1010,14 @@
 
   .section-desc {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     margin: 0 0 12px;
   }
 
   .empty-hint {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
   }
@@ -978,7 +1038,7 @@
     cursor: pointer;
     transition: background 0.12s;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
@@ -1001,7 +1061,7 @@
 
   .check-zone-badge {
     font-family: var(--font-label);
-    font-size: 9px;
+    font-size: calc(9px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1026,7 +1086,7 @@
 
   .btn {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 500;
     padding: 6px 14px;
     border-radius: var(--radius-sm);
@@ -1070,7 +1130,7 @@
 
   .sync-input {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     background: var(--tune-bg);
     border: 1px solid var(--tune-border);
@@ -1086,7 +1146,7 @@
 
   .sync-unit {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -1109,7 +1169,7 @@
 
   .pin-index {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-accent);
     min-width: 24px;
@@ -1122,13 +1182,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
 
   .pin-type-badge {
     font-family: var(--font-label);
-    font-size: 9px;
+    font-size: calc(9px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -1163,16 +1223,16 @@
      partagent un sélecteur ne sont plus distinguables par personne, ni par un
      test ni par une feuille de style. */
   .zc-toggle { display: flex; align-items: center; gap: 9px; margin: 10px 0 4px;
-    font-size: 0.92rem; color: var(--tune-text); cursor: pointer; }
+    font-size: calc(0.92rem * var(--v2-txt-echelle, 1)); color: var(--tune-text); cursor: pointer; }
   .zc-toggle input { cursor: pointer; }
-  .zc-note { font-size: 0.82rem; color: var(--tune-text-secondary); margin: 6px 0 0; }
+  .zc-note { font-size: calc(0.82rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); margin: 6px 0 0; }
   .zc-canaux { flex: 1 1 8em; min-width: 0; }
-  .zc-correspondance { margin: 6px 0 0; padding-left: 1.2em; font-size: 0.82rem; color: var(--tune-text-secondary); }
+  .zc-correspondance { margin: 6px 0 0; padding-left: 1.2em; font-size: calc(0.82rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
 
   /* #920 — une ligne « libellé + sélecteur », pour le mode DSD. */
   .zc-ligne { display: flex; align-items: center; justify-content: space-between;
     gap: 12px; margin: 10px 0 4px; }
-  .zc-label { font-size: 0.9rem; color: var(--tune-text-secondary); }
+  .zc-label { font-size: calc(0.9rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   .zc-select { font: inherit; color: var(--tune-text); background: var(--tune-surface);
     border: 1px solid var(--tune-border); border-radius: 8px; padding: 5px 9px; cursor: pointer; }
   .zc-select:hover { border-color: var(--tune-accent); }
@@ -1180,26 +1240,26 @@
 
   /* #2211 — le curseur du fondu enchaîné, sa valeur lisible à droite. */
   .zc-fondu input[type='range'] { flex: 1; accent-color: var(--tune-accent); }
-  .zc-valeur { min-width: 5.5em; text-align: right; font-size: 0.88rem;
+  .zc-valeur { min-width: 5.5em; text-align: right; font-size: calc(0.88rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text); font-variant-numeric: tabular-nums; }
 
   .mono-toggle {
     display: flex; align-items: flex-start; gap: 8px;
-    font-family: var(--font-body); font-size: 13px;
+    font-family: var(--font-body); font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-primary); cursor: pointer;
   }
   .mono-toggle input { margin-top: 2px; flex: none; cursor: pointer; }
   .mono-toggle input:disabled { cursor: default; }
   .mono-note {
-    font-family: var(--font-body); font-size: 12px;
+    font-family: var(--font-body); font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted); margin: 8px 0 0;
   }
-  .ir-message { font-size: 12px; color: var(--tune-text-muted); margin-top: 4px; }
+  .ir-message { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin-top: 4px; }
   .ir-message.ir-error { color: var(--tune-error, #ef4444); }
   .btn-primary {
     background: var(--tune-accent); color: white; border: none;
     padding: 8px 14px; border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; cursor: pointer;
   }
 
   .danger-section {
@@ -1224,7 +1284,7 @@
 
   .confirm-text {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: #ef4444;
     flex: 1;
   }

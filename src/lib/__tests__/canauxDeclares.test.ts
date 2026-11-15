@@ -42,14 +42,13 @@ describe('multicanal — l\'écran', () => {
     // commentaire admet qu'il ignore la seconde contrainte du serveur. Deux
     // règles pour un même fait finissent par diverger.
     expect(vue).toContain('z.channel_layout_status?.unavailable');
-    const i = vue.indexOf('api.updateZoneChannelLayout');
-    const garde = vue.lastIndexOf('disabled=', i);
     // Fils 1914/1913 : le verrou passe par `canauxVerrouilles`, qui lit le
     // MÊME statut serveur (`unavailable` + `reason`) — un avertissement
     // (`au_dela_de_l_appareil`) n'y verrouille plus. Voir `vueZones.ts`.
-    expect(vue.slice(garde, i)).toContain('canauxVerrouilles(z.channel_layout_status)');
+    // #2735 : verrouillé, le sélecteur est CACHÉ (garde du bloc), plus grisé.
+    expect(vue).toContain('{#if (z.channel_layouts_offered ?? []).length && !canauxVerrouilles(z.channel_layout_status)}');
     // Contre-épreuve : on ne refait PAS le test de localité pour ce contrôle.
-    const j = vue.indexOf('{#if (z.channel_layouts_offered ?? []).length}');
+    const j = vue.indexOf('{#if (z.channel_layouts_offered ?? []).length && !canauxVerrouilles(z.channel_layout_status)}');
     const k = vue.indexOf('</select>', j);
     expect(vue.slice(j, k)).not.toContain("output_type ?? '') !== 'local'");
   });
@@ -82,7 +81,7 @@ describe('multicanal — l\'écran', () => {
   it('rien ne s\'affiche si le serveur n\'offre rien', () => {
     // Un serveur antérieur ne publie pas `channel_layouts_offered` : le bloc
     // entier disparaît au lieu de rendre un sélecteur vide.
-    expect(vue).toContain('{#if (z.channel_layouts_offered ?? []).length}');
+    expect(vue).toContain('{#if (z.channel_layouts_offered ?? []).length && !canauxVerrouilles(z.channel_layout_status)}');
   });
 });
 

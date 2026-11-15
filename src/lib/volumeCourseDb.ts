@@ -133,3 +133,37 @@ export function texteLimiteDb(db: number | null | undefined): string {
 export function confortAuDessusDeLaSecurite(c: number | null, s: number | null): boolean {
   return c !== null && s !== null && c > s + 1e-9;
 }
+
+/**
+ * tune-server-rust#7205 (discussion #7458, reprise en rc12) — le niveau d'une
+ * zone à course en dB, écrit en dB (« -45.0 dB ») là où un curseur en
+ * pour-cent restait : liste des zones, volume de la barre mobile. `null` pour
+ * une sortie sans course : l'appelant garde son pour-cent.
+ */
+export function libelleVolumeZone(zone: ZoneAvecCourseDb | null | undefined, position: number): string | null {
+  const c = courseDb(zone);
+  return c ? formaterDbAppareil(dbDepuisFraction(c, position)) : null;
+}
+
+/** L'écart minimal entre le bas et le haut de la course (serveur : `ECART_MINIMAL_DB`). */
+export const ECART_MINIMAL_COURSE_DB = 5;
+
+export type SaisieCourse = { min: number; max: number } | { refus: 'illisible' | 'hors-course' | 'ecart' };
+
+/**
+ * #7205 — la course saisie (bas, haut) en dB d'ampli, vérifiée comme le
+ * serveur la vérifie (`400 volume_range_invalid`) : chaque borne dans
+ * `[plancher ; plafond]`, le haut au moins `ECART_MINIMAL_COURSE_DB` au-dessus
+ * du bas. Le plafond n'est jamais franchissable.
+ */
+export function saisieCourse(bas: string, haut: string, plancher: number, plafond: number): SaisieCourse {
+  const a = analyserDb(bas), b = analyserDb(haut);
+  if ('refus' in a || 'refus' in b) {
+    const positif = ('refus' in a && a.refus === 'positif') || ('refus' in b && b.refus === 'positif');
+    return { refus: positif ? 'hors-course' : 'illisible' };
+  }
+  const min = a.db, max = b.db;
+  if (min < plancher - 1e-9 || max > plafond + 1e-9 || min > plafond + 1e-9 || max < plancher - 1e-9) return { refus: 'hors-course' };
+  if (max - min < ECART_MINIMAL_COURSE_DB - 1e-9) return { refus: 'ecart' };
+  return { min, max };
+}

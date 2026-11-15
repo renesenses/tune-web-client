@@ -211,9 +211,10 @@ describe('« Vos tops » — les lignes sont des gestes', () => {
     const recherche = appels.find((a) => a.url.includes('/library/search'));
     expect(recherche, 'le clic sur l’artiste n’a rien cherché').toBeTruthy();
     expect(decodeURIComponent(recherche!.url)).toContain('q=Dionne Warwick');
-    // Pas de correspondance exacte : la Bibliothèque, sans fiche ouverte —
+    // Pas de correspondance exacte : la Recherche sur ce nom (web#2770 — la
+    // Bibliothèque « dans son dernier état » était un lien mort déguisé) ;
     // le rapprochement et la fiche sont gardés par `accueilTopsPageArtiste`.
-    expect(get(activeView)).toBe('library');
+    expect(get(activeView)).toBe('search');
   });
 
   it('un album de la BIBLIOTHÈQUE s’ouvre, et son bouton Lire le joue', async () => {

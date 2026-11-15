@@ -72,13 +72,19 @@ export type IssueLancement =
   /** web#2295 — 409 `refused` : passe suspendue, elle se REPREND. */
   | 'suspendue'
   /** web#2295 — serveur sans la route (404/405) : la passe reprend seule. */
-  | 'indisponible';
+  | 'indisponible'
+  /** web#2790 (tune-server-rust#7414) — logos de labels : lancée MALGRÉ la
+   *  pause de l'Enrichissement (`forced: true`, `reason: enrichment_paused`,
+   *  serveur rc11+). « Traitement lancé. » le taisait. */
+  | 'forcee';
 
 /** La réponse d'une route de lancement. */
 export interface ReponseLancement {
   status?: string;
   reason?: string | null;
   waiting_reason?: string | null;
+  /** web#2790 — la passe part bien que son traitement de fond soit en pause. */
+  forced?: boolean;
 }
 
 /** Lit le `status` que rendent les routes. Tout autre succès = lancé. */
@@ -87,6 +93,7 @@ export function issueDe(statut: unknown, corps?: ReponseLancement | null): Issue
   if (statut === 'already_running') return 'deja';
   if (statut === 'refused') return corps?.reason === 'paused' ? 'suspendue' : 'coupee';
   if (corps?.waiting_reason === 'playback') return 'attente';
+  if (corps?.forced === true) return 'forcee';
   return 'lance';
 }
 
@@ -99,6 +106,7 @@ export const CLE_ISSUE: Record<IssueLancement, string> = {
   coupee: 'v2.health.launchRgDisabled',
   suspendue: 'v2.health.launchRgPaused',
   indisponible: 'v2.health.launchRgUnsupported',
+  forcee: 'v2.health.launchLabelLogosForced',
 };
 
 export interface RoutesLancement {

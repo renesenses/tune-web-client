@@ -90,12 +90,12 @@
     background: var(--v2-surface);
     max-width: 720px;
   }
-  h2 { margin: 0 0 8px; font-size: 1.25rem; }
+  h2 { margin: 0 0 8px; font-size: calc(1.25rem * var(--v2-txt-echelle, 1)); }
   p { margin: 0 0 16px; color: var(--v2-txt2); line-height: 1.5; }
   .ajoute { color: var(--v2-txt); }
   .gestes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .accueil-vide-discret { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-    margin: 10px 0 18px; font-size: 13px; color: var(--v2-txt3); }
+    margin: 10px 0 18px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
   .lien { border: 0; padding: 0; background: transparent; color: var(--v2-acc1); cursor: pointer; font: inherit; }
   .lien:hover { text-decoration: underline; }
 </style>

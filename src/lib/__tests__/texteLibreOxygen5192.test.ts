@@ -44,11 +44,13 @@ describe('texte libre d\'Oxygen (#5192)', () => {
     }
   });
 
-  it('saisie littérale : accents et casse repliés, guillemets ôtés, `_` n\'est pas un joker', () => {
+  it('accents et casse repliés, guillemets ôtés, `_` sépare deux mots (#7619)', () => {
     const p = piste({ path_terms: 'Beyoncé Déjà Vu' });
     expect(pisteRepondAuTexteLibre(p, 'beyonce deja')).toBe(true);
     expect(pisteRepondAuTexteLibre(p, '"deja vu"')).toBe(true);
-    expect(pisteRepondAuTexteLibre(p, 'deja_vu')).toBe(false);
+    // Comme le serveur : la ponctuation sépare les mots, jamais un joker.
+    expect(pisteRepondAuTexteLibre(p, 'deja_vu')).toBe(true);
+    expect(pisteRepondAuTexteLibre(p, 'deja%')).toBe(true);
     expect(normaliserTexteLibre('  "Déjà"  ')).toBe('deja');
     expect(pisteRepondAuTexteLibre(p, '   ')).toBe(true);
   });

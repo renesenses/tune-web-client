@@ -68,6 +68,6 @@
     background: transparent;
     color: var(--v2-txt, var(--tune-text));
     font-family: var(--v2-sans, var(--font-body));
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 </style>

@@ -92,7 +92,8 @@
   import { preferences } from '../../lib/stores/preferences';
   import { actionsReduites } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
-  import { entreesMenuPiste } from '../../lib/menuPiste';
+  import { entreesMenuPiste, rangerMenuPiste } from '../../lib/menuPiste';
+  import { idAnalyseDe } from '../../lib/spectrogramme';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
@@ -145,8 +146,14 @@
      * pose dans la MÊME case que son propre cœur. `null` : rien ne change.
      */
     coeur?: CoeurExterne | null;
+    /**
+     * rc12 — « Supprimer de cette playlist » : fourni par l'écran d'une
+     * playlist MODIFIABLE (même geste que la croix de la ligne). `null` :
+     * l'entrée du menu est absente.
+     */
+    onRetirer?: (() => void) | null;
   }
-  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null, onRetirer = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -172,6 +179,8 @@
   let panneauVersions = $state(false);
   /** #7857 — le panneau « Spectrogramme » (piste de la bibliothèque). */
   let panneauSpectro = $state(false);
+  /** #8160 — la « Fiche technique » (piste de la bibliothèque). */
+  let panneauFiche = $state(false);
   /**
    * La cible titre + artiste des « Autres versions » d'une piste SANS
    * identifiant de bibliothèque (23/09/2026). `null` pour une piste locale —
@@ -460,6 +469,8 @@
         // service n'a ni voisins acoustiques, ni versions. (Les étiquettes,
         // si : `etiquetable` ci-dessous, #1238.)
         idBibliotheque: local && piste.id != null ? piste.id : null,
+        // Go du 13/11 — spectrogramme et fiche d'une piste Qobuz / TIDAL.
+        idAnalyse: local ? null : idAnalyseDe(piste),
         artistId: piste.artist_id ?? null,
         albumId: typeof piste.album_id === 'number' ? piste.album_id : null,
         albumDeService,
@@ -493,6 +504,7 @@
         autresVersions: () => (panneauVersions = true),
         ajouterAPlaylist: () => (modalePlaylist = true),
         ajouterAPlaylistDeCercle: () => (modaleCercle = true),
+        retirerDeLaPlaylist: onRetirer ? () => onRetirer?.() : undefined,
         partagerMessage: () => { const c = carteDepuisPiste(piste); if (c) carteAPartager.set(c); },
         allerArtiste,
         allerAlbum,
@@ -500,6 +512,7 @@
         basculerEcouterPlusTard: () => void basculerLeSas(cibleEtiquettes),
         champsDuFichier: () => (tiroirChamps = true),
         spectrogramme: () => (panneauSpectro = true),
+        ficheTechnique: () => (panneauFiche = true),
         voirCredits: () => { creditsDuService = pisteCredits; tiroirCredits = true; },
         // #4806 — le module tient l'appel, la surcharge et le toast : le menu
         // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
@@ -672,7 +685,9 @@
 </span>
 
 {#if ancreMenu}
-  <MenuPisteV2 ancre={ancreMenu} {entrees} onClose={() => (ancreMenu = null)} />
+  <!-- rc12 — gestes courants d'abord, le reste sous « Plus… » ; les outils
+       d'expert absents au niveau Essentiel (`rangerMenuPiste`). -->
+  <MenuPisteV2 ancre={ancreMenu} entrees={rangerMenuPiste(entrees, $preferences.settingsLevel)} onClose={() => (ancreMenu = null)} />
 {/if}
 
 <!-- Le MÊME panneau dans les deux modes : par `trackId` pour la bibliothèque,
@@ -692,10 +707,17 @@
   {/await}
 {/if}
 
-{#if panneauSpectro && local && piste.id != null}
+{#if panneauSpectro && (local || idAnalyseDe(piste) != null) && piste.id != null}
   {#await import('./SpectrogrammePanneau.svelte') then m}
-    <m.default trackId={piste.id} titre={piste.title}
+    <m.default trackId={piste.id} titre={piste.title} source={local ? null : piste.source ?? null}
       onClose={() => (panneauSpectro = false)} />
+  {/await}
+{/if}
+
+{#if panneauFiche && (local || idAnalyseDe(piste) != null) && piste.id != null}
+  {#await import('./FicheTechniquePanneau.svelte') then m}
+    <m.default trackId={piste.id} titre={piste.title}
+      onClose={() => (panneauFiche = false)} />
   {/await}
 {/if}
 

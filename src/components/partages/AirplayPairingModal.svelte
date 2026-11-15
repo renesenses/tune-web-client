@@ -193,7 +193,7 @@
     padding: 16px 20px 8px;
   }
   .modal-title {
-    font-size: 1.05rem;
+    font-size: calc(1.05rem * var(--v2-txt-echelle, 1));
     font-weight: 600;
     margin: 0;
   }
@@ -210,12 +210,12 @@
     padding: 0 20px;
     margin: 0 0 8px;
     color: var(--tune-text-secondary, #999);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
   }
   .modal-body { padding: 8px 20px 0; }
   .hint {
     color: var(--tune-text-secondary, #aaa);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     margin: 0 0 14px;
     line-height: 1.4;
   }
@@ -226,13 +226,13 @@
     border: 1px solid rgba(220, 50, 50, 0.4);
     border-radius: 8px;
     color: #ff6b6b;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .btn-block { width: 100%; }
   .pin-input {
     width: 100%;
     box-sizing: border-box;
-    font-size: 1.6rem;
+    font-size: calc(1.6rem * var(--v2-txt-echelle, 1));
     letter-spacing: 0.4em;
     text-align: center;
     padding: 10px;
@@ -247,7 +247,7 @@
     align-items: center;
     gap: 12px;
     color: var(--tune-text-secondary, #aaa);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     padding: 8px 0 4px;
   }
   .spinner {
@@ -262,7 +262,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .success-row {
     color: #4ade80;
-    font-size: 1rem;
+    font-size: calc(1rem * var(--v2-txt-echelle, 1));
     font-weight: 600;
     padding: 8px 0;
     text-align: center;

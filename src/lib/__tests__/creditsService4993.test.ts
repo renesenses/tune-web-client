@@ -282,7 +282,10 @@ describe('#4993 — le bouton « Crédits » de la fiche d’un album de service
     boutonCredits(hote)!.click();
     flushSync();
     expect(await attendreQue(() => !!document.querySelector('[data-credits-indisponible]'))).toBe(true);
-    // Le tiroir reste ouvert pour le dire ; le bouton, lui, est retiré.
+    // web#2736 — « Crédits » est un ONGLET : il reste affiché tant qu'il est
+    // choisi, pour dire pourquoi ; quitté, il est retiré.
+    hote.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
+    flushSync();
     expect(boutonCredits(hote)).toBeUndefined();
   });
 });

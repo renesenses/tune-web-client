@@ -87,8 +87,8 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    cleEnTeteColonne, cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
-    valeurColonne, type CleColonne, type Colonne,
+    avecColonneAjout, cleEnTeteColonne, cleInfobulleColonne, colonnesRemplies, colonnesRetenues,
+    gabaritGrille, largeurMinimale, valeurColonne, type CleColonne, type Colonne,
   } from '../../lib/colonnesPistes';
   import {
     appliquerLargeurs, fixerLargeur, largeurMin, largeurNominale, largeursColonnes, largeursDe,
@@ -107,6 +107,7 @@
   import { largeurColonneQualite } from '../../lib/largeurQualite';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { estIntrouvable, cheminIntrouvable } from '../../lib/pisteIntrouvable';
+  import { estLigneRadio, radioIndisponible } from '../../lib/lignePlaylistRadio';
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
@@ -255,6 +256,12 @@
      */
     coeurDe?: ((piste: Track, index: number) => CoeurExterne | null) | null;
     /**
+     * rc12 (Bertrand, 15/11/2026) — l'écran d'une playlist MODIFIABLE fournit
+     * le retrait de la ligne : le menu « … » de la piste porte alors
+     * « Supprimer de cette playlist ». `null` : entrée absente.
+     */
+    retirerDe?: ((piste: Track, index: number) => void) | null;
+    /**
      * 🔴 La clé de liste, quand `id` ne suffit pas.
      *
      * L'Historique peut afficher DEUX FOIS la même piste — écoutée deux fois.
@@ -346,6 +353,14 @@
      */
     lectureSeule?: boolean;
     /**
+     * #7224 — en `lectureSeule`, un clic sur le titre ne doit pas être MUET.
+     * Fourni, le titre est un bouton actif qui appelle ce rappel (le catalogue
+     * d'un contact y lance l'équivalent trouvé dans MES sources) ; la ligne
+     * reste en lecture seule pour tout le reste. Absent : le titre reste
+     * désactivé, comme avant.
+     */
+    onClicLectureSeule?: ((piste: Track, index: number) => void) | null;
+    /**
      * 🔴 LA SÉLECTION MULTIPLE — web#1683, point 3 — OPT-IN.
      *
      * `selection` non nulle pose une CASE À COCHER en tête de chaque ligne
@@ -412,6 +427,21 @@
      * Absente, RIEN ne change : ni poignée, ni largeur retenue.
      */
     ecranColonnes?: EcranColonnes | null;
+    /**
+     * web#3043 — Favoris des services — OPT-IN.
+     *
+     * `colonnesVidesMasquees` : une colonne qui n'a AUCUNE valeur dans la
+     * liste n'est pas rendue (le titre reste toujours). Une liste venue d'un
+     * service n'a ni écoutes, ni BPM, ni genre : la grille Expert y montrait
+     * six colonnes vides sur douze.
+     *
+     * `colonneAjout` : la colonne « Date d'ajout » (`COLONNE_AJOUT`), pour une
+     * liste de FAVORIS — la date du cœur, que la route des favoris rend.
+     *
+     * Absentes, RIEN ne change.
+     */
+    colonnesVidesMasquees?: boolean;
+    colonneAjout?: boolean;
   }
   let {
     contexte = {},
@@ -419,17 +449,18 @@
     pochetteEnTableau = false,
     tailleVignette = 36,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres, coeurDe = null,
+    ouvertureAlbum = null, apres, coeurDe = null, retirerDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     onGesteDisque = null,
     reordonnable = false, onReordonner = null,
     etiquetteIndispo = 'v2.str.coming',
-    lectureSeule = false,
+    lectureSeule = false, onClicLectureSeule = null,
     selection = null, onCocher = null,
     virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
     tri = null, triables = null, onTrier = null,
     ecranColonnes = null,
+    colonnesVidesMasquees = false, colonneAjout = false,
   }: Props = $props();
   const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
   const selectionnable = $derived(selection != null);
@@ -496,6 +527,23 @@
   }
 
   // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
+  // 🔴 web#3045 — une clé en DOUBLE fait lever `each_key_duplicate` à Svelte :
+  // la mise à jour s'interrompt et plus rien ne se rend jusqu'au rechargement
+  // (titres phares figés sur « Chargement », navigation morte ; précédent
+  // web#1856). Quelle que soit la donnée reçue, une clé déjà vue est repliée sur
+  // le rang ; la boucle garantit qu'aucune autre clé ne la rejoint.
+  const clesUniques = $derived.by(() => {
+    const vues = new Set<string | number>();
+    return pistes.map((p, i) => {
+      let k: string | number = clef(p, i);
+      if (vues.has(k)) {
+        k = `doublon:${i}`;
+        while (vues.has(k)) k = `${k}+`;
+      }
+      vues.add(k);
+      return k;
+    });
+  });
   const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
   // web#1862 — les sections GROUPING (#2130) À L'INTÉRIEUR d'un disque, sous
   // la même prop : seule la fiche d'album rend les pistes d'UN album dans
@@ -533,7 +581,13 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const colonnesBrutes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  const colonnesDeLEcran = $derived.by(() => {
+    const base = lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode;
+    return colonneAjout ? avecColonneAjout(base) : base;
+  });
+  const colonnesBrutes = $derived(
+    colonnesVidesMasquees ? colonnesRemplies(colonnesDeLEcran, pistes, cellule) : colonnesDeLEcran,
+  );
   /**
    * web#2139 — la colonne Qualité prend la largeur de la pastille la plus
    * longue de CETTE liste (calculée en px, jamais `auto` : voir le gabarit) ;
@@ -818,12 +872,15 @@
    */
   const surcharges = $derived($surchargesBannissement);
   const bannieDe = (p: Track) => !lectureSeule && estBannie(p, surcharges);
-  /** Lecture seule : le titre ne lance rien, et le dit (désactivé). */
-  const inerte = $derived(lectureSeule ? { disabled: true } : {});
+  /** Lecture seule : le titre ne lance rien (désactivé), sauf rappel `onClicLectureSeule`. */
+  const inerte = $derived(lectureSeule
+    ? (onClicLectureSeule ? {} : { disabled: true })
+    : {});
   async function lireDelibere(p: Track, i: number) {
     if (pisteIndisponible(p)) return;
     if (estIntrouvable(p)) return;
-    if (lectureSeule) return;
+    if (radioIndisponible(p)) return;
+    if (lectureSeule) { onClicLectureSeule?.(p, i); return; }
     if (!(await confirmerLectureBannie(p))) return;
     onLire(p, i);
   }
@@ -837,6 +894,8 @@
   /** La valeur d'une cellule. Le numéro est le seul cas que le modèle ne peut
    *  pas trancher seul : il dépend de l'écran, pas de la piste. */
   function cellule(p: Track, i: number, cle: CleColonne): string | null {
+    // web#2806 — une radio n'a pas de durée : « En direct ».
+    if (cle === 'time' && estLigneRadio(p)) return $t('v2.pl.radioLive' as any);
     return cle === 'num' ? numero(p, i) : valeurColonne(p, cle);
   }
 </script>
@@ -936,7 +995,7 @@
     </div>
     {@render intercalaire(espaceAvant, 'avant')}
 
-    {#each pistes as p, i (clef(p, i))}
+    {#each pistes as p, i (clesUniques[i])}
       {@const etat = etatDe(p)}
       {@render enTeteDisque(i)}
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
@@ -944,15 +1003,23 @@
       <!-- #6179 — une ligne de playlist INTROUVABLE (piste disparue de la
            bibliothèque) est grisée comme une piste indisponible, avec sa
            propre étiquette, et ne se lance pas. -->
-      {@const introuvable = estIntrouvable(p)}
       {@const indispo = pisteIndisponible(p)}
+      <!-- web#2806 — une ligne RADIO (tune-server-rust#8412) : icône radio,
+           « En direct » pour durée ; grisée quand la station a quitté « Mes
+           radios » (le serveur la saute). Pas d'actions de piste : ni favori,
+           ni file, ni playlist ne savent désigner une station par cette barre. -->
+      {@const radio = estLigneRadio(p)}
+      {@const radioHs = radio && radioIndisponible(p)}
+      <!-- Une station retirée se traite comme une ligne introuvable : grisée,
+           non lançable ; seule son étiquette diffère. -->
+      {@const introuvable = estIntrouvable(p) || radioHs}
       {@const bannie = bannieDe(p)}
       <!-- Les attributs du glisser ne sont posés QUE si la liste est
            réordonnable : sans la prop, la ligne est celle d'avant. -->
       <!-- La ligne se saisit à la souris, la poignée (un bouton) porte le
            geste au clavier. -->
       <!-- svelte-ignore a11y_interactive_supports_focus -->
-      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie aria-current={etat ? 'true' : undefined}
+      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie data-ligne-radio={radio || undefined} aria-current={etat ? 'true' : undefined}
         class:saisie={saisi === i} class:survolee={survolee === i}
         draggable={reordonnable || undefined}
         ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
@@ -988,6 +1055,7 @@
                 </span>
               {/if}
               <IndicateurLecture {etat} />
+              {#if radio}<span class="radio-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1a10 10 0 0 1 0-14.2M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M19.1 4.9a10 10 0 0 1 0 14.2"/><circle cx="12" cy="12" r="2"/></svg></span>{/if}
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
               <!-- #2298 — « So What (128) » : écoutes de la communauté, rien
                    quand le serveur n'envoie pas le champ. -->
@@ -996,7 +1064,8 @@
                    absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
-              {#if introuvable}<span class="indispo-etiq" title={`${$t('v2.pl.missingTrackHint' as any)}${cheminIntrouvable(p) ? ` — ${cheminIntrouvable(p)}` : ''}`}>{$t('v2.pl.missingTrack' as any)}</span>
+              {#if radioHs}<span class="indispo-etiq" data-radio-indisponible title={$t('v2.pl.radioUnavailableHint' as any)}>{$t('v2.pl.radioUnavailable' as any)}</span>
+              {:else if introuvable}<span class="indispo-etiq" title={`${$t('v2.pl.missingTrackHint' as any)}${cheminIntrouvable(p) ? ` — ${cheminIntrouvable(p)}` : ''}`}>{$t('v2.pl.missingTrack' as any)}</span>
               {:else if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
               {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
             </button>
@@ -1043,8 +1112,9 @@
             {/if}
           {/if}
         {/each}
-        {#if !lectureSeule}<span class="td act" role="cell"><PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
-          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} /></span>{/if}
+        {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
+          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null}
+          onRetirer={retirerDe ? () => retirerDe(p, i) : null} />{/if}</span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}
@@ -1058,16 +1128,19 @@
   /* 🔴 #853 — le tableau DÉFILE au lieu de comprimer. `.tbl` n'avait aucun
      `overflow-x` : la grille ne pouvait pas déborder, donc elle écrasait. */
   .tbl{display:flex; flex-direction:column; min-width:0; overflow-x:auto}
+  /* web#2806 — l'icône d'une ligne radio, à la couleur du texte secondaire. */
+  .radio-ic{display:inline-grid; place-items:center; flex:none; width:16px; height:16px; color:var(--v2-txt2)}
+  .radio-ic svg{width:16px; height:16px}
   .tbl::-webkit-scrollbar{height:9px}
   /* #1431 — l'en-tête de disque vit dans `EnTeteDisqueV2` (web#2221). */
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
-  .grouphead{padding:10px 10px 2px; font-size:12px; font-weight:600; color:var(--v2-txt2)}
-  .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .grouphead{padding:10px 10px 2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt2)}
+  .tbl::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);
     border-bottom:1px solid var(--v2-line2); padding-bottom:9px; margin-bottom:4px}
-  .th{font:600 11px var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
+  .th{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
     text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* web#2584 — un en-tête à poignée laisse déborder la poignée dans la
      gouttière (14 px) ; son libellé s'élide dans `.th-txt` ou `.trier`. */
@@ -1107,13 +1180,13 @@
   /* #4806 — le titre banni : grisé et barré, visible, jouable d'un clic délibéré. */
   .trow.bannie{opacity:0.45}
   .trow.bannie .ttxt{text-decoration:line-through}
-  .bannie-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-txt3);
+  .bannie-etiq{margin-left:8px; font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
   .trow.indispo .titre{cursor:default}
-  .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+  .indispo-etiq{margin-left:8px; font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
 
-  .td{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .td{font-size:calc(13px * var(--v2-txt-echelle, 1)); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Les colonnes de chiffres s'alignent à droite, en chiffres tabulaires :
      sans quoi la durée saute d'un pixel d'une ligne à l'autre. */
   .th.d, .td.d{text-align:right; font-variant-numeric:tabular-nums}
@@ -1123,13 +1196,13 @@
   .trier:hover, .trier.actif{color:var(--v2-txt)}
   .trier:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:3px}
   .th.d .trier{justify-content:flex-end}
-  .fleche{font-size:8px}
+  .fleche{font-size:calc(8px * var(--v2-txt-echelle, 1))}
   .intercalaire{flex:none}
   .th.c, .td.c{text-align:center}
 
   .titre{display:flex; align-items:center; gap:7px;
     padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:600 13.5px var(--v2-sans); color:var(--v2-txt); min-width:0}
+    font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); min-width:0}
   /* 36 px : la ligne du tableau fait 46 px de haut (`.trow`), contre 56 px
      dans l'ancien écran qui portait une vignette de 44. La vignette ne doit
      pas décider de la hauteur de la ligne, sinon le tableau change de densité

@@ -43,7 +43,7 @@
     border: 1px solid rgba(255, 176, 32, 0.45);
     border-radius: 8px;
     background: rgba(255, 176, 32, 0.08);
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     line-height: 1.45;
   }
   .hb-divergence {
@@ -63,7 +63,7 @@
   }
   .hb-commande code {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.86rem;
+    font-size: calc(0.86rem * var(--v2-txt-echelle, 1));
     user-select: all;
   }
 </style>

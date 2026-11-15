@@ -73,16 +73,16 @@
 <style>
   .courbe{padding:16px 0 4px; border-bottom:1px solid var(--v2-line); display:flex; flex-direction:column; gap:6px}
   .tete{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .titre{font-size:14px; font-weight:600}
-  .legende{display:flex; gap:14px; font-size:11.5px; color:var(--v2-txt2)}
+  .titre{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .legende{display:flex; gap:14px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .cle{display:inline-flex; align-items:center; gap:6px}
   .cle i{display:inline-block; width:16px; height:3px; border-radius:2px}
   .cle.side i{background:var(--v2-acc1)}
   .cle.centre i{background:var(--v2-txt2)}
   svg{width:100%; height:auto; max-width:560px; display:block; overflow:visible}
   .grille{stroke:var(--v2-line); stroke-width:1}
-  .grad{font:10px var(--v2-mono); fill:var(--v2-txt3)}
-  .axe{font:10.5px var(--v2-sans); fill:var(--v2-txt3)}
+  .grad{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); fill:var(--v2-txt3)}
+  .axe{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); fill:var(--v2-txt3)}
   .trait{fill:none; stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round}
   .trait.side{stroke:var(--v2-acc1)}
   .trait.centre{stroke:var(--v2-txt2)}
@@ -91,8 +91,8 @@
   .point{stroke:var(--v2-surface2); stroke-width:2}
   .point.side{fill:var(--v2-acc1)}
   .point.centre{fill:var(--v2-txt2)}
-  .axey{font-size:10.5px; color:var(--v2-txt3)}
-  .resume{font:12px var(--v2-mono); color:var(--v2-txt2)}
+  .axey{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .resume{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .plafonne{color:var(--v2-acc-tint)}
-  .note{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:60ch}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:60ch}
 </style>

@@ -26,6 +26,26 @@ export type OpHistorique = 'push' | 'replace' | 'aucune';
 
 let retourEnCours = false;
 
+/**
+ * tune-server-rust#8145 — la fin du retour applicatif en cours, comme
+ * promesse. `history.back()` est ASYNCHRONE : son `popstate` repose plus
+ * tard la vue ET l'onglet de l'entrée atteinte. Un geste qui referme une
+ * fiche puis navigue aussitôt (« Autres artistes du label » depuis une fiche
+ * d'album de la Bibliothèque) voyait sa navigation défaite par ce `popstate`.
+ */
+let finDuRetour: { promesse: Promise<void>; tenir: () => void } | null = null;
+
+function tenirLaFinDuRetour(): void {
+  const f = finDuRetour;
+  finDuRetour = null;
+  f?.tenir();
+}
+
+/** Résolue quand le retour applicatif en cours est consommé (immédiatement s'il n'y en a pas). */
+export function apresLeRetourProgrammatique(): Promise<void> {
+  return finDuRetour?.promesse ?? Promise.resolve();
+}
+
 /** Vrai entre le début d'un retour applicatif et le `popstate` qu'il provoque. */
 export function retourProgrammatiqueEnCours(): boolean {
   return retourEnCours;
@@ -66,15 +86,23 @@ export function reculerAvecIntention(
   const historique = options.historique ?? (typeof window !== 'undefined' ? window.history : undefined);
   const filet = options.programmerFilet ?? ((cb: () => void, ms: number) => setTimeout(cb, ms));
   retourEnCours = true;
+  if (!finDuRetour) {
+    let tenir: () => void = () => {};
+    const promesse = new Promise<void>((r) => { tenir = r; });
+    finDuRetour = { promesse, tenir };
+  }
   try {
     mutations();
   } finally {
     historique?.back();
-    filet(() => { retourEnCours = false; }, options.delaiDeSecurite ?? 1000);
+    filet(() => { retourEnCours = false; tenirLaFinDuRetour(); }, options.delaiDeSecurite ?? 1000);
   }
 }
 
 /** Appelé par l'écouteur `popstate` : le retour est consommé. */
 export function finDuRetourProgrammatique(): void {
   retourEnCours = false;
+  // Résolue en microtâche : l'écouteur `popstate` de la coquille a fini de
+  // reposer l'état quand les attentes reprennent.
+  tenirLaFinDuRetour();
 }

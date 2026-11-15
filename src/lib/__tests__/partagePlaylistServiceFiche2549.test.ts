@@ -14,6 +14,7 @@ import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { preparerLocale } from '../i18n';
 import { circlePlugin } from '../circle';
 import { demandeCercle } from '../circlePlaylists';
+import { entreeDuMenu } from './aides/menuFiche';
 
 const appels: string[] = [];
 beforeAll(async () => { await preparerLocale('fr'); });
@@ -70,7 +71,8 @@ describe('#2549 — partager une playlist avec un cercle depuis sa fiche', () =>
   it('🔴 playlist Qobuz : le bouton est là, et ouvre le partage avec ses pistes du service', async () => {
     greffonActif();
     const h = await poser(QOBUZ);
-    const bouton = h.querySelector<HTMLButtonElement>('[data-partager-cercle]');
+    // web#2736 — une entrée du menu « … » de la fiche.
+    const bouton = entreeDuMenu(h, '[data-partager-cercle]');
     expect(bouton, 'aucun bouton « Partager avec un cercle » sur la fiche Qobuz').not.toBeNull();
     expect(bouton!.textContent).toContain('Partager avec un cercle');
     bouton!.click();
@@ -86,13 +88,13 @@ describe('#2549 — partager une playlist avec un cercle depuis sa fiche', () =>
   it('playlist locale : même bouton, la copie est suivie (playlistLocale)', async () => {
     greffonActif();
     const h = await poser(LOCALE);
-    h.querySelector<HTMLButtonElement>('[data-partager-cercle]')!.click();
+    entreeDuMenu(h, '[data-partager-cercle]')!.click();
     expect(get(demandeCercle)?.playlistLocale).toBe(5);
   });
 
   it('greffon Tune Circle absent : pas de bouton', async () => {
     circlePlugin.set('absent' as any);
     const h = await poser(QOBUZ);
-    expect(h.querySelector('[data-partager-cercle]')).toBeNull();
+    expect(entreeDuMenu(h, '[data-partager-cercle]')).toBeNull();
   });
 });

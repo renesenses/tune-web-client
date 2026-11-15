@@ -77,17 +77,15 @@ describe('recherche : même emplacement sur Mes radios et Annuaire', () => {
   });
 });
 
-describe('import / export M3U : Mes radios seulement', () => {
-  it('🔴 présents sur Mes radios, absents sur Annuaire', async () => {
+describe('import / export M3U : plus dans l’en-tête (rc12, retour de Rémi)', () => {
+  it('🔴 ni import ni export sur la page, dans aucun onglet', async () => {
     await monter();
-    expect(hote.querySelector('a[download="radios.m3u"]')).not.toBeNull();
-    onglet(1).click();
-    await respirer();
-    expect(hote.querySelector('a[download="radios.m3u"]')).toBeNull();
-    expect(hote.querySelector('input[type=file]')).toBeNull();
-    onglet(0).click();
-    await respirer();
-    expect(hote.querySelector('a[download="radios.m3u"]')).not.toBeNull();
+    for (const i of [0, 1]) {
+      onglet(i).click();
+      await respirer();
+      expect(hote.querySelector('a[download]'), 'lien d’export présent').toBeNull();
+      expect(hote.querySelector('input[type=file]'), 'import présent hors du choix').toBeNull();
+    }
   });
 });
 
@@ -99,14 +97,16 @@ describe('entrées de l’annuaire : non modifiables, à retirer', () => {
     expect(estDeLAnnuaire({ annuaire: { external_id: null } })).toBe(false);
   });
 
-  it('🔴 FIP (annuaire) : « Retirer », pas « Modifier » ; la station maison : l’inverse', async () => {
+  // web#2795 (décision du 11/11) : FIP se modifie de nouveau, en surcharge
+  // locale ; « Retirer » reste propre à l'annuaire.
+  it('🔴 FIP (annuaire) : « Retirer » et « Modifier » ; la station maison : « Modifier » seul', async () => {
     await monter();
     const tuiles = [...hote.querySelectorAll('.grid .st')];
     const fip = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'FIP')!;
     const maison = tuiles.find((t) => t.querySelector('.nm')?.textContent === 'Radio Maison')!;
     const titres = (e: Element) => [...e.querySelectorAll('button.coin')].map((b) => b.getAttribute('title'));
     expect(titres(fip)).toContain('Retirer de Mes radios');
-    expect(titres(fip)).not.toContain('Modifier');
+    expect(titres(fip)).toContain('Modifier');
     expect(titres(maison)).toContain('Modifier');
     expect(titres(maison)).not.toContain('Retirer de Mes radios');
   });
@@ -139,7 +139,7 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.recentes'), 'rangée visible sans lecture').toBeNull();
     const lancer = (nom: string) => ([...hote.querySelectorAll('.grid .st')]
       .find((t) => t.querySelector('.nm')?.textContent === nom)!
-      .querySelector('button.ouvrir') as HTMLButtonElement).click();
+      .querySelector('button.centre') as HTMLButtonElement).click();
     lancer('FIP'); await respirer();
     lancer('Radio Maison'); await respirer();
     const rangee = [...hote.querySelectorAll('.recentes .st .nm')].map((n) => n.textContent);
@@ -149,7 +149,9 @@ describe('Dernières lues', () => {
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('filtres')).toBe(true);
   });
 
-  it('la rangée se masque quand une recherche est en cours', async () => {
+  // web#2783 (lot rc12, décision du 10/11) : la rangée est SÉPARÉE de la
+  // liste filtrée ; une recherche dans « Mes radios » ne la masque plus.
+  it('la rangée reste affichée quand une recherche est en cours (#2783)', async () => {
     memoriserLecture(7);
     await monter();
     expect(hote.querySelector('.recentes')).not.toBeNull();
@@ -157,7 +159,7 @@ describe('Dernières lues', () => {
     champ.value = 'maison';
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     await respirer();
-    expect(hote.querySelector('.recentes')).toBeNull();
+    expect(hote.querySelector('.recentes')).not.toBeNull();
   });
 
   it('dernieresLues : le serveur (last_played_at) prime sur la mémoire locale', () => {
@@ -193,14 +195,14 @@ describe('Dernières lues', () => {
 describe('badge « Live » sur le logo', () => {
   it('🔴 aucun badge pendant la lecture, ni sur Mes radios ni sur Annuaire', async () => {
     await monter();
-    (hote.querySelector('.grid .st button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelector('.grid .st button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.st.live'), 'la tuile ne joue pas').not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();
     onglet(1).click();
     await respirer();
     mocks.jouerDepuisAnnuaire.mockResolvedValue({ zone_id: 3 });
-    (hote.querySelectorAll('.fiche')[1].querySelector('button.ouvrir') as HTMLButtonElement).click();
+    (hote.querySelectorAll('.fiche')[1].querySelector('button.centre') as HTMLButtonElement).click();
     await respirer();
     expect(hote.querySelector('.fiche.live')).not.toBeNull();
     expect(hote.querySelector('.onair')).toBeNull();
@@ -218,7 +220,10 @@ describe('filtre par genre : des boutons partout', () => {
     onglet(1).click();
     await respirer();
     expect(hote.querySelectorAll('.annuaire .chip').length).toBe(3);
-    expect(hote.querySelectorAll('.annuaire select').length).toBe(1);
+    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12 ;
+    // la liste du pays est rendue PAR eux depuis le 14/11 (`radio-pays`).
+    expect([...hote.querySelectorAll('.annuaire select')]
+      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]') || s.getAttribute('data-testid') === 'radio-pays').length).toBe(1);
   });
 });
 
@@ -251,10 +256,10 @@ describe('Annuaire relu à chaque ouverture', () => {
   });
 });
 
-describe('« Nouvelle station » : trois choix', () => {
+describe('« Nouvelle station » : quatre choix', () => {
   const ouvrir = async () => {
     await monter();
-    (hote.querySelector('.v2-btn.primaire') as HTMLButtonElement).click();
+    (hote.querySelector('.sections .nouvelle') as HTMLButtonElement).click();
     await respirer();
   };
   const choix = (k: string) => document.querySelector(`[data-choix=${k}]`) as HTMLElement;
@@ -264,6 +269,7 @@ describe('« Nouvelle station » : trois choix', () => {
     expect(choix('annuaire')).not.toBeNull();
     expect(choix('proposer')).not.toBeNull();
     expect(choix('saisie')).not.toBeNull();
+    expect(choix('import')).not.toBeNull();
     expect(document.querySelector('form'), 'le formulaire s’ouvre d’emblée').toBeNull();
   });
 

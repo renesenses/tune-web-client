@@ -102,36 +102,17 @@ describe('« Vos favoris » sur l’Accueil — #1509', () => {
     expect(els.map((e) => e.titre)).toEqual(['Homework']);
   });
 
-  it('sans album favori, la bande montre les ARTISTES — et ils s’ouvrent', async () => {
-    const els = await bande({ ...VIDE, artists: [{ id: 7, name: 'Nick Cave', image_path: '/a/7.jpg' }] }, [
-      service('artist', '36819', 'Daft Punk', { artist: null }),
-    ]);
-    expect(els.map((e) => e.titre)).toEqual(['Nick Cave', 'Daft Punk']);
-    expect(els.map((e) => e.ouvrir)).toEqual(['artiste', 'artiste']);
-    expect(els.map((e) => e.artiste)).toEqual(['Nick Cave', 'Daft Punk']);
-    expect(els[0].cover).toBe('/a/7.jpg');
-    expect(els[1].source).toBe('qobuz');
-    expect(els[0].jouer, 'un artiste n’a pas de disque de lecture : son `id` n’est pas un album').toBeUndefined();
-  });
-
-  it('sans album ni artiste, la bande montre les PISTES — chacune joue SA piste', async () => {
-    const play = vi.spyOn(api, 'play').mockResolvedValue({} as any);
+  // web#2883 — décision de Bertrand du 12/11/2026 : le repli sur les artistes
+  // puis les pistes est RETIRÉ. La bande s'appelle « Albums favoris » (web#2750)
+  // et un profil sans album favori ne l'a pas (`masqueSiVide`) — garde montée
+  // dans `albumsFavorisMasque2883.dom.test.ts`.
+  it('sans album favori, la bande est vide — ni artistes ni pistes en repli (web#2883)', async () => {
     const els = await bande(
-      { ...VIDE, tracks: [{ id: 42, album_id: 12, title: 'Around the World', artist_name: 'Daft Punk', cover_path: '/c/12.jpg' }] },
-      [service('track', '9140031', 'Get Lucky', { album: 'Random Access Memories' })],
+      { ...VIDE, artists: [{ id: 7, name: 'Nick Cave', image_path: '/a/7.jpg' }], tracks: [{ id: 42, album_id: 12, title: 'Around the World', artist_name: 'Daft Punk', cover_path: '/c/12.jpg' }] },
+      [service('artist', '36819', 'Daft Punk', { artist: null }), service('track', '9140031', 'Get Lucky')],
     );
-    expect(els.map((e) => e.titre)).toEqual(['Around the World', 'Get Lucky']);
-    expect(els.map((e) => e.sous)).toEqual(['Daft Punk', 'Daft Punk']);
-    await els[0].jouer!(3);
-    // 🔴 La piste locale joue par `track_id`, jamais par son `id` pris pour un
-    // album, ni par `album_id` (ce serait tout le disque).
-    expect(play).toHaveBeenLastCalledWith(3, { track_id: 42 });
-    await els[1].jouer!(3);
-    // 🔴 La piste de service joue par la paire service + identifiant de PISTE,
-    // jamais en `streaming_album_id` (Qobuz répond 404 : les deux espaces
-    // sont disjoints — même piège que « Récemment écoutés »).
-    expect(play).toHaveBeenLastCalledWith(3, { source: 'qobuz', source_id: '9140031' });
-    expect(els[1].ouvrir, 'un identifiant de piste n’ouvre pas une fiche d’album').toBeUndefined();
+    expect(els).toEqual([]);
+    expect(widgetParId('favoris')!.masqueSiVide, 'la bande vide doit être masquée').toBe(true);
   });
 
   it('les clés de liste restent uniques : deux favoris de service ont `id: null`', async () => {

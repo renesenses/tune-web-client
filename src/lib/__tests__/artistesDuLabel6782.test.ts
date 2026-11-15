@@ -44,7 +44,8 @@ describe('ouvrir la page du label', () => {
     await ouvrirLabelDansLaBibliotheque(' ECM ');
     window.removeEventListener('tune:v2-facette', ecoute);
     expect(get(activeView)).toBe('library');
-    expect(recus).toEqual([{ onglet: 'labels', valeur: 'ECM' }]);
+    // #8145 — la vue d'origine voyage avec la demande : le Retour y ramène.
+    expect(recus).toEqual([{ onglet: 'labels', valeur: 'ECM', depuis: 'search' }]);
   });
 });
 
@@ -121,7 +122,8 @@ describe('les écrans qui y mènent', () => {
     for (const p of ['../../components/v2/AlbumDetailV2.svelte', '../../components/v2/ArtisteServiceV2.svelte']) {
       const src = lire(p);
       expect(src, p).toContain("'v2.label.autresArtistes'");
-      expect(src, p).toContain('ouvrirLabelDansLaBibliotheque(nomLabel)');
+      // #8145 — la fiche d'album lit le nom AVANT de se refermer (`nom`).
+      expect(src, p).toMatch(/ouvrirLabelDansLaBibliotheque\((nomLabel|nom)\)/);
     }
   });
   it('les cinq libellés sont traduits dans les douze langues', async () => {

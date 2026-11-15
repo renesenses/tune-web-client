@@ -158,7 +158,7 @@ describe('vue mini — la feuille téléphone', () => {
 
   it('en-tête sur une ligne, titre de taille normale, onglets en une rangée défilante', () => {
     expect(regle('.v2-shell.mini .tune-v2 .v2-top')).toContain('flex-wrap:nowrap');
-    expect(regle('.v2-shell.mini .tune-v2 .v2-top h1')).toContain('font-size:18px');
+    expect(regle('.v2-shell.mini .tune-v2 .v2-top h1')).toContain('font-size:calc(18px*var(--v2-txt-echelle,1))');
     expect(regle('.v2-shell.mini .tune-v2 .v2-top h1')).toContain('text-overflow:ellipsis');
     const onglets = regle('.v2-shell.mini .tune-v2 .tabs,\n.v2-shell.mini .tune-v2 .subs');
     expect(onglets).toContain('flex-wrap:nowrap');

@@ -95,6 +95,8 @@ async function saisir(el: HTMLElement, cote: 'de' | 'a', v: string) {
   c.dispatchEvent(new Event('change', { bubbles: true }));
   await flush();
 }
+/** web#2732 : l'adresse est écrite 300 ms après le dernier changement. */
+const adresseEcrite = () => new Promise((r) => setTimeout(r, 380));
 const corps = (el: HTMLElement) => el.querySelector('.body')!.textContent ?? '';
 function grilleMontre(el: HTMLElement, attendus: string[], absents: string[]) {
   const t = corps(el);
@@ -145,6 +147,7 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     expect(el.querySelector('.periode-n')?.textContent).toContain('6');
     // L'écran dit que l'album sans année est écarté.
     expect(el.querySelector('.periode-sans')?.textContent).toContain('1');
+    await adresseEcrite();
     expect(location.search).toBe('?annees=1970-1979');
   });
 
@@ -197,8 +200,10 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     await saisir(el, 'de', '1970');
     await saisir(el, 'a', '1979');
     expect(corps(el)).not.toContain('Après 1980');
+    await adresseEcrite();
     bouton(el, '.periode-effacer', 'Effacer')!.click();
     await flush();
+    await adresseEcrite();
     grilleMontre(el, ['Avant 1965', 'Après 1980', 'Sans date', 'Rouge 1975'], []);
     expect(champ(el, 'de').value).toBe('');
     expect(champ(el, 'a').value).toBe('');
@@ -242,5 +247,40 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     expect(el.querySelector('.periode')).toBeNull();
     grilleMontre(el, ['Avant 1965', 'Après 1980', 'Sans date'], []);
     expect(location.search).toBe('');
+  });
+});
+
+describe('web#2732 — glisser une poignée', () => {
+  it('200 pointermove : la grille ne change qu’au relâchement, replaceState au plus 2 fois', async () => {
+    const el = await ecran();
+    await vueAnnees(el);
+    const barres = el.querySelector<HTMLElement>('.bars')!;
+    barres.getBoundingClientRect = () => ({ left: 0, top: 0, right: 300, bottom: 20, width: 300, height: 20, x: 0, y: 0, toJSON() {} }) as DOMRect;
+    const a = el.querySelector<HTMLElement>('.poignee-a')!;
+    const avant = corps(el);
+    const espion = vi.spyOn(window.history, 'replaceState');
+    const ev = (type: string, x: number) => {
+      const e = new MouseEvent(type, { bubbles: true, clientX: x }) as any;
+      e.pointerId = 1;
+      return e;
+    };
+    a.dispatchEvent(ev('pointerdown', 299));
+    for (let i = 0; i < 200; i++) a.dispatchEvent(ev('pointermove', 299 - i)); // vers 1975
+    await new Promise((r) => setTimeout(r, 50));
+    flushSync();
+    // Poignée et compteur ont bougé, pas la grille ni l'adresse.
+    expect(Number(a.getAttribute('aria-valuenow'))).toBeLessThan(1980);
+    expect(el.querySelector('.periode-n')).not.toBeNull();
+    expect(corps(el)).toContain('Après 1980');
+    expect(champ(el, 'a').value).toBe('');
+    expect(espion).not.toHaveBeenCalled();
+    a.dispatchEvent(ev('pointerup', 0));
+    await flush();
+    expect(corps(el)).not.toContain('Après 1980');
+    expect(champ(el, 'a').value).not.toBe('');
+    await adresseEcrite();
+    expect(espion.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(location.search).toMatch(/annees=/);
+    expect(avant).toContain('Après 1980');
   });
 });

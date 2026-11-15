@@ -31,6 +31,11 @@
   cases vides quand le cache du serveur avance. #7928 : « Chercher sur les
   services » sur un disque absent, qui ouvre ou lance le plus proche. #7929 :
   filtres par dossier Discogs, genre et style, avec leurs compteurs.
+
+  tune-server-rust#8672 (13/11/2026) : un disque « nulle part » s'associe à
+  la main à un album de la bibliothèque (« Associer à un album », recherche
+  préremplie, candidats de « plusieurs correspondants ») ; associé, il passe
+  « dans la bibliothèque » avec « Ouvrir l'album » et « Dissocier ».
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
@@ -44,8 +49,10 @@
     type Collection, type Disque, type EtatDisque, type EtatSynchro, type Famille,
     type Reglages, type SurUnService,
     SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
-    pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices,
+    pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices, raisonDuDisque, compteursDeRaison,
+    peutAssocier, associeALaMain, dissocierDeLAlbum, remplacerDisque,
   } from '../../lib/collectionPhysique';
+  import AssocierAlbumModale from './AssocierAlbumModale.svelte';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -64,6 +71,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dateEtHeure } from '../../lib/dates';
   import { dialogs } from '../../lib/stores/dialogs';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerDisques } from '../../lib/rechercheCollectionPhysique';
 
   let reglages = $state<Reglages | null>(null);
   let etat = $state<EtatSynchro | null>(null);
@@ -71,6 +80,10 @@
   let nom = $state('');
   let format = $state<Famille | null>(null);
   let filtreEtat = $state<EtatDisque | null>(null);
+  /** Recette rc12 (13/11) — la zone de recherche : titre, artiste, label,
+   *  n° de catalogue, code-barres, filtrés ici (`rechercheCollectionPhysique`). */
+  let recherche = $state('');
+  const disquesAffiches = $derived(collection ? filtrerDisques(collection.disques, recherche) : []);
   let erreur = $state<unknown>(null);
   let erreurLecture = $state<unknown>(null);
   let compteEnregistre = $state(false);
@@ -99,6 +112,12 @@
     let s = $t(cle as any) as string;
     for (const [k, v] of Object.entries(valeurs)) s = s.replace(`{${k}}`, String(v));
     return s;
+  }
+
+  /** #8070 — la phrase d'une raison ; sans nombre connu, la parenthèse tombe. */
+  function phraseRaison(cle: string, n: number | null): string {
+    const brute = $t(cle as any) as string;
+    return n == null ? brute.replace(/\s*[(（]\{n\}[)）]/, '') : brute.replace('{n}', String(n));
   }
 
   async function chargerCollection() {
@@ -304,6 +323,31 @@
     activeView.set('streamingalbum');
   }
 
+  /** #8672 : le disque dont « Associer à un album » est ouvert. */
+  let aAssocier = $state<Disque | null>(null);
+  let dissociation = $state<number | null>(null);
+
+  /** Le disque associé : remplacé tout de suite, puis la liste relue (les
+   *  compteurs et les filtres suivent). */
+  function associe(d: Disque) {
+    if (collection) collection = remplacerDisque(collection, d);
+    void chargerCollection();
+  }
+
+  async function dissocier(d: Disque) {
+    dissociation = d.release_id;
+    erreur = null;
+    try {
+      const r = await dissocierDeLAlbum(d.release_id);
+      if (collection) collection = remplacerDisque(collection, r.disque);
+      await chargerCollection();
+    } catch (e) {
+      erreur = e;
+    } finally {
+      dissociation = null;
+    }
+  }
+
   const toutFormat = () => filtrer(null, filtreEtat);
   const toutEtat = () => filtrer(format, null);
 
@@ -384,6 +428,7 @@
     </div>
     {#if collection?.statut === 'ok'}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$t('collectionPhysique.titre' as any)} />
         <div class="meta">
           {#if revalidation && enCours}<span data-mise-a-jour>{$t('collectionPhysique.miseAJour' as any)}</span>{/if}
           <span>{texte('collectionPhysique.compteur', { n: collection.compteurs.total })}</span>
@@ -478,6 +523,17 @@
             <button class="puce" class:on={filtreEtat === e} aria-pressed={filtreEtat === e} onclick={() => filtrer(format, e)} data-etat={e}>
               {$t(`collectionPhysique.etat.${e}` as any)} <span class="n">{compteEtat(e)}</span>
             </button>
+            {#if e === 'nulle_part' && compteursDeRaison(collection).length}
+              <!-- tune-server-rust#8070 — le compteur de chaque raison, à côté du filtre « nulle part ». -->
+              <span class="raisons" data-compteurs-raison aria-label={$t('collectionPhysique.raisonsNullePart' as any)}
+                title={$t('collectionPhysique.raisonsNullePart' as any)}>
+                {#each compteursDeRaison(collection) as r (r.raison)}
+                  <span class="raison-n" data-raison={r.raison} title={phraseRaison(`collectionPhysique.raison.${r.raison}`, null)}>
+                    {$t(`collectionPhysique.raisonCourte.${r.raison}` as any)} <span class="n">{r.n}</span>
+                  </span>
+                {/each}
+              </span>
+            {/if}
           {/if}
         {/each}
       </div>
@@ -518,11 +574,15 @@
           {/if}
         </div>
       {/if}
-      {#if !collection.disques.length}
+      {#if !disquesAffiches.length && recherche.trim() && collection.disques.length}
+        <!-- Relecture de #3019 : une recherche sans résultat n'est pas une
+             collection vide. -->
+        <div class="state vide" data-recherche-vide>{$t('collectionPhysique.aucunResultat' as any).replace('{q}', recherche.trim())}</div>
+      {:else if !disquesAffiches.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
       {:else if affichage === 'grid'}
         <div class="grid" data-grille-collection>
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <div class="card" data-disque={d.release_id} data-etat-disque={d.etat}>
               <button class="cover" onclick={() => ouvrir(d)} aria-label={d.titre} data-ouvrir-disque>
@@ -537,16 +597,21 @@
               <button class="meta" onclick={() => ouvrir(d)}>
                 <div class="ct" title={d.titre}>{d.titre}</div>
                 <div class="ca" title={d.artiste}>{d.artiste}</div>
+                {#if raisonDuDisque(d)}
+                  {@const r = raisonDuDisque(d)!}
+                  <div class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</div>
+                {/if}
               </button>
               {#if peutChercherSurLesServices(d)}
                 {@render rechercheServices(d)}
               {/if}
+              {@render association(d, true)}
             </div>
           {/each}
         </div>
       {:else}
         <ul class="list">
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <li class="ligne" data-disque={d.release_id} data-etat-disque={d.etat}>
               <span class="lcv">
@@ -565,6 +630,7 @@
                   {#if qualiteDe(album)}<span class="q">{qualiteDe(album)}</span>{/if}
                   {#if d.copie === true}<span class="q">{$t('collectionPhysique.copie' as any)}</span>{/if}
                   <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+                  {@render association(d, false)}
                 {:else if d.streaming.length}
                   {#each d.streaming as s (s.service)}
                     {@const ref = refDe(d, s)}
@@ -579,6 +645,11 @@
                   {/each}
                 {:else}
                   <span class="badge {d.etat === 'a_verifier' ? 'av' : 'np'}">{$t(`collectionPhysique.etat.${d.etat}` as any)}</span>
+                  {#if raisonDuDisque(d)}
+                    {@const r = raisonDuDisque(d)!}
+                    <span class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</span>
+                  {/if}
+                  {@render association(d, false)}
                 {/if}
                 {#if peutChercherSurLesServices(d)}
                   {@render rechercheServices(d)}
@@ -631,6 +702,31 @@
   </span>
 {/snippet}
 
+{#snippet association(d: Disque, grille: boolean)}
+  {#if peutAssocier(d)}
+    <span class="recherche">
+      <button class="mini" onclick={() => (aAssocier = d)} data-associer-disque={d.release_id}>
+        {$t('collectionPhysique.associer.bouton' as any)}
+      </button>
+    </span>
+  {:else if associeALaMain(d)}
+    {@const album = d.bibliotheque!}
+    <span class="recherche" data-associe-a-la-main={d.release_id}>
+      <span class="q">{$t('collectionPhysique.associer.manuel' as any)}</span>
+      {#if grille}
+        <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+      {/if}
+      <button class="mini" onclick={() => void dissocier(d)} disabled={dissociation === d.release_id} data-dissocier={d.release_id}>
+        {$t('collectionPhysique.associer.dissocier' as any)}
+      </button>
+    </span>
+  {/if}
+{/snippet}
+
+{#if aAssocier}
+  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} />
+{/if}
+
 {#if albumOuvert}
   <AlbumDetailV2 album={albumOuvert} onClose={fermerAlbum} />
 {/if}
@@ -638,21 +734,25 @@
 <style>
   .v2-collection{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .intro, .aide, .avancement, .err{margin:0; padding:4px 30px; font-size:12.5px; color:var(--v2-txt3); max-width:760px}
+  .intro, .aide, .avancement, .err{margin:0; padding:4px 30px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:760px}
   .err{color:var(--v2-danger)}
   .avancement{color:var(--v2-txt2)}
   .compte{display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; padding:10px 30px 4px}
-  .compte label{display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--v2-txt2)}
+  .compte label{display:flex; flex-direction:column; gap:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .compte input{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:8px; padding:6px 10px; font:13px var(--v2-sans); min-width:220px}
+    border-radius:8px; padding:6px 10px; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:220px}
   .state{padding:30px; color:var(--v2-txt3)}
   .filtres{display:flex; flex-wrap:wrap; gap:6px; padding:10px 30px 0}
   .puce{background:transparent; color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    padding:3px 10px; font:12px var(--v2-sans); cursor:pointer}
+    padding:3px 10px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .puce.on{color:var(--v2-txt); border-color:var(--v2-acc1)}
-  .puce .n{font:11px var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
+  .raisons{display:inline-flex; flex-wrap:wrap; gap:4px 10px; align-items:center; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .raison-n .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-left:2px}
+  .raison{display:block; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.3; white-space:normal}
+  .ou .raison{display:inline; margin-right:6px}
+  .puce .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-left:4px}
   .list{list-style:none; margin:0; padding:12px 30px 20px; display:flex; flex-direction:column; gap:1px}
   .vues{margin-left:auto}
   /* La grille et la carte de la Bibliothèque (LibraryV2 : `.grid`, `.card`,
@@ -663,10 +763,10 @@
   .cover{position:relative; display:block; width:100%; aspect-ratio:1; padding:0; border:0; cursor:pointer;
     background:transparent; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left; cursor:pointer; padding:0; color:inherit; font:inherit}
-  .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .pastilles{position:absolute; left:6px; top:6px; right:6px; display:flex; flex-wrap:wrap; gap:4px; pointer-events:none}
-  .pastille{font:700 8.5px var(--v2-mono); letter-spacing:.04em; padding:2px 5px; border-radius:4px;
+  .pastille{font:700 calc(8.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:2px 5px; border-radius:4px;
     background:var(--v2-scrim); color:var(--v2-txt)}
   .pastille.bibliotheque{background:var(--v2-acc1); color:var(--v2-on-acc)}
   .pastille.streaming{background:var(--v2-acc2); color:var(--v2-on-acc)}
@@ -676,27 +776,27 @@
     padding:8px 10px; border-radius:9px; color:var(--v2-txt2)}
   .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ti{min-width:0; display:flex; flex-direction:column; gap:2px}
-  .tt{font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ti em, .fmt{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3);
+  .tt{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ti em, .fmt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ou{display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px; max-width:520px}
-  .badge{font:600 10.5px var(--v2-sans); border-radius:var(--v2-r-pill); padding:2px 8px; border:1px solid var(--v2-line2)}
+  .badge{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); border-radius:var(--v2-r-pill); padding:2px 8px; border:1px solid var(--v2-line2)}
   .badge.bib{color:var(--v2-acc1); border-color:var(--v2-acc1)}
   .badge.st{color:var(--v2-acc2); border-color:var(--v2-acc2)}
   .badge.np, .badge.av{color:var(--v2-txt3)}
-  .q{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .q{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .q.extraire{color:var(--v2-acc2)}
-  .mini{padding:2px 8px; border-radius:10px; cursor:pointer; font-size:11px; background:transparent;
+  .mini{padding:2px 8px; border-radius:10px; cursor:pointer; font-size:calc(11px * var(--v2-txt-echelle, 1)); background:transparent;
     color:var(--v2-txt); border:1px solid var(--v2-line2)}
   .mini.on{color:var(--v2-acc1); border-color:var(--v2-acc1)}
-  .discogs{font-size:11px; color:var(--v2-txt3)}
+  .discogs{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .discogs:hover{color:var(--v2-txt)}
-  .navigation label{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2)}
+  .navigation label{display:flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .navigation select{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
-    border-radius:8px; padding:3px 8px; font:12px var(--v2-sans); max-width:220px}
+    border-radius:8px; padding:3px 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
   .recherche{display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px}
   .err-mini{color:var(--v2-danger)}
-  .attribution{margin:0; padding:16px 30px 0; font-size:11px; color:var(--v2-txt3)}
+  .attribution{margin:0; padding:16px 30px 0; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .attribution a{color:inherit}
   @media (max-width: 640px){
     .ligne{grid-template-columns:40px minmax(0,1fr)}

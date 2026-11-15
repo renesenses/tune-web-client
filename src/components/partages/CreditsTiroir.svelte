@@ -65,8 +65,13 @@
      * `AlbumDetailV2.allerArtiste`).
      */
     avantDeNaviguer?: () => void;
+    /**
+     * web#2736 — rendu À PLAT, sans tiroir : l'onglet « Crédits » de la fiche
+     * album. Même lecture, mêmes blocs, même enrichissement.
+     */
+    enLigne?: boolean;
   }
-  let { cible, onClose, avantDeNaviguer }: Props = $props();
+  let { cible, onClose, avantDeNaviguer, enLigne = false }: Props = $props();
 
   // Relevée une fois : le tiroir s'ouvre pour UN titre ou UN album.
   const c = untrack(() => cible);
@@ -135,6 +140,9 @@
   const titreTiroir = $derived($t(c.type === 'piste' ? 'credits.trackTitle' : 'credits.albumTitle'));
 </script>
 
+{#if enLigne}
+  <div class="en-ligne">{@render corps()}</div>
+{:else}
 <TiroirLateral titre={titreTiroir} {onClose} porte>
   {#snippet entete()}
     {#if c.titre}<p class="objet">{c.titre}</p>{/if}
@@ -145,6 +153,11 @@
       </p>
     {/if}
   {/snippet}
+  {@render corps()}
+</TiroirLateral>
+{/if}
+
+{#snippet corps()}
   <div class="corps" data-credits={c.type}>
     {#if etat === 'chargement'}
       <p class="etat">{$t('v2.common.loading')}</p>
@@ -200,25 +213,27 @@
       {/each}
     {/if}
   </div>
-</TiroirLateral>
+{/snippet}
 
 <style>
-  .objet { margin: 4px 0 0; font-size: 14px; color: var(--tune-text); }
+  .objet { margin: 4px 0 0; font-size: calc(14px * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .contexte {
-    margin: 2px 0 0; font-size: 12px; color: var(--tune-text-muted);
+    margin: 2px 0 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted);
     display: flex; flex-wrap: wrap; gap: 0 8px;
   }
   .corps {
     flex: 1; overflow-y: auto; padding: 12px 20px 20px;
     display: flex; flex-direction: column; gap: 20px;
   }
-  .etat { padding: 12px; color: var(--tune-text-muted); font-size: 13px; text-align: center; }
+  .en-ligne .corps { padding: 4px 0 0; overflow: visible; max-width: 760px; }
+  .en-ligne .role { text-align: left; }
+  .etat { padding: 12px; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); text-align: center; }
   .etat.err { color: #ef4444; }
   .vide { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px 8px; text-align: center; }
-  .vide p { margin: 0; color: var(--tune-text-muted); font-size: 13px; line-height: 1.5; }
+  .vide p { margin: 0; color: var(--tune-text-muted); font-size: calc(13px * var(--v2-txt-echelle, 1)); line-height: 1.5; }
   .enrichir {
     padding: 8px 14px; border-radius: 6px; cursor: pointer;
-    font-family: var(--font-label); font-size: 12px; font-weight: 600;
+    font-family: var(--font-label); font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600;
     background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.15);
     border: 1px solid rgba(var(--tune-accent-rgb, 99, 102, 241), 0.3);
     color: var(--tune-accent);
@@ -227,7 +242,7 @@
   .bloc h4 {
     margin: 0 0 8px;
     font-family: var(--font-label);
-    font-size: 13px; font-weight: 600;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600;
     color: var(--tune-text);
   }
   .ligne {
@@ -236,18 +251,18 @@
   }
   .role {
     font-family: var(--font-label);
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); text-transform: uppercase; letter-spacing: 0.05em;
     color: var(--tune-text-muted); text-align: right;
   }
   .noms { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .nom { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
   .lien {
     background: none; border: none; padding: 0; cursor: pointer;
-    font: inherit; font-size: 14px; font-weight: 600; color: var(--tune-accent);
+    font: inherit; font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-accent);
     text-align: left;
   }
   .lien:hover { text-decoration: underline; }
-  .texte { font-size: 14px; font-weight: 600; color: var(--tune-text); }
-  .pistes { font-size: 11px; color: var(--tune-text-muted); }
-  .wikidata { font-size: 11px; font-style: italic; color: var(--tune-text-muted); }
+  .texte { font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); }
+  .pistes { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
+  .wikidata { font-size: calc(11px * var(--v2-txt-echelle, 1)); font-style: italic; color: var(--tune-text-muted); }
 </style>

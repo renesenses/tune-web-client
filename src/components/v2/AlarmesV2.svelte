@@ -56,6 +56,9 @@
     /** Masque lun..dim, celui que lit le planificateur (#5669). */
     days_of_week?: string | null;
     skip_holidays: number;
+    /** tune-server-rust#8615 — « Interrompre la lecture en cours ». Absent
+     *  (serveur d'avant) : cochée, la valeur par défaut. */
+    interrupt_playback?: boolean | number | null;
     holiday_country: string;
     zone_id: number | null;
     source_type: string;
@@ -85,6 +88,8 @@
   let fHeure = $state('07:00');
   let fJours = $state<number[]>([...EN_SEMAINE]);
   let fFeries = $state(true);
+  /** tune-server-rust#8615 (décision du 13/11) : cochée par défaut. */
+  let fInterrompre = $state(true);
   let fZone = $state<number | null>(null);
   let fTypeSource = $state('radio');
   let fIdSource = $state('');
@@ -119,6 +124,7 @@
     fHeure = '07:00';
     fJours = [...EN_SEMAINE];
     fFeries = true;
+    fInterrompre = true;
     fZone = $currentZone?.id ?? null;
     fTypeSource = 'radio';
     fIdSource = '';
@@ -134,6 +140,7 @@
     fHeure = r.time;
     fJours = joursDuReveil(r);
     fFeries = !!r.skip_holidays;
+    fInterrompre = r.interrupt_playback == null ? true : !!r.interrupt_playback;
     fZone = r.zone_id;
     fTypeSource = r.source_type;
     fIdSource = r.source_id;
@@ -167,6 +174,8 @@
       time: r.time ?? fHeure,
       ...champsJours(jours),
       skip_holidays: r.skip_holidays ?? fFeries,
+      // #8615 — un réveil d'un serveur d'avant n'a pas la clé : cochée.
+      interrupt_playback: r.interrupt_playback != null ? !!r.interrupt_playback : fInterrompre,
       holiday_country: r.holiday_country ?? 'FR',
       zone_id: r.zone_id !== undefined ? r.zone_id : fZone,
       source_type: r.source_type ?? fTypeSource,
@@ -321,6 +330,12 @@
         </label>
       {/if}
 
+      <!-- tune-server-rust#8615 (fil 2784) — visible à tous les niveaux. -->
+      <label class="champ ligne" data-reveil-interrompre title={$t('alarms.interruptPlaybackHint' as any)}>
+        <input type="checkbox" bind:checked={fInterrompre} />
+        <span>{$t('alarms.interruptPlayback' as any)}</span>
+      </label>
+
       {#if atLeast(niveau, 'expert')}
         <label class="champ ligne">
           <input type="checkbox" bind:checked={fFeries} />
@@ -391,7 +406,7 @@
      sans comprimer l'en-tête sur un téléphone. */
   .v2-ecran { padding: 24px; padding-top: var(--v2-grappe-h, 66px); max-width: 760px; margin: 0 auto; min-height: 0; overflow-y: auto; }
   .v2-entete { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .v2-entete h1 { margin: 0; font: 700 22px var(--v2-sans); color: var(--v2-txt); }
+  .v2-entete h1 { margin: 0; font: 700 calc(22px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
 
   .carte { background: var(--v2-surface); border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card); }
   .liste { display: flex; flex-direction: column; gap: 10px; }
@@ -399,10 +414,10 @@
   .reveil { display: flex; align-items: center; gap: 12px; padding: 14px 16px; transition: opacity .16s; }
   .reveil.eteint { opacity: .5; }
   .corps { flex: 1; display: flex; align-items: center; gap: 16px; border: 0; background: transparent; text-align: left; cursor: pointer; padding: 0; color: inherit; }
-  .heure { font: 700 26px var(--v2-sans); color: var(--v2-txt); font-variant-numeric: tabular-nums; }
+  .heure { font: 700 calc(26px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); font-variant-numeric: tabular-nums; }
   .detail { display: flex; flex-direction: column; gap: 2px; }
-  .detail b { font: 600 14px var(--v2-sans); color: var(--v2-txt); }
-  .jours-txt, .source, .zone { font: 400 12px var(--v2-sans); color: var(--v2-txt2); }
+  .detail b { font: 600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
+  .jours-txt, .source, .zone { font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 
   .boutons { display: flex; align-items: center; gap: 10px; }
   .bascule { position: relative; width: 40px; height: 22px; flex: 0 0 auto; cursor: pointer; }
@@ -414,31 +429,31 @@
   .bascule input:focus-visible + .rail { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
 
   .form { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-  .form h2 { margin: 0 0 4px; font: 700 17px var(--v2-sans); color: var(--v2-txt); }
+  .form h2 { margin: 0 0 4px; font: 700 calc(17px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
   .champ { display: flex; flex-direction: column; gap: 6px; }
-  .champ > span { font: 600 13px var(--v2-sans); color: var(--v2-txt2); }
+  .champ > span { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .champ.ligne { flex-direction: row; align-items: center; gap: 8px; }
   .champ input[type='text'], .champ input[type='time'], .champ select {
     padding: 9px 11px; border-radius: var(--v2-r-input, 8px); border: 1px solid var(--v2-line2);
-    background: var(--v2-bg); color: var(--v2-txt); font: 400 14px var(--v2-sans);
+    background: var(--v2-bg); color: var(--v2-txt); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
 
   .jours { display: flex; gap: 6px; flex-wrap: wrap; }
   .jour {
     min-width: 42px; padding: 7px 0; border-radius: var(--v2-r-pill); cursor: pointer;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2);
-    font: 600 12px var(--v2-sans);
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
   .jour.on { background: var(--v2-acc1); border-color: var(--v2-acc1); color: var(--v2-on-acc); }
 
   .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
-  .etat { padding: 48px 0; text-align: center; color: var(--v2-txt2); font: 400 14px var(--v2-sans); }
+  .etat { padding: 48px 0; text-align: center; color: var(--v2-txt2); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
   .etat.vide p { margin: 4px 0; }
-  .indice { font-size: 12px; opacity: .8; }
+  .indice { font-size: calc(12px * var(--v2-txt-echelle, 1)); opacity: .8; }
 
   @media (max-width: 520px) {
     .reveil { flex-wrap: wrap; }
     .corps { gap: 12px; }
-    .heure { font-size: 22px; }
+    .heure { font-size: calc(22px * var(--v2-txt-echelle, 1)); }
   }
 </style>

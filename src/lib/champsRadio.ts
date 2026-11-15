@@ -59,6 +59,20 @@ export interface RadioInitiale {
  * @param saisi    ce que le formulaire porte, déjà `trim()`é.
  * @param initiale la station telle qu'elle était, ou `null` pour une création.
  */
+/**
+ * web#2795 — une station de l'ANNUAIRE ne se surcharge chez soi que par ce que
+ * la fiche fournit : le nom affiché, le logo et le flux. Le genre, le pays et
+ * le site ne sont ni montrés ni envoyés ; l'adresse suit la règle de #870.
+ */
+export function champsSurchargeAEnvoyer(
+  saisi: Pick<ChampsRadio, 'name' | 'stream_url' | 'logo_url'>,
+  initiale: RadioInitiale,
+): Partial<ChampsRadio> {
+  const envoi: Partial<ChampsRadio> = { name: saisi.name, logo_url: saisi.logo_url };
+  if (saisi.stream_url !== (initiale.stream_url ?? '').trim()) envoi.stream_url = saisi.stream_url;
+  return envoi;
+}
+
 export function champsRadioAEnvoyer(
   saisi: ChampsRadio,
   initiale: RadioInitiale | null,

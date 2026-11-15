@@ -52,6 +52,16 @@ export interface V2SettingsSection {
   group?: 'libraryTools';
   /** La section est une zone dangereuse : isolée et signalée à l'écran. */
   danger?: boolean;
+  /**
+   * Maquette de Levente (Figma 620:5837, 15/11/2026) : « Long settings, eg.
+   * Sidebar, moving to a second screen can also help the better overview ».
+   * La section ne s'affiche pas en carte dans son onglet : une ligne y mène
+   * à un ÉCRAN SECONDAIRE qui la montre seule, avec un retour. La recherche
+   * et les ancres l'ouvrent d'office.
+   */
+  sousEcran?: boolean;
+  /** Clé i18n de la ligne qui ouvre l'écran secondaire : ce qu'on y trouve. */
+  resumeKey?: string;
 }
 
 export interface V2SettingsTab {
@@ -79,14 +89,29 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // touche — la file d'attente, l'aléatoire — et par le chiffre lui-même.
       { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner',
         keywords: ['lecture', 'volume', 'aléatoire', 'shuffle', 'file d\'attente', 'limite', '500', 'titres'] },
-      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist'] },
+      // tune-server-rust#8213 (web #2802) : arrêt programmé à heure fixe,
+      // certains jours ; sur Tune OS, extinction de la machine au choix.
+      { id: 'scheduledStop', titleKey: 'scheduledStop.title', from: 'general', min: 'beginner',
+        keywords: ['arrêt programmé', 'heure fixe', 'minuterie', 'sommeil', 'éteindre', 'extinction', 'shutdown', 'poweroff', 'scheduled stop', 'sleep'] },
+      { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage', 'lecture en cours', 'album', 'playlist', 'défilement', 'ascenseur', 'barre de défilement', 'scrollbar', 'accessibilité'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
       // l'onglet Radios ne le propose que tant qu'il n'est pas renseigné.
+      // Maquette de Levente (15/11/2026) : la barre latérale — ses sources
+      // (venues d'Affichage) et son ordre (venu d'Interface) — sur un écran
+      // secondaire, ouvert depuis une ligne de l'onglet.
+      { id: 'sidebar', titleKey: 'reglages.barreLaterale.titre', from: 'general', min: 'beginner', sousEcran: true,
+        resumeKey: 'reglages.barreLaterale.resume',
+        keywords: ['barre latérale', 'sidebar', 'sources', 'ordre', 'menu', 'entrées', 'masquer', 'navigation'] },
       { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
         keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
+      // web#2771 : le contrôle parental n'avait d'accès que sous une ligne de
+      // Profils, et seulement dans le bon cas. Il a sa section, au niveau
+      // débutant, et se trouve par la recherche.
+      { id: 'parental',   titleKey: 'parental.title', from: 'profiles', min: 'beginner',
+        keywords: ['contrôle parental', 'parental', 'enfant', 'enfants', 'parental controls', 'kids', 'child', 'horaires', 'budget', "temps d'écoute", 'explicite', 'explicit'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
       // Chantier « assistant-ia », étape 1 : la clé de l'utilisateur, son
       // fournisseur, son plafond. Gratuit, dès le niveau débutant.
@@ -101,6 +126,15 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac', 'replaygain', 'true-peak', 'crêtes'] },
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignoré', 'réapparaît', 'rétablir', 'masqué'] },
+      /**
+       * web#2784 (Alex, 10/11/2026) — l'annonce du serveur multimédia
+       * UPnP/DLNA de Tune (`upnp_enabled`, `upnp_friendly_name`) existait
+       * côté serveur sans aucun écran : il fallait un `curl` avec la clé API
+       * pour la couper. À la suite d'« Appareils réseau » et « Appareils
+       * ignorés », les voisins qui parlent déjà de DLNA/UPnP. Prend effet au redémarrage.
+       */
+      { id: 'serveurUpnp',   titleKey: 'upnpServeur.title',            from: 'network', min: 'intermediate',
+        keywords: ['dlna', 'upnp', 'serveur multimédia', 'media server', 'annonce', 'annoncer', 'bibliothèque', 'réseau', 'ssdp', 'nom annoncé'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
       { id: 'sendspin',      title: 'Sendspin',                        from: 'services', min: 'intermediate', keywords: ['sendspin', 'enceinte', 'music assistant', 'voice pe', 'esphome', 'exclure', 'ne pas se connecter'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
@@ -179,6 +213,14 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
         keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne', 'fichiers', 'écrire', 'balises'] },
+      /**
+       * tune-server-rust#8325 / ESL63P (testeur HCFR, %band%, %choir%) — les
+       * balises lues pour le chef, l'ensemble, l'œuvre et le mouvement, et le
+       * sort de BAND. Expert : un réglage de spécialiste, dont les défauts
+       * suffisent à qui ne range pas son classique sous des balises à lui.
+       */
+      { id: 'classicalTags', titleKey: 'classicalTags.title', from: 'library', min: 'expert',
+        keywords: ['classique', 'balises', 'tags', 'chef', 'orchestre', 'ensemble', 'chœur', 'choeur', 'œuvre', 'mouvement', 'band', 'choir', 'chorus', 'conductor', 'work', 'movement', 'classical'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
@@ -265,6 +307,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
           // #1428 : le réglage se cherche par le nom du BOUTON — « stop »,
           // « arrêt » — et par l'endroit où il manque, la barre de transport.
           'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture'] },
+      // web#916 — le revers de « Pas pour moi » : revoir et rétablir, par
+      // profil, ce qu'on a écarté des suggestions de l'accueil.
+      { id: 'dismissedSuggestions', titleKey: 'v2.dismiss.settingsTitle', from: 'general', min: 'beginner',
+        keywords: ['accueil', 'suggestions', 'pas pour moi', 'écartées', 'écarter', 'recommandations',
+          'rétablir', 'home', 'not for me', 'dismissed'] },
     ],
   },
   {

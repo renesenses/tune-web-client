@@ -157,18 +157,18 @@
     padding: 16px 20px;
     border-bottom: 1px solid var(--tune-border, #333);
   }
-  header h3 { margin: 0; font-size: 1.1rem; }
+  header h3 { margin: 0; font-size: calc(1.1rem * var(--v2-txt-echelle, 1)); }
   .close-btn {
     background: none;
     border: none;
     color: var(--tune-text, #fff);
-    font-size: 1.5rem;
+    font-size: calc(1.5rem * var(--v2-txt-echelle, 1));
     cursor: pointer;
     padding: 0 4px;
   }
   .breadcrumb {
     padding: 8px 20px;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted, #888);
     border-bottom: 1px solid var(--tune-border, #333);
     overflow: hidden;
@@ -191,7 +191,7 @@
     border-radius: 6px;
     background: transparent;
     color: var(--tune-text, #fff);
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--v2-txt-echelle, 1));
     cursor: pointer;
     text-align: left;
   }
@@ -205,14 +205,14 @@
     padding: 4px 12px;
     border: none;
     background: transparent;
-    font-size: 1.3rem;
+    font-size: calc(1.3rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted, #888);
     cursor: pointer;
   }
   .open:hover { color: var(--tune-accent, #f59e0b); }
-  .hint { margin: 0; padding: 6px 20px; font-size: 0.8rem; color: var(--tune-text-muted, #888); }
+  .hint { margin: 0; padding: 6px 20px; font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted, #888); }
   .dir-item.parent { color: var(--tune-accent, #f59e0b); }
-  .icon { font-size: 1.1rem; flex-shrink: 0; }
+  .icon { font-size: calc(1.1rem * var(--v2-txt-echelle, 1)); flex-shrink: 0; }
   .loading, .empty, .error {
     padding: 20px;
     text-align: center;
@@ -228,7 +228,7 @@
     gap: 12px;
   }
   .selected-path {
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted, #888);
     overflow: hidden;
     text-overflow: ellipsis;

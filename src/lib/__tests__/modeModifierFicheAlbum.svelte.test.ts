@@ -21,6 +21,7 @@ import { activeView } from '../stores/navigation';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import { brouillonDepuis, corpsEdition, estReponseEdition, type EditionReponse } from '../editionAlbum';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -121,7 +122,8 @@ function poser(props: Record<string, unknown>) {
 
 const q = <T extends Element = HTMLElement>(sel: string) => hote?.querySelector<T>(sel) ?? null;
 const qa = <T extends Element = HTMLElement>(sel: string) => Array.from(hote?.querySelectorAll<T>(sel) ?? []);
-const boutonModifier = () => q<HTMLButtonElement>('[data-modifier-album]');
+// web#2736 — « Modifier » est une entrée du menu « … » de la fiche.
+const boutonModifier = () => (hote ? entreeDuMenu(hote, '[data-modifier-album]') : null);
 const ecritures = () => appels.filter((a) => a.methode !== 'GET');
 const puts = () => appels.filter((a) => a.methode === 'PUT');
 

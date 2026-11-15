@@ -263,3 +263,48 @@ export function positionParoles(etat: {
   if (typeof etat.ancrageRadioMs !== 'number') return 0;
   return Math.max(0, etat.maintenantMs - etat.ancrageRadioMs);
 }
+
+/**
+ * web#2797 — Michel, fil 2748 : « la coloration fait des allers-retours entre
+ * la strophe en cours et la précédente ».
+ *
+ * La position de « Lecture en cours » (`seekPositionMs`) avance par un
+ * minuteur local et n'est recalée sur le serveur qu'au-delà de 2 s d'écart
+ * (`DERIVE_MAX_MS`, `v2Live.ts`) : à chaque recalage elle peut RECULER d'un
+ * coup jusqu'à 2 s, la strophe précédente se rallume, puis la suivante revient.
+ *
+ * Pour les paroles, un recul de cette ampleur pendant une lecture continue
+ * n'est qu'une correction d'horloge : on garde la position déjà atteinte, la
+ * position réelle la rattrape en moins de `RECUL_TOLERE_MS`. Un recul plus
+ * grand est un vrai déplacement (curseur, piste suivante) : il est suivi.
+ */
+export const RECUL_TOLERE_MS = 2500;
+
+export function positionParolesTenue(
+  precedente: number | null | undefined,
+  brute: number,
+  reculTolere = RECUL_TOLERE_MS,
+): number {
+  if (typeof precedente !== 'number') return brute;
+  if (brute < precedente && precedente - brute <= reculTolere) return precedente;
+  return brute;
+}
+
+/**
+ * Décalage des paroles réglé sur la zone (`lyrics_offset_ms`, #1328). Positif :
+ * paroles retardées. Appliqué jusqu'ici par le seul Grand écran (`TvView`) ;
+ * web#2797 l'applique aussi à « Lecture en cours ».
+ */
+export function avecDecalageParoles(positionMs: number, decalageMs: number | null | undefined): number {
+  return Math.max(0, positionMs - (Number(decalageMs) || 0));
+}
+
+/** Dernière ligne dont l'horodatage est atteint ; -1 avant la première. */
+export function ligneParolesActive(lignes: { time: number }[], positionMs: number): number {
+  let idx = -1;
+  for (let i = 0; i < lignes.length; i++) {
+    if (lignes[i].time <= positionMs) idx = i;
+    else break;
+  }
+  return idx;
+}

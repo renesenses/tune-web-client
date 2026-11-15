@@ -312,7 +312,10 @@ describe('#1356 — les actions : l’union des deux fiches, mesurée', () => {
     expect(gestes, 'pas de rangée d’actions dans un `header.tete` : l’en-tête partagé n’est pas monté').not.toBeNull();
     const texte = gestes!.textContent ?? '';
     expect(texte, '« Toutes les pistes » a été perdu').toContain('Toutes les pistes');
-    expect(texte, '« Lecture aléatoire » a été perdu').toContain('Lecture aléatoire');
+    // rc12 (Bertrand, 12/11/2026) : « Lecture aléatoire » est sous la flèche du
+    // bouton Lecture — elle n'est pas perdue, elle y a son entrée.
+    expect(gestes!.querySelector('[data-bouton-lecture] [data-lecture-options]'), '« Lecture aléatoire » a été perdu (pas de flèche)').not.toBeNull();
+    expect(lire('../../components/v2/ArtisteServiceV2.svelte')).toContain("bulle: 'library.shuffleArtist'");
     expect(texte, '« Modifier » a été perdu').toContain('Modifier');
     // 🔴 « Étiquettes » est arrivé dans `main` (#1357) PENDANT ce chantier, au
     // milieu du bloc déplacé : la fusion l'avait mangé. On le garde nommément.
@@ -346,7 +349,8 @@ describe('#1356 — les actions : l’union des deux fiches, mesurée', () => {
   it('🔴 la fiche de SERVICE gagne « Toutes les pistes » et « Lecture aléatoire », et seulement si la bibliothèque connaît l’artiste', () => {
     const svc = lire('../../components/v2/ArtisteServiceV2.svelte');
     expect(svc, '« Toutes les pistes » n’a pas été porté côté service').toContain("$tr('library.playAllArtist' as any)");
-    expect(svc, '« Lecture aléatoire » n’a pas été porté côté service').toContain("$tr('library.shuffleArtist' as any)");
+    // rc12 : sous la flèche du bouton Lecture, gardé par l'artiste local.
+    expect(svc, '« Lecture aléatoire » n’a pas été porté côté service').toMatch(/aleatoire=\{artisteLocal\?\.id != null \? \{ faire: \(\) => void lireDiscographieLocale\(true\)/);
     const i = svc.indexOf("$tr('library.playAllArtist' as any)");
     const avant = svc.slice(0, i);
     expect(

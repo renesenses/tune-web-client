@@ -82,18 +82,18 @@
   /* #1431 — l'en-tête de disque : une ligne de texte, hors de la grille des
      colonnes (il n'a pas de cellules), la forme de `.dischead` d'Oxygen. */
   .dischead{display:flex; align-items:baseline; gap:10px; padding:14px 10px 4px}
-  .discno{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  .discno{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); font-weight:700; letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-txt3)}
-  .discsub{font-size:12px; color:var(--v2-txt2)}
+  .discsub{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   /* web#2221 — l'en-tête ACTIF : « Disque 2 · sous-titre · 52 min », puis
      les gestes calés à droite. */
   .dischead.actif{align-items:center}
   .dischead.actif .discsub::before, .discdur::before{content:'· '; color:var(--v2-txt3)}
-  .discdur{font-size:12px; color:var(--v2-txt3); font-variant-numeric:tabular-nums}
+  .discdur{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
   .discacts{margin-left:auto; display:flex; align-items:center; gap:4px}
   .discplay, .discplus{display:inline-flex; align-items:center; gap:6px; height:28px; border:0;
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .discplay{padding:0 10px}
   .discplus{width:28px; justify-content:center; padding:0}
   .discplay svg, .discplus svg{width:14px; height:14px; flex:0 0 auto}

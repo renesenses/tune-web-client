@@ -26,7 +26,7 @@
 <style>
   .details-serveur {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     opacity: 0.85;
   }
   .details-serveur summary { cursor: pointer; }

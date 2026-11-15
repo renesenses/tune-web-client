@@ -361,10 +361,11 @@ describe('Le bouton est ABSENT, pas grisé', () => {
   it('aucune entrée : aucun bouton, et aucun bouton grisé nulle part', () => {
     // C'était l'état de HUIT écrans sur treize pendant 24 jours : le bouton
     // était là, `disabled`, avec « Autres actions — bientôt ». Un bouton grisé
-    // promet une action à venir ; un bouton absent ne promet rien. Une radio,
-    // et une pochette sans objet, n'ont aucune entrée.
-    monter({ type: 'radio', id: 3, nom: 'FIP' });
-    expect(bouton(), 'une radio a retrouvé un menu d’objet').toBeNull();
+    // promet une action à venir ; un bouton absent ne promet rien. Un podcast,
+    // et une pochette sans objet, n'ont aucune entrée. (web#2806 : la radio de
+    // « Mes radios » en a une, « Ajouter à une playlist ».)
+    monter({ type: 'podcast', id: 3, nom: 'FIP' });
+    expect(bouton(), 'un podcast a retrouvé un menu d’objet').toBeNull();
     monter(null);
     expect(bouton(), 'le bouton du menu est de retour alors que le catalogue ne rend rien').toBeNull();
     expect(

@@ -41,7 +41,7 @@
 </details>
 <style>
   .partage-ecoute{position:relative;font:inherit;color:inherit}
-  summary{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border:1px solid var(--v2-line,var(--tune-border));border-radius:6px;font-size:12px;list-style:none}
+  summary{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border:1px solid var(--v2-line,var(--tune-border));border-radius:6px;font-size:calc(12px * var(--v2-txt-echelle, 1));list-style:none}
   .choix{position:absolute;z-index:100;bottom:100%;left:0;width:min(300px,80vw);padding:8px;display:grid;gap:6px;background:var(--v2-bg,var(--tune-bg));border:1px solid var(--v2-line,var(--tune-border));border-radius:8px;color:var(--v2-txt,var(--tune-text))}
-  button,textarea{font:inherit;color:inherit;background:transparent;border:1px solid var(--v2-line,var(--tune-border));border-radius:4px;padding:8px;text-align:left}button{cursor:pointer}button:disabled{opacity:.5}textarea{width:100%;box-sizing:border-box;resize:vertical}label{font-size:12px}summary:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--v2-acc2,#cb8c32);outline-offset:2px}
+  button,textarea{font:inherit;color:inherit;background:transparent;border:1px solid var(--v2-line,var(--tune-border));border-radius:4px;padding:8px;text-align:left}button{cursor:pointer}button:disabled{opacity:.5}textarea{width:100%;box-sizing:border-box;resize:vertical}label{font-size:calc(12px * var(--v2-txt-echelle, 1))}summary:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--v2-acc2,#cb8c32);outline-offset:2px}
 </style>

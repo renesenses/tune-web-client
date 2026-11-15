@@ -215,7 +215,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['ban.ban'],
     ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les quatorze gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les quinze gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
@@ -228,6 +228,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['credits.see'],
       // #7857 — « Spectrogramme », bibliothèque seule.
       fr['spectro.menu'],
+      // #8160 — « Fiche technique », bibliothèque seule.
+      fr['fiche.menu'],
       // #4806 — « Bannir ce titre », bibliothèque seule ; le témoin de
       // service juste au-dessus prouve qu'il n'y est pas.
       fr['ban.ban'],
@@ -428,7 +430,9 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       expect(rendus).toContain(fr['v2.later.add']);
       // #7857 — « Spectrogramme », dans les DEUX menus (le quatorzième).
       expect(rendus).toContain(fr['spectro.menu']);
-      expect(rendus).toHaveLength(14);
+      // #8160 — « Fiche technique », dans les DEUX menus (le quinzième).
+      expect(rendus).toContain(fr['fiche.menu']);
+      expect(rendus).toHaveLength(15);
     }
   });
 });

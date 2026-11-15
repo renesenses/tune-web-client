@@ -43,7 +43,7 @@
     display: inline-flex;
     align-items: center;
     font-family: var(--font-label, system-ui);
-    font-size: 9px;
+    font-size: calc(9px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     letter-spacing: 0.5px;
     padding: 1px 5px;
@@ -55,7 +55,7 @@
   }
 
   .service-badge.compact {
-    font-size: 8px;
+    font-size: calc(8px * var(--v2-txt-echelle, 1));
     padding: 1px 4px;
     letter-spacing: 0.3px;
   }

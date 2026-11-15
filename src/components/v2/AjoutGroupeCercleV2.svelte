@@ -235,23 +235,23 @@
   .boite{width:min(460px,100%); max-height:80vh; overflow:auto; display:flex; flex-direction:column; gap:10px; padding:16px 18px;
     border-radius:var(--v2-r-card); border:1px solid var(--v2-line); background:var(--v2-surface); color:var(--v2-txt); font-family:var(--v2-sans)}
   .tete{display:flex; align-items:center; gap:10px}
-  .tete h3{margin:0; flex:1; font-size:15px; overflow-wrap:anywhere}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
+  .tete h3{margin:0; flex:1; font-size:calc(15px * var(--v2-txt-echelle, 1)); overflow-wrap:anywhere}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
   .vide{margin:0}
   .choix{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
   .ligne{width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 10px; border-radius:var(--v2-r-md);
-    border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer; font:13px var(--v2-sans); text-align:left}
+    border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align:left}
   .ligne:disabled,.primaire:disabled{opacity:.5; cursor:not-allowed}
   .ligne:focus-visible,.lnk:focus-visible,.primaire:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .partage{display:flex; flex-direction:column; gap:10px}
-  .partage label{display:flex; flex-direction:column; gap:4px; font-size:12.5px}
+  .partage label{display:flex; flex-direction:column; gap:4px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .partage select,.partage input{padding:7px 9px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans)}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .primaire{align-self:flex-end; padding:8px 14px; border-radius:var(--v2-r-md); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
-    color:var(--v2-on-acc); cursor:pointer; font:600 13px var(--v2-sans)}
-  .bilan{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:13px}
+    color:var(--v2-on-acc); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .bilan{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .bilan .alerte{color:var(--v2-txt2)}
-  .err{margin:0; font-size:12.5px; color:var(--v2-danger)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:18px; padding:2px 6px}
+  .err{margin:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(18px * var(--v2-txt-echelle, 1)); padding:2px 6px}
 </style>

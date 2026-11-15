@@ -14,14 +14,18 @@ const sansCommentaires = ECRAN
 
 describe('« Supprimer » visible dans la fiche d’une collection', () => {
   it('le bouton est dans l’en-tête, À CÔTÉ de « Modifier »', () => {
-    const modifier = sansCommentaires.indexOf('onclick={() => editerCollection(ouverte!)}');
-    const supprimer = sansCommentaires.indexOf('onclick={() => void supprimerCollection(ouverte!)}');
+    // web#2736 — tous deux sont des entrées du menu « … » de l'en-tête de la
+    // fiche, toujours présentes, Supprimer après Modifier. Le témoin monté
+    // (`moinsDeBoutons2736.svelte.test.ts`) ouvre ce menu et les y trouve.
+    const debut = sansCommentaires.indexOf('function entreesPlusCollection(');
+    const corps = sansCommentaires.slice(debut, sansCommentaires.indexOf('\n  }\n', debut));
+    const modifier = corps.indexOf('faire: () => editerCollection(o)');
+    const supprimer = corps.indexOf('faire: () => void supprimerCollection(o)');
     expect(modifier, '« Modifier » a disparu de la fiche').toBeGreaterThan(-1);
     expect(supprimer, '« Supprimer » absent de la fiche').toBeGreaterThan(-1);
-    // Voisins : dans le même bloc, avant la fin de l'en-tête.
-    const finEntete = sansCommentaires.indexOf('</header>', modifier);
     expect(supprimer).toBeGreaterThan(modifier);
-    expect(supprimer).toBeLessThan(finEntete);
+    const entete = sansCommentaires.slice(sansCommentaires.indexOf('<header class="v2-top detail">'));
+    expect(entete.slice(0, entete.indexOf('</header>'))).toContain('entrees={entreesPlusCollection}');
   });
 
   it('il passe par la MÊME fonction que les deux autres portes', () => {

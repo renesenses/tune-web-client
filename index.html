@@ -14,6 +14,74 @@
          par iOS). Sans lui, l'icône du weblet retombait sur un « T » générique. -->
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
     <meta name="apple-mobile-web-app-title" content="Tune" />
+    <!-- tune-web-client#3054 — GARDE DE DÉMARRAGE. Script classique, AVANT le
+         bundle : si le bundle d'entrée ou un morceau du démarrage n'arrive pas
+         (serveur en redémarrage pendant une mise à jour, morceau d'un autre
+         build), ou si le démarrage lève une erreur, aucun code de l'application
+         ne tourne — ni `vite:preloadError`, ni la surveillance de version : la
+         page restait NOIRE jusqu'à un Cmd+Maj+R. Ici : UN rechargement
+         automatique (garde anti-boucle en sessionStorage), puis un message.
+         `main.ts` appelle `__tuneDemarrage.monte()` une fois l'interface montée.
+         Tests : src/build/gardeDemarrage.test.ts. -->
+    <script id="tune-garde-demarrage">
+      (function (w) {
+        var CLE = 'tune-rechargement-demarrage', FENETRE = 60000, DELAI_MESSAGE = 25000;
+        var d = w.document, monte = false, minuterie = null;
+        function rechargementPermis() {
+          try {
+            var s = w.sessionStorage, avant = Number(s.getItem(CLE)), n = Date.now();
+            if (avant > 0 && n - avant < FENETRE) return false;
+            s.setItem(CLE, String(n));
+            return true;
+          } catch (e) { return false; }
+        }
+        function message() {
+          if (d.getElementById('tune-secours-demarrage') || !d.body) return;
+          var fr = /^fr/i.test((w.navigator && w.navigator.language) || '');
+          var boite = d.createElement('div');
+          boite.id = 'tune-secours-demarrage';
+          boite.setAttribute('role', 'alert');
+          boite.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;background:#111;color:#eee;font:16px/1.4 system-ui,sans-serif;text-align:center';
+          var texte = d.createElement('p');
+          texte.textContent = fr ? 'Nouvelle version de Tune : rechargez la page.' : 'New version of Tune: please reload the page.';
+          var bouton = d.createElement('button');
+          bouton.type = 'button';
+          bouton.textContent = fr ? 'Recharger' : 'Reload';
+          bouton.style.cssText = 'padding:10px 20px;font:inherit;border-radius:8px;border:0;background:#007AFF;color:#fff;cursor:pointer';
+          bouton.onclick = function () { w.location.reload(); };
+          boite.appendChild(texte);
+          boite.appendChild(bouton);
+          d.body.appendChild(boite);
+        }
+        function echec() {
+          if (monte) return;
+          if (rechargementPermis()) w.location.reload(); else message();
+        }
+        function nousAppartient(url) {
+          return typeof url === 'string' && url.indexOf(w.location.origin + '/') === 0;
+        }
+        // Les erreurs de chargement d'un élément ne remontent pas : on les prend
+        // en capture. Seuls nos scripts et nos feuilles, pas les polices Google.
+        // Les exceptions ordinaires ne déclenchent rien ici (un rechargement
+        // pour une erreur bénigne serait pire) : `main.ts` signale l'échec de
+        // SON démarrage, et la minuterie couvre ce qui ne dit rien.
+        w.addEventListener('error', function (e) {
+          var el = e && e.target;
+          if (el && el !== w && (el.tagName === 'SCRIPT' || el.tagName === 'LINK') && nousAppartient(el.src || el.href)) echec();
+        }, true);
+        minuterie = w.setTimeout(function () { if (!monte) message(); }, DELAI_MESSAGE);
+        w.__tuneDemarrage = {
+          monte: function () {
+            monte = true;
+            w.clearTimeout(minuterie);
+            var m = d.getElementById('tune-secours-demarrage');
+            if (m && m.parentNode) m.parentNode.removeChild(m);
+          },
+          echec: echec,
+          message: message,
+        };
+      })(window);
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />

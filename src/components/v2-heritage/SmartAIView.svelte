@@ -427,18 +427,21 @@
     display: flex;
     align-items: baseline;
     gap: var(--space-md);
+    /* web#2971 — monté seul par la coquille v2 (route `smart-ai`) : l'en-tête
+       laisse la place à la grappe du haut, comme les autres écrans v1. */
+    padding-right: var(--v2-grappe-w, 172px);
   }
 
   .view-header h2 {
     font-family: var(--font-label);
-    font-size: 28px;
+    font-size: calc(28px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: -0.8px;
   }
 
   .subtitle {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -451,7 +454,7 @@
 
   .section-title {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-secondary);
     display: flex;
@@ -502,13 +505,13 @@
   }
 
   .mood-emoji {
-    font-size: 36px;
+    font-size: calc(36px * var(--v2-txt-echelle, 1));
     line-height: 1;
   }
 
   .mood-label {
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: 0.3px;
   }
@@ -583,13 +586,13 @@
 
   .action-title {
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
   .action-desc {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -632,7 +635,7 @@
     border: none;
     border-radius: var(--radius-md);
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: background 0.12s;
@@ -668,7 +671,7 @@
     border-radius: var(--radius-lg);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     outline: none;
     transition: border-color 0.12s;
   }
@@ -688,7 +691,7 @@
     border: none;
     border-radius: var(--radius-lg);
     font-family: var(--font-label);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: background 0.12s;
@@ -709,7 +712,7 @@
 
   .keywords-help {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     line-height: 1.5;
     color: var(--tune-text-muted);
     margin: 0;
@@ -728,7 +731,7 @@
     border-radius: 20px;
     color: var(--tune-text-secondary);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
   }
@@ -755,7 +758,7 @@
     border-radius: var(--radius-lg);
     color: var(--tune-warning);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   /* Loading */
@@ -792,7 +795,7 @@
 
   .track-count {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     flex: 1;
   }
@@ -812,7 +815,7 @@
     background: none;
     color: var(--tune-text-secondary);
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
@@ -863,7 +866,7 @@
     width: 24px;
     text-align: right;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
@@ -905,19 +908,19 @@
 
   .track-title {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 700;
   }
 
   .track-artist {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 
   .track-duration {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     font-variant-numeric: tabular-nums;
     min-width: 36px;
@@ -967,7 +970,7 @@
     }
 
     .mood-emoji {
-      font-size: 28px;
+      font-size: calc(28px * var(--v2-txt-echelle, 1));
     }
 
     .quick-actions {

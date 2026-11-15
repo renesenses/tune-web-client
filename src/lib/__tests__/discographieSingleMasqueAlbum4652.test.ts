@@ -5,8 +5,12 @@
 // Mesuré sur le .18 : Qobuz rend le single « Second Song » (1 titre, rang 61)
 // AVANT l'album (7 titres, rang 89), sous le même titre. La fusion gardait le
 // premier arrivé : l'album à 7 titres n'était atteignable nulle part.
+//
+// tune-server-rust#8662 (13/11/2026) : la vignette reste UNE, ouverte sur
+// l'album ; l'exemplaire écarté n'est plus jeté, il reste une édition
+// (`editions`) qu'on ouvre depuis le badge « N éditions ».
 import { describe, expect, it } from 'vitest';
-import { fusionnerDiscographie } from '../discographieCommune';
+import { editionsCachees, fusionnerDiscographie } from '../discographieCommune';
 import type { Album } from '../types';
 
 const al = (o: Record<string, unknown>) => o as unknown as Album;
@@ -24,19 +28,31 @@ describe('#4652 — un single ne masque plus l’album du même titre', () => {
     expect(reste).toHaveLength(0);
     expect(e.principal.album.source_id).toBe('x5ary4vr3rntv');
     expect(e.sources).toEqual(['qobuz', 'youtube']);
+    // Pas de doublon visible : une étiquette par plateforme, un exemplaire par source.
+    expect(e.exemplaires.map((x) => x.album.source_id)).toEqual(['x5ary4vr3rntv', 'YT1']);
+    // #8662 — le single n'est pas perdu : il est une édition de la vignette.
+    expect(e.editions.map((x) => x.album.source_id)).toEqual(['x5ary4vr3rntv', 'YT1', 'atua1kxxk4tis']);
+    expect(editionsCachees(e)).toBe(true);
   });
 
   it('l’album arrive en premier : le single ne le remplace pas', () => {
-    const [e] = fusionnerDiscographie([], [{ service: 'qobuz', albums: [album, single] }]);
+    const entrees = fusionnerDiscographie([], [{ service: 'qobuz', albums: [album, single] }]);
+    expect(entrees).toHaveLength(1);
+    const [e] = entrees;
     expect(e.principal.album.source_id).toBe('x5ary4vr3rntv');
     expect(e.exemplaires).toHaveLength(1);
+    expect(e.editions.map((x) => x.album.source_id)).toEqual(['x5ary4vr3rntv', 'atua1kxxk4tis']);
   });
 
   it('sans nombre de titres des deux côtés, le premier arrivé reste', () => {
     const a = al({ source_id: 'Q1', title: 'Harvest', source: 'qobuz' });
     const b = al({ source_id: 'Q2', title: 'Harvest', source: 'qobuz' });
-    const [e] = fusionnerDiscographie([], [{ service: 'qobuz', albums: [a, b] }]);
+    const entrees = fusionnerDiscographie([], [{ service: 'qobuz', albums: [a, b] }]);
+    expect(entrees).toHaveLength(1);
+    const [e] = entrees;
     expect(e.principal.album.source_id).toBe('Q1');
+    expect(e.exemplaires).toHaveLength(1);
+    expect(e.editions.map((x) => x.album.source_id)).toEqual(['Q1', 'Q2']);
   });
 
   it('la bibliothèque reste principale, quel que soit le nombre de titres du service', () => {

@@ -130,29 +130,29 @@
     padding: 20px 22px 22px;
     font-family: var(--v2-sans);
   }
-  h2 { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin-bottom: 16px; }
   .fermer {
     position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;
     border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3);
-    font-size: 20px; line-height: 1; cursor: pointer;
+    font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
   label { display: block; margin-bottom: 12px; }
   label span {
     display: block; margin-bottom: 5px;
-    font: 600 11px var(--v2-mono); letter-spacing: .06em; text-transform: uppercase;
+    font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing: .06em; text-transform: uppercase;
     color: var(--v2-txt3);
   }
   input, textarea {
     width: 100%; box-sizing: border-box;
     background: var(--v2-bg); border: 1px solid var(--v2-line2); border-radius: 8px;
-    color: var(--v2-txt); font: inherit; font-size: 13.5px; padding: 8px 10px;
+    color: var(--v2-txt); font: inherit; font-size: calc(13.5px * var(--v2-txt-echelle, 1)); padding: 8px 10px;
     resize: vertical;
   }
   input:focus, textarea:focus { outline: 2px solid var(--v2-acc1); outline-offset: -1px; }
   .pied { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   .pied button {
-    border-radius: 8px; font: 600 13px var(--v2-sans); padding: 8px 14px; cursor: pointer;
+    border-radius: 8px; font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding: 8px 14px; cursor: pointer;
   }
   .sec { border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt2); }
   .sec:hover { color: var(--v2-txt); }

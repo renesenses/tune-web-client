@@ -57,7 +57,7 @@
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
     line-height: 1.35;
   }
   .zod-ecart {

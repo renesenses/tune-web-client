@@ -49,6 +49,8 @@
   import { gestesObjet, objetAlbum, objetPlaylist } from '../../lib/gestesObjet';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import PochetteActions from './PochetteActions.svelte';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import PisteActions from './PisteActions.svelte';
@@ -353,7 +355,7 @@
                titre et une playlist de service n'ont pas d'écran où aller. -->
           {#snippet texteCarte()}
             <span class="ct" title={e.titre}>{e.titre}</span>
-            <span class="ca" title={e.artiste}>{e.artiste || $t(LIBELLE_GENRE_SAS[e.genre] as any)}</span>
+            <span class="ca" title={e.artiste}>{#if e.artiste}<LienEntite entite={{ type: 'artiste', nom: e.artiste, artiste: artisteDAlbum(e.ligne) }} />{:else}{$t(LIBELLE_GENRE_SAS[e.genre] as any)}{/if}</span>
           {/snippet}
           {#if e.genre === 'album' || (e.genre === 'playlist' && locale)}
             <button class="meta" onclick={() => (e.genre === 'album' ? ouvrirAlbum(e.ligne) : ouvrirListe(e.ligne))}>
@@ -379,7 +381,7 @@
             <span class="ct" title={e.titre}>{e.titre}</span>
             <span class="ca" use:bulleTexte>
               <span class="genre">{$t(LIBELLE_GENRE_SAS[e.genre] as any)}</span>
-              {#if e.artiste}<span title={e.artiste}> · {e.artiste}</span>{/if}
+              {#if e.artiste}<span title={e.artiste}> · <LienEntite entite={{ type: 'artiste', nom: e.artiste, artiste: artisteDAlbum(e.ligne) }} /></span>{/if}
             </span>
           {/snippet}
           {#if e.genre === 'playlist' && !locale}
@@ -409,14 +411,14 @@
 
 <style>
   .v2-later{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
-  .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}
-  .fam{margin:18px 30px 0; font:600 12px var(--v2-sans); letter-spacing:.08em;
+  .etat{padding:30px; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1)); max-width:60ch}
+  .fam{margin:18px 30px 0; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em;
     text-transform:uppercase; color:var(--v2-txt3)}
 
   .barre{display:flex; align-items:center; gap:10px; margin-left:auto}
-  .tris{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt3)}
+  .tris{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .sel{height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); padding:0 10px; font:inherit; font-size:13px}
+    color:var(--v2-txt); padding:0 10px; font:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .sel:focus{outline:none; border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .fam.dans-grille{grid-column:1 / -1; margin:6px 0 0}
   .fam.dans-liste{margin:14px 12px 4px}
@@ -451,6 +453,6 @@
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .meta{display:block; width:100%; min-width:0; border:0; background:transparent; padding:0; text-align:left; color:inherit; font:inherit}
   button.meta{cursor:pointer}
-  .ct{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{display:block; margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{display:block; margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{display:block; margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

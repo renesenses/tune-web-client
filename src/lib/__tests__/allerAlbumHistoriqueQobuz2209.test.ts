@@ -91,8 +91,9 @@ describe('web#2209 — l’album vient de la piste chez son service', () => {
     expect(lire).toHaveBeenCalledTimes(4);
   });
 
-  it('l’Historique branche la complétion sur ce qu’il lit du serveur', () => {
+  it('l’Historique branche la complétion sur la fusion local + serveur (web#2749)', () => {
     const src = readFileSync(new URL('../../components/v2/HistoriqueV2.svelte', import.meta.url), 'utf8');
-    expect(src).toMatch(/completerAlbumsDeService\(lues, api\.getStreamingTrack\)/);
+    expect(src).toMatch(/completerAlbumsDeService\(base, api\.getStreamingTrack\)/);
+    expect(src).toMatch(/appliquerAlbumsConnus\(fusion\)/);
   });
 });

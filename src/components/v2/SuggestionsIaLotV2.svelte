@@ -10,6 +10,8 @@
    * une application se défait par « Annuler ce lot ».
    */
   import { t } from '../../lib/i18n';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { portail } from '../../lib/portail';
   import {
     lotSuggestionsIa, lotAppliquerIa, lotAnnulerIa, lignesDuLot, cleDeLigneDuLot,
@@ -114,6 +116,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.lot.title' as any)}
     onclick={(e) => e.stopPropagation()} data-suggestions-ia-lot>
     <h2>{$t('assistantIa.lot.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
 
     {#if resultats == null}
@@ -178,7 +181,7 @@
       <AlertePlafondIaV2 {plafond} />
       <p class="note">{$t('assistantIa.album.dbOnly' as any)}</p>
     {/if}
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
   </div>
 </div>
 
@@ -193,31 +196,31 @@
     border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card);
     padding: 20px 22px 22px; font-family: var(--v2-sans);
   }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 0 14px; }
-  h3 { font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 0 14px; }
+  h3 { font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 14px 0 6px; }
   .fermer {
     position: absolute; top: 12px; right: 12px; width: 28px; height: 28px;
     border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3);
-    font-size: 20px; line-height: 1; cursor: pointer;
+    font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer;
   }
   .fermer:hover { background: var(--v2-surface2); color: var(--v2-txt); }
-  .champ { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--v2-txt2); margin-top: 10px; }
+  .champ { display: flex; flex-direction: column; gap: 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); margin-top: 10px; }
   input[type='text'] {
     max-width: 160px; padding: 6px 8px; border-radius: 6px;
     border: 1px solid var(--v2-line); background: transparent; color: var(--v2-txt);
   }
-  .ecart { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ecart { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .ecart td { padding: 5px 6px; border-bottom: 1px solid var(--v2-line); vertical-align: top; }
   .avant { color: var(--v2-txt3); text-decoration: line-through; }
   .apres { color: var(--v2-txt); font-weight: 600; }
   .conf { font-family: var(--v2-mono); color: var(--v2-txt2); white-space: nowrap; }
   .pied { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
   .pri, .sec {
-    border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+    border-radius: 8px; padding: 7px 14px; font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt);
   }
   .pri { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .pri:disabled, .sec:disabled { opacity: 0.45; cursor: default; }
-  .note { margin: 8px 0 0; font-size: 12.5px; color: var(--v2-txt3); }
-  .err { margin: 10px 0 0; font-size: 12.5px; color: var(--v2-danger); }
+  .note { margin: 8px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .err { margin: 10px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
 </style>

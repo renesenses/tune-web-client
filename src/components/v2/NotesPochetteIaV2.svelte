@@ -7,6 +7,8 @@
    * son coût estimé ; rien n'est écrit dans la fiche de l'album.
    */
   import { onMount } from 'svelte';
+  import AssistantIaInactifV2 from './AssistantIaInactifV2.svelte';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
   import { t, locale } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
   import { estEchec, messageDEchec } from '../../lib/assistantIa';
@@ -59,6 +61,7 @@
   <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('assistantIa.notes.title' as any)}
     onclick={(e) => e.stopPropagation()} data-notes-pochette-ia>
     <h2>{$t('assistantIa.notes.title' as any)}</h2>
+    <AssistantIaInactifV2 {onClose} />
     <button class="fermer" aria-label={$t('assistantIa.close' as any)} onclick={onClose}>×</button>
     <p class="note">{$t('assistantIa.notes.intro' as any)}</p>
 
@@ -86,7 +89,7 @@
       </details>
     {/if}
 
-    {#if erreur}<p class="err" role="alert">{erreur}</p>{/if}
+    {#if erreur && !$assistantIaAbsent}<p class="err" role="alert">{erreur}</p>{/if}
 
     <div class="pied">
       {#if notes}<button class="sec" disabled={occupe} onclick={effacer}>{$t('assistantIa.notes.erase' as any)}</button>{/if}
@@ -103,18 +106,18 @@
 <style>
   .fond { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); padding: 20px; }
   .panneau { position: relative; width: min(620px, 100%); max-height: 90vh; overflow: auto; background: var(--v2-surface); color: var(--v2-txt); border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card); padding: 20px 22px 22px; font-family: var(--v2-sans); }
-  h2 { font-size: 17px; font-weight: 700; margin: 0 0 10px; }
-  h3 { font-size: 14px; font-weight: 700; margin: 12px 0 6px; }
-  .fermer { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3); font-size: 20px; line-height: 1; cursor: pointer; }
-  .bandeau { font-size: 12px; color: var(--v2-acc1); margin: 10px 0 4px; }
-  .para { font-size: 13.5px; line-height: 1.55; margin: 8px 0; }
-  .mvts { font-size: 13px; margin: 0 0 6px; padding-left: 20px; }
+  h2 { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 0 0 10px; }
+  h3 { font-size: calc(14px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 12px 0 6px; }
+  .fermer { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--v2-txt3); font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer; }
+  .bandeau { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-acc1); margin: 10px 0 4px; }
+  .para { font-size: calc(13.5px * var(--v2-txt-echelle, 1)); line-height: 1.55; margin: 8px 0; }
+  .mvts { font-size: calc(13px * var(--v2-txt-echelle, 1)); margin: 0 0 6px; padding-left: 20px; }
   .res { border-top: 1px solid var(--v2-line); margin-top: 12px; padding-top: 4px; }
-  pre { white-space: pre-wrap; font-size: 11.5px; max-height: 260px; overflow: auto; background: var(--v2-bg); padding: 8px; border-radius: 6px; }
+  pre { white-space: pre-wrap; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); max-height: 260px; overflow: auto; background: var(--v2-bg); padding: 8px; border-radius: 6px; }
   .pied { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-  .pri, .sec { border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer; border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt); }
+  .pri, .sec { border-radius: 8px; padding: 7px 14px; font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer; border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt); }
   .pri { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .pri:disabled, .sec:disabled { opacity: 0.45; cursor: default; }
-  .note { margin: 6px 0 0; font-size: 12.5px; color: var(--v2-txt3); }
-  .err { margin: 10px 0 0; font-size: 12.5px; color: var(--v2-danger); }
+  .note { margin: 6px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .err { margin: 10px 0 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
 </style>

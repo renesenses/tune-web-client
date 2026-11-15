@@ -26,6 +26,7 @@
   import { frequencesProposees, ligneFormatsEcrits, presetEffectif } from '../../lib/convertisseurFrequence';
   import { nomDArchive } from '../../lib/convertisseurArchive';
   import ConvertisseurPistes from './ConvertisseurPistes.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import * as api from '../../lib/api';
   import { get } from 'svelte/store';
   import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
@@ -34,7 +35,7 @@
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -205,7 +206,7 @@
         Number.isFinite(rate) && rate > 0 ? rate : null,
         Number.isFinite(depth) && depth > 0 ? depth : null,
       );
-      const libelle = `${preset.label} — ${(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}`;
+      const libelle = `${preset.label} — ${$tn('v2.tool.pickedN', picked.size)}`;
       tachesConversion.update((ts) => ajouter(ts, res.job_id, libelle));
     } catch (e: any) {
       error = e?.message ?? $t('v2.tool.errStart' as any);
@@ -294,7 +295,7 @@
       <div class="v2-eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
       <h1>{$t('v2.conv.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
+    {#if picked.size}<span class="cnt">{$tn('v2.tool.pickedN', picked.size)}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
@@ -381,10 +382,7 @@
                faisait 240 px de large et 36 px de haut ici, 230 × 38 sur les
                Extensions, 320 × 40 sur le Streaming — trois dessins pour un
                seul geste. -->
-          <div class="v2-rech">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-          </div>
+          <ChampRecherche bind:valeur={q} ecran={$t('v2.conv.albumsToConvert' as any)} />
           <button class="go" disabled={!picked.size || !preset || !supported || starting} onclick={start}>
             {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
           </button>
@@ -464,24 +462,24 @@
   /* Un album dont seules certaines pistes sont retenues. */
   .card.partiel .cv{box-shadow:0 0 0 3px var(--v2-acc2)}
   .chips.freq{align-items:center; padding-top:9px}
-  .chips.freq button{padding:6px 12px; font-size:11.5px}
+  .chips.freq button{padding:6px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
 
   .v2-conv{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}
+  .cnt{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint)}
   /* #1156 — le dossier d'origine des albums retenus. */
   .dossiers{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 10px;
-    font-size:12px; color:var(--v2-txt2)}
+    font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .dossiers .dl{font-weight:600; color:var(--v2-txt)}
-  .dossiers .dp{font-family:var(--v2-mono); font-size:11.5px; padding:2px 8px;
+  .dossiers .dp{font-family:var(--v2-mono); font-size:calc(11.5px * var(--v2-txt-echelle, 1)); padding:2px 8px;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
-  .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   /* Le badge de qualité de la source, sous l'artiste. Une ligne vide quand
      l'album n'en a pas : le badge ne rend rien, la carte ne bouge pas. */
   .cq{display:block; margin-top:3px; min-height:16px}
@@ -489,32 +487,32 @@
   .fmt{padding:4px 0 20px}
   .chips{display:flex; gap:7px; flex-wrap:wrap; padding:11px 0 0}
   .chips button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
   .chips button:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chips button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .chips button.ko{opacity:.45; cursor:not-allowed}
-  .chips .x{font:9px var(--v2-mono); color:var(--v2-danger)}
-  .pinfo{margin-top:11px; font:11.5px var(--v2-mono); color:var(--v2-txt2); display:flex; gap:14px}
+  .chips .x{font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-danger)}
+  .pinfo{margin-top:11px; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); display:flex; gap:14px}
   .pinfo span{color:var(--v2-txt3)}
-  .tools{margin-top:6px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tools{margin-top:6px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .job{margin:4px 0 22px; padding:15px 18px; border-radius:13px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .jh{display:flex; align-items:center; justify-content:space-between; gap:14px}
-  .jh h2{font-size:14px; font-weight:700}
+  .jh h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .bar{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar span{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
-  .jl{margin-top:8px; font:11.5px var(--v2-mono); color:var(--v2-txt2); display:flex; gap:12px; align-items:baseline}
+  .jl{margin-top:8px; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); display:flex; gap:12px; align-items:baseline}
   .jl em{font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:420px}
-  .done{margin-top:12px; display:flex; align-items:center; gap:14px; font-size:12.5px; color:var(--v2-acc-tint)}
-  .jerr{margin-top:10px; font-size:12.5px; color:var(--v2-danger)}
+  .done{margin-top:12px; display:flex; align-items:center; gap:14px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-acc-tint)}
+  .jerr{margin-top:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
 
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans); text-decoration:none; display:inline-block}
+    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-decoration:none; display:inline-block}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
 
   .ph{display:flex; align-items:center; gap:14px; padding:0 0 14px}
-  .go{height:36px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
+  .go{height:36px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.4; cursor:default}
 
@@ -523,10 +521,10 @@
     padding:0; display:flex; flex-direction:column}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.16s}
   .card.sel .cv{box-shadow:0 0 0 3px var(--v2-acc1)}
-  .ct{margin-top:8px; font:600 12px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:10.5px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:8px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tick{position:absolute; top:7px; right:7px; width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
     color:var(--v2-on-acc); background:var(--v2-acc1)}
   .tick svg{width:12px; height:12px}
-  .more{margin-top:14px; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .more{margin-top:14px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 </style>

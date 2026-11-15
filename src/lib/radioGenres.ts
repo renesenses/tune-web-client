@@ -204,6 +204,15 @@ const ALIASES: Readonly<Record<string, string>> = {
   'bandes originales': 'radioGenre.soundtrack',
   film: 'radioGenre.soundtrack',
   information: 'radioGenre.news',
+
+  // Go de Bertrand du 12/11/2026, demande de Rémi (radio-metadata.fr) : la
+  // catégorie C000096 « Religious » rend `religious`, que le serveur sert en
+  // `radio.genre.religious`. `gospel` n'y est PAS rangé : la bibliothèque le
+  // classe sous R&B (tune-core/src/library/genre_tree.rs).
+  religious: 'radioGenre.religious',
+  religion: 'radioGenre.religious',
+  religieux: 'radioGenre.religious',
+  religieuse: 'radioGenre.religious',
 };
 
 /**

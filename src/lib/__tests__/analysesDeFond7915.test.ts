@@ -99,7 +99,8 @@ describe('#7915 — les analyses qui suivent le scan se voient dans la barre', (
     expect(texte).toContain(fr['v2.nav.bgTask.fingerprints']);
     expect(texte).toContain('35');
     expect(texte).toContain('2 h 05');
-    expect(indicateur()!.getAttribute('title')).toBe(fr['v2.nav.bgAnalysisHint']);
+    // web#2874 : la bulle nomme la passe (stable), plus « Analyse de fond en cours ».
+    expect(indicateur()!.getAttribute('title')).toBe(fr['v2.nav.bgTaskOpenHint'].replace('{task}', fr['v2.nav.bgTask.fingerprints']));
   });
 
   it('🔴 il disparaît à la fin de la passe et mène à l’État du serveur', () => {
@@ -139,6 +140,27 @@ describe('#7915 — les analyses qui suivent le scan se voient dans la barre', (
     expect(indicateur()).toBeNull();
     expect(hote!.querySelector('button.analyse')!.textContent?.trim())
       .toBe(fr['v2.nav.scanRunningPct'].replace('{p}', '50'));
+  });
+});
+
+describe('web#2950 — lancement sans rechargement', () => {
+  it('affiche la relance reçue avant le premier résultat puis suit sa fin', async () => {
+    monter();
+    // Laisser finir le GET initial vide : la suite utilise seulement le bus vivant.
+    await respirer();
+    await respirer();
+    expect(indicateur()).toBeNull();
+    emettre('system.background_tasks', {
+      tasks: [], pausable: [{ id: 'fingerprints', state: 'en_cours', paused: false,
+        progress: { processed: 0, total: 100, eta_seconds: null } }],
+    });
+    expect(indicateur(), 'la relance doit apparaître sans rafraîchir').not.toBeNull();
+    expect(indicateur()!.textContent).toContain(fr['v2.nav.bgTask.fingerprints']);
+    // Le registre émet aussi des instantanés partiels pour les autres tâches.
+    emettre('system.background_tasks', { tasks: [] });
+    expect(indicateur()).not.toBeNull();
+    emettre('system.background_tasks', { tasks: [], pausable: [] });
+    expect(indicateur()).toBeNull();
   });
 });
 

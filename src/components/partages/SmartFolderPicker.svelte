@@ -171,7 +171,7 @@
   .err {
     margin: 0;
     padding: 6px;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
   }
 </style>

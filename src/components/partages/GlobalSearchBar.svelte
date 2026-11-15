@@ -321,7 +321,7 @@
     outline: none;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     min-width: 0;
   }
 
@@ -382,7 +382,7 @@
 
   .dropdown-section-label {
     font-family: var(--font-label);
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -418,7 +418,7 @@
 
   .dropdown-item-title {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -427,7 +427,7 @@
 
   .dropdown-item-sub {
     font-family: var(--font-body);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -436,7 +436,7 @@
 
   .dropdown-empty {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     padding: 12px;
     text-align: center;
@@ -453,7 +453,7 @@
     border-top: 1px solid var(--tune-border);
     color: var(--tune-accent);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     text-align: left;

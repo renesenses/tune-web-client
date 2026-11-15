@@ -56,11 +56,13 @@ describe('la gestion complète des playlists est atteignable en v2', () => {
     ).toMatch(/activeView\.set\('playlistmanager'\)/);
   });
 
-  it('l’entrée « Playlists » du MENU mène à l’écran complet', () => {
-    // Bertrand, 14/09/2026 : le menu doit mener là où mène celui de l'ancienne
-    // interface — à l'écran complet, pas à la version réduite.
+  it('l’entrée « Playlists » du MENU mène à PlaylistsV2 (web#2971)', () => {
+    // Du 14/09 au 13/11/2026 elle menait à l'écran complet ; la recette rc12
+    // (web#2971) : la fiche V2 de la rc12 y était invisible. L'écran complet
+    // reste à un geste (assertion « un geste d'utilisateur y CONDUIT »).
     const menu = sansCommentaires(lire('src/components/v2/Sidebar.svelte'));
-    expect(menu).toMatch(/view:\s*'playlistmanager',\s*labelKey:\s*'v2\.nav\.playlists'/);
+    expect(menu).toMatch(/view:\s*'playlists',\s*labelKey:\s*'v2\.nav\.playlists'/);
+    expect(menu).not.toMatch(/view:\s*'playlistmanager'/);
   });
 
   it('PlaylistsV2 ne devient pas un écran orphelin', () => {
@@ -78,10 +80,11 @@ describe('la gestion complète des playlists est atteignable en v2', () => {
   });
 
   it('l’entrée de menu s’allume aussi sur les vues qu’elle regroupe', () => {
-    // Sans alias, un utilisateur arrivé sur `playlists` par les favoris ne
-    // verrait aucune entrée active : il ne saurait plus où il est.
+    // Sans alias, un utilisateur arrivé sur l'écran complet depuis
+    // `PlaylistsV2` ne verrait aucune entrée active : il ne saurait plus où il est.
     const menu = sansCommentaires(lire('src/components/v2/Sidebar.svelte'));
-    expect(menu).toMatch(/aussi:\s*\[[^\]]*'playlists'/);
+    expect(menu).toMatch(/aussi:\s*\[[^\]]*'playlistmanager'/);
+    expect(menu).toMatch(/aussi:\s*\[[^\]]*'smart-ai'/);
     expect(menu, 'l’alias est déclaré mais jamais utilisé').toMatch(/estActif\(it,\s*\$activeView\)/);
   });
 

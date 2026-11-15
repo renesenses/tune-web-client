@@ -56,7 +56,7 @@
   .cpl{display:inline-flex; align-items:center; gap:6px; flex:0 0 auto;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2);
     background:var(--v2-acc-soft); color:var(--v2-acc-tint);
-    padding:3px 9px; font:700 10px var(--v2-mono); letter-spacing:.04em;
+    padding:3px 9px; font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em;
     text-transform:uppercase; white-space:nowrap}
   .cpl svg{width:13px; height:13px; flex:0 0 auto}
   /* Compacte, la pastille devient CARRÉE autour de son icône : une pilule

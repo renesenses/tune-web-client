@@ -45,6 +45,7 @@
  * (`LibraryView.svelte:3335`).
  */
 import type { Album, StreamingServiceStatus } from './types';
+import { cleEdition } from './discographieCommune';
 
 /** Une section : le service, et ce qu'il rend pour cet artiste. */
 export interface AlbumsDeService {
@@ -178,7 +179,42 @@ export function apparierArtiste(
 }
 
 /**
+ * TOUS les candidats qui portent exactement ce nom (replié), dans l'ordre du
+ * service — tune-server-rust#8478.
+ *
+ * `apparierArtiste` retient le premier. Or un service tient souvent plusieurs
+ * groupes HOMONYMES (« Cannons », « Moonchild » : Ronin22, ASR #169) : le
+ * premier n'est pas forcément celui de la fiche, et toute sa discographie se
+ * posait alors sous un autre groupe.
+ */
+export function candidatsHomonymes(
+  candidats: { id?: unknown; source_id?: unknown; name: string }[] | null | undefined,
+  nom: string,
+): string[] {
+  const cible = nomNormalise(nom);
+  if (!cible) return [];
+  const ids: string[] = [];
+  for (const a of candidats ?? []) {
+    if (nomNormalise(a?.name ?? '') !== cible) continue;
+    const id = a.id ?? a.source_id ?? null;
+    if (id == null || id === '') continue;
+    const s = String(id);
+    if (!ids.includes(s)) ids.push(s);
+  }
+  return ids;
+}
+
+/** Au plus autant d'homonymes interrogés par service : chacun coûte une discographie. */
+export const HOMONYMES_MAX = 3;
+
+/**
  * Ce que les services connus rendent pour cet artiste.
+ *
+ * `titresConnus` (#8478) : les titres que la fiche tient DÉJÀ pour cet
+ * artiste (le service d'origine, la bibliothèque). Quand un service rend
+ * plusieurs homonymes exacts, on retient celui dont la discographie partage
+ * le plus de titres avec eux ; sans titre en commun, ou sans titres connus,
+ * le premier, comme avant.
  *
  * 🔴 Un service qui échoue ne fait pas tomber les autres. Fabien en cite
  * quatre ; s'ils devaient partir ensemble ou pas du tout, une session Tidal
@@ -190,16 +226,35 @@ export async function albumsDeStreamingPourArtiste(
   nom: string,
   services: string[],
   p: PasserellesStreaming,
+  titresConnus: readonly (string | null | undefined)[] = [],
 ): Promise<AlbumsDeService[]> {
   const propre = (nom ?? '').trim();
   if (!propre) return [];
+  const connus = new Set(titresConnus.map(cleEdition).filter(Boolean));
 
   const sections = await Promise.all(
     services.map(async (service): Promise<AlbumsDeService | null> => {
       try {
-        const artistId = apparierArtiste(await p.resoudreArtiste(service, propre), propre);
-        if (artistId == null) return null;
-        const albums = (await p.albumsDeLArtiste(service, artistId)) ?? [];
+        const candidats = await p.resoudreArtiste(service, propre);
+        const premier = apparierArtiste(candidats, propre);
+        if (premier == null) return null;
+        let artistId = premier;
+        let albums: Album[];
+        const homonymes = connus.size ? candidatsHomonymes(candidats, propre).slice(0, HOMONYMES_MAX) : [];
+        if (homonymes.length > 1) {
+          // #8478 — chaque homonyme est lu, et celui qui partage le plus de
+          // titres avec la fiche l'emporte ; à égalité, l'ordre du service.
+          const lus = await Promise.all(
+            homonymes.map(async (id) => ({ id, albums: ((await p.albumsDeLArtiste(service, id).catch(() => [])) ?? []) as Album[] })),
+          );
+          const score = (l: Album[]) => new Set(l.map((a) => cleEdition(a?.title)).filter((t) => connus.has(t))).size;
+          let retenu = lus[0];
+          for (const l of lus) if (score(l.albums) > score(retenu.albums)) retenu = l;
+          artistId = retenu.id;
+          albums = retenu.albums;
+        } else {
+          albums = (await p.albumsDeLArtiste(service, artistId)) ?? [];
+        }
         if (!albums.length) return null;
         // 🔴 La SOURCE est TAMPONNÉE ici. Le serveur ne la pose sur aucun objet
         // de streaming (mesuré sur le .18 le 07/09/2026) : une fois l'album

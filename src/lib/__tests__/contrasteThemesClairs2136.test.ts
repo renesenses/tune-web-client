@@ -197,7 +197,8 @@ describe('SmartFolderPicker — jetons réels, plus de replis sombres', () => {
   });
 
   it('chaque variable qu’il lit est définie, dans les six thèmes', () => {
-    const noms = [...new Set([...picker.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))];
+    // rc12 : `--v2-txt-echelle` (taille du texte) est un NOMBRE, pas une couleur.
+    const noms = [...new Set([...picker.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))].filter((n) => n !== '--v2-txt-echelle');
     expect(noms.length).toBeGreaterThan(0);
     for (const t of ['black-green', 'black-blue', 'midnight-orange', 'brown', ...THEMES_CLAIRS]) {
       for (const n of noms) resoudre(t, n);

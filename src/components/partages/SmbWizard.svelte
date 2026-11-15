@@ -51,6 +51,10 @@
   let showScanCredentials = $state(false);
   let selectedHost = $state<NetworkShareInfo | null>(null);
   let hostShares = $state<string[]>([]);
+  /** Raison rendue par `scan-host` quand un hôte DÉCOUVERT ne livre aucun
+   *  partage (#8628 : `smbclient` absent de l'image Docker, identifiants
+   *  refusés…). Sans elle, la liste restait vide sans explication. */
+  let hostSharesError = $state<string | null>(null);
   let loadingShares = $state(false);
   let selectedShare = $state<string | null>(null);
 
@@ -148,9 +152,7 @@
         const errMsg = (!Array.isArray(result) && result?.error)
           || $t('smb.noSharesOnHost').replace('{host}', adresse.host);
         scanError = errMsg;
-        if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
-          showScanCredentials = true;
-        }
+        if (erreurDIdentifiants(errMsg)) showScanCredentials = true;
       }
     } catch (e: any) {
       scanError = e?.message || $t('smb.cannotScanHost');
@@ -161,9 +163,15 @@
     scanning = false;
   }
 
+  /** Le message de `scan-host` parle-t-il d'identifiants refusés ? */
+  function erreurDIdentifiants(msg: string): boolean {
+    return msg.includes('refusé') || msg.includes('auth') || msg.includes('Authentication') || msg.includes('ACCESS_DENIED');
+  }
+
   async function selectHost(share: NetworkShareInfo) {
     selectedHost = share;
     selectedShare = null;
+    hostSharesError = null;
     const dejaConnus = nomsDePartages(share.shares);
     if (dejaConnus.length > 0) {
       // Chemin « adresse saisie à la main » : les partages sont déjà là.
@@ -188,8 +196,19 @@
         const result = await api.scanHost(share.host, share.protocol || 'smb', scanUser, scanPass);
         // `scan-host` rend un TABLEAU nu ; on tolère aussi `{shares: […]}`.
         hostShares = nomsDePartages(Array.isArray(result) ? result : result?.shares);
-      } catch {
+        // En échec, le serveur rend `{shares: [], error, code?}` : `error` est
+        // DÉJÀ traduit (`net.smbclientMissing`, `net.smbAccessDenied`…). La
+        // saisie manuelle l'affichait ; le clic sur un hôte découvert le
+        // jetait, et l'assistant montrait « aucun partage » sans raison
+        // (#8628, fil 2788 : image Docker sans `smbclient`).
+        const raison = !Array.isArray(result) && typeof result?.error === 'string' ? result.error : '';
+        if (hostShares.length === 0 && raison) {
+          hostSharesError = raison;
+          if (erreurDIdentifiants(raison)) showScanCredentials = true;
+        }
+      } catch (e: any) {
         hostShares = [];
+        hostSharesError = e?.message || $t('smb.cannotScanHost');
       }
       loadingShares = false;
     }
@@ -419,6 +438,8 @@
             <span class="list-label">{$t('smb.sharesOnHost').replace('{host}', selectedHost.name)}</span>
             {#if loadingShares}
               <div class="loading-inline"><div class="spinner small"></div> {$t('common.loading')}</div>
+            {:else if hostShares.length === 0 && hostSharesError}
+              <div class="wizard-error">{hostSharesError}</div>
             {:else if hostShares.length === 0}
               <p class="muted">{$t('smb.noSharesAvailable')}</p>
             {:else}
@@ -668,7 +689,7 @@
 
   .wizard-title h3 {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     margin: 0;
   }
@@ -713,7 +734,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-text-muted);
     transition: all 0.2s;
@@ -755,7 +776,7 @@
 
   .wizard-desc {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     margin: 0;
     line-height: 1.5;
@@ -782,7 +803,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s ease-out;
   }
 
@@ -798,7 +819,7 @@
 
   .scan-btn.small {
     padding: var(--space-xs) var(--space-md);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .btn-primary {
@@ -808,7 +829,7 @@
     border-radius: var(--radius-md);
     padding: 8px 20px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.12s;
@@ -824,7 +845,7 @@
     border-radius: var(--radius-md);
     padding: 8px 20px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: all 0.12s;
   }
@@ -839,7 +860,7 @@
     padding: var(--space-sm) var(--space-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     outline: none;
     width: 100%;
     box-sizing: border-box;
@@ -856,7 +877,7 @@
 
   .form-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary);
     font-weight: 500;
   }
@@ -875,7 +896,7 @@
 
   .manual-label {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
@@ -897,7 +918,7 @@
 
   .list-label {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -918,7 +939,7 @@
     text-align: left;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .share-item:hover {
@@ -932,7 +953,7 @@
 
   .share-item.sub {
     padding: 6px 12px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .share-item svg {
@@ -955,12 +976,12 @@
   }
 
   .share-host {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
   .share-count {
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
@@ -980,7 +1001,7 @@
     display: flex;
     justify-content: space-between;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .mount-label {
@@ -997,7 +1018,7 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     cursor: pointer;
   }
@@ -1005,7 +1026,7 @@
   .mount-path {
     display: block;
     font-family: monospace;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin-top: 4px;
   }
@@ -1018,7 +1039,7 @@
     border-radius: var(--radius-sm);
     color: #ef4444;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .wizard-success {
@@ -1028,7 +1049,7 @@
     border-radius: var(--radius-sm);
     color: #4ade80;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
 
   .loading-inline {
@@ -1036,14 +1057,14 @@
     align-items: center;
     gap: 8px;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     padding: 4px 0;
   }
 
   .muted {
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     margin: 0;
   }
@@ -1058,7 +1079,7 @@
 
   .done-title {
     font-family: var(--font-label);
-    font-size: 18px;
+    font-size: calc(18px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     text-align: center;
     margin: 0;
@@ -1080,7 +1101,7 @@
     display: flex;
     justify-content: space-between;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .summary-label {
@@ -1094,7 +1115,7 @@
 
   .summary-value.mono {
     font-family: monospace;
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
     max-width: 250px;
     overflow: hidden;
@@ -1123,7 +1144,7 @@
 
   .link-btn {
     background: none; border: none; color: var(--tune-accent, #6366f1);
-    font-size: 12px; cursor: pointer; padding: 4px 0; text-decoration: underline;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer; padding: 4px 0; text-decoration: underline;
   }
   .link-btn:hover { opacity: 0.8; }
   .scan-credentials {

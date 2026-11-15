@@ -177,26 +177,26 @@
   .bloc, .flux { display: flex; flex-direction: column; gap: 8px; }
   .flux { padding-top: 8px; border-top: 1px solid var(--tune-border, rgba(127, 127, 127, 0.25)); }
   .tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-  .hint { margin: 0; font-size: 12px; color: var(--tune-text-muted); }
+  .hint { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .hint a { color: var(--tune-accent); }
   .alerte { color: var(--tune-warning, #d97706); }
   .pastille {
-    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); padding: 2px 8px; border-radius: 999px;
     border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.35)); color: var(--tune-text-muted);
   }
   .pastille.ok { color: var(--tune-success, #16a34a); border-color: currentColor; }
   .pastille.alerte { color: var(--tune-warning, #d97706); border-color: currentColor; }
   .repli {
-    display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; font-size: 13px;
+    display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; font-size: calc(13px * var(--v2-txt-echelle, 1));
     border: 1px solid var(--tune-warning, #d97706); color: var(--tune-warning, #d97706);
   }
-  dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; font-size: 13px; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   dt { color: var(--tune-text-muted); }
   dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   .mono, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  summary { cursor: pointer; font-size: 12px; color: var(--tune-text-muted); }
+  summary { cursor: pointer; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   pre {
-    margin: 6px 0 0; padding: 8px; font-size: 12px; overflow-x: auto; white-space: pre;
+    margin: 6px 0 0; padding: 8px; font-size: calc(12px * var(--v2-txt-echelle, 1)); overflow-x: auto; white-space: pre;
     border-radius: 6px; background: rgba(127, 127, 127, 0.12);
   }
 </style>

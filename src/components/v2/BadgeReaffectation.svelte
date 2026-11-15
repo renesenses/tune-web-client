@@ -56,9 +56,9 @@
 
 <style>
   /* Sur la fiche album : la forme des étiquettes `.qbadge.cue` de la ligne. */
-  .reaff.album{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
+  .reaff.album{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     background:transparent; border:1px solid var(--v2-acc2); color:var(--v2-acc-tint); white-space:nowrap}
   /* Sur une carte de zone : la pastille `.rc.warn` de ZonesV2. */
-  .reaff.zone{font:10px var(--v2-mono); padding:2px 8px; border-radius:999px;
+  .reaff.zone{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:2px 8px; border-radius:999px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); white-space:nowrap}
 </style>

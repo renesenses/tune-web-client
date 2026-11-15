@@ -1,8 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { get } from 'svelte/store';
-  import DetailsServeur from '../partages/DetailsServeur.svelte';
-  import { detailServeur } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { PropositionIa } from '../../lib/assistantIa';
   /**
@@ -28,6 +26,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
   import ImportPlaylistFichier from './ImportPlaylistFichier.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import {
     copierTout,
     motifSauvegardeImpossible,
@@ -38,8 +37,9 @@
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
-  import { t } from '../../lib/i18n';
-  import { quatreDistinctes } from '../../lib/mosaique';
+  import { t, tn } from '../../lib/i18n';
+  import { quatreDistinctes, pochettesDePlaylist } from '../../lib/mosaique';
+  import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
@@ -231,14 +231,9 @@
       liste.map(async (pl) => {
         if (pl.id == null) return;
         const pistes = await api.getPlaylistTracks(pl.id);
-        // DISTINCTES et dans l'ordre de la playlist : deux titres du même album
-        // ne doivent pas occuper deux cases.
-        const vues: string[] = [];
-        for (const t of pistes ?? []) {
-          const c = (t as any)?.cover_path;
-          if (c && !vues.includes(c)) vues.push(c);
-          if (vues.length === 4) break;
-        }
+        // DISTINCTES et dans l'ordre de la playlist — la même règle que l'en-tête
+        // de la fiche (`PlaylistDetailV2`), par la même fonction.
+        const vues = pochettesDePlaylist(pistes as any[]);
         if (vues.length) mosaiques = { ...mosaiques, [pl.id]: vues };
       }),
     );
@@ -261,35 +256,22 @@
    * authentifié. Il n'existe pas de route qui rende les deux d'un coup.
    */
   /**
-   * Les services AUTHENTIFIÉS qui ont répondu « je ne fournis pas de
-   * playlists » — nom du service → la phrase du serveur (#1148).
+   * Un service AUTHENTIFIÉ qui répond 501 (« je ne fournis pas de
+   * playlists », Bandcamp) n'apparaît tout simplement pas : ni pastille, ni
+   * phrase, ni « Détails ».
    *
-   * Fabien, fil 1778, point 4 : « Menu playlists : quand on rentre dans le
-   * menu : erreur bandcamp ». Mesuré sur la .18 :
-   *
-   *   GET /api/v1/streaming/bandcamp/playlists
-   *     → 501  « Bandcamp ne fournit pas de playlists »
-   *
-   * Le bandeau rouge, lui, est parti avec #1007 — `fetchJSON` n'annonce plus
-   * un 501 comme une panne. Mais ce qui l'a remplacé était RIEN : le `catch`
-   * ci-dessous range `[]`, `svcEntries` écarte les listes vides, et la
-   * pastille Bandcamp disparaît de l'écran. Quelqu'un qui a connecté Bandcamp
-   * et vient chercher ses playlists n'apprend ni qu'il n'y en a pas, ni
-   * pourquoi.
-   *
-   * Le serveur a déjà écrit la bonne phrase (#859 côté serveur) : on la
-   * montre, telle quelle, sans la déguiser en incident.
+   * #1148 avait ajouté une phrase (« Bandcamp ne propose pas de playlists. »)
+   * et #2417 le motif brut replié dessous. Recette du 14/11/2026 sur la .18 :
+   * au-dessus des pastilles « Sur cet appareil / tidal / qobuz », ces deux
+   * lignes mal alignées ne disaient rien d'utile — une fonction que le service
+   * n'offre pas n'est pas une information pour qui cherche ses playlists.
+   * Décision : le service se tait. Une VRAIE panne (réseau, 5xx autre que 501)
+   * garde son bandeau, levé par `fetchJSON`.
    */
-  let indisponibles = $state<Record<string, string>>({});
-  /** #2417 — le motif brut du serveur, replié sous la phrase traduite. */
-  let detailsIndisponibles = $state<Record<string, string>>({});
-  const sansPlaylists = $derived(Object.entries(indisponibles));
 
   function load() {
     loading = true;
     mosaiques = {};
-    indisponibles = {};
-    detailsIndisponibles = {};
     Promise.all([
       api.getPlaylists().catch(() => [] as Playlist[]),
       api.getStreamingServices().catch(() => ({}) as Record<string, any>),
@@ -304,31 +286,20 @@
           .filter(([, s]: [string, any]) => s?.authenticated)
           .map(([n]) => n);
         const par: Record<string, StreamingPlaylist[]> = {};
-        const refus: Record<string, string> = {};
-        const detailsRefus: Record<string, string> = {};
         await Promise.all(
           noms.map(async (n) => {
             try {
               par[n] = (await api.getStreamingPlaylists(n)) ?? [];
-            } catch (e: any) {
+            } catch {
               // Un service qui ne répond pas ne doit pas emporter les autres.
+              // 501 = « ce service n'offre pas cette fonction » : liste vide,
+              // donc aucune pastille (`svcEntries`), et rien d'autre à l'écran.
+              // Un 500 ou un 502 ont DÉJÀ levé leur bandeau dans `fetchJSON`.
               par[n] = [];
-              // 501 = « ce service n'offre pas cette fonction », pas une
-              // panne : on garde son motif pour le dire à l'écran. Un 500 ou
-              // un 502, eux, ont DÉJÀ levé leur bandeau dans `fetchJSON` — les
-              // rendre ici en plus ferait dire deux fois la même chose.
-              // #2417 — la phrase est celle du CLIENT, traduite ; le motif
-              // brut du serveur (« Bandcamp ne fournit pas… ») part replié.
-              if (e?.status === 501) {
-                refus[n] = get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', n.charAt(0).toUpperCase() + n.slice(1));
-                detailsRefus[n] = detailServeur(e);
-              }
             }
           }),
         );
         services = par;
-        indisponibles = refus;
-        detailsIndisponibles = detailsRefus;
       })
       .catch(() => {
         local = [];
@@ -433,6 +404,29 @@
   $effect(() => {
     if (!sources.includes(source)) source = LOCAL;
   });
+
+  /**
+   * web#2805 (suite de tune-server-rust#7465, FabienM fil 2271) — « Tous /
+   * Par vous / Par Qobuz » sur la pastille d'un SERVICE, comme Streaming ›
+   * Qobuz › Playlists (#2231). Même module, mêmes règles
+   * (`lib/filtreAuteurPlaylists`) : `editable: true` = à vous, `false` =
+   * suivie ; sans drapeau, la playlist reste dans « Tous » seulement.
+   *
+   * - Appliqué APRÈS la recherche ; les compteurs disent ce qui reste.
+   * - Offert seulement si la liste du service a une playlist de chaque côté
+   *   (`filtreAuteurUtile`, mesuré AVANT la recherche pour que les pastilles
+   *   ne clignotent pas à la frappe). Sinon le choix retombe sur « Tous ».
+   * - Changer de pastille de source remet « Tous » : un choix posé sur Qobuz
+   *   ne doit pas vider l'écran de Tidal.
+   * - Les playlists locales ne sont jamais filtrées (pas de drapeau).
+   */
+  let filtreAuteur = $state<FiltreAuteur>('tous');
+  const listeService = $derived(source === LOCAL ? [] : (services[source] ?? []));
+  const auteurOffert = $derived(filtreAuteurUtile(compterParAuteur(listeService)));
+  const serviceSaisi = $derived(listeService.filter((pl) => correspond(pl?.name)));
+  const comptesAuteur = $derived(compterParAuteur(serviceSaisi));
+  const serviceVu = $derived(filtrerParAuteur(serviceSaisi, auteurOffert ? filtreAuteur : 'tous'));
+  const nomService = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
 
   let smart = $state<any[]>([]);
   let smartCharge = false;
@@ -680,15 +674,7 @@
       <h1>Playlists</h1>
     </div>
     <div class="v2-actions">
-    <label class="chercher">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" bind:value={recherche} placeholder={$t('v2.pl.searchPlaceholder' as any)}
-             aria-label={$t('v2.pl.searchPlaceholder' as any)} />
-      {#if recherche}
-        <button class="vider" onclick={() => (recherche = '')} aria-label={$t('common.clear' as any)}>×</button>
-      {/if}
-    </label>
+    <ChampRecherche bind:valeur={recherche} ecran="Playlists" />
     <!-- web#1719 — LE MÊME bouton que la Bibliothèque et les Favoris
          (`BasculeAffichage`). Hors de `showAdvanced` : choisir la forme de sa
          liste n'est pas une fonction avancée, et le niveau Essentiel a
@@ -729,7 +715,7 @@
   {#if sources.length > 1}
     <nav class="srcs">
       {#each sources as sc (sc)}
-        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; }}>
+        <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; filtreAuteur = 'tous'; }}>
           {sc === LOCAL ? $t('v2.pl.here' as any) : sc}
           <span class="cpt">{sc === LOCAL ? local.length : (services[sc]?.length ?? 0)}</span>
         </button>
@@ -737,14 +723,6 @@
     </nav>
   {/if}
 
-  <!-- Un service connecté dont la pastille N'EST PAS là : dire pourquoi, avec
-       la phrase du serveur (#1148). Discret, jamais rouge — ce n'est pas un
-       incident, c'est une fonction que le service n'offre pas. Pas de libellé
-       traduit à ajouter : le serveur écrit déjà la phrase. -->
-  {#each sansPlaylists as [nom, motif] (nom)}
-    <p class="sans-pl">{motif}</p>
-    <DetailsServeur detail={detailsIndisponibles[nom]} />
-  {/each}
 
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
        intelligente est une règle locale, un service n'en a pas. -->
@@ -760,8 +738,13 @@
            dans l'écran de l'ancienne interface, monté par la coquille depuis
            `v2-heritage/`. Sans ce bouton la route existe et n'est atteinte par
            personne — le défaut qu'on vient de corriger deux fois ailleurs. -->
-      <button class="onglet gestion" onclick={() => activeView.set('playlistmanager')}
+      <button class="onglet gestion" data-ouvrir-gestionnaire onclick={() => activeView.set('playlistmanager')}
         >{$t('playlist.manager')}</button>
+      <!-- web#2971 — le Générateur de playlists (humeur, découverte, tempo…)
+           n'était qu'un onglet de l'écran complet ; l'entrée « Playlists » de
+           la barre mène désormais ICI, il a donc sa porte ici. -->
+      <button class="onglet gestion" data-ouvrir-generateur onclick={() => activeView.set('smart-ai')}
+        >{$t('smartai.title' as any)}</button>
     </nav>
   {/if}
 
@@ -805,7 +788,19 @@
     {#if source !== LOCAL}
       <!-- Un service : ses playlists seules, sans en-tête de groupe — la
            pastille active dit déjà de qui il s'agit. -->
-      {@const liste = (services[source] ?? []).filter((pl) => correspond(pl?.name))}
+      {@const liste = serviceVu}
+      {#if auteurOffert}
+        <div class="auteur" role="group" aria-label={$t('v2.str.plAuthorGroup' as any)}>
+          {#each [
+            { id: 'tous' as FiltreAuteur, libelle: $t('v2.str.plAuthorAll' as any), n: comptesAuteur.tous },
+            { id: 'moi' as FiltreAuteur, libelle: $t('v2.str.plAuthorMe' as any), n: comptesAuteur.moi },
+            { id: 'service' as FiltreAuteur, libelle: $t('v2.str.plAuthorService' as any).replace('{s}', nomService(source)), n: comptesAuteur.service },
+          ] as f (f.id)}
+            <button class="chip" class:active={filtreAuteur === f.id} aria-pressed={filtreAuteur === f.id}
+              data-auteur={f.id} onclick={() => (filtreAuteur = f.id)}>{f.libelle} <span class="n">{f.n}</span></button>
+          {/each}
+        </div>
+      {/if}
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
@@ -839,7 +834,7 @@
                    endroit de l'écran où le titre ne menait nulle part. -->
               <button class="meta" onclick={() => ouvrirPl({ kind: 'streaming', service: source, pl })}>
                 <span class="ct" title={pl.name}>{pl.name}</span>
-                <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{$t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))}{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+                <span class="ca" title={`${$tn('v2.common.trackCountN', pl.track_count)}${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{$tn('v2.common.trackCountN', pl.track_count)}{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
               </button>
             </div>
           {/each}
@@ -928,7 +923,7 @@
                 </span>
                 <button class="meta" onclick={() => ouvrirPl({ kind: 'local', pl })}>
                   <span class="ct" title={pl.name}>{pl.name}</span>
-                  <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{$t(((pl.track_count ?? 0) > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String((pl.track_count ?? 0)))}</span>
+                  <span class="ca" title={$tn('v2.common.trackCountN', pl.track_count ?? 0)}>{$tn('v2.common.trackCountN', pl.track_count ?? 0)}</span>
                 </button>
               </div>
             {/each}
@@ -982,32 +977,19 @@
     font-family:var(--v2-sans); overflow:hidden}
 
   .newp{display:flex; gap:8px}
-  /* La recherche vit dans l'en-tete, a cote des outils : elle porte sur tout
-     l'ecran, pas sur une seule de ses quatre listes. */
-  .chercher{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px; margin-left:auto;
-    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
-    color:var(--v2-txt3); min-width:210px}
-  .chercher:focus-within{border-color:var(--v2-acc2); color:var(--v2-txt2)}
-  .chercher svg{width:15px; height:15px; flex-shrink:0}
-  .chercher input{flex:1; min-width:0; border:0; background:transparent; color:var(--v2-txt);
-    font:13.5px/1 inherit; outline:none}
-  .chercher input::-webkit-search-cancel-button{display:none}
-  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:17px;
-    line-height:1; padding:0 2px}
-  .vider:hover{color:var(--v2-txt)}
 
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:240px}
-  .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:240px}
+  .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:10px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:24px 30px; color:var(--v2-txt3)} .state.empty{color:var(--v2-txt2)}
 
   .grp{padding:14px 30px 8px}
   .grp.creer{display:flex; justify-content:flex-end; padding-bottom:0}
-  .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
+  .grp h2{font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}
   /* web#1719 — LA LISTE, c'est la même grille couchée. Une colonne, une carte
@@ -1015,7 +997,7 @@
      cinq actions, la pochette et le titre cliquable sont ceux de la grille. */
   /* Grandes vignettes : la même carte, un pas de grille plus large (web#1801). */
   .grid.grandes{grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:26px}
-  .grid.grandes .ct{font-size:15px}
+  .grid.grandes .ct{font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .grid.liste{grid-template-columns:1fr; gap:2px}
   .grid.liste .card{flex-direction:row; align-items:center; gap:14px;
     padding:6px 10px; border-radius:9px}
@@ -1028,46 +1010,52 @@
   .outils{display:flex; align-items:center; gap:8px}
   .ghost{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:transparent;
-    color:var(--v2-txt2); font:600 13px var(--v2-sans); padding:8px 14px}
+    color:var(--v2-txt2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px}
   .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
   .ghost svg{width:15px; height:15px}
-  .ghost.sm{padding:5px 11px; font-size:12px}
+  .ghost.sm{padding:5px 11px; font-size:calc(12px * var(--v2-txt-echelle, 1))}
 
   /* Premier niveau : PASTILLES, comme les services de l'écran Streaming. */
   .srcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 0}
   .srcs button{display:inline-flex; align-items:baseline; gap:8px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:9px 16px; border-radius:var(--v2-r-pill); transition:.15s}
   .srcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .srcs button.on{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .srcs .cpt{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+  /* web#2805 — « Tous / Par vous / Par <service> », les puces de Streaming. */
+  .auteur{display:flex; gap:7px; flex-wrap:wrap; padding:0 30px 12px}
+  .auteur .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill)}
+  .auteur .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .auteur .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
      pas celui d'une alerte : rien n'est en panne. */
-  .sans-pl{margin:6px 30px 0; font-size:12px; color:var(--v2-txt3)}
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}
   .onglet.gestion{margin-left:auto; opacity:.75}
   .onglet{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
-    color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
+    color:var(--v2-txt3); font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:10px 12px}
   .onglet:hover{color:var(--v2-txt2)}
   .onglet.actif{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
 
   .sauv{margin:10px 30px 0; padding:14px 16px; border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-card); background:var(--v2-surface)}
   .sauv-tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .sauv-tete h2{font-size:14px; font-weight:700}
-  .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:13px}
+  .sauv-tete h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* Le bouton qui retire un filet se distingue de celui qui le pose. La
      couleur ne porte pas l'information seule : le libellé dit « Supprimer »,
      et une confirmation `danger` s'interpose. */
   .sauv-liste{margin-top:10px; list-style:none; display:flex; flex-direction:column; gap:6px}
-  .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:13px}
+  .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .sd{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .sd{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{position:relative; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card);
@@ -1086,6 +1074,6 @@
   .meta{display:block; width:100%; border:0; background:transparent; text-align:left;
     padding:0; color:inherit; font:inherit; cursor:pointer}
   .meta .ct, .meta .ca{display:block}
-  .ct{margin-top:10px; font:600 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:10px; font:600 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

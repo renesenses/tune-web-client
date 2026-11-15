@@ -33,8 +33,11 @@ describe('le bouton est sur la fiche', () => {
     const debut = src.indexOf('<header class="v2-top detail">');
     expect(debut, 'l’en-tête de fiche a disparu').toBeGreaterThan(0);
     const entete = src.slice(debut, src.indexOf('</header>', debut));
-    expect(entete).toContain('editerCollection(ouverte!)');
-    expect(entete).toContain("$t('v2.cover.edit' as any)");
+    // web#2736 — l'édition est l'entrée « Modifier » du menu « … » de l'en-tête.
+    expect(entete).toContain('entrees={entreesPlusCollection}');
+    const i = sansCommentaires.indexOf('function entreesPlusCollection(');
+    const corps = sansCommentaires.slice(i, sansCommentaires.indexOf('\n  }\n', i));
+    expect(corps).toContain("{ cle: 'v2.cover.edit', faire: () => editerCollection(o)");
   });
 
   it('les trois actions de la fiche sont là, et une seule est pleine', () => {

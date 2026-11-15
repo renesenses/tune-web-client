@@ -9,8 +9,7 @@
    * saisie partagée (`SaisieRequeteV2`) montre où.
    */
   import { untrack } from 'svelte';
-  import { t } from '../../lib/i18n';
-  import { formatNombre } from '../../lib/formats';
+  import { tn, t } from '../../lib/i18n';
   import { chercherParRequete, type ErreurDeRequete } from '../../lib/requeteAvancee';
   import { playAndSync } from '../../lib/stores/zones';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -108,7 +107,7 @@
       <p class="etat">{$t('common.error' as any)}</p>
     {:else if total != null}
       <p class="etat">
-        {#if total === 1}{$t('requeteAvancee.countOne' as any)}{:else}{$t('requeteAvancee.count' as any).replace('{n}', $formatNombre(total))}{/if}
+        {$tn('requeteAvancee.countN', total)}
       </p>
     {/if}
 
@@ -139,9 +138,9 @@
     flex-direction:column; gap:14px}
   .recherche{display:flex; gap:10px; align-items:flex-start; max-width:900px}
   .recherche > :global(.v2-req){flex:1}
-  .etat{margin:0; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  .etat{margin:0; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .liste{min-width:0}
-  .ghost,.play{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer; flex:none}
+  .ghost,.play{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; flex:none}
   .ghost{align-self:center; color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .play{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}

@@ -44,6 +44,7 @@ import Q from './qobuz18Etiquettes.fixture.json';
 // étiquette ». L'importer ici fait payer cette transformation à la COLLECTE,
 // comme `etiquetterFicheAlbum1357` (même parade, même panneau).
 import '../../components/v2/EtiquettesPanneau.svelte';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -292,9 +293,8 @@ describe('Autres écrans, sur les réponses du .18', () => {
       props: { item: { kind: 'streaming', service: 'qobuz', pl: frais(Q.playlists[0]) as any }, onClose: () => {} },
     });
     await respirer(40);
-    const b = (Array.from(hote!.querySelectorAll('button')) as HTMLButtonElement[]).find((x) =>
-      /Étiquettes/.test(x.textContent ?? ''),
-    );
+    // web#2736 — une entrée du menu « … » de la fiche.
+    const b = entreeParLibelle(hote!, 'Étiquettes', undefined, true);
     expect(b, 'la fiche n’a plus de bouton « Étiquettes »').toBeTruthy();
   });
 });

@@ -904,18 +904,18 @@
   }
   header h2 {
     margin: 0;
-    font-size: 1.15rem;
+    font-size: calc(1.15rem * var(--v2-txt-echelle, 1));
   }
   .subtitle {
     margin: 4px 0 0;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     opacity: 0.65;
   }
   .close {
     background: none;
     border: none;
     color: inherit;
-    font-size: 1.6rem;
+    font-size: calc(1.6rem * var(--v2-txt-echelle, 1));
     line-height: 1;
     cursor: pointer;
     opacity: 0.6;
@@ -937,7 +937,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
     opacity: 0.45;
     white-space: nowrap;
     padding-right: 10px;
@@ -952,7 +952,7 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-size: 0.72rem;
+    font-size: calc(0.72rem * var(--v2-txt-echelle, 1));
     background: var(--tune-bg, #111);
     border: 1px solid var(--tune-border, #444);
   }
@@ -972,13 +972,13 @@
 
   .hint,
   .dropnote {
-    font-size: 0.86rem;
+    font-size: calc(0.86rem * var(--v2-txt-echelle, 1));
     opacity: 0.7;
     margin: 0 0 12px;
   }
   .dropnote {
     margin: 14px 0 0;
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
   }
 
   .row {
@@ -997,7 +997,7 @@
     border: 1px solid var(--tune-border, #333);
     border-radius: 8px;
     padding: 9px 11px;
-    font-size: 0.9rem;
+    font-size: calc(0.9rem * var(--v2-txt-echelle, 1));
     width: 100%;
     box-sizing: border-box;
   }
@@ -1022,7 +1022,7 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
   }
   label > span {
     opacity: 0.75;
@@ -1050,7 +1050,7 @@
   button.ghost {
     border-radius: 8px;
     padding: 9px 16px;
-    font-size: 0.88rem;
+    font-size: calc(0.88rem * var(--v2-txt-echelle, 1));
     cursor: pointer;
     border: 1px solid transparent;
   }
@@ -1079,7 +1079,7 @@
   .banner {
     border-radius: 8px;
     padding: 10px 12px;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     margin: 0 22px 12px;
     background: rgba(255, 255, 255, 0.06);
   }
@@ -1106,14 +1106,14 @@
     margin-bottom: 12px;
   }
   .sum-main {
-    font-size: 1rem;
+    font-size: calc(1rem * var(--v2-txt-echelle, 1));
   }
   .sep {
     opacity: 0.4;
     margin: 0 6px;
   }
   .sum-meta {
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
     opacity: 0.65;
     margin-top: 5px;
   }
@@ -1121,7 +1121,7 @@
     opacity: 0.6;
   }
   .small {
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
   }
 
   .chips {
@@ -1131,7 +1131,7 @@
     margin-bottom: 6px;
   }
   .chip {
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
     padding: 3px 9px;
     border-radius: 999px;
     background: rgba(255, 190, 80, 0.16);
@@ -1177,14 +1177,14 @@
     background: rgba(74, 158, 255, 0.1);
   }
   .edition-main {
-    font-size: 0.88rem;
+    font-size: calc(0.88rem * var(--v2-txt-echelle, 1));
   }
   .disamb {
     opacity: 0.7;
     font-style: italic;
   }
   .edition-meta {
-    font-size: 0.76rem;
+    font-size: calc(0.76rem * var(--v2-txt-echelle, 1));
     opacity: 0.6;
   }
 
@@ -1200,7 +1200,7 @@
     padding: 0;
     max-height: 200px;
     overflow-y: auto;
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
   }
   .diff li {
     display: grid;
@@ -1227,7 +1227,7 @@
 
   .tracklist {
     margin-top: 14px;
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
   }
   .tracklist summary {
     cursor: pointer;
@@ -1260,7 +1260,7 @@
     margin-bottom: 8px;
   }
   .mode-title {
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
     opacity: 0.75;
   }
   .mode-choice {
@@ -1288,7 +1288,7 @@
   }
   button.mode small {
     opacity: 0.6;
-    font-size: 0.76rem;
+    font-size: calc(0.76rem * var(--v2-txt-echelle, 1));
   }
   button.mode.sel {
     border-color: var(--tune-accent, #4a9eff);
@@ -1308,11 +1308,11 @@
     flex-wrap: wrap;
     padding: 9px 12px;
     background: rgba(255, 255, 255, 0.04);
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
   }
   .preview-head code,
   code.dest {
-    font-size: 0.78rem;
+    font-size: calc(0.78rem * var(--v2-txt-echelle, 1));
     opacity: 0.75;
     word-break: break-all;
   }
@@ -1329,7 +1329,7 @@
     gap: 8px;
     align-items: center;
     padding: 3px 12px;
-    font-size: 0.82rem;
+    font-size: calc(0.82rem * var(--v2-txt-echelle, 1));
     font-family: var(--tune-mono, ui-monospace, monospace);
   }
   .preview li.conflicting {
@@ -1340,7 +1340,7 @@
     text-align: center;
   }
   .kind.extra {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--v2-txt-echelle, 1));
   }
   .path {
     overflow: hidden;
@@ -1348,7 +1348,7 @@
     white-space: nowrap;
   }
   .badge {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--v2-txt-echelle, 1));
     padding: 2px 7px;
     border-radius: 999px;
     background: rgba(255, 190, 80, 0.18);
@@ -1361,7 +1361,7 @@
   }
 
   .advanced {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     border-top: 1px solid var(--tune-border, #333);
     padding-top: 10px;
   }
@@ -1400,7 +1400,7 @@
     padding: 8px 0;
   }
   .result .big {
-    font-size: 2.4rem;
+    font-size: calc(2.4rem * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-accent, #4a9eff);
   }
@@ -1411,7 +1411,7 @@
     list-style: none;
     padding: 0;
     margin: 12px 0 0;
-    font-size: 0.83rem;
+    font-size: calc(0.83rem * var(--v2-txt-echelle, 1));
     opacity: 0.75;
   }
   .notes li {

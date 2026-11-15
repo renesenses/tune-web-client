@@ -74,6 +74,15 @@ export interface EntreeDiscographie {
   sources: string[];
   /** Les qualités trouvées parmi les exemplaires, sans doublon. */
   qualites: Qualite[];
+  /**
+   * tune-server-rust#8662 — TOUTES les éditions de ce titre, y compris celles
+   * qu'un même service rend en plusieurs exemplaires (Qobuz : trois éditions
+   * de « The Hurting » de Tears For Fears, même titre, même version). Les
+   * exemplaires d'abord, dans leur ordre ; puis les autres éditions de chaque
+   * source, dans l'ordre d'arrivée. `exemplaires` n'en garde qu'une par
+   * source ; rien n'est perdu ici. Voir `editionsCachees`.
+   */
+  editions: Exemplaire[];
 }
 
 /** Le vocabulaire du type explicite (`release_type`, serveur #4767). */
@@ -175,6 +184,112 @@ export function partagerParTypeDeSortie(entrees: EntreeDiscographie[]) {
 }
 
 /**
+ * web#3032 — À PARTIR DE COMBIEN DE VIGNETTES la discographie se range en
+ * sections repliables par type (Bertrand, recette du 14/11/2026, page Miles
+ * Davis : « beaucoup d'albums, il faudrait faciliter la navigation »). En
+ * dessous, la grille reste celle d'avant, telle quelle.
+ */
+export const SEUIL_SECTIONS_PAR_TYPE = 12;
+
+/** Les sections de #3032, dans l'ordre de la page. */
+// Live en premier, dans les deux modes (Bertrand, 14/11/2026 ; #6464).
+export const SECTIONS_PAR_TYPE = ['live', 'studio', 'compilations', 'bandes-originales', 'eps', 'singles', 'autres'] as const;
+export type SectionParType = (typeof SECTIONS_PAR_TYPE)[number];
+
+/** Les types secondaires d'une entrée, repliés, tous exemplaires réunis. */
+function secondairesDe(entree: EntreeDiscographie): string[][] {
+  return entree.exemplaires.map((ex) => (ex.album.release_secondary_types ?? []).map((t) => (t ?? '').trim().toLowerCase()));
+}
+
+/**
+ * web#3032 — l'entrée est-elle une BANDE ORIGINALE ? Le type secondaire
+ * MusicBrainz `soundtrack` (balise `RELEASETYPE`, serveur #5616) d'abord. Les
+ * services n'en publient pas : sans aucun type secondaire, seules des
+ * EXPRESSIONS sans ambiguïté du titre décident (« Original Motion Picture
+ * Soundtrack », « Bande originale du film »…) — jamais le mot « soundtrack »
+ * seul (« Soundtrack to My Life »), ni « Original Soundtrack » (« The
+ * Original Soundtrack » est un album studio de 10cc), comme
+ * `titreAnnonceUnLive` ne lit pas « Alive ».
+ */
+export function estBandeOriginale(entree: EntreeDiscographie): boolean {
+  const secondaires = secondairesDe(entree);
+  if (secondaires.some((types) => types.includes('soundtrack'))) return true;
+  if (secondaires.some((types) => types.length > 0)) return false;
+  return entree.exemplaires.some((ex) => titreAnnonceUneBandeOriginale(ex.album.title ?? ''));
+}
+
+/** Les expressions qui, dans un titre, annoncent une bande originale (mots repliés). */
+const EXPRESSIONS_BANDE_ORIGINALE: string[][] = [
+  ['original', 'motion', 'picture', 'soundtrack'],
+  ['motion', 'picture', 'soundtrack'],
+  ['original', 'film', 'soundtrack'],
+  ['original', 'film', 'score'],
+  ['original', 'motion', 'picture', 'score'],
+  ['music', 'from', 'the', 'motion', 'picture'],
+  ['bande', 'originale', 'du', 'film'],
+  ['bande', 'originale', 'de', 'la', 'serie'],
+  ['banda', 'sonora', 'original'],
+  ['colonna', 'sonora', 'originale'],
+];
+
+/** web#3032 — le titre annonce-t-il une bande originale ? Expressions entières seulement. */
+export function titreAnnonceUneBandeOriginale(titre: string): boolean {
+  const mots = titre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return EXPRESSIONS_BANDE_ORIGINALE.some((expr) =>
+    mots.some((_, i) => expr.every((m, k) => mots[i + k] === m)));
+}
+
+/**
+ * web#3032 — l'entrée est-elle une compilation DE L'ARTISTE (best of,
+ * anthologie) ? Le drapeau `is_compilation` de la bibliothèque, ou le type
+ * secondaire `compilation`. Les compilations d'AUTRUI où il figure restent
+ * sous « Apparaît sur » (serveur #4767) : elles n'arrivent pas ici.
+ */
+export function estCompilation(entree: EntreeDiscographie): boolean {
+  if (entree.exemplaires.some((ex) => ex.album.is_compilation === true)) return true;
+  return secondairesDe(entree).some((types) => types.includes('compilation'));
+}
+
+/**
+ * web#3032 — « Autres » : SEULEMENT les types explicites `other` et
+ * `broadcast`, sur tous les exemplaires qui portent un type. Un album SANS
+ * type reste dans « Albums studio », comme il restait dans la grille Albums :
+ * Deezer, Spotify, YouTube et Amazon ne publient aucun type, et la fiche
+ * d'un artiste de ces services ne doit pas se réduire à une section
+ * « Autres ».
+ */
+const TYPES_AUTRES = new Set(['other', 'broadcast']);
+function estAutre(entree: EntreeDiscographie): boolean {
+  const types = entree.exemplaires.map((ex) => typeDeSortie(ex.album)).filter((t): t is string => !!t);
+  return types.length > 0 && types.every((t) => TYPES_AUTRES.has(t));
+}
+
+/**
+ * web#3032 — LA DISCOGRAPHIE EN SECTIONS PAR TYPE, au-delà de
+ * `SEUIL_SECTIONS_PAR_TYPE` vignettes. Une entrée va dans UNE section, la
+ * première qui la reconnaît : Live (`estLive`, comme avant), Bande originale,
+ * Compilation, puis EP et Singles (`rangDeSortie`, comme avant), Autres
+ * pour les types `other`/`broadcast`, Albums studio pour tout le reste — un
+ * album sans type compris. L'ordre reçu (le tri de la page)
+ * est conservé dans chaque section.
+ */
+export function rangerParType(entrees: EntreeDiscographie[]): Record<SectionParType, EntreeDiscographie[]> {
+  const sections = Object.fromEntries(SECTIONS_PAR_TYPE.map((s) => [s, [] as EntreeDiscographie[]])) as Record<SectionParType, EntreeDiscographie[]>;
+  for (const entree of entrees) {
+    let section: SectionParType;
+    if (estLive(entree)) section = 'live';
+    else if (estBandeOriginale(entree)) section = 'bandes-originales';
+    else if (estCompilation(entree)) section = 'compilations';
+    else {
+      const r = rangDeSortie(entree);
+      section = r === 'ep' ? 'eps' : r === 'single' ? 'singles' : estAutre(entree) ? 'autres' : 'studio';
+    }
+    sections[section].push(entree);
+  }
+  return sections;
+}
+
+/**
  * Le titre replié : sans accents, sans casse, sans ponctuation.
  *
  * « C’est déjà ça » (apostrophe typographique chez un service) et « C'est deja
@@ -230,6 +345,116 @@ export function qualiteDe(ex: Exemplaire): Qualite | null {
 }
 
 /**
+ * La résolution d'un exemplaire, telle qu'on l'écrit sur une étiquette :
+ * « 24/96 », « 16/44.1 » (bits / kHz), « DSD » — ou `null` quand le service ne
+ * la dit pas (Spotify, Deezer…) : on n'affiche pas ce qu'on ne sait pas.
+ * Mêmes champs que `qualiteDe`, sous ses deux formes.
+ */
+export function resolutionDe(ex: Exemplaire): string | null {
+  const al = ex.album as Album & { quality?: unknown };
+  const q = al.quality && typeof al.quality === 'object'
+    ? (al.quality as { codec?: string; sample_rate?: number; bit_depth?: number })
+    : null;
+  const bits = Number(al.bit_depth ?? q?.bit_depth ?? 0);
+  const freq = Number(al.sample_rate ?? q?.sample_rate ?? 0);
+  const codec = String(al.format ?? q?.codec ?? '').toLowerCase();
+  if (estDuDSD(codec)) return 'DSD';
+  if (!(bits > 0) || !(freq > 0)) return null;
+  const khz = freq >= 1000 ? freq / 1000 : freq;
+  return `${bits}/${Number.isInteger(khz) ? khz : khz.toFixed(1)}`;
+}
+
+/** Une étiquette de vignette : la plateforme, et ce qu'elle sert (#2829). */
+export interface VersionSource {
+  source: string;
+  qualite: Qualite | null;
+  resolution: string | null;
+}
+
+const RANG_QUALITE: Record<Qualite, number> = { dsd: 4, hires: 3, cd: 2, lossy: 1, multichannel: 0 };
+const debitDe = (ex: Exemplaire) => {
+  const al = ex.album as Album & { quality?: unknown };
+  const q = al.quality && typeof al.quality === 'object'
+    ? (al.quality as { sample_rate?: number; bit_depth?: number })
+    : null;
+  return Number(al.bit_depth ?? q?.bit_depth ?? 0) * Number(al.sample_rate ?? q?.sample_rate ?? 0);
+};
+
+/**
+ * LES ÉTIQUETTES D'UNE VIGNETTE — tune-web-client#2829 (Ronin22, ASR #169).
+ *
+ * Un album présent chez plusieurs services est UNE vignette (#4330) ; elle
+ * dit, pour chaque plateforme, la résolution qu'on y trouve. Une plateforme =
+ * une étiquette, dans l'ordre de la vignette (`e.sources`) ; quand une source
+ * tient plusieurs exemplaires (local et serveur UPnP sous « bibliothèque »),
+ * l'étiquette porte le meilleur.
+ */
+export function versionsEntree(e: EntreeDiscographie): VersionSource[] {
+  return e.sources.map((source) => {
+    const exs = e.exemplaires.filter((x) => x.source === source);
+    let meilleur: Exemplaire | null = null;
+    let rangMeilleur = -1;
+    for (const ex of exs) {
+      const q = qualiteDe(ex);
+      const r = (q ? RANG_QUALITE[q] : 0) * 1e9 + debitDe(ex);
+      if (r > rangMeilleur) { rangMeilleur = r; meilleur = ex; }
+    }
+    return {
+      source,
+      qualite: meilleur ? qualiteDe(meilleur) : null,
+      resolution: meilleur ? resolutionDe(meilleur) : null,
+    };
+  });
+}
+
+/**
+ * tune-server-rust#8662 — la vignette cache-t-elle des éditions ? Vrai quand
+ * une source y tient plus d'un exemplaire : c'est alors que le badge
+ * « N éditions » s'affiche. Un album présent chez Qobuz et dans la
+ * bibliothèque n'a qu'une édition par source : pas de badge, ses étiquettes
+ * de plateforme (#2829) le disent déjà.
+ */
+export function editionsCachees(e: EntreeDiscographie): boolean {
+  return (e.editions?.length ?? 0) > e.exemplaires.length;
+}
+
+/** Ce que la liste des éditions dit de chacune (#8662). */
+export interface DetailEdition {
+  source: string;
+  titre: string;
+  qualite: Qualite | null;
+  resolution: string | null;
+  /** « 1983-03-07 » quand la date est connue, sinon l'année, sinon `null`. */
+  date: string | null;
+  pistes: number | null;
+  label: string | null;
+}
+
+/**
+ * Le détail d'une édition : qualité, date de sortie, nombre de titres, label.
+ * Ce que le service ne dit pas reste `null` — on n'affiche pas ce qu'on ne
+ * sait pas. Qobuz date ses albums par `released_at` (secondes d'époque).
+ */
+export function detailEdition(ex: Exemplaire): DetailEdition {
+  const al = ex.album as Album & { released_at?: number | null };
+  let date: string | null = al.release_date?.trim() ? al.release_date.trim().slice(0, 10) : null;
+  if (!date && typeof al.released_at === 'number' && Number.isFinite(al.released_at) && al.released_at > 0) {
+    date = new Date(al.released_at * 1000).toISOString().slice(0, 10);
+  }
+  if (!date && al.year) date = String(al.year);
+  const pistes = Number(al.track_count ?? 0);
+  return {
+    source: ex.source,
+    titre: al.title ?? '',
+    qualite: qualiteDe(ex),
+    resolution: resolutionDe(ex),
+    date,
+    pistes: pistes > 0 ? pistes : null,
+    label: al.label?.trim() || null,
+  };
+}
+
+/**
  * L'exemplaire relève-t-il de cette qualité ? Multicanal se lit à part
  * (`max_channels`, servi par la bibliothèque seulement), les paliers par
  * `qualiteDe`.
@@ -247,6 +472,11 @@ export function aLaQualite(ex: Exemplaire, q: Qualite): boolean {
  * 🔴 Un même service rend parfois DEUX fois la même édition sous deux
  * identifiants (Qobuz, rééditions de catalogue). On garde UN exemplaire par
  * source : deux pastilles « QOBUZ » sur une vignette ne diraient rien de plus.
+ *
+ * 🔴 Les autres ne sont pas JETÉS (#8662, Simon, fil 2795 : « Tears For
+ * Fears only shows one version of The Hurting ») : ils restent des éditions
+ * de la vignette (`editions`), proposées par le badge « N éditions ». Une
+ * vignette, aucun doublon visible, et chaque édition s'ouvre et se lit.
  *
  * 🔴 Lequel : celui qui a le PLUS de titres, pas le premier arrivé. Neil
  * Young, « Second Song » (#4652, fil 1875) : Qobuz rend le single d'avant-
@@ -269,6 +499,8 @@ export function fusionnerDiscographie(
   services: AlbumsDeService[] | null | undefined,
 ): EntreeDiscographie[] {
   const parCle = new Map<string, Exemplaire[]>();
+  /** #8662 — les exemplaires d'un service écartés par la règle de #4652. */
+  const autresParCle = new Map<string, Exemplaire[]>();
   const ajouterBibliotheque = (album: Album) => {
     const cle = cleEdition(album?.title);
     if (!cle) return ajouter(BIBLIOTHEQUE, album);
@@ -292,13 +524,20 @@ export function fusionnerDiscographie(
     const k = cle || `∅:${source}:${String(album?.id ?? album?.source_id ?? parCle.size)}`;
     const liste = parCle.get(k) ?? [];
     const deja = cle ? liste.findIndex((e) => e.source === source) : -1;
+    const ex: Exemplaire = { source, album };
+    // #8662 — l'exemplaire écarté reste une ÉDITION de la vignette.
+    const autres = autresParCle.get(k) ?? [];
     if (deja > -1) {
       if (Number(album?.track_count ?? 0) > Number(liste[deja].album?.track_count ?? 0)) {
-        liste[deja] = { source, album };
+        autres.push(liste[deja]);
+        liste[deja] = ex;
+      } else {
+        autres.push(ex);
       }
+      autresParCle.set(k, autres);
       return;
     }
-    liste.push({ source, album });
+    liste.push(ex);
     parCle.set(k, liste);
   };
 
@@ -323,6 +562,10 @@ export function fusionnerDiscographie(
       // Local et UPnP partagent la pastille « bibliothèque » : une seule fois.
       sources: [...new Set(ranges.map((e) => e.source))],
       qualites,
+      editions: [...ranges, ...(autresParCle.get(cle) ?? [])
+        .map((e, i) => ({ e, i }))
+        .sort((a, b) => rangExemplaire(a.e) - rangExemplaire(b.e) || a.i - b.i)
+        .map(({ e }) => e)],
     };
   });
 }

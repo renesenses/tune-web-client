@@ -15,6 +15,11 @@
  *   GET  /collection[?format=&etat=&dossier=&genre=&style=] → { statut, compteurs, disques, attribution }
  *   GET  /parcourir          → { par_dossier, par_genre, par_style } (#7929)
  *   GET  /disques/{release}/services → « Chercher sur les services » (#7928)
+ *   GET  /disques/{release}/albums[?q=] → « Associer à un album » (#8672) :
+ *                              { requete, proposee, candidats, albums, association }
+ *   PUT  /disques/{release}/association { album_id } → { disque } (#8672) ;
+ *        409 deja_associe si le disque est déjà rattaché à un autre album (#8678)
+ *   DELETE /disques/{release}/association → « Dissocier » → { disque } (#8672)
  *   GET  /cd?mb_release=     → { dans_la_collection, copie, disque }
  *   GET  /pochettes/{release}  → la pochette, depuis le cache LOCAL du serveur ;
  *                              503 `pochettes_limitees` + Retry-After quand
@@ -51,6 +56,15 @@ export type EtatDisque = 'bibliotheque' | 'streaming' | 'nulle_part' | 'a_verifi
  *  (correctif du 31/10/2026 : les services d'abord). L'affinage
  *  MusicBrainz vient ensuite, à part (`AffinageMusicbrainz`). */
 export type Etape = 'liste' | 'streaming' | 'bibliotheque';
+
+/**
+ * tune-server-rust#8070 (discussion #8281, reprise en rc12) — pourquoi un
+ * disque est « nulle part ». Servi par le greffon depuis #7981 : `raison` sur
+ * chaque disque `nulle_part`, `candidats_locaux` pour `plusieurs_candidats`,
+ * et `compteurs.par_raison`. Absent d'un greffon antérieur : rien ne s'affiche.
+ */
+export type RaisonNullePart = 'aucun_candidat' | 'plusieurs_candidats' | 'service_non_interroge';
+export const RAISONS: readonly RaisonNullePart[] = ['aucun_candidat', 'plusieurs_candidats', 'service_non_interroge'];
 
 export const FAMILLES: readonly Famille[] = ['vinyle', 'cd', 'sacd', 'cassette', 'autre'];
 export const ETATS: readonly EtatDisque[] = ['bibliotheque', 'streaming', 'nulle_part', 'a_verifier'];
@@ -112,7 +126,9 @@ export interface AlbumDeLaBibliotheque {
   /** La pochette de l'album local (`albums.cover_path`), servie par
    *  `/library/artwork` ; `null` s'il n'en a pas. */
   cover_path?: string | null;
-  par: string;
+  /** Comment le disque a été rapproché ; `manuel` : associé à la main
+   *  (#8672), il se dissocie. `null` dans une liste de recherche. */
+  par: string | null;
 }
 
 export interface SurUnService {
@@ -149,6 +165,10 @@ export interface Disque {
   dossier?: number | null;
   genres?: string[];
   styles?: string[];
+  /** #8070 : pourquoi « nulle part » ; `null` pour un autre état. */
+  raison?: RaisonNullePart | null;
+  /** #8070 : le nombre d'albums locaux candidats, pour `plusieurs_candidats`. */
+  candidats_locaux?: number | null;
 }
 
 /** Un dossier Discogs et son compteur (#7929). `nom` est `null` quand
@@ -174,6 +194,8 @@ export interface Collection {
     total: number;
     par_etat?: Partial<Record<EtatDisque, number>>;
     par_format?: Partial<Record<Famille, number>>;
+    /** #8070 — sur TOUTE la collection, comme `par_etat`. */
+    par_raison?: Partial<Record<RaisonNullePart, number>>;
     cd_non_copies?: number;
     par_dossier?: CompteDossier[];
     par_genre?: CompteNom[];
@@ -277,6 +299,49 @@ export function versSurUnService(p: PropositionService): SurUnService {
  *  bibliothèque, ni déjà trouvé sur un service. */
 export const peutChercherSurLesServices = (d: Disque) => !d.bibliotheque && d.streaming.length === 0;
 
+// ─── « Associer à un album » (tune-server-rust#8672) ───────────────────────
+
+export interface AlbumsAAssocier {
+  release_id: number;
+  /** La recherche faite : `q`, sinon celle que le serveur propose. */
+  requete: string;
+  /** La recherche préremplie : premier artiste + titre. */
+  proposee: string;
+  /** « Plusieurs correspondants » : les albums entre lesquels le
+   *  rapprochement n'a pas choisi ; vide sinon. */
+  candidats: AlbumDeLaBibliotheque[];
+  albums: AlbumDeLaBibliotheque[];
+  /** L'album associé à la main, s'il y en a un. */
+  association: number | null;
+}
+
+const urlDisque = (releaseId: number) => `${RACINE}/disques/${encodeURIComponent(String(releaseId))}`;
+
+/** La recherche dans la bibliothèque ; sans `q`, celle que le serveur
+ *  propose (artiste + titre) et les candidats. */
+export const albumsAAssocier = (releaseId: number, q?: string | null) =>
+  fetchJSON<AlbumsAAssocier>(
+    `${urlDisque(releaseId)}/albums${q != null ? `?q=${encodeURIComponent(q)}` : ''}`, undefined, undefined, true,
+  );
+
+export const associerALAlbum = (releaseId: number, albumId: number) =>
+  fetchJSON<{ disque: Disque }>(`${urlDisque(releaseId)}/association`, JSON_PUT({ album_id: albumId }), undefined, true);
+
+export const dissocierDeLAlbum = (releaseId: number) =>
+  fetchJSON<{ disque: Disque }>(`${urlDisque(releaseId)}/association`, { method: 'DELETE' }, undefined, true);
+
+/** « Associer à un album » : seulement pour un disque « nulle part ». */
+export const peutAssocier = (d: Disque) => d.etat === 'nulle_part' && !d.bibliotheque;
+
+/** Associé à la main : « Dissocier » s'offre. */
+export const associeALaMain = (d: Disque) => d.bibliotheque?.par === 'manuel';
+
+/** Remplace le disque relu (après une association) dans la collection, sans
+ *  attendre la relecture complète. Pure. */
+export function remplacerDisque(c: Collection, d: Disque): Collection {
+  return { ...c, disques: c.disques.map((x) => (x.release_id === d.release_id ? { ...d, instance_id: x.instance_id } : x)) };
+}
+
 // ─── L'état des pochettes (tune-server-rust#7927) ──────────────────────────
 
 /** La phrase discrète de l'état des pochettes, ou `null` s'il n'y a rien à
@@ -352,6 +417,10 @@ const ERREURS_CONNUES = new Set([
   'collection_privee', 'utilisateur_inconnu', 'discogs_limite', 'discogs_indisponible',
   'musicbrainz_indisponible', 'bibliotheque_illisible', 'jeton_personnel_absent',
   'jeton_refuse', 'nom_invalide', 'aucun_compte', 'ecriture',
+  // #8672 : « Associer à un album ».
+  'album_inconnu', 'disque_inconnu',
+  // #8678 : le disque est déjà rattaché à un autre album (409).
+  'deja_associe',
 ]);
 
 /** La clé i18n d'une erreur (de synchronisation ou de refus). */
@@ -471,4 +540,22 @@ export function clicSurDisque(d: Disque): ClicSurDisque {
   const s = d.streaming[0];
   if (s) return { vers: 'streaming', service: s };
   return { vers: 'discogs', url: d.lien_discogs };
+}
+
+/**
+ * #8070 — la phrase qui dit pourquoi ce disque est « nulle part » : la clé de
+ * traduction et le nombre à y mettre, ou `null` (autre état, raison absente
+ * ou inconnue d'un greffon plus récent). Pure.
+ */
+export function raisonDuDisque(d: Pick<Disque, 'etat' | 'raison' | 'candidats_locaux'>): { cle: string; n: number | null } | null {
+  if (d.etat !== 'nulle_part' || !d.raison || !(RAISONS as readonly string[]).includes(d.raison)) return null;
+  const n = d.raison === 'plusieurs_candidats' && typeof d.candidats_locaux === 'number' ? d.candidats_locaux : null;
+  return { cle: `collectionPhysique.raison.${d.raison}`, n };
+}
+
+/** #8070 — les compteurs par raison à montrer (non nuls), dans l'ordre de `RAISONS`. Pure. */
+export function compteursDeRaison(c: Pick<Collection, 'compteurs'> | null | undefined): { raison: RaisonNullePart; n: number }[] {
+  const par = c?.compteurs?.par_raison;
+  if (!par) return [];
+  return RAISONS.map((raison) => ({ raison, n: Number(par[raison] ?? 0) })).filter((x) => x.n > 0);
 }

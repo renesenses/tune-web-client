@@ -104,6 +104,8 @@ export const ficheArtisteService =
     id: string;
     nom: string;
     provenance?: string | null;
+    /** #3021 : sous-arbre local demandé par la Bibliothèque. */
+    dossier?: string | null;
     /** tune-server-rust#6463 — la vignette que montrait la tuile cliquée, en
      *  repli pour l'en-tête quand la fiche ouverte n'a pas de portrait. */
     image?: string | null;

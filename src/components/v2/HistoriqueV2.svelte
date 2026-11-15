@@ -34,6 +34,7 @@
   import {
     enTranches,
     nomDObjet,
+    titresDuTiroir,
     artisteDObjet,
     pochetteDObjet,
     serviceDePlaylist,
@@ -41,7 +42,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
-  import { completerAlbumsDeService } from '../../lib/albumDesEcoutes';
+  import { completerAlbumsDeService, appliquerAlbumsConnus } from '../../lib/albumDesEcoutes';
   import { ouverturePlaylistDuLot } from '../../lib/lienPlaylistDHistorique';
   import { ouvertureArtisteDuLot } from '../../lib/lienArtisteDHistorique';
   import { gestesNavigationService, type GestesNavigationService } from '../../lib/stores/navigation';
@@ -50,6 +51,8 @@
   import { colonnesRetenues } from '../../lib/colonnesPistes';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import '../../styles/tune-v2.css';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerParTexte } from '../../lib/filtreTexte';
 
   /**
    * 🔴 LA LIGNE D'OBJET S'ALIGNE SUR LE TABLEAU DES PISTES — #1009.
@@ -113,13 +116,31 @@
   const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
 
   let serveur = $state<HistoryEntry[]>([]);
-  /** web#2209 — le dernier passage de `completerAlbumsDeService` ; un plus ancien ne s'applique pas. */
-  let tourAlbums = 0;
+  /**
+   * web#2209 / web#2749 — les albums de service obtenus depuis le dernier
+   * rendu : chaque nouvelle réponse relance la dérivation des écoutes.
+   */
+  let albumsObtenus = $state(0);
   let favorisRadio = $state(new Set<string>());
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
 
-  const entrees = $derived(fusionnerHistorique($playbackHistory, serveur));
+  const fusion = $derived(fusionnerHistorique($playbackHistory, serveur));
+  /**
+   * 🔴 web#2749 (FabienM, fil 2723, point 3) — la complétion de l'album de
+   * service passe sur la FUSION, pas sur les seules lignes du serveur : une
+   * écoute notée par ce navigateur (celle qui porte l'étiquette de qualité)
+   * gardait sinon un nom d'album inerte et pas d'« Aller à l'album ».
+   */
+  const entrees = $derived((void albumsObtenus, appliquerAlbumsConnus(fusion)));
+  $effect(() => {
+    const base = fusion;
+    let vivant = true;
+    void completerAlbumsDeService(base, api.getStreamingTrack).then((maj) => {
+      if (maj && vivant) albumsObtenus += 1;
+    });
+    return () => { vivant = false; };
+  });
 
   /**
    * 🔴 #904 / #903 — l'écran en DEUX niveaux.
@@ -130,7 +151,14 @@
    * reste la forme dominante de l'écran — c'est aussi ce que montre le schéma
    * de FabienM, où des titres nus voisinent avec des objets.
    */
-  const tranches = $derived(enTranches(regrouperParContexte(entrees)));
+  /** Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   *  titre, artiste, album, ce qui a été lancé, la zone — sur les écoutes
+   *  chargées (`/library/history` n'a pas de paramètre texte). */
+  let recherche = $state('');
+  const trouvees = $derived(filtrerParTexte(entrees, recherche, (x: any) => [
+    x.track?.title, x.track?.artist_name, x.track?.album_title, x.contexte?.nom, x.zoneName,
+  ]));
+  const tranches = $derived(enTranches(regrouperParContexte(trouvees)));
 
   /**
    * #988 — le nom (et la pochette) d'une playlist de SERVICE jouée. Le
@@ -216,12 +244,8 @@
           const lues = entreesDepuisServeur(response?.items ?? []);
           serveur = lues;
           // web#2209 — l'album CHEZ LE SERVICE d'un titre lancé hors de son
-          // album : le lien de la colonne Album et « Aller à l'album » en
-          // dépendent. Demandé à la piste elle-même, borné et mémorisé.
-          const tour = ++tourAlbums;
-          void completerAlbumsDeService(lues, api.getStreamingTrack).then((maj) => {
-            if (maj && active && tour === tourAlbums && requestedGeneration === generation) serveur = maj;
-          });
+          // album est demandé à la piste elle-même (borné, mémorisé), sur la
+          // fusion local + serveur : voir `entrees` plus haut (web#2749).
         }
       } catch {
         // Keep the last successful snapshot on a transient network failure.
@@ -377,6 +401,7 @@
     </div>
     {#if entrees.length}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$tr('history.title')} />
         <div class="meta"><span>{entrees.length} {$tr('history.plays')}</span></div>
         <button class="v2-btn danger" onclick={vider} disabled={vidage}>{$tr('history.clear')}</button>
       </div>
@@ -386,6 +411,8 @@
   <div class="scroll">
     {#if !entrees.length}
       <div class="state">{$tr('history.noHistory')}</div>
+    {:else if !trouvees.length}
+      <div class="state" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
       <!-- #1149 — les deux colonnes de queue du tableau, posées une fois pour
            toutes les lignes d'objet de l'écran. `--col1` reste sur la ligne
@@ -417,6 +444,8 @@
           {:else}
             {@const lot = tranche.entrees}
             {@const nom = nomDObjet(tranche.type, lot)}
+            <!-- web#2748 — la ligne de la STATION ne redit pas, dans le tiroir, le nom de l'en-tête. -->
+            {@const titres = titresDuTiroir(tranche.type, lot, nom)}
             {@const ouvert = deplies.has(tranche.cle)}
             {@const fiche = fiches.get(tranche.cle) ?? null}
             {@const vignette = fiche?.pochette
@@ -497,7 +526,7 @@
               </span>
               <!-- Le compte occupe la colonne de la barre d'actions, calé à
                    droite comme elle (`.act`). -->
-              <span class="ocompte-cell"><span class="ocompte">{lot.length}</span></span>
+              <span class="ocompte-cell"><span class="ocompte">{titres.length}</span></span>
               <!-- Et l'instant occupe la colonne du suffixe, avec la MÊME
                    structure que les lignes de piste : `.quand`, puis la place
                    du cœur radio. Sans ce second élément l'instant se collerait
@@ -508,17 +537,17 @@
             {#if ouvert}
               <div class="tiroir">
                 <ListePistesV2
-                  pistes={lot.map((x) => x.track)}
+                  pistes={titres.map((x) => x.track)}
                   numerotation="aucune"
                   pochetteEnTableau
-                  onLire={(_p, i) => rejouer(lot[i])}
-                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
+                  onLire={(_p, i) => rejouer(titres[i])}
+                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + titres[i].playedAt}
                   apres={suffixeObjet}
-                  coeurDe={(_p, i) => coeurRadio(lot[i])}
+                  coeurDe={(_p, i) => coeurRadio(titres[i])}
                   largeurApres="164px"
                 />
                 {#snippet suffixeObjet(_p: any, i: number)}
-                  {@render colonnes(lot[i])}
+                  {@render colonnes(titres[i])}
                 {/snippet}
               </div>
             {/if}
@@ -550,11 +579,11 @@
 <style>
   .v2-hist{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .regle{margin:4px 0 0; max-width:72ch; font-size:12px; line-height:1.45; color:var(--v2-txt3)}
-  .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .regle{margin:4px 0 0; max-width:72ch; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
+  .meta{display:flex; gap:16px; margin-left:auto; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}
@@ -568,9 +597,9 @@
   /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
      comme dans l'écran actuel. */
   .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
-  .quand .zone{font:600 10.5px var(--v2-mono); color:var(--v2-acc1); letter-spacing:.02em;
+  .quand .zone{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); letter-spacing:.02em;
     max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
+  .quand .when{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   /* #1771 — le cœur radio est rendu par `PisteActions` (`.pa.coeur`), dans
      la barre d'actions. Il n'en reste ici que la place réservée, qui garde
@@ -597,12 +626,12 @@
     border-radius:9px; background:var(--v2-surface2, transparent); color:var(--v2-txt);
     cursor:pointer; font-family:inherit}
   .objet:hover{border-color:var(--v2-acc1)}
-  .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .objet .pli{font:600 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .objet.ouvert .pli{color:var(--v2-acc1)}
   /* La colonne centrale : le type puis le nom, sur une ligne, dans la seule
      cellule qui absorbe les colonnes de données du tableau. */
   .objet .ocorps{display:flex; align-items:center; gap:14px; min-width:0}
-  .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
+  .objet .otype{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-acc1); flex:none}
   .objet .onom{display:flex; align-items:center; gap:10px; min-width:0}
   .objet .ovig{flex:none; width:36px; height:36px}
@@ -610,12 +639,12 @@
   .objet .otitre, .objet .oart{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .objet .lien-album{cursor:pointer}
   .objet .lien-album:hover{text-decoration:underline; color:var(--v2-txt)}
-  .objet .oart{font-size:12px; color:var(--v2-txt3)}
+  .objet .oart{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le compte tient la colonne des actions, calé à droite comme `.act` du
      tableau : la pastille tombe ainsi au-dessus du dernier bouton de la barre,
      et jamais sur la colonne de données voisine. */
   .objet .ocompte-cell{display:flex; align-items:center; justify-content:flex-end}
-  .objet .ocompte{font:11px var(--v2-mono); color:var(--v2-txt3);
+  .objet .ocompte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:10px; padding:1px 7px}
   /* La colonne du suffixe, à l'identique de `.td.act` dans `ListePistesV2` :
      flex, calé à droite, AUCUNE gouttière — une gouttière ici décalerait

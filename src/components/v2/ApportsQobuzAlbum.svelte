@@ -8,8 +8,13 @@
    *
    * Rien ne s'affiche tant qu'il n'y a ni apport ni confirmation à proposer :
    * un album jamais retrouvé chez Qobuz garde sa fiche telle quelle.
+   *
+   * web#2837 (Didier, fil 2768) — la zone se replie à son seul titre par un
+   * triangle. L'état replié est une préférence d'AFFICHAGE retenue d'un album
+   * à l'autre (`preferencesEcran`) : on ne replie pas chaque fiche.
    */
   import { t as tr } from '../../lib/i18n';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import * as api from '../../lib/api';
   import {
     confirmable,
@@ -30,6 +35,14 @@
   let enCours = $state(false);
   let erreur = $state<string | null>(null);
   let retire = $state(false);
+
+  /** web#2837 — `'oui'` : la zone est repliée à son titre. */
+  const CLE_REPLI = 'v2.album.qobuz.replie';
+  let replie = $state(lireChoix(CLE_REPLI, ['oui', 'non'] as const, 'non') === 'oui');
+  function basculerRepli() {
+    replie = !replie;
+    ecrireChoix(CLE_REPLI, replie ? 'oui' : 'non');
+  }
 
   async function charger(id: number) {
     const a = await api.getApportsQobuz(id).catch(() => null);
@@ -84,15 +97,25 @@
 
 {#if lignes.length || credits.length || confirmable(apports) || retire}
   <section class="apports-qobuz" data-apports-qobuz aria-labelledby="apports-qobuz-titre-{albumId}">
-    <h3 id="apports-qobuz-titre-{albumId}">{$tr('v2.album.qobuz.title' as any)}</h3>
+    <h3 id="apports-qobuz-titre-{albumId}" class:replie>
+      <!-- Motif « disclosure » : le nom du bouton reste le TITRE, l'état est
+           porté par `aria-expanded` ; « Replier »/« Déplier » est l'infobulle. -->
+      <button class="pli" type="button" data-replier-qobuz onclick={basculerRepli}
+        aria-expanded={!replie} aria-controls="apports-qobuz-corps-{albumId}"
+        title={replie ? $tr('v2.album.qobuz.expand' as any) : $tr('v2.album.qobuz.collapse' as any)}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" class:ferme={replie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+        <span>{$tr('v2.album.qobuz.title' as any)}</span>
+      </button>
+    </h3>
+    <div class="corps" id="apports-qobuz-corps-{albumId}" hidden={replie}>
     {#if confirmable(apports)}
       <p class="a-confirmer">{$tr('v2.album.qobuz.toConfirm' as any)}</p>
       <div class="gestes">
-        <button class="ghost" data-confirmer-qobuz onclick={confirmer} disabled={enCours}>
+        <button class="v2-btn" data-confirmer-qobuz onclick={confirmer} disabled={enCours}>
           {$tr('v2.album.qobuz.confirm' as any)}
         </button>
         {#if apports?.service_url}
-          <a class="ghost" href={apports.service_url} target="_blank" rel="noopener noreferrer">
+          <a class="v2-btn" href={apports.service_url} target="_blank" rel="noopener noreferrer">
             {$tr('v2.album.qobuz.openOnQobuz' as any)}
           </a>
         {/if}
@@ -127,26 +150,38 @@
       </ul>
     {/if}
     {#if retirable(apports)}
-      <button class="ghost" data-retirer-qobuz onclick={retirer} disabled={enCours}>
+      <button class="v2-btn" data-retirer-qobuz onclick={retirer} disabled={enCours}>
         {$tr('v2.album.qobuz.remove' as any)}
       </button>
     {:else if retire}
       <p role="status">{$tr('v2.album.qobuz.removed' as any)}</p>
     {/if}
+    </div>
     {#if erreur}<p role="alert">{erreur}</p>{/if}
   </section>
 {/if}
 
 <style>
   .apports-qobuz { margin: 1rem 0; padding: .75rem 1rem; border: 1px solid var(--tune-border, rgba(127,127,127,.25)); border-radius: 8px; }
-  h3 { margin: 0 0 .5rem; font-size: 1rem; }
-  h4 { margin: .75rem 0 .25rem; font-size: .9rem; }
+  h3 { margin: 0 0 .5rem; font-size: calc(1rem * var(--v2-txt-echelle, 1)); display: flex; align-items: center; gap: .25rem; }
+  h3.replie { margin-bottom: 0; }
+  .pli { display: inline-flex; align-items: center; gap: .25rem; padding: 0; margin-left: -.25rem; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; text-align: left; }
+  .pli svg { width: 1rem; height: 1rem; transition: transform .15s; }
+  .pli svg.ferme { transform: rotate(-90deg); }
+  h4 { margin: .75rem 0 .25rem; font-size: calc(.9rem * var(--v2-txt-echelle, 1)); }
   dl { margin: 0; display: grid; gap: .25rem; }
   .ligne { display: flex; gap: .5rem; flex-wrap: wrap; }
   dt { font-weight: 600; min-width: 9rem; }
   dd { margin: 0; }
   .credits { margin: 0; padding-left: 1.2rem; }
-  .source { margin-left: .4rem; font-size: .75rem; opacity: .7; }
+  .source { margin-left: .4rem; font-size: calc(.75rem * var(--v2-txt-echelle, 1)); opacity: .7; }
   .gestes { display: flex; gap: .5rem; margin: .25rem 0 .5rem; flex-wrap: wrap; }
   .a-confirmer { margin: 0 0 .25rem; }
+  /* Recette du .18 (15/11) : les gestes portaient `ghost`, une classe que
+     seule la fiche habille — ici, sans style. Ils prennent LE bouton
+     partagé (`.v2-btn`, tune-v2.css) ; le lien vers Qobuz aussi. */
+  a.v2-btn { text-decoration: none; }
+  dd a { color: var(--v2-acc-tint); text-decoration: underline; text-underline-offset: 2px; }
+  dd a:hover { color: var(--v2-txt); }
+  dd a:focus-visible { outline: 2px solid var(--v2-acc2); outline-offset: 2px; border-radius: 3px; }
 </style>

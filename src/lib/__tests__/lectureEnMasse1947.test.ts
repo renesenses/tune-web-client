@@ -176,11 +176,13 @@ describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () =>
     expect(src).toContain('api.getArtistTracks(a.id)');
     expect(src).toContain("api.shuffleAll(zid, { artist_id: a.id })");
     expect(src).toContain("$tr('library.playAllArtist' as any)");
-    expect(src).toContain("$tr('library.shuffleArtist' as any)");
+    // rc12 : l'aléatoire est sous la flèche du bouton Lecture (sa bulle le nomme).
+    expect(src).toContain("bulle: 'library.shuffleArtist'");
   });
   it('la fiche de liste de lecture a une « lecture aléatoire »', () => {
     const src = sansCommentaires(lireSrc('src/components/v2/PlaylistDetailV2.svelte'));
-    expect(src).toContain('onclick={lireAleatoire}');
+    // rc12 : sous la flèche du bouton Lecture partagé.
+    expect(src).toContain('aleatoire={{ faire: lireAleatoire');
     expect(src).toContain('lireListeAleatoire(tracks');
   });
   it('la fiche de collection a les deux boutons, sur TOUS ses albums', () => {

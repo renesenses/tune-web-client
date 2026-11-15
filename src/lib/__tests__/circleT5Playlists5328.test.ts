@@ -333,7 +333,7 @@ describe('T5 — la liste des playlists de cercle', () => {
     expect(bloc).not.toBeNull();
     const lignes = [...bloc.querySelectorAll('li.playlist-cercle')].map(texte);
     expect(lignes[0]).toContain('Dimanche');
-    expect(lignes[0]).toContain('4 morceaux');
+    expect(lignes[0]).toContain('4 titres');
     expect(lignes[0]).toContain('de Élise');
     // La mienne : pas de « de Moi ».
     expect(lignes[1]).toContain('Famille en voiture');
@@ -417,6 +417,16 @@ describe('T5 — la vue d\'une playlist', () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
     await viaMenu(el, 'Blue in Green', 'button.retirer-morceau');
+    const d = ecritures().find((a) => a.method === 'DELETE')!;
+    expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
+  });
+
+  it('🔴 rc12 — la croix « Retirer » est VISIBLE sur la ligne, sans ouvrir le menu ⋯', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    for (const n of morceaux(el)) expect(n.querySelector('button[data-retirer-titre]'), 'croix absente').not.toBeNull();
+    await cliquer(ligne(el, 'Blue in Green'), 'button[data-retirer-titre]');
     const d = ecritures().find((a) => a.method === 'DELETE')!;
     expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
@@ -833,7 +843,9 @@ describe('web#2219 — lecture par piste', () => {
   it('Aléatoire : `item_ids` = les seuls jouables, mélangés', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
-    await cliquer(el, 'button.aleatoire-playlist');
+    // rc12 : « Lecture aléatoire » est sous la flèche du bouton Lecture.
+    await cliquer(el, '[data-bouton-lecture] [data-lecture-options]');
+    await cliquer(document.body, '[data-aleatoire-playlist-cercle]');
     const [b] = corpsPlay() as { zone_id: number; item_ids: string[] }[];
     expect(b.zone_id).toBe(2);
     expect([...b.item_ids].sort()).toEqual(['it-1', 'it-2', 'it-4']);
@@ -932,7 +944,11 @@ describe('web#2219 — rangement de la liste et en-tête', () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
     expect(el.querySelector('button.lire-playlist')).not.toBeNull();
-    expect(el.querySelector('button.aleatoire-playlist')).not.toBeNull();
+    // rc12 : un seul bouton Lecture ; l'aléatoire est dans son menu, plus à côté.
+    expect(el.querySelector('button.aleatoire-playlist')).toBeNull();
+    await cliquer(el, '[data-bouton-lecture] [data-lecture-options]');
+    expect(document.body.querySelector('[data-aleatoire-playlist-cercle]')).not.toBeNull();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await cliquer(el, 'button.ajouter-morceaux');
     expect(get(activeView)).toBe('search');
     expect(JSON.stringify(get(notifications))).toContain('Ajouter à une playlist partagée');

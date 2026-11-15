@@ -150,8 +150,8 @@ describe('#1796 — avant toute interaction, aucun menu n’est monté', () => {
     }
   });
 
-  it('une vignette SANS menu (radio) ne monte rien, même survolée ou focalisée', () => {
-    poser(PochetteActions, { children: pochette, objet: { type: 'radio', id: 3, nom: 'FIP' }, onOuvrir: ouvrir });
+  it('une vignette SANS menu (podcast) ne monte rien, même survolée ou focalisée', () => {
+    poser(PochetteActions, { children: pochette, objet: { type: 'podcast', id: 3, nom: 'FIP' }, onOuvrir: ouvrir });
     expect(coin()).toBeNull();
     const pa = hote.querySelector<HTMLElement>('.pa')!;
     pa.dispatchEvent(new Event('pointerenter'));

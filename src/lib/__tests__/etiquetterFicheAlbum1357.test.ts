@@ -36,6 +36,7 @@ import type { Album } from '../types';
 // douze processus, cette transformation-là se comptait en dizaines de
 // secondes, et le premier cas attendait un panneau pas encore né.
 import '../../components/v2/EtiquettesPanneau.svelte';
+import { entreeParLibelle } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -120,11 +121,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-/** Le bouton de la barre d'actions, cherché par son LIBELLÉ traduit. */
+/** L'entrée du menu « … » de la fiche (web#2736), cherchée par son LIBELLÉ traduit. */
 function boutonEtiquettes(): HTMLButtonElement | undefined {
-  return [...hote!.querySelectorAll('button')].find(
-    (b) => b.textContent?.trim() === ETIQUETTES,
-  ) as HTMLButtonElement | undefined;
+  return (entreeParLibelle(hote!, ETIQUETTES) ?? undefined) as HTMLButtonElement | undefined;
 }
 
 const ALBUM_LOCAL = {

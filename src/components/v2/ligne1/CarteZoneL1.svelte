@@ -260,7 +260,7 @@
   .haut { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
   .titre {
     margin: 0; min-width: 0; color: #fff;
-    font: 400 15px/1.25 var(--v2-sans);
+    font: 400 calc(15px * var(--v2-txt-echelle, 1))/1.25 var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
   }
@@ -271,17 +271,17 @@
   .pastille {
     padding: 2px 8px; border-radius: var(--v2-r-pill);
     background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .22);
-    color: #fff; font: 600 11px var(--v2-sans); letter-spacing: .02em;
+    color: #fff; font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing: .02em;
   }
   .pastille.fmt { background: color-mix(in srgb, var(--v2-acc1) 72%, transparent); border-color: transparent; }
-  .annee { color: rgba(255, 255, 255, .78); font: 500 11px var(--v2-sans); }
+  .annee { color: rgba(255, 255, 255, .78); font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   .zone {
     align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
     max-width: 100%; min-width: 0; padding: 3px 9px;
     border-radius: var(--v2-r-pill); border: 1px solid rgba(255, 255, 255, .28);
     background: rgba(0, 0, 0, .42); color: #fff;
-    font: 500 11px var(--v2-sans); cursor: pointer;
+    font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
   }
   .zone:hover { border-color: #fff; }
   .zone svg { width: 13px; height: 13px; flex: 0 0 auto; }
@@ -314,7 +314,7 @@
 
   .transport { display: flex; align-items: center; gap: 9px; }
   .temps {
-    color: rgba(255, 255, 255, .86); font: 500 11px var(--v2-sans);
+    color: rgba(255, 255, 255, .86); font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     font-variant-numeric: tabular-nums; flex: 0 0 auto;
   }
   .piste {

@@ -185,13 +185,16 @@ describe('fils 1914/1913 — Réglages › Appareils', () => {
     expect(h.querySelector('#zc-21 .canaux-reseau')).toBeNull();
   });
 
-  it('sortie sans chemin (AirPlay, ou serveur antérieur) : verrouillé, avec l’explication visible', { timeout: 60_000 }, async () => {
+  // #2735 (Bertrand, 09/11/2026) : un réglage sans effet pour ce type de
+  // sortie est CACHÉ, et non plus grisé et expliqué.
+  it('sortie sans chemin (AirPlay, ou serveur antérieur) : verrouillé ⇒ caché, sans explication', { timeout: 60_000 }, async () => {
     const h = await poser(zone({
       output_type: 'airplay',
       channel_layouts_offered: [{ id: 'stereo', canaux: 2 }, { id: 'surround71', canaux: 8 }],
       channel_layout_status: statut({ unavailable: true, reason: 'sortie_non_locale' }),
     }));
-    expect(selecteur(h)!.disabled).toBe(true);
-    expect(h.querySelector('#zc-21')!.textContent).toContain(fr['zoneConfig.channelsUnavailableNonLocal']);
+    expect(h.querySelector('#zc-21'), 'carte absente — témoin sans objet').not.toBeNull();
+    expect(selecteur(h)).toBeNull();
+    expect(h.querySelector('#zc-21')!.textContent).not.toContain(fr['zoneConfig.channelsUnavailableNonLocal']);
   });
 });

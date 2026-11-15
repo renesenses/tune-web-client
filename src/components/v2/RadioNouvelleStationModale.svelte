@@ -2,15 +2,28 @@
   /**
    * « Nouvelle station » : trois chemins, comme chez Roon (rapport de Rémi,
    * RC7, #2397).
+   *
+   * Retour de Rémi sur la rc11 (point 2, décidé le 14/11) : l'import d'une
+   * liste M3U/PLS quitte l'en-tête de la page et devient le quatrième choix.
+   * Le fichier choisi part à l'écran (`onImporter`), qui l'envoie au serveur
+   * et relit « Mes radios ».
    */
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
 
   import { URL_PROPOSER } from '../../lib/mesRadios';
 
-  let { onAnnuaire, onSaisie, onClose }: {
-    onAnnuaire: () => void; onSaisie: () => void; onClose: () => void;
+  let { onAnnuaire, onSaisie, onImporter, onClose }: {
+    onAnnuaire: () => void; onSaisie: () => void; onImporter: (f: File) => void; onClose: () => void;
   } = $props();
+
+  let champFichier = $state<HTMLInputElement | undefined>(undefined);
+  function fichierChoisi(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (f) onImporter(f);
+  }
 </script>
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') onClose(); }} />
@@ -32,6 +45,12 @@
       <b>{$t('v2.radio.new.local' as any)}</b>
       <span>{$t('v2.radio.new.localHint' as any)}</span>
     </button>
+    <!-- Un bouton, et non un <label> : il se rejoint au clavier comme les trois autres. -->
+    <button class="choix" data-choix="import" onclick={() => champFichier?.click()}>
+      <b>{$t('v2.radio.new.import' as any)}</b>
+      <span>{$t('v2.radio.new.importHint' as any)}</span>
+    </button>
+    <input bind:this={champFichier} type="file" accept=".m3u,.m3u8,.pls" onchange={fichierChoisi} hidden />
   </div>
 </div>
 
@@ -41,13 +60,13 @@
   .panneau{position:relative; width:min(460px,100%); display:flex; flex-direction:column; gap:10px;
     background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-card); padding:20px 22px 22px; font-family:var(--v2-sans)}
-  h2{font-size:17px; font-weight:700; margin-bottom:6px}
+  h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin-bottom:6px}
   .fermer{position:absolute; top:12px; right:12px; width:28px; height:28px; border:0; border-radius:8px;
-    background:transparent; color:var(--v2-txt3); font-size:20px; line-height:1; cursor:pointer}
+    background:transparent; color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .fermer:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .choix{display:flex; flex-direction:column; gap:3px; text-align:left; text-decoration:none; cursor:pointer;
     background:var(--v2-bg); color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:10px; padding:12px 14px}
   .choix:hover{border-color:var(--v2-acc1)}
-  .choix b{font:600 13.5px var(--v2-sans)}
-  .choix span{font:12px var(--v2-sans); color:var(--v2-txt2)}
+  .choix b{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .choix span{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
 </style>

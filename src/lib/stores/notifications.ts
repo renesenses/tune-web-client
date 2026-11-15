@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 
 /**
  * Lightweight global notification bus. Any component can push a toast, and
@@ -101,6 +101,18 @@ function createStore() {
     update((list) => list.filter((n) => n.id !== id));
   }
 
+  /**
+   * Remplacer le texte d'une notification encore affichée — sans toucher à sa
+   * minuterie. Sert à `notificationTraduite` : une annonce partie avant que la
+   * langue choisie soit appliquée se retraduit quand elle l'est.
+   */
+  function remplacerMessage(id: number, message: string) {
+    // Rien à changer → aucune écriture : `update` réveillerait tous les
+    // abonnés (un tableau n'est jamais « égal » pour un magasin Svelte).
+    if (!get({ subscribe }).some((n) => n.id === id && n.message !== message)) return;
+    update((list) => list.map((n) => (n.id === id ? { ...n, message } : n)));
+  }
+
   /** Suspend l'effacement automatique (survol, focus). Sans effet si persistante. */
   function pause(id: number) {
     const m = minuteries.get(id);
@@ -136,6 +148,7 @@ function createStore() {
     question: (msg: string, oui: string, run: () => void, non: string, siNon?: () => void) =>
       push(msg, 'info', 0, { label: oui, run }, { label: non, run: siNon }),
     dismiss,
+    remplacerMessage,
     pause,
     resume,
   };

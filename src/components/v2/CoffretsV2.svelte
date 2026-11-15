@@ -18,6 +18,8 @@
   import { t as tr } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDAlbum } from '../../lib/lienEntite';
   import { EVT_COFFRET_DEFAIT } from '../../lib/coffretAuto';
   import { objetAlbum } from '../../lib/gestesObjet';
   import MenuObjetV2 from './MenuObjetV2.svelte';
@@ -108,7 +110,7 @@
           <button class="ligne" data-coffret={c.id} onclick={() => onOuvrir(c)}>
             <span class="vign"><AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} /></span>
             <span class="ltitre" use:bulleTexte>{c.title ?? ''}</span>
-            <span class="lartiste" use:bulleTexte>{c.artist_name ?? ''}</span>
+            <span class="lartiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: c.artist_name ?? '', artiste: artisteDAlbum(c) }} /></span>
             <span class="ldisques">{disques(c)}</span>
           </button>
           <span class="menu-ligne"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
@@ -124,7 +126,7 @@
             <span class="titre" use:bulleTexte>{c.title ?? ''}</span>
             <!-- Toujours posée, vide s'il n'y a pas d'artiste : « N disques »
                  reste sur la même ligne d'une carte à l'autre. -->
-            <span class="artiste" use:bulleTexte>{c.artist_name ?? ''}</span>
+            <span class="artiste" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: c.artist_name ?? '', artiste: artisteDAlbum(c) }} /></span>
             <span class="disques">{disques(c)}</span>
           </button>
           <span class="menu-carte"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
@@ -139,11 +141,11 @@
      qui dépasse, la vue porte donc le sien. */
   .coffrets{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
   .coffrets::-webkit-scrollbar{width:9px}
-  .coffrets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .coffrets::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
-  .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
-  .compte{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .etat{padding:24px 0; color:var(--v2-txt3); font-size:13px}
+  .regle{margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .etat{padding:24px 0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
   /* 🔴 LA CARTE PORTE `width:100%` — Bertrand, 27/09/2026, 0.9.167-pre.
      Depuis les menus d'objets (26/09), la carte n'est plus l'enfant de la
@@ -169,10 +171,10 @@
   .menu-ligne{position:absolute; right:8px; top:50%; transform:translateY(-50%)}
   .menu-carte{position:absolute; right:0; bottom:0}
   .vign{width:44px; height:44px; border-radius:6px; overflow:hidden}
-  .ltitre{min-width:0; font-size:13.5px; font-weight:600; color:var(--v2-txt);
+  .ltitre{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lartiste{min-width:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .ldisques, .disques{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
-  .titre{font-size:13px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .artiste{min-height:1.2em; font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lartiste{min-width:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ldisques, .disques{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .artiste{min-height:1.2em; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

@@ -576,8 +576,8 @@
 <style>
   .edition{display:flex; flex-direction:column; gap:16px; padding:4px 0 24px}
   .ed-tete{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
-  .ed-tete h2{margin:0; font-size:20px; font-weight:700}
-  .ed-non-enreg{font:600 12px var(--v2-sans); color:var(--v2-acc-tint); padding:4px 10px;
+  .ed-tete h2{margin:0; font-size:calc(20px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .ed-non-enreg{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint); padding:4px 10px;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .ed-erreur{margin:0; padding:10px 12px; border-radius:var(--v2-r-md); color:var(--v2-danger);
     border:1px solid var(--v2-danger-bd)}
@@ -585,25 +585,25 @@
   .ed-champs{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px;
     margin:0; padding:14px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-md)}
   .ed-champs legend{padding:0 6px; font-weight:700; color:var(--v2-txt2)}
-  .ed-champs label{display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--v2-txt3)}
+  .ed-champs label{display:flex; flex-direction:column; gap:5px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   input[type="text"], input[type="search"], select{height:34px; padding:0 10px; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-    font:14px var(--v2-sans); min-width:0}
+    font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
   input:focus-visible, select:focus-visible, button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
   .ed-comp{grid-column:1 / -1; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
-  .ed-comp-titre{font-size:12px; color:var(--v2-txt3)}
-  .ed-champs label.ed-radio{flex-direction:row; align-items:center; gap:6px; font-size:14px; color:var(--v2-txt)}
-  .ed-effet{font-size:12px; font-style:italic; color:var(--v2-txt3)}
-  .ed-coffret{grid-column:1 / -1; margin:0; font-size:12px; color:var(--v2-txt3)}
+  .ed-comp-titre{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .ed-champs label.ed-radio{flex-direction:row; align-items:center; gap:6px; font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
+  .ed-effet{font-size:calc(12px * var(--v2-txt-echelle, 1)); font-style:italic; color:var(--v2-txt3)}
+  .ed-coffret{grid-column:1 / -1; margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .ed-etiquette{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
-  .ed-badge{font:600 11px var(--v2-sans); color:var(--v2-acc-tint); padding:1px 8px; margin-left:6px;
+  .ed-badge{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint); padding:1px 8px; margin-left:6px;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .ed-retablir{padding:0; border:0; background:transparent; cursor:pointer; color:var(--v2-txt2);
-    font:600 11px var(--v2-sans); text-decoration:underline}
+    font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-decoration:underline}
   .ed-retablir:hover:not(:disabled){color:var(--v2-acc-tint)}
   .ed-retablir:disabled{opacity:.5; cursor:default}
   .ed-disques{display:flex; flex-direction:column; gap:12px}
-  .ed-disques h3{margin:0; font-size:15px; font-weight:700}
+  .ed-disques h3{margin:0; font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .ed-disque{border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); padding:10px}
   .ed-disque.survolee{border-color:var(--v2-acc1)}
   .ed-disque.saisie{opacity:.5}
@@ -615,29 +615,29 @@
     align-items:center; gap:8px; padding:3px 4px; border-radius:8px}
   .ed-piste.survolee{box-shadow:inset 0 2px 0 var(--v2-acc1)}
   .ed-piste.saisie{opacity:.5}
-  .ed-num, .ed-duree{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .ed-num, .ed-duree{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .ed-poignee{width:28px; height:28px; padding:6px; border:0; border-radius:6px; cursor:grab;
     background:transparent; color:var(--v2-txt3)}
   .ed-poignee svg{width:16px; height:16px}
   .ed-poignee:hover, .ed-poignee:focus-visible{color:var(--v2-txt); background:var(--v2-hover)}
-  .ed-vide{margin:6px 0 0; font-size:12px; font-style:italic; color:var(--v2-txt3)}
+  .ed-vide{margin:6px 0 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); font-style:italic; color:var(--v2-txt3)}
   .ed-lien{height:32px; padding:0 14px; border-radius:var(--v2-r-pill); cursor:pointer;
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 13px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .ed-lien:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .ed-lien:disabled, .ed-enregistrer:disabled{opacity:.5; cursor:default}
   .ed-recherche{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   .ed-recherche input{flex:1 1 220px}
   .ed-resultats{list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:2px}
   .ed-resultat{width:100%; text-align:left; padding:7px 10px; border:0; border-radius:8px; cursor:pointer;
-    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .ed-resultat:hover{background:var(--v2-surface2)}
   .ed-actions{display:flex; gap:12px; flex-wrap:wrap}
   .ed-enregistrer, .ed-annuler{height:44px; padding:0 22px; border-radius:var(--v2-r-pill); cursor:pointer;
-    font:700 14px var(--v2-sans)}
+    font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .ed-enregistrer{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .ed-annuler{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt)}
   .ed-actions .ed-balises{height:44px; margin-left:auto}
-  .ed-rapport{padding:10px 12px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); font-size:13px}
+  .ed-rapport{padding:10px 12px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .ed-rapport p{margin:0 0 6px}
   .ed-rapport ul{margin:0 0 8px; padding-left:18px}
   .ed-rapport-titre{font-weight:600; color:var(--v2-txt2)}

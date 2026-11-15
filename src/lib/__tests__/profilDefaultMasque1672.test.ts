@@ -110,11 +110,13 @@ describe('web#1672 — Default masqué dès qu’un profil personnel existe', ()
     expect(magasin.profilSupprimable(LEVENTE)).toBe(true);
   });
 
-  it('le menu de l’avatar liste les profils VISIBLES, pas le magasin brut', () => {
+  it('« Gérer les profils » liste les profils VISIBLES, pas le magasin brut', () => {
+    // Levente, 15/11/2026 : la liste a quitté le menu de l'avatar ; c'est
+    // `ProfilsV2` qui la porte (et la bascule).
     // `import.meta.url` n'est pas un `file:` sous jsdom : chemin depuis `__dirname`.
-    const menu = readFileSync(resolve(__dirname, '../../components/v2/AvatarMenu.svelte'), 'utf8');
-    const boucle = menu.indexOf('{#each $visibleProfiles as p (p.id)}');
-    expect(boucle, 'le menu ne parcourt pas visibleProfiles').toBeGreaterThan(-1);
-    expect(menu.includes('{#each $profiles as p'), 'le menu parcourt encore $profiles').toBe(false);
+    const ecran = readFileSync(resolve(__dirname, '../../components/v2/ProfilsV2.svelte'), 'utf8');
+    const boucle = ecran.indexOf('{#each $visibleProfiles as p (p.id)}');
+    expect(boucle, 'l’écran ne parcourt pas visibleProfiles').toBeGreaterThan(-1);
+    expect(ecran.includes('{#each $profiles as p'), 'l’écran parcourt encore $profiles').toBe(false);
   });
 });

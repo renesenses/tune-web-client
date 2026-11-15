@@ -62,6 +62,9 @@ export function candidatsNouvelleZone(
   }
   for (const d of decouverts ?? []) {
     if (!d?.id || d.available === false || d.type === 'local' || d.type === 'browser') continue;
+    // tune-server-rust#7838 : trouvé, mais aucune identité n'est une sortie de
+    // lecture — une zone créée dessus ne jouerait pas.
+    if (d.registered === false) continue;
     if (!deviceHasBoundZone(d, liees)) {
       const id = deviceZoneTargetId(d);
       out.push({ cle: `${d.type}|${id}`, groupe: 'reseau', nom: d.name, outputType: d.type, deviceId: id });

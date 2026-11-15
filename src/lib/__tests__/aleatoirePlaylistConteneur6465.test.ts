@@ -18,6 +18,7 @@ import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
+import { entreeDuMenu, MENU_LECTURE } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -91,9 +92,9 @@ async function ouvrir(item: unknown, titre: string) {
   await attendreQue(() => (hote!.textContent ?? '').includes(titre), 'les titres affichés');
 }
 function cliquerAleatoire() {
-  const b = [...hote!.querySelectorAll<HTMLButtonElement>('button')]
-    .find((x) => x.getAttribute('title') === fr['library.shuffle']);
-  expect(b, 'pas de bouton Aléatoire — le témoin ne mesure rien').toBeTruthy();
+  // rc12 : « Lecture aléatoire » vit sous la flèche du bouton Lecture.
+  const b = entreeDuMenu(hote!, '[data-aleatoire-playlist]', MENU_LECTURE);
+  expect(b, 'pas d’entrée Aléatoire — le témoin ne mesure rien').toBeTruthy();
   b!.click();
 }
 const lecture = () => requetes.find((r) => r.method === 'POST' && /\/zones\/1\/play(\?|$)/.test(r.url));

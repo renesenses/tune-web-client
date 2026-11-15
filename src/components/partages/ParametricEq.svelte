@@ -463,7 +463,7 @@
   }
   .grid-v, .grid-h { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
   .grid-zero { stroke: rgba(255, 255, 255, 0.18); stroke-width: 1; }
-  .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: 9px; }
+  .grid-label { fill: rgba(255, 255, 255, 0.35); font-size: calc(9px * var(--v2-txt-echelle, 1)); }
   .response { fill: none; stroke-width: 2; }
   /* Couleurs par canal : jetons du thème (tune-v2.css), avec un repli
      sombre si le composant est monté hors de la coquille v2. */
@@ -471,7 +471,7 @@
   .response-gauche { stroke: var(--v2-canal-g, #5aa9ff); }
   .response-droite { stroke: var(--v2-canal-d, #ff6b8b); stroke-dasharray: 6 4; }
 
-  .peq-legende { display: flex; gap: 1rem; align-items: center; font-size: 0.8rem; opacity: 0.85; }
+  .peq-legende { display: flex; gap: 1rem; align-items: center; font-size: calc(0.8rem * var(--v2-txt-echelle, 1)); opacity: 0.85; }
   .peq-legende span { display: inline-flex; gap: 0.4rem; align-items: center; }
   .peq-legende i { width: 1.1rem; height: 0; border-top-width: 2px; border-top-style: solid; }
   .peq-legende .tous { border-color: var(--v2-canal-tous, #f2c14e); }
@@ -487,7 +487,7 @@
   .band-dot.selected { opacity: 1; stroke: var(--v2-txt, #e5e7eb); stroke-width: 2.5; }
   .peq.edition .peq-plot { border-color: var(--v2-acc1, #00d4aa); }
   .peq-edit.on { border-color: var(--v2-acc1, #00d4aa); color: var(--v2-acc1, #00d4aa); }
-  .peq-toolbar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; }
+  .peq-toolbar { display: flex; align-items: center; gap: 0.75rem; font-size: calc(0.75rem * var(--v2-txt-echelle, 1)); }
   .peq-count { color: var(--tune-text-dim, #9ca3af); }
   .peq-hint { color: var(--tune-text-dim, #9ca3af); flex: 1; }
   .peq-add, .peq-del, .peq-edit {
@@ -497,7 +497,7 @@
     border-radius: 6px;
     padding: 0.3rem 0.7rem;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
   }
   .peq-add:disabled { opacity: 0.4; cursor: default; }
   .peq-del { color: #f87171; }
@@ -510,7 +510,7 @@
     background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
   }
-  .peq-editor label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.7rem; color: var(--tune-text-dim, #9ca3af); }
+  .peq-editor label { display: flex; flex-direction: column; gap: 0.2rem; font-size: calc(0.7rem * var(--v2-txt-echelle, 1)); color: var(--tune-text-dim, #9ca3af); }
   .peq-editor input, .peq-editor select {
     width: 5.5rem;
     background: rgba(0, 0, 0, 0.3);

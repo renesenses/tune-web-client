@@ -51,6 +51,7 @@ import type { AddToQueueRequest } from './api';
 import { corpsDeFileListe, corpsDeLecture, corpsDeTeteDeListe, estPisteLocale } from './pisteFile';
 import { FILE_ALEATOIRE_DEFAUT, plafondFileAleatoire } from './fileAleatoire';
 import { tirageAleatoire } from './porteeAleatoire';
+import { pisteIndisponible } from './albumAParaitre';
 import type { Track } from './types';
 import { bornerPrecedents, enfilerDansLOrdre, remettreLesPrecedents } from './precedentsEnTete';
 /** Les portées que `POST /playback/shuffle-all` sait tirer lui-même. */
@@ -73,9 +74,17 @@ export type PlanLecture =
    * déjà `FavoritesView`, `PlaylistsView` et `AlbumDetailV2`.
    */
   | { voie: 'tete-et-reste'; tete: Record<string, unknown>; reste: AddToQueueRequest | null; pistes: number };
-/** Les pistes qu'on sait désigner — les autres ne partiraient nulle part. */
+/**
+ * Les pistes qu'on sait désigner — les autres ne partiraient nulle part.
+ *
+ * web#2687 (FabienM, fil « v1.0.0rc10: Divers bugs », point 18) : un album
+ * mixte (Qobuz, titres « Indisponible » ou « À paraître ») mettait TOUS ses
+ * titres en file ; le serveur ne saute qu'un premier titre injouable. Les
+ * titres que la liste grise (`pisteIndisponible`) restent affichés mais ne
+ * partent plus — la règle de l'appli Android.
+ */
 export function pistesJouables(liste: readonly Track[]): Track[] {
-  return liste.filter((t) => corpsDeLecture(t) != null);
+  return liste.filter((t) => !pisteIndisponible(t) && corpsDeLecture(t) != null);
 }
 /**
  * Le plan de lecture d'une liste, dans SON ordre. Fonction pure : la garde

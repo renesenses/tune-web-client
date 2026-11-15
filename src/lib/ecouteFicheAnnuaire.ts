@@ -8,6 +8,9 @@
  * serveur rend l'adresse du flux et c'est la page qui le lit ; sur la zone
  * navigateur d'un autre appareil, on le dit et on propose de la jouer ici.
  *
+ * `streamUrl` : le flux choisi sur la fiche (fiche hors « Mes radios » seulement ;
+ * une station de « Mes radios » lit celui qu'elle a enregistré).
+ *
  * Rend `false` quand la lecture n'a pas pu être lancée (l'appelant affiche son
  * message), `true` sinon. Ne choisit pas la zone : `zoneId` vient de
  * `zoneRequise()`, qui a déjà prévenu l'utilisateur si aucune n'est choisie.
@@ -26,11 +29,12 @@ export async function ecouterFicheAnnuaire(
   f: Pick<FicheAnnuaireRadio, 'external_id' | 'my_radio_id'>,
   zoneId: number,
   onRefusPays?: (message: string) => void,
+  streamUrl?: string | null,
 ): Promise<boolean> {
   try {
     const res: any = f.my_radio_id != null
       ? await api.playRadio(f.my_radio_id, zoneId)
-      : await api.jouerDepuisAnnuaire(f.external_id, zoneId);
+      : await (streamUrl ? api.jouerDepuisAnnuaire(f.external_id, zoneId, streamUrl) : api.jouerDepuisAnnuaire(f.external_id, zoneId));
     const zone = get(currentZone);
     if (estZoneJouableIci(zone) && res?.stream_url) browserPlay(res.stream_url, false, zoneId);
     else if (res?.stream_url) {

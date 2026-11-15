@@ -164,6 +164,6 @@
 
 <style>
   .etat{padding:20px 30px; color:var(--v2-txt3)} .etat.err{color:var(--v2-danger)}
-  .attente{padding:4px 30px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12.5px}
-  .rangs{flex-basis:100%; margin:0; font:11px var(--v2-mono); color:var(--v2-txt2)}
+  .attente{padding:4px 30px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .rangs{flex-basis:100%; margin:0; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
 </style>

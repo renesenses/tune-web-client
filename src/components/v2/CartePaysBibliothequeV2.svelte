@@ -8,45 +8,98 @@
    * petit pays ne se vise pas sur un globe. Un clic sur un pays, au globe ou
    * dans la liste, le choisit ; l'écran parent en fait un filtre.
    *
-   * Les données : la facette `country` du serveur, telle qu'elle est (voir
-   * `lib/bibliothequePays.ts` pour ce qu'elle désigne vraiment).
+   * Les données (#2800) : le pays de l'ARTISTE (par défaut) ou le pays de
+   * l'ÉDITION, comptés en albums ; devant un serveur antérieur, l'ancienne
+   * facette `country` en morceaux, sans le choix (voir `lib/bibliothequePays.ts`).
+   *
+   * tune-server-rust#8668 — les comptes suivent les AUTRES filtres de la
+   * grille : l'écran parent passe les albums qu'elle garde (`retenus`), et la
+   * carte croise le pays de chaque album (`GET /library/album-countries`)
+   * avec eux. Devant un serveur sans cette route, elle retombe sur les
+   * facettes et le DIT quand un filtre est posé (`filtresPoses`).
+   *
+   * La carte occupe toute la largeur de la rangée (Bertrand, 13/11 : « il
+   * faudrait utiliser la place à côté de la map ») : le globe à gauche, la
+   * liste des pays à côté, sur plusieurs colonnes ; empilés à 768 px et moins.
    */
   import { untrack } from 'svelte';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { FacetParam } from '../../lib/api';
   import { projeter, deprojeter, DEG, type Orientation } from '../../lib/champCercle/globe';
   import { nomPays } from '../../lib/paysMonde';
   import {
-    agregerPays, palier, paysAuLieu, pointsDeTerre, FORCES, PALIERS,
-    type AgregatPays, type PaysDeLaBibliotheque,
+    agregerPaysDesAlbums, chargerPays, palier, SOURCE_SERVEUR, paysAuLieu, pointsDeTerre, FORCES, PALIERS,
+    type AgregatPays, type PaysDeLaBibliotheque, type SourcePays,
   } from '../../lib/bibliothequePays';
 
-  let { filtres = {}, choisi = null, onChoisir }: {
+  let { filtres = {}, choisi = null, source = $bindable('artiste'), retenus = null, filtresPoses = false, onChoisir }: {
     /** Les autres bornes de la Bibliothèque (portée de dossier). */
     filtres?: Record<string, FacetParam>;
     /** Le code du pays choisi, `null` sans filtre. */
     choisi?: string | null;
+    /** #2800 — pays de l'artiste (défaut) ou de l'édition ; gardé par l'écran parent. */
+    source?: SourcePays;
+    /** #8668 — les albums que la grille garde sous ses AUTRES filtres (le pays
+     *  exclu) ; `null` : pas de liste (mode paginé, dépôt) — facettes du serveur. */
+    retenus?: ReadonlySet<number> | null;
+    /** #8668 — un autre filtre de la grille est posé. */
+    filtresPoses?: boolean;
     onChoisir: (p: PaysDeLaBibliotheque | null) => void;
   } = $props();
 
   let agregat = $state<AgregatPays | null>(null);
   let erreur = $state(false);
+  /** #2800 — `true` : serveur antérieur, pas de choix artiste / édition ;
+   *  `null` tant que la première réponse n'est pas là. */
+  let ancien = $state<boolean | null>(null);
+  /** #8668 — `true` : les comptes viennent des albums que garde la grille ;
+   *  `false` : des facettes du serveur, sur toute la bibliothèque. */
+  let suitLesFiltres = $state(false);
+  /** #8668 — le pays de chaque album, lu une fois par source et par ouverture
+   *  de la carte ; `null` en cache : serveur sans la route. */
+  const paires = new Map<SourcePays, Promise<[number, string][] | null>>();
+  function pairesDe(s: SourcePays) {
+    let p = paires.get(s);
+    if (!p) { p = api.getLibraryAlbumCountries(SOURCE_SERVEUR[s]); paires.set(s, p); }
+    return p;
+  }
+  /** Le dernier agrégat montré, par source : un filtre qui change recompte
+   *  sans repasser par « Chargement ». */
+  let derniereSource: SourcePays | null = null;
   $effect(() => {
     const f = filtres;
-    agregat = null; erreur = false;
+    const s = source;
+    const r = retenus;
+    if (derniereSource !== s) { agregat = null; derniereSource = s; }
+    erreur = false;
     let perime = false;
-    api.getLibraryFacets(['country'], f, 0)
-      .then((r) => { if (!perime) agregat = agregerPays(r?.country); })
-      .catch(() => { if (!perime) erreur = true; });
+    const parLesFacettes = () => chargerPays(api.getLibraryFacets, s, f)
+      .then((x) => { if (!perime) { agregat = x.agregat; ancien = x.ancien; suitLesFiltres = false; } });
+    const travail = r == null
+      ? parLesFacettes()
+      : pairesDe(s).then((p) => {
+        if (perime) return;
+        if (p == null) return parLesFacettes();
+        agregat = agregerPaysDesAlbums(p, r, s); ancien = false; suitLesFiltres = true;
+      });
+    travail.catch(() => { if (!perime) erreur = true; });
     return () => { perime = true; };
   });
 
-  const fmt = $derived(new Intl.NumberFormat($locale));
+  /** #2800 — changer de pays retire le filtre posé dans l'autre. */
+  function changerSource(s: SourcePays) {
+    if (s === source) return;
+    if (choisi != null) onChoisir(null);
+    source = s;
+  }
+  const enAlbums = $derived(agregat?.unite === 'albums');
+
   const lignes = $derived((agregat?.pays ?? []).map((p) => ({ ...p, nom: nomPays(p.code, $locale) })));
   const parCode = $derived(new Map((agregat?.pays ?? []).map((p) => [p.code, p])));
-  const morceaux = (n: number) => $t((n === 1 ? 'v2.lib.map.trackOne' : 'v2.lib.map.tracks') as any).replace('{n}', fmt.format(n));
-  const horsCarte = (n: number) => $t((n === 1 ? 'v2.lib.map.offMapOne' : 'v2.lib.map.offMap') as any).replace('{n}', fmt.format(n));
+  const effectif = (n: number) => $tn(enAlbums ? 'v2.lib.map.albumsN' : 'v2.lib.map.tracksN', n);
+  const horsCarte = (n: number) => $tn(enAlbums ? 'v2.lib.map.offMapAlbumsN' : 'v2.lib.map.offMapN', n);
+  const pourArtiste = $derived(ancien === false && source === 'artiste');
 
   function choisir(code: string | null) {
     if (code == null || code === choisi) { onChoisir(null); return; }
@@ -63,6 +116,16 @@
   let agrandie = $state(false);
   const TAILLE_VIGNETTE = 200;
   let taille = $state(TAILLE_VIGNETTE);
+  // #8668 — sur un écran large, la vignette grandit un peu : la carte a
+  // désormais toute la rangée.
+  $effect(() => {
+    if (agrandie || typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(min-width: 1200px)');
+    const lire = () => { if (!agrandie) taille = mq.matches ? 240 : TAILLE_VIGNETTE; };
+    lire();
+    mq.addEventListener?.('change', lire);
+    return () => mq.removeEventListener?.('change', lire);
+  });
   function basculer() { agrandie = !agrandie; taille = agrandie ? 320 : TAILLE_VIGNETTE; }
   let survole = $state<string | null>(null);
   let o: Orientation = { lon0: 10 * DEG, tilt: 20 * DEG };
@@ -210,14 +273,27 @@
       title={$t((agrandie ? 'v2.lib.map.shrink' : 'v2.lib.map.enlarge') as any)}
       onclick={basculer}>{agrandie ? '\u2198' : '\u2197'}</button>
   </header>
-  {#if agrandie}<p class="note">{$t('v2.lib.map.hint' as any)}</p>{/if}
+  {#if ancien === false}
+    <!-- #2800 — pays de l'artiste (défaut) ou de l'édition ; absent devant un serveur antérieur. -->
+    <div class="sources" role="group" aria-label={$t('v2.lib.map.source' as any)} data-carte-source={source}>
+      <button type="button" data-carte-source-artiste aria-pressed={source === 'artiste'} class:on={source === 'artiste'}
+        onclick={() => changerSource('artiste')}>{$t('v2.lib.map.sourceArtist' as any)}</button>
+      <button type="button" data-carte-source-edition aria-pressed={source === 'edition'} class:on={source === 'edition'}
+        onclick={() => changerSource('edition')}>{$t('v2.lib.map.sourceRelease' as any)}</button>
+    </div>
+  {/if}
+  {#if agrandie}<p class="note">{$t((pourArtiste ? 'v2.lib.map.hintArtist' : 'v2.lib.map.hint') as any)}</p>{/if}
+  {#if agregat != null && filtresPoses}
+    <!-- #8668 — d'où viennent les comptes quand un autre filtre est posé. -->
+    <p class="note" data-carte-filtres={suitLesFiltres ? 'suivis' : 'ignores'}>{$t((suitLesFiltres ? 'v2.lib.map.followsFilters' : 'v2.lib.map.ignoresFilters') as any)}</p>
+  {/if}
 
   {#if erreur}
     <p class="etat" role="alert" data-carte-erreur>{$t('v2.lib.map.error' as any)}</p>
   {:else if agregat == null}
     <p class="etat" aria-busy="true">{$t('v2.lib.map.loading' as any)}</p>
   {:else if !lignes.length}
-    <p class="etat" data-carte-vide>{$t('v2.lib.map.empty' as any)}</p>
+    <p class="etat" data-carte-vide>{$t((pourArtiste ? 'v2.lib.map.emptyArtist' : 'v2.lib.map.empty') as any)}</p>
     {#if agregat.horsCarte > 0}
       <p class="note">{horsCarte(agregat.horsCarte)}</p>
     {/if}
@@ -231,7 +307,7 @@
           onpointerdown={bas} onpointermove={bouge} onpointerup={haut}
           onpointerleave={() => { if (!appui) survole = null; }}
           onkeydown={touche}></canvas>
-        <p class="survol" aria-live="polite">{#if nomSurvole}{nomSurvole} · {morceaux(parCode.get(survole!)?.n ?? 0)}{/if}</p>
+        <p class="survol" aria-live="polite">{#if nomSurvole}{nomSurvole} · {effectif(parCode.get(survole!)?.n ?? 0)}{/if}</p>
         <div class="legende" aria-hidden="true">
           <span>{$t('v2.lib.map.less' as any)}</span>
           {#each Array.from({ length: PALIERS }, (_, i) => i) as i}<span class="teinte" style:opacity={FORCES[i]}></span>{/each}
@@ -247,7 +323,7 @@
                 onclick={() => choisir(l.code)}>
                 <span class="teinte" style:opacity={FORCES[palier(l.n, agregat.max)]} aria-hidden="true"></span>
                 <span class="nom" title={l.nom}>{l.nom}</span>
-                <em>{morceaux(l.n)}</em>
+                <em>{effectif(l.n)}</em>
               </button>
             </li>
           {/each}
@@ -261,45 +337,54 @@
 </section>
 
 <style>
-  .carte-pays{margin:8px 0 14px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
+  .carte-pays{box-sizing:border-box;width:100%;margin:8px 0 14px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt)}
   header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  header h3{margin:0 0 4px;font-size:14px}
-  .agrandir{border:1px solid var(--v2-line2);background:none;color:var(--v2-txt2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+  header h3{margin:0 0 4px;font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .agrandir{border:1px solid var(--v2-line2);background:none;color:var(--v2-txt2);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:calc(14px * var(--v2-txt-echelle, 1));line-height:1}
   .agrandir:hover{background:var(--v2-hover)}
   .agrandir:focus-visible{outline:2px solid var(--v2-focus);outline-offset:2px}
-  /* #2710 — compacte : une vignette en haut à gauche, jamais plus large que
-     globe + liste ; la grille d'albums garde la place. */
-  .carte-pays.compacte{align-self:flex-start;max-width:min(560px,100%);box-sizing:border-box;padding:8px 10px}
-  .compacte .corps{gap:10px;align-items:stretch}
-  .compacte .globe{flex:0 0 200px;max-width:200px}
+  /* #2710 — compacte : une vignette basse, la grille d'albums garde la
+     hauteur. #8668 — mais TOUTE la largeur de la rangée : la liste des pays
+     s'étale à côté du globe sur autant de colonnes que la place en donne,
+     au lieu d'un tiers de rangée et d'un grand vide à droite. */
+  .carte-pays.compacte{align-self:stretch;max-width:none;box-sizing:border-box;padding:8px 10px}
+  .compacte .corps{gap:14px;align-items:stretch}
+  .compacte .globe{flex:0 0 auto;max-width:none}
   .compacte .survol{display:none}
   .compacte .legende{display:none}
-  .compacte .liste{flex:1 1 160px;display:flex;flex-direction:column;min-height:0}
+  .compacte .liste{flex:1 1 200px;display:flex;flex-direction:column;min-height:0}
   .compacte .liste h4{display:none}
-  .compacte .liste ul{max-height:200px}
-  .note{margin:4px 0;font-size:12px;color:var(--v2-txt2)}
-  .etat{margin:10px 0;font-size:13px;color:var(--v2-txt2)}
+  .compacte .liste ul{max-height:240px}
+  .sources{display:inline-flex;gap:2px;margin:2px 0 6px;padding:2px;border:1px solid var(--v2-line2);border-radius:6px}
+  .sources button{border:0;border-radius:4px;background:none;color:var(--v2-txt2);font:inherit;font-size:calc(12px * var(--v2-txt-echelle, 1));padding:3px 8px;cursor:pointer}
+  .sources button:hover{background:var(--v2-hover)}
+  .sources button.on{background:var(--v2-acc-tint);color:var(--v2-acc2)}
+  .sources button:focus-visible{outline:2px solid var(--v2-focus);outline-offset:2px}
+  .note{margin:4px 0;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
+  .etat{margin:10px 0;font-size:calc(13px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}
   .corps{display:flex;gap:16px;align-items:flex-start}
-  .globe{flex:1 1 320px;min-width:0;max-width:420px;display:flex;flex-direction:column;align-items:center}
+  .globe{flex:0 1 420px;min-width:0;max-width:420px;display:flex;flex-direction:column;align-items:center}
   canvas{display:block;cursor:grab;touch-action:none;border-radius:50%}
   canvas:active{cursor:grabbing}
   canvas:focus-visible,.liste button:focus-visible{outline:2px solid var(--v2-focus);outline-offset:3px}
-  .survol{min-height:1.4em;margin:6px 0 2px;font-size:12px;color:var(--v2-txt2);text-align:center}
-  .legende{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--v2-txt3)}
+  .survol{min-height:1.4em;margin:6px 0 2px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);text-align:center}
+  .legende{display:flex;align-items:center;gap:4px;font-size:calc(11px * var(--v2-txt-echelle, 1));color:var(--v2-txt3)}
   .teinte{display:inline-block;width:14px;height:10px;border-radius:2px;background:var(--v2-acc2);flex:none}
-  .liste{flex:1 1 220px;min-width:0}
-  .liste h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--v2-txt2)}
-  .liste ul{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto}
-  .liste button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+  .liste{flex:1 1 320px;min-width:0}
+  .liste h4{margin:0 0 6px;font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt2)}
+  /* #8668 — plusieurs colonnes, rangées par effectif de gauche à droite. */
+  .liste ul{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));column-gap:6px;align-content:start}
+  .liste button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;color:inherit;font:inherit;font-size:calc(13px * var(--v2-txt-echelle, 1));text-align:left;cursor:pointer}
   .liste button:hover{background:var(--v2-hover)}
   .liste button.on{background:var(--v2-acc-tint);color:var(--v2-acc2)}
   .liste .nom{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .liste em{font-style:normal;font-size:12px;color:var(--v2-txt3)}
-  /* Téléphone : le globe au-dessus, la liste dessous, toute la largeur. */
-  @media (max-width: 640px){
+  .liste em{font-style:normal;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt3)}
+  /* Tablette et téléphone (#8668 : jusqu'à 768 px) : le globe au-dessus, la
+     liste dessous, toute la largeur. */
+  @media (max-width: 768px){
     .corps{flex-direction:column;align-items:stretch}
     .globe{max-width:none}
-    .liste ul{max-height:280px}
+    .liste ul{max-height:280px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
     .carte-pays.compacte{align-self:stretch;max-width:none}
     .compacte .corps{flex-direction:row;flex-wrap:wrap}
     .compacte .globe{flex:0 0 200px;margin:0 auto}

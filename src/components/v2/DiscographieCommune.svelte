@@ -19,11 +19,13 @@
    */
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
-  import type { GroupeCollaborations } from '../../lib/api';
+  import type { GroupeCollaborations, JoueAvec } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, basculerProvenance, choixEffectif, CLE_SOURCE_FICHE, relireSource, serialiserSource, compterFocus, compterProvenances, comptesProvenanceFiche, dansProvenances, recentrerSurProvenances,
-    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee,
+    filtrerFocus, fusionnerDiscographie, partagerParTypeDeSortie, provenanceCochee, versionsEntree,
+    rangerParType, SECTIONS_PAR_TYPE, SEUIL_SECTIONS_PAR_TYPE, type SectionParType,
+    detailEdition, editionsCachees,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
@@ -33,11 +35,15 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { objetAlbum } from '../../lib/gestesObjet';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
 
   interface Props {
     /** Les albums de la bibliothèque — vide pour un artiste qu'elle ne connaît pas. */
@@ -71,6 +77,20 @@
      */
     collaborations?: GroupeCollaborations[];
     reprises?: Album[];
+    /**
+     * Lot 2 (web#2639, tune-server-rust#7767) — « Écriture et production » :
+     * les disques hors de sa discographie où l'artiste est compositeur,
+     * parolier, arrangeur, producteur, ingénieur ou mixeur (`writing`). Même
+     * forme que `reprises` ; absente devant un serveur antérieur, et la
+     * section n'est alors pas rendue — jamais remplie depuis `reprises`.
+     */
+    ecriture?: Album[];
+    /**
+     * #2794 (lot 2, PR 5, tune-server-rust#7768) — « Joue avec » : les
+     * artistes audibles sur les mêmes pistes (`played_with`), dans l'ordre du
+     * serveur. Absente devant un serveur antérieur : pas de bloc.
+     */
+    joueAvec?: JoueAvec[];
     /** Le filtre « Source » de la Bibliothèque : la pastille cochée à l'ouverture. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -89,7 +109,28 @@
      */
     rangeeSources?: boolean;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [] }: Props = $props();
+  /**
+   * #2961 — le compte d'un musicien de « Joue avec » : « N albums » quand le
+   * serveur dit que ses crédits tiennent tout l'album (`album_wide`, des
+   * balises qui recopient le personnel sur chaque piste), sinon « N titres ».
+   */
+  function compteJoueAvec(j: JoueAvec): string {
+    const parAlbum = j.album_wide === true && typeof j.shared_albums === 'number' && j.shared_albums > 0;
+    const n = parAlbum ? (j.shared_albums as number) : (j.shared_tracks ?? 0);
+    const cle = parAlbum
+      ? (n === 1 ? 'v2.disco.sharedAlbumOne' : 'v2.disco.sharedAlbums')
+      : (n === 1 ? 'v2.disco.sharedTrackOne' : 'v2.disco.sharedTracks');
+    return $t(cle as any).replace('{n}', String(n));
+  }
+
+  /** #2961 — la cible du nom : la fiche par `artist_id`, sinon par le nom. */
+  function entiteJoueAvec(j: JoueAvec): Entite {
+    return typeof j.artist_id === 'number'
+      ? { type: 'artiste', nom: j.artist_name, multi: false, artiste: { id: j.artist_id, name: j.artist_name, source: 'local' } }
+      : { type: 'personne', nom: j.artist_name, artiste: { name: j.artist_name } };
+  }
+
+  let { locaux = [], services = [], servicesEnCharge = false, rangeeSources = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [], ecriture = [], joueAvec = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -118,6 +159,7 @@
   // artistes que les services rangent sous lui (#4651) : une seule section.
   const apparitionsToutes = $derived(fusionnerDiscographie(apparitions, partage.connexes));
   const reprisesToutes = $derived(fusionnerDiscographie(reprises, []));
+  const ecritureToutes = $derived(fusionnerDiscographie(ecriture, []));
   const collaborationsToutes = $derived(
     (collaborations ?? []).map((g, i) => ({
       cle: `${g?.artist_id ?? ''}|${g?.artist_name ?? ''}|${i}`,
@@ -131,7 +173,7 @@
   // `compterProvenances`. Elles filtrent TOUTES les sections de la fiche.
   const provenances = $derived(
     compterProvenances([
-      toutes, compilationsToutes, apparitionsToutes, reprisesToutes,
+      toutes, compilationsToutes, apparitionsToutes, reprisesToutes, ecritureToutes,
       ...collaborationsToutes.map((g) => g.entrees),
     ]),
   );
@@ -242,6 +284,48 @@
   const sectionsSortie = $derived(partagerParTypeDeSortie(triees));
 
   /*
+   * web#3032 (Bertrand, recette du 14/11/2026, page Miles Davis) — au-delà de
+   * `SEUIL_SECTIONS_PAR_TYPE` vignettes de la BIBLIOTHÈQUE (pas la discographie
+   * filtrée : cocher une pastille ne fait pas basculer la mise en page ; ni
+   * les albums des services : leur arrivée ne la fait pas basculer non plus), elle
+   * se range en sections par type, repliables, chacune avec son compte ; le
+   * tri de la page (par année par défaut) vaut dans chaque section. En
+   * dessous, rien ne change.
+   */
+  const parType = $derived(toutes.filter((e) => e.sources.includes(BIBLIOTHEQUE)).length > SEUIL_SECTIONS_PAR_TYPE);
+  const sectionsType = $derived(rangerParType(triees));
+  const LIBELLES_TYPE: Record<SectionParType, string> = {
+    studio: 'v2.disco.studioAlbums', live: 'v2.disco.live', compilations: 'v2.disco.compilations',
+    'bandes-originales': 'v2.disco.soundtracks', eps: 'v2.disco.eps', singles: 'v2.disco.singles',
+    autres: 'v2.disco.otherReleases',
+  };
+  /** Les `data-section` d'avant sont gardés pour Live, EP et Singles. */
+  const DATA_TYPE: Record<SectionParType, string> = {
+    studio: 'albums-studio', live: 'live', compilations: 'compilations-artiste',
+    'bandes-originales': 'bandes-originales', eps: 'eps', singles: 'singles', autres: 'autres',
+  };
+  /** Les sections repliées, retenues d'une fiche à l'autre comme le tri. */
+  const CLE_REPLIES = 'v2.art.disco.replies';
+  /** La clé de repli et l'identifiant du bloc « Apparaît sur ». */
+  const REPLI_APPARAIT = 'appears-on';
+  const ID_APPARAIT = 'disco-appears-on';
+  function relireReplies(): Set<string> {
+    try {
+      const v = JSON.parse(lireTexte(CLE_REPLIES) ?? '[]');
+      return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    } catch {
+      return new Set();
+    }
+  }
+  let replies = $state<Set<string>>(relireReplies());
+  function basculerRepli(cle: string) {
+    const n = new Set(replies);
+    if (n.has(cle)) n.delete(cle); else n.add(cle);
+    replies = n;
+    ecrireChoix(CLE_REPLIES, JSON.stringify([...n].sort()));
+  }
+
+  /*
    * Les sections #4767 : même filtre « Source » et même TRI que la
    * discographie — un seul réglage pour toute la page. Une section (ou un
    * groupe « Avec … ») que le filtre vide ne se rend pas.
@@ -255,9 +339,43 @@
   );
   const collaborationsCompte = $derived(collaborationsTriees.reduce((n, g) => n + g.entrees.length, 0));
   const reprisesTriees = $derived(trier(garder(reprisesToutes), triAlbums, sensAlbums));
+  const ecritureTriees = $derived(trier(garder(ecritureToutes), triAlbums, sensAlbums));
+  /*
+   * Lot 2 (web#2639) — la page se lit en QUATRE sections : Discographie,
+   * « Apparaît sur » (apparitions et collaborations, compilations en
+   * sous-groupe), « Écriture et production » et Reprises. Le compte d'une
+   * section est la somme des listes RENDUES : rien d'autre ne le porte.
+   */
+  const apparaitSurCompte = $derived(apparitionsTriees.length + collaborationsCompte + compilationsTriees.length);
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
+
+  /*
+   * tune-web-client#3041 (Didier, forum 2818) — « Je cherche donc le petit
+   * cœur sur ces albums [Qobuz de la fiche artiste] mais il n'y en a pas. »
+   * Une vignette SANS exemplaire de bibliothèque n'avait pas de cœur : le
+   * favori ne savait viser qu'un `albumId` local. Un album de service a le
+   * sien, dans `streaming_favorites` — le MÊME chemin que les vignettes de
+   * l'écran Streaming et de la recherche (`favoriExterneService`, règle du
+   * 08/10 : miroir du service, local au profil). La désignation service +
+   * identifiant vient d'`objetAlbum`, qui sait déjà la clé serveur et le cas
+   * Bandcamp (l'URL tient lieu d'identifiant).
+   */
+  function coeurDeService(e: EntreeDiscographie, keys: ReadonlySet<string>) {
+    if (local(e)?.id != null || e.principal.source === BIBLIOTHEQUE) return null;
+    const al = e.principal.album;
+    const o = objetAlbum(al, e.principal.source ?? null);
+    if (!o.service || !o.sourceId) return null;
+    return favoriExterneService(keys, {
+      itemType: 'album',
+      service: o.service,
+      serviceId: o.sourceId,
+      title: al.title ?? undefined,
+      artist: al.artist_name ?? nomArtiste ?? undefined,
+      coverUrl: al.cover_path ?? undefined,
+    });
+  }
 
   /*
    * Le menu « … » des vignettes de cet écran vient de `lib/actionsPochette` et
@@ -265,12 +383,48 @@
    * l'OBJET, et le même album y a le même menu qu'ailleurs.
    */
 
+  /*
+   * tune-server-rust#8662 — le choix d'édition (Bertrand, 13/11/2026) : une
+   * vignette par album, et quand un service y tient plusieurs éditions de
+   * même titre, un badge « N éditions » ouvre leur liste. Une seule liste
+   * ouverte à la fois ; la clé porte la section, car une même vignette peut
+   * figurer dans deux sections.
+   */
+  let editionsOuvertes = $state<string | null>(null);
+  const cleListe = (e: EntreeDiscographie, origine: OrigineSection) => `${origine ?? 'disco'}|${e.cle}`;
+  function basculerEditions(cle: string) {
+    editionsOuvertes = editionsOuvertes === cle ? null : cle;
+  }
+  /** Échap ferme la liste ouverte et rend le focus au badge qui l'a ouverte. */
+  function toucheEditions(ev: KeyboardEvent) {
+    if (ev.key !== 'Escape' || !editionsOuvertes) return;
+    const id = idListe(editionsOuvertes);
+    editionsOuvertes = null;
+    document.querySelector<HTMLElement>(`.badge-editions[data-liste="${id}"]`)?.focus();
+  }
+  /** Un identifiant HTML sans espace : `aria-controls` est une liste d'identifiants. */
+  const idListe = (cle: string) => `editions-${encodeURIComponent(cle).replace(/[^A-Za-z0-9_-]/g, '_')}`;
+  /** Un clic hors de la liste ouverte la referme. */
+  $effect(() => {
+    if (!editionsOuvertes) return;
+    const ferme = (ev: MouseEvent) => {
+      const cible = ev.target as HTMLElement | null;
+      if (cible?.closest?.('.editions, .badge-editions')) return;
+      editionsOuvertes = null;
+    };
+    window.addEventListener('click', ferme, true);
+    return () => window.removeEventListener('click', ferme, true);
+  });
+  const libelleSource = (source: string) => (source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : source);
+
   const LIBELLES_QUALITE: Record<Qualite, string> = {
     dsd: 'v2.disco.dsd', hires: 'v2.disco.hires', cd: 'v2.disco.cd', lossy: 'v2.disco.lossy',
     multichannel: 'v2.disco.multichannel',
   };
   const libelleQualite = (q: Qualite) => $t(LIBELLES_QUALITE[q] as any);
 </script>
+
+<svelte:window onkeydown={toucheEditions} />
 
 <div class="disco">
   {#if provenances.length > 1 || actif.size || rangeeSources}
@@ -329,7 +483,37 @@
   {#if !filtrees.length && toutes.length}
     <div class="etat">{$t('v2.disco.noMatch' as any)}</div>
   {:else}
-    {#if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
+    <!-- Lot 2 (web#2639) — section 1 sur 4 : la discographie de l'artiste
+         (albums, EP, singles, lives, comme avant). Le titre n'est posé que
+         s'il y a quelque chose dessous ; les sous-sections de type de sortie
+         (#5616, #6464) gardent leur forme, un cran plus bas. -->
+    {#if triees.length}
+    <section class="bloc" data-section="discographie">
+    <h3 class="titre-section">{$t('v2.disco.discography' as any)} <span class="cpt">{triees.length}</span></h3>
+    {#if parType}
+      <!-- web#3032 — les sections par type, repliables. Une section vide
+           n'est pas rendue. -->
+      {#each SECTIONS_PAR_TYPE as s (s)}
+        {#if sectionsType[s].length}
+          {@const ouverte = !replies.has(s)}
+          <section class="connexes" data-section={DATA_TYPE[s]} data-repliee={ouverte ? null : ''}>
+            <h3 class="titre-connexes">
+              <button class="replier" aria-expanded={ouverte} aria-controls={ouverte ? `disco-type-${s}` : undefined} onclick={() => basculerRepli(s)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                {$t(LIBELLES_TYPE[s] as any)} <span class="cpt">{sectionsType[s].length}</span>
+              </button>
+            </h3>
+            {#if ouverte}
+              <div class="gr" id={`disco-type-${s}`}>
+                {#each sectionsType[s] as e (e.cle)}
+                  {@render carte(e)}
+                {/each}
+              </div>
+            {/if}
+          </section>
+        {/if}
+      {/each}
+    {:else if !sectionsSortie.eps.length && !sectionsSortie.singles.length && !sectionsSortie.live.length}
       <div class="gr">
         {#each triees as e (e.cle)}
           {@render carte(e)}
@@ -349,7 +533,9 @@
         </section>
       {/if}
       {#if sectionsSortie.albums.length}
-        <section data-section="albums-principaux">
+        <!-- web#2665 — `connexes` porte l'écart au-dessus du titre : sans lui,
+             « Albums principaux » se collait aux pochettes des Lives. -->
+        <section class="connexes" data-section="albums-principaux">
           <h3 class="titre-connexes">{$t('v2.disco.mainAlbums' as any)} <span class="cpt">{sectionsSortie.albums.length}</span></h3>
           <div class="gr">
             {#each sectionsSortie.albums as e (e.cle)}
@@ -380,47 +566,48 @@
         </section>
       {/if}
     {/if}
+    </section>
+    {/if}
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
   {/if}
 
-  <!-- #4767 — les deux sections que FabienM demande d'après Roon. Rendues
-       SEULEMENT quand elles portent quelque chose : une section vide ne
-       s'explique pas, et le serveur ne renvoie même pas la clé. Le compte est
-       la longueur de la liste rendue — rien d'autre ne le porte, donc rien ne
-       peut diverger. Ouvrir une de ces vignettes focalise la fiche d'album
-       sur l'artiste de la page. -->
-  {#if compilationsTriees.length}
-    <section class="connexes" data-section="compilations">
-      <h3 class="titre-connexes">{$t('v2.disco.compilations' as any)} <span class="cpt">{compilationsTriees.length}</span></h3>
-      <div class="gr">
-        {#each compilationsTriees as e (e.cle)}
-          {@render carte(e, 'compilations')}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  {#if apparitionsTriees.length}
-    <section class="connexes" data-section="apparitions">
-      <h3 class="titre-connexes">{$t('v2.disco.appearances' as any)} <span class="cpt">{apparitionsTriees.length}</span></h3>
-      <div class="gr">
-        {#each apparitionsTriees as e (e.cle)}
-          {@render carte(e, 'apparitions')}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  <!-- #4767 (crédits) — mêmes règles : rendues seulement quand elles portent
-       quelque chose. Ouvrir une de ces vignettes focalise la fiche d'album sur
-       les pistes où l'artiste est CRÉDITÉ (`focus_track_ids`). -->
-  {#if collaborationsCompte}
-    <section class="connexes" data-section="collaborations">
-      <h3 class="titre-connexes">{$t('v2.disco.collaborations' as any)} <span class="cpt">{collaborationsCompte}</span></h3>
+  <!-- Lot 2 (web#2639) — section 2 sur 4, « Apparaît sur » : les sections
+       #4767 de FabienM (apparitions, compilations) et les collaborations de
+       #4862 (« Avec {artiste} »), réunies sous un seul titre ; les
+       compilations en sous-groupe. Rendue SEULEMENT quand elle porte quelque
+       chose : une section vide ne s'explique pas, et le serveur ne renvoie
+       même pas la clé. Ouvrir une de ces vignettes focalise la fiche d'album
+       sur l'artiste de la page (par artiste de piste pour les apparitions et
+       les compilations, par pistes CRÉDITÉES — `focus_track_ids` — pour les
+       collaborations). -->
+  {#if apparaitSurCompte}
+    <section class="bloc" data-section="appears-on">
+      {#if parType}
+        <!-- web#3032 — repliable aussi quand la discographie l'est. -->
+        <h3 class="titre-section">
+          <button class="replier" aria-expanded={!replies.has(REPLI_APPARAIT)} aria-controls={replies.has(REPLI_APPARAIT) ? undefined : ID_APPARAIT} onclick={() => basculerRepli(REPLI_APPARAIT)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            {$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span>
+          </button>
+        </h3>
+      {:else}
+        <h3 class="titre-section">{$t('v2.disco.appearsOn' as any)} <span class="cpt">{apparaitSurCompte}</span></h3>
+      {/if}
+      {#if !parType || !replies.has(REPLI_APPARAIT)}
+      <div id={ID_APPARAIT}>
+      {#if apparitionsTriees.length}
+        <div class="groupe" data-section="apparitions">
+          <div class="gr">
+            {#each apparitionsTriees as e (e.cle)}
+              {@render carte(e, 'apparitions')}
+            {/each}
+          </div>
+        </div>
+      {/if}
       {#each collaborationsTriees as g (g.cle)}
-        <div class="groupe" data-groupe={g.nom}>
+        <div class="groupe" data-section="collaborations" data-groupe={g.nom}>
           <h4 class="titre-groupe">{$t('v2.disco.withArtist' as any).replace('{artist}', g.nom)}</h4>
           <div class="gr">
             {#each g.entrees as e (e.cle)}
@@ -429,12 +616,65 @@
           </div>
         </div>
       {/each}
+      {#if compilationsTriees.length}
+        <div class="groupe" data-section="compilations">
+          <h4 class="titre-groupe">{$t('v2.disco.compilations' as any)} <span class="cpt">{compilationsTriees.length}</span></h4>
+          <div class="gr">
+            {#each compilationsTriees as e (e.cle)}
+              {@render carte(e, 'compilations')}
+            {/each}
+          </div>
+        </div>
+      {/if}
+      </div>
+      {/if}
     </section>
   {/if}
 
+  <!-- #2794 (lot 2, PR 5) — « Joue avec » : `played_with` du serveur
+       (tune-server-rust#7768), dans l'ordre reçu (le client ne retrie pas).
+       #2961 — des puces qui passent à la ligne, nom ENTIER, compte discret
+       dans la police du texte (« 13 titres », ou « 1 album » quand le
+       serveur dit que les crédits tiennent tout l'album : `album_wide`).
+       CHAQUE nom est un lien : la fiche par `artist_id`, sinon par le nom
+       (`ouvrirArtisteDepuis` : fiche exacte, à défaut la Recherche). Clé
+       absente = pas de bloc, sans message. -->
+  {#if joueAvec?.length}
+    <section class="bloc" data-section="played-with">
+      <h3 class="titre-section">{$t('v2.disco.playedWith' as any)} <span class="cpt">{joueAvec.length}</span></h3>
+      <ul class="liste-joue-avec">
+        {#each joueAvec as j, i (`${j?.artist_id ?? ''}|${j?.artist_name ?? ''}|${i}`)}
+          {@const compte = compteJoueAvec(j)}
+          <li data-joue-avec={j.artist_name}>
+            <span class="nom-joue-avec"><LienEntite titre={`${j.artist_name} · ${compte}`} entite={entiteJoueAvec(j)} /></span>
+            <span class="compte-joue-avec">{compte}</span>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
+  <!-- Lot 2 (web#2639) — section 3 sur 4, « Écriture et production » : la
+       clé `writing` du serveur (tune-server-rust#7767). Absente devant un
+       serveur antérieur, et la section avec elle : elle ne se remplit JAMAIS
+       depuis `reprises`, qui garde sa propre section. Ouvrir une vignette
+       focalise la fiche d'album sur les pistes où l'artiste est CRÉDITÉ. -->
+  {#if ecritureTriees.length}
+    <section class="bloc" data-section="ecriture">
+      <h3 class="titre-section">{$t('v2.disco.writing' as any)} <span class="cpt">{ecritureTriees.length}</span></h3>
+      <div class="gr">
+        {#each ecritureTriees as e (e.cle)}
+          {@render carte(e, 'ecriture')}
+        {/each}
+      </div>
+    </section>
+  {/if}
+
+  <!-- Section 4 sur 4, « Reprises » (#4862) : inchangée — ses œuvres
+       enregistrées par d'autres, sans rôle audible sur le disque. -->
   {#if reprisesTriees.length}
-    <section class="connexes" data-section="reprises">
-      <h3 class="titre-connexes">{$t('v2.disco.covers' as any)} <span class="cpt">{reprisesTriees.length}</span></h3>
+    <section class="bloc" data-section="reprises">
+      <h3 class="titre-section">{$t('v2.disco.covers' as any)} <span class="cpt">{reprisesTriees.length}</span></h3>
       <div class="gr">
         {#each reprisesTriees as e (e.cle)}
           {@render carte(e, 'reprises')}
@@ -448,10 +688,13 @@
   {@const al = e.principal.album}
   {@const loc = local(e)}
   {@const enBiblio = e.principal.source === BIBLIOTHEQUE}
-  <div class="carte" data-sources={e.sources.join(' ')}>
+  {@const cleEd = cleListe(e, origine)}
+  {@const ouverte = editionsOuvertes === cleEd}
+  <div class="carte" data-sources={e.sources.join(' ')} class:ouverte>
     <div class="cv">
       <PochetteActions
         favori={loc?.id != null ? { albumId: loc.id } : null}
+        favoriExterne={coeurDeService(e, $favoriteStreamingKeys)}
         etiquettes={cibleEtiquetteAlbum(al, e.principal.source)}
         onLire={() => onLire(e.principal)}
         onOuvrir={() => onOuvrir(e.principal, origine)}
@@ -464,21 +707,11 @@
           albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} vignette alt={al.title}
           fallbackInitials={al.title?.slice(0, 1)} />
       </PochetteActions>
-      <div class="pastilles">
-        {#each e.sources as s (s)}
-          {#if s === BIBLIOTHEQUE}
-            <span class="biblio" title={$t('v2.disco.library' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
-            </span>
-          {:else}
-            <ServiceBadge source={s} compact />
-          {/if}
-        {/each}
-      </div>
     </div>
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
-      <span class="ca" use:bulleTexte>{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+      <!-- web#2770 (lot 3) — l'année mène aux albums de cette année. -->
+      <span class="ca" use:bulleTexte><LienEntite entite={{ type: 'annee', annee: al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? null }} /></span>
       {#if origine && al.credit_roles?.length}
         <!-- Ce que l'artiste fait sur ce disque, tel que MusicBrainz le nomme
              (`guitar`, `vocals`, `composer`…) — comme le tiroir des crédits
@@ -486,6 +719,67 @@
         <span class="roles" title={al.credit_roles.join(', ')}>{al.credit_roles.join(' · ')}</span>
       {/if}
     </button>
+    <!-- tune-web-client#2829 (Ronin22, ASR #169) — une étiquette par
+         plateforme, avec sa résolution, sous la vignette (hors pochette,
+         comme #1136) : le même album chez Qobuz et Spotify est UNE vignette
+         qui dit ce que chacun sert. -->
+    <div class="versions">
+      {#each versionsEntree(e) as v (v.source)}
+        {@const res = v.resolution ?? (v.qualite === 'lossy' ? $t('v2.disco.lossy' as any) : null)}
+        <span class="version" data-source={v.source} title={res ? `${v.source === BIBLIOTHEQUE ? $t('v2.disco.library' as any) : v.source} · ${res}` : null}>
+          {#if v.source === BIBLIOTHEQUE}
+            <span class="biblio" title={$t('v2.disco.library' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
+            </span>
+          {:else}
+            <ServiceBadge source={v.source} compact />
+          {/if}
+          {#if res}<span class="res">{res}</span>{/if}
+        </span>
+      {/each}
+      {#if editionsCachees(e)}
+        <!-- #8662 — les éditions de même titre qu'un service rend en plusieurs
+             exemplaires : une vignette, et le choix ici. -->
+        <button class="badge-editions" data-editions={e.editions.length}
+          data-liste={idListe(cleEd)} aria-expanded={ouverte} aria-controls={ouverte ? idListe(cleEd) : undefined}
+          onclick={() => basculerEditions(cleEd)}>
+          {$t('v2.disco.editions' as any).replace('{n}', String(e.editions.length))}
+        </button>
+      {/if}
+    </div>
+    {#if ouverte}
+      <div class="editions" id={idListe(cleEd)} role="group"
+        aria-label={$t('v2.disco.editionsOf' as any).replace('{title}', al.title ?? '')}>
+        <ul>
+          {#each e.editions as ex, i (`${ex.source}|${ex.album.source_id ?? ex.album.id ?? i}|${i}`)}
+            {@const d = detailEdition(ex)}
+            {@const res = d.resolution ?? (d.qualite === 'lossy' ? $t('v2.disco.lossy' as any) : null)}
+            <li class="edition" data-edition={ex.album.source_id ?? ex.album.id ?? ''} class:principale={ex === e.principal}>
+              <button class="ouvrir-edition" title={$t('v2.disco.openEdition' as any)}
+                onclick={() => { editionsOuvertes = null; onOuvrir(ex, origine); }}>
+                <span class="et">{d.titre}</span>
+                <span class="ed">
+                  {#if ex.source === BIBLIOTHEQUE}
+                    <span>{libelleSource(ex.source)}</span>
+                  {:else}
+                    <ServiceBadge source={ex.source} compact />
+                  {/if}
+                  {#if res}<span>{res}</span>{/if}
+                  {#if d.date}<span>{d.date}</span>{/if}
+                  {#if d.pistes}<span>{$t('v2.disco.editionTracks' as any).replace('{n}', String(d.pistes))}</span>{/if}
+                  {#if d.label}<span>{d.label}</span>{/if}
+                </span>
+              </button>
+              <button class="lire-edition" aria-label={`${$t('v2.disco.playEdition' as any)} — ${d.titre}`}
+                title={$t('v2.disco.playEdition' as any)} onclick={() => onLire(ex)}>
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+            </li>
+          {/each}
+        </ul>
+        <button class="fermer-editions" onclick={() => { editionsOuvertes = null; }}>{$t('v2.disco.closeEditions' as any)}</button>
+      </div>
+    {/if}
   </div>
 {/snippet}
 
@@ -495,9 +789,9 @@
   .pill {
     display: inline-flex; align-items: center; gap: 6px;
     border: 1px solid var(--v2-line2); background: transparent; color: var(--v2-txt3); cursor: pointer;
-    border-radius: var(--v2-r-pill); padding: 5px 12px; font: 600 12px var(--v2-sans);
+    border-radius: var(--v2-r-pill); padding: 5px 12px; font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
-  .pill b { font: 700 10px var(--v2-mono); opacity: .75; }
+  .pill b { font: 700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity: .75; }
   .pill:hover { color: var(--v2-txt); }
   .pill.on { color: var(--v2-acc-tint); border-color: var(--v2-acc2); background: var(--v2-acc-soft); }
   .pill.raz { border-style: dashed; }
@@ -506,12 +800,12 @@
   .focus {
     display: inline-flex; align-items: center; gap: 4px;
     border: 0; background: transparent; cursor: pointer; padding: 0;
-    font: 600 13px var(--v2-sans); color: var(--v2-txt2);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
   .focus svg { width: 14px; height: 14px; transition: transform .12s ease; }
   .focus.ouvert svg { transform: rotate(90deg); }
   .focus.actif, .focus:hover { color: var(--v2-acc1); }
-  .cpt { font: 11px var(--v2-mono); color: var(--v2-txt3); }
+  .cpt { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
   .panneau {
     display: flex; flex-wrap: wrap; gap: 18px 40px; align-items: flex-start;
     padding: 14px 18px; margin: 0 0 16px;
@@ -519,19 +813,19 @@
   }
   .axe { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
   .axe h3 {
-    margin: 0 0 2px; font: 600 11px var(--v2-sans); color: var(--v2-txt3);
+    margin: 0 0 2px; font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
     text-transform: uppercase; letter-spacing: .06em;
   }
-  .case { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v2-txt2); cursor: pointer; }
+  .case { display: flex; align-items: center; gap: 7px; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt2); cursor: pointer; }
   .case span:first-of-type { text-transform: capitalize; }
-  .case .n { font: 11px var(--v2-mono); color: var(--v2-txt3); }
+  .case .n { font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); }
   /* Le « Tout afficher » du panneau Focus. PAS `.raz` : ce nom est aussi celui
      de la pastille « Toutes » (`.pill.raz`), et cette règle, de même poids que
      `.pill` mais écrite après, lui ôtait bordure et marge et la posait en bas
      de la rangée (#1873). */
   .raz-focus {
     align-self: flex-end; border: 0; background: transparent; cursor: pointer; padding: 0;
-    font: 600 12px var(--v2-sans); color: var(--v2-acc1);
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-acc1);
   }
   .gr {
     display: grid;
@@ -540,44 +834,124 @@
     align-content: start;
   }
   .carte { display: flex; flex-direction: column; content-visibility: auto; contain-intrinsic-size: auto 210px; }
+  /* #8662 — la liste ouverte passe au-dessus des vignettes voisines :
+     `content-visibility` la rognerait, on le lève sur la carte ouverte. */
+  .carte.ouverte { position: relative; z-index: 3; content-visibility: visible; }
+  .badge-editions {
+    border: 1px solid var(--v2-line2); background: transparent; cursor: pointer;
+    border-radius: var(--v2-r-pill); padding: 1px 7px;
+    font: 600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-acc1);
+  }
+  .badge-editions:hover, .badge-editions[aria-expanded="true"] { border-color: var(--v2-acc2); background: var(--v2-acc-soft); }
+  .badge-editions:focus-visible, .ouvrir-edition:focus-visible, .lire-edition:focus-visible, .fermer-editions:focus-visible {
+    outline: 2px solid var(--v2-acc1); outline-offset: 2px;
+  }
+  .editions {
+    position: absolute; top: 100%; left: 0; margin-top: 6px;
+    width: max(100%, 280px); max-width: min(360px, 90vw); max-height: 320px; overflow: auto;
+    padding: 8px; border-radius: var(--v2-r-card);
+    background: var(--v2-surface2); border: 1px solid var(--v2-line2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  }
+  .editions ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .edition { display: flex; align-items: center; gap: 6px; border-radius: 6px; }
+  .edition.principale { background: var(--v2-acc-soft); }
+  .ouvrir-edition {
+    flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+    border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; padding: 6px;
+  }
+  .ouvrir-edition:hover .et { color: var(--v2-acc1); }
+  .et {
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ed {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px;
+    font: calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
+  }
+  .lire-edition {
+    flex: none; display: grid; place-items: center; width: 28px; height: 28px;
+    border: 0; border-radius: 50%; background: transparent; color: var(--v2-txt2); cursor: pointer;
+  }
+  .lire-edition:hover { color: var(--v2-acc1); background: var(--v2-line2); }
+  .lire-edition svg { width: 14px; height: 14px; }
+  .fermer-editions {
+    display: block; margin: 6px 0 0 auto; border: 0; background: transparent; cursor: pointer; padding: 2px 4px;
+    font: 600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
+  }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }
   .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-  /* SOUS les icônes de coin de `PochetteActions` (z-index 1) : au survol, ce
-     sont elles qui doivent se lire. */
-  .pastilles {
-    position: absolute; left: 6px; bottom: 6px; z-index: 0;
-    display: flex; gap: 4px; align-items: center; pointer-events: none;
+  /* #2829 — les étiquettes plateforme + résolution, sous le titre. */
+  .versions { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 5px; }
+  .version {
+    display: inline-flex; align-items: center; gap: 4px;
+    font: calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3); white-space: nowrap;
   }
+  .version .res { color: var(--v2-txt2); }
   .biblio {
-    display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
-    background: rgba(18, 18, 20, 0.82); color: #fff;
+    display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--v2-line2); color: var(--v2-txt);
   }
-  .biblio svg { width: 11px; height: 11px; }
+  .biblio svg { width: 10px; height: 10px; }
   .meta {
     display: block; width: 100%; border: 0; background: transparent; padding: 0;
     text-align: left; color: inherit; font: inherit; cursor: pointer;
   }
   .ct {
     display: block; margin-top: 9px;
-    font: 600 12.5px var(--v2-sans); line-height: 1.25;
+    font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height: 1.25;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .ca {
     display: block; margin-top: 2px;
-    font: 11px var(--v2-mono); color: var(--v2-txt3);
+    font: calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color: var(--v2-txt3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .connexes { margin-top: 28px; }
+  /* Lot 2 (web#2639) — les quatre sections de la page, un cran au-dessus des
+     sous-sections `.titre-connexes` (types de sortie) et des groupes
+     `.titre-groupe` (« Avec … », compilations). */
+  .bloc ~ .bloc { margin-top: 34px; }
+  .titre-section {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
+    font: 600 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+  }
+  .bloc > .connexes:first-of-type { margin-top: 0; }
   .roles {
     display: block; margin-top: 2px;
-    font: 10.5px var(--v2-sans); color: var(--v2-txt3);
+    font: calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .groupe + .groupe { margin-top: 20px; }
-  .titre-groupe { margin: 0 0 12px; font: 500 12.5px var(--v2-sans); color: var(--v2-txt3); }
+  .titre-groupe { margin: 0 0 12px; font: 500 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
   .titre-connexes {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
-    font: 600 13px var(--v2-sans); color: var(--v2-txt2);
+    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2);
   }
-  .etat { padding: 22px 0; color: var(--v2-txt3); font-size: 13.5px; }
+  /* web#3032 — le titre d'une section repliable est un bouton : même police
+     que le titre, un chevron qui tourne quand elle est ouverte. */
+  .replier {
+    display: inline-flex; align-items: baseline; gap: 8px;
+    border: 0; background: transparent; padding: 0; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+  }
+  .replier svg { width: 14px; height: 14px; align-self: center; transition: transform .12s ease; }
+  .replier[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .replier:hover { color: var(--v2-acc1); }
+  .replier:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
+  .etat { padding: 22px 0; color: var(--v2-txt3); font-size: calc(13.5px * var(--v2-txt-echelle, 1)); }
+  /* #2794 / #2961 — « Joue avec » : des puces qui passent à la ligne, le nom
+     en entier (il se coupe plutôt que de se tronquer), le compte discret dans
+     la police du texte. */
+  .liste-joue-avec {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .liste-joue-avec li {
+    display: inline-flex; align-items: baseline; gap: 6px; max-width: 100%;
+    padding: 4px 12px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill, 999px);
+    font: calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
+  }
+  .nom-joue-avec { min-width: 0; overflow-wrap: anywhere; }
+  .compte-joue-avec { flex: none; font-size: 0.92em; color: var(--v2-txt3); white-space: nowrap; }
 </style>

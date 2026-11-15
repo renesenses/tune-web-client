@@ -217,27 +217,27 @@
   .tete{display:flex; gap:20px; align-items:flex-end; margin-bottom:22px}
   .logo{width:140px; height:140px; border-radius:12px; overflow:hidden; flex:0 0 auto; display:block}
   .meta{display:flex; flex-direction:column; gap:6px; min-width:0}
-  .surtitre{font:600 11px var(--v2-sans); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2)}
-  h1{margin:0; font:700 28px var(--v2-sans); overflow-wrap:anywhere}
-  .faits{font-size:13px; color:var(--v2-txt2)}
+  .surtitre{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt2)}
+  h1{margin:0; font:700 calc(28px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow-wrap:anywhere}
+  .faits{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .titre-section{display:flex; align-items:baseline; gap:14px; margin:18px 0 10px}
-  h2{margin:0; font:600 16px var(--v2-sans)}
-  .lien{all:unset; cursor:pointer; font:500 12px var(--v2-sans); color:var(--tune-accent)}
+  h2{margin:0; font:600 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .lien{all:unset; cursor:pointer; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--tune-accent)}
   .lien:hover{text-decoration:underline}
   .lien:focus-visible, .carte:focus-visible, .suite:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
   .grille{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:16px}
   .carte{all:unset; cursor:pointer; display:flex; flex-direction:column; gap:4px; width:100%}
   .pochette{width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden; display:block}
   .pochette.ronde{border-radius:50%}
-  .nom{font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .sous{font-size:11px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .nom{font-weight:600; font-size:calc(13px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .sous{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .suite{margin-top:16px; padding:8px 14px; border-radius:10px; cursor:pointer; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:500 13px var(--v2-sans)}
+    background:var(--v2-surface2); color:var(--v2-txt); font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .suite:disabled{opacity:.6; cursor:default}
-  .vide{color:var(--v2-txt2); font-size:13px}
+  .vide{color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   @media (max-width: 600px){
     .v2-label{padding:18px 16px 32px}
     .logo{width:96px; height:96px}
-    h1{font-size:22px}
+    h1{font-size:calc(22px * var(--v2-txt-echelle, 1))}
   }
 </style>

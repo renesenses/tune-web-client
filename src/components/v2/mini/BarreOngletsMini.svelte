@@ -53,7 +53,7 @@
   .onglets{flex:0 0 56px; display:flex; border-top:1px solid var(--v2-line); background:var(--v2-player2);
     padding-bottom:env(safe-area-inset-bottom, 0px)}
   .onglet{flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-    border:0; background:none; cursor:pointer; color:var(--v2-txt3); font:500 10px var(--v2-sans)}
+    border:0; background:none; cursor:pointer; color:var(--v2-txt3); font:500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .onglet svg{width:20px; height:20px}
   .onglet span{max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .onglet.on{color:var(--v2-acc1)}

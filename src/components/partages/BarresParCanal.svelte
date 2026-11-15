@@ -94,7 +94,7 @@
   }
 
   .nom {
-    font-size: 10px;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
     line-height: 14px;
     color: var(--tune-text-muted, inherit);
     white-space: nowrap;

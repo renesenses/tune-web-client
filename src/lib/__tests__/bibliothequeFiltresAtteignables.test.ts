@@ -219,7 +219,8 @@ describe('Réglages — le toggle de la ligne technique', () => {
     expect(i, 'le toggle a disparu des Réglages').toBeGreaterThan(-1);
     const avant = src.slice(Math.max(0, i - 400), i);
     expect(
-      avant.includes("atLeast(level, 'expert')"),
+      // #2735 : `voit` = `atLeast` + la section ouverte par la recherche d'un réglage.
+      avant.includes("atLeast(level, 'expert')") || avant.includes("voit('expert', s.id)"),
       "le toggle est proposé sous le niveau Expert : il n'aurait aucun effet.",
     ).toBe(true);
     expect(src.includes('v2AlbumTechLine: (e.currentTarget as HTMLInputElement).checked'),

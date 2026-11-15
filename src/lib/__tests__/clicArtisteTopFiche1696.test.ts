@@ -203,7 +203,8 @@ describe('#1696 — le clic sur un artiste du classement', () => {
     await ouvrirArtisteDepuis({ name: 'Gretchen Parlato' }, 'home' as any);
     expect(get(ficheArtisteService), 'un artiste au hasard a été ouvert').toBeNull();
     expect(get(pendingLibraryArtist), 'un artiste au hasard a été ouvert').toBeNull();
-    expect(get(activeView)).toBe('library');
+    // web#2770 : sans fiche, la Recherche sur ce nom — plus la Bibliothèque.
+    expect(get(activeView)).toBe('search');
   });
 });
 

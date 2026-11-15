@@ -132,7 +132,7 @@
     background: rgba(245, 158, 11, 0.14);
     border: 1px solid rgba(245, 158, 11, 0.35);
     color: var(--text, #e6e6e6);
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     line-height: 1.4;
   }
   .output-module-banner svg {
@@ -157,7 +157,7 @@
     color: inherit;
     border-radius: 999px;
     padding: 0.25rem 0.7rem;
-    font-size: 0.8rem;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
     line-height: 1.3;
     white-space: nowrap;
     text-decoration: none;

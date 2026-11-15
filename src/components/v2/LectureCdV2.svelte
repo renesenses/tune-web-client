@@ -36,6 +36,12 @@
    * progression suit `cd.memoire.*` en direct (et la relecture de `/etat`) ;
    * une fois prêt, « Lire le disque » se sert dans la mémoire. Rien ne part
    * tout seul : c'est l'utilisateur qui lance la lecture.
+   *
+   * tune-server-rust#8514 : les CRC AccurateRip calculés au chargement
+   * s'affichent piste par piste dès qu'elles sont entières (détail
+   * repliable) ; une fois le disque entier en mémoire,
+   * « Enregistrer dans la bibliothèque » (`ExtractionCdV2`, `memoirePrete`)
+   * verse les pistes déjà lues sans relire le CD.
    */
   import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
@@ -45,11 +51,13 @@
     cdCharge, cdPlugin, refreshCdPlugin, getEtatLecteurCd, getDisqueCd, jouerCd, ejecterCd,
     dureeCd, titrePisteCd, codeRefusCd, delaiRelectureCd, numeroPisteCdEnCours,
     getMemoireCd, reglerMemoireCd, vueChargementCd,
-    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement,
+    chargerCdEnMemoire, etatChargementCd, chargementDepuisEvenement, accurateRipDuChargement,
+    verificationDuChargement,
     type EtatLecteurCd, type DisqueCd, type MemoireCd,
   } from '../../lib/lectureCd';
   import { tuneWS } from '../../lib/websocket';
   import ExtractionCdV2 from './ExtractionCdV2.svelte';
+  import { resumeAr, texteVerdictAr } from '../../lib/verificationAr';
   // tune-server-rust#7195 — un CD de la collection Discogs, pas encore copié.
   import { cdDansLaCollection, collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import '../../styles/tune-v2.css';
@@ -81,6 +89,11 @@
   const vueChargement = $derived(vueChargementCd(etat?.chargement, disque?.disc_id));
   /** #6596 — où en est le chargement du disque affiché. */
   const etatCharg = $derived(etatChargementCd(etat?.chargement, disque?.disc_id));
+  /** #8514 — les CRC AccurateRip du chargement, piste par piste. */
+  const crcChargement = $derived(accurateRipDuChargement(etat?.chargement, disque?.disc_id));
+  /** tune-server-rust#8522 — le verdict de la base AccurateRip. */
+  const verifAr = $derived(verificationDuChargement(etat?.chargement, disque?.disc_id));
+  const tr = (cle: string) => $t(cle as any);
   let chargementDemande = $state(false);
   let erreurChargement = $state<string | null>(null);
 
@@ -324,6 +337,22 @@
               </span>
             </div>
           {/if}
+          {#if crcChargement.length || verifAr}
+            <!-- #8514 : AccurateRip calculé dès le chargement ; #8522 : vérifié contre la base. -->
+            <details class="accuraterip-chargement note" data-base={verifAr?.base ?? ''}>
+              <summary>{verifAr
+                ? resumeAr(verifAr, tr)
+                : $t('v2.cd.memAccurateRip' as any).replace('{n}', String(crcChargement.length))}</summary>
+              <ol>
+                {#each crcChargement as a (a.piste)}
+                  {@const v = verifAr?.pistes.find((p) => p.piste === a.piste)}
+                  <li data-ar={v?.statut ?? ''}><span class="num">{a.piste}</span> {$t('v2.cd.rip.crc' as any).replace('{crc1}', a.v1).replace('{crc2}', a.v2)}
+                    {#if v}<span class="verdict-ar">{texteVerdictAr(v, tr)}</span>{/if}</li>
+                {/each}
+              </ol>
+              {#if !verifAr || verifAr.base === 'en_cours'}<small>{$t('v2.cd.rip.accurateRip' as any)}</small>{/if}
+            </details>
+          {/if}
           <div class="actions">
             <button class="go lire-disque" disabled={$currentZoneId == null || occupe !== null} onclick={() => jouer()}>
               {occupe === 'disque' ? '…' : $t('v2.cd.playDisc' as any)}
@@ -334,7 +363,7 @@
               <span class="note">{$t('v2.cd.toZone' as any).replace('{zone}', $currentZone.name)}</span>
             {/if}
             <!-- tune-server-rust#2466 : n'apparaît que si le serveur sait extraire. -->
-            <ExtractionCdV2 {disque} />
+            <ExtractionCdV2 {disque} memoirePrete={etatCharg === 'pret'} />
             {#if possedeNonCopie}
               <span class="note collection-non-copie" data-collection-non-copie>{$t('collectionPhysique.cdNonCopie' as any)}</span>
             {/if}
@@ -394,43 +423,49 @@
   .v2-cd{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:14px; max-width:880px}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .absent,.plateforme,.lecteur-absent,.vide{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2)}
-  .err{padding:10px 14px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .err{padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .disque{display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap}
   .pochette{width:160px; height:160px; border-radius:12px; object-fit:cover; background:var(--v2-surface2); flex:none}
   .vide-pochette{display:flex; align-items:center; justify-content:center; color:var(--v2-txt3)}
   .vide-pochette svg{width:64px; height:64px}
   .infos{display:flex; flex-direction:column; gap:6px; min-width:0; flex:1}
-  .album{font-size:20px; font-weight:700}
-  .artiste{font-size:14px; color:var(--v2-txt2)}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
+  .album{font-size:calc(20px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .artiste{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .actions{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:8px}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .pistes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
   .piste{display:grid; grid-template-columns:32px minmax(0,1fr) auto 36px; align-items:center; gap:10px;
-    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:13px}
-  .num{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+    padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .piste.en-cours .titre,.piste.en-cours .duree{color:var(--v2-acc-tint); font-weight:600}
   .egaliseur{width:12px; height:12px; fill:var(--v2-acc-tint); vertical-align:middle}
   .titre{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .titre small{margin-left:8px; color:var(--v2-txt3)}
-  .duree{font:11.5px var(--v2-mono); color:var(--v2-txt2)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px}
+  .duree{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .lnk:disabled{opacity:.35; cursor:not-allowed}
   .ejecter{margin-left:auto; display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 16px;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-    font:600 12.5px var(--v2-sans); cursor:pointer}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .ejecter svg{width:16px; height:16px}
   .ejecter:disabled{opacity:.35; cursor:not-allowed}
-  .chargement{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--v2-txt2)}
+  .chargement{display:flex; align-items:center; gap:8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .chargement .barre{width:90px; height:4px; border-radius:2px; background:var(--v2-line); overflow:hidden; flex:none}
   .chargement .barre span{display:block; height:100%; background:var(--v2-acc-tint); transition:width .4s}
   .chargement.fini .barre span{background:var(--v2-acc2)}
   .chargement small{margin-left:4px; color:var(--v2-txt3)}
   .charger{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .charger-memoire{padding:0; font-weight:600}
+  .accuraterip-chargement summary{cursor:pointer}
+  .accuraterip-chargement ol{list-style:none; margin:4px 0 2px; padding:0; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
+  .accuraterip-chargement .num{display:inline-block; width:20px; text-align:right; color:var(--v2-txt3)}
+  .accuraterip-chargement .verdict-ar{margin-left:8px; font-family:var(--v2-sans)}
+  .accuraterip-chargement li[data-ar=verifie] .verdict-ar{color:var(--v2-acc-tint)}
+  .accuraterip-chargement li[data-ar=different] .verdict-ar{color:var(--v2-danger)}
   .memoire{display:inline-flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px}
 </style>

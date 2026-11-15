@@ -23,6 +23,7 @@ import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryFolderScope, libraryLoading } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { _remiseAZeroPourTests } from '../stores/albumsPagines';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 const TOTAL = 700;
 /** Rangés par titre, de A à Z ; ajoutés dans l'ordre INVERSE du titre. */
@@ -122,6 +123,7 @@ afterEach(() => {
 async function ecran(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   monte = mount(LibraryV2, { target: hote, props: {} });
   await poser();
   return hote;

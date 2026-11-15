@@ -13,5 +13,5 @@
 <style>
   .mdp{display:inline-block; flex:none; padding:1px 6px; border-radius:var(--v2-r-pill, 999px);
     border:1px solid var(--v2-acc2, currentColor); color:var(--v2-acc2, currentColor);
-    font:700 9.5px/1.5 var(--v2-mono, monospace); letter-spacing:.02em; white-space:nowrap; vertical-align:middle}
+    font:700 calc(9.5px * var(--v2-txt-echelle, 1))/1.5 var(--v2-mono, monospace); letter-spacing:.02em; white-space:nowrap; vertical-align:middle}
 </style>

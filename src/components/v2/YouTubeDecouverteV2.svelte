@@ -193,15 +193,15 @@
   .ytm{padding:4px 0 24px}
   .onglets{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px}
   .onglets button,.puces button{padding:5px 11px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .onglets button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
-  h3{margin:16px 0 8px; font:600 11px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  .etat{padding:20px 0; color:var(--v2-txt3); font-size:13px}
+  h3{margin:16px 0 8px; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .etat{padding:20px 0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .erreur{color:var(--v2-txt2)}
   .puces{display:flex; flex-wrap:wrap; gap:6px}
-  .retour{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 10px}
+  .retour{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 0 10px}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:20px}
   .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; min-width:0}
-  .ti,.ar{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px}
-  .ar{color:var(--v2-txt3); font-size:12px}
+  .ti,.ar{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .ar{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1))}
 </style>

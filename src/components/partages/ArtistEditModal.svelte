@@ -243,7 +243,7 @@
     padding: 16px 20px 12px;
     border-bottom: 1px solid var(--tune-border);
   }
-  .modal-header h3 { font-family: var(--font-label); font-size: 16px; font-weight: 600; }
+  .modal-header h3 { font-family: var(--font-label); font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 600; }
 
   .close-btn {
     background: none; border: none;
@@ -258,7 +258,7 @@
   .success-state {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; gap: 12px; height: 100%;
-    color: #86efac; font-size: 16px;
+    color: #86efac; font-size: calc(16px * var(--v2-txt-echelle, 1));
   }
 
   .cover-section { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 16px; }
@@ -284,12 +284,12 @@
   .cover-placeholder.round { border-radius: 50%; }
 
   .artist-initials {
-    font-size: 48px; font-weight: 700;
+    font-size: calc(48px * var(--v2-txt-echelle, 1)); font-weight: 700;
     color: var(--tune-text-muted); opacity: 0.5;
     line-height: 1;
   }
-  .drop-hint { font-size: 11px; }
-  .drop-sub { font-size: 10px; opacity: 0.6; }
+  .drop-hint { font-size: calc(11px * var(--v2-txt-echelle, 1)); }
+  .drop-sub { font-size: calc(10px * var(--v2-txt-echelle, 1)); opacity: 0.6; }
 
   .cover-overlay {
     position: absolute; inset: 0;
@@ -306,32 +306,32 @@
     border: 1px solid var(--tune-border);
     color: var(--tune-text);
     padding: 6px 12px; border-radius: var(--radius-sm);
-    font-size: 12px; cursor: pointer;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer;
     display: flex; align-items: center; gap: 4px;
   }
   .btn-secondary:hover { border-color: var(--tune-accent); }
   .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .cover-message { font-size: 12px; color: var(--tune-text-muted); margin: 0; }
+  .cover-message { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin: 0; }
   .cover-message.found { color: #86efac; }
 
   .fields { display: flex; flex-direction: column; gap: 12px; }
 
   .field { display: flex; flex-direction: column; gap: 4px; }
-  .field-label { font-size: 12px; color: var(--tune-text-muted); font-weight: 500; }
+  .field-label { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-weight: 500; }
   .field input, .field textarea {
     background: var(--tune-bg);
     border: 1px solid var(--tune-border);
     color: var(--tune-text);
     padding: 8px 10px; border-radius: var(--radius-sm);
-    font-size: 13px; font-family: inherit;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); font-family: inherit;
   }
   .field textarea { resize: vertical; line-height: 1.5; }
   .field input:focus, .field textarea:focus {
     outline: none; border-color: var(--tune-accent);
   }
 
-  .error-msg { color: #ef4444; font-size: 12px; margin-top: 8px; }
+  .error-msg { color: #ef4444; font-size: calc(12px * var(--v2-txt-echelle, 1)); margin-top: 8px; }
 
   .modal-footer {
     display: flex; justify-content: flex-end; gap: 8px;
@@ -342,7 +342,7 @@
   .btn-cancel {
     background: none; border: 1px solid var(--tune-border);
     color: var(--tune-text-muted); padding: 8px 16px;
-    border-radius: var(--radius-sm); font-size: 13px; cursor: pointer;
+    border-radius: var(--radius-sm); font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
   }
   .btn-cancel:hover { color: var(--tune-text); }
 
@@ -350,7 +350,7 @@
     background: var(--tune-accent);
     border: none; color: #fff;
     padding: 8px 20px; border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; cursor: pointer;
     display: flex; align-items: center; gap: 6px;
   }
   .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }

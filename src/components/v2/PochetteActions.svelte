@@ -8,9 +8,9 @@
    * | Position | Action |
    * |---|---|
    * | haut gauche | favori (bascule) |
-   * | haut droite | édition (ou « voir », œil, pour un objet tenu en central — web#2443) |
+   * | haut droite | édition, ou « retirer » (−) d'une liste |
    * | bas gauche | menu d'actions — `lib/actionsPochette` en dit le contenu |
-   * | bas droite | étiquettes : voir, ajouter, retirer |
+   * | bas droite | étiquettes |
    * | centre | lecture |
    *
    * Les positions viennent de la MAQUETTE, pas de l'énoncé : les deux
@@ -136,20 +136,22 @@
     etiquettes?: CibleEtiquette | null;
     /** Ouvre l'édition. Absent = pas de bouton d'édition. */
     onEditer?: (() => void) | null;
-    /**
-     * Ouvre la fiche en lecture seule (œil, haut droite, à la place de
-     * l'édition) : une station de l'annuaire, tenue en central, se VOIT, elle
-     * ne se modifie pas (web#2443). Ignoré si `onEditer` est donné.
+    /*
+     * Plus d'œil « Voir » (web#2443) depuis la rc12 : retour de Rémi sur la
+     * rc11 (point 17, décidé le 14/11). La fiche d'une station s'ouvre par un
+     * clic sur son logo, c'est-à-dire `onOuvrir`.
      */
-    onVoir?: (() => void) | null;
-    /** Libellé du bouton « voir ». */
-    libelleVoir?: string;
-    /** Retire l'objet d'une liste (haut droite, à la place de l'édition ;
-     *  juste à sa gauche quand « voir » occupe le coin). */
+    /** Retire l'objet d'une liste : « − », en haut à droite. Avec `onEditer`
+     *  (web#2795, surcharge locale), le crayon se range à sa gauche. */
     onRetirer?: (() => void) | null;
     /** Libellé du bouton « retirer ». */
     libelleRetirer?: string;
-    /** Ajoute l'objet à la liste de l'utilisateur (près du cœur). */
+    /**
+     * Ajoute l'objet à la liste de l'utilisateur (près du cœur) : « + », le
+     * pendant du « − » de `onRetirer`. Retour de Rémi sur la rc11 (point 19,
+     * décidé le 14/11) : l'icône « livres » se lisait « déjà dans la
+     * bibliothèque », et les radios n'ont pas de bibliothèque.
+     */
     onAjouter?: (() => void) | null;
     /** Libellé du bouton « ajouter ». */
     libelleAjouter?: string;
@@ -188,8 +190,6 @@
     favoriExterne = null,
     etiquettes = null,
     onEditer = null,
-    onVoir = null,
-    libelleVoir = '',
     onRetirer = null,
     libelleRetirer = '',
     onAjouter = null,
@@ -292,6 +292,11 @@
     }
     menuObjet?.basculer(boite);
   }
+  /*
+   * web#2795 — le coin du crayon : seul, en haut à droite ; à côté de
+   * « retirer » (station de l'annuaire), à sa gauche.
+   */
+  const coinEditer = $derived(onRetirer ? 'tr2' : 'tr');
 </script>
 
 <div class="pa" {@attach amorcerMenu}>
@@ -322,15 +327,15 @@
   {/if}
 
   {#if onAjouter}
-    <button class="coin tl2" aria-label={libelleAjouter} title={libelleAjouter}
+    <button class="coin tl2 ajouter" aria-label={libelleAjouter} title={libelleAjouter}
       onclick={(e) => seul(e, onAjouter)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16M9 4v16"/><path d="M14.5 5.5l4.2-1.1 3.3 14.6-4.2 1.1z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
     </button>
   {/if}
 
   {#if onEditer}
     <button
-      class="coin tr"
+      class="coin {coinEditer}"
       aria-label={$t('v2.cover.edit' as any)}
       title={$t('v2.cover.edit' as any)}
       onclick={(e) => seul(e, onEditer)}
@@ -339,15 +344,8 @@
     </button>
   {/if}
 
-  {#if !onEditer && onVoir}
-    <button class="coin tr voir" aria-label={libelleVoir} title={libelleVoir}
-      onclick={(e) => seul(e, onVoir)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-  {/if}
-
-  {#if !onEditer && onRetirer}
-    <button class="coin" class:tr={!onVoir} class:tr2={!!onVoir} aria-label={libelleRetirer} title={libelleRetirer}
+  {#if onRetirer}
+    <button class="coin tr retirer" aria-label={libelleRetirer} title={libelleRetirer}
       onclick={(e) => seul(e, onRetirer)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>
     </button>

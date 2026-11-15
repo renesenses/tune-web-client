@@ -121,13 +121,13 @@ describe('le branchement — une seule implémentation, deux écrans', () => {
     expect(fiche).toContain('v2.album.addToCollection');
     // Le bouton est SOUS la même garde que le bloc local : un album de la
     // bibliothèque, jamais un dépôt distant ni un album de service.
-    const i = fiche.indexOf('v2.album.addToCollection');
-    const avant = fiche.slice(fiche.lastIndexOf('{#if', i), i);
+    // web#2736 — c'est l'entrée « Collection » du groupe « Ajouter à » du menu
+    // « … » ; sa garde est écrite sur la même ligne que l'entrée.
+    const i = fiche.indexOf("cle: 'v2.menu.toCollection'");
+    expect(i).toBeGreaterThan(-1);
+    const avant = fiche.slice(fiche.lastIndexOf('if (', i), i);
     expect(avant).toContain('album.id != null && !depot');
-    // Et il vient APRÈS Étiquettes.
-    const etiquettes = fiche.indexOf("{$tr('v2.cover.tags' as any)}");
-    expect(etiquettes).toBeGreaterThan(-1);
-    expect(i).toBeGreaterThan(etiquettes);
+    expect(avant).toContain('groupe: ajout');
   });
 
   it('la fiche mène à l’écran Collections quand il n’y en a aucune', () => {

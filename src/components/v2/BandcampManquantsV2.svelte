@@ -76,15 +76,15 @@
 <style>
   .manquants{margin:14px 0 20px; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:7px 12px; border-radius:8px}
-  .err{color:var(--v2-danger); font-size:12px}
-  .etat{margin:0; font-size:12.5px; color:var(--v2-txt3)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 12px; border-radius:8px}
+  .err{color:var(--v2-danger); font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .etat{margin:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .onglets{display:flex; gap:6px; flex-wrap:wrap}
   .onglets button{padding:5px 11px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .onglets button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
   .onglets span{opacity:.75; margin-left:4px}
-  ul{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; font-size:13px}
+  ul{margin:0; padding-left:18px; display:flex; flex-direction:column; gap:4px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   a{color:var(--v2-txt)}
-  .corr{margin-left:8px; font-size:11px; color:var(--v2-txt3)}
+  .corr{margin-left:8px; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 </style>

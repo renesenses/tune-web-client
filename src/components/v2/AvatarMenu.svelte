@@ -11,6 +11,7 @@
    * Défaut : Essential (débutant) pour tous.
    */
   import { onMount } from 'svelte';
+  import IconeReglages from './IconeReglages.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
@@ -18,7 +19,8 @@
   import { t } from '../../lib/i18n';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
-  import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
+  import { tabLabel } from '../../lib/v2Settings';
+  import { searchReglages, masqueAuNiveau, type ReglageHit } from '../../lib/reglagesIndex';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
   import { ssoDisponible } from '../../lib/bridge';
@@ -29,11 +31,6 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
-  import { visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
-  import { basculerVers } from '../../lib/basculeDeProfil';
-  import { basculeNecessaire } from '../../lib/basculeDeProfil';
-
-  import { estProfilDuCompte, formeDeLaSection } from '../../lib/profilDuCompte';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -209,6 +206,32 @@
     champFichier?.click();
   }
 
+  /**
+   * Bertrand, 15/11/2026 (#3057) : avec une photo locale, le rond propose un
+   * petit choix — « Changer la photo » / « Retirer ». Sans photo locale, il
+   * n'y a rien à retirer : un menu à une seule entrée serait un clic de trop,
+   * le rond ouvre l'explorateur directement, comme avant.
+   */
+  let choixPhoto = $state(false);
+  function clicSurLeRond() {
+    if (photoLocale) { choixPhoto = !choixPhoto; return; }
+    ouvrirExplorateur();
+  }
+  function changerPhoto() {
+    choixPhoto = false;
+    ouvrirExplorateur();
+  }
+
+  /**
+   * Retirer la photo LOCALE. La photo et son propriétaire partent ensemble ;
+   * la bulle retombe sur la photo du compte (`ssoAvatar`), sinon sur le dégradé.
+   */
+  function retirerPhoto() {
+    choixPhoto = false;
+    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
+    notifications.success(get(t)('settings.avatarRemoved'));
+  }
+
   async function choisirPhoto(e: Event) {
     const champ = e.currentTarget as HTMLInputElement;
     const fichier = champ.files?.[0];
@@ -239,41 +262,6 @@
     envoiPhoto = false;
   }
 
-  function retirerPhoto() {
-    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
-    notifications.success(get(t)('settings.avatarRemoved'));
-  }
-
-  /**
-   * Le nom à écrire.
-   *
-   * `name` est l'IDENTIFIANT de connexion — le serveur y range l'adresse de
-   * courriel — et `display_name` le prénom. Afficher `name` mettrait
-   * « matteo@mozaiklabs.fr » dans une liste de personnes.
-   */
-  const compte = $derived({ connected: ssoConnected, name: ssoName, email: ssoEmail });
-  const forme = $derived(
-    formeDeLaSection(
-      $visibleProfiles.length,
-      $visibleProfiles.length === 1 && $visibleProfiles[0].id === $currentProfileId,
-    ),
-  );
-
-  function nomDuProfil(p: Profile): string {
-    return p.display_name?.trim() || p.name;
-  }
-
-  /**
-   * Basculer RECHARGE la page — voir `lib/basculeDeProfil` pour le pourquoi.
-   * On ne ferme donc pas le panneau : il n'y en aura plus.
-   */
-  function basculer(id: number) {
-    // tune-server-rust#5916 — le serveur retient le choix de cet appareil :
-    // un navigateur qui efface son stockage le retrouve au prochain chargement.
-    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
-    basculerVers(get(currentProfileId), id);
-  }
-
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
@@ -285,22 +273,23 @@
   function setTheme(t: V2Theme) {
     preferences.update((p) => ({ ...p, v2Theme: t }));
   }
-  // Recherche de réglages : lit la MÊME carte que l'écran Réglages v2
-  // (lib/v2Settings), donc l'index ne peut pas diverger de l'écran réel.
+  // Recherche de réglages : lit le MÊME index que la recherche de l'écran
+  // Réglages (lib/reglagesIndex, #2735), réglage par réglage — l'index et
+  // l'écran ne peuvent pas diverger, un test vérifie chaque ancre.
   // On résout les clés i18n pour chercher sur les libellés affichés — un
   // utilisateur tape « me suivre », pas « settings.followMe ».
   let q = $state('');
-  const hits = $derived<V2SettingsHit[]>(searchSettings(q, (k) => $t(k as any)));
+  const hits = $derived<ReglageHit[]>(searchReglages(q, (k) => $t(k as any), 8));
 
-  function openSetting(h: V2SettingsHit) {
-    v2SettingsTarget.set({ tab: h.tab.id, section: h.section.id });
+  function openSetting(h: ReglageHit) {
+    v2SettingsTarget.set({ tab: h.tab.id, section: h.section.id, reglage: h.reglage.id });
     activeView.set('settings');
     q = '';
     close();
   }
 
-  function toggle() { open = !open; if (!open) q = ''; }
-  function close() { open = false; }
+  function toggle() { open = !open; if (!open) { q = ''; choixPhoto = false; } }
+  function close() { open = false; choixPhoto = false; }
   function onDocClick(e: MouseEvent) {
     const cible = e.target as HTMLElement | null;
     // 🔴 Un élément que le clic vient de FAIRE DISPARAÎTRE n'a plus d'ancêtre :
@@ -348,8 +337,9 @@
           Il est ici et non sur la bulle : la bulle ouvre le panneau, comme elle
           l'a toujours fait, et elle en est la seule porte.
         -->
-        <button class="avatar sm" onclick={ouvrirExplorateur} disabled={envoiPhoto}
-          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
+        <button class="avatar sm" onclick={clicSurLeRond} disabled={envoiPhoto}
+          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}
+          aria-haspopup={photoLocale ? 'menu' : undefined} aria-expanded={photoLocale ? choixPhoto : undefined}>
           {#if photo}
             <img class="avimg" src={photo} alt="" />
           {/if}
@@ -357,72 +347,27 @@
         <div class="avid">
           {#if ssoConnected}
             <div class="avname" use:bulleTexte>{ssoName}</div>
+            <!-- Bertrand, 15/11/2026 : l'adresse reste, discrète, en style secondaire. -->
             {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
           {:else}
             <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
-      <!--
-        « Retirer » ne s'affiche que s'il y a une photo à retirer — sans lui, on
-        pourrait seulement REMPLACER, jamais revenir au dégradé. Il est bref et
-        discret : le geste courant est le rond ci-dessus.
-      -->
-      {#if photoLocale}
-        <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
-        <div class="hint">{$t('settings.avatarHint' as any)}</div>
-      {/if}
-
-      <!--
-        LA BASCULE DE PROFIL.
-
-        Elle n'existait NULLE PART dans cette interface : `ProfileSelector` n'est
-        monté que par `Sidebar.svelte`, donc par l'interface actuelle. Le profil
-        retenu (`localStorage['tune-profile-id']`) était pourtant déjà honoré —
-        il part en `X-Profile-Id` sur chaque appel — mais rien ne permettait
-        d'en changer sans repasser par l'ancienne interface.
-
-        Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
-        n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
-      -->
-      <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
-           existe (`visibleProfiles`). La section reste utile si l'on est
-           encore SUR Default : elle offre alors d'en sortir. -->
-      <!-- #2426 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
-           d'aide aussi ; le profil du compte connecté montre la PHOTO du compte
-           au lieu de la pastille ; et un profil seul n'est pas une liste à
-           choisir, c'est un geste. -->
-      {#if forme !== 'aucune'}
-        <div class="sep"></div>
-        <div class="sec" data-section-profils={forme}>{$t('profiles.sectionTitle' as any)}</div>
-        <div class="hint" data-profils-aide>{$t('profiles.sectionHelp' as any)}</div>
-        <div class="profils" class:unique={forme === 'unique'}>
-          {#each $visibleProfiles as p (p.id)}
-            <button
-              class="profil"
-              class:actif={forme === 'liste' && p.id === $currentProfileId}
-              onclick={() => basculer(p.id)}
-              aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}
-              data-profil-du-compte={estProfilDuCompte(p, compte) ? 'oui' : undefined}
-            >
-              {#if estProfilDuCompte(p, compte) && photo}
-                <img class="pastille pphoto" src={photo} alt="" />
-              {:else}
-                <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
-                  >{nomDuProfil(p).charAt(0).toUpperCase()}</span
-                >
-              {/if}
-              <span class="pnom" use:bulleTexte>
-                {forme === 'unique'
-                  ? $t('profiles.useOne' as any).replace('{name}', nomDuProfil(p))
-                  : nomDuProfil(p)}
-              </span>
-            </button>
-          {/each}
+      {#if choixPhoto}
+        <div class="choixphoto" role="menu" data-choix-photo>
+          <button class="choix" role="menuitem" onclick={changerPhoto}>{$t('settings.avatarSetPhoto' as any)}</button>
+          {#if photoLocale}
+            <button class="choix" role="menuitem" data-retirer-photo onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
+          {/if}
         </div>
-        <div class="hint">{$t('profiles.switchHint' as any)}</div>
       {/if}
-
+      <!--
+        Levente, 15/11/2026 (rc12) : plus de texte sur la photo ; la liste des
+        profils d'écoute a quitté ce menu — on change de profil dans « Gérer les
+        profils » (`ProfilsV2`), qui porte la même bascule. Bertrand, même jour :
+        l'adresse reste sous le nom, et « Retirer » vit dans le choix du rond.
+      -->
       <div class="sep"></div>
 
       <div class="sfield">
@@ -438,10 +383,10 @@
       {#if q.trim().length >= 2}
         <div class="hits">
           {#if hits.length}
-            {#each hits as h (h.tab.id + '/' + h.section.id)}
-              <button class="hit" onclick={() => openSetting(h)}>
+            {#each hits as h (h.reglage.id)}
+              <button class="hit" onclick={() => openSetting(h)} title={h.chemin.join(' › ')}>
                 <span class="hl" use:bulleTexte>{h.label}</span>
-                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}</span>
+                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · <span data-masque-niveau>{$t('reglages.recherche.masque' as any).replace('{niveau}', $t(LEVEL_LABEL_KEYS[h.niveau] as any))}</span>{/if}</span>
               </button>
             {/each}
           {:else}
@@ -499,7 +444,7 @@
         {$t('profiles.manage' as any)}
       </button>
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
       </button>
       {#if !ssoConnected && ssoConfigured}
@@ -575,42 +520,26 @@
   /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
      longue pousse la largeur du menu au lieu de s'élider. */
   .avid{min-width:0}
-  .avname{font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
+  .avmail{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Le petit choix du rond : deux liens discrets sous l'en-tête. */
+  .choixphoto{display:flex; gap:4px; padding:0 6px 8px 55px}
+  .choix{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:4px 10px; font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1))}
+  .choix:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
      L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une
      vignette, et personne ne clique une vignette. */
   .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
 
-  /* La liste des profils. Défilante : un foyer peut en compter plusieurs, et le
-     panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
-  .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
-  .profils::-webkit-scrollbar{width:7px}
-  .profils::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
-    border-radius:9px; background:transparent; cursor:pointer; text-align:left;
-    color:var(--v2-txt2); font-family:inherit; font-size:13px}
-  .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
-     lisible dans les six thèmes sans avoir à les vérifier un par un. */
-  .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
-  .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
-    align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff}
-  .pphoto{object-fit:cover; display:block}
-  .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-
-  /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
-  .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
-    color:var(--v2-txt3); font-family:inherit; font-size:11px; cursor:pointer; text-decoration:underline}
-  .retirer:hover{color:var(--v2-txt)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
-  .sec{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.16em; color:var(--v2-txt3);
+  .sec{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
   .seg{display:flex; gap:2px; padding:3px; border-radius:12px; background:var(--v2-surface2); border:1px solid var(--v2-line)}
   .seg button{flex:1; border:0; background:transparent; color:var(--v2-txt2); font-family:inherit;
-    font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
+    font-size:calc(11.5px * var(--v2-txt-echelle, 1)); font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
   /* Le champ de fichier n'est jamais montré : le bouton du menu le déclenche.
@@ -620,18 +549,18 @@
   .sfield{position:relative; display:flex; align-items:center; margin:2px 4px 6px}
   .sfield svg{position:absolute; left:11px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
   .sfield input{width:100%; height:36px; border-radius:10px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans); padding:0 10px 0 33px; outline:none}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px 0 33px; outline:none}
   .sfield input::placeholder{color:var(--v2-txt3)}
   .sfield input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .sfield input::-webkit-search-cancel-button{-webkit-appearance:none}
   .hits{display:flex; flex-direction:column; gap:1px; max-height:190px; overflow-y:auto; padding:0 2px}
-  .hits::-webkit-scrollbar{width:7px}.hits::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .hits::-webkit-scrollbar{width:7px}.hits::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .hit{display:flex; align-items:baseline; justify-content:space-between; gap:10px; width:100%; padding:8px;
     border:0; border-radius:8px; background:transparent; cursor:pointer; text-align:left; color:var(--v2-txt2)}
   .hit:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .hit .hl{font-size:12.5px; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .hit .ht{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); flex:0 0 auto}
-  .nohit{padding:10px 8px; font-size:11.5px; color:var(--v2-txt3)}
+  .hit .hl{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .hit .ht{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); flex:0 0 auto}
+  .nohit{padding:10px 8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .themes{display:grid; grid-template-columns:repeat(6,1fr); gap:6px; padding:2px 4px 0}
   .sw{position:relative; aspect-ratio:1; border-radius:9px; cursor:pointer; padding:0;
     border:1px solid var(--v2-line2); background:var(--sw-bg); transition:.15s}
@@ -640,9 +569,9 @@
     width:52%; height:52%; border-radius:50%; background:var(--sw-acc)}
   .sw:hover{transform:translateY(-1px); border-color:var(--sw-acc)}
   .sw.on{border-color:var(--sw-acc); box-shadow:0 0 0 2px var(--v2-surface), 0 0 0 3px var(--sw-acc)}
-  .hint{font-size:10.5px; color:var(--v2-txt3); line-height:1.35; padding:8px 6px 2px}
+  .hint{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.35; padding:8px 6px 2px}
   .item{display:flex; align-items:center; gap:11px; width:100%; padding:9px 8px; border:0; cursor:pointer;
-    border-radius:9px; background:transparent; color:var(--v2-txt2); font-family:inherit; font-size:13.5px; font-weight:500; text-align:left}
+    border-radius:9px; background:transparent; color:var(--v2-txt2); font-family:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; text-align:left}
   .item:hover{background:var(--v2-hover); color:var(--v2-txt)}
   /* Déconnexion en cours : plus de survol, plus de curseur cliquable — sinon
      rien ne distingue un bouton qui travaille d'un bouton qui n'a rien fait. */

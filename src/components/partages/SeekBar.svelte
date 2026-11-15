@@ -6,6 +6,9 @@
   import { t } from '../../lib/i18n';
   import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../../lib/stores/nowPlaying';
   import { suiviOuverture } from '../../lib/ouvertureFlux.svelte';
+  import { ondePisteEnCours } from '../../lib/stores/ondePiste';
+  import { cibleClavier } from '../../lib/barreOnde';
+  import OndeProgression from './OndeProgression.svelte';
 
   interface Props {
     positionMs: number;
@@ -121,6 +124,24 @@
     window.addEventListener('touchend', onEnd);
   }
 
+  /** Clavier sur le curseur (Discussion #8269) : ← / → 10 s, Début / Fin.
+   *  `preventDefault` : le raccourci global de l'écran de lecture
+   *  (`keyboard.ts`) ignore alors la même flèche, qui ne part pas deux fois. */
+  function handleKeyDown(e: KeyboardEvent) {
+    if (!enabled || !durationMs || !zone?.id) return;
+    const cible = cibleClavier(e.key, displayPositionMs, durationMs);
+    if (cible === null) return;
+    e.preventDefault();
+    seekPositionMs.set(cible);
+    syncTicker();
+    if (isBrowserZone(zone)) browserSeek(cible);
+    api.seek(zone.id, cible);
+  }
+
+  // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique
+  // (réglage décoché, piste sans fichier local, calcul en cours, refus).
+  let onde = $derived($ondePisteEnCours);
+
   let displayPositionMs = $derived(isDragging ? dragPositionMs : positionMs);
   let progress = $derived(durationMs > 0 ? (displayPositionMs / durationMs) * 100 : 0);
 
@@ -166,8 +187,12 @@
 
 <div class="seek-bar" class:disabled={!enabled}>
   <span class="time">{formatTime(displayPositionMs)}</span>
-  <div class="seek-track" class:ouverture bind:this={trackEl} onclick={handleClick} onmousedown={handleMouseDown} ontouchstart={handleTouchStart} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" aria-busy={ouverture} title={ouverture ? $t('zone.resolving') : undefined} tabindex={0}>
-    <div class="seek-fill" style="width: {progress}%"></div>
+  <div class="seek-track" class:ouverture class:onde={!!onde && !ouverture} bind:this={trackEl} onclick={handleClick} onmousedown={handleMouseDown} ontouchstart={handleTouchStart} onkeydown={handleKeyDown} role="slider" aria-valuemin={0} aria-valuemax={durationMs} aria-valuenow={displayPositionMs} aria-label="Seek" aria-busy={ouverture} title={ouverture ? $t('zone.resolving') : undefined} tabindex={0}>
+    {#if onde && !ouverture}
+      <OndeProgression points={onde} {progress} />
+    {:else}
+      <div class="seek-fill" style="width: {progress}%"></div>
+    {/if}
     <div class="seek-thumb" style="left: {progress}%"></div>
   </div>
   <button
@@ -232,6 +257,29 @@
 
   .seek-track:hover {
     height: 6px;
+  }
+
+  /* Barre en forme d'onde (Discussion #8269) : le sillon cède la place au
+     dessin, assez haut pour qu'on lise l'enveloppe. La poignée reste celle de
+     la barre classique, en trait vertical pour ne pas masquer l'onde. */
+  .seek-track.onde,
+  .seek-track.onde:hover {
+    height: 32px;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .seek-track.onde .seek-thumb {
+    width: 2px;
+    height: 100%;
+    border-radius: 1px;
+  }
+
+  @media (max-width: 480px) {
+    .seek-track.onde,
+    .seek-track.onde:hover {
+      height: 28px;
+    }
   }
 
   .seek-fill {

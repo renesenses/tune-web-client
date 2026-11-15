@@ -182,7 +182,7 @@
     background: none;
     color: var(--tune-text-secondary);
     font-family: var(--font-label);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .export-btn:hover { border-color: var(--tune-accent); color: var(--tune-text); }
@@ -206,11 +206,11 @@
     border-radius: var(--radius-lg);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
 
-  .export-label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--tune-text-muted); }
+  .export-label { display: flex; flex-direction: column; gap: 4px; font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .export-name {
     padding: 6px 10px;
     background: var(--tune-bg);
@@ -218,7 +218,7 @@
     border-radius: var(--radius-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
   }
 
   .export-option {
@@ -232,22 +232,22 @@
     border-radius: var(--radius-md);
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     text-align: left;
     cursor: pointer;
   }
   .export-option:hover:not(:disabled) { border-color: var(--tune-accent); }
   .export-option:disabled { opacity: 0.55; cursor: not-allowed; }
-  .export-off { font-size: 11px; color: var(--tune-text-muted); }
+  .export-off { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
 
-  .export-note { margin: 0; font-size: 12px; color: var(--tune-text-muted); }
+  .export-note { margin: 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
 
   .export-result { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; border-top: 1px solid var(--tune-border); }
   .export-result p { margin: 0; }
   .export-ok { font-weight: 600; }
   .export-ko { color: var(--tune-warning); }
-  .export-sub { font-size: 12px; color: var(--tune-text-secondary); }
-  .export-missing { margin: 0; padding-left: 18px; font-size: 12px; }
+  .export-sub { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
+  .export-missing { margin: 0; padding-left: 18px; font-size: calc(12px * var(--v2-txt-echelle, 1)); }
   .m-artist, .m-why { color: var(--tune-text-muted); }
 
   .export-close {
@@ -256,7 +256,7 @@
     border: 0;
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
 </style>

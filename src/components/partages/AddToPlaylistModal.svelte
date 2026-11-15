@@ -10,7 +10,8 @@
   import RecherchePlaylist from './RecherchePlaylist.svelte';
 
   interface Props {
-    track: Track;
+    /** La piste. Absente pour une demande de RADIO (`radioIds`). */
+    track?: Track | null;
     /**
      * Plusieurs pistes de la BIBLIOTHÈQUE d'un coup — web#1683, sélection
      * multiple de la fiche album. `track` reste la première : c'est elle qui
@@ -18,9 +19,16 @@
      * playlist de service. Toutes partent en UNE requête, dans l'ordre donné.
      */
     tracks?: Track[] | null;
+    /**
+     * web#2806 — des stations de « Mes radios » (leur `id`) au lieu de pistes.
+     * Elles partent en `radio_ids` (tune-server-rust#8412) et ne vont que dans
+     * une playlist Tune : aucun service ne range une radio dans ses playlists.
+     */
+    radioIds?: number[] | null;
     onClose: () => void;
   }
-  let { track, tracks = null, onClose }: Props = $props();
+  let { track = null, tracks = null, radioIds = null, onClose }: Props = $props();
+  const deRadio = $derived(!!radioIds?.length);
 
   /**
    * OÙ PEUT ALLER CETTE PISTE — #1268, puis #4889.
@@ -41,9 +49,9 @@
    * Pour une piste de la bibliothèque, rien ne change : les playlists Tune,
    * sans titre de groupe.
    */
-  const service = $derived(serviceDePlaylist(track));
-  const deService = $derived(!estPisteLocale(track));
-  const versTune = $derived(rangeableEnPlaylist(track));
+  const service = $derived(deRadio || !track ? null : serviceDePlaylist(track));
+  const deService = $derived(!deRadio && !!track && !estPisteLocale(track));
+  const versTune = $derived(deRadio || (!!track && rangeableEnPlaylist(track)));
   const nomService = $derived(service ? service.charAt(0).toUpperCase() + service.slice(1) : '');
 
   /** Une destination : chez Tune (`cle` = id numérique) ou chez le service (`cle` = son `source_id`). */
@@ -144,7 +152,7 @@
    * Les pistes à écrire : `tracks` quand il y en a (sélection #1683, ou album
    * ENTIER #2096 — local ou de service), sinon `track` seule.
    */
-  const lot = $derived(tracks?.length ? tracks : [track]);
+  const lot = $derived(tracks?.length ? tracks : track ? [track] : []);
 
   function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
     const locales = lot.filter(estPisteLocale);
@@ -179,7 +187,10 @@
 
   /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
   async function ecrire(ou: Ou, cle: string) {
-    if (ou === 'service' && service) {
+    if (deRadio) {
+      // web#2806 — une radio ne va que chez Tune (`service` est nul).
+      await api.addPlaylistRadios(Number(cle), radioIds!);
+    } else if (ou === 'service' && service) {
       // #2096 — un album de service ENTIER part en une requête, dans l'ordre.
       const ids = lot.filter((x) => !estPisteLocale(x) && x.source_id != null).map((x) => String(x.source_id));
       await api.addStreamingPlaylistTracks(service, cle, ids);
@@ -240,9 +251,14 @@
 <div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
   <div class="modal">
     {#if success}
+      <!-- Le NOM de la playlist vient du serveur ou d'un service, brut : il
+           est rendu en TEXTE, en gras par un élément Svelte, jamais par une
+           chaîne HTML. La traduction porte `{name}` sans balisage ; elle est
+           coupée autour de ce repère, le nom prend la place. -->
+      {@const [avantLeNom, apresLeNom = ''] = $t('playlist.addedTo').split('{name}')}
       <div class="success-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polyline points="20 6 9 17 4 12" /></svg>
-        <p>{@html $t('playlist.addedTo').replace('{name}', success)}</p>
+        <p data-ajout-confirme>{avantLeNom}<strong>{success}</strong>{apresLeNom}</p>
       </div>
     {:else}
       <div class="modal-header">
@@ -398,7 +414,7 @@
 
   .modal-header h3 {
     font-family: var(--font-label);
-    font-size: 16px;
+    font-size: calc(16px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
@@ -477,20 +493,20 @@
 
   .pl-name {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
 
   .pl-count {
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
 
   .empty-hint {
     color: var(--tune-text-muted);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     text-align: center;
     padding: 16px;
   }
@@ -502,7 +518,7 @@
     margin: 8px 20px 4px;
     color: var(--tune-text-muted);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -517,7 +533,7 @@
     gap: 6px;
     margin-bottom: 8px;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);
   }
   .create-ou button {
@@ -528,7 +544,7 @@
     color: var(--tune-text-secondary);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
   }
   .create-ou button.on {
     border-color: var(--tune-accent);
@@ -552,7 +568,7 @@
     color: var(--tune-text-secondary);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     transition: all 0.12s;
   }
 
@@ -575,7 +591,7 @@
     padding: 6px 10px;
     color: var(--tune-text);
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     outline: none;
   }
 
@@ -591,7 +607,7 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     font-family: var(--font-body);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     white-space: nowrap;
   }
@@ -622,7 +638,7 @@
 
   .success-state p {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
   }
 

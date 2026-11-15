@@ -58,8 +58,10 @@ describe('#4651 — la règle', () => {
     ]);
   });
 
-  it('un homonyme sous un autre identifiant reste dans la discographie', () => {
-    expect(estDeLArtiste(al({ artist_id: '999', artist_name: 'AGNES OBEL' }), '551325', 'Agnes Obel')).toBe(true);
+  // tune-server-rust#8478 renverse cette règle : un homonyme sous un autre
+  // identifiant est un AUTRE artiste (« Cannons », « Moonchild »).
+  it('un homonyme sous un autre identifiant passe sous « Apparitions » (#8478)', () => {
+    expect(estDeLArtiste(al({ artist_id: '999', artist_name: 'AGNES OBEL' }), '551325', 'Agnes Obel')).toBe(false);
   });
 
   it('sans identifiant résolu, le nom seul décide', () => {
@@ -97,7 +99,7 @@ const titresDe = (racine: Element | null) =>
 describe('#4651 — la fiche artiste', () => {
   it('la grille principale ne montre plus « Pass Them By » ; « Apparitions » le montre (#1839)', () => {
     const h = poser({ locaux: [], services: [QOBUZ, TIDAL, YOUTUBE], nomArtiste: 'Agnes Obel' });
-    const principale = h.querySelector('.disco > .gr');
+    const principale = h.querySelector('[data-section="discographie"] > .gr'); // web#2639
     const connexes = h.querySelector('[data-section="apparitions"]');
     expect(titresDe(principale)).not.toContain('Pass Them By');
     expect(titresDe(principale)).not.toContain('Trojan');

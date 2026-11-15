@@ -126,15 +126,17 @@ describe('#1696 — un artiste du classement écouté sur un service seulement',
     expect(get(ficheArtisteService), 'un artiste au hasard a été ouvert').toBeNull();
   });
 
-  it('sans service connu, le repli d’avant ne change pas (serveur ancien)', async () => {
+  // web#2770 : le repli sans service est la Recherche LOCALE sur le nom (plus
+  // la Bibliothèque « dans son dernier état ») — et toujours aucun appel fédéré.
+  it('sans service connu, le repli reste local : la Recherche, aucun appel fédéré (serveur ancien)', async () => {
     await ouvrirArtisteDepuis({ name: 'Gretchen Parlato' }, 'home' as any);
-    expect(get(activeView)).toBe('library');
+    expect(get(activeView)).toBe('search');
     expect(federees).toEqual([]);
   });
 
-  it('une `source` sans `source_id` garde son ancien chemin — seul `service_ecoute` est lu', async () => {
+  it('une `source` sans `source_id` garde son chemin local — seul `service_ecoute` est lu', async () => {
     await ouvrirArtisteDepuis({ name: 'Gretchen Parlato', source: 'qobuz' }, 'home' as any);
-    expect(get(activeView)).toBe('library');
+    expect(get(activeView)).toBe('search');
     expect(federees).toEqual([]);
   });
 });

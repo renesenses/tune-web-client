@@ -142,9 +142,9 @@
 <style>
   .acx { display: flex; flex-direction: column; gap: 6px; }
   .acx-head { display: flex; align-items: baseline; gap: 8px; }
-  .acx-label { font-size: 12px; color: var(--tune-text-secondary); }
+  .acx-label { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
   /* Chiffres tabulaires : sans ça, la valeur danse à chaque rafraîchissement. */
-  .acx-pct { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--tune-text); font-variant-numeric: tabular-nums; }
+  .acx-pct { margin-left: auto; font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text); font-variant-numeric: tabular-nums; }
   .acx-track {
     height: 6px;
     border-radius: 3px;
@@ -161,23 +161,23 @@
   }
   /* Terminé = un état, pas une série : il change de couleur ET de libellé. */
   .acx-fill.complete { background: var(--tune-success); border-radius: 3px; }
-  .acx-sub { font-size: 11px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .acx-sub { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   /* Teinte d'avertissement, pas d'erreur : sur une grande bibliothèque, quelques
      fichiers que le décodeur refuse sont un reste normal. Ce qui n'était pas
      normal, c'est de ne pas le dire. */
-  .acx-failed { font-size: 11px; color: var(--tune-warning, #d29922); font-variant-numeric: tabular-nums; }
-  .compact .acx-failed { font-size: 10.5px; }
+  .acx-failed { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-warning, #d29922); font-variant-numeric: tabular-nums; }
+  .compact .acx-failed { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); }
   /* Information, pas avertissement : céder le passage à la lecture est ce qu'on
      demande à cette passe de faire. La colorer en orange ferait passer un
      fonctionnement normal pour un incident — l'erreur exactement inverse de
      celle qu'on corrige. */
-  .acx-paused { font-size: 11px; color: var(--tune-text-secondary); }
-  .compact .acx-paused { font-size: 10.5px; }
+  .acx-paused { font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
+  .compact .acx-paused { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); }
   /* Là en revanche c'est un échec, et il porte sa cause. La cause vient du
      réseau ou du disque : elle est technique, donc en retrait et en petit,
      mais présente — c'est elle qu'un testeur recopie dans un fil. */
-  .acx-model-error { margin: 4px 0 0; font-size: 12px; color: var(--tune-danger, #d1242f); line-height: 1.45; }
-  .acx-model-cause { display: block; font-size: 11px; color: var(--tune-text-muted); word-break: break-word; }
-  .acx-stalled { margin: 0; font-size: 12.5px; color: var(--tune-text-secondary); line-height: 1.5; }
-  .compact .acx-sub { font-size: 10.5px; }
+  .acx-model-error { margin: 4px 0 0; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-danger, #d1242f); line-height: 1.45; }
+  .acx-model-cause { display: block; font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); word-break: break-word; }
+  .acx-stalled { margin: 0; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); line-height: 1.5; }
+  .compact .acx-sub { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); }
 </style>

@@ -103,9 +103,11 @@ describe('écran : Cercles où je suis invité', () => {
     const el = await poser();
     const s = el.querySelector('.cercles-invite');
     expect(s).not.toBeNull();
-    expect(texte(s!.querySelector('h2'))).toBe(fr['v2.circle.memberOf.title']);
-    expect(texte(s!.querySelector('.cercle-invite'))).toContain('Bêta-testeurs');
-    expect(texte(s!.querySelector('.cercle-invite'))).toContain('Invité par Bertrand');
+    expect(texte(s!.querySelector('h3'))).toBe(fr['v2.circle.memberOf.title']);
+    // #8153 : dans la liste des cercles, comme les miens, avec « Cercle de {propriétaire} ».
+    expect(s!.closest('section.cercles')).not.toBeNull();
+    expect(texte(s!.querySelector('.cercle-membre'))).toContain('Bêta-testeurs');
+    expect(texte(s!.querySelector('.cercle-membre .cercle-de'))).toBe('Cercle de Bertrand');
     // Ce n'est pas MON cercle : aucun article de gestion pour lui.
     expect(el.querySelector('article.cercle')).toBeNull();
   });

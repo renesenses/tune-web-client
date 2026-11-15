@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { volumeCommandable, sourdineCommandable, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
@@ -12,22 +13,34 @@
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
+  import { piloteDeLaZone } from '../../lib/zoneHorsBackend';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
-  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
-  import { upNextCount } from '../../lib/stores/queue';
+  import { upNextCount, queueTracks } from '../../lib/stores/queue';
+  import { texteMedaillonFile, libelleBoutonFile } from '../../lib/medaillonFile';
   import { ytPlayerState, ytLoading } from '../../lib/stores/ytPlayer';
   import { isBrowserZone, browserSetVolume, browserSeek } from '../../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
+  import LienEntite from './LienEntite.svelte';
+  import RadioFicheModale from './RadioFicheModale.svelte';
+  import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
+  import { artisteDePisteEcoutee } from '../../lib/lienEntite';
+  import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
+  import { ondePisteEnCours } from '../../lib/stores/ondePiste';
+  import { cibleClavier } from '../../lib/barreOnde';
+  import OndeProgression from './OndeProgression.svelte';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { gainIgnoreParPure, gainReplayGainApplique, replayGainActif } from '../../lib/pureReplayGain';
   import { pureSansObjet } from '../../lib/pureSansObjet';
   import GainDeSortieNotes from './GainDeSortieNotes.svelte';
+  import SortiesDuGroupe from './SortiesDuGroupe.svelte';
   import { dbSigne } from '../../lib/compensationNiveau';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
@@ -38,17 +51,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
+  // tune-server-rust#8445 — zone groupée : le curseur règle le volume MAÎTRE.
+  import MentionGroupe from './MentionGroupe.svelte';
+  import { tuneWS } from '../../lib/websocket';
+  import { reglerVolume, chargerGroupesDeZones, suivreGroupesDeZones } from '../../lib/volumeDeGroupe';
   import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
-  import { destinationDeRetour } from '../../lib/destinationDeRetour';
-  import { activeView, previousView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
+  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { isPremium } from '../../lib/stores/license';
   import { notifications } from '../../lib/stores/notifications';
@@ -128,7 +146,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     limiterEnvoiMobile(() => {
       if ($currentZone?.id !== zoneId || !volumeMobileAutorise || contexte !== contexteVolumeMobile) return;
       void envoyerVolumeOuReverrouiller(zoneId, val, {
-        envoyer: api.setVolume,
+        envoyer: reglerVolume,
         relireVerrou: refreshAudiophile,
         verrouille: isVolumeLocked,
         direVerrou: () => notifications.error($t('audiophile.volumeLockedHint' as any)),
@@ -145,7 +163,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     if (newVal === mobileVol) return;
     if (delta > 0) leverSourdineSiBesoin({ ...z, id: z.id }, newVal);
     applyMobileVolume(z, newVal);
-    await api.setVolume(z.id, newVal);
+    await reglerVolume(z.id, newVal);
   }
 
   // #6700 — une VRAIE sourdine (`muted`), le volume n'est pas touché.
@@ -475,6 +493,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   function handleBarClick(e: MouseEvent) {
+    // Le `click` qui suit un glisser relâché à côté de la barre de
+    // progression : la recherche est partie, rien d'autre à faire.
+    if (seekEnvoyeAuRelachement) { seekEnvoyeAuRelachement = false; return; }
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-selector')) return;
     if ((e.target as HTMLElement).closest('.transfer-selector')) return;
@@ -553,8 +574,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   $effect(() => {
     if (configZone) void chargerGroupes();
   });
+  // #8445 — la barre est toujours montée : elle tient les groupes à jour pour
+  // tous les chemins du volume (curseurs, clavier, vue TV).
+  $effect(() => {
+    suivreGroupesDeZones((h) => tuneWS.onEvent(h));
+  });
   async function apresChangementDeGroupe() {
     await chargerGroupes();
+    // #8445 — le curseur de volume relit aussitôt l'appartenance au groupe.
+    void chargerGroupesDeZones();
     try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
   }
   /**
@@ -727,6 +755,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     await stopAndSync(zone.id);
   }
 
+  /** web#2823 — pause d'UNE zone de la liste, sans changer la zone pilotée. */
+  async function mettreZoneEnPause(id: number | null) {
+    if (id == null) return;
+    try {
+      await pauseAndSync(id);
+    } catch (err) {
+      notifierErreur($t('common.errorLabel' as any), err, { motifSeul: true });
+    }
+  }
+
   async function doubleClicLecture() {
     await arreter();
   }
@@ -778,6 +816,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   let showSignalPath = $state(false);
+  // rc12 — retour depuis l'écran de réglage d'une étape : le panneau se rouvre.
+  $effect(() => {
+    if ($cheminARouvrir !== 'barre') return;
+    cheminARouvrir.set(null);
+    showSignalPath = true;
+  });
 
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
@@ -1027,14 +1071,93 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     displayTrack && displayTrack.source !== 'radio' ? (displayTrack.duration_ms || lastDurationMs) : 0
   );
 
+  // ── Glisser sur la barre (Bertrand, 12/11/2026, Discussion #8269) ──────
+  // Le même geste que la barre de Lecture en cours (`SeekBar`), sur la barre
+  // classique comme sur la forme d'onde : pendant le glisser, la barre et le
+  // compteur suivent le doigt ou la souris SANS rien envoyer ; une seule
+  // recherche part au relâchement.
+  let glisse = $state(false);
+  let positionGlisseMs = $state(0);
+  let pisteProgressionEl: HTMLElement | undefined = $state();
+  /** Le relâchement vient d'envoyer la recherche de ce geste : le `click`
+   *  que le navigateur fait suivre ne doit pas en envoyer une seconde
+   *  (ticket 193, même garde que `SeekBar`), ni ouvrir Lecture en cours sur
+   *  mobile s'il tombe à côté de la barre. Remis à zéro à chaque appui. */
+  let seekEnvoyeAuRelachement = false;
+
+  let positionAfficheeMs = $derived(glisse ? positionGlisseMs : $seekPositionMs);
+
   let progressPercent = $derived(
-    effectiveDurationMs ? Math.min(100, ($seekPositionMs / effectiveDurationMs) * 100) : 0
+    effectiveDurationMs ? Math.min(100, (positionAfficheeMs / effectiveDurationMs) * 100) : 0
   );
 
+  function positionDepuisX(x: number): number {
+    if (!pisteProgressionEl || !effectiveDurationMs) return 0;
+    const rect = pisteProgressionEl.getBoundingClientRect();
+    if (!rect.width) return 0;
+    const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    return Math.floor(pct * effectiveDurationMs);
+  }
+
+  function envoyerSeekGlisse(posMs: number) {
+    const zone = $currentZone;
+    if (!zone?.id) return;
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+    seekEnvoyeAuRelachement = true;
+  }
+
+  function handleProgressMouseDown(e: MouseEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || e.button !== 0) return;
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.clientX);
+    function onMove(ev: MouseEvent) {
+      positionGlisseMs = positionDepuisX(ev.clientX);
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function handleProgressTouchStart(e: TouchEvent) {
+    seekEnvoyeAuRelachement = false;
+    if (!effectiveDurationMs || !$currentZone?.id || !e.touches[0]) return;
+    e.stopPropagation();
+    glisse = true;
+    positionGlisseMs = positionDepuisX(e.touches[0].clientX);
+    function onMove(ev: TouchEvent) {
+      ev.preventDefault();
+      if (ev.touches[0]) positionGlisseMs = positionDepuisX(ev.touches[0].clientX);
+    }
+    function onEnd() {
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchcancel', onEnd);
+      const pos = positionGlisseMs;
+      envoyerSeekGlisse(pos);
+      glisse = false;
+    }
+    window.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+    window.addEventListener('touchcancel', onEnd);
+  }
+
   function handleProgressSeek(e: MouseEvent) {
+    e.stopPropagation();
+    if (seekEnvoyeAuRelachement) {
+      seekEnvoyeAuRelachement = false;
+      return;
+    }
     const zone = $currentZone;
     if (!effectiveDurationMs || !zone?.id) return;
-    e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * effectiveDurationMs);
@@ -1045,6 +1168,23 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     if (isBrowserZone(zone)) browserSeek(posMs);
   }
+  /** Clavier sur le curseur (Discussion #8269) : ← / → 10 s, Début / Fin —
+   *  le même pas que le raccourci global de l'écran de lecture, qui ignore
+   *  la touche une fois qu'elle est prise ici (`preventDefault`). */
+  function handleProgressKey(e: KeyboardEvent) {
+    const zone = $currentZone;
+    if (!effectiveDurationMs || !zone?.id) return;
+    const posMs = cibleClavier(e.key, $seekPositionMs, effectiveDurationMs);
+    if (posMs === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    seekPositionMs.set(posMs);
+    api.seek(zone.id, posMs);
+    if (isBrowserZone(zone)) browserSeek(posMs);
+  }
+
+  // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique.
+  let onde = $derived($ondePisteEnCours);
   /*
     Témoin d'attente. Bertrand, 05/09/2026 : « l'ui ne repond plus aux demandes
     de play un autre album ou piste !! ».
@@ -1062,9 +1202,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // web#1845 : réglage « Lecture en cours ouvre l'album ou la playlist ».
   // Coché, la vignette suit la même règle que l'entrée de la barre latérale
   // (même repli : radio ou page introuvable → écran Lecture en cours).
+  /** web#2770 — la fiche de la station qui joue, depuis la barre (#2398 l'a sur Lecture en cours). */
+  let ficheStationOuverte = $state(false);
+
   function ouvrirDepuisVignette() {
     if ($activeView === 'nowplaying') {
-      activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }));
+      // #2743 — même Retour que le bouton de l'écran : reculer rend l'onglet et la fiche.
+      retourDepuisLectureEnCours();
       return;
     }
     if ($preferences.lienLectureVersSource === true) void ouvrirLienLectureEnCours();
@@ -1125,17 +1269,40 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 {#if deviceTypeLabel(z.output_type)}
                   <span class="zone-popover-badge">{deviceTypeLabel(z.output_type)}</span>
                 {/if}
+                <!-- tune-server-rust#7806 — le pilote réel d'une zone locale
+                     Windows : « This Computer » en WASAPI ne se confond plus
+                     avec la zone du DAC ASIO. -->
+                {#if piloteDeLaZone(z)}
+                  <span class="zone-popover-badge" data-pilote-local title={$t('v2.zone.piloteLocal' as any)}>{piloteDeLaZone(z)}</span>
+                {/if}
                 {#if z.recovery_started_at != null}
                   <span class="zone-popover-badge recovering">{$t('zone.recovering')}</span>
                 {:else if z.online === false}
                   <span class="zone-popover-badge offline">{$t('zone.offline')}</span>
-                {:else if z.state === 'playing'}
-                  <span class="zone-playing-indicator">
-                    <svg viewBox="0 0 10 12" fill="currentColor" width="8" height="10"><polygon points="0,0 10,6 0,12" /></svg>
-                  </span>
                 {/if}
               </span>
             </button>
+            <!--
+              web#2823 (fil 2766) — le ▶ vert « en lecture » se lisait « cliquez
+              pour lire ». À sa place, un VRAI bouton pause, sur chaque zone qui
+              joue : il coupe CETTE zone (le son d'une autre pièce) sans la
+              piloter. Bouton frère du corps de la rangée — un bouton ne
+              s'imbrique pas dans un bouton — et `stopPropagation` : le clic ne
+              remonte ni au fond du sélecteur ni à la barre. Zone en pause ou
+              arrêtée : pas de bouton.
+            -->
+            {#if z.id !== null && z.online !== false && z.recovery_started_at == null && z.state === 'playing'}
+              <button
+                type="button"
+                class="zone-popover-pause"
+                data-pause-zone={z.id}
+                aria-label={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                title={$t('zone.pauseThisZone' as any).replace('{name}', z.name)}
+                onclick={(e) => { e.stopPropagation(); void mettreZoneEnPause(z.id); }}
+              >
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              </button>
+            {/if}
             <!--
               #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
               point 1). Elle et le bouton dédié « Transférer la lecture vers… »
@@ -1183,9 +1350,15 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
-      <span class="progress-time">{formatTime($seekPositionMs)}</span>
-      <div class="progress-track" onclick={handleProgressSeek} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={$seekPositionMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
-        <div class="progress-fill" style="width: {progressPercent}%"></div>
+      <!-- Hors glisser, le compteur EST `seekPositionMs` : la carte de la
+           zone courante lit le même nombre (synchroProgressionSevy). -->
+      <span class="progress-time">{#if glisse}{formatTime(positionGlisseMs)}{:else}{formatTime($seekPositionMs)}{/if}</span>
+      <div class="progress-track" class:onde={!!onde} bind:this={pisteProgressionEl} onclick={handleProgressSeek} onmousedown={handleProgressMouseDown} ontouchstart={handleProgressTouchStart} onkeydown={handleProgressKey} role="slider" tabindex={0} aria-label="Seek" aria-valuenow={positionAfficheeMs} aria-valuemin={0} aria-valuemax={effectiveDurationMs}>
+        {#if onde}
+          <OndeProgression points={onde} progress={progressPercent} />
+        {:else}
+          <div class="progress-fill" style="width: {progressPercent}%"></div>
+        {/if}
       </div>
       <span class="progress-time">{formatTime(effectiveDurationMs)}</span>
     </div>
@@ -1203,16 +1376,26 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               <span class="live-badge"><span class="live-dot"></span>LIVE</span>
             {/if}
           </span>
+          <!-- web#2770 (lot 1) — l'artiste, l'album et la station sont des
+               LIENS (`LienEntite`), posés DANS le bloc qui ouvre Lecture en
+               cours : chacun arrête la propagation, le reste du bloc garde
+               son geste. L'album de la zone se demande au serveur (#1361). -->
           <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
-              {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
-                ? displayTrack.artist_name
-                : displayTrack.album_title || 'Live Radio'}
+              {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
+                <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name, artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {:else}
+                <LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Live Radio', ouvrir: () => (ficheStationOuverte = true) }} />
+              {/if}
               <span class="radio-station-sep">·</span>
-              <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
+              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Radio', ouvrir: () => (ficheStationOuverte = true) }} />
             {:else}
-              {displayTrack.artist_name ?? ''}
+              <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(displayTrack) }} />
+              {#if displayTrack.album_title}
+                <span class="radio-station-sep">·</span>
+                <LienEntite classe="mini-lien" entite={{ type: 'album', nom: displayTrack.album_title, ouvrir: () => void ouvrirAlbumDeLaZoneCourante() }} />
+              {/if}
             {/if}
           </span>
           <!--
@@ -1264,7 +1447,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           {/if}
         </div>
       </div>
-      {#if getFavKind(displayTrack) !== 'none'}
+      <!-- Rémi (retour rc11, décision de Bertrand du 14/11, rc12) — pour une
+           RADIO, la vignette n'a ni cœur ni bargraphes (« on n'est pas chez
+           Winamp ») : la place revient au titre qui passe. Le cœur du titre
+           capté (`/radio-favorites`) reste dans Lecture en cours ; les
+           visuels restent sur Lecture en cours. La musique ne change pas. -->
+      {#if displayTrack.source !== 'radio' && getFavKind(displayTrack) !== 'none'}
         <button class="fav-btn control-btn" class:is-fav={isFavorite} class:fav-pulse={favPulse} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? $t('favorites.removeTrack') : $t('favorites.addTrack')}>
           <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="18" height="18">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -1274,6 +1462,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       <!-- #452 — le crête-mètre. `styleSurLaBarre` impose les LAMPES : « la
            barre de lecture n'affiche jamais DAT ni IEC (trop large) », et elle
            honore l'extinction. La règle vit dans `lib/peakMetre`, pas ici. -->
+      {#if displayTrack.source !== 'radio'}
       {#if !vuActif && styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
         <div class="tb-crete">
           <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
@@ -1293,6 +1482,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           format={displayTrack.format}
         />
       </div>
+      {/if}
       {/if}
     {/if}
     <!-- Le cadran GAUCHE, au bout de la colonne du titre : c'est ce que montre
@@ -1463,15 +1653,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
          accès rapide vers la file d'attente ; une icône dédiée à côté de
          répéter ». La barre avait aléatoire et répéter, et rien vers la file.
-         Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
-         reste compacte. -->
+         web#2389 — FabienM, fil 2431 : un nombre est DESSINÉ en médaillon,
+         comme sur l'appli Android, et repris dans l'infobulle
+         (lib/medaillonFile). Recette rc12 du 13/11 : c'est le nombre de titres
+         À SUIVRE (`upNextCount`, celui de la page File), pas la longueur totale
+         de la file. Plus rien à suivre : pas de médaillon. -->
     <button
       class="control-btn small queue-btn"
       class:active={$activeView === 'queue'}
       onclick={() => activeView.set('queue')}
-      aria-label={$t('nav.queue')}
-      title={$t('nav.queue')}
+      aria-label={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
+      title={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}
     >
+      {#if texteMedaillonFile($upNextCount)}
+        <span class="queue-badge" aria-hidden="true">{texteMedaillonFile($upNextCount)}</span>
+      {/if}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
         <polygon points="17 10 22 13 17 16 17 10" fill="currentColor" stroke="none" />
@@ -1521,6 +1717,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             </svg>
           {/if}
         </button>
+        {#if volumeFixe($currentZone)}
+          <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+          <VolumeFixe />
+        {:else}
         <input
           type="range"
           class="mobile-volume-slider"
@@ -1532,13 +1732,17 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           disabled={!volumeMobileAutorise}
           {...{ orient: 'vertical' }}
           aria-label="Volume"
+          aria-valuetext={libelleVolumeZone($currentZone as any, mobileVol) ?? undefined}
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
-          <span class="mobile-volume-value">{Math.round(mobileVol * 100)}</span>
+          <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+          <span class="mobile-volume-value" data-volume-mobile>{libelleVolumeZone($currentZone as any, mobileVol) ?? Math.round(mobileVol * 100)}</span>
           <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
+        <MentionGroupe zoneId={$currentZone?.id} />
+        {/if}
         <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}
@@ -1636,8 +1840,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
 
     <!-- tune-server-rust#4176 — PURE allumé sans rien à contourner : la
-         pastille le DIT (bouclier creux, info-bulle), au lieu de s'allumer
-         comme si elle changeait le son. Lu sur le chemin du signal. -->
+         pastille le DIT (info-bulle, libellé atténué). Lu sur le chemin du
+         signal.
+         tune-server-rust#7932 — le bouclier, lui, reste PLEIN tant que PURE
+         est allumé : l'étape « rien à contourner » n'est publiée que par les
+         sorties exclusives (WASAPI exclusif, ASIO, ALSA natif), jamais par le
+         WASAPI partagé. Le vider faisait croire à PURE éteint sur les seuls
+         pilotes exclusifs, 1 à 2 s après le début de la lecture. -->
     <button
       class="audiophile-btn signal-shield-btn"
       class:active={$audiophileEnabled}
@@ -1649,7 +1858,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         ? $t('audiophile.pureNothingToBypass' as any)
         : $audiophileEnabled ? $t('audiophile.enabled' as any) : $t('audiophile.disabled' as any)}
     >
-      <svg viewBox="0 0 24 26" fill={$audiophileEnabled && !pureRienAContourner ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
+      <svg viewBox="0 0 24 26" fill={$audiophileEnabled ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="1.5" width="18" height="18">
         <path d="M12 2L4 8v7c0 4.5 3.5 8.5 8 9.5c4.5-1 8-5 8-9.5V8l-8-6z" />
       </svg>
       {#if $audiophileEnabled}
@@ -1839,6 +2048,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
+              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
             </div>
           </div>
         {/each}
@@ -1846,6 +2056,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
       <!-- tune-server-rust#4384 — ce que devient le gain en sortie. -->
       <GainDeSortieNotes signalPath={zone.signal_path} />
+      <!-- tune-server-rust#8419 — lecture groupée : chaque sortie et son étage final. -->
+      <SortiesDuGroupe signalPath={zone.signal_path} libelleEtape={(etape) => trDesc(descriptionDEtape(etape, $t('signal.unknownFormat')))} />
 
       {#if zone.signal_path.checksum}
         <div class="sp-checksum">
@@ -1891,6 +2103,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     onGroupChanged={apresChangementDeGroupe}
     onRenamed={() => {}}
   />
+{/if}
+
+<!-- web#2770 — la fiche de la station qui joue, ouverte par son nom dans la barre. -->
+{#if ficheStationOuverte && displayTrack && displayTrack.source === 'radio'}
+  <RadioFicheModale np={displayTrack} onClose={() => (ficheStationOuverte = false)} />
 {/if}
 
 <style>
@@ -2021,6 +2238,32 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     flex-shrink: 0;
   }
 
+  /* Recette rc12 (13/11) — la colonne de gauche vaut un quart de la barre :
+     336 px à 1440 px. Pochette, cœur, crête-mètre (56 px) et visualiseur
+     (80 px) ne rétrécissent pas ; le titre et l'artiste, si : il leur restait
+     30 px (« Fla… », « M · I »). Les deux ornements cèdent donc leur place au
+     titre quand la colonne est étroite — le visualiseur d'abord, comme sous
+     1080 px de barre (plus haut), puis le crête-mètre. */
+  .transport-left {
+    container-type: inline-size;
+    container-name: tleft;
+  }
+  @container tleft (max-width: 439px) {
+    .tb-mini-viz { display: none; }
+  }
+  @container tleft (max-width: 359px) {
+    .tb-crete { display: none; }
+  }
+  /* Fenêtre de téléphone (colonne de ~150 px) : les pastilles « LOCAL » et
+     « FLAC 96/24 » passaient sur deux lignes, sous la barre, et le cœur
+     laissait 28 px au titre. Elles restent dans Lecture en cours. */
+  @container tleft (max-width: 239px) {
+    .transport-left .mini-badges { display: none; }
+  }
+  @container tleft (max-width: 199px) {
+    .transport-left .fav-btn { display: none; }
+  }
+
   @media (max-width: 640px) {
     .tb-mini-viz {
       display: none;
@@ -2064,6 +2307,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     align-items: center;
     gap: 5px;
   }
+  /* web#2770 — chaque lien s'élide pour lui-même dans la ligne flexible. */
+  .mini-artist :global(.mini-lien) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
      d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
@@ -2251,6 +2496,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     display: flex;
     align-items: center;
     cursor: pointer;
+    /* Le glisser au doigt ne doit pas faire défiler la page (comme SeekBar). */
+    touch-action: none;
   }
 
   .progress-track::before {
@@ -2276,6 +2523,16 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   .progress-track:hover .progress-fill {
     height: 6px;
+  }
+
+  /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
+     la hauteur de la piste de clic (22 px, 4 de plus que la barre classique). */
+  .progress-track.onde {
+    height: 22px;
+  }
+
+  .progress-track.onde::before {
+    display: none;
   }
 
   .control-btn {
@@ -2325,6 +2582,35 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     opacity: 1;
     color: var(--tune-accent);
   }
+
+  /* web#2389 — médaillon du nombre de titres de la file. Le bouton est
+     `.small` (opacité 0.5) : le médaillon, lui, reste lisible. */
+  .control-btn.queue-btn {
+    position: relative;
+    overflow: visible;
+  }
+  .queue-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--tune-accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Le bouton `.small` est à demi-opaque, ce qui éteindrait aussi son
+     médaillon : l'opacité passe sur l'icône seule. */
+  .control-btn.small.queue-btn { opacity: 1; }
+  .control-btn.small.queue-btn:not(.active) svg { opacity: 0.5; }
 
   .play-btn {
     background: var(--tune-accent) !important;
@@ -2462,17 +2748,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
      fenêtre, jusqu'à ~1750 px de barre : le bouton de transfert, le curseur de
      volume et la zone sortent de l'écran, sans défilement possible.
 
-     Le secondaire part AVANT les commandes : libellé de zone (la pastille
-     redevient un carré, l'infobulle garde le nom), écarts et curseur resserrés.
-     Les cadrans, eux, restent. Au-delà de 1800 px de barre, rien ne change. */
+     Le secondaire part AVANT les commandes : écarts et curseur resserrés,
+     boutons de pas masqués. Les cadrans, eux, restent. Au-delà de 1800 px de
+     barre, rien ne change.
+
+     🔴 #2747 — FabienM (rc11, fil 2723) : « le nom de la zone active
+     n'apparaît plus, seule l'icône générique reste ; ça marchait en rc9 ».
+     C'était cette requête : elle MASQUAIT le libellé de zone sur toute la
+     plage 1200-1800 px, c'est-à-dire sur la plupart des écrans de bureau
+     dès que les VU-mètres sont allumés. Le libellé reste désormais, tronqué
+     (la pastille est bornée, l'infobulle garde le nom complet), et c'est la
+     colonne de droite qui prend la largeur de son contenu
+     (`minmax(max-content, 1fr)` ci-dessous) au lieu d'un quart fixe : elle
+     ne peut plus sortir de la fenêtre, le centre se resserre à sa place. */
   @container tbar (min-width: 1200px) and (max-width: 1800px) {
-    .transport-bar.vu .zone-chip-label {
-      display: none;
-    }
     .transport-bar.vu .zone-icon-btn {
-      max-width: 32px;
-      padding: 0;
-      justify-content: center;
+      max-width: 150px;
     }
     .transport-bar.vu .transport-right {
       gap: 8px;
@@ -2486,6 +2777,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     .transport-bar.vu .transport-right :global(.step-btn) {
       display: none;
     }
+  }
+
+  /* #2747 — la colonne de droite (cadran + pile d'icônes, insécable depuis
+     #1712) vaut AU MOINS sa largeur de contenu : c'est ce quart fixe qui
+     débordait de la fenêtre (#2555), pas le libellé de zone. */
+  .transport-bar.vu {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(max-content, 1fr);
   }
 
   .transport-bar.vu .transport-right {
@@ -2905,11 +3203,29 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     border-radius: var(--radius-sm);
   }
 
-  .zone-playing-indicator {
-    color: var(--tune-success);
+  /* web#2823 — le bouton pause d'une zone qui joue, à droite de la rangée. */
+  .zone-popover-pause {
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    align-self: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--tune-success);
+    cursor: pointer;
+  }
+  .zone-popover-pause:hover {
+    background: var(--tune-surface-hover);
+  }
+  .zone-popover-pause:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 1px;
   }
 
   /* Recovery / Offline states */
@@ -3199,8 +3515,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     color: inherit;
     pointer-events: none;
   }
-  /* tune-server-rust#4176 — PURE armé, rien à contourner : bouclier creux et
-     libellé atténué, le signal était déjà intact. */
+  /* tune-server-rust#4176 — PURE armé, rien à contourner : libellé atténué,
+     le signal était déjà intact. Le bouclier reste plein (#7932). */
   .signal-shield-btn.sans-objet .audiophile-label {
     opacity: 0.7;
   }

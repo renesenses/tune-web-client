@@ -49,8 +49,9 @@
   import { dateCourte } from '../../lib/dates';
   import {
     statsContact, ligneVignettesContact, artistesContact, albumsContact, pistesContact, pistesAlbumContact,
-    pisteVersTrack, plusPartage, motifCercle, pochetteAlbumContact, reprisePochetteAlbumContact,
+    pisteVersTrack, plusPartage, motifCercle,
     rayonsContact, albumsRayon, pistesRayon, artistesRayon, referencesRayon, servicesReference, NOM_SERVICE,
+    albumsSansVignette, pochettesDeMesSources, pochettesAvecMesSources, type PochetteDeMesSources,
     ecoutePermise, ecouterChezContact, motifEcoute,
     type PartageRecu, type StatsContact, type ArtisteContact, type AlbumContact,
     type MotifCercle, type PageContact, type PisteContact, type RayonContact, type ReferenceContact, type ComptesRayon,
@@ -58,6 +59,10 @@
   import { formatTime } from '../../lib/utils';
   import { currentZone } from '../../lib/stores/zones';
   import { licenseState, isPremium } from '../../lib/stores/license';
+  import { playAndSync } from '../../lib/stores/zones';
+  import { zoneRequise } from '../../lib/zoneRequise';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { chercherDansMesSources, trouverEquivalent, type CibleLecture, type CibleRecherche, type Correspondance } from '../../lib/chercherDansMesSources';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -207,6 +212,44 @@
     recharger();
   }
 
+  /**
+   * web#3001 (go de Bertrand du 13/11, rc12) — sans vignette du contact, la
+   * pochette du MÊME album dans mes sources (ma bibliothèque, puis Qobuz /
+   * TIDAL connectés), retrouvée par le serveur sur le titre + l'artiste. UNE
+   * demande par page arrivée, pour ses seuls albums sans vignette ; un album
+   * déjà demandé ne l'est plus pendant la vie de l'écran.
+   */
+  let mesPochettes = $state<Record<number, PochetteDeMesSources | null>>({});
+  const pochettesDemandees = new Set<number>();
+  /**
+   * Ma pochette qui ne se charge pas : on l'oublie pour cet album. L'écran
+   * retombe sur Cover Art Archive (ou l'icône) SANS la marque « Pochette de
+   * mes sources », qui ne dirait plus vrai.
+   */
+  let mesPochettesKo = $state<Record<number, true>>({});
+  const maPochette = (id: number) => (mesPochettesKo[id] ? null : mesPochettes[id]);
+  function siMaPochetteEchoue(id: number, deMesSources: boolean) {
+    return (e: Event) => {
+      if (deMesSources && (e.target as Element | null)?.tagName === 'IMG') mesPochettesKo = { ...mesPochettesKo, [id]: true };
+    };
+  }
+
+  async function chercherMesPochettes(page: AlbumContact[]) {
+    const lot = albumsSansVignette(page, pochettesDemandees);
+    if (lot.length === 0) return;
+    for (const a of lot) pochettesDemandees.add(a.id);
+    try {
+      const r = await pochettesDeMesSources(lot);
+      if (fini) return;
+      const suite = { ...mesPochettes };
+      lot.forEach((a, i) => { suite[a.id] = r[i] ?? null; });
+      mesPochettes = suite;
+    } catch {
+      // Panne : l'icône générique reste ; ces albums pourront être redemandés.
+      for (const a of lot) pochettesDemandees.delete(a.id);
+    }
+  }
+
   function chargerPage(n: number) {
     // Le filtre part par l'IDENTIFIANT d'artiste : c'est ce que le cloud attend.
     const q = { page: n, search: recherche, artist: onglet === 'albums' ? artiste?.id : undefined };
@@ -221,7 +264,7 @@
         (p) => { artistes = suite(artistes, p); page = p.page; derniere = p.derniere; });
     } else if (onglet === 'albums') {
       void lire(() => (r ? albumsRayon(uid, r.id, q) : albumsContact(uid, q)),
-        (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; });
+        (p) => { albums = suite(albums, p); page = p.page; derniere = p.derniere; void chercherMesPochettes(p.items); });
     } else {
       void lire(() => (r ? pistesRayon(uid, r.id, q) : pistesContact(uid, q)), (p) => {
         const neuves = p.items.map(pisteVersTrack);
@@ -233,6 +276,7 @@
   }
 
   function recharger() {
+    lectureEquivalente++; equivalent = null;
     album = null;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -265,6 +309,7 @@
   }
 
   function ouvrirAlbum(a: AlbumContact) {
+    lectureEquivalente++; equivalent = null;
     album = a;
     pistesAlbum = [];
     sourcesAlbum = [];
@@ -314,6 +359,83 @@
     : '');
 
   const rienNeBouge = () => {};
+
+  /**
+   * #7224 (décision du 12/11, rc12) — sans écoute chez le contact, un clic sur
+   * un album ou une piste LANCE son équivalent dans MES sources (bibliothèque,
+   * puis services connectés), sur ma zone, sans liste à choisir. Rien de
+   * reconnu : on le dit, et « Chercher dans mes sources » reste le repli.
+   */
+  type EtatEquivalent =
+    | { termes: string; etat: 'cours' }
+    | { termes: string; etat: 'aucun'; cible: CibleLecture }
+    | { termes: string; etat: 'erreur' }
+    | { termes: string; etat: 'lance'; trouvee: Correspondance };
+  let equivalent = $state<EtatEquivalent | null>(null);
+  let lectureEquivalente = 0;
+
+  async function lireEquivalent(c: CibleLecture) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    const mine = ++lectureEquivalente;
+    const termes = [c.titre, c.artiste].filter(Boolean).join(' ');
+    equivalent = { termes, etat: 'cours' };
+    let trouvee: Correspondance | null;
+    try {
+      trouvee = (await trouverEquivalent(c)).trouvee;
+    } catch {
+      if (!fini && mine === lectureEquivalente) equivalent = { termes, etat: 'erreur' };
+      return;
+    }
+    if (fini || mine !== lectureEquivalente) return;
+    if (!trouvee) { equivalent = { termes, etat: 'aucun', cible: c }; return; }
+    equivalent = { termes, etat: 'lance', trouvee };
+    playAndSync(zid, trouvee.lecture as any).catch((e) => {
+      if (!fini && mine === lectureEquivalente) equivalent = null;
+      signalerEchecLecture(e);
+    });
+  }
+  const cibleAlbum = (a: AlbumContact): CibleLecture =>
+    ({ genre: 'album', titre: a.title, artiste: a.artist_name, mbid: a.musicbrainz_release_group_id });
+  const ciblePiste = (p: PisteContact): CibleLecture =>
+    ({ genre: 'track', titre: p.title, artiste: p.artist_name, isrc: p.isrc, duree_ms: p.duration_ms });
+  const clicSansEcoute = (_p: Track, i: number) => {
+    const p = (album ? sourcesAlbum : sourcesPistes)[i];
+    if (p) void lireEquivalent(ciblePiste(p));
+  };
+
+  /** #7224 — « Chercher dans mes sources » : la recherche globale, sur le titre + l'artiste. */
+  type EtatSources =
+    | { termes: string; etat: 'cours' }
+    | { termes: string; etat: 'erreur' }
+    | { termes: string; etat: 'ok'; resultats: Correspondance[] };
+  let sources = $state<EtatSources | null>(null);
+  let rechercheSources = 0;
+
+  async function chercherSources(c: CibleRecherche) {
+    const mine = ++rechercheSources;
+    const termes = [c.titre, c.artiste].filter(Boolean).join(' ');
+    sources = { termes, etat: 'cours' };
+    try {
+      const r = await chercherDansMesSources(c);
+      if (fini || mine !== rechercheSources) return;
+      sources = { termes: r.termes, etat: 'ok', resultats: r.resultats };
+    } catch {
+      if (fini || mine !== rechercheSources) return;
+      sources = { termes, etat: 'erreur' };
+    }
+  }
+  const chercherAlbum = (a: AlbumContact) => void chercherSources({ genre: 'album', titre: a.title, artiste: a.artist_name });
+  const chercherPiste = (p: Track) => void chercherSources({ genre: 'track', titre: p.title, artiste: p.artist_name });
+  const nomDeSource = (src: string) =>
+    src === 'local' ? $t('v2.circle.sources.local' as any)
+      : (NOM_SERVICE as Record<string, string>)[src] ?? src.charAt(0).toUpperCase() + src.slice(1);
+
+  function lireCorrespondance(c: Correspondance) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    playAndSync(zid, c.lecture as any).catch(signalerEchecLecture);
+  }
   const lireLigne = (_p: Track, i: number) => void lancerEcoute((album ? sourcesAlbum : sourcesPistes)[i]);
 
   /** Artiste · album · durée d'une référence ; le genre si ce n'est pas un titre. */
@@ -326,8 +448,30 @@
   const compteRayon = (r: RayonContact) =>
     r.count != null ? $t('v2.circle.sel.count' as any).replace('{n}', String(r.count)) : '';
 
-  // Première lecture : les chiffres, puis la première page d'albums et les rayons.
-  void lire(() => statsContact(contact.user_id), (s) => { stats = s; chargerPage(1); void lireRayons(); });
+  /**
+   * web#2985 — les chiffres du catalogue, À CÔTÉ de la première page.
+   *
+   * La première page d'albums attendait `/stats` : chez un grand catalogue
+   * (Tades, 37 610 albums, 752 395 titres) le cloud met 6 à 12 s à compter,
+   * et pendant ce temps aucune pochette ne pouvait partir. Les chiffres ne
+   * servent qu'à la ligne d'en-tête : ils ne passent plus par `lire` (dont le
+   * jeton jetterait la page arrivée après eux), ne bloquent rien, et un échec
+   * autre qu'un 404 laisse simplement la ligne absente. Un 404 ferme l'écran,
+   * comme avant.
+   */
+  async function lireStats(): Promise<void> {
+    try {
+      const s = await statsContact(contact.user_id);
+      if (!fini) stats = s;
+    } catch (e) {
+      if (!fini && plusPartage(e)) fermerPlusPartage();
+    }
+  }
+
+  // Première lecture : la première page d'albums, les chiffres et les rayons, ensemble.
+  chargerPage(1);
+  void lireStats();
+  void lireRayons();
   onDestroy(() => { fini = true; if (minuteurRecherche) clearTimeout(minuteurRecherche); });
 </script>
 
@@ -348,6 +492,51 @@
       {#if ouverte}
         <p class="note ecoute-premium" use:bulleTexte><span aria-hidden="true">🔒</span> {$t('v2.circle.listen.premiumOnly' as any)}</p>
       {/if}
+    {/if}
+    {#if equivalent && !ecoute}
+      {#if equivalent.etat === 'cours'}
+        <p class="note equivalent-encours" role="status" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', equivalent.termes)}</p>
+      {:else if equivalent.etat === 'lance'}
+        <p class="note equivalent-lance" role="status" use:bulleTexte>{$t('v2.circle.sources.playing' as any).replace('{title}', equivalent.trouvee.titre).replace('{source}', nomDeSource(equivalent.trouvee.source))}</p>
+      {:else}
+        {@const echec = equivalent}
+        <div class="err equivalent-{echec.etat}" role="alert">
+          <span>{echec.etat === 'aucun' ? $t('v2.circle.sources.notFound' as any).replace('{query}', echec.termes) : $t('v2.circle.sources.error' as any)}</span>
+          {#if echec.etat === 'aucun'}
+            <button class="lnk chercher-repli" onclick={() => { const c = echec.cible; equivalent = null; void chercherSources(c); }}>{$t('v2.circle.sources.search' as any)}</button>
+          {/if}
+          <button class="lnk fermer-retour" onclick={() => { lectureEquivalente++; equivalent = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
+        </div>
+      {/if}
+    {/if}
+    {#if sources}
+      <section class="sources-trouvees" aria-labelledby="circle-sources-titre" aria-live="polite">
+        <div class="sources-tete">
+          <h4 id="circle-sources-titre" class="sources-titre">{$t('v2.circle.sources.title' as any).replace('{query}', sources.termes)}</h4>
+          <button class="lnk fermer-sources" onclick={() => { rechercheSources++; sources = null; }}>{$t('v2.circle.listen.dismiss' as any)}</button>
+        </div>
+        {#if sources.etat === 'cours'}
+          <p class="note sources-encours" use:bulleTexte>{$t('v2.circle.sources.searching' as any).replace('{query}', sources.termes)}</p>
+        {:else if sources.etat === 'erreur'}
+          <p class="note sources-erreur" role="alert" use:bulleTexte>{$t('v2.circle.sources.error' as any)}</p>
+        {:else if sources.resultats.length === 0}
+          <p class="note sources-aucun" use:bulleTexte>{$t('v2.circle.sources.none' as any).replace('{query}', sources.termes)}</p>
+        {:else}
+          <ul class="sources-liste">
+            {#each sources.resultats as r, i (i)}
+              <li class="ligne source-resultat source-{r.source}">
+                <span class="ref-texte">
+                  <span class="ref-titre" use:bulleTexte>{r.titre}</span>
+                  <span class="note" use:bulleTexte>{[r.artiste, nomDeSource(r.source)].filter(Boolean).join(' · ')}</span>
+                </span>
+                <button class="lire-piste lire-source"
+                  aria-label={$t('v2.circle.sources.playAria' as any).replace('{title}', r.titre).replace('{source}', nomDeSource(r.source))}
+                  onclick={() => lireCorrespondance(r)}>▶ {$t('v2.circle.listen.play' as any)}</button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </section>
     {/if}
     {#if refusEcoute}
       <div class="err refus-ecoute" role="alert"><span>{refusEcoute}</span>
@@ -380,6 +569,15 @@
       </ul>
     </section>
   {/if}
+{#snippet boutonChercherPiste(p: Track, _i: number)}
+  <button class="chercher-sources chercher-piste"
+    aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [p.title, p.artist_name].filter(Boolean).join(' '))}
+    onclick={() => chercherPiste(p)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
+{/snippet}
+{#snippet marquePochette()}
+  <!-- web#3001 : discret, dit d'où vient l'image (ce n'est pas celle du contact). -->
+  <span class="pochette-mienne" title={$t('v2.circle.lib.coverFromMySources' as any)}>{$t('v2.circle.lib.coverFromMySources' as any)}</span>
+{/snippet}
 {#snippet boutonLire(_p: Track, i: number)}
   {@const source = (album ? sourcesAlbum : sourcesPistes)[i]}
   <button class="lire-piste" disabled={ecouteEnCours != null || !source}
@@ -388,16 +586,24 @@
 {/snippet}
 
   {#if album}
+    {@const pt = pochettesAvecMesSources(album, contact.user_id, maPochette(album.id))}
     <div class="album-ouvert">
       <button class="lnk retour-albums" onclick={() => { album = null; pistesAlbum = []; }}>← {$t('v2.circle.lib.backToAlbums' as any)}</button>
       <div class="album-tete">
-        <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(album, contact.user_id)} repli={reprisePochetteAlbumContact(album, contact.user_id)} albumId={null} size={0} alt={album.title} /></span>
+        <span class="pochette" onerrorcapture={siMaPochetteEchoue(album.id, pt.deMesSources)}><AlbumArt coverPath={pt.coverPath} repli={pt.repli} albumId={null} size={0} alt={album.title} />{#if pt.deMesSources}{@render marquePochette()}{/if}</span>
         <div class="album-infos">
           <h3 class="album-titre">{album.title}</h3>
           <p class="note" use:bulleTexte>{detailsAlbum(album)}{#if album.genre} · {album.genre}{/if}</p>
+          <button class="chercher-sources chercher-album"
+            aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
+            onclick={() => chercherAlbum(album!)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
           {#if ecoute && sourcesAlbum.length > 0}
             <button class="lire-album" disabled={ecouteEnCours != null}
               onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
+          {:else if !ecoute}
+            <button class="lire-equivalent lire-equivalent-album"
+              aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
+              onclick={() => void lireEquivalent(cibleAlbum(album!))}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
           {/if}
         </div>
       </div>
@@ -409,8 +615,8 @@
       {:else}
         <div class="pistes-album">
           <ListePistesV2 pistes={pistesAlbum} onLire={rienNeBouge} numerotation="piste"
-            enTetesDisque lectureSeule
-            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
+            enTetesDisque lectureSeule onClicLectureSeule={ecoute ? null : clicSansEcoute}
+            apres={ecoute ? boutonLire : boutonChercherPiste} largeurApres={ecoute ? '84px' : '210px'} />
         </div>
       {/if}
     </div>
@@ -442,12 +648,21 @@
       {:else}
         <ul class="albums">
           {#each albums as a (a.id)}
+            {@const pa = pochettesAvecMesSources(a, contact.user_id, maPochette(a.id))}
             <li>
               <button class="album-contact" onclick={() => ouvrirAlbum(a)} title={a.title}>
-                <span class="pochette"><AlbumArt coverPath={pochetteAlbumContact(a, contact.user_id)} repli={reprisePochetteAlbumContact(a, contact.user_id)} albumId={null} size={0} alt={a.title} /></span>
+                <span class="pochette" onerrorcapture={siMaPochetteEchoue(a.id, pa.deMesSources)}><AlbumArt coverPath={pa.coverPath} repli={pa.repli} albumId={null} size={0} alt={a.title} />{#if pa.deMesSources}{@render marquePochette()}{/if}</span>
                 <span class="album-nom">{a.title}</span>
                 <span class="note">{detailsAlbum(a)}</span>
               </button>
+              {#if !ecoute}
+                <button class="lire-equivalent lire-equivalent-carte"
+                  aria-label={$t('v2.circle.sources.playEquivalentAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
+                  onclick={() => void lireEquivalent(cibleAlbum(a))}>▶ {$t('v2.circle.listen.play' as any)}</button>
+              {/if}
+              <button class="chercher-sources chercher-album-carte"
+                aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [a.title, a.artist_name].filter(Boolean).join(' '))}
+                onclick={() => chercherAlbum(a)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
             </li>
           {/each}
         </ul>
@@ -489,8 +704,8 @@
         <p class="note vide" use:bulleTexte>{$t('v2.circle.lib.empty' as any)}</p>
       {:else}
         <div class="pistes-contact">
-          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule
-            apres={ecoute ? boutonLire : undefined} largeurApres="84px" />
+          <ListePistesV2 {pistes} onLire={rienNeBouge} lectureSeule onClicLectureSeule={ecoute ? null : clicSansEcoute}
+            apres={ecoute ? boutonLire : boutonChercherPiste} largeurApres={ecoute ? '84px' : '210px'} />
         </div>
       {/if}
     {/if}
@@ -506,27 +721,28 @@
 <style>
   .catalogue-contact{display:flex; flex-direction:column; gap:12px}
   .tete{display:flex; flex-direction:column; gap:4px; align-items:flex-start}
-  .titre-catalogue{font-size:17px; font-weight:700; margin:0; overflow-wrap:anywhere}
-  .note{font-size:11.5px; color:var(--v2-txt3); margin:0}
-  .state{color:var(--v2-txt3); font-size:13px}
+  .titre-catalogue{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin:0}
+  .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .vide{margin:0}
-  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .err{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .onglets{display:flex; gap:6px; flex-wrap:wrap}
   .onglet{height:30px; padding:0 14px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt2); font:600 12.5px var(--v2-sans); cursor:pointer}
+    color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .onglet[aria-selected="true"]{background:var(--v2-acc-soft); color:var(--v2-txt); border-color:var(--v2-line)}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
   .champ{height:34px; padding:0 12px; border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
-    color:var(--v2-txt); font:13px var(--v2-sans); min-width:0; flex:1 1 220px}
-  .filtre-artiste{font-size:12.5px; color:var(--v2-txt2)}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:13px; padding:4px 2px; text-align:left}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0; flex:1 1 220px}
+  .filtre-artiste{font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); padding:4px 2px; text-align:left}
   .onglet:focus-visible,.champ:focus-visible,.lnk:focus-visible,.album-contact:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   ul{list-style:none; margin:0; padding:0}
   .albums{display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:14px}
   .album-contact{display:flex; flex-direction:column; gap:4px; width:100%; border:0; background:transparent; color:var(--v2-txt);
-    cursor:pointer; padding:0; text-align:left; font:13px var(--v2-sans); min-width:0}
-  .pochette{display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
+    cursor:pointer; padding:0; text-align:left; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); min-width:0}
+  .pochette{position:relative; display:block; width:100%; aspect-ratio:1; border-radius:var(--v2-r-md); overflow:hidden; background:var(--v2-surface2)}
+  .pochette-mienne{position:absolute; left:4px; bottom:4px; max-width:calc(100% - 8px); padding:1px 5px; border-radius:var(--v2-r-sm, 4px); font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff; background:rgba(0,0,0,.55); opacity:.85; pointer-events:none}
   .album-nom{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .album-contact .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .artistes{display:flex; flex-direction:column}
@@ -535,29 +751,39 @@
   .album-tete{display:flex; gap:14px; align-items:center}
   .album-tete .pochette{width:96px; flex:none}
   .album-infos{min-width:0}
-  .album-titre{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .album-titre{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
   .plus{align-self:flex-start}
   .rayon-tete{display:flex; flex-direction:column; gap:2px; align-items:flex-start}
-  .titre-rayon{font-size:15px; font-weight:700; margin:0; overflow-wrap:anywhere}
+  .titre-rayon{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
   .rayons-contact{display:flex; flex-direction:column; gap:6px}
-  .titre-rayons{font-size:13px; font-weight:700; margin:0; color:var(--v2-txt2)}
+  .titre-rayons{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; color:var(--v2-txt2)}
   .liste-rayons{display:flex; gap:8px; flex-wrap:wrap}
   .rayon-contact{display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:220px; min-width:0; padding:8px 12px;
     border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface); color:var(--v2-txt);
-    font:600 12.5px var(--v2-sans); cursor:pointer; text-align:left}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; text-align:left}
   .rayon-contact:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .rayon-contact .nom-rayon{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .references{display:flex; flex-direction:column}
-  .reference{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px}
+  .reference{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .ref-texte{display:flex; flex-direction:column; min-width:0}
   .ref-titre{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ref-texte .note{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .services{display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex:none}
-  .service{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
-  .lire-piste,.lire-album{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface); color:var(--v2-txt); font:600 12px var(--v2-sans); cursor:pointer; white-space:nowrap}
-  .lire-album{margin-top:6px}
+  .service{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); font-weight:700; padding:2px 7px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .lire-piste,.lire-album,.lire-equivalent{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+    background:var(--v2-surface); color:var(--v2-txt); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .lire-album,.lire-equivalent-album{margin-top:6px}
   .lire-piste:disabled,.lire-album:disabled{opacity:.5; cursor:default}
-  .lire-piste:focus-visible,.lire-album:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .lire-piste:focus-visible,.lire-album:focus-visible,.lire-equivalent:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .chercher-sources{height:26px; padding:0 10px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+    background:var(--v2-surface); color:var(--v2-txt); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
+  .chercher-album,.chercher-album-carte,.lire-equivalent-carte{margin-top:6px}
+  .lire-equivalent-carte{margin-right:6px}
+  .chercher-sources:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .sources-trouvees{display:flex; flex-direction:column; gap:6px; padding:10px 14px; border-radius:10px; border:1px solid var(--v2-line2)}
+  .sources-tete{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .sources-titre{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0; overflow-wrap:anywhere}
+  .sources-liste{display:flex; flex-direction:column}
+  .source-resultat{display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 </style>

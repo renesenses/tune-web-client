@@ -1,10 +1,12 @@
 <script lang="ts">
   import { chercherDansLeGenre, SAISIE_MIN, type EtatRechercheGenre } from '../../lib/rechercheGenre';
+  import { CLE_RUBRIQUE_RETIREE, estRetiree, phraseRetrait, rubriquesRetirees } from '../../lib/rubriquesRetirees';
   import { nomDeService } from '../../lib/groupesVersions';
   import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import type { YtElementRayon } from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import { idAncre, limiteInitiale, rubriqueCourante, type AncreRubrique } from '../../lib/ancresGenre';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
    * Streaming — nouveau client (direction Levente).
@@ -45,7 +47,9 @@
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
-  import { activeView } from '../../lib/stores/navigation';
+  import { activeView, previousView } from '../../lib/stores/navigation';
+  import { retenirAuDepart, reprendreAuRetour, type MemoireStreaming } from '../../lib/memoireStreaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -67,11 +71,18 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { COLONNES_TRIABLES_NAVIGATEUR, trierPistes, triSuivant, type Tri } from '../../lib/pistesPaginees';
+  import type { CleColonne } from '../../lib/colonnesPistes';
+  const colonnesFavorisTriables = new Set<CleColonne>([
+    ...COLONNES_TRIABLES_NAVIGATEUR, 'added', 'quality',
+  ]);
+  import ChampRecherche from './ChampRecherche.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
+  import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -91,8 +102,9 @@
     reponseProuveLaBibliotheque,
   } from '../../lib/ongletsStreaming';
   import { untrack } from 'svelte';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
-  import { activeStreamingService } from '../../lib/stores/streaming';
+  import { activeStreamingService, ficheAlbumDeRetour } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -305,6 +317,13 @@
     svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
+    // web#2828 — le fil de genres quitté pour « Lecture en cours » se repose
+    // APRÈS la remise à zéro du service, sinon elle l'effacerait aussitôt.
+    const r = genresARestaurer;
+    if (r && r.active === svc) {
+      genresARestaurer = null;
+      genrePath = r.genrePath; subGenres = r.subGenres; genreId = r.genreId;
+    }
     let vivant = true;
     api.getStreamingGenres(svc)
       .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })
@@ -387,6 +406,10 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  let triFavoris = $state<Tri | null>(null);
+  /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
+  let favSuiteEnCours = $state(false);
+  let seqFavoris = 0;
   /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
   function allerA(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -438,7 +461,10 @@
    * Bandcamp est HORS SUJET ici : sa decouverte par genre passe par
    * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
    */
-  const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
+  // tune-server-rust#8578 — Genres RETIRÉS par le service : l'onglet reste,
+  // et dit pourquoi il est vide (décision de Bertrand, 12/11/2026).
+  const genresRetires = $derived(!!active && estRetiree(active, 'genres', $rubriquesRetirees));
+  const ongletGenres = $derived((!isBc && aUnOngletGenres(svcGenres)) || (!isBc && genresRetires));
   /**
    * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
    * Streaming. Propre à YouTube par nature — ses routes sont
@@ -541,6 +567,7 @@
       // d'Alain (fil 1671) ne ramenait jamais sur son service. Un souhait
       // intenable (service déconnecté depuis) retombe sur le premier onglet.
       active = ongletDeRestitution(services, bandcampLive, get(activeStreamingService));
+      reprendrePageQuittee();
     }).finally(() => { loading = false; });
   });
 
@@ -635,7 +662,7 @@
   const playlistsVues = $derived(filtrerParAuteur(playlistsSaisies, auteurOffert ? filtreAuteur : 'tous'));
   const favAlbumsVus = $derived(filtrerParSaisie(favAlbums, q));
   const favArtistsVus = $derived(filtrerParSaisie(favArtists, q));
-  const favTracksVus = $derived(filtrerParSaisie(favTracks, q));
+  const favTracksVus = $derived(trierPistes(filtrerParSaisie(favTracks, q), triFavoris));
   const genreAlbumsVus = $derived(filtrerParSaisie(genreAlbums, q));
   const bandesGenreVues = $derived(
     bandesGenre
@@ -643,6 +670,67 @@
       .filter((b) => b.albums.length > 0),
   );
   const bcCollectionVue = $derived(filtrerParSaisie(bcCollection, q));
+
+  /**
+   * 15/11 (Bertrand, rc12) — Qobuz › Genres › Pop/Rock : chaque rubrique était
+   * une longue grille complète, il fallait toute la faire défiler pour
+   * atteindre la suivante. Deux gestes : des puces d'ancrage figées en haut
+   * (une par rubrique PRÉSENTE) et, sous chaque grille, « Voir plus » — la
+   * grille ne montre d'abord que deux rangées. Rien n'est inventé ni retiré :
+   * la suite est déjà chargée, elle est seulement repliée. Voir `ancresGenre`.
+   */
+  let largeurGenre = $state(0);
+  let rubriquesOuvertes = $state<Record<string, boolean>>({});
+  let rubriqueActive = $state<string | null>(null);
+  let navAncres = $state<HTMLElement | null>(null);
+  const limiteGenre = $derived(limiteInitiale(largeurGenre));
+  const ancresGenre = $derived.by<AncreRubrique[]>(() => {
+    if (genreLoading || rechGenre.etat === 'catalogue' || rechGenre.etat === 'chargement') return [];
+    if (genreAlbumsVus.length || !bandesGenreVues.length) return [];
+    const a = bandesGenreVues.map((b) => ({ id: idAncre(b.id), libelle: b.cle ? $t(b.cle as any) : b.nom }));
+    if (genreId && genrePlaylists.length) a.push({ id: idAncre('playlists'), libelle: $t('streaming.genrePlaylists') });
+    return a.length > 1 ? a : [];
+  });
+  const cleRubrique = (id: string) => `${genreId}|${id}`;
+  /** Les pochettes montrées d'une rubrique : deux rangées, ou tout une fois ouverte. */
+  function montrees<T>(id: string, liste: readonly T[]): readonly T[] {
+    return rubriquesOuvertes[cleRubrique(id)] ? liste : liste.slice(0, limiteGenre);
+  }
+  function ouvrirRubrique(id: string) {
+    rubriquesOuvertes = { ...rubriquesOuvertes, [cleRubrique(id)]: true };
+  }
+  /** La largeur du volet, donc des grilles : le fil d'Ariane la porte toute. */
+  function mesurerLargeur(el: HTMLElement) {
+    const lire = () => { largeurGenre = el.clientWidth; };
+    lire();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(lire) : null;
+    ro?.observe(el);
+    return { destroy: () => ro?.disconnect() };
+  }
+  function allerARubrique(id: string) {
+    rubriqueActive = id;
+    allerA(id);
+  }
+  // La puce de la rubrique visible est mise en évidence au défilement.
+  $effect(() => {
+    const zone = zoneDefilante;
+    const ids = ancresGenre.map((a) => a.id);
+    if (!zone || ids.length < 2) { rubriqueActive = null; return; }
+    const suivre = () => {
+      if (zone.scrollTop > 0 && zone.scrollTop + zone.clientHeight >= zone.scrollHeight - 2) {
+        rubriqueActive = ids[ids.length - 1];
+        return;
+      }
+      const haut = zone.getBoundingClientRect().top;
+      const seuil = (navAncres?.getBoundingClientRect().bottom ?? haut) - haut + 16;
+      rubriqueActive = rubriqueCourante(ids.map((id) => ({
+        id, haut: (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) - haut,
+      })), seuil);
+    };
+    untrack(suivre);
+    zone.addEventListener('scroll', suivre, { passive: true });
+    return () => zone.removeEventListener('scroll', suivre);
+  });
   const bcItemsVus = $derived(filtrerParSaisie(bcItems, q));
 
   // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
@@ -702,9 +790,14 @@
   $effect(() => {
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
+    // tune-server-rust#8040 — tout nouveau chargement périme la chaîne des
+    // favoris encore en vol (sa suite comme son « prêt »), quelle que soit
+    // la vue qui prend la place.
+    const mien = ++seqFavoris;
     // web#2587 — rien à charger pour un service dont la session a expiré.
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
+    triFavoris = null;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
@@ -762,15 +855,21 @@
       // Les trois natures de favoris partent ensemble : elles vivent sur le
       // meme ecran, et les separer encore ferait trois allers-retours pour
       // une seule question — « qu'est-ce que j'ai aime ? ».
-      Promise.allSettled([
-        api.getStreamingFavorites(svc, 'albums'),
-        api.getStreamingFavorites(svc, 'artists'),
-        api.getStreamingFavorites(svc, 'tracks'),
-      ]).then(([a, ar, tr]) => {
-        favAlbums = a.status === 'fulfilled' ? ((a.value as any)?.albums ?? []) : [];
-        favArtists = ar.status === 'fulfilled' ? ((ar.value as any)?.artists ?? []) : [];
-        favTracks = tr.status === 'fulfilled' ? ((tr.value as any)?.tracks ?? []) : [];
-      }).finally(done);
+      // tune-server-rust#8040 — la PREMIÈRE page de chaque nature s'affiche
+      // dès qu'elle arrive ; la suite se charge ensuite, sans geste, et
+      // remplace la page. Un chargement dépassé par un changement de service
+      // ou d'onglet n'écrit plus rien.
+      favSuiteEnCours = true;
+      chargerFavorisProgressifs(
+        (type, page) => api.getStreamingFavorites(svc, type, page),
+        (type, items) => {
+          if (mien !== seqFavoris) return;
+          if (type === 'albums') favAlbums = items;
+          else if (type === 'artists') favArtists = items;
+          else favTracks = items;
+        },
+        () => { if (mien === seqFavoris) done(); },
+      ).finally(() => { if (mien === seqFavoris) favSuiteEnCours = false; });
     }
   });
 
@@ -835,11 +934,21 @@
     (subGenres.find((g) => g.id === genreId) ?? genrePath.find((g) => g.id === genreId) ?? genrePath[0])?.name ?? '',
   );
 
+  /**
+   * Fil 2694 — la recherche RENDUE par un retour : ses pages sont déjà là
+   * (`reprendrePageQuittee`). La relancer repartirait de la première page et
+   * ferait perdre la position dans la liste. Consommée au premier passage.
+   */
+  let rechercheReprise: { svc: string; q: string } | null = null;
+
   // Recherche dans le service courant.
   $effect(() => {
     const svc = active, needle = q.trim();
     // #2030 — hors Éditorial, la saisie filtre l'onglet : rien ne part au catalogue.
     if (!svc || needle.length < 2 || !ongletCatalogue) { results = null; bcSearch = null; searching = false; rechOffset = 0; rechSuite = false; return; }
+    const reprise = rechercheReprise;
+    rechercheReprise = null;
+    if (reprise && reprise.svc === svc && reprise.q === needle) { searching = false; return; }
     const mine = ++seq;
     searching = true;
     rechOffset = 0; rechSuite = false;
@@ -945,6 +1054,136 @@
       fermerCalquePlaylist();
     });
   });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE POUR « LECTURE EN COURS » — web#2828.
+   *
+   * Ronin22 (ASR, rc11) : Qobuz › Genres › un genre › un album › Lecture, puis
+   * « Lecture en cours », puis retour sur Qobuz → accueil du service. Quitter
+   * la vue DÉTRUIT cet écran ; tout ce qui suit est du `$state` local, perdu.
+   *
+   * On le retient À L'INSTANT où la vue change — l'abonnement est synchrone,
+   * avant que la coquille ne referme quoi que ce soit — et on le rejoue au
+   * remontage, une fois l'onglet de service connu. La règle (vue de passage,
+   * même service, une seule fois) est dans `lib/memoireStreaming`.
+   */
+  let genresARestaurer: MemoireStreaming | null = null;
+  const vuePrecedenteAuMontage = get(previousView);
+  /**
+   * Fil 2694 — comment cet écran a été atteint, lu AU MONTAGE : les services
+   * répondent plus tard, et c'est alors seulement que la page se reprend.
+   */
+  const arriveeAuMontage = typeArrivee();
+  /** Relecture de #2926 — l'entrée atteinte : la page n'est rendue que sur elle. */
+  const pageAuMontage = pageCourante();
+  /** Le compte connecté du service : un autre compte ne reprend rien. */
+  const compteDe = (svc: string | null): string | null => (services[cleServeur(svc) ?? '']?.username ?? null) as string | null;
+  /** Fil 2694 — au-delà, une fiche refermée n'est plus « celle qu'on quittait ». */
+  const DELAI_DEPART = 5000;
+  /**
+   * Fil 2694 — la clé de détail que porte VRAIMENT l'écran, suivie de façon
+   * synchrone. Au départ, la coquille remet `detailOuvert` à `null` AVANT que
+   * notre abonnement à la vue ne s'exécute : on ignore donc ce qui arrive une
+   * fois la vue changée. Une fiche dont la clé n'est plus là au départ a été
+   * refermée pour partir (le lien de l'artiste, #1486).
+   */
+  let cleDeLaVue: string | null = get(detailOuvert);
+  /**
+   * La fiche refermée À LA MAIN juste avant de partir. Le lien d'un artiste
+   * sans identifiant passe par une recherche (`ouvrirArtisteDeServiceParNom`) :
+   * la vue change APRÈS la réponse, quand la fiche a déjà disparu de l'écran.
+   * Un Retour programmatique (bouton « Retour » de la fiche) n'est pas retenu.
+   */
+  let refermeeAvantDepart: { quand: number; fiche: any; service: string | null } | null = null;
+  $effect(() => detailOuvert.subscribe((c) => {
+    if (get(activeView) !== vueAuMontage) return;
+    if (c == null && cleDeLaVue != null && fiche && !retourProgrammatiqueEnCours()) {
+      refermeeAvantDepart = { quand: Date.now(), fiche: $state.snapshot(fiche), service: ficheService };
+    } else if (c != null) refermeeAvantDepart = null;
+    cleDeLaVue = c;
+  }));
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueAuMontage) return;
+      const cleFiche = fiche ? cleDetailAlbum(fiche) : ficheBc ? cleDetailAlbum(ficheBc) : null;
+      const ficheVisible = (fiche || ficheBc) && (cleFiche == null || cleFiche === cleDeLaVue);
+      const playlistVisible = !!fichePlaylist && (clePlaylistEmpilee == null || clePlaylistEmpilee === cleDeLaVue);
+      const retourFiche = get(ficheAlbumDeRetour)?.fiche as any;
+      const recente = refermeeAvantDepart && Date.now() - refermeeAvantDepart.quand < DELAI_DEPART ? refermeeAvantDepart : null;
+      refermeeAvantDepart = null;
+      const quittee = !ficheVisible && fiche ? fiche : (recente?.fiche ?? null);
+      retenirAuDepart(v, active ? $state.snapshot({
+        active, sub, genrePath, subGenres, genreId,
+        fiche: ficheVisible ? fiche : null,
+        ficheService: ficheVisible ? ficheService : null,
+        ficheBc: ficheVisible ? ficheBc : null,
+        fichePlaylist: playlistVisible ? fichePlaylist : null,
+        defilement: zoneDefilante?.scrollTop ?? 0,
+        q, results, rechOffset, bcSearch,
+        ficheQuittee: quittee,
+        ficheQuitteeService: !ficheVisible && fiche ? ficheService : (recente?.service ?? null),
+        ficheMontreeParLeRetour: !!quittee && retourFiche != null
+          && String(retourFiche.id ?? '') === String(quittee.source_id ?? ''),
+        page: pageQuittee(),
+        compte: compteDe(active),
+      }) as MemoireStreaming : null);
+    });
+  });
+  function reprendrePageQuittee() {
+    const r = reprendreAuRetour(vuePrecedenteAuMontage, active, arriveeAuMontage,
+      { page: pageAuMontage, compte: compteDe(active) });
+    if (!r) return;
+    const parHistorique = arriveeAuMontage === 'historique';
+    // Relecture de #2926 — atteinte par l'historique, l'entrée a DÉJÀ rendu
+    // son onglet (`ongletCourant`) : le réécrire réécrirait l'entrée atteinte.
+    if (!parHistorique) sub = r.sub as Sub;
+    /**
+     * Rouvrir un calque. Par l'historique, la clé est REPOSÉE sur l'entrée
+     * atteinte (`reposerDetail`) : en empiler une jetterait les entrées
+     * suivantes du navigateur (la page artiste), et Suivant n'y mènerait plus.
+     */
+    const poserCle = (cle: string | null) => {
+      if (!cle) return;
+      if (!parHistorique) { ouvrirDetail(cle); return; }
+      if (get(detailOuvert) !== cle) reposerDetail(cle);
+    };
+    if (r.genrePath.length) genresARestaurer = r;
+    // Fil 2694 — la recherche dans le service, ses pages déjà chargées.
+    if (r.q && r.q.trim()) {
+      q = r.q;
+      results = (r.results ?? null) as StreamingSearchResult | null;
+      bcSearch = r.bcSearch ?? null;
+      rechOffset = r.rechOffset ?? 0;
+      if (active) rechercheReprise = { svc: active, q: r.q.trim() };
+    }
+    // La fiche refermée pour partir revient par le Précédent du navigateur ;
+    // par le Retour d'une page, seulement si ce Retour ne l'a pas déjà montrée.
+    const quittee = r.ficheQuittee
+      && (arriveeAuMontage === 'historique' || !r.ficheMontreeParLeRetour)
+      ? r.ficheQuittee : null;
+    if (r.fiche || quittee) {
+      const a = (r.fiche ?? quittee) as any;
+      poserCle(cleDetailAlbum(a));
+      fiche = a;
+      ficheService = r.fiche ? r.ficheService : (r.ficheQuitteeService ?? null);
+    } else if (r.ficheBc) {
+      const a = r.ficheBc as any;
+      poserCle(cleDetailAlbum(a));
+      ficheBc = a;
+    } else if (r.fichePlaylist) {
+      const p = r.fichePlaylist as any;
+      const svc = p?.source ?? active;
+      fichePlaylist = { ...p, source: svc };
+      const sid = p?.source_id;
+      if (svc && sid != null && sid !== '') {
+        clePlaylistEmpilee = `streamingplaylists:${svc}:${sid}`;
+        poserCle(clePlaylistEmpilee);
+      }
+    }
+    restaurerQuandPret(r.defilement, () => zoneDefilante, { essaisMax: 180 });
+  }
 
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
@@ -1295,21 +1534,10 @@
     </div>
     <div class="v2-actions">
     {#if active}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input bind:this={champRecherche} placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))}
-               aria-label={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q}
-               onkeydown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); viderRecherche(); } }} />
-        <!-- Fil 2208 (Didier) — la croix de la Bibliothèque, ici aussi : sans
-             elle, il fallait sélectionner tout le texte pour sortir de la
-             recherche. Même place que le témoin d'attente, qu'elle remplace. -->
-        {#if searching}<span class="spin" aria-hidden="true"></span>
-        {:else if q}
-          <button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
+      <!-- Fil 2208 (Didier) — la croix et Échap effacent ; le curseur reste
+           dans le champ (`viderRecherche`). -->
+      <ChampRecherche bind:valeur={q} bind:champ={champRecherche} ecran={label(active)}
+        enCours={searching} onvider={viderRecherche} />
     {/if}
     </div>
   </header>
@@ -1644,7 +1872,9 @@
       <!-- Volet GENRES a DEUX niveaux, la ou le service en a deux (#709).
            L'onglet n'existe que si la liste est pleine ; ce garde-fou couvre le
            seul cas restant — la liste videe sous les pieds de l'ecran. -->
-      {#if !svcGenres.length}
+      {#if !svcGenres.length && genresRetires}
+        <div class="state" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), active ?? '')}</div>
+      {:else if !svcGenres.length}
         <div class="state">{$t('streaming.genresEmpty')}</div>
       {:else if !genrePath.length}
         <div class="chips">
@@ -1654,7 +1884,7 @@
         </div>
         <div class="state">{$t('streaming.pickGenre')}</div>
       {:else}
-        <div class="crumb">
+        <div class="crumb" use:mesurerLargeur>
           <button class="lnk" onclick={retourGenres}>← {$t('streaming.allGenres')}</button>
           <span class="cur">{genrePath[0].name}</span>
         </div>
@@ -1666,6 +1896,15 @@
                 onclick={() => (genreId = sg2.id)}>{sg2.name}</button>
             {/each}
           </div>
+        {/if}
+        {#if ancresGenre.length}
+          <!-- 15/11 — une puce par rubrique présente ; figée en haut au défilement. -->
+          <nav class="sommaire ancres-genre" bind:this={navAncres} aria-label={$t('v2.stream.genreSections' as any)}>
+            {#each ancresGenre as x (x.id)}
+              <button class="chip" class:active={rubriqueActive === x.id} aria-current={rubriqueActive === x.id ? 'true' : undefined}
+                onclick={() => allerARubrique(x.id)}>{x.libelle}</button>
+            {/each}
+          </nav>
         {/if}
         {#if rechGenre.etat === 'catalogue'}
           <!-- #6231 — les résultats de la recherche du service, dans le genre. -->
@@ -1691,15 +1930,17 @@
           <!-- La grille NUE : un serveur qui ignore `?section=` (0.9.156 et
                avant) n'a qu'une liste a donner, et l'ecran reste celui d'avant
                #1300 — pas de titre invente, pas de bande en double. -->
-          <div class="grid">{#each genreAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          <div class="grid">{#each montrees('', genreAlbumsVus) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          {@render voirPlusRubrique('', genreAlbumsVus.length)}
         {:else if bandesGenreVues.length}
           <!-- #1300 — une bande par RUBRIQUE du genre. Les sept libelles
                existaient deja dans les onze langues ; seule l'ancienne
                coquille s'en servait. -->
           {#each bandesGenreVues as b (b.id)}
-            <section class="sec">
+            <section class="sec rubrique" id={idAncre(b.id)}>
               <h2>{b.cle ? $t(b.cle as any) : b.nom}</h2>
-              <div class="grid">{#each b.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              <div class="grid">{#each montrees(b.id, b.albums) as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              {@render voirPlusRubrique(b.id, b.albums.length)}
             </section>
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
@@ -1712,9 +1953,10 @@
         {/if}
         {#if genreId && genrePlaylists.length}
           <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
-          <section class="sec">
+          <section class="sec rubrique" id={idAncre('playlists')}>
             <h2>{$t('streaming.genrePlaylists')}</h2>
-            <div class="grid">{#each genrePlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            <div class="grid">{#each montrees('playlists', genrePlaylists) as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            {@render voirPlusRubrique('playlists', genrePlaylists.length)}
           </section>
         {/if}
       {/if}
@@ -1782,6 +2024,9 @@
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
             <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" pochetteEnTableau
+              colonnesVidesMasquees colonneAjout
+              tri={triFavoris} triables={colonnesFavorisTriables}
+              onTrier={(cle) => { triFavoris = triSuivant(triFavoris, cle); }}
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
@@ -1791,6 +2036,9 @@
         <div class="state">{$t('v2.str.noFavoritesInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {:else if !favAlbumsVus.length && !favArtistsVus.length && !favTracksVus.length}
         <div class="state">{$t('v2.common.noResult' as any)}</div>
+      {:else if favSuiteEnCours}
+        <!-- tune-server-rust#8040 — la première page est là ; la suite arrive. -->
+        <div class="state" aria-live="polite">{$t('v2.stream.loadingMore' as any)}</div>
       {/if}
     {/if}
   </div>
@@ -1910,6 +2158,15 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
+{#snippet voirPlusRubrique(id: string, total: number)}
+  {#if !rubriquesOuvertes[cleRubrique(id)] && total > limiteGenre}
+    <!-- 15/11 — la suite est DÉJÀ chargée : « Voir plus » la déplie, rien de plus. -->
+    <button class="voirplus" data-voir-plus={id} onclick={() => ouvrirRubrique(id)}>
+      {$t('v2.rech.seeMore' as any).replace('{n}', String(total - limiteGenre))}
+    </button>
+  {/if}
+{/snippet}
+
 {#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <!-- Point 10 (Yves Corbat, 17/09/2026) : un album ANNONCÉ porte sa date.
@@ -2022,17 +2279,14 @@
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);
-    border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
-  @keyframes sp{to{transform:rotate(360deg)}}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .svcs{display:flex; gap:6px; flex-wrap:wrap; padding:4px 30px 0}
   .svcs button{display:inline-flex; align-items:baseline; gap:9px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:9px 16px;
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:9px 16px;
     border-radius:var(--v2-r-pill); transition:.15s}
   .svcs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .svcs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
@@ -2040,7 +2294,7 @@
   /* L'arbre des genres : des familles lisibles, pas 27 puces sur une ligne. */
   /* #922 — la barre de pagination : le bouton, puis la taille de page. */
   .pagination{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:6px 0 18px}
-  .tpage{display:flex; align-items:center; gap:7px; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tpage{display:flex; align-items:center; gap:7px; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .tpage select{font:inherit; color:var(--v2-txt); background:var(--v2-surface2, transparent);
     border:1px solid var(--v2-line2); border-radius:7px; padding:4px 7px; cursor:pointer}
   .tpage select:hover{border-color:var(--v2-acc1)}
@@ -2048,44 +2302,44 @@
   .gtree{display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:8px; margin:4px 0 18px}
   .gfam{display:flex; align-items:center; justify-content:space-between; gap:10px;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    border-radius:10px; padding:11px 14px; cursor:pointer; font:600 13px var(--v2-sans);
+    border-radius:10px; padding:11px 14px; cursor:pointer; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     text-align:left; text-transform:capitalize}
   .gfam:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .gfam.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
-  .gfam .gc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .gfam .gc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .gfam.on .gc{color:var(--v2-acc1)}
 
   .subs{display:flex; gap:2px; padding:14px 30px 10px; border-bottom:1px solid var(--v2-line); margin:0 0 4px}
   .subs button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 13px var(--v2-sans); padding:8px 14px 12px}
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px 12px}
   .subs button:hover{color:var(--v2-txt)}
   .subs button.on{color:var(--v2-txt)}
   .subs button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px; border-radius:2px;
     background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:8px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   /* #6231 — ce que fait la saisie dans un genre : catalogue, ou simple filtre. */
-  .note-genre{margin:4px 0 12px; font-size:12px; color:var(--v2-txt2)}
+  .note-genre{margin:4px 0 12px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .notice{display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-top:20px; padding:20px 22px;
     border-radius:13px; border:1px solid var(--v2-line2); background:var(--v2-surface2); max-width:640px}
-  .notice p{font-size:15px; color:var(--v2-txt)}
-  .notice .sub{font-size:13px; line-height:1.6; color:var(--v2-txt2)}
+  .notice p{font-size:calc(15px * var(--v2-txt-echelle, 1)); color:var(--v2-txt)}
+  .notice .sub{font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2)}
   .notice b{color:var(--v2-txt)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:9px 17px; font:600 12.5px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:9px 17px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
 
   .chips{display:flex; gap:7px; flex-wrap:wrap; padding:0 0 16px}
   .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
+    font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
   .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   /* Fil d'Ariane des genres a deux niveaux (#709) : il dit OU l'on est et
      comment remonter — sans lui, le second niveau est un cul-de-sac. */
   .crumb{display:flex; align-items:center; gap:10px; padding:0 0 14px}
-  .crumb .cur{font-size:13px; font-weight:600; color:var(--v2-txt)}
+  .crumb .cur{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt)}
   /* #887 (volet 2) — Jean Valjean, fil 1721 : aucun en-tête n'était figé au
      défilement dans le volet Genres. La rangée des SOUS-genres — celle qui
      surplombe directement les albums — reste à l'écran pendant qu'on les
@@ -2097,12 +2351,12 @@
      visible dans la bande. `top:-8px` le remonte au bord du conteneur, et
      4px de fond en plus (repris par le `margin-top`) couvrent la bande. */
   .chips.sous{margin-top:-12px; position:sticky; top:-8px; z-index:3; background:var(--v2-bg); padding-top:12px}
-  .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
+  .chips.sous .chip{font-size:calc(11px * var(--v2-txt-echelle, 1)); padding:5px 11px; opacity:.9}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
   .txt{height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-bg);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 15px; outline:none; width:240px}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 15px; outline:none; width:240px}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
-  .notice code{font:11.5px var(--v2-mono); color:var(--v2-acc2)}
+  .notice code{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
 
   .sec{padding:4px 0 22px}
   /* #1042 — le sommaire des favoris : collé en haut du défilement.
@@ -2112,11 +2366,23 @@
     padding:14px 0 10px; margin-top:-8px; margin-bottom:6px; background:var(--v2-bg)}
   .sommaire .chip{display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px;
     border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
-    font:600 12px var(--v2-sans); cursor:pointer}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
-  .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .chips.auteur .chip .n{font:11px var(--v2-mono); opacity:.75}
-  .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
+  /* 15/11 — les puces d'ancrage d'un genre : même bande figée que le sommaire
+     des favoris (`.scroll` commence SOUS l'en-tête et sa grappe d'icônes),
+     la puce de la rubrique visible en évidence, et le titre d'une rubrique
+     atteinte par une puce n'est pas caché sous la bande. */
+  .sommaire .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .ancres-genre{z-index:3}
+  .sec.rubrique{scroll-margin-top:64px}
+  @media (max-width: 640px){
+    .ancres-genre{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .ancres-genre::-webkit-scrollbar{display:none}
+    .ancres-genre .chip{flex:0 0 auto; white-space:nowrap}
+  }
+  .sommaire .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  .chips.auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
+  .sec h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}
   /* Le cœur de l'artiste Bandcamp (#4577) s'aligne sur le nom sans le
      décaler : `HeartButton` porte déjà sa taille, on ne lui donne qu'une
      ligne de base et un peu d'air. */
@@ -2124,7 +2390,7 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .achat{display:flex; flex-direction:column; min-width:0}
   .flac{margin-top:6px; align-self:flex-start; height:26px; padding:0 10px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer; font:12px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .flac:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .flac:disabled{opacity:.5; cursor:default}
   .card{position:relative; display:flex; flex-direction:column}
@@ -2134,7 +2400,7 @@
   .anbtn{width:100%; background:none; border:none; padding:0; font:inherit; color:inherit; text-align:inherit; cursor:pointer}
   .anbtn:hover{text-decoration:underline}
   /* Point 10 — la date d'un album annoncé, en clair sous son titre. */
-  .cp{font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
+  .cp{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
@@ -2147,11 +2413,11 @@
      interligne — pour que les deux grilles se lisent pareil. */
   .ct{display:block; width:100%; margin-top:9px; padding:0; border:0; background:transparent;
     color:inherit; text-align:left; cursor:pointer;
-    font:600 12.5px var(--v2-sans); line-height:1.25;
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ct:hover{color:var(--v2-acc-tint)}
   .ct:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
-  .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* #956 — le nom de l'artiste devient un bouton : il doit rester la MÊME
      ligne à l'œil, et rester atteignable au clavier. */
   .cabtn{display:block; width:100%; background:none; border:0; padding:0; text-align:left; cursor:pointer}
@@ -2176,7 +2442,7 @@
      déjà, il ne l'appliquait qu'aux résultats de recherche. */
   .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
   .arow::-webkit-scrollbar{height:8px}
-  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:999px}
   /* La grille d'artistes des RESULTATS de recherche : elle va a la ligne.
      `.arow` va desormais a la ligne elle aussi (#1382) — elle reste distincte
      par sa gouttiere et sa largeur libre, la ou `.agrid` colonne a pas fixe
@@ -2192,7 +2458,7 @@
      globale — c'est le meme geste, il ne doit pas se presenter autrement. */
   .voirplus{display:block; margin:6px auto 22px; padding:9px 18px; cursor:pointer;
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
-    background:transparent; color:var(--v2-txt2); font:600 12.5px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt2); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .voirplus:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .voirplus:disabled{opacity:.55; cursor:default}
   .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -2204,5 +2470,5 @@
   .art{flex:0 0 auto; width:110px; text-align:center}
   /* Carrée comme un album — voir `ArtistesV2`. */
   .acv{display:block; width:110px; height:110px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
-  .an{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .an{display:block; margin-top:9px; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

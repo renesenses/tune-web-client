@@ -3,6 +3,7 @@ import type { Locale } from '../i18n';
 import { resoudreLangue } from '../langueParDefaut';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
+import { appliquerTailleTexte, estTailleTexte, TAILLE_TEXTE_DEFAUT, type TailleTexte } from '../tailleTexte';
 import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
@@ -71,7 +72,7 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
  *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
  *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
@@ -80,7 +81,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 6;
+const OXYGEN_FACETS_REV = 7;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -107,6 +108,11 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // main, au niveau Expert. Activée une fois chez ceux qui ont déjà des
   // préférences, comme `dr` à la révision 4 ; décochée ensuite, elle le reste.
   6: ['folder'],
+  // #2762 (demande HCFR) — chef d'orchestre, ensemble / orchestre et œuvre,
+  // servis par le serveur depuis tune-server-rust#8325. Une facette vide ne
+  // s'affiche pas : sur une bibliothèque sans classique, ou face à un serveur
+  // qui ne les sert pas encore (rc11), le rail reste tel qu'il était.
+  7: ['conductor', 'ensemble', 'work'],
 };
 /**
  * #1636 — les défauts livrés jusqu'à la révision 4, qui oubliaient `dr`.
@@ -233,6 +239,15 @@ export interface Preferences {
    * #1428). Sans effet quand la barre à VU-mètres est allumée, qui le remplace.
    */
   visualiseurBarre: boolean;
+  /**
+   * Barre de progression en forme d'onde — Discussion #8269, go de Bertrand
+   * du 12/11/2026 (rc12). Coché, la barre de « Lecture en cours » et celle de
+   * la barre de lecture dessinent l'enveloppe de la piste locale ; sans
+   * enveloppe (streaming, radio, calcul en cours), la barre classique.
+   * AFFICHAGE seulement. DÉCOCHÉ par défaut (la règle de #1428). Voir
+   * `lib/barreOnde.ts`.
+   */
+  barreOnde: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -448,6 +463,21 @@ export interface Preferences {
    */
   ouvrirFileAuDefilement: boolean;
   /**
+   * « Barres de défilement larges » — web#2798, Michel (fil 2748, 11/11/2026),
+   * qui souffre de tremblements : l'ascenseur était trop étroit pour être
+   * saisi. Coché, la feuille `tune-theme.css` pose un ascenseur de 20 px au
+   * pouce contrasté (Chrome, Edge, Safari) ; Firefox, qui n'accepte pas de
+   * largeur en pixels, garde sa barre `auto` au pouce contrasté. DÉCOCHÉ par
+   * défaut : personne ne voit son affichage changer sans l'avoir demandé.
+   */
+  ascenseursLarges: boolean;
+  /**
+   * « Taille du texte » — rc12 (go de Bertrand du 12/11/2026). Petite /
+   * Normale / Grande ; « Normale » par défaut = le rendu d'avant. Voir
+   * `lib/tailleTexte.ts`.
+   */
+  tailleTexte: TailleTexte;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -476,6 +506,21 @@ export interface Preferences {
    * `null` : rien de décidé. Voir `lib/typesSourcesBarre`.
    */
   sourcesBarre: ChoixTypesBarre | null;
+  /**
+   * rc12 — « barre latérale et menus allégés » (go de Bertrand du 12/11/2026).
+   * Les groupes à intertitre de la barre (Sélections, Studio) se replient d'un
+   * clic sur leur intertitre ; la liste des groupes REPLIÉS est retenue. Vide
+   * par défaut : la barre s'affiche comme avant tant qu'on n'a rien replié.
+   */
+  barreGroupesReplies: string[];
+  /**
+   * rc12 — les menus « … » des pistes et des fiches montrent d'abord les
+   * gestes courants, le reste sous « Plus… ». `null` (défaut) : SELON LE
+   * NIVEAU — complets à l'Expert (le niveau des installations existantes :
+   * rien ne change pour elles), courts à l'Essentiel et à l'Avancé. Un choix
+   * explicite (Réglages › Interface) l'emporte sur le niveau.
+   */
+  menusComplets: boolean | null;
   /**
    * #2117 — l'instant (ms) du dernier geste sur ces cases, pour qu'un choix
    * fait sur un autre appareil du même profil arrive ici. `0` : jamais daté.
@@ -522,7 +567,7 @@ const defaults: Preferences = {
   oxygenView: 'detail',
   // `dr` en fait partie depuis #1636 : sans lui, un Oxygen neuf n'a pas de DR.
   // #1640 — `folder` (Répertoire) : « circonscrire la recherche » à un dossier.
-  oxygenFacets: ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
+  oxygenFacets: ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
   oxygenFacetLimit: 200,
   oxygenFacetsRev: OXYGEN_FACETS_REV,
   albumSort: 'title',
@@ -550,13 +595,15 @@ const defaults: Preferences = {
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   barreVuMetres: false,
   visualiseurBarre: true,
+  // Discussion #8269 — décoché : l'écran de qui n'a rien demandé ne bouge pas.
+  barreOnde: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
-  // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
-  // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
-  // explicite fait toujours foi, et la migration `legacySettingsLevel()`
-  // ci-dessous continue de primer sur ce defaut.
-  settingsLevel: 'expert',
+  // ESSENTIEL pour une installation NEUVE (Bertrand, 09/11/2026, #2735) —
+  // remplace l'Expert par défaut du 27/08. Voir `NIVEAU_NOUVELLE_INSTALLATION`
+  // et `NIVEAU_INSTALLATION_EXISTANTE` : une installation qui a déjà des
+  // préférences garde son niveau, ou l'ancien défaut si elle n'en porte pas.
+  settingsLevel: 'beginner',
   avatarImage: '',
   avatarCompte: '',
   // #4368 : le GROUPEMENT PAR SOURCE est le défaut depuis le 23/09/2026. Le
@@ -579,6 +626,10 @@ const defaults: Preferences = {
   // web#1762 : DÉCOCHÉ — la molette ne révèle plus la file sans qu'on l'ait
   // demandé.
   ouvrirFileAuDefilement: false,
+  // web#2798 : DÉCOCHÉ — l'ascenseur large se demande dans Réglages.
+  ascenseursLarges: false,
+  // rc12 : « Normale » — le rendu d'avant, au pixel près.
+  tailleTexte: TAILLE_TEXTE_DEFAUT,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -586,6 +637,10 @@ const defaults: Preferences = {
   // comme avant, tant qu'on ne l'a pas demandé.
   lienLectureVersSource: false,
   sourcesBarre: null,
+  // rc12 : rien de replié — la barre comme avant.
+  barreGroupesReplies: [],
+  // rc12 : selon le niveau (complets à l'Expert, courts sinon).
+  menusComplets: null,
   sourcesBarreMaj: 0,
   // web#1827 : l'ordre livré — rien ne bouge pour qui n'a rien demandé.
   barreLaterale: null,
@@ -601,6 +656,24 @@ const defaults: Preferences = {
  *  écrasait silencieusement `defaults.settingsLevel` : changer le défaut
  *  n'avait alors aucun effet, ni sur une installation neuve ni sur des
  *  préférences sans niveau valide. */
+/**
+ * #2735 — décision de Bertrand du 09/11/2026 : une installation NEUVE ouvre
+ * les Réglages au niveau Essentiel ; le sélecteur Essentiel / Avancé / Expert
+ * reste là, et la recherche trouve les réglages des niveaux supérieurs.
+ *
+ * « Jamais choisi » et « Expert choisi » NE SE DISTINGUENT PAS dans le
+ * stockage : les préférences s'écrivent en bloc, défauts compris, si bien
+ * qu'une installation qui n'a jamais touché au sélecteur porte `expert`
+ * (l'ancien défaut) exactement comme celle qui l'a choisi. La seule frontière
+ * sûre est donc l'EXISTENCE de préférences enregistrées :
+ *   - aucune, ni dans ce navigateur ni sur le serveur → Essentiel ;
+ *   - un blob enregistré → son niveau tel quel ; et s'il n'en porte aucun de
+ *     valide, l'ancien défaut Expert, pour ne pas changer le niveau d'une
+ *     installation existante.
+ */
+export const NIVEAU_NOUVELLE_INSTALLATION: SettingsLevel = 'beginner';
+export const NIVEAU_INSTALLATION_EXISTANTE: SettingsLevel = 'expert';
+
 function legacySettingsLevel(): SettingsLevel | null {
   try {
     const flag = localStorage.getItem('tune_settings_advanced');
@@ -719,15 +792,20 @@ function lirePrefs(stored: string | null): Preferences {
       }
       // Niveau d'affichage (#1617) : valeur invalide ou absente → défaut
       // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
+      // #2735 : un blob enregistré sans niveau valide est une installation
+      // EXISTANTE — elle garde l'ancien défaut, pas celui des neuves.
       if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
-        const legacy = legacySettingsLevel();
-        if (legacy) p.settingsLevel = legacy;
+        p.settingsLevel = legacySettingsLevel() ?? NIVEAU_INSTALLATION_EXISTANTE;
       }
       // Thème du client v2 : une valeur inconnue (préférence écrite par une
       // version ultérieure, ou blob corrompu) retombe sur le défaut plutôt que
       // de laisser l'interface à moitié peinte.
       if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
         p.v2Theme = V2_THEME_DEFAULT;
+      }
+      // rc12 — taille du texte : une valeur inconnue retombe sur « Normale ».
+      if (!estTailleTexte((raw as { tailleTexte?: unknown })?.tailleTexte)) {
+        p.tailleTexte = TAILLE_TEXTE_DEFAUT;
       }
       // Photo d'avatar : on n'accepte QUE ce que ce client sait avoir écrit,
       // une data-URL d'image. Ce blob ne vient pas seulement d'ici — il est
@@ -737,6 +815,13 @@ function lirePrefs(stored: string | null): Preferences {
       // « aucune photo », ce qui redonne le dégradé au lieu d'un rond cassé.
       if (!estDataUrlImage((raw as { avatarImage?: unknown })?.avatarImage)) {
         p.avatarImage = '';
+      }
+      // rc12 — une liste de groupes repliés illisible retombe sur « rien de replié ».
+      {
+        const r = (raw as { barreGroupesReplies?: unknown })?.barreGroupesReplies;
+        p.barreGroupesReplies = Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string') : [];
+        const m = (raw as { menusComplets?: unknown })?.menusComplets;
+        p.menusComplets = typeof m === 'boolean' ? m : null;
       }
       // Le propriétaire de la photo est comparé à une identité de compte : une
       // valeur qui n'est pas une chaîne ne peut apparier personne, et la garder
@@ -782,8 +867,8 @@ function lirePrefs(stored: string | null): Preferences {
   } catch { /* ignore */ }
   const p = { ...defaults };
   adoptLegacyAlbumSort(p);
-  const legacy = legacySettingsLevel();
-  if (legacy) p.settingsLevel = legacy;
+  // #2735 : rien d'enregistré ici — installation neuve, sauf ancien réglage.
+  p.settingsLevel = legacySettingsLevel() ?? NIVEAU_NOUVELLE_INSTALLATION;
   return p;
 }
 
@@ -968,6 +1053,9 @@ export const preferences = createPreferences();
 // The FOUC script in index.html handles the very first paint, but this ensures
 // the theme is also applied as soon as JS modules are evaluated.
 applyTheme(loadPrefs().theme);
+appliquerAscenseursLarges(loadPrefs().ascenseursLarges === true);
+// rc12 — la taille du texte dès le premier rendu (pas de saut de police).
+appliquerTailleTexte(loadPrefs().tailleTexte);
 
 const VUES_DE_DEMARRAGE: readonly StartupView[] = ['home', 'nowplaying', 'library', 'queue', 'playlists', 'search', 'settings'];
 
@@ -1151,7 +1239,14 @@ async function relireDuServeur() {
         });
         if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));
       } else {
-        preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...resoudreLangue([server]) }));
+        // #2735 : un navigateur neuf face à un serveur qui a DÉJÀ des
+        // préférences, c'est une installation existante — son niveau, ou
+        // l'ancien défaut s'il n'en porte pas. Un blob vide ne compte pas.
+        const niveauServeur: Partial<Preferences> = Object.keys(blobServeur).length === 0
+          || isSettingsLevel(server.settingsLevel)
+          ? {}
+          : { settingsLevel: legacySettingsLevel() ?? NIVEAU_INSTALLATION_EXISTANTE };
+        preferences.adopterSansEcrire(() => ({ ...defaults, ...server, ...niveauServeur, ...resoudreLangue([server]) }));
       }
       dejaRelu = true;
     }
@@ -1176,4 +1271,15 @@ export function applyTheme(theme: ThemeMode) {
   }
   // Also persist the theme value for external consumers
   try { localStorage.setItem('tune-theme', theme); } catch { /* ignore */ }
+}
+
+/**
+ * web#2798 : pose (ou retire) `data-ascenseurs-larges` sur `<html>`. La feuille
+ * `tune-theme.css` en tire l'ascenseur large. Appelée au chargement du module
+ * (pas d'ascenseur fin le temps du premier rendu) et par la coquille v2 à
+ * chaque changement du réglage.
+ */
+export function appliquerAscenseursLarges(actif: boolean) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.toggleAttribute('data-ascenseurs-larges', actif);
 }

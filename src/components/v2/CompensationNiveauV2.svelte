@@ -102,10 +102,10 @@
   .lc{display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:18px;
     padding:16px 20px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2)}
   .lbl{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .lbl span:first-child{font-size:14px; font-weight:600}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:52ch}
-  .val{font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .err{font-size:12px; color:var(--v2-danger)}
+  .lbl span:first-child{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:52ch}
+  .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .err{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
 
   .sw{position:relative; flex:0 0 auto; width:46px; height:26px; cursor:pointer}
   .sw input{position:absolute; opacity:0; width:0; height:0}

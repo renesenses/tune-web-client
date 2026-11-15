@@ -19,6 +19,9 @@ export interface V2SettingsTarget {
   zone?: number;
   /** #1427 — avec `zone` : amener à l'écran un BLOC de sa fiche (la correction de pièce). */
   bloc?: 'fir';
+  /** #2735 — un RÉGLAGE précis de l'index (`lib/reglagesIndex`) : son onglet
+   *  s'ouvre, il défile sous l'en-tête et s'éclaire un instant. */
+  reglage?: string;
 }
 
 export const v2SettingsTarget = writable<V2SettingsTarget | null>(null);

@@ -2,6 +2,7 @@
   import { cibleDuPas } from '../../lib/limitesVolume';
   import { volumeCommandable, plageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { isVolumeLocked } from '../../lib/stores/audiophile';
+  import { reglerVolume } from '../../lib/volumeDeGroupe';
   import { bulleTexte } from '../../lib/infobulleTexte';
   // Mode « Grand écran » façon tvOS : afficheur plein viewport (pochette géante,
   // typo XXL lisible à 3 m, paroles synchronisées), aucun contrôle visible —
@@ -11,7 +12,7 @@
   import { get } from 'svelte/store';
   import { currentZone } from '../../lib/stores/zones';
   import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../../lib/stores/nowPlaying';
-  import { activeView, previousView } from '../../lib/stores/navigation';
+  import { activeView, previousView, vueAvantGrandEcran, mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import {
     fetchTrackLyrics,
@@ -159,7 +160,13 @@
     arreterGardePleinEcran?.();
     arreterGardePleinEcran = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    activeView.set(destinationDeRetour(get(previousView), { depuis: 'tv', repli: 'nowplaying' }));
+    // web#2761 — l'origine posée par la porte prime : la vue, et le calque
+    // « Lecture en cours » s'il était ouvert dessus.
+    const origine = get(vueAvantGrandEcran);
+    vueAvantGrandEcran.set(null);
+    const vers = destinationDeRetour(origine?.vue ?? get(previousView), { depuis: 'tv', repli: 'nowplaying' });
+    activeView.set(vers);
+    if (origine?.calque && vers !== 'nowplaying') mobileNowPlayingOpen.set(true);
   }
   // Listener en capture (cf. onMount) : preventDefault + stopPropagation
   // court-circuitent le mapping global de lib/keyboard.ts (sinon les flèches
@@ -173,7 +180,7 @@
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'up') : Math.min(1, Math.round((vol + 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       case 'ArrowDown': {
@@ -181,7 +188,7 @@
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') : Math.max(0, Math.round((vol - 0.01) * 100) / 100);
-        if (cible !== vol) api.setVolume(zone.id, cible);
+        if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
       case 'ArrowRight':
@@ -829,7 +836,7 @@
     border-radius: 24px;
     background: rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(12px);
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     color: #fff;
     animation: tv-panel-in 0.2s ease-out;
   }
@@ -865,7 +872,7 @@
     border: 1px solid transparent;
     border-radius: 14px;
     color: inherit;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     padding: 3px 10px;
     cursor: pointer;
   }
@@ -879,7 +886,7 @@
   }
   .tv-exit-hint {
     opacity: 0.55;
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     white-space: nowrap;
   }
 </style>

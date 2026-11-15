@@ -85,3 +85,10 @@ export function pasVolumeSortie(
 export function sourdineCommandable(zone: ZoneAvecCapacitesVolume | null | undefined): boolean {
   return !!zone && (zone.output_type === 'browser' || zone.output_capabilities?.can_mute !== false);
 }
+
+/** web#2809 — zone en VOLUME FIXE (bit-perfect, le DAC tient le volume) : le
+ * curseur n'a rien à régler, il cède la place à la mention « Volume fixe ».
+ * Seul `fixed_volume: true` compte ; un champ absent garde le curseur. */
+export function volumeFixe(zone: { fixed_volume?: boolean | null } | null | undefined): boolean {
+  return zone?.fixed_volume === true;
+}

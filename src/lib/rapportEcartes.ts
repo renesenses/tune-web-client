@@ -47,6 +47,17 @@ export function groupesEcartes(r: unknown): GroupeEcarte[] {
     const v = rep[k];
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x) : [];
   };
+  // tune-server-rust#8177 — les DOSSIERS que le scan n'a pas pu ouvrir
+  // (« Operation not permitted » de macOS sans accès complet au disque, NAS
+  // démonté, droits refusés). Le serveur les rend (`missing_dir_reasons`,
+  // `missing_dirs`, `error_dirs`) ; l'écran ne les montrait pas : leurs
+  // fichiers manquaient sans qu'aucun dossier soit nommé. En tête : un seul
+  // dossier refusé explique souvent tout le reste.
+  const racines = liste('missing_dir_reasons');
+  const groupesDossiers: GroupeEcarte[] = [
+    { cle: 'missing_dirs', titre: 'v2.scan.skipRootUnreachable', chemins: racines.length ? racines : liste('missing_dirs') },
+    { cle: 'error_dirs', titre: 'v2.scan.skipDirUnreadable', chemins: liste('error_dirs') },
+  ];
   const defs: { cle: string; titre: string }[] = [
     { cle: 'failed_paths', titre: 'v2.scan.skipFailed' },
     { cle: 'skipped_empty_file_paths', titre: 'v2.scan.skipEmpty' },
@@ -55,9 +66,13 @@ export function groupesEcartes(r: unknown): GroupeEcarte[] {
     { cle: 'skipped_unsupported_paths', titre: 'v2.scan.skipUnsupported' },
     { cle: 'skipped_duplicate_paths', titre: 'v2.scan.skipDuplicate' },
   ];
-  return defs
-    .map((d) => ({ ...d, chemins: liste(d.cle) }))
+  return [...groupesDossiers, ...defs.map((d) => ({ ...d, chemins: liste(d.cle) }))]
     .filter((g) => g.chemins.length > 0);
+}
+
+/** Le rapport nomme-t-il des dossiers illisibles ? L'écran dit alors le geste à faire. */
+export function aDesDossiersIllisibles(r: unknown): boolean {
+  return groupesEcartes(r).some((g) => g.cle === 'missing_dirs' || g.cle === 'error_dirs');
 }
 
 /**
@@ -85,4 +100,39 @@ export function listeTronquee(r: unknown): boolean {
 /** Y a-t-il seulement quelque chose à montrer ? */
 export function aDesEcarts(r: unknown): boolean {
   return groupesEcartes(r).length > 0 || motifsDesFeuilles(r).length > 0;
+}
+
+/** Un motif d'« ignoré », et combien de fichiers il couvre. */
+export interface DecompteIgnore {
+  cle: string;
+  /** La clé i18n du libellé. */
+  titre: string;
+  nombre: number;
+}
+
+/**
+ * tune-server-rust#8261 — « le dernier scan indique 63 titres skipped ??
+ * Serait-ce possible de savoir lesquels ? et pourquoi » (jfpaquet, fil 2736).
+ *
+ * Le nombre d'« ignorés » additionne quatre motifs que le serveur compte à
+ * part (`routes/system/scan.rs`) : inchangés, doublons, sans métadonnées,
+ * format non pris en charge. Seuls les trois derniers ont une liste de
+ * chemins ; les INCHANGÉS n'en ont pas — et l'écran ne les comptait nulle
+ * part : sur un dossier ajouté puis relu, « 63 ignorés » pouvait n'ouvrir
+ * aucune liste, ou une liste plus courte, sans rien pour combler l'écart.
+ *
+ * Le décompte par motif, zéros retirés, dans l'ordre où il se lit : d'abord
+ * ce qui est sans gravité (inchangés), puis ce qui demande un regard.
+ */
+export function decompteIgnores(r: unknown): DecompteIgnore[] {
+  const rep = (r ?? {}) as Record<string, unknown>;
+  const n = (k: string) => { const v = Number(rep[k]); return Number.isFinite(v) && v > 0 ? v : 0; };
+  return [
+    { cle: 'skipped_unchanged', titre: 'v2.scan.skipUnchanged' },
+    { cle: 'skipped_duplicate', titre: 'v2.scan.skipDuplicate' },
+    { cle: 'skipped_no_metadata', titre: 'v2.scan.skipNoMeta' },
+    { cle: 'skipped_unsupported', titre: 'v2.scan.skipUnsupported' },
+  ]
+    .map((d) => ({ ...d, nombre: n(d.cle) }))
+    .filter((d) => d.nombre > 0);
 }

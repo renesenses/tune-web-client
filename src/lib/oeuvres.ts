@@ -14,6 +14,7 @@
  * à la grille d'avant, un album par carte, sans rien signaler.
  */
 import { BASE, fetchJSON } from './api';
+import { libelleNombreCanaux } from './utils';
 
 /** Une œuvre de plusieurs versions, forme compacte (`/albums/works/members`). */
 export interface MembresOeuvre {
@@ -36,6 +37,9 @@ export interface VersionAlbum {
   source: string;
   cover_path?: string | null;
   track_count?: number | null;
+  /** tune-web-client#2731 — le plus grand nombre de canaux des pistes de la
+   *  version ; absent d'un serveur antérieur ou quand il est inconnu. */
+  max_channels?: number | null;
 }
 
 /** L'œuvre d'un album (`/albums/{id}/versions`). */
@@ -91,13 +95,18 @@ export async function choisirVersionPreferee(workId: string, albumId: number | n
  *
  * `versions` : pour chaque album gardé d'une œuvre, son nombre de versions
  * dans la bibliothèque — ce qu'affiche le badge « N versions ».
+ *
+ * `canaux` (#2731) : pour chaque album gardé d'une œuvre, les nombres de
+ * canaux connus de ses versions présentes — une carte qui regroupe l'édition
+ * stéréo et la multicanale dit « 2.0/5.1 », pas seulement le maximum.
  */
 export function regrouperAlbums<A extends { id?: number | null; max_channels?: number | null }>(
   albums: A[],
   membres: MembresOeuvre[],
-): { albums: A[]; versions: Map<number, number> } {
+): { albums: A[]; versions: Map<number, number>; canaux: Map<number, number[]> } {
   const versions = new Map<number, number>();
-  if (!membres.length) return { albums, versions };
+  const canaux = new Map<number, number[]>();
+  if (!membres.length) return { albums, versions, canaux };
   const oeuvreDe = new Map<number, MembresOeuvre>();
   for (const m of membres) for (const id of m.ids) oeuvreDe.set(id, m);
   const presents = new Set<number>();
@@ -112,10 +121,12 @@ export function regrouperAlbums<A extends { id?: number | null; max_channels?: n
   // #2690 — la carte porte le canal MAXIMUM de toutes les versions présentes :
   // sans lui, une œuvre stéréo (préférée) + 5.1 sortait du filtre Multicanal.
   const canauxMax = new Map<string, number>();
+  const canauxDe = new Map<string, number[]>();
   for (const a of albums) {
     const m = a.id == null ? undefined : oeuvreDe.get(a.id);
     if (!m || a.max_channels == null) continue;
     canauxMax.set(m.work_id, Math.max(canauxMax.get(m.work_id) ?? 0, Number(a.max_channels)));
+    canauxDe.set(m.work_id, [...(canauxDe.get(m.work_id) ?? []), Number(a.max_channels)]);
   }
   const sortie: A[] = [];
   for (const a of albums) {
@@ -124,10 +135,12 @@ export function regrouperAlbums<A extends { id?: number | null; max_channels?: n
     if (!m) { sortie.push(a); continue; }
     if (garde.get(m.work_id) !== a.id) continue;
     versions.set(a.id, m.ids.length);
+    const c = canauxDe.get(m.work_id);
+    if (c) canaux.set(a.id, c);
     const max = canauxMax.get(m.work_id);
     sortie.push(max != null && max !== a.max_channels ? { ...a, max_channels: max } : a);
   }
-  return { albums: sortie, versions };
+  return { albums: sortie, versions, canaux };
 }
 
 /** La résolution lisible : « 24/96 », « 16/44.1 », ou rien. */
@@ -149,6 +162,8 @@ export function libelleVersion(v: VersionAlbum): string {
     v.label || '',
     v.format ? v.format.toUpperCase() : '',
     resolution(v),
+    // #2731 — « 2.0 », « 5.1 » : laquelle lancer sur une zone multicanale.
+    libelleNombreCanaux(v.max_channels) ?? '',
   ].filter(Boolean);
   return parties.length ? parties.join(' · ') : v.title;
 }

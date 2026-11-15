@@ -12,8 +12,8 @@
  * #5916 reprend côté serveur : on n'annonce que le RÉSULTAT.
  */
 import { get } from 'svelte/store';
-import { t } from './i18n';
 import { notifications } from './stores/notifications';
+import { notifierTraduit } from './notificationTraduite';
 import {
   currentProfileId,
   defaultPorteDesDonnees,
@@ -52,7 +52,13 @@ export function annoncerProfilDeRepli(): void {
   const p = profilDeRepli(profilMemoriseAuChargement, get(profiles), get(currentProfileId));
   if (!p) return;
   dejaAnnonce = true;
-  notifications.info(get(t)('profiles.fallbackNotice' as any).replace('{name}', nomDuProfil(p)), 12000);
+  // Retraduite au changement de langue : au démarrage, la langue choisie
+  // (préférence relue du serveur) n'est pas encore posée — voir `notificationTraduite`.
+  const nom = nomDuProfil(p);
+  notifierTraduit(
+    (m) => notifications.info(m, 12000),
+    (tr) => tr('profiles.fallbackNotice').replace('{name}', nom),
+  );
 }
 
 /** Pour les tests. */

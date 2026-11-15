@@ -40,7 +40,7 @@
 {/if}
 
 <style>
-  .liens-externes { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; font-size: 13px; }
+  .liens-externes { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 6px 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   .liens-externes a { color: var(--tune-accent); text-decoration: none; }
   .liens-externes a:hover { text-decoration: underline; }
 </style>

@@ -1,5 +1,6 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
 import { dansPeriode, type Periode } from './periodeAnnees';
+import { formatCanonique, formatRetenu } from './typeDeFichier';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -100,6 +101,11 @@ export interface FiltresBibliotheque {
    * Valeurs : `'local'`, ou `'upnp:<udn>'`.
    */
   provenance: string | null;
+  /**
+   * tune-server-rust#7586 — « Uniquement favoris » (onglet Albums) : seuls
+   * les albums favoris du profil, lus par `Outils.estFavori`. Absent : faux.
+   */
+  favoris?: boolean;
 }
 
 /** Les facettes qui portent un compte. */
@@ -121,6 +127,8 @@ export interface Outils {
    * (convention posée par l'indexation, côté serveur).
    */
   provenanceDe: (a: Album) => string;
+  /** #7586 — l'album est-il un favori local du profil ? Lu sous `favoris`. */
+  estFavori?: (a: Album) => boolean;
   /**
    * renesenses/tune-server-rust#4319 (fil 1817) — les albums que la RECHERCHE
    * SERVEUR a trouvés pour le texte tapé, dans la portée de répertoire ou dans
@@ -173,7 +181,7 @@ export function correspond(
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
   if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
   if (sauf !== 'format' && f.format.length
-      && !f.format.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+      && !formatRetenu(a, f.format)) return false;
   if (sauf !== 'profondeur' && f.profondeur.length
       && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
   // `?? false` : un album servi par une route qui ne porte pas le champ, ou
@@ -182,6 +190,8 @@ export function correspond(
   if (sauf !== 'compilation' && f.compilation != null
       && (a.is_compilation ?? false) !== f.compilation) return false;
   if (sauf !== 'provenance' && !sourceCorrespond(o.provenanceDe(a), f.provenance)) return false;
+  // #7586 — pas une facette comptée : ne s'exclut jamais, comme la recherche.
+  if (f.favoris && o.estFavori && !o.estFavori(a)) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
   if (!repondALaRecherche(a, f.recherche, o)) return false;
@@ -278,7 +288,9 @@ export function comptesFormat(
 ): [string, number][] {
   const m = new Map<string, number>();
   for (const a of assiette(albums, f, o, 'format')) {
-    const v = a.format?.trim().toUpperCase();
+    // Recette 14/11 — le codec (`formatCanonique`) : « MPEG » et « MP3 » ne
+    // font qu'une entrée, comme dans les Statistiques.
+    const v = formatCanonique(a.format, a.bit_depth);
     if (v) m.set(v, (m.get(v) ?? 0) + 1);
   }
   return [...m.entries()].sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));

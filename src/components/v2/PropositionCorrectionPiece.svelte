@@ -79,15 +79,15 @@
   .prop{display:flex; flex-direction:column; gap:10px; padding-top:6px}
   .cibles{display:flex; gap:7px; flex-wrap:wrap; align-items:center}
   .cibles button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:7px 14px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 14px; border-radius:var(--v2-r-pill)}
   .cibles button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  .resume{font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .state{color:var(--v2-txt3); font-size:12.5px}
-  .bandes{border-collapse:collapse; font:12px var(--v2-mono); color:var(--v2-txt2)}
-  .bandes th{font:10px var(--v2-mono); text-transform:uppercase; letter-spacing:.06em; color:var(--v2-txt3); text-align:left; padding:4px 18px 4px 0}
+  .mesl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .resume{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .state{color:var(--v2-txt3); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .bandes{border-collapse:collapse; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .bandes th{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.06em; color:var(--v2-txt3); text-align:left; padding:4px 18px 4px 0}
   .bandes td{padding:4px 18px 4px 0; border-top:1px solid var(--v2-line)}
-  .avert{margin:0; padding-left:18px; font-size:11.5px; line-height:1.5; color:var(--v2-txt3)}
+  .avert{margin:0; padding-left:18px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .actions{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding-top:4px}
-  .hint{font-size:11.5px; line-height:1.45; color:var(--v2-txt3); max-width:52ch}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:52ch}
 </style>

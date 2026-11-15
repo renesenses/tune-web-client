@@ -108,7 +108,8 @@ describe('Section « Live » de la fiche artiste', () => {
       expect(hote.querySelector('[data-section="live"] .ct')?.textContent).toBe('Live EP');
       expect(hote.querySelector('[data-section="eps"] .ct')?.textContent).toBe('Un EP');
       const ordre = [...hote.querySelectorAll('section[data-section]')].map((s) => s.getAttribute('data-section'));
-      expect(ordre.slice(0, 4)).toEqual(['live', 'albums-principaux', 'eps', 'singles']);
+      // web#2639 — les types de sortie sont des sous-sections de « Discographie ».
+      expect(ordre.slice(0, 5)).toEqual(['discographie', 'live', 'albums-principaux', 'eps', 'singles']);
     } finally {
       unmount(composant);
       hote.remove();

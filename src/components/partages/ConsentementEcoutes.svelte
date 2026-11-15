@@ -129,12 +129,12 @@
   }
   .ce-fenetre h2 {
     margin: 0 28px 12px 0;
-    font-size: 18px;
+    font-size: calc(18px * var(--v2-txt-echelle, 1));
     font-weight: 600;
   }
   .ce-texte {
     margin: 0 0 10px;
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     line-height: 1.45;
   }
   .ce-lien {
@@ -142,12 +142,12 @@
   }
   .ce-rappel {
     margin: 12px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-secondary, rgba(232, 232, 234, 0.7));
   }
   .ce-erreur {
     margin: 10px 0 0;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-error, #e5534b);
   }
   .ce-fermer {
@@ -157,7 +157,7 @@
     border: none;
     background: none;
     color: var(--tune-text-secondary, rgba(232, 232, 234, 0.7));
-    font-size: 22px;
+    font-size: calc(22px * var(--v2-txt-echelle, 1));
     line-height: 1;
     cursor: pointer;
   }
@@ -171,7 +171,7 @@
   .ce-boutons button {
     padding: 9px 18px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
   .ce-non {

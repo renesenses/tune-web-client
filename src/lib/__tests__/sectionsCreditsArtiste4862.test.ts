@@ -99,16 +99,19 @@ describe('#4862 — la réponse du serveur se lit, avec ou sans les nouvelles cl
 describe('#4862 — la grille rend « Collaborations » et « Reprises »', () => {
   it('rendues depuis la réponse : une sous-section « Avec {artiste} » et les rôles', () => {
     const h = poserGrille({ collaborations: SECTIONS.collaborations, reprises: SECTIONS.covers });
-    const collab = h.querySelector('[data-section="collaborations"]');
-    expect(collab, 'la section « Collaborations » n’est pas rendue').not.toBeNull();
-    expect(collab!.querySelector('h3')!.textContent).toContain(fr['v2.disco.collaborations']);
-    expect(collab!.querySelector('h3 .cpt')!.textContent).toBe('2');
-    const groupe = collab!.querySelector('.groupe');
+    // web#2639 — les collaborations sont les groupes « Avec … » de la section
+    // « Apparaît sur » ; le compte de la section les additionne.
+    const section = h.querySelector('[data-section="appears-on"]');
+    expect(section, 'la section « Apparaît sur » n’est pas rendue').not.toBeNull();
+    expect(section!.querySelector('h3')!.textContent).toContain(fr['v2.disco.appearsOn']);
+    expect(section!.querySelector('h3 .cpt')!.textContent).toBe('2');
+    const groupe = section!.querySelector('.groupe[data-section="collaborations"]');
+    expect(groupe, 'le groupe « Avec … » n’est pas rendu').not.toBeNull();
     expect(groupe!.querySelector('h4')!.textContent).toBe(
       fr['v2.disco.withArtist'].replace('{artist}', 'Crosby, Stills & Nash'),
     );
     expect(titresDe(groupe)).toEqual(expect.arrayContaining(['Déjà Vu', '4 Way Street']));
-    expect(collab!.textContent, 'les rôles ne sont pas montrés').toContain('guitar · vocals');
+    expect(section!.textContent, 'les rôles ne sont pas montrés').toContain('guitar · vocals');
 
     const rep = h.querySelector('[data-section="reprises"]');
     expect(rep, 'la section « Reprises » n’est pas rendue').not.toBeNull();

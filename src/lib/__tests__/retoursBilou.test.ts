@@ -51,7 +51,7 @@ describe('Retours de Bilou sur le forum (05/09/2026)', () => {
   it('la barre latérale est COMPACTE — elle obligeait à défiler', () => {
     // Vingt-deux entrées à 42 px en faisaient 924, plus que la hauteur utile
     // d'un portable : la barre défilait chez tout le monde.
-    const nav = /\.nav\{[^}]*padding:(\d+(?:\.\d+)?)px 14px[^}]*font-size:(\d+(?:\.\d+)?)px/.exec(barre);
+    const nav = /\.nav\{[^}]*padding:(\d+(?:\.\d+)?)px 14px[^}]*font-size:(?:calc\()?(\d+(?:\.\d+)?)px/.exec(barre);
     expect(nav, 'la règle .nav a changé de forme').not.toBeNull();
     const [pad, police] = [Number(nav![1]), Number(nav![2])];
     expect(2 * pad + Math.round(police * 1.2), 'hauteur d’une entrée').toBeLessThanOrEqual(34);
@@ -83,6 +83,6 @@ describe('Retours de Bilou sur le forum (05/09/2026)', () => {
     expect(lib).toContain("sortKey = sortKey === 'added' ? 'title' : 'added'");
     // Elle n'apparaît que si la donnée existe — un tri qui ne trie rien est
     // pire qu'un tri absent.
-    expect(lib).toMatch(/\{#if hasAddedAt\}\s*\n\s*<button class="chip" class:active=\{sortKey === 'added'\}/);
+    expect(lib).toMatch(/\{#if hasAddedAt(?: && montre\('recent', sortKey === 'added'\))?\}\s*\n\s*<button class="chip" class:active=\{sortKey === 'added'\}/);
   });
 });

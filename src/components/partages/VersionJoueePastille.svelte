@@ -21,7 +21,7 @@
 
 <style>
   .np-version{display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:2px 9px; border-radius:999px;
-    font-size:11px; line-height:1.6; color:var(--v2-txt2, #9ca3af); border:1px solid var(--v2-line2, rgba(255,255,255,.14));
+    font-size:calc(11px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2, #9ca3af); border:1px solid var(--v2-line2, rgba(255,255,255,.14));
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .np-version .texte{overflow:hidden; text-overflow:ellipsis}
   .np-version.repli{border-color:rgba(245,158,11,.45)}

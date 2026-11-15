@@ -1,7 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { plafondDuCurseur } from '../../lib/limitesVolume';
-  import { volumeCommandable, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { volumeCommandable, volumeFixe, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Zones — nouveau client (direction Levente).
@@ -22,6 +22,7 @@
    */
   import * as api from '../../lib/api';
   import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
+  import { libelleVolumeZone } from '../../lib/volumeCourseDb';
   import { zones, currentZoneId } from '../../lib/stores/zones';
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
@@ -33,11 +34,13 @@
   import '../../styles/tune-v2.css';
   import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, vignetteDeZone, type VueZones } from '../../lib/vueZones';
   import EtatZone from './EtatZone.svelte';
+  import VolumeFixe from '../partages/VolumeFixe.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
+  import { sortiesAsioAAvertir, type SortieAsioSansZone } from '../../lib/zoneHorsBackend';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
@@ -55,7 +58,10 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneCorrectionPiece } from '../../lib/correctionPiece';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import ZonesSupprimees from './ZonesSupprimees.svelte';
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
+  import AlertePareFeu from './AlertePareFeu.svelte';
+  import { cleRaisonSortieReseau } from '../../lib/raisonSortieReseau';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -313,6 +319,26 @@
     if (liste === null) { error = $t('v2.zone.unreachable' as any); return; }
     error = null;
     chargerDoublons();
+    chargerAsioSansZone();
+  }
+
+  /*
+   * tune-server-rust#7806 — un DAC ASIO présent sans zone (fil 2248 : le
+   * Denafrips enregistré, aucune zone, toutes les lectures DSD parties sur
+   * « This Computer » en WASAPI, converties en PCM). L'écran le dit, et
+   * propose la zone : `POST /zones` sur ce `device_id`, la route de création
+   * ordinaire (une zone supprimée y est ressuscitée).
+   */
+  let asioSansZone = $state<SortieAsioSansZone[]>([]);
+  async function chargerAsioSansZone() {
+    asioSansZone = await api.getSortiesAsioSansZone();
+  }
+  // À l'ouverture de l'écran (la liste des zones, elle, vient du magasin), puis
+  // après chaque geste (`refresh`). L'effet ne lit RIEN de ce qu'il écrit.
+  $effect(() => { chargerAsioSansZone(); });
+  const asioAAvertir = $derived(sortiesAsioAAvertir(asioSansZone, $zones));
+  function creerZoneAsio(s: SortieAsioSansZone) {
+    act(() => api.createZone(s.name, 'local', s.device_id));
   }
 
   // DUP-1 : deux zones pour un même appareil. Le diagnostic les nomme (phase
@@ -459,11 +485,28 @@
    * récemment en petits badges » — les phrases entières faisaient des
    * bandeaux pleine largeur sur la carte.
    */
+  /**
+   * tune-server-rust#7838 — la phrase qui dit pourquoi l'appareil réseau de la
+   * zone ne peut pas jouer, ou `''`. Les clés sont écrites EN CLAIR, une par
+   * branche, pour que `check-i18n` les voie.
+   */
+  function raisonSortie(z: Zone): string {
+    const cle = cleRaisonSortieReseau(z);
+    if (cle === 'v2.zone.raisonSansLecture') return $t('v2.zone.raisonSansLecture' as any);
+    if (cle === 'v2.zone.raisonSansVolume') return $t('v2.zone.raisonSansVolume' as any);
+    if (cle === 'v2.zone.raisonSansLectureNiVolume') return $t('v2.zone.raisonSansLectureNiVolume' as any);
+    if (cle === 'v2.zone.raisonSortieNonCreee') return $t('v2.zone.raisonSortieNonCreee' as any);
+    return '';
+  }
   function reach(z: Zone): { cls: string; txt: string; long: string } | null {
     // Absent = `ok` : ne pas inventer une panne sur un serveur < 0.9.70.
     const r = z.output_reach ?? 'ok';
     if (r === 'no_output') return { cls: 'bad', txt: $t('v2.zone.badgeNoOutput' as any), long: $t('v2.zone.noOutputLong' as any) };
     if (r === 'browser_unattended') return { cls: 'warn', txt: $t('v2.zone.badgeBrowser' as any), long: $t('v2.zones.browserUnattended' as any) };
+    // tune-server-rust#7838 : vu sur le réseau, mais ne peut pas jouer — la
+    // raison, donnée par le serveur. Absente, la zone est simplement hors ligne.
+    const raison = raisonSortie(z);
+    if (raison) return { cls: 'bad', txt: $t('v2.zone.badgeCannotPlay' as any), long: raison };
     if (z.online === false) return { cls: 'bad', txt: $t('v2.zone.badgeOffline' as any), long: $t('v2.zone.badgeOffline' as any) };
     return null;
   }
@@ -617,6 +660,22 @@
        fonction n'existait pas. On prévient, on ne masque pas. -->
   <OutputModuleBanner instantane={instantaneFournisseurs} />
 
+  <!-- tune-server-rust#7371 — le pare-feu de Windows filtre Tune sur le réseau
+       actif (réseau Public hors de la règle « Tune ») : un appareil DLNA n'est
+       alors jamais découvert. Hors du bloc « aucune zone », pour la même raison
+       que le bandeau ci-dessus. -->
+  <AlertePareFeu />
+
+  {#each asioAAvertir as s (s.device_id)}
+    <div class="asio-sans-zone" role="status" data-asio-sans-zone={s.device_id}>
+      <span>{$t('v2.zone.asioSansZone' as any).replace('{name}', s.name)}</span>
+      <button class="v2-btn" disabled={busy} onclick={() => creerZoneAsio(s)}>{$t('v2.zone.creerZoneAsio' as any)}</button>
+    </div>
+  {/each}
+
+  <!-- tune-server-rust#7836 — « Zones supprimées (n) » et Restaurer. -->
+  <ZonesSupprimees onRestauree={refresh} />
+
   <div class="scroll">
     {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
       <!-- #1096 — tant que la liste n'a pas été CHARGÉE, une liste vide ne dit
@@ -721,6 +780,7 @@
                   <BadgeReaffectation cible="zone" id={z.id} />
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                 </span>
+                {#if raisonSortie(z)}<span class="craison" data-raison-sortie>{raisonSortie(z)}</span>{/if}
                 {#if np?.title}
                   <span class="cnp" title={`${np.title}${np.artist_name ? ' — ' + np.artist_name : ''}`}>♪ {np.title}{#if np.artist_name}<span class="cna"> — {np.artist_name}</span>{/if}</span>
                 {/if}
@@ -737,11 +797,18 @@
             {/if}
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+              {#if volumeFixe(z)}
+                <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+                <VolumeFixe />
+              {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+              {/if}
               <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
           </div>
@@ -769,7 +836,8 @@
                   {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
                   {#if z.current_track?.title}<span class="np" use:bulleTexte>♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
-                  {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
+                  {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
+                  {#if raisonSortie(z)}<span class="craison" data-raison-sortie>{raisonSortie(z)}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
                   <BadgeHorsBackend zone={z} />
                   <BadgeReaffectation cible="zone" id={z.id} />
@@ -780,11 +848,18 @@
 
             <span class="vol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+              {#if volumeFixe(z)}
+                <!-- web#2809 — volume fixe : la mention remplace le curseur. -->
+                <VolumeFixe />
+              {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
                 disabled={!volumeCommandable(z)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
-                aria-label={`Volume de ${z.name}`} />
-              <span class="vn">{Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+                aria-label={`Volume de ${z.name}`}
+                aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
+              <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
+              <span class="vn" class:db={!!libelleVolumeZone(z as any, 0)}>{libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}</span>
+              {/if}
             </span>
 
             {#if showExpert}
@@ -908,40 +983,40 @@
 <style>
   .paires{margin:26px 0 0; padding:16px 18px; border-radius:12px; border:1px solid var(--v2-line)}
   .paires .ph{display:flex; align-items:baseline; gap:14px}
-  .paires .cl{font:600 12px var(--v2-mono); letter-spacing:.05em; color:var(--v2-acc1)}
-  .phint{margin-top:6px; font-size:12.5px; line-height:1.55; color:var(--v2-txt3)}
+  .paires .cl{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-acc1)}
+  .phint{margin-top:6px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.55; color:var(--v2-txt3)}
   .pform{display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px}
   .pf{display:flex; flex-direction:column; gap:5px}
   .pf.grow{flex:1; min-width:180px}
-  .pf > span{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .pf > span{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .plist{margin-top:14px; display:flex; flex-direction:column; gap:8px}
   .pitem{display:flex; align-items:center; justify-content:space-between; gap:14px;
     padding:9px 12px; border-radius:9px; background:var(--v2-bg)}
-  .pn{font-size:13px; display:flex; align-items:center; gap:7px; flex-wrap:wrap}
-  .pn em{font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:normal}
+  .pn{font-size:calc(13px * var(--v2-txt-echelle, 1)); display:flex; align-items:center; gap:7px; flex-wrap:wrap}
+  .pn em{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-style:normal}
   .pn .plus{color:var(--v2-txt3)}
-  .voie{font:10.5px var(--v2-mono); color:var(--v2-acc1)}
+  .voie{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1)}
   /* Reprises telles quelles des Réglages v2 : mêmes contrôles, même dessin.
      Les styles Svelte sont portés par composant, il n'y a pas de feuille
      commune où les poser sans les rendre globales. */
   .sel{height:34px; min-width:180px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
+    background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 10px; outline:none; cursor:pointer}
   .sel:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:100%}
+    color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 11px; outline:none; width:100%}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .v2-zones{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .newz{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   .newz input{height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
-    color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:230px}
+    color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:230px}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:8px}
 
@@ -985,22 +1060,22 @@
   .cpick:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}
 
   .chaut{display:flex; align-items:center; gap:9px; width:100%; min-height:18px}
-  .cot{font:600 9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
-  .cdef{margin-left:auto; font:600 9.5px var(--v2-mono); letter-spacing:.06em;
+  .cot{font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cdef{margin-left:auto; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em;
     text-transform:uppercase; color:var(--v2-acc1)}
 
-  .cnom{margin-top:9px; font:700 17px var(--v2-sans); line-height:1.25; color:var(--v2-txt);
+  .cnom{margin-top:9px; font:700 calc(17px * var(--v2-txt-echelle, 1)) var(--v2-sans); line-height:1.25; color:var(--v2-txt);
     width:100%; overflow-wrap:anywhere}
   /* L'appareil, la ligne demandée. `muet` = on n'a que le type de sortie :
      neuf zones sur quatorze sur le .18. On le dit en gris, sans le déguiser
      en modèle. */
-  .cappareil{margin-top:4px; font:12.5px var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
+  .cappareil{margin-top:4px; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
   .cappareil.muet{color:var(--v2-txt3)}
   /* #1006 — les badges en PASTILLES, sur une seule rangée qui replie. */
   .cbadges{margin-top:9px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%}
   .cbadges:empty{display:none}
 
-  .cnp{margin-top:10px; font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
+  .cnp{margin-top:10px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
   .cna{color:var(--v2-txt3)}
 
   .crn{padding:0 16px 4px}
@@ -1009,7 +1084,11 @@
     border-top:1px solid var(--v2-line)}
   .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
   .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
-  .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  /* web#2809 — la mention tient la place du curseur : le menu reste à droite. */
+  .cvol :global(.volume-fixe), .vol :global(.volume-fixe){flex:1; min-width:0}
+  .cvol .vn{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  /* tune-server-rust#7205 — « -45.0 dB » ne tient pas dans 24 px. */
+  .cvol .vn.db, .vn.db{width:auto; min-width:58px; white-space:nowrap}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
@@ -1026,28 +1105,35 @@
   .dot{width:11px; height:11px; border-radius:50%; flex:0 0 auto; border:2px solid var(--v2-line2); background:transparent}
   .dot.on{border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .zmeta{display:flex; flex-direction:column; gap:4px; min-width:0}
-  .zn{font-size:15px; font-weight:700; display:flex; align-items:center; gap:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .zn em{font:9.5px var(--v2-mono); font-style:normal; letter-spacing:.1em; text-transform:uppercase;
+  .zn{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; display:flex; align-items:center; gap:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .zn em{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; letter-spacing:.1em; text-transform:uppercase;
     color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:2px 7px}
   .zi{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .ot{font:10px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc2)}
-  .np{font:11.5px var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px}
-  .rc{font:10px var(--v2-mono); padding:2px 8px; border-radius:999px}
+  .ot{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc2)}
+  .np{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:280px}
+  .rc{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:2px 8px; border-radius:999px}
   .rc.bad{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  /* tune-server-rust#7838 : la raison, en clair, sous les pastilles. */
+  .craison{display:block; margin-top:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.35; color:var(--v2-danger); white-space:normal; text-align:left}
   .rc.warn{color:var(--v2-acc-tint); border:1px solid var(--v2-acc2)}
-  .rn{font-size:15px; font-weight:700; background:var(--v2-bg); border:1px solid var(--v2-acc2); border-radius:8px;
+  .rn{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; background:var(--v2-bg); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:3px 9px; outline:none; width:220px; font-family:inherit}
 
   .vol{display:flex; align-items:center; gap:10px; flex:0 0 auto}
   .vol svg{width:16px; height:16px; color:var(--v2-txt3)}
   .vol input{width:130px; accent-color:var(--v2-acc1)}
-  .vn{font:11px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right}
+  .vn{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right}
 
   .flags{display:flex; gap:6px; flex:0 0 auto}
-  .fl{font:9.5px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:3px 8px}
+  .fl{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:3px 8px}
 
   .zacts{display:flex; gap:5px; flex:0 0 auto}
   .sortie{max-width:160px; height:24px; border-radius:7px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); font:11px var(--v2-sans)}
+    background:transparent; color:var(--v2-txt2); font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
 .vol input:disabled, .cvol input:disabled { opacity: 0.45; cursor: not-allowed; }
+  /* tune-server-rust#7806 — DAC ASIO sans zone. */
+  .asio-sans-zone{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
+    color:var(--v2-txt); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .asio-sans-zone span{flex:1 1 240px}
 </style>

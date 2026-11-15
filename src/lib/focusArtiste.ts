@@ -37,10 +37,14 @@ export interface FocusArtiste {
  * La section de la page artiste d'où sort une vignette — `null` pour la
  * discographie, qui n'ouvre jamais de fiche focalisée.
  */
-export type OrigineSection = 'compilations' | 'apparitions' | 'collaborations' | 'reprises' | null;
+export type OrigineSection = 'compilations' | 'apparitions' | 'collaborations' | 'reprises' | 'ecriture' | null;
 
-/** Les sections dont le focus vient des CRÉDITS (`focus_track_ids`). */
-const SECTIONS_DE_CREDITS: readonly OrigineSection[] = ['collaborations', 'reprises'];
+/**
+ * Les sections dont le focus vient des CRÉDITS (`focus_track_ids`). « Écriture
+ * et production » (lot 2, web#2639) en est : ses albums portent les pistes où
+ * l'artiste est compositeur, producteur, ingénieur…, comme « Reprises ».
+ */
+const SECTIONS_DE_CREDITS: readonly OrigineSection[] = ['collaborations', 'reprises', 'ecriture'];
 
 /**
  * Les identifiants de pistes créditées que porte un album de « Collaborations »

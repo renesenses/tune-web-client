@@ -10,21 +10,27 @@
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import OxygenEtiquetageFiltre from './OxygenEtiquetageFiltre.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
+  import { lireTotaux, infobulleTotaux, type TotauxBibliotheque } from '../../lib/totauxBibliotheque';
   import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../../lib/api/metadata';
   import { displayFields } from '../../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../../lib/stores/preferences';
   import { get } from 'svelte/store';
-  import { activeView, focusMode, pendingOxygenFolder, gestesNavigationService } from '../../lib/stores/navigation';
-  import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
+  import { activeView, focusMode, pendingOxygenFolder } from '../../lib/stores/navigation';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { notifications } from '../../lib/stores/notifications';
   import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
   import { basculerOperateur, parametreEt } from '../../lib/facettesEtOu';
   import { t } from '../../lib/i18n';
+  import { bornerLargeurRail, ecrireLargeurRail, largeurRailAuClavier, lireLargeurRail, retablirLargeurRail, RAIL_MIN_PX, plafondRail } from '../../lib/largeurRailOxygen';
   import { comparerAlphabetique } from '../../lib/ordreAlphabetique';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
   import type { Track } from '../../lib/types';
+  import { metadonneesVisibles } from '../../lib/clesMetadonneesInternes';
+  import { numeroPisteAffiche, comparerNumeroPiste } from '../../lib/numeroPiste';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
   const LOAD_LIMIT = 3000; // client window; full-library facets = server index (Phase 2b)
@@ -38,13 +44,20 @@
     sample_rate: { label: 'oxygen.col.sampleRate', get: t => t.sample_rate ? (t.sample_rate / 1000).toFixed(1) : '' },
     bit_depth: { label: 'oxygen.col.bits', get: t => t.bit_depth ? String(t.bit_depth) : '' },
     disc_subtitle: { label: 'oxygen.col.discSubtitle', get: t => t.disc_subtitle ?? '' },
+    // #2762 — servis par `/library/tracks` depuis tune-server-rust#8325 ;
+    // ABSENTS d'une piste qui n'en porte pas, ou d'un serveur plus ancien :
+    // la cellule reste vide.
+    conductor: { label: 'oxygen.col.conductor', get: t => t.conductor ?? '' },
+    ensemble: { label: 'oxygen.col.ensemble', get: t => t.ensemble ?? '' },
+    work: { label: 'oxygen.col.work', get: t => t.work ?? '' },
+    movement: { label: 'oxygen.col.movement', get: t => t.movement ?? '' },
     // Champs deja portes par `Track`, donc deja dans la charge utile de la
     // liste : les exposer en colonne ne coute rien de plus au serveur.
     // L'inspecteur les affichait deja ; seule la table les ignorait, et un
     // champ coche dans les reglages mais absent d'ici etait ecarte en silence
     // par le filtre de `columns` (Bertrand, 9 aout 2026).
     album_artist: { label: 'oxygen.col.albumArtist', get: t => t.album_artist ?? '' },
-    track_number: { label: 'oxygen.col.trackNumber', get: t => t.track_number != null ? String(t.track_number) : '' },
+    track_number: { label: 'oxygen.col.trackNumber', get: t => numeroPisteAffiche(t.track_number) },
     format: { label: 'oxygen.col.format', get: t => t.format ?? '' },
     channels: { label: 'oxygen.col.channels', get: t => t.channels != null ? String(t.channels) : '' },
     isrc: { label: 'oxygen.col.isrc', get: t => t.isrc ?? '' },
@@ -66,6 +79,7 @@
    *  en permanence). Un seul appel, au montage — ces nombres ne bougent qu'au
    *  scan. */
   let libStats = $state<{ tracks: number; albums: number; artists: number } | null>(null);
+  let libTotaux = $state<TotauxBibliotheque | null>(null);
   /** Séparateur de milliers selon la langue : 55 234 se lit, 55234 se compte. */
   const nf = (n: number) => n.toLocaleString();
 
@@ -109,7 +123,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
   // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
   // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
   //
@@ -196,6 +210,39 @@
   // le tiroir et non le repli.
   let isPhone = $state(false);
 
+  // Largeur de la colonne des facettes, réglable en tirant son bord droit
+  // (recette rc12 du 13/11 : à 220 px fixes, artistes, labels et chemins
+  // finissaient tous en « … »). `railVoulu` est le réglage retenu ;
+  // `railLargeur` est ce qu'on applique, borné par la place du moment pour
+  // ne jamais laisser la liste centrale sous 360 px — voir lib/largeurRailOxygen.
+  let railVoulu = $state(lireLargeurRail());
+  let largeurCorps = $state(0);
+  // Au-dessus de 1150 px, l'inspecteur est une colonne de 322 px de la grille.
+  let placeRail = $derived(largeurCorps > 0 ? largeurCorps - (!isNarrow && !inspectorCollapsed ? 322 : 0) : null);
+  let railLargeur = $derived(bornerLargeurRail(railVoulu, placeRail));
+  let railTire: { x: number; depart: number } | null = $state(null);
+  function debutTirerRail(e: PointerEvent) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    railTire = { x: e.clientX, depart: railLargeur };
+  }
+  function suivreTirerRail(e: PointerEvent) {
+    if (!railTire) return;
+    railVoulu = bornerLargeurRail(railTire.depart + e.clientX - railTire.x, placeRail);
+  }
+  function finirTirerRail() {
+    if (!railTire) return;
+    railTire = null;
+    railVoulu = ecrireLargeurRail(railVoulu);
+  }
+  function railAuClavier(e: KeyboardEvent) {
+    const v = largeurRailAuClavier(e.key, railLargeur, placeRail);
+    if (v == null) return;
+    e.preventDefault();
+    railVoulu = ecrireLargeurRail(v);
+  }
+
   let mode = $derived<OxygenViewMode>($preferences.oxygenView);
   let columns = $derived(($displayFields ?? []).filter(k => k in COLUMN_DEFS));
   // Precomputed: inside {#each ... as t} the track `t` shadows the i18n store `t`,
@@ -215,6 +262,8 @@
   const FACET_PARAM: Record<string, string> = {
     genre: 'genre', label: 'label', year: 'year', original_year: 'original_year',
     artist: 'artist', composer: 'composer', format: 'format',
+    // #2762 — chef, ensemble, œuvre (tune-server-rust#8325).
+    conductor: 'conductor', ensemble: 'ensemble', work: 'work',
     sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
     mood: 'mood', source: 'source_media', rating: 'rating',
     collection: 'collection', favorite: 'favorite', playlist: 'playlist',
@@ -298,6 +347,8 @@
       if (!d.subtitle && t.disc_subtitle) d.subtitle = t.disc_subtitle;
       d.tracks.push(t);
     }
+    // Pistes sans numéro (UPnP sans `originalTrackNumber`) après les numérotées.
+    for (const d of m.values()) d.tracks.sort((a, b) => comparerNumeroPiste(a.track_number, b.track_number));
     return [...m.values()].sort((a, b) => a.disc - b.disc);
   }
 
@@ -321,7 +372,7 @@
     selected = t; ext = {};
     if (t.id == null) return;
     extLoading = true;
-    try { ext = await getTrackExtendedMetadata(t.id); } catch { ext = {}; } finally { extLoading = false; }
+    try { ext = metadonneesVisibles(await getTrackExtendedMetadata(t.id)); } catch { ext = {}; } finally { extLoading = false; }
   }
   function openAlbum(g: AlbumGroup) {
     albumFilter = g.key; albumFilterLabel = `${g.title} — ${g.artist}`;
@@ -677,7 +728,12 @@
     getMetadataFieldSettings().then(f => { categories = f.categories ?? []; }).catch(() => {});
     // Échec silencieux : la barre d'état se contente alors du compte filtré.
     // Une bibliothèque qui n'annonce pas son total vaut mieux qu'un écran en erreur.
-    getLibraryStats().then(st => { libStats = st; }).catch(() => {});
+    // tune-server-rust#8625 — les totaux des listes, pas le compte des tables.
+    getLibraryStats().then(st => {
+      const tot = lireTotaux(st);
+      libTotaux = tot;
+      libStats = { ...st, tracks: tot.tracks, albums: tot.albums };
+    }).catch(() => {});
     return () => {
       mq.removeEventListener('change', upd);
       mqPhone.removeEventListener('change', updPhone);
@@ -763,10 +819,8 @@
       </button>
     </div>
 
-    <div class="search">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input placeholder={$t('oxygen.filter')} bind:value={query} />
-    </div>
+    <!-- Recette rc12 (13/11) — le champ partagé de tous les écrans. -->
+    <ChampRecherche bind:valeur={query} ecran={$t('v2.nav.oxygen' as any)} />
     {#if albumFilter == null}
       <!-- tune-server-rust#7128 — tout le résultat filtré, pas la fenêtre chargée. -->
       <OxygenEtiquetageFiltre
@@ -813,8 +867,22 @@
     </div>
   {/if}
 
-  <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
+  <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed} class:tire={railTire != null} style="--rail-w:{railLargeur}px" bind:clientWidth={largeurCorps}>
     <aside class="railwrap" class:open={mobileRail}>
+      {#if !isPhone}
+        <!-- La poignée de LARGEUR de la colonne, sur son bord droit. Sous
+             780 px le rail est un tiroir : pas de poignée. -->
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+        <div class="railpoignee" class:active={railTire != null} data-poignee-rail
+          role="separator" tabindex="0" aria-orientation="vertical"
+          aria-valuenow={railLargeur} aria-valuemin={RAIL_MIN_PX} aria-valuemax={plafondRail(placeRail)}
+          aria-label={$t('oxygen.railWidth')} title={$t('oxygen.railWidth')}
+          onpointerdown={debutTirerRail} onpointermove={suivreTirerRail}
+          onpointerup={finirTirerRail} onpointercancel={finirTirerRail} onlostpointercapture={finirTirerRail}
+          ondblclick={() => { railVoulu = retablirLargeurRail(); }}
+          onkeydown={railAuClavier}></div>
+      {/if}
       <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} enEt={facetEt} onBasculerOperateur={basculerOperateurFacette} sansPlafond={sansPlafond} onToutAfficher={toutAfficher} />
       <!-- Le tiroir mobile ne se referme PLUS à chaque clic : depuis #2168 on
            coche plusieurs valeurs de suite, et le refermer entre deux cases
@@ -936,7 +1004,7 @@
                     {#each d.tracks as t (t.id)}
                       <div class="trkrow">
                         <button class="trk" class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                          <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</span>
+                          <span class="tn">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{numeroPisteAffiche(t.track_number)}{/if}</span>
                           <span class="tt" use:bulleTexte>{t.title}</span>
                           <span class="td">{fmtDur(t.duration_ms)}</span>
                         </button>
@@ -963,20 +1031,21 @@
             </tr></thead>
             <tbody>
               {#each visible as t (t.id)}
-                {@const versAlbum = t.album_title ? ouvertureAlbumDePiste(t, $gestesNavigationService) : null}
-                <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={() => playFromTrack(t)}>
-                  <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{t.track_number ?? ''}{/if}</td>
+                <tr class:sel={selected?.id === t.id} class:playing={t.id != null && t.id === playingId} use:tip={'tip.oxygenTrackRow'} onclick={() => select(t)} ondblclick={(e) => {
+                  if (!(e.target instanceof Element && e.target.closest('[role="link"]'))) void playFromTrack(t);
+                }}>
+                  <td class="n">{#if t.id != null && t.id === playingId}{@render nowPlayingBars()}{:else}{numeroPisteAffiche(t.track_number)}{/if}</td>
                   <td class="title" use:bulleTexte>{t.title}</td>
-                  <td class="dim" use:bulleTexte>{t.artist_name ?? ''}</td>
-                  <!-- web#1871 — la colonne ALBUM mène à la fiche, par le geste
-                       d'« Aller à l'album » (`lib/lienAlbumDePiste`), comme le
-                       tableau partagé `ListePistesV2`. Le clic ne sélectionne
-                       pas la ligne. Sans album connu, le nom reste du texte. -->
-                  <td class="dim" use:bulleTexte>{#if versAlbum}<button class="lien-album" title={t.album_title}
-                    onclick={(e) => { e.stopPropagation(); versAlbum(); }}
-                    ondblclick={(e) => e.stopPropagation()}>{t.album_title}</button>{:else}{t.album_title ?? ''}{/if}</td>
+                  <td class="dim" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: t.artist_name, artiste: artisteDePisteEcoutee(t) }} /></td>
+                  <td class="dim" use:bulleTexte><LienEntite entite={{ type: 'album', nom: t.album_title, piste: t }} /></td>
                   <td><QualityBadge format={t.format} sampleRate={t.sample_rate} bitDepth={t.bit_depth} source={t.source} /></td>
-                  {#each columns as c}<td class="mono">{COLUMN_DEFS[c].get(t)}</td>{/each}
+                  {#each columns as c}<td class="mono">
+                    {#if c === 'album_artist'}
+                      <LienEntite entite={{ type: 'artiste', nom: t.album_artist }} />
+                    {:else if c === 'composer' || c === 'conductor'}
+                      <LienEntite entite={{ type: 'personne', nom: COLUMN_DEFS[c].get(t) }} />
+                    {:else}{COLUMN_DEFS[c].get(t)}{/if}
+                  </td>{/each}
                   <td class="r mono">{fmtDur(t.duration_ms)}</td>
                 </tr>
               {/each}
@@ -1034,7 +1103,7 @@
        deux derniers ne s'affichent que s'ils apportent quelque chose. -->
   <footer class="statusbar">
     {#if libStats}
-      <span class="sb-lib">
+      <span class="sb-lib" title={libTotaux ? infobulleTotaux(libTotaux, (c) => $t(c as any), nf) : undefined}>
         {nf(libStats.tracks)} {$t('oxygen.status.tracks')} ·
         {nf(libStats.albums)} {$t('oxygen.status.albums')} ·
         {nf(libStats.artists)} {$t('oxygen.status.artists')}
@@ -1060,32 +1129,29 @@
   .bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; padding-right: var(--v2-grappe-w, 172px); border-bottom: 1px solid var(--tune-border); flex-shrink: 0; }
   .icnbtn { background: var(--tune-surface); border: 1px solid var(--tune-border); color: var(--tune-text-secondary); width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
   .icnbtn:hover { color: var(--tune-text); border-color: var(--tune-accent); }
-  .titleblock .eyebrow { font-size: 11px; letter-spacing: .04em; color: var(--tune-accent); }
-  .titleblock h1 { font-size: 19px; font-weight: 700; margin: 1px 0 0; }
+  .titleblock .eyebrow { font-size: calc(11px * var(--v2-txt-echelle, 1)); letter-spacing: .04em; color: var(--tune-accent); }
+  .titleblock h1 { font-size: calc(19px * var(--v2-txt-echelle, 1)); font-weight: 700; margin: 1px 0 0; }
   .seg { display: inline-flex; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 9px; padding: 3px; }
   .seg button { background: none; border: 0; color: var(--tune-text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; display: grid; place-items: center; }
   .seg button.on { background: var(--tune-accent); color: #1a1206; }
-  .search { flex: 1; max-width: 320px; position: relative; display: flex; align-items: center; }
-  .search svg { position: absolute; left: 11px; color: var(--tune-text-muted); }
-  .search input { width: 100%; background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 20px; color: var(--tune-text); font: inherit; padding: 8px 12px 8px 32px; outline: none; }
-  .search input:focus { border-color: var(--tune-accent); }
-  .count { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
+  .count { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; }
   .count.partial { color: var(--tune-text-secondary); }
   .cslash { opacity: .5; margin: 0 2px; }
   .more { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 16px 8px 4px; }
-  .moretxt { font-size: 12px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
-  .morebtn { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font: inherit; font-size: 13px; padding: 7px 16px; cursor: pointer; }
+  .moretxt { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
+  .morebtn { background: var(--tune-surface); border: 1px solid var(--tune-border); border-radius: 8px; color: var(--tune-text); font: inherit; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 7px 16px; cursor: pointer; }
   .morebtn:hover:not(:disabled) { border-color: var(--tune-accent); color: var(--tune-accent); }
   .morebtn:disabled { opacity: .6; cursor: default; }
 
   .crumbs { display: flex; gap: 8px; padding: 8px 18px 0; flex-wrap: wrap; }
-  .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer; }
+  .crumb { background: var(--tune-surface-selected); border: 1px solid var(--tune-border); color: var(--tune-accent); border-radius: 20px; padding: 4px 10px; font: inherit; font-size: calc(12px * var(--v2-txt-echelle, 1)); cursor: pointer; }
   .crumb .x { opacity: .7; margin-left: 3px; }
 
-  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px 1fr 322px; position: relative; }
+  .body { flex: 1; min-height: 0; display: grid; grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr) 322px; position: relative; }
+  .body.tire { cursor: col-resize; user-select: none; }
   /* Desktop only: the mobile slide-over (≤1150px) keeps its own open/close. */
   @media (min-width: 1151px) {
-    .body.noinsp { grid-template-columns: 220px 1fr; }
+    .body.noinsp { grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr); }
     .body.noinsp .inspector { display: none; }
   }
   /* Le bouton existe à toutes les largeurs : tiroir sous 780px, repli de la
@@ -1106,10 +1172,10 @@
     .body.norail { grid-template-columns: 1fr; }
   }
   .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); border: 0; z-index: 35; cursor: pointer; }
-  .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: 20px; line-height: 1; cursor: pointer; z-index: 2; }
+  .drawerclose { position: absolute; top: 10px; right: 12px; background: var(--tune-surface-hover); border: 0; color: var(--tune-text); width: 30px; height: 30px; border-radius: 50%; font-size: calc(20px * var(--v2-txt-echelle, 1)); line-height: 1; cursor: pointer; z-index: 2; }
   /* Tablet: inspector becomes a right slide-over. */
   @media (max-width: 1150px) {
-    .body { grid-template-columns: 200px 1fr; }
+    .body { grid-template-columns: var(--rail-w, 260px) minmax(0, 1fr); }
     .inspector { position: absolute; top: 0; right: 0; bottom: 0; width: 340px; max-width: 88vw; transform: translateX(100%); transition: transform .22s ease; z-index: 40; box-shadow: -8px 0 30px rgba(0,0,0,.4); }
     .inspector.open { transform: none; }
   }
@@ -1121,7 +1187,17 @@
   }
   @media (prefers-reduced-motion: reduce) { .inspector, .railwrap { transition: none; } }
 
-  .railwrap { border-right: 1px solid var(--tune-border); background: var(--tune-surface); min-height: 0; display: flex; }
+  .railwrap { border-right: 1px solid var(--tune-border); background: var(--tune-surface); min-height: 0; min-width: 0; display: flex; }
+  /* Ancre de la poignée — au-dessus de 780 px seulement : en dessous, le rail
+     est un tiroir en `position: absolute` qu'il ne faut pas écraser. */
+  @media (min-width: 781px) { .railwrap { position: relative; } }
+  /* La poignée chevauche le bord droit du rail : 7 px de prise, un trait
+     d'accent au survol, au focus et pendant qu'on tire. */
+  .railpoignee { position: absolute; top: 0; bottom: 0; right: -4px; width: 7px; cursor: col-resize; z-index: 5; touch-action: none; }
+  .railpoignee::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: transparent; transition: background .12s; }
+  .railpoignee:hover::after, .railpoignee:focus-visible::after, .railpoignee.active::after { background: var(--tune-accent); width: 2px; left: 2px; }
+  .railpoignee:focus-visible { outline: none; }
+  @media (max-width: 780px) { .railpoignee { display: none; } }
   .railwrap :global(.rail) { flex: 1; }
   .main { min-width: 0; min-height: 0; overflow: auto; padding: 14px 18px 20px; }
 
@@ -1132,30 +1208,30 @@
   .mur .tuile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
   .mur .tuile:hover img, .mur .tuile:focus-visible img { transform: scale(1.04); }
   .mur .tuile:focus-visible { box-shadow: inset 0 0 0 2px var(--tune-accent, #fff); }
-  .mur .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-grey5); font-size: 28px; }
+  .mur .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-grey5); font-size: calc(28px * var(--v2-txt-echelle, 1)); }
   .card { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
   .pov { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .card:hover .pov, .pov:focus { display: inline-flex; }
   .aplay { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
-  .aplay.aq { background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); font-size: 15px; }
+  .aplay.aq { background: var(--tune-surface); color: var(--tune-text); border: 1px solid var(--tune-border); font-size: calc(15px * var(--v2-txt-echelle, 1)); }
   .trkrow { display: flex; align-items: center; gap: 4px; }
   .trkrow .trk { flex: 1; min-width: 0; }
   .trkacts { display: none; flex: none; gap: 2px; }
   .trkrow:hover .trkacts { display: inline-flex; }
-  .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+  .tact { border: 0; background: none; color: var(--tune-text-secondary); cursor: pointer; font-size: calc(13px * var(--v2-txt-echelle, 1)); padding: 2px 4px; border-radius: 4px; }
   .tact:hover { color: var(--tune-accent); background: var(--tune-surface); }
   .hov { position: absolute; right: 8px; top: 8px; z-index: 2; }
   .ahheart { display: inline-flex; align-items: center; flex: none; }
   .tact-h { display: inline-flex; align-items: center; }
   .cwrap { position: relative; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,.35); aspect-ratio: 1; }
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
-  .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
+  .cvr.ph { display: grid; place-items: center; font-size: calc(30px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); }
   .card:hover .cwrap { transform: translateY(-3px); transition: transform .15s; }
   /* La qualité a quitté la pochette pour la troisième ligne de la carte
      (Alex Campbell, 12/09/2026 ; même décision que `v2/QualiteAlbum`). */
   .cq { margin-top: 3px; display: flex; min-width: 0; }
-  .ct { margin-top: 9px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ca { color: var(--tune-text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct { margin-top: 9px; font-weight: 600; font-size: calc(13px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ca { color: var(--tune-text-secondary); font-size: calc(12px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .albums { display: flex; flex-direction: column; }
   .album { display: grid; grid-template-columns: 116px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--tune-border); }
@@ -1165,12 +1241,12 @@
   .aart { align-self: start; height: 116px; }
   .aart .cvr { border-radius: 10px; box-shadow: 0 8px 22px rgba(0,0,0,.35); }
   .ahead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .at { font-size: 16px; font-weight: 700; }
-  .aa { color: var(--tune-text-secondary); font-size: 13px; margin-top: 1px; }
+  .at { font-size: calc(16px * var(--v2-txt-echelle, 1)); font-weight: 700; }
+  .aa { color: var(--tune-text-secondary); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin-top: 1px; }
   .atracks { margin-top: 10px; display: flex; flex-direction: column; }
   .dischead { display: flex; align-items: baseline; gap: 10px; padding: 8px 8px 4px; margin-top: 2px; }
-  .discno { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tune-text-muted); }
-  .discsub { font-size: 12.5px; font-weight: 600; color: var(--tune-text-secondary); }
+  .discno { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tune-text-muted); }
+  .discsub { font-size: calc(12.5px * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--tune-text-secondary); }
   .trk { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; color: var(--tune-text); font: inherit; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
   .trk:hover { background: var(--tune-surface-hover); }
   .trk.sel { background: var(--tune-surface-selected); }
@@ -1179,21 +1255,21 @@
      couleur d'accent — deux signaux qui se superposent sans se masquer. */
   .trk.playing { box-shadow: inset 3px 0 0 0 var(--tune-accent); }
   .trk.playing .tt { color: var(--tune-accent); font-weight: 600; }
-  .trk .tn { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-muted); text-align: right; }
-  .trk .tt { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--tune-text-secondary); }
+  .trk .tn { font-family: ui-monospace, Menlo, monospace; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); text-align: right; }
+  .trk .tt { font-size: calc(13.5px * var(--v2-txt-echelle, 1)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .trk .td { font-family: ui-monospace, Menlo, monospace; font-size: calc(11.5px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); }
 
   /* Bounded height so THIS element is the scroll viewport (not .main): a
      sticky header only sticks within its own scroll container, and the
      horizontal scrollbar stays pinned to the bottom of the visible area
      instead of being buried under a full-height table (Oxygen table view). */
   .tablescroll { border: 1px solid var(--tune-border); border-radius: 12px; background: var(--tune-surface); overflow: auto; max-height: 100%; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
   /* box-shadow, not border-bottom: with border-collapse the collapsed bottom
      border detaches from a sticky th and scrolls away; the inset shadow rides along. */
   /* --tune-bg-secondary is not defined by the themes: without the fallback the
      declaration is invalid and the sticky header scrolls with a transparent bg. */
-  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary, var(--tune-surface)); text-align: left; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--tune-bg-secondary, var(--tune-surface)); text-align: left; font-size: calc(10.5px * var(--v2-txt-echelle, 1)); letter-spacing: .04em; text-transform: uppercase; color: var(--tune-text-secondary); font-weight: 600; padding: 9px 12px; box-shadow: inset 0 -1px 0 var(--tune-border); white-space: nowrap; }
   th.n, td.n { width: 34px; text-align: right; color: var(--tune-text-muted); }
   th.r, td.r { text-align: right; }
   tbody td { padding: 7px 12px; border-bottom: 1px solid var(--tune-border); white-space: nowrap; }
@@ -1217,35 +1293,29 @@
   @media (prefers-reduced-motion: reduce) { .eqbars span { animation: none; } }
   td.title { font-weight: 500; max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
   td.dim { color: var(--tune-text-secondary); max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
-  /* web#1871 — le lien d'album garde l'allure de la cellule ; le survol le
-     souligne, comme la colonne ALBUM de `ListePistesV2`. */
-  .lien-album { background: none; border: none; padding: 0; font: inherit; color: inherit; cursor: pointer;
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
-  .lien-album:hover { text-decoration: underline; color: var(--tune-text); }
-  .lien-album:focus-visible { outline: 2px solid var(--tune-accent); outline-offset: 2px; }
   td.mono { font-family: ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: var(--tune-text-secondary); }
 
   .inspector { border-left: 1px solid var(--tune-border); background: var(--tune-surface); padding: 18px; overflow-y: auto; min-height: 0; }
   .inspector.empty { display: grid; place-items: center; }
-  .insp-title { font-size: 17px; font-weight: 700; }
-  .insp-sub { color: var(--tune-text-secondary); font-size: 13px; margin-top: 2px; }
+  .insp-title { font-size: calc(17px * var(--v2-txt-echelle, 1)); font-weight: 700; }
+  .insp-sub { color: var(--tune-text-secondary); font-size: calc(13px * var(--v2-txt-echelle, 1)); margin-top: 2px; }
   .insp-badges { margin: 12px 0 4px; }
   .mgroup { margin-top: 16px; }
-  .mgroup h4 { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
+  .mgroup h4 { font-size: calc(10.5px * var(--v2-txt-echelle, 1)); letter-spacing: .08em; text-transform: uppercase; color: var(--tune-text-muted); border-bottom: 1px solid var(--tune-border); padding-bottom: 6px; margin: 0 0 4px; }
   .field { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; align-items: baseline; }
-  .field .k { color: var(--tune-text-secondary); font-size: 12px; flex-shrink: 0; }
+  .field .k { color: var(--tune-text-secondary); font-size: calc(12px * var(--v2-txt-echelle, 1)); flex-shrink: 0; }
   /* Long extra-metadata values (MusicBrainz ids, ReplayGain peaks, raw tags)
      were capped at 60% width and truncated with an ellipsis — only visible via
      the hover tooltip, impossible on touch, so extra metadata couldn't be fully
      read (Bertrand). Let the value take the remaining width and wrap instead of
      truncating, so every character is visible without a horizontal scrollbar in
      the narrow (340px) inspector. */
-  .field .v { color: var(--tune-text); font-size: 12.5px; text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .field .v { color: var(--tune-text); font-size: calc(12.5px * var(--v2-txt-echelle, 1)); text-align: right; font-family: ui-monospace, Menlo, monospace; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .field.isnew .k, .field.isnew .v { color: var(--tune-accent); }
-  .tag { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
+  .tag { font-size: calc(8.5px * var(--v2-txt-echelle, 1)); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--tune-accent); background: rgba(var(--tune-accent-rgb), .14); padding: 1px 5px; border-radius: 4px; margin-left: 6px; }
   .state { padding: 40px 20px; text-align: center; color: var(--tune-text-muted); }
   .state.err { color: var(--tune-danger, var(--tune-error)); }
-  .state.small { padding: 20px 4px; font-size: 12.5px; }
+  .state.small { padding: 20px 4px; font-size: calc(12.5px * var(--v2-txt-echelle, 1)); }
   /* Discrète par construction : on la lit quand on la cherche, elle ne dispute
      pas l'attention à la musique. Chiffres tabulaires pour qu'ils ne dansent
      pas quand les comptes changent. */
@@ -1258,13 +1328,13 @@
   .acard:hover { border-color: var(--tune-accent); }
   .acover { width: 74px; height: 74px; flex-shrink: 0; border-radius: 6px; overflow: hidden; background: var(--tune-grey2); }
   .acover img { width: 100%; height: 100%; object-fit: cover; }
-  .acover .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-text-muted); font-size: 22px; }
+  .acover .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-text-muted); font-size: calc(22px * var(--v2-txt-echelle, 1)); }
   .ainfo { min-width: 0; flex: 1; }
-  .aartist { font-size: 12px; color: var(--tune-text-secondary); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .atitle { font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .aartist { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .atitle { font-size: calc(13.5px * var(--v2-txt-echelle, 1)); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Grille clé/valeur : les valeurs s'alignent quelle que soit la longueur du
      libellé, y compris en allemand où « Aufnahmejahr » double la largeur. */
-  .ameta { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 5px 0 6px; font-size: 11px; }
+  .ameta { display: grid; grid-template-columns: auto 1fr; gap: 0 8px; margin: 5px 0 6px; font-size: calc(11px * var(--v2-txt-echelle, 1)); }
   .ameta dt { color: var(--tune-text-muted); }
   .ameta dd { margin: 0; color: var(--tune-text-secondary); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .statusbar {
@@ -1277,7 +1347,7 @@
     border-top: 1px solid var(--tune-border);
     background: var(--tune-surface);
     color: var(--tune-text-muted);
-    font-size: 11.5px;
+    font-size: calc(11.5px * var(--v2-txt-echelle, 1));
     font-variant-numeric: tabular-nums;
   }
   .statusbar .sb-sep { opacity: .5; }

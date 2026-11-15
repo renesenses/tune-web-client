@@ -362,19 +362,19 @@
   .group h4 {
     margin: 0 0 6px;
     font-family: var(--font-label);
-    font-size: 11px; font-weight: 700;
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); font-weight: 700;
     text-transform: uppercase; letter-spacing: 0.06em;
     color: var(--tune-text-muted);
     display: flex; align-items: center; gap: 8px;
   }
   .tenus {
     display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    font-size: 12px; color: var(--tune-text-muted);
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted);
   }
   .badge-warn {
     background: rgba(220,38,38,0.15);
     color: #f87171; padding: 1px 6px;
-    border-radius: 6px; font-size: 9px;
+    border-radius: 6px; font-size: calc(9px * var(--v2-txt-echelle, 1));
     text-transform: none; letter-spacing: 0;
   }
 
@@ -387,11 +387,11 @@
   }
   .key {
     font-family: var(--font-label);
-    font-size: 11px; color: var(--tune-text-muted);
+    font-size: calc(11px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted);
     text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
   }
   .key-tag {
-    font-family: monospace; font-size: 10px;
+    font-family: monospace; font-size: calc(10px * var(--v2-txt-echelle, 1));
     color: var(--tune-accent);
   }
   .val {
@@ -400,7 +400,7 @@
     border-radius: 6px;
     padding: 4px 8px;
     color: var(--tune-text);
-    font-size: 12px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
     min-width: 0;
   }
   .val:focus { border-color: var(--tune-accent); outline: none; }
@@ -421,7 +421,7 @@
     padding: 8px 14px;
     border-radius: 6px;
     font-family: var(--font-label);
-    font-size: 12px; font-weight: 600;
+    font-size: calc(12px * var(--v2-txt-echelle, 1)); font-weight: 600;
     cursor: pointer;
   }
   .btn-cancel {
@@ -445,8 +445,8 @@
   .state, .state-small {
     padding: 12px;
     color: var(--tune-text-muted);
-    font-size: 13px; text-align: center;
+    font-size: calc(13px * var(--v2-txt-echelle, 1)); text-align: center;
   }
   .state.err { color: #ef4444; }
-  .coupe { color: var(--tune-text-muted); font-size: 11px; }
+  .coupe { color: var(--tune-text-muted); font-size: calc(11px * var(--v2-txt-echelle, 1)); }
 </style>

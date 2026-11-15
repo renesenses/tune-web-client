@@ -16,7 +16,16 @@
  */
 import type { ServiceTokenSaveResult } from './api/metadata';
 
-export type EtatClientId = 'enregistre' | 'refuse' | 'impose';
+/**
+ * `inchange` — tune-server-rust#8198 : la valeur était déjà enregistrée. « Save »
+ * ne rendait alors aucun retour visible (Alex, 09/11/2026, rc10).
+ */
+export type EtatClientId = 'enregistre' | 'inchange' | 'refuse' | 'impose';
+
+/** L'enregistrement a-t-il abouti (nouveau ou identique) ? */
+export function clientIdEnPlace(etat: EtatClientId | null | undefined): boolean {
+  return etat === 'enregistre' || etat === 'inchange';
+}
 
 export interface RetourClientId {
   etat: EtatClientId;
@@ -37,7 +46,7 @@ export function lireRetourClientId(
 ): RetourClientId {
   const message = (r?.validation_message ?? r?.message ?? r?.error ?? '').toString();
   const etat: EtatClientId =
-    r?.etat === 'enregistre' || r?.etat === 'refuse' || r?.etat === 'impose'
+    r?.etat === 'enregistre' || r?.etat === 'inchange' || r?.etat === 'refuse' || r?.etat === 'impose'
       ? r.etat
       : r?.valid === true
         ? 'enregistre'
@@ -50,6 +59,8 @@ export function cleDuRetourClientId(etat: EtatClientId): string {
   switch (etat) {
     case 'enregistre':
       return 'v2.set.spotifyClientIdSaved';
+    case 'inchange':
+      return 'v2.set.spotifyClientIdUnchanged';
     case 'impose':
       return 'v2.set.spotifyClientIdEnv';
     default:
@@ -104,4 +115,16 @@ export async function effacerClientIdSpotify(
   } catch (e: any) {
     return { ok: false, manque: false, erreur: typeof e?.message === 'string' ? e.message : String(e) };
   }
+}
+
+/**
+ * tune-server-rust#8198 — l'étape du parcours que porte la ligne `spotify` de
+ * `GET /services/tokens` (`spotify_etape`). « Not configured » mentait quand
+ * le Client ID était enregistré mais le compte pas encore connecté : la
+ * pastille dit alors l'étape suivante. `null` : rien à remplacer.
+ */
+export function cleEtapeSpotify(ligne: { id?: unknown; spotify_etape?: unknown } | null | undefined): string | null {
+  if (!ligne || ligne.id !== 'spotify') return null;
+  if (ligne.spotify_etape === 'a_connecter') return 'v2.spotify.etape.aConnecter';
+  return null;
 }

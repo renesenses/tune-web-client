@@ -9,6 +9,7 @@
    * `vi.stubGlobal(…)` des témoins ne déclenche toujours rien (#1333).
    */
   import type { View } from '../../lib/stores/navigation';
+  import IconeReglages from './IconeReglages.svelte';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -25,15 +26,25 @@
   /**
    * `aussi` : les vues qui appartiennent à la MÊME entrée de menu.
    *
-   * Playlists en est le cas : l'entrée mène à l'écran complet
-   * (`playlistmanager`), mais on peut arriver sur `playlists` par les favoris
-   * ou comme écran de démarrage. Sans alias, l'utilisateur y serait sans
-   * qu'aucune entrée ne s'allume — il ne saurait plus où il est.
+   * Playlists en est le cas : l'entrée mène à `PlaylistsV2` (`playlists`,
+   * web#2971), mais on peut arriver sur l'écran complet (`playlistmanager`),
+   * les intelligentes ou le générateur depuis cet écran. Sans alias,
+   * l'utilisateur y serait sans qu'aucune entrée ne s'allume — il ne saurait
+   * plus où il est.
    */
   export type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
 
-  /** L'entrée correspond-elle à l'écran courant ? */
-  function estActif(it: Item, vue: View): boolean {
+  /**
+   * L'entrée correspond-elle à l'écran courant ?
+   *
+   * tune-server-rust#7901 (fil 2658) — « Bibliothèque » restait surlignée
+   * quand « Lecture en cours » était ouverte. L'entrée active se calcule
+   * d'après la ROUTE affichée (`activeView`), jamais d'après la vue
+   * précédente ni d'un préfixe commun : une vue n'allume qu'UNE entrée.
+   * Exportée pour que `barreEntreeActive7901.test.ts` le vérifie sur toutes
+   * les entrées de la barre.
+   */
+  export function estActif(it: Item, vue: View): boolean {
     return it.view === vue || (it.aussi?.includes(vue) ?? false);
   }
 
@@ -156,18 +167,19 @@
     // titre que les étiquettes et les favoris. Dans le noyau, elles voisinaient
     // avec Bibliothèque et Radio — des SOURCES, pas des choix.
     { view: 'collections', labelKey: 'v2.nav.collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
-    // 🔴 MÈNE À L'ÉCRAN COMPLET, pas à `PlaylistsV2`.
+    // 🔴 MÈNE À `PlaylistsV2` — web#2971 (recette rc12, Bertrand, 13/11/2026).
     //
-    // `PlaylistsV2` fait 13 appels d'API ; l'écran complet en fait 31. Treize
-    // n'existent nulle part ailleurs en v2 : playlists collaboratives,
-    // fusionner, comparer, récupérer une playlist supprimée, liens,
-    // synchronisation, réordonner. L'ancienne interface a toujours fait
-    // pointer ce bouton là — `playlistmanager`, jamais `playlists`.
+    // Du 14/09 au 13/11/2026, l'entrée menait à l'écran de l'ancienne
+    // interface (`playlistmanager`) : toute la fiche playlist de la rc12
+    // (vue par playlist #2914, quatre commandes #2739, lignes radio #2864)
+    // restait invisible, puisque cet écran-là ne monte pas `PlaylistDetailV2`.
     //
-    // `PlaylistsV2` reste atteignable : les favoris y mènent
-    // (`ouvrirAilleurs('playlists', …)`) et il peut être écran de démarrage.
-    // D'où l'alias, sans quoi aucune entrée ne s'allumerait quand on y est.
-    { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'smart-ai'],
+    // L'écran complet reste atteignable depuis la v2, et l'entrée s'allume
+    // quand on y est (alias) : onglet « Gestionnaire de playlists » de
+    // `PlaylistsV2`, entrée du même nom dans le menu « … » de la fiche (ouvre
+    // la playlist là-bas : Vérifier la disponibilité, Transférer, Comparer),
+    // « Transférer » du menu d'une vignette. Le Générateur a son onglet.
+    { view: 'playlists', labelKey: 'v2.nav.playlists', aussi: ['playlistmanager', 'smartplaylists', 'smart-ai'],
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     /**
      * « Écouter plus tard » — web#1653, FabienM, fil 1986.
@@ -215,14 +227,33 @@
    * Une entrée garde le niveau de son groupe d'origine, où qu'on la place.
    */
   export const TOUTES_ENTREES: Item[] = [...CORE, ...ADVANCED, ...SELECTIONS, ...STUDIO];
+  /** Le groupe livré d'une entrée : 0 noyau et Avancé, 1 Sélections, 2 Studio. */
+  export function groupeOrigine(it: Item): number {
+    if (SELECTIONS.some((x) => x.view === it.view)) return 1;
+    if (STUDIO.some((x) => x.view === it.view)) return 2;
+    return 0;
+  }
+  /**
+   * rc12 — « simplification de l'interface » (go de Bertrand du 12/11/2026) :
+   * au niveau Essentiel, les écrans d'expert ne sont plus proposés. Dans le
+   * NOYAU, un seul l'est encore : OXYGEN (navigateur à facettes — formats,
+   * fréquences, dossiers). Il reste À SA PLACE (stabilité spatiale : rien ne
+   * bouge dans le noyau), il n'apparaît simplement qu'à partir d'Avancé, comme
+   * l'étage Avancé. Le niveau d'une installation existante ne change pas
+   * (`NIVEAU_INSTALLATION_EXISTANTE` = Expert) : personne ne perd l'écran.
+   * Retirer la ligne rend l'arbitrage du 20/09 tel quel.
+   */
+  export const NIVEAU_MIN_NOYAU: Record<string, 'intermediate' | 'expert'> = {
+    oxygen: 'intermediate',
+  };
   export const NIVEAU_ENTREE: Record<string, 'intermediate' | 'expert'> = Object.fromEntries([
+    ...Object.entries(NIVEAU_MIN_NOYAU),
     ...ADVANCED.map((it) => [it.view, 'intermediate'] as const),
     ...STUDIO.map((it) => [it.view, 'expert'] as const),
   ]);
 </script>
 
 <script lang="ts">
-  import { bulleTexte } from '../../lib/infobulleTexte';
   import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { circleCharge, refreshCirclePlugin } from '../../lib/circle';
   import { collectionPhysiqueChargee, refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
@@ -231,13 +262,14 @@
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
-  import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
+  import { libelleBanniereEnrichissement, bulleBanniereEnrichissement } from '../../lib/tachesDeFond';
   import {
     avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
   } from '../../lib/analyseBibliotheque';
   import {
-    analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond,
+    analyseDeFond, abonnerAnalysesDeFond, depuisInstantane, libelleAnalyseDeFond, nomAnalyseDeFond,
   } from '../../lib/analysesDeFond';
+  import { carteDeFondCiblee } from '../../lib/carteEmpreintes';
   import { tuneWS } from '../../lib/websocket';
   import { abonnerPropositionChargementCd } from '../../lib/propositionChargementCd';
   import { notifications } from '../../lib/stores/notifications';
@@ -262,7 +294,7 @@
   import { updateAvailable, latestVersion, currentVersion, updateInstallable, updateInstallHint } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
-  import { estMasquee, ordonnerEntrees, ordreModifie } from '../../lib/ordreBarreLaterale';
+  import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes, type Tranche } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -323,7 +355,18 @@
     ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
-  const noyauAffiche = $derived(sansMasquees(CORE));
+  /** rc12 — une entrée du noyau qui a son propre niveau (`NIVEAU_MIN_NOYAU`) n'apparaît qu'à ce niveau. */
+  const auNiveau = (it: Item) => { const n = NIVEAU_MIN_NOYAU[it.view]; return !n || atLeast(level, n); };
+  /** rc12 — groupes repliés de la barre (préférence du profil, vide par défaut). */
+  // Barre en icônes : l'intertitre n'y est pas, rien ne s'y replie (on ne pourrait plus déplier).
+  const repliee = (id: string) => !enIcones && ($preferences.barreGroupesReplies ?? []).includes(id);
+  function basculerGroupe(id: string) {
+    preferences.update((p) => {
+      const l = p.barreGroupesReplies ?? [];
+      return { ...p, barreGroupesReplies: l.includes(id) ? l.filter((x) => x !== id) : [...l, id] };
+    });
+  }
+  const noyauAffiche = $derived(sansMasquees(CORE.filter(auNiveau)));
   const selectionsAffichees = $derived(sansMasquees(SELECTIONS));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
@@ -359,23 +402,43 @@
    *
    * Tant que l'ordre est celui livré, la barre garde ses groupes, leurs
    * intertitres et leurs dévoilements par niveau, à l'identique. Dès que
-   * l'ordre en diffère, elle rend UNE liste, sans intertitre : « Sélections »
-   * ou « Studio » ne voudraient plus rien dire au-dessus d'entrées mêlées.
+   * l'ordre en diffère, elle suit cet ordre À LA LETTRE, découpé en trois
+   * tranches contiguës (`repartirEnGroupes`) : le noyau, puis « Sélections »
+   * et « Studio » sous leurs intertitres, aux places habituelles (recette rc12
+   * de Bertrand, 13/11/2026 : avant, une liste libre perdait ses intertitres).
    * Chaque entrée y garde son niveau et sa condition de greffon : invisible
    * à ce niveau, elle est simplement absente, et reprend SA place choisie dès
    * qu'elle redevient visible. Masquer seul ne fait pas passer en liste libre.
    */
   const ordreLibre = $derived(ordreModifie(TOUTES_ENTREES, choixBarre));
-  const listeLibre = $derived.by(() => {
-    if (!ordreLibre) return [] as Item[];
+  const tranchesLibres = $derived.by(() => {
+    if (!ordreLibre) return [] as Tranche<Item>[];
     const disponibles = new Set<string>([
-      ...CORE, ...SELECTIONS,
+      ...CORE.filter(auNiveau), ...SELECTIONS,
       ...(showAdvanced ? avanceDisponibles : []),
       ...(showStudio ? studioDisponibles : []),
     ].map((it) => it.view));
-    return sansMasquees(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre)
-      .filter((it) => disponibles.has(it.view)));
+    const affichee = (it: Item) => disponibles.has(it.view) && !estMasquee(it.view, choixBarre);
+    // Découpe sur la liste COMPLÈTE, l'ordre enregistré à la lettre ; les
+    // entrées non affichées ne servent qu'à placer les intertitres, on les
+    // retire ensuite.
+    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupeOrigine, 3, affichee)
+      .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
+  const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);
+  /** Les tranches à intertitre (Sélections, Studio), dans l'ordre choisi par l'utilisateur. */
+  const tranchesTitrees = $derived(tranchesLibres.slice(1).filter((tr) => tr.entrees.length > 0));
+  const INTERTITRE_GROUPE: Record<number, { id: string; cle: string }> = {
+    1: { id: 'selections', cle: 'v2.nav.selections' },
+    2: { id: 'studio', cle: 'v2.nav.studio' },
+  };
+  /**
+   * Replié, un groupe ne garde que l'écran ouvert ; en liste libre, il garde
+   * aussi les entrées du NOYAU qu'on y a placées (Accueil mis en dernier) :
+   * le noyau ne se replie jamais (relecture de web#2960).
+   */
+  const entreesDuGroupe = (id: string, l: Item[]) =>
+    repliee(id) ? l.filter((it) => estActif(it, $activeView) || groupeOrigine(it) === 0) : l;
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -415,11 +478,32 @@
     return () => clearInterval(minuterie);
   });
   const libelleFond = $derived(libelleAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any)));
-  /** L'écran qui détaille chaque tâche de fond : État du serveur. */
+  /** L'écran qui détaille chaque tâche de fond : État du serveur, amené sur
+   *  la carte de la passe en cours, celle qui porte sa pause (tune-server-rust#8346). */
   function ouvrirEtatDuServeur() {
+    carteDeFondCiblee.set(get(analyseDeFond)?.tache ?? null);
     go('diagnostics');
   }
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any)));
+  /**
+   * web#2874 (fil 2779) — les deux lignes sous « MOZAIKLABS » sont coupées
+   * par une ellipse, et leur bulle ne donnait pas ce qui était coupé : celle
+   * de l'analyse de fond disait « Analyse de fond en cours », celle des tâches
+   * était réécrite à chaque sondage (le compteur bouge) et Chrome referme une
+   * bulle native dont le `title` change sous le pointeur. Les deux bulles
+   * disent désormais le NOM de ce qui tourne, qui ne bouge pas, et le geste
+   * (« ouvrir l'État du serveur ») ; la ligne des tâches y mène, comme
+   * l'indicateur d'analyse.
+   */
+  const indiceOuvrir = (nom: string) => $t('v2.nav.bgTaskOpenHint' as any).replace('{task}', nom);
+  const bulleTaches = $derived.by(() => {
+    const noms = bulleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning'), (cle) => $t(cle as any));
+    return noms ? indiceOuvrir(noms) : null;
+  });
+  const bulleFond = $derived.by(() => {
+    const nom = nomAnalyseDeFond($analyseDeFond, (cle) => $t(cle as any));
+    return nom ? indiceOuvrir(nom) : null;
+  });
   /**
    * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
    * jour en cours de la base ». L'avancement d'une analyse n'était lu que par
@@ -834,7 +918,8 @@
       <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
-      {#if enrichissementEnCours}<div class="taches" aria-live="polite" use:bulleTexte>{enrichissementEnCours}</div>{/if}
+      {#if enrichissementEnCours}<button class="taches" onclick={ouvrirEtatDuServeur} aria-live="polite"
+        data-testid="bg-tasks" title={bulleTaches}>{enrichissementEnCours}</button>{/if}
       {#if libelleAnalyse}
         <button class="analyse" onclick={ouvrirAnalyse} aria-live="polite"
           title={$t('v2.nav.scanRunningHint' as any)}>
@@ -842,7 +927,7 @@
         </button>
       {:else if libelleFond}
         <button class="analyse" onclick={ouvrirEtatDuServeur} aria-live="polite"
-          data-testid="bg-analysis" title={$t('v2.nav.bgAnalysisHint' as any)}>
+          data-testid="bg-analysis" title={bulleFond}>
           <span class="pt"></span>{libelleFond}
         </button>
       {/if}
@@ -866,7 +951,7 @@
         aria-label={libelleAnalyse} title={libelleAnalyse}></button>
     {:else if enIcones && libelleFond}
       <button class="analyse-point" onclick={ouvrirEtatDuServeur}
-        aria-label={libelleFond} title={libelleFond}></button>
+        data-testid="bg-analysis-point" aria-label={libelleFond} title={bulleFond}></button>
     {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
@@ -895,7 +980,8 @@
       <button class="reglages" class:active={$activeView === 'settings'} onclick={() => go('settings')}
         aria-label={$t('v2.nav.settings' as any)} title={$t('v2.nav.settings' as any)}
         aria-current={$activeView === 'settings' ? 'page' : undefined}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <!-- Icône de Levente (15/11/2026), même source que le menu de compte. -->
+        <IconeReglages taille={17} />
       </button>
       <button class="collapse" onclick={toggleCollapse}
         aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
@@ -945,17 +1031,36 @@
       {/if}
     {/snippet}
 
+    <!-- Une entrée de la liste libre, quelle que soit sa tranche : les
+         Collections gardent l'arbre des Rayons, Streaming ses services. -->
+    {#snippet entreeLibre(it: Item)}
+      {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
+        {@render collectionsEtRayons(it)}
+      {:else}
+        {@render boutonEntree(it)}
+        {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
+      {/if}
+    {/snippet}
+
+    <!-- rc12 — un intertitre de groupe se replie d'un clic (Sélections,
+         Studio). Replié, le groupe ne garde que l'entrée de l'écran OUVERT,
+         pour qu'on sache toujours où l'on est. -->
+    {#snippet intertitreRepliable(id: string, cle: string)}
+      <button type="button" class="grp-label grp-pli" data-groupe-pli={id} aria-expanded={!repliee(id)}
+        title={$t((repliee(id) ? 'v2.nav.groupExpand' : 'v2.nav.groupCollapse') as any).replace('{x}', $t(cle as any))}
+        onclick={() => basculerGroupe(id)}>
+        <span>{$t(cle as any)}</span>
+        <svg class="chev" class:ferme={repliee(id)} viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+      </button>
+    {/snippet}
+
     {#if ordreLibre}
-      <!-- web#1827 — la liste libre : une seule liste, sans intertitre. Les
-           sous-entrées (services, rayons) suivent leur parent. -->
+      <!-- web#1827 — la liste libre, première tranche (le noyau) ; « Sélections »
+           et « Studio » suivent sous leurs intertitres. Les sous-entrées
+           (services, rayons) suivent leur parent. -->
       <nav class="grp libre" data-ordre="libre">
         {#each listeLibre as it (it.view)}
-          {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
-            {@render collectionsEtRayons(it)}
-          {:else}
-            {@render boutonEntree(it)}
-            {#if it.view === 'streaming'}{@render servicesSousStreaming()}{/if}
-          {/if}
+          {@render entreeLibre(it)}
         {/each}
       </nav>
     {:else}
@@ -1046,29 +1151,34 @@
       {/if}
     </nav>
 
-    {#if !ordreLibre && selectionsAffichees.length}
-    <nav class="grp">
-      <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
-      {#each selectionsAffichees as it (it.view)}
-        {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
-          {@render collectionsEtRayons(it)}
-        {:else}
-          <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-            <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
-          </button>
-        {/if}
+    {#if ordreLibre}
+      <!-- Recette rc12 — en liste libre, « Sélections » et « Studio » gardent
+           leur intertitre, dans l'ordre choisi (`repartirEnGroupes`). Aucun
+           plafond de hauteur ici : une tranche peut être longue. -->
+      {#each tranchesTitrees as tr (tr.groupe)}
+        {@const g = INTERTITRE_GROUPE[tr.groupe]}
+        <nav class="grp" data-groupe={g.id}>
+          {@render intertitreRepliable(g.id, g.cle)}
+          {#each entreesDuGroupe(g.id, tr.entrees) as it (it.view)}
+            {@render entreeLibre(it)}
+          {/each}
+        </nav>
+      {/each}
+    {:else}
+    {#if selectionsAffichees.length}
+    <nav class="grp" data-groupe="selections">
+      {@render intertitreRepliable('selections', 'v2.nav.selections')}
+      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, $activeView)) : selectionsAffichees) as it (it.view)}
+        {@render entreeLibre(it)}
       {/each}
     </nav>
     {/if}
 
     <!-- web#1827 : toutes ses entrées masquées, le groupe se referme avec
-         son intitulé plutôt que de laisser « Studio » seul ; en liste libre,
-         ses entrées sont dans la liste unique. -->
-    {#if !ordreLibre}
-    <nav class="grp reveal" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
-      <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
-      {#each studioVisible as it (it.view)}
+         son intitulé plutôt que de laisser « Studio » seul. -->
+    <nav class="grp reveal" data-groupe="studio" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
+      {@render intertitreRepliable('studio', 'v2.nav.studio')}
+      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, $activeView)) : studioVisible) as it (it.view)}
         <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
@@ -1162,7 +1272,7 @@
   /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
-  .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
+  .emo{width:17px; height:17px; display:grid; place-items:center; font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1; flex:none}
   .brand{position:relative; display:flex; align-items:center; gap:11px; padding:2px 8px 14px}
   /* #1433 — la roue des Réglages et le bouton de repli, groupés à droite.
      `margin-right:-6px` prend six des huit pixels de marge interne de la
@@ -1177,7 +1287,6 @@
   .reglages:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .reglages.active{color:var(--v2-acc1)}
   .reglages:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .reglages svg{width:17px; height:17px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
   .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}
@@ -1189,15 +1298,15 @@
      survol que dans l'ancienne coquille (`.logo-link:hover{opacity:.7}`). */
   a.logo{text-decoration:none; transition:opacity .15s}
   a.logo:hover{opacity:.7}
-  .brand .name{font-weight:700; font-size:18px; line-height:1}
-  .brand .sub{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  .brand .name{font-weight:700; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1}
+  .brand .sub{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
-  .brand .ver{font:9.5px var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
-  .brand .maj-info{font:9.5px var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
+  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
-    border-radius:var(--v2-r-pill); cursor:pointer; font:9.5px var(--v2-mono);
+    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
@@ -1212,7 +1321,7 @@
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
-    border:0; background:transparent; cursor:pointer; font:9.5px var(--v2-mono); color:var(--v2-acc-tint);
+    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
   .analyse:hover{color:var(--v2-txt)}
   .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -1227,12 +1336,20 @@
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
-  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .navscroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt3);
+  .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
+  /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
+  /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
+     « Studio » 14 px plus à gauche que « Raccourcis » et que les icônes. */
+  .grp-pli{border:0; background:transparent; cursor:pointer; text-align:start; width:100%; padding-inline:14px}
+  .grp-pli:hover{color:var(--v2-txt2)}
+  .grp-pli:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .grp-pli .chev{width:12px; height:12px; flex:0 0 auto; order:2; transition:transform .15s}
+  .grp-pli .chev.ferme{transform:rotate(-90deg)}
   .grp-label::after{content:""; flex:1; height:1px; background:var(--v2-line)}
 
   /* COMPACTE. Bilou, forum, 05/09/2026 : « menu de gauche a rendre plus
@@ -1246,7 +1363,7 @@
      elle est repliee en icones sous 1100 px. */
   .nav{display:flex; align-items:center; gap:12px; width:100%; padding:6px 14px; border:0; cursor:pointer;
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
-    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; transition:.15s}
+    font-family:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; text-align:left; transition:.15s}
   .nav svg{width:17px; height:17px; flex:0 0 auto}
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
@@ -1258,7 +1375,7 @@
      dépendent, ils s'en retirent. Le retrait disparaît quand la barre est
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
      et la rangée d'icônes cesserait d'être alignée. */
-  .nav.svc{padding-left:30px; font-size:13px}
+  .nav.svc{padding-left:30px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* #1580 : chevron du repli de l'arbre entier, posé sur l'entrée Collections. */
   .nav-pli{position:relative}
   .nav-pli .nav{padding-right:36px}
@@ -1272,7 +1389,7 @@
   /* #5065 — rubrique « Sources » : la pastille d'état au bout de la ligne,
      posée sur l'icône quand la barre est repliée. */
   .nav.src{position:relative}
-  .nav.src.sous{padding-left:30px; font-size:13px}
+  .nav.src.sous{padding-left:30px; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* #5065 — grisée : garde son nom et reste cliquable (sa page dit pourquoi). */
   .nav.src.grisee{opacity:.45}
   .v2-sidebar.collapsed .nav.src.sous{padding-left:0}
@@ -1294,5 +1411,8 @@
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
-  .taches{margin-top:3px; font:10px var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .taches{display:block; max-width:100%; margin-top:3px; padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .taches:hover{color:var(--v2-txt)}
+  .taches:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 </style>

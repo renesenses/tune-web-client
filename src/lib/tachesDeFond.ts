@@ -24,8 +24,13 @@
 export type ProgressionTache = {
   processed: number;
   total: number;
-  /** Sous-phase : `MusicBrainz`, `Images`… */
+  /** Sous-phase : `MusicBrainz`, `Images`… (texte français du serveur). */
   detail: string;
+  /** tune-server-rust#8282 — code stable de la sous-phase (`credits`,
+   *  `source`…). Absent d'un serveur antérieur. */
+  detail_code?: string;
+  /** tune-server-rust#8282 — paramètres du code, ex. `{ name: 'MusicBrainz' }`. */
+  detail_params?: Record<string, unknown>;
 };
 
 /** Une tâche de fond telle que le serveur la sérialise. */
@@ -74,6 +79,12 @@ export type TraitementSuspendable = {
    *  décodent (`routes/system/taches_de_fond.rs`, `instantane`). Absent d'un
    *  serveur antérieur. */
   throttled_for_playback?: boolean;
+  /** tune-server-rust#4681 (étape 3) : ce que fait la tâche — `working` |
+   *  `throttled` | `yielded` | `paused` | `idle`. Absent d'un serveur plus
+   *  ancien : l'écran le déduit alors des champs ci-dessus. */
+  activity?: string;
+  /** Pourquoi : `playback` | `user_pause` | `null`. */
+  reason?: string | null;
 };
 
 /** La réponse de `GET /system/background-tasks`.
@@ -88,7 +99,16 @@ export type InstantaneTachesDeFond = {
   scan_pausable?: boolean;
   /** tune-server-rust#4681 — le scan, qui n'est pas suspendable, cède pourtant
    *  à la lecture comme les autres : il porte son propre drapeau. */
-  scan?: { running?: boolean; throttled_for_playback?: boolean };
+  scan?: {
+    running?: boolean;
+    throttled_for_playback?: boolean;
+    /** tune-server-rust#4681 (étape 3) : `working` | `throttled` | `idle`. */
+    activity?: string;
+    reason?: string | null;
+  };
+  /** tune-server-rust#4681 : le relevé de la priorité à la lecture. Lu par
+   *  `lib/ceQuiTourne.ts` ; chaque champ y est vérifié avant usage. */
+  playback_priority?: Record<string, any>;
   /** Serveur tune-server-rust#5169 : la place de la plage dynamique parmi les
    *  passes qui décodent — `last` | `before_fingerprints` | `first`. Absent
    *  d'un serveur plus ancien (≤ 0.9.166). */
@@ -217,6 +237,10 @@ const LIBELLES_TACHES: Record<string, string> = {
   write_tags: 'app.task.writeMetadata',
   edit_by_filter_files: 'app.task.writeMetadata',
   rescan_metadata: 'app.task.readMetadata',
+  // tune-server-rust#8325 — la relecture unique des balises classiques.
+  relecture_classique: 'app.task.readClassical',
+  // tune-server-rust rc12 — le renvoi unique des images d'artistes perdues par le site.
+  renvoi_images_artistes: 'app.task.shareArtistImages',
   compositeur_depuis_credits: 'app.task.composers',
   lyrics_fetch: 'app.task.lyrics',
   lyrics_write: 'app.task.writeLyrics',
@@ -226,6 +250,77 @@ const LIBELLES_TACHES: Record<string, string> = {
   bpm_lot: 'v2.bpm.estimating',
   discogs_lot: 'v2.discogs.searching',
 };
+
+/**
+ * web#2760 — la SOUS-PHASE d'une tâche (`progress.detail`) est une phrase du
+ * serveur, en français : « Fetching credits… — Crédits 16/150 » dans une
+ * interface anglaise (Alex, rc11). Les valeurs que le serveur écrit
+ * (`update_progress(…, "Crédits")` et ses voisines) passent par une clé ;
+ * un nom propre inconnu (« MusicBrainz », « LRCLIB ») reste tel quel.
+ * Sans traducteur, le texte du serveur, comme avant.
+ */
+const LIBELLES_PHASES: Record<string, string> = {
+  'crédits': 'app.task.phase.credits',
+  'fichiers': 'app.task.phase.files',
+  'fichiers .lrc': 'app.task.phase.lrcFiles',
+  'métadonnées': 'app.task.phase.metadata',
+  'étiquettes': 'app.task.phase.tags',
+  'compositeur': 'app.task.phase.composer',
+  'compilations': 'app.task.phase.compilations',
+  'albums': 'app.task.phase.albums',
+  'labels': 'app.task.phase.labels',
+};
+
+export function libellePhase(detail: string | null | undefined, traduire?: (cle: string) => string): string {
+  const brut = (detail ?? '').trim();
+  if (!brut || !traduire) return brut;
+  const cle = LIBELLES_PHASES[brut.normalize('NFC').toLowerCase()];
+  return cle ? traduire(cle) : brut;
+}
+
+/**
+ * tune-server-rust#8282 — le serveur publie la sous-phase sous un CODE stable
+ * (`detail_code`) et ses paramètres (`detail_params`). Table littérale : un
+ * code inconnu (serveur plus récent) retombe sur le texte, par `libellePhase`.
+ */
+const CLES_CODES_PHASES: Record<string, string> = {
+  credits: 'app.task.phase.credits',
+  files: 'app.task.phase.files',
+  lrcFiles: 'app.task.phase.lrcFiles',
+  metadata: 'app.task.phase.metadata',
+  tags: 'app.task.phase.tags',
+  composer: 'app.task.phase.composer',
+  compilations: 'app.task.phase.compilations',
+  albums: 'app.task.phase.albums',
+  labels: 'app.task.phase.labels',
+  images: 'app.task.phase.images',
+  dynamicRange: 'app.task.phase.dynamicRange',
+  waitingPlayback: 'app.task.phase.waitingPlayback',
+  waitingHeat: 'app.task.phase.waitingHeat',
+  waitingSlot: 'app.task.phase.waitingSlot',
+  paused: 'app.task.phase.paused',
+  done: 'app.task.phase.done',
+  source: 'app.task.phase.source',
+};
+
+/** La sous-phase d'un avancement, dans la langue de l'interface. */
+export function libelleProgression(
+  p: Pick<ProgressionTache, 'detail' | 'detail_code' | 'detail_params'> | null | undefined,
+  traduire?: (cle: string) => string,
+): string {
+  if (!p) return '';
+  const code = typeof p.detail_code === 'string' ? p.detail_code : '';
+  const cle = code && Object.hasOwn(CLES_CODES_PHASES, code) ? CLES_CODES_PHASES[code] : null;
+  if (cle && traduire) {
+    const modele = traduire(cle);
+    if (modele && modele !== cle) {
+      const params = p.detail_params ?? {};
+      return modele.replace(/\{(\w+)\}/g, (tout, nom: string) =>
+        Object.hasOwn(params, nom) ? String(params[nom]) : tout);
+    }
+  }
+  return libellePhase(p.detail, traduire);
+}
 
 /**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
@@ -253,11 +348,47 @@ export function libelleBanniereEnrichissement(
   // tune-core tourne avant le premier `write_progress`, le registre rend alors
   // 0/0, et afficher « 0/0 » se lit comme un arrêt.
   const p = premiere.progress;
-  const avancement = p && p.total > 0 ? ` — ${p.detail} ${p.processed}/${p.total}` : '';
+  const phase = p ? libelleProgression(p, traduire) : '';
+  const avancement = p && p.total > 0 ? ` — ${phase ? `${phase} ` : ''}${p.processed}/${p.total}` : '';
 
   const surnumeraires = taches.length > 1 ? ` (+${taches.length - 1})` : '';
 
   return `${nom}${avancement}${surnumeraires}`;
+}
+
+/**
+ * web#2874 — la BULLE de la ligne des tâches de fond, sous « MOZAIKLABS ».
+ *
+ * Le libellé de la ligne porte le compteur (« Crédits 123/4567 »), qui change
+ * à chaque sondage. Une bulle native dont l'attribut `title` change sous le
+ * pointeur se referme (Chrome), ou ne s'ouvre jamais : le testeur du fil 2779
+ * n'a trouvé « aucune bulle » qui donne le libellé coupé en entier. La bulle
+ * dit donc ce qui NE bouge PAS : le nom de chaque tâche en cours, et la phase
+ * de la première, sans compteur. Elle ne change qu'au changement de tâche ou
+ * de phase.
+ */
+export function bulleBanniereEnrichissement(
+  toutes: TacheDeFond[],
+  secours: string,
+  traduire?: (cle: string) => string,
+): string | null {
+  const taches = toutes.filter((t) => t && !t.paused);
+  if (taches.length === 0) return null;
+  const nomDe = (t: TacheDeFond) => {
+    const cle = Object.hasOwn(LIBELLES_TACHES, t.id) ? LIBELLES_TACHES[t.id] : null;
+    return cle && traduire ? traduire(cle) : t.label || secours;
+  };
+  const vus = new Set<string>();
+  const morceaux: string[] = [];
+  taches.forEach((t, i) => {
+    const nom = nomDe(t);
+    // La même tâche deux fois (deux passes du même type) ne se dit qu'une.
+    if (vus.has(nom)) return;
+    vus.add(nom);
+    const phase = i === 0 && t.progress ? libellePhase(t.progress.detail, traduire) : '';
+    morceaux.push(phase ? `${nom} — ${phase}` : nom);
+  });
+  return morceaux.join(' · ');
 }
 
 /**

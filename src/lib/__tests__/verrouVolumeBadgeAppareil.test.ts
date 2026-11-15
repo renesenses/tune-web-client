@@ -263,7 +263,8 @@ describe('#2395 — la carte de zone monte bien ce badge', () => {
     expect(montage, 'le badge doit être monté après l’en-tête de carte').toBeGreaterThan(carte);
     // Et dans CETTE carte, pas trente lignes plus bas dans une autre section :
     // la fermeture de l'en-tête ne doit pas s'intercaler.
-    expect(montage).toBeLessThan(settingsV2.indexOf('{#if atLeast(level,', carte));
+    // #2735 : les gardes de niveau des cartes s'écrivent `voit(…)` (atLeast + recherche).
+    expect(montage).toBeLessThan(settingsV2.indexOf('{#if voit(', carte));
   });
 });
 

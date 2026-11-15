@@ -26,6 +26,7 @@ import { t } from '../i18n';
 import { activeView } from '../stores/navigation';
 import type { Album } from '../types';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
+import { entreeDuMenu } from './aides/menuFiche';
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -99,8 +100,9 @@ function poser() {
 }
 function bouton(): HTMLButtonElement | null {
   // web#2151 — la bulle du bouton décrit son geste ; elle ne recopie plus le libellé.
+  // web#2736 — c'est une entrée du menu « … » de la fiche (« Ajouter à › Collection »).
   const libelle = get(t)('v2.album.addToCollectionTip' as any);
-  return hote?.querySelector<HTMLButtonElement>(`.actions button[title="${libelle}"]`) ?? null;
+  return (hote ? entreeDuMenu(hote, `[role="menuitem"][title="${libelle}"]`) : null) as HTMLButtonElement | null;
 }
 const panneau = () => document.body.querySelector<HTMLElement>('.coll-menu');
 const entrees = () => Array.from(panneau()?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
@@ -109,8 +111,10 @@ const entrees = () => Array.from(panneau()?.querySelectorAll<HTMLButtonElement>(
 async function ouvrirDepuis(top: number, bottom: number): Promise<HTMLElement> {
   poser();
   await jusqua(() => !!bouton());
+  // web#2736 — le menu se pose sous le bouton « … » de la fiche, qui l'a ouvert.
+  const plus = hote!.querySelector<HTMLElement>('[data-menu-album]')!;
   const b = bouton()!;
-  b.getBoundingClientRect = () => ({
+  plus.getBoundingClientRect = () => ({
     top, bottom, right: 900, left: 760, width: 140, height: bottom - top, x: 760, y: top,
     toJSON() { return this; },
   }) as DOMRect;

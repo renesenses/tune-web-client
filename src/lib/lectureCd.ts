@@ -37,6 +37,7 @@
 import { writable, derived } from 'svelte/store';
 import * as api from './api';
 import { BASE, fetchJSON, type ApiError } from './api';
+import { verificationAr, type VerificationAr } from './verificationAr';
 
 export type PresenceCd = 'aucun_lecteur' | 'vide' | 'disque';
 
@@ -63,10 +64,54 @@ export interface ChargementCd {
   octets_fichier: number;
   secteurs_perdus: number;
   /**
+   * tune-server-rust#8514 — les CRC AccurateRip v1 et v2 (hexadécimal) de
+   * chaque piste ENTIÈRE en mémoire, calculés au chargement ; absent d'un
+   * serveur antérieur.
+   */
+  accuraterip?: AccurateRipPisteCd[];
+  /**
+   * tune-server-rust#8522 — la vérification contre la base AccurateRip du
+   * disque entier en mémoire (`base: 'en_cours'` puis le verdict).
+   */
+  verification_accuraterip?: VerificationAr | null;
+  /**
    * `null` tant que le chargement avance ; `termine` = prêt ; `ejecte` ou
    * `echec` (#6596) = le chargement n'a pas abouti ; `libere` = rendu.
    */
   fin: 'termine' | 'ejecte' | 'libere' | 'echec' | null;
+}
+
+/** tune-server-rust#8514 — les CRC AccurateRip d'une piste chargée. */
+export interface AccurateRipPisteCd {
+  piste: number;
+  v1: string;
+  v2: string;
+}
+
+/**
+ * tune-server-rust#8514 — les CRC AccurateRip calculés au chargement du
+ * disque affiché, piste par piste dès qu'une piste est entière (pendant le
+ * chargement aussi) ; `[]` pour un autre disque, un chargement arrêté
+ * (éjecté, rendu, en échec) ou un serveur antérieur.
+ */
+export function accurateRipDuChargement(
+  c: ChargementCd | null | undefined,
+  discId: string | null | undefined,
+): AccurateRipPisteCd[] {
+  if (!vueChargementCd(c, discId) || !Array.isArray(c?.accuraterip)) return [];
+  return c!.accuraterip.filter((a) => a && typeof a.piste === 'number' && typeof a.v1 === 'string');
+}
+
+/**
+ * tune-server-rust#8522 — la vérification AccurateRip du disque affiché,
+ * tant que son chargement n'est pas arrêté ; `null` sinon.
+ */
+export function verificationDuChargement(
+  c: ChargementCd | null | undefined,
+  discId: string | null | undefined,
+): VerificationAr | null {
+  if (!vueChargementCd(c, discId)) return null;
+  return verificationAr(c?.verification_accuraterip);
 }
 
 /** tune-server-rust#6043 — `GET /ext/cd/memoire`. */
@@ -194,7 +239,8 @@ export function chargementDepuisEvenement(
   ev: { type?: string; data?: unknown } | null | undefined,
 ): ChargementCd | null {
   const type = ev?.type ?? '';
-  if (type !== 'cd.memoire.progression' && type !== 'cd.memoire.termine') return null;
+  // #8522 — `cd.memoire.accuraterip` porte la même progression, verdict compris.
+  if (type !== 'cd.memoire.progression' && type !== 'cd.memoire.termine' && type !== 'cd.memoire.accuraterip') return null;
   const c = ev!.data as ChargementCd | null;
   if (!c || typeof c !== 'object' || typeof c.disc_id !== 'string') return null;
   return c;

@@ -374,7 +374,8 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     expect(tuiles[0].querySelector('.placeholder svg')).not.toBeNull();
     // …sans repli sur l'album LOCAL qui porterait le même numéro que celui de l'ami.
     expect(appels.filter((x) => !x.url.includes('/ext/circle') && /\/library\/albums\/\d+/.test(x.url))).toEqual([]);
-    expect(lecturesCatalogue()).toEqual(['/contacts/40/library/stats', '/contacts/40/library/albums?page=1&per_page=50']);
+    // web#2985 : la première page part AVANT les chiffres, qu'elle n'attend plus.
+    expect(lecturesCatalogue()).toEqual(['/contacts/40/library/albums?page=1&per_page=50', '/contacts/40/library/stats']);
 
     await cliquer(el, 'button.album-contact');
     expect(lecturesCatalogue().at(-1)).toBe('/contacts/40/library/albums/11/tracks');
@@ -382,7 +383,10 @@ describe('T2 — parcourir le catalogue d’un contact', () => {
     // Lecture seule : aucune barre d'actions, le titre ne lance rien.
     expect(el.querySelector('.pistes-album .pactions')).toBeNull();
     const titre = el.querySelector('.pistes-album button.titre') as HTMLButtonElement;
-    expect(titre.disabled).toBe(true);
+    // #7224 (12/11) : un bouton actif — son clic lance l'équivalent trouvé dans MES
+    // sources (chercherDansMesSources7224). Ouvrir l'album, lui, ne lance rien.
+    expect(titre.disabled).toBe(false);
+    expect(titre.getAttribute('aria-disabled')).toBeNull();
     expect(texte(el.querySelector('.lecture-seule')!)).toBe(fr['v2.circle.lib.readOnly']);
     sansFuite(el);
     // Aucune demande de lecture n'est partie vers le serveur local.
@@ -466,7 +470,7 @@ describe('T2 — contact révoqué, partage coupé : 404', () => {
     const avant = lecturesCatalogue().length;
     await ouvrirElise(el);
     expect(lecturesCatalogue().slice(avant)).toEqual([
-      '/contacts/40/library/stats', '/contacts/40/library/albums?page=1&per_page=50',
+      '/contacts/40/library/albums?page=1&per_page=50', '/contacts/40/library/stats',
     ]);
     expect(el.querySelector('.pistes-contact')).toBeNull();
     expect(noms(el, 'button.album-contact .album-nom')).toHaveLength(2);

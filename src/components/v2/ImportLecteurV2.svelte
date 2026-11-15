@@ -229,15 +229,15 @@
 <style>
   .imp { display: flex; flex-direction: column; gap: 10px; }
   .inline { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .hint { margin: 0; font-size: 13px; color: var(--v2-txt3); }
-  .titre { margin: 0; font-size: 13px; font-weight: 600; }
+  .hint { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .titre { margin: 0; font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; }
   .okline { color: var(--v2-acc1); }
-  .errline { font-size: 13px; color: var(--v2-danger); }
+  .errline { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-danger); }
   .mono { font-family: var(--v2-mono); }
 
   .lnk {
     background: none; border: 1px solid var(--v2-line); border-radius: 6px;
-    padding: 5px 10px; color: var(--v2-txt); font-size: 13px; cursor: pointer;
+    padding: 5px 10px; color: var(--v2-txt); font-size: calc(13px * var(--v2-txt-echelle, 1)); cursor: pointer;
   }
   .lnk:hover:not(:disabled) { border-color: var(--v2-acc1); color: var(--v2-acc1); }
   .lnk:disabled { opacity: 0.45; cursor: default; }
@@ -249,18 +249,18 @@
     border: 1px solid var(--v2-line); border-radius: 8px; padding: 10px 12px;
   }
   .source:hover { border-color: var(--v2-acc1); }
-  .source strong { font-size: 13px; color: var(--v2-txt); }
+  .source strong { font-size: calc(13px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); }
   /* Le sélecteur de fichier natif est masqué : c'est la carte qui porte le geste. */
   .fichier { position: relative; overflow: hidden; }
   .fichier input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
   .chiffres { display: flex; flex-wrap: wrap; gap: 16px; }
-  .chiffre { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--v2-txt3); }
-  .chiffre b { font-size: 18px; color: var(--v2-txt); }
+  .chiffre { display: flex; flex-direction: column; gap: 2px; font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--v2-txt3); }
+  .chiffre b { font-size: calc(18px * var(--v2-txt-echelle, 1)); color: var(--v2-txt); }
   .chiffre.ok b { color: var(--v2-acc1); }
   .chiffre.manque b { color: var(--v2-acc2); }
 
-  .details { font-size: 12px; }
+  .details { font-size: calc(12px * var(--v2-txt-echelle, 1)); }
   .details summary { cursor: pointer; color: var(--v2-txt2); }
   .details table { width: 100%; border-collapse: collapse; margin-top: 6px; }
   .details th, .details td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--v2-line); }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Métadonnées — nouveau client (direction Levente). Niveau Expert.
@@ -19,15 +20,18 @@
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import OrdreCoffretListeV2 from './OrdreCoffretListeV2.svelte';
+  import { deplacerDans } from '../../lib/ordreCoffret';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
   // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
   import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
   import ManquantsV2 from './ManquantsV2.svelte';
+  import PistesDouteuses from './PistesDouteuses.svelte';
   import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
   import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
   import { grouperParAlbums, questionDeRetrait, type CoupleAlbums } from '../../lib/albumsEnDouble';
@@ -466,6 +470,12 @@
   let cfBusy = $state(false);
   let cfBilan = $state<string | null>(null);
   let cfErr = $state<string | null>(null);
+  /** #8464 (fil 2765) — le nom du coffret, prérempli avec le titre que le
+   *  serveur calculerait ; `cfTitreTouche` dès que l'utilisateur l'a écrit
+   *  lui-même : l'aperçu ne l'écrase plus. */
+  let cfTitre = $state('');
+  let cfTitreTouche = $state(false);
+  let cfApercuN = 0;
 
   /** Les albums affichés, À PLAT. */
   let cfAlbums = $derived.by(() => {
@@ -489,6 +499,63 @@
   /** Le rang d'un album dans la sélection, ou `0` s'il n'y est pas. */
   function rangCoffret(id: number): number {
     return cfChoisis.indexOf(id) + 1;
+  }
+
+  /**
+   * #8463 (fil 2763) — les disques qu'un album coché portera dans le
+   * coffret. Le serveur garde les disques de chaque album et les numérote à
+   * la suite : un album de 3 CD coché en premier prend 1 à 3, le suivant 4.
+   * Le rang seul aurait annoncé « Disque 2 » pour ce dernier.
+   */
+  function disquesCoffret(id: number): { a: number; b: number } | null {
+    let a = 1;
+    for (const x of cfChoisis) {
+      const n = Math.max(1, cpTous.find((t) => t.album_id === x)?.disc_count ?? 1);
+      if (x === id) return { a, b: a + n - 1 };
+      a += n;
+    }
+    return null;
+  }
+
+  // #8464 — le titre calculé, demandé au serveur à chaque changement de la
+  // sélection, tant que l'utilisateur n'a pas écrit son propre nom. Une
+  // réponse arrivée après une sélection plus récente est ignorée.
+  $effect(() => {
+    const ids = [...cfChoisis];
+    // Seule la SÉLECTION relance l'aperçu : la frappe dans le champ, non.
+    untrack(() => {
+      if (ids.length < 2) {
+        cfApercuN++;
+        if (!ids.length) cfTitreTouche = false;
+        if (!cfTitreTouche) cfTitre = '';
+        return;
+      }
+      const n = ++cfApercuN;
+      api.apercuCoffret(ids)
+        .then((r) => { if (n === cfApercuN && !cfTitreTouche) cfTitre = r?.titre ?? ''; })
+        .catch(() => {});
+    });
+  });
+
+  /**
+   * #8571 (fil 2763) — les albums cochés, DANS L'ORDRE du coffret, pour la
+   * liste réordonnable. Un album coché que la recherche ne montre plus reste
+   * dans la liste : c'est la sélection, pas l'affichage, qui fait l'ordre.
+   */
+  let cfOrdre = $derived(cfChoisis.map((id) => {
+    const a = cpTous.find((x) => x.album_id === id);
+    return {
+      cle: id,
+      titre: a?.title ?? '—',
+      detail: [a?.album_artist, finDeDossier(a?.folder)].filter(Boolean).join(' · ') || undefined,
+      disques: Math.max(1, a?.disc_count ?? 1),
+    };
+  }));
+
+  /** #8571 — glisser-déposer ou Monter / Descendre dans la liste ordonnée. */
+  function deplacerCoffret(de: number, vers: number) {
+    cfChoisis = deplacerDans(cfChoisis, de, vers);
+    arme = null;
   }
 
   function cocherCoffret(id: number) {
@@ -519,12 +586,14 @@
     arme = null;
     cfBusy = true;
     try {
-      const r = await api.composerCoffret(cfChoisis);
+      const r = await api.composerCoffret(cfChoisis, cfTitre);
       cfBilan = $t('v2.meta.boxDone' as any)
         .replace('{count}', String(r.disques))
         .replace('{title}', r.titre ?? '');
       cfErr = null;
       cfChoisis = [];
+      cfTitre = '';
+      cfTitreTouche = false;
       // La bibliothèque a changé : la liste en mémoire est périmée.
       cpCharge = false;
       await chargerAlbumsCompil();
@@ -644,6 +713,8 @@
   let dRetenus = $state<Set<string>>(new Set());
   let dBusy = $state(false);
   let dBilan = $state<string | null>(null);
+  /** #8679 — le bilan de « Écrire l'artiste du dossier », tenu par le parent. */
+  let dDossierBilan = $state<string | null>(null);
   let dGroupes = $derived(grouperParArtisteDevine(doubtful));
   let dSansIndice = $derived(
     doubtful.filter((p) => p.reasons?.includes('missing_artist')).length
@@ -684,10 +755,12 @@
     dBusy = false;
   }
 
-  async function chargerDouteuses() {
+  /** `discret` : relue sans repasser par « Chargement… », qui démonterait
+   *  la liste et le bilan qu'elle affiche (#8679). */
+  async function chargerDouteuses(discret = false) {
     if (dLoaded) return;
     dLoaded = true;
-    dLoading = true;
+    dLoading = !discret;
     const tous: PisteDouteuse[] = [];
     try {
       for (let offset = 0; ; offset += 1000) {
@@ -788,7 +861,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   <span class="new">{p.proposed ?? '—'}</span>
                 </div>
-                <div class="src">{$t((p.servers_count > 1 ? 'v2.meta.libsWithValueMany' : 'v2.meta.libsWithValueOne') as any).replace('{n}', $formatNombre(p.servers_count))}</div>
+                <div class="src">{$tn('v2.meta.libsWithValueN', p.servers_count)}</div>
               </div>
               <div class="pa">
                 <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>
@@ -1153,6 +1226,28 @@
           </button>
         </div>
         <p class="note">{$t('v2.meta.boxOrder' as any)}</p>
+        <!-- #8464 (fil 2765) — le nom du coffret, saisi avant de réunir.
+             Prérempli avec le titre que le serveur calculerait ; vide, le
+             serveur le calcule. -->
+        {#if cfChoisis.length >= 2}
+          <div class="cpbar">
+            <input
+              class="cpq"
+              type="text"
+              aria-label={$t('v2.meta.boxName' as any)}
+              placeholder={$t('v2.meta.boxName' as any)}
+              bind:value={cfTitre}
+              oninput={() => { cfTitreTouche = true; arme = null; }}
+            />
+          </div>
+        {/if}
+        <!-- #8571 (fil 2763) — l'ordre du coffret se change ici, sans
+             décocher : glisser par la poignée, ou Monter / Descendre au
+             clavier. -->
+        {#if cfChoisis.length >= 2}
+          <OrdreCoffretListeV2 elements={cfOrdre} ondeplacer={deplacerCoffret}
+            etiquette={$t('v2.box.orderList' as any)} desactive={cfBusy} />
+        {/if}
         {#if cfBilan}<p class="note">{cfBilan}</p>{/if}
         {#if cfErr}<div class="errline">{cfErr}</div>{/if}
         <div class="list">
@@ -1181,19 +1276,31 @@
                    invisible, et l'utilisateur découvrirait son coffret après
                    coup. -->
               {#if rang > 0}
-                <span class="cfrang">{$t('v2.meta.boxDisc' as any).replace('{n}', String(rang))}</span>
+                {@const d = disquesCoffret(a.album_id)}
+                <span class="cfrang">{d && d.b > d.a
+                  ? $t('v2.meta.boxDiscRange' as any).replace('{a}', String(d.a)).replace('{b}', String(d.b))
+                  : $t('v2.meta.boxDisc' as any).replace('{n}', String(d?.a ?? rang))}</span>
               {/if}
             </label>
           {/each}
         </div>
       {/if}
 
-    {:else if dLoading}
+    {:else}
+      <!-- tune-server-rust#8679 — le bilan de « Écrire l'artiste du dossier »
+           vit ICI, hors de la liste : après l'écriture, la liste relue peut
+           ne plus avoir de piste concernée, ou plus aucune piste du tout. -->
+      {#if dDossierBilan}<p class="note" data-bilan-dossier aria-live="polite">{dDossierBilan}</p>{/if}
+    {#if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
       <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+
+      <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
+           vient du serveur, on la relit après l'écriture. -->
+      <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }} />
 
       {#if dGroupes.length}
         <div class="cpacts">
@@ -1233,6 +1340,7 @@
         <p class="source">{$t('v2.meta.dArtistNoClue' as any).replace('{count}', $formatNombre(dSansIndice))}</p>
       {/if}
     {/if}
+    {/if}
 
     <!-- Pas de bouton « ouvrir l'éditeur » : la vue `metadata` est CET écran
          désormais, un lien y renverrait sur lui-même. On dit où c'est, sans
@@ -1270,31 +1378,31 @@
     font-family:var(--v2-sans); overflow:hidden}
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
-  .tabs button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+    color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+  .tabs button span{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .tabs button.on span{color:var(--v2-on-acc); opacity:.75}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
-    font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
+    font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); cursor:pointer}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   /* Onglet « Compilations » (#1172). */
   .cpbar{display:flex; gap:8px; align-items:center; margin:0 0 14px}
   .cpq{flex:1 1 auto; min-width:0; height:34px; padding:0 12px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
-    font:12.5px var(--v2-sans)}
+    font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .cpq:focus{outline:none; border-color:var(--v2-acc2)}
   .cpacts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
   /* En-tête de groupe : le titre porte le regroupement, la ligne ne répète
      donc que l'artiste — c'est lui qui change d'une ligne à l'autre. */
   .cpgh{display:flex; align-items:baseline; gap:10px; margin:16px 0 6px; flex-wrap:wrap}
-  .cpgt{font:600 13.5px var(--v2-sans); color:var(--v2-txt)}
-  .chemin{display:block; margin-top:2px; font:10.5px var(--v2-mono); color:var(--v2-txt3);
+  .cpgt{font:600 calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
+  .chemin{display:block; margin-top:2px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
-  .cpgn{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cpgn{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .note.avert{color:var(--v2-acc-tint)}
   /* Armé = le prochain clic agit. `.grp .lnk.armed` ne porte pas jusqu'ici :
      ces boutons ne sont pas dans une carte de groupe. */
@@ -1306,21 +1414,21 @@
   /* Le drapeau déjà posé, dit à côté du compte de pistes : sans lui, marquer
      agit sans qu'on voie sur quoi. On n'affiche QUE le positif — voir
      PastilleCompilation. */
-  .cfrang{margin-left:auto; font:600 11px var(--v2-sans); color:var(--v2-acc1);
+  .cfrang{margin-left:auto; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1);
     border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill); padding:2px 9px; white-space:nowrap}
   .cpflag{margin-left:8px; padding:1px 7px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
-    font:700 9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
+    font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .dbl-echec{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; color:var(--v2-txt2)}
-  .note{padding:4px 0 16px; font-size:12.5px; color:var(--v2-txt3)}
+  .note{padding:4px 0 16px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .note b{color:var(--v2-txt2)}
 
   .auto{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 18px;
     border-radius:13px; border:1px solid var(--v2-line); background:var(--v2-surface2); margin-bottom:18px}
   .al{display:flex; flex-direction:column; gap:4px}
-  .al span:first-child{font-size:13.5px; font-weight:600}
-  .hint{font-size:11.5px; color:var(--v2-txt3)}
+  .al span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .sw{position:relative; width:44px; height:25px; cursor:pointer; flex:0 0 auto}
   .sw input{position:absolute; opacity:0; width:0; height:0}
   .slider{position:absolute; inset:0; border-radius:999px; background:var(--v2-line2); transition:.18s}
@@ -1333,9 +1441,9 @@
   .prop{display:flex; align-items:center; gap:20px; padding:14px 18px; border-radius:12px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .pw{flex:1; min-width:0}
-  .pt{font-size:14px; font-weight:700; display:flex; gap:9px; align-items:baseline}
-  .pt em{font:11.5px var(--v2-sans); font-style:normal; color:var(--v2-txt3)}
-  .pf{margin-top:4px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-acc2)}
+  .pt{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700; display:flex; gap:9px; align-items:baseline}
+  .pt em{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3)}
+  .pf{margin-top:4px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-acc2)}
   /* #1069 — les pochettes du groupe, côte à côte. Celle qu'on GARDE est
      soulignée : c'est la fiche qui absorbera les autres, et rien ne la
      distinguait des autres vignettes. */
@@ -1345,42 +1453,42 @@
   .eclc.garde{border-color:var(--v2-acc1)}
   .diff{margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .diff svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
-  .cur{font-size:13px; color:var(--v2-txt3); text-decoration:line-through}
-  .new{font-size:13px; font-weight:600; color:var(--v2-acc-tint)}
-  .src{margin-top:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .cur{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); text-decoration:line-through}
+  .new{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-acc-tint)}
+  .src{margin-top:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .pa{display:flex; gap:8px; flex:0 0 auto}
   .pa.wrap{flex-wrap:wrap; margin-top:8px}
   .drgrid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:14px}
   .drk{display:flex; flex-direction:column; gap:3px; padding:12px 16px; border-radius:12px;
     border:1px solid var(--v2-line); background:var(--v2-surface2)}
-  .drk b{font:600 20px var(--v2-sans); color:var(--v2-txt); font-variant-numeric:tabular-nums}
-  .drk span{font-size:11.5px; color:var(--v2-txt3)}
-  .errline{margin-top:10px; font-size:12.5px; color:var(--v2-danger)}
-  .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
+  .drk b{font:600 calc(20px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); font-variant-numeric:tabular-nums}
+  .drk span{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
+  .dh{margin:18px 0 8px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
   .dh span{margin-left:6px; opacity:.7}
-  .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
+  .sub{margin-top:4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* tune-server-rust#5976 : B ne porte pas le même titre que A — à regarder avant de trancher. */
   .sub.ecart{color:var(--v2-danger); font-weight:600}
   .grp .lnk.armed{font-weight:700}
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 15px; font:600 12px var(--v2-sans)}
+    border-radius:var(--v2-r-pill); padding:7px 15px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .lnk:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .go:disabled,.lnk:disabled{opacity:.45; cursor:default}
-  .lnk.sm{padding:5px 12px; font-size:11.5px; margin-left:8px}
+  .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
 
   .dgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px}
   .dcard{display:flex; gap:14px; padding:12px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2)}
   .dcard .cv{width:64px; height:64px; flex:0 0 auto; border-radius:8px; overflow:hidden}
   .dm{min-width:0}
-  .dt{font-size:13.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .da{margin-top:3px; font-size:11.5px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dt{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .da{margin-top:3px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .drs{margin-top:8px; display:flex; gap:5px; flex-wrap:wrap}
-  .r{font:9.5px var(--v2-mono); color:var(--v2-danger); border:1px solid var(--v2-danger-bd);
+  .r{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-danger); border:1px solid var(--v2-danger-bd);
     border-radius:999px; padding:2px 8px}
 
-  .foot{margin-top:24px; font-size:12.5px; line-height:1.6; color:var(--v2-txt3); max-width:70ch}
+  .foot{margin-top:24px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt3); max-width:70ch}
   .foot b{color:var(--v2-txt2)}
-  .foot code{font:11px var(--v2-mono); color:var(--v2-acc2)}
+  .foot code{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
 </style>

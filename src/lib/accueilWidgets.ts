@@ -29,8 +29,10 @@ import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
+import { artisteDAlbum } from './lienEntite';
 import { estAParaitre } from './albumAParaitre';
-import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
+import { CHOIX_DEFAUT, cartes, formaterNombre, sourcesNecessaires } from './chiffresAccueil';
+import { infobulleTotaux } from './totauxBibliotheque';
 import {
   chargerFavorisFusionnes,
   collectionsFavorites,
@@ -45,6 +47,8 @@ import { quatreDistinctes } from './mosaique';
 import { lireListe } from './lectureEnMasse';
 import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
+import type { RaisonSuggestion } from './raisonSuggestion';
+import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -52,7 +56,37 @@ export interface Element {
   id: string;
   titre: string;
   sous?: string;
+  /**
+   * POURQUOI le serveur propose cet élément (web#916) — la `raison` structurée
+   * de `/home/*`, mise en phrase par `lib/raisonSuggestion`. Absente quand la
+   * rangée ne sait pas le dire : jamais inventée ici.
+   */
+  raison?: RaisonSuggestion | null;
+  /**
+   * L'élément est une SUGGESTION (web#916) : son menu « … » offre « Pas pour
+   * moi », et l'accueil le retire dès qu'il est écarté pour ce profil. Posé
+   * par les seules rangées de recommandation — jamais sur un favori, une
+   * reprise d'écoute ou un ajout récent, qu'on ne « refuse » pas.
+   */
+  suggestion?: boolean;
+  /** L'artiste qu'un « Pas pour moi : cet artiste » écarterait. */
+  artisteSuggere?: string | null;
+  /**
+   * La RADIO que montre la vignette (`radio_stations.id`), quand c'en est une
+   * — ce que « Pas pour moi » écarte (web#916, décision du 13/10/2026).
+   */
+  radioId?: number | null;
   cover?: string | null;
+  /**
+   * web#2750 points 6 et 7 — le nombre de titres d'une PLAYLIST, affiché en
+   * sous-titre de sa vignette. `null`/absent : inconnu, rien n'est affiché.
+   */
+  nbTitres?: number | null;
+  /**
+   * Le même nombre, à DEMANDER quand l'objet ne le porte pas (favori de
+   * service) : appelé une fois, au rendu de la vignette.
+   */
+  compterTitres?: () => Promise<number | null>;
   /** Ce que fait un clic. Absent = l'élément n'est pas actionnable. */
   jouer?: (zoneId: number) => Promise<unknown> | void;
   /**
@@ -107,6 +141,11 @@ export interface Element {
    * sur ses pistes, et un geste qui échoue vaut moins qu'un geste absent.
    */
   aParaitre?: boolean;
+  /**
+   * « 2026 · Jazz » — l'année et le genre d'un album, quand l'objet les porte
+   * (maquette de Levente du 15/11/2026). Absent sinon : jamais inventé.
+   */
+  details?: string | null;
   /** La date annoncée, telle que le service la donne (époque, secondes). */
   parution?: number | null;
   /**
@@ -137,6 +176,13 @@ export interface Element {
    * à la fiche du service, sans rapprochement par le nom.
    */
   artisteObjet?: any;
+  /**
+   * web#2770 — l'artiste du SOUS-TITRE d'un album, prêt pour
+   * `ouvrirArtisteDepuis` (`artisteDAlbum`) : la deuxième ligne de la
+   * vignette devient un lien à part, dans le bouton qui ouvre l'album. Absent
+   * quand le sous-titre n'est pas un artiste (auteur d'un podcast, station).
+   */
+  artisteDuSous?: any;
   /**
    * Un objet d'un AUTRE écran à rouvrir précisément, quand `ouvrir` vaut
    * `cible` — playlist locale, playlist intelligente, collection, collection
@@ -221,7 +267,12 @@ export interface Element {
  * propre composant. Un panneau en panne — le greffon Concerts absent, par
  * exemple — ne retient donc ni les autres panneaux ni les cartes.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc' | 'premiere-ligne';
+/**
+ * `premiere-ligne-levente` (15/11/2026) : la même ligne d'en-tête, dans la
+ * présentation de Levente — un widget À PART, que l'on ajoute depuis
+ * « Modifier ». La ligne d'origine reste la seule du défaut.
+ */
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc' | 'premiere-ligne' | 'premiere-ligne-levente';
 
 /**
  * CE QUE PORTE UN WIDGET `forme: 'bloc'`, en plus de son identité.
@@ -268,6 +319,20 @@ export interface Bloc<D = any> {
    * en prend deux. Ignoré hors d'une page montée en grille (`grille`).
    */
   colonnes?: 1 | 2;
+  /**
+   * Maquette « My listening » de Levente (rc12, 15/11/2026) — la largeur du
+   * bloc sur la grille FLUIDE (`grilleFluide`) : six colonnes, un bloc en
+   * prend une (une tuile) ou deux (un tiers de la page). Par défaut, il suit
+   * `colonnes`. Ignoré partout ailleurs.
+   */
+  etendue?: 1 | 2;
+  /**
+   * L'icône de l'en-tête du bloc, dessinée par `PageWidgets` devant le titre :
+   * le CONTENU d'un `<svg viewBox="0 0 24 24">` à trait `currentColor`
+   * (chemins seulement). Facultative : sans elle, l'en-tête reste celui
+   * d'avant.
+   */
+  icone?: string;
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
 }
@@ -333,6 +398,12 @@ export interface Widget {
    * libellé, c'est la plainte de Sandro (fil 1679) rejouée à l'identique.
    */
   sansTitre?: boolean;
+  /**
+   * web#2883 (Bertrand, 12/11/2026) — chargé et VIDE, le widget n'est pas
+   * rendu du tout, au lieu de « Rien à montrer ici pour l'instant. ». En mode
+   * « Modifier » il reste visible : c'est là qu'on le déplace ou le retire.
+   */
+  masqueSiVide?: boolean;
 }
 
 /**
@@ -346,6 +417,8 @@ export interface ChiffreAffiche {
   id?: string;
   icone?: string;
   vue?: string | null;
+  /** tune-server-rust#8625 — l'infobulle des totaux, comme Statistiques. */
+  infobulle?: string;
 }
 
 export interface Contexte {
@@ -485,6 +558,21 @@ export interface OptsElement {
 
 /** Exporté pour les tests : c'est ici que se décide ce qu'une vignette
  *  porte, et notamment si elle est jouable (point 10). */
+/**
+ * La raison STRUCTURÉE d'un objet de `/home/*` (web#916), telle quelle — ou
+ * rien. La phrase se fait au rendu (`lib/raisonSuggestion`), dans la langue
+ * de l'interface ; un objet sans `type` n'est pas une raison.
+ */
+function raisonDe(o: any): RaisonSuggestion | null {
+  const r = o?.raison;
+  return r && typeof r === 'object' && typeof r.type === 'string' ? (r as RaisonSuggestion) : null;
+}
+
+/** Un élément de rangée de RECOMMANDATION : sa raison, « Pas pour moi », son artiste. */
+function suggere(el: Element, o: any, artiste?: string | null): Element {
+  return { ...el, raison: raisonDe(o), suggestion: true, artisteSuggere: artiste ?? null };
+}
+
 export function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
   const aParaitre = estAParaitre(o);
@@ -516,8 +604,45 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     jouer: geste(o, service, opts.genre ?? 'album', opts.historique ?? false),
     aParaitre,
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
+    details: (opts.genre ?? 'album') === 'album' ? detailsAlbum(o) : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
+    ...artisteDuSousDe(o, service, opts.genre ?? 'album'),
+    ...(opts.genre === 'playlist' ? { nbTitres: nbTitresDe(o) } : {}),
   };
+}
+
+/**
+ * « 2026 · Jazz » — maquette « Home Dashboard with Album Grid » de Levente,
+ * 15/11/2026. L'année vient de `year`, ou des quatre premiers chiffres d'une
+ * date de sortie ; le genre, de `genre` ou du premier de `genres`. Ce que
+ * l'objet ne porte pas est TU : `null` si ni l'un ni l'autre.
+ */
+export function detailsAlbum(o: any): string | null {
+  const an = (() => {
+    const y = Number(o?.year);
+    if (Number.isInteger(y) && y > 0) return String(y);
+    // Pas le champ générique `date` : selon l'objet, c'est une date d'ajout,
+    // d'écoute ou d'évènement, pas l'année de l'album (relecture du 15/11).
+    for (const k of ['release_date', 'releaseDate']) {
+      const m = typeof o?.[k] === 'string' ? /^(\d{4})/.exec(o[k]) : null;
+      if (m) return m[1];
+    }
+    return null;
+  })();
+  const premier = Array.isArray(o?.genres) ? o.genres[0] : null;
+  const g = [o?.genre, typeof premier === 'string' ? premier : premier?.name]
+    .find((x) => typeof x === 'string' && x.trim());
+  const parts = [an, g ? String(g).trim() : null].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
+}
+
+/** web#2770 — l'artiste du sous-titre d'un album ou d'une piste, ou rien. */
+function artisteDuSousDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun'): Partial<Element> {
+  if (genre === 'playlist') return {};
+  const nom = champ(o, 'artist_name', 'artist');
+  if (!nom) return {};
+  const artiste = artisteDAlbum({ artist_name: nom, artist_id: o?.artist_id ?? null, source: service });
+  return artiste ? { artisteDuSous: artiste } : {};
 }
 
 /**
@@ -1102,22 +1227,43 @@ function gestePisteTop(t: api.DashboardData['top_tracks'][number]): Element['jou
 }
 
 /**
- * LES REPLIS DU WIDGET « VOS FAVORIS » — #1509.
+ * web#2770 (lot 4) — l'ALBUM d'une piste de classement, quand le serveur
+ * l'envoie (`album_id` sur `TopTrackEntry`, PR serveur séparée du chantier) :
+ * la ligne l'ouvre, et la lecture garde son bouton. Sans lui, rien ne change.
+ */
+function ficheDePisteTop(t: api.DashboardData['top_tracks'][number]): Partial<Element> {
+  const idAlbum = idLocalValide((t as any)?.album_id);
+  if (idAlbum == null || idLocalValide(t.track_id) == null) return {};
+  return { ouvrir: 'album', fiche: ficheDAlbumDePiste(t, idAlbum) };
+}
+
+/** La fiche (`Element.fiche`) de l'album LOCAL `idAlbum` d'une piste. */
+function ficheDAlbumDePiste(o: any, idAlbum: number): Element['fiche'] {
+  return {
+    id: idAlbum,
+    source_id: null,
+    source: null,
+    title: champ(o, 'album_title', 'album') ?? '',
+    artist_name: champ(o, 'artist_name', 'artist') ?? '',
+    cover_path: champ(o, 'cover_path', 'cover_url') ?? null,
+    year: null,
+    format: null,
+    sample_rate: null,
+    bit_depth: null,
+  };
+}
+
+/**
+ * UNE PISTE FAVORITE — née repli du widget « Vos favoris » (#1509), repli
+ * retiré le 12/11/2026 (web#2883) ; elle reste la base de `elementPisteDuSeau`.
  *
- * Un artiste ou une piste favori, tels que `chargerFavorisFusionnes` les
- * rend : un objet de BIBLIOTHÈQUE porte son `id` ; un objet de SERVICE porte
- * `id: null` et la paire `source` / `source_id`.
- *
- *  - un ARTISTE s'ouvre par son nom (`ouvrirArtisteParNom`), comme les tops ;
- *    `genre: 'aucun'` parce que son `id` n'est pas celui d'un album ;
- *  - une PISTE se joue : `track_id` local d'abord, sinon la paire service +
+ * Telle que `chargerFavorisFusionnes` la rend : un objet de BIBLIOTHÈQUE porte
+ * son `id` ; un objet de SERVICE porte `id: null` et la paire `source` /
+ * `source_id`. Une PISTE se joue : `track_id` local d'abord, sinon la paire service +
  *    identifiant de piste. Jamais par `versElement` seul, qui prendrait son
  *    `id` de bibliothèque pour un album et son `source_id` pour un
  *    `streaming_album_id` — les deux pièges déjà documentés plus haut.
  */
-function elementArtisteFavori(o: any, i: number): Element {
-  return { ...versElement(o, i, 'art', { genre: 'aucun' }), ...gesteArtisteTop(champ(o, 'name')) };
-}
 function elementPisteFavorite(o: any, i: number): Element {
   const el = versElement(o, i, 'trk', { genre: 'aucun' });
   const local = idLocalValide(o?.id);
@@ -1138,8 +1284,8 @@ function elementPisteFavorite(o: any, i: number): Element {
  * « Artistes favoris, Pistes favorites, Playlists favorites, Smart playlists
  * favorites, Collections favorites, Smart collections favorites. »
  *
- * « Vos favoris » reste tel quel : une bande d'albums, repliée sur artistes
- * puis pistes (#1509). Ces six-là montrent CHACUN un seau, et le lisent par le
+ * « Vos favoris » (« Albums favoris », web#2750) reste une bande d'albums,
+ * sans repli depuis web#2883. Ces six-là montrent CHACUN un seau, et le lisent par le
  * MÊME chargeur que l'écran Favoris (`favorisFusionnes`) — bibliothèque ET
  * services pour les artistes, les pistes et les playlists.
  *
@@ -1203,16 +1349,25 @@ function elementArtisteDuSeau(o: any, i: number): Element {
   };
 }
 
-/** Une PISTE favorite : un clic la JOUE (`ouvrir: 'lire'`). */
-function elementPisteDuSeau(o: any, i: number): Element {
+/**
+ * Une PISTE favorite : un clic OUVRE son album quand il est connu (web#2770,
+ * lot 4 : « clic = navigation, jamais lecture ») — l'`album_id` d'une piste
+ * de la bibliothèque. Une piste de service n'a pas d'identifiant d'album ici
+ * (web#2749 le demande au service, écran par écran) : elle garde la lecture,
+ * mieux qu'une vignette morte.
+ */
+export function elementPisteDuSeau(o: any, i: number): Element {
   const el = elementPisteFavorite(o, i);
   const local = idLocalValide(o?.id);
   const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
   const sid = champ(o, 'source_id');
+  const idAlbum = local != null ? idLocalValide(o?.album_id) : null;
   return {
     ...el,
     id: `ftrk${i}-${champ(o, 'id', 'source_id') ?? ''}`,
-    ouvrir: el.jouer ? 'lire' : null,
+    ...(idAlbum != null
+      ? { ouvrir: 'album' as const, fiche: ficheDAlbumDePiste(o, idAlbum) }
+      : { ouvrir: el.jouer ? ('lire' as const) : null }),
     favoriLocal: local != null ? { trackId: local } : null,
     favoriDistant: svc && sid ? { itemType: 'track', serviceId: sid } : null,
     etiquette: null,
@@ -1231,11 +1386,21 @@ function elementPisteDuSeau(o: any, i: number): Element {
  */
 function elementPlaylistDuSeau(pl: any, i: number): Element {
   const local = idLocalValide(pl?.id);
-  if (local == null) return versElement(pl, i, 'fpl', { genre: 'playlist' });
+  if (local == null) {
+    const el = versElement(pl, i, 'fpl', { genre: 'playlist' });
+    // web#2750 point 7 — un favori de service ne porte pas son nombre de
+    // titres : on le demande à la playlist, dans la même file que les
+    // mosaïques (trois requêtes en vol au plus).
+    const service = el.source;
+    const sid = champ(pl, 'source_id');
+    if (el.nbTitres != null || !service || !sid) return el;
+    return { ...el, compterTitres: () => enFileMosaique(() => compterTitresDeService(service, sid)) };
+  }
   const nom = champ(pl, 'name') ?? '—';
   return {
     id: `fpl${i}-${local}`,
     titre: nom,
+    nbTitres: nbTitresDe(pl),
     cover: null,
     source: null,
     jouer: (z: number) => api.play(z, { playlist_id: local }),
@@ -1366,6 +1531,22 @@ export const WIDGETS: Widget[] = [
     charger: async () => [],
   },
   {
+    /**
+     * LA PREMIÈRE LIGNE, PRÉSENTATION DE LEVENTE — Bertrand, 15/11/2026 :
+     * « garde en widget le widget de la première ligne et crée-en un nouveau
+     * à partir du design de Levente » (maquette Figma 612:5808).
+     *
+     * Hors du défaut : il s'ajoute depuis « Modifier ». Comme la ligne
+     * d'origine, il lit le magasin VIVANT au rendu et n'a aucune matière à
+     * charger (correctif du 27/09/2026) ; pas de titre hors édition.
+     */
+    id: 'premiere-ligne-levente',
+    cleTitre: 'v2.home.wFirstRowLevente',
+    forme: 'premiere-ligne-levente',
+    sansTitre: true,
+    charger: async () => [],
+  },
+  {
     id: 'zones',
     cleTitre: 'v2.home.wZones',
     forme: 'bande',
@@ -1479,7 +1660,10 @@ export const WIDGETS: Widget[] = [
           const idPlaylist = Number(o.context_id);
           const playlistLocale = o.context_type === 'playlist' && (o.source == null || o.source === 'local')
             && Number.isSafeInteger(idPlaylist) && idPlaylist > 0 ? idPlaylist : null;
-          return { ...el,
+          // web#916, go du 13/10/2026 — « Écouté le 12 oct. 2026 » (raison
+          // `reprise` du serveur), et « Pas pour moi » : le serveur ne remet
+          // plus dans la bande ce que le profil a écarté.
+          return suggere({ ...el,
             // La playlist locale a une mosaïque de ses pistes, pas la
             // pochette du dernier titre. Comme dans les favoris, la demander
             // après affichage et dans la file de chargement bornée.
@@ -1490,7 +1674,7 @@ export const WIDGETS: Widget[] = [
             titre: (o.context_type === 'album' || o.context_type === 'playlist' || o.context_type === 'podcast') && o.last_track_title ? o.last_track_title : el.titre,
             sous: sousTitreReprise(o) || el.sous,
             jouer: gesteReprise(o),
-          };
+          }, o, champ(o, 'artist_name'));
         }),
       ),
   },
@@ -1574,6 +1758,12 @@ export const WIDGETS: Widget[] = [
             source: champ(r, 'service') ?? null,
             jouer: geste(r, champ(r, 'service') ?? null, 'album'),
             ...ficheDe(r, champ(r, 'service') ?? null, 'album'),
+            // web#916 — « Parce que vous aimez X » / « X : N albums dans votre
+            // bibliothèque » : l'annotation du groupe, dite pour la parution.
+            raison: raisonDe(r),
+            details: detailsAlbum(r),
+            suggestion: true,
+            artisteSuggere: champ(a, 'artist_name') ?? null,
           });
         }
       }
@@ -1584,8 +1774,14 @@ export const WIDGETS: Widget[] = [
     id: 'nouveau-bibliotheque',
     cleTitre: 'v2.home.wNewInLibrary',
     forme: 'bande',
+    // web#916 — « Ajouté le 12 oct. 2026 » : la raison est factuelle, la
+    // rangée n'est pas une suggestion — pas de « Pas pour moi » ici.
     charger: async (ctx) =>
-      utiles(liste(await api.getNewInLibrary()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'alb'))),
+      utiles(
+        liste(await api.getNewInLibrary())
+          .slice(0, limiteDe(ctx))
+          .map((o, i) => ({ ...versElement(o, i, 'alb'), raison: raisonDe(o) })),
+      ),
   },
   {
     id: 'autres-versions',
@@ -1608,6 +1804,19 @@ export const WIDGETS: Widget[] = [
             sous: champ(o, 'artist_name'),
             cover: champ(v, 'cover_path') ?? null,
             jouer: v?.album_id != null ? (z: number) => api.play(z, { album_id: v.album_id }) : undefined,
+            // web#916 — l'album de la version s'ouvre et porte son menu : c'est
+            // là que vit « Pas pour moi ». « Autre version de X, écouté
+            // récemment » vient du serveur (`raison: autre_version`).
+            ...(idLocalValide(v?.album_id) != null
+              ? ficheDe(
+                  { album_id: v.album_id, title: champ(v, 'album_title'), artist_name: champ(o, 'artist_name'), cover_path: champ(v, 'cover_path') },
+                  null,
+                  'album',
+                )
+              : {}),
+            raison: raisonDe(o),
+            suggestion: true,
+            artisteSuggere: champ(o, 'artist_name') ?? null,
           };
         }),
       ),
@@ -1628,17 +1837,29 @@ export const WIDGETS: Widget[] = [
      * service : l'onglet dit 2, le widget 0. On passe par le MÊME chargeur
      * que l'écran (`chargerFavorisFusionnes`), pas par un second.
      *
-     * Et un profil sans album favori n'est pas un profil sans favori : à
-     * défaut d'albums, la bande montre les ARTISTES, puis les PISTES.
+     * web#2883 — décision de Bertrand du 12/11/2026 : la bande s'appelle
+     * « Albums favoris » (web#2750) et ne montre QUE des albums. Le repli sur
+     * les artistes puis les pistes (#1509) est retiré : un profil sans album
+     * favori n'a pas cette bande, elle est MASQUÉE (`masqueSiVide`), et les
+     * bandes « Artistes favoris » / « Pistes favorites » existent pour le reste.
      */
+    masqueSiVide: true,
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
       const f = await chargerFavorisFusionnes(ctx.profileId);
-      const albums = utiles(f.albums.slice(0, limiteDe(ctx)).map((o: any, i: number) => versElement(o, i, 'alb')));
-      if (albums.length) return albums;
-      const artistes = utiles(f.artists.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementArtisteFavori(o, i)));
-      if (artistes.length) return artistes;
-      return utiles(f.tracks.slice(0, limiteDe(ctx)).map((o: any, i: number) => elementPisteFavorite(o, i)));
+      // web#916, go du 13/10/2026 — « Dans vos favoris », et « Pas pour moi »
+      // retire l'album de CETTE bande pour le profil, sans toucher au cœur :
+      // il reste dans l'écran Favoris. La raison est posée ici, la seule côté
+      // client : la rangée lit les routes de favoris, pas `/home/*`.
+      const albums = utiles(
+        f.albums.slice(0, limiteDe(ctx)).map((o: any, i: number) => ({
+          ...versElement(o, i, 'alb'),
+          raison: { type: 'favori' } as const,
+          suggestion: true,
+          artisteSuggere: champ(o, 'artist_name') ?? null,
+        })),
+      );
+      return albums;
     },
   },
   {
@@ -1702,10 +1923,19 @@ export const WIDGETS: Widget[] = [
     id: 'recommandations',
     cleTitre: 'v2.home.wRecommendations',
     forme: 'bande',
+    // web#916 — chaque album dit pourquoi (`raison`, un des genres les plus
+    // écoutés) quand le serveur le sait, et s'écarte par « Pas pour moi ».
     charger: async (ctx) =>
-      utiles(liste(await api.getHomeRecommendations()).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'rec'))),
+      utiles(
+        liste(await api.getHomeRecommendations())
+          .slice(0, limiteDe(ctx))
+          .map((o, i) => suggere(versElement(o, i, 'rec'), o, champ(o, 'artist_name'))),
+      ),
   },
   {
+    // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit
+    // ce que sert `/home/radio-picks` : stations en favori, puis les dernières
+    // écoutées — pas des « radios d'artistes » (aligné sur tune-remote-flutter#236).
     id: 'radios-artistes',
     cleTitre: 'v2.home.wArtistRadios',
     forme: 'bande',
@@ -1719,9 +1949,20 @@ export const WIDGETS: Widget[] = [
             // convertisseur commun, cet `id` serait parti en `album_id` et
             // aurait joue un album au hasard.
             const el = versElement(o, i, 'rad', { genre: 'aucun' });
+            // web#916 (décision du 13/10/2026) — « Dans vos radios favorites » /
+            // « Écoutée le … » (raison du serveur).
+            //
+            // ⚠️ PAS de « Pas pour moi » sur une radio pour la rc12 : le serveur
+            // promu (tune-server-rust#8334) ne range que `album`, `artist` et
+            // `playlist` (`suggestions_ecartees::normaliser`) ; un écart de
+            // radio y rend 400. Le côté serveur n'existe qu'en brouillon non
+            // testé (`feat/accueil-radios-b209c13`, cc2455e82). La vignette
+            // n'est donc pas marquée `suggestion` : ni menu, ni geste voué à
+            // l'échec. Le reste (`radioId`, `entreesPochette`) attend ce serveur.
+            const pourquoi = { ...el, raison: raisonDe(o) };
             return o?.id != null
-              ? { ...el, jouer: (z: number) => api.playRadio(o.id, z) }
-              : el;
+              ? { ...pourquoi, jouer: (z: number) => api.playRadio(o.id, z) }
+              : pourquoi;
           }),
       ),
   },
@@ -1737,7 +1978,9 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wQobuz',
     forme: 'bande',
     charger: async (ctx) =>
-      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, limiteDe(ctx)).map((o, i) => versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }))),
+      // web#916 — une playlist ÉDITORIALE s'écarte (« Pas pour moi ») ; sans
+      // raison : c'est le choix de la rédaction du service, pas celui de Tune.
+      utiles(liste(await api.getStreamingFeaturedPlaylists('qobuz')).slice(0, limiteDe(ctx)).map((o, i) => ({ ...versElement(o, i, 'qob', { service: 'qobuz', genre: 'playlist' }), suggestion: true }))),
   },
   // ── ÉDITORIAL QOBUZ ──────────────────────────────────────────────────────
   //
@@ -1765,9 +2008,13 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        liste(await api.getStreamingFeatured('qobuz', section, limiteDe(ctx))).map((o, i) =>
-          versElement(o, i, id, { service: 'qobuz' }),
-        ),
+        liste(await api.getStreamingFeatured('qobuz', section, limiteDe(ctx))).map((o, i) => ({
+          ...versElement(o, i, id, { service: 'qobuz' }),
+          // web#916 — même règle que la sélection de playlists : écartable, sans
+          // raison inventée.
+          suggestion: true,
+          artisteSuggere: champ(o, 'artist_name') ?? null,
+        })),
       ),
   })),
 
@@ -1801,12 +2048,18 @@ export const WIDGETS: Widget[] = [
           ? api.getGenres().then((g: any[]) => g.length).catch(() => null)
           : Promise.resolve(null),
       ]);
-      return cartes(ids, { bibliotheque, ecoute, genres }, ctx.langue ?? 'fr').map((c) => ({
+      const langue = ctx.langue ?? 'fr';
+      return cartes(ids, { bibliotheque, ecoute, genres }, langue).map((c) => ({
         cle: c.cleLibelle,
         valeur: c.texte,
         id: c.id,
         icone: c.icone,
         vue: c.vue,
+        // #8625, fil 2831 — la même infobulle que Statistiques : ce que
+        // comptent les listes, et ce que les tables gardent sans le montrer.
+        ...(c.totaux
+          ? { infobulle: infobulleTotaux(c.totaux, (k) => get(t)(k as any), (n) => formaterNombre(n, langue)) }
+          : {}),
       }));
     },
   },
@@ -1947,6 +2200,7 @@ export const WIDGETS: Widget[] = [
         cover: t.cover_path ?? null,
         colonne: 'titres' as const,
         jouer: gestePisteTop(t),
+        ...ficheDePisteTop(t),
       }));
       return utiles([...artistes, ...albums, ...titres]);
     },
@@ -2011,8 +2265,15 @@ export const DISPOSITION_DEFAUT = [
    * c'est `charger()` qui le dit, et rien ici ne réécrit ce qui est rangé.
    */
   'premiere-ligne',
-  'reprendre',
+  /**
+   * 15/11/2026 — maquette de Levente « Home Dashboard with Album Grid » : sous
+   * la ligne d'en-tête, les NOUVEAUTÉS (« New & Notable Albums »). Seul
+   * changement d'ordre : « Nouveautés de vos artistes » passe devant
+   * « Reprendre l'écoute ». Rien n'entre ni ne sort du défaut, et une
+   * disposition enregistrée l'emporte toujours.
+   */
   'nouveautes-artistes',
+  'reprendre',
   'recemment-ajoutes',
   'statistiques',
   'top-artistes',

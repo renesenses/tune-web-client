@@ -14,11 +14,12 @@
   import { onDestroy } from 'svelte';
   import { libererUrlObjet, libererApresTelechargement } from '../../lib/urlObjet';
   import { formatNombre } from '../../lib/formats';
+  import ChampRecherche from './ChampRecherche.svelte';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere, listeEntierePerimee } from '../../lib/stores/albumsPagines';
   import { fold } from '../../lib/utils';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
@@ -131,7 +132,7 @@
       <div class="v2-eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
       <h1>{$t('v2.declick.title' as any)}</h1>
     </div>
-    {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
+    {#if picked.size}<span class="cnt">{$tn('v2.tool.pickedN', picked.size)}</span>{/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
@@ -208,10 +209,7 @@
     <div class="ph">
       <span class="cl">{$t('v2.declick.albumsToProcess' as any)}</span>
       <!-- Même champ que partout ailleurs : `.v2-rech`. -->
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.declick.albumsToProcess' as any)} />
       <button class="go" disabled={!picked.size || starting} onclick={start}>{starting ? $t('v2.tool.starting' as any) : $t('v2.declick.start' as any)}</button>
     </div>
 
@@ -237,27 +235,27 @@
 <style>
   .v2-dec{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}
-  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
+  .cnt{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint)}
+  .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
-  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
-  .lead{font-size:13.5px; line-height:1.6; color:var(--v2-txt2); max-width:64ch; padding:2px 0 18px}
+  .lead{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt2); max-width:64ch; padding:2px 0 18px}
   .lead b{color:var(--v2-txt)}
-  .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cl{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
 
   .opts{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:4px 18px; margin-bottom:20px}
   .opt{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 0; border-bottom:1px solid var(--v2-line)}
   .opt:last-child{border-bottom:0}
   .ol{display:flex; flex-direction:column; gap:3px}
-  .ol span:first-child{font-size:13.5px; font-weight:600}
-  .oh{font-size:11.5px; color:var(--v2-txt3)}
+  .ol span:first-child{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .oh{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .sl{display:flex; align-items:center; gap:12px}
   .sl input{width:200px; accent-color:var(--v2-acc1)}
-  .val{font:11.5px var(--v2-mono); color:var(--v2-txt2); width:52px; text-align:right}
+  .val{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); width:52px; text-align:right}
   .seg{display:flex; gap:2px; padding:3px; border-radius:11px; background:var(--v2-bg); border:1px solid var(--v2-line)}
-  .seg button{border:0; background:transparent; color:var(--v2-txt2); font:600 11.5px var(--v2-sans);
+  .seg button{border:0; background:transparent; color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     padding:6px 14px; border-radius:8px; cursor:pointer}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sw{position:relative; width:44px; height:25px; cursor:pointer; flex:0 0 auto}
@@ -270,21 +268,21 @@
 
   .job{margin:0 0 22px; padding:15px 18px; border-radius:13px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .jh{display:flex; align-items:center; justify-content:space-between; gap:14px}
-  .jh h2{font-size:14px; font-weight:700}
+  .jh h2{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:700}
   .bar{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar span{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2)); transition:width .4s}
-  .jl{margin-top:8px; font:11.5px var(--v2-mono); color:var(--v2-txt2); display:flex; gap:12px; align-items:baseline}
+  .jl{margin-top:8px; font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); display:flex; gap:12px; align-items:baseline}
   .jl em{font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:420px}
-  .done{margin-top:12px; display:flex; align-items:center; gap:14px; font-size:12.5px; color:var(--v2-acc-tint)}
-  .jerr{margin-top:10px; font-size:12.5px; color:var(--v2-danger)}
+  .done{margin-top:12px; display:flex; align-items:center; gap:14px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-acc-tint)}
+  .jerr{margin-top:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-danger)}
 
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans); text-decoration:none; display:inline-block}
+    border-radius:var(--v2-r-pill); padding:7px 14px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-decoration:none; display:inline-block}
   .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
 
   .ph{display:flex; align-items:center; gap:14px; padding:0 0 14px}
-  .go{height:36px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
+  .go{height:36px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.4; cursor:default}
 
@@ -293,8 +291,8 @@
     padding:0; display:flex; flex-direction:column}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.16s}
   .card.sel .cv{box-shadow:0 0 0 3px var(--v2-acc1)}
-  .ct{margin-top:8px; font:600 12px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{margin-top:2px; font:10.5px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{margin-top:8px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{margin-top:2px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tick{position:absolute; top:7px; right:7px; width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
     color:var(--v2-on-acc); background:var(--v2-acc1)}
   .tick svg{width:12px; height:12px}

@@ -67,6 +67,13 @@ export const CHAMPS: readonly Champ[] = [
   { value: 'title',          labelKey: 'smartCollection.fieldAlbumTitle',  type: 'text', piste: 'album' },
   { value: 'genre',          labelKey: 'smartCollection.fieldGenre',       type: 'text' },
   { value: 'composer',       labelKey: 'smartCollection.fieldComposer',    type: 'text' },
+  // tune-server-rust#8325 — chef d'orchestre, ensemble / orchestre et œuvre :
+  // crédits (MusicBrainz compris), balises du scan et fiche d'album, comme les
+  // facettes de la Collection. Dans une collection, l'album passe dès qu'UNE
+  // de ses pistes passe. Même nom aux deux niveaux.
+  { value: 'conductor',      labelKey: 'smartCollection.fieldConductor',   type: 'text' },
+  { value: 'ensemble',       labelKey: 'smartCollection.fieldEnsemble',    type: 'text' },
+  { value: 'work',           labelKey: 'smartCollection.fieldWork',        type: 'text' },
   { value: 'label',          labelKey: 'smartCollection.fieldLabel',       type: 'text' },
   { value: 'format',         labelKey: 'smartCollection.fieldFormat',      type: 'text' },
   { value: 'source',         labelKey: 'smartCollection.fieldSource',      type: 'source' },

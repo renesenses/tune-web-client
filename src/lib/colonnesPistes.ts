@@ -78,6 +78,7 @@ import { levelRank, type SettingsLevel } from './uiLevel';
 import type { Track } from './types';
 import { formatTime } from './utils';
 import { afficherDynamicRange } from './dynamicRange';
+import { dateDe } from './favorisTriFiltre';
 
 export type CleColonne =
   | 'num' | 'title' | 'artist' | 'composer' | 'time' | 'year'
@@ -91,7 +92,10 @@ export type CleColonne =
   // « En expert, il les faut TOUTES comme Dynamic Range » (Bertrand,
   // 07/09/2026). Expert propose tout ce que la route porte — Dynamic Range
   // compris depuis le 08/09 (serveur #1388).
-  | 'dr' | 'comments' | 'discSubtitle' | 'source' | 'modified' | 'hash';
+  | 'dr' | 'comments' | 'discSubtitle' | 'source' | 'modified' | 'hash'
+  // web#3043 — la date de mise en favori, sur les favoris d'un service
+  // seulement. HORS catalogue : voir `COLONNE_AJOUT`.
+  | 'added';
 
 export interface Colonne {
   cle: CleColonne;
@@ -280,9 +284,64 @@ export const COLONNES: Colonne[] = [
   { cle: 'path',        cleI18n: 'v2.tcol.path',        largeur: 'minmax(150px,2fr)',   min: 'expert' },
 ];
 
+/**
+ * web#3043 — Favoris des services — « Date d'ajout ».
+ *
+ * Volontairement HORS de `COLONNES` : le panneau des Réglages la proposerait
+ * alors sur tous les écrans, où elle resterait vide (une piste de playlist ou
+ * de recherche n'a pas de date de mise en favori). Seul un écran qui la
+ * demande (`colonneAjout` de `ListePistesV2`) la reçoit — les favoris d'un
+ * service, dont la route rend `created_at` (date du cœur chez le service) et
+ * `first_seen_at`. La valeur passe par `dateDe`, la règle de l'écran Favoris :
+ * une seule vérité pour la date d'un favori.
+ */
+export const COLONNE_AJOUT: Colonne = {
+  cle: 'added', cleI18n: 'library.sortAddedDate', largeur: '104px', align: 'droite',
+};
+
 export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
-  COLONNES.map((c) => [c.cle, c]),
+  [...COLONNES, COLONNE_AJOUT].map((c) => [c.cle, c]),
 ) as Record<CleColonne, Colonne>;
+
+/** La pastille de qualité a-t-elle quelque chose à montrer pour cette piste ? */
+export function qualiteConnue(t: Track): boolean {
+  return !!(t?.format || t?.sample_rate || t?.bit_depth);
+}
+
+/**
+ * web#3043 — Favoris des services — « les colonnes sont affichées mais VIDES ».
+ *
+ * Une liste venue d'un service n'a ni écoutes, ni BPM, ni genre, ni (souvent)
+ * année ou compositeur : la grille du mode Expert y montrait six colonnes
+ * vides sur douze. On ne garde qu'une colonne qui a au moins UNE valeur dans
+ * la liste affichée — le titre reste toujours. `valeur` est la cellule telle
+ * que l'écran la rend (le numéro « aucune » compris).
+ */
+export function colonnesRemplies(
+  colonnes: readonly Colonne[],
+  pistes: readonly Track[],
+  valeur: (t: Track, i: number, cle: CleColonne) => string | null,
+): Colonne[] {
+  if (!pistes.length) return [...colonnes];
+  return colonnes.filter((c) =>
+    c.verrouillee
+    || (c.cle === 'quality'
+      ? pistes.some(qualiteConnue)
+      : pistes.some((p, i) => (valeur(p, i, c.cle) ?? '').trim() !== '')));
+}
+
+/**
+ * Ajoute `COLONNE_AJOUT` juste avant la Qualité (sinon en dernier), sans
+ * doublon. Une date de favori se lit à côté de la qualité, comme dans l'écran
+ * Favoris de la bibliothèque.
+ */
+export function avecColonneAjout(colonnes: readonly Colonne[]): Colonne[] {
+  if (colonnes.some((c) => c.cle === 'added')) return [...colonnes];
+  const q = colonnes.findIndex((c) => c.cle === 'quality');
+  const sortie = [...colonnes];
+  sortie.splice(q < 0 ? sortie.length : q, 0, COLONNE_AJOUT);
+  return sortie;
+}
 
 /**
  * Le choix par DÉFAUT de chaque mode.
@@ -479,6 +538,11 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
      */
     case 'dr':       return afficherDynamicRange(t)?.texte ?? null;
     case 'quality':  return null;
+    // La date du favori, au jour près — même écriture que « Modifié ».
+    case 'added': {
+      const ms = dateDe(t);
+      return ms == null ? null : new Date(ms).toISOString().slice(0, 10);
+    }
   }
 }
 

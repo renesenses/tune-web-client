@@ -48,8 +48,8 @@
 <style>
   .courbe{padding:14px 0 4px; display:flex; flex-direction:column; gap:6px}
   .tete{display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap}
-  .titre{font-size:14px; font-weight:600}
-  .legende{display:flex; gap:14px; font-size:11.5px; color:var(--v2-txt2); flex-wrap:wrap}
+  .titre{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .legende{display:flex; gap:14px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); flex-wrap:wrap}
   .cle{display:inline-flex; align-items:center; gap:6px}
   .cle i{display:inline-block; width:16px; height:3px; border-radius:2px}
   .cle.mesure i{background:var(--v2-txt2)}
@@ -58,11 +58,11 @@
   svg{width:100%; height:auto; max-width:620px; display:block; overflow:visible}
   .grille{stroke:var(--v2-line); stroke-width:1}
   .grille.v{stroke-dasharray:2 4}
-  .grad{font:10px var(--v2-mono); fill:var(--v2-txt3)}
+  .grad{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); fill:var(--v2-txt3)}
   .mode{stroke:var(--v2-acc2); stroke-width:1.5}
   .trait{fill:none; stroke-width:2; stroke-linejoin:round; stroke-linecap:round}
   .trait.mesure{stroke:var(--v2-txt2)}
   .trait.cible{stroke:var(--v2-txt3); stroke-dasharray:5 4}
   .trait.corrigee{stroke:var(--v2-acc1); stroke-width:2.5}
-  .axey{font-size:10.5px; color:var(--v2-txt3)}
+  .axey{font-size:calc(10.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 </style>

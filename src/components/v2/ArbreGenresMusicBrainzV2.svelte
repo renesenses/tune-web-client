@@ -124,7 +124,7 @@
 
 <style>
   .mb-tree { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--tune-border); }
-  h2 { margin: 0 0 6px; font-size: 1.15rem; color: var(--tune-text); }
+  h2 { margin: 0 0 6px; font-size: calc(1.15rem * var(--v2-txt-echelle, 1)); color: var(--tune-text); }
   .lede, .note, .source, .count { color: var(--tune-text-muted); font-size: 0.9em; line-height: 1.5; max-width: 72ch; }
   .err { color: var(--tune-danger, #d33); font-size: 0.9em; }
   .btn { background: var(--tune-accent); color: var(--tune-on-accent, #fff); border: 0; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }

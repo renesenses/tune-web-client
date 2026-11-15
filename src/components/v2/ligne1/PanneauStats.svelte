@@ -32,6 +32,9 @@
   import { LARGEUR_PANNEAU, LIGNES_BARRES, PERIODE_L1 } from '../../../lib/premiereLigne';
   import PanneauL1 from './PanneauL1.svelte';
 
+  /** La présentation de Levente (15/11/2026) : jour sous chaque barre, pic en accent plein. */
+  let { levente = false }: { levente?: boolean } = $props();
+
   let phase = $state<'attente' | 'charge' | 'echec'>('attente');
   let d = $state<api.DashboardData | null>(null);
 
@@ -79,6 +82,15 @@
     }
     return out;
   });
+  /** « lun. », « Mon »… — le jour court dans la langue de l'écran. */
+  function nomDuJour(cle: string): string {
+    const [a, m, j] = cle.split('-').map(Number);
+    try {
+      return new Date(a, m - 1, j).toLocaleDateString($locale, { weekday: 'short' });
+    } catch {
+      return '';
+    }
+  }
   const maxTendance = $derived(Math.max(1, ...tendance.map((x) => x.plays)));
 
   const sources = $derived(
@@ -103,7 +115,7 @@
   const max = (l: { valeur: number }[]) => Math.max(1, ...l.map((x) => x.valeur));
 </script>
 
-<PanneauL1 titre={$t('dashboard.title' as any)} largeur={LARGEUR_PANNEAU}>
+<PanneauL1 titre={$t('dashboard.title' as any)} largeur={LARGEUR_PANNEAU} {levente}>
   {#snippet icone()}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
          stroke-linecap="round"><path d="M4 19V5M9 19v-7M14 19V8M19 19v-4"/></svg>
@@ -117,16 +129,29 @@
     <p class="etat">{$t('dashboard.empty' as any)}</p>
   {:else}
     <button class="ouvrir" onclick={() => activeView.set('tableaudebord')}>
-      <section class="tend">
+      <section class="tend" class:levente>
         <div class="chiffre">
           <strong>{nombre(total)}</strong>
           <span>{$t('dashboard.totals.plays' as any)}</span>
         </div>
-        <div class="courbe" aria-hidden="true">
-          {#each tendance as j (j.jour)}
-            <i style:height="{Math.max((j.plays / maxTendance) * 100, 4)}%"></i>
-          {/each}
-        </div>
+        {#if levente}
+          <!-- Présentation de Levente : chaque barre porte l'initiale de son
+               jour, et le jour le plus écouté prend l'accent plein. -->
+          <div class="courbe jours" aria-hidden="true">
+            {#each tendance as j (j.jour)}
+              <span class="jour" class:pic={j.plays > 0 && j.plays === maxTendance}>
+                <span class="barre"><i style:height="{Math.max((j.plays / maxTendance) * 100, 4)}%"></i></span>
+                <small>{nomDuJour(j.jour)}</small>
+              </span>
+            {/each}
+          </div>
+        {:else}
+          <div class="courbe" aria-hidden="true">
+            {#each tendance as j (j.jour)}
+              <i style:height="{Math.max((j.plays / maxTendance) * 100, 4)}%"></i>
+            {/each}
+          </div>
+        {/if}
       </section>
 
       {#each [{ cle: 'dashboard.section.by_source', lignes: sources }, { cle: 'dashboard.section.by_zone', lignes: zonesEcoute }] as groupe (groupe.cle)}
@@ -162,7 +187,7 @@
 </PanneauL1>
 
 <style>
-  .etat { margin: 0; color: var(--v2-txt3); font: 400 12px var(--v2-sans); }
+  .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
   /* Le panneau entier ouvre le Tableau de bord : c'est un raccourci vers
      l'écran qui développe ces quatre lectures, pas un bouton de plus. */
@@ -174,9 +199,9 @@
   .tend { display: flex; align-items: flex-end; gap: 12px; }
   .chiffre { display: flex; flex-direction: column; }
   .chiffre strong {
-    color: var(--v2-acc1); font: 700 26px/1 var(--v2-sans); font-variant-numeric: tabular-nums;
+    color: var(--v2-acc1); font: 700 calc(26px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); font-variant-numeric: tabular-nums;
   }
-  .chiffre span { color: var(--v2-txt3); font: 500 10px var(--v2-sans); text-transform: uppercase; letter-spacing: .06em; }
+  .chiffre span { color: var(--v2-txt3); font: 500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform: uppercase; letter-spacing: .06em; }
   .courbe { flex: 1 1 auto; display: flex; align-items: flex-end; gap: 4px; height: 38px; }
   .courbe i {
     flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0;
@@ -186,11 +211,11 @@
   .barres { display: flex; flex-direction: column; gap: 4px; }
   h4 {
     margin: 0 0 2px; color: var(--v2-txt3);
-    font: 500 10px var(--v2-sans); text-transform: uppercase; letter-spacing: .06em;
+    font: 500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform: uppercase; letter-spacing: .06em;
   }
   .ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .nom {
-    flex: 0 0 88px; min-width: 0; color: var(--v2-txt2); font: 400 11px var(--v2-sans);
+    flex: 0 0 88px; min-width: 0; color: var(--v2-txt2); font: 400 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .rail {
@@ -200,10 +225,25 @@
   .rail i { display: block; height: 100%; border-radius: 4px; background: var(--v2-acc1); }
   .val {
     flex: 0 0 34px; text-align: right; color: var(--v2-txt2);
-    font: 500 11px var(--v2-sans); font-variant-numeric: tabular-nums;
+    font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-variant-numeric: tabular-nums;
   }
 
   .heures { display: flex; flex-direction: column; gap: 4px; }
   .cases { display: flex; gap: 2px; height: 16px; }
   .cases i { flex: 1 1 0; min-width: 0; border-radius: 2px; background: var(--v2-acc1); }
+
+  /* ── Présentation de Levente (15/11/2026) ── */
+  .levente .chiffre strong { font: 600 calc(34px * var(--v2-txt-echelle, 1))/1 var(--font-display, Georgia, serif); }
+  .courbe.jours { align-items: stretch; height: 56px; }
+  .jour { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .barre { flex: 1 1 auto; width: 100%; max-width: 16px; display: flex; align-items: flex-end; }
+  .courbe.jours .barre i {
+    flex: none; display: block; width: 100%; border-radius: 3px 3px 0 0;
+    background: color-mix(in srgb, var(--v2-acc1) 40%, transparent);
+  }
+  .jour.pic .barre i { background: var(--v2-acc1); }
+  .jour small {
+    color: var(--v2-txt3); font: 400 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    white-space: nowrap; overflow: hidden; max-width: 100%;
+  }
 </style>

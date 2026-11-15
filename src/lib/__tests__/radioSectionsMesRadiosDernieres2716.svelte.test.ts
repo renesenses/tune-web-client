@@ -76,7 +76,9 @@ describe('#2716 — écran Radio', () => {
   it('dans chaque onglet : Dernières écoutées d’abord, puis Mes radios', async () => {
     for (const favoris of [false, true]) {
       await monter([A, B, C, D], favoris);
-      const secs = [...hote.querySelectorAll('.scroll section.sec')];
+      // web#2783 : « Dernières écoutées » est rendue au-dessus des choix
+      // Mes radios / Annuaire / Carte, hors de la zone défilante filtrée.
+      const secs = [...hote.querySelectorAll('section.sec')];
       expect(secs.map((s) => s.querySelector('h2')?.textContent)).toEqual(['Dernières écoutées', 'Mes radios']);
       expect(secs[0].classList.contains('recentes')).toBe(true);
       expect(secs[1].classList.contains('mesradios')).toBe(true);
@@ -99,6 +101,6 @@ describe('#2716 — écran Radio', () => {
   it('section vide masquée : aucune lecture → Mes radios seule', async () => {
     await monter([B, mk(5, 'Echo')]);
     expect(hote.querySelector('.recentes')).toBeNull();
-    expect(hote.querySelectorAll('.scroll section.sec').length).toBe(1);
+    expect(hote.querySelectorAll('section.sec').length).toBe(1);
   });
 });

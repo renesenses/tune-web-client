@@ -88,7 +88,7 @@
   .bandeau.replie{flex-basis:30px; border-bottom:0; background:none}
   .zone{display:inline-flex; align-items:center; gap:6px; min-width:0; height:26px; padding:0 10px 0 8px; border-radius:20px;
     background:var(--v2-surface2); border:1px solid var(--v2-line2); color:var(--v2-txt); cursor:pointer;
-    font:600 12px var(--v2-sans)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .zone svg{width:12px; height:12px; color:var(--v2-txt2); flex:0 0 auto}
   .point{width:7px; height:7px; border-radius:50%; background:var(--v2-txt3); flex:0 0 auto}
   .point.joue{background:var(--v2-acc1)}
@@ -96,7 +96,7 @@
   .app{color:var(--v2-txt2); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .esp{flex:1}
   .filtres{flex:0 0 auto; height:26px; padding:0 10px; border-radius:20px; border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt2); font:600 11.5px var(--v2-sans); cursor:pointer; white-space:nowrap}
+    background:var(--v2-surface2); color:var(--v2-txt2); font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer; white-space:nowrap}
   .filtres.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:var(--v2-acc1)}
   .ic{width:28px; height:28px; display:grid; place-items:center; border:0; border-radius:6px; background:none;
     color:var(--v2-txt2); cursor:pointer; flex:0 0 auto}

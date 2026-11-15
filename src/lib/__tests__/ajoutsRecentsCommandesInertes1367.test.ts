@@ -204,7 +204,9 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
   const MORTES: Array<[string, string]> = [
     ['le compteur « Tout (n) » et les puces de filtre', '.filters button.chip.count'],
     ['le menu déroulant Qualité / Fréquence / Format', '.filters .drop'],
-    ['le champ de recherche', '.filters .v2-rech'],
+    // Recette rc12 (13/11) : le champ est passé dans l'en-tête ; seule sa
+    // place y reste réservée (sans champ) sur Ajouts récents.
+    ['le champ de recherche', '.v2-rech input'],
     ['les boutons A–Z / Années', '.navmode button'],
     ['la barre « ANNÉE RETENUE »', '.anbar'],
     ['la frise chronologique', '.frise'],

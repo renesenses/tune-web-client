@@ -144,13 +144,60 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('web#2550 — Lecture en cours : le logo de la station à côté de son nom', () => {
+// web#2550 — décision de Bertrand du 12/11/2026 (rc12) : le logo, en petit,
+// dans un coin de la pochette du morceau, et plus à côté du nom.
+describe('web#2550 — Lecture en cours : le logo de la station en petit, dans le coin de la pochette', () => {
+  it('web#2953 — un logo rectangulaire remplit le badge sans bandes de contenir', async () => {
+    miennes = [FIP_MIENNE];
+    const h = await poser(RADIO);
+    const badge = h.querySelector('[data-logo-station]')!;
+    const image = badge.querySelector('img')!;
+    Object.defineProperties(image, { naturalWidth: { value: 160 }, naturalHeight: { value: 100 } });
+    image.dispatchEvent(new Event('load')); flushSync();
+    expect(image.classList.contains('entiere'), 'le logo ne doit pas laisser des bandes autour de son image').toBe(false);
+    expect(badge.querySelector('.album-art.fill'), 'le logo doit adopter les dimensions du badge').not.toBeNull();
+  });
+
+  it('🔴 un seul logo : dans le coin de la pochette, plus sur la ligne du nom', async () => {
+    miennes = [FIP_MIENNE];
+    const h = await poser(RADIO);
+    expect(h.querySelectorAll('[data-logo-station]')).toHaveLength(1);
+    expect(h.querySelector('.np-logo-coin[data-logo-station]'), 'pas de logo dans le coin de la pochette').not.toBeNull();
+    expect(h.querySelector('.radio-station-ligne [data-logo-station]')).toBeNull();
+    // La pochette du morceau reste l'image principale.
+    const pochette = h.querySelector('.artwork-clickable > .album-art img, .artwork-clickable img');
+    expect(pochette?.getAttribute('src') ?? '').toContain('kind-of-blue');
+  });
+
   it('🔴 pochette du morceau affichée : le logo de la station est là, devant le nom', async () => {
     miennes = [FIP_MIENNE];
     const h = await poser(RADIO);
-    const logo = h.querySelector('.radio-station-ligne [data-logo-station]');
+    const logo = h.querySelector('.artwork-clickable [data-logo-station]');
     expect(logo, 'le logo de la station n’apparaît nulle part').not.toBeNull();
     expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
+  });
+
+  /**
+   * 🔴 web#2550 rouverte (rc10, capture d'alec_eiffel sur TSF Jazz) : badge
+   * Metadata+ présent, logo absent. Sa station de « Mes radios » a perdu son
+   * logo (tune-server-rust#7493) — ni `logo_url`, ni celui de l'annuaire
+   * attaché. L'annuaire public, lui, en a un : il sert de repli.
+   * Contre-épreuve : sans le repli de `stationDeLecture`, rien n'est affiché.
+   */
+  it('🔴 station de « Mes radios » SANS logo (rc10) : le logo de l’annuaire du même nom', async () => {
+    miennes = [{ ...FIP_MIENNE, logo_url: null, annuaire: { radio_metadata_key: 'fip' } }];
+    const h = await poser(RADIO);
+    const logo = h.querySelector('.artwork-clickable [data-logo-station]');
+    expect(logo, 'Mes radios sans logo : rien à côté du nom (#2550, rc10)').not.toBeNull();
+    expect(logo!.querySelector('img')?.getAttribute('src') ?? '').toContain('fip.png');
+  });
+
+  it('sans logo nulle part : rien, et l’écran tient', async () => {
+    miennes = [{ ...FIP_MIENNE, logo_url: null }];
+    annuaire = [{ ...FIP_ANNUAIRE, logo_url: null }];
+    const h = await poser(RADIO);
+    expect(h.querySelector('[data-logo-station]')).toBeNull();
+    expect(h.querySelector('.radio-station-name')?.textContent).toContain('FIP');
   });
 
   it('CONTRE-ÉPREUVE : la pochette affichée EST le logo, il ne se répète pas', async () => {
@@ -195,9 +242,9 @@ describe('web#2551 — Lecture en cours : ajouter à « Mes radios » ou en reti
     expect(appels.filter((a) => a.methode === 'DELETE')).toHaveLength(0);
   });
 
-  it('CONTRE-ÉPREUVE : station inconnue de l’annuaire et de « Mes radios » : pas de bouton', async () => {
+  it('CONTRE-ÉPREUVE : station inconnue, flux qui n’est pas une adresse web : pas de bouton', async () => {
     annuaire = [];
-    const h = await poser(RADIO);
+    const h = await poser({ ...RADIO, source_id: 'radio:42' });
     expect(boutonMesRadios(h)).toBeNull();
   });
 

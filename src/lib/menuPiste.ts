@@ -47,14 +47,48 @@ export interface EntreeMenuPiste {
   plein?: boolean;
   faire: () => void;
 }
+/**
+ * web#2736 — une entrée du MÊME menu, quand il sert d'en-tête de fiche (album,
+ * collection, playlist) : les gestes y sont rangés par groupes, et une entrée
+ * peut porter les `data-*` sur lesquels s'appuient les épreuves, un état
+ * (case cochée d'un tri) ou une désactivation passagère (requête en cours).
+ * Une `EntreeMenuPiste` en est une : les menus de piste ne changent pas.
+ */
+export interface EntreeMenu extends Omit<EntreeMenuPiste, 'icone'> {
+  icone?: string;
+  /** Clé i18n de l'intertitre du groupe. Les entrées d'un groupe se suivent. */
+  groupe?: string;
+  /** Attributs posés sur l'entrée — `data-*` des épreuves, `aria-haspopup`. */
+  attrs?: Record<string, string | boolean>;
+  /** Grisée le temps d'une requête : elle reste lisible, elle ne fait rien. */
+  desactive?: boolean;
+  danger?: boolean;
+  /** Défini : l'entrée est un choix exclusif (`menuitemradio`), coché ou non. */
+  coche?: boolean;
+  /** Défini : l'entrée est une bascule (`menuitemcheckbox`) — « Écouter plus tard ». */
+  active?: boolean;
+  /**
+   * rc12 — entrée SECONDAIRE : rangée sous « Plus… » tant que le menu n'est
+   * pas déplié (sauf « Menus complets », Réglages › Interface).
+   */
+  secondaire?: boolean;
+  /** Clé i18n de l'infobulle : ce que l'entrée FAIT (#2151), pas son libellé. */
+  bulle?: string;
+  /** Texte qui suit le libellé traduit (nom d'un livret). Jamais une phrase. */
+  suffixe?: string;
+}
 /** Les tracés, dans une boîte 24×24. */
 export const ICONES = {
   play: 'M8 5v14l11-7z',
   next: 'M4 7h9M4 12h9M4 17h6M16 5.6l4.8 2.9-4.8 2.9z',
+  /** rc12 — « Lecture aléatoire », le ⤮ de la fiche album (BoutonLectureV2). */
+  shuffle: 'M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3',
   queue: 'M4 7h11M4 12h11M4 17h7M18 14.5v6M15 17.5h6',
   similar: 'M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
   versions: 'M7 7h14v14H7zM3 17V5a2 2 0 0 1 2-2h12',
   playlist: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6M16 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
+  /** rc12 — « Supprimer de cette playlist » : la croix de la ligne. */
+  retirer: 'M6 6l12 12M18 6L6 18',
   artist: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   album: 'M3 3h18v18H3zM9 9h6M9 13h4',
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
@@ -73,14 +107,57 @@ export const ICONES = {
   unban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M8 12l3 3 5-6',
   /** Des personnes — « Voir les crédits » (#1572). */
   spectro: 'M3 3v18h18M7 16v-3M11 16V8M15 16v-5M19 16V6',
+  /** Une fiche cerclée d'un « i » — la fiche technique d'une piste (#8160). */
+  fiche: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M12 11v6M12 7.5v.5',
   credits: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
 } as const;
+/**
+ * rc12 — « menus « … » raccourcis aux actions courantes avec un « Plus… » pour
+ * le reste » (go de Bertrand du 12/11/2026). Restent à vue : Lire, Lire
+ * ensuite, Ajouter à la file, Ajouter à une playlist, Aller à l'artiste /
+ * l'album, Écouter plus tard. Passent sous « Plus… » : ces entrées-ci. Rien
+ * n'est retiré : « Plus… » les déplie en place.
+ */
+export const CLES_SECONDAIRES_PISTE: ReadonlySet<string> = new Set([
+  'library.playSimilar', 'library.otherVersions',
+  'v2.circle.pl.addToCircle', 'v2.circle.msg.share',
+  'v2.cover.tags', 'trackTags.title', 'credits.see', 'spectro.menu',
+  'ban.ban', 'ban.unban',
+]);
+/**
+ * rc12 — les outils d'EXPERT du menu de piste, absents au niveau Essentiel
+ * (ils reviennent dès Avancé) : « Tous les champs piste » (métadonnées du
+ * fichier) et « Spectrogramme » (diagnostic de la source).
+ */
+export const CLES_PISTE_HORS_ESSENTIEL: ReadonlySet<string> = new Set(['trackTags.title', 'spectro.menu']);
+/** rc12 — de même pour le menu d'une carte d'album : réidentifier (MusicBrainz) et localiser le dossier. */
+export const CLES_CARTE_HORS_ESSENTIEL: ReadonlySet<string> = new Set(['library.reidentify', 'v2.album.locate']);
+/**
+ * rc12 — les menus « … » sont-ils complets ? Le choix explicite de
+ * l'utilisateur, sinon le niveau : complets à l'Expert (installations
+ * existantes inchangées), courts à l'Essentiel et à l'Avancé.
+ */
+export function menusCompletsEffectifs(p: { menusComplets?: boolean | null; settingsLevel?: string }): boolean {
+  return typeof p.menusComplets === 'boolean' ? p.menusComplets : p.settingsLevel === 'expert';
+}
+/** Les entrées d'un menu de piste telles que `MenuPisteV2` les range, selon le niveau. */
+export function rangerMenuPiste<E extends { cle: string }>(entrees: E[], niveau: string | null | undefined): (E & { secondaire?: boolean })[] {
+  return entrees
+    .filter((e) => niveau !== 'beginner' || !CLES_PISTE_HORS_ESSENTIEL.has(e.cle))
+    .map((e) => (CLES_SECONDAIRES_PISTE.has(e.cle) ? { ...e, secondaire: true } : e));
+}
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
   /** La piste sait se désigner pour la lecture. */
   jouable: boolean;
   /** Piste de la BIBLIOTHÈQUE portant un identifiant numérique. */
   idBibliotheque: number | null;
+  /**
+   * Go du 13/11 — piste QOBUZ ou TIDAL de la bibliothèque (identifiant
+   * numérique) : son spectrogramme et sa fiche technique se calculent par
+   * téléchargement (`lib/spectrogramme`, `idAnalyseDe`).
+   */
+  idAnalyse?: number | null;
   artistId: number | null;
   albumId: number | null;
   /**
@@ -195,6 +272,12 @@ export interface GestesPiste {
   plusCommeCa?: () => void;
   autresVersions?: () => void;
   ajouterAPlaylist?: () => void;
+  /**
+   * rc12 (Bertrand, 15/11/2026) — « Supprimer de cette playlist » : CETTE
+   * occurrence, par la même fonction que la croix de la ligne. Fourni
+   * seulement par un écran de playlist MODIFIABLE ; absent ailleurs.
+   */
+  retirerDeLaPlaylist?: () => void;
   /** « Ajouter à une playlist de cercle » — Tune Circle T5. */
   ajouterAPlaylistDeCercle?: () => void;
   allerArtiste?: () => void;
@@ -208,6 +291,8 @@ export interface GestesPiste {
   voirCredits?: () => void;
   /** « Spectrogramme » — #7857 : le panneau qui demande l'image au serveur. */
   spectrogramme?: () => void;
+  /** « Fiche technique » — tune-server-rust#8160 : format, spectrogramme, DR, intégrité… */
+  ficheTechnique?: () => void;
   /** « Bannir ce titre » (#4806) — plus jamais joué automatiquement. */
   bannir?: () => void;
   /** « Débannir » — l'inverse, sur une piste déjà bannie. */
@@ -306,6 +391,9 @@ export function entreesMenuPiste(
   );
   // Tune Circle T5 (#5328) : juste sous l'entrée des playlists, même icône —
   // c'est le même geste, vers une playlist commune à un cercle.
+  // rc12 — juste sous « Ajouter à une playlist » : l'écran de la playlist
+  // modifiable fournit le geste, sinon l'entrée est absente.
+  pousser(true, 'v2.pl.removeFromThisPlaylist', ICONES.retirer, g.retirerDeLaPlaylist);
   pousser(!!c.playlistDeCercle, 'v2.circle.pl.addToCircle', ICONES.playlist, g.ajouterAPlaylistDeCercle);
   pousser(!!c.playlistDeCercle, 'v2.circle.msg.share', ICONES.playlist, g.partagerMessage);
   /**
@@ -414,9 +502,18 @@ export function entreesMenuPiste(
   /**
    * « Spectrogramme » — tune-server-rust#7857 (PR #7897). Une piste de la
    * BIBLIOTHÈQUE seulement : la route prend un `i64` de `tracks` et lit le
-   * fichier local. Absente d'une piste de service, pas grisée.
+   * fichier local. Absente d'une piste de service, pas grisée — sauf une
+   * piste Qobuz / TIDAL de la bibliothèque (go du 13/11, `idAnalyse`), que
+   * le serveur télécharge pour le calcul.
    */
-  pousser(deLaBibliotheque, 'spectro.menu', ICONES.spectro, g.spectrogramme);
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'spectro.menu', ICONES.spectro, g.spectrogramme);
+  /**
+   * « Fiche technique » — tune-server-rust#8160 (go de Bertrand du 09/11).
+   * Même règle que le spectrogramme : la route prend l'`i64` de `tracks`.
+   * Une piste de la bibliothèque SANS fichier (service) l'a aussi : la fiche
+   * n'y montre que ce qui existe.
+   */
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'fiche.menu', ICONES.fiche, g.ficheTechnique);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *

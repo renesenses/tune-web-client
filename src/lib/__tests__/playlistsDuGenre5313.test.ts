@@ -80,7 +80,9 @@ describe('#5313 — l’écran du genre branche la bande', () => {
     const debut = source.indexOf("{:else if sub === 'genres'}");
     expect(debut).toBeGreaterThan(-1);
     const volet = source.slice(debut, source.indexOf("{:else if sub === 'playlists'}", debut));
-    expect(volet).toContain('{#each genrePlaylists as p');
+    // 15/11 — la grille peut être repliée à deux rangées (« Voir plus ») : c'est
+    // toujours `genrePlaylists` qui l'alimente, entière une fois dépliée.
+    expect(volet).toMatch(/\{#each (genrePlaylists|montrees\('playlists', genrePlaylists\)) as p/);
     expect(volet).toContain("$t('streaming.genrePlaylists')");
   });
 

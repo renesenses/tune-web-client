@@ -35,14 +35,16 @@
    * défiler à la souris, qui est son geste principal.
    */
   import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import type { Snippet } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
+  import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, migrationLigneChiffres } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
@@ -62,6 +64,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
+  import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -85,6 +88,7 @@
   import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   // 🔴 #1108 — le calque PLAYLIST. `AlbumDetailV2` ne sait pas afficher une
@@ -93,7 +97,11 @@
   // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
   // l'écran Playlists : un second afficheur de playlist aurait divergé.
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, reposerDetail, typeArrivee, pageCourante, pageQuittee } from '../../lib/historiqueCoquille';
+  import { retenirPageWidgets, reprendrePageWidgets, type MemoirePageWidgets } from '../../lib/memoireStreaming';
+  import { ficheAlbumDeRetour } from '../../lib/stores/streaming';
+  import { restaurerQuandPret } from '../../lib/defilementReel';
+  import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -105,7 +113,8 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
+  import PanneauZones from './ligne1/PanneauZones.svelte';
+  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, PANNEAUX_L1_LEVENTE, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -118,7 +127,35 @@
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
+  // web#916 — POURQUOI une suggestion est là, et « Pas pour moi ».
+  import { texteRaison } from '../../lib/raisonSuggestion';
+  import {
+    chargerSuggestionsEcartees,
+    cibleArtiste,
+    cibleDeSuggestion,
+    clesEcartees,
+    ecarter,
+    ecartsDisponibles,
+    estEcartee,
+    retablir,
+    type SuggestionEcartee,
+  } from '../../lib/suggestionsEcartees';
   import '../../styles/tune-v2.css';
+
+  /**
+   * web#2750 point 7 — les nombres de titres DEMANDÉS (favoris de service),
+   * par identifiant de vignette. Chaque vignette ne demande qu'une fois.
+   */
+  let titresLus = $state<Record<string, number>>({});
+  const titresDemandes = new Set<string>();
+  function compterAuRendu(_noeud: HTMLElement, el: Element) {
+    if (el.nbTitres != null || !el.compterTitres || titresDemandes.has(el.id)) return;
+    titresDemandes.add(el.id);
+    el.compterTitres().then(
+      (n) => { if (n != null) titresLus = { ...titresLus, [el.id]: n }; },
+      () => {},
+    );
+  }
 
   /**
    * Les trois colonnes du gros widget des tops, dans l'ordre d'affichage.
@@ -177,6 +214,22 @@
      * règle « tous horizontaux » du 02/09 tient toujours.
      */
     grille?: boolean;
+    /**
+     * Maquette « My listening » de Levente (rc12, 15/11/2026) — la grille
+     * FLUIDE du Tableau de bord : six colonnes qui partagent la largeur de la
+     * page (tiers et tuiles), au lieu des carrés fixes de 315 px. Ne vaut
+     * qu'avec `grille` ; l'Accueil, Qobuz et Tidal ne la passent pas.
+     */
+    grilleFluide?: boolean;
+    /**
+     * Le délai de garde d'un chargement, en millisecondes. 8 s par défaut
+     * (voir `DELAI_MS`). Le Tableau de bord l'allonge quand on lui demande
+     * trente jours ou tout l'historique, plus lents côté serveur.
+     */
+    delaiMs?: number;
+    /** Des commandes propres à la page, dessinées dans l'en-tête avant
+     *  « Modifier » (le choix de la période du Tableau de bord). */
+    actionsEntete?: Snippet;
   }
   let {
     catalogue = WIDGETS,
@@ -191,6 +244,9 @@
     cleTitre = 'v2.home.title',
     salut = false,
     grille = false,
+    grilleFluide = false,
+    delaiMs,
+    actionsEntete,
   }: Props = $props();
 
   /** Ce que le catalogue a appris après le montage — #987. */
@@ -201,6 +257,11 @@
 
   const clePanneaux = $derived(`${CLE}_panneaux`);
   let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
+  /** Les panneaux du widget « première ligne, présentation de Levente »
+   *  (15/11/2026) — une préférence À PART : cocher « Zones » dans l'un ne
+   *  touche pas l'autre. */
+  const clePanneauxLevente = $derived(`${CLE}_panneaux_levente`);
+  let panneauxLevente = $state<string[]>(panneauxDeLaLigne(undefined, PANNEAUX_L1_LEVENTE));
   let disposition = $state<string[]>([...dispositionDefaut]);
   /**
    * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
@@ -246,7 +307,7 @@
    */
   interface Etat {
     id: string;
-    phase: 'attente' | 'charge' | 'echec' | 'non-propose';
+    phase: 'attente' | 'charge' | 'echec' | 'non-propose' | 'retiree';
     elements: Element[];
     chiffres: ChiffreAffiche[];
     /**
@@ -259,6 +320,8 @@
      */
     donnees?: unknown;
     raison?: string;
+    /** tune-server-rust#8578 — le service qui a retiré la rubrique (`retiree`). */
+    service?: string;
     /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
     recompose?: boolean;
   }
@@ -316,7 +379,7 @@
         minuteur = setTimeout(() => {
           rejeter(new Error('delai'));
           controle?.abort();
-        }, DELAI_MS);
+        }, delaiMs ?? DELAI_MS);
       }),
     ]).finally(() => clearTimeout(minuteur));
   }
@@ -462,6 +525,7 @@
       chiffresEnregistres = lu.enregistres;
       migrationAFaire = lu.aMigrer;
       panneaux = panneauxDeLaLigne(prefs?.[clePanneaux]);
+      panneauxLevente = panneauxDeLaLigne(prefs?.[clePanneauxLevente], PANNEAUX_L1_LEVENTE);
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -575,6 +639,7 @@
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
         [clePanneaux]: panneaux,
+        [clePanneauxLevente]: panneauxLevente,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
         // #2410 — SA disposition est une décision : le marqueur de la première
         // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
@@ -693,6 +758,10 @@
         // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
         // « réessayer » : réessayer ne changera rien.
         if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
+        // tune-server-rust#8578 — rubrique RETIRÉE par le service (Spotify,
+        // applications personnelles) : la phrase qui le dit, sans rouge ni
+        // « Réessayer » (décision de Bertrand, 12/11/2026).
+        if (err?.retiree === true) { majEtat(id, { phase: 'retiree', service: err.service }); return; }
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
@@ -960,8 +1029,57 @@
    * `{ album_id }` — une erreur SILENCIEUSE côté serveur. Une zone et une piste
    * n'ont pas de menu d'objet.
    */
+  /**
+   * web#916 — la liste des suggestions écartées suit le PROFIL : chacun ses
+   * « Pas pour moi ». Relue à chaque changement de profil.
+   */
+  $effect(() => {
+    void $currentProfileId;
+    void chargerSuggestionsEcartees();
+  });
+
+  /**
+   * « Pas pour moi » : la vignette disparaît tout de suite, et le message
+   * offre « Annuler ». Un refus du serveur la fait revenir, et le dit.
+   */
+  async function pasPourMoi(cible: SuggestionEcartee) {
+    try {
+      const range = await ecarter(cible);
+      const nom = cible.title || cible.item_id;
+      notifications.withAction(
+        $t('v2.dismiss.done' as any).replace('{nom}', nom),
+        $t('v2.dismiss.undo' as any),
+        () => {
+          void retablir(range).catch(() => notifications.error($t('v2.dismiss.failed' as any)));
+        },
+      );
+    } catch {
+      notifications.error($t('v2.dismiss.failed' as any));
+    }
+  }
+
+  /** Les deux gestes du menu « … » d'une suggestion — rien hors des suggestions. */
+  function gestesSuggestion(e: Element) {
+    // Serveur sans la route (antérieur à web#916) : aucun geste offert.
+    if (!$ecartsDisponibles) return {};
+    const c = cibleDeSuggestion(e);
+    const a = cibleArtiste(e);
+    return {
+      pasPourMoi: c ? () => void pasPourMoi(c) : undefined,
+      pasPourMoiArtiste: a ? () => void pasPourMoi(a) : undefined,
+    };
+  }
+
+  /** Les éléments que le profil n'a pas écartés. */
+  function visibles(els: Element[], cles: Set<string>): Element[] {
+    return cles.size ? els.filter((e) => !estEcartee(e, cles)) : els;
+  }
+
   function objetElement(e: Element): ObjetMenu | null {
     if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
+    // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
+    if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
     if (e.ouvrir === 'cible' && e.cible) {
       const c = e.cible;
       if (c.sorte === 'playlist') return { type: 'playlist', id: c.id, nom: c.nom };
@@ -1298,6 +1416,96 @@
     oublierCibleVoirTout();
     if (get(detailOuvert)?.startsWith(`voir-tout:${CLE}:`)) detailOuvert.set(null);
   });
+
+  /**
+   * 🔴 LA PAGE QUITTÉE, RENDUE AU RETOUR — fil 2694 (Ilan).
+   *
+   * Qobuz › « Nouveautés » (Voir tout) › un album › son artiste, puis Retour :
+   * la page de service est DÉTRUITE en changeant de vue, et « Voir tout », la
+   * fiche posée dessus et le défilement sont des `$state` d'ici. Le Retour
+   * rendait l'éditorial en haut de page.
+   *
+   * On retient à l'instant du départ (abonnement synchrone) et on reprend au
+   * montage, sur un RETOUR seulement (`typeArrivee`) : la barre latérale
+   * repart toujours de la racine (#3843). Mémoire : `lib/memoireStreaming`.
+   */
+  const arriveeAuMontage = typeArrivee();
+  const vueDeLaPage = get(activeView);
+  /** La clé de détail que porte vraiment la page (voir `StreamingV2`). */
+  let cleDeLaPage: string | null = get(detailOuvert);
+  /** La page refermée à la main juste avant de partir (voir `StreamingV2`). */
+  let refermeeAvantDepart: { quand: number; voirTout: string | null; defilementAvant: number; fiche: any; service: string | null } | null = null;
+  $effect(() => detailOuvert.subscribe((c) => {
+    if (get(activeView) !== vueDeLaPage) return;
+    if (c == null && cleDeLaPage != null && ficheOuverte && !retourProgrammatiqueEnCours()) {
+      refermeeAvantDepart = {
+        quand: Date.now(), voirTout: voirTout?.id ?? null, defilementAvant,
+        fiche: ficheOuverte ? $state.snapshot(ficheOuverte) : null, service: serviceOuvert,
+      };
+    } else if (c != null) refermeeAvantDepart = null;
+    cleDeLaPage = c;
+  }));
+  $effect(() => {
+    let premier = true;
+    return activeView.subscribe((v) => {
+      if (premier) { premier = false; return; }
+      if (v === vueDeLaPage) return;
+      const cleFiche = ficheOuverte ? cleDetailAlbum(ficheOuverte) : null;
+      const visible = !!ficheOuverte && (cleFiche == null || cleFiche === cleDeLaPage);
+      const retourFiche = get(ficheAlbumDeRetour)?.fiche as any;
+      const r = refermeeAvantDepart && Date.now() - refermeeAvantDepart.quand < 5000 ? refermeeAvantDepart : null;
+      refermeeAvantDepart = null;
+      const quittee = !visible && ficheOuverte ? ficheOuverte : (r?.fiche ?? null);
+      const page = voirTout?.id ?? r?.voirTout ?? null;
+      const memoire: MemoirePageWidgets = $state.snapshot({
+        voirTout: page,
+        // Refermée avant de partir, « Voir tout » a déjà rendu la position de
+        // l'éditorial : celle de la page n'est plus lisible, on repart du haut.
+        defilement: voirTout || !r?.voirTout ? (zoneDefilante?.scrollTop ?? 0) : 0,
+        defilementAvant: voirTout ? defilementAvant : (r?.defilementAvant ?? defilementAvant),
+        fiche: visible ? ficheOuverte : null,
+        ficheService: visible ? serviceOuvert : null,
+        ficheQuittee: quittee,
+        ficheQuitteeService: !visible && ficheOuverte ? serviceOuvert : (r?.service ?? null),
+        ficheMontreeParLeRetour: !!quittee && retourFiche != null
+          && String(retourFiche.id ?? '') === String((quittee as any).source_id ?? ''),
+        page: pageQuittee(),
+      }) as MemoirePageWidgets;
+      retenirPageWidgets(CLE, memoire.voirTout || memoire.fiche || memoire.ficheQuittee || memoire.defilement > 0 ? memoire : null);
+    });
+  });
+  let pageAReprendre: MemoirePageWidgets | null = reprendrePageWidgets(CLE, arriveeAuMontage, pageCourante());
+  $effect(() => {
+    const m = pageAReprendre;
+    if (!m || !charge) return;
+    // « Voir tout » attend que la page connaisse son widget (#987).
+    if (m.voirTout && !parId(m.voirTout)) return;
+    untrack(() => {
+      pageAReprendre = null;
+      if (m.voirTout) {
+        const cle = `voir-tout:${CLE}:${m.voirTout}`;
+        // L'entrée atteinte par le Précédent la porte déjà ; sinon on la
+        // REPOSE sur l'entrée courante, sans empiler un cran de plus.
+        if (get(detailOuvert) !== cle) reposerDetail(cle);
+        if (voirTout?.id !== m.voirTout) ouvrirVoirTout(m.voirTout);
+        defilementAvant = m.defilementAvant;
+      }
+      const quittee = m.ficheQuittee
+        && (arriveeAuMontage === 'historique' || !m.ficheMontreeParLeRetour) ? m.ficheQuittee : null;
+      const a = (m.fiche ?? quittee) as any;
+      if (a) {
+        // Relecture de #2926 — par l'historique, la clé est REPOSÉE sur
+        // l'entrée atteinte : en empiler une jetterait la page artiste des
+        // entrées suivantes du navigateur.
+        const cleA = cleDetailAlbum(a);
+        if (arriveeAuMontage !== 'historique') ouvrirCalqueAlbum(a);
+        else if (cleA && get(detailOuvert) !== cleA) reposerDetail(cleA);
+        ficheOuverte = a;
+        serviceOuvert = m.fiche ? m.ficheService : m.ficheQuitteeService;
+      }
+      restaurerQuandPret(m.defilement, () => zoneDefilante, { essaisMax: 180 });
+    });
+  });
 </script>
 
 {#snippet carte(el: Element)}
@@ -1333,6 +1541,7 @@
         onLire={el.jouer ? () => jouer(el) : null}
         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
         objet={objetElement(el)}
+        gestesMenu={el.suggestion ? gestesSuggestion(el) : {}}
         nom={el.titre}
       >
         {#if el.pochettes || el.mosaique}
@@ -1348,7 +1557,27 @@
     </div>
     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
       <span class="ct" title={el.titre}>{el.titre}</span>
-      {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+      <!-- web#2770 (lot 3) — l'artiste sous la vignette est un lien à part
+           (`artisteDuSous`) ; un sous-titre qui n'est pas un artiste reste
+           texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
+           pas distribué, ce serait un lien mort. -->
+      {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
+      <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
+           l'objet ou demandé une fois au service (`compterTitres`). -->
+      {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
+        {@const nbTexte = (el.nbTitres ?? titresLus[el.id]) != null
+          ? libelleNbTitres((el.nbTitres ?? titresLus[el.id]) as number, $tn)
+          : ''}
+        <span class="ca nb-titres" title={nbTexte} data-nb-titres use:compterAuRendu={el}>{nbTexte}</span>
+      {/if}
+      <!-- web#916 — POURQUOI elle est là, en petit, quand le serveur le sait. -->
+      {#if el.raison}
+        {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
+        {#if pourquoi}<span class="cw" title={pourquoi}>{pourquoi}</span>{/if}
+      {/if}
+      <!-- 15/11/2026, maquette de Levente — « 2026 · Jazz » sous l'artiste,
+           sur l'accueil seul, et seulement quand l'objet le porte. -->
+      {#if salut && el.details}<span class="ca cd" title={el.details}>{el.details}</span>{/if}
       {#if el.aParaitre}
         {@const d = dateDeParution({ released_at: el.parution })}
         <span class="cp">{d
@@ -1366,7 +1595,10 @@
   </div>
 {/snippet}
 
-<section class="v2-home tune-v2">
+<!-- 15/11/2026 — `accueil` : la variante de la maquette de Levente, posée
+     sur l'ACCUEIL seul (`salut`). Les pages éditoriales Qobuz / TIDAL qui
+     montent aussi cette page gardent leur apparence. -->
+<section class="v2-home tune-v2" class:accueil={salut}>
   <!-- C'est l'en-tête de l'ACCUEIL et de l'HISTORIQUE : celui dont Bertrand a
        dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
        rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
@@ -1384,6 +1616,7 @@
            taisent donc tant que « Voir tout » est ouvert ; la flèche de
            retour reste la seule sortie. -->
       {#if !voirTout}
+      {#if actionsEntete && !edition}{@render actionsEntete()}{/if}
       {#if edition}
         <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!catalogueComplet.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -1489,7 +1722,7 @@
         {:else}
           <div class="contenu" class:grille={vueVoirTout === 'grid'} class:liste={vueVoirTout === 'list'}
                aria-busy={voirTout.phase === 'attente' ? 'true' : undefined}>
-            {#each voirTout.elements as el (el.id)}
+            {#each visibles(voirTout.elements, $clesEcartees) as el (el.id)}
               {@render carte(el)}
             {/each}
           </div>
@@ -1500,16 +1733,19 @@
            conteneur existe dans les deux cas : c'est lui, et non `.scroll`,
            qui porte la grille, parce qu'une requête de conteneur ne s'applique
            qu'aux DESCENDANTS du conteneur interrogé (`.scroll`). -->
-      <div class="pile" class:mosaique={grille}>
+      <div class="pile" class:mosaique={grille} class:fluide={grille && grilleFluide}>
       {#each disposition as id, i (id)}
         {@const w = parId(id)}
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
              d'un bloc, et sous la `<section>` ils ne compilent pas. -->
         {@const et = etatDe(id)}
-        {#if w}
+        <!-- web#2883 — un widget `masqueSiVide` chargé et vide n'est pas
+             rendu (hors « Modifier », où on doit pouvoir le retirer). -->
+        {#if w && !(w.masqueSiVide && !edition && et?.phase === 'charge' && et.elements.length === 0)}
           <section
             class="bloc"
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
+            class:etendu={w.forme === 'bloc' && (w.bloc?.etendue ?? w.bloc?.colonnes) === 2}
             class:cible={survole === i && saisi !== null && saisi !== i}
             ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
             ondrop={(e) => { e.preventDefault(); deposer(i); }}
@@ -1539,6 +1775,9 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
                 </span>
               {/if}
+              {#if w.forme === 'bloc' && w.bloc?.icone}
+                <svg class="icone-bloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html w.bloc.icone}</svg>
+              {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
               {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
                 <!-- #51 — « Voir tout » : un chevron sobre, à côté du titre.
@@ -1567,6 +1806,8 @@
               <div class="state mince">{$t('common.loading' as any)}</div>
             {:else if et.phase === 'non-propose'}
               <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
+            {:else if et.phase === 'retiree'}
+              <div class="state mince" data-rubrique-retiree>{phraseRetrait($t(CLE_RUBRIQUE_RETIREE as any), et.service ?? '')}</div>
             {:else if et.phase === 'echec'}
               <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
                    revenir. Sans lui, la seule issue était F5 : les quatre
@@ -1593,7 +1834,7 @@
                 {#each et.chiffres as c (c.id ?? c.cle)}
                   {#if c.vue}
                     <button class="stat" onclick={() => activeView.set(c.vue as any)}
-                            title={$t('v2.home.statOpen' as any)}>
+                            title={c.infobulle ?? $t('v2.home.statOpen' as any)}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1602,7 +1843,7 @@
                       <span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span>
                     </button>
                   {:else}
-                    <div class="stat">
+                    <div class="stat" title={c.infobulle}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1732,6 +1973,57 @@
                 </div>
               {/if}
 
+            {:else if w.forme === 'premiere-ligne-levente'}
+              <!-- LA PREMIÈRE LIGNE, PRÉSENTATION DE LEVENTE — Bertrand,
+                   15/11/2026 : « garde en widget le widget de la première
+                   ligne et crée-en un nouveau à partir du design de Levente ».
+
+                   Les MÊMES composants que la ligne d'origine, avec `levente` :
+                   panneau « Zones » (toutes les zones), panneaux qui se
+                   partagent la largeur, titres à empattements, tuiles de
+                   genre. Même hauteur posée une fois (`--l1-h`), même
+                   défilement, même lecture du magasin vivant. Ses panneaux
+                   cochés ont leur PROPRE préférence (`_panneaux_levente`). -->
+              <!-- 🔴 UNE GRILLE, pas une bande qui défile (vérification du .18
+                   à 1440 px, 15/11) : les quatre panneaux tiennent TOUJOURS
+                   dans la largeur, quitte à passer sur deux rangées. Jamais
+                   un panneau coupé au bord. -->
+              <div class="l1 grille-levente"
+                   style:--l1-h="{COTE_L1}px"
+                   role="group" aria-label={$t(w.cleTitre as any)}>
+                <!-- Le panneau « Zones » remplace les cartes carrées ; décoché
+                     en mode « Modifier », les cartes reviennent. -->
+                {#if panneauxLevente.includes('zones')}
+                  <PanneauZones />
+                {:else}
+                  {#each zonesDeLaLigne($zones) as z (z.id)}
+                    <CarteZoneL1 zone={z} />
+                  {/each}
+                {/if}
+                {#if panneauxLevente.includes('genres')}<PanneauGenres levente />{/if}
+                {#if panneauxLevente.includes('concerts')}<PanneauConcerts levente />{/if}
+                {#if panneauxLevente.includes('stats')}<PanneauStats levente />{/if}
+              </div>
+
+              {#if edition}
+                <div class="choix-chiffres" role="group" aria-label={$t(w.cleTitre as any)}>
+                  <div class="opts">
+                    {#each PANNEAUX_L1_LEVENTE as panneau (panneau.id)}
+                      <label class="opt" class:on={panneauxLevente.includes(panneau.id)}>
+                        <input type="checkbox" checked={panneauxLevente.includes(panneau.id)}
+                          onchange={() => {
+                            panneauxLevente = panneauxLevente.includes(panneau.id)
+                              ? panneauxLevente.filter((id) => id !== panneau.id)
+                              : [...panneauxLevente, panneau.id];
+                            void enregistrer();
+                          }} />
+                        <span>{$t(panneau.cle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
 
@@ -1768,7 +2060,7 @@
                               <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} vignette alt="" /></span>
                               <span class="txt">
                                 <span class="t" use:bulleTexte>{el.titre}</span>
-                                {#if el.sous}<span class="s" use:bulleTexte>{el.sous}</span>{/if}
+                                {#if el.sous}<span class="s" use:bulleTexte>{#if el.artisteDuSous && (el.ouvrir || el.jouer)}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
                               </span>
                             </button>
                             {#if el.ouvrir && el.jouer}
@@ -1864,7 +2156,7 @@
                    qu'on survole une rangée. -->
               <div class="bande" use:defilementHorizontal
                    role="group" aria-label={$t(w.cleTitre as any)}>
-                {#each et.elements as el (el.id)}
+                {#each visibles(et.elements, $clesEcartees) as el (el.id)}
                   <!--
                     La carte n'est PLUS un seul bouton.
 
@@ -1981,35 +2273,36 @@
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
-  /* Point 10 — la date d'un album annoncé, sous son titre. */
-  .cp{display:block; font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
 
-  .aide-edition{margin:0 0 8px; padding:0 2px; font-size:12px; color:var(--v2-txt2); line-height:1.45}
+  /* Point 10 — la date d'un album annoncé, sous son titre. */
+  .cp{display:block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
+
+  .aide-edition{margin:0 0 8px; padding:0 2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); line-height:1.45}
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
   .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2); border-style:solid}
   /* #1059 — déjà sur la page : lisible, mais visiblement inerte. Le trait
      plein et l'opacité disent « celui-ci, tu l'as déjà » sans le cacher. */
   .posee{border:1px solid var(--v2-line2); color:var(--v2-txt2); opacity:.55;
-    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   /* #1059 — le fantôme : une carte SOBRE, jamais alarmante. Elle n'existe
      qu'en mode édition, et son seul geste est la croix de retrait. */
   .bloc.absent h2{color:var(--v2-txt3); font-style:italic}
-  .vide{color:var(--v2-txt3); font-size:13px}
+  .vide{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
 
   /* `min-width: 0` : sans lui, une bande large POUSSE la colonne au lieu de
      défiler dans son cadre, et c'est la page entière qui prend une barre de
      défilement horizontale — visible sur la capture du 02/09/2026. */
   .scroll{flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding:4px 0 40px}
   .bloc{min-width:0}
-  .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
+  .state{padding:26px 30px; color:var(--v2-txt3); font-size:calc(13.5px * var(--v2-txt-echelle, 1))}
   .state.mince{padding:8px 30px 18px}
   .state.err{color:var(--v2-danger); display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   /* #871 — la relance est une ACTION, elle se voit sans survol : c'est le
      dernier recours d'une page tombée, et un bouton caché n'en est pas un. */
   .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2, var(--v2-txt));
-    font:inherit; font-size:12.5px; padding:3px 10px; border-radius:7px; cursor:pointer}
+    font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); padding:3px 10px; border-radius:7px; cursor:pointer}
   .relancer:hover{border-color:var(--v2-acc1); color:var(--v2-txt)}
 
   .bloc{padding:10px 0 6px; border-top:1px solid transparent}
@@ -2049,16 +2342,24 @@
   .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
       scrollbar-width:thin}
 
+  /* Le widget « nouvelle présentation » (Levente, 15/11/2026) : une GRILLE.
+     Quatre colonnes dès qu’il y a la place (≥ 260 px chacune, soit un écran de 1440 px avec la barre latérale), trois ou deux
+     sinon, une seule sur téléphone. Chaque case contient son panneau en
+     entier : rien ne déborde, rien n'est coupé. Une carte de zone (panneau
+     « Zones » décoché) prend la largeur de sa case. */
+  .l1.grille-levente{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); overflow-x:visible}
+  .grille-levente > :global(*){min-width:0; max-width:100%}
+  .grille-levente > :global(.carte){width:auto}
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
-  .tete h2{font-size:15px; font-weight:700; flex:1}
+  .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}
   .poignee:hover{color:var(--v2-txt)}
   .poignee:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .poignee svg{width:14px; height:14px}
   .retirer{width:24px; height:24px; border:0; border-radius:6px; background:transparent; color:var(--v2-txt3);
-    font-size:17px; line-height:1; cursor:pointer}
+    font-size:calc(17px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   .retirer:hover{color:var(--v2-danger); background:var(--v2-hover)}
 
   /* TOUS les widgets sont des bandes horizontales — décision de Bertrand.
@@ -2083,20 +2384,20 @@
 
   .zinfo{min-width:0; display:flex; flex-direction:column; gap:6px}
   .zhaut{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
-  .zpill{font:10.5px var(--v2-mono); padding:3px 9px; border-radius:var(--v2-r-pill);
+  .zpill{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:3px 9px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-line2); white-space:nowrap}
   .zpill.fmt{color:var(--v2-acc1); border-color:color-mix(in srgb, var(--v2-acc1) 45%, transparent)}
   .zpill.tech{color:var(--v2-acc2); border-color:color-mix(in srgb, var(--v2-acc2) 45%, transparent)}
-  .zannee{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .zannee{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
-  .ztitre{font:700 21px var(--v2-sans); letter-spacing:-.01em; margin:2px 0 0;
+  .ztitre{font:700 calc(21px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:-.01em; margin:2px 0 0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .zartiste{font:13.5px var(--v2-sans); color:var(--v2-txt2);
+  .zartiste{font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   .zzone{display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
     padding:0; border:0; background:transparent; cursor:pointer;
-    font:11px var(--v2-mono); color:var(--v2-txt3); max-width:100%;
+    font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); max-width:100%;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zzone:hover{color:var(--v2-acc1)}
   .zzone:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
@@ -2114,7 +2415,7 @@
   .zplay svg{width:22px; height:22px}
   /* Les deux durées s'alignent : sans chiffres tabulaires, la barre sautait
      d'un pixel à chaque seconde. */
-  .zt{font:11px var(--v2-mono); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
+  .zt{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
   .zprog{height:4px; border-radius:999px; background:var(--v2-line2); overflow:hidden}
   .zprog i{display:block; height:100%; border-radius:999px;
     background:linear-gradient(90deg, var(--v2-acc1), var(--v2-acc2))}
@@ -2157,8 +2458,11 @@
   /* Le disque de lecture, centré. Révélé au survol ET au clavier : sans
      `focus-within` on tabulerait jusqu'à un bouton invisible. */
   .viz{height:20px; opacity:.85}
-  .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct{font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
+     UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
+  .cw{font:italic calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
@@ -2183,15 +2487,15 @@
     border:1px solid color-mix(in srgb, var(--v2-acc1) 25%, transparent);
     background:color-mix(in srgb, var(--v2-acc1) 8%, transparent)}
   .stat .ico svg{width:13px; height:13px}
-  .stat .v{font:700 16px/1 var(--v2-mono); letter-spacing:-.01em}
-  .stat .l{font:600 16px/1 var(--v2-mono); color:var(--v2-acc1);
+  .stat .v{font:700 calc(16px * var(--v2-txt-echelle, 1))/1 var(--v2-mono); letter-spacing:-.01em}
+  .stat .l{font:600 calc(16px * var(--v2-txt-echelle, 1))/1 var(--v2-mono); color:var(--v2-acc1);
     text-transform:uppercase; letter-spacing:.08em}
 
   .choix-chiffres{padding:0 30px 14px}
-  .choix-chiffres .aide{margin:0 0 8px; font:12px var(--v2-sans); color:var(--v2-txt3)}
+  .choix-chiffres .aide{margin:0 0 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .choix-chiffres .opts{display:flex; flex-wrap:wrap; gap:8px}
   .choix-chiffres .opt{display:flex; align-items:center; gap:6px; cursor:pointer;
-    padding:5px 11px; border-radius:var(--v2-r-pill); font:13px var(--v2-sans);
+    padding:5px 11px; border-radius:var(--v2-r-pill); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .choix-chiffres .opt.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
 
@@ -2199,7 +2503,7 @@
      déborder : la ligne de la maquette fait 1600 px de large. */
   @media (max-width:720px){
     .chiffres{gap:10px; padding:0 16px 12px}
-    .stat .v, .stat .l{font-size:14px}
+    .stat .v, .stat .l{font-size:calc(14px * var(--v2-txt-echelle, 1))}
   }
 
   /* ── LE BLOC : la seconde forme (25/09/2026) ──────────────────────────
@@ -2221,7 +2525,7 @@
 
   /* ── Le gros widget des tops (20/09/2026) ────────────────────────────── */
   .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}
-  .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
+  .topcol h4{margin:0 0 10px; font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.1em;
     text-transform:uppercase; color:var(--v2-txt3)}
   /* Cinquante rangs par colonne depuis le 25/09/2026 : la colonne DÉFILE
      dans la hauteur de cinq lignes (50 px de ligne + 6 px d'écart) au lieu
@@ -2241,13 +2545,13 @@
     cursor:pointer; opacity:0}
   .topcol li:hover .toplire, .topcol .toplire:focus-visible{opacity:1}
   .topcol .toplire:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 12px var(--v2-mono);
+  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     color:var(--v2-txt3)}
   .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
   .topcol .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
-  .topcol .t{font:600 13px var(--v2-sans); color:var(--v2-txt);
+  .topcol .t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .topcol .s{font:11.5px var(--v2-sans); color:var(--v2-txt2);
+  .topcol .s{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* ── #1671 — LA GRILLE DU TABLEAU DE BORD ───────────────────────────────
@@ -2277,16 +2581,47 @@
     .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
     .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
   }
+  /* Maquette « My listening » de Levente (rc12) — la grille FLUIDE : six
+     colonnes qui se partagent la page. Un bloc `etendu` en prend deux (un
+     tiers), les autres une (une tuile). La hauteur déclarée par le bloc
+     reste un plancher ; la rangée prend la hauteur de son plus grand bloc. */
+  .mosaique.fluide{grid-template-columns:repeat(6, minmax(0,1fr)); justify-content:stretch}
+  .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large{grid-column:span 1; max-width:none;
+    display:flex; flex-direction:column; padding:16px 0 14px}
+  .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  .mosaique.fluide > .bloc > .tete{padding-left:20px; padding-right:20px}
+  /* La hauteur déclarée (132 / 264 / 396) est celle des carrés de 315 px ;
+     sur la grille fluide, une rangée de tuiles vides en ferait 396 px de
+     vide. Le plancher descend à 150 px : la page saute moins qu'elle ne
+     respire, et une liste pleine prend toujours la hauteur qu'il lui faut. */
+  .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px !important;
+    --bloc-marge:20px}
+  .icone-bloc{width:20px; height:20px; flex:0 0 auto; color:var(--v2-acc1)}
+  /* Vérification sur le .18 (15/11) : sous ~1 500 px de contenu, six tuiles
+     par rangée coupent les chiffres et réduisent les titres à trois lettres.
+     Trois par rangée : chaque bloc, tuile ou tiers, prend un tiers. */
+  @container (max-width: 1500px){
+    .mosaique.fluide{grid-template-columns:repeat(3, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 1}
+  }
+  @container (max-width: 900px){
+    .mosaique.fluide{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  }
+  @container (max-width: 460px){
+    .mosaique.fluide{grid-template-columns:minmax(0,1fr)}
+    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.etendu{grid-column:auto}
+  }
   /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
   .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;
-    color:var(--v2-txt3); font:inherit; font-size:12.5px; padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
+    color:var(--v2-txt3); font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
   .voir-tout:hover{color:var(--v2-acc1); background:var(--v2-hover)}
   .voir-tout:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .voir-tout svg{width:16px; height:16px}
   .voir-tout-page{padding:10px 0 6px}
   .vt-tete{display:flex; align-items:center; gap:10px; padding:0 30px 14px}
-  .vt-tete h2{font-size:17px; font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .vt-compte{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
+  .vt-tete h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .vt-compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .retour{display:grid; place-items:center; width:30px; height:30px; border:0; border-radius:8px;
     background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer}
   .retour:hover{background:var(--v2-hover)}
@@ -2313,5 +2648,27 @@
   @media (max-width: 640px){
     .vt-tete, .contenu{padding-left:16px; padding-right:16px}
     .contenu.grille{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:14px 12px}
+  }
+  /* ── L'ACCUEIL selon la maquette de Levente (« Home Dashboard with Album
+     Grid », 15/11/2026) ────────────────────────────────────────────────────
+     Variante posée par `class:accueil={salut}` : les autres pages montées sur
+     ce composant ne changent pas. Titres à empattements (`--font-display`,
+     jeton de la coquille, repli Georgia), vignettes plus grandes, sous-titres
+     en sans-serif. Aucune couleur écrite ici : tout vient des jetons `--v2-`. */
+  .accueil .v2-eyebrow{font-family:var(--v2-sans); font-size:calc(12px * var(--v2-txt-echelle, 1)); text-transform:uppercase; letter-spacing:.12em}
+  .accueil .v2-top h1{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(36px * var(--v2-txt-echelle, 1)); letter-spacing:0}
+  .accueil .tete h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(22px * var(--v2-txt-echelle, 1))}
+  .accueil .bande{gap:20px}
+  .accueil .bande .carte{flex-basis:176px; max-width:176px; gap:8px; contain-intrinsic-size:auto 240px}
+  .accueil .pochette :global(img){border-radius:var(--v2-r-md)}
+  .accueil .ct{font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .accueil .ca{font-family:var(--v2-sans); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .accueil .ca.cd{color:var(--v2-txt3)}
+  /* Sous 640 px, la vignette reprend sa taille d'avant : deux colonnes et
+     demie restent visibles sur un téléphone. */
+  @media (max-width: 640px){
+    .accueil .bande .carte{flex-basis:140px; max-width:140px}
+    .accueil .v2-top h1{font-size:calc(28px * var(--v2-txt-echelle, 1))}
+    .accueil .tete h2{font-size:calc(18px * var(--v2-txt-echelle, 1))}
   }
 </style>

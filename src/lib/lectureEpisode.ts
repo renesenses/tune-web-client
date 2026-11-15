@@ -36,6 +36,8 @@ export type EpisodeAJouer = {
   podcast_id?: string;
   cover_url?: string;
   duration_ms?: number;
+  /** Position de reprise en ms ; 0 = « depuis le début » ; absent = rien n'est envoyé. */
+  seek_ms?: number;
 };
 
 export type IssueEpisode = { ok: true } | { ok: false; message: string; detail?: string };

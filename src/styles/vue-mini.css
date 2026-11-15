@@ -40,7 +40,7 @@
 }
 .v2-shell.mini .tune-v2 .v2-top .v2-titres{flex:0 1 auto; min-width:0; max-width:55%; margin-right:0}
 .v2-shell.mini .tune-v2 .v2-top h1{
-  font-size:18px; font-weight:700; margin-top:0; line-height:1.25;
+  font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; margin-top:0; line-height:1.25;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .v2-shell.mini .tune-v2 .v2-eyebrow,

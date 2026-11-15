@@ -44,7 +44,8 @@ describe('point 9 — un clic sur un artiste favori ouvre sa fiche', () => {
     await ouvrirArtisteDepuis({ name: 'Air' }, 'favorites');
     expect(get(ficheArtisteService)).toBeNull();
     expect(get(pendingLibraryArtist)).toBeNull();
-    expect(get(activeView)).toBe('library');
+    // web#2770 : sans fiche, la Recherche sur ce nom — plus la Bibliothèque.
+    expect(get(activeView)).toBe('search');
   });
 
   it("l'écran Favoris n'utilise plus la navigation de l'ancienne coquille", () => {

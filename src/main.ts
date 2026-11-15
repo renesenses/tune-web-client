@@ -6,7 +6,11 @@ import { mount } from 'svelte';
 import { get } from 'svelte/store';
 import { preferences } from './lib/stores/preferences';
 import { preparerLocale } from './lib/i18n';
-import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
+import {
+  installerRechargementApresMiseAJour,
+  signalerEchecDuDemarrage,
+  signalerInterfaceMontee,
+} from './lib/rechargementApresMiseAJour';
 import { viaRelais, serverId } from './lib/bridge';
 import { enregistrerServiceWorker, installerSurveillanceVersion } from './lib/versionInterface';
 import { estRetourOAuth } from './lib/laissezPasser/accesParCompte';
@@ -48,14 +52,24 @@ preparerLocale(get(preferences).language ?? 'en').then(async () => {
   if (estRetourOAuth()) {
     const { default: RetourOAuth } = await import('./components/partages/RetourOAuth.svelte');
     mount(RetourOAuth, { target: document.getElementById('app')! });
+    signalerInterfaceMontee();
     return;
   }
   mount(ShellV2, {
     target: document.getElementById('app')!,
   });
+  signalerInterfaceMontee();
   // tune-server-rust#4908 — commandes de l'écran verrouillé, si le réglage
   // est allumé (éteint par défaut).
   void import('./lib/mediaSessionInstallee').then((m) => m.installerSessionMedia());
+  // tune-server-rust#8531 — dans le widget de bureau, la zone affichée est
+  // signalée à la fenêtre : les touches média du clavier la visent.
+  void import('./lib/zoneWidgetInstallee').then((m) => m.installerSignalZoneWidget());
+}).catch((e) => {
+  // tune-web-client#3054 — un démarrage qui échoue ne laisse plus un écran
+  // noir : un rechargement (gardé), puis le message de la garde d'index.html.
+  console.error('[démarrage] échec du montage', e);
+  signalerEchecDuDemarrage();
 });
 // rc10 : service worker propre à chaque build, et comparaison du build chargé
 // avec celui que sert le serveur — voir `lib/versionInterface.ts`.

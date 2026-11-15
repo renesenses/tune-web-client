@@ -57,8 +57,10 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     // `lot` et non plus sur la liste entière. Ce que la garde protège ne bouge
     // pas : la piste sort toujours de l'entrée d'historique.
     expect(v2).toContain('lot.map((x) => x.track)');
+    // web#2748 — le tiroir d'un objet rend `titres` (le lot sans la ligne de
+    // la station d'une radio), toujours tiré des entrées d'historique.
     expect(
-      v2.split('lot.map((x) => x.track)').length - 1,
+      v2.split('lot.map((x) => x.track)').length - 1 + v2.split('titres.map((x) => x.track)').length - 1,
       'un seul des deux niveaux passe par la liste partagée',
     ).toBe(2);
     // Il ne redessine plus ni pochette, ni durée, ni fiche technique — pour

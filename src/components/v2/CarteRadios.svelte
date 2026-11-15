@@ -148,5 +148,5 @@
 
 <style>
   .etat{padding:20px 30px; color:var(--v2-txt3)} .etat.err{color:var(--v2-danger)}
-  .dedans{align-self:center; font:600 10px var(--v2-mono); color:var(--v2-txt3)}
+  .dedans{align-self:center; font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 </style>

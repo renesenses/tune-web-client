@@ -56,7 +56,7 @@ describe('web#2324 — les lignes des composants enfants de Réglages ont leurs 
 
     it(`${nom} : l'aide a la taille des aides voisines (11,5 px)`, () => {
       const { style } = decouper(lire(chemin));
-      expect(declaration(style, /^\.hint$/, 'font-size')).toBe('11.5px');
+      expect(declaration(style, /^\.hint$/, 'font-size')).toBe('calc(11.5px * var(--v2-txt-echelle, 1))');
     });
   }
 
@@ -68,6 +68,6 @@ describe('web#2324 — les lignes des composants enfants de Réglages ont leurs 
 
   it('SacdIsoStatus : la phrase d’état a la taille des aides (11,5 px)', () => {
     const { style } = decouper(lire('../../components/partages/SacdIsoStatus.svelte'));
-    expect(declaration(style, /^p$/, 'font-size')).toBe('11.5px');
+    expect(declaration(style, /^p$/, 'font-size')).toBe('calc(11.5px * var(--v2-txt-echelle, 1))');
   });
 });

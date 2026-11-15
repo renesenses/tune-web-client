@@ -60,7 +60,7 @@
 <style>
   .import-fichier{position:relative; display:inline-flex; align-items:center; gap:7px; cursor:pointer;
     border:1px solid var(--v2-line2, var(--tune-border, #444)); border-radius:var(--v2-r-pill, 999px);
-    background:transparent; color:var(--v2-txt2, inherit); font:600 13px var(--v2-sans, inherit); padding:8px 14px}
+    background:transparent; color:var(--v2-txt2, inherit); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); padding:8px 14px}
   .import-fichier:hover{color:var(--v2-txt, inherit); background:var(--v2-hover, transparent)}
   .import-fichier.occupe{opacity:.6; cursor:default}
   .import-fichier svg{width:15px; height:15px}

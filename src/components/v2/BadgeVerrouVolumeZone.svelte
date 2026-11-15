@@ -108,7 +108,7 @@
   /* Deux lignes de texte, aucune surface cliquable : le badge INFORME. */
   .vl{
     display:inline-flex; flex-direction:column; gap:1px;
-    font:9.5px var(--v2-mono); letter-spacing:.06em;
+    font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em;
     border:1px solid var(--v2-line); border-radius:3px;
     padding:2px 6px; white-space:nowrap; align-self:center;
     color:var(--v2-txt2);

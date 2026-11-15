@@ -120,7 +120,7 @@
     border: none;
     cursor: pointer;
     font-family: var(--font-label);
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
     color: var(--tune-accent);
   }

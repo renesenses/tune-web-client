@@ -35,6 +35,7 @@ import { repertoireCible } from '../stores/repertoireCible';
 import { detailOuvert } from '../historiqueCoquille';
 import { t } from '../i18n';
 import { reculer } from './reculer';
+import { entreeParLibelle } from './aides/menuFiche';
 
 /** Monter la coquille compile tous ses écrans. */
 vi.setConfig({ testTimeout: 30_000 });
@@ -290,12 +291,14 @@ describe('web#1619 / #854 — arrivé par « Localiser sur le disque », le Pré
     expect(history.state).toMatchObject({ vue: 'library', detail: 'album:55' });
 
     const libelle = get(t)('v2.album.locate' as any);
+    // web#2736 — « Localiser » est une entrée du menu « … » de la fiche.
+    const fiche2736 = () => el.querySelector<HTMLElement>('.v2-detail');
     await attendreQue(
-      () => !!el.querySelector(`.v2-detail button[aria-label="${libelle}"]`),
+      () => !!fiche2736() && !!entreeParLibelle(fiche2736()!, libelle),
       'le bouton « Localiser sur le disque »',
     );
     hauteurAvantLocaliser = history.length;
-    el.querySelector<HTMLButtonElement>(`.v2-detail button[aria-label="${libelle}"]`)!.click();
+    entreeParLibelle(fiche2736()!, libelle)!.click();
     flushSync();
     await attendreQue(() => dossierCourant(el) === '101', 'le dossier de l’album');
     return el;

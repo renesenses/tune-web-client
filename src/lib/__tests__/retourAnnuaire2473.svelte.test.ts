@@ -85,7 +85,8 @@ describe('web#2473 / serveur#7052 — contexte de Radio au retour', () => {
     await monterRadios();
     onglets()[1].click();
     await respirer();
-    const station = hote.querySelector<HTMLButtonElement>('.fiche .ouvrir');
+    // web#2770 (lot 4) : la lecture est sur ▶ (`.centre`) ; la pochette ouvre la fiche.
+    const station = hote.querySelector<HTMLButtonElement>('.fiche .centre');
     expect(station, 'aucune station affichée, le témoin ne mesure rien').not.toBeNull();
     station!.click();
     await respirer();
@@ -95,12 +96,13 @@ describe('web#2473 / serveur#7052 — contexte de Radio au retour', () => {
     expect(hote.querySelector('.fiche')).not.toBeNull();
     expect(mocks.updateRadio).not.toHaveBeenCalled();
   });
-  it('le même retour conserve la Carte quand elle était choisie', async () => {
+  // rc12 (14/11, retour de Rémi point 32) : l'onglet Carte est masqué ; un
+  // retour mémorisé sur la Carte rouvre « Mes radios » (radiosEnTeteRemiRc12).
+  it('l’onglet Carte masqué n’est plus offert au retour', async () => {
     await monterRadios();
-    onglets()[2].click();
-    await respirer();
     await quitterEtRevenir();
-    expect(onglets()[2].getAttribute('aria-selected')).toBe('true');
+    expect(onglets().filter((b) => b.getAttribute('role') === 'tab')).toHaveLength(2);
+    expect(onglets()[0].getAttribute('aria-selected')).toBe('true');
   });
   it('une nouvelle session de navigation repart sur Mes radios', async () => {
     await monterRadios();

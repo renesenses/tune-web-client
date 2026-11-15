@@ -248,33 +248,33 @@
 
 <style>
   .prof{max-width:720px}
-  .prof h2{font-size:19px; font-weight:700; margin:2px 0 6px}
-  .desc{font-size:13px; line-height:1.6; color:var(--v2-txt3); margin-bottom:22px}
+  .prof h2{font-size:calc(19px * var(--v2-txt-echelle, 1)); font-weight:700; margin:2px 0 6px}
+  .desc{font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt3); margin-bottom:22px}
   .q{margin-bottom:24px}
-  .q h3{font:600 11px var(--v2-mono); letter-spacing:.05em; text-transform:uppercase;
+  .q h3{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; text-transform:uppercase;
     color:var(--v2-txt3); margin-bottom:10px}
   .opts{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
   .opts.trois{grid-template-columns:repeat(3,1fr)}
   .opts button{display:flex; flex-direction:column; align-items:center; gap:7px; padding:16px 12px;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
-    border-radius:12px; cursor:pointer; font:600 12.5px var(--v2-sans)}
+    border-radius:12px; cursor:pointer; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .opts button:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .opts button.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .opts svg{width:32px; height:32px}
-  .lettre{font:700 22px var(--v2-mono)}
-  .ind{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  .lettre{font:700 calc(22px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
+  .ind{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .suite, .retour, .appliquer, .raz{border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; border-radius:var(--v2-r-pill);
-    font:600 12.5px var(--v2-sans); display:inline-flex; align-items:center; gap:8px}
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); display:inline-flex; align-items:center; gap:8px}
   .suite{padding:10px 18px}
-  .retour{padding:5px 12px; font-size:11.5px; margin-bottom:14px}
+  .retour{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-bottom:14px}
   .suite:hover, .retour:hover, .raz:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .suite svg, .retour svg{width:15px; height:15px}
   .curseurs{display:flex; flex-direction:column; gap:20px; margin-bottom:24px}
   .ch{display:flex; justify-content:space-between; align-items:baseline}
-  .cn{font-size:13.5px; font-weight:600}
-  .cv{font:12px var(--v2-mono); color:var(--v2-acc1)}
-  .ci{display:flex; justify-content:space-between; font:11px var(--v2-mono); color:var(--v2-txt3); margin:3px 0 6px}
+  .cn{font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:600}
+  .cv{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1)}
+  .ci{display:flex; justify-content:space-between; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin:3px 0 6px}
   .cur input[type=range]{width:100%; accent-color:var(--v2-acc1)}
   .actions{display:flex; gap:10px}
   .appliquer{padding:10px 18px; border-color:var(--v2-acc1); color:var(--v2-acc1)}

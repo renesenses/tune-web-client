@@ -109,8 +109,10 @@ describe('#2075 volet 3 — le nom d’artiste de la grille d’un service', () 
     const el = await poserResultats();
     const nom = nomSousPochette(el, 'Aphelion');
     expect(nom, 'la carte Aphelion n’est pas rendue : le témoin ne mesure rien').not.toBeNull();
-    expect(nom!.tagName, 'le nom n’est pas un bouton à part').toBe('BUTTON');
-    nom!.click();
+    // web#2770 : le nom est un `LienEntite` — un lien à part, hors du bouton de l'album.
+    const lien = nom!.querySelector<HTMLElement>('[role="link"]');
+    expect(lien, 'le nom n’est pas un lien à part').not.toBeNull();
+    lien!.click();
     await jusqua(() => get(activeView) === 'streamingartist');
     expect(get(activeView)).toBe('streamingartist');
     expect(get(ficheArtisteService)).toMatchObject({ service: 'qobuz', id: '610403', nom: 'Leprous' });
@@ -120,8 +122,9 @@ describe('#2075 volet 3 — le nom d’artiste de la grille d’un service', () 
   it('🔴 sans identifiant : le nom est résolu chez le service, puis la fiche s’ouvre', async () => {
     const el = await poserResultats();
     const nom = nomSousPochette(el, 'Pitfalls');
-    expect(nom?.tagName).toBe('BUTTON');
-    nom!.click();
+    const lien = nom?.querySelector<HTMLElement>('[role="link"]');
+    expect(lien, 'le nom n’est pas un lien à part').toBeTruthy();
+    lien!.click();
     await jusqua(() => get(activeView) === 'streamingartist');
     expect(get(ficheArtisteService)).toMatchObject({ service: 'qobuz', id: '777', nom: 'Leprous Live' });
   });

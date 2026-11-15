@@ -58,6 +58,19 @@ function albumDeServiceDuContexte(e: any): string | null {
   return id ? id : null;
 }
 
+/**
+ * web#2749 — l'album de service que la ligne de `/library/history` porte
+ * elle-même (`album_id_service`). Jamais pour une piste locale ou une radio.
+ */
+function albumDeServiceServi(e: any): string | null {
+  const source = e?.source;
+  if (!source || source === 'local' || source === 'radio') return null;
+  const v = e?.album_id_service;
+  if (v == null) return null;
+  const id = String(v).trim();
+  return id ? id : null;
+}
+
 /** Traduit les lignes de `/library/history` dans la forme du store local. */
 export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
   return (items ?? []).map((e: any) => ({
@@ -70,7 +83,10 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       source: e.source,
       source_id: e.source_id,
       album_id: e.album_id ?? null,
-      album_id_service: albumDeServiceDuContexte(e),
+      // web#2749 — le serveur SERT aussi `album_id_service` (mesuré sur le
+      // .18 le 10/11/2026 : 98 écoutes Qobuz sur 240 le portent, dont des
+      // titres lancés seuls). Le contexte d'album reste prioritaire.
+      album_id_service: albumDeServiceDuContexte(e) ?? albumDeServiceServi(e),
       cover_path: e.cover_url ?? null,
     } as Track,
     playedAt: e.listened_at,

@@ -14,6 +14,11 @@
    *   fois). Si le flux se tait (repli en relecture HTTP), la route est relue.
    * - L'état final propose d'ouvrir l'album une fois le scan passé
    *   (`library.scan.completed`).
+   * - tune-server-rust#8514 : le disque ENTIER en mémoire (`memoirePrete`)
+   *   offre « Enregistrer dans la bibliothèque » : la même feuille (format,
+   *   dossier cible, pistes, balises), sans la vérification, et
+   *   `depuis_memoire: true` — le serveur verse les pistes déjà lues sans
+   *   relire le CD, puis lance le scan.
    */
   import { onDestroy } from 'svelte';
   import { t } from '../../lib/i18n';
@@ -29,14 +34,16 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { titrePisteCd, type DisqueCd } from '../../lib/lectureCd';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { resumeAr, texteVerdictAr, verificationAr } from '../../lib/verificationAr';
   import {
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
-    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu,
+    appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu, depuisMemoire,
     type ReglagesExtraction, type EtatExtraction, type FormatExtraction, type VerificationExtraction,
   } from '../../lib/extractionCd';
 
-  let { disque }: { disque: DisqueCd } = $props();
+  /** `memoirePrete` (#8514) : le disque affiché est entier en mémoire. */
+  let { disque, memoirePrete = false }: { disque: DisqueCd; memoirePrete?: boolean } = $props();
 
   /** Relecture de secours quand aucun évènement n'est venu depuis ce délai. */
   const SILENCE_MS = 5000;
@@ -64,6 +71,10 @@
   let album = $state('');
   let titres = $state<Record<number, string>>({});
   let ecraser = $state(false);
+  /** #8522 — décalage du lecteur (échantillons), si le serveur le règle. */
+  let decalage = $state(0);
+  /** #8514 — la feuille enregistre depuis la mémoire. */
+  let modeMemoire = $state(false);
 
   let fini = false;
   let dernierEvenement = 0;
@@ -146,8 +157,9 @@
   });
 
   // ─── Feuille de lancement ────────────────────────────────────────────────
-  function ouvrirFeuille() {
+  function ouvrirFeuille(depuisLaMemoire = false) {
     if (!reglages) return;
+    modeMemoire = depuisLaMemoire;
     format = reglages.formats.includes(reglages.format) ? reglages.format : 'flac';
     destination = reglages.destination ?? reglages.emplacements[0] ?? '';
     verification = 'doute';
@@ -156,6 +168,7 @@
     album = disque.titre ?? '';
     titres = Object.fromEntries(disque.pistes.map((p) => [p.numero, titrePisteCd(p, disque, pisteN)]));
     ecraser = false;
+    decalage = reglages.decalage_lecteur ?? 0;
     erreurFeuille = null;
     feuille = true;
   }
@@ -172,11 +185,15 @@
     erreurFeuille = null;
     try {
       // Le choix devient le défaut : mémorisé côté serveur, pour tous les clients.
-      if (format !== reglages.format || (destination && destination !== reglages.destination)) {
-        reglages = await putReglagesExtraction({ format, destination });
+      // #8522 — le décalage ne part que si le serveur le connaît et qu'il change.
+      const decalageChange = reglages.decalage_lecteur !== undefined && Number(decalage) !== reglages.decalage_lecteur;
+      if (format !== reglages.format || (destination && destination !== reglages.destination) || decalageChange) {
+        reglages = await putReglagesExtraction(decalageChange
+          ? { format, destination, decalage_lecteur: Math.trunc(Number(decalage)) }
+          : { format, destination });
       }
       const e = await lancerExtraction(corpsLancement(
-        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser },
+        { format, destination, verification, pistes: choisies, artiste, album, titres, ecraser, depuisMemoire: modeMemoire },
         disque,
       ));
       feuille = false;
@@ -245,6 +262,8 @@
     attenteScan = null;
   }
 
+  const tr = (cle: string) => $t(cle as any);
+  const verifSuivi = $derived(verificationAr(suivi?.accuraterip));
   const pct = (x: number) => `${Math.max(0, Math.min(100, Math.round(x || 0)))} %`;
   const illisibles = $derived(suivi ? secteursIllisibles(suivi) : 0);
 
@@ -256,7 +275,13 @@
 <svelte:window onkeydown={auClavier} />
 
 {#if reglages}
-  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={ouvrirFeuille}>
+  {#if memoirePrete}
+    <!-- #8514 : le disque est déjà en mémoire, rien à relire. -->
+    <button class="go enregistrer-memoire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(true)}>
+      {$t('v2.cd.save.action' as any)}
+    </button>
+  {/if}
+  <button class="go extraire" disabled={suivi?.statut === 'en_cours'} onclick={() => ouvrirFeuille(false)}>
     {$t('v2.cd.rip.action' as any)}
   </button>
 {/if}
@@ -265,8 +290,8 @@
   <div class="suivi" data-statut={suivi.statut} aria-live="polite">
     <div class="tete">
       <strong class="statut">
-        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : 'v2.cd.rip.running') as any)}
-        {:else if suivi.statut === 'terminee'}{$t('v2.cd.rip.done' as any)}
+        {#if suivi.statut === 'en_cours'}{$t((annulationDemandee ? 'v2.cd.rip.cancelling' : depuisMemoire(suivi) ? 'v2.cd.save.running' : 'v2.cd.rip.running') as any)}
+        {:else if suivi.statut === 'terminee'}{$t((depuisMemoire(suivi) ? 'v2.cd.save.done' : 'v2.cd.rip.done') as any)}
         {:else if suivi.statut === 'annulee'}{$t('v2.cd.rip.cancelled' as any)}
         {:else}{$t('v2.cd.rip.failed' as any)}{/if}
       </strong>
@@ -294,6 +319,9 @@
           <span class="titre" use:bulleTexte>{p.titre}</span>
           <span class="etat">{$t(`v2.cd.rip.st.${p.statut}` as any)}</span>
           <span class="pc">{pct(p.pourcentage)}</span>
+          {#if p.verification}
+            <span class="verdict-ar" data-ar={p.verification.statut}>{texteVerdictAr(p.verification, tr)}</span>
+          {/if}
           {#if p.secteurs_illisibles > 0}
             <span class="illisibles">{$t('v2.cd.rip.unreadable' as any).replace('{n}', String(p.secteurs_illisibles))}</span>
           {/if}
@@ -306,6 +334,9 @@
         </li>
       {/each}
     </ol>
+    {#if verifSuivi}
+      <div class="note resume-ar" data-base={verifSuivi.base}>{resumeAr(verifSuivi, tr)}</div>
+    {/if}
     {#if suivi.statut !== 'en_cours'}
       {#if expert && suivi.pistes.some((p) => p.accuraterip_v1 || p.accuraterip_v2)}
         <div class="note">{$t('v2.cd.rip.accurateRip' as any)}</div>
@@ -327,9 +358,11 @@
 
 {#if feuille && reglages}
   <div class="fond tune-v2" role="presentation" use:portail onclick={() => { if (!travail) feuille = false; }}>
-    <div class="panneau feuille-extraction" role="dialog" aria-modal="true" aria-label={$t('v2.cd.rip.sheetTitle' as any)}
+    <div class="panneau feuille-extraction" class:memoire={modeMemoire} role="dialog" aria-modal="true"
+      aria-label={$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}
       onclick={(e) => e.stopPropagation()}>
-      <h2>{$t('v2.cd.rip.sheetTitle' as any)}</h2>
+      <h2>{$t((modeMemoire ? 'v2.cd.save.sheetTitle' : 'v2.cd.rip.sheetTitle') as any)}</h2>
+      {#if modeMemoire}<p class="note indice-memoire">{$t('v2.cd.save.hint' as any)}</p>{/if}
       <button class="fermer" aria-label={$t('common.close' as any)} disabled={travail} onclick={() => (feuille = false)}>×</button>
       <form onsubmit={lancer}>
         <fieldset class="ligne">
@@ -373,13 +406,24 @@
           </ol>
         </fieldset>
 
-        <label>
-          <span>{$t('v2.cd.rip.verification' as any)}</span>
-          <select class="verification" bind:value={verification}>
-            <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
-            <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
-          </select>
-        </label>
+        {#if !modeMemoire}
+          <label>
+            <span>{$t('v2.cd.rip.verification' as any)}</span>
+            <select class="verification" bind:value={verification}>
+              <option value="doute">{$t('v2.cd.rip.verifDoute' as any)}</option>
+              <option value="toujours">{$t('v2.cd.rip.verifToujours' as any)}</option>
+            </select>
+          </label>
+        {/if}
+
+        {#if reglages.decalage_lecteur !== undefined}
+          <label>
+            <span>{$t('v2.cd.rip.driveOffset' as any)}</span>
+            <input class="decalage" type="number" step="1" min={-(reglages.decalage_max ?? 2940)} max={reglages.decalage_max ?? 2940}
+              bind:value={decalage} />
+            <small>{$t('v2.cd.rip.driveOffsetHint' as any)}</small>
+          </label>
+        {/if}
 
         <label class="choix"><input type="checkbox" class="ecraser" bind:checked={ecraser} /> {$t('v2.cd.rip.overwrite' as any)}</label>
 
@@ -388,7 +432,7 @@
         <div class="pied">
           <button type="button" class="sec" disabled={travail} onclick={() => (feuille = false)}>{$t('common.cancel' as any)}</button>
           <button type="submit" class="pri lancer" disabled={travail || !choisies.length || !destination}>
-            {travail ? '…' : $t('v2.cd.rip.start' as any)}
+            {travail ? '…' : $t((modeMemoire ? 'v2.cd.save.start' : 'v2.cd.rip.start') as any)}
           </button>
         </div>
       </form>
@@ -401,60 +445,64 @@
 {/if}
 
 <style>
-  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
+  .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.35; cursor:not-allowed}
   .extraire{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2)}
-  .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 12.5px var(--v2-sans)}
+  .indice-memoire{margin:-6px 0 12px}
+  .sec,.pri{height:32px; padding:0 16px; border-radius:var(--v2-r-pill); cursor:pointer; font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .sec{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt)}
   .pri{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sec:disabled,.pri:disabled{opacity:.35; cursor:not-allowed}
-  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:12px}
-  .note{font-size:11.5px; color:var(--v2-txt3)}
-  .err{padding:8px 12px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
-  .avert{padding:8px 12px; border-radius:10px; font-size:12.5px; border:1px solid var(--v2-line2); background:var(--v2-surface2)}
+  .lnk{border:0; background:transparent; color:var(--v2-acc-tint); cursor:pointer; font-size:calc(12px * var(--v2-txt-echelle, 1))}
+  .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .err{padding:8px 12px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
+  .avert{padding:8px 12px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-line2); background:var(--v2-surface2)}
 
   .suivi{flex-basis:100%; display:flex; flex-direction:column; gap:8px; margin-top:6px; padding:12px 14px;
     border:1px solid var(--v2-line); border-radius:12px; background:var(--v2-surface2)}
   .tete{display:flex; align-items:center; gap:10px}
-  .global{font:11.5px var(--v2-mono); color:var(--v2-txt2)}
+  .global{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .tete .annuler,.tete .fermer-suivi{margin-left:auto}
   .barre{height:4px; border-radius:2px; background:var(--v2-line); overflow:hidden}
   .barre span{display:block; height:100%; background:var(--v2-acc1)}
   .pistes-suivi{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
-  .piste-suivi{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-size:12px; padding:3px 0}
+  .piste-suivi{display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; font-size:calc(12px * var(--v2-txt-echelle, 1)); padding:3px 0}
   .piste-suivi.courante{font-weight:600}
-  .piste-suivi .num{font:11px var(--v2-mono); color:var(--v2-txt3); width:20px; text-align:right}
+  .piste-suivi .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); width:20px; text-align:right}
   .piste-suivi .titre{flex:1; min-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:11.5px}
+  .piste-suivi .etat,.piste-suivi .pc{color:var(--v2-txt2); font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
   .piste-suivi .pc{font-family:var(--v2-mono)}
-  .illisibles{color:var(--v2-danger); font-size:11.5px; flex-basis:100%; padding-left:30px}
-  .crc,.relectures{font:10.5px var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
+  .illisibles{color:var(--v2-danger); font-size:calc(11.5px * var(--v2-txt-echelle, 1)); flex-basis:100%; padding-left:30px}
+  .verdict-ar{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .verdict-ar[data-ar=verifie]{color:var(--v2-acc-tint)}
+  .verdict-ar[data-ar=different]{color:var(--v2-danger)}
+  .crc,.relectures{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex-basis:100%; padding-left:30px}
   .fin{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .dossier{overflow-wrap:anywhere}
 
   .fond{position:fixed; inset:0; z-index:900; display:grid; place-items:center; background:rgba(0,0,0,.55); padding:16px}
   .panneau{position:relative; width:min(560px,100%); max-height:calc(100vh - 32px); overflow-y:auto; background:var(--v2-surface);
     color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card); padding:20px 22px 22px; font-family:var(--v2-sans)}
-  h2{font-size:17px; font-weight:700; margin-bottom:14px}
+  h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin-bottom:14px}
   .fermer{position:absolute; top:12px; right:12px; width:28px; height:28px; border:0; border-radius:8px; background:transparent;
-    color:var(--v2-txt3); font-size:20px; line-height:1; cursor:pointer}
+    color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
   form{display:flex; flex-direction:column; gap:12px}
   fieldset{border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:6px}
   fieldset.ligne{flex-direction:row; flex-wrap:wrap; gap:6px 16px}
-  legend,label > span{display:flex; gap:10px; align-items:center; margin-bottom:5px; font:600 11px var(--v2-mono);
+  legend,label > span{display:flex; gap:10px; align-items:center; margin-bottom:5px; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono);
     letter-spacing:.06em; text-transform:uppercase; color:var(--v2-txt3)}
   fieldset.ligne legend{flex-basis:100%}
   label{display:block}
-  label.choix{display:flex; gap:8px; align-items:center; font-size:13px}
-  small{display:block; margin-top:4px; font-size:11.5px; color:var(--v2-txt3)}
+  label.choix{display:flex; gap:8px; align-items:center; font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  small{display:block; margin-top:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   input:not([type=radio]):not([type=checkbox]),select{width:100%; height:32px; padding:0 10px; border-radius:8px;
-    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans)}
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .duo{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   @media (max-width:520px){ .duo{grid-template-columns:1fr} }
   .choix-pistes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; max-height:240px; overflow-y:auto}
   .choix-pistes li{display:grid; grid-template-columns:20px 22px minmax(0,1fr); gap:8px; align-items:center}
-  .choix-pistes .num{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .choix-pistes .num{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .titre-piste:disabled{opacity:.45}
   .pied{display:flex; justify-content:flex-end; gap:10px; margin-top:4px}
 </style>

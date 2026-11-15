@@ -38,6 +38,7 @@ import { currentProfileId } from '../stores/profile';
 import { queuePosition } from '../stores/queue';
 import { currentZoneId, zones } from '../stores/zones';
 import type { Track } from '../types';
+import { entreeParLibelle, MENU_LECTURE } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -86,10 +87,13 @@ async function monter<P extends Record<string, unknown>>(Vue: Component<P>, prop
 }
 
 const ajouts = () => appels.filter((a) => a.method === 'POST' && /\/zones\/7\/queue\/add(?:\?lang=[a-z]{2})?$/.test(a.url));
+// web#2736 — sur la fiche playlist, « Lire ensuite » et « Ajouter à la file
+// d'attente » sont sous la flèche ▾ du bouton Lecture : on la déroule, puis on
+// cherche l'entrée. Le gestionnaire du client actuel garde son bouton.
 const boutonLireEnsuite = (racine: HTMLElement | null) =>
-  Array.from(racine?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
+  (Array.from(racine?.querySelectorAll<HTMLButtonElement>('button') ?? []).find(
     (b) => b.textContent?.trim() === LIRE_ENSUITE,
-  );
+  ) ?? (racine?.querySelector(MENU_LECTURE) ? entreeParLibelle(racine, LIRE_ENSUITE, MENU_LECTURE) ?? undefined : undefined)) as HTMLButtonElement | undefined;
 
 const ZONE = { id: 7, name: 'Salon', state: 'playing', shuffle: false } as unknown as import('../types').Zone;
 
@@ -183,9 +187,7 @@ describe('Fiche playlist — « Lire ensuite » (#1574)', () => {
       item: { kind: 'streaming', service: 'qobuz', pl: { source_id: 'pq', name: 'Qobuz Jazz' } as any },
       onClose: () => {},
     });
-    const b = Array.from(el.querySelectorAll<HTMLButtonElement>('.actions button')).find(
-      (x) => x.textContent?.trim() === FR['v2.ms.addToQueue'],
-    );
+    const b = entreeParLibelle(el.querySelector('.actions')!, FR['v2.menu.addToQueue'], MENU_LECTURE);
     b!.click();
     await souffler();
     const a = ajouts();

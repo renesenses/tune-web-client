@@ -15,9 +15,10 @@ export function requeteVuIntermediaire(src: string): { min: number; max: number;
   return { min: +m[1], max: +m[2], corps: m[3] };
 }
 
+// web#2747 : le libellé de zone n'est plus masqué ici (régression rc10/rc11) ;
+// la pastille est bornée et la colonne de droite prend sa largeur de contenu.
 const SECONDAIRES = [
-  /\.transport-bar\.vu \.zone-chip-label\s*\{\s*display:\s*none/,
-  /\.transport-bar\.vu \.zone-icon-btn\s*\{[^}]*max-width:\s*32px/,
+  /\.transport-bar\.vu \.zone-icon-btn\s*\{[^}]*max-width:\s*\d+px/,
   /\.transport-bar\.vu \.transport-right :global\(\.step-btn\)\s*\{\s*display:\s*none/,
 ];
 
@@ -47,7 +48,7 @@ describe('web#2555 — barre de lecture à VU-mètres sur tablette (1280 px)', (
   it('contre-épreuve : sans la requête, ou avec un seuil trop haut, la garde échoue', () => {
     const sans = SRC.replace(/@container tbar \(min-width: \d+px\) and \(max-width: 1800px\)/, '@container tbar (min-width: 99999px)');
     expect(garde(sans).length).toBeGreaterThan(0);
-    const nu = SRC.replace(/\.transport-bar\.vu \.zone-chip-label\s*\{\s*display:\s*none;\s*\}/, '');
+    const nu = SRC.replace(/\.transport-bar\.vu \.zone-icon-btn\s*\{\s*max-width:\s*\d+px;\s*\}/, '');
     expect(garde(nu)).toContain('manque ' + SECONDAIRES[0]);
   });
 });

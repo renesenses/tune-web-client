@@ -20,6 +20,18 @@
 // En navigation privée, ni cache ni service worker : la nouvelle apparaît.
 // `no-store` ne pose aucun en-tête conditionnel : la coquille vient du réseau,
 // ou, hors ligne seulement, du cache de CE build.
+//
+// 🔴 COQUILLE ET MORCEAUX DU MÊME BUILD (tune-web-client#3054, rc12, 15/11/2026).
+// Hors ligne — serveur en redémarrage pendant une mise à jour —, la coquille
+// en cache était servie, mais ses morceaux ne l'étaient que s'ils avaient
+// été demandés un jour à CE service worker : le bundle d'entrée, chargé avant
+// la prise de contrôle, n'y était pas. Coquille sans bundle = écran noir. À
+// l'installation, la coquille ET les fichiers `/assets/` qu'elle cite entrent
+// donc ensemble dans le cache du build. Les fichiers à empreinte (`/assets/`)
+// sont servis cache d'abord : leur nom change à chaque contenu, un nom connu
+// ne peut pas être périmé, et l'ancienne coquille servie hors ligne retrouve
+// ses morceaux même quand le serveur revenu n'a plus que ceux du nouveau build.
+// Jamais mis en cache : une réponse en erreur ou en `text/html` (repli SPA).
 
 const BUILD = '__TUNE_BUILD__';
 const PREFIXE_CACHE = 'tune-';
@@ -46,6 +58,29 @@ function estUneNavigation(requete) {
   return requete.destination === 'document' || accept.includes('text/html');
 }
 
+// Fichiers à empreinte de Vite : `/assets/nom-HASH.ext` (sous `/{server_id}/`
+// par le relais).
+function estAEmpreinte(url) {
+  return url.pathname.includes('/assets/');
+}
+
+// Une réponse qu'on peut garder pour un fichier à empreinte : 200, et pas la
+// page de repli d'une route inconnue.
+function bonneRessource(resp) {
+  if (!resp || !resp.ok) return false;
+  const type = (resp.headers && resp.headers.get && resp.headers.get('content-type')) || '';
+  return !type.includes('text/html');
+}
+
+// Les `/assets/` cités par la coquille : bundle d'entrée, feuille, préchargements.
+function ressourcesDeLaCoquille(html) {
+  const vus = new Set();
+  const motif = /(?:src|href)="([^"]*\/assets\/[^"]+)"/g;
+  let m;
+  while ((m = motif.exec(html))) vus.add(m[1]);
+  return [...vus];
+}
+
 function coquilleDuReseau(url) {
   // `redirect: 'manual'` : une réponse redirigée rendue à une navigation est
   // refusée par Chrome ; la redirection opaque, elle, est acceptée.
@@ -56,9 +91,23 @@ self.addEventListener('install', (e) => {
   self.skipWaiting();
   // Précharge la coquille de CE build pour le hors-ligne. Un échec (serveur
   // injoignable pendant l'installation) ne bloque pas l'installation.
+  // Ses fichiers `/assets/` aussi (#3054) : une coquille sans eux ne démarre pas.
   e.waitUntil(
     coquilleDuReseau(COQUILLE)
-      .then((resp) => (resp.ok ? caches.open(CACHE_NAME).then((c) => c.put(COQUILLE, resp)) : undefined))
+      .then((resp) => {
+        if (!resp.ok) return undefined;
+        return Promise.all([caches.open(CACHE_NAME), resp.clone().text()]).then(([c, html]) =>
+          c.put(COQUILLE, resp).then(() =>
+            Promise.all(
+              ressourcesDeLaCoquille(html).map((chemin) =>
+                fetch(chemin, { credentials: 'same-origin' })
+                  .then((r) => (bonneRessource(r) ? c.put(chemin, r) : undefined))
+                  .catch(() => undefined)
+              )
+            )
+          )
+        );
+      })
       .catch(() => undefined)
   );
 });
@@ -104,9 +153,26 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Ressources (morceaux hachés, icônes) : réseau d'abord, cache de CE build
-  // hors ligne. Les morceaux hachés sont `immutable` côté HTTP : le cache du
-  // navigateur les rend sans aller-retour.
+  // Fichiers à empreinte : cache de CE build d'abord, réseau sinon (#3054).
+  if (estAEmpreinte(url)) {
+    e.respondWith(
+      caches.match(requete, { cacheName: CACHE_NAME }).then(
+        (enCache) =>
+          enCache ||
+          fetch(requete).then((resp) => {
+            if (bonneRessource(resp)) {
+              const copie = resp.clone();
+              caches.open(CACHE_NAME).then((c) => c.put(requete, copie));
+            }
+            return resp;
+          })
+      )
+    );
+    return;
+  }
+
+  // Autres ressources (icônes, manifeste) : réseau d'abord, cache de CE build
+  // hors ligne.
   e.respondWith(
     fetch(requete)
       .then((resp) => {

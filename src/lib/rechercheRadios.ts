@@ -22,6 +22,10 @@ export interface EntreeRadio {
   /** Identifiant de la fiche de l'annuaire, `null` pour une saisie manuelle. */
   idAnnuaire: string | null;
   favori: boolean;
+  /** web#2770 — de quoi ouvrir la FICHE de la station (`RadioFicheModale`) :
+   *  la station de « Mes radios », et/ou sa fiche d'annuaire. */
+  station?: RadioStation | null;
+  fiche?: FicheAnnuaireRadio | null;
 }
 
 /**
@@ -51,6 +55,8 @@ export function entreesRadios(r: RadiosTrouvees): EntreeRadio[] {
       idLocal: s.id,
       idAnnuaire: f?.external_id ?? null,
       favori: !!s.favorite,
+      station: s,
+      fiche: f ?? null,
     });
   }
   const vues = new Set<string>();
@@ -69,6 +75,8 @@ export function entreesRadios(r: RadiosTrouvees): EntreeRadio[] {
       idLocal: f.my_radio_id ?? null,
       idAnnuaire: f.external_id,
       favori: !!f.my_radio_favorite,
+      station: null,
+      fiche: f,
     });
   }
   return sorties;

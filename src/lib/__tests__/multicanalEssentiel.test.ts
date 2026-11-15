@@ -169,18 +169,20 @@ describe('l’écran Réglages au niveau DÉBUTANT — le sélecteur est là', (
   it('contre-témoin : au niveau Avancé, la rangée DSD/débit revient et le sélecteur reste', { timeout: 60_000 }, async () => {
     const h = await poser(zone(), 'intermediate');
     const carte = h.querySelector('#zc-21')!;
-    expect(carte.querySelector('.zr')).not.toBeNull();
+    // #2735 : la rangée `.zr` est devenue le groupe QUALITÉ de la fiche.
+    expect(carte.querySelector('[data-groupe-fiche="qualite"] [data-reglage="zone-dsd"]')).not.toBeNull();
     expect(carte.querySelector('.trim')).not.toBeNull();
     expect(selecteur(h)).not.toBeNull();
   });
 
-  it('`unavailable` ⇒ sélecteur désactivé et motif traduit', { timeout: 60_000 }, async () => {
+  // #2735 (Bertrand, 09/11/2026) : sans effet pour ce type de sortie ⇒ caché.
+  it('`unavailable` (verrou) ⇒ sélecteur caché, plus de phrase d’explication', { timeout: 60_000 }, async () => {
     const h = await poser(zone({
       output_type: 'dlna',
       channel_layout_status: statut({ unavailable: true, reason: 'sortie_non_locale', detail: 'cette zone ne sort pas par une carte son locale' }),
     }));
-    expect(selecteur(h)!.disabled).toBe(true);
-    expect(h.querySelector('#zc-21')!.textContent).toContain(fr['zoneConfig.channelsUnavailableNonLocal']);
+    expect(selecteur(h)).toBeNull();
+    expect(h.querySelector('#zc-21')!.textContent).not.toContain(fr['zoneConfig.channelsUnavailableNonLocal']);
   });
 });
 

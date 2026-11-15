@@ -69,6 +69,8 @@
  * carte « heures sur le réseau », tant que le serveur ne les compte pas.
  */
 
+import { lireTotaux, type TotauxBibliotheque } from './totauxBibliotheque';
+
 /** Ce que les trois sources rapportent, chacune pouvant manquer. */
 export interface SourcesChiffres {
   /** `GET /library/stats`. */
@@ -96,11 +98,34 @@ export interface Chiffre {
   valeur: (s: SourcesChiffres) => number | null;
   /** Comment l'écrire : un nombre, une durée en heures, une taille d'octets. */
   format: 'nombre' | 'heures' | 'octets';
+  /** tune-server-rust#8625 — un total des LISTES (`library_totals`), qui
+   *  porte la même infobulle que Statistiques. */
+  totauxListes?: true;
 }
 
 const nb = (o: Record<string, unknown> | null | undefined, cle: string): number | null => {
   const v = o?.[cle];
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
+};
+
+/**
+ * tune-server-rust#8625, fil 2831 (JLuc, rc11) — l'Accueil disait « 1 036
+ * albums » quand Bibliothèque › Albums disait « Tout (1022) » : la ligne
+ * lisait `albums` / `tracks`, le compte des TABLES (albums masqués ou en
+ * double compris). Statistiques, Oxygen et Titres lisent déjà
+ * `library_totals` (web#2934) ; la ligne de l'Accueil s'y range.
+ *
+ * Un serveur d'avant #8625 n'envoie pas `library_totals` : repli sur les
+ * anciennes clés. Les ARTISTES restent `artists` : `library_totals` ne les
+ * compte pas.
+ */
+const totalListe = (
+  o: Record<string, unknown> | null | undefined,
+  cle: 'albums' | 'tracks',
+): number | null => {
+  const lt = o?.library_totals as Record<string, unknown> | null | undefined;
+  if (nb(lt, 'tracks') != null && nb(lt, 'albums') != null) return lireTotaux(o)[cle];
+  return nb(o, cle);
 };
 
 /**
@@ -141,7 +166,8 @@ const nbVentile = (
 export const CHIFFRES: readonly Chiffre[] = [
   // ── Bibliothèque ──────────────────────────────────────────────────────
   { id: 'albums', famille: 'bibliotheque', cleLibelle: 'v2.home.sAlbums', icone: 'disc-3',
-    vue: 'library', valeur: (s) => nb(s.bibliotheque, 'albums'), format: 'nombre' },
+    vue: 'library', valeur: (s) => totalListe(s.bibliotheque, 'albums'), format: 'nombre',
+    totauxListes: true },
   // ── Ce que le total d'albums MÊLE (voir l'en-tête du fichier) ──────────
   { id: 'albums-locaux', famille: 'bibliotheque', cleLibelle: 'v2.home.sAlbumsLocal',
     icone: 'hard-drive', vue: 'library',
@@ -152,7 +178,8 @@ export const CHIFFRES: readonly Chiffre[] = [
   { id: 'artistes', famille: 'bibliotheque', cleLibelle: 'v2.home.sArtists', icone: 'mic-2',
     vue: 'artists', valeur: (s) => nb(s.bibliotheque, 'artists'), format: 'nombre' },
   { id: 'titres', famille: 'bibliotheque', cleLibelle: 'v2.home.sTracks', icone: 'music-2',
-    vue: 'library', valeur: (s) => nb(s.bibliotheque, 'tracks'), format: 'nombre' },
+    vue: 'library', valeur: (s) => totalListe(s.bibliotheque, 'tracks'), format: 'nombre',
+    totauxListes: true },
   // ── Ce que le total de titres MÊLE ────────────────────────────────────
   { id: 'titres-locaux', famille: 'bibliotheque', cleLibelle: 'v2.home.sTracksLocal',
     icone: 'hard-drive', vue: 'library',
@@ -303,6 +330,8 @@ export interface CarteChiffre {
   icone: string;
   vue: string | null;
   texte: string;
+  /** #8625 — les totaux qu'explique l'infobulle, pour les cartes des listes. */
+  totaux?: TotauxBibliotheque;
 }
 
 /**
@@ -332,6 +361,7 @@ export function cartes(
       icone: c.icone,
       vue: c.vue,
       texte: formater(c, brut, langue),
+      ...(c.totauxListes && sources.bibliotheque ? { totaux: lireTotaux(sources.bibliotheque) } : {}),
     });
   }
   return vues;

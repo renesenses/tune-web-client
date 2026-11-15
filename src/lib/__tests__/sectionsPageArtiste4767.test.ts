@@ -143,11 +143,16 @@ describe('#4767 — les écrans sont branchés', () => {
     expect(d).toContain('{#if compilationsTriees.length}');
     expect(d).toContain('{#if apparitionsTriees.length}');
     expect(d).toContain("v2.disco.compilations");
-    expect(d).toContain("v2.disco.appearances");
+    // web#2639 — les apparitions sont rendues sous le titre « Apparaît sur »,
+    // sans titre propre ; la clé `v2.disco.appearances` reste pour la fiche.
+    expect(d).toContain("v2.disco.appearsOn");
     // Le compte affiché EST la longueur de la liste rendue : rien d'autre ne
     // le porte, donc rien ne peut diverger.
     expect(d).toContain('<span class="cpt">{compilationsTriees.length}</span>');
-    expect(d).toContain('<span class="cpt">{apparitionsTriees.length}</span>');
+    // web#2639 — les apparitions sont comptées dans « Apparaît sur », avec les
+    // collaborations et les compilations.
+    expect(d).toContain('<span class="cpt">{apparaitSurCompte}</span>');
+    expect(d).toContain('apparitionsTriees.length + collaborationsCompte + compilationsTriees.length');
   });
 
   it('la fiche d’album porte la pastille refermable et traduit le rang', () => {
@@ -198,7 +203,7 @@ describe('#4767 — les écrans sont branchés', () => {
     const props = art.match(/\{compilations\}[^\n]*\{reprises\}/);
     expect(props, 'les sections ne sont plus transmises sous cette forme').not.toBeNull();
     const sections = [...props![0].matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
-    expect(sections).toEqual(['compilations', 'apparitions', 'collaborations', 'reprises']);
+    expect(sections).toEqual(['compilations', 'apparitions', 'collaborations', 'ecriture', 'reprises']);
 
     // La condition qui enveloppe le titre ET la grille.
     const enveloppe = art

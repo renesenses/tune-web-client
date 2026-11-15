@@ -14,6 +14,7 @@ import type { AddToQueueRequest } from './api';
 import type { Track } from './types';
 import { estDeBibliotheque } from './provenanceBibliotheque';
 import { champAlbumBandcamp } from './albumBandcampDuTitre';
+import { pisteIndisponible } from './albumAParaitre';
 
 /** Une piste locale : un identifiant, et rien d'autre à transporter. */
 export function estPisteLocale(t: Pick<Track, 'id' | 'source'>): boolean {
@@ -114,6 +115,10 @@ export function corpsDeFileListe(liste: Track[], position?: number): AddToQueueR
   const ids: number[] = [];
   const rangees: NonNullable<AddToQueueRequest['tracks']> = [];
   for (const t of liste) {
+    // web#2687 — un titre grisé (« Indisponible », « À paraître ») n'entre
+    // pas en file : « Ajouter à la file » d'un album mixte n'enfile que le
+    // jouable.
+    if (pisteIndisponible(t)) continue;
     if (estPisteLocale(t)) { ids.push(t.id!); continue; }
     if (t.source && t.source_id) {
       rangees.push({
