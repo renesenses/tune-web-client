@@ -104,10 +104,15 @@ describe('#1068 — le branchement', () => {
     expect(vue).toContain('groupesEcartes(scanReport)');
     expect(vue).toContain('motifsDesFeuilles(scanReport)');
     // Recette du 15/11 : la liste porte aussi `pleine-largeur` (hors colonne de 720 px).
-    expect(vue).toMatch(/<details class="ecartes( pleine-largeur)?">/);
+    expect(vue).toMatch(/<details class="ecartes( pleine-largeur)?"/);
     // 🔴 replié par défaut : pas d'attribut `open`.
-    const i = vue.indexOf('<details class="ecartes"');
-    expect(vue.slice(i, i + 40)).not.toContain('open');
+    // La balise ENTIÈRE, jusqu'à son `>` : depuis la recette du 15/11 elle
+    // porte aussi `pleine-largeur`, et chercher `ecartes"` rendait -1 — le
+    // contrôle passait quoi qu'il arrive.
+    const i = vue.indexOf('<details class="ecartes');
+    expect(i, 'balise <details class="ecartes…"> introuvable').toBeGreaterThanOrEqual(0);
+    const balise = vue.slice(i, vue.indexOf('>', i) + 1);
+    expect(balise).not.toMatch(/\bopen\b/);
   });
 
   it('🔴 il DIT que la liste est un échantillon', () => {
