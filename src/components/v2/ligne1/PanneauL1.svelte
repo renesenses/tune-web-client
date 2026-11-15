@@ -50,8 +50,7 @@
 </script>
 
 <section class="panneau" class:levente
-         style:width={levente ? undefined : `${largeur}px`}
-         style:min-width={levente ? `${largeur}px` : undefined}>
+         style:width={levente ? undefined : `${largeur}px`}>
   <header>
     {#if icone}<span class="ico" aria-hidden="true">{@render icone()}</span>{/if}
     <h3>{titre}</h3>
@@ -77,13 +76,18 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  /* ── Présentation de Levente (15/11/2026) ── les panneaux se partagent la
-     ligne à parts égales (la largeur devient un plancher), coins plus ronds,
-     titre à empattements (`--font-display`, repli Georgia). */
-  .panneau.levente { flex: 1 1 0; gap: 10px; padding: 14px 16px; border-radius: var(--v2-r-md); }
+  /* ── Présentation de Levente (15/11/2026) ── le panneau remplit sa case de
+     la grille posée par la ligne (`.grille-levente`, PageWidgets) : AUCUNE
+     largeur propre, sans quoi il déborderait de sa case et serait coupé
+     (vérification du .18 à 1440 px). Coins plus ronds, titre à empattements
+     (`--font-display`, repli Georgia). */
+  .panneau.levente { width: auto; min-width: 0; gap: 10px; padding: 14px 16px; border-radius: var(--v2-r-md); }
   .levente header { gap: 9px; }
   .levente .ico :global(svg) { width: 18px; height: 18px; }
-  .levente h3 { flex: 1 1 auto; font: 600 calc(16px * var(--v2-txt-echelle, 1)) var(--font-display, Georgia, serif); }
+  /* Le titre passe à la ligne plutôt que d'être coupé (« Concerts near … »
+     dans une case de 260 px). */
+  .levente h3 { flex: 1 1 auto; font: 600 calc(16px * var(--v2-txt-echelle, 1))/1.2 var(--font-display, Georgia, serif);
+    white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
   .entete { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
 
   /* `min-height: 0` : voir l'en-tête. C'est lui qui empêche un panneau trop

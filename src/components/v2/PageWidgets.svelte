@@ -1959,7 +1959,11 @@
                    genre. Même hauteur posée une fois (`--l1-h`), même
                    défilement, même lecture du magasin vivant. Ses panneaux
                    cochés ont leur PROPRE préférence (`_panneaux_levente`). -->
-              <div class="l1" use:defilementHorizontal
+              <!-- 🔴 UNE GRILLE, pas une bande qui défile (vérification du .18
+                   à 1440 px, 15/11) : les quatre panneaux tiennent TOUJOURS
+                   dans la largeur, quitte à passer sur deux rangées. Jamais
+                   un panneau coupé au bord. -->
+              <div class="l1 grille-levente"
                    style:--l1-h="{COTE_L1}px"
                    role="group" aria-label={$t(w.cleTitre as any)}>
                 <!-- Le panneau « Zones » remplace les cartes carrées ; décoché
@@ -2313,6 +2317,14 @@
   .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
       scrollbar-width:thin}
 
+  /* Le widget « nouvelle présentation » (Levente, 15/11/2026) : une GRILLE.
+     Quatre colonnes dès qu’il y a la place (≥ 260 px chacune, soit un écran de 1440 px avec la barre latérale), trois ou deux
+     sinon, une seule sur téléphone. Chaque case contient son panneau en
+     entier : rien ne déborde, rien n'est coupé. Une carte de zone (panneau
+     « Zones » décoché) prend la largeur de sa case. */
+  .l1.grille-levente{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); overflow-x:visible}
+  .grille-levente > :global(*){min-width:0; max-width:100%}
+  .grille-levente > :global(.carte){width:auto}
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}

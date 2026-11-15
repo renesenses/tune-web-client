@@ -235,7 +235,15 @@ describe('deux widgets de première ligne', () => {
     expect(hote.querySelector('.tuile')).not.toBeNull();
     const p = [...hote.querySelectorAll<HTMLElement>('.l1 .panneau')];
     expect(p.every((x) => x.classList.contains('levente'))).toBe(true);
-    expect(p.every((x) => x.style.width === '' && x.style.minWidth !== '')).toBe(true);
+    // Vérification du .18 à 1440 px : un panneau à largeur propre débordait
+    // et était coupé. Dans la nouvelle présentation, AUCUNE largeur propre :
+    // c'est la grille de la ligne qui range, sur plusieurs rangées au besoin.
+    expect(p.every((x) => x.style.width === '' && x.style.minWidth === '')).toBe(true);
+    expect(hote.querySelector('.l1.grille-levente')).not.toBeNull();
+    const src = lire('src/components/v2/PageWidgets.svelte');
+    expect(src).toMatch(/\.l1\.grille-levente\{display:grid; grid-template-columns:repeat\(auto-fill, minmax\(260px, 1fr\)\)/);
+    // Les noms de genre ne sont plus coupés d'une ellipse.
+    expect(lire('src/components/v2/ligne1/PanneauGenres.svelte')).toMatch(/\.tuile span \{[^}]*overflow-wrap: anywhere/);
     // Décision de Bertrand : la lecture aléatoire reste où elle est — aucun
     // bouton « Shuffle » ajouté par la nouvelle présentation.
     expect(hote.querySelector('.l1 [class*="aleatoire"], .l1 [aria-label*="huffle" i]')).toBeNull();

@@ -148,6 +148,10 @@
   }
   .tuile:hover { border-color: var(--v2-acc1); }
   .tuile svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v2-acc1); }
-  .tuile span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Le nom du genre n'est JAMAIS tronqué (« Pop-… », vérification du .18) :
+     il passe sur deux lignes, la tuile garde sa hauteur. */
+  .tuile { white-space: normal; padding: 0 10px; gap: 6px; }
+  .tuile span { min-width: 0; overflow-wrap: anywhere; line-height: 1.2; text-overflow: clip;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 
 </style>
