@@ -79,6 +79,15 @@
     }
     return out;
   });
+  /** « lun. », « Mon »… — le jour court dans la langue de l'écran. */
+  function nomDuJour(cle: string): string {
+    const [a, m, j] = cle.split('-').map(Number);
+    try {
+      return new Date(a, m - 1, j).toLocaleDateString($locale, { weekday: 'short' });
+    } catch {
+      return '';
+    }
+  }
   const maxTendance = $derived(Math.max(1, ...tendance.map((x) => x.plays)));
 
   const sources = $derived(
@@ -122,9 +131,14 @@
           <strong>{nombre(total)}</strong>
           <span>{$t('dashboard.totals.plays' as any)}</span>
         </div>
+        <!-- 15/11/2026, maquette de Levente : chaque barre porte l'initiale
+             de son jour, et le jour le plus écouté prend l'accent plein. -->
         <div class="courbe" aria-hidden="true">
           {#each tendance as j (j.jour)}
-            <i style:height="{Math.max((j.plays / maxTendance) * 100, 4)}%"></i>
+            <span class="jour" class:pic={j.plays > 0 && j.plays === maxTendance}>
+              <span class="barre"><i style:height="{Math.max((j.plays / maxTendance) * 100, 4)}%"></i></span>
+              <small>{nomDuJour(j.jour)}</small>
+            </span>
           {/each}
         </div>
       </section>
@@ -174,13 +188,20 @@
   .tend { display: flex; align-items: flex-end; gap: 12px; }
   .chiffre { display: flex; flex-direction: column; }
   .chiffre strong {
-    color: var(--v2-acc1); font: 700 calc(26px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); font-variant-numeric: tabular-nums;
+    color: var(--v2-acc1); font: 600 calc(34px * var(--v2-txt-echelle, 1))/1 var(--font-display, Georgia, serif); font-variant-numeric: tabular-nums;
   }
   .chiffre span { color: var(--v2-txt3); font: 500 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-transform: uppercase; letter-spacing: .06em; }
-  .courbe { flex: 1 1 auto; display: flex; align-items: flex-end; gap: 4px; height: 38px; }
-  .courbe i {
-    flex: 1 1 0; min-width: 0; border-radius: 2px 2px 0 0;
-    background: color-mix(in srgb, var(--v2-acc1) 55%, transparent);
+  .courbe { flex: 1 1 auto; display: flex; align-items: stretch; gap: 4px; height: 56px; }
+  .jour { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .barre { flex: 1 1 auto; width: 100%; max-width: 16px; display: flex; align-items: flex-end; }
+  .barre i {
+    display: block; width: 100%; border-radius: 3px 3px 0 0;
+    background: color-mix(in srgb, var(--v2-acc1) 40%, transparent);
+  }
+  .jour.pic .barre i { background: var(--v2-acc1); }
+  .jour small {
+    color: var(--v2-txt3); font: 400 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    white-space: nowrap; overflow: hidden; max-width: 100%;
   }
 
   .barres { display: flex; flex-direction: column; gap: 4px; }

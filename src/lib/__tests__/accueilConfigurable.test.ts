@@ -109,7 +109,8 @@ describe('Accueil — le registre', () => {
     // ENREGISTRÉE l'emporte sur ce défaut et ne bouge pas.
     expect(DISPOSITION_DEFAUT).toEqual([
       'premiere-ligne',
-      'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
+      // 15/11/2026 — maquette de Levente : les nouveautés sous la ligne d'en-tête.
+      'nouveautes-artistes', 'reprendre', 'recemment-ajoutes', 'statistiques',
       'top-artistes', 'stats-semaine',
     ]);
     for (const id of DISPOSITION_DEFAUT) {

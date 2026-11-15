@@ -24,40 +24,53 @@
     titre,
     largeur,
     icone,
+    entete,
     children,
   }: {
     titre: string;
-    /** Largeur en pixels. La hauteur, elle, n'est JAMAIS un paramètre. */
+    /**
+     * Largeur MINIMALE en pixels — 15/11/2026, maquette de Levente. Sur un
+     * écran large, les panneaux se partagent la ligne à parts égales
+     * (`flex: 1 1 0`) ; en dessous de leur plancher, la ligne défile comme
+     * avant. La hauteur, elle, n'est JAMAIS un paramètre.
+     */
     largeur: number;
     icone?: Snippet;
+    /** Ce que le panneau pose à droite de son titre (pastille, « Voir tout »). */
+    entete?: Snippet;
     children: Snippet;
   } = $props();
 </script>
 
-<section class="panneau" style:width="{largeur}px">
+<section class="panneau" style:min-width="{largeur}px">
   <header>
     {#if icone}<span class="ico" aria-hidden="true">{@render icone()}</span>{/if}
     <h3>{titre}</h3>
+    {#if entete}<span class="entete">{@render entete()}</span>{/if}
   </header>
   <div class="corps">{@render children()}</div>
 </section>
 
 <style>
   .panneau {
-    flex: 0 0 auto; height: var(--l1-h); box-sizing: border-box;
-    display: flex; flex-direction: column; gap: 8px; padding: 12px;
-    border: 1px solid var(--v2-line2); border-radius: var(--v2-r-card);
+    flex: 1 1 0; height: var(--l1-h); box-sizing: border-box;
+    display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+    border: 1px solid var(--v2-line2); border-radius: var(--v2-r-md);
     background: var(--v2-surface2);
   }
 
-  header { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  header { display: flex; align-items: center; gap: 9px; min-width: 0; }
   .ico { display: inline-flex; color: var(--v2-acc1); }
-  .ico :global(svg) { width: 15px; height: 15px; }
+  .ico :global(svg) { width: 18px; height: 18px; }
+  /* Le titre de panneau de la maquette : un caractère à empattements, comme
+     les titres de section de l'accueil. `--font-display` est le jeton de la
+     coquille ; le repli garde un empattement si elle ne le pose pas. */
   h3 {
-    margin: 0; min-width: 0; color: var(--v2-txt);
-    font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    flex: 1 1 auto; margin: 0; min-width: 0; color: var(--v2-txt);
+    font: 600 calc(16px * var(--v2-txt-echelle, 1)) var(--font-display, Georgia, serif);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
+  .entete { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; }
 
   /* `min-height: 0` : voir l'en-tête. C'est lui qui empêche un panneau trop
      plein de faire grandir la ligne. */

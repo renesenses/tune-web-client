@@ -38,7 +38,7 @@
   import * as api from '../../../lib/api';
   import { t } from '../../../lib/i18n';
   import { activeView } from '../../../lib/stores/navigation';
-  import { LARGEUR_GENRES, classerGenresDuPanneau } from '../../../lib/premiereLigne';
+  import { LARGEUR_GENRES, TUILES_GENRES, classerGenresDuPanneau } from '../../../lib/premiereLigne';
   import PanneauL1 from './PanneauL1.svelte';
 
   let phase = $state<'attente' | 'charge' | 'echec'>('attente');
@@ -88,10 +88,18 @@
   {:else if !genres.length}
     <p class="etat">{$t('v2.home.widgetEmpty' as any)}</p>
   {:else}
+    <!-- 15/11/2026, maquette de Levente : des TUILES sur deux colonnes, et
+         non plus une colonne de pastilles. La maquette pose une photo derrière
+         chaque genre ; le serveur n'en a pas — la tuile prend une teinte de
+         l'accent du thème, jamais une couleur écrite ici. -->
     <ul>
-      {#each genres as g (g.name)}
+      {#each genres.slice(0, TUILES_GENRES) as g, i (g.name)}
         <li>
-          <button onclick={() => ouvrir(g.name)} title={g.name}>{g.name}</button>
+          <button class="tuile" data-teinte={i % 3} onclick={() => ouvrir(g.name)} title={g.name}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" aria-hidden="true"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 11v2"/></svg>
+            <span>{g.name}</span>
+          </button>
         </li>
       {/each}
     </ul>
@@ -101,14 +109,25 @@
 <style>
   .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   li { min-width: 0; }
-  button {
-    display: block; width: 100%; text-align: left; min-width: 0;
-    padding: 5px 10px; border-radius: var(--v2-r-pill);
-    border: 1px solid var(--v2-line2); background: var(--v2-surface);
-    color: var(--v2-txt2); font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .tuile {
+    display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; height: 60px;
+    padding: 0 12px; border-radius: var(--v2-r-md); text-align: left; cursor: pointer;
+    border: 1px solid var(--v2-line2);
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--v2-acc1) 30%, var(--v2-surface)),
+      var(--v2-surface));
+    color: var(--v2-txt); font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
-  button:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }
+  .tuile[data-teinte='1'] {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--v2-acc2) 30%, var(--v2-surface)), var(--v2-surface));
+  }
+  .tuile[data-teinte='2'] {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--v2-acc1) 14%, var(--v2-surface2)), var(--v2-surface));
+  }
+  .tuile:hover { border-color: var(--v2-acc1); }
+  .tuile svg { flex: 0 0 auto; width: 16px; height: 16px; color: var(--v2-acc1); }
+  .tuile span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 </style>

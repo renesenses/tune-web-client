@@ -25,7 +25,7 @@
    * sans corps JSON (leçon de Bandcamp, #1768).
    */
   import * as api from '../../../lib/api';
-  import { t } from '../../../lib/i18n';
+  import { t, locale } from '../../../lib/i18n';
   import { concertsCharge } from '../../../lib/stores/concerts';
   import { refusConcerts } from '../../../lib/concertsRefus';
   import { activeView } from '../../../lib/stores/navigation';
@@ -59,7 +59,13 @@
    *  français y passerait inaperçu dans une interface anglaise. */
   function dateLisible(iso: string): string {
     const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
+    if (Number.isNaN(d.getTime())) return iso;
+    // « 11 oct. 2026 » — le format court de la maquette, dans la langue de l'écran.
+    try {
+      return d.toLocaleDateString($locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return d.toLocaleDateString();
+    }
   }
 
   /** « Salle, Ville » — sans virgule orpheline quand l'un des deux manque. */
@@ -74,6 +80,16 @@
     {#snippet icone()}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
            stroke-linecap="round"><path d="M21 10c0-5-4-8-9-8s-9 3-9 8c0 4.5 4.5 9 9 12 4.5-3 9-7.5 9-12z"/><circle cx="12" cy="10" r="3"/></svg>
+    {/snippet}
+    {#snippet entete()}
+      <!-- 15/11/2026, maquette de Levente : « Voir tout » en tête du panneau.
+           Le panneau montre ; l'écran règle le périmètre et la commune. -->
+      {#if phase === 'charge' && concerts.length}
+        <button class="tout" onclick={() => activeView.set('concerts')}>
+          {$t('v2.home.seeAll' as any)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </button>
+      {/if}
     {/snippet}
 
     {#if phase === 'attente'}
@@ -102,8 +118,6 @@
           </li>
         {/each}
       </ul>
-      <!-- Le panneau montre ; l'écran règle le périmètre et la commune. -->
-      <button class="tout" onclick={() => activeView.set('concerts')}>{$t('concerts.titre' as any)}</button>
     {/if}
   </PanneauL1>
 {/if}
@@ -111,28 +125,29 @@
 <style>
   .etat { margin: 0; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
   li {
     display: flex; align-items: center; gap: 8px; min-width: 0;
-    padding: 6px 8px; border-radius: var(--v2-r-md); background: var(--v2-surface);
+    padding: 9px 2px; border-bottom: 1px solid var(--v2-line2);
   }
-  .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  li:last-child { border-bottom: 0; }
+  .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
   .art {
-    color: var(--v2-txt); font: 500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    color: var(--v2-txt); font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .sous {
-    color: var(--v2-txt3); font: 400 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    color: var(--v2-txt3); font: 400 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  a { flex: 0 0 auto; display: inline-flex; color: var(--v2-txt3); }
+  a { flex: 0 0 auto; display: inline-flex; color: var(--v2-txt2); }
   a:hover { color: var(--v2-acc1); }
-  a svg { width: 14px; height: 14px; }
+  a svg { width: 16px; height: 16px; }
 
   .tout {
-    margin-top: 8px; padding: 4px 11px; border-radius: var(--v2-r-pill);
-    border: 1px solid color-mix(in srgb, var(--v2-acc1) 32%, transparent);
-    background: none; color: var(--v2-txt2); font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 3px; padding: 0; border: 0; background: none; cursor: pointer;
+    color: var(--v2-txt2); font: 500 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans);
   }
-  .tout:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }
+  .tout svg { width: 12px; height: 12px; }
+  .tout:hover { color: var(--v2-acc1); }
 </style>
