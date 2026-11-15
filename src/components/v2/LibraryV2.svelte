@@ -3712,7 +3712,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                  efface aussi la qualité, le format et la recherche. -->
             <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : matchCountToutesSources}</em></button>
             {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
-              <p>{$tr('upnp.sync.localOnly' as any)}</p>
+              <!-- Fil forum 2844 : sans classe, ce <p> prenait la police par
+                   défaut du navigateur (16 px), trois fois la taille du menu. -->
+              <p class="menu-note">{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
             <!-- Plus de lien « Serveurs multimédia » ici : un menu de FILTRE
                  n'est pas une navigation (Bertrand, 17/09/2026 : « Cette
@@ -5018,6 +5020,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     .poignee-filtres span{display:block; width:38px; height:4px; border-radius:2px; background:var(--v2-line2)}
   }
   .filtres-choix .case{flex:0 0 auto; margin-top:1px}
+  /* Fil forum 2844 — note d'un menu déroulant : même échelle que les
+     entrées du menu, en retrait de couleur, largeur bornée. */
+  .drop .menu .menu-note{margin:4px 10px 6px; width:200px; max-width:calc(100vw - 48px);
+    font:calc(11.5px * var(--v2-txt-echelle, 1))/1.4 var(--v2-sans); color:var(--v2-txt3); white-space:normal}
   .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
   .filtres-choix .case{display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px;
     margin-right:8px; border:1px solid currentColor; border-radius:3px; font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1}
