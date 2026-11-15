@@ -23,7 +23,9 @@
    *   - la création est réservée au Premium, et on le dit, sans envoyer à la
    *     caisse pour une coupure réseau.
    */
-  import { profiles, visibleProfiles, profilSupprimable, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
+  import { profiles, visibleProfiles, profilSupprimable, currentProfileId, createProfile, deleteProfile, updateProfile, retenirCoteServeur, type MotifEchecCreation, type Profile } from '../../lib/stores/profile';
+  import { get } from 'svelte/store';
+  import { basculerVers, basculeNecessaire } from '../../lib/basculeDeProfil';
   import { dialogs } from '../../lib/stores/dialogs';
   import ReglageVersionJouee from './ReglageVersionJouee.svelte';
   import PolitiqueParentaleV2 from './PolitiqueParentaleV2.svelte';
@@ -86,6 +88,19 @@
     photoEnCours = null;
   }
 
+  /**
+   * 🔴 LA BASCULE DE PROFIL vit ici depuis le 15/11/2026 : Levente a retiré la
+   * liste des profils du menu de l'avatar, « Gérer les profils » est le seul
+   * chemin. Même mécanique que l'ancien menu — `selectProfile` seul ne faisait
+   * que poser l'identifiant, l'écran gardait les favoris et le thème de la
+   * personne précédente. Le serveur retient le choix (tune-server-rust#5916),
+   * puis la page recharge.
+   */
+  function basculer(id: number) {
+    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
+    basculerVers(get(currentProfileId), id);
+  }
+
   /** Contrôle parental (#7856) : le profil dont la section est ouverte. */
   let parentalOuvert = $state<number | null>(null);
   const actif = $derived($profiles.find((x) => x.id === $currentProfileId));
@@ -122,6 +137,11 @@
 </script>
 
 <p class="hint" data-reglage="profils">{$t('profiles.hint')}</p>
+{#if $visibleProfiles.length > 1}
+  <!-- Le rechargement est ANNONCÉ : un écran qui repart sans prévenir se lit
+       comme un plantage. -->
+  <p class="hint" data-bascule-aide>{$t('profiles.switchHint' as any)}</p>
+{/if}
 
 <!-- web#1672 : « Default » est masqué dès qu'un profil personnel existe
      (`visibleProfiles`), et n'a JAMAIS de Supprimer — le serveur le refuse en
@@ -159,7 +179,7 @@
         <button class="lnk" onclick={() => (enEdition = null)}>{$t('common.cancel')}</button>
       {:else}
         {@const past = pastilleDe(p.avatar_color, nomDuProfil(p))}
-        <button class="principal" onclick={() => selectProfile(p.id)} aria-current={p.id === $currentProfileId ? 'true' : undefined}>
+        <button class="principal" onclick={() => basculer(p.id)} aria-current={p.id === $currentProfileId ? 'true' : undefined}>
           {#if past.sorte === 'photo'}
             <img class="rond" src={past.url} alt="" />
           {:else}

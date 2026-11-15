@@ -30,11 +30,6 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
-  import { visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
-  import { basculerVers } from '../../lib/basculeDeProfil';
-  import { basculeNecessaire } from '../../lib/basculeDeProfil';
-
-  import { estProfilDuCompte, formeDeLaSection } from '../../lib/profilDuCompte';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -240,41 +235,6 @@
     envoiPhoto = false;
   }
 
-  function retirerPhoto() {
-    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
-    notifications.success(get(t)('settings.avatarRemoved'));
-  }
-
-  /**
-   * Le nom à écrire.
-   *
-   * `name` est l'IDENTIFIANT de connexion — le serveur y range l'adresse de
-   * courriel — et `display_name` le prénom. Afficher `name` mettrait
-   * « matteo@mozaiklabs.fr » dans une liste de personnes.
-   */
-  const compte = $derived({ connected: ssoConnected, name: ssoName, email: ssoEmail });
-  const forme = $derived(
-    formeDeLaSection(
-      $visibleProfiles.length,
-      $visibleProfiles.length === 1 && $visibleProfiles[0].id === $currentProfileId,
-    ),
-  );
-
-  function nomDuProfil(p: Profile): string {
-    return p.display_name?.trim() || p.name;
-  }
-
-  /**
-   * Basculer RECHARGE la page — voir `lib/basculeDeProfil` pour le pourquoi.
-   * On ne ferme donc pas le panneau : il n'y en aura plus.
-   */
-  function basculer(id: number) {
-    // tune-server-rust#5916 — le serveur retient le choix de cet appareil :
-    // un navigateur qui efface son stockage le retrouve au prochain chargement.
-    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
-    basculerVers(get(currentProfileId), id);
-  }
-
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
@@ -359,72 +319,18 @@
         <div class="avid">
           {#if ssoConnected}
             <div class="avname" use:bulleTexte>{ssoName}</div>
-            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
           {:else}
             <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
       <!--
-        « Retirer » ne s'affiche que s'il y a une photo à retirer — sans lui, on
-        pourrait seulement REMPLACER, jamais revenir au dégradé. Il est bref et
-        discret : le geste courant est le rond ci-dessus.
+        Levente, 15/11/2026 (rc12) : l'en-tête ne garde que la photo et le nom.
+        Plus d'adresse, plus de « Retirer », plus de texte sur la photo ; la
+        liste des profils d'écoute a quitté ce menu — on change de profil dans
+        « Gérer les profils » (`ProfilsV2`), qui porte la même bascule.
+        Changer de photo reste un clic sur le rond ci-dessus.
       -->
-      {#if photoLocale}
-        <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
-        <div class="hint">{$t('settings.avatarHint' as any)}</div>
-      {/if}
-
-      <!--
-        LA BASCULE DE PROFIL.
-
-        Elle n'existait NULLE PART dans cette interface : `ProfileSelector` n'est
-        monté que par `Sidebar.svelte`, donc par l'interface actuelle. Le profil
-        retenu (`localStorage['tune-profile-id']`) était pourtant déjà honoré —
-        il part en `X-Profile-Id` sur chaque appel — mais rien ne permettait
-        d'en changer sans repasser par l'ancienne interface.
-
-        Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
-        n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
-      -->
-      <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
-           existe (`visibleProfiles`). La section reste utile si l'on est
-           encore SUR Default : elle offre alors d'en sortir. -->
-      <!-- #2426 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
-           d'aide aussi ; le profil du compte connecté montre la PHOTO du compte
-           au lieu de la pastille ; et un profil seul n'est pas une liste à
-           choisir, c'est un geste. -->
-      {#if forme !== 'aucune'}
-        <div class="sep"></div>
-        <div class="sec" data-section-profils={forme}>{$t('profiles.sectionTitle' as any)}</div>
-        <div class="hint" data-profils-aide>{$t('profiles.sectionHelp' as any)}</div>
-        <div class="profils" class:unique={forme === 'unique'}>
-          {#each $visibleProfiles as p (p.id)}
-            <button
-              class="profil"
-              class:actif={forme === 'liste' && p.id === $currentProfileId}
-              onclick={() => basculer(p.id)}
-              aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}
-              data-profil-du-compte={estProfilDuCompte(p, compte) ? 'oui' : undefined}
-            >
-              {#if estProfilDuCompte(p, compte) && photo}
-                <img class="pastille pphoto" src={photo} alt="" />
-              {:else}
-                <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
-                  >{nomDuProfil(p).charAt(0).toUpperCase()}</span
-                >
-              {/if}
-              <span class="pnom" use:bulleTexte>
-                {forme === 'unique'
-                  ? $t('profiles.useOne' as any).replace('{name}', nomDuProfil(p))
-                  : nomDuProfil(p)}
-              </span>
-            </button>
-          {/each}
-        </div>
-        <div class="hint">{$t('profiles.switchHint' as any)}</div>
-      {/if}
-
       <div class="sep"></div>
 
       <div class="sfield">
@@ -501,7 +407,8 @@
         {$t('profiles.manage' as any)}
       </button>
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <!-- Icône « settings » de Levente (Figma 609:5801), en `currentColor`. -->
+        <svg data-icone="settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.671 4.136C9.7261 3.55634 9.99533 3.01804 10.4261 2.62628C10.8569 2.23451 11.4182 2.01743 12.0005 2.01743C12.5828 2.01743 13.1441 2.23451 13.5749 2.62628C14.0057 3.01804 14.2749 3.55634 14.33 4.136C14.3631 4.51045 14.486 4.87142 14.6881 5.18834C14.8903 5.50526 15.1659 5.76881 15.4915 5.95668C15.8171 6.14454 16.1831 6.2512 16.5587 6.26762C16.9343 6.28404 17.3082 6.20974 17.649 6.051C18.1781 5.81078 18.7777 5.77602 19.331 5.95349C19.8843 6.13095 20.3518 6.50795 20.6425 7.0111C20.9332 7.51426 21.0263 8.10757 20.9036 8.67557C20.781 9.24357 20.4514 9.74562 19.979 10.084C19.6714 10.2998 19.4203 10.5866 19.2469 10.92C19.0736 11.2534 18.983 11.6237 18.983 11.9995C18.983 12.3753 19.0736 12.7456 19.2469 13.079C19.4203 13.4124 19.6714 13.6992 19.979 13.915C20.4514 14.2534 20.781 14.7554 20.9036 15.3234C21.0263 15.8914 20.9332 16.4847 20.6425 16.9879C20.3518 17.4911 19.8843 17.868 19.331 18.0455C18.7777 18.223 18.1781 18.1882 17.649 17.948C17.3082 17.7893 16.9343 17.715 16.5587 17.7314C16.1831 17.7478 15.8171 17.8545 15.4915 18.0423C15.1659 18.2302 14.8903 18.4937 14.6881 18.8107C14.486 19.1276 14.3631 19.4885 14.33 19.863C14.2749 20.4427 14.0057 20.981 13.5749 21.3727C13.1441 21.7645 12.5828 21.9816 12.0005 21.9816C11.4182 21.9816 10.8569 21.7645 10.4261 21.3727C9.99533 20.981 9.7261 20.4427 9.671 19.863C9.63794 19.4884 9.5151 19.1273 9.31287 18.8103C9.11063 18.4932 8.83497 18.2296 8.50923 18.0417C8.18349 17.8538 7.81727 17.7472 7.44158 17.7309C7.06589 17.7146 6.6918 17.7891 6.351 17.948C5.82189 18.1882 5.22233 18.223 4.669 18.0455C4.11567 17.868 3.64817 17.4911 3.35748 16.9879C3.06679 16.4847 2.97371 15.8914 3.09636 15.3234C3.21901 14.7554 3.5486 14.2534 4.021 13.915C4.32862 13.6992 4.57973 13.4124 4.75309 13.079C4.92645 12.7456 5.01695 12.3753 5.01695 11.9995C5.01695 11.6237 4.92645 11.2534 4.75309 10.92C4.57973 10.5866 4.32862 10.2998 4.021 10.084C3.54926 9.74545 3.22025 9.24359 3.0979 8.67598C2.97555 8.10837 3.06861 7.51554 3.35898 7.01271C3.64936 6.50989 4.11631 6.13298 4.66909 5.95524C5.22187 5.7775 5.82098 5.81163 6.35 6.051C6.69076 6.20974 7.06474 6.28404 7.4403 6.26762C7.81586 6.2512 8.18193 6.14454 8.50754 5.95668C8.83314 5.76881 9.10869 5.50526 9.31087 5.18834C9.51304 4.87142 9.63588 4.51045 9.669 4.136" /><path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" /></svg>
         {$t('settings.titleV2' as any)}
       </button>
       {#if !ssoConnected && ssoConfigured}
@@ -578,35 +485,12 @@
      longue pousse la largeur du menu au lieu de s'élider. */
   .avid{min-width:0}
   .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .avmail{font-family:var(--v2-mono); font-size:calc(10px * var(--v2-txt-echelle, 1)); letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
      L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une
      vignette, et personne ne clique une vignette. */
   .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
 
-  /* La liste des profils. Défilante : un foyer peut en compter plusieurs, et le
-     panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
-  .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
-  .profils::-webkit-scrollbar{width:7px}
-  .profils::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
-  .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
-    border-radius:9px; background:transparent; cursor:pointer; text-align:left;
-    color:var(--v2-txt2); font-family:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1))}
-  .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
-     lisible dans les six thèmes sans avoir à les vérifier un par un. */
-  .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
-  .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
-    align-items:center; justify-content:center; font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700; color:#fff}
-  .pphoto{object-fit:cover; display:block}
-  .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-
-  /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
-  .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
-    color:var(--v2-txt3); font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1)); cursor:pointer; text-decoration:underline}
-  .retirer:hover{color:var(--v2-txt)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
   .sec{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
