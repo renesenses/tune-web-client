@@ -1203,6 +1203,17 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   let grilleFiche = $state<HTMLElement | null>(null);
   let largeurFiche = $state(0);
   let minTableau = $state(0);
+  // Pas de `bind:clientWidth` : il exige `ResizeObserver`, absent de jsdom —
+  // trente fiches montées par les tests tombaient. Mesure gardée.
+  $effect(() => {
+    const g = grilleFiche;
+    if (!g) return;
+    largeurFiche = g.clientWidth;
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { largeurFiche = g.clientWidth; });
+    ro.observe(g);
+    return () => ro.disconnect();
+  });
   $effect(() => {
     // `loading` aussi : les pistes arrivent AVANT que le tableau soit rendu.
     const g = grilleFiche; void tracks; void loading; void onglet; void largeurFiche; void $preferences;
@@ -1918,7 +1929,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     <span>{$tr('common.back' as any)}</span>
   </button>
 
-  <div class="fiche-grille" class:colonne-maigre={blocsColonne < 2 || colonneSousLesPistes} bind:this={grilleFiche} bind:clientWidth={largeurFiche} data-tableau-min={minTableau || undefined} data-colonne-sous={colonneSousLesPistes ? '' : undefined}>
+  <div class="fiche-grille" class:colonne-maigre={blocsColonne < 2 || colonneSousLesPistes} bind:this={grilleFiche} data-tableau-min={minTableau || undefined} data-colonne-sous={colonneSousLesPistes ? '' : undefined}>
   <div class="principal">
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
