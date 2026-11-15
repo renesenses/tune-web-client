@@ -5,7 +5,8 @@
 //   1. plus de texte d'explication sous la photo ;
 //   2. plus de titre « Listening profiles on this server » ni de son aide ;
 //   3. plus de liste des profils (on change de profil par « Manage profiles ») ;
-//   4. plus d'adresse e-mail ni de « Remove » sous le nom ;
+//   4. plus de « Remove » sous le nom (Bertrand : l'adresse reste, « Remove »
+//      passe dans un petit choix sur le rond) ;
 //   5. l'entrée « Settings » porte l'icône `settings` de Levente ;
 //   6. sous INTERFACE, une phrase courte.
 // Le menu est MONTÉ, avec un compte connecté, une photo locale et trois
@@ -76,25 +77,53 @@ async function ouvrir() {
 }
 
 describe('Menu de compte — retouches de Levente (15/11/2026)', () => {
-  it('l’en-tête garde la photo et le nom, sans e-mail ni « Remove » (4)', async () => {
+  it('l’en-tête garde la photo, le nom et l’adresse en style secondaire (décision de Bertrand)', async () => {
     const m = await ouvrir();
     expect(m.querySelector('.avname')?.textContent?.trim()).toBe('Levente');
-    // La photo locale est bien là : c'est elle qui faisait paraître « Remove ».
     expect(m.querySelector<HTMLImageElement>('.avhead img.avimg')?.getAttribute('src')).toBe(PHOTO_LOCALE);
-    expect(m.textContent).not.toContain(EMAIL);
-    expect(m.querySelector('.avmail')).toBeNull();
-    const libelles = Array.from(m.querySelectorAll('button')).map((b) => b.textContent?.trim());
-    expect(libelles).not.toContain('Remove');
+    expect(m.querySelector('.avid .avmail')?.textContent?.trim()).toBe(EMAIL);
+    // « Remove » n'est plus posé sous le nom : il vit dans le choix du rond.
+    expect(m.querySelector('[data-retirer-photo]')).toBeNull();
+    expect(Array.from(m.querySelectorAll('button')).map((b) => b.textContent?.trim())).not.toContain('Remove');
   });
 
-  it('changer de photo reste possible : le rond de l’en-tête ouvre l’explorateur', async () => {
+  it('avec une photo locale, le rond propose « Change photo » / « Remove »', async () => {
     const m = await ouvrir();
-    const rond = m.querySelector<HTMLButtonElement>('.avhead button.avatar.sm');
-    expect(rond?.getAttribute('aria-label')).toBeTruthy();
     const champ = hote!.querySelector<HTMLInputElement>('input.fichier[type="file"]');
     const clic = vi.spyOn(champ!, 'click').mockImplementation(() => {});
-    rond!.click();
+    m.querySelector<HTMLButtonElement>('.avhead button.avatar.sm')!.click();
+    flushSync();
+    expect(clic, 'le rond ne doit plus ouvrir l’explorateur d’emblée').not.toHaveBeenCalled();
+    const choix = Array.from(m.querySelectorAll<HTMLButtonElement>('[data-choix-photo] button'));
+    expect(choix.map((b) => b.textContent?.trim())).toEqual(['Change photo', 'Remove']);
+    choix[0].click();
     expect(clic).toHaveBeenCalledOnce();
+  });
+
+  it('« Remove » vide la photo locale et retombe sur celle du compte, ou le dégradé', async () => {
+    const m = await ouvrir();
+    m.querySelector<HTMLButtonElement>('.avhead button.avatar.sm')!.click();
+    flushSync();
+    m.querySelector<HTMLButtonElement>('[data-retirer-photo]')!.click();
+    await souffler(2);
+    let prefs: any;
+    preferences.subscribe((p) => (prefs = p))();
+    expect(prefs.avatarImage).toBe('');
+    expect(prefs.avatarCompte).toBe('');
+    // Ce compte n'a pas de photo en ligne : plus d'image, le dégradé revient.
+    expect(m.querySelector('.avhead img.avimg')).toBeNull();
+    expect(hote!.querySelector('button.avatar:not(.sm) img')).toBeNull();
+  });
+
+  it('sans photo locale, le rond ouvre l’explorateur directement, sans « Remove »', async () => {
+    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
+    const m = await ouvrir();
+    const champ = hote!.querySelector<HTMLInputElement>('input.fichier[type="file"]');
+    const clic = vi.spyOn(champ!, 'click').mockImplementation(() => {});
+    m.querySelector<HTMLButtonElement>('.avhead button.avatar.sm')!.click();
+    flushSync();
+    expect(clic).toHaveBeenCalledOnce();
+    expect(m.querySelector('[data-retirer-photo]')).toBeNull();
   });
 
   it('plus de texte sur la photo (1), ni rubrique, ni aide, ni liste des profils (2, 3)', async () => {

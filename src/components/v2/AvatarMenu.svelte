@@ -205,6 +205,32 @@
     champFichier?.click();
   }
 
+  /**
+   * Bertrand, 15/11/2026 (#3057) : avec une photo locale, le rond propose un
+   * petit choix — « Changer la photo » / « Retirer ». Sans photo locale, il
+   * n'y a rien à retirer : un menu à une seule entrée serait un clic de trop,
+   * le rond ouvre l'explorateur directement, comme avant.
+   */
+  let choixPhoto = $state(false);
+  function clicSurLeRond() {
+    if (photoLocale) { choixPhoto = !choixPhoto; return; }
+    ouvrirExplorateur();
+  }
+  function changerPhoto() {
+    choixPhoto = false;
+    ouvrirExplorateur();
+  }
+
+  /**
+   * Retirer la photo LOCALE. La photo et son propriétaire partent ensemble ;
+   * la bulle retombe sur la photo du compte (`ssoAvatar`), sinon sur le dégradé.
+   */
+  function retirerPhoto() {
+    choixPhoto = false;
+    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
+    notifications.success(get(t)('settings.avatarRemoved'));
+  }
+
   async function choisirPhoto(e: Event) {
     const champ = e.currentTarget as HTMLInputElement;
     const fichier = champ.files?.[0];
@@ -261,8 +287,8 @@
     close();
   }
 
-  function toggle() { open = !open; if (!open) q = ''; }
-  function close() { open = false; }
+  function toggle() { open = !open; if (!open) { q = ''; choixPhoto = false; } }
+  function close() { open = false; choixPhoto = false; }
   function onDocClick(e: MouseEvent) {
     const cible = e.target as HTMLElement | null;
     // 🔴 Un élément que le clic vient de FAIRE DISPARAÎTRE n'a plus d'ancêtre :
@@ -310,8 +336,9 @@
           Il est ici et non sur la bulle : la bulle ouvre le panneau, comme elle
           l'a toujours fait, et elle en est la seule porte.
         -->
-        <button class="avatar sm" onclick={ouvrirExplorateur} disabled={envoiPhoto}
-          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
+        <button class="avatar sm" onclick={clicSurLeRond} disabled={envoiPhoto}
+          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}
+          aria-haspopup={photoLocale ? 'menu' : undefined} aria-expanded={photoLocale ? choixPhoto : undefined}>
           {#if photo}
             <img class="avimg" src={photo} alt="" />
           {/if}
@@ -319,17 +346,26 @@
         <div class="avid">
           {#if ssoConnected}
             <div class="avname" use:bulleTexte>{ssoName}</div>
+            <!-- Bertrand, 15/11/2026 : l'adresse reste, discrète, en style secondaire. -->
+            {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
           {:else}
             <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
+      {#if choixPhoto}
+        <div class="choixphoto" role="menu" data-choix-photo>
+          <button class="choix" role="menuitem" onclick={changerPhoto}>{$t('settings.avatarSetPhoto' as any)}</button>
+          {#if photoLocale}
+            <button class="choix" role="menuitem" data-retirer-photo onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
+          {/if}
+        </div>
+      {/if}
       <!--
-        Levente, 15/11/2026 (rc12) : l'en-tête ne garde que la photo et le nom.
-        Plus d'adresse, plus de « Retirer », plus de texte sur la photo ; la
-        liste des profils d'écoute a quitté ce menu — on change de profil dans
-        « Gérer les profils » (`ProfilsV2`), qui porte la même bascule.
-        Changer de photo reste un clic sur le rond ci-dessus.
+        Levente, 15/11/2026 (rc12) : plus de texte sur la photo ; la liste des
+        profils d'écoute a quitté ce menu — on change de profil dans « Gérer les
+        profils » (`ProfilsV2`), qui porte la même bascule. Bertrand, même jour :
+        l'adresse reste sous le nom, et « Retirer » vit dans le choix du rond.
       -->
       <div class="sep"></div>
 
@@ -485,6 +521,13 @@
   /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
      longue pousse la largeur du menu au lieu de s'élider. */
   .avid{min-width:0}
+  .avmail{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin-top:2px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Le petit choix du rond : deux liens discrets sous l'en-tête. */
+  .choixphoto{display:flex; gap:4px; padding:0 6px 8px 55px}
+  .choix{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:4px 10px; font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1))}
+  .choix:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
      L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une

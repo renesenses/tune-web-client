@@ -267,14 +267,17 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     );
   });
 
-  it('🔴 le ROND DU PANNEAU ouvre l’explorateur, sans étape intermédiaire', () => {
-    // Un clic, on choisit, la photo remplace l'ancienne. Pas de rubrique à
-    // déplier, pas de bouton « Choisir » à lire.
+  it('🔴 le ROND DU PANNEAU ouvre l’explorateur, sans étape s’il n’y a rien à retirer', () => {
+    // Un clic, on choisit, la photo remplace l'ancienne. Bertrand, 15/11/2026
+    // (#3057) : avec une photo LOCALE, le rond propose « Changer » / « Retirer »
+    // ; sans elle, il ouvre l'explorateur directement, comme avant.
     const src = menu();
     const rond = src.indexOf('<button class="avatar sm"');
     expect(rond, 'le rond du panneau n’est plus un bouton').toBeGreaterThan(-1);
     const balise = src.slice(rond, src.indexOf('>', rond));
-    expect(balise).toContain('onclick={ouvrirExplorateur}');
+    expect(balise).toContain('onclick={clicSurLeRond}');
+    const i = src.indexOf('function clicSurLeRond');
+    expect(src.slice(i, i + 160)).toMatch(/if \(photoLocale\) \{ choixPhoto = !choixPhoto; return; \}\s*ouvrirExplorateur\(\);/);
     expect(src, 'une rubrique dépliable est revenue s’intercaler').not.toContain('photoActions');
   });
 
@@ -320,6 +323,9 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     // n'est possible. Attacher à `identiteCompte` sans condition rangeait une
     // chaîne vide comme propriétaire, ce qui masquait aussitôt la photo.
     expect(src).toContain('avatarImage: url, avatarCompte: proprietairePourNouvellePhoto(etatCompte)');
+    expect(src, 'retirer laisse un propriétaire orphelin').toContain(
+      "avatarImage: '', avatarCompte: ''",
+    );
   });
 
   it('le champ de fichier existe, et n’accepte que des images', () => {
@@ -344,9 +350,12 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     expect(vidage, 'le vidage est passé APRÈS le retour : il sera sauté').toBeLessThan(retour);
   });
 
-  it('« Retirer » a quitté le menu (Levente, 15/11/2026)', () => {
-    // On change de photo par le rond ; le menu n'offre plus de retour au dégradé.
-    expect(menu()).not.toContain("settings.avatarRemove");
+  it('« Retirer » n’apparaît que s’il y a une photo à retirer', () => {
+    // Sans lui on pourrait seulement REMPLACER, jamais revenir au dégradé.
+    const src = menu();
+    const i = src.indexOf("$t('settings.avatarRemove'");
+    expect(i).toBeGreaterThan(-1);
+    expect(src.slice(Math.max(0, i - 160), i)).toContain('{#if photoLocale}');
   });
 
   it('🔴 une photo locale illisible n’est pas EFFACÉE', () => {
