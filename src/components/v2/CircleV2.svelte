@@ -86,6 +86,7 @@
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
   import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
+  import PlaylistsGrilleCercleV2 from './PlaylistsGrilleCercleV2.svelte';
   import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation, nonLusMessagerie } from '../../lib/circleMessagerie';
   import { ONGLETS_CIRCLE, ongletVoisin, type OngletCircle } from '../../lib/circleOnglets';
   import type { NotifCercle } from '../../lib/circleNotifications';
@@ -774,36 +775,18 @@
       <div class="panneau panneau-playlists" id="circle-panneau-playlists" role="tabpanel" aria-labelledby="circle-onglet-playlists" hidden={onglet !== 'playlists'}>
       {#if t5}
         <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
-          <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
-          <p class="note">{$t('v2.circle.pl.hint' as any)}</p>
           {#if erreurPlaylists}
+            <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
             <div class="err" role="alert"><span>{phrase(erreurPlaylists)}</span>
               <button class="lnk reessayer" onclick={() => void relire()}>{$t('v2.circle.retry' as any)}</button></div>
-          {:else if playlists.length === 0}
-            <p class="note vide">{$t('v2.circle.pl.none' as any)}</p>
           {:else}
-            <ul>
-              {#each playlists as p (String(p.id))}
-                <li class="ligne playlist-cercle">
-                  <span class="nom" use:bulleTexte>{p.name}</span>
-                  <span class="note">
-                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}{#if p.circle_name} · {p.circle_name}{/if}
-                  </span>
-                  <span class="gestes">
-                    <button class="lnk lire-playlist-ligne" disabled={occupe !== null || p.count === 0}
-                      aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
-                      onclick={() => void lirePlaylistPartagee(p)}>
-                      {$t('v2.circle.pl.play' as any)}
-                    </button>
-                    <button class="lnk ouvrir-playlist"
-                      aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', p.name)}
-                      onclick={() => ouvrirPlaylistPartagee(p.id)}>
-                      {$t('v2.circle.pl.open' as any)}
-                    </button>
-                  </span>
-                </li>
-              {/each}
-            </ul>
+            <!-- rc12 (maquettes de Levente) : bandeau, filtres, tri, grille ou liste, « Vos playlists ». -->
+            <PlaylistsGrilleCercleV2 {playlists} occupe={occupe !== null} {cercles} invitePar={invitePar}
+              onOuvrir={ouvrirPlaylistPartagee} onLire={(p) => void lirePlaylistPartagee(p)}
+              onCreer={(c) => void nouvellePlaylist(c)} onPartager={(m) => void partagerDansCercleInvite(m)} />
+            {#if playlists.length === 0}
+              <p class="note vide">{$t('v2.circle.pl.none' as any)}</p>
+            {/if}
           {/if}
         </section>
       {/if}
