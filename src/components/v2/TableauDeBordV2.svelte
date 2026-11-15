@@ -106,4 +106,7 @@
   }
   .periode select:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 3px; border-radius: 4px; }
   .periode option { color: var(--v2-txt); background: var(--v2-surface); }
+  /* Sous 640 px, l'en-tête n'a plus la place de deux boutons à icône à côté
+     du titre : le menu garde son libellé et perd son icône. */
+  @media (max-width: 640px) { .periode svg { display: none; } }
 </style>

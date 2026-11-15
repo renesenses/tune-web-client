@@ -160,6 +160,17 @@
   }
   .art:hover { color: var(--v2-acc1); }
 
+  /* rc12 — maquette « My listening » : sur la grille fluide, un classement
+     tient dans une TUILE (un sixième de la page). Titre et artiste côte à
+     côte s'y élidaient en une lettre : l'artiste passe dessous, comme sur
+     téléphone. Requête de CONTENEUR, pas d'écran : c'est la tuile qui est
+     étroite, pas la fenêtre. */
+  .liste { container-type: inline-size; }
+  @container (max-width: 320px) {
+    .liste li { flex-wrap: wrap; }
+    .art { max-width: none; flex: 1 0 100%; text-align: left; padding: 0 0 6px 70px; }
+  }
+
   @media (max-width: 1024px) { .liste { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); } }
   @media (max-width: 640px) {
     .liste { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
