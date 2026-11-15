@@ -509,7 +509,7 @@ export default {
   'playlist.noPlaylists': 'プレイリストがありません',
   'playlist.remove': '削除',
   'playlist.addToPlaylist': 'プレイリストに追加',
-  'playlist.addedTo': '<strong>{name}</strong>に追加しました',
+  'playlist.addedTo': '{name}に追加しました',
   'playlist.noExisting': '既存のプレイリストがありません',
   'playlist.noMatch': '一致するプレイリストはありません',
   'playlist.addFailed': '追加できませんでした：サービスがこのプレイリストを拒否しました。',

@@ -515,7 +515,7 @@ export default {
   'playlist.noPlaylists': 'Niciun playlist',
   'playlist.remove': 'Elimină',
   'playlist.addToPlaylist': 'Adaugă la playlist',
-  'playlist.addedTo': 'Adăugat la <strong>{name}</strong>',
+  'playlist.addedTo': 'Adăugat la {name}',
   'playlist.noExisting': 'Niciun playlist existent',
   'playlist.noMatch': 'Niciun playlist nu corespunde',
   'playlist.addFailed': 'Adăugarea a eșuat: serviciul a refuzat acest playlist.',
