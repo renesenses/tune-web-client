@@ -3808,6 +3808,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "Impossibile inviare la proposta. Riprova più tardi.",
   "v2.tuneTestedPropose.err.previewChanged": "L'anteprima è cambiata da quando l'hai aperta (un brano è appena terminato). Controlla la nuova anteprima, poi conferma di nuovo.",
   "v2.tuneTestedPropose.err.tooMany": "Il sito sta ricevendo troppe richieste. Riprova tra qualche minuto.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "L'accesso a mozaiklabs.fr è scaduto: accedi di nuovo in Impostazioni › Sistema › Cloud, poi riprova.",
   "v2.zone.presenceAbsent": "Assente da {days} g",
   "v2.zone.presenceNever": "Mai vista dall'aggiornamento",
   "v2.zone.stereoPairs": "Coppie stereo",

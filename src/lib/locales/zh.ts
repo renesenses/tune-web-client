@@ -3808,6 +3808,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "无法发送推荐。请稍后重试。",
   "v2.tuneTestedPropose.err.previewChanged": "打开后预览已发生变化（刚有一首曲目播放结束）。请查看新的预览，然后再次确认。",
   "v2.tuneTestedPropose.err.tooMany": "网站收到的请求过多。请几分钟后再试。",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "mozaiklabs.fr 的登录已过期：请在 设置 › 系统 › Cloud 中重新登录，然后重试。",
   "v2.zone.presenceAbsent": "已离线 {days} 天",
   "v2.zone.presenceNever": "更新后从未出现",
   "v2.zone.stereoPairs": "立体声配对",

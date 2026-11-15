@@ -3808,6 +3808,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "제안을 보낼 수 없습니다. 나중에 다시 시도하세요.",
   "v2.tuneTestedPropose.err.previewChanged": "미리보기를 연 뒤 내용이 바뀌었습니다(방금 곡이 끝났습니다). 새 미리보기를 확인한 뒤 다시 확인을 누르세요.",
   "v2.tuneTestedPropose.err.tooMany": "사이트에 요청이 너무 많습니다. 몇 분 후에 다시 시도하세요.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "mozaiklabs.fr 로그인이 만료되었습니다. 설정 › 시스템 › Cloud에서 다시 로그인한 후 다시 시도하세요.",
   "v2.zone.presenceAbsent": "{days}일째 없음",
   "v2.zone.presenceNever": "업데이트 이후 미확인",
   "v2.zone.stereoPairs": "스테레오 페어",

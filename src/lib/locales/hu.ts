@@ -3762,6 +3762,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "A javaslatot nem sikerült elküldeni. Próbálja újra később.",
   "v2.tuneTestedPropose.err.previewChanged": "Az előnézet megváltozott a megnyitása óta (épp véget ért egy szám). Nézze át az új előnézetet, majd erősítse meg újra.",
   "v2.tuneTestedPropose.err.tooMany": "Az oldal túl sok kérést kap. Próbálja újra néhány perc múlva.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "A mozaiklabs.fr bejelentkezés lejárt: jelentkezzen be újra a Beállítások › Rendszer › Cloud menüpontban, majd próbálja újra.",
   "v2.zone.presenceAbsent": "{days} napja hiányzik",
   "v2.zone.presenceNever": "A frissítés óta nem látott",
   "v2.zone.stereoPairs": "Sztereó párok",

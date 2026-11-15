@@ -3687,6 +3687,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "Forslaget kunne ikke sendes. Prøv igjen senere.",
   "v2.tuneTestedPropose.err.previewChanged": "Forhåndsvisningen er endret siden du åpnet den (et spor ble nettopp ferdig). Sjekk den nye forhåndsvisningen, og bekreft på nytt.",
   "v2.tuneTestedPropose.err.tooMany": "Nettstedet mottar for mange forespørsler. Prøv igjen om noen minutter.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "Innloggingen på mozaiklabs.fr har utløpt: logg inn på nytt under Innstillinger › System › Cloud, og prøv igjen.",
   "v2.zone.presenceAbsent": "Borte i {days} d",
   "v2.zone.presenceNever": "Aldri sett siden oppdateringen",
   "v2.zone.stereoPairs": "Stereopar",
