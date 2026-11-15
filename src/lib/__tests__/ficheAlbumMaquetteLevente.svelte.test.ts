@@ -26,7 +26,7 @@ vi.mock('../api', async (importOriginal) => {
 });
 
 import {
-  autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, numeroCatalogue, pastillesVersion, portraitsInterpretes, titreVersion,
+  autresAlbumsDeLArtiste, detailsAlbum, interpretesAlbum, listeDeGenres, numeroCatalogue, pastillesVersion, portraitsInterpretes, titreVersion,
 } from '../ficheAlbumMaquette';
 import type { OeuvreAlbum, VersionAlbum } from '../oeuvres';
 import ColonneAlbumV2 from '../../components/v2/ColonneAlbumV2.svelte';
@@ -50,6 +50,16 @@ describe('ficheAlbumMaquette — mise en forme sans invention', () => {
     expect(detailsAlbum({ genre: '  ', label: null }, '')).toEqual([]);
     // La liste multiple prime sur le genre seul (#1821).
     expect(detailsAlbum({ genre: 'Jazz', genres: 'Jazz, Modal Jazz' }, null)[0].valeur).toBe('Jazz, Modal Jazz');
+  });
+
+  it('genres : la chaîne JSON du serveur (\'["Rock"]\') se lit « Rock » — vu sur le .18 le 15/11', () => {
+    expect(detailsAlbum({ genres: '["Rock"]' }, null)).toEqual([{ cle: 'v2.album.fiche.genre', valeur: 'Rock' }]);
+    expect(detailsAlbum({ genres: '["Jazz","Modal Jazz"]', genre: 'Jazz' }, null)[0].valeur).toBe('Jazz, Modal Jazz');
+    expect(detailsAlbum({ genres: '[]', genre: 'Jazz' }, null)[0].valeur).toBe('Jazz');
+    expect(listeDeGenres(['Rock', ' Pop ', 'rock'])).toEqual(['Rock', 'Pop']);
+    expect(listeDeGenres('Jazz; Bebop')).toEqual(['Jazz', 'Bebop']);
+    expect(listeDeGenres('["Rock"')).toEqual(['Rock']);
+    expect(listeDeGenres(null)).toEqual([]);
   });
 
   it('interprètes : une fois chacun, avec ses instruments ; la production n’y est pas', () => {

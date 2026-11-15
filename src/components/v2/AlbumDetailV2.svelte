@@ -54,6 +54,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import ColonneAlbumV2 from './ColonneAlbumV2.svelte';
   import VersionsAlbumV2 from './VersionsAlbumV2.svelte';
+  import { listeDeGenres } from '../../lib/ficheAlbumMaquette';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -1183,9 +1184,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       : getQualityTier(album),
   );
   /** Maquette rc12 — le genre de la ligne de faits : `genre`, sinon le
-   *  premier de la liste `genres` (#1821). Rien quand aucun n'est connu. */
+   *  premier de la liste `genres` (#1821, chaîne JSON côté serveur). Rien
+   *  quand aucun n'est connu. */
   const genreAffiche = $derived(
-    ((albumAffiche as any).genre ?? String((albumAffiche as any).genres ?? '').split(/[;,]/)[0] ?? '').trim(),
+    listeDeGenres((albumAffiche as any).genre)[0] ?? listeDeGenres((albumAffiche as any).genres)[0] ?? '',
   );
   const qLabel = $derived.by(() => {
     if (!qualite) return null;

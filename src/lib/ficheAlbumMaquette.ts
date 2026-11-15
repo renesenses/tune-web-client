@@ -12,12 +12,35 @@ import { resolution, type VersionAlbum } from './oeuvres';
 import { libelleNombreCanaux } from './utils';
 import { trouverArtisteExact } from './libraryNavigation';
 
+/**
+ * Les genres d'un album, lisibles. Le serveur rend `genres` en CHAÎNE JSON
+ * (`'["Rock"]'`, vu sur le .18 le 15/11 : le bloc affichait le JSON brut) ;
+ * on accepte aussi un vrai tableau, ou une chaîne simple séparée par « , »
+ * ou « ; ». Sans doublon, dans l'ordre reçu.
+ */
+export function listeDeGenres(v: unknown): string[] {
+  let brut: unknown = v;
+  if (typeof v === 'string' && v.trim().startsWith('[')) {
+    try { brut = JSON.parse(v); } catch { brut = v.replace(/[[\]"]/g, ''); }
+  }
+  const morceaux = Array.isArray(brut)
+    ? brut.map((x) => (typeof x === 'string' ? x : x == null ? '' : String(x)))
+    : typeof brut === 'string' ? brut.split(/[;,]/) : [];
+  const vus = new Set<string>();
+  const out: string[] = [];
+  for (const m of morceaux) {
+    const t = m.trim();
+    if (t && !vus.has(t.toLowerCase())) { vus.add(t.toLowerCase()); out.push(t); }
+  }
+  return out;
+}
+
 /** Une ligne du bloc « Détails de l'album » : la clé i18n et la valeur. */
 export interface LigneDetail { cle: string; valeur: string }
 
 interface AlbumDetaille {
   genre?: string | null;
-  genres?: string | null;
+  genres?: string | string[] | null;
   label?: string | null;
   format?: string | null;
   sample_rate?: number | null;
@@ -36,7 +59,8 @@ export function detailsAlbum(a: AlbumDetaille, annee: string | null | undefined)
     if (t) lignes.push({ cle, valeur: t });
   };
   ajouter('v2.album.fiche.release', annee);
-  ajouter('v2.album.fiche.genre', a.genres || a.genre);
+  const genres = listeDeGenres(a.genres);
+  ajouter('v2.album.fiche.genre', genres.length ? genres.join(', ') : listeDeGenres(a.genre).join(', '));
   ajouter('v2.album.fiche.label', a.label);
   const res = resolution({ sample_rate: a.sample_rate ?? null, bit_depth: a.bit_depth ?? null });
   ajouter('v2.album.fiche.format', [a.format ? a.format.toUpperCase() : '', res].filter(Boolean).join(' · '));
