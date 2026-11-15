@@ -4805,6 +4805,7 @@ export default {
   "v2.meta.foot": "Postęp wzbogacania można śledzić w: {p}.",
   "v2.home.wZonesCards": "Teraz słuchane",
   "v2.home.wFirstRow": "Przegląd słuchania",
+  "v2.home.wFirstRowLevente": "Przegląd słuchania (nowy układ)",
   "v2.home.l1Zones": "Strefy",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# aktywna} few {# aktywne} many {# aktywnych} other {# aktywnej}}",
   "v2.home.l1ManageZones": "Zarządzaj strefami",

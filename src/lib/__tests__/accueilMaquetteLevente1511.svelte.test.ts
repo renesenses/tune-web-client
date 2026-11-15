@@ -17,8 +17,11 @@ import { resolve } from 'node:path';
 import PanneauZones from '../../components/v2/ligne1/PanneauZones.svelte';
 import { zones } from '../stores/zones';
 import { locale } from '../i18n';
-import { nbZonesActives, zonesDuPanneau, PANNEAUX_L1, panneauxDeLaLigne } from '../premiereLigne';
-import { detailsAlbum, versElement } from '../accueilWidgets';
+import { nbZonesActives, zonesDuPanneau, PANNEAUX_L1, PANNEAUX_L1_LEVENTE, panneauxDeLaLigne } from '../premiereLigne';
+import { detailsAlbum, versElement, WIDGETS, DISPOSITION_DEFAUT } from '../accueilWidgets';
+import PageWidgets from '../../components/v2/PageWidgets.svelte';
+import { currentProfileId } from '../stores/profile';
+import { concertsPlugin } from '../stores/concerts';
 import type { Zone } from '../types';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
@@ -41,11 +44,11 @@ describe('les zones du panneau', () => {
     expect(nbZonesActives(null)).toBe(0);
   });
 
-  it('le panneau « Zones » ouvre la ligne par défaut, et une préférence ancienne le laisse décoché', () => {
-    expect(PANNEAUX_L1[0].id).toBe('zones');
-    expect(panneauxDeLaLigne(undefined)[0]).toBe('zones');
-    // Qui a déjà enregistré son choix garde ses cartes : rien ne change sans lui.
-    expect(panneauxDeLaLigne(['genres', 'concerts', 'stats'])).not.toContain('zones');
+  it('« Zones » n’existe QUE dans la présentation de Levente', () => {
+    expect(PANNEAUX_L1.map((p) => p.id)).toEqual(['genres', 'concerts', 'stats']);
+    expect(panneauxDeLaLigne(undefined)).toEqual(['genres', 'concerts', 'stats']);
+    expect(PANNEAUX_L1_LEVENTE[0].id).toBe('zones');
+    expect(panneauxDeLaLigne(undefined, PANNEAUX_L1_LEVENTE)).toEqual(['zones', 'genres', 'concerts', 'stats']);
   });
 });
 
@@ -156,10 +159,85 @@ describe('la variante visuelle est celle de l’ACCUEIL seul', () => {
   });
 
   it('décoché, le panneau « Zones » rend les cartes carrées', () => {
-    const i = src.indexOf("{#if panneaux.includes('zones')}");
+    const i = src.indexOf("{#if panneauxLevente.includes('zones')}");
     expect(i).toBeGreaterThan(-1);
     const bloc = src.slice(i, i + 400);
     expect(bloc).toContain('<PanneauZones />');
-    expect(bloc).toMatch(/\{:else\}[\s\S]*<CarteZoneL1 zone=\{z\} \/>/);
+    expect(bloc).toMatch(/\{:else\}[\s\S]*<CarteZoneL1 zone=\{z\} \/>/);  });
+});
+
+/**
+ * Bertrand, 15/11/2026 : « garde en widget le widget de la première ligne et
+ * crée-en un nouveau à partir du design de Levente ». Les deux widgets, montés
+ * dans la vraie page, chacun seul.
+ */
+describe('deux widgets de première ligne', () => {
+  let hote: HTMLDivElement;
+  let monte: ReturnType<typeof mount> | null = null;
+  const souffler = () => new Promise((r) => setTimeout(r, 120));
+
+  beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver);
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input); let corps: any = [];
+      if (url.includes('/settings')) corps = {};
+      else if (url.includes('/library/genres')) corps = [{ name: 'Jazz', count: 3, plays: 2 }];
+      else if (url.includes('/concerts')) corps = { concerts: [] };
+      else if (url.includes('/dashboard')) corps = { totals: { plays: 0 }, trend: [], hourly: [], by_zone: [], by_source: [] };
+      return { ok: true, status: 200, statusText: 'OK', headers: new Headers({ 'content-type': 'application/json' }), json: async () => corps, text: async () => JSON.stringify(corps) } as Response;
+    }));
+    currentProfileId.set(1); locale.set('en'); concertsPlugin.set({ name: 'concerts', enabled: true } as any);
+    zones.set([Z(2, 'Bureau', 'playing', 'Lumen'), Z(1, 'Salon', 'stopped')]);
+  });
+
+  afterEach(async () => {
+    if (monte) await unmount(monte);
+    monte = null; hote?.remove(); zones.set([]); concertsPlugin.set(null);
+    vi.unstubAllGlobals();
+  });
+
+  async function ouvrir(id: string) {
+    hote = document.createElement('div'); document.body.appendChild(hote);
+    const w = WIDGETS.filter((x) => x.id === id);
+    monte = mount(PageWidgets, { target: hote, props: { catalogue: w as any, dispositionDefaut: [id], cle: 'accueil_temoin' } });
+    flushSync(); await souffler(); flushSync();
+  }
+  // Les titres des PANNEAUX seulement : la carte de zone a aussi son `h3`.
+  const titres = () => [...hote.querySelectorAll('.l1 .panneau h3')].map((e) => e.textContent);
+
+  it('les deux sont au catalogue de « Modifier », et le défaut garde la ligne d’origine', () => {
+    const ids = WIDGETS.map((w) => w.id);
+    expect(ids).toContain('premiere-ligne');
+    expect(ids).toContain('premiere-ligne-levente');
+    expect(DISPOSITION_DEFAUT[0]).toBe('premiere-ligne');
+    expect(DISPOSITION_DEFAUT).not.toContain('premiere-ligne-levente');
+    const lev = WIDGETS.find((w) => w.id === 'premiere-ligne-levente')!;
+    expect(lev.cleTitre).toBe('v2.home.wFirstRowLevente');
+    expect(lev.sansTitre).toBe(true);
+  });
+
+  it('la ligne d’ORIGINE est rendue comme avant : cartes, trois panneaux, largeurs fixes, pas de Zones', async () => {
+    await ouvrir('premiere-ligne');
+    expect(titres()).toEqual(['Genres', 'Concerts near you', 'My listening']);
+    expect(hote.querySelector('.l1 .carte'), 'la carte de la zone qui joue a disparu').not.toBeNull();
+    expect(hote.querySelector('[data-zones-actives]')).toBeNull();
+    expect(hote.querySelector('.panneau.levente')).toBeNull();
+    const genres = hote.querySelector<HTMLElement>('.l1 .panneau')!;
+    expect(genres.style.width).toBe('150px');
+    expect(hote.querySelector('.tuile'), 'les tuiles de Levente ont fui dans la ligne d’origine').toBeNull();
+  });
+
+  it('la NOUVELLE ligne est rendue avec Zones, tuiles et panneaux qui se partagent la largeur', async () => {
+    await ouvrir('premiere-ligne-levente');
+    expect(titres()).toEqual(['Zones', 'Genres', 'Concerts near you', 'My listening']);
+    expect(hote.querySelector('[data-zones-actives]')?.textContent).toBe('1 active');
+    expect(hote.querySelector('.l1 .carte'), 'le panneau Zones remplace les cartes').toBeNull();
+    expect(hote.querySelector('.tuile')).not.toBeNull();
+    const p = [...hote.querySelectorAll<HTMLElement>('.l1 .panneau')];
+    expect(p.every((x) => x.classList.contains('levente'))).toBe(true);
+    expect(p.every((x) => x.style.width === '' && x.style.minWidth !== '')).toBe(true);
+    // Décision de Bertrand : la lecture aléatoire reste où elle est — aucun
+    // bouton « Shuffle » ajouté par la nouvelle présentation.
+    expect(hote.querySelector('.l1 [class*="aleatoire"], .l1 [aria-label*="huffle" i]')).toBeNull();
   });
 });

@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "Der Fortschritt der Anreicherung wird in {p} verfolgt.",
   "v2.home.wZonesCards": "Läuft gerade",
   "v2.home.wFirstRow": "Hörübersicht",
+  "v2.home.wFirstRowLevente": "Hörübersicht (neue Darstellung)",
   "v2.home.l1Zones": "Zonen",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktiv}}",
   "v2.home.l1ManageZones": "Zonen verwalten",

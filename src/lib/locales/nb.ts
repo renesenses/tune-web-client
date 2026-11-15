@@ -4807,6 +4807,7 @@ export default {
   "v2.meta.foot": "Fremdriften i berikelsen følges i {p}.",
   "v2.home.wZonesCards": "Lytter nå",
   "v2.home.wFirstRow": "Lytteoversikt",
+  "v2.home.wFirstRowLevente": "Lytteoversikt (ny visning)",
   "v2.home.l1Zones": "Soner",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktive}}",
   "v2.home.l1ManageZones": "Administrer soner",

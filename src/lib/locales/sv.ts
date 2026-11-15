@@ -4932,6 +4932,7 @@ export default {
   "v2.meta.foot": "Berikningens förlopp följs i {p}.",
   "v2.home.wZonesCards": "Spelas nu",
   "v2.home.wFirstRow": "Lyssningsöversikt",
+  "v2.home.wFirstRowLevente": "Lyssningsöversikt (ny layout)",
   "v2.home.l1Zones": "Zoner",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktiva}}",
   "v2.home.l1ManageZones": "Hantera zoner",

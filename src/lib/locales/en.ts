@@ -4953,6 +4953,7 @@ export default {
   "v2.meta.foot": "Enrichment progress is tracked in {p}.",
   "v2.home.wZonesCards": "Now listening",
   "v2.home.wFirstRow": "Listening overview",
+  "v2.home.wFirstRowLevente": "Listening overview (new layout)",
   "v2.home.l1Zones": "Zones",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# active} other {# active}}",
   "v2.home.l1ManageZones": "Manage zones",

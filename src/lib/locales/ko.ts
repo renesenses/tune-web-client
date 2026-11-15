@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "보강 진행률은 {p}에서 확인합니다。",
   "v2.home.wZonesCards": "지금 재생 중",
   "v2.home.wFirstRow": "감상 개요",
+  "v2.home.wFirstRowLevente": "감상 개요 (새 레이아웃)",
   "v2.home.l1Zones": "존",
   "v2.home.l1ZonesActiveN": "{n, plural, other {활성 #개}}",
   "v2.home.l1ManageZones": "존 관리",

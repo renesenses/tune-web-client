@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "补全进度可在 {p} 中查看。",
   "v2.home.wZonesCards": "正在收听",
   "v2.home.wFirstRow": "聆听概览",
+  "v2.home.wFirstRowLevente": "聆听概览（新布局）",
   "v2.home.l1Zones": "区域",
   "v2.home.l1ZonesActiveN": "{n, plural, other {# 个活动}}",
   "v2.home.l1ManageZones": "管理区域",

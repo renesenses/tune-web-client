@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "Progresul îmbogățirii se urmărește în {p}.",
   "v2.home.wZonesCards": "Se ascultă acum",
   "v2.home.wFirstRow": "Prezentare generală a ascultării",
+  "v2.home.wFirstRowLevente": "Prezentare generală a ascultării (aspect nou)",
   "v2.home.l1Zones": "Zone",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# activă} few {# active} other {# active}}",
   "v2.home.l1ManageZones": "Gestionează zonele",

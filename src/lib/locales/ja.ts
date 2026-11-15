@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "補完の進捗は {p} で確認できます。",
   "v2.home.wZonesCards": "再生中",
   "v2.home.wFirstRow": "リスニングの概要",
+  "v2.home.wFirstRowLevente": "リスニングの概要（新しいレイアウト）",
   "v2.home.l1Zones": "ゾーン",
   "v2.home.l1ZonesActiveN": "{n, plural, other {# 件アクティブ}}",
   "v2.home.l1ManageZones": "ゾーンを管理",

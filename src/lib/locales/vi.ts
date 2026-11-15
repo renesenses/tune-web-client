@@ -4809,6 +4809,7 @@ export default {
   "v2.meta.foot": "Tiến độ bổ sung thông tin được theo dõi trong {p}.",
   "v2.home.wZonesCards": "Đang nghe",
   "v2.home.wFirstRow": "Tổng quan nghe nhạc",
+  "v2.home.wFirstRowLevente": "Tổng quan nghe nhạc (bố cục mới)",
   "v2.home.l1Zones": "Vùng",
   "v2.home.l1ZonesActiveN": "{n, plural, other {# đang hoạt động}}",
   "v2.home.l1ManageZones": "Quản lý vùng",

@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "L’avanzamento dell’arricchimento si segue in {p}.",
   "v2.home.wZonesCards": "In ascolto",
   "v2.home.wFirstRow": "Panoramica degli ascolti",
+  "v2.home.wFirstRowLevente": "Panoramica degli ascolti (nuova presentazione)",
   "v2.home.l1Zones": "Zone",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# attiva} other {# attive}}",
   "v2.home.l1ManageZones": "Gestisci zone",

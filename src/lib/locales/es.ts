@@ -4933,6 +4933,7 @@ export default {
   "v2.meta.foot": "El progreso del enriquecimiento se sigue en {p}.",
   "v2.home.wZonesCards": "Sonando ahora",
   "v2.home.wFirstRow": "Resumen de escucha",
+  "v2.home.wFirstRowLevente": "Resumen de escucha (nueva presentación)",
   "v2.home.l1Zones": "Zonas",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# activa} other {# activas}}",
   "v2.home.l1ManageZones": "Gestionar zonas",

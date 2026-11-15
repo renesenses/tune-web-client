@@ -4807,6 +4807,7 @@ export default {
   "v2.meta.foot": "Η πρόοδος του εμπλουτισμού παρακολουθείται στο {p}.",
   "v2.home.wZonesCards": "Ακρόαση τώρα",
   "v2.home.wFirstRow": "Επισκόπηση ακροάσεων",
+  "v2.home.wFirstRowLevente": "Επισκόπηση ακροάσεων (νέα παρουσίαση)",
   "v2.home.l1Zones": "Ζώνες",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# ενεργή} other {# ενεργές}}",
   "v2.home.l1ManageZones": "Διαχείριση ζωνών",

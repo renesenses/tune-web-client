@@ -4955,6 +4955,7 @@ export default {
   "v2.meta.foot": "L’avancement de l’enrichissement se suit dans {p}.",
   "v2.home.wZonesCards": "En écoute",
   "v2.home.wFirstRow": "Aperçu des écoutes",
+  "v2.home.wFirstRowLevente": "Aperçu des écoutes (nouvelle présentation)",
   "v2.home.l1Zones": "Zones",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# active} other {# actives}}",
   "v2.home.l1ManageZones": "Gérer les zones",

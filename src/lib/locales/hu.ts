@@ -4887,6 +4887,7 @@ export default {
   "v2.meta.foot": "A gazdagítás haladása a(z) {p} alatt követhető.",
   "v2.home.wZonesCards": "Most szól",
   "v2.home.wFirstRow": "Hallgatási áttekintés",
+  "v2.home.wFirstRowLevente": "Hallgatási áttekintés (új elrendezés)",
   "v2.home.l1Zones": "Zónák",
   "v2.home.l1ZonesActiveN": "{n, plural, one {# aktív} other {# aktív}}",
   "v2.home.l1ManageZones": "Zónák kezelése",
