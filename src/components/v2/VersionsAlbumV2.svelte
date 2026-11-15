@@ -32,8 +32,8 @@
         onclick={() => onChoisir(v.id)} title={$tr('v2.album.fiche.openVersion' as any)}>
         <span class="pochette"><AlbumArt coverPath={v.cover_path ?? null} albumId={v.id} size={0} vignette alt={titreVersion(v)} fallbackInitials={v.title?.slice(0, 1)} /></span>
         <span class="texte">
-          <span class="titre">{titreVersion(v)}{#if v.id === oeuvre.preferred_id}<span class="etoile" title={$tr('v2.album.preferredVersion' as any)}> ★</span>{/if}</span>
-          {#if v.label}<span class="sous">{v.label}</span>{/if}
+          <span class="titre" title={titreVersion(v)}>{titreVersion(v)}{#if v.id === oeuvre.preferred_id}<span class="etoile" title={$tr('v2.album.preferredVersion' as any)}> ★</span>{/if}</span>
+          {#if v.label}<span class="sous" title={v.label}>{v.label}</span>{/if}
         </span>
         <span class="pastilles">
           {#each pastillesVersion(v) as p (p)}<span class="pastille">{p}</span>{/each}

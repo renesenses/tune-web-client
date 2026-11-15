@@ -86,7 +86,7 @@
       {/if}
       <div class="texte">
         <h2>{$tr('v2.album.fiche.about' as any).replace('{artist}', nom)}</h2>
-        {#if bio}<p class="bio">{bio}</p>{/if}
+        {#if bio}<p class="bio" title={bio}>{bio}</p>{/if}
         {#if onArtiste}
           <button type="button" class="lien" data-voir-artiste onclick={onArtiste}>{$tr('v2.album.fiche.viewArtist' as any)} ›</button>
         {/if}
@@ -122,7 +122,7 @@
 
   {#if plusDe.length}
     <section class="bloc" data-bloc-plus-de>
-      <div class="entete">
+      <div class="bloc-tete">
         <h2>{$tr('v2.album.fiche.moreFrom' as any).replace('{artist}', nom)}</h2>
         {#if onArtiste}
           <button type="button" class="lien" data-tout-voir onclick={onArtiste}>{$tr('v2.album.fiche.seeAll' as any)} ›</button>
@@ -162,9 +162,9 @@
     font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .grille dt{color:var(--v2-txt2); overflow-wrap:anywhere}
   .grille dd{margin:0; color:var(--v2-txt); overflow-wrap:anywhere}
-  .entete{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
-  .entete h2{min-width:0}
-  .entete .lien{flex:0 0 auto; white-space:nowrap}
+  .bloc-tete{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .bloc-tete h2{min-width:0}
+  .bloc-tete .lien{flex:0 0 auto; white-space:nowrap}
   .vignettes{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px}
   .vignette{display:flex; flex-direction:column; gap:6px; min-width:0}
   .vtitre{all:unset; cursor:pointer; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2);
