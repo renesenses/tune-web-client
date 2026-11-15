@@ -16,6 +16,7 @@
    */
   import { t, tn } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import VignettePochettesCercle from './VignettePochettesCercle.svelte';
   import type { CercleNomme, CercleOuJeSuisInvite } from '../../lib/circle';
   import type { IdOpaque, PlaylistCercleResume } from '../../lib/circlePlaylists';
   import {
@@ -140,6 +141,7 @@
         <li class="ligne playlist-cercle carte-playlist">
           <div class="vignette teinte-{teinte(p)}">
             <span class="note-vignette" aria-hidden="true">♪</span>
+            <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
             <button type="button" class="lire-playlist-ligne" disabled={occupe || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)}
               onclick={() => onLire(p)}>
@@ -167,7 +169,7 @@
       <ul>
         {#each miennes as p (String(p.id))}
           <li class="ma-playlist">
-            <span class="vignette mini teinte-{teinte(p)}" aria-hidden="true">♪</span>
+            <span class="vignette mini teinte-{teinte(p)}" aria-hidden="true">♪<VignettePochettesCercle id={p.id} version={p.version} count={p.count} /></span>
             <button type="button" class="ouvrir-ma-playlist" onclick={() => onOuvrir(p.id)}>
               <strong use:bulleTexte>{p.name}</strong>
               <span class="note">{$tn('v2.common.trackCountN', p.count)}</span>
