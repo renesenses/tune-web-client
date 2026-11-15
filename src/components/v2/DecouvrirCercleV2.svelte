@@ -18,6 +18,7 @@
   import { t, tn } from '../../lib/i18n';
   import { dateCourte } from '../../lib/dates';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import VignettePochettesCercle from './VignettePochettesCercle.svelte';
   import { notifsCercle, type NotifCercle } from '../../lib/circleNotifications';
   import { apercuConversations, demandeConversation, nomConversation } from '../../lib/circleMessagerie';
   import type { ContactCercle } from '../../lib/circle';
@@ -134,6 +135,7 @@
         {#each apercuPlaylists as p (String(p.id))}
           <li class="mini-playlist">
             <div class="vignette"><span aria-hidden="true">♪</span>
+              <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
               <button type="button" class="lire" disabled={occupe || p.count === 0}
                 aria-label={tr('v2.circle.pl.playNamed', { name: p.name })} onclick={() => onLirePlaylist(p)}>
                 <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg></button></div>
@@ -167,6 +169,8 @@
   .colonne-droite{display:flex; flex-direction:column; gap:18px; min-width:0}
   .decouvrir-milieu{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px}
   .carte-dec{padding:16px 18px; border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface); min-width:0}
+  /* Le bouton « Remonter en haut » (60 px, en bas à droite) masquait la fin des dates de la dernière carte. */
+  .carte-dec.activite{padding-right:76px}
   .carte-dec h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(17px * var(--v2-txt-echelle, 1)); margin:0 0 10px}
   .tete-carte{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
   .voir-tout{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap}

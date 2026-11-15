@@ -1171,7 +1171,8 @@
 <style>
   .v2-circle{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px}
+  /* Bas : de quoi faire défiler le dernier bloc au-dessus du bouton « Remonter en haut » (60 px). */
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 110px; display:flex; flex-direction:column; gap:16px}
   /* rc8 : la scène prend toute la largeur ; les blocs de gestion gardent leur colonne lisible. */
   .scroll > :not(.panneau){max-width:880px}
   .panneau{display:flex; flex-direction:column; gap:16px; min-width:0}
