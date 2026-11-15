@@ -11,7 +11,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, nonLusMessagerie, apercuConversations, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -38,6 +38,8 @@
   const tr = (k: string) => $t(k as any);
   const chronologiques = $derived([...messages].sort((a, b) => a.id - b.id));
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
+  // rc12 — la pastille de l'onglet Messages et la carte « Messages récents » de Découvrir.
+  $effect(() => { nonLusMessagerie.set(total); apercuConversations.set(liste); });
 
   /** rc11 — un cercle a « # » pour avatar ; un contact, ses initiales. */
   function avatar(c: ConversationCercle) { return c.kind === 'direct' ? initiales(c.contact.name) : '#'; }
@@ -341,7 +343,7 @@
 {:else if erreur}<p role="alert">{erreur}</p>{/if}
 
 <style>
-  .messagerie{margin:24px 0;color:var(--v2-txt);scroll-margin-top:24px}
+  .messagerie{margin:0 0 24px;color:var(--v2-txt);scroll-margin-top:24px}
   h2{font-size:calc(18px * var(--v2-txt-echelle, 1));margin:0 0 12px}h3{font-size:calc(15px * var(--v2-txt-echelle, 1));margin:0;min-width:0;overflow-wrap:anywhere}
   .volets{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,3fr);border:1px solid var(--v2-line);border-radius:16px;overflow:hidden;background:var(--v2-bg)}
   nav{display:flex;flex-direction:column;gap:2px;padding:8px;border-right:1px solid var(--v2-line);max-height:620px;overflow:auto}
