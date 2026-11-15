@@ -7835,6 +7835,8 @@ export default {
   "reglages.barreLaterale.resume": "Sources affichées et ordre des entrées",
   "reglages.barreLaterale.deplace": "Se règle désormais sur l’écran Barre latérale.",
   "reglages.barreLaterale.ouvrir": "Gérer la barre latérale",
+  "reglages.onglets.precedents": "Onglets précédents",
+  "reglages.onglets.suivants": "Onglets suivants",
   "reglages.interface.apparence": "Apparence",
   "reglages.interface.barreLecture": "Barre de lecture",
   "reglages.interface.navigation": "Navigation",

@@ -4622,6 +4622,41 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
   function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
+  // Barre d'onglets qui déborde : quels bords sont coupés (fondu + flèche).
+  let navOnglets = $state<HTMLElement | null>(null);
+  let fonduG = $state(false);
+  let fonduD = $state(false);
+  function mesurerOnglets() {
+    const n = navOnglets;
+    if (!n) return;
+    fonduG = n.scrollLeft > 2;
+    fonduD = n.scrollLeft + n.clientWidth < n.scrollWidth - 2;
+  }
+  function defilerOnglets(sens: 1 | -1) {
+    const n = navOnglets;
+    if (!n) return;
+    const pas = Math.max(160, n.clientWidth * 0.6) * sens;
+    if (typeof n.scrollBy === 'function') n.scrollBy({ left: pas, behavior: 'smooth' });
+    else n.scrollLeft += pas;
+  }
+  $effect(() => {
+    const n = navOnglets;
+    void tabs.length;
+    if (!n) return;
+    mesurerOnglets();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => mesurerOnglets()) : null;
+    ro?.observe(n);
+    return () => ro?.disconnect();
+  });
+  // L'onglet actif reste visible quand on y arrive (recherche, renvoi).
+  $effect(() => {
+    void tabId;
+    tick().then(() => {
+      navOnglets?.querySelector<HTMLElement>('.tab.on')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      mesurerOnglets();
+    });
+  });
+
   /** Ouvre un écran secondaire (« Barre latérale »), depuis n'importe quel onglet. */
   function ouvrirSousEcran(id: string) {
     const porteur = ongletDeLaSection(tabId, id);
@@ -4731,7 +4766,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     <RechercheReglagesV2 niveau={level} onchoisir={allerAuReglage} />
   </header>
 
-  <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}">
+  <!-- Recette du .18 (15/11) : la barre d'onglets coupée à droite ne disait
+       pas qu'elle défile. Un fondu au bord qui déborde, et une flèche qui
+       fait défiler (souris sans molette horizontale). -->
+  <div class="tabs-cadre" class:fondu-g={fonduG} class:fondu-d={fonduD}>
+  <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}" bind:this={navOnglets} onscroll={mesurerOnglets}>
     {#each tabs as x (x.id)}
       <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
@@ -4739,6 +4778,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       </button>
     {/each}
   </nav>
+  {#if fonduG}
+    <button type="button" class="defile-onglets g" data-defiler-onglets="g" aria-label={$t('reglages.onglets.precedents' as any)}
+      title={$t('reglages.onglets.precedents' as any)} onclick={() => defilerOnglets(-1)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+    </button>
+  {/if}
+  {#if fonduD}
+    <button type="button" class="defile-onglets d" data-defiler-onglets="d" aria-label={$t('reglages.onglets.suivants' as any)}
+      title={$t('reglages.onglets.suivants' as any)} onclick={() => defilerOnglets(1)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+    </button>
+  {/if}
+  </div>
 
   <div class="body">
     <div class="pane">
@@ -8981,6 +9033,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Fondu au bord coupé (masque alpha, donc aucune couleur), flèche par-dessus. */
+  .tabs-cadre{position:relative; flex:0 0 auto}
+  .tabs-cadre.fondu-d .tabs{-webkit-mask-image:linear-gradient(to right, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to right, black calc(100% - 72px), transparent)}
+  .tabs-cadre.fondu-g .tabs{-webkit-mask-image:linear-gradient(to left, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to left, black calc(100% - 72px), transparent)}
+  .tabs-cadre.fondu-g.fondu-d .tabs{-webkit-mask-image:linear-gradient(to right, transparent, black 72px, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to right, transparent, black 72px, black calc(100% - 72px), transparent)}
+  .defile-onglets{position:absolute; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border:1px solid var(--v2-line2); border-radius:50%; background:var(--v2-surface2);
+    color:var(--v2-txt2); cursor:pointer; z-index:1}
+  .defile-onglets.g{left:8px}
+  .defile-onglets.d{right:8px}
+  .defile-onglets svg{width:16px; height:16px}
+  .defile-onglets:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .defile-onglets:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
   /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
      la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
      chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le

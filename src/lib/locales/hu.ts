@@ -7772,6 +7772,8 @@ export default {
   "reglages.barreLaterale.resume": "Megjelenített források és a bejegyzések sorrendje",
   "reglages.barreLaterale.deplace": "Mostantól az Oldalsáv képernyőn állítható.",
   "reglages.barreLaterale.ouvrir": "Oldalsáv beállítása",
+  "reglages.onglets.precedents": "Előző lapok",
+  "reglages.onglets.suivants": "További lapok",
   "reglages.interface.apparence": "Megjelenés",
   "reglages.interface.barreLecture": "Lejátszósáv",
   "reglages.interface.navigation": "Navigáció",

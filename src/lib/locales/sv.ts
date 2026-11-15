@@ -7812,6 +7812,8 @@ export default {
   "reglages.barreLaterale.resume": "Visade källor och ordningen på posterna",
   "reglages.barreLaterale.deplace": "Ställs nu in på skärmen Sidofält.",
   "reglages.barreLaterale.ouvrir": "Ställ in sidofältet",
+  "reglages.onglets.precedents": "Föregående flikar",
+  "reglages.onglets.suivants": "Fler flikar",
   "reglages.interface.apparence": "Utseende",
   "reglages.interface.barreLecture": "Uppspelningsfält",
   "reglages.interface.navigation": "Navigering",

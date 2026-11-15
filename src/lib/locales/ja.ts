@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "表示するソースと項目の順序",
   "reglages.barreLaterale.deplace": "サイドバー画面で設定するようになりました。",
   "reglages.barreLaterale.ouvrir": "サイドバーを設定",
+  "reglages.onglets.precedents": "前のタブ",
+  "reglages.onglets.suivants": "次のタブ",
   "reglages.interface.apparence": "外観",
   "reglages.interface.barreLecture": "再生バー",
   "reglages.interface.navigation": "ナビゲーション",

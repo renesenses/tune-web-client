@@ -82,7 +82,7 @@ describe('Réglages — carte de la maquette de Levente', () => {
   it('les nouveaux textes existent dans les 15 langues', () => {
     const cles = ['reglages.barreLaterale.titre', 'reglages.barreLaterale.resume', 'reglages.barreLaterale.deplace',
       'reglages.barreLaterale.ouvrir', 'reglages.interface.apparence', 'reglages.interface.barreLecture',
-      'reglages.interface.navigation', 'reglages.interface.details'];
+      'reglages.interface.navigation', 'reglages.interface.details', 'reglages.onglets.precedents', 'reglages.onglets.suivants'];
     expect(ONZE_LANGUES.length).toBe(15);
     for (const lg of ONZE_LANGUES) for (const k of cles) expect(dictionnaire(lg)[k], `${lg} : ${k}`).toBeTruthy();
   });
@@ -180,5 +180,28 @@ describe('Réglages — écran monté', () => {
     onglets[1].click();
     await attendre();
     expect(el.querySelector('[data-sous-ecran]')).toBeNull();
+  });
+
+  it('barre d’onglets qui déborde : fondu au bord coupé et flèche qui la fait défiler', { timeout: 60_000 }, async () => {
+    const el = await monter({ tab: 'general' });
+    const nav = el.querySelector<HTMLElement>('nav.tabs')!;
+    Object.defineProperty(nav, 'clientWidth', { configurable: true, value: 400 });
+    Object.defineProperty(nav, 'scrollWidth', { configurable: true, value: 1200 });
+    const pas: number[] = [];
+    (nav as any).scrollBy = ({ left }: { left: number }) => { pas.push(left); };
+    nav.dispatchEvent(new Event('scroll'));
+    await attendre();
+    const cadre = el.querySelector('.tabs-cadre')!;
+    expect(cadre.classList.contains('fondu-d'), 'pas de fondu au bord droit coupé').toBe(true);
+    expect(cadre.classList.contains('fondu-g')).toBe(false);
+    el.querySelector<HTMLButtonElement>('[data-defiler-onglets="d"]')!.click();
+    expect(pas.length).toBe(1);
+    expect(pas[0]).toBeGreaterThan(0);
+    // Tout tient : ni fondu ni flèche.
+    Object.defineProperty(nav, 'scrollWidth', { configurable: true, value: 400 });
+    nav.dispatchEvent(new Event('scroll'));
+    await attendre();
+    expect(cadre.classList.contains('fondu-d')).toBe(false);
+    expect(el.querySelector('[data-defiler-onglets]')).toBeNull();
   });
 });

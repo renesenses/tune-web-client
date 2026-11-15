@@ -7833,6 +7833,8 @@ export default {
   "reglages.barreLaterale.resume": "Sources shown and order of entries",
   "reglages.barreLaterale.deplace": "Now set on the Sidebar screen.",
   "reglages.barreLaterale.ouvrir": "Manage sidebar",
+  "reglages.onglets.precedents": "Previous tabs",
+  "reglages.onglets.suivants": "More tabs",
   "reglages.interface.apparence": "Appearance",
   "reglages.interface.barreLecture": "Player bar",
   "reglages.interface.navigation": "Navigation",

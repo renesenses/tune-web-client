@@ -7658,6 +7658,8 @@ export default {
   "reglages.barreLaterale.resume": "Wyświetlane źródła i kolejność pozycji",
   "reglages.barreLaterale.deplace": "Ustawiane teraz na ekranie Pasek boczny.",
   "reglages.barreLaterale.ouvrir": "Ustaw pasek boczny",
+  "reglages.onglets.precedents": "Poprzednie karty",
+  "reglages.onglets.suivants": "Kolejne karty",
   "reglages.interface.apparence": "Wygląd",
   "reglages.interface.barreLecture": "Pasek odtwarzania",
   "reglages.interface.navigation": "Nawigacja",

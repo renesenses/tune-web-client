@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "Surse afișate și ordinea intrărilor",
   "reglages.barreLaterale.deplace": "Se setează acum în ecranul Bară laterală.",
   "reglages.barreLaterale.ouvrir": "Setează bara laterală",
+  "reglages.onglets.precedents": "File anterioare",
+  "reglages.onglets.suivants": "Mai multe file",
   "reglages.interface.apparence": "Aspect",
   "reglages.interface.barreLecture": "Bara de redare",
   "reglages.interface.navigation": "Navigare",

@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "Fuentes mostradas y orden de las entradas",
   "reglages.barreLaterale.deplace": "Ahora se ajusta en la pantalla Barra lateral.",
   "reglages.barreLaterale.ouvrir": "Ajustar la barra lateral",
+  "reglages.onglets.precedents": "Pestañas anteriores",
+  "reglages.onglets.suivants": "Más pestañas",
   "reglages.interface.apparence": "Apariencia",
   "reglages.interface.barreLecture": "Barra de reproducción",
   "reglages.interface.navigation": "Navegación",

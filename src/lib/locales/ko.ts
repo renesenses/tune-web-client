@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "표시할 소스와 항목 순서",
   "reglages.barreLaterale.deplace": "이제 사이드바 화면에서 설정합니다.",
   "reglages.barreLaterale.ouvrir": "사이드바 설정",
+  "reglages.onglets.precedents": "이전 탭",
+  "reglages.onglets.suivants": "다음 탭",
   "reglages.interface.apparence": "모양",
   "reglages.interface.barreLecture": "재생 바",
   "reglages.interface.navigation": "탐색",

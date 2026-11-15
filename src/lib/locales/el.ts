@@ -7658,6 +7658,8 @@ export default {
   "reglages.barreLaterale.resume": "Πηγές που εμφανίζονται και σειρά των στοιχείων",
   "reglages.barreLaterale.deplace": "Ρυθμίζεται πλέον στην οθόνη Πλευρική στήλη.",
   "reglages.barreLaterale.ouvrir": "Ρύθμιση πλευρικής στήλης",
+  "reglages.onglets.precedents": "Προηγούμενες καρτέλες",
+  "reglages.onglets.suivants": "Περισσότερες καρτέλες",
   "reglages.interface.apparence": "Εμφάνιση",
   "reglages.interface.barreLecture": "Γραμμή αναπαραγωγής",
   "reglages.interface.navigation": "Πλοήγηση",

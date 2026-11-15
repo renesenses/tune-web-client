@@ -7665,6 +7665,8 @@ export default {
   "reglages.barreLaterale.resume": "Nguồn hiển thị và thứ tự các mục",
   "reglages.barreLaterale.deplace": "Giờ được đặt trong màn hình Thanh bên.",
   "reglages.barreLaterale.ouvrir": "Thiết lập thanh bên",
+  "reglages.onglets.precedents": "Các thẻ trước",
+  "reglages.onglets.suivants": "Các thẻ tiếp theo",
   "reglages.interface.apparence": "Giao diện",
   "reglages.interface.barreLecture": "Thanh phát",
   "reglages.interface.navigation": "Điều hướng",

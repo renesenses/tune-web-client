@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "显示的来源和条目顺序",
   "reglages.barreLaterale.deplace": "现在在“侧边栏”界面中设置。",
   "reglages.barreLaterale.ouvrir": "设置侧边栏",
+  "reglages.onglets.precedents": "上一组标签",
+  "reglages.onglets.suivants": "更多标签",
   "reglages.interface.apparence": "外观",
   "reglages.interface.barreLecture": "播放栏",
   "reglages.interface.navigation": "导航",

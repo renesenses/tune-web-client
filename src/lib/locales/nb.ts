@@ -7658,6 +7658,8 @@ export default {
   "reglages.barreLaterale.resume": "Viste kilder og rekkefølgen på oppføringene",
   "reglages.barreLaterale.deplace": "Stilles nå inn på skjermen Sidefelt.",
   "reglages.barreLaterale.ouvrir": "Still inn sidefeltet",
+  "reglages.onglets.precedents": "Forrige faner",
+  "reglages.onglets.suivants": "Flere faner",
   "reglages.interface.apparence": "Utseende",
   "reglages.interface.barreLecture": "Avspillingslinje",
   "reglages.interface.navigation": "Navigasjon",

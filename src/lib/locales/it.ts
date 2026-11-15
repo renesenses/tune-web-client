@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "Sorgenti mostrate e ordine delle voci",
   "reglages.barreLaterale.deplace": "Ora si regola nella schermata Barra laterale.",
   "reglages.barreLaterale.ouvrir": "Regola la barra laterale",
+  "reglages.onglets.precedents": "Schede precedenti",
+  "reglages.onglets.suivants": "Altre schede",
   "reglages.interface.apparence": "Aspetto",
   "reglages.interface.barreLecture": "Barra di riproduzione",
   "reglages.interface.navigation": "Navigazione",

@@ -7813,6 +7813,8 @@ export default {
   "reglages.barreLaterale.resume": "Angezeigte Quellen und Reihenfolge der Einträge",
   "reglages.barreLaterale.deplace": "Wird jetzt im Bildschirm Seitenleiste eingestellt.",
   "reglages.barreLaterale.ouvrir": "Seitenleiste einstellen",
+  "reglages.onglets.precedents": "Vorherige Registerkarten",
+  "reglages.onglets.suivants": "Weitere Registerkarten",
   "reglages.interface.apparence": "Darstellung",
   "reglages.interface.barreLecture": "Wiedergabeleiste",
   "reglages.interface.navigation": "Navigation",
