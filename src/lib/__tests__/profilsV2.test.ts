@@ -26,7 +26,7 @@ describe('gestion des profils dans la coquille v2', () => {
     const ecran = lire('../../components/v2/SettingsV2.svelte');
     expect(ecran).toMatch(/s\.id === 'profiles'\}\s*<ProfilsV2 \/>/);
     const comp = lire('../../components/v2/ProfilsV2.svelte');
-    for (const geste of ['createProfile', 'updateProfile', 'deleteProfile', 'selectProfile']) {
+    for (const geste of ['createProfile', 'updateProfile', 'deleteProfile', 'basculerVers']) {
       expect(comp.includes(`${geste}(`), `${geste} non appelé`).toBe(true);
     }
     // On ne supprime jamais le dernier profil, ni Default (web#1672).
@@ -37,11 +37,8 @@ describe('gestion des profils dans la coquille v2', () => {
     const menu = lire('../../components/v2/AvatarMenu.svelte');
     const i = menu.indexOf("v2SettingsTarget.set({ tab: 'general', section: 'profiles' })");
     expect(i, 'aucun lien « Gérer les profils »').toBeGreaterThan(0);
-    // Le lien n'est pas sous la garde `$profiles.length > 1` : il est dans la
-    // partie « items » du menu, après la fermeture de cette garde.
-    const garde = menu.indexOf("{#if forme !== 'aucune'}");
-    expect(garde, 'garde de la liste des profils introuvable').toBeGreaterThan(-1);
-    const finGarde = menu.indexOf('{/if}', garde);
-    expect(i).toBeGreaterThan(finGarde);
+    // Le lien est toujours visible : la liste des profils a quitté le menu
+    // (Levente, 15/11/2026), « Gérer les profils » est le seul chemin.
+    expect(menu).not.toContain('$visibleProfiles');
   });
 });

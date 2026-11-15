@@ -101,69 +101,52 @@ describe('basculerVers — ce qui est réellement écrit', () => {
 
 /* ─────────────────────────── Le câblage ───────────────────────────────── */
 
+// Levente, 15/11/2026 : la liste a quitté le menu de l'avatar. La bascule vit
+// dans « Gérer les profils » (`ProfilsV2`), seul chemin restant.
+const ECRAN = resolve(process.cwd(), 'src/components/v2/ProfilsV2.svelte');
 const MENU = resolve(process.cwd(), 'src/components/v2/AvatarMenu.svelte');
 /** La source sans ce qu'on a écrit pour l'expliquer. Bloc reconnu en DÉBUT de
  *  ligne seulement : le motif large ouvre un faux commentaire sur le `/*` d'une
  *  chaîne et mange tout ce qui suit. */
-const menu = () =>
-  readFileSync(MENU, 'utf8')
+const sansCommentaires = (f: string) =>
+  readFileSync(f, 'utf8')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '')
-    .replace(/^\s*\/\/.*$/gm, '');
+    .replace(/^\s*\/\/.*$/gm, '')
+    .replace(/^\s*\*.*$/gm, '');
+const ecran = () => sansCommentaires(ECRAN);
 
-describe('Le panneau du compte porte la bascule', () => {
+describe('« Gérer les profils » porte la bascule', () => {
   it('🔴 il appelle la mécanique, pas `selectProfile`', () => {
     // `selectProfile` ne fait que poser l'identifiant : rien de ce qui est déjà
     // chargé ne bouge, et l'écran continuerait d'afficher les favoris et le
     // thème de la personne précédente.
-    const src = menu();
-    expect(src).toContain("import { basculerVers } from '../../lib/basculeDeProfil'");
+    const src = ecran();
+    expect(src).toContain("import { basculerVers, basculeNecessaire } from '../../lib/basculeDeProfil'");
     expect(src).toContain('basculerVers(get(currentProfileId), id)');
+    expect(src).toContain('onclick={() => basculer(p.id)}');
     expect(
       /selectProfile\s*\(/.test(src),
-      'le panneau appelle `selectProfile` : la bascule serait muette',
+      'l’écran appelle `selectProfile` : la bascule serait muette',
     ).toBe(false);
   });
 
-  it('🔴 la liste n’apparaît qu’à partir de DEUX profils', () => {
-    // Sur une installation à profil unique, une liste à un élément n'est pas un
-    // choix : c'est une rubrique de plus dans un panneau déjà plafonné.
-    const src = menu();
-    const i = src.indexOf("$t('profiles.sectionTitle' as any)");
-    expect(i, 'la rubrique Profils a disparu').toBeGreaterThan(-1);
-    // Le bloc conditionnel le plus proche AU-DESSUS du titre doit être celui-ci,
-    // et il ne doit pas s'être refermé entre les deux.
-    const avant = src.slice(0, i);
-    // web#1672 : la garde compte les profils VISIBLES (Default masqué dès
-    // qu'un profil personnel existe), et reste ouverte si l'on est sur Default.
-    const garde = avant.lastIndexOf("{#if forme !== 'aucune'}");
-    expect(garde, 'la rubrique n’est plus conditionnée au nombre de profils').toBeGreaterThan(-1);
-    // #2426 — la forme se décide dans `formeDeLaSection` : liste dès DEUX profils.
-    expect(readFileSync(resolve(__dirname, '../profilDuCompte.ts'), 'utf-8')).toContain('if (nbVisibles > 1) return \'liste\';');
-    expect(
-      avant.lastIndexOf('{/if}'),
-      'la condition se referme avant le titre : la rubrique s’affiche toujours',
-    ).toBeLessThan(garde);
-  });
-
-  it('🔴 il affiche le nom, pas l’adresse de connexion', () => {
-    // `name` porte le courriel côté serveur, `display_name` le prénom :
-    // afficher `name` mettrait « matteo@mozaiklabs.fr » dans une liste de
-    // personnes.
-    const src = menu();
-    const i = src.indexOf('function nomDuProfil');
-    expect(i, 'le choix du libellé a disparu').toBeGreaterThan(-1);
-    expect(src.slice(i, i + 160)).toContain('p.display_name?.trim() || p.name');
+  it('il affiche le nom, pas l’adresse de connexion', () => {
+    const src = ecran();
+    expect(src).toContain('p.display_name?.trim() || p.name');
   });
 
   it('le profil actif est marqué, pour la vue ET pour l’assistance vocale', () => {
-    const src = menu();
-    expect(src).toContain("class:actif={forme === 'liste' && p.id === $currentProfileId}");
-    expect(src).toContain("aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}");
+    expect(ecran()).toContain("aria-current={p.id === $currentProfileId ? 'true' : undefined}");
   });
 
   it('le rechargement est ANNONCÉ', () => {
-    // Un écran qui repart sans prévenir se lit comme un plantage.
-    expect(menu()).toContain("$t('profiles.switchHint' as any)");
+    expect(ecran()).toContain("$t('profiles.switchHint' as any)");
+  });
+
+  it('le menu de l’avatar ne bascule plus lui-même, mais mène à l’écran', () => {
+    const menu = sansCommentaires(MENU);
+    expect(menu).not.toContain('basculerVers');
+    expect(menu).toContain("v2SettingsTarget.set({ tab: 'general', section: 'profiles' })");
   });
 });
