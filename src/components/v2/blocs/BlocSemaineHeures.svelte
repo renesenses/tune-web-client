@@ -18,6 +18,8 @@
   import * as api from '../../../lib/api';
   import type { DashboardPeriod, SlotTrack } from '../../../lib/api';
   import { t } from '../../../lib/i18n';
+  import VideBloc from './VideBloc.svelte';
+  import { cleVide, ICONES } from '../../../lib/tableauDeBordPeriode';
   import { currentZone } from '../../../lib/stores/zones';
 
   export interface MatiereSemaineHeures {
@@ -75,11 +77,11 @@
   }
 </script>
 
-{#if !grille.length || max === 0}
+{#if !grille.length}
   <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
        derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
        vide ne dit rien de l'historique plus ancien. -->
-  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
+  <VideBloc message={$t(cleVide() as any)} icone={ICONES.barres} />
 {:else}
   <div class="carte">
     <div class="entete">
@@ -106,6 +108,14 @@
       </div>
     {/each}
   </div>
+  {#if max === 0}
+    <!-- Maquette « My listening » (rc12) : la grille reste en place, vide,
+         et la phrase de la période vient dessous. -->
+    <p class="pied">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">{@html ICONES.barres}</svg>
+      {$t(cleVide() as any)}
+    </p>
+  {/if}
 {/if}
 
 <svelte:window onkeydown={(e) => { if (calque && e.key === 'Escape') calque = false; }} />
@@ -143,9 +153,11 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  .carte { display: flex; flex-direction: column; gap: 3px; padding: 0 30px; }
+  .pied { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0 0;
+    padding: 0 var(--bloc-marge, 30px); color: var(--v2-txt3); font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); text-align: center; }
+  .pied svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .carte { display: flex; flex-direction: column; gap: 3px; padding: 0 var(--bloc-marge, 30px); }
   /* 30 px pour l'étiquette du jour, puis vingt-quatre colonnes ÉGALES. La
      grille se comprime, elle ne déborde jamais. */
   .entete, .ligne { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 3px; align-items: center; }
@@ -181,9 +193,9 @@
   .ms { font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .mn { position: absolute; right: 12px; top: 10px; font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
 
-  @media (max-width: 1024px) { .carte { padding-left: 22px; padding-right: 22px; } }
+  @media (max-width: 1024px) { .carte { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); } }
   @media (max-width: 640px) {
-    .carte { padding-left: 16px; padding-right: 16px; gap: 2px; }
+    .carte { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); gap: 2px; }
     .entete, .ligne { grid-template-columns: 26px repeat(24, 1fr); gap: 2px; }
     .jour { font-size: calc(9px * var(--v2-txt-echelle, 1)); padding-right: 3px; }
     /* Une graduation sur trois reste lisible ; sur téléphone elle ne l'est

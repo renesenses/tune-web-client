@@ -933,6 +933,10 @@ export default {
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
   "dashboard.onThisDayEmpty": "過去の年のこの日付には再生記録がありません。",
   "dashboard.emptyLast7Days": "過去7日間に表示するものはありません。",
+  "dashboard.emptyToday": "今日表示するものはありません。",
+  "dashboard.emptyLast30Days": "過去30日間に表示するものはありません。",
+  "dashboard.emptyAllTime": "まだ表示するものはありません。",
+  "dashboard.periodChoice": "期間",
 
   // Equalizer
   'settings.eqBandsTitle': "エキスパートEQ",

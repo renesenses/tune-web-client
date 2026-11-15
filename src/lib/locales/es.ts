@@ -933,6 +933,10 @@ export default {
   'dashboard.empty': 'Aún no hay historial de escucha. Pon algo de música 🎶',
   "dashboard.onThisDayEmpty": "No hay escuchas en esta fecha en años anteriores.",
   "dashboard.emptyLast7Days": "Nada que mostrar en los últimos 7 días.",
+  "dashboard.emptyToday": "Nada que mostrar hoy.",
+  "dashboard.emptyLast30Days": "Nada que mostrar en los últimos 30 días.",
+  "dashboard.emptyAllTime": "Nada que mostrar todavía.",
+  "dashboard.periodChoice": "Periodo",
 
   // Equalizer
   'settings.eqBandsTitle': "Ecualizador Experto",

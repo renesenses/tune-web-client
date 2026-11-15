@@ -35,6 +35,7 @@
    * défiler à la souris, qui est son geste principal.
    */
   import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import type { Snippet } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
   import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
@@ -213,6 +214,22 @@
      * règle « tous horizontaux » du 02/09 tient toujours.
      */
     grille?: boolean;
+    /**
+     * Maquette « My listening » de Levente (rc12, 15/11/2026) — la grille
+     * FLUIDE du Tableau de bord : six colonnes qui partagent la largeur de la
+     * page (tiers et tuiles), au lieu des carrés fixes de 315 px. Ne vaut
+     * qu'avec `grille` ; l'Accueil, Qobuz et Tidal ne la passent pas.
+     */
+    grilleFluide?: boolean;
+    /**
+     * Le délai de garde d'un chargement, en millisecondes. 8 s par défaut
+     * (voir `DELAI_MS`). Le Tableau de bord l'allonge quand on lui demande
+     * trente jours ou tout l'historique, plus lents côté serveur.
+     */
+    delaiMs?: number;
+    /** Des commandes propres à la page, dessinées dans l'en-tête avant
+     *  « Modifier » (le choix de la période du Tableau de bord). */
+    actionsEntete?: Snippet;
   }
   let {
     catalogue = WIDGETS,
@@ -227,6 +244,9 @@
     cleTitre = 'v2.home.title',
     salut = false,
     grille = false,
+    grilleFluide = false,
+    delaiMs,
+    actionsEntete,
   }: Props = $props();
 
   /** Ce que le catalogue a appris après le montage — #987. */
@@ -359,7 +379,7 @@
         minuteur = setTimeout(() => {
           rejeter(new Error('delai'));
           controle?.abort();
-        }, DELAI_MS);
+        }, delaiMs ?? DELAI_MS);
       }),
     ]).finally(() => clearTimeout(minuteur));
   }
@@ -1596,6 +1616,7 @@
            taisent donc tant que « Voir tout » est ouvert ; la flèche de
            retour reste la seule sortie. -->
       {#if !voirTout}
+      {#if actionsEntete && !edition}{@render actionsEntete()}{/if}
       {#if edition}
         <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!catalogueComplet.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -1712,7 +1733,7 @@
            conteneur existe dans les deux cas : c'est lui, et non `.scroll`,
            qui porte la grille, parce qu'une requête de conteneur ne s'applique
            qu'aux DESCENDANTS du conteneur interrogé (`.scroll`). -->
-      <div class="pile" class:mosaique={grille}>
+      <div class="pile" class:mosaique={grille} class:fluide={grille && grilleFluide}>
       {#each disposition as id, i (id)}
         {@const w = parId(id)}
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
@@ -1724,6 +1745,7 @@
           <section
             class="bloc"
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
+            class:etendu={w.forme === 'bloc' && (w.bloc?.etendue ?? w.bloc?.colonnes) === 2}
             class:cible={survole === i && saisi !== null && saisi !== i}
             ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
             ondrop={(e) => { e.preventDefault(); deposer(i); }}
@@ -1752,6 +1774,9 @@
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
                 </span>
+              {/if}
+              {#if w.forme === 'bloc' && w.bloc?.icone}
+                <svg class="icone-bloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html w.bloc.icone}</svg>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
               {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
@@ -2555,6 +2580,37 @@
   @container (max-width: 720px){
     .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
     .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
+  }
+  /* Maquette « My listening » de Levente (rc12) — la grille FLUIDE : six
+     colonnes qui se partagent la page. Un bloc `etendu` en prend deux (un
+     tiers), les autres une (une tuile). La hauteur déclarée par le bloc
+     reste un plancher ; la rangée prend la hauteur de son plus grand bloc. */
+  .mosaique.fluide{grid-template-columns:repeat(6, minmax(0,1fr)); justify-content:stretch}
+  .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large{grid-column:span 1; max-width:none;
+    display:flex; flex-direction:column; padding:16px 0 14px}
+  .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  .mosaique.fluide > .bloc > .tete{padding-left:20px; padding-right:20px}
+  /* La hauteur déclarée (132 / 264 / 396) est celle des carrés de 315 px ;
+     sur la grille fluide, une rangée de tuiles vides en ferait 396 px de
+     vide. Le plancher descend à 150 px : la page saute moins qu'elle ne
+     respire, et une liste pleine prend toujours la hauteur qu'il lui faut. */
+  .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px !important;
+    --bloc-marge:20px}
+  .icone-bloc{width:20px; height:20px; flex:0 0 auto; color:var(--v2-acc1)}
+  /* Vérification sur le .18 (15/11) : sous ~1 500 px de contenu, six tuiles
+     par rangée coupent les chiffres et réduisent les titres à trois lettres.
+     Trois par rangée : chaque bloc, tuile ou tiers, prend un tiers. */
+  @container (max-width: 1500px){
+    .mosaique.fluide{grid-template-columns:repeat(3, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 1}
+  }
+  @container (max-width: 900px){
+    .mosaique.fluide{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  }
+  @container (max-width: 460px){
+    .mosaique.fluide{grid-template-columns:minmax(0,1fr)}
+    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.etendu{grid-column:auto}
   }
   /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
   .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;

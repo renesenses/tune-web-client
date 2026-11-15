@@ -154,30 +154,53 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     expect(larges).toEqual(['tdb-tendance', 'tdb-semaine-heures', 'tdb-heures']);
   });
 
-  it('🔴 l’écran monté range ses blocs sur une grille de colonnes de 315 px', async () => {
+  /* rc12 — maquette « My listening » de Levente (Figma 615:5809, 15/11/2026) :
+     le Tableau de bord passe sur la grille FLUIDE (`grilleFluide`) — six
+     colonnes qui se partagent la page, des tiers et des tuiles. Les carrés
+     de 315 px restent ceux de `PageWidgets` en `grille` seule. */
+  it('🔴 l’écran monté range ses blocs sur la grille fluide de la maquette (six colonnes)', async () => {
     const page = await poser(TableauDeBordV2);
-    const grille = page.querySelector<HTMLElement>('.mosaique');
-    expect(grille, 'aucun conteneur de grille : les blocs sont empilés en pleine largeur').toBeTruthy();
+    const grille = page.querySelector<HTMLElement>('.mosaique.fluide');
+    expect(grille, 'aucun conteneur de grille fluide').toBeTruthy();
     const cs = getComputedStyle(grille!);
     expect(cs.display).toBe('grid');
-    expect(sansEspaces(cs.gridTemplateColumns)).toBe(`repeat(auto-fill,${COTE_GRILLE}px)`);
+    expect(sansEspaces(cs.gridTemplateColumns)).toBe('repeat(6,minmax(0,1fr))');
     expect(cs.columnGap).toBe(`${GOUTTIERE_GRILLE}px`);
-    // Les onze blocs sont DANS la grille, pas à côté.
     expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(12);
     expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(12);
   });
 
-  it('🔴 aucun bloc ne s’étire au-delà de ses colonnes', async () => {
+  it('🔴 trois rangées comme la maquette : 3 tiers, 6 tuiles, 3 tiers', async () => {
     const page = await poser(TableauDeBordV2);
     const sections = [...page.querySelectorAll<HTMLElement>('.mosaique > section.bloc')];
     expect(sections).toHaveLength(12);
+    const spans = sections.map((el) => sansEspaces(getComputedStyle(el).gridColumn));
+    expect(spans).toEqual([
+      'span2', 'span2', 'span2',
+      'span1', 'span1', 'span1', 'span1', 'span1', 'span1',
+      'span2', 'span2', 'span2',
+    ]);
+    for (const el of sections) expect(getComputedStyle(el).maxWidth).toBe('none');
+  });
+
+  it('contre-épreuve : `grille` SANS `grilleFluide` garde les carrés de 315 px', async () => {
+    const page = await poser(PageWidgets, {
+      catalogue: BLOCS_TABLEAU_DE_BORD,
+      dispositionDefaut: DISPOSITION_DEFAUT_TABLEAU_DE_BORD,
+      cle: 'tableau_de_bord_widgets',
+      cleChiffres: 'tableau_de_bord_stats',
+      cleChiffresMigre: 'tableau_de_bord_stats_migre',
+      cleTitre: 'dashboard.title',
+      grille: true,
+    });
+    const grille = page.querySelector<HTMLElement>('.mosaique')!;
+    expect(grille.classList.contains('fluide')).toBe(false);
+    expect(sansEspaces(getComputedStyle(grille).gridTemplateColumns)).toBe(`repeat(auto-fill,${COTE_GRILLE}px)`);
+    const sections = [...grille.querySelectorAll<HTMLElement>(':scope > section.bloc')];
     sections.forEach((el, i) => {
       const w = BLOCS_TABLEAU_DE_BORD.find((x) => x.id === DISPOSITION_DEFAUT_TABLEAU_DE_BORD[i])!;
       const n = w.bloc?.colonnes ?? 1;
-      const cs = getComputedStyle(el);
-      expect(cs.maxWidth, `${w.id} : largeur maximale`).toBe(`${largeurBloc(n)}px`);
-      if (n === 2) expect(sansEspaces(cs.gridColumn), `${w.id} : deux colonnes`).toBe('span2');
-      else expect(sansEspaces(cs.gridColumn), `${w.id} : une colonne`).not.toBe('span2');
+      expect(getComputedStyle(el).maxWidth, `${w.id} : largeur maximale`).toBe(`${largeurBloc(n)}px`);
     });
   });
 

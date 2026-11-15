@@ -57,9 +57,9 @@
 <style>
   /* Tout est en variables `--v2-*` : la coquille v2 porte cinq thèmes, dont
      un CLAIR. Une seule couleur en dur et l'un des deux modes serait raté. */
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
+  .rien { margin: 0; padding: 22px var(--bloc-marge, 30px); color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  .tete { display: flex; align-items: baseline; gap: 14px; padding: 0 30px 14px; flex-wrap: wrap; }
+  .tete { display: flex; align-items: baseline; gap: 14px; padding: 0 var(--bloc-marge, 30px) 14px; flex-wrap: wrap; }
   .grand {
     font: 700 calc(46px * var(--v2-txt-echelle, 1))/1 var(--v2-sans);
     letter-spacing: -1.5px;
@@ -84,7 +84,8 @@
     align-items: flex-end;
     gap: 3px;
     height: 220px;
-    padding: 0 30px;
+    padding: 0 var(--bloc-marge, 30px);
+    background: linear-gradient(var(--v2-line), var(--v2-line)) bottom / calc(100% - 2 * var(--bloc-marge, 30px)) 1px no-repeat;
   }
   .barre {
     flex: 1 1 0;
@@ -95,7 +96,7 @@
   }
   .barre:hover { opacity: 0.65; }
 
-  .axe { margin: 10px 0 0; padding: 0 30px; font: 400 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
+  .axe { margin: 10px 0 0; padding: 0 var(--bloc-marge, 30px); font: 400 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
 
   /* Tablette et mobile : la page perd ses gouttières de 30 px, comme le reste
      de `PageWidgets` (voir ses propres ruptures à 1024 et 640). Les barres se
@@ -103,10 +104,10 @@
      barres tiennent dans 320 px de large sans déborder, parce qu'elles sont
      en `flex:1 1 0` et non en largeur fixe. */
   @media (max-width: 1024px) {
-    .tete, .barres, .axe { padding-left: 22px; padding-right: 22px; }
+    .tete, .barres, .axe { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); }
   }
   @media (max-width: 640px) {
-    .tete, .barres, .axe { padding-left: 16px; padding-right: 16px; }
+    .tete, .barres, .axe { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
     .grand { font-size: calc(34px * var(--v2-txt-echelle, 1)); }
     .barres { gap: 2px; height: 140px; }
   }

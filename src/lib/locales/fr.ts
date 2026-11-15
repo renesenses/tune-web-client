@@ -1064,6 +1064,10 @@ export default {
   'dashboard.empty': 'Pas encore d\'historique d\'écoute. Lance quelque chose 🎶',
   "dashboard.onThisDayEmpty": "Aucune écoute à cette date les années précédentes.",
   "dashboard.emptyLast7Days": "Rien à afficher sur les 7 derniers jours.",
+  "dashboard.emptyToday": "Rien à afficher aujourd'hui.",
+  "dashboard.emptyLast30Days": "Rien à afficher sur les 30 derniers jours.",
+  "dashboard.emptyAllTime": "Rien à afficher pour l'instant.",
+  "dashboard.periodChoice": "Période",
 
   // Equalizer
   'settings.eqBandsTitle': "Égaliseur Expert",

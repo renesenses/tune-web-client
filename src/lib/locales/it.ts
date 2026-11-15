@@ -933,6 +933,10 @@ export default {
   'dashboard.empty': 'Nessuna cronologia di ascolto. Avvia qualcosa 🎶',
   "dashboard.onThisDayEmpty": "Nessun ascolto in questa data negli anni precedenti.",
   "dashboard.emptyLast7Days": "Niente da mostrare negli ultimi 7 giorni.",
+  "dashboard.emptyToday": "Niente da mostrare oggi.",
+  "dashboard.emptyLast30Days": "Niente da mostrare negli ultimi 30 giorni.",
+  "dashboard.emptyAllTime": "Ancora niente da mostrare.",
+  "dashboard.periodChoice": "Periodo",
 
   // Equalizer
   'settings.eqBandsTitle': "Equalizzatore Expert",

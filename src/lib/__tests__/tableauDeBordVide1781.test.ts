@@ -104,7 +104,10 @@ describe('#1781 — chaque bloc vide dit la vérité sur SON contenu', () => {
 
   it.each(PERIODIQUES)('%s, semaine vide : il nomme les 7 derniers jours au lieu de nier tout historique', async (id) => {
     const txt = await texteDuBloc(id);
-    expect(txt).toBe(FR['dashboard.emptyLast7Days']);
+    // rc12 (maquette de Levente) : Jour × heure et Heures gardent leur grille
+    // vide dessinée ; la phrase de la période vient dessous.
+    if (id === 'tdb-semaine-heures' || id === 'tdb-heures') expect(txt).toContain(FR['dashboard.emptyLast7Days']);
+    else expect(txt).toBe(FR['dashboard.emptyLast7Days']);
     expect(txt).not.toContain(FR['dashboard.empty']);
   });
 

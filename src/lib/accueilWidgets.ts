@@ -319,6 +319,20 @@ export interface Bloc<D = any> {
    * en prend deux. Ignoré hors d'une page montée en grille (`grille`).
    */
   colonnes?: 1 | 2;
+  /**
+   * Maquette « My listening » de Levente (rc12, 15/11/2026) — la largeur du
+   * bloc sur la grille FLUIDE (`grilleFluide`) : six colonnes, un bloc en
+   * prend une (une tuile) ou deux (un tiers de la page). Par défaut, il suit
+   * `colonnes`. Ignoré partout ailleurs.
+   */
+  etendue?: 1 | 2;
+  /**
+   * L'icône de l'en-tête du bloc, dessinée par `PageWidgets` devant le titre :
+   * le CONTENU d'un `<svg viewBox="0 0 24 24">` à trait `currentColor`
+   * (chemins seulement). Facultative : sans elle, l'en-tête reste celui
+   * d'avant.
+   */
+  icone?: string;
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
 }

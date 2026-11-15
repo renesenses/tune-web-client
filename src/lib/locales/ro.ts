@@ -939,6 +939,10 @@ export default {
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
   "dashboard.onThisDayEmpty": "Nicio ascultare la această dată în anii anteriori.",
   "dashboard.emptyLast7Days": "Nimic de afișat pentru ultimele 7 zile.",
+  "dashboard.emptyToday": "Nimic de afișat pentru azi.",
+  "dashboard.emptyLast30Days": "Nimic de afișat pentru ultimele 30 de zile.",
+  "dashboard.emptyAllTime": "Nimic de afișat deocamdată.",
+  "dashboard.periodChoice": "Perioadă",
 
   // Equalizer
   'settings.eqBandsTitle': "Egalizator Expert",

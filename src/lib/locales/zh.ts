@@ -933,6 +933,10 @@ export default {
   'dashboard.empty': '暂无收听历史。播放一些音乐吧 🎶',
   "dashboard.onThisDayEmpty": "往年的这一天没有收听记录。",
   "dashboard.emptyLast7Days": "最近 7 天没有可显示的内容。",
+  "dashboard.emptyToday": "今天没有可显示的内容。",
+  "dashboard.emptyLast30Days": "过去 30 天没有可显示的内容。",
+  "dashboard.emptyAllTime": "暂无可显示的内容。",
+  "dashboard.periodChoice": "时间段",
 
   // Equalizer
   'settings.eqBandsTitle': "专家均衡器",

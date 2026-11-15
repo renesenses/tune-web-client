@@ -36,9 +36,9 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
+  .rien { margin: 0; padding: 22px var(--bloc-marge, 30px); color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  .serie { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 4px 30px 0; }
+  .serie { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 4px var(--bloc-marge, 30px) 0; }
   .grand {
     font: 800 calc(46px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1.8px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
@@ -47,13 +47,14 @@
     font: 700 calc(24px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); color: var(--v2-txt);
     font-variant-numeric: tabular-nums;
   }
-  .bloc2 { text-align: right; }
+  .bloc2 { text-align: right; align-self: stretch; display: flex; flex-direction: column; justify-content: flex-end;
+    border-left: 1px solid var(--v2-line); padding-left: 20px; }
   .quoi { margin-top: 5px; font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .quoi2 { margin-top: 4px; font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt3); }
 
-  @media (max-width: 1024px) { .serie { padding-left: 22px; padding-right: 22px; } }
+  @media (max-width: 1024px) { .serie { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); } }
   @media (max-width: 640px) {
-    .serie { padding-left: 16px; padding-right: 16px; }
+    .serie { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
     .grand { font-size: calc(36px * var(--v2-txt-echelle, 1)); }
   }
 </style>
