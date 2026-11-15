@@ -2803,6 +2803,7 @@ export default {
   "smartPlaylists.joinAny": "HOẶC",
   "collections.title": "Bộ sưu tập",
   "v2.pl.remove": "Gỡ",
+  "v2.pl.removeFromThisPlaylist": "Xóa khỏi danh sách phát này",
   "v2.pl.missingTrack": "Không tìm thấy",
   "v2.pl.radioLive": "Trực tiếp",
   "v2.pl.radioUnavailable": "Đài không khả dụng",

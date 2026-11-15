@@ -2093,6 +2093,7 @@ export default {
   "smartPlaylists.joinAny": "ELLER",
   "collections.title": "Samlingar",
   "v2.pl.remove": "Ta bort",
+  "v2.pl.removeFromThisPlaylist": "Ta bort från den här spellistan",
   "v2.pl.missingTrack": "Saknas",
   "v2.pl.radioLive": "Direkt",
   "v2.pl.radioUnavailable": "Radion är inte tillgänglig",

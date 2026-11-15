@@ -422,6 +422,16 @@ describe('T5 — la vue d\'une playlist', () => {
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
   });
 
+  it('🔴 rc12 — la croix « Retirer » est VISIBLE sur la ligne, sans ouvrir le menu ⋯', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    for (const n of morceaux(el)) expect(n.querySelector('button[data-retirer-titre]'), 'croix absente').not.toBeNull();
+    await cliquer(ligne(el, 'Blue in Green'), 'button[data-retirer-titre]');
+    const d = ecritures().find((a) => a.method === 'DELETE')!;
+    expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
+  });
+
   it('réordonner : PUT /order avec la permutation EXACTE et la version', async () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');

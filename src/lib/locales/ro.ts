@@ -2146,6 +2146,7 @@ export default {
   "smartPlaylists.joinAny": "SAU",
   "collections.title": "Colecții",
   "v2.pl.remove": "Elimină",
+  "v2.pl.removeFromThisPlaylist": "Elimină din acest playlist",
   "v2.pl.missingTrack": "Negăsită",
   "v2.pl.radioLive": "În direct",
   "v2.pl.radioUnavailable": "Radio indisponibil",

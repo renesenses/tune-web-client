@@ -2249,6 +2249,7 @@ export default {
   "smartPlaylists.joinAny": "VAGY",
   "collections.title": "Gyűjtemények",
   "v2.pl.remove": "Eltávolítás",
+  "v2.pl.removeFromThisPlaylist": "Eltávolítás ebből a lejátszási listából",
   "v2.pl.missingTrack": "Nem található",
   "v2.pl.radioLive": "Élő",
   "v2.pl.radioUnavailable": "A rádió nem érhető el",
