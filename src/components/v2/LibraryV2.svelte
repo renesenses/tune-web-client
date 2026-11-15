@@ -1493,7 +1493,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear).length);
+  /**
+   * Le compte de la pastille « 2002 · N albums ». Il se lit comme le nombre
+   * d'albums de la GRILLE : il croise donc les autres filtres (source,
+   * qualité, recherche…), comme le compteur de la période (#8162).
+   *
+   * 🔴 Recette du 15/11 sur le .18 : depuis Lecture en cours, clic sur 2002,
+   * « Source · Local » retenu — la pastille annonçait « 2002 · 96 albums »
+   * au-dessus de « Tout (90) » : les 6 albums UPnP de 2002 étaient comptés
+   * alors que la grille les écartait. La frise, elle, continue de décrire la
+   * collection entière (`populationFrise`).
+   */
+  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear && matchesHorsAnnees(a)).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre.
@@ -5357,6 +5368,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      badge de qualite refuse de retrecir et pousse la pastille hors carte. */
   .cbot{display:flex; align-items:center; gap:6px; min-width:0}
   .cbot > :global(*){min-width:0}
+  /* Recette du 15/11 (.18, « Come Away With Me ») : les écoutes de la
+     communauté « (22) » prenaient la place de la qualité, qui passait à la
+     ligne (`.qa` est en `flex-wrap:wrap`) et laissait « (22) » seul au milieu
+     de la carte. Sur la carte, une seule ligne : la qualité s'élide (`.q`),
+     le badge de source et les écoutes restent entiers. */
+  .cbot > :global(.qa){flex-wrap:nowrap}
+  .cbot > :global(.ecoutes-communaute){flex:none}
   .cq{margin-top:4px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .chip.dr{display:inline-flex; align-items:center; gap:5px}
   .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}
