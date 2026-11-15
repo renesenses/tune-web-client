@@ -54,7 +54,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
   import ColonneAlbumV2 from './ColonneAlbumV2.svelte';
   import VersionsAlbumV2 from './VersionsAlbumV2.svelte';
-  import { listeDeGenres } from '../../lib/ficheAlbumMaquette';
+  import { genresDesPistes, listeDeGenres } from '../../lib/ficheAlbumMaquette';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -1174,6 +1174,46 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * `?? 'CD'` affirmait un format qu'il n'avait pas.
    */
   const qualite = $derived(qualiteEnTeteAlbum(album, tracks));
+  /**
+   * Recette du .18 (15/11, « Animals 50 » de Qobuz) : la colonne « Détails »
+   * n'affichait que la sortie, alors que l'en-tête montrait label, format,
+   * titres et durée. Ce que la fiche affiche déjà lui est passé tel quel —
+   * rien de plus : genre des pistes, label (album ou Qobuz), qualité de
+   * l'en-tête, disques, titres, durée.
+   */
+  const complementDetails = $derived({
+    genres: genresDesPistes(tracks as any),
+    label: labelDe(albumAffiche) || labelQobuz?.nom || null,
+    format: qualite?.format ?? null,
+    sample_rate: qualite?.sampleRate ?? null,
+    bit_depth: qualite?.bitDepth ?? null,
+    disques: new Set(tracks.map((t) => t.disc_number ?? 1)).size || null,
+    titres: tracks.length || null,
+    duree: totalMs ? formatDuration(totalMs) : null,
+  });
+  /** Blocs affichés par la colonne : sous deux, elle ne réserve pas sa largeur. */
+  let blocsColonne = $state(0);
+  /**
+   * Recette du .18 (15/11) : la colonne de droite RÉTRÉCISSAIT le tableau des
+   * pistes sous sa largeur minimale (`--tmin` de `ListePistesV2`) ; il
+   * défilait alors, et le « ⋮ » de chaque ligne sortait à moitié du cadre.
+   * Quand le tableau ne tient pas à côté de la colonne, la colonne passe SOUS
+   * les pistes : le tableau garde toute la largeur, comme avant la maquette.
+   */
+  let grilleFiche = $state<HTMLElement | null>(null);
+  let largeurFiche = $state(0);
+  let minTableau = $state(0);
+  $effect(() => {
+    // `loading` aussi : les pistes arrivent AVANT que le tableau soit rendu.
+    const g = grilleFiche; void tracks; void loading; void onglet; void largeurFiche; void $preferences;
+    if (!g) return;
+    void tick().then(() => {
+      const t = g.querySelector<HTMLElement>('.tracks [role="table"]');
+      minTableau = t ? parseFloat(t.style.getPropertyValue('--tmin')) || 0 : 0;
+    });
+  });
+  /** Colonne (340 px au plus) + gouttière (36) + marges des lignes (20). */
+  const colonneSousLesPistes = $derived(largeurFiche > 0 && minTableau > 0 && largeurFiche - 340 - 36 - 20 < minTableau);
   const tier = $derived(
     qualite
       ? getQualityTier({
@@ -1878,7 +1918,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     <span>{$tr('common.back' as any)}</span>
   </button>
 
-  <div class="fiche-grille">
+  <div class="fiche-grille" class:colonne-maigre={blocsColonne < 2 || colonneSousLesPistes} bind:this={grilleFiche} bind:clientWidth={largeurFiche} data-tableau-min={minTableau || undefined} data-colonne-sous={colonneSousLesPistes ? '' : undefined}>
   <div class="principal">
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
@@ -2250,7 +2290,15 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     exclus={oeuvre ? oeuvre.versions.map((v) => v.id) : []} avecCredits={creditsPossibles}
     onArtiste={nomArtiste && (albumAffiche.artist_id != null || artisteDeService) ? allerArtiste : null}
     onAlbum={changerVersion}
-    onCredits={onglets.includes('credits') ? () => choisirOnglet('credits') : null} />
+    onCredits={onglets.includes('credits') ? () => choisirOnglet('credits') : null}
+    complement={complementDetails} onBlocs={(n) => (blocsColonne = n)}
+    onOuvrirArtiste={(a) => {
+      // La fiche se referme AVANT de router (comme `allerArtiste`) ; par la
+      // fiche de bibliothèque quand l'id est connu, sinon par le nom exact.
+      const vue = get(activeView);
+      quitterLaFiche();
+      void ouvrirArtisteDepuis(a.id != null ? { id: a.id, name: a.nom, source: 'local' } : { name: a.nom }, vue);
+    }} />
   </div>
 </div>
 
@@ -2344,7 +2392,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .fiche-grille{display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
   .principal{min-width:0}
   @container (min-width:1080px){
-    .fiche-grille{grid-template-columns:minmax(0,1fr) minmax(300px,440px); gap:36px}
+    .fiche-grille{grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:36px}
+    /* Recette du .18 (15/11) : une colonne d'un seul bloc court laissait un
+       grand vide à droite des pistes. Elle passe alors SOUS les pistes, sans
+       réserver de largeur. */
+    .fiche-grille.colonne-maigre{grid-template-columns:minmax(0,1fr)}
+    .fiche-grille.colonne-maigre > :global([data-colonne-album]){position:static; max-height:none; border-left:0; padding-left:0; max-width:520px}
     /* Recette du .18 (15/11) : au défilement, la colonne passait SOUS la
        grappe fixe du coin haut-droit (recherche, signet, avatar). Elle reste
        collée juste en dessous (`--v2-grappe-h`, la réserve commune) et défile
