@@ -4991,7 +4991,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .drop .menu.filtres-choix{min-width:260px; max-width:min(320px, calc(100vw - 32px))}
   /* Relecture du 15/11 : un libellé long (allemand…) passe à la ligne au lieu
      de déborder ; la case reste en tête de la première ligne. */
-  .filtres-choix button{display:flex; align-items:flex-start; white-space:normal; overflow-wrap:anywhere; line-height:1.3}
+  /* Recette du .18 (15/11) : la police de l'interface, pas la mono des
+     menus de facettes (ce sont des noms de filtres, pas des valeurs). */
+  .drop .menu.filtres-choix button{display:flex; align-items:flex-start; white-space:normal; overflow-wrap:anywhere; line-height:1.3;
+    font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  /* Recette du .18 (15/11) — à 390 px le menu débordait à droite : sur écran
+     étroit il se cale sous la rangée, sur toute sa largeur. */
+  @media (max-width:640px){
+    .filters{position:relative}
+    .drop[data-filtres-choix]{position:static}
+    .drop[data-filtres-choix]::after{display:none}
+    .drop .menu.filtres-choix{left:16px; right:16px; top:auto; margin-top:8px; min-width:0; max-width:none}
+  }
   .filtres-choix .case{flex:0 0 auto; margin-top:1px}
   .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
   .filtres-choix .case{display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px;
