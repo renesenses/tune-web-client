@@ -1380,11 +1380,14 @@
     .tuile + .tuile{border-left:0}
     .rangee > section, .rangee > .bloc-large{flex-basis:100%}
     .bloc-tete{flex-wrap:wrap}
+    /* Le bouton « Gérer les extensions » passe sous le titre. */
+    .bloc-tete .ctitres{flex-basis:calc(100% - 40px)}
+    .bloc-tete .gerer{margin-left:34px}
   }
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
-  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px}
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .card.run{border-color:var(--v2-acc2)}
   .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
