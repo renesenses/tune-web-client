@@ -2120,6 +2120,7 @@ export default {
   "smartPlaylists.joinAny": "또는",
   "collections.title": "컬렉션",
   "v2.pl.remove": "제거",
+  "v2.pl.removeFromThisPlaylist": "이 재생목록에서 삭제",
   "v2.pl.missingTrack": "찾을 수 없음",
   "v2.pl.radioLive": "라이브",
   "v2.pl.radioUnavailable": "라디오를 사용할 수 없음",

@@ -2953,6 +2953,7 @@ export default {
   "smartPlaylists.joinAny": "OU",
   "collections.title": "Collections",
   "v2.pl.remove": "Retirer",
+  "v2.pl.removeFromThisPlaylist": "Supprimer de cette playlist",
   "v2.pl.missingTrack": "Introuvable",
   "v2.pl.radioLive": "En direct",
   "v2.pl.radioUnavailable": "Radio indisponible",

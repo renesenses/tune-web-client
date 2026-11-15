@@ -256,6 +256,12 @@
      */
     coeurDe?: ((piste: Track, index: number) => CoeurExterne | null) | null;
     /**
+     * rc12 (Bertrand, 15/11/2026) — l'écran d'une playlist MODIFIABLE fournit
+     * le retrait de la ligne : le menu « … » de la piste porte alors
+     * « Supprimer de cette playlist ». `null` : entrée absente.
+     */
+    retirerDe?: ((piste: Track, index: number) => void) | null;
+    /**
      * 🔴 La clé de liste, quand `id` ne suffit pas.
      *
      * L'Historique peut afficher DEUX FOIS la même piste — écoutée deux fois.
@@ -443,7 +449,7 @@
     pochetteEnTableau = false,
     tailleVignette = 36,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres, coeurDe = null,
+    ouvertureAlbum = null, apres, coeurDe = null, retirerDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     onGesteDisque = null,
@@ -1107,7 +1113,8 @@
           {/if}
         {/each}
         {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
-          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} />{/if}</span>{/if}
+          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null}
+          onRetirer={retirerDe ? () => retirerDe(p, i) : null} />{/if}</span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}

@@ -2136,6 +2136,7 @@ export default {
   "smartPlaylists.joinAny": "または",
   "collections.title": "コレクション",
   "v2.pl.remove": "削除",
+  "v2.pl.removeFromThisPlaylist": "このプレイリストから削除",
   "v2.pl.missingTrack": "見つかりません",
   "v2.pl.radioLive": "ライブ",
   "v2.pl.radioUnavailable": "ラジオは利用できません",

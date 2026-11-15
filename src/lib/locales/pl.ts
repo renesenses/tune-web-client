@@ -2801,6 +2801,7 @@ export default {
   "smartPlaylists.joinAny": "LUB",
   "collections.title": "Kolekcje",
   "v2.pl.remove": "Usuń",
+  "v2.pl.removeFromThisPlaylist": "Usuń z tej playlisty",
   "v2.pl.missingTrack": "Brak pliku",
   "v2.pl.radioLive": "Na żywo",
   "v2.pl.radioUnavailable": "Radio niedostępne",

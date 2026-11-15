@@ -2801,6 +2801,7 @@ export default {
   "smartPlaylists.joinAny": "Ή",
   "collections.title": "Συλλογές",
   "v2.pl.remove": "Αφαίρεση",
+  "v2.pl.removeFromThisPlaylist": "Αφαίρεση από αυτή τη λίστα αναπαραγωγής",
   "v2.pl.missingTrack": "Λείπει",
   "v2.pl.radioLive": "Ζωντανά",
   "v2.pl.radioUnavailable": "Ο σταθμός δεν είναι διαθέσιμος",

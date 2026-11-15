@@ -154,6 +154,29 @@ describe('(1) #3067 — Gestionnaire de playlists : retirer un titre d’une pla
     expect(hote!.textContent).toContain('Grandma');
   });
 
+  it('🔴 rc12 — « Supprimer de cette playlist » dans le « … » de la piste : même retrait ; absent sur une suivie', async () => {
+    const entree = async () => {
+      const ligne = [...hote!.querySelectorAll<HTMLElement>('.track-list .trow')].find((r) => r.textContent?.includes('Lovely Day'))!;
+      ligne.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click();
+      await attendreQue(() => !!document.body.querySelector('[role="menu"]'), 'le menu de la piste');
+      return [...document.body.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')]
+        .find((e) => e.textContent?.trim() === fr['v2.pl.removeFromThisPlaylist']) ?? null;
+    };
+    await ouvrirDansLeGestionnaire(MIENNE.name);
+    const e = await entree();
+    expect(e, 'entrée absente').toBeTruthy();
+    e!.click();
+    await souffler();
+    const r = retraits();
+    expect(r.length).toBe(1);
+    expect(r[0].url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/q-11\/tracks\/remove$/);
+    expect(r[0].body).toEqual({ track_ids: ['4791523'] });
+    unmount(monte!); monte = null;
+    document.body.querySelectorAll('[role="menu"]').forEach((m) => m.remove());
+    await ouvrirDansLeGestionnaire(SUIVIE.name);
+    expect(await entree()).toBeNull();
+  });
+
   it('playlist SUIVIE (editable: false) : aucune croix', async () => {
     await ouvrirDansLeGestionnaire(SUIVIE.name);
     expect(croix().length).toBe(0);

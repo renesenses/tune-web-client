@@ -15,6 +15,10 @@ import { flushSync, mount, unmount } from 'svelte';
 import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
+import { entreesMenuPiste } from '../menuPiste';
+import lFr from '../locales/fr';
+
+const fr = lFr as unknown as Record<string, string>;
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -50,6 +54,8 @@ let monte: Record<string, unknown> | null = null;
 beforeEach(() => {
   requetes = [];
   lignesLocales = LOCALES.map((l) => ({ ...l }));
+  // La vue « pochettes » choisie par un test est mémorisée : chaque test repart en liste.
+  try { localStorage.clear(); } catch { /* sans stockage */ }
   locale.set('fr');
   vi.stubGlobal('ResizeObserver', ObservateurInerte);
   vi.stubGlobal('IntersectionObserver', ObservateurInerte);
@@ -141,5 +147,53 @@ describe('rc12 — la croix « Retirer » sur chaque ligne de playlist modifiabl
     await ouvrirQobuz(false);
     expect(croix().length).toBe(0);
     expect(hote!.querySelectorAll('button.rm').length).toBe(0);
+  });
+});
+
+/** Ouvre le « … » de la ligne `rang` et rend l'entrée « Supprimer de cette playlist », s'il y en a une. */
+async function entreeSupprimer(rang: number): Promise<HTMLElement | null> {
+  const plus = lignes()[rang].querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
+  expect(plus, 'pas de « … » sur la ligne').toBeTruthy();
+  plus!.click();
+  await attendreQue(() => !!document.body.querySelector('[role="menu"]'), 'le menu de la piste');
+  return [...document.body.querySelectorAll<HTMLElement>('[role="menu"] [role^="menuitem"]')]
+    .find((e) => e.textContent?.trim() === fr['v2.pl.removeFromThisPlaylist']) ?? null;
+}
+
+describe('rc12 — « Supprimer de cette playlist » dans le menu « … » de la piste', () => {
+  it('le module : entrée seulement quand l’écran fournit le geste', () => {
+    const c = { jouable: true, idBibliotheque: 1, artistId: null, albumId: null };
+    expect(entreesMenuPiste(c, { lire: () => {} }).some((e) => e.cle === 'v2.pl.removeFromThisPlaylist')).toBe(false);
+    const faire = vi.fn();
+    const e = entreesMenuPiste(c, { lire: () => {}, retirerDeLaPlaylist: faire }).find((x) => x.cle === 'v2.pl.removeFromThisPlaylist');
+    expect(e).toBeTruthy();
+    e!.faire();
+    expect(faire).toHaveBeenCalledTimes(1);
+  });
+
+  it('🔴 playlist Tune : l’entrée retire CETTE occurrence (entry_id), comme la croix', async () => {
+    await ouvrirLocale();
+    const e = await entreeSupprimer(2);
+    expect(e, 'entrée « Supprimer de cette playlist » absente').toBeTruthy();
+    e!.click();
+    await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.endsWith('/playlists/12/tracks/remove')), 'le retrait');
+    expect(requetes.find((r) => r.url.endsWith('/tracks/remove'))!.body).toEqual({ entry_id: 346 });
+    await attendreQue(() => nb('Nightswimming') === 1, 'la ligne retirée');
+  });
+
+  it('🔴 playlist Qobuz à soi : l’entrée part chez le service', async () => {
+    await ouvrirQobuz(true);
+    const e = await entreeSupprimer(0);
+    expect(e).toBeTruthy();
+    e!.click();
+    await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.includes('/tracks/remove')), 'le retrait');
+    const w = requetes.find((r) => r.method === 'POST')!;
+    expect(w.url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/11\/tracks\/remove$/);
+    expect(w.body).toEqual({ track_ids: ['4791523'] });
+  });
+
+  it('playlist Qobuz suivie (editable: false) : pas d’entrée', async () => {
+    await ouvrirQobuz(false);
+    expect(await entreeSupprimer(0)).toBeNull();
   });
 });

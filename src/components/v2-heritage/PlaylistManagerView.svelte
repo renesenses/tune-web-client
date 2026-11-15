@@ -2059,6 +2059,7 @@
           clef={(_p, i) => i}
           reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}
           apres={selectedPlaylist ? retirer : aMoiChezLeService(selectedStreamingPl) ? retirerService : undefined} largeurApres="36px"
+          retirerDe={selectedPlaylist ? (_t, i) => removeTrack(i) : aMoiChezLeService(selectedStreamingPl) ? (t) => retirerDuService(t) : null}
           etiquetteIndispo="playlist.unavailable" />
         <!-- Le rang pour clé : une playlist peut contenir DEUX fois la même
              piste, et deux clés identiques arrêtent Svelte
