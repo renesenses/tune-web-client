@@ -3687,6 +3687,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "Η πρόταση δεν μπόρεσε να σταλεί. Δοκιμάστε ξανά αργότερα.",
   "v2.tuneTestedPropose.err.previewChanged": "Η προεπισκόπηση άλλαξε από τότε που την ανοίξατε (μόλις τελείωσε ένα κομμάτι). Ελέγξτε τη νέα προεπισκόπηση και επιβεβαιώστε ξανά.",
   "v2.tuneTestedPropose.err.tooMany": "Ο ιστότοπος δέχεται πάρα πολλά αιτήματα. Δοκιμάστε ξανά σε λίγα λεπτά.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "Η σύνδεση στο mozaiklabs.fr έληξε: συνδεθείτε ξανά από Ρυθμίσεις › Σύστημα › Cloud και δοκιμάστε ξανά.",
   "v2.zone.presenceAbsent": "Απούσα εδώ και {days} ημ.",
   "v2.zone.presenceNever": "Δεν εμφανίστηκε ποτέ μετά την ενημέρωση",
   "v2.zone.stereoPairs": "Στερεοφωνικά ζεύγη",

@@ -3689,6 +3689,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "Không thể gửi đề xuất. Hãy thử lại sau.",
   "v2.tuneTestedPropose.err.previewChanged": "Bản xem trước đã thay đổi kể từ khi bạn mở (một bản nhạc vừa kết thúc). Hãy kiểm tra bản xem trước mới rồi xác nhận lại.",
   "v2.tuneTestedPropose.err.tooMany": "Trang web đang nhận quá nhiều yêu cầu. Hãy thử lại sau vài phút.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "Phiên đăng nhập mozaiklabs.fr đã hết hạn: hãy đăng nhập lại trong Cài đặt › Hệ thống › Cloud rồi thử lại.",
   "v2.zone.presenceAbsent": "Vắng mặt {days} ngày",
   "v2.zone.presenceNever": "Chưa từng thấy kể từ bản cập nhật",
   "v2.zone.stereoPairs": "Cặp stereo",

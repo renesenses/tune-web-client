@@ -3808,6 +3808,7 @@ export default {
   "v2.tuneTestedPropose.err.failed": "Propunerea nu a putut fi trimisă. Încercați din nou mai târziu.",
   "v2.tuneTestedPropose.err.previewChanged": "Previzualizarea s-a schimbat de când ați deschis-o (tocmai s-a terminat o piesă). Verificați noua previzualizare, apoi confirmați din nou.",
   "v2.tuneTestedPropose.err.tooMany": "Site-ul primește prea multe solicitări. Încercați din nou peste câteva minute.",
+  "v2.tuneTestedPropose.err.siteSessionExpired": "Conectarea la mozaiklabs.fr a expirat: conectați-vă din nou în Setări › Sistem › Cloud, apoi încercați din nou.",
   "v2.zone.presenceAbsent": "Absentă de {days} z",
   "v2.zone.presenceNever": "Nevăzută de la actualizare",
   "v2.zone.stereoPairs": "Perechi stereo",
