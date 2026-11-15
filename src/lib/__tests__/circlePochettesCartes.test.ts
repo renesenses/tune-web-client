@@ -11,7 +11,7 @@ const lire = vi.fn();
 const resoudre = vi.fn();
 vi.mock('../circlePlaylists', async (orig) => ({ ...(await orig<object>()), lirePlaylistCercle: (...a: unknown[]) => lire(...a), resoudrePlaylistCercle: (...a: unknown[]) => resoudre(...a) }));
 
-import { pochettesDeCarte, tuilesDeCarte, viderPochettesDeCarte } from '../circlePochettesCartes';
+import { pochettesDeCarte, tuilesDeCarte, viderPochettesDeCarte, reglerDelaiCarte, DELAI_CARTE_MS } from '../circlePochettesCartes';
 import Vignette from '../../components/v2/VignettePochettesCercle.svelte';
 
 const item = (n: number) => ({ item_id: `i${n}`, title: `T${n}`, artist_name: 'A', added_by: null, mine: false, added_at: null });
@@ -56,6 +56,21 @@ describe('pochettesDeCarte', () => {
   it('une panne ne casse rien : pas de pochette', async () => {
     lire.mockRejectedValueOnce(new Error('503'));
     expect(await pochettesDeCarte('x', 1)).toEqual([]);
+  });
+  it('une panne passagère n’est pas gardée : le prochain affichage réessaie et trouve les pochettes', async () => {
+    lire.mockRejectedValueOnce(new Error('503'));
+    expect(await pochettesDeCarte('a', 1)).toEqual([]);
+    expect((await pochettesDeCarte('a', 1)).map((x) => x.albumId)).toEqual([10, 11, 12, 13]);
+    expect(lire).toHaveBeenCalledTimes(2);
+  });
+  it('une carte qui ne répond jamais est abandonnée (délai d’environ 8 s) et la file passe à la suivante', async () => {
+    expect(DELAI_CARTE_MS).toBe(8000);
+    reglerDelaiCarte(30);
+    lire.mockImplementationOnce(() => new Promise(() => {}));
+    const bloquee = pochettesDeCarte('muette', 1);
+    const suivante = pochettesDeCarte('a', 1);
+    expect(await bloquee).toEqual([]);
+    expect((await suivante).map((x) => x.albumId)).toEqual([10, 11, 12, 13]);
   });
 });
 

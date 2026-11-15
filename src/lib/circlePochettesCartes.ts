@@ -19,16 +19,32 @@ import { mosaique, type PochetteMorceau } from './circlePlaylistVue';
 const cache = new Map<string, Promise<PochetteMorceau[]>>();
 let file: Promise<unknown> = Promise.resolve();
 
+/** Au-delà, une carte abandonne (lecture ou résolution qui ne répond pas) et la file passe à la suivante. */
+export const DELAI_CARTE_MS = 8000;
+let delaiCarteMs = DELAI_CARTE_MS;
+/** Pour les bancs : raccourcir le délai d'abandon. */
+export function reglerDelaiCarte(ms: number): void { delaiCarteMs = ms; }
+
+function avecDelai<T>(p: Promise<T>, ms: number): Promise<T> {
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  const abandon = new Promise<never>((_, rejeter) => { minuteur = setTimeout(() => rejeter(new Error('délai dépassé')), ms); });
+  return Promise.race([p, abandon]).finally(() => clearTimeout(minuteur));
+}
+
 export function pochettesDeCarte(id: IdOpaque, version: number): Promise<PochetteMorceau[]> {
   const cle = `${String(id)}@${version}`;
   const deja = cache.get(cle);
   if (deja) return deja;
-  const p = file.then(async () => {
+  const p = file.then(() => avecDelai((async () => {
     const pl = await lirePlaylistCercle(id);
-    if (!pl.items.length) return [];
+    if (!pl.items.length) return [] as PochetteMorceau[];
     const r = await resoudrePlaylistCercle(id);
     return mosaique(pl.items, r);
-  }).catch(() => [] as PochetteMorceau[]);
+  })(), delaiCarteMs)).catch(() => {
+    // Un échec passager (panne, délai) n'est pas gardé : un prochain affichage réessaiera.
+    cache.delete(cle);
+    return [] as PochetteMorceau[];
+  });
   file = p;
   cache.set(cle, p);
   return p;
@@ -38,4 +54,4 @@ export function pochettesDeCarte(id: IdOpaque, version: number): Promise<Pochett
 export const tuilesDeCarte = (p: readonly PochetteMorceau[]) => (p.length >= 4 ? p.slice(0, 4) : p.slice(0, 1));
 
 /** Pour les bancs : oublier ce qui a été lu. */
-export function viderPochettesDeCarte(): void { cache.clear(); file = Promise.resolve(); }
+export function viderPochettesDeCarte(): void { cache.clear(); file = Promise.resolve(); delaiCarteMs = DELAI_CARTE_MS; }
