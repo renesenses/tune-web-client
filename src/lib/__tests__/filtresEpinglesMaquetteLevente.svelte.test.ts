@@ -173,4 +173,16 @@ describe('filtres épinglés — la Bibliothèque montée', { timeout: 30_000 },
     expect(choix('recent')!.querySelector('em'), 'le choix ne dit pas que le filtre est actif').not.toBeNull();
     expect(nombre()).toBe(3);
   });
+
+  it('feuille mobile : voile présent menu ouvert, la poignée referme, le voile part avec', async () => {
+    await monter();
+    expect(hote!.querySelector('[data-fond-filtres]')).toBeNull();
+    bouton()!.click();
+    flushSync();
+    expect(hote!.querySelector('[data-fond-filtres]'), 'pas de voile sous la feuille').not.toBeNull();
+    hote!.querySelector<HTMLButtonElement>('[data-filtres-fermer]')!.click();
+    flushSync();
+    expect(choix('quality'), 'la poignée n’a pas refermé le menu').toBeNull();
+    expect(hote!.querySelector('[data-fond-filtres]')).toBeNull();
+  });
 });

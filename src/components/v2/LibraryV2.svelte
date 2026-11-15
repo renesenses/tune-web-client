@@ -3873,7 +3873,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <!-- Rendu seulement OUVERT (comme « Répertoire ») : un `.menu[role=menu]`
              toujours présent passerait pour le menu ouvert de la page. -->
         {#if ddOpen === 'filtres'}
+        <!-- Sous 640 px : une FEUILLE en bas de l'écran, à la manière de
+             FeuilleMini (voile, poignée, coins hauts arrondis), 60 % de haut
+             au plus et défilement interne. Le voile est hors de `.drop` : le
+             toucher, c'est cliquer dehors, et `ddDehors` referme. -->
         <div class="menu filtres-choix" role="menu" aria-label={$tr('v2.lib.filtres.titre' as any)}>
+          <button class="poignee-filtres" data-filtres-fermer onclick={ddClose} aria-label={$tr('v2.common.close' as any)}><span></span></button>
           <p class="filtres-aide">{$tr('v2.lib.filtres.aide' as any)}</p>
           {#each filtresDisponibles as f (f.id)}
             <button role="menuitemcheckbox" aria-checked={filtresEpingles.includes(f.id)} data-epingle-filtre={f.id}
@@ -3887,6 +3892,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
         {/if}
       </div>
+      {#if ddOpen === 'filtres'}<div class="fond-filtres" role="presentation" data-fond-filtres></div>{/if}
     {/if}
 
     <!-- 🔴 Le TRI part sur les Ajouts récents, la BASCULE reste.
@@ -4997,11 +5003,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   /* Recette du .18 (15/11) — à 390 px le menu débordait à droite : sur écran
      étroit il se cale sous la rangée, sur toute sa largeur. */
+  .poignee-filtres, .fond-filtres{display:none}
+  /* Recette du .18 (15/11) — sous 640 px, une feuille en bas de l'écran
+     (même facture que FeuilleMini), et non un menu qui couvre la grille. */
   @media (max-width:640px){
-    .filters{position:relative}
-    .drop[data-filtres-choix]{position:static}
     .drop[data-filtres-choix]::after{display:none}
-    .drop .menu.filtres-choix{left:16px; right:16px; top:auto; margin-top:8px; min-width:0; max-width:none}
+    .fond-filtres{display:block; position:fixed; inset:0; z-index:90; background:var(--v2-scrim)}
+    .drop .menu.filtres-choix{position:fixed; left:0; right:0; top:auto; bottom:0; z-index:91;
+      min-width:0; max-width:none; max-height:60vh; overflow-y:auto; overscroll-behavior:contain;
+      padding:0 10px calc(10px + env(safe-area-inset-bottom, 0px)); border-radius:16px 16px 0 0;
+      border-width:1px 0 0; background:var(--v2-surface2)}
+    .drop .menu.filtres-choix .poignee-filtres{display:grid; place-items:center; flex:0 0 22px; padding:0; border:0;
+      background:none; cursor:pointer; position:sticky; top:0; background:var(--v2-surface2); z-index:1}
+    .poignee-filtres span{display:block; width:38px; height:4px; border-radius:2px; background:var(--v2-line2)}
   }
   .filtres-choix .case{flex:0 0 auto; margin-top:1px}
   .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
