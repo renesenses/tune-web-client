@@ -4934,7 +4934,7 @@ export default {
   "v2.home.wZonesCards": "正在收听",
   "v2.home.wFirstRow": "聆听概览",
   "v2.home.l1Zones": "区域",
-  "v2.home.l1ZonesActive": "{n} 个活动",
+  "v2.home.l1ZonesActiveN": "{n, plural, other {# 个活动}}",
   "v2.home.l1ManageZones": "管理区域",
   "v2.home.zoneOf": "在 {z} 播放",
   "v2.home.profilesUnavailable": "无法加载配置文件：服务器无响应。正在自动重试。",

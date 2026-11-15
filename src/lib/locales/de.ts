@@ -4934,7 +4934,7 @@ export default {
   "v2.home.wZonesCards": "Läuft gerade",
   "v2.home.wFirstRow": "Hörübersicht",
   "v2.home.l1Zones": "Zonen",
-  "v2.home.l1ZonesActive": "{n} aktiv",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktiv}}",
   "v2.home.l1ManageZones": "Zonen verwalten",
   "v2.home.zoneOf": "auf {z}",
   "v2.home.profilesUnavailable": "Profile können nicht geladen werden: Der Server antwortet nicht. Automatischer neuer Versuch läuft.",

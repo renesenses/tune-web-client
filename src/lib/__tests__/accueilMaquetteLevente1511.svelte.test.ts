@@ -102,6 +102,15 @@ describe('le panneau monté', () => {
     expect(appels.some((p) => /\/zones\/3\//.test(p))).toBe(false);
   });
 
+  it('une seule zone active : « 1 active », au singulier (relecture du 15/11)', async () => {
+    zones.set([Z(1, 'Salon', 'stopped'), Z(2, 'Bureau', 'playing', 'Lumen')]);
+    flushSync();
+    expect(hote.querySelector('[data-zones-actives]')?.textContent).toBe('1 active');
+    locale.set('en');
+    flushSync();
+    expect(hote.querySelector('[data-zones-actives]')?.textContent).toBe('1 active');
+  });
+
   it('aucune zone active : pas de pastille « 0 actives »', async () => {
     zones.set([Z(1, 'Salon', 'stopped')]);
     flushSync();
@@ -120,6 +129,12 @@ describe('« 2026 · Jazz » sous la vignette', () => {
     expect(detailsAlbum({})).toBeNull();
     expect(detailsAlbum({ year: 0, genre: '  ' })).toBeNull();
     expect(detailsAlbum(null)).toBeNull();
+  });
+
+  it('le champ générique `date` ne donne PAS l’année — ce peut être un ajout ou une écoute', () => {
+    expect(detailsAlbum({ date: '2019-05-02', genre: 'Jazz' })).toBe('Jazz');
+    expect(detailsAlbum({ date: '2019-05-02' })).toBeNull();
+    expect(detailsAlbum({ releaseDate: '2024-01-01' })).toBe('2024');
   });
 
   it('versElement le pose sur un album, pas sur une playlist', () => {

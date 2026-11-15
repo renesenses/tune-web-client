@@ -602,7 +602,9 @@ export function detailsAlbum(o: any): string | null {
   const an = (() => {
     const y = Number(o?.year);
     if (Number.isInteger(y) && y > 0) return String(y);
-    for (const k of ['release_date', 'releaseDate', 'date']) {
+    // Pas le champ générique `date` : selon l'objet, c'est une date d'ajout,
+    // d'écoute ou d'évènement, pas l'année de l'album (relecture du 15/11).
+    for (const k of ['release_date', 'releaseDate']) {
       const m = typeof o?.[k] === 'string' ? /^(\d{4})/.exec(o[k]) : null;
       if (m) return m[1];
     }

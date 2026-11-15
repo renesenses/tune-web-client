@@ -4954,7 +4954,7 @@ export default {
   "v2.home.wZonesCards": "Now listening",
   "v2.home.wFirstRow": "Listening overview",
   "v2.home.l1Zones": "Zones",
-  "v2.home.l1ZonesActive": "{n} active",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# active} other {# active}}",
   "v2.home.l1ManageZones": "Manage zones",
   "v2.home.zoneOf": "on {z}",
   "v2.home.profilesUnavailable": "Unable to load profiles: the server is not responding. Retrying automatically.",

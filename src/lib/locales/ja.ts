@@ -4934,7 +4934,7 @@ export default {
   "v2.home.wZonesCards": "再生中",
   "v2.home.wFirstRow": "リスニングの概要",
   "v2.home.l1Zones": "ゾーン",
-  "v2.home.l1ZonesActive": "{n} 件アクティブ",
+  "v2.home.l1ZonesActiveN": "{n, plural, other {# 件アクティブ}}",
   "v2.home.l1ManageZones": "ゾーンを管理",
   "v2.home.zoneOf": "{z} で再生中",
   "v2.home.profilesUnavailable": "プロファイルを読み込めません：サーバーが応答しません。自動的に再試行しています。",

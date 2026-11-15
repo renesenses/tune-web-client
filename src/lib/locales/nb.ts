@@ -4808,7 +4808,7 @@ export default {
   "v2.home.wZonesCards": "Lytter nå",
   "v2.home.wFirstRow": "Lytteoversikt",
   "v2.home.l1Zones": "Soner",
-  "v2.home.l1ZonesActive": "{n} aktive",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktive}}",
   "v2.home.l1ManageZones": "Administrer soner",
   "v2.home.zoneOf": "på {z}",
   "v2.home.profilesUnavailable": "Kan ikke laste profiler: serveren svarer ikke. Prøver på nytt automatisk.",

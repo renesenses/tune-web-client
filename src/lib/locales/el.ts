@@ -4808,7 +4808,7 @@ export default {
   "v2.home.wZonesCards": "Ακρόαση τώρα",
   "v2.home.wFirstRow": "Επισκόπηση ακροάσεων",
   "v2.home.l1Zones": "Ζώνες",
-  "v2.home.l1ZonesActive": "{n} ενεργές",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# ενεργή} other {# ενεργές}}",
   "v2.home.l1ManageZones": "Διαχείριση ζωνών",
   "v2.home.zoneOf": "στη ζώνη {z}",
   "v2.home.profilesUnavailable": "Δεν ήταν δυνατή η φόρτωση των προφίλ: ο διακομιστής δεν αποκρίνεται. Γίνεται αυτόματη νέα προσπάθεια.",

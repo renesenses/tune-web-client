@@ -4806,7 +4806,7 @@ export default {
   "v2.home.wZonesCards": "Teraz słuchane",
   "v2.home.wFirstRow": "Przegląd słuchania",
   "v2.home.l1Zones": "Strefy",
-  "v2.home.l1ZonesActive": "Aktywne: {n}",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# aktywna} few {# aktywne} many {# aktywnych} other {# aktywnej}}",
   "v2.home.l1ManageZones": "Zarządzaj strefami",
   "v2.home.zoneOf": "w strefie {z}",
   "v2.home.profilesUnavailable": "Nie można wczytać profili: serwer nie odpowiada. Trwa automatyczna ponowna próba.",

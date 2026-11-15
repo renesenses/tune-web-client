@@ -25,7 +25,7 @@
    * des zones — c'est là que mène « Gérer les zones ».
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
-  import { t } from '../../../lib/i18n';
+  import { t, tn } from '../../../lib/i18n';
   import { zones, switchZone } from '../../../lib/stores/zones';
   import { activeView } from '../../../lib/stores/navigation';
   import { togglePlayPause } from '../../../lib/playback-controls';
@@ -64,7 +64,7 @@
   {/snippet}
   {#snippet entete()}
     {#if actives > 0}
-      <span class="pastille" data-zones-actives>{$t('v2.home.l1ZonesActive' as any).replace('{n}', String(actives))}</span>
+      <span class="pastille" data-zones-actives>{$tn('v2.home.l1ZonesActiveN', actives)}</span>
     {/if}
   {/snippet}
 

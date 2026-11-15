@@ -4810,7 +4810,7 @@ export default {
   "v2.home.wZonesCards": "Đang nghe",
   "v2.home.wFirstRow": "Tổng quan nghe nhạc",
   "v2.home.l1Zones": "Vùng",
-  "v2.home.l1ZonesActive": "{n} đang hoạt động",
+  "v2.home.l1ZonesActiveN": "{n, plural, other {# đang hoạt động}}",
   "v2.home.l1ManageZones": "Quản lý vùng",
   "v2.home.zoneOf": "trên {z}",
   "v2.home.profilesUnavailable": "Không thể tải hồ sơ: máy chủ không phản hồi. Đang tự động thử lại.",

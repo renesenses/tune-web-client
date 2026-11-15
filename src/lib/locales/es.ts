@@ -4934,7 +4934,7 @@ export default {
   "v2.home.wZonesCards": "Sonando ahora",
   "v2.home.wFirstRow": "Resumen de escucha",
   "v2.home.l1Zones": "Zonas",
-  "v2.home.l1ZonesActive": "{n} activas",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# activa} other {# activas}}",
   "v2.home.l1ManageZones": "Gestionar zonas",
   "v2.home.zoneOf": "en {z}",
   "v2.home.profilesUnavailable": "No se pueden cargar los perfiles: el servidor no responde. Reintentando automáticamente.",

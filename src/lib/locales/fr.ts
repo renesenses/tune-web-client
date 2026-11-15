@@ -4956,7 +4956,7 @@ export default {
   "v2.home.wZonesCards": "En écoute",
   "v2.home.wFirstRow": "Aperçu des écoutes",
   "v2.home.l1Zones": "Zones",
-  "v2.home.l1ZonesActive": "{n} actives",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# active} other {# actives}}",
   "v2.home.l1ManageZones": "Gérer les zones",
   "v2.home.zoneOf": "sur {z}",
   "v2.home.profilesUnavailable": "Impossible de charger les profils : le serveur ne répond pas. Nouvel essai automatique en cours.",

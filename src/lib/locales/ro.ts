@@ -4934,7 +4934,7 @@ export default {
   "v2.home.wZonesCards": "Se ascultă acum",
   "v2.home.wFirstRow": "Prezentare generală a ascultării",
   "v2.home.l1Zones": "Zone",
-  "v2.home.l1ZonesActive": "{n} active",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# activă} few {# active} other {# active}}",
   "v2.home.l1ManageZones": "Gestionează zonele",
   "v2.home.zoneOf": "pe {z}",
   "v2.home.profilesUnavailable": "Profilurile nu pot fi încărcate: serverul nu răspunde. Se reîncearcă automat.",

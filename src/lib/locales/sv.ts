@@ -4933,7 +4933,7 @@ export default {
   "v2.home.wZonesCards": "Spelas nu",
   "v2.home.wFirstRow": "Lyssningsöversikt",
   "v2.home.l1Zones": "Zoner",
-  "v2.home.l1ZonesActive": "{n} aktiva",
+  "v2.home.l1ZonesActiveN": "{n, plural, one {# aktiv} other {# aktiva}}",
   "v2.home.l1ManageZones": "Hantera zoner",
   "v2.home.zoneOf": "på {z}",
   "v2.home.profilesUnavailable": "Det går inte att läsa in profilerna: servern svarar inte. Försöker igen automatiskt.",
