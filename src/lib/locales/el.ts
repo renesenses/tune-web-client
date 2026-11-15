@@ -7795,5 +7795,13 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Αμφίβολο hi-res",
   "v2.lib.hiresFilterError": "Δεν ήταν δυνατή η ανάγνωση της ετυμηγορίας hi-res των άλμπουμ.",
   "v2.lib.exportCatalogueHiResUnsupported": "Ο κατάλογος δεν μπορεί ακόμη να φιλτράρει με την ετυμηγορία hi-res: αποεπιλέξτε «Επαληθευμένο hi-res» και «Αμφίβολο hi-res» για να τον εξαγάγετε.",
+  "artist.page.overview": "Επισκόπηση",
+  "artist.page.tabs": "Ενότητες της σελίδας καλλιτέχνη",
+  "artist.page.seeAll": "Προβολή όλων",
+  "artist.page.moreActions": "Περισσότερες ενέργειες",
+  "artist.page.similarIntro": "Καλλιτέχνες με παρόμοιο ύφος, εποχή ή μουσική επιρροή με τον/την {nom}.",
+  "artist.page.statAlbums": "Άλμπουμ",
+  "artist.page.statPerforming": "Κομμάτια ως ερμηνευτής",
+  "artist.page.statWriting": "Κομμάτια ως δημιουργός",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

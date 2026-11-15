@@ -7950,6 +7950,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "可疑高解析",
   "v2.lib.hiresFilterError": "无法读取专辑的高解析判定。",
   "v2.lib.exportCatalogueHiResUnsupported": "目录尚不能按高解析判定筛选：请取消勾选“高解析已验证”和“可疑高解析”后再导出。",
+  "artist.page.overview": "概览",
+  "artist.page.tabs": "艺人页面栏目",
+  "artist.page.seeAll": "查看全部",
+  "artist.page.moreActions": "更多操作",
+  "artist.page.similarIntro": "与 {nom} 风格、年代或音乐影响相近的艺人。",
+  "artist.page.statAlbums": "专辑",
+  "artist.page.statPerforming": "作为演奏者的曲目",
+  "artist.page.statWriting": "作为作者的曲目",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

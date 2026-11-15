@@ -7950,6 +7950,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "하이레즈 의심",
   "v2.lib.hiresFilterError": "앨범의 하이레즈 판정을 읽을 수 없습니다.",
   "v2.lib.exportCatalogueHiResUnsupported": "카탈로그는 아직 하이레즈 판정으로 거를 수 없습니다. 내보내려면 '하이레즈 확인됨'과 '하이레즈 의심'의 선택을 해제하세요.",
+  "artist.page.overview": "개요",
+  "artist.page.tabs": "아티스트 페이지 섹션",
+  "artist.page.seeAll": "모두 보기",
+  "artist.page.moreActions": "더 많은 작업",
+  "artist.page.similarIntro": "{nom}와(과) 스타일, 시대 또는 음악적 영향이 비슷한 아티스트.",
+  "artist.page.statAlbums": "앨범",
+  "artist.page.statPerforming": "연주자로 참여한 트랙",
+  "artist.page.statWriting": "작가로 참여한 트랙",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

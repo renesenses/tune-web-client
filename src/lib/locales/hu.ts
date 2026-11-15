@@ -7909,6 +7909,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Kétes hi-res",
   "v2.lib.hiresFilterError": "Nem sikerült beolvasni az albumok hi-res ítéletét.",
   "v2.lib.exportCatalogueHiResUnsupported": "A katalógus még nem tud a hi-res ítélet szerint szűrni: az exportáláshoz vegye ki a jelölést az „Ellenőrzött hi-res” és a „Kétes hi-res” elől.",
+  "artist.page.overview": "Áttekintés",
+  "artist.page.tabs": "Az előadói oldal részei",
+  "artist.page.seeAll": "Összes",
+  "artist.page.moreActions": "További műveletek",
+  "artist.page.similarIntro": "{nom} stílusához, korszakához vagy zenei hatásához hasonló előadók.",
+  "artist.page.statAlbums": "Albumok",
+  "artist.page.statPerforming": "Számok előadóként",
+  "artist.page.statWriting": "Számok szerzőként",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

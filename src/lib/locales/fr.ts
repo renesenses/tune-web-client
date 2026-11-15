@@ -7972,6 +7972,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Hi-Res douteux",
   "v2.lib.hiresFilterError": "Impossible de lire le verdict Hi-Res des albums.",
   "v2.lib.exportCatalogueHiResUnsupported": "Le catalogue ne sait pas encore filtrer sur le verdict Hi-Res : décochez « Hi-Res vérifié » et « Hi-Res douteux » pour l'exporter.",
+  "artist.page.overview": "Vue d'ensemble",
+  "artist.page.tabs": "Rubriques de la page artiste",
+  "artist.page.seeAll": "Tout voir",
+  "artist.page.moreActions": "Plus d'actions",
+  "artist.page.similarIntro": "Des artistes proches de {nom} par le style, l'époque ou l'influence musicale.",
+  "artist.page.statAlbums": "Albums",
+  "artist.page.statPerforming": "Pistes comme interprète",
+  "artist.page.statWriting": "Pistes comme auteur",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

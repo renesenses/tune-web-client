@@ -7802,5 +7802,13 @@ export default {
   "v2.lib.qualityHiresDoubtful": "Hi-res đáng ngờ",
   "v2.lib.hiresFilterError": "Không thể đọc kết luận hi-res của các album.",
   "v2.lib.exportCatalogueHiResUnsupported": "Danh mục chưa thể lọc theo kết luận hi-res: bỏ chọn “Hi-res đã xác minh” và “Hi-res đáng ngờ” để xuất.",
+  "artist.page.overview": "Tổng quan",
+  "artist.page.tabs": "Các mục của trang nghệ sĩ",
+  "artist.page.seeAll": "Xem tất cả",
+  "artist.page.moreActions": "Thao tác khác",
+  "artist.page.similarIntro": "Các nghệ sĩ có phong cách, thời kỳ hoặc ảnh hưởng âm nhạc tương tự {nom}.",
+  "artist.page.statAlbums": "Album",
+  "artist.page.statPerforming": "Bản nhạc với vai trò trình diễn",
+  "artist.page.statWriting": "Bản nhạc với vai trò sáng tác",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -7950,6 +7950,14 @@ export default {
   "v2.lib.qualityHiresDoubtful": "ハイレゾ疑わしい",
   "v2.lib.hiresFilterError": "アルバムのハイレゾ判定を読み込めませんでした。",
   "v2.lib.exportCatalogueHiResUnsupported": "カタログはまだハイレゾ判定で絞り込めません。エクスポートするには「ハイレゾ確認済み」と「ハイレゾ疑わしい」のチェックを外してください。",
+  "artist.page.overview": "概要",
+  "artist.page.tabs": "アーティストページのセクション",
+  "artist.page.seeAll": "すべて表示",
+  "artist.page.moreActions": "その他の操作",
+  "artist.page.similarIntro": "{nom} とスタイル、時代、音楽的影響が近いアーティスト。",
+  "artist.page.statAlbums": "アルバム",
+  "artist.page.statPerforming": "演奏者としてのトラック",
+  "artist.page.statWriting": "作者としてのトラック",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
