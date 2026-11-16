@@ -112,6 +112,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'hqplayer-adresse', section: 'hqplayer', labelKey: 'settings.hqplayerIp', techniques: ['HQPlayer', 'IP', '4321'] },
   { id: 'hqplayer-etat', section: 'hqplayer', labelKey: 'settings.testConnection', techniques: ['HQPlayer'] },
   { id: 'aes67-experimental', section: 'aes67Experimental', labelKey: 'aes67.experimental.label', descKey: 'aes67.experimental.hint', techniques: ['AES67', 'Dante', 'Ravenna', 'RTP', 'PTP'] },
+  // tune-server-rust#8054 — Système › À propos (Windows seulement).
+  { id: 'demarrage-windows', section: 'about', labelKey: 'demarrageWindows.label', descKey: 'demarrageWindows.hint', techniques: ['Windows'] },
   { id: 'serveur-upnp', section: 'serveurUpnp', labelKey: 'upnpServeur.label', descKey: 'upnpServeur.hint', techniques: ['UPnP', 'DLNA'] },
   { id: 'aes67-etat', section: 'aes67', labelKey: 'aes67.title', descKey: 'aes67.intro', techniques: ['AES67', 'PTP', 'SAP', 'SDP'] },
   { id: 'acces-distant', section: 'bridge', labelKey: 'settings.remoteAccess', descKey: 'settings.remoteAccessHint', termesKey: 'reglages.termes.accesDistant', techniques: ['Tune Bridge', 'relay'] },

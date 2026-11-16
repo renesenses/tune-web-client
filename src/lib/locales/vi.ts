@@ -7857,5 +7857,9 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Bản nhạc với vai trò trình diễn",
   "artist.page.statWriting": "Bản nhạc với vai trò sáng tác",
+  "demarrageWindows.label": "Khởi động Tune cùng Windows",
+  "demarrageWindows.hint": "Khi được chọn, Tune tự khởi động, không hiện cửa sổ, khi bạn đăng nhập Windows. Nên bật nếu máy tính này chủ yếu dùng để nghe nhạc.",
+  "demarrageWindows.disabledByWindows": "Tính năng tự khởi động của Tune đã bị tắt trong Trình quản lý tác vụ (Ứng dụng khởi động). Hãy chọn ô để bật lại.",
+  "demarrageWindows.error": "Không thể lưu cài đặt. Vui lòng thử lại.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

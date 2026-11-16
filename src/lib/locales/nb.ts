@@ -7850,5 +7850,9 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spor som utøver",
   "artist.page.statWriting": "Spor som låtskriver",
+  "demarrageWindows.label": "Start Tune med Windows",
+  "demarrageWindows.hint": "Når det er valgt, starter Tune av seg selv, uten vindu, når du logger på Windows. Anbefalt hvis denne PC-en hovedsakelig brukes til musikk.",
+  "demarrageWindows.disabledByWindows": "Oppstart av Tune er deaktivert i Oppgavebehandling (Oppstartsapper). Kryss av i boksen for å slå den på igjen.",
+  "demarrageWindows.error": "Innstillingen kunne ikke lagres. Prøv igjen.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];
