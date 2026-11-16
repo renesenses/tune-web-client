@@ -7850,5 +7850,9 @@ export default {
   "artist.page.statAlbums": "Άλμπουμ",
   "artist.page.statPerforming": "Κομμάτια ως ερμηνευτής",
   "artist.page.statWriting": "Κομμάτια ως δημιουργός",
+  "v2.queue.moveGrab": "Μετακίνηση του {t}",
+  "v2.queue.moveHelp": "Σύρετε τη λαβή. Πληκτρολόγιο: Διάστημα για επιλογή, βέλη για θέση, Enter για απόθεση, Escape για ακύρωση.",
+  "v2.queue.movePosition": "Μετακίνηση: θέση {n}",
+  "v2.queue.blockUnavailable": "Ενημερώστε τον διακομιστή για μετακίνηση ολόκληρου άλμπουμ. Μπορείτε να αναπτύξετε το άλμπουμ και να μετακινήσετε τα κομμάτια του.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

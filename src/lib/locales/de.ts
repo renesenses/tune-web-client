@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Alben",
   "artist.page.statPerforming": "Titel als Interpret",
   "artist.page.statWriting": "Titel als Autor",
+  "v2.queue.moveGrab": "{t} verschieben",
+  "v2.queue.moveHelp": "Am Griff ziehen. Tastatur: Leertaste zum Aufnehmen, Pfeile zur Positionswahl, Eingabe zum Ablegen, Escape zum Abbrechen.",
+  "v2.queue.movePosition": "Verschieben: Position {n}",
+  "v2.queue.blockUnavailable": "Aktualisieren Sie den Server, um ein ganzes Album zu verschieben. Sie können das Album aufklappen und einzelne Titel verschieben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

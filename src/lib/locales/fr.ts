@@ -8027,6 +8027,10 @@ export default {
   "artist.page.statAlbums": "Albums",
   "artist.page.statPerforming": "Pistes comme interprète",
   "artist.page.statWriting": "Pistes comme auteur",
+  "v2.queue.moveGrab": "Déplacer {t}",
+  "v2.queue.moveHelp": "Glissez la poignée. Au clavier : Espace pour saisir, flèches pour choisir la place, Entrée pour déposer, Échap pour annuler.",
+  "v2.queue.movePosition": "Déplacement : position {n}",
+  "v2.queue.blockUnavailable": "Mettez le serveur à jour pour déplacer un album entier. Vous pouvez déplier l’album et déplacer ses pistes.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

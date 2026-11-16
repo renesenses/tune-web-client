@@ -8004,4 +8004,8 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spår som artist",
   "artist.page.statWriting": "Spår som upphovsperson",
+  "v2.queue.moveGrab": "Flytta {t}",
+  "v2.queue.moveHelp": "Dra i handtaget. Tangentbord: Blanksteg för att ta tag, pilar för att välja plats, Enter för att släppa, Escape för att avbryta.",
+  "v2.queue.movePosition": "Flyttar: plats {n}",
+  "v2.queue.blockUnavailable": "Uppdatera servern för att flytta ett helt album. Du kan fälla ut albumet och flytta spåren var för sig.",
 } as const;

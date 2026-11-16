@@ -7850,5 +7850,9 @@ export default {
   "artist.page.statAlbums": "Albumy",
   "artist.page.statPerforming": "Utwory jako wykonawca",
   "artist.page.statWriting": "Utwory jako autor",
+  "v2.queue.moveGrab": "Przenieś {t}",
+  "v2.queue.moveHelp": "Przeciągnij uchwyt. Klawiatura: spacja — chwyć, strzałki — wybierz miejsce, Enter — upuść, Escape — anuluj.",
+  "v2.queue.movePosition": "Przenoszenie: pozycja {n}",
+  "v2.queue.blockUnavailable": "Zaktualizuj serwer, aby przenosić całe albumy. Możesz rozwinąć album i przenosić pojedyncze utwory.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

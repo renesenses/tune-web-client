@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "专辑",
   "artist.page.statPerforming": "作为演奏者的曲目",
   "artist.page.statWriting": "作为作者的曲目",
+  "v2.queue.moveGrab": "移动{t}",
+  "v2.queue.moveHelp": "拖动手柄。键盘：空格键抓取，方向键选择位置，Enter键放下，Escape键取消。",
+  "v2.queue.movePosition": "移动到第{n}位",
+  "v2.queue.blockUnavailable": "请更新服务器以移动整张专辑。您也可以展开专辑，逐首移动曲目。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

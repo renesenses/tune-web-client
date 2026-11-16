@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Álbumes",
   "artist.page.statPerforming": "Pistas como intérprete",
   "artist.page.statWriting": "Pistas como autor",
+  "v2.queue.moveGrab": "Mover {t}",
+  "v2.queue.moveHelp": "Arrastra el asa. Teclado: Espacio para coger, flechas para elegir la posición, Intro para soltar y Escape para cancelar.",
+  "v2.queue.movePosition": "Movimiento: posición {n}",
+  "v2.queue.blockUnavailable": "Actualiza el servidor para mover un álbum completo. Puedes desplegar el álbum y mover sus pistas.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

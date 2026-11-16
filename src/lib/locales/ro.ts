@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Albume",
   "artist.page.statPerforming": "Piese ca interpret",
   "artist.page.statWriting": "Piese ca autor",
+  "v2.queue.moveGrab": "Mută {t}",
+  "v2.queue.moveHelp": "Trage mânerul. Tastatură: Spațiu pentru a apuca, săgeți pentru alegerea poziției, Enter pentru a plasa, Escape pentru a anula.",
+  "v2.queue.movePosition": "Mutare: poziția {n}",
+  "v2.queue.blockUnavailable": "Actualizează serverul pentru a muta un album întreg. Poți extinde albumul și muta piesele separat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

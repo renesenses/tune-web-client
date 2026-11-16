@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "앨범",
   "artist.page.statPerforming": "연주자로 참여한 트랙",
   "artist.page.statWriting": "작가로 참여한 트랙",
+  "v2.queue.moveGrab": "{t} 이동",
+  "v2.queue.moveHelp": "핸들을 드래그하세요. 키보드: 스페이스로 선택, 화살표로 위치 선택, Enter로 놓기, Escape로 취소.",
+  "v2.queue.movePosition": "이동 위치: {n}",
+  "v2.queue.blockUnavailable": "앨범 전체를 이동하려면 서버를 업데이트하세요. 앨범을 펼치면 개별 곡을 이동할 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
