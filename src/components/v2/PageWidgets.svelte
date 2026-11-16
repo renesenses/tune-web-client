@@ -65,6 +65,8 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
+  import PlaylistGenereeV2 from './PlaylistGenereeV2.svelte';
+  import type { PlaylistGeneree } from '../../lib/parceQueVousAimez';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -996,6 +998,8 @@
    * l'autre.
    */
   let playlistOuverte = $state<any | null>(null);
+  /** web#3118 — la playlist GÉNÉRÉE ouverte (« Parce que vous aimez »). */
+  let genereeOuverte = $state<PlaylistGeneree | null>(null);
   let servicePlaylistOuvert = $state<string | null>(null);
   function fermerCalquePlaylist() {
     playlistOuverte = null;
@@ -1076,7 +1080,7 @@
   }
 
   function objetElement(e: Element): ObjetMenu | null {
-    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire' || e.ouvrir === 'generee') return null;
     // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
     // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
     if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
@@ -1132,6 +1136,12 @@
     // écran, sous la clé de raccourci qui porte sa SORTE.
     if (e.ouvrir === 'lire') {
       jouer(e);
+      return;
+    }
+    // web#3118 — une playlist générée n'a pas d'écran : sa liste s'ouvre
+    // par-dessus la page, avec « Lire » et « Enregistrer comme playlist ».
+    if (e.ouvrir === 'generee' && e.generee) {
+      genereeOuverte = e.generee;
       return;
     }
     if (e.ouvrir === 'cible' && e.cible) {
@@ -2254,6 +2264,10 @@
     item={{ kind: 'streaming', service: servicePlaylistOuvert ?? '', pl: playlistOuverte }}
     onClose={retourCalquePlaylist}
   />
+{/if}
+
+{#if genereeOuverte}
+  <PlaylistGenereeV2 playlist={genereeOuverte} onClose={() => (genereeOuverte = null)} />
 {/if}
 
 {#if enEdition}

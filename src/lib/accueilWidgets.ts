@@ -49,6 +49,12 @@ import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
 import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
+import {
+  chargerPlaylistsGenerees,
+  lirePlaylistGeneree,
+  texteVoisins,
+  type PlaylistGeneree,
+} from './parceQueVousAimez';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -107,7 +113,14 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | 'generee' | null;
+  /**
+   * web#3118 — la playlist GÉNÉRÉE (« Parce que vous aimez <artiste> ») qu'ouvre
+   * `ouvrir: 'generee'` : sa liste, « Lire » et « Enregistrer comme playlist ».
+   * Elle n'existe nulle part ailleurs que dans cette réponse : pas d'identifiant
+   * de playlist à rouvrir, d'où un champ à part.
+   */
+  generee?: PlaylistGeneree | null;
   /**
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
@@ -1931,6 +1944,38 @@ export const WIDGETS: Widget[] = [
           .slice(0, limiteDe(ctx))
           .map((o, i) => suggere(versElement(o, i, 'rec'), o, champ(o, 'artist_name'))),
       ),
+  },
+  {
+    /**
+     * web#3118 — « Parce que vous aimez <artiste> » (FabienM, fil 2864 ; go de
+     * Bertrand le 16/11/2026). Jusqu'à cinq playlists de cinquante titres
+     * composées par le serveur, stables sur la journée. Le disque les lance ;
+     * un clic ailleurs ouvre la liste, d'où l'on peut l'enregistrer.
+     *
+     * Hors du défaut, comme tout widget ajouté depuis le 06/09 : il s'ajoute
+     * depuis « Modifier ». Vide (aucune écoute encore), il ne se montre pas.
+     */
+    id: 'parce-que-vous-aimez',
+    cleTitre: 'v2.home.wBecauseYouLike',
+    forme: 'bande',
+    masqueSiVide: true,
+    charger: async (ctx) => {
+      const tr = get(t) as (k: string) => string;
+      return utiles(
+        (await chargerPlaylistsGenerees()).slice(0, limiteDe(ctx)).map((p, i) => ({
+          id: `pvaa${i}-${p.id}`,
+          titre: tr('v2.home.becauseYouLikeCard').replace('{artiste}', p.artist),
+          sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,
+          nbTitres: p.track_count,
+          cover: p.covers?.[0] ?? null,
+          pochettes: p.covers ?? [],
+          source: null,
+          jouer: (z: number) => lirePlaylistGeneree(z, p),
+          ouvrir: 'generee' as const,
+          generee: p,
+        })),
+      );
+    },
   },
   {
     // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit

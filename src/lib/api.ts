@@ -10694,6 +10694,15 @@ export function getHomeRecommendations(limit?: number) {
   return fetchJSON<any[]>(`${BASE}/home/recommendations${q}`);
 }
 
+/**
+ * web#3118 — « Parce que vous aimez <artiste> » : jusqu'à cinq playlists
+ * générées de cinquante titres, stables sur la journée.
+ */
+export function getBecauseYouLike(limit?: number) {
+  const q = limit != null ? `?limit=${limit}` : '';
+  return fetchJSON<import('./parceQueVousAimez').ReponseParceQueVousAimez>(`${BASE}/home/because-you-like${q}`);
+}
+
 export function getTopMixes() {
   return fetchJSON<any[]>(`${BASE}/home/top-mixes`);
 }
