@@ -5161,6 +5161,8 @@ export default {
   "upnp.availability.hint": "Siste kjente serverstatus; katalogen kan fortsatt bla gjennom.",
   "bitperfect.strictLabel": "Streng bit-perfect",
   "bitperfect.strictHelp": "Nekt avspilling i stedet for å konvertere samplingsfrekvensen når utgangen ikke kan spille av kildens frekvens.",
+  "settings.lockSilence": "Stillhet ved formatbytte",
+  "settings.lockSilenceHelp": "Stillhet satt inn før sporet når samplingsfrekvensen eller modusen (PCM, DSD, DoP) endres, mens DAC-en låser seg. 0 = ingen (lokale utganger).",
   "radioDidl.label": "Send radiotittelen via DLNA (for spillere som ignorerer ICY)",
   "radioDidl.off": "Av",
   "radioDidl.next": "Ja, uten å avbryte avspillingen",

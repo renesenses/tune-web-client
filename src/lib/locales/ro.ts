@@ -5295,6 +5295,8 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Refuză redarea în loc să convertească frecvența atunci când ieșirea nu redă frecvența sursei.",
+  "settings.lockSilence": "Liniște la schimbarea formatului",
+  "settings.lockSilenceHelp": "Liniște inserată înaintea piesei când se schimbă frecvența sau modul (PCM, DSD, DoP), cât timp DAC-ul se sincronizează. 0 = fără (ieșiri locale).",
   "radioDidl.label": "Trimite titlul radio prin DLNA (pentru playerele care ignoră ICY)",
   "radioDidl.off": "Dezactivat",
   "radioDidl.next": "Da, fără întreruperea sunetului",

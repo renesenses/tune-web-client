@@ -5295,6 +5295,8 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "出力がソースのサンプルレートを再生できない場合、変換せずに再生を拒否します。",
+  "settings.lockSilence": "フォーマット切替時の無音",
+  "settings.lockSilenceHelp": "サンプルレートまたはモード（PCM・DSD・DoP）が変わるとき、DACがロックするまでトラックの前に無音を挿入します。0 = なし（ローカル出力）。",
   "radioDidl.label": "ラジオのタイトルをDLNAで送信（ICYを無視するプレーヤー向け）",
   "radioDidl.off": "オフ",
   "radioDidl.next": "はい、再生を途切れさせずに",

@@ -5294,6 +5294,8 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Vägra uppspelning i stället för att konvertera samplingsfrekvensen när utgången inte kan spela källans frekvens.",
+  "settings.lockSilence": "Tystnad vid formatbyte",
+  "settings.lockSilenceHelp": "Tystnad före spåret när samplingsfrekvensen eller läget (PCM, DSD, DoP) ändras, medan DAC:en låser. 0 = ingen (lokala utgångar).",
   "radioDidl.label": "Skicka radiotiteln via DLNA (för spelare som ignorerar ICY)",
   "radioDidl.off": "Av",
   "radioDidl.next": "Ja, utan avbrott",
