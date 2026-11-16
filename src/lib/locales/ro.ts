@@ -604,6 +604,7 @@ export default {
   "settings.orphanTracksAsk": "Dosarul a fost eliminat. {count} piese nu mai se află sub niciun dosar de muzică, deci scanarea nu le va mai vizita. Le eliminăm și din bibliotecă?",
   "settings.orphanTracksImpact": "Ar fi eliminate și — liste: {playlists}, favorite: {favorites}, coadă: {queue}.",
   "settings.orphanTracksFilesSafe": "Fișierele de pe disc rămân neatinse.",
+  "settings.orphanTracksFailed": "{count} piese nu au putut fi eliminate din bibliotecă.",
   "settings.orphanTracksPurged": "{count} piese eliminate din bibliotecă.",
   "settings.orphanTracksRefused": "Dosarul a fost eliminat, dar cele {count} piese nu au fost șterse: confirmarea nu mai acoperea numărul lor. Reluați pentru a le elimina.",
   "settings.orphanTracksNothingLeft": "Nu mai erau piese orfane de eliminat.",

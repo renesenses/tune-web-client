@@ -598,6 +598,7 @@ export default {
   "settings.orphanTracksAsk": "フォルダーを削除しました。{count} 曲はどの音楽フォルダーにも属さなくなり、スキャンで再び読み込まれることはありません。ライブラリからも削除しますか？",
   "settings.orphanTracksImpact": "併せて削除されます — プレイリスト: {playlists}、お気に入り: {favorites}、再生キュー: {queue}。",
   "settings.orphanTracksFilesSafe": "ディスク上のファイルはそのまま残ります。",
+  "settings.orphanTracksFailed": "ライブラリから {count} 曲を削除できませんでした。",
   "settings.orphanTracksPurged": "{count} 曲をライブラリから削除しました。",
   "settings.orphanTracksRefused": "フォルダーは削除されましたが、{count} 曲は削除されませんでした。確認した曲数と一致しなくなっています。もう一度やり直してください。",
   "settings.orphanTracksNothingLeft": "削除すべき孤立した曲は残っていませんでした。",

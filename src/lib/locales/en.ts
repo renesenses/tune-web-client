@@ -699,6 +699,7 @@ export default {
   "settings.orphanTracksAsk": "The folder was removed. {count} tracks are no longer under any music folder, so scanning will never visit them again. Remove them from the library too?",
   "settings.orphanTracksImpact": "Also removed — playlists: {playlists}, favourites: {favorites}, queue: {queue}.",
   "settings.orphanTracksFilesSafe": "The files on disk are left untouched.",
+  "settings.orphanTracksFailed": "{count} tracks could not be removed from the library.",
   "settings.orphanTracksPurged": "{count} tracks removed from the library.",
   "settings.orphanTracksRefused": "The folder was removed, but the {count} tracks were not deleted: the confirmation no longer covered their number. Start over to remove them.",
   "settings.orphanTracksNothingLeft": "There were no orphaned tracks left to remove.",

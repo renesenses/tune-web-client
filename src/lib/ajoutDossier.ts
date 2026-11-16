@@ -1,3 +1,4 @@
+import { invaliderBibliotheque } from './stores/albumsPagines';
 /**
  * Ajouter un dossier de musique sans risquer d'avaler un disque entier, et
  * le retirer sans détour (fil forum 2171).
@@ -174,6 +175,7 @@ export async function retirerUnDossier(chemin: string, d: DependancesRetrait): P
     return rep.music_dirs;
   }
   const purge = await d.retirer(chemin, n);
+  if ((purge.purged ?? 0) > 0) invaliderBibliotheque();
   d.annoncer(verdictDePurge(purge, d.tr));
   return purge.music_dirs;
 }

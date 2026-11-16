@@ -679,6 +679,7 @@ export default {
   "settings.orphanTracksAsk": "A mappa eltávolítva. {count} szám már egyetlen zenei mappában sincs, így a keresés soha többé nem találja meg őket. Eltávolítjuk a könyvtárból is?",
   "settings.orphanTracksImpact": "Szintén eltávolításra kerülne — lejátszási listák: {playlists}, kedvencek: {favorites}, várólista: {queue}.",
   "settings.orphanTracksFilesSafe": "A lemezen lévő fájlok érintetlenek maradnak.",
+  "settings.orphanTracksFailed": "{count} számot nem sikerült eltávolítani a könyvtárból.",
   "settings.orphanTracksPurged": "{count} szám eltávolítva a könyvtárból.",
   "settings.orphanTracksRefused": "A mappa eltávolítva, de a(z) {count} szám nem lett törölve: a megerősítés már nem fedte le a számukat. Kezdje elölről az eltávolításukhoz.",
   "settings.orphanTracksNothingLeft": "Nem maradt eltávolítandó árva szám.",

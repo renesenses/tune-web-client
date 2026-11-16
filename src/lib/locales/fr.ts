@@ -702,6 +702,7 @@ export default {
   "settings.orphanTracksAsk": "Le dossier a été retiré. {count} pistes ne sont plus sous aucun dossier de musique : le scan ne les visitera plus. Les retirer aussi de la bibliothèque ?",
   "settings.orphanTracksImpact": "Seraient également retirés — playlists : {playlists}, favoris : {favorites}, file d’attente : {queue}.",
   "settings.orphanTracksFilesSafe": "Les fichiers sur le disque ne sont pas touchés.",
+  "settings.orphanTracksFailed": "{count} pistes n’ont pas pu être retirées de la bibliothèque.",
   "settings.orphanTracksPurged": "{count} pistes retirées de la bibliothèque.",
   "settings.orphanTracksRefused": "Le dossier a bien été retiré, mais les {count} pistes n’ont pas été supprimées : la confirmation ne couvrait plus leur nombre. Recommencez pour les retirer.",
   "settings.orphanTracksNothingLeft": "Il n’y avait plus de piste orpheline à retirer.",

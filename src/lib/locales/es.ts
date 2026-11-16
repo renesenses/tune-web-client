@@ -598,6 +598,7 @@ export default {
   "settings.orphanTracksAsk": "La carpeta se ha quitado. {count} pistas ya no están bajo ninguna carpeta de música, así que el análisis no volverá a visitarlas. ¿Quitarlas también de la biblioteca?",
   "settings.orphanTracksImpact": "También se quitarían — listas: {playlists}, favoritos: {favorites}, cola: {queue}.",
   "settings.orphanTracksFilesSafe": "Los archivos del disco no se tocan.",
+  "settings.orphanTracksFailed": "No se pudieron eliminar {count} pistas de la biblioteca.",
   "settings.orphanTracksPurged": "{count} pistas quitadas de la biblioteca.",
   "settings.orphanTracksRefused": "La carpeta se ha quitado, pero las {count} pistas no se han eliminado: la confirmación ya no cubría su número. Vuelve a empezar para quitarlas.",
   "settings.orphanTracksNothingLeft": "Ya no quedaban pistas huérfanas que quitar.",

@@ -659,6 +659,7 @@ export default {
   "settings.orphanTracksAsk": "Mappen ble fjernet. {count} spor ligger ikke lenger under noen musikkmappe, så skanning vil aldri besøke dem igjen. Fjerne dem fra biblioteket også?",
   "settings.orphanTracksImpact": "Fjernes også — spillelister: {playlists}, favoritter: {favorites}, kø: {queue}.",
   "settings.orphanTracksFilesSafe": "Filene på disken røres ikke.",
+  "settings.orphanTracksFailed": "{count} spor kunne ikke fjernes fra biblioteket.",
   "settings.orphanTracksPurged": "{count} spor fjernet fra biblioteket.",
   "settings.orphanTracksRefused": "Mappen ble fjernet, men de {count} sporene ble ikke slettet: bekreftelsen dekket ikke lenger antallet. Start på nytt for å fjerne dem.",
   "settings.orphanTracksNothingLeft": "Det var ingen foreldreløse spor igjen å fjerne.",
