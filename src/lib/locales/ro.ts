@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Albume",
   "artist.page.statPerforming": "Piese ca interpret",
   "artist.page.statWriting": "Piese ca autor",
+  "demarrageWindows.label": "Pornește Tune odată cu Windows",
+  "demarrageWindows.hint": "Bifat, Tune pornește singur, fără fereastră, la deschiderea sesiunii Windows. Recomandat dacă acest PC servește în principal la ascultarea muzicii.",
+  "demarrageWindows.disabledByWindows": "Pornirea automată a Tune a fost dezactivată în Managerul de activități (Aplicații de pornire). Bifați caseta pentru a o reactiva.",
+  "demarrageWindows.error": "Setarea nu a putut fi salvată. Încercați din nou.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

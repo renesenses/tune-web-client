@@ -8004,4 +8004,8 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spår som artist",
   "artist.page.statWriting": "Spår som upphovsperson",
+  "demarrageWindows.label": "Starta Tune med Windows",
+  "demarrageWindows.hint": "När rutan är markerad startar Tune av sig själv, utan fönster, när du loggar in i Windows. Rekommenderas om datorn främst används för musik.",
+  "demarrageWindows.disabledByWindows": "Autostart för Tune har inaktiverats i Aktivitetshanteraren (Autostartappar). Markera rutan för att aktivera den igen.",
+  "demarrageWindows.error": "Inställningen kunde inte sparas. Försök igen.",
 } as const;

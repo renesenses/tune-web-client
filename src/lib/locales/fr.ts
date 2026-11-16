@@ -8027,6 +8027,10 @@ export default {
   "artist.page.statAlbums": "Albums",
   "artist.page.statPerforming": "Pistes comme interprète",
   "artist.page.statWriting": "Pistes comme auteur",
+  "demarrageWindows.label": "Démarrer Tune avec Windows",
+  "demarrageWindows.hint": "Coché, Tune démarre tout seul, sans fenêtre, à l’ouverture de votre session Windows. Recommandé si ce PC sert surtout à écouter de la musique.",
+  "demarrageWindows.disabledByWindows": "Le démarrage de Tune a été désactivé dans le Gestionnaire des tâches (Applications de démarrage). Cochez la case pour le réactiver.",
+  "demarrageWindows.error": "Le réglage n’a pas pu être enregistré. Réessayez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

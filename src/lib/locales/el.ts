@@ -7850,5 +7850,9 @@ export default {
   "artist.page.statAlbums": "Άλμπουμ",
   "artist.page.statPerforming": "Κομμάτια ως ερμηνευτής",
   "artist.page.statWriting": "Κομμάτια ως δημιουργός",
+  "demarrageWindows.label": "Εκκίνηση του Tune με τα Windows",
+  "demarrageWindows.hint": "Όταν είναι επιλεγμένο, το Tune ξεκινά μόνο του, χωρίς παράθυρο, όταν συνδέεστε στα Windows. Συνιστάται αν αυτός ο υπολογιστής χρησιμοποιείται κυρίως για μουσική.",
+  "demarrageWindows.disabledByWindows": "Η αυτόματη εκκίνηση του Tune απενεργοποιήθηκε στη Διαχείριση εργασιών (Εφαρμογές εκκίνησης). Επιλέξτε το πλαίσιο για να την ενεργοποιήσετε ξανά.",
+  "demarrageWindows.error": "Δεν ήταν δυνατή η αποθήκευση της ρύθμισης. Δοκιμάστε ξανά.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

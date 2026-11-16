@@ -233,6 +233,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import SortieAes67V2 from './SortieAes67V2.svelte';
   import SortieAes67ExperimentaleV2 from './SortieAes67ExperimentaleV2.svelte';
   import AnnonceUpnpServeurV2 from './AnnonceUpnpServeurV2.svelte';
+  import DemarrageWindowsV2 from './DemarrageWindowsV2.svelte';
   import { presenceSortieAes67 } from '../../lib/stores/sortieAes67';
   // tune-server-rust#4805 lot 2 — les passes de lot BPM et Discogs.
   import PassesMetarustV2 from './PassesMetarustV2.svelte';
@@ -7597,6 +7598,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="kv"><span>{$t('settings.clientVersionV2' as any)}</span><b>{CLIENT_VERSION || '—'}</b></div>
                 <div class="kv"><span>{$t('settings.serverVersionV2' as any)}</span><b>{serverVersion ?? '…'}</b></div>
               </div>
+              <!-- tune-server-rust#8054 : rien hors Windows. -->
+              <div data-reglage="demarrage-windows"><DemarrageWindowsV2 /></div>
               {#if clientStale}
                 <!-- Le client web est embarque dans la release du serveur :
                      deux numeros differents = un vieux client est servi. -->

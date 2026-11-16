@@ -7850,5 +7850,9 @@ export default {
   "artist.page.statAlbums": "Albumy",
   "artist.page.statPerforming": "Utwory jako wykonawca",
   "artist.page.statWriting": "Utwory jako autor",
+  "demarrageWindows.label": "Uruchamiaj Tune razem z Windows",
+  "demarrageWindows.hint": "Po zaznaczeniu Tune uruchamia się samodzielnie, bez okna, po zalogowaniu do Windows. Zalecane, jeśli ten komputer służy głównie do słuchania muzyki.",
+  "demarrageWindows.disabledByWindows": "Autostart Tune został wyłączony w Menedżerze zadań (Aplikacje autostartu). Zaznacz pole, aby go ponownie włączyć.",
+  "demarrageWindows.error": "Nie udało się zapisać ustawienia. Spróbuj ponownie.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

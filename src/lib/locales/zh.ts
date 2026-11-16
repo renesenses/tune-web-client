@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "专辑",
   "artist.page.statPerforming": "作为演奏者的曲目",
   "artist.page.statWriting": "作为作者的曲目",
+  "demarrageWindows.label": "随 Windows 启动 Tune",
+  "demarrageWindows.hint": "勾选后，登录 Windows 时 Tune 会自动在后台启动，不显示窗口。如果这台电脑主要用于听音乐，建议开启。",
+  "demarrageWindows.disabledByWindows": "Tune 的开机启动已在任务管理器（启动应用）中被禁用。勾选此框即可重新启用。",
+  "demarrageWindows.error": "无法保存该设置，请重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

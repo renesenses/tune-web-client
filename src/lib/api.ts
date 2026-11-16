@@ -4240,6 +4240,33 @@ export function setUpnpServerConfig(patch: Partial<UpnpServerConfig>): Promise<U
   });
 }
 
+/**
+ * « Démarrer Tune avec Windows » (tune-server-rust#8054).
+ *
+ * `GET /system/autostart` : `supported` est faux hors Windows. `enabled` dit
+ * si Tune repartira à la prochaine ouverture de session (valeur `HKCU\…\Run`
+ * présente ET non désactivée dans le Gestionnaire des tâches).
+ * `PUT /system/autostart` `{ enabled }` la pose ou la retire (administrateur).
+ */
+export interface DemarrageWindows {
+  supported: boolean;
+  enabled: boolean;
+  registered: boolean;
+  disabled_by_windows: boolean;
+  command: string | null;
+}
+
+export function getDemarrageWindows(): Promise<DemarrageWindows> {
+  return fetchJSON<DemarrageWindows>(`${BASE}/system/autostart`);
+}
+
+export function setDemarrageWindows(enabled: boolean): Promise<DemarrageWindows> {
+  return fetchJSON<DemarrageWindows>(`${BASE}/system/autostart`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
+  });
+}
+
 export async function getMediaServers(signal?: AbortSignal): Promise<import('./types').MediaServer[]> {
   const data = await fetchJSON<any>(`${BASE}/network/media-servers`, signal ? { signal } : undefined);
   return Array.isArray(data) ? data : data.items ?? [];

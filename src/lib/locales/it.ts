@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Brani come interprete",
   "artist.page.statWriting": "Brani come autore",
+  "demarrageWindows.label": "Avvia Tune con Windows",
+  "demarrageWindows.hint": "Se selezionato, Tune si avvia da solo, senza finestra, all'accesso a Windows. Consigliato se questo PC serve soprattutto ad ascoltare musica.",
+  "demarrageWindows.disabledByWindows": "L'avvio di Tune è stato disattivato in Gestione attività (App di avvio). Seleziona la casella per riattivarlo.",
+  "demarrageWindows.error": "Impossibile salvare l'impostazione. Riprova.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

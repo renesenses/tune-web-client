@@ -8025,6 +8025,10 @@ export default {
   "artist.page.statAlbums": "Albums",
   "artist.page.statPerforming": "Tracks as performer",
   "artist.page.statWriting": "Tracks as writer",
+  "demarrageWindows.label": "Start Tune with Windows",
+  "demarrageWindows.hint": "When checked, Tune starts on its own, without a window, when you sign in to Windows. Recommended if this PC is mainly used for music.",
+  "demarrageWindows.disabledByWindows": "Tune’s startup was disabled in Task Manager (Startup apps). Check the box to turn it back on.",
+  "demarrageWindows.error": "The setting could not be saved. Please try again.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

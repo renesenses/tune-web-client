@@ -7964,6 +7964,10 @@ export default {
   "artist.page.statAlbums": "Albumok",
   "artist.page.statPerforming": "Számok előadóként",
   "artist.page.statWriting": "Számok szerzőként",
+  "demarrageWindows.label": "A Tune indítása a Windows-szal",
+  "demarrageWindows.hint": "Bejelölve a Tune magától, ablak nélkül elindul, amikor bejelentkezik a Windowsba. Ajánlott, ha ezt a gépet főleg zenehallgatásra használja.",
+  "demarrageWindows.disabledByWindows": "A Tune automatikus indítását letiltották a Feladatkezelőben (Indítási alkalmazások). Jelölje be a négyzetet az újbóli engedélyezéshez.",
+  "demarrageWindows.error": "A beállítást nem sikerült menteni. Próbálja újra.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

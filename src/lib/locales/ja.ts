@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "アルバム",
   "artist.page.statPerforming": "演奏者としてのトラック",
   "artist.page.statWriting": "作者としてのトラック",
+  "demarrageWindows.label": "Windows と同時に Tune を起動",
+  "demarrageWindows.hint": "オンにすると、Windows にサインインしたときに Tune がウィンドウなしで自動的に起動します。この PC を主に音楽再生に使う場合におすすめです。",
+  "demarrageWindows.disabledByWindows": "Tune の自動起動はタスク マネージャー（スタートアップ アプリ）で無効にされています。チェックを入れると再び有効になります。",
+  "demarrageWindows.error": "設定を保存できませんでした。もう一度お試しください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

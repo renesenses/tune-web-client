@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "앨범",
   "artist.page.statPerforming": "연주자로 참여한 트랙",
   "artist.page.statWriting": "작가로 참여한 트랙",
+  "demarrageWindows.label": "Windows와 함께 Tune 시작",
+  "demarrageWindows.hint": "선택하면 Windows에 로그인할 때 Tune이 창 없이 자동으로 시작됩니다. 이 PC를 주로 음악 감상에 사용한다면 권장합니다.",
+  "demarrageWindows.disabledByWindows": "Tune 자동 시작이 작업 관리자(시작 앱)에서 비활성화되었습니다. 다시 사용하려면 확인란을 선택하세요.",
+  "demarrageWindows.error": "설정을 저장하지 못했습니다. 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

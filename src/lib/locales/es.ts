@@ -8005,6 +8005,10 @@ export default {
   "artist.page.statAlbums": "Álbumes",
   "artist.page.statPerforming": "Pistas como intérprete",
   "artist.page.statWriting": "Pistas como autor",
+  "demarrageWindows.label": "Iniciar Tune con Windows",
+  "demarrageWindows.hint": "Si está marcado, Tune se inicia solo, sin ventana, al iniciar sesión en Windows. Recomendado si este PC se usa sobre todo para escuchar música.",
+  "demarrageWindows.disabledByWindows": "El inicio de Tune se desactivó en el Administrador de tareas (Aplicaciones de arranque). Marque la casilla para volver a activarlo.",
+  "demarrageWindows.error": "No se pudo guardar el ajuste. Inténtelo de nuevo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
