@@ -75,7 +75,7 @@ beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ObservateurInerte);
   vi.stubGlobal('IntersectionObserver', ObservateurInerte);
   preferences.update((p) => ({
-    ...p, settingsLevel: 'expert', v2ActionsReduites: false,
+    ...p, settingsLevel: 'expert',
     v2Colonnes: { ...p.v2Colonnes, expert: ['num', 'title', 'artist', 'time'] },
   }));
 });

@@ -8,40 +8,22 @@
    * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
    * largeur-ci — pas avec une copie (#1149).
    *
-   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine
-   * de `PisteActions`. Depuis le fil forum 1906 (FabienM), la barre a TOUJOURS
-   * ses huit cases : un geste absent laisse une case vide de même largeur. Le chiffre a déjà changé deux fois (178 → 208 le
-   * 16/09/2026, quand le menu « … » a porté la barre à sept ; 208 → 238 le
-   * 20/09/2026, quand « Lire à partir d'ici » a cessé d'être optionnel) : un
-   * témoin le recalcule en comptant les boutons,
+   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px, la barre de
+   * `PisteActions` : Lire, Lire à partir d'ici, le cœur, le « … ». Un geste
+   * absent laisse une case vide de même largeur (fil forum 1906, FabienM). Un
+   * témoin recalcule ce chiffre en comptant les boutons,
    * `largeurActionsSuitLaBarre.test.ts`.
    *
-   * 🔴 IL N'Y A PLUS DEUX LARGEURS. Elles ont existé tant que « Lire à partir
-   * d'ici » était opt-in (#1061) : l'élargir partout aurait volé 30 px à la
-   * dernière colonne de données des écrans qui ne le posaient pas. Bertrand,
-   * 20/09/2026 : « Sur toutes les lignes où il y a une piste, ajoute le bouton
-   * lire à partir de après celui de Lire ». Le bouton est désormais sur
-   * TOUTES les lignes de cette liste, donc la colonne n'a qu'une largeur — et
-   * deux constantes pour une seule valeur seraient la prochaine divergence.
+   * Historique du chiffre : 178 → 208 px le 16/09/2026 (le menu « … »),
+   * 208 → 238 px le 20/09/2026 (« Lire à partir d'ici » partout), 118 px avec
+   * l'option « icônes réduites » (#1892, web#2213), puis 118 px pour tous le
+   * 16/11/2026 : web#3121 (FabienM, fil 2864) fait de la barre réduite la
+   * seule forme. Il n'y a donc plus qu'UNE largeur — deux constantes pour une
+   * seule valeur seraient la prochaine divergence.
    */
-  export const LARGEUR_ACTIONS = '238px';
+  export const LARGEUR_ACTIONS = '118px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
-  export const LARGEUR_ACTIONS_PX = 238;
-  /**
-   * web#2213 (Sandro, fil 2317) — icônes rapides masquées (#1892) : la barre
-   * n'a plus que QUATRE cases (lire, à partir d'ici, cœur, « … »), et la
-   * colonne les suit. Elle gardait ses 238 px, dont 120 vides : au zoom, le
-   * tableau débordait et le « … » sortait de l'écran à droite.
-   * 118 px = quatre boutons de 28 px + trois gouttières de 2 px.
-   */
-  export const LARGEUR_ACTIONS_REDUITE = '118px';
-  export const LARGEUR_ACTIONS_REDUITE_PX = 118;
-  /** La largeur de la colonne d'actions selon l'option « icônes réduites ». */
-  export function largeurActions(reduite: boolean): { css: string; px: number } {
-    return reduite
-      ? { css: LARGEUR_ACTIONS_REDUITE, px: LARGEUR_ACTIONS_REDUITE_PX }
-      : { css: LARGEUR_ACTIONS, px: LARGEUR_ACTIONS_PX };
-  }
+  export const LARGEUR_ACTIONS_PX = 118;
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -101,7 +83,6 @@
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
-  import { actionsReduites } from '../../lib/actionsRapides';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
@@ -818,11 +799,10 @@
   // d'objet avec la MÊME valeur (#1149).
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris — et
-  // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
-  // web#2213 — sauf icônes réduites (#1892) : quatre cases, pas huit.
-  const colonneActions = $derived(largeurActions(actionsReduites($preferences)));
-  const largeurDesActions = $derived(colonneActions.css);
-  const largeurDesActionsPx = $derived(colonneActions.px);
+  // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur
+  // (quatre cases depuis web#3121).
+  const largeurDesActions = LARGEUR_ACTIONS;
+  const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
   // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
   const colonnePoignee = $derived(
@@ -1112,7 +1092,7 @@
             {/if}
           {/if}
         {/each}
-        {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
+        {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte}
           onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null}
           onRetirer={retirerDe ? () => retirerDe(p, i) : null} />{/if}</span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}

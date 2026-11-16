@@ -12,7 +12,14 @@
    * web#2837 (Didier, fil 2768) — la zone se replie à son seul titre par un
    * triangle. L'état replié est une préférence d'AFFICHAGE retenue d'un album
    * à l'autre (`preferencesEcran`) : on ne replie pas chaque fiche.
+   *
+   * web#3123 (FabienM, fil 2864) — le contenu passe en SOUS-ONGLETS : Label
+   * (l'édition), Détails, Crédits (`ongletsApports`). Un onglet vide n'existe
+   * pas ; seul, il n'affiche pas de rangée d'onglets. La forme reprend celle
+   * des onglets de la fiche (maquette de Levente, Pistes | Crédits | …), en
+   * plus petit. La place de la section dans la fiche ne change pas.
    */
+  import { tick } from 'svelte';
   import { t as tr } from '../../lib/i18n';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import * as api from '../../lib/api';
@@ -22,7 +29,10 @@
     lignesApports,
     cleDuRefus,
     retirable,
+    ongletsApports,
+    LIBELLES_ONGLETS_APPORTS,
     type ApportsQobuz,
+    type OngletApports,
   } from '../../lib/apportsQobuz';
 
   interface Props {
@@ -62,6 +72,29 @@
   });
 
   const lignes = $derived(lignesApports(apports));
+
+  /** web#3123 — les sous-onglets présents, et celui qui est ouvert. */
+  const onglets = $derived(ongletsApports(lignes, credits.length));
+  let ongletDemande = $state<OngletApports>('label');
+  const onglet = $derived<OngletApports | null>(
+    onglets.includes(ongletDemande) ? ongletDemande : (onglets[0] ?? null),
+  );
+  const lignesOnglet = $derived(lignes.filter((l) => l.onglet === onglet));
+  $effect(() => { void albumId; ongletDemande = 'label'; });
+  /** ← / → / Début / Fin d'un onglet à l'autre (motif « tabs » de l'ARIA APG). */
+  function clavierOnglets(e: KeyboardEvent) {
+    if (!onglet) return;
+    const i = onglets.indexOf(onglet);
+    let j = -1;
+    if (e.key === 'ArrowRight') j = (i + 1) % onglets.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + onglets.length) % onglets.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = onglets.length - 1;
+    if (j < 0) return;
+    e.preventDefault();
+    ongletDemande = onglets[j];
+    void tick().then(() => document.getElementById(`apports-qobuz-onglet-${albumId}-${onglets[j]}`)?.focus());
+  }
 
   async function retirer() {
     enCours = true;
@@ -121,33 +154,48 @@
         {/if}
       </div>
     {/if}
-    {#if lignes.length}
-      <dl>
-        {#each lignes as l, i (i)}
-          <div class="ligne">
-            {#if l.cle}<dt>{$tr(l.cle as any)}</dt>{/if}
-            <dd>
-              {#if l.url}
-                <a href={l.url} target="_blank" rel="noopener noreferrer">{l.texte || $tr(l.cle as any)}</a>
-              {:else}
-                {l.texte}
-              {/if}
-              <span class="source" data-source={l.source}>{$tr('v2.album.qobuz.source' as any)}</span>
-            </dd>
-          </div>
+    {#if onglets.length > 1}
+      <div class="onglets" role="tablist" aria-label={$tr('v2.album.qobuz.title' as any)} data-onglets-qobuz>
+        {#each onglets as o (o)}
+          <button type="button" role="tab" class="onglet" class:actif={onglet === o}
+            id="apports-qobuz-onglet-{albumId}-{o}" aria-controls="apports-qobuz-panneau-{albumId}"
+            aria-selected={onglet === o} tabindex={onglet === o ? 0 : -1}
+            data-onglet-qobuz={o}
+            onclick={() => (ongletDemande = o)} onkeydown={clavierOnglets}>{$tr(LIBELLES_ONGLETS_APPORTS[o] as any)}</button>
         {/each}
-      </dl>
+      </div>
     {/if}
-    {#if credits.length}
-      <h4>{$tr('v2.album.qobuz.credits' as any)}</h4>
-      <ul class="credits">
-        {#each credits as c (c.nom + c.role)}
-          <li>
-            {c.nom}{c.role ? ` — ${c.role}` : ''}{c.pistes.length ? ` (${c.pistes.join(', ')})` : ''}
-            <span class="source" data-source="qobuz">{$tr('v2.album.qobuz.source' as any)}</span>
-          </li>
-        {/each}
-      </ul>
+    {#if onglet}
+      <div class="panneau" id="apports-qobuz-panneau-{albumId}" data-panneau-qobuz={onglet}
+        role={onglets.length > 1 ? 'tabpanel' : undefined}
+        aria-labelledby={onglets.length > 1 ? `apports-qobuz-onglet-${albumId}-${onglet}` : undefined}>
+      {#if onglet === 'credits'}
+        <ul class="credits" aria-label={$tr('v2.album.qobuz.credits' as any)}>
+          {#each credits as c (c.nom + c.role)}
+            <li>
+              {c.nom}{c.role ? ` — ${c.role}` : ''}{c.pistes.length ? ` (${c.pistes.join(', ')})` : ''}
+              <span class="source" data-source="qobuz">{$tr('v2.album.qobuz.source' as any)}</span>
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <dl>
+          {#each lignesOnglet as l, i (i)}
+            <div class="ligne">
+              {#if l.cle}<dt>{$tr(l.cle as any)}</dt>{/if}
+              <dd>
+                {#if l.url}
+                  <a href={l.url} target="_blank" rel="noopener noreferrer">{l.texte || $tr(l.cle as any)}</a>
+                {:else}
+                  {l.texte}
+                {/if}
+                <span class="source" data-source={l.source}>{$tr('v2.album.qobuz.source' as any)}</span>
+              </dd>
+            </div>
+          {/each}
+        </dl>
+      {/if}
+      </div>
     {/if}
     {#if retirable(apports)}
       <button class="v2-btn" data-retirer-qobuz onclick={retirer} disabled={enCours}>
@@ -168,7 +216,18 @@
   .pli { display: inline-flex; align-items: center; gap: .25rem; padding: 0; margin-left: -.25rem; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; text-align: left; }
   .pli svg { width: 1rem; height: 1rem; transition: transform .15s; }
   .pli svg.ferme { transform: rotate(-90deg); }
-  h4 { margin: .75rem 0 .25rem; font-size: calc(.9rem * var(--v2-txt-echelle, 1)); }
+  /* web#3123 — sous-onglets : la forme des onglets de la fiche (`.onglet`
+     d'`AlbumDetailV2`, maquette de Levente), en plus petit. Au téléphone, la
+     rangée défile plutôt que de pousser la fiche hors du cadre. */
+  .onglets { display: flex; gap: 2px; margin: 0 0 .5rem; border-bottom: 1px solid var(--v2-line2, rgba(127,127,127,.25));
+    overflow-x: auto; scrollbar-width: none; }
+  .onglet { flex: 0 0 auto; padding: 6px 10px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    background: transparent; color: var(--v2-txt2, inherit); font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit);
+    cursor: pointer; white-space: nowrap; }
+  .onglet:hover { color: var(--v2-txt, inherit); }
+  .onglet.actif { color: var(--v2-txt, inherit); border-bottom-color: var(--v2-acc2, currentColor); }
+  .onglet:focus-visible { outline: 2px solid var(--v2-acc2, currentColor); outline-offset: -2px; }
+  .panneau { margin: 0 0 .5rem; }
   dl { margin: 0; display: grid; gap: .25rem; }
   .ligne { display: flex; gap: .5rem; flex-wrap: wrap; }
   dt { font-weight: 600; min-width: 9rem; }

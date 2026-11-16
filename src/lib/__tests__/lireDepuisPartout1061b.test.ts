@@ -149,15 +149,16 @@ describe('la colonne d’actions n’a plus qu’UNE largeur', () => {
     // Elles n'existaient que parce que le bouton était optionnel. Les garder
     // avec la même valeur serait la prochaine divergence.
     expect(liste).not.toContain('LARGEUR_ACTIONS_DEPUIS');
-    expect(liste).toContain("export const LARGEUR_ACTIONS = '238px';");
-    expect(liste).toContain('export const LARGEUR_ACTIONS_PX = 238;');
+    // web#3121 — quatre cases : 118 px.
+    expect(liste).toContain("export const LARGEUR_ACTIONS = '118px';");
+    expect(liste).toContain('export const LARGEUR_ACTIONS_PX = 118;');
   });
 
-  it('la largeur rendue est bien celle des HUIT boutons', () => {
+  it('la largeur rendue est bien celle des QUATRE boutons (web#3121)', () => {
     const el = poser({ pistes: PISTES, onLire: () => {} });
     const tbl = el.querySelector<HTMLElement>('.tbl');
     expect(tbl, 'pas de tableau').not.toBeNull();
-    expect(tbl!.style.getPropertyValue('--tcols')).toContain('238px');
+    expect(tbl!.style.getPropertyValue('--tcols')).toContain('118px');
   });
 });
 
@@ -196,10 +197,9 @@ describe('🔴 les icônes sont les tracés OFFICIELS de lucide', () => {
   const LUCIDE: [string, string][] = [
     ['play', 'M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z'],
     ['step-forward', 'M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z'],
-    ['list-start', 'M21 19V7a2 2 0 0 0-2-2h-6'],
-    ['list-plus', 'M18 9v6'],
-    ['list-music', 'M21 16V5'],
-    ['tag', 'M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z'],
+    // web#3121 (16/11/2026) — `list-start`, `list-plus`, `list-music` et `tag`
+    // ont quitté la barre : lire ensuite, file, playlist et étiquettes sont au
+    // menu « … », qui a ses propres icônes (`lib/menuPiste`).
     ['heart', 'M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5'],
   ];
   const barre = lireFichier('src/components/v2/PisteActions.svelte');
