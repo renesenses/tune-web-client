@@ -3631,6 +3631,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Spara detta rutnät som standardinställning för hela zonen? Zonens nuvarande regel ersätts; albumets regel ändras inte.",
   "v2.cr.reset": "Ta bort omfördelningen",
   "v2.cr.nextTrack": "Sparat: omfördelningen hörs från nästa uppspelning.",
+  "v2.cr.networkOutput": "Den här zonen spelar via en nätverksspelare (DLNA, Squeezebox, AirPlay…), som inte tillämpar kanalomfördelningen. Inställningen är sparad men hörs inte här; ställ in balansen på spelaren eller DAC:n.",
+  "v2.cr.savedNotApplied": "Sparat, men zonens nätverksutgång tillämpar inte kanalomfördelningen.",
   "v2.cr.albumTitle": "Regel för det aktuella albumet",
   "v2.cr.albumHint": "Sparar matrisen ovan för detta album: den går före zonens, i alla zoner.",
   "v2.cr.albumActive": "En regel är sparad för detta album.",

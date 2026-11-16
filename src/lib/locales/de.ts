@@ -3632,6 +3632,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Dieses Raster als Standardeinstellung der ganzen Zone speichern? Die aktuelle Zonenregel wird ersetzt; die Regel des Albums bleibt unverändert.",
   "v2.cr.reset": "Zuordnung entfernen",
   "v2.cr.nextTrack": "Gespeichert: die Zuordnung ist ab der nächsten Wiedergabe zu hören.",
+  "v2.cr.networkOutput": "Diese Zone spielt über einen Netzwerkplayer (DLNA, Squeezebox, AirPlay…), der die Kanalzuordnung nicht anwendet. Die Einstellung ist gespeichert, aber hier nicht hörbar; stellen Sie die Balance am Player oder am DAC ein.",
+  "v2.cr.savedNotApplied": "Gespeichert, aber der Netzwerkausgang dieser Zone wendet die Kanalzuordnung nicht an.",
   "v2.cr.albumTitle": "Regel für das aktuelle Album",
   "v2.cr.albumHint": "Speichert die obige Matrix für dieses Album: sie hat Vorrang vor der der Zone, in allen Zonen.",
   "v2.cr.albumActive": "Für dieses Album ist eine Regel gespeichert.",

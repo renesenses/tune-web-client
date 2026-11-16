@@ -3513,6 +3513,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Lưu lưới này làm thiết lập mặc định của toàn bộ vùng? Quy tắc vùng hiện tại sẽ bị thay thế; quy tắc của album không thay đổi.",
   "v2.cr.reset": "Gỡ ánh xạ lại",
   "v2.cr.nextTrack": "Đã lưu: ánh xạ lại sẽ có hiệu lực từ lần phát tiếp theo.",
+  "v2.cr.networkOutput": "Vùng này phát qua trình phát mạng (DLNA, Squeezebox, AirPlay…), vốn không áp dụng việc ánh xạ kênh. Thiết lập đã được lưu nhưng không nghe thấy ở đây; hãy chỉnh cân bằng trên trình phát hoặc DAC.",
+  "v2.cr.savedNotApplied": "Đã lưu, nhưng đầu ra mạng của vùng này không áp dụng việc ánh xạ kênh.",
   "v2.cr.albumTitle": "Quy tắc cho album hiện tại",
   "v2.cr.albumHint": "Lưu ma trận ở trên cho album này: nó được ưu tiên hơn ma trận của vùng phát, trên mọi vùng phát.",
   "v2.cr.albumActive": "Đã lưu một quy tắc cho album này.",
