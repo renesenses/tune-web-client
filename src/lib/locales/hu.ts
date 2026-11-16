@@ -7964,6 +7964,9 @@ export default {
   "artist.page.statAlbums": "Albumok",
   "artist.page.statPerforming": "Számok előadóként",
   "artist.page.statWriting": "Számok szerzőként",
+  "v2.eq.retainedPreamp": "Az előerősítés biztonsági okból {db} dB marad",
+  "v2.eq.releasePreamp": "Szint visszaállítása",
+  "v2.eq.releasePreampFailed": "A szint nem állítható vissza. Próbálja újra.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

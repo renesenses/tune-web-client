@@ -7850,5 +7850,8 @@ export default {
   "artist.page.statAlbums": "Albumy",
   "artist.page.statPerforming": "Utwory jako wykonawca",
   "artist.page.statWriting": "Utwory jako autor",
+  "v2.eq.retainedPreamp": "Przedwzmacniacz pozostaje na {db} dB ze względów bezpieczeństwa",
+  "v2.eq.releasePreamp": "Przywróć poziom",
+  "v2.eq.releasePreampFailed": "Nie udało się przywrócić poziomu. Spróbuj ponownie.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

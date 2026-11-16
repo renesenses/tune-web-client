@@ -7850,5 +7850,8 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spor som utøver",
   "artist.page.statWriting": "Spor som låtskriver",
+  "v2.eq.retainedPreamp": "Forforsterkning beholdes på {db} dB av sikkerhetshensyn",
+  "v2.eq.releasePreamp": "Gjenopprett nivå",
+  "v2.eq.releasePreampFailed": "Kunne ikke gjenopprette nivået. Prøv igjen.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

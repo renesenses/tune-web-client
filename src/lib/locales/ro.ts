@@ -8005,6 +8005,9 @@ export default {
   "artist.page.statAlbums": "Albume",
   "artist.page.statPerforming": "Piese ca interpret",
   "artist.page.statWriting": "Piese ca autor",
+  "v2.eq.retainedPreamp": "Preamplificarea este păstrată la {db} dB din motive de siguranță",
+  "v2.eq.releasePreamp": "Restabilește nivelul",
+  "v2.eq.releasePreampFailed": "Nivelul nu a putut fi restabilit. Încearcă din nou.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

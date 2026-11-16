@@ -8005,6 +8005,9 @@ export default {
   "artist.page.statAlbums": "앨범",
   "artist.page.statPerforming": "연주자로 참여한 트랙",
   "artist.page.statWriting": "작가로 참여한 트랙",
+  "v2.eq.retainedPreamp": "안전을 위해 프리앰프를 {db} dB로 유지합니다",
+  "v2.eq.releasePreamp": "레벨 복원",
+  "v2.eq.releasePreampFailed": "레벨을 복원하지 못했습니다. 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

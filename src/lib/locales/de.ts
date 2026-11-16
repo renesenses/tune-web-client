@@ -8005,6 +8005,9 @@ export default {
   "artist.page.statAlbums": "Alben",
   "artist.page.statPerforming": "Titel als Interpret",
   "artist.page.statWriting": "Titel als Autor",
+  "v2.eq.retainedPreamp": "Vorverstärkung bleibt zur Sicherheit bei {db} dB",
+  "v2.eq.releasePreamp": "Pegel wiederherstellen",
+  "v2.eq.releasePreampFailed": "Der Pegel konnte nicht wiederhergestellt werden. Erneut versuchen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

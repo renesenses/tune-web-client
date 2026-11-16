@@ -8027,6 +8027,9 @@ export default {
   "artist.page.statAlbums": "Albums",
   "artist.page.statPerforming": "Pistes comme interprète",
   "artist.page.statWriting": "Pistes comme auteur",
+  "v2.eq.retainedPreamp": "Préampli gardé à {db} dB par sécurité",
+  "v2.eq.releasePreamp": "Rendre le niveau",
+  "v2.eq.releasePreampFailed": "Impossible de rendre le niveau. Réessayez.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

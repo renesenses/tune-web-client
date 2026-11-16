@@ -12554,3 +12554,13 @@ export function convertisseurSupprimerLien(
 ): Promise<{ lien_id: string; supprime: boolean; playlists_touchees: boolean }> {
   return fetchJSON(`${CONVERTISSEUR}/lien/supprimer`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
 }
+
+/** #6524 — mesure du gain retenu ; lire ne modifie jamais le son. */
+export interface RetainedEqPreamp { db:number|null; returning:boolean }
+export function getRetainedEqPreamp(zoneId:number):Promise<RetainedEqPreamp> {
+  return fetchJSON<RetainedEqPreamp>(`${BASE}/zones/${zoneId}/eq/retained-preamp`);
+}
+/** Geste explicite : remonter progressivement au signal sans préampli. */
+export function releaseRetainedEqPreamp(zoneId:number):Promise<{released:boolean}> {
+  return apiPost(`/zones/${zoneId}/eq/retained-preamp/release`, {}) as Promise<{released:boolean}>;
+}

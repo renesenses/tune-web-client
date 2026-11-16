@@ -38,6 +38,7 @@
   import VoilePur from './VoilePur.svelte';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
+  import PreampliGardeV2 from './PreampliGardeV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
@@ -843,6 +844,9 @@
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
+  {#if !loading && !nonInstalle && !lectureEchouee}
+    <PreampliGardeV2 zoneId={$currentZoneId} revision={revisionDsp} {pur} />
+  {/if}
   <!-- web#2534 (fil 2533) : le bouton à côté du message, comme sur Extensions. -->
   {#if redemarrageRequis}<div class="restart plugin-restart"><span>{$t('v2.eq.pluginRestart' as any)}</span>
     <button class="redemarrer-bandeau" disabled={redemarrageEnCours}

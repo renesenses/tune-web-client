@@ -8004,4 +8004,7 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spår som artist",
   "artist.page.statWriting": "Spår som upphovsperson",
+  "v2.eq.retainedPreamp": "Förförstärkningen hålls på {db} dB av säkerhetsskäl",
+  "v2.eq.releasePreamp": "Återställ nivån",
+  "v2.eq.releasePreampFailed": "Det gick inte att återställa nivån. Försök igen.",
 } as const;

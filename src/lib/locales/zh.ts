@@ -8005,6 +8005,9 @@ export default {
   "artist.page.statAlbums": "专辑",
   "artist.page.statPerforming": "作为演奏者的曲目",
   "artist.page.statWriting": "作为作者的曲目",
+  "v2.eq.retainedPreamp": "为安全起见，前级增益保持在 {db} dB",
+  "v2.eq.releasePreamp": "恢复电平",
+  "v2.eq.releasePreampFailed": "无法恢复电平，请重试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

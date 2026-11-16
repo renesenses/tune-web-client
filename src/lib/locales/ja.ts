@@ -8005,6 +8005,9 @@ export default {
   "artist.page.statAlbums": "アルバム",
   "artist.page.statPerforming": "演奏者としてのトラック",
   "artist.page.statWriting": "作者としてのトラック",
+  "v2.eq.retainedPreamp": "安全のためプリアンプを {db} dB に維持しています",
+  "v2.eq.releasePreamp": "レベルを戻す",
+  "v2.eq.releasePreampFailed": "レベルを戻せませんでした。もう一度お試しください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

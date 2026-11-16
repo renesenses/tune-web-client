@@ -7850,5 +7850,8 @@ export default {
   "artist.page.statAlbums": "Άλμπουμ",
   "artist.page.statPerforming": "Κομμάτια ως ερμηνευτής",
   "artist.page.statWriting": "Κομμάτια ως δημιουργός",
+  "v2.eq.retainedPreamp": "Η προενίσχυση διατηρείται στα {db} dB για ασφάλεια",
+  "v2.eq.releasePreamp": "Επαναφορά στάθμης",
+  "v2.eq.releasePreampFailed": "Δεν ήταν δυνατή η επαναφορά της στάθμης. Δοκιμάστε ξανά.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

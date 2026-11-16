@@ -7857,5 +7857,8 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Bản nhạc với vai trò trình diễn",
   "artist.page.statWriting": "Bản nhạc với vai trò sáng tác",
+  "v2.eq.retainedPreamp": "Giữ tiền khuếch đại ở {db} dB để bảo đảm an toàn",
+  "v2.eq.releasePreamp": "Khôi phục mức âm",
+  "v2.eq.releasePreampFailed": "Không thể khôi phục mức âm. Vui lòng thử lại.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];
