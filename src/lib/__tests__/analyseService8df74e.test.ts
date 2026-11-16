@@ -144,7 +144,7 @@ describe('go du 13/11 — les règles pures', () => {
   });
 
   it('chaque raison est traduite dans les quinze langues', () => {
-    expect(ONZE_LANGUES).toHaveLength(15);
+    expect(ONZE_LANGUES).toHaveLength(22);
     for (const code of ONZE_LANGUES) {
       const d = dictionnaire(code);
       for (const cle of ['analyse.downloading', ...RAISONS_SERVICE.map(cleRaisonService)]) {

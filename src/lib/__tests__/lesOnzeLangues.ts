@@ -21,5 +21,13 @@ import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
+import ruLocale from '../locales/ru';
+import ukLocale from '../locales/uk';
+import nlLocale from '../locales/nl';
+import ptLocale from '../locales/pt';
+import csLocale from '../locales/cs';
+import fiLocale from '../locales/fi';
+import thLocale from '../locales/th';
 
-export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl };
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl,
+  ruLocale as ru, ukLocale as uk, nlLocale as nl, ptLocale as pt, csLocale as cs, fiLocale as fi, thLocale as th };

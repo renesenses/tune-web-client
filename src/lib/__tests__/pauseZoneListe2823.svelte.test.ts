@@ -126,7 +126,7 @@ describe('#2823 — la liste des zones : un bouton pause, plus de ▶', () => {
   });
 
   it('le libellé existe dans les 15 langues et nomme la zone', () => {
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(22);
     for (const lang of ONZE_LANGUES) {
       const v = dictionnaire(lang)['zone.pauseThisZone'];
       expect(v, `zone.pauseThisZone manque en ${lang}`).toBeTruthy();

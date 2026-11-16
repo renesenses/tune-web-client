@@ -102,7 +102,7 @@ describe('Tune tested : 401 du site (tune-server-rust#8792)', () => {
   });
 
   it('le message existe, traduit, dans les 15 langues', () => {
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(22);
     for (const code of ONZE_LANGUES) {
       const texte = dictionnaire(code)[CLE];
       expect(texte, code).toBeTruthy();
