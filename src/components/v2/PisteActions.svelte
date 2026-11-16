@@ -146,8 +146,14 @@
      * pose dans la MÊME case que son propre cœur. `null` : rien ne change.
      */
     coeur?: CoeurExterne | null;
+    /**
+     * rc12 — « Supprimer de cette playlist » : fourni par l'écran d'une
+     * playlist MODIFIABLE (même geste que la croix de la ligne). `null` :
+     * l'entrée du menu est absente.
+     */
+    onRetirer?: (() => void) | null;
   }
-  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null, onRetirer = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -498,6 +504,7 @@
         autresVersions: () => (panneauVersions = true),
         ajouterAPlaylist: () => (modalePlaylist = true),
         ajouterAPlaylistDeCercle: () => (modaleCercle = true),
+        retirerDeLaPlaylist: onRetirer ? () => onRetirer?.() : undefined,
         partagerMessage: () => { const c = carteDepuisPiste(piste); if (c) carteAPartager.set(c); },
         allerArtiste,
         allerAlbum,

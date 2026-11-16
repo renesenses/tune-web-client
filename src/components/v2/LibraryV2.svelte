@@ -93,6 +93,10 @@
   import { causeBibliothequeVide, type CauseBibliothequeVide } from '../../lib/smbMountState';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { catalogueSuitLesFiltres } from '../../lib/catalogueExport';
+  import {
+    FILTRES_PAR_DEFAUT, LIBELLE_FILTRE, basculerEpingle, ecrireFiltresEpingles, estParDefaut, lireFiltresEpingles,
+    type FiltreEpinglable,
+  } from '../../lib/filtresEpinglesBibliotheque';
   import { entreesHiRes, estCleHiRes, idsParVerdictHiRes, VERDICT_DE_LA_CLE, type CleHiRes } from '../../lib/filtreHiRes';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee, tirageAleatoire, pistesDesAlbums, chargerPistesDesAlbums } from '../../lib/porteeAleatoire';
@@ -742,6 +746,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function voirLesFacettes() { facettesVoulues = true; }
   function ddToggle(id: string) { voirLesFacettes(); ddOpen = ddOpen === id ? null : id; }
   function ddClose() { ddOpen = null; }
+
+  /*
+   * Maquette de Levente (Figma 616:5818, 15/11/2026) — la rangée ne montre
+   * que les filtres CHOISIS (par défaut « Source » et « Qualité ») ; le
+   * bouton « Filtres » épingle les autres. Un filtre actif reste affiché.
+   * Voir lib/filtresEpinglesBibliotheque.
+   */
+  let filtresEpingles = $state<FiltreEpinglable[]>(lireFiltresEpingles());
+  function epingler(f: FiltreEpinglable) {
+    filtresEpingles = basculerEpingle(filtresEpingles, f);
+    ecrireFiltresEpingles(filtresEpingles);
+  }
+  function filtresParDefaut() {
+    filtresEpingles = [...FILTRES_PAR_DEFAUT];
+    ecrireFiltresEpingles(filtresEpingles);
+  }
+  /** La puce est dans la rangée : épinglée, ou active. */
+  function montre(f: FiltreEpinglable, actif: boolean): boolean {
+    return actif || filtresEpingles.includes(f);
+  }
   // Un menu ouvert au clic doit se refermer au clic AILLEURS, sinon il reste
   // planté par-dessus la grille. `.drop` couvre le chip ET son menu.
   //
@@ -1469,7 +1493,18 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     return out;
   });
 
-  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear).length);
+  /**
+   * Le compte de la pastille « 2002 · N albums ». Il se lit comme le nombre
+   * d'albums de la GRILLE : il croise donc les autres filtres (source,
+   * qualité, recherche…), comme le compteur de la période (#8162).
+   *
+   * 🔴 Recette du 15/11 sur le .18 : depuis Lecture en cours, clic sur 2002,
+   * « Source · Local » retenu — la pastille annonçait « 2002 · 96 albums »
+   * au-dessus de « Tout (90) » : les 6 albums UPnP de 2002 étaient comptés
+   * alors que la grille les écartait. La frise, elle, continue de décrire la
+   * collection entière (`populationFrise`).
+   */
+  const yearCount = $derived(fYear == null ? 0 : populationFrise.filter((a) => albumYear(a) === fYear && matchesHorsAnnees(a)).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
    *  parcours, pas un marqueur de filtre.
@@ -1850,12 +1885,36 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /** Recherche et Source : elles filtrent les albums et les artistes, pas la
    *  fenêtre des Ajouts récents, qui vient d'une autre route. */
   const showSearch = $derived(!sourcePropre);
+  /** tune-server-rust#7586 — « Uniquement favoris » : onglets locaux seulement. */
+  const dispoFavoris = $derived(showSearch && !depot && ONGLETS_UNIQUEMENT_FAVORIS.includes(tab as any));
 
   /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
   /** Tri et bascule grille/liste : outils de confort, pas de recherche.
    *  Sans objet sur les artistes — le tri porte sur des champs d'album, et il
    *  n'y a qu'une seule façon d'afficher une grille d'artistes. */
   const showTools = $derived(atLeast(level, 'intermediate') && tab !== 'artists');
+  /**
+   * Maquette de Levente (616:5818) — les filtres que le bouton « Filtres »
+   * propose : ceux qui ont un sens ICI (mêmes conditions que leur puce),
+   * avec leur état actif. Rien n'y manque : chaque puce de la rangée y est.
+   */
+  const filtresDisponibles = $derived.by((): { id: FiltreEpinglable; actif: boolean }[] => {
+    const l: { id: FiltreEpinglable; actif: boolean; dispo: boolean }[] = [
+      { id: 'recent', dispo: showFilters && hasAddedAt, actif: sortKey === 'added' },
+      { id: 'provenance', dispo: showSearch, actif: fProvenance !== null },
+      { id: 'favoris', dispo: dispoFavoris, actif: fFavoris },
+      { id: 'repertoire', dispo: showSearch && !depot, actif: porteeActive },
+      { id: 'pays', dispo: showFilters && !depot, actif: carteOuverte || paysChoisi != null },
+      { id: 'quality', dispo: showFilters, actif: fQuality.length > 0 },
+      { id: 'rate', dispo: showFilters, actif: fRate.length > 0 },
+      { id: 'dr', dispo: showFilters && hasDr && drAffiche, actif: fDrMin != null || fDrMax != null },
+      { id: 'format', dispo: showFilters && formats.length > 1, actif: fFormat.length > 0 },
+      { id: 'compilations', dispo: showFilters && (nCompilations > 0 || fCompilation != null), actif: fCompilation != null },
+      { id: 'incomplets', dispo: showFilters && (idsIncomplets.size > 0 || fIncomplets), actif: fIncomplets },
+      { id: 'depth', dispo: showFilters && showExpert && depths.length > 1, actif: fDepth.length > 0 },
+    ];
+    return l.filter((f) => f.dispo).map(({ id, actif }) => ({ id, actif }));
+  });
 
   /** A–Z / Années : une navigation dans les ALBUMS. La vue Artistes a son
    *  propre rail A–Z, et « Années » n'a aucun sens sur un artiste. */
@@ -3632,8 +3691,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         Ce n'est pas un filtre : le chip bascule le TRI, et se rallume quand
         c'est lui qui est actif. On ne cache donc rien de la bibliothèque.
       -->
-      {#if hasAddedAt}
-        <button class="chip" class:active={sortKey === 'added'}
+      {#if hasAddedAt && montre('recent', sortKey === 'added')}
+        <button class="chip" class:active={sortKey === 'added'} data-puce="recent"
           onclick={() => (sortKey = sortKey === 'added' ? 'title' : 'added')}
           title={$tr('v2.lib.recentHint' as any)}>{$tr('v2.lib.recent' as any)}</button>
       {/if}
@@ -3652,10 +3711,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         `/home/recently-added`, qui ne connaît pas la provenance. Le menu s'y
         ouvrait et se cochait sans que rien ne bouge.
       -->
-      {#if showSearch}
+      {#if showSearch && montre('provenance', fProvenance !== null)}
         <!-- #4800 — `onpointerenter` : le menu s'ouvre AUSSI au survol
              (`.drop:hover .menu`), et ses comptes veulent la liste entière. -->
-        <div class="drop" class:open={ddOpen === 'provenance'} onpointerenter={voirLesFacettes}>
+        <div class="drop" data-puce="provenance" class:open={ddOpen === 'provenance'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
@@ -3664,7 +3723,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                  efface aussi la qualité, le format et la recherche. -->
             <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : matchCountToutesSources}</em></button>
             {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
-              <p>{$tr('upnp.sync.localOnly' as any)}</p>
+              <!-- Fil forum 2844 : sans classe, ce <p> prenait la police par
+                   défaut du navigateur (16 px), trois fois la taille du menu. -->
+              <p class="menu-note">{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
             <!-- Plus de lien « Serveurs multimédia » ici : un menu de FILTRE
                  n'est pas une navigation (Bertrand, 17/09/2026 : « Cette
@@ -3679,17 +3740,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            de la Bibliothèque (pas les Ajouts récents ni les coffrets, qui ont
            leur propre source ; pas un dépôt distant, dont les favoris ne sont
            pas ceux de ce profil). -->
-      {#if showSearch && !depot && ONGLETS_UNIQUEMENT_FAVORIS.includes(tab as any)}
-        <button class="chip" class:active={fFavoris} data-filtre-favoris aria-pressed={fFavoris}
+      {#if dispoFavoris && montre('favoris', fFavoris)}
+        <button class="chip" data-puce="favoris" class:active={fFavoris} data-filtre-favoris aria-pressed={fFavoris}
           title={$tr('v2.lib.onlyFavoritesHint' as any)}
           onclick={() => (fFavoris = !fFavoris)}>{$tr('v2.lib.onlyFavorites' as any)}</button>
       {/if}
-      {#if showSearch && !depot}
+      {#if showSearch && !depot && montre('repertoire', porteeActive)}
         <!-- #7597 (suite) — RÉPERTOIRE : poser la portée de dossier sans
              passer par l'écran Répertoires. Même magasin (`libraryFolderScope`),
              même pastille. Le panneau n'existe qu'ouvert : il interroge le
              serveur, il ne doit pas le faire au simple survol. -->
-        <div class="drop" class:open={ddOpen === 'repertoire'}>
+        <div class="drop" data-puce="repertoire" class:open={ddOpen === 'repertoire'}>
           <button class="chip" data-choix-repertoire class:active={porteeActive} aria-haspopup="dialog" aria-expanded={ddOpen === 'repertoire'}
             onclick={() => (ddOpen = ddOpen === 'repertoire' ? null : 'repertoire')}>{$tr('v2.lib.folder' as any)}{#if porteeActive}&nbsp;· {nomPortee}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -3702,12 +3763,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {/if}
         </div>
       {/if}
-      {#if showFilters && !depot}
+      {#if showFilters && !depot && montre('pays', carteOuverte || paysChoisi != null)}
         <!-- renesenses/tune-web-client#2645 — PAYS : la puce ouvre la carte du monde sous la rangée de
              filtres (pas dans un menu : un globe et sa liste n'y tiennent pas
              sur un téléphone). Le pays choisi s'écrit sur la puce, et sa
              croix le retire sans refermer la carte. -->
-        <button class="chip" data-carte-pays-puce class:active={carteOuverte || paysChoisi != null}
+        <button class="chip" data-puce="pays" data-carte-pays-puce class:active={carteOuverte || paysChoisi != null}
           aria-expanded={carteOuverte} onclick={() => (carteOuverte = !carteOuverte)}
         >{$tr('v2.lib.map.chip' as any)}{#if paysChoisi}&nbsp;· {nomPays(paysChoisi.code, $locale)}{/if}</button>
         {#if paysChoisi}
@@ -3716,7 +3777,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         {/if}
       {/if}
     {#if showFilters}
-      <div class="drop" class:open={ddOpen === 'quality'} onpointerenter={voirLesFacettes}>
+      {#if montre('quality', fQuality.length > 0)}
+      <div class="drop" data-puce="quality" class:open={ddOpen === 'quality'} onpointerenter={voirLesFacettes}>
         <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>{$tr('v2.tcol.quality' as any)}{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
@@ -3730,7 +3792,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {/each}
         </div>
       </div>
-      <div class="drop" class:open={ddOpen === 'rate'} onpointerenter={voirLesFacettes}>
+      {/if}
+      {#if montre('rate', fRate.length > 0)}
+      <div class="drop" data-puce="rate" class:open={ddOpen === 'rate'} onpointerenter={voirLesFacettes}>
         <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>{$tr('v2.tcol.sampleRate' as any)}{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
@@ -3741,13 +3805,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {/each}
         </div>
       </div>
+      {/if}
       <!-- FORMAT des le niveau Essentiel : « FLAC ou MP3 ? » est la question de
            base dans une discotheque mixte, et la maquette v3 de Levente le
            place aussi au premier niveau. -->
       <!-- Tranche DR (#2144) : dessinée SEULEMENT si des albums portent un
            DR — ailleurs, une commande qui ne filtre rien. -->
-      {#if hasDr && drAffiche}
-        <span class="chip dr" class:active={fDrMin != null || fDrMax != null}>
+      {#if hasDr && drAffiche && montre('dr', fDrMin != null || fDrMax != null)}
+        <span class="chip dr" data-puce="dr" class:active={fDrMin != null || fDrMax != null}>
           <span>{$tr('library.drRange' as any)}</span>
           <select aria-label={$tr('library.drMin' as any)} value={fDrMin == null ? '' : String(fDrMin)}
             onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; fDrMin = v === '' ? null : Number(v); }}>
@@ -3762,8 +3827,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </select>
         </span>
       {/if}
-      {#if formats.length > 1}
-        <div class="drop" class:open={ddOpen === 'format'} onpointerenter={voirLesFacettes}>
+      {#if formats.length > 1 && montre('format', fFormat.length > 0)}
+        <div class="drop" data-puce="format" class:open={ddOpen === 'format'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>{$tr('v2.tcol.format' as any)}{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
@@ -3780,23 +3845,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            scan n'a pas repassé dessus — voir `FiltresBibliotheque`.
            Cachée à zéro : c'est l'état normal d'un serveur mis à jour sans
            re-scan, et un filtre qui ne rend rien passe pour un bug. -->
-      {#if nCompilations > 0 || fCompilation != null}
-        <button class="chip" class:active={fCompilation != null}
+      {#if (nCompilations > 0 || fCompilation != null) && montre('compilations', fCompilation != null)}
+        <button class="chip" data-puce="compilations" class:active={fCompilation != null}
           aria-pressed={fCompilation != null}
           title={$tr('v2.lib.compilationsHint' as any)}
           onpointerenter={voirLesFacettes}
           onclick={() => (fCompilation = fCompilation == null ? true : null)}
         >{$tr('v2.lib.compilations' as any)} <em>{comptesPrets ? $formatNombre(nCompilations) : '…'}</em></button>
       {/if}
-      {#if idsIncomplets.size > 0 || fIncomplets}
-        <button class="chip" class:active={fIncomplets} data-filtre-incomplets
+      {#if (idsIncomplets.size > 0 || fIncomplets) && montre('incomplets', fIncomplets)}
+        <button class="chip" data-puce="incomplets" class:active={fIncomplets} data-filtre-incomplets
           aria-pressed={fIncomplets}
           title={$tr('v2.lib.incompleteHint' as any)}
           onclick={() => (fIncomplets = !fIncomplets)}
         >{$tr('v2.lib.incomplete' as any)} <em>{$formatNombre(idsIncomplets.size)}</em></button>
       {/if}
-      {#if showExpert && depths.length > 1}
-        <div class="drop" class:open={ddOpen === 'depth'} onpointerenter={voirLesFacettes}>
+      {#if showExpert && depths.length > 1 && montre('depth', fDepth.length > 0)}
+        <div class="drop" data-puce="depth" class:open={ddOpen === 'depth'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>{$tr('v2.tcol.bitDepth' as any)}{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
@@ -3807,6 +3872,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </div>
         </div>
       {/if}
+    {/if}
+    <!-- Maquette de Levente (Figma 616:5818, biblio-3 « Add Filter ») : les
+         filtres non épinglés s'ajoutent ici, et le choix est retenu. -->
+    {#if filtresDisponibles.length}
+      <div class="drop" class:open={ddOpen === 'filtres'} data-filtres-choix>
+        <button class="chip" data-filtres-ouvrir aria-haspopup="menu" aria-expanded={ddOpen === 'filtres'}
+          title={$tr('v2.lib.filtres.aide' as any)}
+          onclick={() => ddToggle('filtres')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          {$tr('v2.lib.filtres.bouton' as any)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+        <!-- Rendu seulement OUVERT (comme « Répertoire ») : un `.menu[role=menu]`
+             toujours présent passerait pour le menu ouvert de la page. -->
+        {#if ddOpen === 'filtres'}
+        <!-- Sous 640 px : une FEUILLE en bas de l'écran, à la manière de
+             FeuilleMini (voile, poignée, coins hauts arrondis), 60 % de haut
+             au plus et défilement interne. Le voile est hors de `.drop` : le
+             toucher, c'est cliquer dehors, et `ddDehors` referme. -->
+        <div class="menu filtres-choix" role="menu" aria-label={$tr('v2.lib.filtres.titre' as any)}>
+          <button class="poignee-filtres" data-filtres-fermer onclick={ddClose} aria-label={$tr('v2.common.close' as any)}><span></span></button>
+          <p class="filtres-aide">{$tr('v2.lib.filtres.aide' as any)}</p>
+          {#each filtresDisponibles as f (f.id)}
+            <button role="menuitemcheckbox" aria-checked={filtresEpingles.includes(f.id)} data-epingle-filtre={f.id}
+              class:on={filtresEpingles.includes(f.id)} onclick={() => epingler(f.id)}>
+              <span class="case" aria-hidden="true">{filtresEpingles.includes(f.id) ? '✓' : ''}</span>
+              {$tr(LIBELLE_FILTRE[f.id] as any)}
+              {#if f.actif}<em>{$tr('v2.lib.filtres.actif' as any)}</em>{/if}
+            </button>
+          {/each}
+          <button data-filtres-defaut disabled={estParDefaut(filtresEpingles)} onclick={filtresParDefaut}>{$tr('v2.lib.filtres.defaut' as any)}</button>
+        </div>
+        {/if}
+      </div>
+      {#if ddOpen === 'filtres'}<div class="fond-filtres" role="presentation" data-fond-filtres></div>{/if}
     {/if}
 
     <!-- 🔴 Le TRI part sur les Ajouts récents, la BASCULE reste.
@@ -4906,6 +5005,40 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      menu ne saute pas sous le doigt, mais inerte et sourde. */
   .menu button:disabled{opacity:.38; cursor:default}
   .menu button:disabled:hover{background:transparent}
+  /* Maquette de Levente (biblio-3) — le choix des filtres affichés. Les cases
+     épinglées gardent l'apparence « on » des autres menus. */
+  .drop .menu.filtres-choix{min-width:260px; max-width:min(320px, calc(100vw - 32px))}
+  /* Relecture du 15/11 : un libellé long (allemand…) passe à la ligne au lieu
+     de déborder ; la case reste en tête de la première ligne. */
+  /* Recette du .18 (15/11) : la police de l'interface, pas la mono des
+     menus de facettes (ce sont des noms de filtres, pas des valeurs). */
+  .drop .menu.filtres-choix button{display:flex; align-items:flex-start; white-space:normal; overflow-wrap:anywhere; line-height:1.3;
+    font:500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  /* Recette du .18 (15/11) — à 390 px le menu débordait à droite : sur écran
+     étroit il se cale sous la rangée, sur toute sa largeur. */
+  .poignee-filtres, .fond-filtres{display:none}
+  /* Recette du .18 (15/11) — sous 640 px, une feuille en bas de l'écran
+     (même facture que FeuilleMini), et non un menu qui couvre la grille. */
+  @media (max-width:640px){
+    .drop[data-filtres-choix]::after{display:none}
+    .fond-filtres{display:block; position:fixed; inset:0; z-index:90; background:var(--v2-scrim)}
+    .drop .menu.filtres-choix{position:fixed; left:0; right:0; top:auto; bottom:0; z-index:91;
+      min-width:0; max-width:none; max-height:60vh; overflow-y:auto; overscroll-behavior:contain;
+      padding:0 10px calc(10px + env(safe-area-inset-bottom, 0px)); border-radius:16px 16px 0 0;
+      border-width:1px 0 0; background:var(--v2-surface2)}
+    .drop .menu.filtres-choix .poignee-filtres{display:grid; place-items:center; flex:0 0 22px; padding:0; border:0;
+      background:none; cursor:pointer; position:sticky; top:0; background:var(--v2-surface2); z-index:1}
+    .poignee-filtres span{display:block; width:38px; height:4px; border-radius:2px; background:var(--v2-line2)}
+  }
+  .filtres-choix .case{flex:0 0 auto; margin-top:1px}
+  /* Fil forum 2844 — note d'un menu déroulant : même échelle que les
+     entrées du menu, en retrait de couleur, largeur bornée. */
+  .drop .menu .menu-note{margin:4px 10px 6px; width:200px; max-width:calc(100vw - 48px);
+    font:calc(11.5px * var(--v2-txt-echelle, 1))/1.4 var(--v2-sans); color:var(--v2-txt3); white-space:normal}
+  .filtres-aide{margin:2px 6px 6px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
+  .filtres-choix .case{display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px;
+    margin-right:8px; border:1px solid currentColor; border-radius:3px; font-size:calc(10px * var(--v2-txt-echelle, 1)); line-height:1}
+  .filtres-choix button[data-filtres-defaut]{margin-top:4px; border-top:1px solid var(--v2-line); border-radius:0}
   .chip.plain{gap:7px}
   .chip.plain svg:first-child{width:14px; height:14px}
   .viewtog{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
@@ -5235,6 +5368,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      badge de qualite refuse de retrecir et pousse la pastille hors carte. */
   .cbot{display:flex; align-items:center; gap:6px; min-width:0}
   .cbot > :global(*){min-width:0}
+  /* Recette du 15/11 (.18, « Come Away With Me ») : les écoutes de la
+     communauté « (22) » prenaient la place de la qualité, qui passait à la
+     ligne (`.qa` est en `flex-wrap:wrap`) et laissait « (22) » seul au milieu
+     de la carte. Sur la carte, une seule ligne : la qualité s'élide (`.q`),
+     le badge de source et les écoutes restent entiers. */
+  .cbot > :global(.qa){flex-wrap:nowrap}
+  .cbot > :global(.ecoutes-communaute){flex:none}
   .cq{margin-top:4px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .chip.dr{display:inline-flex; align-items:center; gap:5px}
   .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}

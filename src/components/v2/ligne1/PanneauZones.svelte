@@ -25,7 +25,7 @@
    * des zones — c'est là que mène « Gérer les zones ».
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
-  import { t } from '../../../lib/i18n';
+  import { t, tn } from '../../../lib/i18n';
   import { zones, switchZone } from '../../../lib/stores/zones';
   import { activeView } from '../../../lib/stores/navigation';
   import { togglePlayPause } from '../../../lib/playback-controls';
@@ -57,14 +57,14 @@
   }
 </script>
 
-<PanneauL1 titre={$t('v2.home.l1Zones' as any)} largeur={LARGEUR_PANNEAU}>
+<PanneauL1 titre={$t('v2.home.l1Zones' as any)} largeur={LARGEUR_PANNEAU} levente>
   {#snippet icone()}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>
   {/snippet}
   {#snippet entete()}
     {#if actives > 0}
-      <span class="pastille" data-zones-actives>{$t('v2.home.l1ZonesActive' as any).replace('{n}', String(actives))}</span>
+      <span class="pastille" data-zones-actives>{$tn('v2.home.l1ZonesActiveN', actives)}</span>
     {/if}
   {/snippet}
 

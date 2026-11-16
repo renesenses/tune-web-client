@@ -632,6 +632,16 @@
             </span>
             <span class="note duree">{m.duration_ms ? formatTime(m.duration_ms) : ''}</span>
             <span class={`resolution ${r && pastilleVisible(r, maj) ? `res-${r.etat}` : ''}`}>{r && pastilleVisible(r, maj) ? libelleResolution(r) : ''}</span>
+            <!-- rc12 (Bertrand, 15/11/2026, « Croix de suppression d'une piste
+                 dans une playlist ! ») : la croix « Retirer » est VISIBLE sur la
+                 ligne — tout membre retire (le serveur l'accepte, T5) ; le menu
+                 ⋯ garde son entrée. Même geste, même `version`. -->
+            <button class="retirer-croix" type="button" data-retirer-titre disabled={occupe}
+              aria-label={$t('v2.circle.pl.removeNamed' as any).replace('{title}', m.title)}
+              title={$t('v2.circle.pl.removeNamed' as any).replace('{title}', m.title)}
+              onclick={(ev) => { ev.stopPropagation(); retirer(m); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
             <span class="menu-wrap" data-menu-morceau={k}>
               <button class="menu-morceau" type="button" data-item={k}
                 aria-haspopup="menu" aria-expanded={menuOuvert === k}
@@ -715,7 +725,7 @@
 
   /* Les lignes. */
   .morceaux{list-style:none; margin:0; padding:0; display:flex; flex-direction:column}
-  .morceau{position:relative; display:grid; grid-template-columns:24px 28px 36px minmax(0,1fr) auto auto auto; align-items:center;
+  .morceau{position:relative; display:grid; grid-template-columns:24px 28px 36px minmax(0,1fr) auto auto auto auto; align-items:center;
     gap:10px; padding:6px 6px; border-bottom:1px solid var(--v2-line); border-radius:8px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .morceau:hover,.morceau:focus-within{background:var(--v2-hover); color:var(--v2-txt)}
   .morceau.glisse{opacity:.5}
@@ -747,6 +757,12 @@
   .res-bibliotheque,.res-service{background:var(--v2-acc-soft); color:var(--v2-txt)}
   .res-introuvable{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .menu-wrap{position:relative}
+  .retirer-croix{width:30px; height:30px; border:0; border-radius:8px; background:transparent; color:var(--v2-txt3);
+    cursor:pointer; display:grid; place-items:center}
+  .retirer-croix svg{width:15px; height:15px}
+  .retirer-croix:hover:not(:disabled){color:var(--v2-danger); background:var(--v2-surface2)}
+  .retirer-croix:focus-visible{outline:2px solid var(--v2-focus); outline-offset:1px}
+  .retirer-croix:disabled{opacity:.4; cursor:not-allowed}
   .menu-morceau{width:30px; height:30px; border:0; border-radius:8px; background:transparent; color:var(--v2-txt3);
     cursor:pointer; display:grid; place-items:center}
   .menu-morceau svg{width:16px; height:16px}
@@ -771,10 +787,11 @@
     .mosaique{width:96px; height:96px}
   }
   @media (max-width: 640px){
-    .morceau{grid-template-columns:28px 36px minmax(0,1fr) auto}
+    .morceau{grid-template-columns:28px 36px minmax(0,1fr) auto auto}
     .poignee{display:none}
     .duree{display:none}
     .resolution{grid-column:3}
-    .menu-wrap{grid-column:4; grid-row:1}
+    .retirer-croix{grid-column:4; grid-row:1}
+    .menu-wrap{grid-column:5; grid-row:1}
   }
 </style>

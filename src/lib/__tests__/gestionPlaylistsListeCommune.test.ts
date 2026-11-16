@@ -255,7 +255,9 @@ describe('garde de source', () => {
     expect(src).toMatch(/<ListePistesV2 pistes=\{detailTracks\}/);
     expect(src).toContain('reordonnable={!!selectedPlaylist}');
     expect(src).toContain('onReordonner={reorderTracks}');
-    expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : undefined\}/);
+    // web#3067 — playlist locale d'abord ; playlist du service à soi
+    // (`editable: true`) ensuite, retrait chez le service ; sinon rien.
+    expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : aMoiChezLeService\(selectedStreamingPl\) \? retirerService : undefined\}/);
     // #4889 — l'ordre part en RANGS actuels (`positions`), plus en identifiants.
     expect(src).toContain('api.reorderPlaylistTracks(selectedPlaylist.id, positions)');
     // web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture.

@@ -111,11 +111,11 @@
     {#if confirmable(apports)}
       <p class="a-confirmer">{$tr('v2.album.qobuz.toConfirm' as any)}</p>
       <div class="gestes">
-        <button class="ghost" data-confirmer-qobuz onclick={confirmer} disabled={enCours}>
+        <button class="v2-btn" data-confirmer-qobuz onclick={confirmer} disabled={enCours}>
           {$tr('v2.album.qobuz.confirm' as any)}
         </button>
         {#if apports?.service_url}
-          <a class="ghost" href={apports.service_url} target="_blank" rel="noopener noreferrer">
+          <a class="v2-btn" href={apports.service_url} target="_blank" rel="noopener noreferrer">
             {$tr('v2.album.qobuz.openOnQobuz' as any)}
           </a>
         {/if}
@@ -150,7 +150,7 @@
       </ul>
     {/if}
     {#if retirable(apports)}
-      <button class="ghost" data-retirer-qobuz onclick={retirer} disabled={enCours}>
+      <button class="v2-btn" data-retirer-qobuz onclick={retirer} disabled={enCours}>
         {$tr('v2.album.qobuz.remove' as any)}
       </button>
     {:else if retire}
@@ -177,4 +177,11 @@
   .source { margin-left: .4rem; font-size: calc(.75rem * var(--v2-txt-echelle, 1)); opacity: .7; }
   .gestes { display: flex; gap: .5rem; margin: .25rem 0 .5rem; flex-wrap: wrap; }
   .a-confirmer { margin: 0 0 .25rem; }
+  /* Recette du .18 (15/11) : les gestes portaient `ghost`, une classe que
+     seule la fiche habille — ici, sans style. Ils prennent LE bouton
+     partagé (`.v2-btn`, tune-v2.css) ; le lien vers Qobuz aussi. */
+  a.v2-btn { text-decoration: none; }
+  dd a { color: var(--v2-acc-tint); text-decoration: underline; text-underline-offset: 2px; }
+  dd a:hover { color: var(--v2-txt); }
+  dd a:focus-visible { outline: 2px solid var(--v2-acc2); outline-offset: 2px; border-radius: 3px; }
 </style>

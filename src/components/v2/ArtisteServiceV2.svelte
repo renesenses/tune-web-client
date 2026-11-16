@@ -109,6 +109,9 @@
   import { dansSource } from '../../lib/provenanceBibliotheque';
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
+  import ArtistesSimilaires from './ArtistesSimilaires.svelte';
+  import { ecoutesDe } from '../../lib/ecoutesCommunaute';
+  import { chiffresEnTete, ongletsArtiste, ongletValide, portraitsSimilaires, type OngletArtiste, type PortraitSimilaire } from '../../lib/pageArtisteMaquette';
 
   const cible = $derived($ficheArtisteService);
   /**
@@ -301,6 +304,11 @@
     try { titre.scrollIntoView({ block: 'start' }); } catch { /* jsdom, vieux moteur */ }
   });
   let creditsFiche = $state<TrackCredit[]>([]);
+  // Recette du 15/11 : des crédits SANS instrument laissaient « CRÉDITS » seul,
+  // sans rien dessous. Le titre ne s'ouvre que sur un instrument à montrer.
+  // Une réponse qui n'est pas une liste (serveur ancien, objet d'erreur) ne
+  // doit pas faire tomber la fiche : pas d'instrument, pas de titre.
+  const instrumentsFiche = $derived(Array.isArray(creditsFiche) ? uniqueInstruments(creditsFiche) : []);
   let enrichissement = $state(false);
   let jetonMeta = 0;
   /** L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…). */
@@ -319,7 +327,7 @@
     ]);
     if (jeton !== jetonMeta) return;
     metaFiche = m;
-    creditsFiche = c ?? [];
+    creditsFiche = Array.isArray(c) ? c : [];
   }
 
   /*
@@ -829,6 +837,57 @@
           coverUrl: artiste?.image_path ?? undefined,
         }),
   );
+  /*
+   * ── Maquette de Levente (Figma 616:5810 / 616:5811, rc12) ────────────────
+   * Onglets, chiffres de l'en-tête, menu « … » et portraits des similaires.
+   * Les règles de forme sont dans `pageArtisteMaquette.ts`.
+   */
+  const albumsCompte = $derived(estLocal ? (dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)) : null);
+  const chiffres = $derived(chiffresEnTete({ albums: albumsCompte, ecoutes: estLocal ? ecoutesDe(artiste) : null, compteurs: estLocal ? compteurs : null }, (k) => $tr(k as any)));
+  const aDiscographie = $derived(!!(albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length
+    || apparitions.length || collaborations.length || ecriture.length || reprises.length || joueAvec.length));
+  const similairesFiche = $derived(artisteEditable ? (metaFiche?.similar_artists ?? []) : []);
+  const onglets = $derived(chargement ? [] : ongletsArtiste({ discographie: aDiscographie, similaires: similairesFiche.length }));
+  let ongletDemande = $state<OngletArtiste>('apercu');
+  const onglet = $derived(ongletValide(ongletDemande, onglets));
+  // Un autre artiste ouvert : retour à l'aperçu, et le menu « … » se referme.
+  let cleOnglet = '';
+  $effect(() => {
+    const k = `${cible?.service ?? ''}:${cible?.id ?? ''}`;
+    if (k === cleOnglet) return;
+    cleOnglet = k;
+    ongletDemande = 'apercu';
+    plusOuvert = false;
+  });
+  // web#2299 — « Retour aux similaires » vise la liste de l'aperçu.
+  $effect(() => { if ($defilerVersSimilaires) ongletDemande = 'apercu'; });
+  const libelleOnglet = (o: OngletArtiste) =>
+    $tr((o === 'apercu' ? 'artist.page.overview' : o === 'albums' ? 'v2.fas.albums' : 'artist.similarArtists') as any);
+
+  let plusOuvert = $state(false);
+  let zonePlus = $state<HTMLElement | null>(null);
+  function fermerPlusApresGeste(e: MouseEvent) {
+    const cible = e.target as Element | null;
+    if (cible?.closest('button') && !cible.closest('.report-wrap')) plusOuvert = false;
+  }
+  function fermerPlusDehors(e: MouseEvent) {
+    if (plusOuvert && zonePlus && !zonePlus.contains(e.target as Node)) plusOuvert = false;
+  }
+
+  let portraits = $state<Record<string, PortraitSimilaire>>({});
+  let clePortraits = '';
+  $effect(() => {
+    if (onglet !== 'similaires') return;
+    const noms = similairesFiche.map((x) => x.name);
+    const k = `${cible?.id ?? ''}|${noms.join('|')}`;
+    if (!noms.length || k === clePortraits) return;
+    clePortraits = k;
+    portraits = {};
+    void portraitsSimilaires(noms, (n) => api.searchLibrary(n, 5)).then((p) => {
+      if (k === clePortraits) portraits = p;
+    }).catch(() => { /* les initiales restent */ });
+  });
+
   let basculeCoeur = $state(false);
   async function basculerCoeurArtiste() {
     if (!coeurArtiste || basculeCoeur) return;
@@ -1082,6 +1141,8 @@
   </button>
 {/snippet}
 
+<!-- Le menu « … » de l'en-tête se referme au clic dehors et sur Échap. -->
+<svelte:window onclick={fermerPlusDehors} onkeydown={(e) => { if (e.key === 'Escape') plusOuvert = false; }} />
 {#if albumOuvert}
   <!-- `service` EN MÊME TEMPS que l'album : `AlbumDetailV2` n'apparie un album
        de streaming que sur la paire service + `source_id`, et l'ouvrir sans son
@@ -1111,6 +1172,7 @@
     compteurs={estLocal ? compteurs : null}
     pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : null}
     onPays={(code) => { pendingLibraryFiltre.set({ paysArtiste: code }); activeView.set('library'); }}
+    disposition="maquette" {chiffres}
     onRetour={retour}>
     {#snippet actions()}
       {#if dossier}
@@ -1134,9 +1196,7 @@
           file={objetFile ? { faire: () => gestesObjet(objetFile!).enfiler?.() } : null} />
       {/if}
       {#if titres.length}
-        <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
-          {$tr('v2.fas.bestOf' as any)}
-        </button>
+        <!-- « Écouter le best of » est dans le menu « … » (maquette de Levente). -->
       {:else if titresEnEchec && !chargement}
         <!-- #910 — dire pourquoi le best of manque, et laisser réessayer. Il
              n'est PAS retiré : le service n'a pas répondu. -->
@@ -1152,6 +1212,25 @@
           title={$tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
           <svg viewBox="0 0 24 24" width="14" height="14" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           {$tr(coeurArtiste.actif ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+        </button>
+      {/if}
+      <!-- Maquette de Levente (Figma 616:5810, rc12) : Lire, le cœur, et « … ».
+           Les autres gestes passent dans le menu « … » — tous RESTENT dans la
+           rangée `.gestes` (rien de ce qui marche ne disparaît), repliés. -->
+      <div class="plus" bind:this={zonePlus}>
+        <button type="button" class="v2-btn ghost plus-bouton" data-plus-gestes-bouton
+          aria-expanded={plusOuvert}
+          aria-label={$tr('artist.page.moreActions' as any)} title={$tr('artist.page.moreActions' as any)}
+          onclick={() => (plusOuvert = !plusOuvert)}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+        <!-- Un geste choisi referme le menu. Sauf « Signaler », qui ouvre son
+             propre menu de motifs DANS celui-ci. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <div class="plus-menu" data-plus-gestes hidden={!plusOuvert} onclick={fermerPlusApresGeste}>
+      {#if titres.length}
+        <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
+          {$tr('v2.fas.bestOf' as any)}
         </button>
       {/if}
       <!-- tune-server-rust#5395 — la radio est TOUJOURS proposée (Bertrand,
@@ -1209,6 +1288,8 @@
           <ReportButton {cibles} />
         {/if}
       {/if}
+        </div>
+      </div>
     {/snippet}
   </EnTeteArtiste>
   {#if retourAuxSimilairesVisible($departSimilaires, cible)}
@@ -1242,11 +1323,63 @@
       <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
     {/if}
   {:else}
-    <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
-         fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
-      titresRetiresPar={!estLocal && cible?.service && estRetiree(cible.service, 'titres-phares', $rubriquesRetirees) ? cible.service : null}
-      actionsBio={artisteEditable ? enrichirBio : undefined} />
+    <!-- Maquette de Levente (Figma 616:5810) — les onglets de la page. Seuls
+         ceux qui ont une donnée sont montrés (`ongletsArtiste`) ; l'aperçu
+         montre TOUT, comme la page d'avant. -->
+    {#if onglets.length}
+      <div class="onglets" role="tablist" aria-label={$tr('artist.page.tabs' as any)}>
+        {#each onglets as o (o)}
+          <button type="button" role="tab" class="onglet" class:actif={onglet === o} aria-selected={onglet === o}
+            data-onglet-artiste={o} onclick={() => (ongletDemande = o)}>{libelleOnglet(o)}</button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if onglet === 'apercu'}
+    <div class="apercu-haut" class:avec-cote={!!(artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length))}>
+      <div class="apercu-principal">
+      <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
+           fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
+      <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
+        titresRetiresPar={!estLocal && cible?.service && estRetiree(cible.service, 'titres-phares', $rubriquesRetirees) ? cible.service : null}
+        actionsBio={artisteEditable ? enrichirBio : undefined} />
+      </div>
+      <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
+           Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
+           sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
+           les titres phares et la discographie. -->
+      {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length)}
+        <section class="apropos">
+          {#if metaFiche?.similar_artists?.length}
+            <div class="apropos-titre">
+              <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
+              {#if onglets.includes('similaires')}
+                <button type="button" class="voir-tout" data-voir-similaires onclick={() => (ongletDemande = 'similaires')}>
+                  {$tr('artist.page.seeAll' as any)} ›
+                </button>
+              {/if}
+            </div>
+            <div class="puces">
+              {#each metaFiche.similar_artists as sa (sa.name)}
+                <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+              {/each}
+            </div>
+          {/if}
+          {#if metaFiche?.members?.length}
+            <h3>{$tr('artist.members' as any)}</h3>
+            <ul class="membres">
+              {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
+            </ul>
+          {/if}
+          {#if instrumentsFiche.length}
+            <h3>{$tr('artist.credits' as any)}</h3>
+            <div class="puces">
+              {#each instrumentsFiche as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+            </div>
+          {/if}
+        </section>
+      {/if}
+    </div>
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
          un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
@@ -1275,35 +1408,11 @@
       <AlbumsManquants artistId={artisteEditable.id} services={sectionsServices} />
     {/if}
 
-    <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
-         Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
-         sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
-         les titres phares et la discographie. -->
-    {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
-      <section class="apropos">
-        {#if metaFiche?.similar_artists?.length}
-          <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
-          <div class="puces">
-            {#each metaFiche.similar_artists as sa (sa.name)}
-              <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
-            {/each}
-          </div>
-        {/if}
-        {#if metaFiche?.members?.length}
-          <h3>{$tr('artist.members' as any)}</h3>
-          <ul class="membres">
-            {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
-          </ul>
-        {/if}
-        {#if creditsFiche.length}
-          <h3>{$tr('artist.credits' as any)}</h3>
-          <div class="puces">
-            {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
-          </div>
-        {/if}
-      </section>
+    {:else if onglet === 'similaires'}
+      <ArtistesSimilaires {nom} similaires={similairesFiche} {portraits} onOuvrir={(n) => void ouvrirSimilaire(n)} />
     {/if}
 
+    {#if onglet !== 'similaires'}
     <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
          sait rendre, sinon une section chargée reste invisible faute d'en-tête.
          `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
@@ -1319,6 +1428,7 @@
         onComptesProvenance={(c) => (comptesFiche = c)}
         {compilations} {apparitions} {collaborations} {ecriture} {reprises} {joueAvec}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
+    {/if}
     {/if}
   {/if}
 </section>
@@ -1380,8 +1490,37 @@
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puce.fixe{cursor:default}
   .retour-similaires{margin:0 0 12px; align-self:flex-start}
+  /* ── Maquette de Levente (Figma 616:5810 / 616:5811, rc12) ── */
+  .plus{position:relative; display:inline-flex}
+  .plus-bouton{width:36px; height:36px; padding:0; border-radius:50%; display:inline-grid; place-items:center}
+  .plus-menu{position:absolute; top:calc(100% + 6px); left:0; z-index:20; min-width:220px; padding:8px;
+    display:flex; flex-direction:column; align-items:stretch; gap:6px; background:var(--v2-surface);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); box-shadow:var(--v2-sh-menu)}
+  .plus-menu[hidden]{display:none}
+  .plus-menu :global(.v2-btn){justify-content:flex-start; text-align:left}
+  .onglets{display:flex; gap:4px 26px; margin:0 0 20px; border-bottom:1px solid var(--v2-line);
+    overflow-x:auto; scrollbar-width:none}
+  .onglet{all:unset; cursor:pointer; padding:10px 2px 12px; white-space:nowrap; border-bottom:2px solid transparent;
+    margin-bottom:-1px; font:500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .onglet:hover{color:var(--v2-txt)}
+  .onglet.actif{color:var(--v2-acc1); border-bottom-color:var(--v2-acc1); font-weight:600}
+  .onglet:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .apercu-haut.avec-cote{display:grid; grid-template-columns:minmax(0, 1fr) minmax(260px, 340px); gap:28px; align-items:start}
+  .apercu-principal{min-width:0}
+  .avec-cote .apropos{margin:0 0 18px; padding:16px 18px; background:var(--v2-surface); border:1px solid var(--v2-line);
+    border-radius:var(--v2-r-card); align-items:stretch}
+  .apropos-titre{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .voir-tout{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1)}
+  .voir-tout:hover{text-decoration:underline}
+  .voir-tout:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  @media (max-width: 1100px){
+    .apercu-haut.avec-cote{grid-template-columns:minmax(0, 1fr)}
+  }
   .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
+    /* Le « … » est au bord droit : le menu s'ouvre vers la gauche, sans
+       élargir la page. */
+    .plus-menu{left:auto; right:0; max-width:calc(100vw - 32px)}
   }
 </style>

@@ -92,7 +92,7 @@ describe('Bibliothèque, Zones, fiche album', () => {
     const L = lire('src/components/v2/LibraryV2.svelte');
     expect(L).toMatch(/if \(dr == null\) return false;\s*if \(fDrMin != null && dr < fDrMin\) return false;\s*if \(fDrMax != null && dr > fDrMax\) return false;/);
     // web#2036 : la tranche exige AUSSI la case « DR » de l'Affichage (`drAffiche`).
-    expect(L).toMatch(/\{#if hasDr && drAffiche\}\s*<span class="chip dr"/);
+    expect(L).toMatch(/\{#if hasDr && drAffiche(?: && montre\('dr', [^}]*\))?\}\s*<span class="chip dr"/);
   });
   it('🔴 supprimer toutes les zones exige une confirmation dangereuse AVANT l’appel', () => {
     const c = corps(lire('src/components/v2/ZonesV2.svelte'), 'supprimerToutesLesZones');

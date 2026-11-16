@@ -50,19 +50,18 @@ afterEach(async () => { await fermer(); concertsPlugin.set(null); vi.unstubAllGl
 
 it('choisit les panneaux dans la page et retrouve ce choix après réouverture', async () => {
   await ouvrir();
-  // 15/11/2026 — le panneau « Zones » de la maquette de Levente ouvre la ligne.
-  expect(titres()).toEqual(['Zones', 'Genres', 'Concerts near you', 'My listening']);
+  expect(titres()).toEqual(['Genres', 'Concerts near you', 'My listening']);
   await modifier();
   expect(hote.textContent).toContain('Listening overview');
   expect(hote.textContent).not.toContain('First row');
   await cocher('Genres');
-  expect(titres(), 'décocher Genres doit retirer son panneau').toEqual(['Zones', 'Concerts near you', 'My listening']);
-  expect(prefs.accueil_temoin_panneaux).toEqual(['zones', 'concerts', 'stats']);
+  expect(titres(), 'décocher Genres doit retirer son panneau').toEqual(['Concerts near you', 'My listening']);
+  expect(prefs.accueil_temoin_panneaux).toEqual(['concerts', 'stats']);
   expect(prefs.autre_reglage).toBe('conservé');
   await fermer(); await ouvrir();
-  expect(titres(), 'le choix est perdu au remontage').toEqual(['Zones', 'Concerts near you', 'My listening']);
+  expect(titres(), 'le choix est perdu au remontage').toEqual(['Concerts near you', 'My listening']);
   await modifier(); await cocher('Genres');
-  expect(titres()).toEqual(['Zones', 'Genres', 'Concerts near you', 'My listening']);
+  expect(titres()).toEqual(['Genres', 'Concerts near you', 'My listening']);
 });
 
 it('conserve un choix sans panneau et laisse les commandes accessibles', async () => {
@@ -74,8 +73,8 @@ it('conserve un choix sans panneau et laisse les commandes accessibles', async (
 });
 
 it('distingue préférence absente et vide, sans effacer les choix des versions suivantes', () => {
-  expect(panneauxDeLaLigne(undefined)).toEqual(['zones', 'genres', 'concerts', 'stats']);
-  expect(panneauxDeLaLigne(null)).toEqual(['zones', 'genres', 'concerts', 'stats']);
+  expect(panneauxDeLaLigne(undefined)).toEqual(['genres', 'concerts', 'stats']);
+  expect(panneauxDeLaLigne(null)).toEqual(['genres', 'concerts', 'stats']);
   expect(panneauxDeLaLigne([])).toEqual([]);
   expect(panneauxDeLaLigne(['genres', 'futur', 17, 'genres'])).toEqual(['genres', 'futur']);
 });

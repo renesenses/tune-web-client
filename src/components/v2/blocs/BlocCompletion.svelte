@@ -21,6 +21,8 @@
    * Rien d'autre n'a été redessiné dans les onze blocs.
    */
   import { t } from '../../../lib/i18n';
+  import VideBloc from './VideBloc.svelte';
+  import { cleVide, ICONES } from '../../../lib/tableauDeBordPeriode';
 
   export interface MatiereCompletion {
     completes: number;
@@ -37,7 +39,7 @@
   <!-- #1781 — « aucun historique » était faux : ce bloc ne lit que les SEPT
        derniers jours (`PERIODE` de `tableauDeBordWidgets`). Une semaine
        vide ne dit rien de l'historique plus ancien. -->
-  <p class="rien">{$t('dashboard.emptyLast7Days' as any)}</p>
+  <VideBloc message={$t(cleVide() as any)} icone={ICONES.durees} />
 {:else}
   <div class="tete">
     <div class="grand">{part}%</div>
@@ -54,32 +56,31 @@
 {/if}
 
 <style>
-  .rien { margin: 0; padding: 22px 30px; color: var(--v2-txt3); font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); }
 
-  .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 30px 12px; }
+  .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 var(--bloc-marge, 30px) 12px; }
   .grand {
     font: 700 calc(36px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1.2px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
   }
   .quoi { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 
-  .barre { display: flex; height: 13px; margin: 0 30px; border-radius: 7px; overflow: hidden; }
+  .barre { display: flex; height: 13px; margin: 0 var(--bloc-marge, 30px); border-radius: 7px; overflow: hidden; }
   .fini { background: var(--v2-acc1); }
   .passe { background: color-mix(in srgb, var(--v2-acc1) 18%, transparent); }
 
-  .legende { display: flex; flex-wrap: wrap; gap: 20px; padding: 11px 30px 0;
+  .legende { display: flex; flex-wrap: wrap; gap: 20px; padding: 11px var(--bloc-marge, 30px) 0;
     font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .pois { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
   .pois.plein { background: var(--v2-acc1); }
   .pois.efface { background: color-mix(in srgb, var(--v2-acc1) 30%, transparent); }
 
   @media (max-width: 1024px) {
-    .tete, .legende { padding-left: 22px; padding-right: 22px; }
-    .barre { margin-left: 22px; margin-right: 22px; }
+    .tete, .legende { padding-left: var(--bloc-marge, 22px); padding-right: var(--bloc-marge, 22px); }
+    .barre { margin-left: var(--bloc-marge, 22px); margin-right: var(--bloc-marge, 22px); }
   }
   @media (max-width: 640px) {
-    .tete, .legende { padding-left: 16px; padding-right: 16px; }
-    .barre { margin-left: 16px; margin-right: 16px; }
+    .tete, .legende { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
+    .barre { margin-left: var(--bloc-marge, 16px); margin-right: var(--bloc-marge, 16px); }
     .grand { font-size: calc(28px * var(--v2-txt-echelle, 1)); }
   }
 </style>

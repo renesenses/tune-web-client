@@ -6,12 +6,13 @@
   import SuggestionEmojiV2 from './SuggestionEmojiV2.svelte';
   import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
   import { insererEmoji, convertirRaccourcis, raccourcisActifs, grandsEmojis } from '../../lib/emojis';
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { FILTRES_CONVERSATIONS, filtrerConversations, partagesDuFil, type FiltreConversations } from '../../lib/circleHabillage';
   import { dialogs } from '../../lib/stores/dialogs';
   import { motifCercle } from '../../lib/circle';
   import { relireNotifications } from '../../lib/circleNotifications';
-  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
+  import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, nonLusMessagerie, apercuConversations, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
 
   let disponible = $state(false);
   let liste = $state<ConversationCercle[]>([]);
@@ -38,6 +39,14 @@
   const tr = (k: string) => $t(k as any);
   const chronologiques = $derived([...messages].sort((a, b) => a.id - b.id));
   const total = $derived(liste.reduce((n, c) => n + c.unread_count, 0));
+  // rc12 (maquettes de Levente) — recherche et filtres de la liste, sur ce que le cloud rend déjà.
+  let recherche = $state('');
+  let filtre = $state<FiltreConversations>('tout');
+  const LIBELLES_FILTRES: Record<FiltreConversations, string> = { tout: 'v2.circle.msg.filterAll', directs: 'v2.circle.msg.filterDirect', groupes: 'v2.circle.msg.filterGroups' };
+  const visibles = $derived(filtrerConversations(liste, filtre, recherche));
+  const partagesFil = $derived(partagesDuFil(messages));
+  // rc12 — la pastille de l'onglet Messages et la carte « Messages récents » de Découvrir.
+  $effect(() => { nonLusMessagerie.set(total); apercuConversations.set(liste); });
 
   /** rc11 — un cercle a « # » pour avatar ; un contact, ses initiales. */
   function avatar(c: ConversationCercle) { return c.kind === 'direct' ? initiales(c.contact.name) : '#'; }
@@ -246,13 +255,24 @@
 
 {#if disponible}
   <section class="messagerie" id="circle-messages" aria-labelledby="messages-titre">
-    <h2 id="messages-titre">{tr('v2.circle.msg.title')} {#if total}<span class="pastille">{total}</span>{/if}</h2>
+    <h2 id="messages-titre" class="sr-only">{tr('v2.circle.msg.title')}</h2>
     {#if erreur}<p role="alert" class="erreur">{erreur}</p>{/if}
     {#if accuse}<p role="status" class="note">{accuse}</p>{/if}
     <div class="volets" class:fil-ouvert={choix !== null}>
       <nav aria-label={tr('v2.circle.msg.title')}>
-        {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{/if}
-        {#each liste as c (c.id)}
+        <div class="tete-liste"><span class="titre-liste">{tr('v2.circle.msg.title')}</span>{#if total}<span class="pastille pastille-non-lus">{$tn('v2.circle.tab.unread', total)}</span>{/if}</div>
+        {#if liste.length}
+          <label class="recherche-conversations"><span class="sr-only">{tr('v2.circle.msg.search')}</span>
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="search" class="champ-recherche" placeholder={tr('v2.circle.msg.search')} bind:value={recherche} /></label>
+          <div class="filtres-conversations" role="group" aria-label={tr('v2.circle.msg.filters')}>
+            {#each FILTRES_CONVERSATIONS as f (f)}
+              <button type="button" class="puce filtre-{f}" aria-pressed={filtre === f} onclick={() => filtre = f}>{tr(LIBELLES_FILTRES[f])}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{:else if !visibles.length}<p class="note aucun-resultat">{tr('v2.circle.msg.noMatch')}</p>{/if}
+        {#each visibles as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
             <span class="avatar" class:avatar-cercle={c.kind !== 'direct'} aria-hidden="true">{avatar(c)}</span>
             <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{:else if c.kind === 'general'}<span class="extrait" use:bulleTexte>{tr('v2.circle.general.label')}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
@@ -337,14 +357,44 @@
         </div>
       {:else}<p class="note attente">{tr('v2.circle.msg.emptyThread')}</p>{/if}
     </div>
+    {#if choix && partagesFil.length}
+      <section class="partages-fil" aria-labelledby="partages-fil-titre">
+        <h3 id="partages-fil-titre">{tr('v2.circle.msg.sharedHere')}</h3>
+        <ul class="grille-partages">
+          {#each partagesFil as c (c.message_id)}
+            <li class="partage-fil">
+              <div class="pochette-partage">{#if c.cover_url}<img src={c.cover_url} alt="" loading="lazy" referrerpolicy="no-referrer" />{:else}<span aria-hidden="true">♪</span>{/if}</div>
+              <strong class="partage-coupe" use:bulleTexte>{c.title}</strong>{#if c.artist_name}<span class="note partage-coupe" use:bulleTexte>{c.artist_name}</span>{/if}
+              <button type="button" class="ecouter-partage" disabled={occupe} aria-label={tr('v2.circle.msg.playHere') + ' — ' + c.title} onclick={() => void geste(() => ecouterCarte(c))}>{tr('v2.circle.msg.playHere')}</button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
   </section>
 {:else if erreur}<p role="alert">{erreur}</p>{/if}
 
 <style>
-  .messagerie{margin:24px 0;color:var(--v2-txt);scroll-margin-top:24px}
+  .messagerie{margin:0 0 24px;color:var(--v2-txt);scroll-margin-top:24px}
   h2{font-size:calc(18px * var(--v2-txt-echelle, 1));margin:0 0 12px}h3{font-size:calc(15px * var(--v2-txt-echelle, 1));margin:0;min-width:0;overflow-wrap:anywhere}
-  .volets{display:grid;grid-template-columns:minmax(190px,1fr) minmax(0,3fr);border:1px solid var(--v2-line);border-radius:16px;overflow:hidden;background:var(--v2-bg)}
-  nav{display:flex;flex-direction:column;gap:2px;padding:8px;border-right:1px solid var(--v2-line);max-height:620px;overflow:auto}
+  /* rc12 — deux colonnes de la maquette de Levente : la liste et le fil, deux cartes côte à côte. */
+  .volets{display:grid;grid-template-columns:minmax(240px,1fr) minmax(0,2fr);gap:16px;align-items:start}
+  nav{display:flex;flex-direction:column;gap:2px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-card);background:var(--v2-surface);max-height:680px;overflow:auto}
+  .tete-liste{display:flex;align-items:center;gap:10px;padding:4px 6px 10px}.titre-liste{font-family:var(--font-display,Georgia,serif);font-size:calc(19px * var(--v2-txt-echelle, 1));font-weight:600}
+  .pastille-non-lus{background:var(--v2-acc-soft);color:var(--v2-acc-tint)}
+  .recherche-conversations{display:flex;align-items:center;gap:8px;margin:0 4px 8px;padding:0 12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-pill);background:var(--v2-surface2);color:var(--v2-txt3)}
+  .recherche-conversations:focus-within{outline:2px solid var(--v2-acc1);outline-offset:2px}
+  .champ-recherche{flex:1;min-width:0;border:0;background:transparent;color:var(--v2-txt);padding:8px 0;font:inherit;font-size:calc(13px * var(--v2-txt-echelle, 1))}.champ-recherche:focus-visible{outline:none}
+  .filtres-conversations{display:flex;gap:6px;flex-wrap:wrap;margin:0 4px 10px}
+  .puce{padding:5px 14px;border-radius:var(--v2-r-pill);font-size:calc(12px * var(--v2-txt-echelle, 1));background:transparent;border:1px solid var(--v2-line2);color:var(--v2-txt2)}
+  .puce[aria-pressed='true']{background:var(--v2-acc1);border-color:var(--v2-acc1);color:var(--v2-on-acc);font-weight:600}
+  .aucun-resultat{padding:8px}
+  .partages-fil{margin-top:16px;padding:16px;border:1px solid var(--v2-line);border-radius:var(--v2-r-card);background:var(--v2-surface)}
+  .partages-fil h3{font-family:var(--font-display,Georgia,serif);font-size:calc(17px * var(--v2-txt-echelle, 1));margin:0 0 12px}
+  .grille-partages{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px}
+  .partage-fil{display:flex;flex-direction:column;gap:3px;min-width:0}.partage-fil strong{font-size:calc(13px * var(--v2-txt-echelle, 1))}.partage-coupe{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pochette-partage{aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--v2-surface2);display:grid;place-items:center;color:var(--v2-txt3);font-size:calc(28px * var(--v2-txt-echelle, 1));margin-bottom:6px}.pochette-partage img{width:100%;height:100%;object-fit:cover}
+  .ecouter-partage{align-self:flex-start;margin-top:4px;padding:3px 10px;border-radius:var(--v2-r-pill);font-size:calc(11px * var(--v2-txt-echelle, 1))}
   button,select,textarea{font:inherit;color:inherit;border:1px solid var(--v2-line);background:var(--v2-surface2);border-radius:8px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
   button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}
   .conversation{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 8px;border:0;background:transparent;min-width:0}.conversation:hover{background:var(--v2-hover)}.conversation.choisie{background:var(--v2-active1)}
@@ -352,15 +402,15 @@
   .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(13px * var(--v2-txt-echelle, 1))}.extrait{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);margin-top:4px}
   .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:calc(10px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(11px * var(--v2-txt-echelle, 1))}
   .avatar-cercle{font-size:calc(16px * var(--v2-txt-echelle, 1));color:var(--v2-acc1)}.reglage-ecriture{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.reglage-ecriture select{padding:4px 6px;font-size:calc(12px * var(--v2-txt-echelle, 1))}.lecture-seule{margin:12px 16px 4px}
-  .fil{min-width:0;display:flex;flex-direction:column}.entete-fil{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
+  .fil{min-width:0;display:flex;flex-direction:column;border:1px solid var(--v2-line);border-radius:var(--v2-r-card);background:var(--v2-surface);overflow:hidden}.entete-fil{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--v2-line)}.retour{display:none}
   .defilement{height:clamp(220px,42vh,420px);overflow:auto;overscroll-behavior:contain;padding:12px 20px;overflow-anchor:none}.anciens{display:block;margin:0 auto 16px;font-size:calc(12px * var(--v2-txt-echelle, 1))}
   .messages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}.message{align-self:flex-start;max-width:70%;min-width:0;overflow-wrap:anywhere}.message.mon-message{align-self:flex-end}.message.groupe{margin-top:-6px}
-  .bulle{padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--v2-surface2);color:var(--v2-txt)}.mon-message .bulle{background:color-mix(in srgb,var(--v2-acc1) 14%,var(--v2-surface));border-radius:16px 16px 4px 16px}
+  .bulle{padding:10px 14px;border-radius:16px 16px 16px 4px;background:var(--v2-surface2);color:var(--v2-txt);border:1px solid var(--v2-line)}.mon-message .bulle{background:var(--v2-acc1);color:var(--v2-on-acc);border-radius:16px 16px 4px 16px}.mon-message .bulle .carte{color:var(--v2-on-acc)}
   .auteur{font-size:calc(11px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt2);margin-bottom:4px}.texte{white-space:pre-wrap;margin:0;font-size:calc(14px * var(--v2-txt-echelle, 1));line-height:1.5;font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol'}.texte.grands-emojis{font-size:calc(34px * var(--v2-txt-echelle, 1));line-height:1.25}.pied-message{display:flex;gap:6px;align-items:center;min-height:22px;color:var(--v2-txt2);font-size:calc(10px * var(--v2-txt-echelle, 1));padding:2px 5px}.mon-message .pied-message{justify-content:flex-end}
   .jour{align-self:stretch;display:flex;justify-content:center;margin:10px 0;color:var(--v2-txt2);font-size:calc(11px * var(--v2-txt-echelle, 1))}.jour span{padding:3px 10px;border-radius:12px;background:var(--v2-bg2)}
   .actions-message{position:relative}.menu-bouton{opacity:0;pointer-events:none;border:0;background:transparent;padding:0 5px;line-height:20px;font-size:calc(18px * var(--v2-txt-echelle, 1))}.message:hover .menu-bouton,.message:focus-within .menu-bouton{opacity:1;pointer-events:auto}.menu-message{position:absolute;bottom:24px;left:0;z-index:2;display:flex;flex-direction:column;gap:8px;padding:10px;min-width:140px;background:var(--v2-surface2);border:1px solid var(--v2-line);border-radius:10px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt)}.mon-message .menu-message{left:auto;right:0}
-  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{position:relative;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.composeur :global([data-suggestion-emoji]){position:absolute;bottom:100%;inset-inline-start:16px;max-width:calc(100% - 32px);z-index:2}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box;overflow-x:hidden;overflow-y:hidden}.composeur textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(24px * var(--v2-txt-echelle, 1))}.compteur{width:100%;text-align:right}
-  .note{font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.moderation{font-size:calc(11px * var(--v2-txt-echelle, 1));line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:calc(12px * var(--v2-txt-echelle, 1))}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .ligne-emojis{flex:1 1 100%;min-width:0}.composeur{position:relative;display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:12px 16px 4px;margin:0}.composeur :global([data-suggestion-emoji]){position:absolute;bottom:100%;inset-inline-start:16px;max-width:calc(100% - 32px);z-index:2}.bouton-emoji{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;padding:0;border:0;border-radius:50%;background:transparent;font-size:calc(22px * var(--v2-txt-echelle, 1));line-height:1;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}.bouton-emoji:hover,.bouton-emoji[aria-expanded='true']{background:var(--v2-hover)}.composeur textarea{border-radius:20px;background:var(--v2-surface2);font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';flex:1;min-width:0;min-height:40px;max-height:158px;line-height:24px;padding:7px 12px;resize:none;box-sizing:border-box;overflow-x:hidden;overflow-y:hidden}.composeur textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.envoi{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:0;border-radius:50%;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(24px * var(--v2-txt-echelle, 1))}.compteur{width:100%;text-align:right}
+  .note{font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.moderation{font-size:calc(11px * var(--v2-txt-echelle, 1));line-height:1.5;margin:8px 16px 12px}.erreur{color:var(--v2-danger)}.attente{padding:20px;border:1px dashed var(--v2-line2);border-radius:var(--v2-r-card);color:var(--v2-txt3)}.signalement{display:flex;flex-direction:column;gap:6px;margin:12px 16px}.gestes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;font-size:calc(12px * var(--v2-txt-echelle, 1))}.carte{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.carte img{width:64px;height:64px;object-fit:contain}.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   @media(hover:none){.menu-bouton{opacity:1;pointer-events:auto}}
-  @media(max-width:699px){.volets{grid-template-columns:minmax(0,1fr)}nav{border-right:0;max-height:65dvh}.fil-ouvert nav{display:none}.retour{display:block;border:0;background:transparent}.attente{display:none}.defilement{height:clamp(180px,40dvh,400px);padding:10px 12px}.message{max-width:72%}.composeur{padding:10px 12px 4px}.moderation{margin:8px 12px 12px}}
+  @media(max-width:699px){.volets{grid-template-columns:minmax(0,1fr)}nav{max-height:65dvh}.fil-ouvert nav{display:none}.retour{display:block;border:0;background:transparent}.attente{display:none}.defilement{height:clamp(180px,40dvh,400px);padding:10px 12px}.message{max-width:72%}.composeur{padding:10px 12px 4px}.moderation{margin:8px 12px 12px}}
 </style>

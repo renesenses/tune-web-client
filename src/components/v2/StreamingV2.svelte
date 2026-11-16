@@ -6,6 +6,7 @@
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import type { YtElementRayon } from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import { idAncre, limiteInitiale, rubriqueCourante, type AncreRubrique } from '../../lib/ancresGenre';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
    * Streaming — nouveau client (direction Levente).
@@ -669,6 +670,67 @@
       .filter((b) => b.albums.length > 0),
   );
   const bcCollectionVue = $derived(filtrerParSaisie(bcCollection, q));
+
+  /**
+   * 15/11 (Bertrand, rc12) — Qobuz › Genres › Pop/Rock : chaque rubrique était
+   * une longue grille complète, il fallait toute la faire défiler pour
+   * atteindre la suivante. Deux gestes : des puces d'ancrage figées en haut
+   * (une par rubrique PRÉSENTE) et, sous chaque grille, « Voir plus » — la
+   * grille ne montre d'abord que deux rangées. Rien n'est inventé ni retiré :
+   * la suite est déjà chargée, elle est seulement repliée. Voir `ancresGenre`.
+   */
+  let largeurGenre = $state(0);
+  let rubriquesOuvertes = $state<Record<string, boolean>>({});
+  let rubriqueActive = $state<string | null>(null);
+  let navAncres = $state<HTMLElement | null>(null);
+  const limiteGenre = $derived(limiteInitiale(largeurGenre));
+  const ancresGenre = $derived.by<AncreRubrique[]>(() => {
+    if (genreLoading || rechGenre.etat === 'catalogue' || rechGenre.etat === 'chargement') return [];
+    if (genreAlbumsVus.length || !bandesGenreVues.length) return [];
+    const a = bandesGenreVues.map((b) => ({ id: idAncre(b.id), libelle: b.cle ? $t(b.cle as any) : b.nom }));
+    if (genreId && genrePlaylists.length) a.push({ id: idAncre('playlists'), libelle: $t('streaming.genrePlaylists') });
+    return a.length > 1 ? a : [];
+  });
+  const cleRubrique = (id: string) => `${genreId}|${id}`;
+  /** Les pochettes montrées d'une rubrique : deux rangées, ou tout une fois ouverte. */
+  function montrees<T>(id: string, liste: readonly T[]): readonly T[] {
+    return rubriquesOuvertes[cleRubrique(id)] ? liste : liste.slice(0, limiteGenre);
+  }
+  function ouvrirRubrique(id: string) {
+    rubriquesOuvertes = { ...rubriquesOuvertes, [cleRubrique(id)]: true };
+  }
+  /** La largeur du volet, donc des grilles : le fil d'Ariane la porte toute. */
+  function mesurerLargeur(el: HTMLElement) {
+    const lire = () => { largeurGenre = el.clientWidth; };
+    lire();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(lire) : null;
+    ro?.observe(el);
+    return { destroy: () => ro?.disconnect() };
+  }
+  function allerARubrique(id: string) {
+    rubriqueActive = id;
+    allerA(id);
+  }
+  // La puce de la rubrique visible est mise en évidence au défilement.
+  $effect(() => {
+    const zone = zoneDefilante;
+    const ids = ancresGenre.map((a) => a.id);
+    if (!zone || ids.length < 2) { rubriqueActive = null; return; }
+    const suivre = () => {
+      if (zone.scrollTop > 0 && zone.scrollTop + zone.clientHeight >= zone.scrollHeight - 2) {
+        rubriqueActive = ids[ids.length - 1];
+        return;
+      }
+      const haut = zone.getBoundingClientRect().top;
+      const seuil = (navAncres?.getBoundingClientRect().bottom ?? haut) - haut + 16;
+      rubriqueActive = rubriqueCourante(ids.map((id) => ({
+        id, haut: (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) - haut,
+      })), seuil);
+    };
+    untrack(suivre);
+    zone.addEventListener('scroll', suivre, { passive: true });
+    return () => zone.removeEventListener('scroll', suivre);
+  });
   const bcItemsVus = $derived(filtrerParSaisie(bcItems, q));
 
   // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
@@ -1822,7 +1884,7 @@
         </div>
         <div class="state">{$t('streaming.pickGenre')}</div>
       {:else}
-        <div class="crumb">
+        <div class="crumb" use:mesurerLargeur>
           <button class="lnk" onclick={retourGenres}>← {$t('streaming.allGenres')}</button>
           <span class="cur">{genrePath[0].name}</span>
         </div>
@@ -1834,6 +1896,15 @@
                 onclick={() => (genreId = sg2.id)}>{sg2.name}</button>
             {/each}
           </div>
+        {/if}
+        {#if ancresGenre.length}
+          <!-- 15/11 — une puce par rubrique présente ; figée en haut au défilement. -->
+          <nav class="sommaire ancres-genre" bind:this={navAncres} aria-label={$t('v2.stream.genreSections' as any)}>
+            {#each ancresGenre as x (x.id)}
+              <button class="chip" class:active={rubriqueActive === x.id} aria-current={rubriqueActive === x.id ? 'true' : undefined}
+                onclick={() => allerARubrique(x.id)}>{x.libelle}</button>
+            {/each}
+          </nav>
         {/if}
         {#if rechGenre.etat === 'catalogue'}
           <!-- #6231 — les résultats de la recherche du service, dans le genre. -->
@@ -1859,15 +1930,17 @@
           <!-- La grille NUE : un serveur qui ignore `?section=` (0.9.156 et
                avant) n'a qu'une liste a donner, et l'ecran reste celui d'avant
                #1300 — pas de titre invente, pas de bande en double. -->
-          <div class="grid">{#each genreAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          <div class="grid">{#each montrees('', genreAlbumsVus) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          {@render voirPlusRubrique('', genreAlbumsVus.length)}
         {:else if bandesGenreVues.length}
           <!-- #1300 — une bande par RUBRIQUE du genre. Les sept libelles
                existaient deja dans les onze langues ; seule l'ancienne
                coquille s'en servait. -->
           {#each bandesGenreVues as b (b.id)}
-            <section class="sec">
+            <section class="sec rubrique" id={idAncre(b.id)}>
               <h2>{b.cle ? $t(b.cle as any) : b.nom}</h2>
-              <div class="grid">{#each b.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              <div class="grid">{#each montrees(b.id, b.albums) as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              {@render voirPlusRubrique(b.id, b.albums.length)}
             </section>
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
@@ -1880,9 +1953,10 @@
         {/if}
         {#if genreId && genrePlaylists.length}
           <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
-          <section class="sec">
+          <section class="sec rubrique" id={idAncre('playlists')}>
             <h2>{$t('streaming.genrePlaylists')}</h2>
-            <div class="grid">{#each genrePlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            <div class="grid">{#each montrees('playlists', genrePlaylists) as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            {@render voirPlusRubrique('playlists', genrePlaylists.length)}
           </section>
         {/if}
       {/if}
@@ -2084,6 +2158,15 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
+{#snippet voirPlusRubrique(id: string, total: number)}
+  {#if !rubriquesOuvertes[cleRubrique(id)] && total > limiteGenre}
+    <!-- 15/11 — la suite est DÉJÀ chargée : « Voir plus » la déplie, rien de plus. -->
+    <button class="voirplus" data-voir-plus={id} onclick={() => ouvrirRubrique(id)}>
+      {$t('v2.rech.seeMore' as any).replace('{n}', String(total - limiteGenre))}
+    </button>
+  {/if}
+{/snippet}
+
 {#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <!-- Point 10 (Yves Corbat, 17/09/2026) : un album ANNONCÉ porte sa date.
@@ -2285,6 +2368,18 @@
     border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  /* 15/11 — les puces d'ancrage d'un genre : même bande figée que le sommaire
+     des favoris (`.scroll` commence SOUS l'en-tête et sa grappe d'icônes),
+     la puce de la rubrique visible en évidence, et le titre d'une rubrique
+     atteinte par une puce n'est pas caché sous la bande. */
+  .sommaire .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .ancres-genre{z-index:3}
+  .sec.rubrique{scroll-margin-top:64px}
+  @media (max-width: 640px){
+    .ancres-genre{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .ancres-genre::-webkit-scrollbar{display:none}
+    .ancres-genre .chip{flex:0 0 auto; white-space:nowrap}
+  }
   .sommaire .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .chips.auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   .sec h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}

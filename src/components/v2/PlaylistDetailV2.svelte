@@ -14,7 +14,7 @@
    */
   import * as api from '../../lib/api';
   import { ligneBadgeCercles } from '../../lib/suiviCercle';
-  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
+  import { creerRetraitPlaylist, aMoiChezLeService as estAMoi, retrouverEditable, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr, tn } from '../../lib/i18n';
@@ -160,9 +160,26 @@
    * l'utilisateur est propriétaire : on peut en retirer un titre. Seulement
    * quand le serveur l'affirme (`editable: true`, web#2097) ; absent ou faux
    * (playlist suivie, éditoriale, serveur plus ancien) : lecture seule.
+   *
+   * web#3067 — ouverte depuis la recherche, les étiquettes ou un widget, la
+   * playlist vient de `get_playlist`, qui ne porte pas le drapeau chez Qobuz :
+   * on le retrouve dans la liste du compte (`lib/retraitPlaylist`).
    */
+  let editableRetrouve = $state<boolean | null>(null);
+  $effect(() => {
+    if (item.kind !== 'streaming') return;
+    const service = item.service;
+    const pl = item.pl;
+    editableRetrouve = null;
+    if (typeof pl.editable === 'boolean') return;
+    let vivant = true;
+    void retrouverEditable(api.getStreamingPlaylists, service, pl).then((v) => {
+      if (vivant) editableRetrouve = v;
+    });
+    return () => { vivant = false; };
+  });
   const aMoiChezLeService = $derived(
-    item.kind === 'streaming' && (item.pl as StreamingPlaylist & { editable?: boolean | null }).editable === true,
+    item.kind === 'streaming' && (estAMoi(item.pl) || editableRetrouve === true),
   );
   const editable = $derived(isLocal || aMoiChezLeService);
 
@@ -196,7 +213,11 @@
     if (reparable) l.push({ cle: reparationEnCours ? 'v2.pl.repairRunning' : 'v2.pl.repair', desactive: reparationEnCours,
       faire: () => void reparerPlaylist(), attrs: { 'data-reparer-playlist': true } });
     // #2098 — une playlist de SERVICE ne s'édite que si l'utilisateur en est propriétaire.
-    if (editable) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
+    // rc12 (15/11) — la croix « Retirer » ne dépend plus d'« Éditer » : le mode
+    // ne porte plus que le réordonnancement, le renommage, la suppression et
+    // l'ajout de radio, tous réservés à une playlist TUNE (`commitRename` ne
+    // renomme qu'une locale). Sur une playlist de service, il ne montrerait rien.
+    if (isLocal) l.push({ cle: edition ? 'v2.pl.editDone' : 'v2.pl.edit',
       faire: () => { edition = !edition; renaming = false; }, attrs: { 'data-editer-playlist': true } });
     if (edition && isLocal) {
       l.push({ cle: 'v2.pl.rename', faire: () => { draft = item.pl.name; renaming = true; }, attrs: { 'data-renommer-playlist': true } });
@@ -443,11 +464,10 @@
   async function retirerDuService(t: Track) {
     if (item.kind !== 'streaming' || !aMoiChezLeService || retraitService || t.source_id == null) return;
     const service = item.service;
-    const sid = String(t.source_id);
     retraitService = true;
     try {
-      await api.removeStreamingPlaylistTracks(service, String(item.pl.source_id), [sid]);
-      tracks = tracks.filter((x) => String(x.source_id) !== sid);
+      const reste = await retirerTitreDuService(api.removeStreamingPlaylistTracks, service, String(item.pl.source_id), tracks, t);
+      if (reste) tracks = reste;
       onChanged?.();
     } catch {
       notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
@@ -768,14 +788,15 @@
                 {/if}
               {/if}
               {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
-              {#if (edition && (isLocal || aMoiChezLeService)) || (isLocal && (estIntrouvable(p) || radioIndisponible(p))) || peutRemplacer(p, editable)}
+              {#if editable || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
               {/if}
             </div>
           {/each}
         </div>
       {:else}
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px"
+        retirerDe={isLocal ? (t) => removeAt(rangReel(t)) : aMoiChezLeService ? (t) => retirerDuService(t) : null} />
       {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
@@ -786,28 +807,13 @@
              selon l'état se résoudrait différemment dans l'en-tête et dans
              les lignes, et les colonnes ne tomberaient plus en face —
              `colonnesPistes` garde précisément cela. -->
-        <!-- #6179 — une ligne INTROUVABLE garde son bouton « Retirer » hors
-             du mode édition : c'est le seul geste qui l'efface, il doit être
-             à portée. -->
-        {#if !edition && isLocal && estIntrouvable(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
-            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-          </button>
-        {/if}
-        <!-- web#2806 — même règle pour une station qui a quitté « Mes radios ». -->
-        {#if !edition && isLocal && radioIndisponible(_t)}
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
-            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-          </button>
-        {/if}
-        {#if !edition && peutRemplacer(_t, editable)}
-          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
-            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
-          </button>
-        {/if}
+        <!-- rc12 (Bertrand, 15/11/2026) : « Croix de suppression d'une piste
+             dans une playlist ! Important !! ». La croix « Retirer de la
+             playlist » est VISIBLE sur chaque ligne d'une playlist modifiable
+             (Tune, ou de service à soi), sans passer par « Éditer » — qui ne
+             sert plus qu'au réordonnancement. Retrait PAR OCCURRENCE : le rang
+             réel (ou l'`entry_id`, #6687) via `removeAt`. Couvre aussi les
+             lignes introuvables (#6179) et les radios parties (web#2806). -->
         {#if edition && isLocal}
           <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
@@ -817,14 +823,23 @@
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours} aria-label={$tr('v2.pl.remove' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+        {/if}
+        {#if isLocal}
+          <button class="rm retrait-titre" data-retirer-titre onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+            aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
-        {:else if edition && aMoiChezLeService}
-          <button class="rm retrait-service" onclick={() => retirerDuService(_t)} disabled={retraitService}
+        {:else if aMoiChezLeService}
+          <button class="rm retrait-service" data-retirer-titre onclick={() => retirerDuService(_t)} disabled={retraitService}
             aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
             title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        {/if}
+        {#if !edition && peutRemplacer(_t, editable)}
+          <button class="rm remplacer" data-remplacer-indisponible onclick={() => remplacerIndisponible(_t)} disabled={remplacementEnCours}
+            aria-label={$tr('v2.pl.replaceUnavailable' as any)} title={$tr('v2.pl.replaceUnavailable' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></svg>
           </button>
         {/if}
       {/snippet}
