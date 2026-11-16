@@ -2716,6 +2716,8 @@ export default {
   "smb.adding": "Dodawanie...",
   "smb.addToLibrary": "Dodaj do biblioteki",
   "smb.folderAdded": "Folder dodany do biblioteki",
+  "settings.dataNotPersistentTitle": "Twoje dane nie są na trwałym woluminie",
+  "settings.dataNotPersistent": "Folder danych ({dir}) nie jest powiązany z żadnym folderem hosta ani nazwanym woluminem: biblioteka, ustawienia i połączenia z usługami zostaną utracone przy ponownym utworzeniu kontenera, także przy aktualizacji obrazu. Zamontuj {dir} w folderze hosta lub na nazwanym woluminie (na przykład -v tune-data:{dir}). Na Synology: Container Manager › Kontener › Edytuj › Ustawienia woluminu › Dodaj folder, ścieżka montowania {dir}.",
   "smb.scanStarting": "Uruchamianie skanowania...",
   "smb.scanLibrary": "Skanuj bibliotekę",
   "smb.scanLaunched": "Skanowanie biblioteki rozpoczęte",

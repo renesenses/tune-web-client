@@ -2716,6 +2716,8 @@ export default {
   "smb.adding": "Legger til...",
   "smb.addToLibrary": "Legg til i biblioteket",
   "smb.folderAdded": "Mappen er lagt til i biblioteket",
+  "settings.dataNotPersistentTitle": "Dataene dine ligger ikke på et varig volum",
+  "settings.dataNotPersistent": "Datamappen ({dir}) er ikke koblet til noen mappe på verten eller noe navngitt volum: biblioteket, innstillingene og tilkoblingene til tjenestene går tapt når containeren opprettes på nytt, også når bildet oppdateres. Monter {dir} på en mappe på verten eller et navngitt volum (for eksempel -v tune-data:{dir}). På Synology: Container Manager › Container › Rediger › Voluminnstillinger › Legg til mappe, monteringsbane {dir}.",
   "smb.scanStarting": "Starter skanning...",
   "smb.scanLibrary": "Skann biblioteket",
   "smb.scanLaunched": "Bibliotekskanning startet",

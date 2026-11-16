@@ -174,6 +174,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import { appareilSansSortie } from '../../lib/raisonSortieReseau';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import BandeauDonneesNonPersistantes from '../partages/BandeauDonneesNonPersistantes.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
@@ -4773,6 +4774,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
          navigation ; ⌘F / Ctrl+F et « / » y mènent. -->
     <RechercheReglagesV2 niveau={level} onchoisir={allerAuReglage} />
   </header>
+
+  <!-- tune-server-rust#8747 (fil 2798) — conteneur dont /data n'est sur aucun
+       volume persistant : la prochaine mise à jour de l'image repartirait
+       d'une base neuve. Rien hors conteneur ni sur un serveur ancien. -->
+  <BandeauDonneesNonPersistantes />
 
   <!-- Recette du .18 (15/11) : la barre d'onglets coupée à droite ne disait
        pas qu'elle défile. Un fondu au bord qui déborde, et une flèche qui

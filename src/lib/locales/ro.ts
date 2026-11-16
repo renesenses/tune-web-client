@@ -2061,6 +2061,8 @@ export default {
   "smb.adding": "Se adaugă...",
   "smb.addToLibrary": "Adaugă la bibliotecă",
   "smb.folderAdded": "Folder adăugat la bibliotecă",
+  "settings.dataNotPersistentTitle": "Datele dvs. nu sunt pe un volum persistent",
+  "settings.dataNotPersistent": "Dosarul de date ({dir}) nu este legat de niciun dosar al gazdei și de niciun volum cu nume: biblioteca, setările și conexiunile la servicii se vor pierde la recrearea containerului, inclusiv la actualizarea imaginii. Montați {dir} pe un dosar al gazdei sau pe un volum cu nume (de exemplu -v tune-data:{dir}). Pe Synology: Container Manager › Container › Editare › Setări volum › Adăugare dosar, cale de montare {dir}.",
   "smb.scanStarting": "Se pornește scanarea...",
   "smb.scanLibrary": "Scanează biblioteca",
   "smb.scanLaunched": "Scanare bibliotecă pornită",

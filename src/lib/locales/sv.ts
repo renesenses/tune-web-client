@@ -2008,6 +2008,8 @@ export default {
   "smb.adding": "Lägger till...",
   "smb.addToLibrary": "Lägg till i biblioteket",
   "smb.folderAdded": "Mapp tillagd i biblioteket",
+  "settings.dataNotPersistentTitle": "Dina data ligger inte på en beständig volym",
+  "settings.dataNotPersistent": "Datamappen ({dir}) är inte kopplad till någon mapp på värden eller någon namngiven volym: biblioteket, inställningarna och anslutningarna till tjänsterna går förlorade när containern återskapas, även när avbilden uppdateras. Montera {dir} på en mapp på värden eller en namngiven volym (till exempel -v tune-data:{dir}). På Synology: Container Manager › Container › Redigera › Volyminställningar › Lägg till mapp, monteringssökväg {dir}.",
   "smb.scanStarting": "Startar skanning...",
   "smb.scanLibrary": "Skanna biblioteket",
   "smb.scanLaunched": "Biblioteksskanning startad",

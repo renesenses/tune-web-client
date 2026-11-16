@@ -2164,6 +2164,8 @@ export default {
   "smb.adding": "Hozzáadás...",
   "smb.addToLibrary": "Hozzáadás a gyűjteményhez",
   "smb.folderAdded": "A mappa hozzáadva a gyűjteményhez",
+  "settings.dataNotPersistentTitle": "Az adatai nem tartós köteten vannak",
+  "settings.dataNotPersistent": "Az adatmappa ({dir}) nincs gazdagépmappához vagy elnevezett kötethez kötve: a könyvtár, a beállítások és a szolgáltatáskapcsolatok elvesznek, amikor a konténert újra létrehozzák, a lemezkép frissítésekor is. Csatolja a(z) {dir} mappát egy gazdagépmappára vagy elnevezett kötetre (például -v tune-data:{dir}). Synology esetén: Container Manager › Konténer › Szerkesztés › Kötetbeállítások › Mappa hozzáadása, csatolási útvonal: {dir}.",
   "smb.scanStarting": "Beolvasás indítása...",
   "smb.scanLibrary": "Gyűjtemény beolvasása",
   "smb.scanLaunched": "A gyűjtemény beolvasása elindult",

@@ -2051,6 +2051,8 @@ export default {
   "smb.adding": "追加中...",
   "smb.addToLibrary": "ライブラリに追加",
   "smb.folderAdded": "フォルダをライブラリに追加しました",
+  "settings.dataNotPersistentTitle": "データが永続ボリューム上にありません",
+  "settings.dataNotPersistent": "データフォルダー（{dir}）はホストのフォルダーにも名前付きボリュームにも結び付けられていません。コンテナを作り直すと（イメージの更新時も含む）、ライブラリ、設定、サービスとの接続が失われます。{dir} をホストのフォルダーか名前付きボリュームにマウントしてください（例：-v tune-data:{dir}）。Synology の場合：Container Manager › コンテナ › 編集 › ボリューム設定 › フォルダーの追加、マウントパス {dir}。",
   "smb.scanStarting": "スキャンを開始しています...",
   "smb.scanLibrary": "ライブラリをスキャン",
   "smb.scanLaunched": "ライブラリスキャンを開始しました",
