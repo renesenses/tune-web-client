@@ -145,5 +145,8 @@ export function corpsLecture(d: DepotDistant, t: Track): Record<string, unknown>
   if ((t as any).album_title) b.album_title = (t as any).album_title;
   if ((t as any).cover_path) b.cover_path = (t as any).cover_path;
   if (t.duration_ms) b.duration_ms = t.duration_ms;
+  if (t.format) b.media_format = t.format;
+  if (t.sample_rate != null && t.sample_rate > 0) b.sample_rate = t.sample_rate;
+  if (t.bit_depth != null && t.bit_depth > 0) b.bit_depth = t.bit_depth;
   return b;
 }
