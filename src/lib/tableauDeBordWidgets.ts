@@ -57,7 +57,7 @@
  * C'est ce qui fait une page plutôt qu'un empilement.
  */
 import type { Element, Widget } from './accueilWidgets';
-import { tableauDeBord } from './accueilWidgets';
+import { elementsArtistesTop, tableauDeBord } from './accueilWidgets';
 import * as api from './api';
 import { ICONES, PERIODE_DEFAUT, joursTendance, periodeActive } from './tableauDeBordPeriode';
 import BlocBarres from '../components/v2/blocs/BlocBarres.svelte';
@@ -464,6 +464,29 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       },
     },
   },
+  {
+    // web#3117 (FabienM, fil 2864, point 2) — « Top artistes » : portrait
+    // ROND, nom, nombre de lectures ; un clic ouvre la page artiste. Les
+    // mêmes éléments que la bande de l'accueil (`elementsArtistesTop`), sur
+    // la période choisie dans l'en-tête.
+    //
+    // En DERNIER, et sur un tiers (`etendue: 2`) : les trois rangées de la
+    // maquette de Levente (3 tiers, 6 tuiles, 3 tiers) restent intactes, et
+    // le classement ouvre une quatrième rangée au lieu de casser la rangée
+    // des six tuiles.
+    id: 'tdb-top-artistes',
+    cleTitre: 'dashboard.section.top_artists',
+    forme: 'bloc',
+    charger: VIDE,
+    bloc: {
+      icone: ICONES.artistes,
+      etendue: 2,
+      composant: BlocClassement,
+      hauteur: GRAND,
+      donnees: async (ctx) =>
+        elementsArtistesTop((await tableauDeBord(periode(), ctx.signal)).top_artists ?? [], ctx.langue ?? 'fr', 'tdb-art'),
+    },
+  },
 ];
 
 /**
@@ -485,6 +508,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
  *  10. Ce jour-là          MOYEN
  *  11. Série               PETIT   — les deux petits chiffres ferment la page
  *  12. Complétion          PETIT
+ *  13. Artistes            GRAND   — web#3117, une quatrième rangée (un tiers)
  *
  * Les tailles descendent par paliers et les blocs de même nature portent la
  * même hauteur : c'est ce qui fait que la page se lit de haut en bas au lieu

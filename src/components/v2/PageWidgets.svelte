@@ -124,6 +124,7 @@
     objetPlaylistIntelligente,
     type ObjetMenu,
   } from '../../lib/gestesObjet';
+  import type { GestesPochette } from '../../lib/actionsPochette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -1070,6 +1071,22 @@
     };
   }
 
+  /**
+   * web#3120 — « Aller à la playlist / l'album / l'artiste » : chaque cible
+   * est un morceau d'élément que `ouvrirElement` suit déjà, rien de plus.
+   */
+  function gestesAller(e: Element): GestesPochette {
+    const a = e.allerA;
+    if (!a) return {};
+    const vers = (p?: Partial<Element>) => (p ? () => ouvrirElement({ ...e, ...p } as Element) : undefined);
+    return { allerPlaylist: vers(a.playlist), allerAlbum: vers(a.album), allerArtiste: vers(a.artiste) };
+  }
+
+  /** Les gestes propres du menu « … » d'un élément. */
+  function gestesDuMenuElement(e: Element): GestesPochette {
+    return { ...(e.suggestion ? gestesSuggestion(e) : {}), ...gestesAller(e) };
+  }
+
   /** Les éléments que le profil n'a pas écartés. */
   function visibles(els: Element[], cles: Set<string>): Element[] {
     return cles.size ? els.filter((e) => !estEcartee(e, cles)) : els;
@@ -1541,7 +1558,7 @@
         onLire={el.jouer ? () => jouer(el) : null}
         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
         objet={objetElement(el)}
-        gestesMenu={el.suggestion ? gestesSuggestion(el) : {}}
+        gestesMenu={gestesDuMenuElement(el)}
         nom={el.titre}
       >
         {#if el.pochettes || el.mosaique}
@@ -1556,6 +1573,9 @@
       </PochetteActions>
     </div>
     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
+      <!-- web#3119 / web#3120 — ALBUM ou PLAYLIST, au-dessus du titre ; rien
+           sur un titre isolé (FabienM, fil 2864). -->
+      {#if el.nature}<span class="cn" data-nature={el.nature}>{$t((el.nature === 'playlist' ? 'v2.later.kindPlaylist' : 'v2.later.kindAlbum') as any)}</span>{/if}
       <span class="ct" title={el.titre}>{el.titre}</span>
       <!-- web#2770 (lot 3) — l'artiste sous la vignette est un lien à part
            (`artisteDuSous`) ; un sous-titre qui n'est pas un artiste reste
@@ -2462,6 +2482,9 @@
   .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
      UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
+  /* web#3119 / web#3120 — l'étiquette de nature : petite capitale, couleur
+     d'accent, comme les sur-titres (`v2-eyebrow`). */
+  .cn{align-self:flex-start; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-acc1); line-height:1.2}
   .cw{font:italic calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
