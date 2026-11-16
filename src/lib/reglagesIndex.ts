@@ -91,6 +91,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'backend-audio', section: 'localAudio', labelKey: 'settings.audioBackend', descKey: 'v2.hint.audioBackend', termesKey: 'reglages.termes.backendAudio', techniques: ['ASIO', 'WASAPI', 'ALSA', 'CoreAudio', 'PipeWire', 'PulseAudio'], min: 'expert' },
   { id: 'mode-wasapi', section: 'localAudio', labelKey: 'settings.wasapiMode', descKey: 'v2.hint.wasapiMode', termesKey: 'reglages.termes.modeWasapi', techniques: ['WASAPI', 'bit-perfect'], min: 'expert' },
   { id: 'replaygain', section: 'localAudio', labelKey: 'settings.replayGain', descKey: 'settings.replayGainHint', termesKey: 'reglages.termes.replaygain', techniques: ['ReplayGain', 'EBU R128', 'LUFS'], min: 'intermediate' },
+  { id: 'replaygain-services', section: 'localAudio', labelKey: 'settings.replayGainServices', descKey: 'settings.replayGainServicesHint', techniques: ['ReplayGain', 'Qobuz', 'TIDAL'], min: 'intermediate' },
   { id: 'replaygain-preampli', section: 'localAudio', labelKey: 'settings.replayGainPreamp', descKey: 'v2.hint.replayGainPreamp', techniques: ['ReplayGain', 'dB'], min: 'expert' },
   { id: 'replaygain-anti-ecretage', section: 'localAudio', labelKey: 'settings.replayGainPreventClipping', descKey: 'v2.hint.replayGainPreventClipping', techniques: ['ReplayGain', 'clipping', 'true-peak'], min: 'expert' },
   { id: 'replaygain-source', section: 'localAudio', labelKey: 'settings.replaygainSource', descKey: 'settings.replaygainSourceTagsAnalysis', techniques: ['ReplayGain', 'tags'], min: 'intermediate' },
