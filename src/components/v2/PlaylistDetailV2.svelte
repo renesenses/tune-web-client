@@ -58,6 +58,7 @@
   import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
   import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
+  import { confirmerSuppressionPlaylist } from '../../lib/confirmerSuppressionPlaylist';
   import { circleCharge } from '../../lib/circle';
 
   type Item =
@@ -188,8 +189,16 @@
    * de l'en-tête, chacun sous SA garde d'avant (absent quand il ne s'applique
    * pas, jamais grisé sauf pendant sa requête).
    */
-  function supprimerPlaylist() {
-    if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
+  /**
+   * web#3090 (fil 2849) — la suppression demande confirmation : un clic de
+   * trop dans le mode « Éditer » effaçait la playlist et toutes ses lignes.
+   */
+  async function supprimerPlaylist() {
+    if (item.kind !== 'local' || item.pl.id == null) return;
+    const id = item.pl.id;
+    const nb = tracks.length || item.pl.track_count || 0;
+    if (!(await confirmerSuppressionPlaylist(item.pl.name, nb))) return;
+    api.deletePlaylist(id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
   }
   function entreesPlus(): EntreeMenu[] {
     const l: EntreeMenu[] = [];

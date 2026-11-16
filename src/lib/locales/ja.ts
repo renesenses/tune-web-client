@@ -6302,6 +6302,7 @@ export default {
   "menuObjet.transfer": "サービスへ転送",
   "menuObjet.editRules": "ルールを編集",
   "menuObjet.deletePlaylistAsk": "プレイリスト「{name}」を削除しますか？曲はライブラリに残ります。",
+  "playlist.deleteConfirmAsk": "プレイリスト「{name}」（{tracks}）を削除しますか？元に戻せません。曲はライブラリに残ります。",
   "menuObjet.noFolder": "このアルバムのフォルダーはディスク上にありません。",
   "menuObjet.addShortcut": "ショートカットに追加",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

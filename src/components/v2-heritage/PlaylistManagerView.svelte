@@ -4,6 +4,7 @@
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { confirmerSuppressionPlaylist } from '../../lib/confirmerSuppressionPlaylist';
   import { isPremium } from '../../lib/stores/license';
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
@@ -1499,7 +1500,12 @@
     }
   }
 
-  async function deletePlaylist(id: number) {
+  /**
+   * web#3090 (fil 2849) — la corbeille de la carte ne demandait rien : un clic
+   * de trop effaçait la playlist et toutes ses lignes. Confirmation d'abord.
+   */
+  async function deletePlaylist(id: number, nom: string, nbTitres: number | null | undefined) {
+    if (!(await confirmerSuppressionPlaylist(nom, nbTitres))) return;
     try {
       await api.deletePlaylist(id);
       if (selectedPlaylist?.id === id) goBack();
@@ -2720,7 +2726,7 @@
                 <button onclick={(e) => { e.stopPropagation(); item.local?.id && handleSharePlaylist(item.local.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 </button>
-                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
+                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id, item.name, item.local.track_count ?? item.trackCount); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </button>
               {/if}

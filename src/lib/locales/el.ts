@@ -6156,6 +6156,7 @@ export default {
   "menuObjet.transfer": "Μεταφορά σε υπηρεσία",
   "menuObjet.editRules": "Επεξεργασία κανόνων",
   "menuObjet.deletePlaylistAsk": "Διαγραφή της λίστας αναπαραγωγής “{name}”; Τα κομμάτια της παραμένουν στη βιβλιοθήκη.",
+  "playlist.deleteConfirmAsk": "Διαγραφή της λίστας αναπαραγωγής “{name}” ({tracks}); Θα διαγραφεί οριστικά· τα κομμάτια της παραμένουν στη βιβλιοθήκη.",
   "menuObjet.noFolder": "Δεν υπάρχει φάκελος στον δίσκο για αυτό το άλμπουμ.",
   "menuObjet.addShortcut": "Προσθήκη στις συντομεύσεις",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

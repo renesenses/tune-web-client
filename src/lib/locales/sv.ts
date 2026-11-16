@@ -6301,6 +6301,7 @@ export default {
   "menuObjet.transfer": "Överför till en tjänst",
   "menuObjet.editRules": "Redigera reglerna",
   "menuObjet.deletePlaylistAsk": "Ta bort spellistan ”{name}”? Spåren finns kvar i biblioteket.",
+  "playlist.deleteConfirmAsk": "Ta bort spellistan ”{name}” ({tracks})? Den raderas permanent; spåren finns kvar i biblioteket.",
   "menuObjet.noFolder": "Ingen mapp på disken för det här albumet.",
   "menuObjet.addShortcut": "Lägg till i genvägar",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

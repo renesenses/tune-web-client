@@ -6156,6 +6156,7 @@ export default {
   "menuObjet.transfer": "Overfør til en tjeneste",
   "menuObjet.editRules": "Rediger regler",
   "menuObjet.deletePlaylistAsk": "Slette spillelisten «{name}»? Sporene blir værende i biblioteket.",
+  "playlist.deleteConfirmAsk": "Slette spillelisten «{name}» ({tracks})? Den slettes for godt; sporene blir værende i biblioteket.",
   "menuObjet.noFolder": "Ingen mappe på disken for dette albumet.",
   "menuObjet.addShortcut": "Legg til i snarveier",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

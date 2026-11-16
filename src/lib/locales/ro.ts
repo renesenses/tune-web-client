@@ -6302,6 +6302,7 @@ export default {
   "menuObjet.transfer": "Transferă către un serviciu",
   "menuObjet.editRules": "Editează regulile",
   "menuObjet.deletePlaylistAsk": "Ștergi playlistul „{name}”? Piesele rămân în bibliotecă.",
+  "playlist.deleteConfirmAsk": "Ștergi playlistul „{name}” ({tracks})? Va fi șters definitiv; piesele rămân în bibliotecă.",
   "menuObjet.noFolder": "Niciun dosar pe disc pentru acest album.",
   "menuObjet.addShortcut": "Adaugă la scurtături",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

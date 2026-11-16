@@ -27,6 +27,20 @@ export interface DialogRequest {
   /** Une case à cocher sous le message (confirm seulement, fil 2145). Le
    *  résultat est alors `{ coche }`, ou `null` si l'utilisateur annule. */
   case?: { label: string; coche: boolean };
+  /** web#3090 — le libellé du bouton de validation (« Supprimer ») au lieu
+   *  de « OK ». Absent : « OK », comme avant. */
+  libelleValider?: string;
+  /** web#3090 — « Annuler » est le choix par défaut : il a le focus, et
+   *  Entrée annule tant que le focus n'est pas sur le bouton de validation.
+   *  Pour un geste définitif, un Entrée de trop ne doit rien effacer. */
+  annulerParDefaut?: boolean;
+}
+
+/** Options d'une confirmation. */
+export interface OptionsConfirmation {
+  danger?: boolean;
+  libelleValider?: string;
+  annulerParDefaut?: boolean;
 }
 
 /** Réponse de `confirmAvecCase` : `null` = annulé. */
@@ -63,13 +77,15 @@ function createStore() {
     subscribe,
     settle,
     /** Drop-in for window.confirm(): true = validated, false = cancelled. */
-    confirm(message: string, opts: { danger?: boolean } = {}): Promise<boolean> {
+    confirm(message: string, opts: OptionsConfirmation = {}): Promise<boolean> {
       return new Promise<boolean>((resolve) => {
         push({
           kind: 'confirm',
           message,
           danger: opts.danger ?? false,
           initial: '',
+          ...(opts.libelleValider ? { libelleValider: opts.libelleValider } : {}),
+          ...(opts.annulerParDefaut ? { annulerParDefaut: true } : {}),
           resolve: resolve as (value: boolean | string | null | { coche: boolean }) => void,
         });
       });

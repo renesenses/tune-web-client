@@ -6154,6 +6154,7 @@ export default {
   "menuObjet.transfer": "Przenieś do usługi",
   "menuObjet.editRules": "Edytuj reguły",
   "menuObjet.deletePlaylistAsk": "Usunąć playlistę „{name}”? Jej utwory pozostaną w bibliotece.",
+  "playlist.deleteConfirmAsk": "Usunąć playlistę „{name}” ({tracks})? Zostanie usunięta na stałe; jej utwory pozostaną w bibliotece.",
   "menuObjet.noFolder": "Brak folderu na dysku dla tego albumu.",
   "menuObjet.addShortcut": "Dodaj do skrótów",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

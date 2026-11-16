@@ -6159,6 +6159,7 @@ export default {
   "menuObjet.transfer": "Chuyển sang một dịch vụ",
   "menuObjet.editRules": "Sửa quy tắc",
   "menuObjet.deletePlaylistAsk": "Xóa danh sách phát “{name}”? Các bài hát của nó vẫn ở lại trong thư viện.",
+  "playlist.deleteConfirmAsk": "Xóa danh sách phát “{name}” ({tracks})? Danh sách sẽ bị xóa vĩnh viễn; các bài hát vẫn ở lại trong thư viện.",
   "menuObjet.noFolder": "Album này không có thư mục trên ổ đĩa.",
   "menuObjet.addShortcut": "Thêm vào lối tắt",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

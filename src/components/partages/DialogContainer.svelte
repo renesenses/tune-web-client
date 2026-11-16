@@ -33,7 +33,13 @@
       cancel();
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      validate();
+      // web#3090 — quand « Annuler » est le choix par défaut, Entrée ne
+      // valide que si l'utilisateur a mis le focus sur le bouton de validation.
+      if (current.annulerParDefaut && !(e.target instanceof HTMLElement && e.target.dataset.dialogValider !== undefined)) {
+        cancel();
+      } else {
+        validate();
+      }
     }
   }
   function handleBackdropClick(e: MouseEvent) {
@@ -63,11 +69,17 @@
         </label>
       {/if}
       <div class="dialog-actions">
-        <button class="dialog-btn" onclick={cancel}>{$t('common.cancel')}</button>
+        {#if current.annulerParDefaut}
+          <button class="dialog-btn" onclick={cancel} use:autofocus data-dialog-annuler>{$t('common.cancel')}</button>
+        {:else}
+          <button class="dialog-btn" onclick={cancel} data-dialog-annuler>{$t('common.cancel')}</button>
+        {/if}
         {#if current.kind === 'prompt'}
           <button class="dialog-btn primary" onclick={validate}>{$t('common.ok')}</button>
+        {:else if current.annulerParDefaut}
+          <button class="dialog-btn primary" class:danger={current.danger} onclick={validate} data-dialog-valider>{current.libelleValider ?? $t('common.ok')}</button>
         {:else}
-          <button class="dialog-btn primary" class:danger={current.danger} onclick={validate} use:autofocus>{$t('common.ok')}</button>
+          <button class="dialog-btn primary" class:danger={current.danger} onclick={validate} use:autofocus data-dialog-valider>{current.libelleValider ?? $t('common.ok')}</button>
         {/if}
       </div>
     </div>
@@ -164,6 +176,13 @@
     font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
     transition: background 0.12s ease-out;
+  }
+
+  /* web#3090 — le choix par défaut se voit : focus clavier ET focus posé à
+     l'ouverture (« Annuler » d'une suppression de playlist). */
+  .dialog-btn:focus-visible {
+    outline: 2px solid var(--tune-accent);
+    outline-offset: 2px;
   }
 
   .dialog-btn:hover {

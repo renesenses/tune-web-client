@@ -6256,6 +6256,7 @@ export default {
   "menuObjet.transfer": "Átvitel egy szolgáltatásba",
   "menuObjet.editRules": "Szabályok szerkesztése",
   "menuObjet.deletePlaylistAsk": "Törlöd a(z) „{name}” lejátszási listát? A számok a könyvtárban maradnak.",
+  "playlist.deleteConfirmAsk": "Törlöd a(z) „{name}” lejátszási listát ({tracks})? Véglegesen törlődik; a számok a könyvtárban maradnak.",
   "menuObjet.noFolder": "Ehhez az albumhoz nincs mappa a lemezen.",
   "menuObjet.addShortcut": "Hozzáadás a gyorsindítókhoz",
   "v2.nav.crossfeedPro": "Crossfeed Pro",

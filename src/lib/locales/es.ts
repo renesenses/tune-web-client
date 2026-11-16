@@ -6302,6 +6302,7 @@ export default {
   "menuObjet.transfer": "Transferir a un servicio",
   "menuObjet.editRules": "Editar las reglas",
   "menuObjet.deletePlaylistAsk": "¿Eliminar la lista «{name}»? Sus pistas permanecen en la biblioteca.",
+  "playlist.deleteConfirmAsk": "¿Eliminar la lista «{name}» ({tracks})? Se borrará definitivamente; sus pistas permanecen en la biblioteca.",
   "menuObjet.noFolder": "No hay carpeta en el disco para este álbum.",
   "menuObjet.addShortcut": "Añadir a los accesos directos",
   "v2.nav.crossfeedPro": "Crossfeed Pro",
