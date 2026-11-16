@@ -1465,6 +1465,8 @@ export default {
   "settings.replayGainAlbum": "Pro Album",
   "settings.replayGainPreamp": "Vorverstärkung",
   "settings.replayGainPreventClipping": "Übersteuerung vermeiden",
+  "settings.replayGainServices": "ReplayGain für Qobuz und TIDAL",
+  "settings.replayGainServicesHint": "Den oben gewählten Titel- oder Albummodus auf Streamingdienste anwenden. Standardmäßig aus; ohne Wirkung in PURE oder strengem Bit-Perfect-Modus.",
   "settings.replayGainHint": "Gleicht den Pegel zwischen Titeln an, anhand des Gains aus den Tags oder der Servermessung. Aus bleibt das Audio unangetastet.",
   "settings.logLevel": "Protokollstufe",
   "settings.logLevelError": "Protokollstufe konnte nicht geändert werden",

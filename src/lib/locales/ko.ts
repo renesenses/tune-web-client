@@ -1445,6 +1445,8 @@ export default {
   "settings.replayGainAlbum": "앨범 단위",
   "settings.replayGainPreamp": "프리앰프",
   "settings.replayGainPreventClipping": "클리핑 방지",
+  "settings.replayGainServices": "Qobuz 및 TIDAL용 ReplayGain",
+  "settings.replayGainServicesHint": "위에서 선택한 트랙 또는 앨범 모드를 서비스에 적용합니다. 기본값은 꺼짐이며 PURE 또는 엄격한 비트 퍼펙트 모드에서는 적용되지 않습니다.",
   "settings.replayGainHint": "태그의 게인 또는 서버 측정값을 사용해 트랙 간 음량을 맞춥니다. 끄면 오디오를 건드리지 않습니다.",
   "settings.logLevel": "로그 수준",
   "settings.logLevelError": "로그 수준 변경 실패",

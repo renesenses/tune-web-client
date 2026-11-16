@@ -1465,6 +1465,8 @@ export default {
   "settings.replayGainAlbum": "按专辑",
   "settings.replayGainPreamp": "前级增益",
   "settings.replayGainPreventClipping": "防止削波",
+  "settings.replayGainServices": "Qobuz 和 TIDAL 的 ReplayGain",
+  "settings.replayGainServicesHint": "将上方选择的曲目或专辑模式应用于流媒体服务。默认关闭；在 PURE 或严格比特完美模式下不生效。",
   "settings.replayGainHint": "根据标签中的增益或服务器的测量值，拉平各曲目之间的音量。关闭时不对音频做任何处理。",
   "settings.logLevel": "日志级别",
   "settings.logLevelError": "更改日志级别失败",

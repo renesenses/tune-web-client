@@ -1469,6 +1469,8 @@ export default {
   "settings.replayGainAlbum": "Według albumu",
   "settings.replayGainPreamp": "Przedwzmacniacz",
   "settings.replayGainPreventClipping": "Zapobiegaj przesterowaniu",
+  "settings.replayGainServices": "ReplayGain dla Qobuz i TIDAL",
+  "settings.replayGainServicesHint": "Zastosuj wybrany powyżej tryb utworu lub albumu do serwisów. Domyślnie wyłączone; bez wpływu w PURE lub ścisłym trybie bit-perfect.",
   "settings.replayGainHint": "Wyrównuje poziom głośności między utworami na podstawie wzmocnienia odczytanego z tagów lub zmierzonego przez serwer. Po wyłączeniu dźwięk pozostaje nietknięty.",
   "settings.logLevel": "Poziom logowania",
   "settings.logLevelError": "Nie udało się zmienić poziomu logowania",

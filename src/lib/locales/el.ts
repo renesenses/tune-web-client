@@ -1469,6 +1469,8 @@ export default {
   "settings.replayGainAlbum": "Ανά άλμπουμ",
   "settings.replayGainPreamp": "Προενίσχυση",
   "settings.replayGainPreventClipping": "Αποφυγή ψαλιδισμού",
+  "settings.replayGainServices": "ReplayGain για Qobuz και TIDAL",
+  "settings.replayGainServicesHint": "Εφαρμογή της παραπάνω λειτουργίας κομματιού ή άλμπουμ στις υπηρεσίες. Ανενεργό από προεπιλογή· παρακάμπτεται σε PURE ή αυστηρό bit-perfect.",
   "settings.replayGainHint": "Εξισώνει τη στάθμη μεταξύ των κομματιών, με βάση την τιμή από τις ετικέτες ή αυτήν που μέτρησε ο διακομιστής. Όταν είναι ανενεργό, ο ήχος μένει ανέπαφος.",
   "settings.logLevel": "Επίπεδο καταγραφής",
   "settings.logLevelError": "Δεν ήταν δυνατή η αλλαγή του επιπέδου καταγραφής",

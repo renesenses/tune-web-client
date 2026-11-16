@@ -1471,6 +1471,8 @@ export default {
   "settings.replayGainAlbum": "Pe album",
   "settings.replayGainPreamp": "Preamplificare",
   "settings.replayGainPreventClipping": "Evită distorsiunea",
+  "settings.replayGainServices": "ReplayGain pentru Qobuz și TIDAL",
+  "settings.replayGainServicesHint": "Aplică serviciilor modul piesă sau album ales mai sus. Dezactivat implicit; fără efect în PURE sau bit-perfect strict.",
   "settings.replayGainHint": "Egalizează nivelul între piese, folosind câștigul din etichete sau măsurat de server. Dezactivat, sunetul rămâne neatins.",
   "settings.logLevel": "Nivel jurnal",
   "settings.logLevelError": "Schimbarea nivelului de jurnal a eșuat",
