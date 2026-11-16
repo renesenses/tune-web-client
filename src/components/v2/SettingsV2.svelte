@@ -1,5 +1,4 @@
 <script lang="ts">
-  import ReplayGainServices from "./ReplayGainServices.svelte";
   import { notifierErreur } from '../../lib/notifierErreur';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
@@ -674,6 +673,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
   let rgServices = $state<boolean | null>(null);
+  let rgServicesBusy = $state(false);
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
@@ -744,6 +744,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function setRgMode(v: string) {
     const before = rgMode; rgMode = v;
     patch({ replaygain_mode: v }, () => { rgMode = before; });
+  }
+  async function setRgServices(v: boolean) {
+    const before = rgServices;
+    rgServices = v;
+    rgServicesBusy = true;
+    try {
+      await patch({ replaygain_services_enabled: v }, () => { rgServices = before; });
+    } finally {
+      rgServicesBusy = false;
+    }
   }
   function setRgPreamp(v: number) {
     const before = rgPreamp; rgPreamp = v;
@@ -8817,7 +8827,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
                   </div>
                 </div>
-                <ReplayGainServices value={rgServices} />
+                {#if rgServices !== null}
+                  <div class="row" data-reglage="replaygain-services">
+                    <div class="lbl">
+                      <span>{$t('settings.replayGainServices' as any)}</span>
+                      <span class="hint">{$t('settings.replayGainServicesHint' as any)}</span>
+                    </div>
+                    <label class="sw">
+                      <input type="checkbox" aria-label={$t('settings.replayGainServices' as any)} checked={rgServices} disabled={rgServicesBusy || rgMode === 'off'} onchange={(e) => setRgServices((e.currentTarget as HTMLInputElement).checked)} />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                {/if}
                 {#if rgMode !== 'off' && voit('expert', s.id)}
                   <div class="row" data-reglage="replaygain-preampli">
                     <div class="lbl">
