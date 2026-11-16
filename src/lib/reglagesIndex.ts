@@ -194,6 +194,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
   { id: 'zone-publier-upnp', section: 'perZone', labelKey: 'devices.upnpRenderer', descKey: 'devices.upnpRendererHint', techniques: ['UPnP', 'DLNA', 'MediaRenderer'], min: 'intermediate' },
   { id: 'zone-bitperfect-strict', section: 'perZone', labelKey: 'bitperfect.strictLabel', descKey: 'bitperfect.strictHelp', termesKey: 'reglages.termes.zoneBitperfectStrict', techniques: ['bit-perfect', 'PURE'], min: 'intermediate' },
+  { id: 'zone-silence-verrouillage', section: 'perZone', labelKey: 'settings.lockSilence', descKey: 'settings.lockSilenceHelp', techniques: ['ms', 'DAC', 'DSD', 'DoP', 'PCM'], min: 'intermediate' },
   { id: 'zone-titre-radio-dlna', section: 'perZone', labelKey: 'radioDidl.label', descKey: 'radioDidl.help', techniques: ['DLNA', 'DIDL', 'ICY'], min: 'intermediate' },
   { id: 'zone-canaux', section: 'perZone', labelKey: 'zoneConfig.channelsTitle', termesKey: 'reglages.termes.zoneCanaux', techniques: ['5.1', '7.1', '2.0'] },
   { id: 'zone-gain', section: 'perZone', labelKey: 'devices.gainTrim', descKey: 'devices.gainTrimHint', termesKey: 'reglages.termes.zoneGain', techniques: ['dB', 'trim'], min: 'intermediate' },

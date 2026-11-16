@@ -5164,7 +5164,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect nghiêm ngặt",
   "bitperfect.strictHelp": "Từ chối phát thay vì chuyển đổi tần số lấy mẫu khi đầu ra không phát được tần số của nguồn.",
   "settings.lockSilence": "Khoảng lặng khi đổi định dạng",
-  "settings.lockSilenceHelp": "Chèn khoảng lặng trước bài khi tần số hoặc chế độ (PCM, DSD, DoP) thay đổi, để DAC kịp khóa tín hiệu. 0 = không (đầu ra cục bộ).",
+  "settings.lockSilenceHelp": "Chèn khoảng lặng trước nhạc mỗi lần mở đầu ra và mỗi khi đổi định dạng (tần số, PCM, DSD, DoP), để DAC kịp khóa tín hiệu. Không chèn giữa các bài phát liền mạch. 0 = không (đầu ra cục bộ).",
   "radioDidl.label": "Gửi tiêu đề radio qua DLNA (cho các trình phát bỏ qua ICY)",
   "radioDidl.off": "Tắt",
   "radioDidl.next": "Có, không làm gián đoạn việc phát",

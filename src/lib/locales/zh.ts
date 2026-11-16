@@ -5296,7 +5296,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "当输出设备无法播放音源的采样率时，拒绝播放而不是转换采样率。",
   "settings.lockSilence": "格式切换时的静音",
-  "settings.lockSilenceHelp": "当采样率或模式（PCM、DSD、DoP）改变时，在曲目前插入静音，等待 DAC 锁定。0 = 无（本地输出）。",
+  "settings.lockSilenceHelp": "每次打开输出以及每次格式改变（采样率、PCM、DSD、DoP）时，在音乐前插入静音，等待 DAC 锁定。无缝衔接的曲目之间不插入。0 = 无（本地输出）。",
   "radioDidl.label": "通过 DLNA 发送电台曲目标题（适用于忽略 ICY 的播放器）",
   "radioDidl.off": "关闭",
   "radioDidl.next": "是，不中断播放",

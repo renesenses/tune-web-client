@@ -5296,7 +5296,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Wiedergabe verweigern, statt die Abtastrate umzurechnen, wenn der Ausgang die Rate der Quelle nicht abspielt.",
   "settings.lockSilence": "Stille bei Formatwechsel",
-  "settings.lockSilenceHelp": "Stille vor dem Titel, wenn sich Abtastrate oder Modus (PCM, DSD, DoP) ändert, damit der DAC einrasten kann. 0 = keine (lokale Ausgänge).",
+  "settings.lockSilenceHelp": "Stille vor der Musik bei jedem Öffnen des Ausgangs und bei jedem Formatwechsel (Abtastrate, PCM, DSD, DoP), damit der DAC einrasten kann. Nichts zwischen lückenlos verketteten Titeln. 0 = keine (lokale Ausgänge).",
   "radioDidl.label": "Radiotitel per DLNA senden (für Player, die ICY ignorieren)",
   "radioDidl.off": "Aus",
   "radioDidl.next": "Ja, ohne Unterbrechung",

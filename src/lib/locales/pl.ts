@@ -5160,7 +5160,7 @@ export default {
   "bitperfect.strictLabel": "Ścisły bit-perfect",
   "bitperfect.strictHelp": "Odmów odtwarzania zamiast konwertować częstotliwość próbkowania, gdy wyjście nie obsługuje częstotliwości źródła.",
   "settings.lockSilence": "Cisza przy zmianie formatu",
-  "settings.lockSilenceHelp": "Cisza wstawiana przed utworem, gdy zmienia się częstotliwość lub tryb (PCM, DSD, DoP), aby przetwornik DAC zdążył się zsynchronizować. 0 = brak (wyjścia lokalne).",
+  "settings.lockSilenceHelp": "Cisza wstawiana przed muzyką przy każdym otwarciu wyjścia i każdej zmianie formatu (częstotliwość, PCM, DSD, DoP), aby przetwornik DAC zdążył się zsynchronizować. Nic między utworami odtwarzanymi bez przerw. 0 = brak (wyjścia lokalne).",
   "radioDidl.label": "Wysyłaj tytuł radia przez DLNA (dla odtwarzaczy ignorujących ICY)",
   "radioDidl.off": "Wyłączone",
   "radioDidl.next": "Tak, bez przerywania odtwarzania",

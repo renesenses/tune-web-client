@@ -5296,7 +5296,7 @@ export default {
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "출력 장치가 소스의 샘플레이트를 재생할 수 없을 때 변환하지 않고 재생을 거부합니다.",
   "settings.lockSilence": "포맷 변경 시 무음",
-  "settings.lockSilenceHelp": "샘플레이트나 모드(PCM, DSD, DoP)가 바뀔 때 DAC가 잠길 때까지 트랙 앞에 무음을 넣습니다. 0 = 없음(로컬 출력).",
+  "settings.lockSilenceHelp": "출력을 열 때마다, 그리고 포맷(샘플레이트, PCM, DSD, DoP)이 바뀔 때마다 DAC가 잠길 때까지 음악 앞에 무음을 넣습니다. 갭리스로 이어지는 트랙 사이에는 넣지 않습니다. 0 = 없음(로컬 출력).",
   "radioDidl.label": "라디오 제목을 DLNA로 전송 (ICY를 무시하는 플레이어용)",
   "radioDidl.off": "끔",
   "radioDidl.next": "예, 재생 중단 없이",

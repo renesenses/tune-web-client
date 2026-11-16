@@ -5162,7 +5162,7 @@ export default {
   "bitperfect.strictLabel": "Streng bit-perfect",
   "bitperfect.strictHelp": "Nekt avspilling i stedet for å konvertere samplingsfrekvensen når utgangen ikke kan spille av kildens frekvens.",
   "settings.lockSilence": "Stillhet ved formatbytte",
-  "settings.lockSilenceHelp": "Stillhet satt inn før sporet når samplingsfrekvensen eller modusen (PCM, DSD, DoP) endres, mens DAC-en låser seg. 0 = ingen (lokale utganger).",
+  "settings.lockSilenceHelp": "Stillhet satt inn før musikken hver gang utgangen åpnes og ved hvert formatbytte (samplingsfrekvens, PCM, DSD, DoP), mens DAC-en låser seg. Ingenting mellom spor som spilles sømløst etter hverandre. 0 = ingen (lokale utganger).",
   "radioDidl.label": "Send radiotittelen via DLNA (for spillere som ignorerer ICY)",
   "radioDidl.off": "Av",
   "radioDidl.next": "Ja, uten å avbryte avspillingen",
