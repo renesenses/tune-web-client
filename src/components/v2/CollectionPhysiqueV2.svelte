@@ -724,7 +724,7 @@
 {/snippet}
 
 {#if aAssocier}
-  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} />
+  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} onConflit={chargerCollection} />
 {/if}
 
 {#if albumOuvert}
