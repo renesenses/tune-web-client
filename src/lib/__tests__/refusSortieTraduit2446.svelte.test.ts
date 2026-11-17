@@ -42,7 +42,7 @@ async function jouer() {
   await new Promise((r) => setTimeout(r, 0)); flushSync();
   expect(hote.querySelectorAll('.toast')).toHaveLength(1);
   expect(appels.filter((a) => a.methode === 'POST')).toEqual([
-    { chemin: '/api/v1/zones/7/play', methode: 'POST', corps: { track_id: 21 } },
+    { chemin: '/api/v1/zones/7/play', methode: 'POST', corps: { track_ids: [21], start_index: 0 } }, // web#3121 : ce titre seul, à la place de la file
   ]);
 }
 beforeEach(() => {

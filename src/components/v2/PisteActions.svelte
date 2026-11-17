@@ -73,7 +73,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { corpsDeFile, corpsDeLecture, corpsDeTeteDeListe, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { corpsDeFile, corpsDeLecture, corpsDeLectureSeule, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import {
     bannir, bannissableDeService, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
@@ -159,8 +159,15 @@
      * l'entrée du menu est absente.
      */
     onRetirer?: (() => void) | null;
+    /**
+     * web#3121 — ce que fait « Lire » (bouton et entrée du menu) quand l'écran
+     * le sait mieux que la barre. Seul l'écran File le pose : il SAUTE au
+     * titre sans toucher la file (`jumpInQueue`). `null` : ce titre seul, à la
+     * place de la file.
+     */
+    onLire?: (() => void) | null;
   }
-  let { piste, onLireDepuis = null, coeur = null, contexte = {}, onRetirer = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null, contexte = {}, onRetirer = null, onLire = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -268,14 +275,16 @@
   async function lire(e: MouseEvent) {
     stop(e);
     const zid = $currentZoneId;
-    // web#3121 — `corpsDeTeteDeListe`, pas `corpsDeLecture` : un titre de
-    // SERVICE lancé seul jouerait son album à partir de lui (serveur #5372) ;
-    // `queue_follows` le borne à lui-même (#6469). Une piste locale garde son
-    // corps, `track_id` seul.
-    const corps = corpsDeTeteDeListe(piste);
+    // web#3121 — ce titre SEUL, à la place de la file : `corpsDeLectureSeule`
+    // (`track_ids` pour une piste locale, `queue_follows` pour un service).
+    // Voir `lib/pisteFile`.
+    const corps = corpsDeLectureSeule(piste);
     if (zid == null || !corps) return;
     // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
     if (!(await confirmerLectureBannie(piste))) return;
+    // web#3121 — l'écran File fournit son geste : SAUTER au titre, la file
+    // intacte. Un titre seul à la place de la file l'effacerait.
+    if (onLire) { onLire(); return; }
     // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
     // accole le message du serveur au lieu du seul « Impossible de lire ce
     // titre », et n'empile pas deux bandeaux identiques (#3732).

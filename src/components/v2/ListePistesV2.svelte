@@ -771,20 +771,21 @@
    * L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
    * `grid-template-columns`. Une colonne dimensionnée par son contenu — `auto`,
    * `max-content` — se résout donc dans chacune indépendamment : à zéro dans
-   * l'en-tête, où la cellule d'actions est vide, et à ~238 px dans les lignes.
+   * l'en-tête, où la cellule d'actions est vide, et à la largeur de la barre dans les lignes.
    * Les colonnes en `fr` absorbent l'écart, et TOUS les en-têtes dérivent vers
    * la droite. Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME »
    * deux cents pixels à droite de « 5:24 ».
    *
-   * Pire : les actions sont CONDITIONNELLES — playlist et étiquettes ne sont
-   * offertes que sur une piste locale. En `auto`, deux lignes voisines
+   * Pire : les actions sont CONDITIONNELLES — « Lire à partir d'ici » ou le
+   * cœur peuvent manquer sur une ligne. En `auto`, deux lignes voisines
    * n'auraient donc pas la même largeur d'actions, et se désaligneraient entre
    * elles.
    *
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine.
+   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px (web#3121 :
+   * Lire, Lire à partir d'ici, le cœur, « … »).
    *
    * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
    * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :

@@ -168,8 +168,12 @@
     {#if onglet}
       <div class="panneau" id="apports-qobuz-panneau-{albumId}" data-panneau-qobuz={onglet}
         role={onglets.length > 1 ? 'tabpanel' : undefined}
-        aria-labelledby={onglets.length > 1 ? `apports-qobuz-onglet-${albumId}-${onglet}` : undefined}>
+        aria-labelledby={onglets.length > 1 ? `apports-qobuz-onglet-${albumId}-${onglet}` : undefined}
+        tabindex={onglets.length > 1 ? 0 : undefined}>
       {#if onglet === 'credits'}
+        <!-- Seuls, les crédits n'ont pas d'onglet qui les nomme : leur titre
+             reste visible, comme avant les sous-onglets. -->
+        {#if onglets.length === 1}<h4>{$tr('v2.album.qobuz.credits' as any)}</h4>{/if}
         <ul class="credits" aria-label={$tr('v2.album.qobuz.credits' as any)}>
           {#each credits as c (c.nom + c.role)}
             <li>
@@ -228,6 +232,8 @@
   .onglet.actif { color: var(--v2-txt, inherit); border-bottom-color: var(--v2-acc2, currentColor); }
   .onglet:focus-visible { outline: 2px solid var(--v2-acc2, currentColor); outline-offset: -2px; }
   .panneau { margin: 0 0 .5rem; }
+  .panneau:focus-visible { outline: 2px solid var(--v2-acc2, currentColor); outline-offset: 2px; border-radius: 4px; }
+  h4 { margin: .25rem 0 .25rem; font-size: calc(.9rem * var(--v2-txt-echelle, 1)); }
   dl { margin: 0; display: grid; gap: .25rem; }
   .ligne { display: flex; gap: .5rem; flex-wrap: wrap; }
   dt { font-weight: 600; min-width: 9rem; }

@@ -165,8 +165,9 @@ describe('la colonne d’actions n’a plus qu’UNE largeur', () => {
 describe('les écrans qui montaient la barre SANS fournir la suite', () => {
   it('la file d’attente : « à partir d’ici » = le saut de file', () => {
     const s = sansCommentaires(lireFichier('src/components/v2/QueueV2.svelte'));
-    expect(s).toContain('<PisteActions piste={t} onLireDepuis={() => jump(idx)} />');
-    expect(s).toContain('<PisteActions piste={current} onLireDepuis={() => jump(pos)} />');
+    // web#3121 — « Lire » saute aussi au titre : la file reste intacte.
+    expect(s).toContain('<PisteActions piste={t} onLire={() => jump(idx)} onLireDepuis={() => jump(idx)} />');
+    expect(s).toContain('<PisteActions piste={current} onLire={() => jump(pos)} onLireDepuis={() => jump(pos)} />');
     // Contre-épreuve : plus aucune barre nue dans cet écran.
     expect(s).not.toContain('<PisteActions piste={t} />');
     expect(s).not.toContain('<PisteActions piste={current} />');

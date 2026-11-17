@@ -115,9 +115,12 @@ describe('web#3121 — « Lire » ne joue que ce morceau', () => {
     expect(onLireDepuis).not.toHaveBeenCalled();
     expect(lectures()).toHaveLength(1);
     const corps = lectures()[0].body;
-    expect(corps.track_id).toBe(42);
-    expect(corps.track_ids).toBeUndefined();
-    expect(corps.start_index).toBeUndefined();
+    // `track_ids` + `start_index`, PAS `{track_id}` nu : une demande nue garde
+    // la file si la piste y est déjà et la suite de l'album continue
+    // (serveur #2876/#4298). Une liste remplace la file par ce seul titre.
+    expect(corps.track_ids).toEqual([42]);
+    expect(corps.start_index).toBe(0);
+    expect(corps.track_id).toBeUndefined();
     // L'origine reste jointe (reprise de lecture, #2467).
     expect(corps).toEqual(expect.objectContaining(contexte));
   });
@@ -129,6 +132,16 @@ describe('web#3121 — « Lire » ne joue que ce morceau', () => {
     await respirer();
     expect(lectures()).toHaveLength(1);
     expect(lectures()[0].body).toEqual(expect.objectContaining({ source: 'qobuz', source_id: 'q42', queue_follows: true }));
+  });
+
+  it('`onLire` fourni par l’écran (la File) : Lire le suit, aucun /play envoyé', async () => {
+    const onLire = vi.fn();
+    const qobuz = { id: null, title: 'Titre Q', artist_name: 'A', source: 'qobuz', source_id: 'q42', duration_ms: 1000 };
+    const b = poser(PisteActions, { piste: qobuz, onLire, onLireDepuis: () => {} });
+    b.querySelector<HTMLButtonElement>(`.pactions button[aria-label="${tr('v2.pa.play')}"]`)!.click();
+    await respirer();
+    expect(onLire).toHaveBeenCalledTimes(1);
+    expect(lectures()).toHaveLength(0);
   });
 
   it('« Lire à partir d’ici » garde le geste de l’écran', async () => {

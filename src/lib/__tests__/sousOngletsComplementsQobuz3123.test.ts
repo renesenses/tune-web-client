@@ -109,6 +109,19 @@ describe('web#3123 — « Compléments Qobuz » en sous-onglets', () => {
     expect(panneau()!.textContent).toContain('Blue Note');
   });
 
+  it('le panneau d’onglets se vise au clavier (tabindex 0)', async () => {
+    await monter();
+    expect(panneau()!.getAttribute('tabindex')).toBe('0');
+  });
+
+  it('les crédits SEULS gardent un titre visible', async () => {
+    apports = { statut: 'applique', service_album_id: 'alb-q1', champs: {} };
+    await monter();
+    expect(onglets()).toHaveLength(0);
+    expect(panneau()!.querySelector('h4')?.textContent?.trim()).toBe('Crédits repris de Qobuz');
+    expect(panneau()!.textContent).toContain('Rudy Van Gelder');
+  });
+
   it('« Retirer les apports Qobuz » reste sous les onglets, quel que soit celui ouvert', async () => {
     await monter();
     onglets()[2].click(); flushSync();
