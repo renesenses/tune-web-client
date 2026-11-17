@@ -4921,6 +4921,7 @@ export default {
   "v2.zones.deletedZones": "Borttagna zoner ({n})",
   "v2.zones.deletedOn": "borttagen {date}",
   "v2.zones.deviceNotDetected": "enheten finns inte i nätverket",
+  "v2.zones.sortieReprisePar": "Utgången har tagits över av ”{name}”",
   "v2.zones.restore": "Återställ",
   "v2.zones.restoreFailed": "Det gick inte att återställa zonen.",
   "v2.zones.viewSwitch": "Vy",

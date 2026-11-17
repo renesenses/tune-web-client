@@ -4796,6 +4796,7 @@ export default {
   "v2.zones.deletedZones": "Διαγραμμένες ζώνες ({n})",
   "v2.zones.deletedOn": "διαγράφηκε στις {date}",
   "v2.zones.deviceNotDetected": "η συσκευή δεν είναι στο δίκτυο",
+  "v2.zones.sortieReprisePar": "Την έξοδο την πήρε η «{name}»",
   "v2.zones.restore": "Επαναφορά",
   "v2.zones.restoreFailed": "Δεν ήταν δυνατή η επαναφορά της ζώνης.",
   "v2.zones.viewSwitch": "Προβολή",

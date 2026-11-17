@@ -4922,6 +4922,7 @@ export default {
   "v2.zones.deletedZones": "已删除的区域 ({n})",
   "v2.zones.deletedOn": "删除于 {date}",
   "v2.zones.deviceNotDetected": "设备不在网络上",
+  "v2.zones.sortieReprisePar": "输出已被“{name}”占用",
   "v2.zones.restore": "恢复",
   "v2.zones.restoreFailed": "无法恢复该区域。",
   "v2.zones.viewSwitch": "视图",

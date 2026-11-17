@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { zoneExistanteDuRefus } from './zoneExistante';
+import { avertissementDeRestauration, zoneExistanteDuRefus } from './zoneExistante';
 
 function refus(status: number, corps: Record<string, unknown>, message = 'msg') {
   const e = new Error(message) as any;
@@ -15,7 +15,7 @@ describe('tune-server-rust#8987 — zone existante nommée par un 409', () => {
       code: 'zone_existe_deja', zone_id: 1, zone_name: 'DENAFRIPS DAC USB',
       message_key: 'api.zones.deviceAlreadyHasZone',
     }, 'Cet appareil a déjà la zone « DENAFRIPS DAC USB ».'));
-    expect(z).toEqual({ id: 1, nom: 'DENAFRIPS DAC USB', message: 'Cet appareil a déjà la zone « DENAFRIPS DAC USB ».' });
+    expect(z).toEqual({ id: 1, nom: 'DENAFRIPS DAC USB', motif: 'existe', message: 'Cet appareil a déjà la zone « DENAFRIPS DAC USB ».' });
   });
 
   it('changement d’appareil vers un appareil tenu : la zone qui le tient', () => {
@@ -23,7 +23,7 @@ describe('tune-server-rust#8987 — zone existante nommée par un 409', () => {
       code: 'sortie_tenue_par_une_zone', zone_id: 9, holder_zone_id: 4, holder_zone_name: 'Salon',
       message_key: 'api.zones.deviceHeldByZone',
     }));
-    expect(z).toEqual({ id: 4, nom: 'Salon', message: 'msg' });
+    expect(z).toEqual({ id: 4, nom: 'Salon', motif: 'tenue', message: 'msg' });
   });
 
   it('sans phrase traduite, l’écran compose la sienne', () => {
@@ -37,5 +37,13 @@ describe('tune-server-rust#8987 — zone existante nommée par un 409', () => {
     expect(zoneExistanteDuRefus(refus(409, { code: 'zone_existe_deja' }))).toBeNull();
     expect(zoneExistanteDuRefus(null)).toBeNull();
     expect(zoneExistanteDuRefus(new Error('réseau'))).toBeNull();
+  });
+
+  it('l’avertissement de restauration est lu sur la réponse', () => {
+    expect(avertissementDeRestauration({ id: 3, avertissement_restauration: { code: 'sortie_reprise_par_une_zone', message: 'Sortie reprise par « Bureau »' } }))
+      .toBe('Sortie reprise par « Bureau »');
+    expect(avertissementDeRestauration({ id: 3 })).toBeNull();
+    expect(avertissementDeRestauration({ avertissement_restauration: { message: '  ' } })).toBeNull();
+    expect(avertissementDeRestauration(undefined)).toBeNull();
   });
 });

@@ -17,6 +17,9 @@
 export interface ZoneExistante {
   id: number;
   nom: string;
+  /** `existe` : l'appareil a déjà cette zone (« Nouvelle zone ») ; `tenue` :
+   *  cette AUTRE zone tient l'appareil demandé (changement d'appareil). */
+  motif: 'existe' | 'tenue';
   /** La phrase du serveur, ou `null` : l'écran compose alors la sienne. */
   message: string | null;
 }
@@ -47,5 +50,23 @@ export function zoneExistanteDuRefus(err: unknown): ZoneExistante | null {
     typeof corps.message_key === 'string' && typeof e.message === 'string' && e.message.trim()
       ? e.message
       : null;
-  return { id, nom: typeof nom === 'string' ? nom : '', message };
+  return {
+    id,
+    nom: typeof nom === 'string' ? nom : '',
+    motif: code === CODE_ZONE_EXISTE_DEJA ? 'existe' : 'tenue',
+    message,
+  };
+}
+
+/**
+ * tune-server-rust#8987 — la phrase d'avertissement qu'une restauration
+ * (`POST /zones/{id}/restaurer`, ou `POST /zones` qui ressuscite une zone
+ * supprimée) pose sur sa réponse : zone née sous l'autre hôte audio, ou
+ * sortie reprise par une autre zone. `null` sinon.
+ */
+export function avertissementDeRestauration(reponse: unknown): string | null {
+  const a = (reponse as { avertissement_restauration?: { message?: unknown } } | null | undefined)
+    ?.avertissement_restauration;
+  const m = a?.message;
+  return typeof m === 'string' && m.trim() ? m : null;
 }

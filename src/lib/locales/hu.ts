@@ -4876,6 +4876,7 @@ export default {
   "v2.zones.deletedZones": "Törölt zónák ({n})",
   "v2.zones.deletedOn": "törölve: {date}",
   "v2.zones.deviceNotDetected": "az eszköz nincs a hálózaton",
+  "v2.zones.sortieReprisePar": "A kimenetet átvette: „{name}”",
   "v2.zones.restore": "Visszaállítás",
   "v2.zones.restoreFailed": "A zónát nem sikerült visszaállítani.",
   "v2.zones.viewSwitch": "Nézet",

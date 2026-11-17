@@ -17,6 +17,7 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { zones as zonesVisibles } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { avertissementDeRestauration } from '../../lib/zoneExistante';
 
   let { onRestauree }: { onRestauree?: () => void | Promise<void> } = $props();
 
@@ -45,8 +46,8 @@
       // tune-server-rust#8987 — zone née sous l'autre hôte audio (ASIO sous
       // WASAPI ou l'inverse) : restaurée, mais muette tant qu'on ne change
       // rien. Le serveur le dit, phrase traduite ; on la laisse à l'écran.
-      const avert = (restauree as any)?.avertissement_restauration?.message;
-      if (typeof avert === 'string' && avert.trim()) notifications.info(avert, 0);
+      const avert = avertissementDeRestauration(restauree);
+      if (avert) notifications.info(avert, 0);
       await charger();
       await onRestauree?.();
     } catch (e) {
@@ -71,6 +72,12 @@
             {#if z.output_type}<em>{z.output_type}</em>{/if}
             {#if z.masquee_le}
               <span class="quand">{$t('v2.zones.deletedOn' as any).replace('{date}', $dateCourte(z.masquee_le))}</span>
+            {/if}
+            {#if z.sortie_liberee?.reprise_par}
+              <!-- tune-server-rust#8987 — son appareil est tenu par une autre zone. -->
+              <span class="quand" data-sortie-reprise={z.sortie_liberee.reprise_par.id}>
+                {$t('v2.zones.sortieReprisePar' as any).replace('{name}', z.sortie_liberee.reprise_par.name)}
+              </span>
             {/if}
             {#if !z.appareil_detecte}
               <span class="quand">{$t('v2.zones.deviceNotDetected' as any)}</span>

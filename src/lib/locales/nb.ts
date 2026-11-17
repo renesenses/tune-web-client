@@ -4796,6 +4796,7 @@ export default {
   "v2.zones.deletedZones": "Slettede soner ({n})",
   "v2.zones.deletedOn": "slettet {date}",
   "v2.zones.deviceNotDetected": "enheten er ikke på nettverket",
+  "v2.zones.sortieReprisePar": "Utgangen er tatt over av «{name}»",
   "v2.zones.restore": "Gjenopprett",
   "v2.zones.restoreFailed": "Kunne ikke gjenopprette sonen.",
   "v2.zones.viewSwitch": "Visning",

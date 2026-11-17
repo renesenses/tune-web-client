@@ -4922,6 +4922,7 @@ export default {
   "v2.zones.deletedZones": "Zone șterse ({n})",
   "v2.zones.deletedOn": "ștearsă la {date}",
   "v2.zones.deviceNotDetected": "dispozitivul nu este în rețea",
+  "v2.zones.sortieReprisePar": "Ieșire preluată de „{name}”",
   "v2.zones.restore": "Restaurează",
   "v2.zones.restoreFailed": "Zona nu a putut fi restaurată.",
   "v2.zones.viewSwitch": "Vizualizare",

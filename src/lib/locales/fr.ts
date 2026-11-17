@@ -4944,6 +4944,7 @@ export default {
   "v2.zones.deletedZones": "Zones supprimées ({n})",
   "v2.zones.deletedOn": "supprimée le {date}",
   "v2.zones.deviceNotDetected": "appareil absent du réseau",
+  "v2.zones.sortieReprisePar": "Sortie reprise par « {name} »",
   "v2.zones.restore": "Restaurer",
   "v2.zones.restoreFailed": "Impossible de restaurer la zone.",
   "v2.zones.viewSwitch": "Affichage",

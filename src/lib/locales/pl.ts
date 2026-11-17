@@ -4794,6 +4794,7 @@ export default {
   "v2.zones.deletedZones": "Usunięte strefy ({n})",
   "v2.zones.deletedOn": "usunięta {date}",
   "v2.zones.deviceNotDetected": "urządzenia nie ma w sieci",
+  "v2.zones.sortieReprisePar": "Wyjście przejęła strefa „{name}”",
   "v2.zones.restore": "Przywróć",
   "v2.zones.restoreFailed": "Nie udało się przywrócić strefy.",
   "v2.zones.viewSwitch": "Widok",

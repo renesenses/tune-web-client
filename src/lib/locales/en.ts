@@ -4942,6 +4942,7 @@ export default {
   "v2.zones.deletedZones": "Deleted zones ({n})",
   "v2.zones.deletedOn": "deleted on {date}",
   "v2.zones.deviceNotDetected": "device not on the network",
+  "v2.zones.sortieReprisePar": "Output taken over by “{name}”",
   "v2.zones.restore": "Restore",
   "v2.zones.restoreFailed": "Could not restore the zone.",
   "v2.zones.viewSwitch": "View",

@@ -4798,6 +4798,7 @@ export default {
   "v2.zones.deletedZones": "Vùng đã xóa ({n})",
   "v2.zones.deletedOn": "đã xóa ngày {date}",
   "v2.zones.deviceNotDetected": "thiết bị không có trên mạng",
+  "v2.zones.sortieReprisePar": "Đầu ra đã được “{name}” sử dụng",
   "v2.zones.restore": "Khôi phục",
   "v2.zones.restoreFailed": "Không thể khôi phục vùng.",
   "v2.zones.viewSwitch": "Hiển thị",

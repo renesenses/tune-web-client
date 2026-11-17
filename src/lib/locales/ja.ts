@@ -4922,6 +4922,7 @@ export default {
   "v2.zones.deletedZones": "削除したゾーン ({n})",
   "v2.zones.deletedOn": "{date} に削除",
   "v2.zones.deviceNotDetected": "デバイスがネットワーク上にありません",
+  "v2.zones.sortieReprisePar": "出力は「{name}」が使用中",
   "v2.zones.restore": "復元",
   "v2.zones.restoreFailed": "ゾーンを復元できませんでした。",
   "v2.zones.viewSwitch": "表示",

@@ -4922,6 +4922,7 @@ export default {
   "v2.zones.deletedZones": "삭제된 존 ({n})",
   "v2.zones.deletedOn": "{date}에 삭제됨",
   "v2.zones.deviceNotDetected": "기기가 네트워크에 없음",
+  "v2.zones.sortieReprisePar": "출력을 “{name}”이(가) 사용 중",
   "v2.zones.restore": "복원",
   "v2.zones.restoreFailed": "존을 복원할 수 없습니다.",
   "v2.zones.viewSwitch": "보기",
