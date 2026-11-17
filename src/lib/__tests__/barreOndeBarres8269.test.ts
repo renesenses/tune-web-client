@@ -115,13 +115,13 @@ describe('#8269 — le réglage', () => {
   });
 
   it('est traduit dans les 15 langues', () => {
-    expect(LOCALES_COMPLETES.length).toBe(15);
+    expect(LOCALES_COMPLETES.length).toBe(16);
     for (const [langue, d] of LOCALES_COMPLETES) {
       expect(d['v2.set.barOnde'], `${langue} : libellé`).toBeTruthy();
       expect(d['v2.set.barOndeHint'], `${langue} : aide`).toBeTruthy();
       expect(d['reglages.termes.barreOnde'], `${langue} : synonymes`).toBeTruthy();
     }
-    expect(new Set(LOCALES_COMPLETES.map(([, d]) => d['v2.set.barOnde'])).size).toBe(15);
+    expect(new Set(LOCALES_COMPLETES.map(([, d]) => d['v2.set.barOnde'])).size).toBe(16);
   });
 
   it('🔴 « Forme d’onde des pistes de streaming » : décochée par défaut, inactive sans la barre en onde, traduite', async () => {

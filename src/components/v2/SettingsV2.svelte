@@ -9,6 +9,7 @@
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { couperChemin } from '../../lib/couperChemin';
   /**
    * Réglages du nouveau client (direction Levente).
    *
@@ -112,6 +113,7 @@
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
+  import { proposerApresConnexion } from '../../lib/lectureYoutubeInactive';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -174,13 +176,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import { appareilSansSortie } from '../../lib/raisonSortieReseau';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import BandeauDonneesNonPersistantes from '../partages/BandeauDonneesNonPersistantes.svelte';
+  import FolderBrowser from '../partages/FolderBrowser.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import RemplacerCheminDossier from '../partages/RemplacerCheminDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
-  import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
+  import { etatPartage, oublierUnPartage, proposerAjout, sousDossierDuPartage } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -222,6 +226,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
+  import { MODE_HISTORIQUE_DEFAUT, estModeHistorique } from '../../lib/modeHistorique';
   import {
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
@@ -1913,6 +1918,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           deviceFlow = { ...deviceFlow, [name]: undefined };
           svcBusy = null;
           void refleterDansLeMagasin(name, true);
+          void proposerLectureApresConnexion(name);
         }
       } catch { /* le sondage peut echouer sans que ce soit une panne */ }
     }, 3000);
@@ -1935,6 +1941,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
         svcBusy = null;
         void refleterDansLeMagasin(name, true);
+        void proposerLectureApresConnexion(name);
       } else if (res?.verification_url) {
         const raw = res.verification_url;
         const url = raw.startsWith('http') ? raw : `https://${raw}`;
@@ -2489,15 +2496,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * sous deux adresses) ne pouvait pas être retiré. */
   let smbBusy = $state<number | null>(null);
   let smbErr = $state<string | null>(null);
-  async function ajouterPartage(m: api.SmbMount) {
-    if (!m.mount_path || smbBusy !== null) return;
+  async function ajouterPartage(m: api.SmbMount, chemin: string | null | undefined = m.mount_path) {
+    if (!m.mount_path || !chemin || smbBusy !== null) return;
     smbBusy = m.id; smbErr = null;
     try {
-      const r = await api.addMusicDir(m.mount_path);
-      musicDirs = r?.music_dirs ?? [...musicDirs, m.mount_path];
+      const r = await api.addMusicDir(chemin);
+      musicDirs = r?.music_dirs ?? [...musicDirs, chemin];
       await refreshDirectoryOrder();
     } catch (e: any) { smbErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     smbBusy = null;
+  }
+
+  /* tune-server-rust#8746 (fil 2816), variante B : « Ajouter » garde la
+   * racine du partage ; « Choisir un sous-dossier… » ouvre l'explorateur sur
+   * le point de montage, et seul un dossier SOUS ce point est déclaré. */
+  let explorateurPartage = $state<api.SmbMount | null>(null);
+  async function sousDossierDuPartageChoisi(chemin: string) {
+    const m = explorateurPartage;
+    if (!m?.mount_path) return;
+    const retenu = sousDossierDuPartage(m.mount_path, chemin);
+    if (!retenu) {
+      smbErr = get(t)('smb.subfolderOutsideShare' as any).replace('{path}', m.mount_path);
+      return;
+    }
+    explorateurPartage = null;
+    await ajouterPartage(m, retenu);
   }
   async function oublierPartage(m: api.SmbMount) {
     if (smbBusy !== null) return;
@@ -2680,6 +2703,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
   function remplirModuleYt(phrase: string, params: Record<string, string>): string {
     return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
+  }
+
+  /**
+   * tune-server-rust#8913 — le compte YouTube vient d'être relié : sans
+   * yt-dlp, aucune piste ne se lira (Google refuse les voies natives). On le
+   * dit tout de suite, avec le bouton qui active la lecture sur place.
+   */
+  async function proposerLectureApresConnexion(name: string) {
+    if (name !== 'youtube') return;
+    await refreshYoutubePlayback();
+    proposerApresConnexion(name, ytInstalled || ytStatus === 'downloading', () => void enableYoutubePlayback());
   }
 
   async function enableYoutubePlayback() {
@@ -4774,6 +4808,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     <RechercheReglagesV2 niveau={level} onchoisir={allerAuReglage} />
   </header>
 
+  <!-- tune-server-rust#8747 (fil 2798) — conteneur dont /data n'est sur aucun
+       volume persistant : la prochaine mise à jour de l'image repartirait
+       d'une base neuve. Rien hors conteneur ni sur un serveur ancien. -->
+  <BandeauDonneesNonPersistantes />
+
   <!-- Recette du .18 (15/11) : la barre d'onglets coupée à droite ne disait
        pas qu'elle défile. Un fondu au bord qui déborde, et une flèche qui
        fait défiler (souris sans molette horizontale). -->
@@ -5191,6 +5230,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
                   <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
                   <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
+              <!-- web#3143 — l'Historique, une ligne par titre (Elie, le défaut)
+                   ou une ligne par écoute, avec son heure (FabienM, fil 2637,
+                   point 7). Décision de Bertrand, 17/11/2026 : au choix. -->
+              <div class="row" data-reglage="historique-lignes">
+                <div class="lbl">
+                  <span>{$t('settings.historyRows' as any)}</span>
+                  <span class="hint">{$t('settings.historyRowsHint' as any)}</span>
+                </div>
+                <select class="sel" value={$preferences.historiqueLignes ?? MODE_HISTORIQUE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estModeHistorique(v)) preferences.update((pr) => ({ ...pr, historiqueLignes: v })); }}>
+                  <option value="titre">{$t('settings.historyRowsTrack' as any)}</option>
+                  <option value="ecoute">{$t('settings.historyRowsListen' as any)}</option>
                 </select>
               </div>
 
@@ -6782,6 +6837,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           </div>
                         {/if}
                         <!--
+                          MODE EXCLUSIF PAR ZONE — tune-server-rust#3245.
+                          Le serveur le règle par zone depuis la rc12 (PATCH
+                          `exclusive_mode`, `null` = suivre la machine) ; aucun
+                          écran ne l'exposait. Zone LOCALE seulement : c'est la
+                          sortie locale qui ouvre l'appareil en exclusif. Masqué
+                          quand la zone ne publie pas le champ (ancien serveur).
+                        -->
+                        {#if z.output_type === 'local' && z.exclusive_mode !== undefined}
+                          <div class="zf" data-reglage="zone-mode-exclusif">
+                            <label for={`exclusive-mode-${z.id}`}>{$t('settings.zoneExclusiveMode' as any)}</label>
+                            <select id={`exclusive-mode-${z.id}`} aria-describedby={`exclusive-mode-hint-${z.id}`} class="sel sm"
+                              value={z.exclusive_mode === true ? 'true' : z.exclusive_mode === false ? 'false' : ''}
+                              onchange={(e) => { const v = e.currentTarget.value;
+                                setZoneField(z, () => api.updateZoneExclusiveMode(z.id as number, v === '' ? null : v === 'true')); }}>
+                              <option value="">{$t('settings.zoneExclusiveFollow' as any)}</option>
+                              <option value="true">{$t('settings.zoneExclusiveOn' as any)}</option>
+                              <option value="false">{$t('settings.zoneExclusiveOff' as any)}</option>
+                            </select>
+                            <small id={`exclusive-mode-hint-${z.id}`}>{$t('settings.zoneExclusiveHint' as any)}</small>
+                            {#if typeof z.exclusive_mode === 'boolean' && typeof z.exclusive_mode_applique === 'boolean' && z.exclusive_mode_applique !== z.exclusive_mode}
+                              <small class="dsd-dop" data-exclusif-en-attente>{$t('settings.zoneExclusivePending' as any)}</small>
+                            {/if}
+                          </div>
+                        {/if}
+                        <!--
                           BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.
                           Masqué quand la zone ne publie pas `strict_bitperfect` :
                           un vieux serveur l'ignorerait.
@@ -7260,10 +7340,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <div class="dirs" data-reglage="dossiers-declares">
                   {#each displayedMusicDirs as d, index (d)}
-                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
-                      class:avec-analyse={analysisExcluded !== null}>
+                    {@const coupe = couperChemin(d)}
+                    <!--
+                      web#3137 — le chemin d'abord, les commandes ensuite.
+                      La ligne était une grille où le chemin, seule colonne
+                      en `minmax(0,1fr)`, tombait à zéro dès que les cinq
+                      commandes (dont « Remplacer le chemin », rc12) prenaient
+                      la largeur : sous Windows, plus aucun chemin lisible.
+                      Désormais `.dir-tete` garde une largeur minimale ; si
+                      les commandes n'y tiennent pas à côté, elles passent
+                      dessous. Le chemin se tronque au milieu (le dernier
+                      dossier reste entier) et son infobulle le donne en
+                      entier.
+                    -->
+                    <div class="dir">
+                      <div class="dir-tete">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                      <span class="dp" use:bulleTexte>{d}</span>
+                      <span class="dp" title={d}><span class="dp-debut">{coupe.debut}</span><span class="dp-fin">{coupe.fin}</span></span>
+                      </div>
+                      <div class="dir-actions">
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
                         <div class="dir-order">
                           <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
@@ -7307,6 +7402,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         <span>{$t('settings.removeFolderButton' as any)}</span>
                       </button>
+                      </div>
                     </div>
                   {/each}
                 </div>
@@ -7417,6 +7513,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if proposerAjout(m, musicDirs)}
                           <button class="lnk" disabled={smbBusy !== null} onclick={() => ajouterPartage(m)}
                             title={$t('settings.smbNotDeclaredHint' as any)}>{$t('smb.addToLibrary' as any)}</button>
+                          <button class="lnk" data-sous-dossier-partage disabled={smbBusy !== null}
+                            onclick={() => { smbErr = null; explorateurPartage = m; }}>{$t('smb.chooseSubfolder' as any)}</button>
                         {/if}
                         <button class="lnk" disabled={smbBusy !== null} onclick={() => oublierPartage(m)}>{$t('settings.smbForget' as any)}</button>
                       </span>
@@ -8993,6 +9091,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   </div>
 </section>
 
+{#if explorateurPartage?.mount_path}
+  <FolderBrowser
+    initialPath={explorateurPartage.mount_path}
+    onSelect={sousDossierDuPartageChoisi}
+    onClose={() => (explorateurPartage = null)}
+  />
+{/if}
+
 {#if showSmbWizard}
   <SmbWizard
     onClose={() => (showSmbWizard = false)}
@@ -9107,6 +9213,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane > .card:has(.pleine-largeur){max-width:none}
   .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:720px}
   .pane .pleine-largeur{max-width:none; min-width:0; overflow-x:auto}
+  /* web#3163 — GRAND ÉCRAN (Pierre, fil 2867, rc12 : la colonne « gaspille
+     un grand écran » ; décision de Bertrand, 17/11/2026). Au-delà de 1600 px
+     de fenêtre, la colonne s'élargit PROGRESSIVEMENT — la moitié de chaque
+     pixel gagné, jusqu'à 1200 px : 880 px à 1920, 1200 px à 2560. En deçà,
+     rien ne change : sur un 13 pouces (1440 px) la règle des 720 px
+     ci-dessus s'applique seule, au pixel près.
+     Ce que la largeur sert : les cartes, les listes (Emplacements), les
+     matrices et tableaux. Ce qu'elle ne sert PAS : la ligne de réglage
+     (libellé, aide, contrôle) et les paragraphes d'aide restent à une mesure
+     de lecture de 760 px — à peine plus que sur un 13 pouces — pour que le
+     texte ne s'étire pas et que le contrôle reste à côté de son aide. */
+  @media (min-width:1601px){
+    .pane{--reglages-colonne:min(1200px, calc(720px + (100vw - 1600px) / 2))}
+    .pane > *{max-width:var(--reglages-colonne)}
+    .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:var(--reglages-colonne)}
+    .pane .card .row:not(.row-mon-theme):not(:has(.pleine-largeur)), .pane .card p{max-width:760px}
+  }
   .panehead.cache{display:none}
   /* Intertitres d'une longue carte (Interface) : des blocs titrés. */
   .sous-titre{margin:20px 0 -2px; padding-top:14px; border-top:1px solid var(--v2-line);
@@ -9272,10 +9395,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
-  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto auto}
+  /* web#3137 — une ligne souple : le chemin garde au moins 26em (à l échelle
+     du texte) ; les commandes passent dessous quand elles ne tiennent pas à
+     côté, et vont elles-mêmes à la ligne sur une fenêtre étroite. */
+  .dir{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:8px 10px; border-radius:8px}
+  .dir-tete{display:flex; align-items:center; gap:12px; flex:1 1 26em; min-width:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .dir-tete svg{flex:none}
+  .dir-actions{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px 12px; flex:0 1 auto; max-width:100%; margin-left:auto}
+  /* Le panneau « Remplacer le chemin » ouvert prend toute la ligne. */
+  .dir:has(.remplacer-chemin-panneau) .dir-actions{flex-basis:100%}
+  /* Troncature au milieu : le début cède, le dernier dossier reste entier
+     tant qu il tient, puis se tronque à son tour. */
+  .dir .dp{display:flex; flex:1 1 auto; min-width:0}
+  .dp-debut{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dp-fin{flex:0 0 auto; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
