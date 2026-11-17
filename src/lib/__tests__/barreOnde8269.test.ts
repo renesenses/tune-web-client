@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { get, writable } from 'svelte/store';
 import {
   cibleClavier, cheminOnde, creerCacheOndes, idPisteOnde, nombreDeBarres,
-  echecDefinitif, normaliserOnde, ondeDeLaPiste, reduireOnde,
+  clePisteOnde, DELAI_REESSAI_MS, echecDefinitif, normaliserOnde, ondeDeLaPiste,
+  pisteDeServiceDe, reduireOnde, type ClePiste,
 } from '../barreOnde';
 import type { NowPlaying } from '../types';
 
@@ -61,7 +62,7 @@ describe('#8269 — clavier', () => {
 
 describe('#8269 — une requête par piste', () => {
   it('🔴 deux demandes simultanées partagent la requête ; un refus n’est JAMAIS redemandé', async () => {
-    const charger = vi.fn(async (id: number) => {
+    const charger = vi.fn(async (id: ClePiste) => {
       if (id === 2) throw Object.assign(new Error('404'), { status: 404 });
       return { waveform: [0.2, 0.8] };
     });
@@ -107,7 +108,7 @@ describe('#8269 — une requête par piste', () => {
 
   it('une réponse arrivée après un changement de piste ne s’affiche pas', async () => {
     let libere!: (v: unknown) => void;
-    const charger = vi.fn((id: number) => id === 1
+    const charger = vi.fn((id: ClePiste) => id === 1
       ? new Promise((r) => { libere = r; })
       : Promise.resolve({ waveform: [0.3, 0.6] }));
     const piste = writable<Pick<NowPlaying, 'source' | 'track_id'> | null>({ source: 'local', track_id: 1 });
@@ -193,3 +194,89 @@ describe('#8269 — une panne passagère n’est pas une réponse', () => {
     stop();
   });
 });
+
+// Go de Bertrand du 17/11/2026 (rc13) : l'onde des pistes Qobuz et TIDAL.
+describe('#8269 rc13 — Qobuz et TIDAL', () => {
+  it('la clé : id de bibliothèque pour une piste locale, « service:id » pour Qobuz/TIDAL, rien sinon', () => {
+    expect(clePisteOnde({ source: 'local', track_id: 12 })).toBe(12);
+    expect(clePisteOnde({ source: 'qobuz', track_id: null, source_id: '48098083' })).toBe('qobuz:48098083');
+    expect(clePisteOnde({ source: 'tidal', source_id: ' 123 ' } as never)).toBe('tidal:123');
+    for (const source of ['radio', 'podcast', 'upnp', 'spotify', 'youtube'] as const) {
+      expect(clePisteOnde({ source, source_id: 'x' } as never), source).toBeNull();
+    }
+    expect(clePisteOnde({ source: 'qobuz', source_id: null } as never)).toBeNull();
+    expect(pisteDeServiceDe('qobuz:4:2')).toEqual({ service: 'qobuz', id: '4:2' });
+    expect(pisteDeServiceDe(12)).toBeNull();
+  });
+
+  it('🔴 « pending » n’est pas retenu ; le store redemande, puis montre l’onde', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let pret = false;
+      const charger = vi.fn(async () => (pret ? { waveform: [0.2, 0.7] } : { waveform: null, pending: true }));
+      const cache = creerCacheOndes(charger);
+      const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
+        { source: 'qobuz', track_id: null, source_id: '1' },
+      );
+      const onde = ondeDeLaPiste(writable(true), piste, cache, writable(true));
+      const stop = onde.subscribe(() => {});
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(onde)).toBeNull();
+      expect(cache.connue('qobuz:1'), '« pending » : rien de retenu').toBeUndefined();
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS);
+      expect(charger).toHaveBeenCalledTimes(2);
+      pret = true;
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS);
+      expect(get(onde)).toEqual([0.2, 0.7]);
+      expect(charger).toHaveBeenCalledTimes(3);
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * 5);
+      expect(charger).toHaveBeenCalledTimes(3);
+
+      // Changement de piste pendant un calcul : les relances cessent.
+      pret = false;
+      piste.set({ source: 'qobuz', track_id: null, source_id: '2' });
+      await vi.advanceTimersByTimeAsync(0);
+      piste.set({ source: 'radio', track_id: null, source_id: 'r' });
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * 5);
+      expect(charger).toHaveBeenCalledTimes(4);
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+// Décision de Bertrand du 17/11/2026 (option C) : l'onde des pistes de
+// streaming est un réglage à part, décoché par défaut.
+describe('#8269 rc13 — réglage « Forme d’onde des pistes de streaming »', () => {
+  it('🔴 décoché (défaut) : aucune requête pour Qobuz/TIDAL ; les pistes locales ne changent pas', async () => {
+    const charger = vi.fn(async () => ({ waveform: [0.4, 0.8] }));
+    const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
+      { source: 'qobuz', track_id: null, source_id: '9' },
+    );
+    const services = writable(false);
+    const onde = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger), services);
+    const stop = onde.subscribe(() => {});
+    await attendre(); await attendre();
+    expect(get(onde)).toBeNull();
+    expect(charger).not.toHaveBeenCalled();
+    // Sans 4ᵉ argument : décoché aussi.
+    const parDefaut = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger));
+    const stop2 = parDefaut.subscribe(() => {});
+    await attendre();
+    expect(charger).not.toHaveBeenCalled();
+    stop2();
+    // Piste locale : demandée, réglage décoché ou non.
+    piste.set({ source: 'local', track_id: 41, source_id: null });
+    await attendre(); await attendre();
+    expect(charger).toHaveBeenCalledWith(41);
+    expect(get(onde)).toEqual([0.4, 0.8]);
+    // Coché : la piste de service est demandée.
+    services.set(true);
+    piste.set({ source: 'tidal', track_id: null, source_id: '9' });
+    await attendre(); await attendre();
+    expect(charger).toHaveBeenCalledWith('tidal:9');
+    stop();
+  });
+});
+
