@@ -10,8 +10,8 @@
  * - lit l'œuvre d'un album pour le sélecteur de version de la fiche ;
  * - mémorise la version préférée.
  *
- * Un serveur qui ne connaît pas ces routes rend une erreur : on revient alors
- * à la grille d'avant, un album par carte, sans rien signaler.
+ * Un serveur ancien (404) garde la grille d'avant. Une panne est réessayée
+ * puis signalée ; elle ne doit pas effacer l'état déjà connu.
  */
 import { BASE, fetchJSON } from './api';
 import { libelleNombreCanaux } from './utils';
@@ -53,29 +53,43 @@ export interface OeuvreAlbum {
   versions: VersionAlbum[];
 }
 
-/** Les œuvres de plusieurs versions ; `[]` si le regroupement est désactivé
- *  ou si le serveur ne le connaît pas. */
-export async function chargerMembresOeuvres(): Promise<MembresOeuvre[]> {
-  try {
-    const r = await fetchJSON<{ enabled?: boolean; works?: MembresOeuvre[] }>(
-      `${BASE}/library/albums/works/members`, undefined, undefined, true,
-    );
-    return r?.enabled === false || !Array.isArray(r?.works) ? [] : r.works;
-  } catch {
-    return [];
+const ABSENCE = Symbol('route_oeuvres_absente');
+
+/** Trois tentatives au plus, seulement sur réseau/5xx. Un refus ne devient
+ * jamais « aucune version ». Les erreurs sont présentées par l'écran. */
+async function lireOeuvres<T>(url: string): Promise<T | typeof ABSENCE> {
+  for (let essai = 0; ; essai++) {
+    try {
+      return await fetchJSON<T>(url, undefined, undefined, true);
+    } catch (e) {
+      const erreur = e as { status?: number; name?: string } | null;
+      const status = erreur?.status;
+      if (status === 404) return ABSENCE;
+      const reseau = status === 0 || (status == null && ['TypeError', 'NetworkError', 'TimeoutError'].includes(erreur?.name ?? ''));
+      const passagere = reseau || (status != null && status >= 500 && status <= 599);
+      if (essai >= 2 || !passagere) throw e;
+      await new Promise(resolve => setTimeout(resolve, 200 * (essai + 1)));
+    }
   }
 }
 
-/** L'œuvre d'un album ; `null` si le serveur ne la connaît pas. */
+/** Les œuvres de plusieurs versions ; absence explicite pour ancien serveur
+ * ou réglage désactivé. Une panne reste une erreur. */
+export async function chargerMembresOeuvres(): Promise<MembresOeuvre[]> {
+  const r = await lireOeuvres<{ enabled?: boolean; works?: MembresOeuvre[] }>(
+    `${BASE}/library/albums/works/members`,
+  );
+  if (r === ABSENCE || r?.enabled === false) return [];
+  if (!Array.isArray(r?.works)) throw new Error('invalid_works_response');
+  return r.works;
+}
+
+/** L'œuvre d'un album ; null seulement pour ancien serveur ou désactivation. */
 export async function chargerOeuvreAlbum(albumId: number): Promise<OeuvreAlbum | null> {
-  try {
-    const r = await fetchJSON<OeuvreAlbum>(
-      `${BASE}/library/albums/${albumId}/versions`, undefined, undefined, true,
-    );
-    return r && Array.isArray(r.versions) ? r : null;
-  } catch {
-    return null;
-  }
+  const r = await lireOeuvres<OeuvreAlbum>(`${BASE}/library/albums/${albumId}/versions`);
+  if (r === ABSENCE || r?.enabled === false) return null;
+  if (!r || !Array.isArray(r.versions)) throw new Error('invalid_versions_response');
+  return r;
 }
 
 /** Mémorise la version préférée d'une œuvre (`null` : revenir au défaut). */

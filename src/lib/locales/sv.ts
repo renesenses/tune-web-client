@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Det gick inte att läsa in albumversionerna.",
   "classicalTags.title": "Klassiska taggar",
   "classicalTags.hint": "Taggarna som läses för varje roll. CONDUCTOR, WORK och MOVEMENTNAME täcker alla sina varianter (ID3, MP4); alla andra namn är egna taggar: CHORUS läser även TXXX:CHORUS.",
   "classicalTags.unavailable": "Den här servern erbjuder inte inställningen ännu. Uppdatera Tune.",

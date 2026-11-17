@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Impossibile caricare le versioni degli album.",
   "classicalTags.title": "Tag della musica classica",
   "classicalTags.hint": "I tag letti per ogni ruolo. CONDUCTOR, WORK e MOVEMENTNAME coprono tutte le loro varianti (ID3, MP4); qualsiasi altro nome è un tag libero: CHORUS legge anche TXXX:CHORUS.",
   "classicalTags.unavailable": "Questo server non offre ancora questa impostazione. Aggiorna Tune.",
