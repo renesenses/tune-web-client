@@ -6549,6 +6549,8 @@ export default {
   "v2.radio.fiche.notInCountry": "お住まいの国では利用できません",
   "v2.radio.fiche.countryUnknown": "一部の国に限定されています：「設定」›「一般」で聴取国を設定してください。",
   "v2.radio.dir.offline": "ディレクトリのローカルコピー（オフライン）",
+  "v2.radio.dir.refused": "mozaiklabs.fr がディレクトリの更新を拒否しました（HTTP {status}）。Tune は最後に受信したコピーを表示しています。",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr がディレクトリへのアクセスを拒否しました（HTTP {status}）。Tune にはまだコピーがありません。",
   "v2.radio.dir.playFailed": "再生できません：{name}",
   "radioGenre.news": "ニュース",
   "radioGenre.lounge": "ラウンジ",

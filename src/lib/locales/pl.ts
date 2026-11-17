@@ -6398,6 +6398,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Niedostępny w Twoim kraju",
   "v2.radio.fiche.countryUnknown": "Ograniczony do niektórych krajów: ustaw kraj słuchania w Ustawieniach › Ogólne.",
   "v2.radio.dir.offline": "Lokalna kopia katalogu (offline)",
+  "v2.radio.dir.refused": "mozaiklabs.fr odrzucił aktualizację katalogu (HTTP {status}): Tune pokazuje ostatnią otrzymaną kopię.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr odmówił dostępu do katalogu (HTTP {status}), a Tune nie ma jeszcze żadnej jego kopii.",
   "v2.radio.dir.playFailed": "Nie można odtworzyć: {name}",
   "radioGenre.news": "Informacje",
   "radioGenre.lounge": "Lounge",

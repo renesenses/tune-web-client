@@ -6549,6 +6549,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Indisponibil în țara dvs.",
   "v2.radio.fiche.countryUnknown": "Restricționat la anumite țări: setați țara de ascultare în Setări › General.",
   "v2.radio.dir.offline": "Copie locală a directorului (offline)",
+  "v2.radio.dir.refused": "mozaiklabs.fr a refuzat actualizarea catalogului (HTTP {status}): Tune afișează ultima copie primită.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr a refuzat accesul la catalog (HTTP {status}), iar Tune nu are încă nicio copie a acestuia.",
   "v2.radio.dir.playFailed": "Redare imposibilă: {name}",
   "radioGenre.news": "Știri",
   "radioGenre.lounge": "Lounge",

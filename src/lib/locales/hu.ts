@@ -6508,6 +6508,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Az Ön országában nem érhető el",
   "v2.radio.fiche.countryUnknown": "Csak bizonyos országokban érhető el: állítsa be a hallgatási országot a Beállítások › Általános menüben.",
   "v2.radio.dir.offline": "A katalógus helyi másolata (offline)",
+  "v2.radio.dir.refused": "A mozaiklabs.fr elutasította a címtár frissítését (HTTP {status}): a Tune az utoljára kapott másolatot mutatja.",
+  "v2.radio.dir.refusedEmpty": "A mozaiklabs.fr elutasította a hozzáférést a címtárhoz (HTTP {status}), és a Tune-nak még nincs róla másolata.",
   "v2.radio.dir.playFailed": "Nem játszható le: {name}",
   "radioGenre.news": "Hírek",
   "radioGenre.lounge": "Lounge",

@@ -6400,6 +6400,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Ikke tilgjengelig i ditt land",
   "v2.radio.fiche.countryUnknown": "Begrenset til enkelte land: angi lyttelandet i Innstillinger › Generelt.",
   "v2.radio.dir.offline": "Lokal kopi av katalogen (frakoblet)",
+  "v2.radio.dir.refused": "mozaiklabs.fr avviste oppdateringen av katalogen (HTTP {status}): Tune viser den sist mottatte kopien.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr avviste tilgang til katalogen (HTTP {status}), og Tune har ennå ingen kopi av den.",
   "v2.radio.dir.playFailed": "Kan ikke spille av: {name}",
   "radioGenre.news": "Nyheter",
   "radioGenre.lounge": "Lounge",

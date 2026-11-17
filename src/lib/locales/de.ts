@@ -6549,6 +6549,8 @@ export default {
   "v2.radio.fiche.notInCountry": "In Ihrem Land nicht verfügbar",
   "v2.radio.fiche.countryUnknown": "Auf bestimmte Länder beschränkt: Legen Sie Ihr Hörland unter Einstellungen › Allgemein fest.",
   "v2.radio.dir.offline": "Lokale Kopie des Verzeichnisses (offline)",
+  "v2.radio.dir.refused": "mozaiklabs.fr hat die Aktualisierung des Verzeichnisses abgelehnt (HTTP {status}): Tune zeigt die zuletzt empfangene Kopie.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr hat den Zugriff auf das Verzeichnis abgelehnt (HTTP {status}), und Tune hat noch keine Kopie davon.",
   "v2.radio.dir.playFailed": "Wiedergabe nicht möglich: {name}",
   "radioGenre.news": "Nachrichten",
   "radioGenre.lounge": "Lounge",

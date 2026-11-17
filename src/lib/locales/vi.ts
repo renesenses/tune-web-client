@@ -6404,6 +6404,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Không khả dụng tại quốc gia của bạn",
   "v2.radio.fiche.countryUnknown": "Chỉ dành cho một số quốc gia: hãy đặt quốc gia nghe trong Cài đặt › Chung.",
   "v2.radio.dir.offline": "Bản sao cục bộ của danh bạ (ngoại tuyến)",
+  "v2.radio.dir.refused": "mozaiklabs.fr đã từ chối cập nhật danh bạ (HTTP {status}): Tune hiển thị bản sao nhận được gần nhất.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr đã từ chối truy cập danh bạ (HTTP {status}) và Tune chưa có bản sao nào.",
   "v2.radio.dir.playFailed": "Không thể phát: {name}",
   "radioGenre.news": "Tin tức",
   "radioGenre.lounge": "Lounge",
