@@ -174,13 +174,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import { appareilSansSortie } from '../../lib/raisonSortieReseau';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import FolderBrowser from '../partages/FolderBrowser.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
   import RemplacerCheminDossier from '../partages/RemplacerCheminDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
-  import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
+  import { etatPartage, oublierUnPartage, proposerAjout, sousDossierDuPartage } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -2489,15 +2490,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * sous deux adresses) ne pouvait pas être retiré. */
   let smbBusy = $state<number | null>(null);
   let smbErr = $state<string | null>(null);
-  async function ajouterPartage(m: api.SmbMount) {
-    if (!m.mount_path || smbBusy !== null) return;
+  async function ajouterPartage(m: api.SmbMount, chemin: string | null | undefined = m.mount_path) {
+    if (!m.mount_path || !chemin || smbBusy !== null) return;
     smbBusy = m.id; smbErr = null;
     try {
-      const r = await api.addMusicDir(m.mount_path);
-      musicDirs = r?.music_dirs ?? [...musicDirs, m.mount_path];
+      const r = await api.addMusicDir(chemin);
+      musicDirs = r?.music_dirs ?? [...musicDirs, chemin];
       await refreshDirectoryOrder();
     } catch (e: any) { smbErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     smbBusy = null;
+  }
+
+  /* tune-server-rust#8746 (fil 2816), variante B : « Ajouter » garde la
+   * racine du partage ; « Choisir un sous-dossier… » ouvre l'explorateur sur
+   * le point de montage, et seul un dossier SOUS ce point est déclaré. */
+  let explorateurPartage = $state<api.SmbMount | null>(null);
+  async function sousDossierDuPartageChoisi(chemin: string) {
+    const m = explorateurPartage;
+    if (!m?.mount_path) return;
+    const retenu = sousDossierDuPartage(m.mount_path, chemin);
+    if (!retenu) {
+      smbErr = get(t)('smb.subfolderOutsideShare' as any).replace('{path}', m.mount_path);
+      return;
+    }
+    explorateurPartage = null;
+    await ajouterPartage(m, retenu);
   }
   async function oublierPartage(m: api.SmbMount) {
     if (smbBusy !== null) return;
@@ -7398,6 +7415,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if proposerAjout(m, musicDirs)}
                           <button class="lnk" disabled={smbBusy !== null} onclick={() => ajouterPartage(m)}
                             title={$t('settings.smbNotDeclaredHint' as any)}>{$t('smb.addToLibrary' as any)}</button>
+                          <button class="lnk" data-sous-dossier-partage disabled={smbBusy !== null}
+                            onclick={() => { smbErr = null; explorateurPartage = m; }}>{$t('smb.chooseSubfolder' as any)}</button>
                         {/if}
                         <button class="lnk" disabled={smbBusy !== null} onclick={() => oublierPartage(m)}>{$t('settings.smbForget' as any)}</button>
                       </span>
@@ -8973,6 +8992,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
+
+{#if explorateurPartage?.mount_path}
+  <FolderBrowser
+    initialPath={explorateurPartage.mount_path}
+    onSelect={sousDossierDuPartageChoisi}
+    onClose={() => (explorateurPartage = null)}
+  />
+{/if}
 
 {#if showSmbWizard}
   <SmbWizard
