@@ -129,7 +129,7 @@ describe('#8935 — branchement des écrans', () => {
     const fiche = lireFichier('src/components/v2/PlaylistDetailV2.svelte');
     expect(fiche).toMatch(/\{#if !loading && item\.kind === 'streaming'\}\s*<RecommandesPlaylistV2 service=\{item\.service\} playlist=\{item\.pl\} \/>/);
     const reco = lireFichier('src/components/v2/RecommandesPlaylistV2.svelte');
-    expect(reco).toContain('chargerRecommandations(svc, pl, offset, api.getStreamingPlaylistRecommendations)');
+    expect(reco).toContain('chargerRecommandations(svc, { source_id: id }, offset, api.getStreamingPlaylistRecommendations)');
     expect(reco).toContain('lireListeDepuis(page.tracks as any, i, gestesDeZone(zid))');
     // La section reste quand la page est vide, avec « Revenir au début ».
     expect(reco).toContain('{#if visible && (page?.tracks.length || epuisee)}');
