@@ -9,6 +9,7 @@
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { couperChemin } from '../../lib/couperChemin';
   /**
    * Réglages du nouveau client (direction Levente).
    *
@@ -7297,10 +7298,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <div class="dirs" data-reglage="dossiers-declares">
                   {#each displayedMusicDirs as d, index (d)}
-                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
-                      class:avec-analyse={analysisExcluded !== null}>
+                    {@const coupe = couperChemin(d)}
+                    <!--
+                      web#3137 — le chemin d'abord, les commandes ensuite.
+                      La ligne était une grille où le chemin, seule colonne
+                      en `minmax(0,1fr)`, tombait à zéro dès que les cinq
+                      commandes (dont « Remplacer le chemin », rc12) prenaient
+                      la largeur : sous Windows, plus aucun chemin lisible.
+                      Désormais `.dir-tete` garde une largeur minimale ; si
+                      les commandes n'y tiennent pas à côté, elles passent
+                      dessous. Le chemin se tronque au milieu (le dernier
+                      dossier reste entier) et son infobulle le donne en
+                      entier.
+                    -->
+                    <div class="dir">
+                      <div class="dir-tete">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                      <span class="dp" use:bulleTexte>{d}</span>
+                      <span class="dp" title={d}><span class="dp-debut">{coupe.debut}</span><span class="dp-fin">{coupe.fin}</span></span>
+                      </div>
+                      <div class="dir-actions">
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
                         <div class="dir-order">
                           <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
@@ -7344,6 +7360,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         <span>{$t('settings.removeFolderButton' as any)}</span>
                       </button>
+                      </div>
                     </div>
                   {/each}
                 </div>
@@ -9319,10 +9336,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
-  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
-  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto auto}
+  /* web#3137 — une ligne souple : le chemin garde au moins 26em (à l échelle
+     du texte) ; les commandes passent dessous quand elles ne tiennent pas à
+     côté, et vont elles-mêmes à la ligne sur une fenêtre étroite. */
+  .dir{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:8px 10px; border-radius:8px}
+  .dir-tete{display:flex; align-items:center; gap:12px; flex:1 1 26em; min-width:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .dir-tete svg{flex:none}
+  .dir-actions{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px 12px; flex:0 1 auto; max-width:100%; margin-left:auto}
+  /* Le panneau « Remplacer le chemin » ouvert prend toute la ligne. */
+  .dir:has(.remplacer-chemin-panneau) .dir-actions{flex-basis:100%}
+  /* Troncature au milieu : le début cède, le dernier dossier reste entier
+     tant qu il tient, puis se tronque à son tour. */
+  .dir .dp{display:flex; flex:1 1 auto; min-width:0}
+  .dp-debut{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dp-fin{flex:0 0 auto; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
