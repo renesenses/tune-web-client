@@ -3633,6 +3633,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Salvare questa griglia come impostazione predefinita dell'intera zona? La regola di zona attuale sarà sostituita; quella dell'album non cambia.",
   "v2.cr.reset": "Rimuovi la riassegnazione",
   "v2.cr.nextTrack": "Salvato: la riassegnazione si sentirà dalla prossima riproduzione.",
+  "v2.cr.networkOutput": "Questa zona suona tramite un lettore di rete (DLNA, Squeezebox, AirPlay…), che non applica la riassegnazione. L'impostazione è salvata ma qui non si sente; regola il bilanciamento sul lettore o sul DAC.",
+  "v2.cr.savedNotApplied": "Salvato, ma l'uscita di rete di questa zona non applica la riassegnazione.",
   "v2.cr.albumTitle": "Regola dell'album in corso",
   "v2.cr.albumHint": "Salva la matrice qui sopra per questo album: prevale su quella della zona, in tutte le zone.",
   "v2.cr.albumActive": "È salvata una regola per questo album.",

@@ -3633,6 +3633,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Salvați această grilă ca setare implicită a întregii zone? Regula actuală a zonei va fi înlocuită; cea a albumului nu se schimbă.",
   "v2.cr.reset": "Elimină reatribuirea",
   "v2.cr.nextTrack": "Salvat: reatribuirea se va auzi de la următoarea redare.",
+  "v2.cr.networkOutput": "Această zonă redă printr-un player de rețea (DLNA, Squeezebox, AirPlay…), care nu aplică realocarea canalelor. Setarea este salvată, dar nu se aude aici; reglați balansul pe player sau pe DAC.",
+  "v2.cr.savedNotApplied": "Salvat, dar ieșirea de rețea a acestei zone nu aplică realocarea canalelor.",
   "v2.cr.albumTitle": "Regula albumului în curs",
   "v2.cr.albumHint": "Salvează matricea de mai sus pentru acest album: are prioritate față de cea a zonei, în toate zonele.",
   "v2.cr.albumActive": "Există o regulă salvată pentru acest album.",
