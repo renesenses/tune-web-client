@@ -44,7 +44,7 @@ const AIR = {
   device_volume_range: { ...COURSE, floor_db: -80, ceiling_db: -10 },
   volume_limit_safety: 0.5, volume_limit_comfort: 0.3,
   volume_limit_safety_device_db: -45, volume_limit_comfort_device_db: -59, volume_limits_refusal: null,
-};
+} as Record<string, any>;
 const obs = (db: number) => ({ device_id: AMPLI, volume: Math.min(1, Math.max(0, (db + 80) / 70)), volume_db: db, muted: false });
 
 type Envoi = { url: string; method: string; corps: any };

@@ -1,6 +1,5 @@
 import type { CourseDb } from './volumeCourseDb';
 import { volumeAppareilObserve } from './volumeAppareilObserve';
-import type { Zone } from './types';
 
 /**
  * tune-server-rust#8920 — retours d'un testeur Devialet Expert (rc12) sur une
@@ -9,7 +8,8 @@ import type { Zone } from './types';
  * par la sécurité) ; ce module ne fait que les DIRE à l'écran.
  */
 
-type ZoneAir = Partial<Zone> & Record<string, any>;
+// Lecture tolérante : une zone de l'API, ou un objet de test partiel.
+type ZoneAir = Record<string, any>;
 
 /** La zone pilote-t-elle une sortie Devialet AIR ? */
 export function estAir(zone: { output_type?: string | null } | null | undefined): boolean {
