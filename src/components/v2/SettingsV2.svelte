@@ -9088,6 +9088,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane > .card:has(.pleine-largeur){max-width:none}
   .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:720px}
   .pane .pleine-largeur{max-width:none; min-width:0; overflow-x:auto}
+  /* web#3163 — GRAND ÉCRAN (Pierre, fil 2867, rc12 : la colonne « gaspille
+     un grand écran » ; décision de Bertrand, 17/11/2026). Au-delà de 1600 px
+     de fenêtre, la colonne s'élargit PROGRESSIVEMENT — la moitié de chaque
+     pixel gagné, jusqu'à 1200 px : 880 px à 1920, 1200 px à 2560. En deçà,
+     rien ne change : sur un 13 pouces (1440 px) la règle des 720 px
+     ci-dessus s'applique seule, au pixel près.
+     Ce que la largeur sert : les cartes, les listes (Emplacements), les
+     matrices et tableaux. Ce qu'elle ne sert PAS : la ligne de réglage
+     (libellé, aide, contrôle) et les paragraphes d'aide restent à une mesure
+     de lecture de 760 px — à peine plus que sur un 13 pouces — pour que le
+     texte ne s'étire pas et que le contrôle reste à côté de son aide. */
+  @media (min-width:1601px){
+    .pane{--reglages-colonne:min(1200px, calc(720px + (100vw - 1600px) / 2))}
+    .pane > *{max-width:var(--reglages-colonne)}
+    .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:var(--reglages-colonne)}
+    .pane .card .row:not(.row-mon-theme):not(:has(.pleine-largeur)), .pane .card p{max-width:760px}
+  }
   .panehead.cache{display:none}
   /* Intertitres d'une longue carte (Interface) : des blocs titrés. */
   .sous-titre{margin:20px 0 -2px; padding-top:14px; border-top:1px solid var(--v2-line);
