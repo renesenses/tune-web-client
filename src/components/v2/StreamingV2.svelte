@@ -305,30 +305,6 @@
     return () => { vivant = false; };
   });
 
-  /** tune-server-rust#8935 — « Pour vous » : les rangées personnalisées du
-   *  compte TIDAL. Lue à l'ouverture de l'onglet seulement ; `null` = échec. */
-  const ongletPourVous = $derived(proposePourVous(active) && bibliothequeDeCompte);
-  let pourVous = $state<PagePourVous | null>(null);
-  let pourVousEnCours = $state(false);
-  $effect(() => {
-    const svc = active;
-    if (sub !== 'foryou' || !proposePourVous(svc) || ongletExpire) return;
-    let vivant = true;
-    untrack(() => { pourVous = null; pourVousEnCours = true; });
-    chargerPourVous(svc, api.getStreamingForYou).then((p) => {
-      if (!vivant) return;
-      pourVous = p;
-      pourVousEnCours = false;
-    });
-    return () => { vivant = false; };
-  });
-  /** Lire une rangée de titres « Pour vous » à partir du titre cliqué. */
-  function lirePourVousDepuis(pistes: any[], i: number) {
-    const zid = zoneRequise();
-    if (zid == null) return;
-    lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
-  }
-
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
    *
@@ -519,6 +495,29 @@
   });
   /** tune-server-rust#5247 — le compte de ce service se lit-il ? YouTube : sur preuve. */
   const bibliothequeDeCompte = $derived(aUneBibliothequeDeCompte(cleServeur(active), comptesLisibles));
+  /** tune-server-rust#8935 — « Pour vous » : les rangées personnalisées du
+   *  compte TIDAL. Lue à l'ouverture de l'onglet seulement ; `null` = échec. */
+  const ongletPourVous = $derived(proposePourVous(active) && bibliothequeDeCompte);
+  let pourVous = $state<PagePourVous | null>(null);
+  let pourVousEnCours = $state(false);
+  $effect(() => {
+    const svc = active;
+    if (sub !== 'foryou' || !proposePourVous(svc) || ongletExpire) return;
+    let vivant = true;
+    untrack(() => { pourVous = null; pourVousEnCours = true; });
+    chargerPourVous(svc, api.getStreamingForYou).then((p) => {
+      if (!vivant) return;
+      pourVous = p;
+      pourVousEnCours = false;
+    });
+    return () => { vivant = false; };
+  });
+  /** Lire une rangée de titres « Pour vous » à partir du titre cliqué. */
+  function lirePourVousDepuis(pistes: any[], i: number) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+  }
   // Un sous-onglet du compte resté ouvert (arrivée par un autre chemin que
   // `ouvrirOnglet`) retombe sur l'éditorial plutôt que d'afficher un vide.
   $effect(() => {
