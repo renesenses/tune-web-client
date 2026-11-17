@@ -112,6 +112,7 @@
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
+  import { proposerApresConnexion } from '../../lib/lectureYoutubeInactive';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -1913,6 +1914,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           deviceFlow = { ...deviceFlow, [name]: undefined };
           svcBusy = null;
           void refleterDansLeMagasin(name, true);
+          void proposerLectureApresConnexion(name);
         }
       } catch { /* le sondage peut echouer sans que ce soit une panne */ }
     }, 3000);
@@ -1935,6 +1937,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
         svcBusy = null;
         void refleterDansLeMagasin(name, true);
+        void proposerLectureApresConnexion(name);
       } else if (res?.verification_url) {
         const raw = res.verification_url;
         const url = raw.startsWith('http') ? raw : `https://${raw}`;
@@ -2680,6 +2683,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** Remplit `{latest}` / `{reason}` d'une phrase traduite. */
   function remplirModuleYt(phrase: string, params: Record<string, string>): string {
     return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
+  }
+
+  /**
+   * tune-server-rust#8913 — le compte YouTube vient d'être relié : sans
+   * yt-dlp, aucune piste ne se lira (Google refuse les voies natives). On le
+   * dit tout de suite, avec le bouton qui active la lecture sur place.
+   */
+  async function proposerLectureApresConnexion(name: string) {
+    if (name !== 'youtube') return;
+    await refreshYoutubePlayback();
+    proposerApresConnexion(name, ytInstalled || ytStatus === 'downloading', () => void enableYoutubePlayback());
   }
 
   async function enableYoutubePlayback() {
