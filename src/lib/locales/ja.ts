@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "アラームのタイムゾーン",
+  "alarms.timezoneCurrent": "現在のタイムゾーン",
+  "alarms.timezoneSystem": "サーバーのシステムタイムゾーン",
+  "alarms.timezoneHint": "この設定はすべてのアラームに適用されます。候補はブラウザーの設定に基づき、保存するまで変更されません。空欄の場合はシステムのタイムゾーンを維持します。",
+  "alarms.nextTrigger": "次回の作動時刻",
   "classicalTags.title": "クラシックのタグ",
   "classicalTags.hint": "各役割で読み取るタグ。CONDUCTOR、WORK、MOVEMENTNAME はすべての形式（ID3、MP4）を含みます。その他の名前は独自タグです：CHORUS は TXXX:CHORUS も読み取ります。",
   "classicalTags.unavailable": "このサーバーはまだこの設定に対応していません。Tune を更新してください。",

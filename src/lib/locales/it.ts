@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Fuso orario delle sveglie",
+  "alarms.timezoneCurrent": "Fuso orario attuale",
+  "alarms.timezoneSystem": "Fuso orario di sistema del server",
+  "alarms.timezoneHint": "Questa impostazione vale per tutte le sveglie. Il fuso proposto proviene dal browser e cambia solo dopo il salvataggio. Un valore vuoto mantiene il fuso di sistema.",
+  "alarms.nextTrigger": "Prossima attivazione",
   "classicalTags.title": "Tag della musica classica",
   "classicalTags.hint": "I tag letti per ogni ruolo. CONDUCTOR, WORK e MOVEMENTNAME coprono tutte le loro varianti (ID3, MP4); qualsiasi altro nome è un tag libero: CHORUS legge anche TXXX:CHORUS.",
   "classicalTags.unavailable": "Questo server non offre ancora questa impostazione. Aggiorna Tune.",

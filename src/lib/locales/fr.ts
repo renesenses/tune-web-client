@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Fuseau horaire des réveils",
+  "alarms.timezoneCurrent": "Fuseau actuellement utilisé",
+  "alarms.timezoneSystem": "Fuseau système du serveur",
+  "alarms.timezoneHint": "Ce réglage s’applique à tous les réveils. Le fuseau proposé vient du navigateur ; il ne change qu’après Enregistrer. Une valeur vide conserve le fuseau système.",
+  "alarms.nextTrigger": "Prochain déclenchement",
   "classicalTags.title": "Balises du classique",
   "classicalTags.hint": "Les balises lues pour chaque rôle. CONDUCTOR, WORK et MOVEMENTNAME couvrent toutes leurs variantes (ID3, MP4) ; tout autre nom est une balise libre : CHORUS lit aussi TXXX:CHORUS.",
   "classicalTags.unavailable": "Ce serveur ne propose pas encore ce réglage. Mettez Tune à jour.",

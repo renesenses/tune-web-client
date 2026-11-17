@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Múi giờ báo thức",
+  "alarms.timezoneCurrent": "Múi giờ hiện tại",
+  "alarms.timezoneSystem": "Múi giờ hệ thống máy chủ",
+  "alarms.timezoneHint": "Cài đặt này áp dụng cho mọi báo thức. Múi giờ gợi ý lấy từ trình duyệt và chỉ thay đổi khi lưu. Để trống để giữ múi giờ hệ thống.",
+  "alarms.nextTrigger": "Lần báo thức tiếp theo",
   "classicalTags.title": "Thẻ nhạc cổ điển",
   "classicalTags.hint": "Các thẻ được đọc cho từng vai trò. CONDUCTOR, WORK và MOVEMENTNAME bao gồm mọi biến thể (ID3, MP4); mọi tên khác là thẻ tùy chỉnh: CHORUS cũng đọc TXXX:CHORUS.",
   "classicalTags.unavailable": "Máy chủ này chưa hỗ trợ cài đặt này. Hãy cập nhật Tune.",
