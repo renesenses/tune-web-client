@@ -50,6 +50,36 @@ export interface EtatReaffectation {
    *  matrice ? `false` : lecteur réseau, le réglage ne s'entend pas.
    *  `null` ou absent : rien d'affirmé (zone sans sortie, serveur antérieur). */
   applies_to_output?: boolean | null;
+  /** tune-server-rust#8740 (rc14) — pourquoi la sortie n'applique pas la
+   *  règle : `pure_mode`, `bit_perfect_strict`, `no_rule`,
+   *  `network_stereo_only`, `network_gain_increase`. Absent : serveur
+   *  antérieur (une sortie réseau n'appliquait alors jamais rien). */
+  output_reason?: string | null;
+  /** `true` sur un lecteur réseau : la règle ne s'entend que si Tune traite
+   *  le PCM du flux (pas en DSD natif, ni sur une piste servie telle quelle). */
+  requires_processed_pcm?: boolean;
+  /** La balance −100…+100 quand la règle de zone n'est qu'une balance. */
+  balance?: number | null;
+}
+
+/** Les raisons de `output_reason` qui méritent un avertissement. */
+export const RAISONS_SORTIE: Record<string, string> = {
+  pure_mode: 'v2.cr.reasonPure',
+  bit_perfect_strict: 'v2.cr.reasonStrict',
+  network_stereo_only: 'v2.cr.reasonStereo',
+  network_gain_increase: 'v2.cr.reasonGain',
+};
+
+/**
+ * La clé de l'avertissement « la sortie n'applique pas la règle », ou `null`
+ * quand rien n'est à dire : sortie qui l'applique, rien d'affirmé, ou aucune
+ * règle armée (`no_rule`). Sans raison (serveur antérieur à la rc14), une
+ * sortie réseau n'appliquait jamais la matrice : l'avertissement d'avant.
+ */
+export function avertissementDeSortie(e: EtatReaffectation | null): string | null {
+  if (e?.applies_to_output !== false) return null;
+  if (e.output_reason == null) return 'v2.cr.networkOutput';
+  return RAISONS_SORTIE[e.output_reason] ?? null;
 }
 
 export interface PrereglageReaffectation {
@@ -80,6 +110,15 @@ export function setReaffectationZone(zoneId: number, reglage: ReglageReaffectati
   return fetchJSON<EtatReaffectation>(`${RACINE()}/zones/${zoneId}`, {
     method: 'PUT',
     body: JSON.stringify(reglage),
+  });
+}
+
+/** tune-server-rust#8740 — la balance de la zone, −100 (gauche) à +100
+ *  (droite) : le serveur écrit la matrice 2 → 2 (côté opposé atténué). */
+export function setBalanceZone(zoneId: number, balance: number): Promise<EtatReaffectation> {
+  return fetchJSON<EtatReaffectation>(`${RACINE()}/zones/${zoneId}/balance`, {
+    method: 'PUT',
+    body: JSON.stringify({ balance: Math.round(Math.max(-100, Math.min(100, balance))) }),
   });
 }
 
