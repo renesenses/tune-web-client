@@ -57,6 +57,7 @@
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
   import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
   import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
+  import RecommandesPlaylistV2 from './RecommandesPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
   import { circleCharge } from '../../lib/circle';
 
@@ -843,6 +844,11 @@
           </button>
         {/if}
       {/snippet}
+    {/if}
+    <!-- tune-server-rust#8935 — les titres que TIDAL recommande d'après la
+         playlist (rien pour un mix ni pour un autre service). -->
+    {#if !loading && item.kind === 'streaming'}
+      <RecommandesPlaylistV2 service={item.service} playlist={item.pl} />
     {/if}
   </div>
 </div>

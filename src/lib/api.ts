@@ -6898,6 +6898,20 @@ export function getStreamingMixes(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/mixes`, undefined, undefined, true);
 }
 
+/** tune-server-rust#8935 — la page « Pour vous » du compte (TIDAL). `sansBandeau` :
+ *  l'onglet dit lui-même un échec. */
+export function getStreamingForYou(service: string) {
+  return fetchJSON<import('./pourVousTidal').PagePourVous>(`${BASE}/streaming/${encodeURIComponent(service)}/for-you`, undefined, undefined, true);
+}
+
+/** tune-server-rust#8935 — les titres que le service recommande sous une playlist.
+ *  `sansBandeau` : la section s'efface d'elle-même si la route échoue. */
+export function getStreamingPlaylistRecommendations(service: string, playlistId: string, limit: number, offset: number) {
+  return fetchJSON<import('./pourVousTidal').PageRecommandes>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/recommendations?limit=${limit}&offset=${offset}`,
+    undefined, undefined, true);
+}
+
 /**
  * Une rubrique éditoriale du service. `sansBandeau` : ses deux seuls appelants
  * sont des `charger` de widget (`accueilWidgets.ts`, `widgetsService.ts`), et
