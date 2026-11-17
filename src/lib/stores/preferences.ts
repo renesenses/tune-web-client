@@ -16,6 +16,7 @@ import {
 import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
+import { estModeHistorique, MODE_HISTORIQUE_DEFAUT, type ModeHistorique } from '../modeHistorique';
 import { normaliserTypesBarre, arbitrerTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
 import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
@@ -415,6 +416,12 @@ export interface Preferences {
    */
   ordreAutresVersions: OrdreVersions;
   /**
+   * web#3143 — l'Historique : une ligne par titre (`titre`, le défaut, la
+   * demande d'Elie) ou une ligne par écoute (`ecoute`, FabienM, fil 2637).
+   * Dans `ui_preferences`, donc par profil, comme les autres choix d'écran.
+   */
+  historiqueLignes: ModeHistorique;
+  /**
    * web#2207 (Didier, fil 1907) — l'ordre des collections dans l'arbre des
    * rayons, à tous les niveaux : `manuel` (la position gardée par le serveur,
    * réglée par glisser-déposer — l'ordre de création tant que rien n'a bougé)
@@ -613,6 +620,8 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
+  // web#3143 : une ligne par titre, comme avant — rien ne bouge sans demande.
+  historiqueLignes: MODE_HISTORIQUE_DEFAUT,
   // web#2256 : l'alphabétique (Didier, fil 1907, 19/10/2026) ; le manuel
   // reste au choix. Un choix enregistré garde le dernier mot.
   ordreRayons: ORDRE_RAYONS_DEFAUT,
@@ -831,6 +840,10 @@ function lirePrefs(stored: string | null): Preferences {
       // défaut plutôt que de laisser le panneau sur un mode qui n'existe pas.
       if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
         p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
+      }
+      // web#3143 — même règle : un mode inconnu retombe sur le défaut.
+      if (!estModeHistorique((raw as { historiqueLignes?: unknown })?.historiqueLignes)) {
+        p.historiqueLignes = MODE_HISTORIQUE_DEFAUT;
       }
       // web#2207 — même règle : un ordre inconnu retombe sur le défaut.
       if (!estOrdreRayons((raw as { ordreRayons?: unknown })?.ordreRayons)) {

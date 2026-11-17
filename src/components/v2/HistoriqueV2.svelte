@@ -18,7 +18,8 @@
   import { playbackHistory, type HistoryEntry } from '../../lib/stores/history';
   import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, locale } from '../../lib/i18n';
+  import { heureDEcoute } from '../../lib/modeHistorique';
   import ListePistesV2, { LARGEUR_ACTIONS } from './ListePistesV2.svelte';
   import {
     entreesDepuisServeur,
@@ -124,7 +125,9 @@
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
 
-  const fusion = $derived(fusionnerHistorique($playbackHistory, serveur));
+  /** web#3143 — une ligne par titre (défaut) ou une ligne par écoute. */
+  const parEcoute = $derived($preferences.historiqueLignes === 'ecoute');
+  const fusion = $derived(fusionnerHistorique($playbackHistory, serveur, parEcoute ? 'ecoute' : 'titre'));
   /**
    * 🔴 web#2749 (FabienM, fil 2723, point 3) — la complétion de l'album de
    * service passe sur la FUSION, pas sur les seules lignes du serveur : une
@@ -563,7 +566,15 @@
           {@const zn = nomDeZone(e, $zones)}
           <span class="quand">
             {#if zn}<span class="zone" title={zn}>{zn}</span>{/if}
-            <span class="when" class:busy={rejeuEnCours === cleEntree(e)}>{depuis(e.playedAt)}</span>
+            <!-- web#3143 — une ligne par écoute : chaque écoute dit son HEURE,
+                 c'est elle qui distingue deux écoutes du même titre ; le
+                 « il y a… » reste dans l'infobulle. -->
+            {#if parEcoute}
+              <span class="when" data-heure-ecoute class:busy={rejeuEnCours === cleEntree(e)}
+                title={depuis(e.playedAt)}>{heureDEcoute(e.playedAt, new Date(), $locale) || depuis(e.playedAt)}</span>
+            {:else}
+              <span class="when" class:busy={rejeuEnCours === cleEntree(e)}>{depuis(e.playedAt)}</span>
+            {/if}
           </span>
           <!-- #1771 — le cœur radio a rejoint la barre d'actions (`coeurRadio`).
                Sa place reste réservée ici, vide, sur TOUTES les lignes comme
