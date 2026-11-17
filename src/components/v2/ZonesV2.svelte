@@ -1189,5 +1189,5 @@
     padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
     color:var(--v2-txt); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .zone-existante span{flex:1 1 240px}
-  .zone-existante .fermer{background:none; border:0; color:inherit; cursor:pointer; font-size:16px}
+  .zone-existante .fermer{background:none; border:0; color:inherit; cursor:pointer; font-size:calc(16px * var(--v2-txt-echelle, 1))}
 </style>
