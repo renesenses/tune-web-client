@@ -95,7 +95,12 @@ export function pisteDeServiceDe(cle: ClePiste): { service: string; id: string }
 
 /** Le serveur calcule encore (`202 { pending: true }`) : rien à retenir. */
 export function enAttente(reponse: unknown): boolean {
-  return (reponse as { pending?: unknown } | null)?.pending === true;
+  const r = reponse as { pending?: unknown; raison?: unknown } | null;
+  // `reglage_desactive` : le serveur n'a pas encore vu le réglage qu'on
+  // vient de cocher (le PATCH des préférences et cette demande se croisent).
+  // Ce n'est pas un « pas d'onde » définitif : on redemande, comme pour
+  // « pas encore ».
+  return r?.pending === true || r?.raison === 'reglage_desactive';
 }
 
 /** Délai entre deux demandes d'une enveloppe pas encore prête (ou d'une
@@ -268,6 +273,9 @@ export function ondeDeLaPiste(
   /** Réglage `ondeStreaming` : les pistes Qobuz et TIDAL aussi. Faux par
    *  défaut — une piste de service n'est alors jamais demandée. */
   services: Readable<boolean> = readable(false),
+  /** Vrai quand la zone joue. Si les relances sont épuisées (une longue
+   *  pause pendant le calcul), la reprise de la lecture les relance. */
+  enLecture: Readable<boolean> = readable(true),
 ): Readable<Onde | null> {
   const cle = derived([actif, piste, services], ([$actif, $piste, $services]) => {
     if (!$actif) return null;
@@ -287,6 +295,7 @@ export function ondeDeLaPiste(
     set(null);
     let minuterie: ReturnType<typeof setTimeout> | null = null;
     let essais = 0;
+    let epuise = false;
     const demander = () => {
       minuterie = null;
       void cache.obtenir($cle).then((onde) => {
@@ -295,15 +304,29 @@ export function ondeDeLaPiste(
         if (moi !== jeton) return;
         if (onde === null && cache.connue($cle) === undefined) {
           if (essais++ < ESSAIS_MAX) minuterie = setTimeout(demander, DELAI_REESSAI_MS);
+          else epuise = true;
           return;
         }
         set(onde);
       });
     };
     demander();
+    // Relances épuisées pendant une pause : la reprise de la lecture repart
+    // pour un tour complet. Le premier appel (valeur courante) ne relance rien.
+    let jouait: boolean | null = null;
+    const arreterEcoute = enLecture.subscribe(($joue) => {
+      const reprise = jouait === false && $joue;
+      jouait = $joue;
+      if (reprise && epuise && moi === jeton && cache.connue($cle) === undefined) {
+        epuise = false;
+        essais = 0;
+        demander();
+      }
+    });
     return () => {
       jeton++;
       if (minuterie !== null) clearTimeout(minuterie);
+      arreterEcoute();
     };
   }, null as Onde | null);
 }

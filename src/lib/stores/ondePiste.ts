@@ -7,7 +7,7 @@ import { derived } from 'svelte/store';
 import { getServiceTrackWaveform, getTrackWaveform } from '../api';
 import { creerCacheOndes, ondeDeLaPiste, pisteDeServiceDe, type ClePiste } from '../barreOnde';
 import { preferences } from './preferences';
-import { currentTrack } from './nowPlaying';
+import { currentTrack, playbackState } from './nowPlaying';
 
 /** Une piste locale par son identifiant de bibliothèque ; une piste Qobuz
  *  ou TIDAL par son service et son identifiant chez lui. */
@@ -25,4 +25,9 @@ export const barreOndeActive = derived(preferences, ($p) => $p.barreOnde === tru
  *  option C) : décoché, aucune requête pour une piste Qobuz ou TIDAL. */
 export const ondeStreamingActive = derived(preferences, ($p) => $p.ondeStreaming === true);
 
-export const ondePisteEnCours = ondeDeLaPiste(barreOndeActive, currentTrack, cacheOndes, ondeStreamingActive);
+/** La zone joue : la reprise relance les demandes épuisées pendant une pause. */
+export const zoneEnLecture = derived(playbackState, ($s) => $s === 'playing');
+
+export const ondePisteEnCours = ondeDeLaPiste(
+  barreOndeActive, currentTrack, cacheOndes, ondeStreamingActive, zoneEnLecture,
+);

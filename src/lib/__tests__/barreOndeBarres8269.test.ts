@@ -142,6 +142,11 @@ describe('#8269 — le réglage', () => {
     case_.click();
     flushSync();
     expect(get(preferences).ondeStreaming).toBe(true);
+    // L'aide de la barre en onde ne dit plus « le streaming garde la barre
+    // habituelle » : avec cette option, Qobuz et TIDAL ont leur onde.
+    for (const [langue, d] of LOCALES_COMPLETES) {
+      expect(d['v2.set.barOndeHint'], `${langue} : l’aide nomme Qobuz et TIDAL`).toMatch(/Qobuz.*TIDAL/);
+    }
     for (const [langue, d] of LOCALES_COMPLETES) {
       expect(d['v2.set.ondeStreaming'], `${langue} : libellé`).toBeTruthy();
       expect(d['v2.set.ondeStreamingHint'], `${langue} : aide`).toBeTruthy();

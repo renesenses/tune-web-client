@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { get, writable } from 'svelte/store';
 import {
   cibleClavier, cheminOnde, creerCacheOndes, idPisteOnde, nombreDeBarres,
-  clePisteOnde, DELAI_REESSAI_MS, echecDefinitif, normaliserOnde, ondeDeLaPiste,
+  clePisteOnde, DELAI_REESSAI_MS, ESSAIS_MAX, enAttente, echecDefinitif, normaliserOnde, ondeDeLaPiste,
   pisteDeServiceDe, reduireOnde, type ClePiste,
 } from '../barreOnde';
 import type { NowPlaying } from '../types';
@@ -277,6 +277,51 @@ describe('#8269 rc13 — réglage « Forme d’onde des pistes de streaming »',
     await attendre(); await attendre();
     expect(charger).toHaveBeenCalledWith('tidal:9');
     stop();
+  });
+});
+
+// Relecture de web#3184 : trois suites.
+describe('#8269 rc13 — suites de la relecture de #3184', () => {
+  it('🔴 `reglage_desactive` n’est pas retenu : on vient de cocher, le serveur ne l’a pas encore vu', async () => {
+    expect(enAttente({ waveform: null, raison: 'reglage_desactive' })).toBe(true);
+    expect(enAttente({ waveform: null, raison: 'non_diffusable' })).toBe(false);
+    let vu = false;
+    const charger = vi.fn(async () => (vu
+      ? { waveform: [0.3, 0.9] }
+      : { waveform: null, raison: 'reglage_desactive', error: 'streaming waveform disabled in settings' }));
+    const cache = creerCacheOndes(charger);
+    expect(await cache.obtenir('qobuz:5')).toBeNull();
+    expect(cache.connue('qobuz:5'), 'rien de retenu').toBeUndefined();
+    vu = true;
+    expect(await cache.obtenir('qobuz:5')).toEqual([0.3, 0.9]);
+  });
+
+  it('🔴 relances épuisées pendant une pause : la reprise de la lecture relance', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let pret = false;
+      const charger = vi.fn(async () => (pret ? { waveform: [0.5, 0.6] } : { waveform: null, pending: true }));
+      const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
+        { source: 'qobuz', track_id: null, source_id: '77' },
+      );
+      const joue = writable(true);
+      const onde = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger), writable(true), joue);
+      const stop = onde.subscribe(() => {});
+      joue.set(false); // pause
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * (ESSAIS_MAX + 5));
+      const apresEpuisement = charger.mock.calls.length;
+      expect(apresEpuisement).toBe(ESSAIS_MAX + 1);
+      pret = true;
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * 3);
+      expect(charger.mock.calls.length, 'épuisé : plus rien tant que la pause dure').toBe(apresEpuisement);
+      joue.set(true); // reprise
+      await vi.advanceTimersByTimeAsync(0);
+      expect(charger.mock.calls.length).toBe(apresEpuisement + 1);
+      expect(get(onde)).toEqual([0.5, 0.6]);
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -5231,7 +5231,7 @@ export default {
   "v2.set.barVu": "Barra di riproduzione con VU-meter",
   "v2.set.barVuHint": "Solo visualizzazione — il segnale non cambia. Due quadranti a lancetta ai lati dei comandi; sostituiscono le spie di picco e il mini-spettro. Su una barra stretta torna la barra abituale.",
   "v2.set.barOnde": "Barra di avanzamento a forma d’onda",
-  "v2.set.barOndeHint": "Solo visualizzazione. La barra di avanzamento di In riproduzione e della barra di riproduzione disegna la forma d’onda del brano: la parte riprodotta a colori, il resto attenuato. Per i brani della libreria; streaming e radio mantengono la barra abituale.",
+  "v2.set.barOndeHint": "Solo visualizzazione. La barra di avanzamento di In riproduzione e della barra di riproduzione disegna la forma d’onda del brano: la parte riprodotta a colori, il resto attenuato. Per i brani della libreria, e per Qobuz e TIDAL con l’opzione qui sotto; la radio e gli altri flussi mantengono la barra abituale.",
   "v2.set.ondeStreaming": "Forma d’onda dei brani in streaming",
   "v2.set.ondeStreamingHint": "Qobuz e TIDAL: dopo 30 s di ascolto, il server scarica il brano una volta per calcolarne la forma d’onda e la conserva. Disattivato, questi brani mantengono la barra consueta e non viene scaricato nulla. Richiede la barra di avanzamento a forma d’onda.",
   "v2.set.barViz": "Visualizzatore nella barra di riproduzione",

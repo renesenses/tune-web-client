@@ -5102,7 +5102,7 @@ export default {
   "v2.set.barVu": "Thanh phát có đồng hồ VU",
   "v2.set.barVuHint": "Chỉ hiển thị — tín hiệu không thay đổi. Hai mặt đồng hồ kim ở hai bên các nút điều khiển; chúng thay thế các đèn đỉnh và phổ mini. Trên thanh phát hẹp, thanh phát thông thường sẽ trở lại.",
   "v2.set.barOnde": "Thanh tiến trình dạng sóng",
-  "v2.set.barOndeHint": "Chỉ hiển thị. Thanh tiến trình trong Đang phát và trên thanh phát vẽ dạng sóng của bản nhạc: phần đã phát có màu, phần còn lại mờ hơn. Áp dụng cho bản nhạc trong thư viện; streaming và radio giữ thanh thông thường.",
+  "v2.set.barOndeHint": "Chỉ hiển thị. Thanh tiến trình trong Đang phát và trên thanh phát vẽ dạng sóng của bản nhạc: phần đã phát có màu, phần còn lại mờ hơn. Áp dụng cho bản nhạc trong thư viện, và cho Qobuz và TIDAL với tùy chọn bên dưới; radio và các luồng khác giữ thanh thông thường.",
   "v2.set.ondeStreaming": "Dạng sóng cho bài phát trực tuyến",
   "v2.set.ondeStreamingHint": "Qobuz và TIDAL: sau 30 giây nghe, máy chủ tải bài một lần để tính dạng sóng rồi lưu lại. Khi tắt, các bài này giữ thanh tiến trình thông thường và không tải gì cả. Cần bật thanh tiến trình dạng sóng.",
   "v2.set.barViz": "Trình hiển thị trong thanh phát",
