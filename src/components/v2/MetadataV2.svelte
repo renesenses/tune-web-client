@@ -868,7 +868,8 @@
     if (dIgnoreOccupe) return;
     dIgnoreOccupe = true;
     try {
-      await api.retablirAlerteDouteuse(a);
+      // Seuls les quatre champs de la clé partent au serveur.
+      await api.retablirAlerteDouteuse({ scope: a.scope, key: a.key, title: a.title ?? '', reason: a.reason });
       const derniere = dIgnoreeDerniere;
       if (derniere && memeAlerte(derniere.alerte, a)) {
         dIgnoreeDerniere = null;
