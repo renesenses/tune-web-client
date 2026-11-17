@@ -1205,13 +1205,16 @@
           {$tr('zone.retry' as any)}
         </button>
       {/if}
-      <!-- #2094 — le cœur de l'artiste de SERVICE, celui de sa vignette. -->
+      <!-- #2094 — le cœur de l'artiste de SERVICE, celui de sa vignette.
+           web#3122 (FabienM, fil 2864) : le cœur SEUL, sans « Ajouter aux
+           favoris » écrit à côté. Le geste se lit dans l'infobulle et dans le
+           libellé accessible ; `aria-pressed` dit l'état. -->
       {#if coeurArtiste}
-        <button class="v2-btn ghost coeur-artiste" class:on={coeurArtiste.actif} disabled={basculeCoeur}
+        {@const libelleCoeur = $tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+        <button type="button" class="v2-btn ghost coeur-artiste" class:on={coeurArtiste.actif} disabled={basculeCoeur}
           onclick={basculerCoeurArtiste} aria-pressed={coeurArtiste.actif}
-          title={$tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          {$tr(coeurArtiste.actif ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          aria-label={libelleCoeur} title={libelleCoeur}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
       {/if}
       <!-- Maquette de Levente (Figma 616:5810, rc12) : Lire, le cœur, et « … ».
@@ -1493,6 +1496,9 @@
   /* ── Maquette de Levente (Figma 616:5810 / 616:5811, rc12) ── */
   .plus{position:relative; display:inline-flex}
   .plus-bouton{width:36px; height:36px; padding:0; border-radius:50%; display:inline-grid; place-items:center}
+  /* web#3122 — le cœur seul, rond comme « … » à côté de lui. */
+  .coeur-artiste{width:36px; height:36px; padding:0; border-radius:50%; display:inline-grid; place-items:center}
+  .coeur-artiste.on{color:#ef4444}
   .plus-menu{position:absolute; top:calc(100% + 6px); left:0; z-index:20; min-width:220px; padding:8px;
     display:flex; flex-direction:column; align-items:stretch; gap:6px; background:var(--v2-surface);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); box-shadow:var(--v2-sh-menu)}
