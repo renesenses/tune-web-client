@@ -120,7 +120,12 @@ describe('Bibliothèque — les filtres retirent, ils n’atténuent pas', () =>
   it('la grille et la liste itèrent sur les albums FILTRÉS', () => {
     const src = source();
     expect(
-      src.includes('const affiches = $derived(prioriserRecherche(sorted.filter(matches), q, fold))'),
+      // #3173 — chaque carte sous la version qui répond aux filtres
+      // (`versionAffichee`, même règle que `matches`) ; celles qui n'en ont
+      // aucune sont RETIRÉES.
+      /const presenter = \(l: readonly Album\[\]\): Album\[\] =>\s*l\.flatMap\(\(a\) => \{ const v = versionAffichee\(a, true, true\); return v \? \[v\] : \[\]; \}\)/.test(src)
+        && src.includes('fQuality.length ? trier(presenter(src)) : presenter(sorted), q, fold,')
+        && src.includes('function matches(a: Album): boolean { return versionAffichee(a, true, true) != null; }'),
       'la liste filtrée a disparu.',
     ).toBe(true);
     expect(

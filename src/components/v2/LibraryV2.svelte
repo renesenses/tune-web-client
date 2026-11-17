@@ -107,6 +107,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration, estMulticanal, estStereo, porteSesCanaux, canauxDePochette, type QualityTier } from '../../lib/utils';
   import { formatDeFichier, formatRetenu, formatsBrutsDe } from '../../lib/typeDeFichier';
+  import { canauxRepondants, filtreDeCanaux, repondAuxQualites } from '../../lib/qualiteCanaux';
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
@@ -119,7 +120,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation, comptesProvenance, repondALaRecherche, motsDeRecherche, prioriserRecherche, filtresDeRechercheServeur,
+    comptesCompilation, comptesProvenance, repondALaRecherche, repondALaRechercheCarte, motsDeRecherche, prioriserRecherche, filtresDeRechercheServeur,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -354,10 +355,29 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // `$derived.by` : `nu` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.
   const regroupement = $derived.by(() =>
-    depot || nu ? { albums: srcBrute, versions: new Map<number, number>(), canaux: new Map<number, number[]>() } : regrouperAlbums(srcBrute, membresOeuvres),
+    depot || nu
+      ? {
+        albums: srcBrute, versions: new Map<number, number>(), canaux: new Map<number, number[]>(),
+        membres: new Map<number, Album[]>(), carteDe: new Map<number, number>(),
+      }
+      : regrouperAlbums(srcBrute, membresOeuvres),
   );
   const srcBibliotheque: Album[] = $derived(regroupement.albums);
-  const nbVersions = (a: Album): number => (a.id == null ? 0 : regroupement.versions.get(a.id) ?? 0);
+  /** La carte d'une version présentée (#3173), sinon l'album lui-même. */
+  const carteDe = (a: Album): number | null => (a.id == null ? null : regroupement.carteDe.get(a.id) ?? a.id);
+  const nbVersions = (a: Album): number => {
+    const c = carteDe(a);
+    return c == null ? 0 : regroupement.versions.get(c) ?? 0;
+  };
+  /**
+   * tune-web-client#3173 — les versions d'une carte regroupée, la carte
+   * d'abord (préférée), telles que le serveur les sert. Sous un filtre de
+   * qualité, la carte répond si UNE d'elles répond, et la grille présente
+   * celle-là (décision de Bertrand du 17/11). Carte simple : elle seule.
+   */
+  function versionsDe(a: Album): readonly Album[] {
+    return (a.id != null ? regroupement.membres.get(a.id) : undefined) ?? [a];
+  }
 
   /**
    * tune-server-rust#6482 — « Bibliothèque + favoris » (DidLyon, fils 2320 et
@@ -808,27 +828,78 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
     return t === key;
   }
-  function matches(a: Album): boolean { return matchesSelon(a, true); }
+  function matches(a: Album): boolean { return versionAffichee(a, true, true) != null; }
   /** #8668 — tous les critères SAUF le pays : ce que la carte des pays croise
    *  pour compter comme la grille. Fonctions distinctes, pas un paramètre par
    *  défaut : `matches` est passée telle quelle à `.filter`, qui lui donne
    *  l'indice en second argument. */
-  function matchesSaufPays(a: Album): boolean { return matchesSelon(a, false); }
-  function matchesSelon(a: Album, avecPays: boolean): boolean {
-    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
-    // facettes cochées le sont toutes les deux (ET) — #898.
+  function matchesSaufPays(a: Album): boolean { return versionAffichee(a, false, true) != null; }
+  /**
+   * La version de la carte que la grille présente, ou `null` si aucune ne
+   * répond aux critères.
+   *
+   * tune-web-client#3173 — sous un filtre de qualité, la première version de
+   * la carte (la préférée d'abord) qui y répond ET satisfait les autres
+   * critères : « Multicanal » présente la version multicanale, « Stéréo » la
+   * stéréo. Canaux et paliers se lisent sur la MÊME version : OU dans chaque
+   * groupe, ET entre les deux (`repondAuxQualites`). Sans filtre de qualité,
+   * la carte telle quelle.
+   */
+  function versionAffichee(a: Album, avecPays: boolean, avecAnnees: boolean): Album | null {
+    // Relecture de #3174 — ce qui porte sur l'ŒUVRE (favori, provenance,
+    // recherche, pays, incomplets, compilation, année) se lit sur la CARTE ;
+    // seuls la qualité et les critères techniques sur la version.
+    if (!carteRepond(a, avecPays, avecAnnees)) return null;
+    const candidates = fQuality.length ? versionsDe(a) : [a];
+    for (const v of candidates) {
+      if (fQuality.length && !repondAuxQualites(fQuality, (c) => tierMatches(v, c))) continue;
+      if (techniqueRepond(v)) return v;
+    }
+    return null;
+  }
+  function dansLesAnnees(a: Album): boolean {
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     // web#2695 — la période De / À de la frise, bornes comprises.
     if (periodeAppliquee && !dansPeriode(albumYear(a), periode)) return false;
-    return horsAnneesSelon(a, avecPays);
+    return true;
   }
   /** Tous les critères de `matches` SAUF l'année et la période : ce que le
    *  compteur de la période doit croiser pour parler de la grille (tune-server-rust#8162). */
-  function matchesHorsAnnees(a: Album): boolean { return horsAnneesSelon(a, true); }
-  function horsAnneesSelon(a: Album, avecPays: boolean): boolean {
-    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
+  function matchesHorsAnnees(a: Album): boolean { return versionAffichee(a, true, false) != null; }
+  /** Une des versions de la carte (elle comprise) est-elle dans `ids` ? Les
+   *  listes servies par identifiant (pays, incomplets) nomment des albums,
+   *  pas des cartes : une version non préférée y compte pour sa carte. */
+  function uneVersionDans(a: Album, ids: ReadonlySet<number> | null | undefined): boolean {
+    return !!ids && versionsDe(a).some((v) => v.id != null && ids.has(v.id));
+  }
+  /**
+   * Les critères qui portent sur la CARTE (l'œuvre) — #3174. Une facette
+   * cochée est satisfaite par UNE de ses valeurs (OU) ; deux facettes cochées
+   * le sont toutes les deux (ET) — #898.
+   */
+  function carteRepond(a: Album, avecPays: boolean, avecAnnees: boolean): boolean {
+    if (avecAnnees && !dansLesAnnees(a)) return false;
+    // `?? false` : un serveur d'avant la v0.9.95, ou une bibliothèque pas
+    // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
+    // serveur — jamais « on ne sait pas, laissons passer ».
+    if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
+    if (fIncomplets && !uneVersionDans(a, idsIncomplets)) return false;
+    // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
+    // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
+    // Le favori est posé sur la CARTE (son cœur, `idFavori`).
+    if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
+    if (avecPays && paysChoisi && !uneVersionDans(a, idsPays)) return false;
+    if (!dansSource(a, fProvenance)) return false;
+    // #4319 — même règle que les comptes : artiste de piste et dossier
+    // compris, portée ou non (`idsTexteServeur`) ; une version qui répond
+    // (titre « … (Remaster) », id servi) suffit à la carte.
+    if (!repondALaRechercheCarte(versionsDe(a), q, { plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur })) return false;
+    return true;
+  }
+  /** Les critères TECHNIQUES, sur la version présentée. */
+  function techniqueRepond(a: Album): boolean {
     if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     if (!formatRetenu(a, fFormat)) return false;
     if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
@@ -839,24 +910,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       if (fDrMin != null && dr < fDrMin) return false;
       if (fDrMax != null && dr > fDrMax) return false;
     }
-    // `?? false` : un serveur d'avant la v0.9.95, ou une bibliothèque pas
-    // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
-    // serveur — jamais « on ne sait pas, laissons passer ».
-    if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
-    if (fIncomplets && !(a.id != null && idsIncomplets.has(a.id))) return false;
-    // #7586 — sur l'onglet Albums seulement : sur Genres, Années et Labels,
-    // « Uniquement favoris » garde les VALEURS favorites, avec tous leurs albums.
-    if (fFavoris && tab === 'albums' && !estAlbumFavori(a)) return false;
-    if (avecPays && paysChoisi && !(a.id != null && idsPays != null && idsPays.has(a.id))) return false;
-    if (!dansSource(a, fProvenance)) return false;
-    // #4319 — même règle que les comptes : artiste de piste et dossier
-    // compris, portée ou non (`idsTexteServeur`).
-    if (!repondALaRecherche(a, q, { plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur })) return false;
     return true;
   }
+  /** #3174 — le cœur d'une pochette présentée sous une autre version que la
+   *  préférée est celui de la CARTE : c'est lui que « Uniquement favoris » lit. */
+  function idFavori(a: Album): number | null { return carteDe(a); }
 
-  const sorted = $derived.by(() => {
-    const list = [...src];
+  const sorted = $derived.by(() => trier([...src]));
+  /** Trie sur place et rend `list`, selon le tri choisi. */
+  function trier(list: Album[]): Album[] {
     // #1434 — « Disc 2 » avant « Disc 10 » : l'ordre des NOMBRES, pas du texte.
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956) : signes
     // de tête ignorés, sans casse ni accents, ex æquo départagés par le brut.
@@ -908,13 +970,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       default:
         return list.sort(byTitle);
     }
-  });
+  }
   /** Les albums réellement affichés : `sorted` filtré par les critères. Une
    *  seule source pour la grille, la liste, le rail A–Z et le compteur — sinon
    *  ils divergent et le rail propose des lettres qui ne mènent nulle part. */
   // #2694 — recherche active : titre exact, puis titre qui commence par la
   // saisie, devant le reste ; le tri choisi joue à l'intérieur de chaque groupe.
-  const affiches = $derived(prioriserRecherche(sorted.filter(matches), q, fold));
+  // #3173 — chaque carte sous la version qui répond aux filtres.
+  // Relecture de #3174 — sous un filtre de qualité, le tri porte sur la
+  // version PRÉSENTÉE (année, date, DR…) : l'ordre reste monotone et les
+  // intertitres d'année ne se répètent pas.
+  const presenter = (l: readonly Album[]): Album[] =>
+    l.flatMap((a) => { const v = versionAffichee(a, true, true); return v ? [v] : []; });
+  const affiches = $derived(prioriserRecherche(
+    fQuality.length ? trier(presenter(src)) : presenter(sorted), q, fold,
+  ));
   // `matchCount` est défini plus bas, avec le mode paginé : en pages, le
   // compte est le `total` du serveur, pas la longueur de ce qui est arrivé.
 
@@ -1071,7 +1141,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe, estFavori: estAlbumFavori,
-    albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,
+    albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur, versionsDe,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
@@ -1695,7 +1765,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * inconnus ; la règle vit dans `canauxDePochette` (lib/utils).
    */
   function canauxCarte(a: Album): string | null {
-    const nombres = (a.id != null ? regroupement.canaux.get(a.id) : undefined) ?? [a.max_channels];
+    // #3173 — sous un choix de canaux, la carte présente UNE version : son
+    // badge ne dit que ses canaux à elle, et seulement ceux qui répondent au
+    // choix (relecture de #3174 : un album 2.0 + 5.1 sous « Stéréo » dit 2.0).
+    if (filtreDeCanaux(fQuality)) return canauxDePochette(badge(a), canauxRepondants(a, fQuality));
+    const c = carteDe(a);
+    const nombres = (c != null ? regroupement.canaux.get(c) : undefined) ?? [a.max_channels];
     return canauxDePochette(badge(a), nombres);
   }
 
@@ -2457,13 +2532,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // #1722 — les genres se groupent comme le serveur les compte (découpe des
     // valeurs multiples, clé canonique) : c'est le libellé du serveur que le
     // panneau Genres et les Favoris envoient. Voir `lib/genresBibliotheque`.
-    const parGenre = tab === 'genres' ? grouperParGenre(sorted.filter(matches), FACET_EMPTY.genres) : null;
-    for (const a of parGenre ? [] : sorted) {
-      if (!matches(a)) continue;
+    //
+    // Relecture de #3174 — comme la grille : chaque carte sous la version qui
+    // répond aux filtres (pochette, lecture, ouverture, badge), rangée sous
+    // la valeur de la CARTE.
+    const presentee = new Map<Album, Album>();
+    for (const a of sorted) {
+      const v = versionAffichee(a, true, true);
+      if (v) presentee.set(a, v);
+    }
+    const parGenre = tab === 'genres'
+      ? grouperParGenre([...presentee.keys()], FACET_EMPTY.genres)
+        .map((g) => ({ ...g, albums: g.albums.map((a) => presentee.get(a) ?? a) }))
+      : null;
+    for (const [a, v] of parGenre ? [] : presentee) {
       const brut = facetOf(a, tab);
       const k = brut ?? FACET_EMPTY[tab];
       if (brut != null) reels.add(k);
-      const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
+      const arr = m.get(k); if (arr) arr.push(v); else m.set(k, [v]);
     }
     const tous = parGenre ?? [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     // #7586 — « Uniquement favoris » : les valeurs mises en favori (cœur de la
@@ -4485,7 +4571,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                   <div class="card">
                     <div class="cover">
                       <PochetteActions
-                        favori={depot || a.id == null ? null : { albumId: a.id }}
+                        favori={depot || idFavori(a) == null ? null : { albumId: idFavori(a)! }}
                         etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
@@ -4647,7 +4733,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              que la grille de facette et le carrousel portaient déjà
              (#1222) : c'est pourtant elle que voit tout le monde. -->
         <PochetteActions
-          favori={depot || a.id == null ? null : { albumId: a.id }}
+          favori={depot || idFavori(a) == null ? null : { albumId: idFavori(a)! }}
           etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
@@ -4707,7 +4793,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i}>
       <div class="cover">
         <PochetteActions
-          favori={depot || a.id == null ? null : { albumId: a.id }}
+          favori={depot || idFavori(a) == null ? null : { albumId: idFavori(a)! }}
           etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
