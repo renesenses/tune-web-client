@@ -19,8 +19,7 @@
   import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t as tr } from '../../lib/i18n';
-  import ListePistesV2, { largeurActions } from './ListePistesV2.svelte';
-  import { actionsReduites } from '../../lib/actionsRapides';
+  import ListePistesV2, { LARGEUR_ACTIONS } from './ListePistesV2.svelte';
   import {
     entreesDepuisServeur,
     fusionnerHistorique,
@@ -102,7 +101,7 @@
    *
    *   var(--col1)   la première colonne du tableau        (#1009)
    *   minmax(0,1fr) tout ce qui est entre — le nom
-   *   --col-actions largeurActions(), importée de ListePistesV2
+   *   --col-actions LARGEUR_ACTIONS, importée de ListePistesV2
    *   --col-suffixe LARGEUR_SUFFIXE, la valeur passée en `largeurApres`
    *
    * Même boîte, même gouttière, mêmes deux colonnes de queue : leurs bords
@@ -112,8 +111,8 @@
    * figé ici s'en serait détaché en silence.
    */
   const LARGEUR_SUFFIXE = '164px';
-  /** web#2213 — la MÊME largeur que le tableau, icônes réduites comprises. */
-  const colonneActions = $derived(largeurActions(actionsReduites($preferences)).css);
+  /** web#2213 — la MÊME largeur que le tableau (quatre cases depuis web#3121). */
+  const colonneActions = LARGEUR_ACTIONS;
 
   let serveur = $state<HistoryEntry[]>([]);
   /**
@@ -615,7 +614,7 @@
      même endroit : 10px = 1px de bordure + 9px de remplissage. */
   /* #1149 — et les DEUX colonnes de queue du tableau : la barre d'actions puis
      le suffixe. `--col-actions` et `--col-suffixe` sont posées sur `.list`
-     depuis `largeurActions()` (importée de `ListePistesV2`) et
+     depuis `LARGEUR_ACTIONS` (importée de `ListePistesV2`) et
      `LARGEUR_SUFFIXE` (la valeur passée en `largeurApres`). Plus aucun `auto` :
      une colonne dimensionnée par son contenu ne peut pas tomber en face de
      celle du tableau — c'est la leçon du 07/09/2026 sur l'en-tête. */

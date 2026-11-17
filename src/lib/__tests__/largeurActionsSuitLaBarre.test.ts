@@ -42,10 +42,11 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
   const gouttiere = /\.pactions\{[^}]*\bgap:(\d+)px/.exec(barre);
   const largeur = (n: number) => n * Number(cote![1]) + (n - 1) * Number(gouttiere![1]);
 
-  it('la barre a bien HUIT boutons de 28 px, espacés de 2 px', () => {
+  it('la barre a bien QUATRE boutons de 28 px, espacés de 2 px (web#3121)', () => {
     // Si ce nombre change, la largeur doit changer avec — c'est l'épreuve
-    // suivante qui le tient. Celle-ci fixe le point de départ mesuré.
-    expect(boutons).toBe(8);
+    // suivante qui le tient. Celle-ci fixe le point de départ mesuré : Lire,
+    // Lire à partir d'ici, le cœur, le « … » (web#3121, 16/11/2026).
+    expect(boutons).toBe(4);
     expect(depuis).toBe(1);
     expect(cote?.[1]).toBe('28');
     expect(gouttiere?.[1]).toBe('2');
@@ -71,9 +72,10 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
     expect(liste).not.toContain('onLireDepuis ? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS');
   });
 
-  it('CONTRE-ÉPREUVE : à 178 px comme à 208 px, le témoin aurait rougi', () => {
-    // Les deux chiffres d'avant, contre la barre d'aujourd'hui.
+  it('CONTRE-ÉPREUVE : à 178, 208 ou 238 px, le témoin aurait rougi', () => {
+    // Les chiffres d'avant, contre la barre d'aujourd'hui.
     expect(178).not.toBe(largeur(boutons));
     expect(208).not.toBe(largeur(boutons));
+    expect(238).not.toBe(largeur(boutons));
   });
 });

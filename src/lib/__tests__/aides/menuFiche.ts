@@ -61,3 +61,23 @@ export function entreeParLibelle(
   if (!e) fermerMenu();
   return e;
 }
+
+/** Le « … » de la barre d'une ligne de piste (`PisteActions`). */
+export const MENU_PISTE = '.pactions [aria-haspopup="menu"]';
+
+/**
+ * web#3121 — lire ensuite, file, playlist et étiquettes ont quitté la barre
+ * d'une ligne de piste pour son menu « … ». L'entrée dont le libellé est
+ * `libelle`, « Plus… » déplié au besoin, le menu laissé OUVERT ; absente, il
+ * se referme et rend `null`.
+ */
+export function entreeMenuPiste(racine: ParentNode, libelle: string): HTMLElement | null {
+  const m = ouvrirMenu(racine, MENU_PISTE);
+  if (!m) return null;
+  const plus = m.querySelector<HTMLElement>('[data-menu-plus]');
+  if (plus) { plus.click(); flushSync(); }
+  const e = Array.from(menuOuvert()?.querySelectorAll<HTMLElement>('button.item') ?? [])
+    .find((x) => (x.textContent?.trim() ?? '') === libelle) ?? null;
+  if (!e) fermerMenu();
+  return e;
+}

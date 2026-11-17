@@ -56,7 +56,6 @@ async function poserHistorique(): Promise<HTMLElement> {
 
 const tbl = (h: HTMLElement) => h.querySelector<HTMLElement>('.tbl')!;
 const tcols = (h: HTMLElement) => tbl(h).style.getPropertyValue('--tcols');
-const tmin = (h: HTMLElement) => parseFloat(tbl(h).style.getPropertyValue('--tmin'));
 /** La dernière piste du gabarit est la colonne d'actions (pas de suffixe ici). */
 const colonneActions = (h: HTMLElement) => tcols(h).trim().split(/\s+/).pop();
 
@@ -83,45 +82,32 @@ beforeEach(() => {
       json: async () => corps, text: async () => JSON.stringify(corps),
     } as unknown as Response;
   }));
-  preferences.update((p) => ({ ...p, settingsLevel: 'beginner', v2ActionsReduites: false }));
+  preferences.update((p) => ({ ...p, settingsLevel: 'beginner' }));
 });
 
 afterEach(() => {
   while (montes.length) unmount(montes.pop()!);
   while (hotes.length) hotes.pop()!.remove();
   playbackHistory.clear();
-  preferences.update((p) => ({ ...p, v2ActionsReduites: false }));
   vi.unstubAllGlobals();
 });
 
-describe('web#2213 — icônes réduites : la colonne d’actions se réduit', () => {
-  it('par défaut, rien ne change : 238 px, huit cases', () => {
-    const h = poserListe();
-    expect(colonneActions(h)).toBe('238px');
-    expect(h.querySelectorAll('.trow .pactions > *').length).toBe(8);
-    expect(largeurBarre(8)).toBe(238);
-  });
-
-  it('🔴 icônes réduites : la colonne vaut la barre rendue, quatre cases', () => {
-    const pleine = poserListe();
-    const plancherPlein = tmin(pleine);
-    preferences.update((p) => ({ ...p, v2ActionsReduites: true }));
+// web#3121 (16/11/2026) — la barre réduite est devenue la SEULE forme : plus
+// d'option, quatre cases partout, et la colonne comme l'Historique les suivent.
+describe('web#2213 / web#3121 — la colonne d’actions vaut la barre de quatre cases', () => {
+  it('🔴 la colonne vaut la barre rendue, quatre cases, sans case vide', () => {
     const h = poserListe();
     const barre = h.querySelectorAll('.trow .pactions > *');
     expect(barre.length).toBe(4);
-    expect(colonneActions(h), 'la colonne garde la place des icônes masquées').toBe(`${largeurBarre(4)}px`);
-    // Le plancher qui fait DÉBORDER la grille (#853) perd les mêmes 120 px.
-    expect(plancherPlein - tmin(h)).toBe(largeurBarre(8) - largeurBarre(4));
+    expect(colonneActions(h), 'la colonne garde la place d’icônes absentes').toBe(`${largeurBarre(4)}px`);
+    expect(largeurBarre(4)).toBe(118);
   });
 
   it('🔴 l’Historique compose sa ligne d’objet avec la MÊME largeur (#1149)', async () => {
     playbackHistory.add({ ...PISTE } as any, 'Salon');
-    const pleine = await poserHistorique();
-    const liste = (h: HTMLElement) => h.querySelector<HTMLElement>('.list');
-    expect(liste(pleine), 'Historique vide — témoin sans objet').not.toBeNull();
-    expect(liste(pleine)!.style.getPropertyValue('--col-actions')).toBe('238px');
-    preferences.update((p) => ({ ...p, v2ActionsReduites: true }));
-    flushSync();
-    expect(liste(pleine)!.style.getPropertyValue('--col-actions')).toBe(`${largeurBarre(4)}px`);
+    const h = await poserHistorique();
+    const liste = h.querySelector<HTMLElement>('.list');
+    expect(liste, 'Historique vide — témoin sans objet').not.toBeNull();
+    expect(liste!.style.getPropertyValue('--col-actions')).toBe(`${largeurBarre(4)}px`);
   });
 });

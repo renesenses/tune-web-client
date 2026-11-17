@@ -21,12 +21,8 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     // même dessin.
     expect(src, 'la disquette est revenue').not.toContain('M19 21H5a2 2 0 0 1-2-2V5');
     expect(src, 'skip-forward est revenu sur « lire ensuite »').not.toContain('<path d="M19 5v14"/>');
-    // « Ajouter à une playlist » reprend le glyphe des Playlists : lucide
-    // `list-music`, tracé officiel depuis le 20/09/2026 (Bertrand : « Tous
-    // les boutons utilisés doivent être tirés de lucide-icons »). C'était un
-    // dessin maison qui s'en approchait.
-    expect(src).toContain('M21 16V5');
-    expect(src).toContain('<circle cx="18" cy="16" r="3"/>');
+    // web#3121 (16/11/2026) — « Ajouter à une playlist » a quitté la barre
+    // pour le menu « … » : son glyphe n'y est plus.
   });
 
   it("un ecran qui porte la barre n'a plus son PROPRE cœur", () => {
@@ -43,9 +39,12 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(amb, 'deux cœurs sur la même ligne').not.toContain('HeartButton');
   });
 
-  it('les cinq boutons de la palette sont là', () => {
-    for (const cle of ['v2.pa.play', 'v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist', 'v2.pa.fav']) {
+  it('web#3121 — la barre garde Lire, Lire à partir d’ici et le cœur ; le reste est au menu', () => {
+    for (const cle of ['v2.pa.play', 'common.playFromHere', 'v2.pa.fav', 'library.moreOptions']) {
       expect(src).toContain(cle);
+    }
+    for (const cle of ['v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist']) {
+      expect(src, `${cle} est revenu dans la barre`).not.toContain(`$t('${cle}' as any)`);
     }
   });
 

@@ -1,38 +1,24 @@
 /**
- * #1892 (Sandro, fil 2114) — « masquer ces icônes d'action rapide et ne
- * conserver que les trois points ».
+ * Les gestes d'une ligne de piste que la barre d'icônes NE porte PAS : ils
+ * vivent au menu « … ».
  *
- * Les icônes restent visibles PAR DÉFAUT : c'est la décision du 05/09/2026
- * (« PAs de boutons au survol !! »), et FabienM les défend comme raccourcis
- * (fil 2114, réponse 7495). Une OPTION, défaut inchangé, est la seule forme
- * qui contente les deux.
+ * Histoire : #1892 (Sandro, fil 2114) avait ouvert une OPTION « icônes
+ * réduites », défaut OFF, qui masquait ces quatre raccourcis ; web#2213
+ * (Sandro, fil 2317) avait fait partir leurs cases avec eux.
  *
- * Ce que l'option masque : les raccourcis que le menu « … » reprend mot pour
- * mot — lire ensuite, ajouter à la file, ajouter à une playlist, étiquettes.
- * Ce qu'elle garde :
- *  - « Lire » et « Lire à partir d'ici » : le second n'a pas d'entrée au menu ;
+ * web#3121 (FabienM, fil 2864 ; go de Bertrand du 16/11/2026) — la barre
+ * réduite devient la SEULE forme, sur tous les écrans qui listent des pistes :
+ *  - « Lire » (ce morceau seulement) et « Lire à partir d'ici » ;
  *  - le CŒUR : il est aussi un indicateur d'état (quels titres sont en
  *    favori), et le menu n'a pas d'entrée « favori » ;
  *  - le « … » lui-même.
- *
- * web#2213 (Sandro, fil 2317) — les quatre masquées partent AVEC leurs
- * cases : la barre réduite a quatre cases, et la colonne du tableau comme la
- * ligne d'objet de l'Historique prennent la largeur réduite
- * (`largeurActions`, `ListePistesV2`). Les garder vides laissait 120 px
- * réservés à rien, qui faisaient déborder le tableau au zoom.
+ * Le réglage disparaît. Les gestes ci-dessous restent au menu, mot pour mot.
  */
 
-/** Les clés i18n des entrées du menu « … » qui reprennent les icônes masquées. */
+/** Les clés i18n des entrées du menu « … » qui portent les gestes sortis de la barre. */
 export const ACTIONS_MASQUABLES = [
   'v2.pa.next',
   'queue.addToQueue',
   'nowplaying.addToPlaylist',
   'v2.cover.tags',
 ] as const;
-
-/** Le nombre de cases que l’option retire de la barre (web#2213). */
-export const CASES_MASQUEES = ACTIONS_MASQUABLES.length;
-
-export function actionsReduites(prefs: { v2ActionsReduites?: boolean } | null | undefined): boolean {
-  return prefs?.v2ActionsReduites === true;
-}
