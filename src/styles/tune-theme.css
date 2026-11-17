@@ -67,10 +67,35 @@
    Grec : même cas — Lato n'a pas de sous-ensemble `greek`, Inter a `greek`
    et `greek-ext`. Cormorant Garamond n'en a pas : les titres grecs tombent
    sur Georgia, le repli déjà déclaré dans `--font-display`. */
+/* Russe et ukrainien (web#3094) : même cas encore — Lato n'a pas de
+   sous-ensemble `cyrillic`, Inter a `cyrillic` et `cyrillic-ext`. Cormorant
+   Garamond a le cyrillique : les titres restent dans leur police. Tchèque,
+   néerlandais, portugais et finnois tiennent dans `latin-ext` : Lato suffit. */
 :root:lang(vi),
-:root:lang(el) {
+:root:lang(el),
+:root:lang(ru),
+:root:lang(uk) {
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Thaï (web#3094) : ni Lato, ni Inter, ni Cormorant Garamond n'ont de glyphes
+   thaïs. Noto Sans Thai (Google Fonts, déclarée dans index.html) les porte ;
+   son `unicode-range` fait qu'elle n'est TÉLÉCHARGÉE que si du thaï s'affiche.
+   Inter reste en tête pour le latin (marques, chiffres, unités) ; chaque glyphe
+   thaï retombe sur Noto Sans Thai, puis sur la police système du thaï
+   (Leelawadee UI sous Windows, Thonburi sous macOS/iOS).
+   Retours à la ligne : le thaï n'espace pas ses mots, les navigateurs le
+   découpent au dictionnaire (ICU) — à condition qu'aucune règle de
+   coupure « keep-all » ne l'en empêche (garde : septLanguesWeb3094.test.ts). Voyelles et
+   tons superposés : l'interligne `normal` prend les métriques de Noto Sans
+   Thai, prévues pour eux ; un interligne serré fixé par un composant peut les
+   rogner — à vérifier à l'œil sur la recette. */
+:root:lang(th) {
+  --font-display: 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi', 'Georgia', serif;
+  --font-body: 'Inter', 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-label: 'Inter', 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-primary: 'Inter', 'Noto Sans Thai', 'Leelawadee UI', 'Thonburi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Tablet: sidebar collapsée */

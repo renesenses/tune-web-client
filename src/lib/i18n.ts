@@ -19,6 +19,13 @@ export const localeNames: Record<Locale, string> = {
   el: 'Ελληνικά',
   nb: 'Norsk bokmål',
   pl: 'Polski',
+  ru: 'Русский',
+  uk: 'Українська',
+  nl: 'Nederlands',
+  pt: 'Português (Brasil)',
+  cs: 'Čeština',
+  fi: 'Suomi',
+  th: 'ไทย',
 };
 /**
  * 🔴 LES DICTIONNAIRES ARRIVENT À LA DEMANDE (tune-server-rust#4800, cause 4).
@@ -34,6 +41,7 @@ export const localeNames: Record<Locale, string> = {
  */
 const messages: Record<Locale, Dictionnaire> = {
   fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {}, nb: {}, pl: {},
+  ru: {}, uk: {}, nl: {}, pt: {}, cs: {}, fi: {}, th: {},
 };
 const chargees = new Set<Locale>();
 const enCours = new Map<Locale, Promise<void>>();
@@ -87,6 +95,8 @@ const langue = writable<Locale>(langueDuNavigateur());
 // vietnamien sur Google Fonts — sans bascule, « Tiếng Việt » mélangerait deux
 // polices dans un même mot (ế, ạ, ộ tombant sur la police système). Même
 // chose pour le grec : Lato n'a pas non plus de sous-ensemble `greek`.
+// Le cyrillique (ru, uk) bascule de même sur Inter ; le thaï prend Noto Sans
+// Thai, qu'aucune des trois polices du thème ne remplace (web#3094).
 if (typeof document !== 'undefined') {
   langue.subscribe((l) => { document.documentElement.lang = l; });
 }

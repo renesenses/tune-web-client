@@ -19,7 +19,8 @@
  * que chacune est enregistrée dans `localeNames` (i18n.ts). Une langue
  * ajoutée sur disque sans sa ligne ici casse la compilation — c'est voulu.
  */
-export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it' | 'zh' | 'ja' | 'ko' | 'ro' | 'sv' | 'hu' | 'vi' | 'el' | 'nb' | 'pl';
+export type Locale = 'fr' | 'en' | 'de' | 'es' | 'it' | 'zh' | 'ja' | 'ko' | 'ro' | 'sv' | 'hu' | 'vi' | 'el' | 'nb' | 'pl'
+  | 'ru' | 'uk' | 'nl' | 'pt' | 'cs' | 'fi' | 'th';
 
 export type Dictionnaire = Record<string, string>;
 
@@ -41,4 +42,11 @@ export const CHARGEURS: Record<Locale, Chargeur> = {
   el: () => import('./el'),
   nb: () => import('./nb'),
   pl: () => import('./pl'),
+  ru: () => import('./ru'),
+  uk: () => import('./uk'),
+  nl: () => import('./nl'),
+  pt: () => import('./pt'),
+  cs: () => import('./cs'),
+  fi: () => import('./fi'),
+  th: () => import('./th'),
 };

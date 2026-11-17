@@ -8,7 +8,7 @@
 //
 // Contre-épreuve (mesurée) : remettre `language: 'fr'` dans `defaults` et
 // retirer les `resoudreLangue` de `loadPrefs` / `syncPreferencesFromServer`
-// fait échouer « en-US → en », « nl → en » et les trois cas « ancien 'fr' ».
+// fait échouer « en-US → en », « tr → en » et les trois cas « ancien 'fr' ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { langueChoisie, langueDuNavigateur, resoudreLangue } from '../langueParDefaut';
@@ -64,14 +64,16 @@ describe('premier lancement : la langue du navigateur', () => {
     expect(auDemarrage.language).toBe('fr');
   });
 
-  it("navigateur nl → en (langue que l'interface ne parle pas)", async () => {
-    navigateurEn(['nl-NL', 'nl']);
+  // Le néerlandais servait d'exemple jusqu'à web#3094, qui l'a fait entrer dans
+  // l'interface : le turc tient désormais le rôle de la langue non parlée.
+  it("navigateur tr → en (langue que l'interface ne parle pas)", async () => {
+    navigateurEn(['tr-TR', 'tr']);
     const { auDemarrage } = await demarrer();
     expect(auDemarrage.language).toBe('en');
   });
 
-  it('navigator.languages dans l’ordre : nl puis de → de', async () => {
-    navigateurEn(['nl-BE', 'de-DE', 'en']);
+  it('navigator.languages dans l’ordre : tr puis de → de', async () => {
+    navigateurEn(['tr-TR', 'de-DE', 'en']);
     const { auDemarrage } = await demarrer();
     expect(auDemarrage.language).toBe('de');
   });
@@ -161,6 +163,6 @@ describe("un 'fr' qui n'était que le défaut n'est pas un choix", () => {
 
   it('resoudreLangue normalise un choix en langueAuto: null', () => {
     expect(resoudreLangue([{ language: 'sv' }], { languages: ['en'] })).toEqual({ language: 'sv', langueAuto: null });
-    expect(resoudreLangue([{ language: 'fr' }], { languages: ['nl'] })).toEqual({ language: 'en', langueAuto: 'en' });
+    expect(resoudreLangue([{ language: 'fr' }], { languages: ['tr'] })).toEqual({ language: 'en', langueAuto: 'en' });
   });
 });

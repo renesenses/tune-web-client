@@ -51,6 +51,27 @@ export const PALIERS_DE_SECOURS: { v: number; l: string }[] = [
 ];
 
 /**
+ * La langue écrit-elle ses décimales avec une virgule ? On le DEMANDE à
+ * `Intl` plutôt que de tenir une liste : la liste figée oubliait chaque
+ * langue ajoutée (web#3094 : russe, ukrainien, néerlandais, portugais,
+ * tchèque et finnois écrivent `44,1` ; le thaï, comme l'anglais, `44.1`).
+ */
+const virgules = new Map<string, boolean>();
+function decimaleEnVirgule(l: string): boolean {
+  if (!l) return false;
+  let v = virgules.get(l);
+  if (v === undefined) {
+    try {
+      v = new Intl.NumberFormat(l).formatToParts(1.5).find((p) => p.type === 'decimal')?.value === ',';
+    } catch {
+      v = false;
+    }
+    virgules.set(l, v);
+  }
+  return v;
+}
+
+/**
  * Le séparateur décimal, à la langue de l'écran.
  *
  * Le serveur envoie toujours le POINT (`44.1 kHz`) : c'est une donnée, pas une
@@ -59,9 +80,7 @@ export const PALIERS_DE_SECOURS: { v: number; l: string }[] = [
  * langue dans laquelle le produit est écrit.
  */
 export function localiserDecimale(label: string, langue: string | null | undefined): string {
-  const l = (langue ?? '').slice(0, 2).toLowerCase();
-  const virgule = ['fr', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'].includes(l);
-  if (!virgule) return label;
+  if (!decimaleEnVirgule((langue ?? '').slice(0, 2).toLowerCase())) return label;
   // Uniquement entre deux chiffres : un point de fin de phrase ne bouge pas.
   return label.replace(/(\d)\.(\d)/g, '$1,$2');
 }

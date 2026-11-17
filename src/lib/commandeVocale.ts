@@ -88,6 +88,7 @@ export function echecDepuisCode(code: string | undefined): EchecDictee {
 const LANGUES: Record<Locale, string> = {
   fr: 'fr-FR', en: 'en-US', de: 'de-DE', es: 'es-ES', it: 'it-IT', zh: 'zh-CN', ja: 'ja-JP',
   ko: 'ko-KR', ro: 'ro-RO', sv: 'sv-SE', hu: 'hu-HU', vi: 'vi-VN', el: 'el-GR', nb: 'nb-NO', pl: 'pl-PL',
+  ru: 'ru-RU', uk: 'uk-UA', nl: 'nl-NL', pt: 'pt-BR', cs: 'cs-CZ', fi: 'fi-FI', th: 'th-TH',
 };
 
 /** La langue de reconnaissance (BCP 47) qui suit celle de l'interface. */

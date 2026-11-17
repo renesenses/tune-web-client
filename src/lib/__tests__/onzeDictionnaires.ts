@@ -19,14 +19,17 @@
 // importent (`import { fr, dictionnaire } from './onzeDictionnaires'`).
 // `setupLocales.ts` les enregistre dans `i18n.ts` avant chaque banc, pour
 // que `$t` reste synchrone sous test comme il l'était.
-import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi as viLocale, el as elLocale, nb as nbLocale, pl as plLocale } from './lesOnzeLangues';
+import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi as viLocale, el as elLocale, nb as nbLocale, pl as plLocale,
+  ru as ruLocale, uk as ukLocale, nl as nlLocale, pt as ptLocale, cs as csLocale, fi as fiLocale, th as thLocale } from './lesOnzeLangues';
 
-export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl };
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl,
+  ruLocale as ru, ukLocale as uk, nlLocale as nl, ptLocale as pt, csLocale as cs, fiLocale as fi, thLocale as th };
 
-export const ONZE_LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl'] as const;
+export const ONZE_LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'vi', 'el', 'nb', 'pl', 'ru', 'uk', 'nl', 'pt', 'cs', 'fi', 'th'] as const;
 
 const DICTIONNAIRES: Record<string, Record<string, string>> = {
   fr, en, de, es, it, zh, ja, ko, ro, sv, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale,
+  ru: ruLocale, uk: ukLocale, nl: nlLocale, pt: ptLocale, cs: csLocale, fi: fiLocale, th: thLocale,
 } as unknown as Record<string, Record<string, string>>;
 
 /** Le dictionnaire d'une langue, déjà chargé. Une langue inconnue est une erreur de banc. */

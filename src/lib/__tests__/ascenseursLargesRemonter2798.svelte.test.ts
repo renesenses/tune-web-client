@@ -201,7 +201,7 @@ describe('web#2798 — décision et placement', () => {
 describe('web#2798 — chaînes dans les quinze locales', () => {
   const dir = resolve(process.cwd(), 'src/lib/locales');
   const locales = readdirSync(dir).filter((f) => /^[a-z]{2}\.ts$/.test(f));
-  it('quinze locales', () => expect(locales.length).toBe(15));
+  it('quinze locales', () => expect(locales.length).toBe(22));
   for (const f of locales) {
     it(f, () => {
       const s = readFileSync(resolve(dir, f), 'utf-8');

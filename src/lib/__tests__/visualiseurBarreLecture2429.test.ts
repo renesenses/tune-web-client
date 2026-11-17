@@ -91,7 +91,7 @@ describe('#2429 — le visualiseur de la barre de lecture', () => {
   });
 
   it('est traduite dans les 15 langues', () => {
-    expect(LOCALES_COMPLETES.length).toBe(15);
+    expect(LOCALES_COMPLETES.length).toBe(22);
     for (const [langue, d] of LOCALES_COMPLETES) {
       expect(d['v2.set.barViz'], `${langue} : libellé`).toBeTruthy();
       expect(d['v2.set.barVizHint'], `${langue} : aide`).toBeTruthy();
