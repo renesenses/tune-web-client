@@ -121,12 +121,23 @@ export async function chargerRecommandations(
 }
 
 /**
- * Le décalage de la page suivante (« Autres suggestions »), qui reprend au
- * début une fois la liste de TIDAL parcourue. `null` : une seule page, rien à
- * proposer de plus.
+ * Le décalage de la page suivante (« Autres suggestions »). `null` : une
+ * première page qui n'a pas été pleine, rien à proposer de plus.
+ *
+ * On avance d'une page DEMANDÉE, pas du nombre de titres affichés : le
+ * contrôle parental peut en retirer après TIDAL, et avancer du nombre affiché
+ * reservirait les mêmes titres. La fin ne se lit pas dans `total` (qui peut
+ * diminuer d'une page à l'autre) mais dans ce qui est reçu : une page vide
+ * (voir `pageEpuisee`) propose de revenir au début.
  */
 export function decalageSuivant(page: PageRecommandes): number | null {
-  if (page.total <= RECOMMANDES_PAR_PAGE) return null;
-  const suivant = page.offset + RECOMMANDES_PAR_PAGE;
-  return suivant >= page.total ? 0 : suivant;
+  if (page.offset === 0 && page.tracks.length < RECOMMANDES_PAR_PAGE && page.total <= RECOMMANDES_PAR_PAGE) {
+    return null;
+  }
+  return page.offset + RECOMMANDES_PAR_PAGE;
+}
+
+/** Une page au-delà de la première qui revient vide : la liste est parcourue. */
+export function pageEpuisee(page: PageRecommandes | null): boolean {
+  return !!page && page.offset > 0 && page.tracks.length === 0;
 }

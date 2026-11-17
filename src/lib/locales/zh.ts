@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "无法加载“为你推荐”。",
   "v2.stream.recommendedTracks": "推荐曲目",
   "v2.stream.recommendedMore": "更多推荐",
+  "v2.stream.recommendedRestart": "回到开头",
   "v2.stream.recommendedHint": "{s} 根据此播放列表推荐",
   "v2.common.loading": "加载中…",
   "v2.common.close": "关闭",

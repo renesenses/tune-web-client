@@ -3972,6 +3972,7 @@ export default {
   "v2.stream.forYouFailed": "Δεν ήταν δυνατή η φόρτωση του «Για εσάς».",
   "v2.stream.recommendedTracks": "Προτεινόμενα κομμάτια",
   "v2.stream.recommendedMore": "Περισσότερες προτάσεις",
+  "v2.stream.recommendedRestart": "Επιστροφή στην αρχή",
   "v2.stream.recommendedHint": "Προτάσεις του {s} με βάση αυτή τη λίστα",
   "v2.common.loading": "Φόρτωση…",
   "v2.common.close": "Κλείσιμο",

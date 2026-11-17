@@ -4114,6 +4114,7 @@ export default {
   "v2.stream.forYouFailed": "Impossible de charger « Pour vous ».",
   "v2.stream.recommendedTracks": "Titres recommandés",
   "v2.stream.recommendedMore": "Autres suggestions",
+  "v2.stream.recommendedRestart": "Revenir au début",
   "v2.stream.recommendedHint": "Proposés par {s} d'après cette playlist",
   "v2.common.loading": "Chargement…",
   "v2.common.close": "Fermer",

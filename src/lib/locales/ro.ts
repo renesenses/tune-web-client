@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "„Pentru tine” nu a putut fi încărcat.",
   "v2.stream.recommendedTracks": "Piese recomandate",
   "v2.stream.recommendedMore": "Alte sugestii",
+  "v2.stream.recommendedRestart": "Înapoi la început",
   "v2.stream.recommendedHint": "Sugerate de {s} pe baza acestui playlist",
   "v2.common.loading": "Se încarcă…",
   "v2.common.close": "Închide",

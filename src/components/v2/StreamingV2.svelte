@@ -1814,7 +1814,7 @@
       {:else if !pourVous.rows.length}
         <div class="state" data-pour-vous-vide>{$t('v2.stream.forYouEmpty' as any).replace('{s}', label(active ?? ''))}</div>
       {:else}
-        {#each pourVous.rows as r (r.id)}
+        {#each pourVous.rows as r, i (`${r.id}:${i}`)}
           <section class="sec" data-rangee-pour-vous>
             <h2>{r.title}</h2>
             {#if r.subtitle}<p class="sous-titre-rangee">{r.subtitle}</p>{/if}

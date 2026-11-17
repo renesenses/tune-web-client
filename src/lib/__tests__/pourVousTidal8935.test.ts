@@ -7,7 +7,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  chargerPourVous, chargerRecommandations, decalageSuivant, proposeDesRecommandations,
+  chargerPourVous, chargerRecommandations, decalageSuivant, pageEpuisee, proposeDesRecommandations,
   proposePourVous, RECOMMANDES_PAR_PAGE,
 } from '../pourVousTidal';
 
@@ -87,10 +87,25 @@ describe('#8935 — les titres recommandés d’une playlist', () => {
       .resolves.toEqual({ tracks: [], total: 0, offset: 0 });
   });
 
-  it('« Autres suggestions » avance de dix puis revient au début', () => {
-    expect(decalageSuivant({ tracks: [], total: 95, offset: 0 })).toBe(10);
-    expect(decalageSuivant({ tracks: [], total: 95, offset: 90 })).toBe(0);
-    expect(decalageSuivant({ tracks: [], total: 8, offset: 0 })).toBeNull();
+  const dix = Array.from({ length: RECOMMANDES_PAR_PAGE }, (_, i) => ({ source_id: String(i) }));
+
+  it('🔴 « Autres suggestions » avance d’une page demandée, sans se fier à `total`', () => {
+    expect(decalageSuivant({ tracks: dix, total: 95, offset: 0 })).toBe(10);
+    // `total` a diminué entre deux pages : on avance quand même, la fin se
+    // lira dans une page vide.
+    expect(decalageSuivant({ tracks: dix, total: 20, offset: 20 })).toBe(30);
+    // Le contrôle parental a retiré deux titres : on avance de la page
+    // DEMANDÉE, pas des huit affichés (qui reservirait les mêmes).
+    expect(decalageSuivant({ tracks: dix.slice(2), total: 95, offset: 10 })).toBe(20);
+    // Une seule page, incomplète : rien de plus à proposer.
+    expect(decalageSuivant({ tracks: dix.slice(0, 8), total: 8, offset: 0 })).toBeNull();
+  });
+
+  it('🔴 une page vide au-delà de la première garde la section (« Revenir au début »)', () => {
+    expect(pageEpuisee({ tracks: [], total: 95, offset: 100 })).toBe(true);
+    expect(pageEpuisee({ tracks: [], total: 0, offset: 0 })).toBe(false);
+    expect(pageEpuisee({ tracks: dix, total: 95, offset: 10 })).toBe(false);
+    expect(pageEpuisee(null)).toBe(false);
   });
 });
 
@@ -106,6 +121,8 @@ describe('#8935 — branchement des écrans', () => {
     expect(bloc).toContain("{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}");
     expect(bloc).toContain('lirePourVousDepuis(r.tracks, i)');
     expect(bloc).toContain("$t('v2.stream.forYouFailed' as any)");
+    // Deux rangées de même identifiant ne cassent pas le rendu.
+    expect(bloc).toContain('{#each pourVous.rows as r, i (`${r.id}:${i}`)}');
   });
 
   it('🔴 la fiche d’une playlist de service porte les titres recommandés', () => {
@@ -114,6 +131,12 @@ describe('#8935 — branchement des écrans', () => {
     const reco = lireFichier('src/components/v2/RecommandesPlaylistV2.svelte');
     expect(reco).toContain('chargerRecommandations(svc, pl, offset, api.getStreamingPlaylistRecommendations)');
     expect(reco).toContain('lireListeDepuis(page.tracks as any, i, gestesDeZone(zid))');
+    // La section reste quand la page est vide, avec « Revenir au début ».
+    expect(reco).toContain('{#if visible && (page?.tracks.length || epuisee)}');
+    expect(reco).toMatch(/data-revenir-au-debut[\s\S]{0,120}onclick=\{\(\) => charger\(0\)\}/);
+    // Rechargement sur l’IDENTIFIANT de la playlist, pas sur l’objet.
+    expect(reco).toContain("const idPlaylist = $derived(typeof playlist?.source_id === 'string' ? playlist.source_id : '');");
+    expect(reco).not.toMatch(/pl !== playlist/);
   });
 
   it('les routes appelées sont celles du serveur', () => {
@@ -122,13 +145,13 @@ describe('#8935 — branchement des écrans', () => {
     expect(api).toMatch(/export function getStreamingPlaylistRecommendations\([\s\S]{0,300}\/playlists\/\$\{encodeURIComponent\(playlistId\)\}\/recommendations\?limit=\$\{limit\}&offset=\$\{offset\}`/);
   });
 
-  it('chaque langue traduit les six libellés', () => {
+  it('chaque langue traduit les sept libellés', () => {
     const dossier = resolve(process.cwd(), 'src/lib/locales');
     const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
     expect(langues.length).toBeGreaterThanOrEqual(15);
     for (const f of langues) {
       const s = readFileSync(resolve(dossier, f), 'utf-8');
-      for (const k of ['forYou', 'forYouEmpty', 'forYouFailed', 'recommendedTracks', 'recommendedMore', 'recommendedHint']) {
+      for (const k of ['forYou', 'forYouEmpty', 'forYouFailed', 'recommendedTracks', 'recommendedMore', 'recommendedRestart', 'recommendedHint']) {
         expect(s, `${f} : v2.stream.${k}`).toMatch(new RegExp(`"v2\\.stream\\.${k}": "[^"]+"`));
       }
     }

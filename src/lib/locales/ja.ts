@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "「あなたへのおすすめ」を読み込めませんでした。",
   "v2.stream.recommendedTracks": "おすすめの曲",
   "v2.stream.recommendedMore": "ほかの候補",
+  "v2.stream.recommendedRestart": "最初に戻る",
   "v2.stream.recommendedHint": "このプレイリストをもとに {s} が提案",
   "v2.common.loading": "読み込み中…",
   "v2.common.close": "閉じる",

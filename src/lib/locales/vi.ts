@@ -3974,6 +3974,7 @@ export default {
   "v2.stream.forYouFailed": "Không thể tải «Dành cho bạn».",
   "v2.stream.recommendedTracks": "Bài hát đề xuất",
   "v2.stream.recommendedMore": "Gợi ý khác",
+  "v2.stream.recommendedRestart": "Quay lại từ đầu",
   "v2.stream.recommendedHint": "{s} gợi ý dựa trên danh sách phát này",
   "v2.common.loading": "Đang tải…",
   "v2.common.close": "Đóng",

@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "Impossibile caricare «Per te».",
   "v2.stream.recommendedTracks": "Brani consigliati",
   "v2.stream.recommendedMore": "Altri suggerimenti",
+  "v2.stream.recommendedRestart": "Torna all'inizio",
   "v2.stream.recommendedHint": "Suggeriti da {s} in base a questa playlist",
   "v2.common.loading": "Caricamento…",
   "v2.common.close": "Chiudi",

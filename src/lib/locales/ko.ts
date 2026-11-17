@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "맞춤 추천을 불러오지 못했습니다.",
   "v2.stream.recommendedTracks": "추천 트랙",
   "v2.stream.recommendedMore": "다른 추천",
+  "v2.stream.recommendedRestart": "처음으로",
   "v2.stream.recommendedHint": "이 플레이리스트를 바탕으로 {s}가 추천",
   "v2.common.loading": "불러오는 중…",
   "v2.common.close": "닫기",

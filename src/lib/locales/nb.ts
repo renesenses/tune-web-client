@@ -3972,6 +3972,7 @@ export default {
   "v2.stream.forYouFailed": "Kunne ikke laste «For deg».",
   "v2.stream.recommendedTracks": "Anbefalte spor",
   "v2.stream.recommendedMore": "Flere forslag",
+  "v2.stream.recommendedRestart": "Tilbake til starten",
   "v2.stream.recommendedHint": "Foreslått av {s} ut fra denne spillelisten",
   "v2.common.loading": "Laster…",
   "v2.common.close": "Lukk",

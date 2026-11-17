@@ -4092,6 +4092,7 @@ export default {
   "v2.stream.forYouFailed": "Kunde inte läsa in ”För dig”.",
   "v2.stream.recommendedTracks": "Rekommenderade spår",
   "v2.stream.recommendedMore": "Fler förslag",
+  "v2.stream.recommendedRestart": "Tillbaka till början",
   "v2.stream.recommendedHint": "Föreslagna av {s} utifrån den här spellistan",
   "v2.common.loading": "Laddar…",
   "v2.common.close": "Stäng",

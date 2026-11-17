@@ -3972,6 +3972,7 @@ export default {
   "v2.stream.forYouFailed": "Nie udało się wczytać „Dla Ciebie”.",
   "v2.stream.recommendedTracks": "Polecane utwory",
   "v2.stream.recommendedMore": "Więcej propozycji",
+  "v2.stream.recommendedRestart": "Wróć do początku",
   "v2.stream.recommendedHint": "Propozycje {s} na podstawie tej playlisty",
   "v2.common.loading": "Wczytywanie…",
   "v2.common.close": "Zamknij",

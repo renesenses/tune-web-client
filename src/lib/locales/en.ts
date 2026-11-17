@@ -4112,6 +4112,7 @@ export default {
   "v2.stream.forYouFailed": "Couldn't load For you.",
   "v2.stream.recommendedTracks": "Recommended tracks",
   "v2.stream.recommendedMore": "More suggestions",
+  "v2.stream.recommendedRestart": "Back to the start",
   "v2.stream.recommendedHint": "Suggested by {s} based on this playlist",
   "v2.common.loading": "Loading…",
   "v2.common.close": "Close",

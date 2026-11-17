@@ -4093,6 +4093,7 @@ export default {
   "v2.stream.forYouFailed": "„Für dich“ konnte nicht geladen werden.",
   "v2.stream.recommendedTracks": "Empfohlene Titel",
   "v2.stream.recommendedMore": "Weitere Vorschläge",
+  "v2.stream.recommendedRestart": "Zurück zum Anfang",
   "v2.stream.recommendedHint": "Von {s} anhand dieser Playlist vorgeschlagen",
   "v2.common.loading": "Wird geladen…",
   "v2.common.close": "Schließen",

@@ -4047,6 +4047,7 @@ export default {
   "v2.stream.forYouFailed": "A „Neked” nem tölthető be.",
   "v2.stream.recommendedTracks": "Ajánlott számok",
   "v2.stream.recommendedMore": "További javaslatok",
+  "v2.stream.recommendedRestart": "Vissza az elejére",
   "v2.stream.recommendedHint": "A(z) {s} javaslatai e lejátszási lista alapján",
   "v2.common.loading": "Betöltés…",
   "v2.common.close": "Bezárás",
