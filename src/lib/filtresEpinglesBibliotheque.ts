@@ -18,6 +18,8 @@ import { ecrireChoix, lireTexte } from './preferencesEcran';
 
 export const FILTRES_EPINGLABLES = [
   'recent', 'provenance', 'favoris', 'repertoire', 'pays',
+  // web#3157 — l'instrument des crédits (masqué face à un serveur qui ne le sert pas).
+  'instrument',
   'quality', 'rate', 'dr', 'format', 'compilations', 'incomplets', 'depth',
 ] as const;
 export type FiltreEpinglable = (typeof FILTRES_EPINGLABLES)[number];
@@ -59,6 +61,7 @@ export const LIBELLE_FILTRE: Record<FiltreEpinglable, string> = {
   favoris: 'v2.lib.onlyFavorites',
   repertoire: 'v2.lib.folder',
   pays: 'v2.lib.map.chip',
+  instrument: 'v2.lib.instrument',
   quality: 'v2.tcol.quality',
   rate: 'v2.tcol.sampleRate',
   dr: 'library.drRange',

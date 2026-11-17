@@ -3494,6 +3494,8 @@ export async function getFilteredTracks(opts: {
   conductor?: FacetParam;
   ensemble?: FacetParam;
   work?: FacetParam;
+  /** web#3157 — instrument des crédits (CRD-6, serveur rc12). */
+  instrument?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3531,7 +3533,7 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work', 'instrument',
     'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
