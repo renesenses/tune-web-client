@@ -222,6 +222,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
+  import { MODE_HISTORIQUE_DEFAUT, estModeHistorique } from '../../lib/modeHistorique';
   import {
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
@@ -5191,6 +5192,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
                   <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
                   <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
+              <!-- web#3143 — l'Historique, une ligne par titre (Elie, le défaut)
+                   ou une ligne par écoute, avec son heure (FabienM, fil 2637,
+                   point 7). Décision de Bertrand, 17/11/2026 : au choix. -->
+              <div class="row" data-reglage="historique-lignes">
+                <div class="lbl">
+                  <span>{$t('settings.historyRows' as any)}</span>
+                  <span class="hint">{$t('settings.historyRowsHint' as any)}</span>
+                </div>
+                <select class="sel" value={$preferences.historiqueLignes ?? MODE_HISTORIQUE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estModeHistorique(v)) preferences.update((pr) => ({ ...pr, historiqueLignes: v })); }}>
+                  <option value="titre">{$t('settings.historyRowsTrack' as any)}</option>
+                  <option value="ecoute">{$t('settings.historyRowsListen' as any)}</option>
                 </select>
               </div>
 
