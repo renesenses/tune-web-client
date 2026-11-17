@@ -3058,6 +3058,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Néhány számot nem sikerült hozzáadni: a(z) „{nom}” lista hiányos.",
   "v2.home.becauseYouLikeDeletePartial": "Hiányos lista törlése",
   "v2.home.becauseYouLikeDeleted": "Hiányos lista törölve",
+  "v2.home.becauseYouLikePending": "A lejátszási listáid készülnek…",
   "v2.home.wArtistRadios": "Kedvenc és legutóbbi rádiók",
   "v2.home.wPodcasts": "Az Ön podcastjai",
   "v2.home.wQobuz": "Qobuz-válogatás",

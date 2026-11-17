@@ -3103,6 +3103,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Vissa spår kunde inte läggas till: spellistan ”{nom}” är ofullständig.",
   "v2.home.becauseYouLikeDeletePartial": "Ta bort den ofullständiga spellistan",
   "v2.home.becauseYouLikeDeleted": "Ofullständig spellista borttagen",
+  "v2.home.becauseYouLikePending": "Förbereder dina spellistor…",
   "v2.home.wArtistRadios": "Favorit- och senaste radiokanaler",
   "v2.home.wPodcasts": "Dina poddar",
   "v2.home.wQobuz": "Qobuz-urval",

@@ -7,6 +7,7 @@
  * mais HORS du défaut, et ses libellés dans toutes les langues.
  */
 import { readFileSync, readdirSync } from 'node:fs';
+import { get } from 'svelte/store';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,6 +23,9 @@ vi.mock('../api', async (orig) => ({ ...(await orig<any>()), ...mocks }));
 import {
   EnregistrementPartiel,
   chargerPlaylistsGenerees,
+  relanceDemandee,
+  relanceTerminee,
+  DELAI_RELANCE_MS,
   enregistrerPlaylistGeneree,
   lirePlaylistGeneree,
   segments,
@@ -145,6 +149,39 @@ describe('parce que vous aimez — widget', () => {
     expect(typeof els[0].jouer).toBe('function');
   });
 
+  it('« en cours » : le dit, et relance UNE seule fois après ~60 s', async () => {
+    vi.useFakeTimers();
+    try {
+      relanceTerminee();
+      const w = widgetParId('parce-que-vous-aimez')!;
+      const depart = get(relanceDemandee);
+      mocks.getBecauseYouLike.mockResolvedValue({ pending: true, playlists: [] });
+      const [el] = await w.charger({} as any);
+      expect(el.id).toBe('pvaa-preparation');
+      expect(el.jouer).toBeUndefined();
+      expect(el.ouvrir).toBeUndefined();
+      vi.advanceTimersByTime(DELAI_RELANCE_MS - 1);
+      expect(get(relanceDemandee)).toBe(depart);
+      vi.advanceTimersByTime(1);
+      expect(get(relanceDemandee)).toBe(depart + 1);
+      // Encore en cours à la relance : pas de seconde relance.
+      await w.charger({} as any);
+      vi.advanceTimersByTime(DELAI_RELANCE_MS * 3);
+      expect(get(relanceDemandee)).toBe(depart + 1);
+      // Une vraie réponse réarme la relance pour la prochaine attente.
+      mocks.getBecauseYouLike.mockResolvedValue({ playlists: [playlist()] });
+      expect(await w.charger({} as any)).toHaveLength(1);
+      mocks.getBecauseYouLike.mockResolvedValue({ pending: true, playlists: [] });
+      await w.charger({} as any);
+      vi.advanceTimersByTime(DELAI_RELANCE_MS);
+      expect(get(relanceDemandee)).toBe(depart + 2);
+    } finally {
+      vi.useRealTimers();
+    }
+    const src = readFileSync(resolve(__dirname, '../../components/v2/PageWidgets.svelte'), 'utf8');
+    expect(src).toMatch(/relanceDemandee\.subscribe[\s\S]{0,200}rechargerWidget\(ID_PARCE_QUE_VOUS_AIMEZ\)/);
+  });
+
   it('PageWidgets ouvre la liste d’une playlist générée', () => {
     const src = readFileSync(resolve(__dirname, '../../components/v2/PageWidgets.svelte'), 'utf8');
     expect(src).toMatch(/e\.ouvrir === 'generee' && e\.generee/);
@@ -160,6 +197,7 @@ describe('parce que vous aimez — widget', () => {
       'becauseYouLikePlay', 'becauseYouLikeSave', 'becauseYouLikeDone', 'becauseYouLikeName',
       'becauseYouLikeSaved', 'becauseYouLikeNoZone', 'becauseYouLikeRefresh',
       'becauseYouLikePartial', 'becauseYouLikeDeletePartial', 'becauseYouLikeDeleted',
+      'becauseYouLikePending',
     ];
     const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
     expect(langues.length).toBeGreaterThanOrEqual(15);

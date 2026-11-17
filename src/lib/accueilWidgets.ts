@@ -50,8 +50,11 @@ import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
 import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
 import {
-  chargerPlaylistsGenerees,
+  chargerGenerees,
+  ID_PARCE_QUE_VOUS_AIMEZ,
   lirePlaylistGeneree,
+  programmerRelance,
+  relanceTerminee,
   texteVoisins,
   type PlaylistGeneree,
 } from './parceQueVousAimez';
@@ -2087,14 +2090,22 @@ export const WIDGETS: Widget[] = [
      * Hors du défaut, comme tout widget ajouté depuis le 06/09 : il s'ajoute
      * depuis « Modifier ». Vide (aucune écoute encore), il ne se montre pas.
      */
-    id: 'parce-que-vous-aimez',
+    id: ID_PARCE_QUE_VOUS_AIMEZ,
     cleTitre: 'v2.home.wBecauseYouLike',
     forme: 'bande',
     masqueSiVide: true,
     charger: async (ctx) => {
       const tr = get(t) as (k: string) => string;
+      const { playlists, pending } = await chargerGenerees();
+      // Premier calcul de la période encore en cours côté serveur : on le
+      // dit, et on relance UNE fois (`programmerRelance`).
+      if (pending && !playlists.length) {
+        programmerRelance();
+        return [{ id: 'pvaa-preparation', titre: tr('v2.home.becauseYouLikePending'), cover: null, source: null }];
+      }
+      relanceTerminee();
       return utiles(
-        (await chargerPlaylistsGenerees()).slice(0, limiteDe(ctx)).map((p, i) => ({
+        playlists.slice(0, limiteDe(ctx)).map((p, i) => ({
           id: `pvaa${i}-${p.id}`,
           titre: tr('v2.home.becauseYouLikeCard').replace('{artiste}', p.artist),
           sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,

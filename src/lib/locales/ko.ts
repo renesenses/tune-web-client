@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "일부 곡을 추가하지 못했습니다. 플레이리스트 “{nom}”이(가) 불완전합니다.",
   "v2.home.becauseYouLikeDeletePartial": "불완전한 플레이리스트 삭제",
   "v2.home.becauseYouLikeDeleted": "불완전한 플레이리스트를 삭제했습니다",
+  "v2.home.becauseYouLikePending": "플레이리스트를 준비하는 중…",
   "v2.home.wArtistRadios": "즐겨찾기 및 최근 라디오",
   "v2.home.wPodcasts": "나의 팟캐스트",
   "v2.home.wQobuz": "Qobuz 선곡",

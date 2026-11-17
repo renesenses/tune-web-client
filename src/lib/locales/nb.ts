@@ -1761,6 +1761,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Noen spor kunne ikke legges til: spillelisten «{nom}» er ufullstendig.",
   "v2.home.becauseYouLikeDeletePartial": "Slett den ufullstendige spillelisten",
   "v2.home.becauseYouLikeDeleted": "Ufullstendig spilleliste slettet",
+  "v2.home.becauseYouLikePending": "Forbereder spillelistene dine…",
   "v2.home.wArtistRadios": "Favoritt- og nylige radioer",
   "v2.home.wPodcasts": "Podkastene dine",
   "v2.home.wQobuz": "Qobuz-utvalg",

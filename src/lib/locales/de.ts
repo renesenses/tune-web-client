@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Einige Titel konnten nicht hinzugefügt werden: Die Playlist „{nom}“ ist unvollständig.",
   "v2.home.becauseYouLikeDeletePartial": "Unvollständige Playlist löschen",
   "v2.home.becauseYouLikeDeleted": "Unvollständige Playlist gelöscht",
+  "v2.home.becauseYouLikePending": "Deine Playlists werden vorbereitet…",
   "v2.home.wArtistRadios": "Favoriten- und zuletzt gehörte Radios",
   "v2.home.wPodcasts": "Ihre Podcasts",
   "v2.home.wQobuz": "Qobuz-Auswahl",

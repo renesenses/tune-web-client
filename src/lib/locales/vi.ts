@@ -1763,6 +1763,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Không thể thêm một số bài: danh sách phát “{nom}” chưa đầy đủ.",
   "v2.home.becauseYouLikeDeletePartial": "Xóa danh sách phát chưa đầy đủ",
   "v2.home.becauseYouLikeDeleted": "Đã xóa danh sách phát chưa đầy đủ",
+  "v2.home.becauseYouLikePending": "Đang chuẩn bị danh sách phát của bạn…",
   "v2.home.wArtistRadios": "Radio yêu thích và gần đây",
   "v2.home.wPodcasts": "Podcast của bạn",
   "v2.home.wQobuz": "Tuyển chọn Qobuz",

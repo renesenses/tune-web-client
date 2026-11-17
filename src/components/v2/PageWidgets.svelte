@@ -66,7 +66,7 @@
   import { formatTime } from '../../lib/utils';
   import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
   import PlaylistGenereeV2 from './PlaylistGenereeV2.svelte';
-  import type { PlaylistGeneree } from '../../lib/parceQueVousAimez';
+  import { ID_PARCE_QUE_VOUS_AIMEZ, relanceDemandee, type PlaylistGeneree } from '../../lib/parceQueVousAimez';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -998,6 +998,20 @@
       const avant = vu;
       vu = signature;
       if (avant != null && avant !== signature) rechargerWidget(ID_ECOUTER_PLUS_TARD);
+    });
+  });
+
+  /**
+   * web#3118 — « Parce que vous aimez » encore en préparation côté serveur :
+   * sa relance UNIQUE (`programmerRelance`) recharge le widget. Même
+   * souscription impérative que les zones ; la première émission est l'état
+   * initial.
+   */
+  onMount(() => {
+    let premier = true;
+    return relanceDemandee.subscribe(() => {
+      if (premier) { premier = false; return; }
+      rechargerWidget(ID_PARCE_QUE_VOUS_AIMEZ);
     });
   });
 

@@ -14,6 +14,7 @@
  * `Track` (pour `lectureEnMasse`), lancer la lecture, et enregistrer la
  * playlist générée comme une playlist Tune.
  */
+import { writable } from 'svelte/store';
 import * as api from './api';
 import { lireListe } from './lectureEnMasse';
 import type { StreamingTrackInfo, Track } from './types';
@@ -53,6 +54,8 @@ export interface PlaylistGeneree {
 }
 
 export interface ReponseParceQueVousAimez {
+  /** Le calcul n'a pas fini dans le délai : il continue côté serveur. */
+  pending?: boolean;
   /** Premier jour de la période en cours. */
   date?: string;
   /** Durée de la période, en jours (3). */
@@ -63,7 +66,52 @@ export interface ReponseParceQueVousAimez {
 /** Ce que rend la route, ou une liste vide quand la forme est inattendue
  *  (serveur antérieur : 404, attrapé par l'appelant). */
 export async function chargerPlaylistsGenerees(limite?: number): Promise<PlaylistGeneree[]> {
+  return (await chargerGenerees(limite)).playlists;
+}
+
+/**
+ * Les playlists, et si le serveur les PRÉPARE encore (`pending`) : le premier
+ * calcul d'une période peut dépasser le délai d'un widget ; il continue côté
+ * serveur et l'affichage suivant le lit.
+ */
+export async function chargerGenerees(
+  limite?: number,
+): Promise<{ playlists: PlaylistGeneree[]; pending: boolean }> {
   const r = await api.getBecauseYouLike(limite);
+  return { playlists: normaliser(r), pending: r?.pending === true };
+}
+
+/**
+ * UNE relance, ~60 s après une réponse « en cours » — jamais une boucle :
+ * une seconde réponse « en cours » n'en programme pas d'autre, jusqu'à ce
+ * qu'une vraie réponse arrive. `PageWidgets` écoute ce compteur et recharge
+ * le widget.
+ */
+export const DELAI_RELANCE_MS = 60_000;
+/** L'identifiant du widget, celui que `PageWidgets` recharge. */
+export const ID_PARCE_QUE_VOUS_AIMEZ = 'parce-que-vous-aimez';
+export const relanceDemandee = writable(0);
+let relanceProgrammee = false;
+let relanceFaite = false;
+
+/** Programme la relance unique. Rend `false` si elle est déjà prise. */
+export function programmerRelance(delai = DELAI_RELANCE_MS): boolean {
+  if (relanceProgrammee || relanceFaite) return false;
+  relanceProgrammee = true;
+  setTimeout(() => {
+    relanceProgrammee = false;
+    relanceFaite = true;
+    relanceDemandee.update((n) => n + 1);
+  }, delai);
+  return true;
+}
+
+/** Une vraie réponse est arrivée : la prochaine attente aura sa relance. */
+export function relanceTerminee(): void {
+  relanceFaite = false;
+}
+
+function normaliser(r: ReponseParceQueVousAimez | null | undefined): PlaylistGeneree[] {
   const liste = Array.isArray(r?.playlists) ? r.playlists : [];
   const periode = typeof r?.refresh_days === 'number' && r.refresh_days > 0 ? Math.floor(r.refresh_days) : null;
   return liste

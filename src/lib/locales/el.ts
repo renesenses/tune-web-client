@@ -1761,6 +1761,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Ορισμένα κομμάτια δεν προστέθηκαν: η λίστα «{nom}» είναι ελλιπής.",
   "v2.home.becauseYouLikeDeletePartial": "Διαγραφή της ελλιπούς λίστας",
   "v2.home.becauseYouLikeDeleted": "Η ελλιπής λίστα διαγράφηκε",
+  "v2.home.becauseYouLikePending": "Προετοιμασία των λιστών σας…",
   "v2.home.wArtistRadios": "Αγαπημένοι και πρόσφατοι σταθμοί",
   "v2.home.wPodcasts": "Τα podcast σας",
   "v2.home.wQobuz": "Επιλογές Qobuz",

@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "一部の曲を追加できませんでした。プレイリスト「{nom}」は不完全です。",
   "v2.home.becauseYouLikeDeletePartial": "不完全なプレイリストを削除",
   "v2.home.becauseYouLikeDeleted": "不完全なプレイリストを削除しました",
+  "v2.home.becauseYouLikePending": "プレイリストを準備しています…",
   "v2.home.wArtistRadios": "お気に入りと最近のラジオ",
   "v2.home.wPodcasts": "あなたのポッドキャスト",
   "v2.home.wQobuz": "Qobuz セレクション",

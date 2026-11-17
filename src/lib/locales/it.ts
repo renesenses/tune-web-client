@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Alcuni brani non sono stati aggiunti: la playlist «{nom}» è incompleta.",
   "v2.home.becauseYouLikeDeletePartial": "Elimina la playlist incompleta",
   "v2.home.becauseYouLikeDeleted": "Playlist incompleta eliminata",
+  "v2.home.becauseYouLikePending": "Preparazione delle tue playlist…",
   "v2.home.wArtistRadios": "Radio preferite e recenti",
   "v2.home.wPodcasts": "I tuoi podcast",
   "v2.home.wQobuz": "Selezione Qobuz",

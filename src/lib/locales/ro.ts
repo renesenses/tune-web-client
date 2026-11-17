@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "Unele piese nu au putut fi adăugate: playlistul „{nom}” este incomplet.",
   "v2.home.becauseYouLikeDeletePartial": "Șterge playlistul incomplet",
   "v2.home.becauseYouLikeDeleted": "Playlist incomplet șters",
+  "v2.home.becauseYouLikePending": "Se pregătesc playlisturile tale…",
   "v2.home.wArtistRadios": "Radiouri favorite și recente",
   "v2.home.wPodcasts": "Podcasturile dumneavoastră",
   "v2.home.wQobuz": "Selecție Qobuz",

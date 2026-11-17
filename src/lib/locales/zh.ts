@@ -3104,6 +3104,7 @@ export default {
   "v2.home.becauseYouLikePartial": "部分曲目未能添加：播放列表「{nom}」不完整。",
   "v2.home.becauseYouLikeDeletePartial": "删除不完整的播放列表",
   "v2.home.becauseYouLikeDeleted": "已删除不完整的播放列表",
+  "v2.home.becauseYouLikePending": "正在准备你的播放列表…",
   "v2.home.wArtistRadios": "收藏和最近的电台",
   "v2.home.wPodcasts": "您的播客",
   "v2.home.wQobuz": "Qobuz 精选",
