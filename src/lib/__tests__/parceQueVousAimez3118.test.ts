@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../api', async (orig) => ({ ...(await orig<any>()), ...mocks }));
 
 import {
+  EnregistrementPartiel,
   chargerPlaylistsGenerees,
   enregistrerPlaylistGeneree,
   lirePlaylistGeneree,
@@ -74,6 +75,17 @@ describe('parce que vous aimez — client', () => {
       [7, [], 1],
       [7, [13], 0],
     ]);
+  });
+
+  it('un ajout qui échoue après la création lève un enregistrement PARTIEL, avec la playlist', async () => {
+    mocks.createPlaylist.mockResolvedValue({ id: 9 });
+    mocks.addPlaylistTracks.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('503'));
+    const e = await enregistrerPlaylistGeneree(playlist(), 'X').catch((x) => x);
+    expect(e).toBeInstanceOf(EnregistrementPartiel);
+    expect((e as EnregistrementPartiel).playlistId).toBe(9);
+    const modale = readFileSync(resolve(__dirname, '../../components/v2/PlaylistGenereeV2.svelte'), 'utf8');
+    expect(modale).toMatch(/api\.deletePlaylist\(partielle\.id\)/);
+    expect(modale).toContain('formatDuration(playlist.duration_ms');
   });
 
   it('refuse d’ajouter des titres à une playlist que le serveur n’a pas créée', async () => {
@@ -147,6 +159,7 @@ describe('parce que vous aimez — widget', () => {
       'wBecauseYouLike', 'becauseYouLikeCard', 'becauseYouLikeWith', 'becauseYouLikeCount',
       'becauseYouLikePlay', 'becauseYouLikeSave', 'becauseYouLikeDone', 'becauseYouLikeName',
       'becauseYouLikeSaved', 'becauseYouLikeNoZone', 'becauseYouLikeRefresh',
+      'becauseYouLikePartial', 'becauseYouLikeDeletePartial', 'becauseYouLikeDeleted',
     ];
     const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
     expect(langues.length).toBeGreaterThanOrEqual(15);

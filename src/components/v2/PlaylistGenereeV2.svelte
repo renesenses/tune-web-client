@@ -17,9 +17,11 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime } from '../../lib/utils';
+  import { formatDuration, formatTime } from '../../lib/utils';
+  import * as api from '../../lib/api';
   import MosaiqueDifferee from './MosaiqueDifferee.svelte';
   import {
+    EnregistrementPartiel,
     enregistrerPlaylistGeneree,
     lirePlaylistGeneree,
     type PlaylistGeneree,
@@ -39,6 +41,8 @@
   });
   let travail = $state(false);
   let enregistree = $state(false);
+  /** Créée mais incomplète : son identifiant et son nom, pour la supprimer. */
+  let partielle = $state<{ id: number; nom: string } | null>(null);
 
   function lire() {
     const z = $currentZoneId;
@@ -58,6 +62,25 @@
       await enregistrerPlaylistGeneree(playlist, n);
       enregistree = true;
       notifications.success(($t('v2.home.becauseYouLikeSaved' as any) as string).replace('{nom}', n));
+    } catch (err: any) {
+      if (err instanceof EnregistrementPartiel) {
+        partielle = { id: err.playlistId, nom: n };
+        enregistree = true;
+      } else {
+        notifierErreur($t('common.error' as any), err, { motifSeul: true });
+      }
+    }
+    travail = false;
+  }
+
+  async function supprimerPartielle() {
+    if (!partielle || travail) return;
+    travail = true;
+    try {
+      await api.deletePlaylist(partielle.id);
+      partielle = null;
+      enregistree = false;
+      notifications.success($t('v2.home.becauseYouLikeDeleted' as any));
     } catch (err: any) {
       notifierErreur($t('common.error' as any), err, { motifSeul: true });
     }
@@ -83,7 +106,7 @@
         <p class="sous">
           {($t('v2.home.becauseYouLikeCount' as any) as string)
             .replace('{n}', String(playlist.tracks.length))
-            .replace('{duree}', formatTime(playlist.duration_ms ?? 0))}
+            .replace('{duree}', formatDuration(playlist.duration_ms ?? 0))}
           {#if playlist.refresh_days}
             · {($t('v2.home.becauseYouLikeRefresh' as any) as string).replace('{n}', String(playlist.refresh_days))}
           {/if}
@@ -107,6 +130,15 @@
         </li>
       {/each}
     </ol>
+
+    {#if partielle}
+      <div class="partielle" role="alert" data-testid="pvaa-partielle">
+        <span>{($t('v2.home.becauseYouLikePartial' as any) as string).replace('{nom}', partielle.nom)}</span>
+        <button type="button" class="sec" onclick={supprimerPartielle} disabled={travail}>
+          {$t('v2.home.becauseYouLikeDeletePartial' as any)}
+        </button>
+      </div>
+    {/if}
 
     <form class="pied" onsubmit={enregistrer}>
       <label>
@@ -172,6 +204,11 @@
   }
   .d { flex: none; color: var(--v2-txt3); font: 500 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); }
   .pied { display: flex; gap: 10px; align-items: flex-end; margin-top: 14px; }
+  .partielle {
+    display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 12px;
+    padding: 8px 10px; border-radius: 8px; border: 1px solid var(--v2-danger-bd); color: var(--v2-danger);
+    font-size: calc(12.5px * var(--v2-txt-echelle, 1));
+  }
   .pied label { flex: 1 1 auto; min-width: 0; }
   .pied label span {
     display: block; margin-bottom: 5px;

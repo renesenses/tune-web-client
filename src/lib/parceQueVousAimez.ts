@@ -137,8 +137,23 @@ export function segments(p: PlaylistGeneree): Array<{ ids: number[]; services: S
 }
 
 /**
+ * La playlist a été créée, mais un ajout de titres a échoué : elle existe,
+ * INCOMPLÈTE. L'appelant le dit et propose de la supprimer.
+ */
+export class EnregistrementPartiel extends Error {
+  constructor(
+    readonly playlistId: number,
+    readonly origine: unknown,
+  ) {
+    super('playlist_partially_saved');
+    this.name = 'EnregistrementPartiel';
+  }
+}
+
+/**
  * « Enregistrer comme playlist » : une playlist Tune neuve, nommée `nom`, qui
  * reçoit les titres dans l'ordre. Rend l'identifiant de la playlist créée.
+ * Un ajout qui échoue après la création lève [`EnregistrementPartiel`].
  */
 export async function enregistrerPlaylistGeneree(
   p: PlaylistGeneree,
@@ -148,8 +163,12 @@ export async function enregistrerPlaylistGeneree(
   const creee: any = await api.createPlaylist(nom, description);
   const id = Number(creee?.id);
   if (!Number.isFinite(id) || id <= 0) throw new Error('playlist_not_created');
-  for (const s of segments(p)) {
-    await api.addPlaylistTracks(id, s.ids, undefined, s.services.length ? s.services : undefined);
+  try {
+    for (const s of segments(p)) {
+      await api.addPlaylistTracks(id, s.ids, undefined, s.services.length ? s.services : undefined);
+    }
+  } catch (e) {
+    throw new EnregistrementPartiel(id, e);
   }
   return id;
 }
