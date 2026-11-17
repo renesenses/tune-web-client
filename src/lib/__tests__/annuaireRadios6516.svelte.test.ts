@@ -86,9 +86,10 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     expect(mocks.getAnnuaireRadios).toHaveBeenCalled();
     const noms = [...hote.querySelectorAll('.fiche .nm')].map((n) => n.textContent);
     expect(noms).toEqual(['FIP', 'Radio Paradise: Main Mix']);
-    // FIP est déjà dans « Mes radios » : pas de bouton d'ajout, une mention.
+    // FIP est déjà dans « Mes radios » : pas de bouton d'ajout. (La mention
+    // « Dans mes radios » a quitté la vignette : retour de Rémi sur la rc12.)
     const fiches = hote.querySelectorAll('.fiche');
-    expect(fiches[0].querySelector('.dedans')).not.toBeNull();
+    expect(fiches[0].querySelector('.dedans')).toBeNull();
     expect(fiches[0].querySelector('.tl2')).toBeNull();
     expect(fiches[1].querySelector('.tl2')).not.toBeNull();
   });
@@ -127,7 +128,8 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     hote.querySelectorAll('.fiche')[1].querySelector<HTMLButtonElement>('.tl2')!.click();
     await respirer();
     expect(mocks.ajouterDepuisAnnuaire).toHaveBeenCalledWith('S002479', false);
-    expect(hote.querySelectorAll('.fiche')[1].querySelector('.dedans')).not.toBeNull();
+    // L'ajout se voit au bouton : « Ajouter » disparaît de la pochette.
+    expect(hote.querySelectorAll('.fiche')[1].querySelector('.tl2')).toBeNull();
     // Retour à « Mes radios » : la station y est, sans rechargement.
     hote.querySelectorAll<HTMLButtonElement>('.sections button')[0].click();
     await respirer();

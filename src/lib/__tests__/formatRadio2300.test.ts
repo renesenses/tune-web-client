@@ -79,15 +79,21 @@ describe('#2300 — ce que le chemin du signal dit d’une radio', () => {
   });
 });
 
-describe('#2300 — la barre de lecture', () => {
+// Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : l'encadré en bas à
+// gauche ne montre PLUS le format d'une radio (il reste dans le chemin du
+// signal et dans Lecture en cours) ; la station prend sa ligne. Voir aussi
+// radiosEpureRemiRc12.svelte.test.ts.
+describe('#2300 — la barre de lecture (rc12 : plus de format pour une radio)', () => {
   const badge = (h: HTMLElement) => h.querySelector<HTMLElement>('.mini-badges .tb-quality-badge');
 
-  it('🔴 une radio sondée montre son format', { timeout: DELAI }, async () => {
+  it('🔴 une radio sondée ne montre plus son format, mais sa station', { timeout: DELAI }, async () => {
     poserLaZone(SONDEE);
     const h = poser(TransportBar);
     await respirer();
     flushSync();
-    expect(badge(h)?.textContent?.trim()).toBe('MP3 128 kbit/s 44kHz');
+    expect(badge(h)).toBeNull();
+    expect(h.querySelector('.transport-left')?.textContent).not.toContain('MP3 128 kbit/s 44kHz');
+    expect(h.querySelector('[data-testid="mini-station"]')?.textContent?.trim()).toContain('FIP');
   });
 
   it('une radio pas encore sondée ne montre rien', { timeout: DELAI }, async () => {

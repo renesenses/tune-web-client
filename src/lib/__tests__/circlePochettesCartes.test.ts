@@ -102,3 +102,17 @@ describe('VignettePochettesCercle', () => {
     expect(hote.querySelector('.pochettes-carte.vide')).not.toBeNull();
   });
 });
+
+// Recette du 16/11 sur le .18 : aucune carte ne montrait de pochette. La mosaïque
+// vide était en `display:none` ; or c'est elle que l'IntersectionObserver observe,
+// et un élément sans boîte n'est jamais « à l'écran » : le chargement ne partait
+// jamais. jsdom ne fait pas de mise en page, d'où cette garde sur la feuille de style.
+describe('la mosaïque vide reste observable', () => {
+  it("n'est jamais en display:none (l'observateur ne la verrait pas)", async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(`${process.cwd()}/src/components/v2/VignettePochettesCercle.svelte`, 'utf-8');
+    const regles = [...src.matchAll(/\.pochettes-carte[^{]*\{([^}]*)\}/g)].map((m) => m[1].replace(/\s+/g, ''));
+    expect(regles.length).toBeGreaterThan(0);
+    for (const r of regles) expect(r).not.toContain('display:none');
+  });
+});
