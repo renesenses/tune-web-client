@@ -154,7 +154,7 @@
           aria-label={avec('settings.sidebarMoveDown', it)} title={avec('settings.sidebarMoveDown', it)}
           onclick={() => deplacerA(i, i + 1, true)}>↓</button>
         {#if mention}
-          <span class="greffon" data-etat-greffon={etat}>{$t(mention as any)}</span>
+          <span class="greffon" data-etat-greffon={etat} use:bulleTexte>{$t(mention as any)}</span>
         {/if}
         {#if geste}
           <button class="lnk ouvrir-greffon" data-ouvrir-greffon={it.view}
