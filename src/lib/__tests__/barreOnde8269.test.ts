@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { get, writable } from 'svelte/store';
 import {
   cibleClavier, cheminOnde, creerCacheOndes, idPisteOnde, nombreDeBarres,
-  normaliserOnde, ondeDeLaPiste, reduireOnde,
+  echecDefinitif, normaliserOnde, ondeDeLaPiste, reduireOnde,
 } from '../barreOnde';
 import type { NowPlaying } from '../types';
 
@@ -62,7 +62,7 @@ describe('#8269 — clavier', () => {
 describe('#8269 — une requête par piste', () => {
   it('🔴 deux demandes simultanées partagent la requête ; un refus n’est JAMAIS redemandé', async () => {
     const charger = vi.fn(async (id: number) => {
-      if (id === 2) throw new Error('500');
+      if (id === 2) throw Object.assign(new Error('404'), { status: 404 });
       return { waveform: [0.2, 0.8] };
     });
     const cache = creerCacheOndes(charger);
@@ -118,6 +118,78 @@ describe('#8269 — une requête par piste', () => {
     libere({ waveform: [1, 1] });
     await attendre(); await attendre();
     expect(get(onde)).toBeNull();
+    stop();
+  });
+});
+
+// Bertrand, .18, 17/11/2026 : « la forme d'onde a disparu » sous Chrome, pas
+// sous Safari. L'onglet Chrome était resté ouvert pendant la mise à jour et le
+// redémarrage du serveur (16/11) : la demande échouée alors était retenue
+// comme « pas d'onde » pour la vie de l'onglet. Cmd+Maj+R l'a fait revenir.
+describe('#8269 — une panne passagère n’est pas une réponse', () => {
+  const erreur = (status?: number) => Object.assign(new Error(String(status ?? 'réseau')), status === undefined ? {} : { status });
+
+  it('définitif : 404, 400, 422, 501 ; passager : réseau, 500, 502, 503, 401, 408, 429', () => {
+    for (const s of [404, 400, 422, 501]) expect(echecDefinitif(erreur(s)), String(s)).toBe(true);
+    for (const s of [undefined, 500, 502, 503, 401, 408, 429]) expect(echecDefinitif(erreur(s)), String(s)).toBe(false);
+    expect(echecDefinitif(new TypeError('Failed to fetch'))).toBe(false);
+    expect(echecDefinitif(null)).toBe(false);
+  });
+
+  it('🔴 le cache : après une panne réseau ou un 503, la piste est redemandée et son onde revient', async () => {
+    let panne: Error | null = new TypeError('Failed to fetch');
+    const charger = vi.fn(async () => {
+      if (panne) throw panne;
+      return { waveform: [0.2, 0.8] };
+    });
+    const cache = creerCacheOndes(charger);
+    expect(await cache.obtenir(7)).toBeNull();
+    expect(cache.connue(7), 'rien de retenu après une panne réseau').toBeUndefined();
+    panne = erreur(503);
+    expect(await cache.obtenir(7)).toBeNull();
+    expect(cache.connue(7), 'rien de retenu après un 503').toBeUndefined();
+    panne = null;
+    expect(await cache.obtenir(7)).toEqual([0.2, 0.8]);
+    expect(cache.connue(7)).toEqual([0.2, 0.8]);
+    await cache.obtenir(7);
+    expect(charger).toHaveBeenCalledTimes(3);
+  });
+
+  it('🔴 le store : panne au premier passage, l’onde revient au retour sur la piste et au remontage', async () => {
+    let panne = true;
+    const charger = vi.fn(async () => {
+      if (panne) throw erreur(502);
+      return { waveform: [0.1, 0.9] };
+    });
+    const piste = writable<Pick<NowPlaying, 'source' | 'track_id'> | null>({ source: 'local', track_id: 3 });
+    const onde = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger));
+    let stop = onde.subscribe(() => {});
+    await attendre(); await attendre();
+    expect(get(onde)).toBeNull();
+    expect(charger).toHaveBeenCalledTimes(1);
+
+    // Le serveur est revenu. Remontage (l'écran se rouvre) : redemandée.
+    panne = false;
+    stop();
+    stop = onde.subscribe(() => {});
+    await attendre(); await attendre();
+    expect(charger).toHaveBeenCalledTimes(2);
+    expect(get(onde)).toEqual([0.1, 0.9]);
+    stop();
+
+    // Changement de piste puis retour : panne sur la 4, revenue au retour.
+    panne = true;
+    stop = onde.subscribe(() => {});
+    piste.set({ source: 'local', track_id: 4 });
+    await attendre(); await attendre();
+    expect(get(onde)).toBeNull();
+    panne = false;
+    piste.set({ source: 'local', track_id: 3 });
+    await attendre();
+    piste.set({ source: 'local', track_id: 4 });
+    await attendre(); await attendre();
+    expect(get(onde), 'la 4 redemandée après la panne').toEqual([0.1, 0.9]);
+    expect(charger).toHaveBeenCalledTimes(4);
     stop();
   });
 });

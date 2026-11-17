@@ -21,8 +21,14 @@
  *     la première demande : 2 à 4 s pour une piste de 4 min, 40 à 60 s pour
  *     une piste d'une heure, mesuré sur le .18 le 12/11/2026) : la barre
  *     classique s'affiche jusqu'à la réponse ;
- *   - d'un refus (`waveform: null`, 404, panne réseau) : retenu comme « pas
- *     d'onde » pour toute la session, JAMAIS redemandé.
+ *   - d'un refus DÉFINITIF (`waveform: null`, 404 ou autre 4xx) : retenu
+ *     comme « pas d'onde » pour toute la session, JAMAIS redemandé ;
+ *   - d'une panne PASSAGÈRE (réseau coupé, 5xx, 401, 408, 429, serveur qui
+ *     redémarre) : barre classique, mais RIEN n'est retenu — la piste est
+ *     redemandée au prochain passage (changement de piste, remontage).
+ *     Mémoriser ces pannes figeait la barre classique pour la vie de
+ *     l'onglet : Chrome resté ouvert pendant la mise à jour du .18 le
+ *     16/11/2026 n'a plus montré l'onde, Safari rechargé si (Bertrand, 17/11).
  *
  * UNE requête par piste et par onglet : le cache garde la promesse dès
  * l'envoi, si bien que la barre du bas et l'écran de lecture qui demandent la
@@ -148,6 +154,20 @@ export interface CacheOndes {
 
 /** Un cache par piste, autour d'une fonction de chargement injectée (les
  *  tests passent la leur, l'application passe `api.getTrackWaveform`). */
+/** Un échec de chargement est-il une réponse DÉFINITIVE du serveur (« cette
+ *  piste n'a pas d'onde », à retenir) ou une panne PASSAGÈRE (à redemander) ?
+ *
+ *  Définitif : un statut 4xx que rejouer ne changerait pas (404 piste
+ *  inconnue, 400, 422…) et le 501 (« je ne sais pas faire »). Passager :
+ *  pas de statut du tout (réseau coupé, requête abandonnée), un 5xx (dont le
+ *  503 du serveur qui démarre), 401 (session à rouvrir), 408 et 429. */
+export function echecDefinitif(erreur: unknown): boolean {
+  const statut = (erreur as { status?: unknown } | null)?.status;
+  if (typeof statut !== 'number') return false;
+  if (statut === 501) return true;
+  return statut >= 400 && statut < 500 && statut !== 401 && statut !== 408 && statut !== 429;
+}
+
 export function creerCacheOndes(charger: (id: number) => Promise<unknown>): CacheOndes {
   const resolues = new Map<number, Onde | null>();
   const enVol = new Map<number, Promise<Onde | null>>();
@@ -161,9 +181,14 @@ export function creerCacheOndes(charger: (id: number) => Promise<unknown>): Cach
       if (deja) return deja;
       const p = Promise.resolve()
         .then(() => charger(id))
-        .then(normaliserOnde, () => null)
-        .then((onde) => {
-          resolues.set(id, onde);
+        .then(
+          (reponse) => ({ onde: normaliserOnde(reponse), retenir: true }),
+          (erreur) => ({ onde: null, retenir: echecDefinitif(erreur) }),
+        )
+        .then(({ onde, retenir }) => {
+          // Une panne passagère n'est PAS une réponse : rien de retenu, la
+          // prochaine demande de cette piste repartira au serveur.
+          if (retenir) resolues.set(id, onde);
           enVol.delete(id);
           return onde;
         });
@@ -190,8 +215,16 @@ export function ondeDeLaPiste(
   let dernier: number | null | undefined;
   let jeton = 0;
   let valeur: Onde | null = null;
+  /** La piste dont la demande est partie et pas encore revenue. */
+  let enCours: number | null = null;
   return derived(id, ($id, set) => {
-    if ($id === dernier) { set(valeur); return; }
+    // Même piste ET réponse connue (ou en route) : rien à redemander. Une
+    // piste dont la dernière demande a échoué en passant n'est pas connue du
+    // cache : un remontage (retour sur l'écran, nouvel abonné) la redemande.
+    if ($id === dernier && ($id == null || cache.connue($id) !== undefined || enCours === $id)) {
+      set(valeur);
+      return;
+    }
     dernier = $id;
     const moi = ++jeton;
     if ($id == null) { valeur = null; set(null); return; }
@@ -200,9 +233,11 @@ export function ondeDeLaPiste(
     // En route : la barre classique d'ici la réponse.
     valeur = null;
     set(null);
+    enCours = $id;
     void cache.obtenir($id).then((onde) => {
       // Une réponse arrivée après un changement de piste n'a plus rien à dire.
       if (moi !== jeton) return;
+      enCours = null;
       valeur = onde;
       set(onde);
     });
