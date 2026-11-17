@@ -8795,11 +8795,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="lbl">
                     <span>{$t('settings.replayGain' as any)}</span>
                     <span class="hint">{$t('settings.replayGainHint' as any)}</span>
+                    {#if rgMode === 'auto'}
+                      <!-- #8968 : ce que le mode Auto choisit, dit en clair. -->
+                      <span class="hint" data-testid="rg-auto-hint">{$t('settings.replayGainAutoHint' as any)}</span>
+                    {/if}
                   </div>
                   <div class="seg4">
                     <button class:on={rgMode === 'off'} onclick={() => setRgMode('off')}>{$t('settings.replayGainOff' as any)}</button>
                     <button class:on={rgMode === 'track'} onclick={() => setRgMode('track')}>{$t('settings.replayGainTrack' as any)}</button>
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
+                    <button class:on={rgMode === 'auto'} onclick={() => setRgMode('auto')} title={$t('settings.replayGainAutoHint' as any)}>{$t('settings.replayGainAuto' as any)}</button>
                   </div>
                 </div>
                 {#if rgMode !== 'off' && voit('expert', s.id)}
