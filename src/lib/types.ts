@@ -726,6 +726,15 @@ export interface Zone {
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
   fixed_sample_rate?: number | null;
+  /** tune-server-rust#3245 — mode exclusif réglé sur CETTE zone, pour son
+   *  appareil local. `null` = la zone suit le réglage de machine
+   *  `local_exclusive_mode` ; absent = serveur qui ne connaît pas le réglage. */
+  exclusive_mode?: boolean | null;
+  /** #3245 — le mode sous lequel la sortie locale ouvrira réellement
+   *  l'appareil (servi par `GET /zones/{id}`, donc par la réponse au PATCH).
+   *  Diffère de `exclusive_mode` tant qu'une lecture retient le changement,
+   *  ou quand le pilote impose sa règle (ASIO). `null` hors sortie locale. */
+  exclusive_mode_applique?: boolean | null;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
