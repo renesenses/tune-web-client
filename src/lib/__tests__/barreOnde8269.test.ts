@@ -6,7 +6,7 @@ import { get, writable } from 'svelte/store';
 import {
   cibleClavier, cheminOnde, creerCacheOndes, idPisteOnde, nombreDeBarres,
   clePisteOnde, DELAI_REESSAI_MS, echecDefinitif, normaliserOnde, ondeDeLaPiste,
-  pisteDeServiceDe, reduireOnde,
+  pisteDeServiceDe, reduireOnde, type ClePiste,
 } from '../barreOnde';
 import type { NowPlaying } from '../types';
 
@@ -62,7 +62,7 @@ describe('#8269 — clavier', () => {
 
 describe('#8269 — une requête par piste', () => {
   it('🔴 deux demandes simultanées partagent la requête ; un refus n’est JAMAIS redemandé', async () => {
-    const charger = vi.fn(async (id: number) => {
+    const charger = vi.fn(async (id: ClePiste) => {
       if (id === 2) throw Object.assign(new Error('404'), { status: 404 });
       return { waveform: [0.2, 0.8] };
     });
@@ -108,7 +108,7 @@ describe('#8269 — une requête par piste', () => {
 
   it('une réponse arrivée après un changement de piste ne s’affiche pas', async () => {
     let libere!: (v: unknown) => void;
-    const charger = vi.fn((id: number) => id === 1
+    const charger = vi.fn((id: ClePiste) => id === 1
       ? new Promise((r) => { libere = r; })
       : Promise.resolve({ waveform: [0.3, 0.6] }));
     const piste = writable<Pick<NowPlaying, 'source' | 'track_id'> | null>({ source: 'local', track_id: 1 });
