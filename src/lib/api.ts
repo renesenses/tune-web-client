@@ -29,6 +29,7 @@ import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -737,6 +738,12 @@ export async function fetchJSON<T>(
         ) {
           notifications.error(err.message, 10000, err.detail);
         }
+        err.dejaAnnonce = true;
+      } else if (estLectureYoutubeInactive(err.code)) {
+        // tune-server-rust#8913 — YouTube sans yt-dlp : la phrase traduite du
+        // serveur (ou son repli) et le bouton qui mène au réglage « Lecture
+        // YouTube », au lieu du 502 `upstream_error` brut d'avant.
+        err.message = annoncerLectureYoutubeInactive(err.message);
         err.dejaAnnonce = true;
       } else if (err.code === CODE_RECONNEXION_FAVORIS_SPOTIFY) {
         // tune-server-rust#8579 — favori Spotify refusé faute d'autorisation
