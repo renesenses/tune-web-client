@@ -16,6 +16,7 @@
   import { dateCourte } from '../../lib/dates';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { zones as zonesVisibles } from '../../lib/stores/zones';
+  import { notifications } from '../../lib/stores/notifications';
 
   let { onRestauree }: { onRestauree?: () => void | Promise<void> } = $props();
 
@@ -40,7 +41,12 @@
     if (enCours !== null) return;
     enCours = z.id;
     try {
-      await api.restaurerZone(z.id);
+      const restauree = await api.restaurerZone(z.id);
+      // tune-server-rust#8987 — zone née sous l'autre hôte audio (ASIO sous
+      // WASAPI ou l'inverse) : restaurée, mais muette tant qu'on ne change
+      // rien. Le serveur le dit, phrase traduite ; on la laisse à l'écran.
+      const avert = (restauree as any)?.avertissement_restauration?.message;
+      if (typeof avert === 'string' && avert.trim()) notifications.info(avert, 0);
       await charger();
       await onRestauree?.();
     } catch (e) {
