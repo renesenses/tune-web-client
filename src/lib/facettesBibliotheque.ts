@@ -196,27 +196,29 @@ export function versionQuiCorrespond(
   o: Outils,
   sauf: Facette | null = null,
 ): Album | null {
+  // Relecture de #3174 — favori, provenance, recherche, compilation, année :
+  // la CARTE (l'œuvre) ; qualité et critères techniques : la version.
+  if (!carteCorrespond(a, f, o, sauf)) return null;
   const qualite = sauf !== 'qualite' && f.qualite.length > 0;
-  const candidates = qualite && o.versionsDe ? o.versionsDe(a) : [a];
+  const candidates = qualite ? versionsDe(a, o) : [a];
   for (const v of candidates) {
     // OU dans un groupe (canaux, paliers), ET entre les deux — #3173.
     if (qualite && !repondAuxQualites(f.qualite, (c) => o.qualiteDe(v, c))) continue;
-    if (horsQualite(v, f, o, sauf)) return v;
+    if (techniqueCorrespond(v, f, sauf)) return v;
   }
   return null;
 }
 
-function horsQualite(a: Album, f: FiltresBibliotheque, o: Outils, sauf: Facette | null): boolean {
+function versionsDe(a: Album, o: Outils): readonly Album[] {
+  return o.versionsDe ? o.versionsDe(a) : [a];
+}
+
+/** Les critères qui portent sur la CARTE — #3174. */
+function carteCorrespond(a: Album, f: FiltresBibliotheque, o: Outils, sauf: Facette | null): boolean {
   // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
   // facettes cochées doivent l'être toutes les deux (ET) — #898.
-  if (sauf !== 'frequence' && f.frequence.length
-      && !f.frequence.includes(a.sample_rate ?? 0)) return false;
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
   if (sauf !== 'annee' && f.periode && !dansPeriode(o.anneeDe(a), f.periode)) return false;
-  if (sauf !== 'format' && f.format.length
-      && !formatRetenu(a, f.format)) return false;
-  if (sauf !== 'profondeur' && f.profondeur.length
-      && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
   // `?? false` : un album servi par une route qui ne porte pas le champ, ou
   // par un serveur antérieur à la v0.9.95, n'est pas une compilation CONNUE.
   // C'est la même convention que le serveur, qui décode `NULL` en « non ».
@@ -227,8 +229,32 @@ function horsQualite(a: Album, f: FiltresBibliotheque, o: Outils, sauf: Facette 
   if (f.favoris && o.estFavori && !o.estFavori(a)) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
-  if (!repondALaRecherche(a, f.recherche, o)) return false;
+  if (!repondALaRechercheCarte(versionsDe(a, o), f.recherche, o)) return false;
   return true;
+}
+
+/** Les critères TECHNIQUES, sur une version — #3174. */
+function techniqueCorrespond(a: Album, f: FiltresBibliotheque, sauf: Facette | null): boolean {
+  if (sauf !== 'frequence' && f.frequence.length
+      && !f.frequence.includes(a.sample_rate ?? 0)) return false;
+  if (sauf !== 'format' && f.format.length
+      && !formatRetenu(a, f.format)) return false;
+  if (sauf !== 'profondeur' && f.profondeur.length
+      && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
+  return true;
+}
+
+/**
+ * #3174 — la recherche sur une CARTE : une de ses versions (elle d'abord)
+ * répond. « Remaster » trouve l'œuvre dont une version porte le mot, et un
+ * id servi par la recherche serveur compte pour sa carte.
+ */
+export function repondALaRechercheCarte(
+  versions: readonly Album[],
+  recherche: string,
+  o: Pick<Outils, 'plier' | 'albumsDuTexte'> & Partial<Pick<Outils, 'albumsParMot'>>,
+): boolean {
+  return versions.some((v) => repondALaRecherche(v, recherche, o));
 }
 
 /**
@@ -306,17 +332,38 @@ function assiette(albums: readonly Album[], f: FiltresBibliotheque, o: Outils, f
   return out;
 }
 
-/** Combien d'albums pour chaque palier de qualité, l'un après l'autre. */
+/**
+ * Combien de CARTES pour chaque valeur de qualité.
+ *
+ * #3173 — une valeur se compte avec les choix cochés de l'AUTRE groupe
+ * (canaux ou paliers), jamais avec ceux du sien : le compte dit ce que la
+ * grille rendrait si on la cochait seule dans son groupe. Une carte compte
+ * pour une valeur si UNE de ses versions y répond et passe les critères
+ * techniques.
+ *
+ * Un seul passage (relecture de #3174) : pour chaque carte, chaque version est
+ * lue une fois pour toutes les valeurs.
+ */
 export function comptesQualite(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils, cles: readonly string[],
 ): Map<string, number> {
-  // #3173 — une valeur se compte avec les choix cochés de l'AUTRE groupe
-  // (canaux ou paliers), jamais avec ceux du sien : le compte dit ce que la
-  // grille rendrait si on la cochait seule dans son groupe.
-  return new Map(cles.map((c) => {
-    const g = { ...f, qualite: qualitesPourCompter(f.qualite, c) };
-    return [c, albums.reduce((n, a) => n + (versionQuiCorrespond(a, g, o) ? 1 : 0), 0)];
-  }));
+  const n = new Map<string, number>(cles.map((c) => [c, 0]));
+  // Les choix à appliquer pour chaque valeur, calculés une fois.
+  const selections = cles.map((c) => qualitesPourCompter(f.qualite, c));
+  const toutes = [...new Set([...cles, ...f.qualite])];
+  for (const a of albums) {
+    if (!carteCorrespond(a, f, o, 'qualite')) continue;
+    const vues = new Array<boolean>(cles.length).fill(false);
+    for (const v of versionsDe(a, o)) {
+      if (!techniqueCorrespond(v, f, 'qualite')) continue;
+      const repond = new Map(toutes.map((c) => [c, o.qualiteDe(v, c)]));
+      selections.forEach((sel, i) => {
+        if (!vues[i] && repondAuxQualites(sel, (c) => repond.get(c) ?? false)) vues[i] = true;
+      });
+    }
+    vues.forEach((vu, i) => { if (vu) n.set(cles[i], n.get(cles[i])! + 1); });
+  }
+  return n;
 }
 
 /** Combien d'albums pour chaque fréquence proposée. */
@@ -352,7 +399,8 @@ export function comptesFormat(
 export function comptesCompilation(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
 ): number {
-  return assiette(albums, f, o, 'compilation')
+  // #3174 — la compilation se lit sur la CARTE, comme le filtre.
+  return albums.filter((a) => correspond(a, f, o, 'compilation'))
     .reduce((n, a) => n + (a.is_compilation ? 1 : 0), 0);
 }
 
@@ -369,7 +417,8 @@ export function comptesProvenance(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
 ): [string, number][] {
   const m = new Map<string, number>(albums.map(a => [o.provenanceDe(a), 0]));
-  for (const a of assiette(albums, f, o, 'provenance')) {
+  // #3174 — la provenance se lit sur la CARTE, comme le filtre.
+  for (const a of albums.filter((x) => correspond(x, f, o, 'provenance'))) {
     const v = o.provenanceDe(a);
     if (v) m.set(v, (m.get(v) ?? 0) + 1);
   }

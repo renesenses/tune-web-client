@@ -49,3 +49,20 @@ export function filtreDeCanaux(cochees: Iterable<string>): boolean {
   for (const c of cochees) if (estCleCanaux(c)) return true;
   return false;
 }
+
+/**
+ * Relecture de #3174 — les canaux qu'affiche le badge d'une version présentée
+ * sous un choix de canaux : ceux de la version qui RÉPONDENT au choix. Un
+ * album qui mêle pistes 2.0 et 5.1 présenté sous « Stéréo » dit « 2.0 », pas
+ * « 5.1 ». Lus dans `min_channels` (à défaut `max_channels`) et `max_channels`.
+ */
+export function canauxRepondants(
+  album: { min_channels?: number | null; max_channels?: number | null },
+  cochees: Iterable<string>,
+): number[] {
+  const choix = new Set([...cochees].filter(estCleCanaux));
+  const max = Number(album.max_channels ?? 0);
+  const min = Number(album.min_channels ?? album.max_channels ?? 0);
+  return [...new Set([min, max])].filter((n) => n > 0
+    && ((choix.has('stereo') && n <= 2) || (choix.has('multichannel') && n > 2)));
+}

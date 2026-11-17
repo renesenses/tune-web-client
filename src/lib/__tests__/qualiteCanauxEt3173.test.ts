@@ -7,11 +7,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { qualitesPourCompter, repondAuxQualites } from '../qualiteCanaux';
+import { canauxRepondants, qualitesPourCompter, repondAuxQualites } from '../qualiteCanaux';
 import { comptesProfondeur, comptesQualite, correspond, versionQuiCorrespond, type FiltresBibliotheque, type Outils } from '../facettesBibliotheque';
 import { regrouperAlbums } from '../oeuvres';
 import { estMulticanal, estStereo, getQualityTier } from '../utils';
-import { filtrerFocus, fusionnerDiscographie } from '../discographieCommune';
+import { compterFocus, filtrerFocus, fusionnerDiscographie, type EntreeDiscographie } from '../discographieCommune';
 import type { Album } from '../types';
 
 const al = (o: Record<string, unknown>) => o as unknown as Album;
@@ -172,7 +172,127 @@ describe('#3173 — LibraryV2 est branchée sur la règle', () => {
     expect(src).not.toContain('fQuality.some((c) => tierMatches(a, c))');
   });
   it('la grille présente la version qui répond, et les compteurs cherchent dans les versions', () => {
-    expect(src).toMatch(/sorted\.flatMap\(\(a\) => \{ const v = versionAffichee\(a, true, true\)/);
+    expect(src).toMatch(/l\.flatMap\(\(a\) => \{ const v = versionAffichee\(a, true, true\)/);
     expect(src).toMatch(/albumsParMot: idsParMotServeur, versionsDe,/);
+  });
+});
+
+// ── Relecture de la PR #3174 ────────────────────────────────────────────────
+
+describe('#3174 — critères de la CARTE (favori…) et critères de la VERSION', () => {
+  // Œuvre : 2.0 préférée (id 10, en favori) + 5.1 (id 11, pas en favori).
+  const v20 = al({ id: 10, title: 'Œuvre', format: 'flac', sample_rate: 44100, bit_depth: 16, min_channels: 2, max_channels: 2 });
+  const v51 = al({ id: 11, title: 'Œuvre (5.1)', format: 'flac', sample_rate: 96000, bit_depth: 24, min_channels: 6, max_channels: 6 });
+  const r = regrouperAlbums([v20, v51], [{ work_id: 'w', preferred_id: 10, ids: [10, 11] }]);
+  const favoris = new Set([10]);
+  const o: Outils = {
+    qualiteDe, anneeDe: () => null, plier: (s) => (s ?? '').toLowerCase(), provenanceDe: () => 'local',
+    estFavori: (a) => a.id != null && favoris.has(a.id),
+    versionsDe: (a) => (a.id != null ? r.membres.get(a.id) : undefined) ?? [a],
+  };
+  const f = (qualite: string[], extra: Partial<FiltresBibliotheque> = {}) => ({ ...filtres(qualite), ...extra });
+
+  it('« Uniquement favoris » + Multicanal : la carte favorite reste, sous sa 5.1', () => {
+    const v = versionQuiCorrespond(r.albums[0], f(['multichannel'], { favoris: true }), o);
+    expect(v?.id).toBe(11);
+    // Le cœur de la pochette présentée est celui de la carte (id 10).
+    expect(r.carteDe.get(11)).toBe(10);
+    expect(favoris.has(r.carteDe.get(v!.id!)!)).toBe(true);
+  });
+  it('les compteurs aussi : sous « Uniquement favoris », Multicanal = 1', () => {
+    const n = comptesQualite(r.albums, f([], { favoris: true }), o, ['multichannel', 'stereo']);
+    expect(Object.fromEntries(n)).toEqual({ multichannel: 1, stereo: 1 });
+  });
+  it('la recherche lit toutes les versions : « 5.1 » trouve la carte, présentée sous la 5.1', () => {
+    expect(versionQuiCorrespond(r.albums[0], f(['multichannel'], { recherche: '5.1' }), o)?.id).toBe(11);
+    expect(correspond(r.albums[0], f([], { recherche: '5.1' }), o)).toBe(true);
+  });
+  it('les critères techniques restent sur la version : Multicanal + 16 bits = rien', () => {
+    expect(versionQuiCorrespond(r.albums[0], f(['multichannel'], { profondeur: [16] }), o)).toBeNull();
+    expect(versionQuiCorrespond(r.albums[0], f(['multichannel'], { profondeur: [24] }), o)?.id).toBe(11);
+  });
+
+  const src = readFileSync(resolve(__dirname, '../../components/v2/LibraryV2.svelte'), 'utf8');
+  it('LibraryV2 : le favori se lit sur la carte, avant les versions ; le cœur vise la carte', () => {
+    const corps = src.slice(src.indexOf('function versionAffichee('), src.indexOf('function dansLesAnnees('));
+    expect(corps).toMatch(/if \(!carteRepond\(a, avecPays, avecAnnees\)\) return null;/);
+    const carte = src.slice(src.indexOf('function carteRepond('), src.indexOf('function techniqueRepond('));
+    expect(carte).toContain('!estAlbumFavori(a)');
+    expect(carte).toContain('uneVersionDans(a, idsPays)');
+    expect(carte).toContain('uneVersionDans(a, idsIncomplets)');
+    expect(src).not.toContain('favori={depot || a.id == null ? null : { albumId: a.id }}');
+    expect(src.match(/favori=\{depot \|\| idFavori\(a\) == null \? null : \{ albumId: idFavori\(a\)! \}\}/g)?.length).toBe(3);
+  });
+  it('LibraryV2 : Genres / Années / Labels présentent la version qui répond', () => {
+    const groupes = src.slice(src.indexOf('const groups = $derived.by'), src.indexOf('const tous = parGenre'));
+    expect(groupes).toContain('const v = versionAffichee(a, true, true);');
+    expect(groupes).toContain('albums: g.albums.map((a) => presentee.get(a) ?? a)');
+    expect(groupes).not.toContain('if (!matches(a)) continue;');
+  });
+  it('LibraryV2 : sous un filtre de qualité, le tri porte sur la version présentée', () => {
+    expect(src).toContain('fQuality.length ? trier(presenter(src)) : presenter(sorted)');
+    expect(src).toContain('const sorted = $derived.by(() => trier([...src]));');
+  });
+});
+
+describe('#3174 — badge de canaux sous un choix de canaux', () => {
+  const mixte = { min_channels: 2, max_channels: 6 };
+  it('un album 2.0 + 5.1 dit 2.0 sous Stéréo, 6 canaux sous Multicanal, les deux sous les deux', () => {
+    expect(canauxRepondants(mixte, ['stereo'])).toEqual([2]);
+    expect(canauxRepondants(mixte, ['multichannel', 'dsd'])).toEqual([6]);
+    expect(canauxRepondants(mixte, ['stereo', 'multichannel'])).toEqual([2, 6]);
+  });
+  it('serveur ancien (max seul) : le maximum, s’il répond', () => {
+    expect(canauxRepondants({ max_channels: 6 }, ['multichannel'])).toEqual([6]);
+    expect(canauxRepondants({ max_channels: 6 }, ['stereo'])).toEqual([]);
+  });
+  it('LibraryV2 : canauxCarte lit canauxRepondants sous un choix de canaux', () => {
+    const src = readFileSync(resolve(__dirname, '../../components/v2/LibraryV2.svelte'), 'utf8');
+    expect(src).toContain('if (filtreDeCanaux(fQuality)) return canauxDePochette(badge(a), canauxRepondants(a, fQuality));');
+  });
+});
+
+describe('#3174 — page artiste : la vignette se recentre, les compteurs suivent', () => {
+  const ex = (source: string, o: Record<string, unknown>) => ({ source, album: al(o) });
+  const cd = ex('local', { id: 1, title: 'X', format: 'flac', sample_rate: 44100, bit_depth: 16, max_channels: 2 });
+  const hr = ex('qobuz', { id: 'q1', title: 'X', format: 'flac', sample_rate: 96000, bit_depth: 24 });
+  const entree: EntreeDiscographie = {
+    cle: 'x', principal: cd, exemplaires: [cd, hr], sources: ['local', 'qobuz'], qualites: ['cd', 'hires'], editions: [cd, hr],
+  };
+  it('sous Hi-Res, la vignette présente l’exemplaire Hi-Res', () => {
+    const [e] = filtrerFocus([entree], { sources: new Set(), qualites: new Set(['hires']) });
+    expect(e.principal).toBe(hr);
+    expect(entree.principal).toBe(cd); // l'entrée d'origine n'est pas modifiée
+  });
+  it('sous CD, elle reste sur la bibliothèque', () => {
+    const [e] = filtrerFocus([entree], { sources: new Set(), qualites: new Set(['cd']) });
+    expect(e.principal).toBe(cd);
+  });
+  it('compterFocus : sous DSD, Multicanal compte les DSD multicanaux ; une valeur cochée reste', () => {
+    const e = fusionnerDiscographie([DSD_20, DSD_51, PCM_51, CD_20], []);
+    const c = compterFocus(e, new Set(['dsd']));
+    expect(c.qualites).toEqual([
+      { qualite: 'dsd', n: 2 }, { qualite: 'hires', n: 1 }, { qualite: 'cd', n: 1 }, { qualite: 'multichannel', n: 1 },
+    ]);
+    const vide = compterFocus(fusionnerDiscographie([CD_20], []), new Set(['multichannel']));
+    expect(vide.qualites.find((x) => x.qualite === 'multichannel')).toEqual({ qualite: 'multichannel', n: 0 });
+  });
+});
+
+describe('#3174 — comptesQualite en un passage : 50 000 cartes', () => {
+  it('reste sous la seconde', () => {
+    const formats = [['dsf', 2822400, 1], ['flac', 96000, 24], ['flac', 44100, 16], ['mp3', 44100, 16]] as const;
+    const liste = Array.from({ length: 50_000 }, (_, i) => {
+      const [format, sample_rate, bit_depth] = formats[i % 4];
+      const c = i % 3 === 0 ? 6 : 2;
+      return al({ id: i, title: `A${i}`, format, sample_rate, bit_depth, min_channels: c, max_channels: c });
+    });
+    const o: Outils = { qualiteDe, anneeDe: () => null, plier: (s) => (s ?? '').toLowerCase(), provenanceDe: () => 'local' };
+    const t0 = performance.now();
+    const n = comptesQualite(liste, filtres(['dsd', 'multichannel']), o, ['dsd', 'hires', 'cd', 'lossy', 'stereo', 'multichannel']);
+    const ms = performance.now() - t0;
+    console.log(`comptesQualite 50 000 cartes : ${ms.toFixed(0)} ms`);
+    expect(n.get('multichannel')).toBe(liste.filter((a, i) => i % 4 === 0 && i % 3 === 0).length);
+    expect(ms).toBeLessThan(1000);
   });
 });
