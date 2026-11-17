@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Qobuz 중계 서버가 연결을 거부했습니다. 이것만으로 비밀번호가 틀렸다고 확인할 수는 없습니다. 다시 시도하세요.",
+  "settings.errQobuzIncomplete": "Qobuz 연결이 완료되지 않았습니다. 응답에 사용 가능한 토큰이 없습니다. 다시 시도하세요.",
   "classicalTags.title": "클래식 태그",
   "classicalTags.hint": "역할별로 읽는 태그입니다. CONDUCTOR, WORK, MOVEMENTNAME은 모든 형식(ID3, MP4)을 포함하며, 그 밖의 이름은 사용자 태그입니다. CHORUS는 TXXX:CHORUS도 읽습니다.",
   "classicalTags.unavailable": "이 서버는 아직 이 설정을 지원하지 않습니다. Tune을 업데이트하세요.",

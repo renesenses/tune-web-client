@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Qobuz-reläet nekade anslutningen. Det bekräftar inte att lösenordet är fel. Försök igen.",
+  "settings.errQobuzIncomplete": "Qobuz-anslutningen är ofullständig: svaret innehåller ingen användbar token. Försök igen.",
   "classicalTags.title": "Klassiska taggar",
   "classicalTags.hint": "Taggarna som läses för varje roll. CONDUCTOR, WORK och MOVEMENTNAME täcker alla sina varianter (ID3, MP4); alla andra namn är egna taggar: CHORUS läser även TXXX:CHORUS.",
   "classicalTags.unavailable": "Den här servern erbjuder inte inställningen ännu. Uppdatera Tune.",

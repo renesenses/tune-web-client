@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Qobuzの中継サーバーが接続を拒否しました。これだけではパスワードが間違っているとは判断できません。再試行してください。",
+  "settings.errQobuzIncomplete": "Qobuzの接続が完了していません。応答に使用可能なトークンがありません。再試行してください。",
   "classicalTags.title": "クラシックのタグ",
   "classicalTags.hint": "各役割で読み取るタグ。CONDUCTOR、WORK、MOVEMENTNAME はすべての形式（ID3、MP4）を含みます。その他の名前は独自タグです：CHORUS は TXXX:CHORUS も読み取ります。",
   "classicalTags.unavailable": "このサーバーはまだこの設定に対応していません。Tune を更新してください。",

@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "El relé de Qobuz rechazó la conexión. Esto no confirma que la contraseña sea incorrecta. Inténtalo de nuevo.",
+  "settings.errQobuzIncomplete": "Conexión Qobuz incompleta: la respuesta no contiene un token utilizable. Inténtalo de nuevo.",
   "classicalTags.title": "Etiquetas de música clásica",
   "classicalTags.hint": "Las etiquetas leídas para cada función. CONDUCTOR, WORK y MOVEMENTNAME cubren todas sus variantes (ID3, MP4); cualquier otro nombre es una etiqueta libre: CHORUS también lee TXXX:CHORUS.",
   "classicalTags.unavailable": "Este servidor aún no ofrece este ajuste. Actualice Tune.",

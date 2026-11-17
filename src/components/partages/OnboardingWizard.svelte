@@ -362,12 +362,14 @@
         $streamingServicesStore = { ...$streamingServicesStore, qobuz: { ...$streamingServicesStore['qobuz'], authenticated: true } };
         qobuzPassword = '';
       } else {
-        qobuzAuthError = get(t)('settings.wrongCredentials');
+        qobuzAuthError = get(t)('settings.errQobuzIncomplete' as any);
       }
     } catch (e: any) {
       // #2406 — un refus d'identifiants n'est pas une panne de connexion.
       const nature = natureErreurConnexion(e);
-      qobuzAuthError = nature === 'application'
+      qobuzAuthError = nature === 'relais' ? get(t)('settings.errQobuzRelay' as any)
+        : nature === 'incomplete' ? get(t)('settings.errQobuzIncomplete' as any)
+        : nature === 'application'
         ? get(t)('settings.errAppRefused' as any).replace('{service}', 'Qobuz')
         : nature === 'reseau'
           ? get(t)('settings.errNetworkRefused' as any).replace('{service}', 'Qobuz')

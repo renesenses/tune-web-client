@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Das Qobuz-Relay hat die Verbindung abgelehnt. Das bestätigt kein falsches Passwort. Versuchen Sie es erneut.",
+  "settings.errQobuzIncomplete": "Qobuz-Verbindung unvollständig: Die Antwort enthält kein verwendbares Token. Versuchen Sie es erneut.",
   "classicalTags.title": "Klassik-Tags",
   "classicalTags.hint": "Die pro Rolle gelesenen Tags. CONDUCTOR, WORK und MOVEMENTNAME decken alle ihre Varianten ab (ID3, MP4); jeder andere Name ist ein eigener Tag: CHORUS liest auch TXXX:CHORUS.",
   "classicalTags.unavailable": "Dieser Server bietet diese Einstellung noch nicht an. Bitte Tune aktualisieren.",

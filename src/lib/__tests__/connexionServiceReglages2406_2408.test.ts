@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
+import OnboardingWizard from '../../components/partages/OnboardingWizard.svelte';
 import Sidebar from '../../components/v2/Sidebar.svelte';
 import { locale } from '../i18n';
 import { preferences } from '../stores/preferences';
@@ -23,6 +24,7 @@ import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { streamingServices } from '../stores/streaming';
 import type { V2SettingsTabId } from '../v2Settings';
 import { natureErreurConnexion } from '../erreurConnexionService';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -80,6 +82,7 @@ function serveur() {
         lectures++;
         return json(services);
       }
+      if (url.includes('/library/browse')) return json({roots:[]});
       if (url.includes('/system/health')) return json({ status: 'ok' });
       if (url.includes('/zones') || url.includes('/devices')) return json([]);
       if (url.includes('/config')) return json({});
@@ -225,4 +228,48 @@ describe('#2408 — la barre latérale suit la connexion et la déconnexion', ()
     const { expiredStreamingSession } = await import('../stores/streaming');
     expect(get(expiredStreamingSession), 'une déconnexion voulue levait « session expirée »').toBeNull();
   });
+});
+
+describe('#3147 — Qobuz distingue le relais et la réponse incomplète', () => {
+  it.each([
+    ['qobuz_relay_login_refused', /relay/i],
+    ['qobuz_login_incomplete', /incomplete/i],
+  ])('le code %s est rendu sans accuser le mot de passe', async (code, texte) => {
+    refusAuth = {status:400,type:'json',corps:JSON.stringify({code,error:'qobuz login: 401 erreur technique'})};
+    const h = await monterReglages(); await seConnecterQobuz(h);
+    expect(h.querySelector('.serr')?.textContent).toMatch(texte);
+    expect(h.querySelector('.serr')?.textContent).not.toMatch(/not recognised/i);
+  });
+  it('un ancien serveur répondant authenticated:false dit incomplet', async () => {
+    refusAuth = {status:200,type:'json',corps:JSON.stringify({authenticated:false})};
+    const h = await monterReglages(); await seConnecterQobuz(h);
+    expect(h.querySelector('.serr')?.textContent).toMatch(/incomplete/i);
+  });
+});
+
+it('3147 les codes priment sur le texte ancien et gardent le refus direct', () => {
+  expect(natureErreurConnexion({code:'qobuz_relay_login_refused',detail:'qobuz login: 401 {}'})).toBe('relais');
+  expect(natureErreurConnexion({code:'qobuz_login_incomplete',detail:'qobuz login: 401 {}'})).toBe('incomplete');
+  expect(natureErreurConnexion({code:'invalid_credentials'})).toBe('identifiants');
+});
+it('3147 les deux messages sont traduits dans les quinze langues', () => {
+  for (const langue of ONZE_LANGUES) for (const key of ['settings.errQobuzRelay','settings.errQobuzIncomplete']) expect(dictionnaire(langue)[key], langue+key).toBeTruthy();
+});
+
+it.each([
+  ['qobuz_relay_login_refused', /relay/i, 400],
+  ['qobuz_login_incomplete', /incomplete/i, 400],
+  ['ancien_sans_jeton', /incomplete/i, 200],
+])('3147 assistant : %s se lit aussi à la première configuration', async (code, texte, status) => {
+  refusAuth = {status, type:'json', corps:JSON.stringify(status===200 ? {authenticated:false} : {code,error:'qobuz login: 401 erreur technique'})};
+  const h = document.createElement('div'); document.body.append(h); hoteReglages=h;
+  montes.push(mount(OnboardingWizard,{target:h,props:{onComplete:()=>{}}})); await souffler();
+  h.querySelector<HTMLButtonElement>('.welcome-step > button.btn-primary')!.click(); await souffler();
+  h.querySelector<HTMLButtonElement>('.step-actions-right .btn-skip')!.click(); await souffler();
+  const user=h.querySelector<HTMLInputElement>('input[type=email]')!, pass=h.querySelector<HTMLInputElement>('input[type=password]')!;
+  expect(user && pass).toBeTruthy();
+  user.value='personne@example.invalid'; user.dispatchEvent(new Event('input',{bubbles:true}));
+  pass.value='factice'; pass.dispatchEvent(new Event('input',{bubbles:true})); flushSync();
+  pass.closest('.service-auth-form')!.querySelector<HTMLButtonElement>('button')!.click(); await souffler();
+  expect(h.querySelector('.error-msg')?.textContent).toMatch(texte);
 });

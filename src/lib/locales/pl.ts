@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Przekaźnik Qobuz odrzucił połączenie. Nie potwierdza to błędnego hasła. Spróbuj ponownie.",
+  "settings.errQobuzIncomplete": "Połączenie Qobuz jest niekompletne: odpowiedź nie zawiera użytecznego tokenu. Spróbuj ponownie.",
   "classicalTags.title": "Tagi muzyki klasycznej",
   "classicalTags.hint": "Tagi odczytywane dla każdej roli. CONDUCTOR, WORK i MOVEMENTNAME obejmują wszystkie swoje warianty (ID3, MP4); każda inna nazwa to tag własny: CHORUS odczytuje też TXXX:CHORUS.",
   "classicalTags.unavailable": "Ten serwer nie oferuje jeszcze tego ustawienia. Zaktualizuj Tune.",
