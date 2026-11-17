@@ -6763,6 +6763,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           </div>
                         {/if}
                         <!--
+                          MODE EXCLUSIF PAR ZONE — tune-server-rust#3245.
+                          Le serveur le règle par zone depuis la rc12 (PATCH
+                          `exclusive_mode`, `null` = suivre la machine) ; aucun
+                          écran ne l'exposait. Zone LOCALE seulement : c'est la
+                          sortie locale qui ouvre l'appareil en exclusif. Masqué
+                          quand la zone ne publie pas le champ (ancien serveur).
+                        -->
+                        {#if z.output_type === 'local' && z.exclusive_mode !== undefined}
+                          <div class="zf" data-reglage="zone-mode-exclusif">
+                            <label for={`exclusive-mode-${z.id}`}>{$t('settings.zoneExclusiveMode' as any)}</label>
+                            <select id={`exclusive-mode-${z.id}`} aria-describedby={`exclusive-mode-hint-${z.id}`} class="sel sm"
+                              value={z.exclusive_mode === true ? 'true' : z.exclusive_mode === false ? 'false' : ''}
+                              onchange={(e) => { const v = e.currentTarget.value;
+                                setZoneField(z, () => api.updateZoneExclusiveMode(z.id as number, v === '' ? null : v === 'true')); }}>
+                              <option value="">{$t('settings.zoneExclusiveFollow' as any)}</option>
+                              <option value="true">{$t('settings.zoneExclusiveOn' as any)}</option>
+                              <option value="false">{$t('settings.zoneExclusiveOff' as any)}</option>
+                            </select>
+                            <small id={`exclusive-mode-hint-${z.id}`}>{$t('settings.zoneExclusiveHint' as any)}</small>
+                            {#if typeof z.exclusive_mode === 'boolean' && typeof z.exclusive_mode_applique === 'boolean' && z.exclusive_mode_applique !== z.exclusive_mode}
+                              <small class="dsd-dop" data-exclusif-en-attente>{$t('settings.zoneExclusivePending' as any)}</small>
+                            {/if}
+                          </div>
+                        {/if}
+                        <!--
                           BIT-PERFECT STRICT — renesenses/tune-server-rust#3973.
                           Masqué quand la zone ne publie pas `strict_bitperfect` :
                           un vieux serveur l'ignorerait.

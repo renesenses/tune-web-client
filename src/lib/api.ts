@@ -1364,6 +1364,14 @@ export function updateZoneFixedSampleRate(id: number, rate: number | null) {
   });
 }
 
+/** tune-server-rust#3245 — mode exclusif de la zone ; `null` = suivre la machine. */
+export function updateZoneExclusiveMode(id: number, mode: boolean | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ exclusive_mode: mode }),
+  });
+}
+
 export function updateZoneMaxSampleRate(id: number, rate: number | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
