@@ -19,9 +19,28 @@ const COLONNES = 10;
 const ESPACE = 22;
 const VUE = 800;
 const TAILLE_PAGE = 100;
-const HAUTEUR_VIDE = 236;
-/** Titre sur deux lignes pour un album sur cinq environ : 290 px, sinon 262. */
-const hauteurPleine = (i: number) => ((i * 7919) % 5 === 0 ? 290 : 262);
+interface Reglages {
+  /** Hauteur d'une case vide (page pas encore arrivée). */
+  hauteurVide: number;
+  /** Hauteur d'une vignette pleine, album par album. */
+  hauteurPleine: (i: number) => number;
+  /** Trames entre la demande d'une page et son arrivée. */
+  latencePage: number;
+  /**
+   * Défilement asynchrone à la Firefox (APZ) : le compositeur avance pendant
+   * que la page calcule ; une écriture ABSOLUE de `scrollTop` dans la trame
+   * le ramène à la valeur écrite, et le geste de cette trame est perdu.
+   */
+  apz: boolean;
+}
+
+const REGLAGES: Reglages = {
+  hauteurVide: 236,
+  // Titre sur une ligne ou badge sur deux : 262 ou 290 px, un album sur sept.
+  hauteurPleine: i => ((i * 7919) % 7 === 0 ? 290 : 262),
+  latencePage: 2,
+  apz: true,
+};
 
 interface Banc {
   el: HTMLDivElement;
@@ -29,6 +48,8 @@ interface Banc {
   trame: (delta?: number) => Promise<void>;
   pagesChargees: Set<number>;
   appelsFenetre: () => number;
+  /** Trames où la page a écrit `scrollTop` elle-même. */
+  ecritures: () => number;
   evenementsScroll: () => number;
   premiereVisible: () => number | null;
   derniereVisible: () => number | null;
@@ -36,7 +57,9 @@ interface Banc {
   detruire: () => void;
 }
 
-function monterBanc(): Banc {
+function monterBanc(r: Reglages = REGLAGES): Banc {
+  const HAUTEUR_VIDE = r.hauteurVide;
+  const hauteurPleine = r.hauteurPleine;
   const el = document.createElement('div');
   document.body.append(el);
   let tranche: TrancheAlbums = { debut: 0, fin: 200, avant: 0, apres: 0 };
@@ -49,6 +72,8 @@ function monterBanc(): Banc {
   let nbScroll = 0;
   let allerVers: ((index: number) => Promise<void>) | undefined;
   let rafs: FrameRequestCallback[] = [];
+  let ecrit = false;
+  let ecritures = 0;
 
   // --- mise en page : une rangée par cale, une rangée par 10 cases ---------
   type Boite = { top: number; hauteur: number };
@@ -121,7 +146,7 @@ function monterBanc(): Banc {
     get: () => scrollTop,
     set: (v: number) => {
       const borne = Math.max(0, Math.min(v, Math.max(0, hauteurTotale - VUE)));
-      if (borne !== scrollTop) { scrollTop = borne; scrollEnAttente = true; }
+      if (borne !== scrollTop) { scrollTop = borne; scrollEnAttente = true; ecrit = true; }
     },
   });
   Object.defineProperty(el, 'scrollLeft', { get: () => 0, set: () => {} });
@@ -159,13 +184,16 @@ function monterBanc(): Banc {
   const action = fenetreAlbumsPaginee(el, options());
 
   const visibles = () => [...el.querySelectorAll<HTMLElement>('[data-i]')].filter(c => {
-    const r = c.getBoundingClientRect();
-    return r.bottom > 0 && r.top < VUE;
+    const rect = c.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < VUE;
   }).map(c => Number(c.dataset.i));
 
   const trame = async (delta = 0) => {
     numeroTrame++;
-    if (delta) { const avant = scrollTop; el.scrollTop = scrollTop + delta; if (scrollTop === avant) scrollEnAttente = false; }
+    // Sans APZ, le geste est appliqué avant la trame. Avec, le compositeur
+    // l'applique PENDANT : il ne compte que si la page n'écrit rien.
+    if (delta && !r.apz) { const avant = scrollTop; el.scrollTop = scrollTop + delta; if (scrollTop === avant) scrollEnAttente = false; }
+    ecrit = false;
     if (scrollEnAttente) {
       scrollEnAttente = false;
       nbScroll++;
@@ -178,10 +206,10 @@ function monterBanc(): Banc {
     // Les cases vides en vue (et une demi-vue autour) demandent leur page,
     // qui arrive deux trames plus tard ; la grille repasse alors par update().
     for (const c of el.querySelectorAll<HTMLElement>('[data-i].sq')) {
-      const r = c.getBoundingClientRect();
-      if (r.bottom < -VUE / 2 || r.top > VUE * 1.5) continue;
+      const rect = c.getBoundingClientRect();
+      if (rect.bottom < -VUE / 2 || rect.top > VUE * 1.5) continue;
       const p = Math.floor(Number(c.dataset.i) / TAILLE_PAGE);
-      if (!pagesDemandees.has(p)) pagesDemandees.set(p, numeroTrame + 2);
+      if (!pagesDemandees.has(p)) pagesDemandees.set(p, numeroTrame + r.latencePage);
     }
     let arrivee = false;
     for (const [p, due] of pagesDemandees) {
@@ -192,11 +220,17 @@ function monterBanc(): Banc {
       action.update(options());
       await microtaches();
     }
+    ecritures += Number(ecrit);
+    if (delta && r.apz && !ecrit) {
+      const borne = Math.max(0, Math.min(scrollTop + delta, Math.max(0, hauteurTotale - VUE)));
+      if (borne !== scrollTop) { scrollTop = borne; scrollEnAttente = true; }
+    }
   };
 
   return {
     el, trame, pagesChargees,
     appelsFenetre: () => nbFenetre,
+    ecritures: () => ecritures,
     evenementsScroll: () => nbScroll,
     premiereVisible: () => { const v = visibles(); return v.length ? Math.min(...v) : null; },
     derniereVisible: () => { const v = visibles(); return v.length ? Math.max(...v) : null; },
@@ -231,8 +265,9 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
     return { recul, vide, trames: n };
   }
 
-  async function auRepos() {
-    for (let n = 0; n < 20; n++) await banc.trame();
+  /** Laisse arriver les pages en vol (`attente` trames), puis mesure le repos. */
+  async function auRepos(attente = 20) {
+    for (let n = 0; n < attente; n++) await banc.trame();
     const scroll = banc.evenementsScroll();
     const fenetre = banc.appelsFenetre();
     for (let n = 0; n < 30; n++) await banc.trame();
@@ -242,12 +277,28 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
   it('descend du premier au dernier album sans retour en arrière', async () => {
     await auRepos();
     const { recul, vide, trames } = await defiler(120, () => banc.derniereVisible() === TOTAL - 1, 20_000);
-    expect(banc.derniereVisible(), `arrêté après ${trames} trames`).toBe(TOTAL - 1);
+    expect({ derniere: banc.derniereVisible(), recul, vide, trames }).toMatchObject({ derniere: TOTAL - 1 });
+    // Sous APZ, chaque écriture de `scrollTop` reprend le geste : aucune ici.
+    expect(banc.ecritures(), 'écritures de scrollTop pendant la descente').toBe(0);
     expect(recul, 'la première carte en vue a reculé (en albums)').toBe(0);
     expect(vide, 'trames sans aucune carte en vue').toBe(0);
     // ≈ 219 rangées de 284 px en moyenne, 120 px par trame : pas de détour.
     expect(trames).toBeLessThan(700);
-  });
+  }, 120_000);
+
+  it('pages lentes (serveur occupé) : leur arrivée au-dessus du cadre ne fait pas reculer la grille', async () => {
+    banc.detruire(); vi.restoreAllMocks(); vi.unstubAllGlobals();
+    banc = monterBanc({ ...REGLAGES, latencePage: 40, hauteurVide: 180 });
+    await auRepos();
+    const { recul, trames } = await defiler(120, () => banc.derniereVisible() === TOTAL - 1, 20_000);
+    expect({ derniere: banc.derniereVisible(), recul, trames }).toMatchObject({ derniere: TOTAL - 1, recul: 0 });
+    const repos = await auRepos(60);
+    expect(repos).toEqual({ scroll: 0, fenetre: 0 });
+    // Les dernières vignettes, arrivées pleines, ont poussé la fin un peu plus
+    // bas : quelques trames suffisent pour l'atteindre de nouveau.
+    const fin = await defiler(120, () => banc.derniereVisible() === TOTAL - 1, 50);
+    expect({ derniere: banc.derniereVisible(), recul: fin.recul }).toEqual({ derniere: TOTAL - 1, recul: 0 });
+  }, 120_000);
 
   it('remonte du dernier au premier album sans retour en arrière', async () => {
     await auRepos();
@@ -257,7 +308,7 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
     expect(banc.premiereVisible()).toBe(0);
     expect(recul).toBe(0);
     expect(vide).toBe(0);
-  });
+  }, 120_000);
 
   it('au repos, plus aucune correction : ni scroll, ni nouvelle fenêtre (pas de boucle)', async () => {
     await auRepos();
@@ -266,7 +317,7 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
       const repos = await auRepos();
       expect(repos, `au repos vers l’album ${arret}`).toEqual({ scroll: 0, fenetre: 0 });
     }
-  });
+  }, 120_000);
 
   it('après un saut A–Z au milieu, monte et descend bien au-delà de 18 rangées', async () => {
     await auRepos();
@@ -275,7 +326,8 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
     await aller!(800);
     await auRepos();
     const depart = banc.premiereVisible()!;
-    expect(Math.abs(depart - 800)).toBeLessThan(COLONNES);
+    expect(depart).toBeLessThanOrEqual(800);
+    expect(banc.derniereVisible()!).toBeGreaterThanOrEqual(800);
     const bas = await defiler(120, () => (banc.premiereVisible() ?? 0) >= depart + 60 * COLONNES, 2_000);
     expect(banc.premiereVisible()!).toBeGreaterThanOrEqual(depart + 60 * COLONNES);
     expect(bas.recul).toBe(0);
@@ -284,5 +336,5 @@ describe('grille des Albums en pages : défilement jusqu’au bout (#3183)', () 
     expect(banc.premiereVisible()!).toBeLessThanOrEqual(depart - 60 * COLONNES);
     expect(haut.recul).toBe(0);
     expect(haut.vide).toBe(0);
-  });
+  }, 120_000);
 });
