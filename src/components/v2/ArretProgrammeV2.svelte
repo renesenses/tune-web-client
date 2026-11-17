@@ -13,6 +13,7 @@
    * « Enregistrer » ou « Supprimer ».
    */
   import { onDestroy, onMount } from 'svelte';
+  import FuseauReveils from './FuseauReveils.svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -28,6 +29,7 @@
   let existe = $state(false);
   let prochain = $state<string | null>(null);
   let extinctionPossible = $state(false);
+  let fuseauDisponible = $state(false);
 
   let fActif = $state(true);
   let fHeure = $state('23:00');
@@ -51,6 +53,7 @@
     const r = etat.scheduled_stop;
     existe = r !== null;
     prochain = etat.next_stop_at ?? null;
+    fuseauDisponible = typeof etat.timezone === 'string';
     extinctionPossible = etat.poweroff_available === true;
     if (r) {
       fActif = r.enabled;
@@ -136,7 +139,7 @@
     if (vivant) enregistrement = false;
   }
 
-  /** `2026-11-11T23:00:00` (heure locale du serveur, sans fuseau) → texte. */
+  /** `2026-11-11T23:00:00` (heure du réglage commun ; ancien serveur sans fuseau) → texte. */
   function prochainTexte(iso: string): string {
     const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
     if (!m) return iso;
@@ -153,6 +156,7 @@
     <p class="hint">{$t('scheduledStop.unavailable' as any)}</p>
   {:else}
     <p class="hint">{$t('scheduledStop.hint' as any)}</p>
+    {#if fuseauDisponible}<FuseauReveils onSaved={charger} />{/if}
 
     <label class="ligne">
       <input type="checkbox" bind:checked={fActif} />

@@ -1,8 +1,8 @@
 export default {
-  "alarms.timezone": "Zona horaria de las alarmas",
+  "alarms.timezone": "Zona horaria de alarmas y parada programada",
   "alarms.timezoneCurrent": "Zona horaria actual",
   "alarms.timezoneSystem": "Zona horaria del sistema del servidor",
-  "alarms.timezoneHint": "Este ajuste se aplica a todas las alarmas. La zona propuesta procede del navegador y solo cambia al guardar. Un valor vacío conserva la zona del sistema.",
+  "alarms.timezoneHint": "Este ajuste se comparte entre las alarmas y la parada programada. La zona propuesta procede del navegador y solo cambia al guardar. Un valor vacío conserva la zona del sistema.",
   "alarms.nextTrigger": "Próxima activación",
   "classicalTags.title": "Etiquetas de música clásica",
   "classicalTags.hint": "Las etiquetas leídas para cada función. CONDUCTOR, WORK y MOVEMENTNAME cubren todas sus variantes (ID3, MP4); cualquier otro nombre es una etiqueta libre: CHORUS también lee TXXX:CHORUS.",

@@ -1,8 +1,8 @@
 export default {
-  "alarms.timezone": "Ébresztők időzónája",
+  "alarms.timezone": "Ébresztők és időzített leállítás időzónája",
   "alarms.timezoneCurrent": "Jelenlegi időzóna",
   "alarms.timezoneSystem": "A kiszolgáló rendszerének időzónája",
-  "alarms.timezoneHint": "Ez minden ébresztőre érvényes. A javasolt időzóna a böngészőből származik, és csak mentéskor változik. Üres érték esetén a rendszer időzónája marad.",
+  "alarms.timezoneHint": "Ez a beállítás közös az ébresztők és az időzített leállítás számára. A javasolt időzóna a böngészőből származik, és csak mentéskor változik. Üres érték esetén a rendszer időzónája marad.",
   "alarms.nextTrigger": "Következő ébresztés",
   "classicalTags.title": "Klasszikus címkék",
   "classicalTags.hint": "Az egyes szerepekhez olvasott címkék. A CONDUCTOR, a WORK és a MOVEMENTNAME minden változatukat lefedi (ID3, MP4); minden más név szabad címke: a CHORUS a TXXX:CHORUS-t is olvassa.",

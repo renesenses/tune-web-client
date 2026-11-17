@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 import AlarmesV2 from '../../components/v2/AlarmesV2.svelte';
+import ArretProgrammeV2 from '../../components/v2/ArretProgrammeV2.svelte';
 let host: HTMLDivElement;
 let app: ReturnType<typeof mount> | undefined;
 let config: Record<string, unknown>;
@@ -23,6 +24,7 @@ beforeEach(() => {
       }
       return json(config);
     }
+    if (String(url).includes('/settings/scheduled-stop')) return json({ scheduled_stop:{enabled:true,time:'23:00',days_of_week:'1111111',zone_ids:null}, next_stop_at:'2026-11-18T23:00:00+01:00', timezone:config.alarms_timezone, poweroff_available:false });
     if (String(url).includes('/alarms')) return json([{ id:1,name:'Matin',time:'11:10',days_of_week:'1111100',enabled:1,source_type:'radio',source_id:'fip',timezone:'Europe/Paris',next_fired_at:'2026-11-18T10:10:00Z' }]);
     if (String(url).includes('/zones')) return json([]);
     return json({});
@@ -62,4 +64,14 @@ it('3130 les libellés existent dans les quinze langues', async () => {
   for (const langue of ONZE_LANGUES) for (const key of ['timezone','timezoneCurrent','timezoneSystem','timezoneHint','nextTrigger']) {
     expect(dictionnaire(langue)['alarms.'+key], langue+':'+key).toBeTruthy();
   }
+});
+
+it('3130 arrêt programmé : même réglage explicite, sans modifier son heure', async () => {
+  config.alarms_timezone='UTC'; app=mount(ArretProgrammeV2,{target:host}); await wait();
+  expect(input(), 'le fuseau commun doit être proposé aussi pour l’arrêt').not.toBeNull();
+  expect(input()!.value).toBe('UTC'); expect(writes).toEqual([]);
+  await change('Europe/Paris'); host.querySelector<HTMLButtonElement>('[data-fuseau-enregistrer]')!.click(); await wait();
+  expect(writes).toEqual([{alarms_timezone:'Europe/Paris'}]);
+  expect(host.querySelector('[data-fuseau-actuel]')?.textContent).toContain('Europe/Paris');
+  expect(host.querySelector<HTMLInputElement>('input[type=time]')!.value).toBe('23:00');
 });

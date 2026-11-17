@@ -1,8 +1,8 @@
 export default {
-  "alarms.timezone": "Fusul orar al alarmelor",
+  "alarms.timezone": "Fus orar pentru alarme și oprirea programată",
   "alarms.timezoneCurrent": "Fusul orar actual",
   "alarms.timezoneSystem": "Fusul orar al sistemului serverului",
-  "alarms.timezoneHint": "Setarea se aplică tuturor alarmelor. Fusul propus provine din browser și se schimbă doar la salvare. O valoare goală păstrează fusul sistemului.",
+  "alarms.timezoneHint": "Această setare este comună alarmelor și opririi programate. Fusul propus provine din browser și se schimbă doar la salvare. O valoare goală păstrează fusul sistemului.",
   "alarms.nextTrigger": "Următoarea declanșare",
   "classicalTags.title": "Etichete pentru muzica clasică",
   "classicalTags.hint": "Etichetele citite pentru fiecare rol. CONDUCTOR, WORK și MOVEMENTNAME acoperă toate variantele lor (ID3, MP4); orice alt nume este o etichetă liberă: CHORUS citește și TXXX:CHORUS.",

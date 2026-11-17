@@ -1,8 +1,8 @@
 export default {
-  "alarms.timezone": "Alarmens tidszon",
+  "alarms.timezone": "Tidszon för alarm och schemalagt stopp",
   "alarms.timezoneCurrent": "Aktuell tidszon",
   "alarms.timezoneSystem": "Serverns systemtidszon",
-  "alarms.timezoneHint": "Inställningen gäller alla alarm. Förslaget kommer från webbläsaren och ändras först när du sparar. Ett tomt värde behåller systemets tidszon.",
+  "alarms.timezoneHint": "Den här inställningen delas av alarm och schemalagt stopp. Förslaget kommer från webbläsaren och ändras först när du sparar. Ett tomt värde behåller systemets tidszon.",
   "alarms.nextTrigger": "Nästa alarm",
   "classicalTags.title": "Klassiska taggar",
   "classicalTags.hint": "Taggarna som läses för varje roll. CONDUCTOR, WORK och MOVEMENTNAME täcker alla sina varianter (ID3, MP4); alla andra namn är egna taggar: CHORUS läser även TXXX:CHORUS.",
