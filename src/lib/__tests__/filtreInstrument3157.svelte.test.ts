@@ -313,12 +313,12 @@ describe('Bibliothèque : puce Instrument (#3157)', { timeout: 30_000 }, () => {
   });
 });
 
-describe('#3157 — libellés dans les 15 langues', () => {
+describe('#3157 — libellés dans les 16 langues', () => {
   it('chaque clé existe et n’est pas vide', () => {
     expect(LIBELLE_FILTRE.instrument).toBe('v2.lib.instrument');
     const cles = ['oxygen.facet.instrument', 'v2.lib.instrument', 'v2.lib.instrumentSearch', 'v2.lib.instrumentAll',
       'v2.lib.instrumentNone', 'v2.lib.instrumentHint', 'v2.lib.instrumentError'];
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(16);
     for (const lg of ONZE_LANGUES) {
       const d = dictionnaire(lg);
       for (const c of cles) expect(d[c], `${lg} : ${c}`).toBeTruthy();
