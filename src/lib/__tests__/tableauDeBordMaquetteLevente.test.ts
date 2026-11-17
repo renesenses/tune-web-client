@@ -164,7 +164,7 @@ describe('l’écran monté', () => {
   it('les tuiles portent leur icône devant le titre', async () => {
     const page = await poser(TableauDeBordV2);
     const avecIcone = BLOCS_TABLEAU_DE_BORD.filter((w) => w.bloc?.icone).length;
-    expect(avecIcone).toBe(9);
+    expect(avecIcone).toBe(10); // web#3117 : « Top artistes » porte la sienne
     expect(page.querySelectorAll('section.bloc .tete svg.icone-bloc')).toHaveLength(avecIcone);
   });
 

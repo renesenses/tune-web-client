@@ -78,6 +78,7 @@
     WIDGETS,
     DISPOSITION_DEFAUT,
     LIMITE_VOIR_TOUT,
+    ID_ECOUTER_PLUS_TARD,
     type Element,
     type Widget,
     type ChiffreAffiche,
@@ -85,7 +86,7 @@
   import { repartirWidgets } from '../../lib/ajoutWidgets';
   import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
   import { ecrireChoix, lireChoix } from '../../lib/preferencesEcran';
-  import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
+  import { marqueurAEnregistrer, marqueursAjouts, migrationAjoutUnique, migrationPremiereLigne, type AjoutUnique } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
@@ -124,6 +125,8 @@
     objetPlaylistIntelligente,
     type ObjetMenu,
   } from '../../lib/gestesObjet';
+  import type { GestesPochette } from '../../lib/actionsPochette';
+  import { sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -196,6 +199,12 @@
      * catalogue.
      */
     cleLigneMigre?: string;
+    /**
+     * web#3117 — des widgets NEUFS à faire entrer UNE fois, en queue, dans
+     * une disposition déjà rangée (`migrationAjoutUnique`). Chaque écran
+     * nomme les siens : le Tableau de bord, « Top artistes ».
+     */
+    ajoutsUniques?: AjoutUnique[];
     cleEyebrow?: string;
     cleTitre?: string;
     /**
@@ -240,6 +249,7 @@
     /** #1519 — le marqueur de migration, à côté de la ligne qu'il protège. */
     cleChiffresMigre: CLE_CHIFFRES_MIGRE = 'home_stats_migre',
     cleLigneMigre: CLE_LIGNE_MIGRE = 'home_l1_migre',
+    ajoutsUniques = [],
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
@@ -496,6 +506,8 @@
     let migrationAFaire = false;
     /** 27/09/2026 — la première ligne doit-elle entrer dans cette disposition ? */
     let ligneAMigrer = false;
+    /** web#3117 — les ajouts uniques à écrire, avec leur marqueur. */
+    const ajoutsAMigrer: AjoutUnique[] = [];
     // 🔴 #6454 — `get()`, jamais `$currentProfileId` dans ce code ordinaire.
     // `$currentProfileId` est la copie que Svelte tient par SA souscription ;
     // sur l'accueil salué, elle naît tard (le `find` de `profil` ne lit le
@@ -546,6 +558,13 @@
         );
         dispositionEnregistree = mig.disposition;
         ligneAMigrer = mig.aMigrer;
+        // web#3117 — les widgets neufs de cet écran, une fois, en queue.
+        for (const a of ajoutsUniques) {
+          const m = migrationAjoutUnique(dispositionEnregistree, prefs?.[a.cleMarqueur], a.id);
+          if (!m.aMigrer) continue;
+          dispositionEnregistree = m.disposition;
+          ajoutsAMigrer.push(a);
+        }
         disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {
@@ -566,7 +585,9 @@
     // un widget choisi avec une version plus récente — le défaut de #987, payé
     // une fois déjà.
     if (ligneAMigrer) void migrerPremiereLigne(pid, [...(dispositionEnregistree ?? [])]);
+    if (ajoutsAMigrer.length) void migrerAjouts(pid, [...(dispositionEnregistree ?? [])], ajoutsAMigrer);
   }
+
 
   /**
    * #1519 — L'ÉCRITURE DE LA MIGRATION, une fois par profil.
@@ -626,6 +647,22 @@
     }
   }
 
+  /**
+   * web#3117 — l'écriture des ajouts uniques : la disposition ET leurs
+   * marqueurs dans le MÊME appel, comme la première ligne.
+   */
+  const ajoutsMigres = new Set<number>();
+
+  async function migrerAjouts(pid: number, disp: string[], ajouts: AjoutUnique[]) {
+    if (ajoutsMigres.has(pid)) return;
+    ajoutsMigres.add(pid);
+    try {
+      await api.setProfilePreferences(pid, { [CLE]: disp, ...marqueursAjouts(ajouts) });
+    } catch {
+      // Silencieux, comme la première ligne : le prochain chargement réessaiera.
+    }
+  }
+
   async function enregistrer() {
     // #6454 — même raison que dans `charger()` : la valeur du magasin, pas la
     // copie de Svelte, qui peut retarder hors du cycle réactif.
@@ -645,6 +682,8 @@
         // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
         // « My listening ») la faisait revenir au chargement suivant.
         ...marqueurAEnregistrer(CLE_LIGNE_MIGRE, dispositionDefaut),
+        // web#3117 — de même pour les ajouts uniques : retiré, il ne revient pas.
+        ...marqueursAjouts(ajoutsUniques),
       });
     } catch (e: any) {
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
@@ -943,6 +982,23 @@
     });
   });
 
+  /**
+   * web#3119 — « Écouter plus tard » suit le SAS : un dépôt ou un retrait
+   * (menu « … », ici ou ailleurs) recharge la bande. Même souscription
+   * impérative que les zones. On ne recharge que sur un CHANGEMENT d'un sas
+   * déjà lu : la première lecture est celle du chargement lui-même.
+   */
+  onMount(() => {
+    let vu: string | null = null;
+    return sasEcouterPlusTard.subscribe((etat) => {
+      if (!etat.charge) return;
+      const signature = `${etat.etiquette}:${[...etat.membres].sort().join('|')}`;
+      const avant = vu;
+      vu = signature;
+      if (avant != null && avant !== signature) rechargerWidget(ID_ECOUTER_PLUS_TARD);
+    });
+  });
+
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
@@ -1068,6 +1124,22 @@
       pasPourMoi: c ? () => void pasPourMoi(c) : undefined,
       pasPourMoiArtiste: a ? () => void pasPourMoi(a) : undefined,
     };
+  }
+
+  /**
+   * web#3120 — « Aller à la playlist / l'album / l'artiste » : chaque cible
+   * est un morceau d'élément que `ouvrirElement` suit déjà, rien de plus.
+   */
+  function gestesAller(e: Element): GestesPochette {
+    const a = e.allerA;
+    if (!a) return {};
+    const vers = (p?: Partial<Element>) => (p ? () => ouvrirElement({ ...e, ...p } as Element) : undefined);
+    return { allerPlaylist: vers(a.playlist), allerAlbum: vers(a.album), allerArtiste: vers(a.artiste) };
+  }
+
+  /** Les gestes propres du menu « … » d'un élément. */
+  function gestesDuMenuElement(e: Element): GestesPochette {
+    return { ...(e.suggestion ? gestesSuggestion(e) : {}), ...gestesAller(e) };
   }
 
   /** Les éléments que le profil n'a pas écartés. */
@@ -1541,7 +1613,7 @@
         onLire={el.jouer ? () => jouer(el) : null}
         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
         objet={objetElement(el)}
-        gestesMenu={el.suggestion ? gestesSuggestion(el) : {}}
+        gestesMenu={gestesDuMenuElement(el)}
         nom={el.titre}
       >
         {#if el.pochettes || el.mosaique}
@@ -1561,7 +1633,12 @@
            (`artisteDuSous`) ; un sous-titre qui n'est pas un artiste reste
            texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
            pas distribué, ce serait un lien mort. -->
-      {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
+      <!-- web#3119 / web#3120 — ALBUM ou PLAYLIST en tête de la ligne du
+           conteneur (sur « Reprendre », le titre est le dernier morceau, et
+           le nom de l'album ou de la playlist est sur cette ligne). Dans la
+           ligne, pas au-dessus : une bande mixte garde ses vignettes alignées.
+           Rien sur un titre isolé (FabienM, fil 2864). -->
+      {#if el.sous || el.nature}<span class="ca" title={el.sous}>{#if el.nature}<span class="cn" data-nature={el.nature}>{$t((el.nature === 'playlist' ? 'v2.later.kindPlaylist' : 'v2.later.kindAlbum') as any)}</span>{/if}{#if el.artisteDuSous && el.ouvrir && el.sous}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous ?? ''}{/if}</span>{/if}
       <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
            l'objet ou demandé une fois au service (`compterTitres`). -->
       {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
@@ -2462,6 +2539,9 @@
   .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
      UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
+  /* web#3119 / web#3120 — l'étiquette de nature : petite capitale, couleur
+     d'accent, comme les sur-titres (`v2-eyebrow`). */
+  .cn{font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-acc1); margin-right:6px}
   .cw{font:italic calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
