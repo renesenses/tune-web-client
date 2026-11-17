@@ -765,6 +765,7 @@
     try {
       for (let offset = 0; ; offset += 1000) {
         const r = await api.getDoubtfulTracks(1000, offset);
+        if (offset === 0) dPeutIgnorer = r.can_ignore !== false;
         tous.push(...r.items);
         if (r.items.length === 0 || tous.length >= r.total) break;
       }
@@ -789,8 +790,13 @@
   */
   let dIgnorees = $state<api.AlerteDouteuseIgnoree[]>([]);
   let dIgnoreesOuvertes = $state(false);
-  let dIgnoreeDerniere = $state<{ texte: string; alerte: { scope: 'track' | 'album'; target_id: number; reason: string } } | null>(null);
+  /** Le serveur dit si l'appelant peut écrire le choix (administrateur). */
+  let dPeutIgnorer = $state(true);
+  /** Le dernier choix, et la liste telle qu'elle était juste avant : l'annuler
+   *  la rend telle quelle, sans tout relire. */
+  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
   let dIgnoreOccupe = $state(false);
+  let dAOffrir = $derived(doubtful.some((p) => p.ignore_scopes && Object.keys(p.ignore_scopes).length));
 
   function texteRaisonSimple(raison: string) {
     switch (raison) {
@@ -806,10 +812,30 @@
     catch { dIgnorees = []; } // serveur sans la route : rien à revoir
   }
 
-  async function relireDouteuses() {
-    dLoaded = false;
-    await chargerDouteuses(true);
-    await chargerIgnorees();
+  function echecIgnore(e: any) {
+    if (e?.status === 403 || e?.status === 401) {
+      dPeutIgnorer = false;
+      error = $t('v2.meta.dIgnoreForbidden' as any);
+    } else {
+      error = $t('v2.meta.dIgnoreFailed' as any);
+    }
+  }
+
+  /**
+   * La liste corrigée SUR PLACE après un choix : la raison quitte la piste
+   * (ou toutes les pistes de l'album), une piste sans raison quitte la liste.
+   * Pas de relecture des pages : la position de défilement reste.
+   */
+  function sansLaRaison(liste: PisteDouteuse[], p: PisteDouteuse, raison: string, scope: 'track' | 'album') {
+    const vise = (x: PisteDouteuse) => (scope === 'album' && p.album_id != null ? x.album_id === p.album_id : x.id === p.id);
+    return liste
+      .map((x) => {
+        if (!vise(x) || !x.reasons?.includes(raison)) return x;
+        const scopes = { ...(x.ignore_scopes ?? {}) };
+        delete scopes[raison];
+        return { ...x, reasons: x.reasons.filter((r) => r !== raison), ignore_scopes: scopes };
+      })
+      .filter((x) => x.reasons?.length);
   }
 
   async function ignorerAlerte(p: PisteDouteuse, raison: string) {
@@ -818,31 +844,45 @@
     try {
       const r = await api.ignorerAlerteDouteuse(p.id, raison);
       const nom = r.scope === 'album' ? (p.album_title || p.title) : p.title;
+      const avant = doubtful;
+      doubtful = sansLaRaison(doubtful, p, raison, r.scope);
       dIgnoreeDerniere = {
         texte: $t('v2.meta.dIgnoredDone' as any)
           .replace('{reason}', texteRaisonSimple(raison))
           .replace('{name}', nom || '—'),
-        alerte: { scope: r.scope, target_id: r.target_id, reason: r.reason },
+        alerte: { scope: r.scope, key: r.key, title: r.title ?? '', reason: r.reason },
+        avant,
+        apres: doubtful,
       };
-      await relireDouteuses();
-    } catch {
-      error = $t('v2.meta.dIgnoreFailed' as any);
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
     }
     dIgnoreOccupe = false;
   }
 
-  async function retablirAlerte(a: { scope: 'track' | 'album'; target_id: number; reason: string }) {
+  const memeAlerte = (a: api.CleAlerteIgnoree, b: api.CleAlerteIgnoree) =>
+    a.scope === b.scope && a.key === b.key && (a.title ?? '') === (b.title ?? '') && a.reason === b.reason;
+
+  async function retablirAlerte(a: api.CleAlerteIgnoree) {
     if (dIgnoreOccupe) return;
     dIgnoreOccupe = true;
     try {
-      await api.retablirAlerteDouteuse(a.scope, a.target_id, a.reason);
-      if (dIgnoreeDerniere
-        && dIgnoreeDerniere.alerte.scope === a.scope
-        && dIgnoreeDerniere.alerte.target_id === a.target_id
-        && dIgnoreeDerniere.alerte.reason === a.reason) dIgnoreeDerniere = null;
-      await relireDouteuses();
-    } catch {
-      error = $t('v2.meta.dIgnoreFailed' as any);
+      await api.retablirAlerteDouteuse(a);
+      const derniere = dIgnoreeDerniere;
+      if (derniere && memeAlerte(derniere.alerte, a)) {
+        dIgnoreeDerniere = null;
+        // Rien n'a bougé depuis : la liste d'avant, sans relire.
+        if (doubtful === derniere.apres) doubtful = derniere.avant;
+        else { dLoaded = false; await chargerDouteuses(true); }
+      } else {
+        // Une alerte d'une autre séance : seul le serveur sait où elle revient.
+        dLoaded = false;
+        await chargerDouteuses(true);
+      }
+      dIgnorees = dIgnorees.filter((x) => !memeAlerte(x, a));
+    } catch (e: any) {
+      echecIgnore(e);
     }
     dIgnoreOccupe = false;
   }
@@ -1368,7 +1408,9 @@
         {@const derniere = dIgnoreeDerniere}
         <p class="note ignoree" data-bilan-ignore aria-live="polite">
           {derniere.texte}
-          <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(derniere.alerte)}>{$t('v2.meta.dUndo' as any)}</button>
+          {#if dPeutIgnorer}
+            <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(derniere.alerte)}>{$t('v2.meta.dUndo' as any)}</button>
+          {/if}
         </p>
       {/if}
     {#if dLoading}
@@ -1378,10 +1420,11 @@
     {:else}
       <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
 
+      {#if !dPeutIgnorer && dAOffrir}<p class="note" data-ignore-reserve>{$t('v2.meta.dIgnoreAdminOnly' as any)}</p>{/if}
       <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
            vient du serveur, on la relit après l'écriture. -->
       <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }}
-        onIgnorer={ignorerAlerte} />
+        onIgnorer={dPeutIgnorer ? ignorerAlerte : undefined} />
 
       {#if dGroupes.length}
         <div class="cpacts">
@@ -1433,10 +1476,11 @@
           {#if dIgnoreesOuvertes}
             <p class="note">{$t('v2.meta.dIgnoredIntro' as any)}</p>
             <ul>
-              {#each dIgnorees as a (`${a.scope}:${a.target_id}:${a.reason}`)}
+              {#each dIgnorees as a (`${a.scope}:${a.key}:${a.title}:${a.reason}`)}
                 <li data-portee={a.scope}>
                   <span class="ig-txt">
-                    <strong>{(a.scope === 'album' ? a.album_title : a.title) || '—'}</strong>
+                    <strong>{(a.scope === 'album' ? (a.album_title || a.label) : (a.track_title || a.label)) || '—'}</strong>
+                    {#if a.found === false}<span class="ig-sub ig-absent">{$t('v2.meta.dIgnoredNotFound' as any)}</span>{/if}
                     <span class="ig-sub">
                       {a.scope === 'album'
                         ? $t('v2.meta.dIgnoredScopeAlbum' as any).replace('{count}', $formatNombre(a.track_count ?? 0))
@@ -1445,7 +1489,9 @@
                     </span>
                     {#if a.file_path}<span class="chemin" use:bulleTexte>{a.file_path}</span>{/if}
                   </span>
-                  <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(a)}>{$t('v2.meta.dRestore' as any)}</button>
+                  {#if dPeutIgnorer}
+                    <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(a)}>{$t('v2.meta.dRestore' as any)}</button>
+                  {/if}
                 </li>
               {/each}
             </ul>
@@ -1543,6 +1589,7 @@
   .ignorees strong{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
   .ignorees .ig-sub{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   .ignorees .chemin{overflow-wrap:anywhere}
+  .ignorees .ig-absent{color:var(--v2-txt3); font-style:italic}
   .note b{color:var(--v2-txt2)}
 
   .auto{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 18px;

@@ -4128,13 +4128,15 @@ export interface DoubtfulAlbum extends _PisteDouteuse {
 export async function getDoubtfulTracks(
   limit = 1000,
   offset = 0,
-): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number }> {
-  const r = await fetchJSON<{ items?: unknown[]; total?: number } | unknown[]>(
+): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number; can_ignore?: boolean }> {
+  const r = await fetchJSON<{ items?: unknown[]; total?: number; can_ignore?: boolean } | unknown[]>(
     `${BASE}/metadata/doubtful?limit=${limit}&offset=${offset}`,
   );
   const items = (Array.isArray(r) ? r : (r?.items ?? [])) as import('./artisteDepuisChemin').PisteDouteuse[];
   const total = Array.isArray(r) ? r.length : (r?.total ?? items.length);
-  return { items, total };
+  // tune-server-rust#8958 — « C'est normal » n'est offert qu'à qui peut l'écrire.
+  const can_ignore = Array.isArray(r) ? undefined : r?.can_ignore;
+  return { items, total, can_ignore };
 }
 
 /**
@@ -4206,20 +4208,31 @@ export function ecrireArtisteDuDossier(trackIds?: number[]) {
 
 /**
  * renesenses/tune-server-rust#8958 — une alerte de « Albums douteux » marquée
- * normale. `scope` dit où le choix est mémorisé (le serveur le choisit selon
- * la nature de l'alerte) ; le reste sert à la reconnaître dans la liste.
+ * normale. Elle tient par une clé STABLE (survit au rescan complet) :
+ * `key` est le chemin de la piste (`scope: 'track'`) ou le dossier de
+ * l'album (`scope: 'album'`, avec `title`, son titre exact). `scope`, `key`,
+ * `title` et `reason` servent tels quels à l'annulation.
  */
 export interface AlerteDouteuseIgnoree {
   scope: 'track' | 'album';
-  target_id: number;
+  key: string;
+  title: string;
   reason: string;
   ignored_at: number;
-  title?: string | null;
+  /** Le nom figé au moment du choix. */
+  label?: string | null;
+  /** Faux quand plus aucune piste ne porte la clé (fichiers absents). */
+  found?: boolean;
+  track_id?: number | null;
+  track_title?: string | null;
+  album_id?: number | null;
   album_title?: string | null;
-  artist_name?: string | null;
   file_path?: string | null;
   track_count?: number;
 }
+
+/** De quoi désigner une alerte ignorée pour l'annuler. */
+export type CleAlerteIgnoree = Pick<AlerteDouteuseIgnoree, 'scope' | 'key' | 'title' | 'reason'>;
 
 export async function getAlertesDouteusesIgnorees() {
   const r = await fetchJSON<{ items?: AlerteDouteuseIgnoree[]; total?: number }>(
@@ -4230,18 +4243,18 @@ export async function getAlertesDouteusesIgnorees() {
 
 /** Marque l'alerte `reason` de la piste comme normale. Réservé à l'administrateur. */
 export function ignorerAlerteDouteuse(trackId: number, reason: string) {
-  return fetchJSON<{ scope: 'track' | 'album'; target_id: number; reason: string; added: boolean }>(
+  return fetchJSON<CleAlerteIgnoree & { added: boolean }>(
     `${BASE}/metadata/doubtful/ignored`,
     { method: 'POST', body: JSON.stringify({ track_id: trackId, reason }) },
   );
 }
 
 /** Annule le choix : l'alerte revient si le problème existe toujours. */
-export function retablirAlerteDouteuse(scope: 'track' | 'album', targetId: number, reason: string) {
-  return fetchJSON<{ removed: boolean }>(
-    `${BASE}/metadata/doubtful/ignored/${encodeURIComponent(scope)}/${targetId}/${encodeURIComponent(reason)}`,
-    { method: 'DELETE' },
-  );
+export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
+  return fetchJSON<{ removed: boolean }>(`${BASE}/metadata/doubtful/ignored`, {
+    method: 'DELETE',
+    body: JSON.stringify({ scope: a.scope, key: a.key, title: a.title, reason: a.reason }),
+  });
 }
 
 // --- Browse (directory navigation) ---

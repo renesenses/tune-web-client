@@ -28,6 +28,7 @@ const dict = fr as Record<string, string>;
 type Ign = api.AlerteDouteuseIgnoree;
 let ignorees: Ign[];
 let avecPortees: boolean;
+let peutIgnorer: boolean | undefined;
 function pistes(): PisteDouteuse[] {
   const base = [
     { id: 1, album_id: 10, title: 'Pluie', album_title: 'Bruitages', reasons: ['missing_artist', 'very_short'],
@@ -38,7 +39,7 @@ function pistes(): PisteDouteuse[] {
   return base
     .map((p) => {
       const reasons = p.reasons.filter((r) => !ignorees.some((i) => i.reason === r
-        && ((i.scope === 'track' && i.target_id === p.id) || (i.scope === 'album' && i.target_id === p.album_id))));
+        && ((i.scope === 'track' && i.key === `/m/${p.title}.flac`) || (i.scope === 'album' && i.title === p.album_title))));
       const scopes = Object.fromEntries(reasons.map((r) => [r, p.ignore_scopes[r]]));
       return {
         id: p.id, title: p.title, album_title: p.album_title, album_id: p.album_id, artist_name: null,
@@ -57,20 +58,26 @@ beforeEach(() => {
   vi.clearAllMocks();
   ignorees = [];
   avecPortees = true;
+  peutIgnorer = true;
   vi.mocked(api.listMetadataProposals).mockResolvedValue({ proposals: [], pending: 0, auto_apply: false });
-  vi.mocked(api.getDoubtfulTracks).mockImplementation(async () => { const p = pistes(); return { items: p, total: p.length }; });
+  vi.mocked(api.getDoubtfulTracks).mockImplementation(async () => {
+    const p = pistes(); return { items: p, total: p.length, can_ignore: peutIgnorer };
+  });
   vi.mocked(api.getAlertesDouteusesIgnorees).mockImplementation(async () => ignorees.map((i) => ({
-    ...i, title: i.scope === 'track' ? (i.target_id === 1 ? 'Pluie' : 'Bip') : null,
+    ...i, found: true,
+    track_title: i.scope === 'track' ? (i.key.includes('Pluie') ? 'Pluie' : 'Bip') : null,
     album_title: i.scope === 'album' ? 'Bruitages' : null, track_count: i.scope === 'album' ? 7 : undefined,
   })));
   vi.mocked(api.ignorerAlerteDouteuse).mockImplementation(async (trackId, reason) => {
-    const scope = trackId === 1 && reason === 'missing_artist' ? 'album' : 'track';
-    const target_id = scope === 'album' ? 10 : trackId;
-    ignorees = [...ignorees, { scope, target_id, reason, ignored_at: 1 }];
-    return { scope, target_id, reason, added: true };
+    const scope: 'track' | 'album' = trackId === 1 && reason === 'missing_artist' ? 'album' : 'track';
+    const a = scope === 'album'
+      ? { scope, key: '/m', title: 'Bruitages', reason }
+      : { scope, key: `/m/${trackId === 1 ? 'Pluie' : 'Bip'}.flac`, title: '', reason };
+    ignorees = [...ignorees, { ...a, ignored_at: 1 }];
+    return { ...a, added: true };
   });
-  vi.mocked(api.retablirAlerteDouteuse).mockImplementation(async (scope, target, reason) => {
-    ignorees = ignorees.filter((i) => !(i.scope === scope && i.target_id === target && i.reason === reason));
+  vi.mocked(api.retablirAlerteDouteuse).mockImplementation(async (a) => {
+    ignorees = ignorees.filter((i) => !(i.scope === a.scope && i.key === a.key && i.title === a.title && i.reason === a.reason));
     return { removed: true };
   });
   hote = document.createElement('div');
@@ -114,8 +121,9 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
     expect(ligne(1)?.textContent).toContain(dict['v2.meta.dReasonArtist']);
   });
 
-  it('ignorer : appel au serveur, liste relue, bilan avec « Annuler » qui rétablit', async () => {
+  it('ignorer : appel au serveur, liste corrigée SUR PLACE (aucune relecture), « Annuler » la rend', async () => {
     await ouvrir();
+    expect(api.getDoubtfulTracks).toHaveBeenCalledTimes(1);
     bouton(1, 'very_short')!.click();
     await vi.waitFor(() => {
       flushSync();
@@ -124,6 +132,7 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
     });
     // L'autre alerte de la piste reste : seule celle-ci est normale.
     expect(bouton(1, 'missing_artist')).not.toBeNull();
+    expect(api.getDoubtfulTracks, 'pas de relecture des pages').toHaveBeenCalledTimes(1);
     const bilan = hote.querySelector('[data-bilan-ignore]')!;
     expect(bilan.textContent).toContain(
       dict['v2.meta.dIgnoredDone'].replace('{reason}', dict['v2.meta.dReasonShort']).replace('{name}', 'Pluie'),
@@ -131,10 +140,11 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
     [...bilan.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.meta.dUndo']))!.click();
     await vi.waitFor(() => {
       flushSync();
-      expect(api.retablirAlerteDouteuse).toHaveBeenCalledWith('track', 1, 'very_short');
+      expect(api.retablirAlerteDouteuse).toHaveBeenCalledWith({ scope: 'track', key: '/m/Pluie.flac', title: '', reason: 'very_short' });
       expect(bouton(1, 'very_short')).not.toBeNull();
     });
     expect(hote.querySelector('[data-bilan-ignore]')).toBeNull();
+    expect(api.getDoubtfulTracks, 'annuler non plus ne relit pas').toHaveBeenCalledTimes(1);
   });
 
   it('la liste des ignorées se déplie, nomme l’album, et « Signaler de nouveau » remet l’alerte', async () => {
@@ -157,7 +167,7 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
     [...li.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.meta.dRestore']))!.click();
     await vi.waitFor(() => {
       flushSync();
-      expect(api.retablirAlerteDouteuse).toHaveBeenCalledWith('album', 10, 'missing_artist');
+      expect(api.retablirAlerteDouteuse).toHaveBeenCalledWith({ scope: 'album', key: '/m', title: 'Bruitages', reason: 'missing_artist' });
       expect(bouton(1, 'missing_artist')).not.toBeNull();
       expect(hote.querySelector('[data-alertes-ignorees]')).toBeNull();
     });
@@ -165,9 +175,9 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
 
   it('la liste des ignorées reste accessible quand plus rien n’est douteux', async () => {
     ignorees = [
-      { scope: 'album', target_id: 10, reason: 'missing_artist', ignored_at: 1 },
-      { scope: 'track', target_id: 1, reason: 'very_short', ignored_at: 1 },
-      { scope: 'track', target_id: 2, reason: 'missing_album', ignored_at: 1 },
+      { scope: 'album', key: '/m', title: 'Bruitages', reason: 'missing_artist', ignored_at: 1 },
+      { scope: 'track', key: '/m/Pluie.flac', title: '', reason: 'very_short', ignored_at: 1 },
+      { scope: 'track', key: '/m/Bip.flac', title: '', reason: 'missing_album', ignored_at: 1 },
     ];
     composant = mount(MetadataV2, { target: hote });
     flushSync();
@@ -179,6 +189,45 @@ describe('Albums douteux : marquer une alerte comme normale (#8958)', () => {
       expect(hote.querySelector('[data-alertes-ignorees]')?.textContent)
         .toContain(dict['v2.meta.dIgnoredShow'].replace('{count}', '3'));
     });
+    // Une alerte d'une séance passée : seul le serveur sait où elle revient,
+    // la liste est relue (discrètement).
+    const section = hote.querySelector('[data-alertes-ignorees]')!;
+    section.querySelector<HTMLButtonElement>('button')!.click();
+    flushSync();
+    const bip = [...section.querySelectorAll('li')].find((li) => li.textContent?.includes('Bip'))!;
+    [...bip.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.meta.dRestore']))!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(ligne(2)).not.toBeNull();
+    });
+    expect(api.getDoubtfulTracks).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('Albums douteux : réservé à l’administrateur (#8958)', () => {
+  it('le serveur dit `can_ignore: false` : aucun bouton, une note le dit', async () => {
+    peutIgnorer = false;
+    await ouvrir();
+    expect(hote.querySelectorAll('button.normal').length).toBe(0);
+    expect(hote.querySelector('[data-ignore-reserve]')?.textContent).toContain(dict['v2.meta.dIgnoreAdminOnly']);
+  });
+
+  it('contre-épreuve : `can_ignore: true` — pas de note', async () => {
+    await ouvrir();
+    expect(hote.querySelector('[data-ignore-reserve]')).toBeNull();
+    expect(hote.querySelectorAll('button.normal').length).toBe(3);
+  });
+
+  it('un 403 au geste : message clair, les boutons disparaissent', async () => {
+    await ouvrir();
+    vi.mocked(api.ignorerAlerteDouteuse).mockRejectedValueOnce(Object.assign(new Error('admin role required'), { status: 403 }));
+    bouton(2, 'missing_album')!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(hote.textContent).toContain(dict['v2.meta.dIgnoreForbidden']);
+      expect(hote.querySelectorAll('button.normal').length).toBe(0);
+    });
+    expect(ligne(2)).not.toBeNull();
   });
 });
 
@@ -190,14 +239,15 @@ describe('API des alertes ignorées (#8958)', () => {
     }));
     vi.stubGlobal('fetch', f);
     await vrai.ignorerAlerteDouteuse(12, 'very_short');
-    await vrai.retablirAlerteDouteuse('album', 10, 'missing_artist');
+    await vrai.retablirAlerteDouteuse({ scope: 'album', key: '/m/Fx', title: 'Bruitages', reason: 'missing_artist' });
     expect(await vrai.getAlertesDouteusesIgnorees()).toEqual([]);
     const appels = f.mock.calls.map((c: any[]) => [String(c[0]), c[1]?.method ?? 'GET', c[1]?.body ?? null]);
     expect(appels[0][0]).toMatch(/\/metadata\/doubtful\/ignored$/);
     expect(appels[0][1]).toBe('POST');
     expect(JSON.parse(appels[0][2])).toEqual({ track_id: 12, reason: 'very_short' });
-    expect(appels[1][0]).toMatch(/\/metadata\/doubtful\/ignored\/album\/10\/missing_artist$/);
+    expect(appels[1][0]).toMatch(/\/metadata\/doubtful\/ignored$/);
     expect(appels[1][1]).toBe('DELETE');
+    expect(JSON.parse(appels[1][2])).toEqual({ scope: 'album', key: '/m/Fx', title: 'Bruitages', reason: 'missing_artist' });
     expect(appels[2][0]).toMatch(/\/metadata\/doubtful\/ignored$/);
     vi.unstubAllGlobals();
   });

@@ -119,3 +119,28 @@ describe('web#3176 — Annuaire : en-tête collant', () => {
     expect(mobile).toContain('flex-wrap:nowrap; overflow-x:auto');
   });
 });
+
+describe('web#3176 — menus et infobulles des cartes passent AU-DESSUS de l’en-tête', () => {
+  it('🔴 le menu d’une carte est porté hors du défilement (racine du document)', async () => {
+    await monter();
+    const bouton = hote.querySelector<HTMLButtonElement>('.scroll .st [aria-haspopup="menu"]');
+    expect(bouton, 'bouton de menu d’une station').not.toBeNull();
+    bouton!.click();
+    await respirer();
+    const menu = document.querySelector('[role="menu"]');
+    expect(menu).not.toBeNull();
+    // Hors de `.scroll` : l'en-tête collant (z-index local) ne peut pas le couvrir.
+    expect(menu!.closest('.scroll')).toBeNull();
+  });
+
+  it('les calques portés (menu 901, infobulle 2000) sont au-dessus de l’en-tête collant', () => {
+    const z = (r: string) => Number(/z-index:\s*(\d+)/.exec(r)?.[1] ?? NaN);
+    const entete = Math.max(z(regle('RadiosV2.svelte', '.entete-collant')), z(regle('RadioAnnuaire.svelte', '.entete-collant')));
+    const menu = readFileSync(resolve(__dirname, '../../components/v2/MenuObjetV2.svelte'), 'utf8');
+    const bulle = readFileSync(resolve(__dirname, '../../styles/tune-theme.css'), 'utf8');
+    const zMenu = Number(/\.menu\s*\{[^}]*z-index:\s*(\d+)/.exec(menu)?.[1]);
+    const zBulle = Number(/\.bulle-texte-coupe\s*\{[^}]*z-index:\s*(\d+)/.exec(bulle)?.[1]);
+    expect(entete).toBeLessThan(zMenu);
+    expect(entete).toBeLessThan(zBulle);
+  });
+});
