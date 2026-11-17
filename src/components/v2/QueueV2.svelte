@@ -404,7 +404,7 @@
                  saut au rang courant, donc une reprise du titre depuis son
                  début. Le geste que la file sait faire, et le seul sens que
                  « la suite » ait ici. -->
-            {#if !horsFile}<PisteActions piste={current} onLireDepuis={() => jump(pos)} />{/if}
+            {#if !horsFile}<PisteActions piste={current} onLire={() => jump(pos)} onLireDepuis={() => jump(pos)} />{/if}
           </div>
         </section>
       {/if}
@@ -436,7 +436,7 @@
                    grand bouton de la ligne fait déjà. Dans la file, « la
                    suite » n'est pas une liste à renvoyer au serveur : elle est
                    DÉJÀ la file, et `jumpInQueue` la reprend à ce rang. -->
-              <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
+              <PisteActions piste={t} onLire={() => jump(idx)} onLireDepuis={() => jump(idx)} />
               {#if showExpert}
                 <span class="ord">
                   <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= debutSuite} aria-label={$tr('v2.queue.moveUp' as any)}>
