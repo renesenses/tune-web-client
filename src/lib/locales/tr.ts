@@ -4567,6 +4567,7 @@ export default {
   "v2.lib.viewList": "Liste görünümü",
   "v2.lib.viewGrid": "Izgara görünümü",
   "v2.lib.viewCarousel": "Döngü görünümü",
+  "v2.lib.coverSize": "Kapak boyutu",
   "v2.lib.viewGridLarge": "Büyük kutucuk görünümü",
   "v2.lib.starting": "Başlatılıyor…",
   "v2.fav.noMatch": "Bu arama için sonuç yok.",
