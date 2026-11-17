@@ -4722,6 +4722,7 @@ export default {
   "v2.lib.viewList": "Affichage liste",
   "v2.lib.viewGrid": "Affichage grille",
   "v2.lib.viewCarousel": "Affichage carrousel",
+  "v2.lib.coverSize": "Taille des pochettes",
   "v2.lib.viewGridLarge": "Affichage grandes vignettes",
   "v2.lib.starting": "Lancement…",
   "v2.fav.noMatch": "Aucun résultat pour cette recherche.",

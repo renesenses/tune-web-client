@@ -4720,6 +4720,7 @@ export default {
   "v2.lib.viewList": "List view",
   "v2.lib.viewGrid": "Grid view",
   "v2.lib.viewCarousel": "Carousel view",
+  "v2.lib.coverSize": "Cover size",
   "v2.lib.viewGridLarge": "Large tiles view",
   "v2.lib.starting": "Starting…",
   "v2.fav.noMatch": "No result for this search.",

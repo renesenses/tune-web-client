@@ -4700,6 +4700,7 @@ export default {
   "v2.lib.viewList": "목록 보기",
   "v2.lib.viewGrid": "그리드 보기",
   "v2.lib.viewCarousel": "캐러셀 보기",
+  "v2.lib.coverSize": "커버 크기",
   "v2.lib.viewGridLarge": "큰 타일 보기",
   "v2.lib.starting": "시작 중…",
   "v2.fav.noMatch": "이 검색에 대한 결과가 없습니다.",

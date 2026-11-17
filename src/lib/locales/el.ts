@@ -4575,6 +4575,7 @@ export default {
   "v2.lib.viewList": "Προβολή λίστας",
   "v2.lib.viewGrid": "Προβολή πλέγματος",
   "v2.lib.viewCarousel": "Προβολή καρουζέλ",
+  "v2.lib.coverSize": "Μέγεθος εξωφύλλων",
   "v2.lib.viewGridLarge": "Προβολή μεγάλων πλακιδίων",
   "v2.lib.starting": "Εκκίνηση…",
   "v2.fav.noMatch": "Κανένα αποτέλεσμα για αυτή την αναζήτηση.",

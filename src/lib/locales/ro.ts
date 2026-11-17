@@ -4700,6 +4700,7 @@ export default {
   "v2.lib.viewList": "Vizualizare listă",
   "v2.lib.viewGrid": "Vizualizare grilă",
   "v2.lib.viewCarousel": "Vizualizare carusel",
+  "v2.lib.coverSize": "Dimensiunea copertelor",
   "v2.lib.viewGridLarge": "Afișare cu miniaturi mari",
   "v2.lib.starting": "Se pornește…",
   "v2.fav.noMatch": "Niciun rezultat pentru această căutare.",

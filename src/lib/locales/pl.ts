@@ -4573,6 +4573,7 @@ export default {
   "v2.lib.viewList": "Widok listy",
   "v2.lib.viewGrid": "Widok siatki",
   "v2.lib.viewCarousel": "Widok karuzeli",
+  "v2.lib.coverSize": "Rozmiar okładek",
   "v2.lib.viewGridLarge": "Widok dużych miniatur",
   "v2.lib.starting": "Uruchamianie…",
   "v2.fav.noMatch": "Brak wyników dla tego wyszukiwania.",

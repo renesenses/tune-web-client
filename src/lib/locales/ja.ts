@@ -4700,6 +4700,7 @@ export default {
   "v2.lib.viewList": "リスト表示",
   "v2.lib.viewGrid": "グリッド表示",
   "v2.lib.viewCarousel": "カルーセル表示",
+  "v2.lib.coverSize": "ジャケットのサイズ",
   "v2.lib.viewGridLarge": "大きいタイル表示",
   "v2.lib.starting": "開始中…",
   "v2.fav.noMatch": "この検索に該当するものはありません。",

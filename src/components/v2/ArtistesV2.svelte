@@ -469,7 +469,7 @@
     flex: 1;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--v2-lib-pochette, 148px), 1fr));
     gap: 22px 18px;
     align-content: start;
     padding: 8px 30px 40px;

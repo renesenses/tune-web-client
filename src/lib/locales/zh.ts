@@ -4700,6 +4700,7 @@ export default {
   "v2.lib.viewList": "列表视图",
   "v2.lib.viewGrid": "网格视图",
   "v2.lib.viewCarousel": "轮播视图",
+  "v2.lib.coverSize": "封面大小",
   "v2.lib.viewGridLarge": "大图块视图",
   "v2.lib.starting": "启动中…",
   "v2.fav.noMatch": "此搜索没有结果。",

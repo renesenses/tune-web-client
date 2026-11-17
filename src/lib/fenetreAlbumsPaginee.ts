@@ -30,6 +30,8 @@ export function trancheAlbums(total: number, position: number, vue: number, colo
 interface Options {
   total: number;
   mode: string;
+  /** Largeur de case de la grille (curseur, fil 2897) : la changer redemande une mesure. */
+  taille?: number;
   surFenetre: (tranche: TrancheAlbums) => void;
   surPret: (aller: ((index: number) => Promise<void>) | undefined) => void;
 }

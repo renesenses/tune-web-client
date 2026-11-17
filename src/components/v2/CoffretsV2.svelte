@@ -146,7 +146,7 @@
   .regle{margin:0; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .etat{padding:24px 0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
-  .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
+  .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--v2-lib-pochette, 150px), 1fr)); gap:16px}
   /* 🔴 LA CARTE PORTE `width:100%` — Bertrand, 27/09/2026, 0.9.167-pre.
      Depuis les menus d'objets (26/09), la carte n'est plus l'enfant de la
      grille : elle est posée dans `.hote`, à côté de son « … ». Or un

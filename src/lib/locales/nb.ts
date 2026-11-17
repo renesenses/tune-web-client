@@ -4575,6 +4575,7 @@ export default {
   "v2.lib.viewList": "Listevisning",
   "v2.lib.viewGrid": "Rutenettvisning",
   "v2.lib.viewCarousel": "Karusellvisning",
+  "v2.lib.coverSize": "Omslagsstørrelse",
   "v2.lib.viewGridLarge": "Visning med store fliser",
   "v2.lib.starting": "Starter …",
   "v2.fav.noMatch": "Ingen treff for dette søket.",

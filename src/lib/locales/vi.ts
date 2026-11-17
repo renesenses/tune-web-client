@@ -4577,6 +4577,7 @@ export default {
   "v2.lib.viewList": "Dạng danh sách",
   "v2.lib.viewGrid": "Dạng lưới",
   "v2.lib.viewCarousel": "Dạng băng chuyền",
+  "v2.lib.coverSize": "Kích thước ảnh bìa",
   "v2.lib.viewGridLarge": "Dạng ô lớn",
   "v2.lib.starting": "Đang khởi động…",
   "v2.fav.noMatch": "Không có kết quả cho tìm kiếm này.",

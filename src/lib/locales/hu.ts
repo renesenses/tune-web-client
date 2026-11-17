@@ -4654,6 +4654,7 @@ export default {
   "v2.lib.viewList": "Lista nézet",
   "v2.lib.viewGrid": "Rács nézet",
   "v2.lib.viewCarousel": "Körhinta nézet",
+  "v2.lib.coverSize": "Borítók mérete",
   "v2.lib.viewGridLarge": "Nagy csempék nézet",
   "v2.lib.starting": "Indítás…",
   "v2.fav.noMatch": "Nincs találat erre a keresésre.",

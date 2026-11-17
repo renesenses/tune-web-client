@@ -4700,6 +4700,7 @@ export default {
   "v2.lib.viewList": "Vista de lista",
   "v2.lib.viewGrid": "Vista de cuadrícula",
   "v2.lib.viewCarousel": "Vista de carrusel",
+  "v2.lib.coverSize": "Tamaño de las portadas",
   "v2.lib.viewGridLarge": "Vista de miniaturas grandes",
   "v2.lib.starting": "Iniciando…",
   "v2.fav.noMatch": "Ningún resultado para esta búsqueda.",
