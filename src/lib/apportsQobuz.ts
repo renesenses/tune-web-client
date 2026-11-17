@@ -36,10 +36,37 @@ export interface ApportsQobuz {
   pistes?: Record<string, Record<string, ChampApporte>>;
 }
 
+/**
+ * web#3123 (FabienM, fil 2864) — les SOUS-ONGLETS de « Compléments Qobuz » :
+ *  - `label`   : l'édition — label, date de sortie, UPC, ℗ et © ;
+ *  - `details` : genres, récompenses, hi-res, livret, pochette HD ;
+ *  - `credits` : les crédits repris de Qobuz.
+ * Un onglet sans contenu n'existe pas.
+ */
+export type OngletApports = 'label' | 'details' | 'credits';
+
+/** Les clés i18n des sous-onglets. */
+export const LIBELLES_ONGLETS_APPORTS: Record<OngletApports, string> = {
+  label: 'v2.album.qobuz.label',
+  details: 'v2.album.qobuz.tabDetails',
+  credits: 'artist.credits',
+};
+
+/** Les sous-onglets à montrer, dans l'ordre : seulement ceux qui ont du contenu. */
+export function ongletsApports(lignes: readonly LigneApport[], nbCredits: number): OngletApports[] {
+  const o: OngletApports[] = [];
+  if (lignes.some((l) => l.onglet === 'label')) o.push('label');
+  if (lignes.some((l) => l.onglet === 'details')) o.push('details');
+  if (nbCredits > 0) o.push('credits');
+  return o;
+}
+
 /** Une ligne de la section, prête à afficher. */
 export interface LigneApport {
   /** Clé de traduction du libellé, ou `null` (℗ et © se suffisent). */
   cle: string | null;
+  /** web#3123 — le sous-onglet qui porte la ligne. */
+  onglet: OngletApports;
   texte: string;
   /** Adresse `https` à ouvrir dans un nouvel onglet. */
   url?: string;
@@ -68,7 +95,7 @@ export function lignesApports(a: ApportsQobuz | null | undefined): LigneApport[]
   const src = (k: string) => (typeof c[k]?.source === 'string' ? c[k].source : 'qobuz');
   const texte = (k: string, cle: string | null, prefixe = '') => {
     const t = chaine(c[k]?.valeur);
-    if (t) out.push({ cle, texte: prefixe + t, source: src(k) });
+    if (t) out.push({ cle, onglet: 'label', texte: prefixe + t, source: src(k) });
   };
   texte('label', 'v2.album.qobuz.label');
   texte('date_de_sortie', 'v2.album.qobuz.releaseDate');
@@ -78,7 +105,7 @@ export function lignesApports(a: ApportsQobuz | null | undefined): LigneApport[]
   const genres = c.genres?.valeur;
   if (Array.isArray(genres)) {
     const g = genres.map(chaine).filter((x): x is string => !!x);
-    if (g.length) out.push({ cle: 'v2.album.qobuz.genres', texte: g.join(', '), source: src('genres') });
+    if (g.length) out.push({ cle: 'v2.album.qobuz.genres', onglet: 'details', texte: g.join(', '), source: src('genres') });
   }
   const recompenses = c.recompenses?.valeur;
   if (Array.isArray(recompenses)) {
@@ -86,7 +113,7 @@ export function lignesApports(a: ApportsQobuz | null | undefined): LigneApport[]
       const nom = chaine(r?.nom);
       if (!nom) continue;
       const details = [chaine(r.publication), chaine(r.date)].filter(Boolean).join(', ');
-      out.push({ cle: 'v2.album.qobuz.awards', texte: details ? `${nom} (${details})` : nom, source: src('recompenses') });
+      out.push({ cle: 'v2.album.qobuz.awards', onglet: 'details', texte: details ? `${nom} (${details})` : nom, source: src('recompenses') });
     }
   }
   const h = c.hires?.valeur as { bit_depth?: unknown; sample_rate?: unknown } | undefined;
@@ -95,16 +122,16 @@ export function lignesApports(a: ApportsQobuz | null | undefined): LigneApport[]
     const hz = Number(h.sample_rate);
     const parts = [bits > 0 ? `${bits} bits` : '', hz > 0 ? `${(hz / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} kHz` : '']
       .filter(Boolean).join(' / ');
-    out.push({ cle: 'v2.album.qobuz.hires', texte: parts, source: src('hires') });
+    out.push({ cle: 'v2.album.qobuz.hires', onglet: 'details', texte: parts, source: src('hires') });
   }
   const livrets = c.livrets?.valeur;
   if (Array.isArray(livrets)) {
     for (const l of livrets as Array<Record<string, unknown>>) {
-      if (adresseSure(l?.url)) out.push({ cle: 'v2.album.qobuz.booklet', texte: chaine(l.name) ?? '', url: l.url, source: src('livrets') });
+      if (adresseSure(l?.url)) out.push({ cle: 'v2.album.qobuz.booklet', onglet: 'details', texte: chaine(l.name) ?? '', url: l.url, source: src('livrets') });
     }
   }
   const p = c.pochette_hd?.valeur as { url?: unknown } | undefined;
-  if (p && adresseSure(p.url)) out.push({ cle: 'v2.album.qobuz.coverHd', texte: '', url: p.url, source: src('pochette_hd') });
+  if (p && adresseSure(p.url)) out.push({ cle: 'v2.album.qobuz.coverHd', onglet: 'details', texte: '', url: p.url, source: src('pochette_hd') });
   return out;
 }
 

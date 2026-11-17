@@ -74,7 +74,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'affichage-volume', section: 'interface', labelKey: 'settings.volumeDisplay', descKey: 'v2.hint.volumeDisplay', termesKey: 'reglages.termes.affichageVolume', techniques: ['dB', '%'], min: 'intermediate' },
   { id: 'boutons-volume', section: 'interface', labelKey: 'settings.volumeStepButtons', descKey: 'settings.volumeStepButtonsHint', min: 'intermediate' },
   { id: 'ligne-technique-album', section: 'interface', labelKey: 'settings.albumTechLine', descKey: 'settings.albumTechLineHint', techniques: ['kHz', 'bit'], min: 'expert' },
-  { id: 'actions-piste-reduites', section: 'interface', labelKey: 'settings.trackActionsReduced', descKey: 'settings.trackActionsReducedHint', min: 'intermediate' },
   { id: 'infobulles', section: 'interface', labelKey: 'settings.tooltips', descKey: 'settings.tooltipsHint', termesKey: 'reglages.termes.infobulles', min: 'intermediate' },
   // ── Général › Barre latérale (écran secondaire, maquette de Levente 15/11) ──
   { id: 'sources-barre', section: 'sidebar', labelKey: 'settings.sidebarSources', descKey: 'settings.sidebarSourcesHint', termesKey: 'reglages.termes.sourcesBarre' },
