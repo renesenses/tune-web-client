@@ -85,13 +85,15 @@ describe('#7517 — curseur en dB sur une sortie à course en dB', () => {
     expect(envois[0].body.volume).toBeCloseTo(0.8, 10);
   });
 
-  it('les limites colorent le curseur : vert, orange, rouge', async () => {
+  // tune-server-rust#8920 — sur Devialet AIR, pas de zone rouge : Tune n'y va
+  // jamais (le rouge reste pour les autres sorties, `fondDesZones`).
+  it('les limites colorent le curseur : vert, orange, sans rouge sur Devialet AIR', async () => {
     const slider = await monter(air({ volume_limit_comfort: 0.4, volume_limit_safety: 0.7 }));
     const style = slider.getAttribute('style') ?? '';
     expect(style).toContain('linear-gradient');
     expect(style).toContain('--tune-success');
     expect(style).toContain('--tune-warning');
-    expect(style).toContain('--tune-error');
+    expect(style).not.toContain('--tune-error');
     expect(slider.title).not.toBe('');
   });
 

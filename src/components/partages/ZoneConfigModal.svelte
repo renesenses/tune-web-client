@@ -9,6 +9,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import { estAir } from '../../lib/devialetAir';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
 
   interface Props {
@@ -754,8 +755,11 @@
           <!-- Les MÊMES libellés que Réglages › Réglages par zone : deux
                écrans qui nomment différemment le même réglage, c'est le
                défaut que ce lot corrige, pas un défaut à reproduire. -->
+          <!-- tune-server-rust#8920 — Devialet AIR : DSD64 en DoP, ou PCM. -->
+          {#if !estAir(zone)}
           <option value="auto">Auto</option>
           <option value="native">{$t('settings.dsdNative')}</option>
+          {/if}
           <option value="dop">DoP</option>
           <option value="pcm">{$t('settings.dsdPcm')}</option>
         </select>

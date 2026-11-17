@@ -6961,7 +6961,6 @@ export default {
   "v2.carte.pod.noNearby": "Brak podobnych audycji (brak wspólnego producenta lub kategorii).",
   "v2.carte.pod.charts": "Rankingi: {list}",
   "v2.carte.pod.episodes": "Zobacz odcinki",
-  "volume.deviceObserved": "AIR (odczyt): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -7851,5 +7850,7 @@ export default {
   "artist.page.statAlbums": "Albumy",
   "artist.page.statPerforming": "Utwory jako wykonawca",
   "artist.page.statWriting": "Utwory jako autor",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: brak stałej głośności. Głośnością steruje wzmacniacz, w granicach komfortu i bezpieczeństwa.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: brak pełnej głośności w trybie PURE. Głośnością steruje wzmacniacz, w granicach komfortu i bezpieczeństwa.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

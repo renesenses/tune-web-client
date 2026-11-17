@@ -6961,7 +6961,6 @@ export default {
   "v2.carte.pod.noNearby": "Ingen lignende programmer (ingen felles produsent eller kategori).",
   "v2.carte.pod.charts": "Topplister: {list}",
   "v2.carte.pod.episodes": "Se episoder",
-  "volume.deviceObserved": "AIR (avlest): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -7851,5 +7850,7 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spor som utøver",
   "artist.page.statWriting": "Spor som låtskriver",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: ingen fast volum. Forsterkeren styrer volumet, innenfor komfort- og sikkerhetsgrensene.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: ingen full volum i PURE-modus. Forsterkeren styrer volumet, innenfor komfort- og sikkerhetsgrensene.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

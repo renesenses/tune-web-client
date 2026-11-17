@@ -54,8 +54,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   // tune-server-rust#8445 — zone groupée : le curseur règle le volume MAÎTRE.
   import MentionGroupe from './MentionGroupe.svelte';
   import { tuneWS } from '../../lib/websocket';
-  import { reglerVolume, chargerGroupesDeZones, suivreGroupesDeZones } from '../../lib/volumeDeGroupe';
-  import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import { reglerVolume, chargerGroupesDeZones, suivreGroupesDeZones, zoneGroupee } from '../../lib/volumeDeGroupe';
+  import { estAir, dbAffiche, plusEnButeeAir, moinsEnButeeAir } from '../../lib/devialetAir';
+  import { courseDb, dbDepuisFraction, fractionDepuisDb, formaterDbAppareil } from '../../lib/volumeCourseDb';
   import VolumeFixe from './VolumeFixe.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
@@ -107,6 +108,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   let volumeMobileAutorise = $derived(!$volumeLocked && volumeCommandable($currentZone));
   let sourdineMobileAutorisee = $derived(!$volumeLocked && sourdineCommandable($currentZone));
   let bornesMobile = $derived(bornesCurseurSortie($currentZone));
+  // tune-server-rust#8920 — Devialet AIR : l'ampli fait foi pour l'affichage
+  // (télécommande comprise) ; boutons ±1 dB d'ampli.
+  let courseMobile = $derived(estAir($currentZone) ? courseDb($currentZone as any) : null);
+  let dernierGesteMobile = $state(0);
+  let dbAmpliMobile = $derived(courseMobile ? dbAffiche($currentZone as any, courseMobile, dbDepuisFraction(courseMobile, mobileVol), dernierGesteMobile) : null);
+  let curseurMobile = $derived(courseMobile && dbAmpliMobile !== null ? fractionDepuisDb(courseMobile, dbAmpliMobile) : mobileVol);
   let clePlageMobile = $derived(clePlageVolumeSortie($currentZone));
 
   // Miroir local obligatoire pour les zones navigateur : le serveur ignore
@@ -136,6 +143,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || !volumeMobileAutorise) return;
     const brut = Number((e.target as HTMLInputElement).value);
+    dernierGesteMobile = Date.now();
     const val = normaliserVolumeSortie(z, brut, plageVolumeSortie(z) ? plafondDuCurseur(z, mobileVol) : 1);
     if (val === null) return;
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
@@ -157,6 +165,22 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   async function mobileVolumeStep(delta: number) {
     const z = $currentZone;
     if (!z?.id || !volumeMobileAutorise) return;
+    if (courseMobile && !zoneGroupee(z.id)) {
+      const zoneId = z.id;
+      try {
+        const r = await api.stepVolumeDb(zoneId, delta > 0 ? 'up' : 'down', 1);
+        if ($currentZone?.id !== zoneId) return;
+        if (r.sent !== false) {
+          dernierGesteMobile = Date.now();
+          if (delta > 0) leverSourdineSiBesoin({ ...z, id: zoneId }, r.volume);
+          applyMobileVolume(z, r.volume);
+        }
+        if (r.limited) notifications.info($t('volume.limitedBySafety'));
+      } catch {
+        notifications.error($t('volume.stepFailed'));
+      }
+      return;
+    }
     // web#2292 — un point, et + borné par la sécurité de la zone comme les
     // boutons du curseur, pas seulement par 100 %.
     const newVal = cibleDuPas(z, mobileVol, delta > 0 ? 'up' : 'down');
@@ -1727,7 +1751,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           min={bornesMobile.min}
           max={bornesMobile.max}
           step={bornesMobile.step}
-          value={mobileVol}
+          value={curseurMobile}
           oninput={handleMobileVolume}
           disabled={!volumeMobileAutorise}
           {...{ orient: 'vertical' }}
@@ -1736,14 +1760,13 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           onclick={(e) => e.stopPropagation()}
         />
         <div class="mobile-volume-steps">
-          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (courseMobile && dbAmpliMobile !== null ? moinsEnButeeAir(courseMobile, dbAmpliMobile) : plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'down') === mobileVol)} aria-label={courseMobile ? '−1 dB' : undefined} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(-0.01); }}>−</button>
           <!-- tune-server-rust#7205 — une sortie à course en dB (Devialet) se lit en dB. -->
-          <span class="mobile-volume-value" data-volume-mobile>{libelleVolumeZone($currentZone as any, mobileVol) ?? Math.round(mobileVol * 100)}</span>
-          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
+          <span class="mobile-volume-value" data-volume-mobile>{dbAmpliMobile !== null ? formaterDbAppareil(dbAmpliMobile) : libelleVolumeZone($currentZone as any, mobileVol) ?? Math.round(mobileVol * 100)}</span>
+          <button class="mobile-step-btn" disabled={!volumeMobileAutorise || (courseMobile && dbAmpliMobile !== null ? plusEnButeeAir($currentZone as any, courseMobile, dbAmpliMobile) : plageVolumeSortie($currentZone) != null && cibleDuPas($currentZone, mobileVol, 'up') === mobileVol)} aria-label={courseMobile ? '+1 dB' : undefined} onclick={(e) => { e.stopPropagation(); mobileVolumeStep(0.01); }}>+</button>
         </div>
         <MentionGroupe zoneId={$currentZone?.id} />
         {/if}
-        <DeviceVolumeObservation zone={$currentZone} />
       </div>
     {/if}
   </div>
@@ -1994,6 +2017,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
            TROIS positions, pas deux (#2526) : « hériter » envoie `null` et rend
            la zone au réglage général. Sans elle, une surcharge posée une fois ne
            se retirait plus — l'API savait le faire, l'utilisateur non. -->
+      <!-- tune-server-rust#8920 — jamais sur Devialet AIR : le plein volume y
+           enverrait le haut de la course à l'ampli ; le serveur le refuse. -->
+      {#if estAir(zone)}
+        <p class="sp-pure-rg" data-air-sans-plein-volume>{$t('audiophile.lockVolumeUnavailableAir' as any)}</p>
+      {:else}
       <div class="sp-audiophile sp-ap-sub-row">
         <div class="sp-ap-text">
           <span class="sp-ap-title">{$t('audiophile.lockVolumeZone' as any)}</span>
@@ -2013,6 +2041,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           <option value="off">{$t('audiophile.lockNever' as any)}</option>
         </select>
       </div>
+      {/if}
 
       <!-- tune-server-rust#5633 — PURE ignore le ReplayGain, et le DIT : avec
            le gain que la piste en cours recevrait hors PURE, quand le serveur

@@ -2092,6 +2092,19 @@ export function stepVolume(zoneId: number, direction: 'up' | 'down', step?: numb
 }
 
 /**
+ * tune-server-rust#8920 — un pas en dB d'AMPLI sur une zone Devialet AIR
+ * (boutons −1 dB / +1 dB). Le serveur part du niveau que l'ampli rapporte,
+ * franchit le confort, jamais la sécurité ; un + ne baisse jamais (`sent`
+ * faux en butée).
+ */
+export function stepVolumeDb(zoneId: number, direction: 'up' | 'down', stepDb = 1) {
+  return fetchJSON<PasDeVolumeReponse & { sent?: boolean; device_volume_db?: number | null }>(
+    `${BASE}/zones/${zoneId}/volume/step`,
+    { method: 'POST', body: JSON.stringify({ direction, step_db: stepDb }) },
+  );
+}
+
+/**
  * tune-server-rust#6541 — les deux limites de volume d'une zone, en fraction
  * 0..1. Le PUT REMPLACE les deux : `null` efface (pas de limite). Seule une
  * sécurité ABAISSÉE sous le volume courant ramène la zone sur-le-champ, à la

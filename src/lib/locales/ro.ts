@@ -7116,7 +7116,6 @@ export default {
   "v2.carte.pod.noNearby": "Nicio emisiune apropiată (niciun producător sau categorie în comun).",
   "v2.carte.pod.charts": "Clasamente: {list}",
   "v2.carte.pod.episodes": "Vezi episoadele",
-  "volume.deviceObserved": "AIR (observat): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -8006,6 +8005,8 @@ export default {
   "artist.page.statAlbums": "Albume",
   "artist.page.statPerforming": "Piese ca interpret",
   "artist.page.statWriting": "Piese ca autor",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: fără volum fix. Amplificatorul gestionează volumul, în limitele de confort și de siguranță.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: fără volum maxim în modul PURE. Amplificatorul gestionează volumul, în limitele de confort și de siguranță.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

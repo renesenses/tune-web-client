@@ -7116,7 +7116,6 @@ export default {
   "v2.carte.pod.noNearby": "近い番組はありません（共通の制作者やカテゴリなし）。",
   "v2.carte.pod.charts": "ランキング：{list}",
   "v2.carte.pod.episodes": "エピソードを見る",
-  "volume.deviceObserved": "AIR（受信値）：{value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -8006,6 +8005,8 @@ export default {
   "artist.page.statAlbums": "アルバム",
   "artist.page.statPerforming": "演奏者としてのトラック",
   "artist.page.statWriting": "作者としてのトラック",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR：固定音量は使えません。音量はアンプが管理し、快適上限と安全上限の範囲内に保たれます。",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR：PURE モードでの最大音量は使えません。音量はアンプが管理し、快適上限と安全上限の範囲内に保たれます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

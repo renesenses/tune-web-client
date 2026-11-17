@@ -7115,7 +7115,6 @@ export default {
   "v2.carte.pod.noNearby": "Inget liknande program (ingen gemensam producent eller kategori).",
   "v2.carte.pod.charts": "Topplistor: {list}",
   "v2.carte.pod.episodes": "Visa avsnitt",
-  "volume.deviceObserved": "AIR (avläst): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -8005,4 +8004,6 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spår som artist",
   "artist.page.statWriting": "Spår som upphovsperson",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: ingen fast volym. Förstärkaren styr volymen, inom komfort- och säkerhetsgränserna.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: ingen full volym i PURE-läget. Förstärkaren styr volymen, inom komfort- och säkerhetsgränserna.",
 } as const;
