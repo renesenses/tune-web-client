@@ -540,7 +540,7 @@
                   aria-label={`${$tr(albumsOuverts.has(ligne.cle) ? 'v2.rayons.collapse' : 'v2.rayons.expand')} ${t.album_title ?? ''}`}>
                   <span class="n">{albumsOuverts.has(ligne.cle) ? '−' : '+'}</span>
                   <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.album_title ?? ''} source={t.source} /></span>
-                  <span class="ti">{t.album_title}<em>{$tr('v2.queue.upNextCount' as any).replace('{n}', $formatNombre(ligne.nombre))}</em></span>
+                  <span class="ti" use:bulleTexte>{t.album_title}<em>{$tr('v2.queue.upNextCount' as any).replace('{n}', $formatNombre(ligne.nombre))}</em></span>
                 </button>
                 <span class="dur">{formatTime(ligne.duree)}</span>
                 <span class="ord">
