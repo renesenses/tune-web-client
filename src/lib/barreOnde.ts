@@ -14,9 +14,16 @@
  * RMS normalisée, 200 points, mise en cache en base). ⚠️ À ne pas confondre
  * avec `api.getWaveform`, qui vise `/dj/waveform/{id}` — la route du greffon DJ.
  *
+ * QOBUZ ET TIDAL (go de Bertrand du 17/11/2026, rc13) : la piste en lecture
+ * n'a pas d'identifiant de bibliothèque ; son enveloppe vient de
+ * `GET /library/service-tracks/{service}/{source_id}/waveform`. Le serveur
+ * télécharge la piste pour l'analyser, une fois : il répond d'abord
+ * `202 { pending: true }`, et la barre reste classique jusqu'à l'enveloppe,
+ * redemandée toutes les quelques secondes ([`DELAI_REESSAI_MS`]).
+ *
  * REPLI : pas d'enveloppe ⇒ la barre classique, sans message. C'est le cas
- *   - d'une piste qui n'est pas un fichier local (Qobuz, TIDAL, radio, UPnP,
- *     YouTube…) : aucune requête n'est même envoyée ;
+ *   - d'une radio, d'un podcast, d'un média UPnP, d'une piste Spotify ou
+ *     YouTube… : aucune requête n'est même envoyée ;
  *   - d'une enveloppe en cours de calcul (le serveur décode tout le fichier à
  *     la première demande : 2 à 4 s pour une piste de 4 min, 40 à 60 s pour
  *     une piste d'une heure, mesuré sur le .18 le 12/11/2026) : la barre
@@ -54,6 +61,45 @@ export function idPisteOnde(
   const id = piste.track_id ?? piste.id ?? null;
   return typeof id === 'number' && Number.isFinite(id) && id > 0 ? id : null;
 }
+
+/** Les services dont le serveur sait calculer l'enveloppe de la piste en
+ *  lecture (par téléchargement, `audio_de_service` côté serveur). */
+export const SERVICES_ONDE: readonly string[] = ['qobuz', 'tidal'];
+
+/** La clé d'une piste dont le serveur peut calculer l'enveloppe, ou `null` :
+ *  l'identifiant de bibliothèque (un nombre) pour une piste locale, ou
+ *  `"<service>:<source_id>"` pour une piste Qobuz ou TIDAL. */
+export type ClePiste = number | string;
+
+export function clePisteOnde(
+  piste: Pick<NowPlaying, 'source' | 'track_id' | 'id' | 'source_id'> | null | undefined,
+): ClePiste | null {
+  if (!piste) return null;
+  const locale = idPisteOnde(piste);
+  if (locale !== null) return locale;
+  const service = typeof piste.source === 'string' ? piste.source.trim().toLowerCase() : '';
+  if (!SERVICES_ONDE.includes(service)) return null;
+  const id = piste.source_id == null ? '' : String(piste.source_id).trim();
+  return id ? `${service}:${id}` : null;
+}
+
+/** Le service et l'identifiant chez lui d'une clé de piste de service. */
+export function pisteDeServiceDe(cle: ClePiste): { service: string; id: string } | null {
+  if (typeof cle !== 'string') return null;
+  const i = cle.indexOf(':');
+  return i > 0 ? { service: cle.slice(0, i), id: cle.slice(i + 1) } : null;
+}
+
+/** Le serveur calcule encore (`202 { pending: true }`) : rien à retenir. */
+export function enAttente(reponse: unknown): boolean {
+  return (reponse as { pending?: unknown } | null)?.pending === true;
+}
+
+/** Délai entre deux demandes d'une enveloppe pas encore prête (ou d'une
+ *  panne passagère), et nombre d'essais : trois minutes, le délai de
+ *  téléchargement du serveur. */
+export const DELAI_REESSAI_MS = 3000;
+export const ESSAIS_MAX = 60;
 
 /** La réponse du serveur, réduite à une enveloppe dessinable, ou `null`.
  *
@@ -147,9 +193,9 @@ export function cibleClavier(touche: string, positionMs: number, dureeMs: number
 export interface CacheOndes {
   /** L'enveloppe si elle est déjà connue (`null` : connue comme absente),
    *  `undefined` si elle n'a jamais été demandée ou est en route. */
-  connue(id: number): Onde | null | undefined;
+  connue(id: ClePiste): Onde | null | undefined;
   /** Demande l'enveloppe — une seule fois par piste, quoi qu'il arrive. */
-  obtenir(id: number): Promise<Onde | null>;
+  obtenir(id: ClePiste): Promise<Onde | null>;
 }
 
 /** Un cache par piste, autour d'une fonction de chargement injectée (les
@@ -168,9 +214,9 @@ export function echecDefinitif(erreur: unknown): boolean {
   return statut >= 400 && statut < 500 && statut !== 401 && statut !== 408 && statut !== 429;
 }
 
-export function creerCacheOndes(charger: (id: number) => Promise<unknown>): CacheOndes {
-  const resolues = new Map<number, Onde | null>();
-  const enVol = new Map<number, Promise<Onde | null>>();
+export function creerCacheOndes(charger: (id: ClePiste) => Promise<unknown>): CacheOndes {
+  const resolues = new Map<ClePiste, Onde | null>();
+  const enVol = new Map<ClePiste, Promise<Onde | null>>();
   return {
     connue(id) {
       return resolues.has(id) ? resolues.get(id)! : undefined;
@@ -182,7 +228,8 @@ export function creerCacheOndes(charger: (id: number) => Promise<unknown>): Cach
       const p = Promise.resolve()
         .then(() => charger(id))
         .then(
-          (reponse) => ({ onde: normaliserOnde(reponse), retenir: true }),
+          // `pending` : le serveur calcule encore — pas une réponse.
+          (reponse) => ({ onde: normaliserOnde(reponse), retenir: !enAttente(reponse) }),
           (erreur) => ({ onde: null, retenir: echecDefinitif(erreur) }),
         )
         .then(({ onde, retenir }) => {
@@ -199,47 +246,54 @@ export function creerCacheOndes(charger: (id: number) => Promise<unknown>): Cach
 }
 
 /** L'enveloppe de la piste en lecture, ou `null` (réglage décoché, piste sans
- *  fichier, calcul en cours, refus). Un SEUL abonnement pour les deux barres.
+ *  enveloppe possible, calcul en cours, refus). Un SEUL abonnement pour les
+ *  deux barres.
  *
- *  `actif` et `piste` sont réduits à des primitives avant d'atteindre la
+ *  `actif` et `piste` sont réduits à une clé primitive avant d'atteindre la
  *  requête : les préférences changent à chaque pas de volume, la zone à chaque
- *  tic de position, et ni l'un ni l'autre ne doit relancer quoi que ce soit. */
+ *  tic de position, et ni l'un ni l'autre ne doit relancer quoi que ce soit.
+ *
+ *  Une réponse qui n'est pas retenue par le cache (enveloppe en calcul côté
+ *  serveur, panne passagère) est redemandée toutes les [`DELAI_REESSAI_MS`],
+ *  au plus [`ESSAIS_MAX`] fois, tant que la piste ne change pas. Le
+ *  remontage (nouvel abonné après le départ du dernier) redemande une piste
+ *  restée inconnue du cache. */
 export function ondeDeLaPiste(
   actif: Readable<boolean>,
-  piste: Readable<Pick<NowPlaying, 'source' | 'track_id' | 'id'> | null | undefined>,
+  piste: Readable<Pick<NowPlaying, 'source' | 'track_id' | 'id' | 'source_id'> | null | undefined>,
   cache: CacheOndes,
 ): Readable<Onde | null> {
-  const id = derived([actif, piste], ([$actif, $piste]) => ($actif ? idPisteOnde($piste) : null));
+  const cle = derived([actif, piste], ([$actif, $piste]) => ($actif ? clePisteOnde($piste) : null));
   // `derived` sur un dérivé primitif ne se relance qu'au vrai changement de
-  // valeur : un même id ne redemande rien, et le cache ferait barrage sinon.
-  let dernier: number | null | undefined;
+  // valeur (ou à un nouvel abonnement) : les tics de position ne redemandent
+  // rien.
   let jeton = 0;
-  let valeur: Onde | null = null;
-  /** La piste dont la demande est partie et pas encore revenue. */
-  let enCours: number | null = null;
-  return derived(id, ($id, set) => {
-    // Même piste ET réponse connue (ou en route) : rien à redemander. Une
-    // piste dont la dernière demande a échoué en passant n'est pas connue du
-    // cache : un remontage (retour sur l'écran, nouvel abonné) la redemande.
-    if ($id === dernier && ($id == null || cache.connue($id) !== undefined || enCours === $id)) {
-      set(valeur);
-      return;
-    }
-    dernier = $id;
+  return derived(cle, ($cle, set) => {
     const moi = ++jeton;
-    if ($id == null) { valeur = null; set(null); return; }
-    const connue = cache.connue($id);
-    if (connue !== undefined) { valeur = connue; set(connue); return; }
-    // En route : la barre classique d'ici la réponse.
-    valeur = null;
+    if ($cle == null) { set(null); return; }
+    const connue = cache.connue($cle);
+    if (connue !== undefined) { set(connue); return; }
+    // Pas encore connue : la barre classique d'ici la réponse.
     set(null);
-    enCours = $id;
-    void cache.obtenir($id).then((onde) => {
-      // Une réponse arrivée après un changement de piste n'a plus rien à dire.
-      if (moi !== jeton) return;
-      enCours = null;
-      valeur = onde;
-      set(onde);
-    });
+    let minuterie: ReturnType<typeof setTimeout> | null = null;
+    let essais = 0;
+    const demander = () => {
+      minuterie = null;
+      void cache.obtenir($cle).then((onde) => {
+        // Une réponse arrivée après un changement de piste (ou un départ) n'a
+        // plus rien à dire.
+        if (moi !== jeton) return;
+        if (onde === null && cache.connue($cle) === undefined) {
+          if (essais++ < ESSAIS_MAX) minuterie = setTimeout(demander, DELAI_REESSAI_MS);
+          return;
+        }
+        set(onde);
+      });
+    };
+    demander();
+    return () => {
+      jeton++;
+      if (minuterie !== null) clearTimeout(minuterie);
+    };
   }, null as Onde | null);
 }

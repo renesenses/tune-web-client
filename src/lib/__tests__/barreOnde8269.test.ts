@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { get, writable } from 'svelte/store';
 import {
   cibleClavier, cheminOnde, creerCacheOndes, idPisteOnde, nombreDeBarres,
-  echecDefinitif, normaliserOnde, ondeDeLaPiste, reduireOnde,
+  clePisteOnde, DELAI_REESSAI_MS, echecDefinitif, normaliserOnde, ondeDeLaPiste,
+  pisteDeServiceDe, reduireOnde,
 } from '../barreOnde';
 import type { NowPlaying } from '../types';
 
@@ -191,5 +192,56 @@ describe('#8269 — une panne passagère n’est pas une réponse', () => {
     expect(get(onde), 'la 4 redemandée après la panne').toEqual([0.1, 0.9]);
     expect(charger).toHaveBeenCalledTimes(4);
     stop();
+  });
+});
+
+// Go de Bertrand du 17/11/2026 (rc13) : l'onde des pistes Qobuz et TIDAL.
+describe('#8269 rc13 — Qobuz et TIDAL', () => {
+  it('la clé : id de bibliothèque pour une piste locale, « service:id » pour Qobuz/TIDAL, rien sinon', () => {
+    expect(clePisteOnde({ source: 'local', track_id: 12 })).toBe(12);
+    expect(clePisteOnde({ source: 'qobuz', track_id: null, source_id: '48098083' })).toBe('qobuz:48098083');
+    expect(clePisteOnde({ source: 'tidal', source_id: ' 123 ' } as never)).toBe('tidal:123');
+    for (const source of ['radio', 'podcast', 'upnp', 'spotify', 'youtube'] as const) {
+      expect(clePisteOnde({ source, source_id: 'x' } as never), source).toBeNull();
+    }
+    expect(clePisteOnde({ source: 'qobuz', source_id: null } as never)).toBeNull();
+    expect(pisteDeServiceDe('qobuz:4:2')).toEqual({ service: 'qobuz', id: '4:2' });
+    expect(pisteDeServiceDe(12)).toBeNull();
+  });
+
+  it('🔴 « pending » n’est pas retenu ; le store redemande, puis montre l’onde', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let pret = false;
+      const charger = vi.fn(async () => (pret ? { waveform: [0.2, 0.7] } : { waveform: null, pending: true }));
+      const cache = creerCacheOndes(charger);
+      const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
+        { source: 'qobuz', track_id: null, source_id: '1' },
+      );
+      const onde = ondeDeLaPiste(writable(true), piste, cache);
+      const stop = onde.subscribe(() => {});
+      await vi.advanceTimersByTimeAsync(0);
+      expect(get(onde)).toBeNull();
+      expect(cache.connue('qobuz:1'), '« pending » : rien de retenu').toBeUndefined();
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS);
+      expect(charger).toHaveBeenCalledTimes(2);
+      pret = true;
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS);
+      expect(get(onde)).toEqual([0.2, 0.7]);
+      expect(charger).toHaveBeenCalledTimes(3);
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * 5);
+      expect(charger).toHaveBeenCalledTimes(3);
+
+      // Changement de piste pendant un calcul : les relances cessent.
+      pret = false;
+      piste.set({ source: 'qobuz', track_id: null, source_id: '2' });
+      await vi.advanceTimersByTimeAsync(0);
+      piste.set({ source: 'radio', track_id: null, source_id: 'r' });
+      await vi.advanceTimersByTimeAsync(DELAI_REESSAI_MS * 5);
+      expect(charger).toHaveBeenCalledTimes(4);
+      stop();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

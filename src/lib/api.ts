@@ -8484,6 +8484,16 @@ export function getTrackWaveform(trackId: number) {
   );
 }
 
+/** L'enveloppe de la barre pour une piste Qobuz ou TIDAL en lecture (go du
+ *  17/11/2026, rc13). `202 { pending: true }` tant que le serveur calcule ;
+ *  voir `lib/barreOnde`. */
+export function getServiceTrackWaveform(service: string, sourceId: string) {
+  return fetchJSON<{ waveform: number[] | null; pending?: boolean; error?: string; raison?: string }>(
+    `${BASE}/library/service-tracks/${encodeURIComponent(service)}/${encodeURIComponent(sourceId)}/waveform`,
+    undefined, undefined, true,
+  );
+}
+
 export function getWaveform(trackId: number) {
   return fetchJSON<{ track_id: number; waveform: number[]; bpm: number | null }>(`${BASE}/dj/waveform/${trackId}`);
 }
