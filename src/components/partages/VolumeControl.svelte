@@ -5,7 +5,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
-  import { estAir, dbAffiche, dbDuCurseur, plusEnButeeAir, moinsEnButeeAir } from '../../lib/devialetAir';
+  import { estAir, dbAffiche, dbDuCurseur as dbBorneALaCourse, plusEnButeeAir, moinsEnButeeAir } from '../../lib/devialetAir';
   import VolumeFixe from './VolumeFixe.svelte';
   import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
@@ -49,7 +49,7 @@
   let air = $derived(estAir(zone));
   let dernierGeste = $state(0);
   let dbAmpli = $derived(course ? dbAffiche(air ? zone : null, course, dbDepuisFraction(course, vol), dernierGeste) : null);
-  let valeurCurseur = $derived(course && dbAmpli !== null ? dbDuCurseur(course, dbAmpli) : vol);
+  let valeurCurseur = $derived(course && dbAmpli !== null ? dbBorneALaCourse(course, dbAmpli) : vol);
   let traits = $derived(course ? graduations(course) : []);
   // Vert sous le confort, orange entre confort et sécurité, rouge au-delà —
   // sauf sur Devialet AIR, où Tune ne va jamais au-delà (#8920).
