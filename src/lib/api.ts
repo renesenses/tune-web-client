@@ -969,8 +969,11 @@ export interface EtatArretProgramme {
    * Absent sur un serveur d'avant #8909.
    */
   poweroff_mode?: 'tune_os' | 'host' | null;
-  /** Dernier échec d'extinction programmée (polkit qui refuse…), `null` sinon. */
-  last_poweroff_error?: { at: string; error: string } | null;
+  /**
+   * Dernier échec d'extinction programmée (polkit qui refuse…), `null` sinon.
+   * `error` (détail) pour l'administrateur seulement ; `code` pour tous.
+   */
+  last_poweroff_error?: { at: string; code?: string; error?: string } | null;
 }
 
 export function getArretProgramme(): Promise<EtatArretProgramme> {

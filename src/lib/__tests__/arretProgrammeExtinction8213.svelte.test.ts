@@ -144,11 +144,39 @@ describe('renesenses/tune-server-rust#8909 — extinction d’un hôte hors Tune
     expect(hote.querySelector('[data-echec-extinction]')).toBeNull();
   });
 
+  it('🔴 hors Tune OS sans authentification : le refus `auth_required` est dit en clair', async () => {
+    const { notifications } = await import('../stores/notifications');
+    const erreur = vi.spyOn(notifications, 'error');
+    await monter({ scheduled_stop: REGLAGE, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host' });
+    radioExtinction()!.click();
+    flushSync();
+    mocks.confirm.mockResolvedValue(true);
+    mocks.setArretProgramme.mockRejectedValue(Object.assign(new Error('auth'), { code: 'auth_required', status: 403 }));
+    enregistrer().click();
+    await respirer();
+    expect(erreur).toHaveBeenCalled();
+    expect(String(erreur.mock.calls.at(-1)![0])).toContain("activez l'authentification");
+    erreur.mockRestore();
+  });
+
+  it('l’avertissement hôte dit que l’authentification est requise', async () => {
+    await monter({ scheduled_stop: { ...REGLAGE, action: 'poweroff' }, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host' });
+    expect(avert()).toContain('authentification');
+  });
+
+  it('compte non administrateur : l’échec n’a que son code, affiché tel quel', async () => {
+    await monter({
+      scheduled_stop: REGLAGE, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host',
+      last_poweroff_error: { at: '2026-11-16T23:00:00', code: 'polkit_denied' },
+    });
+    expect(hote.querySelector('[data-echec-extinction]')!.textContent).toContain('polkit_denied');
+  });
+
   it('toutes les langues portent les nouvelles chaînes', async () => {
     const { readdirSync } = await import('node:fs');
     for (const f of readdirSync('src/lib/locales').filter((n) => n.endsWith('.ts') && n !== 'index.ts')) {
       const txt = readFileSync(`src/lib/locales/${f}`, 'utf8');
-      for (const cle of ['scheduledStop.poweroffHintHost', 'scheduledStop.poweroffFailed']) {
+      for (const cle of ['scheduledStop.poweroffHintHost', 'scheduledStop.poweroffFailed', 'scheduledStop.poweroffAuthRequired']) {
         expect(txt.includes(`"${cle}"`), `${f} : ${cle}`).toBe(true);
       }
       expect(txt, `${f} : {when}/{error}`).toMatch(/"scheduledStop\.poweroffFailed": "[^"]*\{when\}[^"]*\{error\}/);

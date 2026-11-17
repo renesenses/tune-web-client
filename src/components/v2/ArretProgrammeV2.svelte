@@ -34,7 +34,7 @@
   let prochain = $state<string | null>(null);
   let extinctionPossible = $state(false);
   let modeExtinction = $state<'tune_os' | 'host' | null>(null);
-  let dernierEchec = $state<{ at: string; error: string } | null>(null);
+  let dernierEchec = $state<{ at: string; code?: string; error?: string } | null>(null);
 
   let fActif = $state(true);
   let fHeure = $state('23:00');
@@ -120,7 +120,10 @@
       notifications.success($t('common.saved' as any));
     } catch (e: any) {
       if (!vivant) return;
-      if (e?.code === 'poweroff_unavailable') {
+      if (e?.code === 'auth_required') {
+        // Hors Tune OS, éteindre l'ordinateur exige l'authentification active.
+        notifications.error($t('scheduledStop.poweroffAuthRequired' as any));
+      } else if (e?.code === 'poweroff_unavailable') {
         extinctionPossible = false;
         fAction = 'stop_playback';
         notifications.error($t('scheduledStop.poweroffUnavailable' as any));
@@ -226,7 +229,7 @@
 
     {#if dernierEchec}
       <p class="hint echec" role="alert" data-echec-extinction>
-        {$t('scheduledStop.poweroffFailed' as any).replace('{when}', prochainTexte(dernierEchec.at)).replace('{error}', dernierEchec.error)}
+        {$t('scheduledStop.poweroffFailed' as any).replace('{when}', prochainTexte(dernierEchec.at)).replace('{error}', dernierEchec.error ?? dernierEchec.code ?? '')}
       </p>
     {/if}
 
