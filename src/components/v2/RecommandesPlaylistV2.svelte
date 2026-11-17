@@ -70,9 +70,9 @@
   .reco{margin-top:28px; padding-top:18px; border-top:1px solid var(--v2-line)}
   .tete{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
   h3{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; color:var(--v2-txt); margin:0}
-  .indice{color:var(--v2-txt3); font-size:12px; margin:4px 0 10px}
+  .indice{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); margin:4px 0 10px}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); border-radius:999px;
-    padding:6px 12px; font-size:13px; cursor:pointer; min-height:32px}
+    padding:6px 12px; font-size:calc(13px * var(--v2-txt-echelle, 1)); cursor:pointer; min-height:32px}
   .lnk:hover:not(:disabled){border-color:var(--v2-accent, var(--v2-txt2))}
   .lnk:disabled{opacity:.5; cursor:default}
 </style>

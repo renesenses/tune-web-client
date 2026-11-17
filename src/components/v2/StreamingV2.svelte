@@ -120,7 +120,7 @@
   // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
-  type Sub = 'editorial' | 'foryou' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
+  type Sub = 'editorial' | 'genres' | 'foryou' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
   /**
    * 🔴 LE SOUS-ONGLET EST PUBLIÉ DANS `ongletCourant` — fil 2143, point 2.
    *
@@ -2520,7 +2520,7 @@
   .liste{width:100%}
   /* tune-server-rust#8935 — « Pour vous » : la ligne sous le titre d'une
      rangée, et l'écart entre les natures d'une rangée mêlée. */
-  .sous-titre-rangee{color:var(--v2-txt2); font-size:13px; margin:-8px 0 12px}
+  .sous-titre-rangee{color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1)); margin:-8px 0 12px}
   [data-rangee-pour-vous] > :is(.grid, .arow, .liste) + :is(.grid, .arow, .liste){margin-top:16px}
   /* « Voir plus » : une action de LISTE. Le meme dessin que dans la recherche
      globale — c'est le meme geste, il ne doit pas se presenter autrement. */
