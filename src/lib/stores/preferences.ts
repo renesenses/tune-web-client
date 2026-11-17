@@ -16,6 +16,7 @@ import {
 import {
   CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
 } from '../cadenceAnimations';
+import { estModeHistorique, MODE_HISTORIQUE_DEFAUT, type ModeHistorique } from '../modeHistorique';
 import { normaliserTypesBarre, arbitrerTypesBarre, type ChoixTypesBarre } from '../typesSourcesBarre';
 import {
   normaliserChoixBarre, horodatageBarre, arbitrerBarre, type ChoixBarre,
@@ -72,7 +73,7 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'instrument', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
  *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
  *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
@@ -81,7 +82,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'conductor', 'e
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 7;
+const OXYGEN_FACETS_REV = 8;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -113,6 +114,11 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // s'affiche pas : sur une bibliothèque sans classique, ou face à un serveur
   // qui ne les sert pas encore (rc11), le rail reste tel qu'il était.
   7: ['conductor', 'ensemble', 'work'],
+  // web#3157 (demande ASR, go du 17/11) — l'INSTRUMENT des crédits
+  // (`track_credits.instrument`), servi sous `fields=…,instrument` dès la rc12.
+  // Vide sur une bibliothèque sans crédits d'instrument ou face à un serveur
+  // plus ancien : la facette ne s'affiche pas.
+  8: ['instrument'],
 };
 /**
  * #1636 — les défauts livrés jusqu'à la révision 4, qui oubliaient `dr`.
@@ -272,11 +278,6 @@ export interface Preferences {
    *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
    *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
   v2AlbumTechLine: boolean;
-  /** #1892 (Sandro, fil 2114) — masquer les icônes d'action rapide que le
-   *  menu « … » reprend (lire ensuite, file, playlist, étiquettes). Défaut
-   *  OFF : les icônes restent visibles, décision du 05/09/2026. Voir
-   *  `lib/actionsRapides`. */
-  v2ActionsReduites: boolean;
   /** Recherche EXACTE (Yves Corbat, point 8, 17/09/2026) : la saisie entière
    *  vaut une phrase entre guillemets — un artiste, un album ou un titre dont
    *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
@@ -414,6 +415,12 @@ export interface Preferences {
    * l'autre au lieu d'être à refaire à chaque poste.
    */
   ordreAutresVersions: OrdreVersions;
+  /**
+   * web#3143 — l'Historique : une ligne par titre (`titre`, le défaut, la
+   * demande d'Elie) ou une ligne par écoute (`ecoute`, FabienM, fil 2637).
+   * Dans `ui_preferences`, donc par profil, comme les autres choix d'écran.
+   */
+  historiqueLignes: ModeHistorique;
   /**
    * web#2207 (Didier, fil 1907) — l'ordre des collections dans l'arbre des
    * rayons, à tous les niveaux : `manuel` (la position gardée par le serveur,
@@ -567,7 +574,7 @@ const defaults: Preferences = {
   oxygenView: 'detail',
   // `dr` en fait partie depuis #1636 : sans lui, un Oxygen neuf n'a pas de DR.
   // #1640 — `folder` (Répertoire) : « circonscrire la recherche » à un dossier.
-  oxygenFacets: ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
+  oxygenFacets: ['genre', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'instrument', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'folder'],
   oxygenFacetLimit: 200,
   oxygenFacetsRev: OXYGEN_FACETS_REV,
   albumSort: 'title',
@@ -582,7 +589,6 @@ const defaults: Preferences = {
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
-  v2ActionsReduites: false,
   searchExact: false,
   // #6474 : l'ordre livré (nom de tri quand il existe) reste le défaut.
   trierArtistesParNomDeTri: true,
@@ -614,6 +620,8 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
+  // web#3143 : une ligne par titre, comme avant — rien ne bouge sans demande.
+  historiqueLignes: MODE_HISTORIQUE_DEFAUT,
   // web#2256 : l'alphabétique (Didier, fil 1907, 19/10/2026) ; le manuel
   // reste au choix. Un choix enregistré garde le dernier mot.
   ordreRayons: ORDRE_RAYONS_DEFAUT,
@@ -832,6 +840,10 @@ function lirePrefs(stored: string | null): Preferences {
       // défaut plutôt que de laisser le panneau sur un mode qui n'existe pas.
       if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
         p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
+      }
+      // web#3143 — même règle : un mode inconnu retombe sur le défaut.
+      if (!estModeHistorique((raw as { historiqueLignes?: unknown })?.historiqueLignes)) {
+        p.historiqueLignes = MODE_HISTORIQUE_DEFAUT;
       }
       // web#2207 — même règle : un ordre inconnu retombe sur le défaut.
       if (!estOrdreRayons((raw as { ordreRayons?: unknown })?.ordreRayons)) {

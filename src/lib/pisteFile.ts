@@ -91,6 +91,28 @@ export function corpsDeTeteDeListe(t: Track): Record<string, unknown> | null {
 }
 
 /**
+ * web#3121 — le corps de « Lire » sur une ligne de piste : CE titre, seul, à la
+ * place de la file.
+ *
+ * - Titre de SERVICE : `corpsDeTeteDeListe` — `queue_follows` empêche le
+ *   serveur de jouer son album à partir de lui (#5372), et remplace la file
+ *   même s'il y figure déjà (#6399).
+ * - Piste LOCALE : `track_ids: [id]` + `start_index: 0`, PAS `track_id`. Un
+ *   `{track_id}` nu est la « demande nue » de la barre de transport (#2876,
+ *   #4298) : si la piste est déjà dans la file, le serveur GARDE la file et y
+ *   saute, et la suite de l'album continue. Une liste désigne un nouveau
+ *   geste : la file devient ce seul titre. `start_index` marque le départ
+ *   comme CHOISI (#6368) : un titre banni confirmé se joue quand même.
+ *
+ * L'écran File ne passe pas par ici : il SAUTE au titre (`onLire` de
+ * `PisteActions`), sans toucher la file.
+ */
+export function corpsDeLectureSeule(t: Track): Record<string, unknown> | null {
+  if (estPisteLocale(t)) return { track_ids: [t.id!], start_index: 0 };
+  return corpsDeTeteDeListe(t);
+}
+
+/**
  * Corps d'ajout à la file pour une LISTE de pistes, en UNE requête.
  *
  * `QueueAddRequest` accepte `tracks: [...]` côté serveur (mesuré sur la tête

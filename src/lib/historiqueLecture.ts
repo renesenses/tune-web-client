@@ -29,6 +29,7 @@ import { playAndSync } from './stores/zones';
 // fonctions : l'importer ne lit rien.
 import { radioFavListenKey } from './radioFavListenAt';
 import { champAlbumBandcamp } from './albumBandcampDuTitre';
+import { MODE_HISTORIQUE_DEFAUT, type ModeHistorique } from './modeHistorique';
 
 /** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
 const PLAFOND = 200;
@@ -236,7 +237,9 @@ function duPlusRecent(a: HistoryEntry, b: HistoryEntry): number {
 export function fusionnerHistorique(
   local: readonly HistoryEntry[],
   serveur: readonly HistoryEntry[],
+  mode: ModeHistorique = MODE_HISTORIQUE_DEFAUT,
 ): HistoryEntry[] {
+  if (mode === 'ecoute') return fusionnerParEcoute(local, serveur);
   let combine: HistoryEntry[];
   if (serveur.length === 0) combine = [...local];
   else if (local.length === 0) combine = [...serveur];
@@ -266,6 +269,54 @@ export function fusionnerHistorique(
   // `sort` est STABLE depuis ES2019 : à instant égal, l'ordre de la
   // déduplication survit — donc le local reste devant le serveur, ce qui est
   // exactement la priorité posée à l'étape 1.
+  rendu.sort(duPlusRecent);
+  return rendu.slice(0, PLAFOND);
+}
+
+/**
+ * web#3143 — le mode « une ligne par ÉCOUTE » (FabienM, fil 2637, point 7 :
+ * « si je rejoue titre A, le 1er titre A disparaît de l'historique »).
+ *
+ * Le serveur garde déjà chaque écoute : `GET /library/history` rend une ligne
+ * par lecture, sans regroupement (vérifié au tag v1.0.0-rc12, `history_repo`,
+ * `recent_paginated` : aucun `GROUP BY`). Il n'y a donc rien à lui demander ;
+ * ce mode ne replie simplement pas les écoutes d'un même titre.
+ *
+ * 🔴 Mais il ne doit pas non plus montrer DEUX FOIS la même écoute. Le magasin
+ * local note au `playback.started` ce que le serveur note de son côté, avec
+ * une autre horloge : la déduplication par titre + instant exact ne les
+ * rapproche pas, et c'est le repli par titre qui les cachait jusqu'ici. Une
+ * écoute locale s'efface donc devant UNE écoute du serveur de la même piste,
+ * la plus proche dans le temps, à moins de la durée du titre plus la marge
+ * d'horloge — et chaque écoute du serveur n'en absorbe qu'une : un titre
+ * rejoué deux fois de suite garde ses deux lignes.
+ */
+function fusionnerParEcoute(
+  local: readonly HistoryEntry[],
+  serveur: readonly HistoryEntry[],
+): HistoryEntry[] {
+  const prises = new Set<number>();
+  const vus = new Set(serveur.map((e) => e.track.title + e.playedAt));
+  const locales: HistoryEntry[] = [];
+  for (const e of local) {
+    if (vus.has(e.track.title + e.playedAt)) continue;
+    const t = instant(e);
+    let meilleur = -1;
+    if (Number.isFinite(t)) {
+      const marge = ECART_MEME_ECOUTE_MS + Math.max(0, Number(e.track.duration_ms) || 0);
+      let ecart = Infinity;
+      serveur.forEach((s, i) => {
+        if (prises.has(i) || !memePiste(e.track, s.track)) return;
+        const ts = instant(s);
+        if (!Number.isFinite(ts)) return;
+        const d = Math.abs(ts - t);
+        if (d <= marge && d < ecart) { ecart = d; meilleur = i; }
+      });
+    }
+    if (meilleur >= 0) prises.add(meilleur);
+    else locales.push(e);
+  }
+  const rendu = [...locales, ...serveur];
   rendu.sort(duPlusRecent);
   return rendu.slice(0, PLAFOND);
 }

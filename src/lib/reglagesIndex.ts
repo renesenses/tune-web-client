@@ -74,7 +74,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'affichage-volume', section: 'interface', labelKey: 'settings.volumeDisplay', descKey: 'v2.hint.volumeDisplay', termesKey: 'reglages.termes.affichageVolume', techniques: ['dB', '%'], min: 'intermediate' },
   { id: 'boutons-volume', section: 'interface', labelKey: 'settings.volumeStepButtons', descKey: 'settings.volumeStepButtonsHint', min: 'intermediate' },
   { id: 'ligne-technique-album', section: 'interface', labelKey: 'settings.albumTechLine', descKey: 'settings.albumTechLineHint', techniques: ['kHz', 'bit'], min: 'expert' },
-  { id: 'actions-piste-reduites', section: 'interface', labelKey: 'settings.trackActionsReduced', descKey: 'settings.trackActionsReducedHint', min: 'intermediate' },
   { id: 'infobulles', section: 'interface', labelKey: 'settings.tooltips', descKey: 'settings.tooltipsHint', termesKey: 'reglages.termes.infobulles', min: 'intermediate' },
   // ── Général › Barre latérale (écran secondaire, maquette de Levente 15/11) ──
   { id: 'sources-barre', section: 'sidebar', labelKey: 'settings.sidebarSources', descKey: 'settings.sidebarSourcesHint', termesKey: 'reglages.termes.sourcesBarre' },
@@ -189,6 +188,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-dsd', section: 'perZone', label: 'DSD', techniques: ['DSD', 'DoP', 'PCM'], min: 'intermediate' },
   { id: 'zone-debit-max', section: 'perZone', labelKey: 'settings.maxSampleRate', descKey: 'settings.maxSampleRateHint', techniques: ['kHz', 'sample rate'], min: 'intermediate' },
   { id: 'zone-frequence-fixe', section: 'perZone', labelKey: 'settings.fixedSampleRate', descKey: 'settings.fixedSampleRateHint', techniques: ['kHz', 'sample rate', 'SRC', 'PCM'], min: 'intermediate' },
+  { id: 'zone-mode-exclusif', section: 'perZone', labelKey: 'settings.zoneExclusiveMode', descKey: 'settings.zoneExclusiveHint', techniques: ['WASAPI', 'ASIO', 'ALSA', 'exclusive'], min: 'intermediate' },
   { id: 'zone-decalage-paroles', section: 'perZone', labelKey: 'settings.lyricsOffset', techniques: ['lyrics'], min: 'intermediate' },
   { id: 'zone-volume-fixe', section: 'perZone', labelKey: 'v2.lbl.fixedVolume', techniques: ['100'], min: 'intermediate' },
   { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
@@ -216,6 +216,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'bouton-stop', section: 'displayPrefs', labelKey: 'settings.showStopButton', descKey: 'settings.showStopButtonHint', techniques: ['stop'] },
   { id: 'minuteur-sommeil', section: 'displayPrefs', labelKey: 'settings.showSleepTimer', descKey: 'settings.showSleepTimerHint', termesKey: 'reglages.termes.minuteurSommeil', techniques: ['sleep'] },
   { id: 'ordre-autres-versions', section: 'displayPrefs', labelKey: 'settings.versionsOrder', descKey: 'settings.versionsOrderHint', techniques: ['Qobuz', 'Bandcamp'] },
+  { id: 'historique-lignes', section: 'displayPrefs', labelKey: 'settings.historyRows', descKey: 'settings.historyRowsHint', termesKey: 'reglages.termes.historiqueLignes' },
   { id: 'cadence-animations', section: 'displayPrefs', labelKey: 'settings.animationRate', descKey: 'settings.animationRateHint', techniques: ['CPU', 'GPU', 'fps'] },
   { id: 'ouvrir-file-defilement', section: 'displayPrefs', labelKey: 'settings.openQueueOnScroll', descKey: 'settings.openQueueOnScrollHint' },
   { id: 'disposition-file', section: 'displayPrefs', labelKey: 'settings.queuePlacement', descKey: 'settings.queuePlacementHint', termesKey: 'reglages.termes.dispositionFile' },

@@ -188,13 +188,8 @@ describe('(b) #4889 — l’entrée « Ajouter à une playlist » existe pour un
       '« Ajouter à une playlist » absent pour un titre Bandcamp').toBe(true);
   });
 
-  it('🔴 dans la barre : la case playlist d’un titre Bandcamp porte son bouton', async () => {
-    currentZoneId.set(1);
-    monte = mount(PisteActions, { target: hote!, props: { piste: BANDCAMP } });
-    await souffler();
-    expect(hote!.querySelector(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`),
-      'la case playlist Bandcamp est vide').toBeTruthy();
-  });
+  // web#3121 (16/11/2026) — la case playlist a quitté la barre : le geste vit
+  // au menu « … », tenu par le témoin juste au-dessus.
 });
 
 describe('(c) #4889 — le réordonnancement parle en RANGS', () => {

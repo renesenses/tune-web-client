@@ -10,8 +10,10 @@
    * Densité par niveau :
    *   Essentiel → favoris en tête, puis toutes les stations. Lecture, favori.
    *   Avancé    → filtres par genre + recherche.
-   *   Avancé+   → pays affiché sur la vignette (#863 : Expert seul avant).
-   *   Le codec, lui, se lit dès Essentiel (#5716).
+   *   Vignette  → deux lignes sous le logo, à tous les niveaux : le nom,
+   *               puis « genre · pays » (retour de Rémi sur la rc12, go de
+   *               Bertrand du 17/11). Le format du flux n'y est plus : il se
+   *               lit dans la fiche et dans le chemin du signal.
    *
    * Subtilité reprise de l'écran actuel, à ne pas perdre : sur une zone
    * NAVIGATEUR, le serveur ne peut pas sortir le son — il renvoie l'URL du
@@ -411,10 +413,15 @@
     } catch { /* le serveur signale déjà l'échec */ }
   }
 
-  /** La pastille technique : le codec à tous les niveaux (#5716), le pays
-   *  dès Avancé (#863). */
-  function tech(r: RadioStation, avecPays: boolean): string {
-    return [r.codec?.toUpperCase(), avecPays ? pays(r) : null].filter(Boolean).join(' · ');
+  /**
+   * La deuxième ligne de la vignette : « genre · pays ». Retour de Rémi sur
+   * la rc12 (go de Bertrand du 17/11) : deux lignes sous le logo, le nom puis
+   * genre et pays ; le format du flux (#863, #5716) quitte la vignette, c'est
+   * du « clutter » pour des stations qu'on connaît.
+   */
+  function sousTitre(r: RadioStation): string {
+    const rayon = radioGenreRayon(r);
+    return [rayon ? libelle(rayon) : null, pays(r) || null].filter(Boolean).join(' · ');
   }
 </script>
 
@@ -441,49 +448,53 @@
     </div>
   </header>
 
-  <!-- Retour de Rémi sur la rc11 (point 1) : « Dernières écoutées » dans
-       « Mes radios » seulement, pas dans l'Annuaire. -->
-  {#if section === 'mes' && recentesUniques.length}
-    <section class="sec recentes" class:depliee={recentesDepliees}>
-      <div class="sec-tete">
-        <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
-        <button class="v2-btn plus" aria-expanded={recentesDepliees}
-          onclick={() => (recentesDepliees = !recentesDepliees)}>
-          {$t((recentesDepliees ? 'common.showLess' : 'common.showMore') as any)}
-        </button>
-      </div>
-      <div class="grid" class:rangee={!recentesDepliees}>
-        {#each recentesUniques as r (r.id)}
-          {@render tile(r)}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  <!-- #6516 — la liste personnelle, ou l'annuaire complet. Retour de Rémi
-       sur la rc11 (point 4) : « Nouvelle station » quitte l'en-tête, réservé
-       aux recherches, et se range ici en quatrième case, discrète (sans fond
-       vert). C'est un bouton qui ouvre le choix, pas un onglet. -->
-  <div class="sections">
-    <div class="onglets" role="tablist">
-      <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
-        onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
-      <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
-        onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
-      {#if CARTE_VISIBLE}
-        <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
-          onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
-      {/if}
-    </div>
-    <button class="v2-btn nouvelle" class:occupe={importEnCours} aria-haspopup="dialog"
-      onclick={() => (choixNouvelle = true)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-      {$t('v2.radio.create' as any)}
-    </button>
-  </div>
-  <PaysEcouteRadios mode="radios" />
-
+  <!-- Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : UN seul
+       ascenseur pour toute la page, « Dernières écoutées » comprises. Elles
+       restaient au-dessus de la zone qui défile, et sur un 13 pouces il ne
+       restait qu'une petite bande pour faire défiler « Mes radios ». -->
   <div class="scroll" bind:this={defilement} onscroll={() => { if (section === 'annuaire') defilementAnnuaire = defilement?.scrollTop ?? defilementAnnuaire; }}>
+    <!-- Retour de Rémi sur la rc11 (point 1) : « Dernières écoutées » dans
+         « Mes radios » seulement, pas dans l'Annuaire. -->
+    {#if section === 'mes' && recentesUniques.length}
+      <section class="sec recentes" class:depliee={recentesDepliees}>
+        <div class="sec-tete">
+          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+          <button class="v2-btn plus" aria-expanded={recentesDepliees}
+            onclick={() => (recentesDepliees = !recentesDepliees)}>
+            {$t((recentesDepliees ? 'common.showLess' : 'common.showMore') as any)}
+          </button>
+        </div>
+        <div class="grid" class:rangee={!recentesDepliees}>
+          {#each recentesUniques as r (r.id)}
+            {@render tile(r)}
+          {/each}
+        </div>
+      </section>
+    {/if}
+
+    <!-- #6516 — la liste personnelle, ou l'annuaire complet. Retour de Rémi
+         sur la rc11 (point 4) : « Nouvelle station » quitte l'en-tête, réservé
+         aux recherches, et se range ici en quatrième case, discrète (sans fond
+         vert). C'est un bouton qui ouvre le choix, pas un onglet. -->
+    <div class="sections">
+      <div class="onglets" role="tablist">
+        <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
+          onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
+        <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
+          onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
+        {#if CARTE_VISIBLE}
+          <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
+            onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
+        {/if}
+      </div>
+      <button class="v2-btn nouvelle" class:occupe={importEnCours} aria-haspopup="dialog"
+        onclick={() => (choixNouvelle = true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        {$t('v2.radio.create' as any)}
+      </button>
+    </div>
+    <PaysEcouteRadios mode="radios" />
+
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
     {#if section === 'mes'}
       <div class="filtres ligne">
@@ -631,13 +642,12 @@
            chez soi (nom, logo ou flux). -->
       {#if r.surcharge_locale}<span class="surch" role="img" aria-label={$t('v2.radio.overridden' as any)} title={$t('v2.radio.overridden' as any)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/></svg></span>{/if}
     </span>
-    {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
-    {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
-    <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
-         existait, réservé à Expert ; il s'est lu dès Avancé, comme les filtres.
-         #5716 (décision du 07/10) : il se lit dès Essentiel. Le pays reste
-         réservé à Avancé. -->
-    {#if tech(r, showFilters)}<span class="tk">{tech(r, showFilters)}</span>{/if}
+    <!-- Retour de Rémi sur la rc12 : la deuxième et dernière ligne, genre et
+         pays. Le format du flux (#863, #5716) n'est plus sur la vignette.
+         Pendant l'écoute, le titre qui passe prend cette ligne, comme dans
+         l'Annuaire : toujours deux lignes. -->
+    {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>
+    {:else if sousTitre(r)}<span class="gn" data-testid="radio-sous-titre" use:bulleTexte>{sousTitre(r)}</span>{/if}
   </div>
 {/snippet}
 
@@ -660,8 +670,7 @@
   .recentes{padding-bottom:4px; flex:none}
   .sec-tete{display:flex; align-items:baseline; gap:12px}
   .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
-  /* Dépliée, la rangée ne prend jamais tout l'écran : la liste reste visible. */
-  .recentes.depliee .grid{max-height:45vh; overflow-y:auto}
+  /* Dépliée, la rangée défile avec la page (un seul ascenseur, rc12). */
   .filtres{padding:4px 30px 10px}
   .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
@@ -687,7 +696,6 @@
   .nm-ligne .nm{margin-top:0; min-width:0}
   .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tk{margin-top:2px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .fav{position:absolute; top:8px; right:8px; z-index:2; width:30px; height:30px; border-radius:50%; cursor:pointer;
     border:0; background:rgba(0,0,0,.45); color:#fff; display:grid; place-items:center; opacity:0; transition:.16s}
   .st:hover .fav, .fav.on{opacity:1}

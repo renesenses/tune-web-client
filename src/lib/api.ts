@@ -29,6 +29,7 @@ import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -738,6 +739,12 @@ export async function fetchJSON<T>(
           notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
+      } else if (estLectureYoutubeInactive(err.code)) {
+        // tune-server-rust#8913 — YouTube sans yt-dlp : la phrase traduite du
+        // serveur (ou son repli) et le bouton qui mène au réglage « Lecture
+        // YouTube », au lieu du 502 `upstream_error` brut d'avant.
+        err.message = annoncerLectureYoutubeInactive(err.message);
+        err.dejaAnnonce = true;
       } else if (err.code === CODE_RECONNEXION_FAVORIS_SPOTIFY) {
         // tune-server-rust#8579 — favori Spotify refusé faute d'autorisation
         // d'écriture : « Reconnectez Spotify une fois… », avec le bouton.
@@ -1361,6 +1368,14 @@ export function updateZoneFixedSampleRate(id: number, rate: number | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ fixed_sample_rate: rate }),
+  });
+}
+
+/** tune-server-rust#3245 — mode exclusif de la zone ; `null` = suivre la machine. */
+export function updateZoneExclusiveMode(id: number, mode: boolean | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ exclusive_mode: mode }),
   });
 }
 
@@ -2303,10 +2318,10 @@ export function jumpInQueue(zoneId: number, position: number) {
  *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
  *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
  *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
-export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
+export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number, bloc?: { count: number; expected_order: number[] }) {
   return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
-    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
+    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition, ...bloc }),
   });
 }
 
@@ -3479,6 +3494,8 @@ export async function getFilteredTracks(opts: {
   conductor?: FacetParam;
   ensemble?: FacetParam;
   work?: FacetParam;
+  /** web#3157 — instrument des crédits (CRD-6, serveur rc12). */
+  instrument?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3516,7 +3533,7 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work', 'instrument',
     'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
@@ -4433,8 +4450,9 @@ export function getTagsForStreamingItem(itemType: string, source: string, source
   return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/for-streaming?${q}`);
 }
 
-export function getTagAlbums(tagId: number) {
-  return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
+export function getTagAlbums(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`, signal ? { signal } : undefined);
 }
 
 // 🔴 Les TROIS autres routes de listage par étiquette.
@@ -4453,12 +4471,14 @@ export function getTagArtists(tagId: number) {
   return fetchJSON<{ artists: import('./types').Artist[]; count: number }>(`${BASE}/tags/${tagId}/artists`);
 }
 
-export function getTagTracks(tagId: number) {
-  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`);
+export function getTagTracks(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`, signal ? { signal } : undefined);
 }
 
-export function getTagPlaylists(tagId: number) {
-  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
+export function getTagPlaylists(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`, signal ? { signal } : undefined);
 }
 
 /**
