@@ -7888,5 +7888,9 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Bản nhạc với vai trò trình diễn",
   "artist.page.statWriting": "Bản nhạc với vai trò sáng tác",
+  "v2.queue.moveGrab": "Di chuyển {t}",
+  "v2.queue.moveHelp": "Kéo tay nắm. Bàn phím: phím cách để chọn, phím mũi tên để chọn vị trí, Enter để thả, Escape để hủy.",
+  "v2.queue.movePosition": "Di chuyển: vị trí {n}",
+  "v2.queue.blockUnavailable": "Cập nhật máy chủ để di chuyển cả album. Bạn có thể mở rộng album và di chuyển từng bài hát.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

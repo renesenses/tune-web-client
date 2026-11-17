@@ -7881,5 +7881,9 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Spor som utøver",
   "artist.page.statWriting": "Spor som låtskriver",
+  "v2.queue.moveGrab": "Flytt {t}",
+  "v2.queue.moveHelp": "Dra håndtaket. Tastatur: Mellomrom for å gripe, piltaster for å velge plass, Enter for å slippe, Escape for å avbryte.",
+  "v2.queue.movePosition": "Flytting: plass {n}",
+  "v2.queue.blockUnavailable": "Oppdater serveren for å flytte et helt album. Du kan utvide albumet og flytte sporene enkeltvis.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

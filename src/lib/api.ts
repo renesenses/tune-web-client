@@ -2318,10 +2318,10 @@ export function jumpInQueue(zoneId: number, position: number) {
  *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
  *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
  *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
-export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
+export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number, bloc?: { count: number; expected_order: number[] }) {
   return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
-    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
+    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition, ...bloc }),
   });
 }
 

@@ -8056,6 +8056,10 @@ export default {
   "artist.page.statAlbums": "Albums",
   "artist.page.statPerforming": "Tracks as performer",
   "artist.page.statWriting": "Tracks as writer",
+  "v2.queue.moveGrab": "Move {t}",
+  "v2.queue.moveHelp": "Drag the handle. Keyboard: Space to pick up, arrows to choose a position, Enter to drop, Escape to cancel.",
+  "v2.queue.movePosition": "Moving: position {n}",
+  "v2.queue.blockUnavailable": "Update the server to move a whole album. You can expand the album and move its tracks.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -7995,6 +7995,10 @@ export default {
   "artist.page.statAlbums": "Albumok",
   "artist.page.statPerforming": "Számok előadóként",
   "artist.page.statWriting": "Számok szerzőként",
+  "v2.queue.moveGrab": "{t} áthelyezése",
+  "v2.queue.moveHelp": "Húzza a fogantyút. Billentyűzet: Szóköz a felvételhez, nyilak a hely kiválasztásához, Enter a lerakáshoz, Escape a megszakításhoz.",
+  "v2.queue.movePosition": "Áthelyezés: {n}. hely",
+  "v2.queue.blockUnavailable": "Egy teljes album áthelyezéséhez frissítse a kiszolgálót. Az albumot kinyitva külön áthelyezheti a számokat.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -8036,6 +8036,10 @@ export default {
   "artist.page.statAlbums": "アルバム",
   "artist.page.statPerforming": "演奏者としてのトラック",
   "artist.page.statWriting": "作者としてのトラック",
+  "v2.queue.moveGrab": "{t}を移動",
+  "v2.queue.moveHelp": "ハンドルをドラッグします。キーボード：スペースで選択、矢印キーで位置を選び、Enterで確定、Escapeでキャンセルします。",
+  "v2.queue.movePosition": "移動先：{n}番目",
+  "v2.queue.blockUnavailable": "アルバム全体を移動するにはサーバーを更新してください。アルバムを展開すると各曲を移動できます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
