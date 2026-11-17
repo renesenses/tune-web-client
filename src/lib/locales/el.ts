@@ -6414,6 +6414,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Μη διαθέσιμο στη χώρα σας",
   "v2.radio.fiche.countryUnknown": "Περιορίζεται σε ορισμένες χώρες: ορίστε τη χώρα ακρόασης στις Ρυθμίσεις › Γενικά.",
   "v2.radio.dir.offline": "Τοπικό αντίγραφο του καταλόγου (εκτός σύνδεσης)",
+  "v2.radio.dir.refused": "Το mozaiklabs.fr αρνήθηκε την ενημέρωση του καταλόγου (HTTP {status}): το Tune εμφανίζει το τελευταίο αντίγραφο που έλαβε.",
+  "v2.radio.dir.refusedEmpty": "Το mozaiklabs.fr αρνήθηκε την πρόσβαση στον κατάλογο (HTTP {status}) και το Tune δεν έχει ακόμη κανένα αντίγραφό του.",
   "v2.radio.dir.playFailed": "Αδύνατη η αναπαραγωγή: {name}",
   "radioGenre.news": "Ειδήσεις",
   "radioGenre.lounge": "Lounge",

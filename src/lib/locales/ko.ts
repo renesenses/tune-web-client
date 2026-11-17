@@ -6563,6 +6563,8 @@ export default {
   "v2.radio.fiche.notInCountry": "해당 국가에서는 이용할 수 없음",
   "v2.radio.fiche.countryUnknown": "일부 국가로 제한됨: 설정 › 일반에서 청취 국가를 지정하세요.",
   "v2.radio.dir.offline": "디렉터리 로컬 사본(오프라인)",
+  "v2.radio.dir.refused": "mozaiklabs.fr가 디렉터리 업데이트를 거부했습니다(HTTP {status}). Tune은 마지막으로 받은 사본을 표시합니다.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr가 디렉터리 접근을 거부했습니다(HTTP {status}). Tune에는 아직 사본이 없습니다.",
   "v2.radio.dir.playFailed": "재생할 수 없음: {name}",
   "radioGenre.news": "뉴스",
   "radioGenre.lounge": "라운지",

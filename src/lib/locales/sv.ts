@@ -6562,6 +6562,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Inte tillgänglig i ditt land",
   "v2.radio.fiche.countryUnknown": "Begränsad till vissa länder: ange lyssningslandet under Inställningar › Allmänt.",
   "v2.radio.dir.offline": "Lokal kopia av katalogen (offline)",
+  "v2.radio.dir.refused": "mozaiklabs.fr nekade uppdateringen av katalogen (HTTP {status}): Tune visar den senast mottagna kopian.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr nekade åtkomst till katalogen (HTTP {status}) och Tune har ännu ingen kopia av den.",
   "v2.radio.dir.playFailed": "Kan inte spela: {name}",
   "radioGenre.news": "Nyheter",
   "radioGenre.lounge": "Lounge",

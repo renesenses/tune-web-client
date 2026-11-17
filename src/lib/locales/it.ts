@@ -6563,6 +6563,8 @@ export default {
   "v2.radio.fiche.notInCountry": "Non disponibile nel tuo paese",
   "v2.radio.fiche.countryUnknown": "Riservato ad alcuni paesi: imposta il paese di ascolto in Impostazioni › Generale.",
   "v2.radio.dir.offline": "Copia locale dell’elenco (offline)",
+  "v2.radio.dir.refused": "mozaiklabs.fr ha rifiutato l’aggiornamento della directory (HTTP {status}): Tune mostra l’ultima copia ricevuta.",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr ha rifiutato l’accesso alla directory (HTTP {status}) e Tune non ne ha ancora alcuna copia.",
   "v2.radio.dir.playFailed": "Riproduzione impossibile: {name}",
   "radioGenre.news": "Notizie",
   "radioGenre.lounge": "Lounge",

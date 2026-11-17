@@ -6563,6 +6563,8 @@ export default {
   "v2.radio.fiche.notInCountry": "在您所在的国家/地区不可用",
   "v2.radio.fiche.countryUnknown": "仅限部分国家/地区：请在“设置 › 常规”中设定收听国家。",
   "v2.radio.dir.offline": "目录的本地副本（离线）",
+  "v2.radio.dir.refused": "mozaiklabs.fr 拒绝更新目录（HTTP {status}）：Tune 显示最近收到的副本。",
+  "v2.radio.dir.refusedEmpty": "mozaiklabs.fr 拒绝访问目录（HTTP {status}），Tune 尚无任何副本。",
   "v2.radio.dir.playFailed": "无法播放：{name}",
   "radioGenre.news": "新闻",
   "radioGenre.lounge": "沙发音乐",

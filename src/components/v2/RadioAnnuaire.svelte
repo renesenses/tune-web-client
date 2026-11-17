@@ -15,7 +15,7 @@
   import { onDestroy, tick } from 'svelte';
   import * as api from '../../lib/api';
   import { bulleTexte } from '../../lib/infobulleTexte';
-  import { genresDeLaFiche, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
+  import { genresDeLaFiche, refusDeLAnnuaire, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
   import type { RadioStation } from '../../lib/types';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { ecouterFicheAnnuaire } from '../../lib/ecouteFicheAnnuaire';
@@ -60,6 +60,8 @@
   const PAGE = 120;
 
   let page = $state<AnnuaireRadios | null>(null);
+  /** #8156 — le refus du site au dernier relevé, ou `null`. */
+  const refus = $derived(refusDeLAnnuaire(page));
   let items = $state<FicheAnnuaireRadio[]>([]);
   let chargement = $state(true);
   let erreur = $state<string | null>(null);
@@ -243,10 +245,24 @@
   {#if erreur}
     <div class="etat err">{erreur}</div>
   {/if}
+  <!-- tune-server-rust#8156 — mozaiklabs.fr refuse le relevé (401, 403) :
+       le serveur sert la copie d'avant, l'écran dit pourquoi elle n'est pas
+       rafraîchie. Sans copie du tout, c'est la raison de l'annuaire vide. -->
+  {#if refus && !(page && page.stations === 0)}
+    <div class="refus" role="status" data-annuaire-refus={refus.status}>
+      {$t('v2.radio.dir.refused' as any).replace('{status}', String(refus.status))}
+    </div>
+  {/if}
   {#if chargement && !items.length}
     <div class="etat">{$t('v2.radio.dir.loading' as any)}</div>
   {:else if page && page.stations === 0}
-    <div class="etat">{$t('v2.radio.dir.empty' as any)}</div>
+    {#if refus}
+      <div class="etat" role="status" data-annuaire-refus={refus.status}>
+        {$t('v2.radio.dir.refusedEmpty' as any).replace('{status}', String(refus.status))}
+      </div>
+    {:else}
+      <div class="etat">{$t('v2.radio.dir.empty' as any)}</div>
+    {/if}
   {:else if !items.length && !erreur}
     <div class="etat">{$t('v2.radio.dir.noMatch' as any)}</div>
   {:else}
@@ -336,5 +352,7 @@
   .source a{color:var(--v2-acc2); text-decoration:none}
   .source a:hover{text-decoration:underline}
   .horsligne{color:var(--v2-txt2)}
+  .refus{padding:8px 12px; border:1px solid var(--v2-line2); border-radius:9px; background:var(--v2-surface2);
+    font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
   @media (max-width: 640px){ .annuaire{padding:4px 16px 24px} .choix{max-width:none; flex:1} }
 </style>
