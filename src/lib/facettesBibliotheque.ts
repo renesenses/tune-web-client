@@ -1,6 +1,7 @@
 import { sourceCorrespond } from './provenanceBibliotheque';
 import { dansPeriode, type Periode } from './periodeAnnees';
 import { formatCanonique, formatRetenu } from './typeDeFichier';
+import { qualitesPourCompter, repondAuxQualites } from './qualiteCanaux';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -157,6 +158,13 @@ export interface Outils {
    * localement ou ici : c'est un ET.
    */
   albumsParMot?: ReadonlyMap<string, ReadonlySet<number>> | null;
+  /**
+   * tune-web-client#3173 — les VERSIONS d'une carte regroupée (#7617), la
+   * carte d'abord. Sous un filtre de qualité, la carte répond si UNE de ses
+   * versions répond, et c'est cette version que la grille présente. Absent :
+   * la carte seule.
+   */
+  versionsDe?: (a: Album) => readonly Album[];
 }
 
 /**
@@ -172,10 +180,35 @@ export function correspond(
   o: Outils,
   sauf: Facette | null = null,
 ): boolean {
+  return versionQuiCorrespond(a, f, o, sauf) != null;
+}
+
+/**
+ * tune-web-client#3173 — la version de la carte qui satisfait les filtres, ou
+ * `null`. Sans filtre de qualité, c'est la carte elle-même. Sous un filtre de
+ * qualité, la première de ses versions (la préférée d'abord) qui y répond —
+ * canaux et paliers SUR LA MÊME version (`repondAuxQualites`) — et qui
+ * satisfait aussi les autres filtres.
+ */
+export function versionQuiCorrespond(
+  a: Album,
+  f: FiltresBibliotheque,
+  o: Outils,
+  sauf: Facette | null = null,
+): Album | null {
+  const qualite = sauf !== 'qualite' && f.qualite.length > 0;
+  const candidates = qualite && o.versionsDe ? o.versionsDe(a) : [a];
+  for (const v of candidates) {
+    // OU dans un groupe (canaux, paliers), ET entre les deux — #3173.
+    if (qualite && !repondAuxQualites(f.qualite, (c) => o.qualiteDe(v, c))) continue;
+    if (horsQualite(v, f, o, sauf)) return v;
+  }
+  return null;
+}
+
+function horsQualite(a: Album, f: FiltresBibliotheque, o: Outils, sauf: Facette | null): boolean {
   // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
   // facettes cochées doivent l'être toutes les deux (ET) — #898.
-  if (sauf !== 'qualite' && f.qualite.length
-      && !f.qualite.some((c) => o.qualiteDe(a, c))) return false;
   if (sauf !== 'frequence' && f.frequence.length
       && !f.frequence.includes(a.sample_rate ?? 0)) return false;
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
@@ -263,15 +296,27 @@ export function prioriserRecherche<T extends Album>(
 
 /** Albums à considérer pour compter une facette donnée. */
 function assiette(albums: readonly Album[], f: FiltresBibliotheque, o: Outils, facette: Facette): Album[] {
-  return albums.filter((a) => correspond(a, f, o, facette));
+  // #3173 — la version que la grille présente : sous « Multicanal », le format
+  // compté est celui de la version multicanale, pas celui de la préférée.
+  const out: Album[] = [];
+  for (const a of albums) {
+    const v = versionQuiCorrespond(a, f, o, facette);
+    if (v) out.push(v);
+  }
+  return out;
 }
 
 /** Combien d'albums pour chaque palier de qualité, l'un après l'autre. */
 export function comptesQualite(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils, cles: readonly string[],
 ): Map<string, number> {
-  const base = assiette(albums, f, o, 'qualite');
-  return new Map(cles.map((c) => [c, base.reduce((n, a) => n + (o.qualiteDe(a, c) ? 1 : 0), 0)]));
+  // #3173 — une valeur se compte avec les choix cochés de l'AUTRE groupe
+  // (canaux ou paliers), jamais avec ceux du sien : le compte dit ce que la
+  // grille rendrait si on la cochait seule dans son groupe.
+  return new Map(cles.map((c) => {
+    const g = { ...f, qualite: qualitesPourCompter(f.qualite, c) };
+    return [c, albums.reduce((n, a) => n + (versionQuiCorrespond(a, g, o) ? 1 : 0), 0)];
+  }));
 }
 
 /** Combien d'albums pour chaque fréquence proposée. */

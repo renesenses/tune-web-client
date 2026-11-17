@@ -39,6 +39,7 @@ import type { Album } from './types';
 import type { AlbumsDeService } from './albumsArtisteStreaming';
 import { compterSources, provenanceDe, sourceCorrespond, type ComptesArtistesSources } from './provenanceBibliotheque';
 import { estDuDSD, estMulticanal } from './utils';
+import { repondAuxQualites } from './qualiteCanaux';
 
 /** La bibliothèque, sous le nom que porte déjà sa provenance partout ailleurs. */
 export const BIBLIOTHEQUE = 'local';
@@ -746,7 +747,11 @@ export function filtrerFocus(entrees: EntreeDiscographie[], focus: Focus): Entre
   return entrees.filter(
     (e) =>
       (focus.sources.size === 0 || e.sources.some((s) => focus.sources.has(s))) &&
-      (focus.qualites.size === 0 || e.qualites.some((q) => focus.qualites.has(q))),
+      // tune-web-client#3173 — canaux (Multicanal) et paliers (DSD, Hi-Res…)
+      // sont deux groupes : OU dans chacun, ET entre eux, sur le MÊME
+      // exemplaire. « DSD + Multicanal » = un exemplaire DSD multicanal.
+      (focus.qualites.size === 0
+        || e.exemplaires.some((ex) => repondAuxQualites(focus.qualites, (q) => aLaQualite(ex, q as Qualite)))),
   );
 }
 
