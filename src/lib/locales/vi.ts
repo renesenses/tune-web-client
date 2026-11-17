@@ -6968,7 +6968,6 @@ export default {
   "v2.carte.pod.noNearby": "Không có chương trình gần (không chung nhà sản xuất hay danh mục).",
   "v2.carte.pod.charts": "Bảng xếp hạng: {list}",
   "v2.carte.pod.episodes": "Xem các tập",
-  "volume.deviceObserved": "AIR (ghi nhận): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -7858,5 +7857,7 @@ export default {
   "artist.page.statAlbums": "Album",
   "artist.page.statPerforming": "Bản nhạc với vai trò trình diễn",
   "artist.page.statWriting": "Bản nhạc với vai trò sáng tác",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: không có âm lượng cố định. Ampli giữ âm lượng, trong giới hạn thoải mái và an toàn.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: không có âm lượng tối đa ở chế độ PURE. Ampli giữ âm lượng, trong giới hạn thoải mái và an toàn.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

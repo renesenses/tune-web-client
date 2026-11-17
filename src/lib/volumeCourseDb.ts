@@ -91,13 +91,17 @@ export function zonesDeLimites(zone: LimitesVolume | null | undefined): ZonesDeL
 const VERT = 'var(--tune-success, #3fb950)';
 const ORANGE = 'var(--tune-warning, #d29922)';
 const ROUGE = 'var(--tune-error, #f85149)';
+const NEUTRE = 'var(--tune-border, #30363d)';
 
 /** Le fond du curseur : vert sous le confort, orange entre confort et
  *  sécurité, rouge au-delà de la sécurité. Sans aucune limite : `null` (le
  *  fond habituel). Sans sécurité, pas de rouge ; sans confort, pas de vert
  *  séparé (tout sous la sécurité est vert). */
-export function fondDesZones(z: ZonesDeLimites): string | null {
+export function fondDesZones(z: ZonesDeLimites, options: { rouge?: boolean } = {}): string | null {
   const { confort: c, securite: s } = z;
+  // tune-server-rust#8920 — Devialet AIR : pas de zone rouge, Tune n'y va
+  // jamais ; au-delà de la sécurité, le fond habituel de la piste.
+  const rouge = options.rouge === false ? NEUTRE : ROUGE;
   if (c === null && s === null) return null;
   const pct = (x: number) => `${Math.round(x * 10000) / 100}%`;
   const arrets: string[] = [];
@@ -108,7 +112,7 @@ export function fondDesZones(z: ZonesDeLimites): string | null {
   } else if (c !== null && s === null) {
     arrets.push(`${ORANGE} ${pct(c)}`, `${ORANGE} 100%`);
   }
-  if (s !== null) arrets.push(`${ROUGE} ${pct(s)}`, `${ROUGE} 100%`);
+  if (s !== null) arrets.push(`${rouge} ${pct(s)}`, `${rouge} 100%`);
   return `linear-gradient(to right, ${arrets.join(', ')})`;
 }
 

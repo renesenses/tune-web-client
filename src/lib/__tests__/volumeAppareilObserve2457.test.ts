@@ -13,7 +13,8 @@ import { queueTracks, queuePosition } from '../stores/queue';
 
 const AMPLI = 'devialet-air:02:00:5e:00:00:01';
 const AIR = { id: 1, name: 'AIR simulé', output_type: 'devialet_air', output_device_id: AMPLI,
-  state: 'stopped', online: true, volume: 0.4, volume_curve: 'linear', muted: false } as const;
+  state: 'stopped', online: true, volume: 0.4, volume_curve: 'linear', muted: false,
+  device_volume_range: { min_db: -80, max_db: -10, step_db: 0.5, floor_db: -80, ceiling_db: -10 } } as const;
 const OBS = { device_id: AMPLI, volume: 0.8, volume_db: -24, muted: true };
 class SocketTemoin {
   static OPEN = 1;
@@ -63,37 +64,53 @@ afterEach(async () => {
   vi.unstubAllGlobals();
 });
 
-describe('observation AIR en lecture seule (#2457 / serveur #6912)', () => {
-  it('affiche la hausse dans la barre et le panneau mobile sans déplacer le curseur ni commander', async () => {
+describe('observation AIR en lecture seule (#2457 / serveur #6912, #8920)', () => {
+  // tune-server-rust#8920 — l'ampli fait foi pour l'AFFICHAGE : le curseur et
+  // la valeur suivent le niveau qu'il rapporte (télécommande), sans aucune
+  // commande ; la ligne séparée « AIR (observé) » a disparu.
+  it('le curseur et la valeur suivent l\'ampli, sans commande ni ligne séparée', async () => {
     const socket = await ouvrir();
     socket.recevoir('playback.device_volume_observation', { zone_id: AIR.id, device_volume_observation: OBS, volume: 0.95, muted: true });
     await stabiliser();
     const zone = (get(zones) as any[]).find(z => z.id === AIR.id);
     expect(zone.volume, 'une hausse observée ne doit jamais devenir la consigne web').toBe(0.4);
     expect(zone.muted, 'une observation ne doit pas devenir une commande de sourdine').toBe(false);
-    expect(hote!.querySelector('.device-volume-observation')?.textContent, 'les dB reçus doivent être visibles séparément').toContain('-24');
-    expect((hote!.querySelector('.volume-slider') as HTMLInputElement).value).toBe('0.4');
+    expect(hote!.querySelector('.device-volume-observation'), 'plus de ligne « AIR (observé) »').toBeNull();
+    expect(hote!.querySelector('[data-testid="volume-db-appareil"]')?.textContent, 'la valeur affichée est celle de l\'ampli').toBe('-24.0 dB');
+    expect((hote!.querySelector('.volume-slider') as HTMLInputElement).value, 'le curseur suit l\'ampli').toBe('-24');
     flushSync(() => (hote!.querySelector('.mobile-volume-btn') as HTMLButtonElement).click());
     await stabiliser();
-    expect(hote!.querySelector('.mobile-volume-popup .device-volume-observation')?.textContent).toContain('-24');
-    expect((hote!.querySelector('.mobile-volume-popup input[type="range"]') as HTMLInputElement).value).toBe('0.4');
+    expect(hote!.querySelector('.mobile-volume-popup .device-volume-observation')).toBeNull();
+    expect(hote!.querySelector('.mobile-volume-popup [data-volume-mobile]')?.textContent).toBe('-24.0 dB');
+    expect((hote!.querySelector('.mobile-volume-popup input[type="range"]') as HTMLInputElement).value).toBe('0.8');
     expect(ecritures(), 'recevoir une observation AIR ne doit envoyer aucune commande').toEqual([]);
     expect(relectures(), 'une observation AIR ne doit pas relire toutes les zones').toEqual([]);
     expect(appels.filter(a => a.method === 'GET' && /\/queue/.test(a.url)), 'un relevé AIR ne doit pas recharger la file').toEqual([]);
   });
 
-  it('retire un relevé expiré et garde la consigne', async () => {
+  it('au-delà de la course (télécommande), la valeur dit le niveau réel, le curseur bute', async () => {
+    const socket = await ouvrir();
+    socket.recevoir('playback.device_volume_observation', { zone_id: AIR.id, device_volume_observation: { ...OBS, volume: 1, volume_db: -4 } });
+    await stabiliser();
+    expect(hote!.querySelector('[data-testid="volume-db-appareil"]')?.textContent).toBe('-4.0 dB');
+    expect((hote!.querySelector('.volume-slider') as HTMLInputElement).value).toBe('-10');
+    expect(ecritures()).toEqual([]);
+  });
+
+  it('un relevé retiré rend l\'affichage à la consigne', async () => {
     const socket = await ouvrir();
     socket.recevoir('playback.device_volume_observation', { zone_id: AIR.id, device_volume_observation: OBS });
-    await stabiliser(); expect(hote!.querySelector('.device-volume-observation')).not.toBeNull();
+    await stabiliser();
+    expect(hote!.querySelector('[data-testid="volume-db-appareil"]')?.textContent).toBe('-24.0 dB');
     socket.recevoir('playback.device_volume_observation', { zone_id: AIR.id, device_volume_observation: null });
     await stabiliser();
-    expect(hote!.querySelector('.device-volume-observation'), 'une annonce retirée ne doit plus afficher un ancien volume').toBeNull();
+    expect(hote!.querySelector('[data-testid="volume-db-appareil"]')?.textContent, 'la consigne : 40 % = −52 dB').toBe('-52.0 dB');
     expect((get(zones) as any[])[0].volume).toBe(0.4); expect(ecritures()).toEqual([]);
   });
 
   it('reste compatible avec un serveur sans observation', async () => {
     await ouvrir(); expect(hote!.querySelector('.device-volume-observation')).toBeNull();
+    expect(hote!.querySelector('[data-testid="volume-db-appareil"]')?.textContent).toBe('-52.0 dB');
     expect((get(zones) as any[])[0].volume).toBe(0.4); expect(ecritures()).toEqual([]);
   });
 

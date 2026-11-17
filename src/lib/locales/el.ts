@@ -6961,7 +6961,6 @@ export default {
   "v2.carte.pod.noNearby": "Καμία κοντινή εκπομπή (κανένας κοινός παραγωγός ή κατηγορία).",
   "v2.carte.pod.charts": "Κατατάξεις: {list}",
   "v2.carte.pod.episodes": "Επεισόδια",
-  "volume.deviceObserved": "AIR (ένδειξη): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -7851,5 +7850,7 @@ export default {
   "artist.page.statAlbums": "Άλμπουμ",
   "artist.page.statPerforming": "Κομμάτια ως ερμηνευτής",
   "artist.page.statWriting": "Κομμάτια ως δημιουργός",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: δεν υπάρχει σταθερή ένταση. Την ένταση τη διαχειρίζεται ο ενισχυτής, εντός των ορίων άνεσης και ασφάλειας.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: δεν υπάρχει πλήρης ένταση σε λειτουργία PURE. Την ένταση τη διαχειρίζεται ο ενισχυτής, εντός των ορίων άνεσης και ασφάλειας.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

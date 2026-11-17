@@ -5,7 +5,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { t } from '../../lib/i18n';
-  import DeviceVolumeObservation from './DeviceVolumeObservation.svelte';
+  import { estAir, dbAffiche, dbDuCurseur, plusEnButeeAir, moinsEnButeeAir } from '../../lib/devialetAir';
   import VolumeFixe from './VolumeFixe.svelte';
   import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
@@ -43,10 +43,17 @@
   let bornes = $derived(course
     ? { min: course.min_db, max: course.max_db, step: course.step_db as number | 'any' }
     : bornesCurseurSortie(zone));
-  let valeurCurseur = $derived(course ? dbDepuisFraction(course, vol) : vol);
+  // tune-server-rust#8920 — Devialet AIR : l'ampli fait foi pour l'AFFICHAGE
+  // (télécommande comprise, même au-delà des limites de Tune) ; juste après
+  // un geste ici, la consigne. Rien n'est commandé pour suivre l'ampli.
+  let air = $derived(estAir(zone));
+  let dernierGeste = $state(0);
+  let dbAmpli = $derived(course ? dbAffiche(air ? zone : null, course, dbDepuisFraction(course, vol), dernierGeste) : null);
+  let valeurCurseur = $derived(course && dbAmpli !== null ? dbDuCurseur(course, dbAmpli) : vol);
   let traits = $derived(course ? graduations(course) : []);
-  // Vert sous le confort, orange entre confort et sécurité, rouge au-delà.
-  let fondZones = $derived(course ? fondDesZones(zonesDeLimites(zone)) : null);
+  // Vert sous le confort, orange entre confort et sécurité, rouge au-delà —
+  // sauf sur Devialet AIR, où Tune ne va jamais au-delà (#8920).
+  let fondZones = $derived(course ? fondDesZones(zonesDeLimites(zone), { rouge: !air }) : null);
   let legendeZones = $derived(fondZones ? $t('volume.zonesLegend' as any) : undefined);
   let clePlage = $derived(clePlageVolumeSortie(zone));
 
@@ -150,6 +157,7 @@
 
   function handleVolume(e: Event) {
     if (!zone?.id || !volumeAutorise) return;
+    dernierGeste = Date.now();
     const champ = e.target as HTMLInputElement;
     // web#7517 — un curseur en dB envoie la même fraction que le curseur 0..1.
     const brut = course ? fractionDepuisDb(course, Number(champ.value)) : Number(champ.value);
@@ -201,6 +209,25 @@
   // reçoit l'ancien `PUT /volume`.
   async function pas(direction: 'up' | 'down') {
     if (!zone?.id || !volumeAutorise) return;
+    // tune-server-rust#8920 — Devialet AIR : un dB d'ampli par clic, depuis
+    // le niveau que l'ampli rapporte ; le serveur borne par la sécurité.
+    if (air && course && !zoneGroupee(zone.id)) {
+      try {
+        const zoneId = zone.id;
+        const contexte = contexteVolume;
+        const r = await api.stepVolumeDb(zoneId, direction, 1);
+        if (zone?.id !== zoneId || !volumeAutorise || contexte !== contexteVolume) return;
+        if (r.sent !== false) {
+          dernierGeste = Date.now();
+          if (direction === 'up') leverSourdineSiBesoin({ ...zone, id: zone.id }, r.volume);
+          applyVolume(r.volume);
+        }
+        if (r.limited) notifications.info($t('volume.limitedBySafety'));
+      } catch {
+        notifications.error($t('volume.stepFailed'));
+      }
+      return;
+    }
     // #8445 — zone groupée : le pas serveur (`volume/step`) ne vaut que pour
     // une zone ; le pas se calcule ici et part en volume maître.
     if (plageVolumeSortie(zone) || !serveurConnaitLesLimites(zone) || isBrowserZone(zone) || zoneGroupee(zone.id)) {
@@ -228,10 +255,13 @@
     }
   }
 
-  let enButee = $derived(plusEnButee(zone, vol));
+  let enButee = $derived(air && course && dbAmpli !== null ? plusEnButeeAir(zone, course, dbAmpli) : plusEnButee(zone, vol));
+  let moinsEnButee = $derived(air && course && dbAmpli !== null ? moinsEnButeeAir(course, dbAmpli) : null);
   // web#2292 — les boutons − et + sont une OPTION des Réglages, désactivée par
   // défaut : seul le curseur s'affiche tant qu'on ne l'a pas choisie.
-  let boutonsPas = $derived($preferences.volumeStepButtons === true);
+  // tune-server-rust#8920 — toujours là sur Devialet AIR (±1 dB) : sans eux,
+  // on ne règle pas finement, ni ne passe le confort.
+  let boutonsPas = $derived($preferences.volumeStepButtons === true || (air && course !== null));
 </script>
 
 <div class="volume-control" class:locked={$volumeLocked}>
@@ -267,9 +297,9 @@
   <button
     class="step-btn"
     onclick={() => pas('down')}
-    disabled={!volumeAutorise || (plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') === vol : vol <= 0)}
-    title={$t('volume.stepDown')}
-    aria-label={$t('volume.stepDown')}
+    disabled={!volumeAutorise || (moinsEnButee !== null ? moinsEnButee : plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') === vol : vol <= 0)}
+    title={air && course ? '−1 dB' : $t('volume.stepDown')}
+    aria-label={air && course ? '−1 dB' : $t('volume.stepDown')}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
@@ -302,14 +332,14 @@
     class="step-btn"
     onclick={() => pas('up')}
     disabled={!volumeAutorise || enButee}
-    title={enButee ? $t('volume.limitedBySafety') : $t('volume.stepUp')}
-    aria-label={$t('volume.stepUp')}
+    title={enButee ? $t('volume.limitedBySafety') : air && course ? '+1 dB' : $t('volume.stepUp')}
+    aria-label={air && course ? '+1 dB' : $t('volume.stepUp')}
   >
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
   </button>
   {/if}
   {#if course}
-    <span class="volume-value volume-db-appareil" data-testid="volume-db-appareil">{formaterDbAppareil(dbDepuisFraction(course, vol))}</span>
+    <span class="volume-value volume-db-appareil" data-testid="volume-db-appareil">{formaterDbAppareil(dbAmpli ?? dbDepuisFraction(course, vol))}</span>
   {:else if modeDb}
     <input
       type="text"
@@ -331,7 +361,6 @@
   {/if}
   {/if}
   <MentionGroupe zoneId={zone?.id} />
-  <DeviceVolumeObservation {zone} />
 </div>
 
 <style>

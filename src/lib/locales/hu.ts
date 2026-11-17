@@ -7075,7 +7075,6 @@ export default {
   "v2.carte.pod.noNearby": "Nincs hasonló műsor (nincs közös producer vagy kategória).",
   "v2.carte.pod.charts": "Toplisták: {list}",
   "v2.carte.pod.episodes": "Epizódok",
-  "volume.deviceObserved": "AIR (jelzett): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -7965,6 +7964,8 @@ export default {
   "artist.page.statAlbums": "Albumok",
   "artist.page.statPerforming": "Számok előadóként",
   "artist.page.statWriting": "Számok szerzőként",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: nincs rögzített hangerő. A hangerőt az erősítő kezeli, a kényelmi és biztonsági határokon belül.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: PURE módban nincs teljes hangerő. A hangerőt az erősítő kezeli, a kényelmi és biztonsági határokon belül.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

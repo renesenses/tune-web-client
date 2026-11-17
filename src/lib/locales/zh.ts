@@ -7116,7 +7116,6 @@ export default {
   "v2.carte.pod.noNearby": "没有相近节目（无共同制作方或分类）。",
   "v2.carte.pod.charts": "排行榜：{list}",
   "v2.carte.pod.episodes": "查看单集",
-  "volume.deviceObserved": "AIR（设备读数）：{value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -8006,6 +8005,8 @@ export default {
   "artist.page.statAlbums": "专辑",
   "artist.page.statPerforming": "作为演奏者的曲目",
   "artist.page.statWriting": "作为作者的曲目",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR：不支持固定音量。音量由功放控制，并受舒适和安全上限约束。",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR：PURE 模式下不使用满音量。音量由功放控制，并受舒适和安全上限约束。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

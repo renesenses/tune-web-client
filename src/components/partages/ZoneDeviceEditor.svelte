@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { marqueInitiale } from '../../lib/devialetAir';
   /** Éditeur « appareil » d'une zone : marque + modèle, via le catalogue
    *  serveur (avec saisie libre en repli). Extrait de ZoneConfigModal pour
    *  être réutilisé depuis la fiche système du volet Support. */
@@ -19,7 +20,8 @@
   const CUSTOM = 'Autre';
   let catalog = $state<DeviceBrand[]>([]);
   // Valeurs initiales : override utilisateur, sinon détection UPnP.
-  let selectedBrand = $state<string>(zone.brand ?? zone.detected_manufacturer ?? '');
+  // tune-server-rust#8920 — une zone Devialet AIR est pré-remplie « Devialet ».
+  let selectedBrand = $state<string>(marqueInitiale(zone));
   let selectedModel = $state<string>(zone.model ?? zone.detected_model ?? '');
   let deviceSaving = $state(false);
   let deviceSaved = $state(false);

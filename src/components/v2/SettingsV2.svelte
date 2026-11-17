@@ -255,6 +255,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
   import BadgeVerrouVolumeZone from './BadgeVerrouVolumeZone.svelte';
+  import { estAir, frequencesProposees, volumeFixePropose } from '../../lib/devialetAir';
   import BadgeHorsBackend from './BadgeHorsBackend.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
@@ -6698,6 +6699,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             </label>
                           </div>
                         {/if}
+                        <!-- tune-server-rust#8920 — pas de volume fixe sur Devialet AIR :
+                             l'ampli tient le volume, sous confort et sécurité. -->
+                        {#if !volumeFixePropose(z)}
+                          <p class="hint" data-air-sans-volume-fixe>{$t('zoneConfig.airFixedVolumeUnavailable' as any)}</p>
+                        {:else}
                         <div class="fz-ligne">
                           <label class="zf chk" data-reglage="zone-volume-fixe">
                             <input type="checkbox" checked={z.fixed_volume ?? false}
@@ -6718,6 +6724,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             </div>
                           </div>
                         {/if}
+                        {/if}
                       </div>
 
                       <!-- ── QUALITÉ ──────────────────────────────────────── -->
@@ -6727,7 +6734,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
+                            {#if !estAir(z)}<option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>{/if}
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
@@ -6745,7 +6752,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <select class="sel sm" value={String(z.max_sample_rate ?? 0)}
                             onchange={(e) => { const v = Number((e.currentTarget as HTMLSelectElement).value);
                               setZoneField(z, () => api.updateZoneMaxSampleRate(z.id as number, v > 0 ? v : null)); }}>
-                            {#each RATES as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
+                            {#each frequencesProposees(z, RATES, (r) => r.v) as r (r.v)}<option value={String(r.v)}>{r.l}</option>{/each}
                           </select>
                         </label>
                         {#if z.fixed_sample_rate !== undefined && !['airplay', 'airplay2'].includes(z.output_type ?? '')}
@@ -6755,7 +6762,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               onchange={(e) => { const v = Number(e.currentTarget.value);
                                 setZoneField(z, () => api.updateZoneFixedSampleRate(z.id as number, v > 0 ? v : null)); }}>
                               <option value="0">{$t('settings.fixedSampleRateOff' as any)}</option>
-                              {#each [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000] as rate (rate)}
+                              {#each frequencesProposees(z, [44100, 48000, 88200, 96000, 176400, 192000, 352800, 384000, 705600, 768000], (r) => r) as rate (rate)}
                                 <option value={String(rate)}>{rate / 1000} kHz</option>
                               {/each}
                             </select>

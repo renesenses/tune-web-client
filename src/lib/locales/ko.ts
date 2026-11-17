@@ -7116,7 +7116,6 @@ export default {
   "v2.carte.pod.noNearby": "가까운 프로그램이 없습니다(공통 제작자나 카테고리 없음).",
   "v2.carte.pod.charts": "순위: {list}",
   "v2.carte.pod.episodes": "에피소드 보기",
-  "volume.deviceObserved": "AIR (수신값): {value} dB",
 
 
   // Tune Circle — messagerie privée rc9 (#6902).
@@ -8006,6 +8005,8 @@ export default {
   "artist.page.statAlbums": "앨범",
   "artist.page.statPerforming": "연주자로 참여한 트랙",
   "artist.page.statWriting": "작가로 참여한 트랙",
+  "zoneConfig.airFixedVolumeUnavailable": "Devialet AIR: 고정 볼륨을 사용할 수 없습니다. 볼륨은 앰프가 쾌적 및 안전 한도 안에서 관리합니다.",
+  "audiophile.lockVolumeUnavailableAir": "Devialet AIR: PURE 모드에서 최대 볼륨을 사용할 수 없습니다. 볼륨은 앰프가 쾌적 및 안전 한도 안에서 관리합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
