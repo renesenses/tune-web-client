@@ -780,6 +780,78 @@
     void chargerDouteuses();
   });
 
+  /*
+    renesenses/tune-server-rust#8958 — « C'est normal » (Didier, fil 2685).
+    Une alerte marquée normale ne revient plus ; le SERVEUR choisit où le
+    choix est mémorisé (la piste, ou tout l'album pour un artiste manquant)
+    et filtre la liste. On relit donc la liste plutôt que de la corriger de
+    mémoire. Les alertes ignorées se revoient et s'annulent plus bas.
+  */
+  let dIgnorees = $state<api.AlerteDouteuseIgnoree[]>([]);
+  let dIgnoreesOuvertes = $state(false);
+  let dIgnoreeDerniere = $state<{ texte: string; alerte: { scope: 'track' | 'album'; target_id: number; reason: string } } | null>(null);
+  let dIgnoreOccupe = $state(false);
+
+  function texteRaisonSimple(raison: string) {
+    switch (raison) {
+      case 'missing_artist': return $t('v2.meta.dReasonArtist' as any);
+      case 'missing_album': return $t('v2.meta.dReasonAlbum' as any);
+      case 'very_short': return $t('v2.meta.dReasonShort' as any);
+      default: return $t('v2.meta.dReasonOther' as any);
+    }
+  }
+
+  async function chargerIgnorees() {
+    try { dIgnorees = await api.getAlertesDouteusesIgnorees(); }
+    catch { dIgnorees = []; } // serveur sans la route : rien à revoir
+  }
+
+  async function relireDouteuses() {
+    dLoaded = false;
+    await chargerDouteuses(true);
+    await chargerIgnorees();
+  }
+
+  async function ignorerAlerte(p: PisteDouteuse, raison: string) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      const r = await api.ignorerAlerteDouteuse(p.id, raison);
+      const nom = r.scope === 'album' ? (p.album_title || p.title) : p.title;
+      dIgnoreeDerniere = {
+        texte: $t('v2.meta.dIgnoredDone' as any)
+          .replace('{reason}', texteRaisonSimple(raison))
+          .replace('{name}', nom || '—'),
+        alerte: { scope: r.scope, target_id: r.target_id, reason: r.reason },
+      };
+      await relireDouteuses();
+    } catch {
+      error = $t('v2.meta.dIgnoreFailed' as any);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  async function retablirAlerte(a: { scope: 'track' | 'album'; target_id: number; reason: string }) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      await api.retablirAlerteDouteuse(a.scope, a.target_id, a.reason);
+      if (dIgnoreeDerniere
+        && dIgnoreeDerniere.alerte.scope === a.scope
+        && dIgnoreeDerniere.alerte.target_id === a.target_id
+        && dIgnoreeDerniere.alerte.reason === a.reason) dIgnoreeDerniere = null;
+      await relireDouteuses();
+    } catch {
+      error = $t('v2.meta.dIgnoreFailed' as any);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  $effect(() => {
+    if (tab !== 'doubtful') return;
+    untrack(() => { void chargerIgnorees(); });
+  });
+
 
   async function decide(p: MetadataProposal, accept: boolean) {
     if (busy != null) return;
@@ -1291,6 +1363,14 @@
            vit ICI, hors de la liste : après l'écriture, la liste relue peut
            ne plus avoir de piste concernée, ou plus aucune piste du tout. -->
       {#if dDossierBilan}<p class="note" data-bilan-dossier aria-live="polite">{dDossierBilan}</p>{/if}
+      <!-- tune-server-rust#8958 — le choix tout juste fait, et son annulation. -->
+      {#if dIgnoreeDerniere}
+        {@const derniere = dIgnoreeDerniere}
+        <p class="note ignoree" data-bilan-ignore aria-live="polite">
+          {derniere.texte}
+          <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(derniere.alerte)}>{$t('v2.meta.dUndo' as any)}</button>
+        </p>
+      {/if}
     {#if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
@@ -1300,7 +1380,8 @@
 
       <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
            vient du serveur, on la relit après l'écriture. -->
-      <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }} />
+      <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }}
+        onIgnorer={ignorerAlerte} />
 
       {#if dGroupes.length}
         <div class="cpacts">
@@ -1340,6 +1421,37 @@
         <p class="source">{$t('v2.meta.dArtistNoClue' as any).replace('{count}', $formatNombre(dSansIndice))}</p>
       {/if}
     {/if}
+
+      <!-- tune-server-rust#8958 — les alertes marquées normales : les revoir,
+           et en remettre une dans la liste. Visible même quand la liste des
+           douteuses est vide (c'est justement là qu'on les cherche). -->
+      {#if dIgnorees.length}
+        <section class="ignorees" data-alertes-ignorees>
+          <button class="lnk" aria-expanded={dIgnoreesOuvertes} onclick={() => (dIgnoreesOuvertes = !dIgnoreesOuvertes)}>
+            {$t('v2.meta.dIgnoredShow' as any).replace('{count}', $formatNombre(dIgnorees.length))}
+          </button>
+          {#if dIgnoreesOuvertes}
+            <p class="note">{$t('v2.meta.dIgnoredIntro' as any)}</p>
+            <ul>
+              {#each dIgnorees as a (`${a.scope}:${a.target_id}:${a.reason}`)}
+                <li data-portee={a.scope}>
+                  <span class="ig-txt">
+                    <strong>{(a.scope === 'album' ? a.album_title : a.title) || '—'}</strong>
+                    <span class="ig-sub">
+                      {a.scope === 'album'
+                        ? $t('v2.meta.dIgnoredScopeAlbum' as any).replace('{count}', $formatNombre(a.track_count ?? 0))
+                        : $t('v2.meta.dIgnoredScopeTrack' as any)}
+                      · {texteRaisonSimple(a.reason)}
+                    </span>
+                    {#if a.file_path}<span class="chemin" use:bulleTexte>{a.file_path}</span>{/if}
+                  </span>
+                  <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(a)}>{$t('v2.meta.dRestore' as any)}</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+      {/if}
     {/if}
 
     <!-- Pas de bouton « ouvrir l'éditeur » : la vue `metadata` est CET écran
@@ -1422,6 +1534,15 @@
   .state{padding:30px 0; color:var(--v2-txt3)}
   .dbl-echec{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; color:var(--v2-txt2)}
   .note{padding:4px 0 16px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  /* tune-server-rust#8958 — « C'est normal » : le bilan et la liste des ignorées. */
+  .note.ignoree{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; color:var(--v2-txt2)}
+  .ignorees{margin:18px 0 8px; border-top:1px solid var(--v2-line2); padding-top:12px}
+  .ignorees ul{list-style:none; margin:0; padding:0}
+  .ignorees li{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; padding:9px 0; border-bottom:1px solid var(--v2-line2)}
+  .ignorees .ig-txt{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 240px}
+  .ignorees strong{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
+  .ignorees .ig-sub{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .ignorees .chemin{overflow-wrap:anywhere}
   .note b{color:var(--v2-txt2)}
 
   .auto{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 18px;

@@ -4204,6 +4204,46 @@ export function ecrireArtisteDuDossier(trackIds?: number[]) {
   });
 }
 
+/**
+ * renesenses/tune-server-rust#8958 — une alerte de « Albums douteux » marquée
+ * normale. `scope` dit où le choix est mémorisé (le serveur le choisit selon
+ * la nature de l'alerte) ; le reste sert à la reconnaître dans la liste.
+ */
+export interface AlerteDouteuseIgnoree {
+  scope: 'track' | 'album';
+  target_id: number;
+  reason: string;
+  ignored_at: number;
+  title?: string | null;
+  album_title?: string | null;
+  artist_name?: string | null;
+  file_path?: string | null;
+  track_count?: number;
+}
+
+export async function getAlertesDouteusesIgnorees() {
+  const r = await fetchJSON<{ items?: AlerteDouteuseIgnoree[]; total?: number }>(
+    `${BASE}/metadata/doubtful/ignored`,
+  );
+  return r?.items ?? [];
+}
+
+/** Marque l'alerte `reason` de la piste comme normale. Réservé à l'administrateur. */
+export function ignorerAlerteDouteuse(trackId: number, reason: string) {
+  return fetchJSON<{ scope: 'track' | 'album'; target_id: number; reason: string; added: boolean }>(
+    `${BASE}/metadata/doubtful/ignored`,
+    { method: 'POST', body: JSON.stringify({ track_id: trackId, reason }) },
+  );
+}
+
+/** Annule le choix : l'alerte revient si le problème existe toujours. */
+export function retablirAlerteDouteuse(scope: 'track' | 'album', targetId: number, reason: string) {
+  return fetchJSON<{ removed: boolean }>(
+    `${BASE}/metadata/doubtful/ignored/${encodeURIComponent(scope)}/${targetId}/${encodeURIComponent(reason)}`,
+    { method: 'DELETE' },
+  );
+}
+
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
