@@ -1613,7 +1613,7 @@ export default {
   "settings.replayGainTrack": "Per track",
   "settings.replayGainAlbum": "Per album",
   "settings.replayGainAuto": "Auto",
-  "settings.replayGainAutoHint": "Album gain when consecutive tracks come from the same album, track gain otherwise (and always in shuffle).",
+  "settings.replayGainAutoHint": "Album gain when tracks from the same album follow each other, track gain otherwise and always in shuffle.",
   "settings.replayGainPreamp": "Pre-amp",
   "settings.replayGainPreventClipping": "Prevent clipping",
   "settings.replayGainHint": "Evens out the level between tracks, using the gain read from the tags or measured by the server. Off keeps the audio untouched.",

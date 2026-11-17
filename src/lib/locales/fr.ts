@@ -1616,7 +1616,7 @@ export default {
   "settings.replayGainTrack": "Par piste",
   "settings.replayGainAlbum": "Par album",
   "settings.replayGainAuto": "Auto",
-  "settings.replayGainAutoHint": "Gain d'album quand les morceaux consécutifs viennent du même album, gain de morceau sinon (et toujours en aléatoire).",
+  "settings.replayGainAutoHint": "Gain d'album quand des pistes du même album se suivent, gain de piste sinon et toujours en aléatoire.",
   "settings.replayGainPreamp": "Pré-ampli",
   "settings.replayGainPreventClipping": "Éviter l'écrêtage",
   "settings.replayGainHint": "Égalise le niveau entre les morceaux, à partir du gain lu dans les tags ou mesuré par le serveur. Désactivé, l'audio n'est pas touché.",
