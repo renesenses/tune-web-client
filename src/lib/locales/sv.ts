@@ -3822,6 +3822,7 @@ export default {
   "v2.zone.rightChannel": "höger kanal",
   "v2.fav.allSources": "Alla källor",
   "v2.fav.sourceLibrary": "Bibliotek",
+  "v2.fav.sourceOf": "Källa: {source}",
   "v2.fav.sortBy": "Sortera efter",
   "v2.fav.sortRecent": "Nyligen tillagt",
   "v2.fav.sortOldest": "Tillagt för länge sedan",

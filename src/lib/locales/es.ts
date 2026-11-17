@@ -3823,6 +3823,7 @@ export default {
   "v2.zone.rightChannel": "canal derecho",
   "v2.fav.allSources": "Todas las fuentes",
   "v2.fav.sourceLibrary": "Biblioteca",
+  "v2.fav.sourceOf": "Origen: {source}",
   "v2.fav.sortBy": "Ordenar por",
   "v2.fav.sortRecent": "Añadido recientemente",
   "v2.fav.sortOldest": "Añadido hace tiempo",

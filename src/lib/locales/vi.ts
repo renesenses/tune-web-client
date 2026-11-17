@@ -3704,6 +3704,7 @@ export default {
   "v2.zone.rightChannel": "kênh phải",
   "v2.fav.allSources": "Tất cả nguồn",
   "v2.fav.sourceLibrary": "Thư viện",
+  "v2.fav.sourceOf": "Nguồn: {source}",
   "v2.fav.sortBy": "Sắp xếp theo",
   "v2.fav.sortRecent": "Mới thêm gần đây",
   "v2.fav.sortOldest": "Thêm từ lâu",

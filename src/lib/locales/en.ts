@@ -3840,6 +3840,7 @@ export default {
   // v2 — Favourites: source filters and sorting
   "v2.fav.allSources": "All sources",
   "v2.fav.sourceLibrary": "Library",
+  "v2.fav.sourceOf": "Source: {source}",
   "v2.fav.sortBy": "Sort by",
   "v2.fav.sortRecent": "Recently added",
   "v2.fav.sortOldest": "Added long ago",
