@@ -3,10 +3,12 @@
  * (demande de FabienM, fil 2864 ; go de Bertrand le 16/11/2026, rc13).
  *
  * Le serveur compose (`GET /home/because-you-like`, tune-server-rust) :
- * jusqu'à cinq playlists de cinquante titres, une par artiste parmi les plus
+ * jusqu'à cinq playlists de vingt titres, une par artiste parmi les plus
  * écoutés du profil — bibliothèque d'abord, services connectés en complément.
- * La composition est STABLE sur la journée : un rafraîchissement de l'accueil
- * ne rebat pas les cartes.
+ * Les playlists sont refaites tous les trois jours (`refresh_days`) : entre
+ * deux, un rafraîchissement de l'accueil ne rebat pas les cartes. Décision de
+ * Bertrand du 17/11/2026 (FabienM, fil 2864) : 20 titres et 3 jours, l'esprit
+ * d'un « mix pour vous ».
  *
  * Ce module ne fait que trois choses : traduire les titres du serveur en
  * `Track` (pour `lectureEnMasse`), lancer la lecture, et enregistrer la
@@ -45,10 +47,16 @@ export interface PlaylistGeneree {
   /** `local`, puis les services qui ont complété. */
   sources: string[];
   tracks: TitreGenere[];
+  /** Tous les combien de jours le serveur refait les playlists (posé par
+   *  `chargerPlaylistsGenerees` depuis la réponse). */
+  refresh_days?: number | null;
 }
 
 export interface ReponseParceQueVousAimez {
+  /** Premier jour de la période en cours. */
   date?: string;
+  /** Durée de la période, en jours (3). */
+  refresh_days?: number;
   playlists: PlaylistGeneree[];
 }
 
@@ -57,7 +65,10 @@ export interface ReponseParceQueVousAimez {
 export async function chargerPlaylistsGenerees(limite?: number): Promise<PlaylistGeneree[]> {
   const r = await api.getBecauseYouLike(limite);
   const liste = Array.isArray(r?.playlists) ? r.playlists : [];
-  return liste.filter((p) => p && typeof p.artist === 'string' && Array.isArray(p.tracks) && p.tracks.length > 0);
+  const periode = typeof r?.refresh_days === 'number' && r.refresh_days > 0 ? Math.floor(r.refresh_days) : null;
+  return liste
+    .filter((p) => p && typeof p.artist === 'string' && Array.isArray(p.tracks) && p.tracks.length > 0)
+    .map((p) => ({ ...p, refresh_days: periode }));
 }
 
 /** Un titre local porte `track_id` ; un titre de service, la paire `source` + `source_id`. */

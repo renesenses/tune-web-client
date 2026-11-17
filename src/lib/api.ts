@@ -4433,8 +4433,9 @@ export function getTagsForStreamingItem(itemType: string, source: string, source
   return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/for-streaming?${q}`);
 }
 
-export function getTagAlbums(tagId: number) {
-  return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
+export function getTagAlbums(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`, signal ? { signal } : undefined);
 }
 
 // 🔴 Les TROIS autres routes de listage par étiquette.
@@ -4453,12 +4454,14 @@ export function getTagArtists(tagId: number) {
   return fetchJSON<{ artists: import('./types').Artist[]; count: number }>(`${BASE}/tags/${tagId}/artists`);
 }
 
-export function getTagTracks(tagId: number) {
-  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`);
+export function getTagTracks(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`, signal ? { signal } : undefined);
 }
 
-export function getTagPlaylists(tagId: number) {
-  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
+export function getTagPlaylists(tagId: number, signal?: AbortSignal) {
+  // web#3119 — le widget « Écouter plus tard » passe le signal de sa page.
+  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`, signal ? { signal } : undefined);
 }
 
 /**
@@ -10696,7 +10699,7 @@ export function getHomeRecommendations(limit?: number) {
 
 /**
  * web#3118 — « Parce que vous aimez <artiste> » : jusqu'à cinq playlists
- * générées de cinquante titres, stables sur la journée.
+ * générées de vingt titres, refaites tous les trois jours.
  */
 export function getBecauseYouLike(limit?: number) {
   const q = limit != null ? `?limit=${limit}` : '';

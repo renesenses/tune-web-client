@@ -1,6 +1,6 @@
 /**
  * web#3118 — « Parce que vous aimez <artiste> » (FabienM, fil 2864 ; go de
- * Bertrand le 16/11/2026, rc13).
+ * Bertrand le 16/11/2026, rc13 ; 20 titres et 3 jours le 17/11/2026).
  *
  * Gardes : la traduction des titres du serveur en pistes jouables, l'ordre
  * conservé à l'enregistrement (segments homogènes), le widget dans le registre
@@ -98,6 +98,20 @@ describe('parce que vous aimez — client', () => {
     expect(await chargerPlaylistsGenerees()).toEqual([]);
   });
 
+  it('20 titres, renouvelés tous les 3 jours : la période du serveur suit chaque playlist', async () => {
+    const vingt = { ...playlist(), track_count: 20, tracks: Array.from({ length: 20 }, (_, i) => ({ source: 'local', track_id: i + 1, title: `T${i}` })) };
+    mocks.getBecauseYouLike.mockResolvedValue({ date: '2026-11-16', refresh_days: 3, playlists: [vingt] });
+    const [p] = await chargerPlaylistsGenerees();
+    expect(p.refresh_days).toBe(3);
+    expect(versPistes(p)).toHaveLength(20);
+    const w = widgetParId('parce-que-vous-aimez');
+    const [el] = await w!.charger({} as any);
+    expect(el.nbTitres).toBe(20);
+    // Serveur sans `refresh_days` : rien n'est inventé.
+    mocks.getBecauseYouLike.mockResolvedValue({ playlists: [vingt] });
+    expect((await chargerPlaylistsGenerees())[0].refresh_days).toBeNull();
+  });
+
   it('la ligne « avec » nomme trois voisins au plus', () => {
     expect(texteVoisins(playlist(), 'avec {artistes}')).toBe('avec John Coltrane, Ghost, Bill Evans');
     expect(texteVoisins({ ...playlist(), similar_artists: [] }, 'avec {artistes}')).toBeNull();
@@ -123,6 +137,8 @@ describe('parce que vous aimez — widget', () => {
     const src = readFileSync(resolve(__dirname, '../../components/v2/PageWidgets.svelte'), 'utf8');
     expect(src).toMatch(/e\.ouvrir === 'generee' && e\.generee/);
     expect(src).toContain('<PlaylistGenereeV2');
+    const modale = readFileSync(resolve(__dirname, '../../components/v2/PlaylistGenereeV2.svelte'), 'utf8');
+    expect(modale).toContain('v2.home.becauseYouLikeRefresh');
   });
 
   it('chaque langue porte ses libellés', () => {
@@ -130,7 +146,7 @@ describe('parce que vous aimez — widget', () => {
     const cles = [
       'wBecauseYouLike', 'becauseYouLikeCard', 'becauseYouLikeWith', 'becauseYouLikeCount',
       'becauseYouLikePlay', 'becauseYouLikeSave', 'becauseYouLikeDone', 'becauseYouLikeName',
-      'becauseYouLikeSaved', 'becauseYouLikeNoZone',
+      'becauseYouLikeSaved', 'becauseYouLikeNoZone', 'becauseYouLikeRefresh',
     ];
     const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
     expect(langues.length).toBeGreaterThanOrEqual(15);

@@ -36,7 +36,7 @@ describe('les quatre routes de listage par étiquette', () => {
     ['getTagTracks', 'tracks'],
     ['getTagPlaylists', 'playlists'],
   ])('%s vise /tags/{id}/%s', (fn, chemin) => {
-    expect(api).toContain(`export function ${fn}(tagId: number)`);
+    expect(api).toContain(`export function ${fn}(tagId: number`);
     const i = api.indexOf(`export function ${fn}(`);
     expect(api.slice(i, i + 400)).toContain(`/tags/\${tagId}/${chemin}`);
   });

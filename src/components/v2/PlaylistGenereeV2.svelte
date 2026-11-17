@@ -84,6 +84,9 @@
           {($t('v2.home.becauseYouLikeCount' as any) as string)
             .replace('{n}', String(playlist.tracks.length))
             .replace('{duree}', formatTime(playlist.duration_ms ?? 0))}
+          {#if playlist.refresh_days}
+            · {($t('v2.home.becauseYouLikeRefresh' as any) as string).replace('{n}', String(playlist.refresh_days))}
+          {/if}
         </p>
         <div class="gestes">
           <button type="button" class="pri" onclick={lire} data-testid="pvaa-lire">{$t('v2.home.becauseYouLikePlay' as any)}</button>
