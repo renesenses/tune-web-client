@@ -106,6 +106,56 @@ describe('#8213 — arrêt programmé : le choix « éteindre la machine »', ()
   });
 });
 
+describe('renesenses/tune-server-rust#8909 — extinction d’un hôte hors Tune OS', () => {
+  const avert = () => hote.querySelector('[data-avert-extinction]')?.textContent ?? '';
+
+  it('🔴 hôte ordinaire (`poweroff_mode: host`) : l’écran dit que l’ORDINATEUR entier s’éteint', async () => {
+    await monter({ scheduled_stop: { ...REGLAGE, action: 'poweroff' }, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host' });
+    expect(radioExtinction()).not.toBeNull();
+    expect(avert()).toContain('ordinateur entier');
+    expect(avert()).toContain('polkit');
+  });
+
+  it('Tune OS garde son avertissement d’appliance', async () => {
+    await monter({ scheduled_stop: { ...REGLAGE, action: 'poweroff' }, next_stop_at: null, poweroff_available: true, poweroff_mode: 'tune_os' });
+    expect(avert()).toContain('Tune OS');
+    expect(avert()).not.toContain('polkit');
+  });
+
+  it('🔴 conteneur (`poweroff_mode: null`, indisponible) : le choix est masqué', async () => {
+    await monter({ scheduled_stop: REGLAGE, next_stop_at: null, poweroff_available: false, poweroff_mode: null });
+    expect(radioExtinction()).toBeNull();
+  });
+
+  it('🔴 le dernier échec (polkit qui refuse) est affiché', async () => {
+    await monter({
+      scheduled_stop: { ...REGLAGE, action: 'poweroff' }, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host',
+      last_poweroff_error: { at: '2026-11-16T23:00:00', error: 'Linux refused to power off the machine (polkit)' },
+    });
+    const echec = hote.querySelector('[data-echec-extinction]');
+    expect(echec, 'l’échec doit être visible').not.toBeNull();
+    expect(echec!.textContent).toContain('a échoué');
+    expect(echec!.textContent).toContain('polkit');
+    expect(echec!.textContent).toContain('23:00');
+  });
+
+  it('sans échec, aucun bandeau', async () => {
+    await monter({ scheduled_stop: REGLAGE, next_stop_at: null, poweroff_available: true, poweroff_mode: 'host', last_poweroff_error: null });
+    expect(hote.querySelector('[data-echec-extinction]')).toBeNull();
+  });
+
+  it('toutes les langues portent les nouvelles chaînes', async () => {
+    const { readdirSync } = await import('node:fs');
+    for (const f of readdirSync('src/lib/locales').filter((n) => n.endsWith('.ts') && n !== 'index.ts')) {
+      const txt = readFileSync(`src/lib/locales/${f}`, 'utf8');
+      for (const cle of ['scheduledStop.poweroffHintHost', 'scheduledStop.poweroffFailed']) {
+        expect(txt.includes(`"${cle}"`), `${f} : ${cle}`).toBe(true);
+      }
+      expect(txt, `${f} : {when}/{error}`).toMatch(/"scheduledStop\.poweroffFailed": "[^"]*\{when\}[^"]*\{error\}/);
+    }
+  });
+});
+
 describe('#8213 — Réglages › Système : « Redémarrer la machine »', () => {
   const V2 = readFileSync('src/components/v2/SettingsV2.svelte', 'utf8');
   it('confirmé, et offert seulement sur l’appliance', () => {

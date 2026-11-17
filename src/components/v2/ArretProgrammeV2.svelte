@@ -11,6 +11,11 @@
    *
    * Aucune écriture au chargement : on lit, puis on n'écrit qu'au clic sur
    * « Enregistrer » ou « Supprimer ».
+   *
+   * tune-server-rust#8909 : hors Tune OS (`poweroff_mode: "host"`), c'est
+   * l'ordinateur entier qui s'éteint — l'écran le dit, et rend le dernier
+   * échec (`last_poweroff_error`, polkit qui refuse…) que seul le journal
+   * aurait vu sinon.
    */
   import { onDestroy, onMount } from 'svelte';
   import * as api from '../../lib/api';
@@ -28,6 +33,8 @@
   let existe = $state(false);
   let prochain = $state<string | null>(null);
   let extinctionPossible = $state(false);
+  let modeExtinction = $state<'tune_os' | 'host' | null>(null);
+  let dernierEchec = $state<{ at: string; error: string } | null>(null);
 
   let fActif = $state(true);
   let fHeure = $state('23:00');
@@ -52,6 +59,8 @@
     existe = r !== null;
     prochain = etat.next_stop_at ?? null;
     extinctionPossible = etat.poweroff_available === true;
+    modeExtinction = etat.poweroff_mode ?? null;
+    dernierEchec = etat.last_poweroff_error ?? null;
     if (r) {
       fActif = r.enabled;
       fHeure = r.time.length === 4 ? `0${r.time}` : r.time;
@@ -204,9 +213,21 @@
           <span>{$t('scheduledStop.actionPoweroff' as any)}</span>
         </label>
         {#if fAction === 'poweroff'}
-          <p class="hint avert">{$t('scheduledStop.poweroffHint' as any)}</p>
+          <p class="hint avert" data-avert-extinction>
+            {#if modeExtinction === 'host'}
+              {$t('scheduledStop.poweroffHintHost' as any)}
+            {:else}
+              {$t('scheduledStop.poweroffHint' as any)}
+            {/if}
+          </p>
         {/if}
       </div>
+    {/if}
+
+    {#if dernierEchec}
+      <p class="hint echec" role="alert" data-echec-extinction>
+        {$t('scheduledStop.poweroffFailed' as any).replace('{when}', prochainTexte(dernierEchec.at)).replace('{error}', dernierEchec.error)}
+      </p>
     {/if}
 
     <p class="hint" data-prochain-arret>
@@ -230,6 +251,7 @@
   .arret-programme { display: flex; flex-direction: column; gap: 12px; }
   .hint { margin: 0; font: 400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
   .hint.avert { color: var(--v2-txt); }
+  .hint.echec { color: var(--v2-danger); }
   .champ { display: flex; flex-direction: column; gap: 6px; }
   .lbl { font: 500 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); }
   .ligne { display: flex; align-items: center; gap: 8px; font: 400 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt); cursor: pointer; }
