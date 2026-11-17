@@ -101,7 +101,7 @@ describe('Tune tested : 401 du site (tune-server-rust#8792)', () => {
     expect(alerte?.textContent).toContain('mozaiklabs.fr');
   });
 
-  it('le message existe, traduit, dans les 15 langues', () => {
+  it('le message existe, traduit, dans les 16 langues', () => {
     expect(ONZE_LANGUES.length).toBe(16);
     for (const code of ONZE_LANGUES) {
       const texte = dictionnaire(code)[CLE];
