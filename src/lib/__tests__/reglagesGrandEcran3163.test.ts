@@ -71,6 +71,6 @@ describe('web#3163 — Réglages sur grand écran', () => {
   it('les blocs larges (pleine-largeur) restent libres, et leurs lignes suivent la colonne', () => {
     expect(CSS).toMatch(/\.pane > \.card:has\(\.pleine-largeur\)\{max-width:none\}/);
     const b = blocGrandEcran(CSS)!;
-    expect(b.corps).toMatch(/:not\(:has\(\.pleine-largeur\)\)\)\{max-width:var\(--reglages-colonne\)\}/);
+    expect(b.corps).toMatch(/:not\(:has\(\.pleine-largeur\)\)\{max-width:var\(--reglages-colonne\)\}/);
   });
 });
