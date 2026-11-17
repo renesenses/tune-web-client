@@ -5434,6 +5434,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- Décision de Bertrand du 17/11/2026 (rc13, option C) — l'onde
+                   des pistes Qobuz et TIDAL : le serveur télécharge la piste
+                   pour l'analyser, après 30 s de lecture. Décochée par défaut ;
+                   sans effet tant que la barre en forme d'onde est décochée. -->
+              <div class="row" data-reglage="onde-streaming">
+                <div class="lbl">
+                  <span>{$t('v2.set.ondeStreaming' as any)}</span>
+                  <span class="hint">{$t('v2.set.ondeStreamingHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ondeStreaming === true}
+                    disabled={$preferences.barreOnde !== true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ondeStreaming: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <h4 class="sous-titre">{$t('reglages.interface.navigation' as any)}</h4>
               <div class="row" data-reglage="langue">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>

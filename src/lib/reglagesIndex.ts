@@ -67,6 +67,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },
   { id: 'barre-vu-metres', section: 'interface', labelKey: 'v2.set.barVu', descKey: 'v2.set.barVuHint', techniques: ['VU'] },
   { id: 'barre-onde', section: 'interface', labelKey: 'v2.set.barOnde', descKey: 'v2.set.barOndeHint', termesKey: 'reglages.termes.barreOnde', techniques: ['waveform'] },
+  { id: 'onde-streaming', section: 'interface', labelKey: 'v2.set.ondeStreaming', descKey: 'v2.set.ondeStreamingHint', termesKey: 'reglages.termes.ondeStreaming', techniques: ['waveform', 'Qobuz', 'TIDAL'] },
   { id: 'langue', section: 'interface', labelKey: 'settings.language', termesKey: 'reglages.termes.langue' },
   { id: 'ecran-demarrage', section: 'interface', labelKey: 'settings.startupView', descKey: 'v2.hint.startupView', termesKey: 'reglages.termes.ecranDemarrage' },
   { id: 'lienLectureVersSource', section: 'interface', labelKey: 'settings.nowPlayingLinkToSource', descKey: 'settings.nowPlayingLinkToSourceHint' },

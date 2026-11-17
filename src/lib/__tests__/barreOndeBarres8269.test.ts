@@ -21,6 +21,7 @@ const LOCALES_COMPLETES = Object.entries(LANGUES) as [string, Record<string, str
 vi.setConfig({ testTimeout: 60_000 });
 // Lu au chargement, avant tout `beforeEach` : le défaut d'un stockage vide.
 const DEFAUT_AU_CHARGEMENT = get(preferences).barreOnde;
+const DEFAUT_STREAMING_AU_CHARGEMENT = get(preferences).ondeStreaming;
 
 class Inerte { observe() {} unobserve() {} disconnect() {} }
 let hote: HTMLDivElement | null = null;
@@ -71,7 +72,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   currentZoneId.set(1);
   seekPositionMs.set(50_000);
-  preferences.update((p) => ({ ...p, barreOnde: true, barreVuMetres: false, settingsLevel: 'expert' }));
+  preferences.update((p) => ({ ...p, barreOnde: true, ondeStreaming: false, barreVuMetres: false, settingsLevel: 'expert' }));
   hote = document.createElement('div');
   document.body.appendChild(hote);
 });
@@ -121,6 +122,31 @@ describe('#8269 — le réglage', () => {
       expect(d['reglages.termes.barreOnde'], `${langue} : synonymes`).toBeTruthy();
     }
     expect(new Set(LOCALES_COMPLETES.map(([, d]) => d['v2.set.barOnde'])).size).toBe(15);
+  });
+
+  it('🔴 « Forme d’onde des pistes de streaming » : décochée par défaut, inactive sans la barre en onde, traduite', async () => {
+    expect(DEFAUT_STREAMING_AU_CHARGEMENT, 'décochée par défaut').toBe(false);
+    preferences.update((p) => ({ ...p, barreOnde: false, ondeStreaming: false }));
+    v2SettingsTarget.set({ tab: 'general' as V2SettingsTabId, section: 'interface' });
+    monte = mount(SettingsV2, { target: hote!, props: {} });
+    await souffler(14);
+    const ligne = hote!.querySelector('[data-reglage="onde-streaming"]');
+    expect(ligne, 'l’option est absente de Réglages ▸ Interface').not.toBeNull();
+    expect(ligne!.textContent).toContain('Waveform for streaming tracks');
+    const case_ = ligne!.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(case_.checked).toBe(false);
+    expect(case_.disabled, 'sans la barre en onde, rien à régler').toBe(true);
+    preferences.update((p) => ({ ...p, barreOnde: true }));
+    flushSync();
+    expect(case_.disabled).toBe(false);
+    case_.click();
+    flushSync();
+    expect(get(preferences).ondeStreaming).toBe(true);
+    for (const [langue, d] of LOCALES_COMPLETES) {
+      expect(d['v2.set.ondeStreaming'], `${langue} : libellé`).toBeTruthy();
+      expect(d['v2.set.ondeStreamingHint'], `${langue} : aide`).toBeTruthy();
+      expect(d['reglages.termes.ondeStreaming'], `${langue} : synonymes`).toBeTruthy();
+    }
   });
 });
 
@@ -183,6 +209,7 @@ describe('#8269 — la barre de lecture du bas', () => {
         }
         return reponse({});
       });
+      preferences.update((p) => ({ ...p, ondeStreaming: true }));
       zoneAvec({ source: 'qobuz', track_id: null, source_id: '48098083' });
       monte = mount(TransportBar, { target: hote! });
       const avancer = async (ms: number) => { await vi.advanceTimersByTimeAsync(ms); flushSync(); };
@@ -219,8 +246,17 @@ describe('#8269 — la barre de lecture du bas', () => {
     expect(urls().filter((u) => u.includes('/waveform'))).toEqual([]);
   });
 
+  it('🔴 « Forme d’onde des pistes de streaming » décoché (défaut) : barre classique, aucune requête Qobuz', async () => {
+    preferences.update((p) => ({ ...p, ondeStreaming: false }));
+    zoneAvec({ source: 'qobuz', track_id: null, source_id: '778' });
+    monte = mount(TransportBar, { target: hote! });
+    await souffler();
+    expect(hote!.querySelector('.progress-track .onde')).toBeNull();
+    expect(urls().filter((u) => u.includes('/service-tracks/'))).toEqual([]);
+  });
+
   it('réglage décoché : pas de requête pour une piste Qobuz', async () => {
-    preferences.update((p) => ({ ...p, barreOnde: false }));
+    preferences.update((p) => ({ ...p, barreOnde: false, ondeStreaming: true }));
     zoneAvec({ source: 'qobuz', track_id: null, source_id: '777' });
     monte = mount(TransportBar, { target: hote! });
     await souffler();

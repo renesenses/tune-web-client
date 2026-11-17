@@ -21,4 +21,8 @@ export const cacheOndes = creerCacheOndes(chargerOnde);
 
 export const barreOndeActive = derived(preferences, ($p) => $p.barreOnde === true);
 
-export const ondePisteEnCours = ondeDeLaPiste(barreOndeActive, currentTrack, cacheOndes);
+/** Réglage « Forme d'onde des pistes de streaming » (décision du 17/11,
+ *  option C) : décoché, aucune requête pour une piste Qobuz ou TIDAL. */
+export const ondeStreamingActive = derived(preferences, ($p) => $p.ondeStreaming === true);
+
+export const ondePisteEnCours = ondeDeLaPiste(barreOndeActive, currentTrack, cacheOndes, ondeStreamingActive);

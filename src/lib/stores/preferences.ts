@@ -248,6 +248,15 @@ export interface Preferences {
    * `lib/barreOnde.ts`.
    */
   barreOnde: boolean;
+  /**
+   * Forme d'onde des pistes de STREAMING (Qobuz, TIDAL) dans la même barre —
+   * décision de Bertrand du 17/11/2026 (rc13, option C). Le serveur
+   * télécharge la piste une fois pour l'analyser, et seulement après 30 s
+   * de lecture : DÉCOCHÉ par défaut, rien n'est téléchargé sans ce choix.
+   * Le serveur relit ce réglage dans `ui_preferences` du profil (garde côté
+   * serveur). Sans effet si `barreOnde` est décoché. Voir `lib/barreOnde.ts`.
+   */
+  ondeStreaming: boolean;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -591,6 +600,7 @@ const defaults: Preferences = {
   visualiseurBarre: true,
   // Discussion #8269 — décoché : l'écran de qui n'a rien demandé ne bouge pas.
   barreOnde: false,
+  ondeStreaming: false,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},
   // ESSENTIEL pour une installation NEUVE (Bertrand, 09/11/2026, #2735) —

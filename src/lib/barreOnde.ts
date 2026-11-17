@@ -14,10 +14,13 @@
  * RMS normalisée, 200 points, mise en cache en base). ⚠️ À ne pas confondre
  * avec `api.getWaveform`, qui vise `/dj/waveform/{id}` — la route du greffon DJ.
  *
- * QOBUZ ET TIDAL (go de Bertrand du 17/11/2026, rc13) : la piste en lecture
- * n'a pas d'identifiant de bibliothèque ; son enveloppe vient de
- * `GET /library/service-tracks/{service}/{source_id}/waveform`. Le serveur
- * télécharge la piste pour l'analyser, une fois : il répond d'abord
+ * QOBUZ ET TIDAL (go de Bertrand du 17/11/2026, rc13 ; option C le soir
+ * même) : SEULEMENT si le réglage « Forme d'onde des pistes de streaming »
+ * (`ondeStreaming`, décoché par défaut) est coché — sinon aucune requête.
+ * La piste en lecture n'a pas d'identifiant de bibliothèque ; son enveloppe
+ * vient de `GET /library/service-tracks/{service}/{source_id}/waveform`. Le
+ * serveur télécharge la piste pour l'analyser, une fois, et seulement après
+ * 30 s de lecture (garde côté serveur) : il répond d'abord
  * `202 { pending: true }`, et la barre reste classique jusqu'à l'enveloppe,
  * redemandée toutes les quelques secondes ([`DELAI_REESSAI_MS`]).
  *
@@ -41,7 +44,7 @@
  * l'envoi, si bien que la barre du bas et l'écran de lecture qui demandent la
  * même piste au même instant partagent la même requête.
  */
-import { derived, type Readable } from 'svelte/store';
+import { derived, readable, type Readable } from 'svelte/store';
 import type { NowPlaying } from './types';
 
 /** Points d'enveloppe, chacun dans [0, 1]. */
@@ -96,10 +99,10 @@ export function enAttente(reponse: unknown): boolean {
 }
 
 /** Délai entre deux demandes d'une enveloppe pas encore prête (ou d'une
- *  panne passagère), et nombre d'essais : trois minutes, le délai de
- *  téléchargement du serveur. */
+ *  panne passagère), et nombre d'essais : cinq minutes — les 30 s de
+ *  lecture qu'attend le serveur, puis son délai de téléchargement (3 min). */
 export const DELAI_REESSAI_MS = 3000;
-export const ESSAIS_MAX = 60;
+export const ESSAIS_MAX = 100;
 
 /** La réponse du serveur, réduite à une enveloppe dessinable, ou `null`.
  *
@@ -262,8 +265,15 @@ export function ondeDeLaPiste(
   actif: Readable<boolean>,
   piste: Readable<Pick<NowPlaying, 'source' | 'track_id' | 'id' | 'source_id'> | null | undefined>,
   cache: CacheOndes,
+  /** Réglage `ondeStreaming` : les pistes Qobuz et TIDAL aussi. Faux par
+   *  défaut — une piste de service n'est alors jamais demandée. */
+  services: Readable<boolean> = readable(false),
 ): Readable<Onde | null> {
-  const cle = derived([actif, piste], ([$actif, $piste]) => ($actif ? clePisteOnde($piste) : null));
+  const cle = derived([actif, piste, services], ([$actif, $piste, $services]) => {
+    if (!$actif) return null;
+    const c = clePisteOnde($piste);
+    return typeof c === 'string' && !$services ? null : c;
+  });
   // `derived` sur un dérivé primitif ne se relance qu'au vrai changement de
   // valeur (ou à un nouvel abonnement) : les tics de position ne redemandent
   // rien.

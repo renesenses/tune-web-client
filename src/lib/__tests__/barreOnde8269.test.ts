@@ -218,7 +218,7 @@ describe('#8269 rc13 — Qobuz et TIDAL', () => {
       const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
         { source: 'qobuz', track_id: null, source_id: '1' },
       );
-      const onde = ondeDeLaPiste(writable(true), piste, cache);
+      const onde = ondeDeLaPiste(writable(true), piste, cache, writable(true));
       const stop = onde.subscribe(() => {});
       await vi.advanceTimersByTimeAsync(0);
       expect(get(onde)).toBeNull();
@@ -245,3 +245,38 @@ describe('#8269 rc13 — Qobuz et TIDAL', () => {
     }
   });
 });
+
+// Décision de Bertrand du 17/11/2026 (option C) : l'onde des pistes de
+// streaming est un réglage à part, décoché par défaut.
+describe('#8269 rc13 — réglage « Forme d’onde des pistes de streaming »', () => {
+  it('🔴 décoché (défaut) : aucune requête pour Qobuz/TIDAL ; les pistes locales ne changent pas', async () => {
+    const charger = vi.fn(async () => ({ waveform: [0.4, 0.8] }));
+    const piste = writable<Pick<NowPlaying, 'source' | 'track_id' | 'source_id'> | null>(
+      { source: 'qobuz', track_id: null, source_id: '9' },
+    );
+    const services = writable(false);
+    const onde = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger), services);
+    const stop = onde.subscribe(() => {});
+    await attendre(); await attendre();
+    expect(get(onde)).toBeNull();
+    expect(charger).not.toHaveBeenCalled();
+    // Sans 4ᵉ argument : décoché aussi.
+    const parDefaut = ondeDeLaPiste(writable(true), piste, creerCacheOndes(charger));
+    const stop2 = parDefaut.subscribe(() => {});
+    await attendre();
+    expect(charger).not.toHaveBeenCalled();
+    stop2();
+    // Piste locale : demandée, réglage décoché ou non.
+    piste.set({ source: 'local', track_id: 41, source_id: null });
+    await attendre(); await attendre();
+    expect(charger).toHaveBeenCalledWith(41);
+    expect(get(onde)).toEqual([0.4, 0.8]);
+    // Coché : la piste de service est demandée.
+    services.set(true);
+    piste.set({ source: 'tidal', track_id: null, source_id: '9' });
+    await attendre(); await attendre();
+    expect(charger).toHaveBeenCalledWith('tidal:9');
+    stop();
+  });
+});
+
