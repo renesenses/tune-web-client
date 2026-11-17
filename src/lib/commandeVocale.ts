@@ -43,13 +43,13 @@ function constructeur(w: FenetreVocale | undefined): (new () => Reconnaissance) 
 
 /**
  * Pourquoi la dictée ne peut pas marcher ici, ou `null` si elle peut.
- * L'absence de reconnaissance passe d'abord : en https, Firefox n'en aurait
- * toujours pas, alors que Chrome en http local en a une à qui il ne manque
- * que le contexte sécurisé.
+ * Le contexte non sécurisé passe d'abord : Safari peut y masquer le
+ * constructeur lui-même. En HTTPS, son absence signale encore un navigateur
+ * sans reconnaissance vocale, comme Firefox.
  */
 export function raisonIndisponible(w: FenetreVocale | undefined = fenetre()): RaisonIndispo | null {
-  if (!constructeur(w)) return 'nonPrisEnCharge';
   if (w?.isSecureContext === false) return 'nonSecurise';
+  if (!constructeur(w)) return 'nonPrisEnCharge';
   return null;
 }
 
