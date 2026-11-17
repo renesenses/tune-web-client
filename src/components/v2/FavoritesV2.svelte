@@ -39,13 +39,13 @@
     smartPlaylistsFavorites,
   } from '../../lib/favorisFusionnes';
   import {
-    trierEtFiltrer, sourcesPresentes, sourceDe, SOURCE_BIBLIOTHEQUE, type TriFavoris,
+    trierEtFiltrer, sourcesPresentes, sourceDe, SOURCE_BIBLIOTHEQUE, repereSource, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
   import { fold } from '../../lib/utils';
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import ServiceBadge, { SERVICES_BADGE } from '../partages/ServiceBadge.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import { artisteDAlbum } from '../../lib/lienEntite';
@@ -499,12 +499,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * la puce choisie.
    */
   const reperesSource = $derived(sourceFiltre === null && sourcesOnglet.length > 1);
-  /** Libellé du repère : « Bibliothèque » pour une playlist locale, sinon le service. */
-  function libelleSourcePl(pl: any): string {
-    return pl.id != null ? $t('v2.fav.sourceLibrary' as any) : nomService(String(pl.source ?? ''));
-  }
-  function bulleSourcePl(pl: any): string {
-    return $t('v2.fav.sourceOf' as any).replace('{source}', libelleSourcePl(pl));
+  /** Le repère d'une playlist : clé et libellé suivent `sourceDe` (web#3145). */
+  function reperePl(pl: any) {
+    const r = repereSource(pl, $t('v2.fav.sourceLibrary' as any), nomService);
+    return { ...r, bulle: $t('v2.fav.sourceOf' as any).replace('{source}', r.libelle) };
   }
 
   /**
@@ -1036,6 +1034,21 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   <!-- web#2679 point 3 — la pochette d'une playlist, UNE seule fois : la grille
        et la liste appellent ce même gabarit. Mosaïque des pistes (locale), image
        du service, sinon le pictogramme. -->
+  <!-- web#3145 — le repère de source d'une playlist (liste et grille). Le
+       texte accessible est en clair, masqué à l'œil ; la pastille est
+       décorative. Un service que `ServiceBadge` ne sait pas dessiner retombe
+       sur la pastille texte, avec son nom. -->
+  {#snippet repereSrc(pl: any)}
+    {@const r = reperePl(pl)}
+    <span class="repere" data-repere-source={r.bibliotheque ? 'bibliotheque' : r.cle} title={r.bulle}>
+      <span class="vh">{r.bulle}</span>
+      <span aria-hidden="true" class="repere-v">
+        {#if !r.bibliotheque && SERVICES_BADGE.has(r.cle)}<ServiceBadge source={r.cle} compact />
+        {:else}<span class="src-loc">{r.libelle}</span>{/if}
+      </span>
+    </span>
+  {/snippet}
+
   {#snippet visuelPl(pl: any, mos: string[] | undefined)}
     {#if mos}
       <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
@@ -1298,19 +1311,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 >
                   {@render visuelPl(pl, mos)}
                 </PochetteActions>
-                <!-- web#3145 — le repère de source sur la vignette, au coin où
-                     `AlbumArt` pose déjà le badge d'une playlist de service
-                     qui a son image (on ne le double donc pas). -->
-                {#if reperesSource && !(deService && pl.cover_path)}
-                  <span class="repere-cv" data-repere-source={locale ? 'bibliotheque' : pl.source}
-                        title={bulleSourcePl(pl)}>
-                    {#if locale}<span class="src-loc">{libelleSourcePl(pl)}</span>
-                    {:else}<ServiceBadge source={pl.source} compact />{/if}
-                  </span>
-                {/if}
               </span>
               <span class="ct" title={pl.name}>{pl.name}</span>
-              <span class="ca" title={sousTitre}>{sousTitre}</span>
+              <!-- web#3145 — le repère de source, en tête de la seconde ligne :
+                   sur la vignette, il recouvrait un des coins d'actions de
+                   `PochetteActions` (toujours visibles au tactile). -->
+              <span class="ca" title={sousTitre}>{#if reperesSource}{@render repereSrc(pl)}{/if}{sousTitre}</span>
             </div>
           {/each}
         </div>
@@ -1361,11 +1367,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
               <!-- web#3145 — le repère de source, en clair à côté du nom : la
                    vignette de 40 px est trop petite pour qu'un badge s'y lise. -->
               {#if reperesSource}
-                <span class="repere" data-repere-source={locale ? 'bibliotheque' : pl.source}
-                      title={bulleSourcePl(pl)} aria-label={bulleSourcePl(pl)}>
-                  {#if locale || !pl.source}<span class="src-loc">{libelleSourcePl(pl)}</span>
-                  {:else}<ServiceBadge source={pl.source} compact />{/if}
-                </span>
+                {@render repereSrc(pl)}
               {/if}
               {#if nbTitresPl(pl) != null}<span class="sc">{nbTitresPl(pl)}</span>{/if}
               <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
@@ -1404,10 +1406,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {:else}
         {#each groupesFacettes as g (g.type)}
           <section class="groupe-facettes" data-facette={g.type} aria-labelledby={`gf-${g.type}`}>
-            <h3 class="gf-titre" id={`gf-${g.type}`}>
+            <h2 class="gf-titre" id={`gf-${g.type}`}>
               <span>{NOM_FACETTE[g.type] ?? g.type}</span>
               <span class="gf-n">{g.items.length}</span>
-            </h3>
+            </h2>
             <div class="simples">
               {#each g.items as f (facetFavKey(f.facet, f.value))}
                 <div class="shote">
@@ -1731,11 +1733,14 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   /* web#3145 — le repère de source. Les services gardent `ServiceBadge` (leurs
      couleurs, partout les mêmes) ; la Bibliothèque a la même forme, aux
      couleurs du thème (clair comme sombre). */
-  .repere{display:inline-flex; align-items:center; min-width:0}
+  .repere{display:inline-flex; align-items:center; min-width:0; vertical-align:middle}
+  .ca > .repere{margin-right:6px}
+  .repere-v{display:inline-flex}
+  .vh{position:absolute; width:1px; height:1px; margin:-1px; padding:0; border:0; overflow:hidden;
+    clip:rect(0 0 0 0); white-space:nowrap}
   .src-loc{display:inline-flex; align-items:center; font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     letter-spacing:.3px; text-transform:uppercase; line-height:1.4; padding:1px 4px; border-radius:3px;
     white-space:nowrap; color:var(--v2-txt2); background:var(--v2-bg); border:1px solid var(--v2-line2)}
-  .repere-cv{position:absolute; left:4px; bottom:4px; z-index:1; pointer-events:none; display:inline-flex}
   /* web#3144 — un groupe de facettes par type, sous son intitulé. */
   .groupe-facettes + .groupe-facettes{margin-top:16px}
   .gf-titre{display:flex; align-items:baseline; gap:8px; margin:0 0 6px; padding:0 12px;
@@ -1804,7 +1809,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .grid.liste .ca{margin-top:0; flex:1 1 auto; min-width:0}
   /* web#1719 — la vignette d'une playlist SANS pochette : le fond de l'écran
      Playlists, pour que les deux écrans montrent la même chose. */
-  .cv.pl{position:relative; display:grid; place-items:center; color:var(--v2-on-acc);
+  .cv.pl{display:grid; place-items:center; color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .cv.pl.img{background:none; color:inherit}
   .cv.pl svg{width:52px; height:52px; opacity:.9}

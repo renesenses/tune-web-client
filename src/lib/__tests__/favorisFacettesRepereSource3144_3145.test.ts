@@ -15,6 +15,8 @@ import { compile } from 'svelte/compiler';
 import FavoritesV2 from '../../components/v2/FavoritesV2.svelte';
 import { currentProfileId, favoriteArtistIds, favoritePlaylistIds, favoriteStreamingKeys, favoriteFacetKeys, facetFavKey, streamingFavKey } from '../stores/profile';
 import { activeView } from '../stores/navigation';
+import { repereSource, SOURCE_BIBLIOTHEQUE } from '../favorisTriFiltre';
+import { nomService } from '../convertisseurPlaylists';
 import en from '../locales/en';
 import loc_de from '../locales/de';
 import loc_el from '../locales/el';
@@ -43,6 +45,7 @@ function corps(url: string): unknown {
     return [
       { item_type: 'artist', service: 'qobuz', service_id: 'a1', title: 'Nina Simone', cover_url: 'https://x/a1.jpg' },
       { item_type: 'playlist', service: 'qobuz', service_id: 'p1', title: 'Jazz du soir', cover_url: 'https://x/p1.jpg' },
+      { item_type: 'playlist', service: 'apple', service_id: 'p2', title: 'Mix pomme' },
     ];
   }
   if (url.includes('/favorites/facets')) return facettesServeur;
@@ -101,7 +104,7 @@ beforeEach(() => {
   currentProfileId.set(1);
   favoriteArtistIds.set(new Set([5]));
   favoritePlaylistIds.set(new Set([7]));
-  favoriteStreamingKeys.set(new Set([streamingFavKey('artist', 'qobuz', 'a1'), streamingFavKey('playlist', 'qobuz', 'p1')]));
+  favoriteStreamingKeys.set(new Set([streamingFavKey('artist', 'qobuz', 'a1'), streamingFavKey('playlist', 'qobuz', 'p1'), streamingFavKey('playlist', 'apple', 'p2')]));
   favoriteFacetKeys.set(new Set());
   activeView.set('favorites' as any);
 });
@@ -204,22 +207,39 @@ describe('#3145 — repère de source des playlists', () => {
     document.head.appendChild(el);
   });
   const reperes = (h: HTMLElement) => Array.from(h.querySelectorAll<HTMLElement>('.simples .repere'));
+  /** Ce que l'œil lit (la pastille), et ce que lit un lecteur d'écran. */
+  const vu = (r: HTMLElement) => r.querySelector('.repere-v')!.textContent!.trim();
+  const dit = (r: HTMLElement) => r.querySelector('.vh')!.textContent!.trim();
 
   it('liste, toutes sources : chaque playlist porte sa source, la locale comprise', async () => {
     localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
     const h = poser();
     await onglet(h, /playlist/i);
     const r = reperes(h);
-    expect(r.length, 'une ligne sans repère').toBe(2);
+    expect(r.length, 'une ligne sans repère').toBe(3);
     const loc = r.find((x) => x.dataset.repereSource === 'bibliotheque');
     expect(loc, 'la playlist locale n’a pas de repère').toBeTruthy();
-    expect(loc!.textContent!.trim()).toBe(DICOS.fr['v2.fav.sourceLibrary']);
+    expect(vu(loc!)).toBe(DICOS.fr['v2.fav.sourceLibrary']);
+    expect(dit(loc!)).toBe('Source : Bibliothèque');
+    expect(loc!.querySelector('[aria-hidden="true"]')!.contains(loc!.querySelector('.src-loc'))).toBe(true);
     expect(loc!.getAttribute('title')).toBe('Source : Bibliothèque');
     expect(loc!.closest('.simple')!.textContent).toContain('Route 66');
     const qob = r.find((x) => x.dataset.repereSource === 'qobuz');
     expect(qob, 'la playlist Qobuz n’a pas de repère').toBeTruthy();
     expect(qob!.querySelector('.service-badge.qobuz')).toBeTruthy();
     expect(qob!.getAttribute('title')).toBe('Source : Qobuz');
+    expect(dit(qob!)).toBe('Source : Qobuz');
+  });
+
+  it('service que ServiceBadge ne connaît pas (Apple Music) : repli sur la pastille texte, jamais un repère vide', async () => {
+    localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'list');
+    const h = poser();
+    await onglet(h, /playlist/i);
+    const app = reperes(h).find((x) => x.dataset.repereSource === 'apple');
+    expect(app, 'la playlist Apple n’a pas de repère — témoin sans objet').toBeTruthy();
+    expect(app!.querySelector('.service-badge')).toBeNull();
+    expect(vu(app!)).toBe('Apple Music');
+    expect(dit(app!)).toBe('Source : Apple Music');
   });
 
   it('liste, filtrée sur une source : pas de repère (la puce le dit déjà)', async () => {
@@ -241,21 +261,28 @@ describe('#3145 — repère de source des playlists', () => {
     expect(reperes(h).length).toBe(0);
   });
 
-  it('grille, toutes sources : la vignette locale porte « Bibliothèque », la vignette Qobuz garde son seul badge', async () => {
+  it('grille, toutes sources : le repère est dans la seconde ligne, hors de la vignette (coins d’actions libres)', async () => {
     localStorage.setItem('tune_v2_ecran_fav.playlists.display', 'grid');
     const h = poser();
     await onglet(h, /playlist/i);
     const cartes = Array.from(h.querySelectorAll<HTMLElement>('.card'));
-    expect(cartes.length).toBe(2);
+    expect(cartes.length).toBe(3);
     const locale = cartes.find((c) => c.textContent!.includes('Route 66'))!;
     const qobuz = cartes.find((c) => c.textContent!.includes('Jazz du soir'))!;
-    const rl = locale.querySelector<HTMLElement>('.repere-cv');
-    expect(rl, 'la vignette locale n’a pas de repère').toBeTruthy();
+    // Le repère est dans la seconde ligne, HORS de la vignette : sur la
+    // vignette il recouvrait un coin d'actions de PochetteActions.
+    expect(locale.querySelector('.cv .repere'), 'repère posé sur la vignette').toBeNull();
+    const rl = locale.querySelector<HTMLElement>('.ca .repere');
+    expect(rl, 'la carte locale n’a pas de repère').toBeTruthy();
     expect(rl!.dataset.repereSource).toBe('bibliotheque');
-    expect(rl!.textContent!.trim()).toBe(DICOS.fr['v2.fav.sourceLibrary']);
-    // Le badge de service est posé par `AlbumArt` : pas de second badge.
-    expect(qobuz.querySelector('.repere-cv')).toBeNull();
-    expect(qobuz.querySelectorAll('.service-badge').length).toBe(1);
+    expect(vu(rl!)).toBe(DICOS.fr['v2.fav.sourceLibrary']);
+    const rq = qobuz.querySelector<HTMLElement>('.ca .repere');
+    expect(rq!.dataset.repereSource).toBe('qobuz');
+    expect(qobuz.querySelector('.cv .repere')).toBeNull();
+    // Service inconnu de ServiceBadge : même repli qu'en liste.
+    const pomme = cartes.find((c) => c.textContent!.includes('Mix pomme'))!;
+    expect(pomme.querySelector('.ca .repere .service-badge')).toBeNull();
+    expect(vu(pomme.querySelector<HTMLElement>('.ca .repere')!)).toBe('Apple Music');
   });
 
   it('le cœur d’une playlist Qobuz reste sur la ligne : une colonne par pièce, sur une seule rangée', async () => {
@@ -270,6 +297,22 @@ describe('#3145 — repère de source des playlists', () => {
     // Avec `auto 1fr auto` et sans placement en colonnes, la 4e pièce (le
     // cœur) ouvrait une 2e rangée.
     expect(st.getPropertyValue('grid-auto-flow')).toBe('column');
+  });
+
+  it('une playlist sans id NI source est rangée « Bibliothèque » par le filtre : son repère le dit aussi', () => {
+    const r = repereSource({ id: null, source: null } as any, 'Bibliothèque', nomService);
+    expect(r).toEqual({ cle: SOURCE_BIBLIOTHEQUE, bibliotheque: true, libelle: 'Bibliothèque' });
+    expect(repereSource({ id: 7 } as any, 'Bibliothèque', nomService).libelle).toBe('Bibliothèque');
+    expect(repereSource({ id: null, source: 'apple' } as any, 'Bibliothèque', nomService)).toEqual({ cle: 'apple', bibliotheque: false, libelle: 'Apple Music' });
+    expect(repereSource({ id: null, source: 'zzz' } as any, 'Bibliothèque', nomService).libelle).toBe('zzz');
+  });
+
+  it('les titres de groupe de facettes sont des h2 (sous le h1 de l’écran)', async () => {
+    facettesServeur = [{ facet: 'genre', value: 'Jazz' }];
+    favoriteFacetKeys.set(new Set([facetFavKey('genre', 'Jazz')]));
+    const h = poser();
+    await onglet(h, /facet|facette/i);
+    expect(h.querySelector('.groupe-facettes .gf-titre')!.tagName).toBe('H2');
   });
 
   it('la bulle « Source : … » existe dans les 15 langues, avec {source}', () => {
