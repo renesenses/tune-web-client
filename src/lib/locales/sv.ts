@@ -5257,7 +5257,7 @@ export default {
   "v2.set.barVu": "Uppspelningslist med VU-mätare",
   "v2.set.barVuHint": "Endast visning — signalen ändras inte. Två visarinstrument på var sida om kontrollerna; de ersätter topplamporna och minispektrumet. På en smal list återkommer den vanliga listen.",
   "v2.set.barOnde": "Förloppsindikator som vågform",
-  "v2.set.barOndeHint": "Endast visning. Förloppsindikatorn i Spelas nu och i uppspelningslisten ritar spårets vågform: den spelade delen i färg, resten nedtonad. För spår i biblioteket; streaming och radio behåller den vanliga listen.",
+  "v2.set.barOndeHint": "Endast visning. Förloppsindikatorn i Spelas nu och i uppspelningslisten ritar spårets vågform: den spelade delen i färg, resten nedtonad. För spår i biblioteket, och för Qobuz och TIDAL med valet nedan; radio och andra strömmar behåller den vanliga listen.",
   "v2.set.ondeStreaming": "Vågform för strömmade spår",
   "v2.set.ondeStreamingHint": "Qobuz och TIDAL: efter 30 s lyssning laddar servern ner spåret en gång för att beräkna vågformen och sparar den. Av: dessa spår behåller den vanliga förloppsindikatorn och inget laddas ner. Kräver förloppsindikator som vågform.",
   "v2.set.barViz": "Visualiserare i uppspelningsfältet",

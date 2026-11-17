@@ -5258,7 +5258,7 @@ export default {
   "v2.set.barVu": "Bară de redare cu VU-metre",
   "v2.set.barVuHint": "Doar afișare — semnalul nu se schimbă. Două cadrane cu ac de o parte și de alta a comenzilor; înlocuiesc lămpile de vârf și mini-spectrul. Pe o bară îngustă revine bara obișnuită.",
   "v2.set.barOnde": "Bară de progres în formă de undă",
-  "v2.set.barOndeHint": "Doar afișare. Bara de progres din Redare curentă și din bara de redare desenează forma de undă a piesei: partea redată colorată, restul estompat. Pentru piesele din bibliotecă; streamingul și radioul păstrează bara obișnuită.",
+  "v2.set.barOndeHint": "Doar afișare. Bara de progres din Redare curentă și din bara de redare desenează forma de undă a piesei: partea redată colorată, restul estompat. Pentru piesele din bibliotecă, și pentru Qobuz și TIDAL cu opțiunea de mai jos; radioul și celelalte fluxuri păstrează bara obișnuită.",
   "v2.set.ondeStreaming": "Formă de undă pentru piesele în streaming",
   "v2.set.ondeStreamingHint": "Qobuz și TIDAL: după 30 s de ascultare, serverul descarcă piesa o singură dată pentru a-i calcula forma de undă și o păstrează. Dezactivat, aceste piese păstrează bara obișnuită și nu se descarcă nimic. Necesită bara de progres în formă de undă.",
   "v2.set.barViz": "Vizualizator în bara de redare",

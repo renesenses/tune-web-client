@@ -5125,7 +5125,7 @@ export default {
   "v2.set.barVu": "Pasek odtwarzania z miernikami VU",
   "v2.set.barVuHint": "Tylko wyświetlanie — sygnał pozostaje bez zmian. Dwa wskaźniki wskazówkowe po obu stronach przycisków sterowania; zastępują lampki szczytowe i mini spektrum. Na wąskim pasku wraca zwykły pasek.",
   "v2.set.barOnde": "Pasek postępu w kształcie fali",
-  "v2.set.barOndeHint": "Tylko wyświetlanie. Pasek postępu w Teraz odtwarzane i na pasku odtwarzania rysuje przebieg fali utworu: odtworzona część w kolorze, reszta przygaszona. Dla utworów z biblioteki; streaming i radio zachowują zwykły pasek.",
+  "v2.set.barOndeHint": "Tylko wyświetlanie. Pasek postępu w Teraz odtwarzane i na pasku odtwarzania rysuje przebieg fali utworu: odtworzona część w kolorze, reszta przygaszona. Dla utworów z biblioteki, a z opcją poniżej także dla Qobuz i TIDAL; radio i inne strumienie zachowują zwykły pasek.",
   "v2.set.ondeStreaming": "Przebieg fali utworów ze streamingu",
   "v2.set.ondeStreamingHint": "Qobuz i TIDAL: po 30 s słuchania serwer pobiera utwór jeden raz, oblicza jego przebieg fali i go zachowuje. Po wyłączeniu te utwory mają zwykły pasek i nic nie jest pobierane. Wymaga paska postępu w formie fali.",
   "v2.set.barViz": "Wizualizacja na pasku odtwarzania",

@@ -5258,7 +5258,7 @@ export default {
   "v2.set.barVu": "Barra de reproducción con vúmetros",
   "v2.set.barVuHint": "Solo visualización — la señal no cambia. Dos diales de aguja a ambos lados de los controles; sustituyen a las lámparas de pico y al miniespectro. En una barra estrecha vuelve la barra habitual.",
   "v2.set.barOnde": "Barra de progreso en forma de onda",
-  "v2.set.barOndeHint": "Solo visualización. La barra de progreso de Reproduciendo ahora y de la barra de reproducción dibuja la forma de onda de la pista: la parte reproducida en color, el resto atenuado. Para pistas de la biblioteca; el streaming y la radio mantienen la barra habitual.",
+  "v2.set.barOndeHint": "Solo visualización. La barra de progreso de Reproduciendo ahora y de la barra de reproducción dibuja la forma de onda de la pista: la parte reproducida en color, el resto atenuado. Para pistas de la biblioteca, y para Qobuz y TIDAL con la opción de abajo; la radio y otros flujos mantienen la barra habitual.",
   "v2.set.ondeStreaming": "Forma de onda de las pistas en streaming",
   "v2.set.ondeStreamingHint": "Qobuz y TIDAL: tras 30 s de escucha, el servidor descarga la pista una vez para calcular su forma de onda y la conserva. Desactivado, estas pistas mantienen la barra habitual y no se descarga nada. Requiere la barra de progreso en forma de onda.",
   "v2.set.barViz": "Visualizador en la barra de reproducción",

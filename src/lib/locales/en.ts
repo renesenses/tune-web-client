@@ -5278,7 +5278,7 @@ export default {
   "v2.set.barVu": "Playback bar with VU meters",
   "v2.set.barVuHint": "Display only — the signal is unchanged. Two needle dials on either side of the controls; they replace the peak lamps and the mini spectrum. On a narrow bar, the usual bar comes back.",
   "v2.set.barOnde": "Waveform progress bar",
-  "v2.set.barOndeHint": "Display only. The progress bar in Now Playing and in the playback bar draws the track’s waveform: the played part in colour, the rest dimmed. For library tracks; streaming and radio keep the usual bar.",
+  "v2.set.barOndeHint": "Display only. The progress bar in Now Playing and in the playback bar draws the track’s waveform: the played part in colour, the rest dimmed. For library tracks, and for Qobuz and TIDAL with the option below; radio and other streams keep the usual bar.",
   "v2.set.ondeStreaming": "Waveform for streaming tracks",
   "v2.set.ondeStreamingHint": "Qobuz and TIDAL: after 30 s of listening, the server downloads the track once to compute its waveform, then keeps it. When off, these tracks keep the usual bar and nothing is downloaded. Requires the waveform progress bar.",
   "v2.set.barViz": "Visualiser in the playback bar",

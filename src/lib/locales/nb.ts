@@ -5127,7 +5127,7 @@ export default {
   "v2.set.barVu": "Avspillingslinje med VU-metere",
   "v2.set.barVuHint": "Bare visning — signalet er uendret. To visermålere på hver side av kontrollene; de erstatter toppnivålampene og minispekteret. På en smal linje kommer den vanlige linjen tilbake.",
   "v2.set.barOnde": "Fremdriftslinje som bølgeform",
-  "v2.set.barOndeHint": "Bare visning. Fremdriftslinjen i Spilles nå og i avspillingslinjen tegner sporets bølgeform: den avspilte delen i farge, resten dempet. For spor i biblioteket; strømming og radio beholder den vanlige linjen.",
+  "v2.set.barOndeHint": "Bare visning. Fremdriftslinjen i Spilles nå og i avspillingslinjen tegner sporets bølgeform: den avspilte delen i farge, resten dempet. For spor i biblioteket, og for Qobuz og TIDAL med valget nedenfor; radio og andre strømmer beholder den vanlige linjen.",
   "v2.set.ondeStreaming": "Bølgeform for strømmespor",
   "v2.set.ondeStreamingHint": "Qobuz og TIDAL: etter 30 s avspilling laster serveren ned sporet én gang for å beregne bølgeformen, og tar vare på den. Av: disse sporene beholder den vanlige linjen, og ingenting lastes ned. Krever fremdriftslinje som bølgeform.",
   "v2.set.barViz": "Visualisering i avspillingslinjen",

@@ -5280,7 +5280,7 @@ export default {
   "v2.set.barVu": "Barre de lecture à VU-mètres",
   "v2.set.barVuHint": "Affichage seulement — le signal ne change pas. Deux cadrans à aiguille de part et d’autre des commandes ; ils remplacent les lampes de crête et le mini-spectre. Sur une barre étroite, la barre habituelle revient.",
   "v2.set.barOnde": "Barre de progression en forme d’onde",
-  "v2.set.barOndeHint": "Affichage seulement. La barre de progression de Lecture en cours et de la barre de lecture dessine l’onde de la piste : la partie jouée en couleur, la suite atténuée. Pour les pistes de la bibliothèque ; streaming et radios gardent la barre habituelle.",
+  "v2.set.barOndeHint": "Affichage seulement. La barre de progression de Lecture en cours et de la barre de lecture dessine l’onde de la piste : la partie jouée en couleur, la suite atténuée. Pour les pistes de la bibliothèque, et pour Qobuz et TIDAL avec l’option ci-dessous ; les radios et les autres flux gardent la barre habituelle.",
   "v2.set.ondeStreaming": "Forme d’onde des pistes de streaming",
   "v2.set.ondeStreamingHint": "Qobuz et TIDAL : après 30 s d’écoute, le serveur télécharge la piste une fois pour en calculer l’onde, puis la garde. Désactivé, ces pistes gardent la barre habituelle et rien n’est téléchargé. Demande la barre en forme d’onde.",
   "v2.set.barViz": "Visualiseur dans la barre de lecture",

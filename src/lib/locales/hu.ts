@@ -5212,7 +5212,7 @@ export default {
   "v2.set.barVu": "Lejátszássáv VU-mérőkkel",
   "v2.set.barVuHint": "Csak megjelenítés — a jel nem változik. Két mutatós műszer a kezelőszervek két oldalán; a csúcslámpák és a mini-spektrum helyére lépnek. Keskeny sávon visszatér a megszokott sáv.",
   "v2.set.barOnde": "Hullámforma folyamatjelző",
-  "v2.set.barOndeHint": "Csak megjelenítés. A Most szól és a lejátszósáv folyamatjelzője a szám hullámformáját rajzolja ki: a lejátszott rész színes, a hátralévő halványabb. A könyvtár számaihoz; a streaming és a rádió a megszokott sávot tartja meg.",
+  "v2.set.barOndeHint": "Csak megjelenítés. A Most szól és a lejátszósáv folyamatjelzője a szám hullámformáját rajzolja ki: a lejátszott rész színes, a hátralévő halványabb. A könyvtár számaihoz, valamint a lenti beállítással a Qobuz és TIDAL számokhoz; a rádió és a többi stream a megszokott sávot tartja meg.",
   "v2.set.ondeStreaming": "Hullámforma a streaming számokhoz",
   "v2.set.ondeStreamingHint": "Qobuz és TIDAL: 30 mp hallgatás után a szerver egyszer letölti a számot, kiszámítja a hullámformáját, és megőrzi. Kikapcsolva ezek a számok a szokásos sávot mutatják, és semmi sem töltődik le. A hullámformás folyamatjelző szükséges hozzá.",
   "v2.set.barViz": "Vizualizáló a lejátszósávban",

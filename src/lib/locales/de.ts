@@ -5258,7 +5258,7 @@ export default {
   "v2.set.barVu": "Wiedergabeleiste mit VU-Metern",
   "v2.set.barVuHint": "Nur Anzeige — das Signal bleibt unverändert. Zwei Zeigerinstrumente links und rechts der Bedienelemente; sie ersetzen die Spitzenlämpchen und das Mini-Spektrum. Bei schmaler Leiste kehrt die gewohnte Leiste zurück.",
   "v2.set.barOnde": "Fortschrittsbalken als Wellenform",
-  "v2.set.barOndeHint": "Nur Anzeige. Der Fortschrittsbalken in „Aktuelle Wiedergabe“ und in der Wiedergabeleiste zeigt die Wellenform des Titels: der gespielte Teil farbig, der Rest abgeschwächt. Für Titel der Bibliothek; Streaming und Radio behalten den gewohnten Balken.",
+  "v2.set.barOndeHint": "Nur Anzeige. Der Fortschrittsbalken in „Aktuelle Wiedergabe“ und in der Wiedergabeleiste zeigt die Wellenform des Titels: der gespielte Teil farbig, der Rest abgeschwächt. Für Titel der Bibliothek, für Qobuz und TIDAL mit der Option darunter; Radio und andere Streams behalten den gewohnten Balken.",
   "v2.set.ondeStreaming": "Wellenform für Streaming-Titel",
   "v2.set.ondeStreamingHint": "Qobuz und TIDAL: Nach 30 s Wiedergabe lädt der Server den Titel einmal herunter, berechnet seine Wellenform und behält sie. Ausgeschaltet behalten diese Titel den gewohnten Balken und nichts wird heruntergeladen. Setzt den Fortschrittsbalken als Wellenform voraus.",
   "v2.set.barViz": "Visualisierung in der Wiedergabeleiste",
