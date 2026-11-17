@@ -954,7 +954,8 @@ export function objetAUnMenu(o: ObjetMenu, gestes: GestesPochette = {}): boolean
   if (o.type === 'radio') return o.id != null || !!gestes.pasPourMoi;
   if (o.type === 'podcast') return false;
   if (o.type === 'label') return !!o.nom;
-  return o.id != null || deService(o) || !!gestes.ouvrir || ouvrirParDefaut(o) != null;
+  return o.id != null || deService(o) || !!gestes.ouvrir || !!gestes.allerAlbum || !!gestes.allerPlaylist
+    || ouvrirParDefaut(o) != null;
 }
 
 /**

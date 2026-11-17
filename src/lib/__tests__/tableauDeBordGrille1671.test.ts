@@ -147,9 +147,9 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     expect(largeurBloc(2)).toBe(646);
   });
 
-  it('les douze widgets restent (onze, et les radios de #6682), et trois d’entre eux (les plus larges) prennent deux colonnes', () => {
-    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(12);
-    expect(DISPOSITION_DEFAUT_TABLEAU_DE_BORD).toHaveLength(12);
+  it('les treize widgets restent (onze, les radios de #6682 et les artistes de web#3117), et trois d’entre eux (les plus larges) prennent deux colonnes', () => {
+    expect(BLOCS_TABLEAU_DE_BORD).toHaveLength(13);
+    expect(DISPOSITION_DEFAUT_TABLEAU_DE_BORD).toHaveLength(13);
     const larges = BLOCS_TABLEAU_DE_BORD.filter((w) => w.bloc?.colonnes === 2).map((w) => w.id);
     expect(larges).toEqual(['tdb-tendance', 'tdb-semaine-heures', 'tdb-heures']);
   });
@@ -166,19 +166,21 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     expect(cs.display).toBe('grid');
     expect(sansEspaces(cs.gridTemplateColumns)).toBe('repeat(6,minmax(0,1fr))');
     expect(cs.columnGap).toBe(`${GOUTTIERE_GRILLE}px`);
-    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(12);
-    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(12);
+    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(13);
+    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(13);
   });
 
-  it('🔴 trois rangées comme la maquette : 3 tiers, 6 tuiles, 3 tiers', async () => {
+  it('🔴 trois rangées comme la maquette : 3 tiers, 6 tuiles, 3 tiers — puis les artistes (web#3117)', async () => {
     const page = await poser(TableauDeBordV2);
     const sections = [...page.querySelectorAll<HTMLElement>('.mosaique > section.bloc')];
-    expect(sections).toHaveLength(12);
+    expect(sections).toHaveLength(13);
     const spans = sections.map((el) => sansEspaces(getComputedStyle(el).gridColumn));
     expect(spans).toEqual([
       'span2', 'span2', 'span2',
       'span1', 'span1', 'span1', 'span1', 'span1', 'span1',
       'span2', 'span2', 'span2',
+      // web#3117 — « Top artistes », une quatrième rangée (un tiers).
+      'span2',
     ]);
     for (const el of sections) expect(getComputedStyle(el).maxWidth).toBe('none');
   });
@@ -225,7 +227,7 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
     });
     // Les feuilles s'appliquent bien (sinon « pas de grille » ne prouverait rien).
     expect(getComputedStyle(page.querySelector<HTMLElement>('.scroll')!).overflowY).toBe('auto');
-    expect(page.querySelectorAll('.blocpropre')).toHaveLength(12);
+    expect(page.querySelectorAll('.blocpropre')).toHaveLength(13);
     expect(page.querySelector('.mosaique')).toBeNull();
     const premiere = page.querySelector<HTMLElement>('section.bloc')!;
     expect(getComputedStyle(premiere.parentElement!).display).not.toBe('grid');
