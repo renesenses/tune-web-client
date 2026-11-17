@@ -49,7 +49,7 @@ import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
 import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
-import { resoudreEtiquette } from './ecouterPlusTard';
+import { chargerSas, sasEcouterPlusTard } from './ecouterPlusTard';
 import { elementsDuSas, trierSas, triParDefaut, type ElementSas } from './triEcouterPlusTard';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
@@ -888,11 +888,13 @@ export function gesteReprise(o: any): Element['jouer'] {
  *    un épisode non (« pour les titres laissez tel quel ») ;
  *  - la PLAYLIST : locale par son numéro (`context_id`, source `local`), de
  *    service par la paire `source` + `context_id` ;
- *  - l'ALBUM : `album_id` quand il est dans la bibliothèque (celui du titre
- *    repris, pour une playlist ou un titre) ; un album de SERVICE par la paire
- *    `source` + `context_id`, seulement quand la ligne EST cet album — pour
- *    une playlist ou un titre de service, la ligne ne nomme pas l'album, et
- *    on ne le devine pas ;
+ *  - l'ALBUM : `album_id` quand le serveur le donne — un album LOCAL repris,
+ *    ou un titre de l'ancien historique (second rang de `home.rs`). Le serveur
+ *    ne le remplit JAMAIS pour une playlist (`listening_resume.rs` : « nature
+ *    == album && service == local » ; second rang : `album_id: Null`) : pas
+ *    d'« Aller à l'album » sur une playlist, on ne le devine pas. Un album de
+ *    SERVICE par la paire `source` + `context_id`, quand la ligne EST cet
+ *    album ;
  *  - l'ARTISTE : `artist_name`, celui du titre repris, cherché chez le service
  *    d'écoute quand la ligne en vient (#1696).
  */
@@ -907,12 +909,17 @@ export function allerDeReprise(o: any): NonNullable<Element['allerA']> {
   const ctx = champ(o, 'context_id');
   const nature = o?.context_type;
   if (nature === 'playlist' && ctx) {
-    const nom = champ(o, 'title') ?? '';
+    // Le nom de la playlist ; à défaut, ce que la vignette affiche.
+    const nom = champ(o, 'title', 'album_title', 'last_track_title') ?? '';
     const local = Number(ctx);
     if (!svc && Number.isSafeInteger(local) && local > 0) {
       aller.playlist = { ouvrir: 'cible', cible: { sorte: 'playlist', id: local, nom } };
     } else if (svc) {
-      aller.playlist = { ouvrir: 'playlist', source: svc, playlist: playlistOuvrable({ name: nom }, ctx, svc) };
+      aller.playlist = {
+        ouvrir: 'playlist',
+        source: svc,
+        playlist: playlistOuvrable({ name: nom, cover_path: champ(o, 'cover_path', 'cover_url') }, ctx, svc),
+      };
     }
   }
   // Une ligne album porte son nom en `title` quand `album_title` manque.
@@ -1034,6 +1041,10 @@ const PERIODE_TOPS = '7d' as const;
  * cinquante passe tel quel.
  */
 const TOPS_DEMANDES = 50;
+
+/** web#3119 — l'identifiant du widget « Écouter plus tard », que `PageWidgets`
+ *  recharge quand le sas change. */
+export const ID_ECOUTER_PLUS_TARD = 'ecouter-plus-tard';
 
 /** web#3119 — « Écoutes fréquentes » : trente jours, voir le widget. */
 const PERIODE_FREQUENTES = '30d' as const;
@@ -2248,18 +2259,22 @@ export const WIDGETS: Widget[] = [
    * Même étiquette (`resoudreEtiquette`), mêmes trois lectures, même ordre par
    * défaut que l'écran (`triParDefaut` : dépôt le plus récent d'abord quand le
    * serveur le date). Sans sas, rien — et aucune étiquette n'est créée.
+   * `PageWidgets` le recharge quand le sas change (un dépôt, un retrait).
    */
   {
-    id: 'ecouter-plus-tard',
+    id: ID_ECOUTER_PLUS_TARD,
     cleTitre: 'v2.home.wLater',
     forme: 'bande',
     charger: async (ctx) => {
-      const tagId = await resoudreEtiquette(ctx.profileId);
+      // `chargerSas()` résout l'étiquette UNE fois pour tout l'écran (menus
+      // compris) ; le widget lit ce qu'elle a trouvé.
+      await chargerSas();
+      const tagId = get(sasEcouterPlusTard).etiquette;
       if (tagId == null) return [];
       const [a, p, l] = await Promise.all([
-        api.getTagAlbums(tagId).catch(() => null),
-        api.getTagTracks(tagId).catch(() => null),
-        api.getTagPlaylists(tagId).catch(() => null),
+        api.getTagAlbums(tagId, ctx.signal).catch(() => null),
+        api.getTagTracks(tagId, ctx.signal).catch(() => null),
+        api.getTagPlaylists(tagId, ctx.signal).catch(() => null),
       ]);
       const elements = elementsDuSas(a?.albums ?? [], p?.tracks ?? [], l?.playlists ?? []);
       return utiles(trierSas(elements, triParDefaut(elements)).slice(0, limiteDe(ctx)).map(elementDuSas));

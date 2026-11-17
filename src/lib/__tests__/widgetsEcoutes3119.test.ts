@@ -16,7 +16,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { DISPOSITION_DEFAUT, widgetParId, type Element } from '../accueilWidgets';
 import PageWidgets from '../../components/v2/PageWidgets.svelte';
-import { CLE_REGLAGE, oublierSas } from '../ecouterPlusTard';
+import { CLE_REGLAGE, oublierSas, sasEcouterPlusTard } from '../ecouterPlusTard';
+import { get } from 'svelte/store';
 import { currentProfileId } from '../stores/profile';
 import { currentZoneId } from '../stores/zones';
 import { activeView } from '../stores/navigation';
@@ -185,5 +186,26 @@ describe('web#3119 — « Écouter plus tard »', () => {
     expect(cartes.map((c) => c.querySelector('.cn')?.getAttribute('data-nature') ?? null))
       .toEqual(['playlist', null, 'album']);
     expect(cartes[0].querySelector('.cn')?.textContent?.trim()).toBe('Playlist');
+  });
+
+  it('🔴 le widget passe le SIGNAL de sa page aux trois lectures du sas', async () => {
+    sasPeuple();
+    const ctl = new AbortController();
+    await widgetParId('ecouter-plus-tard')!.charger({ ...ctx, signal: ctl.signal });
+    const appels = vi.mocked(fetch).mock.calls.filter(([u]) => /\/tags\/7\/(albums|tracks|playlists)/.test(String(u)));
+    // `chargerSas()` lit aussi les membres (sans signal : il sert tout
+    // l'écran) ; les trois lectures DU WIDGET portent le signal de la page.
+    const avecSignal = appels.filter(([, init]) => (init as RequestInit | undefined)?.signal === ctl.signal);
+    expect(avecSignal.map(([u]) => String(u).split('/').pop())).toEqual(['albums', 'tracks', 'playlists']);
+  });
+
+  it('🔴 un dépôt dans le sas RECHARGE la bande', async () => {
+    sasPeuple();
+    await poser('ecouter-plus-tard');
+    const avant = requetes.filter((r) => r.url.includes('/tags/7/albums')).length;
+    const etat = get(sasEcouterPlusTard);
+    sasEcouterPlusTard.set({ ...etat, membres: new Set([...etat.membres, 'l:album:99']) });
+    for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
+    expect(requetes.filter((r) => r.url.includes('/tags/7/albums')).length).toBeGreaterThan(avant);
   });
 });

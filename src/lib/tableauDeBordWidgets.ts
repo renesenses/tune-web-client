@@ -520,3 +520,12 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
  * choix mais comme une panne. Chacun retire ensuite ce qu'il ne veut pas.
  */
 export const DISPOSITION_DEFAUT_TABLEAU_DE_BORD = BLOCS_TABLEAU_DE_BORD.map((w) => w.id);
+
+/**
+ * web#3117 — « Top artistes » entre UNE fois dans les tableaux de bord déjà
+ * rangés (en queue, rien d'autre ne bouge) : sans cela, quiconque a composé
+ * son écran ne le verrait jamais. Voir `migrationAjoutUnique`.
+ */
+export const AJOUTS_TABLEAU_DE_BORD = [
+  { id: 'tdb-top-artistes', cleMarqueur: 'tableau_de_bord_top_artistes_migre' },
+];

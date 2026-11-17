@@ -12,6 +12,12 @@
 // Les lignes servies sont celles de `GET /home/continue-listening`
 // (`home.rs`, `continuer_l_ecoute`) : `context_type`, `context_id`, `source`,
 // `title`, `last_track_title`, `artist_name`, `album_title`, `album_id`.
+//
+// 🔴 `album_id` n'est rempli QUE pour un album local repris
+// (`listening_resume.rs` : `nature == "album" && service == "local"`), et pour
+// un titre de l'ancien historique (second rang, `home.rs` : « `album_id` /
+// `album_title` restent renseignés »). Jamais pour une playlist : les lignes
+// ci-dessous ont la forme que le serveur rend.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 
@@ -38,7 +44,7 @@ const ALBUM_LOCAL = {
 const PLAYLIST_LOCALE = {
   resume_key: 'k2', context_type: 'playlist', context_id: '34', source: 'local',
   title: 'Dimanche', last_track_title: 'Sea Song', artist_name: 'Robert Wyatt',
-  album_title: 'Rock Bottom', cover_path: 'c2', album_id: 11, id: 11,
+  album_title: 'Rock Bottom', cover_path: 'c2', album_id: null, id: 0,
 };
 const PLAYLIST_QOBUZ = {
   resume_key: 'k3', context_type: 'playlist', context_id: '9090', source: 'qobuz',
@@ -50,8 +56,9 @@ const ALBUM_QOBUZ = {
   title: 'Ambient 1', last_track_title: '1/1', artist_name: 'Brian Eno',
   album_title: 'Ambient 1', cover_path: 'c4', album_id: null, id: 0,
 };
+/** Second rang (ancien historique) : un titre garde l'`album_id` de son disque. */
 const TITRE = {
-  resume_key: 'k5', context_type: 'track', context_id: '501', source: 'local',
+  context_type: 'track', context_id: '501', source: 'local',
   title: 'Extreme Ways', artist_name: 'Moby', album_title: '18', cover_path: 'c5', album_id: 77, id: 77,
 };
 
@@ -66,13 +73,22 @@ describe('web#3120 — la nature d’une reprise', () => {
 });
 
 describe('web#3120 — où mènent les « Aller à »', () => {
-  it('une playlist LOCALE : la playlist, l’album et l’artiste du dernier titre', () => {
+  it('une playlist LOCALE : la playlist et l’artiste du dernier titre — pas d’album, le serveur n’en donne pas', () => {
     const a = allerDeReprise(PLAYLIST_LOCALE);
     expect(a.playlist).toEqual({ ouvrir: 'cible', cible: { sorte: 'playlist', id: 34, nom: 'Dimanche' } });
-    expect(a.album?.ouvrir).toBe('album');
-    expect(a.album?.fiche?.id).toBe(11);
-    expect(a.album?.fiche?.title).toBe('Rock Bottom');
+    expect(a.album).toBeUndefined();
     expect(a.artiste).toEqual({ ouvrir: 'artiste', artiste: 'Robert Wyatt' });
+  });
+
+  it('une playlist de service SANS `title` garde un nom et sa pochette', () => {
+    const a = allerDeReprise({ ...PLAYLIST_QOBUZ, title: null });
+    expect(a.playlist?.playlist).toMatchObject({ name: 'Kind of Blue', cover_path: 'c3', source_id: '9090' });
+  });
+
+  it('un titre REPRIS (reprise fraîche) n’a pas d’album : seul l’artiste est proposé', () => {
+    const a = allerDeReprise({ ...TITRE, resume_key: 'k6', album_id: null, id: 0 });
+    expect(a.album).toBeUndefined();
+    expect(a.artiste?.artiste).toBe('Moby');
   });
 
   it('une playlist de SERVICE : sa fiche par la paire ; l’album inconnu n’est PAS deviné', () => {
@@ -90,7 +106,7 @@ describe('web#3120 — où mènent les « Aller à »', () => {
     expect(a.album?.fiche).toMatchObject({ id: null, source: 'qobuz', source_id: 'q42', title: 'Ambient 1' });
   });
 
-  it('un titre : son album et son artiste', () => {
+  it('un titre de l’ancien historique : son album et son artiste', () => {
     const a = allerDeReprise(TITRE);
     expect(a.playlist).toBeUndefined();
     expect(a.album?.fiche?.id).toBe(77);
@@ -189,6 +205,12 @@ describe('web#3120 — à l’écran', () => {
     const cartes = [...page.querySelectorAll('.carte')];
     expect(cartes).toHaveLength(3);
     expect(cartes.map((c) => c.querySelector('.cn')?.textContent?.trim() ?? null)).toEqual(['Album', 'Playlist', null]);
+    // L'étiquette est DANS la ligne du conteneur, pas au-dessus du titre (le
+    // dernier morceau) : une bande mixte garde ses lignes alignées.
+    for (const c of cartes.slice(0, 2)) {
+      expect(c.querySelector('.cn')!.parentElement!.classList.contains('ca')).toBe(true);
+    }
+    expect(cartes[0].querySelector('.ca')!.textContent).toContain('La Fossette');
   });
 
   it('🔴 le menu d’une playlist reprise mène à la playlist et à l’artiste du dernier titre', async () => {
@@ -198,6 +220,7 @@ describe('web#3120 — à l’écran', () => {
     const cles = entrees.map((b) => b.dataset.cle);
     expect(cles).toContain('v2.home.goToPlaylist');
     expect(cles).toContain('library.goToArtist');
+    expect(cles).not.toContain('library.goToAlbum');
     expect(cles).not.toContain('common.open');
     entrees.find((b) => b.dataset.cle === 'library.goToArtist')!.click();
     expect(ouvrirArtisteDepuis).toHaveBeenCalledWith({ name: 'Miles Davis', service_ecoute: 'qobuz' }, 'home');
