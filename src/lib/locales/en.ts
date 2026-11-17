@@ -2876,6 +2876,8 @@ export default {
   "smb.adding": "Adding...",
   "smb.addToLibrary": "Add to library",
   "smb.folderAdded": "Folder added to library",
+  "settings.dataNotPersistentTitle": "Your data is not on a persistent volume",
+  "settings.dataNotPersistent": "The data folder ({dir}) is not bound to a host folder or a named volume: the library, settings and service connections will be lost when the container is recreated, including when its image is updated. Mount {dir} on a host folder or a named volume (for example -v tune-data:{dir}). On Synology: Container Manager › Container › Edit › Volume settings › Add folder, mount path {dir}.",
   "smb.chooseSubfolderAfterMount": "Choose a subfolder after mounting",
   "smb.chooseSubfolder": "Choose a subfolder…",
   "smb.subfolderOutsideShare": "This folder is not inside the share. Choose a folder under {path}.",

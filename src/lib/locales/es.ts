@@ -2062,6 +2062,8 @@ export default {
   "smb.adding": "Añadiendo...",
   "smb.addToLibrary": "Añadir a la biblioteca",
   "smb.folderAdded": "Carpeta añadida a la biblioteca",
+  "settings.dataNotPersistentTitle": "Sus datos no están en un volumen persistente",
+  "settings.dataNotPersistent": "La carpeta de datos ({dir}) no está vinculada a ninguna carpeta del anfitrión ni a ningún volumen con nombre: la biblioteca, los ajustes y las conexiones con los servicios se perderán al recrear el contenedor, también al actualizar su imagen. Monte {dir} en una carpeta del anfitrión o en un volumen con nombre (por ejemplo -v tune-data:{dir}). En Synology: Container Manager › Contenedor › Editar › Configuración de volumen › Añadir carpeta, ruta de montaje {dir}.",
   "smb.chooseSubfolderAfterMount": "Elegir una subcarpeta después del montaje",
   "smb.chooseSubfolder": "Elegir una subcarpeta…",
   "smb.subfolderOutsideShare": "Esta carpeta no está dentro del recurso compartido. Elija una carpeta dentro de {path}.",

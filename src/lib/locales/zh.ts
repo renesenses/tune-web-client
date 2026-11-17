@@ -2062,6 +2062,8 @@ export default {
   "smb.adding": "添加中…",
   "smb.addToLibrary": "添加到音乐库",
   "smb.folderAdded": "文件夹已添加到音乐库",
+  "settings.dataNotPersistentTitle": "您的数据不在持久卷上",
+  "settings.dataNotPersistent": "数据文件夹（{dir}）未绑定到任何宿主机文件夹或命名卷：重新创建容器时（包括更新其镜像时），媒体库、设置和服务连接都将丢失。请将 {dir} 挂载到宿主机文件夹或命名卷（例如 -v tune-data:{dir}）。在 Synology 上：Container Manager › 容器 › 编辑 › 存储空间设置 › 添加文件夹，装载路径 {dir}。",
   "smb.chooseSubfolderAfterMount": "挂载后选择子文件夹",
   "smb.chooseSubfolder": "选择子文件夹…",
   "smb.subfolderOutsideShare": "此文件夹不在该共享中。请选择 {path} 下的文件夹。",

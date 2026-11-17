@@ -2062,6 +2062,8 @@ export default {
   "smb.adding": "Wird hinzugefügt...",
   "smb.addToLibrary": "Zur Bibliothek hinzufügen",
   "smb.folderAdded": "Ordner zur Bibliothek hinzugefügt",
+  "settings.dataNotPersistentTitle": "Ihre Daten liegen nicht auf einem dauerhaften Volume",
+  "settings.dataNotPersistent": "Der Datenordner ({dir}) ist weder mit einem Host-Ordner noch mit einem benannten Volume verbunden: Bibliothek, Einstellungen und Dienstverbindungen gehen verloren, wenn der Container neu erstellt wird, auch beim Aktualisieren des Images. Hängen Sie {dir} auf einen Host-Ordner oder ein benanntes Volume ein (zum Beispiel -v tune-data:{dir}). Auf Synology: Container Manager › Container › Bearbeiten › Volume-Einstellungen › Ordner hinzufügen, Einhängepfad {dir}.",
   "smb.chooseSubfolderAfterMount": "Nach dem Einhängen einen Unterordner wählen",
   "smb.chooseSubfolder": "Unterordner wählen…",
   "smb.subfolderOutsideShare": "Dieser Ordner liegt nicht in der Freigabe. Wählen Sie einen Ordner unter {path}.",

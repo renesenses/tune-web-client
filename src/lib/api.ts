@@ -6510,6 +6510,11 @@ export function getSystemEnv() {
     container?: string | null;
     /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
     container_id?: string | null;
+    /**
+     * tune-server-rust#8747 — le dossier de données survit-il à la recréation
+     * du conteneur ? `null` hors conteneur ; absent : serveur plus ancien.
+     */
+    data_persistence?: import('./persistanceDonnees').PersistanceDonnees | null;
   }>(`${BASE}/system/env`);
 }
 

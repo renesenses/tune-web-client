@@ -2729,6 +2729,8 @@ export default {
   "smb.adding": "Đang thêm...",
   "smb.addToLibrary": "Thêm vào thư viện",
   "smb.folderAdded": "Đã thêm thư mục vào thư viện",
+  "settings.dataNotPersistentTitle": "Dữ liệu của bạn không nằm trên một volume bền vững",
+  "settings.dataNotPersistent": "Thư mục dữ liệu ({dir}) không được liên kết với thư mục nào của máy chủ chứa hay volume có tên nào: thư viện, cài đặt và kết nối dịch vụ sẽ bị mất khi container được tạo lại, kể cả khi cập nhật image. Hãy gắn {dir} vào một thư mục của máy chủ chứa hoặc một volume có tên (ví dụ -v tune-data:{dir}). Trên Synology: Container Manager › Container › Chỉnh sửa › Cài đặt volume › Thêm thư mục, đường dẫn gắn kết {dir}.",
   "smb.chooseSubfolderAfterMount": "Chọn thư mục con sau khi gắn kết",
   "smb.chooseSubfolder": "Chọn thư mục con…",
   "smb.subfolderOutsideShare": "Thư mục này không nằm trong thư mục chia sẻ. Hãy chọn một thư mục bên trong {path}.",

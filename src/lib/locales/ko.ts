@@ -2042,6 +2042,8 @@ export default {
   "smb.adding": "추가 중...",
   "smb.addToLibrary": "라이브러리에 추가",
   "smb.folderAdded": "폴더가 라이브러리에 추가됨",
+  "settings.dataNotPersistentTitle": "데이터가 영구 볼륨에 있지 않습니다",
+  "settings.dataNotPersistent": "데이터 폴더({dir})가 호스트 폴더나 이름 있는 볼륨에 연결되어 있지 않습니다. 컨테이너를 다시 만들면(이미지 업데이트 포함) 라이브러리, 설정, 서비스 연결이 사라집니다. {dir}을(를) 호스트 폴더나 이름 있는 볼륨에 마운트하세요(예: -v tune-data:{dir}). Synology에서는 Container Manager › 컨테이너 › 편집 › 볼륨 설정 › 폴더 추가, 마운트 경로 {dir}.",
   "smb.chooseSubfolderAfterMount": "마운트 후 하위 폴더 선택",
   "smb.chooseSubfolder": "하위 폴더 선택…",
   "smb.subfolderOutsideShare": "이 폴더는 공유 안에 있지 않습니다. {path} 아래의 폴더를 선택하세요.",

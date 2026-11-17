@@ -2879,6 +2879,8 @@ export default {
   "smb.adding": "Ajout en cours...",
   "smb.addToLibrary": "Ajouter à la bibliothèque",
   "smb.folderAdded": "Dossier ajouté à la bibliothèque",
+  "settings.dataNotPersistentTitle": "Vos données ne sont pas sur un volume persistant",
+  "settings.dataNotPersistent": "Le dossier de données ({dir}) n'est lié à aucun dossier de l'hôte ni à aucun volume nommé : la bibliothèque, les réglages et les connexions aux services seront perdus à la recréation du conteneur, mise à jour de l'image comprise. Montez {dir} sur un dossier de l'hôte ou un volume nommé (par exemple -v tune-data:{dir}). Sur Synology : Container Manager › Conteneur › Modifier › Paramètres de volume › Ajouter un dossier, chemin de montage {dir}.",
   "smb.chooseSubfolderAfterMount": "Choisir un sous-dossier après le montage",
   "smb.chooseSubfolder": "Choisir un sous-dossier…",
   "smb.subfolderOutsideShare": "Ce dossier n'est pas dans le partage. Choisissez un dossier sous {path}.",

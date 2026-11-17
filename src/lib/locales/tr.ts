@@ -2746,6 +2746,8 @@ export default {
   "smb.adding": "Ekleniyor...",
   "smb.addToLibrary": "Kitaplığa ekle",
   "smb.folderAdded": "Klasör kitaplığa eklendi",
+  "settings.dataNotPersistentTitle": "Verileriniz kalıcı bir birimde değil",
+  "settings.dataNotPersistent": "Veri klasörü ({dir}) ne bir ana makine klasörüne ne de adlandırılmış bir birime bağlı: kitaplık, ayarlar ve hizmet bağlantıları, imaj güncellemesi dahil, kapsayıcı yeniden oluşturulduğunda kaybolur. {dir} klasörünü bir ana makine klasörüne veya adlandırılmış bir birime bağlayın (örneğin -v tune-data:{dir}). Synology'de: Container Manager › Kapsayıcı › Düzenle › Birim ayarları › Klasör ekle, bağlama yolu {dir}.",
   "smb.chooseSubfolderAfterMount": "Bağladıktan sonra bir alt klasör seçin",
   "smb.chooseSubfolder": "Bir alt klasör seçin…",
   "smb.subfolderOutsideShare": "Bu klasör paylaşımın içinde değil. {path} altında bir klasör seçin.",

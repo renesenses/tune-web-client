@@ -2062,6 +2062,8 @@ export default {
   "smb.adding": "Aggiunta in corso...",
   "smb.addToLibrary": "Aggiungi alla libreria",
   "smb.folderAdded": "Cartella aggiunta alla libreria",
+  "settings.dataNotPersistentTitle": "I tuoi dati non sono su un volume persistente",
+  "settings.dataNotPersistent": "La cartella dei dati ({dir}) non è collegata a nessuna cartella dell'host né a un volume con nome: libreria, impostazioni e connessioni ai servizi andranno perse quando il container verrà ricreato, anche aggiornandone l'immagine. Monta {dir} su una cartella dell'host o su un volume con nome (per esempio -v tune-data:{dir}). Su Synology: Container Manager › Container › Modifica › Impostazioni volume › Aggiungi cartella, percorso di montaggio {dir}.",
   "smb.chooseSubfolderAfterMount": "Scegli una sottocartella dopo il montaggio",
   "smb.chooseSubfolder": "Scegli una sottocartella…",
   "smb.subfolderOutsideShare": "Questa cartella non è nella condivisione. Scegli una cartella sotto {path}.",
