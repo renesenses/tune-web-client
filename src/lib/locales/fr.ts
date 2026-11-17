@@ -4129,6 +4129,7 @@ export default {
   "v2.queue.loadFailed": "File d'attente indisponible.",
   "v2.queue.upNextCount": "{n} à suivre",
   "v2.queue.remaining": "{d} restantes",
+  "v2.queue.waiting": "File en attente",
   "v2.queue.upNext": "À suivre",
   "v2.queue.upNextNone": "rien",
   "v2.queue.playTrack": "Lire {t}",

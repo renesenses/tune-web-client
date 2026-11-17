@@ -27,7 +27,7 @@
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
-  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne, estLaPisteEnLecture, nowPlayingToTrack }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
@@ -186,8 +186,12 @@
   // correspondance rang ↔ ligne est conservée par `map`.
   const tracks = $derived($queueTracks.map(pisteDeFile));
   const pos = $derived($queuePosition);
-  const current = $derived(tracks[pos] ?? null);
-  const upNext = $derived(tracks.slice(pos + 1));
+  const pisteAuCurseur = $derived(tracks[pos] ?? null);
+  const horsFile = $derived($currentTrack != null &&
+    (!pisteAuCurseur || !estLaPisteEnLecture(pisteAuCurseur, $currentTrackId, $currentTrack)));
+  const current = $derived(horsFile && $currentTrack ? nowPlayingToTrack($currentTrack) : pisteAuCurseur);
+  const debutSuite = $derived(Math.max(0, horsFile ? pos : pos + 1));
+  const upNext = $derived(tracks.slice(debutSuite));
   /**
    * L'état de la piste en tête de file (#1845).
    *
@@ -376,7 +380,7 @@
       <div class="state">{$tr('v2.queue.loading' as any)}</div>
     {:else if $currentZoneId == null}
       <div class="state">{$tr('v2.queue.noZone' as any)}</div>
-    {:else if !tracks.length}
+    {:else if !tracks.length && !current}
       <div class="state">{$tr('v2.queue.empty' as any)}</div>
     {:else}
       {#if current}
@@ -389,7 +393,7 @@
               <div class="na" use:bulleTexte>{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
-            <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
+            <span class="ndur">{current.source === 'radio' ? $tr('v2.pl.radioLive') : formatTime(current.duration_ms ?? 0)}</span>
             <!-- 🔴 #3780 — la piste EN COURS portait zéro action, alors que
                  chaque ligne « à suivre » en dessous porte la barre complète.
                  FabienM, fil 1739 point 6 : « Menu file d'attente : il manque
@@ -400,21 +404,21 @@
                  saut au rang courant, donc une reprise du titre depuis son
                  début. Le geste que la file sait faire, et le seul sens que
                  « la suite » ait ici. -->
-            <PisteActions piste={current} onLireDepuis={() => jump(pos)} />
+            {#if !horsFile}<PisteActions piste={current} onLireDepuis={() => jump(pos)} />{/if}
           </div>
         </section>
       {/if}
 
       <section class="sec">
-        <h2>{$tr('v2.queue.upNext' as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
+        <h2>{$tr((horsFile ? 'v2.queue.waiting' : 'v2.queue.upNext') as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
         <div class="list" bind:this={listeEl}>
           <!-- Les cales portent la hauteur EXACTE de ce qui n'est pas
                construit : la barre de défilement reste celle de la file
                entière, et rien ne saute quand la fenêtre se déplace. -->
           {#if fenetre.avant > 0}<div class="cale" style:height="{fenetre.avant}px" aria-hidden="true"></div>{/if}
-          {#each visibles as t, k (String(t.id ?? '') + '@' + (pos + 1 + fenetre.debut + k))}
+          {#each visibles as t, k (String(t.id ?? '') + '@' + (debutSuite + fenetre.debut + k))}
             {@const i = fenetre.debut + k}
-            {@const idx = pos + 1 + i}
+            {@const idx = debutSuite + i}
             <div class="row" class:np={t.id != null && t.id === $currentTrackId} class:bannie={bannieDe(t)}>
               <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
@@ -435,7 +439,7 @@
               <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
               {#if showExpert}
                 <span class="ord">
-                  <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label={$tr('v2.queue.moveUp' as any)}>
+                  <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= debutSuite} aria-label={$tr('v2.queue.moveUp' as any)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 15l6-6 6 6"/></svg>
                   </button>
                   <button onclick={() => move(idx, idx + 1)} disabled={busy || i === upNext.length - 1} aria-label={$tr('v2.queue.moveDown' as any)}>

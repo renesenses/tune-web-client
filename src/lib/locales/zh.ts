@@ -4107,6 +4107,7 @@ export default {
   "v2.queue.loadFailed": "播放队列不可用。",
   "v2.queue.upNextCount": "接下来 {n} 首",
   "v2.queue.remaining": "剩余 {d}",
+  "v2.queue.waiting": "等待中的播放队列",
   "v2.queue.upNext": "接下来",
   "v2.queue.upNextNone": "无",
   "v2.queue.playTrack": "播放 {t}",

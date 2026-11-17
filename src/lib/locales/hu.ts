@@ -4061,6 +4061,7 @@ export default {
   "v2.queue.loadFailed": "A lejátszási sor nem érhető el.",
   "v2.queue.upNextCount": "{n} következik",
   "v2.queue.remaining": "még {d}",
+  "v2.queue.waiting": "Várakozó lejátszási sor",
   "v2.queue.upNext": "Következik",
   "v2.queue.upNextNone": "semmi",
   "v2.queue.playTrack": "{t} lejátszása",

@@ -3986,6 +3986,7 @@ export default {
   "v2.queue.loadFailed": "Kolejka niedostępna.",
   "v2.queue.upNextCount": "Następne: {n}",
   "v2.queue.remaining": "Pozostało: {d}",
+  "v2.queue.waiting": "Oczekująca kolejka",
   "v2.queue.upNext": "Następne",
   "v2.queue.upNextNone": "nic",
   "v2.queue.playTrack": "Odtwórz: {t}",

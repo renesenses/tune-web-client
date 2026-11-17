@@ -4107,6 +4107,7 @@ export default {
   "v2.queue.loadFailed": "Cola no disponible.",
   "v2.queue.upNextCount": "{n} a continuación",
   "v2.queue.remaining": "{d} restantes",
+  "v2.queue.waiting": "Cola en espera",
   "v2.queue.upNext": "A continuación",
   "v2.queue.upNextNone": "nada",
   "v2.queue.playTrack": "Reproducir {t}",

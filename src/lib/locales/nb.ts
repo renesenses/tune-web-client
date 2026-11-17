@@ -3986,6 +3986,7 @@ export default {
   "v2.queue.loadFailed": "Køen er utilgjengelig.",
   "v2.queue.upNextCount": "{n} neste",
   "v2.queue.remaining": "{d} igjen",
+  "v2.queue.waiting": "Ventende kø",
   "v2.queue.upNext": "Neste",
   "v2.queue.upNextNone": "ingenting",
   "v2.queue.playTrack": "Spill av {t}",

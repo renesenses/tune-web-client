@@ -3986,6 +3986,7 @@ export default {
   "v2.queue.loadFailed": "Η ουρά αναπαραγωγής δεν είναι διαθέσιμη.",
   "v2.queue.upNextCount": "{n} στη συνέχεια",
   "v2.queue.remaining": "{d} απομένουν",
+  "v2.queue.waiting": "Ουρά σε αναμονή",
   "v2.queue.upNext": "Στη συνέχεια",
   "v2.queue.upNextNone": "τίποτα",
   "v2.queue.playTrack": "Αναπαραγωγή {t}",

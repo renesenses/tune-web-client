@@ -4127,6 +4127,7 @@ export default {
   "v2.queue.loadFailed": "Queue unavailable.",
   "v2.queue.upNextCount": "{n} up next",
   "v2.queue.remaining": "{d} remaining",
+  "v2.queue.waiting": "Waiting queue",
   "v2.queue.upNext": "Up next",
   "v2.queue.upNextNone": "nothing",
   "v2.queue.playTrack": "Play {t}",

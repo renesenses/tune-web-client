@@ -3988,6 +3988,7 @@ export default {
   "v2.queue.loadFailed": "Hàng đợi không khả dụng.",
   "v2.queue.upNextCount": "{n} bài tiếp theo",
   "v2.queue.remaining": "còn lại {d}",
+  "v2.queue.waiting": "Hàng đợi đang chờ",
   "v2.queue.upNext": "Tiếp theo",
   "v2.queue.upNextNone": "không có gì",
   "v2.queue.playTrack": "Phát {t}",

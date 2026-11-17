@@ -4107,6 +4107,7 @@ export default {
   "v2.queue.loadFailed": "キューを取得できません。",
   "v2.queue.upNextCount": "次に {n} 曲",
   "v2.queue.remaining": "残り {d}",
+  "v2.queue.waiting": "待機中のキュー",
   "v2.queue.upNext": "次に再生",
   "v2.queue.upNextNone": "なし",
   "v2.queue.playTrack": "{t} を再生",

@@ -4107,6 +4107,7 @@ export default {
   "v2.queue.loadFailed": "Warteschlange nicht verfügbar.",
   "v2.queue.upNextCount": "{n} als Nächstes",
   "v2.queue.remaining": "noch {d}",
+  "v2.queue.waiting": "Wartende Wiedergabeliste",
   "v2.queue.upNext": "Als Nächstes",
   "v2.queue.upNextNone": "nichts",
   "v2.queue.playTrack": "{t} abspielen",
