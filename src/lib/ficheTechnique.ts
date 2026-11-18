@@ -17,6 +17,7 @@
  */
 import { BASE, fetchJSON, type ApiError } from './api';
 import type { SectionFormeOnde } from './formeOnde';
+import type { SectionDynamique } from './dynamique';
 
 export interface FormatReel {
   codec?: string;
@@ -93,6 +94,8 @@ export interface FicheTechnique {
   format: FormatReel | null;
   spectrogramme: SectionSpectrogramme | null;
   dynamic_range: SectionDr | null;
+  /** tune-server-rust#9040 — sonie, LRA, crêtes ; absente d'un serveur antérieur. */
+  dynamique?: SectionDynamique | null;
   faux_hires: SectionFauxHiRes | null;
   integrite: SectionIntegrite | null;
   provenance: SectionProvenance | null;
@@ -145,7 +148,9 @@ export function sectionsVisibles(f: FicheTechnique): CleSection[] {
   // Fil 2793 : la forme d'onde, pour un fichier local — et, depuis le go du
   // 13/11, pour une piste Qobuz / TIDAL, dont le serveur rend la section.
   if (f.a_un_fichier || f.forme_d_onde) s.push('formeDOnde');
-  if (f.dynamic_range) s.push('dynamicRange');
+  // #9040 — la section « Plage dynamique » porte aussi la sonie, la LRA et
+  // les crêtes : elle paraît si l'un ou l'autre est mesuré.
+  if (f.dynamic_range || f.dynamique) s.push('dynamicRange');
   if (f.faux_hires) s.push('fauxHires');
   if (f.integrite) s.push('integrite');
   if (f.provenance && Object.keys(f.provenance).length > 0) s.push('provenance');

@@ -11987,6 +11987,13 @@ export function getPairesDoublons(critere?: string, signal?: AbortSignal) {
 }
 /** Garde `keep`, retire `del` de la bibliothèque (playlists, file, historique et
  *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
+/** tune-server-rust#9040 — la dynamique d'un album local (sonie, LRA, crêtes).
+ *  Sans bandeau : un serveur antérieur rend 404, et rien ne s'affiche. */
+export function getAlbumDynamique(albumId: number) {
+  return fetchJSON<import('./dynamique').DynamiqueAlbum>(
+    `${BASE}/library/albums/${albumId}/dynamique`, undefined, undefined, true,
+  );
+}
 /** tune-server-rust#6285 — le verdict des faux hi-res d'un album local. */
 export function getAlbumHiRes(albumId: number) {
   return fetchJSON<import('./badgeHiRes').VerdictHiRes>(`${BASE}/library/albums/${albumId}/hires`);

@@ -14,7 +14,7 @@
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
-  import { t as tr, tn } from '../../lib/i18n';
+  import { t as tr, tn, locale } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -67,6 +67,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
   import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
+  import { cleUnite, resumeDynamiqueAlbum, type MorceauResume } from '../../lib/dynamique';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -573,6 +574,21 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     api.getAlbumHiRes(id)
       .then((v) => { if (!annule) hiRes = badgeHiRes(v); })
       .catch(() => { if (!annule) hiRes = null; });
+    return () => { annule = true; };
+  });
+  /** tune-server-rust#9040 — sonie, LRA et crête vraie de l'album, album LOCAL
+   *  seulement. Décoration : un échec ou un serveur antérieur n'affiche rien. */
+  let dynamiqueAlbum = $state<MorceauResume[]>([]);
+  $effect(() => {
+    const id = album?.id;
+    const local = album != null && (album.source == null || album.source === 'local');
+    const langue = $locale ?? 'fr';
+    dynamiqueAlbum = [];
+    if (id == null || !local) return;
+    let annule = false;
+    api.getAlbumDynamique(id)
+      .then((d) => { if (!annule) dynamiqueAlbum = resumeDynamiqueAlbum(d, langue); })
+      .catch(() => { if (!annule) dynamiqueAlbum = []; });
     return () => { annule = true; };
   });
   // #4767 (crédits) — venu de « Collaborations » ou de « Reprises », le focus
@@ -1997,6 +2013,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              `DR ~12` souligné en pointillés pour la moyenne des pistes. Même
              valeur, provenance différente — voir `lib/dynamicRange.ts`. -->
         {#if dr}<span class="dr" class:deduit={dr.deduit} use:tip={dr.cleInfobulle}>DR {dr.texte}</span>{/if}
+        <!-- tune-server-rust#9040 — informatif : aucune couleur, aucun seuil. -->
+        <!-- Focalisable : l'infobulle s'atteint aussi au clavier ; les unités
+             sont des <abbr> nommées en toutes lettres pour les lecteurs d'écran. -->
+        {#if dynamiqueAlbum.length}
+        <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+        <span class="dynamique" data-dynamique-album tabindex="0" use:tip={'v2.album.dynamiqueTip'}
+          >{#each dynamiqueAlbum as m, i (m.unite)}{#if i > 0}{' · '}{/if}{#if m.prefixe}<abbr title={$tr('fiche.dyn.lra' as any)}>{m.prefixe}</abbr>{' '}{/if}{m.valeur} <abbr title={$tr(cleUnite(m.unite) as any)} aria-label={$tr(cleUnite(m.unite) as any)}>{m.unite}</abbr>{/each}</span>{/if}
         <!-- #2298 — le total des écoutes de la communauté, lu sur la fiche
              locale (`GET /library/albums/{id}`) ; rien sans le champ. -->
         <EcoutesCommunaute objet={fiche ?? album} />
