@@ -9,6 +9,14 @@ import {
   type AppareilAbsent,
 } from '../appareilsAbsents';
 import * as api from '../api';
+import { dictionnaire } from './onzeDictionnaires';
+
+// api.ts lit un jeton dans localStorage et pousse des bandeaux : on les
+// remplace, comme `api.empty-body.test.ts`.
+vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
+vi.mock('../stores/notifications', () => ({
+  notifications: { error: vi.fn(), success: vi.fn(), info: vi.fn() },
+}));
 
 /**
  * tune-server-rust#9044 — oublier les appareils partis du réseau (go de
@@ -122,14 +130,18 @@ describe('l’écran : Réglages › Appareils › Appareils absents', () => {
     expect(avantConfirmation.split('{/if}')[0]).not.toContain('oublierAppareil(');
   });
 
-  it('toutes les clés existent dans les seize langues', async () => {
-    const cles = ['absentDevices', 'absentDevicesIntro', 'noAbsentDevices', 'absentSinceDay', 'absentSinceDays',
-      'absentSinceHours', 'absentSinceMinutes', 'absentSinceUnknown', 'forgetDevice', 'forgetDeviceConfirmZone',
-      'forgetDeviceConfirm', 'deviceForgotten', 'forgetAbsentDevices', 'forgetAbsentDevicesLabel',
-      'forgetAbsentDevicesConfirm', 'absentDevicesForgotten'];
+  it('toutes les clés existent dans les seize langues', () => {
+    // Clés ÉCRITES en entier : un gabarit qui colle le suffixe passerait pour une
+    // clé dynamique et couvrirait tout `settings.*` (referencesFaiblesI18n).
+    const cles = ['settings.absentDevices', 'settings.absentDevicesIntro', 'settings.noAbsentDevices',
+      'settings.absentSinceDay', 'settings.absentSinceDays', 'settings.absentSinceHours',
+      'settings.absentSinceMinutes', 'settings.absentSinceUnknown', 'settings.forgetDevice',
+      'settings.forgetDeviceConfirmZone', 'settings.forgetDeviceConfirm', 'settings.deviceForgotten',
+      'settings.forgetAbsentDevices', 'settings.forgetAbsentDevicesLabel',
+      'settings.forgetAbsentDevicesConfirm', 'settings.absentDevicesForgotten'];
     for (const l of LANGUES) {
-      const dico = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
-      for (const c of cles) expect(dico[`settings.${c}`], `${l} : settings.${c}`).toBeTruthy();
+      const dico = dictionnaire(l);
+      for (const c of cles) expect(dico[c], `${l} : ${c}`).toBeTruthy();
       expect(dico['settings.absentSinceDays']).toContain('{n}');
       expect(dico['settings.forgetDeviceConfirmZone']).toContain('{zone}');
       expect(dico['settings.forgetAbsentDevices']).toContain('{days}');
