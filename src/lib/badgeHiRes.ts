@@ -10,7 +10,9 @@
  * tune-server-rust#9035 — la raison dit ce qui a été MESURÉ : la fréquence de
  * coupure, et combien de pistes de l'album sont en cause. « Codec avec perte »
  * ne s'écrit que si le serveur a mesuré sa signature (`signature_de_codec`) ;
- * une coupure seule (`coupure_spectrale`) dit « codec avec perte OU filtrage
+ * — et encore, prudemment : « des trous intermittents COMPATIBLES avec un
+ * codec avec perte » (décision du 18/11, en attendant un calibrage sur de
+ * vrais fichiers) ; une coupure seule (`coupure_spectrale`) dit « codec avec perte OU filtrage
  * au mastering ». L'ancien code `coupure_de_codec` (serveur d'avant #9035,
  * qui le déduisait de la seule fréquence) se lit comme `coupure_spectrale`.
  *
@@ -97,9 +99,11 @@ function raisonLaPlusFrequente(pistes: PisteHiRes[]): string | null {
     const r = p.verdict === 'douteux' ? raisonNormalisee(p.raison) : null;
     if (r) comptes.set(r, (comptes.get(r) ?? 0) + 1);
   }
+  // Même départage que le serveur (`max_by_key` sur un ordre alphabétique) :
+  // à égalité, la DERNIÈRE raison dans l'ordre alphabétique (octets).
   let meilleure: string | null = null;
-  for (const [r, n] of [...comptes.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    if (meilleure == null || n > (comptes.get(meilleure) ?? 0)) meilleure = r;
+  for (const [r, n] of [...comptes.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    if (meilleure == null || n >= (comptes.get(meilleure) ?? 0)) meilleure = r;
   }
   return meilleure;
 }

@@ -51,6 +51,8 @@ describe('Badge hi-res (#6285)', () => {
       expect(table['v2.album.hiresTracks'], l).toContain('{n}');
       expect(table['v2.album.hiresTracks'], l).toContain('{total}');
       expect(table['v2.album.hiresDoubtfulTracks'], l).toContain('{n}');
+      // Décision du 18/11 : libellé prudent, sans « MP3, AAC ».
+      for (const c of ['v2.album.hiresWhyCodecSig', 'v2.album.hiresWhyCodecSigGeneric']) expect(table[c], `${l} : ${c}`).not.toMatch(/MP3|AAC/);
       // #9035 — l'ancien libellé « coupé comme par un codec » ne sert plus.
       expect(table['v2.album.hiresWhyCodec'], l).toBeUndefined();
     }
@@ -80,7 +82,10 @@ describe('Badge hi-res (#6285)', () => {
   it('#9035 — la signature mesurée, elle, dit « codec avec perte »', () => {
     const b = badgeHiRes({ verdict: 'douteux', raison: 'signature_de_codec', coupure_hz: 16000 });
     expect(b?.cleRaison).toBe('v2.album.hiresWhyCodecSig');
-    expect(infobulleHiRes(b, fausseTr, 'fr')).toContain('vers 16 kHz, avec les bandes vides intermittentes d\'un codec avec perte (MP3, AAC)');
+    const texte = infobulleHiRes(b, fausseTr, 'fr');
+    expect(texte).toContain('vers 16 kHz, avec des trous intermittents compatibles avec un codec avec perte');
+    // Décision du 18/11 : prudent, pas d'affirmation « MP3, AAC ».
+    expect(texte).not.toMatch(/MP3|AAC/);
   });
 
   it('#9035 — compatibilité : un serveur antérieur envoie `coupure_de_codec` sans compte ni coupure d album', () => {
@@ -126,6 +131,16 @@ describe('Badge hi-res (#6285)', () => {
     expect(texte).toContain('Spectre coupé net vers 17,8 kHz');
     expect(texte).toContain('Pistes en cause : 2 sur 10');
     expect(libelleBadgeHiRes(badgeHiRes({ verdict: 'conforme', pistes_douteuses: 1, pistes_mesurees: 10 }), fausseTr)).toBe('1 piste douteuse');
+  });
+
+  it('#9035 — départage des raisons à égalité : le même que le serveur (la dernière par ordre alphabétique)', () => {
+    const b = badgeHiRes({ verdict: 'verifie', pistes: [
+      { verdict: 'douteux', raison: 'bande_de_cd', coupure_hz: 21000 },
+      { verdict: 'douteux', raison: 'coupure_spectrale', coupure_hz: 17000 },
+      ...Array.from({ length: 8 }, () => ({ verdict: 'verifie' })),
+    ] });
+    expect(b?.cleRaison).toBe('v2.album.hiresWhyCutoff');
+    expect(b?.coupureHz).toBe(17000);
   });
 
   it('#9035 — 6 sur 10 : Hi-res douteux ; la moitié pile aussi', () => {
