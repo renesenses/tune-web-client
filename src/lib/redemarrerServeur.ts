@@ -18,6 +18,7 @@ import { notifications } from './stores/notifications';
 import { t } from './i18n';
 import { errText } from './utils';
 import { attendreRetourEtRecharger } from './retourDuServeur';
+import { messageRefusHorsMachine } from './refusHorsMachine';
 
 export async function redemarrerServeurConfirme(surRenoncement?: () => void): Promise<boolean> {
   const tr = get(t);
@@ -27,7 +28,10 @@ export async function redemarrerServeurConfirme(surRenoncement?: () => void): Pr
   } catch (e) {
     // « Failed to fetch » = le redémarrage a commencé ; seule une erreur
     // applicative arrête ici (même règle que Réglages).
-    const msg = errText(e);
+    // tune-server-rust#9029 — refusé hors de la machine de Tune
+    // (authentification coupée) : dire quoi faire.
+    const horsMachine = messageRefusHorsMachine(e, tr as (cle: string) => string, 'restart');
+    const msg = horsMachine ?? errText(e);
     if (msg !== null) { notifications.error(msg); return false; }
   }
   attendreRetourEtRecharger({
