@@ -2346,7 +2346,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (licBusy) return;
     licBusy = true; licErr = null;
     try { await api.deactivateLicense(); await loadLicense(); }
-    catch { licErr = get(t)('settings.errDeactivateFailed'); }
+    catch (e: any) {
+      // Refus « hors de cette machine » (authentification coupée, appel du
+      // réseau local) : la phrase qui dit quoi faire, pas « Désactivation
+      // impossible » — même règle que l'activation, qui affiche `e.message`.
+      const horsMachine = e?.status === 403 && e?.corps?.error === 'auth_required'
+        && typeof e?.message === 'string' && e.message.trim() !== '';
+      licErr = horsMachine ? e.message : get(t)('settings.errDeactivateFailed');
+    }
     licBusy = false;
   }
 
