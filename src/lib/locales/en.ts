@@ -2317,6 +2317,7 @@ export default {
   "settings.errUsernameRejected": "Username rejected — check the spelling of your Bandcamp page.",
   "settings.errDisconnectFailed": "Could not disconnect.",
   "settings.errDeactivateFailed": "Could not deactivate.",
+  "machineAction.openAuthActivation": "Enable authentication",
   "settings.errFolderRejected": "Folder rejected — check the path and permissions.",
   "settings.errSettingRejected": "Setting rejected by the server.",
   "settings.errSettingNotSaved": "Setting not saved.",

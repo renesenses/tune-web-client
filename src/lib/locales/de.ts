@@ -3520,6 +3520,7 @@ export default {
   "settings.errUsernameRejected": "Benutzername abgelehnt – prüfen Sie die Schreibweise Ihrer Bandcamp-Seite.",
   "settings.errDisconnectFailed": "Trennen nicht möglich.",
   "settings.errDeactivateFailed": "Deaktivieren nicht möglich.",
+  "machineAction.openAuthActivation": "Authentifizierung aktivieren",
   "settings.errFolderRejected": "Ordner abgelehnt — prüfen Sie Pfad und Rechte.",
   "settings.errSettingRejected": "Einstellung vom Server abgelehnt.",
   "settings.errSettingNotSaved": "Einstellung nicht gespeichert.",

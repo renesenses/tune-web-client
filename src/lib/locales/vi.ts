@@ -2173,6 +2173,7 @@ export default {
   "settings.errUsernameRejected": "Tên người dùng bị từ chối — hãy kiểm tra chính tả trang Bandcamp của bạn.",
   "settings.errDisconnectFailed": "Không thể ngắt kết nối.",
   "settings.errDeactivateFailed": "Không thể tắt.",
+  "machineAction.openAuthActivation": "Bật xác thực",
   "settings.errFolderRejected": "Thư mục bị từ chối — hãy kiểm tra đường dẫn và quyền truy cập.",
   "settings.errSettingRejected": "Máy chủ đã từ chối cài đặt này.",
   "settings.errSettingNotSaved": "Cài đặt chưa được lưu.",

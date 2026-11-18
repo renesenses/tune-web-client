@@ -3520,6 +3520,7 @@ export default {
   "settings.errUsernameRejected": "ユーザー名が拒否されました — Bandcamp ページの綴りをご確認ください。",
   "settings.errDisconnectFailed": "切断できませんでした。",
   "settings.errDeactivateFailed": "無効化できませんでした。",
+  "machineAction.openAuthActivation": "認証を有効にする",
   "settings.errFolderRejected": "フォルダが拒否されました — パスと権限を確認してください。",
   "settings.errSettingRejected": "サーバーが設定を拒否しました。",
   "settings.errSettingNotSaved": "設定は保存されませんでした。",

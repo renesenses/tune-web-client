@@ -2320,6 +2320,7 @@ export default {
   "settings.errUsernameRejected": "Pseudo refusé — vérifiez l'orthographe de votre page Bandcamp.",
   "settings.errDisconnectFailed": "Déconnexion impossible.",
   "settings.errDeactivateFailed": "Désactivation impossible.",
+  "machineAction.openAuthActivation": "Activer l’authentification",
   "settings.errFolderRejected": "Dossier refusé — vérifiez le chemin et les droits.",
   "settings.errSettingRejected": "Réglage refusé par le serveur.",
   "settings.errSettingNotSaved": "Réglage non enregistré.",
