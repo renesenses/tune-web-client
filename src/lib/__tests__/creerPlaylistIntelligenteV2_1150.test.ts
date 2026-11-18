@@ -31,19 +31,32 @@
 // nombre : ce sont deux tables. Le décor en pose donc deux, toutes deux `7`,
 // et la suppression doit frapper `/library/smart-playlists/7`, jamais
 // `/playlists/7`. Sans ce piège, un appel au mauvais espace passerait au vert.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import PlaylistsV2 from '../../components/v2/PlaylistsV2.svelte';
 import { dialogs } from '../stores/dialogs';
 
 /**
- * Monter cet écran compile un composant de plus de huit cents lignes, et
- * l'éditeur en compile un second, à la demande. Sur une machine chargée — la
- * porte web tourne les 458 fichiers en parallèle — la première compilation
- * prend plusieurs secondes.
+ * QA 18/11 (tests instables) — monter cet écran compile un composant de plus
+ * de huit cents lignes, et l'éditeur de règles en compile un second, À LA
+ * DEMANDE (`{#await import('./PlaylistSmartEditeurV2.svelte')}`). Cette
+ * compilation se payait DANS le premier test qui ouvrait l'éditeur : 0,7 s au
+ * repos, 20,6 s sur Shrek sous deux suites complètes (charge 88) — au-delà
+ * du plafond de 20 s de `attendreEditeur`. Le délai de 60 s posé ici ne
+ * corrigeait rien : il laissait la course entre la compilation et le plafond.
+ *
+ * L'éditeur est désormais compilé AVANT les tests ; la borne large du
+ * crochet ne borne que cette compilation, jamais un comportement de l'écran.
+ * Les attentes des tests se comptent en tours de boucle d'événements (les
+ * réponses du banc sont des promesses factices), plus en millisecondes.
  */
-vi.setConfig({ testTimeout: 60_000 });
+beforeAll(async () => {
+  await Promise.all([
+    import('../../components/v2/PlaylistSmartEditeurV2.svelte'),
+    import('../../components/v2/PlaylistParPhraseV2.svelte'),
+  ]);
+}, 120_000);
 
 interface Appel {
   methode: string;
@@ -80,7 +93,13 @@ function corpsPour(url: string, methode: string): unknown {
 }
 
 const respirer = () => new Promise((r) => setTimeout(r, 0));
-const attendre = (ms = 40) => new Promise((r) => setTimeout(r, ms));
+/** `tours` tours de boucle d'événements, rendu compris. */
+async function attendre(tours = 10) {
+  for (let i = 0; i < tours; i++) {
+    await respirer();
+    flushSync();
+  }
+}
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
@@ -148,19 +167,18 @@ const editeur = (el: HTMLElement) => el.querySelector<HTMLElement>('.v2-spl');
 const ecritures = () => appels.filter((a) => a.methode !== 'GET');
 
 /**
- * Attend que l'éditeur soit à l'écran, ou renonce.
- *
- * Il est chargé à la demande (`{#await import(...)}`) : le premier cas du
- * fichier paie la compilation du composant, les suivants la trouvent en
- * cache. Un délai fixe serait donc vert ou rouge selon l'ordre des cas.
+ * Attend que l'éditeur soit à l'écran, ou renonce — après `tours` tours de
+ * boucle, pas après un temps : le module de l'éditeur est déjà compilé
+ * (`beforeAll`), son `import()` se règle sans compilation ni réseau.
  */
-async function attendreEditeur(el: HTMLElement, plafond = 400): Promise<HTMLElement | null> {
-  for (let i = 0; i < plafond; i++) {
+async function attendreEditeur(el: HTMLElement, tours = 50): Promise<HTMLElement | null> {
+  for (let i = 0; i < tours; i++) {
     flushSync();
     const ed = editeur(el);
     if (ed) return ed;
-    await attendre(50);
+    await respirer();
   }
+  flushSync();
   return editeur(el);
 }
 
@@ -233,7 +251,7 @@ describe('#1150 — CRÉER depuis le nouveau client', () => {
     await remplir(ed!, 'Depeche 80s', 'artist', 'contains', 'depeche');
     enregistrer(ed!).click();
     flushSync();
-    await attendre(60);
+    await attendre();
     flushSync();
 
     const creation = ecritures().find(
@@ -281,7 +299,7 @@ describe('#1150 — CRÉER depuis le nouveau client', () => {
     const avant = appels.filter((a) => a.methode === 'GET' && /\/library\/smart-playlists$/.test(a.url)).length;
     enregistrer(ed).click();
     flushSync();
-    await attendre(80);
+    await attendre();
     flushSync();
 
     const apres = appels.filter((a) => a.methode === 'GET' && /\/library\/smart-playlists$/.test(a.url)).length;
@@ -299,7 +317,7 @@ describe('#1150 — MODIFIER depuis le nouveau client', () => {
     crayon!.click();
     flushSync();
     await attendreEditeur(el);
-    await attendre(40);
+    await attendre();
     flushSync();
 
     const ed = editeur(el);
@@ -315,7 +333,7 @@ describe('#1150 — MODIFIER depuis le nouveau client', () => {
     flushSync();
     enregistrer(ed!).click();
     flushSync();
-    await attendre(60);
+    await attendre();
     flushSync();
 
     const maj = ecritures().find((a) => a.methode === 'PUT');
@@ -379,7 +397,7 @@ describe('#1150 — SUPPRIMER depuis le nouveau client', () => {
     const attente = get(dialogs);
     expect(attente.length, 'aucune demande de confirmation en attente').toBe(1);
     dialogs.settle(attente[0].id, false);
-    await attendre(60);
+    await attendre();
     flushSync();
 
     expect(
@@ -395,7 +413,7 @@ describe('#1150 — SUPPRIMER depuis le nouveau client', () => {
     const attente = get(dialogs);
     expect(attente.length, 'aucune demande de confirmation en attente').toBe(1);
     dialogs.settle(attente[0].id, true);
-    await attendre(80);
+    await attendre();
     flushSync();
 
     const supprimes = appels.filter((a) => a.methode === 'DELETE');

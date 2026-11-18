@@ -14,7 +14,7 @@
 // une entrée atteignable, avec son `data-*`, et absente quand elle ne
 // s'applique pas. Le menu est celui des pistes (`MenuPisteV2`) : role=menu,
 // ↑ / ↓, Échap, focus rendu au bouton.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import { t } from '../i18n';
@@ -50,16 +50,39 @@ const reponse = (corps: unknown, status = 200) => ({
   text: async () => JSON.stringify(corps),
 } as unknown as Response);
 const respirer = () => new Promise((r) => setTimeout(r, 0));
-async function jusqua(condition: () => boolean, borne = 4000): Promise<boolean> {
-  const fin = Date.now() + borne;
-  for (;;) {
+/**
+ * QA 18/11 (tests instables) — attend `condition`, borné en TOURS de boucle
+ * d'événements et non plus en millisecondes. Les réponses de ce banc sont des
+ * promesses factices : elles se règlent en un nombre de tours qui ne dépend
+ * pas de la vitesse de la machine. Une borne en millisecondes (4 s, puis le
+ * délai de 5 s du test) rougissait sous charge pour une seule raison : la
+ * PREMIÈRE compilation des composants chargés à la demande (`{#await
+ * import(...)}` : `CreditsTiroir`, `EnrichissementAlbumV2`), payée DANS le
+ * test. Mesuré sur Shrek : l'onglet Crédits passe de 200 ms au repos à plus de
+ * 4 s sous deux suites complètes (charge 88). Ces modules sont désormais
+ * chargés avant les tests (`beforeAll` ci-dessous).
+ */
+async function jusqua(condition: () => boolean, tours = 50): Promise<boolean> {
+  for (let i = 0; ; i++) {
     flushSync();
     if (condition()) return true;
-    if (Date.now() >= fin) return false;
+    if (i >= tours) return false;
     await respirer();
   }
 }
 const tr = (k: string) => get(t)(k as any);
+
+// Les composants que les fiches chargent à la demande, compilés UNE fois
+// avant les tests : leur compilation n'est pas le comportement mesuré, et
+// sous charge elle dépassait seule le délai d'un test. La borne du crochet
+// est large à dessein (compilation à froid, machine chargée) ; elle ne borne
+// aucun comportement de l'écran.
+beforeAll(async () => {
+  await Promise.all([
+    import('../../components/partages/CreditsTiroir.svelte'),
+    import('../../components/v2/EnrichissementAlbumV2.svelte'),
+  ]);
+}, 120_000);
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
@@ -169,7 +192,7 @@ describe('la fiche album : trois boutons et un menu', () => {
   // la rangée pour la flèche de Lecture (voir `boutonPlayUnique`).
   it('l’en-tête ne garde que Lecture (et sa flèche), Favori et « … »', async () => {
     poser(AlbumDetailV2, { album: LOCAL });
-    await jusqua(() => hote!.querySelectorAll('.tracks [data-track-id], .tracks .row, .tracks tr').length > 0, 1500);
+    await jusqua(() => hote!.querySelectorAll('.tracks [data-track-id], .tracks .row, .tracks tr').length > 0);
     const boutons = Array.from(hote!.querySelectorAll<HTMLButtonElement>('.actions:not(.local) > button, .actions:not(.local) > .bl > button'));
     expect(boutons.map((b) => b.getAttribute('aria-label') ?? b.textContent?.trim())).toEqual([
       tr('v2.album.play'), tr('v2.menu.playOptions'),
@@ -181,7 +204,7 @@ describe('la fiche album : trois boutons et un menu', () => {
     poser(AlbumDetailV2, { album: LOCAL });
     // Les gestes qui dépendent d'une lecture : pistes (dossier, sélection) et fiche d'édition.
     await jusqua(() => appels.some((u) => /\/edition/.test(u)) && appels.some((u) => /\/tracks/.test(u)));
-    await jusqua(() => false, 200);
+    await jusqua(() => false, 10);
     const plus = await ouvrirMenuAlbum();
     expect(plus.getAttribute('aria-expanded')).toBe('true');
     const attendus = [
@@ -215,7 +238,7 @@ describe('la fiche album : trois boutons et un menu', () => {
 
   it('album de service : ni Collection, ni Bibliothèque, ni Localiser', async () => {
     poser(AlbumDetailV2, { album: QOBUZ, service: 'qobuz' });
-    await jusqua(() => false, 150);
+    await jusqua(() => false, 10);
     await ouvrirMenuAlbum();
     expect(menu()!.querySelector('[data-album-collection]')).toBeNull();
     expect(menu()!.querySelector('[data-localiser-album]')).toBeNull();
@@ -269,7 +292,7 @@ describe('la fiche playlist : même principe', () => {
 
   it('Lecture scindé, Aléatoire, Favori, « … » — et les gestes d’avant dans le menu', async () => {
     poser(PlaylistDetailV2, { item: PL });
-    await jusqua(() => false, 150);
+    await jusqua(() => false, 10);
     expect(hote!.querySelector('[data-bouton-lecture] [data-lecture-options]')).not.toBeNull();
     const plus = hote!.querySelector<HTMLButtonElement>('[data-menu-playlist]')!;
     plus.click();
