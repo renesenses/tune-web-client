@@ -188,7 +188,7 @@
   .compte{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .repli{flex-basis:100%; margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .etat{padding:24px 0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
-  .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--v2-lib-pochette, 150px), 1fr)); gap:16px}
+  .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(calc(150px * var(--v2-lib-pochette-echelle, 1)), calc(50% - 9px)), 1fr)); gap:16px}
   .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}
 
   /* LA VUE LISTE. Mêmes proportions que `.lrow` de la Bibliothèque — vignette

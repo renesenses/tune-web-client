@@ -469,7 +469,7 @@
     flex: 1;
     overflow-y: auto;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(var(--v2-lib-pochette, 148px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(calc(148px * var(--v2-lib-pochette-echelle, 1)), calc(50% - 10px)), 1fr));
     gap: 22px 18px;
     align-content: start;
     padding: 8px 30px 40px;
@@ -481,7 +481,7 @@
        font une trentaine de nœuds, et une bibliothèque peut compter des
        milliers d'artistes. */
     content-visibility: auto;
-    contain-intrinsic-size: auto 210px;
+    contain-intrinsic-size: auto calc(148px * var(--v2-lib-pochette-echelle, 1) + 62px);
   }
   .suite { grid-column: 1 / -1; height: 1px; }
   .cv { position: relative; aspect-ratio: 1; border-radius: var(--v2-r-card); overflow: hidden; }

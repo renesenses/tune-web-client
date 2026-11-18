@@ -159,7 +159,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { lireChoix, ecrireChoix, lireNombre, lireTexte } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
   import {
-    BORNES_TAILLE_POCHETTES, lireTaillePochettes, ecrireTaillePochettes, largeurCasePochette,
+    BORNES_TAILLE_POCHETTES, lireTaillePochettes, ecrireTaillePochettes, echellePochettes,
   } from '../../lib/taillePochettesBibliotheque';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
@@ -1461,7 +1461,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * geste seulement (#1650).
    */
   let taillePochettes = $state(lireTaillePochettes());
-  function reglerTaillePochettes(n: number) { taillePochettes = ecrireTaillePochettes(n); }
+  // Le geste en cours redessine (`input`) ; seule sa fin s'écrit (`change`).
+  function suivreTaillePochettes(n: number) { taillePochettes = Math.min(BORNES_TAILLE_POCHETTES.max, Math.max(BORNES_TAILLE_POCHETTES.min, n)); }
+  function retenirTaillePochettes(n: number) { taillePochettes = ecrireTaillePochettes(n); }
 
   /**
    * web#2297 — la liste des LABELS se montre en liste ou en GRILLE (logo, nom,
@@ -2655,8 +2657,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const grilleAffichee = $derived(
     tab === 'tracks' ? false
       : tab === 'artists' ? true
-      : tab === 'labels' && groupeOuvert == null ? vueLabels === 'grid'
-      : display !== 'list' && !enCarrousel,
+      : tab === 'albums' ? display !== 'list' && !enCarrousel
+      : sourcePropre ? display !== 'list'
+      // Genres, Années, Labels… sans valeur ouverte : la LISTE des noms
+      // (eric, forum 1671), sauf la grille de logos des Labels (web#2297).
+      : groupeOuvert == null ? tab === 'labels' && vueLabels === 'grid'
+      : display !== 'list',
   );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
@@ -3652,7 +3658,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 {/snippet}
 
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
-<section class="v2-lib tune-v2" style="--v2-lib-pochette:{largeurCasePochette(taillePochettes)}">
+<section class="v2-lib tune-v2" style="--v2-lib-pochette-echelle:{echellePochettes(taillePochettes)}">
   <header class="v2-top">
     <div class="v2-titres">
       <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
@@ -4074,8 +4080,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
           <input type="range" data-taille-pochettes min={BORNES_TAILLE_POCHETTES.min} max={BORNES_TAILLE_POCHETTES.max}
             step={BORNES_TAILLE_POCHETTES.pas} value={taillePochettes}
-            aria-label={$tr('v2.lib.coverSize' as any)}
-            oninput={(e) => reglerTaillePochettes(Number((e.currentTarget as HTMLInputElement).value))} />
+            aria-label={$tr('v2.lib.coverSize' as any)} aria-valuetext={`${taillePochettes} px`}
+            oninput={(e) => suivreTaillePochettes(Number((e.currentTarget as HTMLInputElement).value))}
+            onchange={(e) => retenirTaillePochettes(Number((e.currentTarget as HTMLInputElement).value))} />
         </label>
       {/if}
     {/if}
@@ -5219,7 +5226,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
   /* web#2297 — la grille des labels : des cases carrées, logo au-dessus,
      au pas de la grille des albums (`.grid`) — même colonne, même gouttière. */
-  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(var(--v2-lib-pochette, 148px),1fr)); gap:22px 18px; padding:8px 30px 40px}
+  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(min(calc(148px * var(--v2-lib-pochette-echelle, 1)), calc(50% - 10px)),1fr)); gap:22px 18px; padding:8px 30px 40px}
   .lgcase{position:relative; display:flex; flex-direction:column; min-width:0; border-radius:12px}
   .lgcase:hover{background:var(--v2-hover)}
   .lgouvrir{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0;
@@ -5367,7 +5374,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     margin:0; padding:6px 0 5px; background:var(--v2-bg); border-bottom:1px solid var(--v2-line);
     font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .yinter .yn{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--v2-lib-pochette, 148px),1fr));
+  .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(min(calc(148px * var(--v2-lib-pochette-echelle, 1)), calc(50% - 10px)),1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .cale-paginee{grid-column:1 / -1; flex:none; pointer-events:none}
   .paginee{overflow-anchor:none}
@@ -5464,7 +5471,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       l'estimation fixe fausserait la hauteur totale, et le saut au « M » du
       rail atterrirait à côté.
     */
-    content-visibility:auto; contain-intrinsic-size:auto calc(var(--v2-lib-pochette, 148px) + 62px)}
+    content-visibility:auto; contain-intrinsic-size:auto calc(148px * var(--v2-lib-pochette-echelle, 1) + 62px)}
   /* La carte n'est plus un `<button>` : elle porte cinq boutons d'action sur sa
      pochette, et des boutons imbriqués sont du HTML invalide que les
      navigateurs défont. Le bloc de texte reprend donc le rôle cliquable. */

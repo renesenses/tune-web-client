@@ -44,6 +44,7 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
   let cible: number | null = null;
   let revision = 0;
   let pasPrecedent: number | null = null;
+  let colonnesPrecedentes: number | null = null;
   let ancre: { index: number; decalage: number } | null = null;
   // Les cales restent des estimations. Une nouvelle première rangée peut
   // avoir une autre hauteur : conserver la carte visible, pas son ancien
@@ -78,10 +79,16 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
     // Une mesure différente change les cales estimées. Convertir la position
     // dans cette nouvelle échelle avant de choisir la fenêtre ; l’ancre ne
     // sert ensuite qu’à retrouver le décalage exact de la carte après rendu.
-    if (cible == null && ancre && pasPrecedent != null && pasPrecedent !== g.pas) {
-      el.scrollTop *= g.pas / pasPrecedent;
+    // web#3189 (curseur de taille des pochettes) : le NOMBRE DE COLONNES
+    // change aussi, et une simple règle de trois sur `scrollTop` perdait la
+    // place (album 2400 à 8 colonnes → ~1500 à 5). On repart donc du RANG de
+    // l'album ancré dans la nouvelle géométrie.
+    if (cible == null && ancre && pasPrecedent != null
+        && (pasPrecedent !== g.pas || colonnesPrecedentes !== g.colonnes)) {
+      el.scrollTop = Math.max(0, Math.floor(ancre.index / g.colonnes) * g.pas - ancre.decalage);
     }
     pasPrecedent = g.pas;
+    colonnesPrecedentes = g.colonnes;
     const index = cible;
     const position = index == null ? (g.horizontal ? el.scrollLeft : el.scrollTop) : Math.floor(index / g.colonnes) * g.pas;
     o.surFenetre(trancheAlbums(o.total, position, g.vue, g.colonnes, g.pas, g.espace));
