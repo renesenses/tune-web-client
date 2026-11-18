@@ -1482,7 +1482,14 @@
     {:else if !doubtful.length}
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
-      <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+      <p class="note" data-intro-douteuses>{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+      <!-- web#3175 — la consigne de vérification ne vaut que s'il y a un
+           artiste à écrire : les groupes « Poser l'artiste » et le bouton
+           « Écrire l'artiste du dossier » n'existent que pour une piste sans
+           artiste dont le dossier donne un nom (`dGroupes`, qui couvre aussi
+           `folder_artist`). Sans eux, elle renvoyait à une action absente
+           (fil 2685). -->
+      {#if dGroupes.length}<p class="note" data-consigne-douteuses>{$t('v2.meta.dArtistVerify' as any)}</p>{/if}
 
       {#if !dPeutIgnorer && dAOffrir}<p class="note" data-ignore-reserve>{$t('v2.meta.dIgnoreAdminOnly' as any)}</p>{/if}
       <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste

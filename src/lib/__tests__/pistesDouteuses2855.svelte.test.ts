@@ -82,7 +82,9 @@ describe('pistes annoncées dans Albums douteux (#8039)', () => {
       expect(plusieurs).toContain(fr['v2.meta.' + cle as keyof typeof fr]);
     }
     expect(hote.querySelector('.v2-eyebrow')?.textContent).toBe('Bibliothèque');
-    expect(hote.querySelector('.note')?.textContent).toContain('nom identifié avant de le valider');
+    // web#3175 — la consigne de vérification a sa propre ligne, dite parce que
+    // ce jeu a des pistes sans artiste dont le dossier donne un nom.
+    expect(hote.querySelector('[data-consigne-douteuses]')?.textContent).toBe(fr['v2.meta.dArtistVerify']);
     expect(api.setTracksArtist).not.toHaveBeenCalled();
   });
 
