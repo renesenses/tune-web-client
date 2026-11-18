@@ -194,7 +194,7 @@
 
     <details class="secours" data-auth-secours>
       <summary class="lbl">{$t('authServeur.secoursTitre' as any)}</summary>
-      <p class="hint">{$t('authServeur.secours' as any).replace('{file}', etat?.recovery_file ?? 'desactiver-authentification')}</p>
+      <p class="hint">{$t('authServeur.secours' as any).replace('{file}', etat?.recovery_file ?? '')}</p>
       {#if etat?.data_dir}
         <p class="hint" data-auth-dossier>{$t('authServeur.secoursDossier' as any).replace('{dir}', etat.data_dir)}</p>
       {/if}
