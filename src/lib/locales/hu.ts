@@ -2651,6 +2651,8 @@ export default {
   "acoustic.paused.low_memory": "Szüneteltetve: jelenleg kevés a memória. Az elemzés folytatódik, amint lesz elég.",
   "acoustic.paused.not_premium": "Szüneteltetve: az akusztikus elemzés Premium funkció.",
   "acoustic.paused.model_unavailable": "Szüneteltetve: az elemzőmodellt nem sikerült betölteni. Indítsa újra a Tune-t az újrapróbálkozáshoz.",
+  "acoustic.paused.library_scan": "Szüneteltetve: az elemzés átengedi az elsőbbséget a könyvtár frissítésének. A vizsgálat végén magától folytatódik.",
+  "acoustic.paused.paused": "Szüneteltetve: Ön felfüggesztette az akusztikus elemzést. Akkor folytatódik, amikor a „Folytatás” gombra kattint.",
   "acoustic.pausedUnknown": "Szüneteltetve ({reason}). Az elemzés magától folytatódik.",
   "acoustic.modelFetchFailed": "A modell letöltése {attempts} próbálkozás után sem sikerült:",
   "acoustic.failedTracks": "{count} szám elemzése nem sikerült: a fájlt beolvastuk, de a dekódoló nem adott eredményt. Nem próbáljuk újra — a jelző valóban 100%-on áll.",

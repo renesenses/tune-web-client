@@ -2573,6 +2573,8 @@ export default {
   "acoustic.paused.low_memory": "În pauză: memorie insuficientă momentan. Analiza va reporni imediat ce este destulă.",
   "acoustic.paused.not_premium": "În pauză: analiza acustică este o funcție Premium.",
   "acoustic.paused.model_unavailable": "În pauză: modelul de analiză nu a putut fi încărcat. Reporniți Tune pentru a încerca din nou.",
+  "acoustic.paused.library_scan": "În pauză: analiza cedează locul actualizării bibliotecii. Va relua singură la finalul scanării.",
+  "acoustic.paused.paused": "În pauză: ați suspendat analiza acustică. Va relua când veți apăsa „Reluare”.",
   "acoustic.pausedUnknown": "În pauză ({reason}). Analiza va reporni singură.",
   "acoustic.modelFetchFailed": "Descărcarea modelului a eșuat după {attempts} încercare/încercări:",
   "acoustic.failedTracks": "{count} piese nu au putut fi analizate: fișierul a fost citit, dar decodorul nu a produs nimic. Nu vor fi reîncercate — indicatorul chiar este la 100 %.",

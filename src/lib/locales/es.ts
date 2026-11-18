@@ -2567,6 +2567,8 @@ export default {
   "acoustic.paused.low_memory": "En pausa: memoria insuficiente por ahora. El análisis se reanudará en cuanto haya suficiente.",
   "acoustic.paused.not_premium": "En pausa: el análisis acústico es una función Premium.",
   "acoustic.paused.model_unavailable": "En pausa: no se pudo cargar el modelo de análisis. Reinicie Tune para volver a intentarlo.",
+  "acoustic.paused.library_scan": "En pausa: el análisis cede el paso a la actualización de la biblioteca. Se reanudará solo al terminar el escaneo.",
+  "acoustic.paused.paused": "En pausa: ha suspendido el análisis acústico. Se reanudará cuando pulse «Reanudar».",
   "acoustic.pausedUnknown": "En pausa ({reason}). El análisis se reanudará solo.",
   "acoustic.modelFetchFailed": "La descarga del modelo falló tras {attempts} intento(s):",
   "acoustic.failedTracks": "{count} pistas no se han podido analizar: el archivo se leyó, pero el decodificador no obtuvo nada. No se reintentarán: el indicador está realmente al 100 %.",

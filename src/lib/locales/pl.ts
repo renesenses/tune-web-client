@@ -3221,6 +3221,8 @@ export default {
   "acoustic.paused.low_memory": "Wstrzymano: obecnie brakuje pamięci. Analiza wznowi się, gdy tylko będzie jej dość.",
   "acoustic.paused.not_premium": "Wstrzymano: analiza akustyczna jest funkcją Premium.",
   "acoustic.paused.model_unavailable": "Wstrzymano: nie udało się wczytać modelu analizy. Uruchom ponownie Tune, aby spróbować jeszcze raz.",
+  "acoustic.paused.library_scan": "Wstrzymano: analiza ustępuje aktualizacji biblioteki. Wznowi się sama po zakończeniu skanowania.",
+  "acoustic.paused.paused": "Wstrzymano: analiza akustyczna została przez Ciebie zawieszona. Wznowi się po kliknięciu „Wznów”.",
   "acoustic.pausedUnknown": "Wstrzymano ({reason}). Analiza wznowi się sama.",
   "acoustic.modelFetchFailed": "Pobieranie modelu nie powiodło się po {attempts} próbach:",
   "acoustic.failedTracks": "Nieprzeanalizowane utwory: {count}. Plik został odczytany, ale dekoder nic z niego nie uzyskał. Nie będą ponawiane — wskaźnik rzeczywiście wynosi 100 %.",

@@ -2567,6 +2567,8 @@ export default {
   "acoustic.paused.low_memory": "已暂停：当前内存不足。内存充足后分析将继续。",
   "acoustic.paused.not_premium": "已暂停：声学分析属于 Premium 功能。",
   "acoustic.paused.model_unavailable": "已暂停：无法加载分析模型。请重启 Tune 后重试。",
+  "acoustic.paused.library_scan": "已暂停：分析正在让位于媒体库更新，扫描结束后会自动继续。",
+  "acoustic.paused.paused": "已暂停：您已暂停声学分析，点击“继续”后恢复。",
   "acoustic.pausedUnknown": "已暂停（{reason}）。分析将自动继续。",
   "acoustic.modelFetchFailed": "模型下载在 {attempts} 次尝试后失败：",
   "acoustic.failedTracks": "{count} 首曲目无法分析：文件已读取，但解码器未产生任何内容。它们不会重试 — 进度确实是 100%。",

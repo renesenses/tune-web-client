@@ -152,6 +152,14 @@ describe('#9046 — la carte montée', () => {
     expect(c.querySelector('[data-frein-lecture]')).toBeNull();
   });
 
+  it.each(['library_scan', 'paused'])('🔴 `paused_reason: %s` ⇒ sa phrase traduite, pas le libellé générique', async (r) => {
+    acoustique = { ...FIL_2907, paused_reason: r };
+    await monter();
+    const texte = carteClap()!.querySelector('[data-raison-pause]')?.textContent?.trim();
+    expect(texte).toBe(fr[`acoustic.paused.${r}`]);
+    expect(texte).not.toBe(fr['acoustic.pausedUnknown'].replace('{reason}', r));
+  });
+
   it('🔴 raison inconnue du client ⇒ libellé générique, pas d’identifiant nu seul', async () => {
     acoustique = { ...FIL_2907, paused_reason: 'nouvelle_raison' };
     await monter();

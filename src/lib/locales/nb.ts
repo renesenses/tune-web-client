@@ -3221,6 +3221,8 @@ export default {
   "acoustic.paused.low_memory": "På pause: ikke nok minne akkurat nå. Analysen fortsetter så snart det er nok.",
   "acoustic.paused.not_premium": "På pause: akustisk analyse er en Premium-funksjon.",
   "acoustic.paused.model_unavailable": "På pause: analysemodellen kunne ikke lastes. Start Tune på nytt for å prøve igjen.",
+  "acoustic.paused.library_scan": "På pause: analysen viker for oppdateringen av biblioteket. Den fortsetter av seg selv når skanningen er ferdig.",
+  "acoustic.paused.paused": "På pause: du har satt den akustiske analysen på pause. Den fortsetter når du klikker «Fortsett».",
   "acoustic.pausedUnknown": "På pause ({reason}). Analysen fortsetter av seg selv.",
   "acoustic.modelFetchFailed": "Nedlasting av modellen mislyktes etter {attempts} forsøk:",
   "acoustic.failedTracks": "{count} spor kunne ikke analyseres: filen ble lest, men dekoderen ga ingenting. De prøves ikke på nytt — måleren står virkelig på 100 %.",

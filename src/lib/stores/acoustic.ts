@@ -30,7 +30,7 @@ export interface AcousticStatus {
   model_ready?: boolean;
   /** POURQUOI la passe ne travaille pas, quand elle ne travaille pas :
    *  `playback` (elle cède le passage à la musique), `thermal`, `low_memory`,
-   *  `not_premium`, `model_unavailable` (#9046). `null` quand rien ne l'empêche de tourner.
+   *  `not_premium`, `model_unavailable` (#9046), `library_scan`, `paused`. `null` quand rien ne l'empêche de tourner.
    *
    *  Le serveur le calcule depuis le 18/08 (#1866/#1915) et **aucun client ne
    *  le lisait**. Le commentaire qui accompagne ce calcul dit pourquoi il
@@ -127,7 +127,9 @@ export const acousticStalled = derived(
  *  « en pause » sans savoir pourquoi — c'est-à-dire le défaut d'origine. */
 // `model_unavailable` (tune-server-rust#9046) : le chargement du modèle a été
 // abandonné (délai dépassé ou panique) ; seule une relance du serveur réessaie.
-export const RAISONS_DE_PAUSE = ['playback', 'thermal', 'low_memory', 'not_premium', 'model_unavailable'] as const;
+// `library_scan` (retrait devant un scan, #2469) et `paused` (suspendue par
+// l'utilisateur) : publiées par le serveur, jusqu'ici lues « en pause (…) ».
+export const RAISONS_DE_PAUSE = ['playback', 'thermal', 'low_memory', 'not_premium', 'model_unavailable', 'library_scan', 'paused'] as const;
 
 /** Pourquoi la passe ne travaille pas, ou `null` si rien ne l'en empêche.
  *
