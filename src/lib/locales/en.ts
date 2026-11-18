@@ -4077,6 +4077,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normal for the {count} tracks of this album",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Confirm for the whole album",
   "v2.meta.dIgnoreAlbumPreview": "These {count} tracks all come from the album “{album}”. “{reason}” will no longer be flagged for them:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Only these tracks are concerned: a track added to the album later will still be flagged.",
   "v2.meta.dIgnoreAlbumConfirm": "Confirm: normal for these {count} tracks",
   "v2.meta.dIgnoreAlbumNone": "No track of this album is flagged for this reason any more.",
   "v2.meta.dIgnoredAlbumDone": "“{reason}” will no longer be flagged for the {count} tracks of the album “{name}”.",

@@ -4012,6 +4012,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normális az album {count} számára",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Megerősítés az egész albumra",
   "v2.meta.dIgnoreAlbumPreview": "Ez a {count} szám mind a(z) „{album}” albumról származik. A(z) „{reason}” jelzés többé nem jelenik meg náluk:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Csak ezek a számok érintettek: az albumhoz később hozzáadott szám továbbra is jelölve lesz.",
   "v2.meta.dIgnoreAlbumConfirm": "Megerősítés: normális ennél a {count} számnál",
   "v2.meta.dIgnoreAlbumNone": "Az album egyetlen száma sincs már megjelölve ezen okból.",
   "v2.meta.dIgnoredAlbumDone": "A(z) „{reason}” jelzés többé nem jelenik meg a(z) „{name}” album {count} számánál.",

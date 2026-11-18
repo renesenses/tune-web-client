@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "이 앨범의 트랙 {count}개 모두 정상",
   "v2.meta.dIgnoreAlbumConfirmLabel": "앨범 전체에 대해 확인",
   "v2.meta.dIgnoreAlbumPreview": "이 트랙 {count}개는 모두 앨범 「{album}」의 트랙입니다. 이 트랙들에는 「{reason}」이(가) 더 이상 표시되지 않습니다:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "이 트랙들에만 적용됩니다. 나중에 앨범에 추가된 트랙은 계속 표시됩니다.",
   "v2.meta.dIgnoreAlbumConfirm": "확인: 이 트랙 {count}개 정상",
   "v2.meta.dIgnoreAlbumNone": "이 앨범에서 이 이유로 표시된 트랙은 더 이상 없습니다.",
   "v2.meta.dIgnoredAlbumDone": "앨범 「{name}」의 트랙 {count}개에 「{reason}」이(가) 더 이상 표시되지 않습니다.",

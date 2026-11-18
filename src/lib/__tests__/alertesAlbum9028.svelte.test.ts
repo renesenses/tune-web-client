@@ -29,7 +29,7 @@ const T = 'track' as const;
 
 /** Faux serveur : l'album 20 « Everyday Life » (feuille CUE) a trois pistes
  *  cachées de 3 s ; la piste 9 (album 10) est seule de son album. */
-let ignoreesAlbum: Set<number>;
+let ignoreesPistes: Set<number>;
 let avecPortees: boolean;
 function pistes(): PisteDouteuse[] {
   const base: PisteDouteuse[] = [
@@ -42,7 +42,7 @@ function pistes(): PisteDouteuse[] {
       file_path: '/m/Seul/bip.flac', reasons: ['very_short'], ignore_scopes: { very_short: T } },
   ];
   return base
-    .filter((p) => !(p.album_id === 20 && ignoreesAlbum.has(20)))
+    .filter((p) => !ignoreesPistes.has(p.id))
     .map((p) => (avecPortees ? p : { ...p, ignore_scopes: undefined }));
 }
 
@@ -52,7 +52,7 @@ let composant: ReturnType<typeof mount> | undefined;
 beforeEach(() => {
   locale.set('fr');
   vi.clearAllMocks();
-  ignoreesAlbum = new Set();
+  ignoreesPistes = new Set();
   avecPortees = true;
   vi.mocked(api.listMetadataProposals).mockResolvedValue({ proposals: [], pending: 0, auto_apply: false });
   vi.mocked(api.getDoubtfulTracks).mockImplementation(async () => {
@@ -60,18 +60,22 @@ beforeEach(() => {
   });
   vi.mocked(api.getAlertesDouteusesIgnorees).mockResolvedValue([]);
   vi.mocked(api.apercuAlerteAlbum).mockImplementation(async (albumId, reason) => ({
-    album_id: albumId, album_title: 'Everyday Life', reason, scope: 'album',
+    album_id: albumId, album_title: 'Everyday Life', reason, scope: 'track' as const,
     folder: '/m/Coldplay/Everyday Life',
     tracks: [2, 3, 4].map((id) => ({ id, title: `Caché ${id}`, duration_ms: 3000 })),
     total: 3, ignored_count: 0,
   }));
-  vi.mocked(api.ignorerAlerteAlbum).mockImplementation(async (albumId, reason, ids) => {
-    ignoreesAlbum.add(albumId);
-    return { scope: 'album', key: '/m/Coldplay/Everyday Life', title: 'Everyday Life', reason, track_ids: ids, track_count: ids.length, added: 1 };
+  vi.mocked(api.ignorerAlerteAlbum).mockImplementation(async (_albumId, reason, ids) => {
+    const nouvelles = ids.filter((id) => !ignoreesPistes.has(id));
+    nouvelles.forEach((id) => ignoreesPistes.add(id));
+    return {
+      scope: 'track', reason, track_ids: ids, track_count: ids.length, added: nouvelles.length,
+      added_keys: nouvelles.map((id) => ({ scope: 'track' as const, key: `/m/EL.flac#${id}`, title: '', reason })),
+    };
   });
-  vi.mocked(api.retablirAlerteAlbum).mockImplementation(async (albumId) => {
-    ignoreesAlbum.delete(albumId);
-    return { removed: 1 };
+  vi.mocked(api.retablirAlerteAlbum).mockImplementation(async (keys) => {
+    keys.forEach((k) => ignoreesPistes.delete(Number(k.key.split('#')[1])));
+    return { removed: keys.length };
   });
   hote = document.createElement('div');
   document.body.appendChild(hote);
@@ -132,6 +136,10 @@ describe('Pistes douteuses : « Normal pour tout l’album » (#9028)', () => {
     expect(c.textContent).toContain('Caché 2');
     expect(c.textContent).toContain('(0:03)');
     expect(c.textContent).toContain('/m/Coldplay/Everyday Life');
+    expect(c.textContent).toContain(dict['v2.meta.dIgnoreAlbumOnlyThese']);
+    expect(document.activeElement, 'le focus va au panneau').toBe(c);
+    // Même N sur le bouton, dans le texte et sur la confirmation.
+    expect(c.querySelector('button.go')!.textContent).toContain(dict['v2.meta.dIgnoreAlbumConfirm'].replace('{count}', '3'));
     // « Annuler » ferme sans rien écrire.
     [...c.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.tool.cancel']))!.click();
     flushSync();
@@ -159,10 +167,45 @@ describe('Pistes douteuses : « Normal pour tout l’album » (#9028)', () => {
     [...bilan.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.meta.dUndo']))!.click();
     await vi.waitFor(() => {
       flushSync();
-      expect(api.retablirAlerteAlbum).toHaveBeenCalledWith(20, 'very_short');
+      expect(api.retablirAlerteAlbum).toHaveBeenCalledWith([2, 3, 4].map((id) => ({
+        scope: 'track', key: `/m/EL.flac#${id}`, title: '', reason: 'very_short',
+      })));
       expect(album()).not.toBeNull();
     });
+    expect(api.getDoubtfulTracks, 'après annulation, la liste est relue').toHaveBeenCalledTimes(2);
     expect(api.retablirAlerteDouteuse).not.toHaveBeenCalled();
+  });
+
+  it('annuler ne retire que les lignes AJOUTÉES par le geste (une piste déjà normale reste)', async () => {
+    await ouvrir();
+    boutonAlbum()!.click();
+    await vi.waitFor(() => { flushSync(); expect(confirmer()?.querySelector('button.go')).not.toBeNull(); });
+    // Entre l'aperçu et le geste, la piste 3 a été marquée normale seule.
+    ignoreesPistes.add(3);
+    confirmer()!.querySelector<HTMLButtonElement>('button.go')!.click();
+    await vi.waitFor(() => { flushSync(); expect(hote.querySelector('[data-bilan-ignore]')).not.toBeNull(); });
+    const bilan = hote.querySelector('[data-bilan-ignore]')!;
+    [...bilan.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes(dict['v2.meta.dUndo']))!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(api.retablirAlerteAlbum).toHaveBeenCalledWith([2, 4].map((id) => ({
+        scope: 'track', key: `/m/EL.flac#${id}`, title: '', reason: 'very_short',
+      })));
+      expect(hote.querySelector('[data-piste-id="2"]')).not.toBeNull();
+    });
+    expect(hote.querySelector('[data-piste-id="3"]'), 'la piste 3 reste normale').toBeNull();
+  });
+
+  it('une erreur d’aperçu s’affiche dans le panneau de CE motif', async () => {
+    vi.mocked(api.apercuAlerteAlbum).mockRejectedValueOnce(new Error('panne'));
+    await ouvrir();
+    boutonAlbum()!.click();
+    await vi.waitFor(() => {
+      flushSync();
+      expect(confirmer()?.querySelector('[role="alert"]')?.textContent).toContain('panne');
+    });
+    expect(confirmer()!.getAttribute('data-raison-confirmee')).toBe('very_short');
+    expect(confirmer()!.querySelector('button.go')).toBeNull();
   });
 
   it('contre-épreuve : un serveur sans `ignore_scopes` — albums regroupés, mais aucun geste', async () => {
@@ -182,7 +225,7 @@ describe('API du geste groupé (#9028)', () => {
     vi.stubGlobal('fetch', f);
     await vrai.apercuAlerteAlbum(20, 'very_short');
     await vrai.ignorerAlerteAlbum(20, 'very_short', [2, 3]);
-    await vrai.retablirAlerteAlbum(20, 'very_short');
+    await vrai.retablirAlerteAlbum([{ scope: 'track', key: '/m/a.flac', title: '', reason: 'very_short' }]);
     const appels = f.mock.calls.map((c: any[]) => [String(c[0]), c[1]?.method ?? 'GET', c[1]?.body ?? null]);
     expect(appels[0][0]).toMatch(/\/metadata\/doubtful\/album\?album_id=20&reason=very_short$/);
     expect(appels[1][0]).toMatch(/\/metadata\/doubtful\/ignored\/album$/);
@@ -190,7 +233,7 @@ describe('API du geste groupé (#9028)', () => {
     expect(JSON.parse(appels[1][2])).toEqual({ album_id: 20, reason: 'very_short', track_ids: [2, 3] });
     expect(appels[2][0]).toMatch(/\/metadata\/doubtful\/ignored\/album$/);
     expect(appels[2][1]).toBe('DELETE');
-    expect(JSON.parse(appels[2][2])).toEqual({ album_id: 20, reason: 'very_short' });
+    expect(JSON.parse(appels[2][2])).toEqual({ keys: [{ scope: 'track', key: '/m/a.flac', title: '', reason: 'very_short' }] });
     vi.unstubAllGlobals();
   });
 });

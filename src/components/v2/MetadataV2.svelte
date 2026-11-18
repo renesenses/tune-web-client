@@ -796,7 +796,7 @@
    *  la rend telle quelle, sans tout relire. */
   /*  tune-server-rust#9028 — `album` : le dernier choix est un geste groupé ;
    *  l'annuler passe par « ne plus considérer comme normal » pour l'album. */
-  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; album?: { id: number; reason: string }; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
+  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; album?: { keys: api.CleAlerteIgnoree[] }; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
   let dIgnoreOccupe = $state(false);
   let dAOffrir = $derived(doubtful.some((p) => p.ignore_scopes && Object.keys(p.ignore_scopes).length));
 
@@ -873,7 +873,9 @@
     dIgnoreOccupe = true;
     try {
       const r = await api.ignorerAlerteAlbum(albumId, raison, ids);
-      const vises = new Set(r.track_ids?.length ? r.track_ids : ids);
+      // Mise à jour EXACTE : la raison quitte les pistes que le serveur dit
+      // couvertes, et elles seules.
+      const vises = new Set(r.track_ids ?? []);
       const avant = doubtful;
       doubtful = doubtful
         .map((x) => {
@@ -886,10 +888,10 @@
       dIgnoreeDerniere = {
         texte: $t('v2.meta.dIgnoredAlbumDone' as any)
           .replace('{reason}', texteRaisonSimple(raison))
-          .replace('{count}', $formatNombre(vises.size))
+          .replace('{count}', $formatNombre(r.track_count ?? vises.size))
           .replace('{name}', titre || '—'),
-        alerte: { scope: r.scope, key: r.key, title: r.title ?? '', reason: r.reason ?? raison },
-        album: { id: albumId, reason: raison },
+        alerte: r.added_keys?.[0] ?? { scope: 'track', key: '', title: '', reason: raison },
+        album: { keys: r.added_keys ?? [] },
         avant,
         apres: doubtful,
       };
@@ -902,7 +904,8 @@
     }
   }
 
-  /** « Annuler » le dernier choix : piste ou album selon le geste. */
+  /** « Annuler » le dernier choix : piste, ou les lignes exactes d'un geste
+   *  groupé ; la liste est alors RELUE du serveur. */
   async function annulerDerniere() {
     const derniere = dIgnoreeDerniere;
     if (!derniere) return;
@@ -910,10 +913,10 @@
     if (dIgnoreOccupe) return;
     dIgnoreOccupe = true;
     try {
-      await api.retablirAlerteAlbum(derniere.album.id, derniere.album.reason);
+      if (derniere.album.keys.length) await api.retablirAlerteAlbum(derniere.album.keys);
       dIgnoreeDerniere = null;
-      if (doubtful === derniere.apres) doubtful = derniere.avant;
-      else { dLoaded = false; await chargerDouteuses(true); }
+      dLoaded = false;
+      await chargerDouteuses(true);
       await chargerIgnorees();
     } catch (e: any) {
       echecIgnore(e);
@@ -931,7 +934,7 @@
       // Seuls les quatre champs de la clé partent au serveur.
       await api.retablirAlerteDouteuse({ scope: a.scope, key: a.key, title: a.title ?? '', reason: a.reason });
       const derniere = dIgnoreeDerniere;
-      if (derniere && memeAlerte(derniere.alerte, a)) {
+      if (derniere && !derniere.album && memeAlerte(derniere.alerte, a)) {
         dIgnoreeDerniere = null;
         // Rien n'a bougé depuis : la liste d'avant, sans relire.
         if (doubtful === derniere.apres) doubtful = derniere.avant;

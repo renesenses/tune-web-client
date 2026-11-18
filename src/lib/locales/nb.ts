@@ -3937,6 +3937,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normalt for de {count} sporene i dette albumet",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Bekreft for hele albumet",
   "v2.meta.dIgnoreAlbumPreview": "Disse {count} sporene kommer alle fra albumet «{album}». «{reason}» blir ikke lenger markert for dem:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Bare disse sporene gjelder: et spor som legges til albumet senere, blir fortsatt markert.",
   "v2.meta.dIgnoreAlbumConfirm": "Bekreft: normalt for disse {count} sporene",
   "v2.meta.dIgnoreAlbumNone": "Ingen spor i dette albumet er lenger markert av denne grunnen.",
   "v2.meta.dIgnoredAlbumDone": "«{reason}» blir ikke lenger markert for de {count} sporene i albumet «{name}».",

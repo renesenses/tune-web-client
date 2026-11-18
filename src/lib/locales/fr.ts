@@ -4079,6 +4079,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normal pour les {count} pistes de cet album",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Confirmer pour tout l'album",
   "v2.meta.dIgnoreAlbumPreview": "Ces {count} pistes viennent toutes de l'album « {album} ». « {reason} » ne sera plus signalé pour elles :",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Seules ces pistes sont concernées : une piste ajoutée plus tard à l'album restera signalée.",
   "v2.meta.dIgnoreAlbumConfirm": "Confirmer : normal pour ces {count} pistes",
   "v2.meta.dIgnoreAlbumNone": "Plus aucune piste de cet album n'est signalée pour cette raison.",
   "v2.meta.dIgnoredAlbumDone": "« {reason} » ne sera plus signalé pour les {count} pistes de l'album « {name} ».",

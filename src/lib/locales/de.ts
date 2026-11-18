@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normal für die {count} Titel dieses Albums",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Für das ganze Album bestätigen",
   "v2.meta.dIgnoreAlbumPreview": "Diese {count} Titel stammen alle aus dem Album „{album}“. „{reason}“ wird für sie nicht mehr gemeldet:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Nur diese Titel sind betroffen: Ein später zum Album hinzugefügter Titel wird weiterhin gemeldet.",
   "v2.meta.dIgnoreAlbumConfirm": "Bestätigen: normal für diese {count} Titel",
   "v2.meta.dIgnoreAlbumNone": "Kein Titel dieses Albums wird aus diesem Grund mehr gemeldet.",
   "v2.meta.dIgnoredAlbumDone": "„{reason}“ wird für die {count} Titel des Albums „{name}“ nicht mehr gemeldet.",

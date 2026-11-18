@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "このアルバムの {count} 曲すべてで正常",
   "v2.meta.dIgnoreAlbumConfirmLabel": "アルバム全体で確定",
   "v2.meta.dIgnoreAlbumPreview": "この {count} 曲はすべてアルバム「{album}」の曲です。これらの曲では「{reason}」は今後表示されません：",
+  "v2.meta.dIgnoreAlbumOnlyThese": "対象はこれらの曲だけです。後からアルバムに追加された曲は引き続き指摘されます。",
   "v2.meta.dIgnoreAlbumConfirm": "確定：この {count} 曲で正常",
   "v2.meta.dIgnoreAlbumNone": "このアルバムには、この理由で指摘されている曲はもうありません。",
   "v2.meta.dIgnoredAlbumDone": "アルバム「{name}」の {count} 曲では「{reason}」は今後表示されません。",

@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normale per i {count} brani di questo album",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Conferma per tutto l'album",
   "v2.meta.dIgnoreAlbumPreview": "Questi {count} brani provengono tutti dall'album «{album}». «{reason}» non sarà più segnalato per loro:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Sono interessati solo questi brani: un brano aggiunto in seguito all'album resterà segnalato.",
   "v2.meta.dIgnoreAlbumConfirm": "Conferma: normale per questi {count} brani",
   "v2.meta.dIgnoreAlbumNone": "Nessun brano di questo album è più segnalato per questo motivo.",
   "v2.meta.dIgnoredAlbumDone": "«{reason}» non sarà più segnalato per i {count} brani dell'album «{name}».",

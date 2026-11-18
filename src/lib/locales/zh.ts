@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "此专辑的 {count} 首曲目均为正常",
   "v2.meta.dIgnoreAlbumConfirmLabel": "对整张专辑确认",
   "v2.meta.dIgnoreAlbumPreview": "这 {count} 首曲目都来自专辑「{album}」。它们将不再被标记为「{reason}」：",
+  "v2.meta.dIgnoreAlbumOnlyThese": "仅涉及这些曲目：之后添加到专辑的曲目仍会被标记。",
   "v2.meta.dIgnoreAlbumConfirm": "确认：这 {count} 首曲目正常",
   "v2.meta.dIgnoreAlbumNone": "此专辑已没有因该原因被标记的曲目。",
   "v2.meta.dIgnoredAlbumDone": "专辑「{name}」的 {count} 首曲目将不再被标记为「{reason}」。",

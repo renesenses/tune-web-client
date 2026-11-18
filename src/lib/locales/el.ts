@@ -3937,6 +3937,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Κανονικό για τα {count} κομμάτια αυτού του άλμπουμ",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Επιβεβαίωση για όλο το άλμπουμ",
   "v2.meta.dIgnoreAlbumPreview": "Αυτά τα {count} κομμάτια προέρχονται όλα από το άλμπουμ «{album}». Το «{reason}» δεν θα επισημαίνεται πλέον γι' αυτά:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Αφορά μόνο αυτά τα κομμάτια: ένα κομμάτι που θα προστεθεί αργότερα στο άλμπουμ θα εξακολουθεί να επισημαίνεται.",
   "v2.meta.dIgnoreAlbumConfirm": "Επιβεβαίωση: κανονικό για αυτά τα {count} κομμάτια",
   "v2.meta.dIgnoreAlbumNone": "Κανένα κομμάτι αυτού του άλμπουμ δεν επισημαίνεται πλέον για αυτόν τον λόγο.",
   "v2.meta.dIgnoredAlbumDone": "Το «{reason}» δεν θα επισημαίνεται πλέον για τα {count} κομμάτια του άλμπουμ «{name}».",

@@ -4058,6 +4058,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normal pentru cele {count} piese ale acestui album",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Confirmă pentru tot albumul",
   "v2.meta.dIgnoreAlbumPreview": "Aceste {count} piese provin toate din albumul „{album}”. „{reason}” nu va mai fi semnalat pentru ele:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Sunt vizate doar aceste piese: o piesă adăugată mai târziu în album va fi în continuare semnalată.",
   "v2.meta.dIgnoreAlbumConfirm": "Confirmă: normal pentru aceste {count} piese",
   "v2.meta.dIgnoreAlbumNone": "Nicio piesă din acest album nu mai este semnalată din acest motiv.",
   "v2.meta.dIgnoredAlbumDone": "„{reason}” nu va mai fi semnalat pentru cele {count} piese ale albumului „{name}”.",

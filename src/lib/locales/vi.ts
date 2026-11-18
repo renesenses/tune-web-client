@@ -3939,6 +3939,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Bình thường cho {count} bản nhạc của album này",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Xác nhận cho cả album",
   "v2.meta.dIgnoreAlbumPreview": "{count} bản nhạc này đều thuộc album “{album}”. “{reason}” sẽ không còn được đánh dấu cho chúng:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Chỉ những bản nhạc này bị ảnh hưởng: bản nhạc được thêm vào album sau này vẫn sẽ bị đánh dấu.",
   "v2.meta.dIgnoreAlbumConfirm": "Xác nhận: bình thường cho {count} bản nhạc này",
   "v2.meta.dIgnoreAlbumNone": "Không còn bản nhạc nào của album này bị đánh dấu vì lý do này.",
   "v2.meta.dIgnoredAlbumDone": "“{reason}” sẽ không còn được đánh dấu cho {count} bản nhạc của album “{name}”.",

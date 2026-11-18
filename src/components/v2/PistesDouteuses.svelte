@@ -3,6 +3,7 @@
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
   import { t } from '../../lib/i18n';
+  import { tick } from 'svelte';
 
   /** `onEcrit` reçoit le bilan : c'est le parent qui l'affiche, la liste
    *  relue pouvant ne plus contenir ce composant (#8679). */
@@ -66,10 +67,13 @@
   /** Les raisons qu'un geste groupé peut couvrir dans le bloc : mémorisées
    *  piste par piste (`track`) et portées par au moins deux de ses pistes.
    *  Un artiste manquant se mémorise déjà pour tout l'album (#8958). */
-  function raisonsGroupees(groupe: PisteDouteuse[]): { raison: string; nombre: number }[] {
+  function raisonsGroupees(albumId: number): { raison: string; nombre: number }[] {
     if (!onIgnorerAlbum) return [];
+    // Compté sur TOUTE la liste (pas la seule page affichée) : le même N que
+    // l'aperçu du serveur, qui le confirme avant le geste.
     const compte = new Map<string, number>();
-    for (const p of groupe) {
+    for (const p of pistes) {
+      if (p.album_id !== albumId) continue;
       for (const r of p.reasons ?? []) {
         if (r === 'missing_album' || p.ignore_scopes?.[r] !== 'track') continue;
         compte.set(r, (compte.get(r) ?? 0) + 1);
@@ -85,26 +89,34 @@
   } | null>(null);
   let groupeOccupe = $state(false);
 
+  let panneau = $state<HTMLElement | null>(null);
+  const memeMotif = (albumId: number, raison: string) =>
+    confirmation?.albumId === albumId && confirmation.raison === raison;
+
   async function preparerAlbum(albumId: number, titre: string, raison: string) {
     if (groupeOccupe) return;
     confirmation = { albumId, titre, raison, apercu: null, erreur: null };
+    // Le focus va au panneau : le lecteur d'écran annonce la confirmation.
+    await tick();
+    panneau?.focus();
     try {
       const apercu = await api.apercuAlerteAlbum(albumId, raison);
-      if (confirmation?.albumId === albumId && confirmation.raison === raison) confirmation.apercu = apercu;
+      if (memeMotif(albumId, raison)) confirmation!.apercu = apercu;
     } catch (e: any) {
-      if (confirmation?.albumId === albumId) confirmation.erreur = e?.message ?? $t('v2.meta.dIgnoreFailed' as any);
+      if (memeMotif(albumId, raison)) confirmation!.erreur = e?.message ?? $t('v2.meta.dIgnoreFailed' as any);
     }
   }
 
   async function confirmerAlbum() {
     const c = confirmation;
     if (!c?.apercu?.tracks.length || groupeOccupe || !onIgnorerAlbum) return;
+    const { albumId, raison } = c;
     groupeOccupe = true;
     try {
-      await onIgnorerAlbum(c.albumId, c.raison, c.apercu.tracks.map((x) => x.id), c.apercu.album_title || c.titre);
-      confirmation = null;
+      await onIgnorerAlbum(albumId, raison, c.apercu.tracks.map((x) => x.id), c.apercu.album_title || c.titre);
+      if (memeMotif(albumId, raison)) confirmation = null;
     } catch (e: any) {
-      if (confirmation) confirmation.erreur = e?.message ?? $t('v2.meta.dIgnoreFailed' as any);
+      if (memeMotif(albumId, raison)) confirmation!.erreur = e?.message ?? $t('v2.meta.dIgnoreFailed' as any);
     } finally {
       groupeOccupe = false;
     }
@@ -253,7 +265,7 @@
       {#if 'piste' in bloc}
         {@render lignePiste(bloc.piste)}
       {:else}
-        {@const groupees = raisonsGroupees(bloc.pistes)}
+        {@const groupees = raisonsGroupees(bloc.albumId)}
         <!-- tune-server-rust#9028 — un album, ses pistes signalées, et le
              geste groupé (après confirmation dans la page). -->
         <li class="album" data-album-id={bloc.albumId}>
@@ -273,7 +285,8 @@
           {/each}
           {#if confirmation && confirmation.albumId === bloc.albumId}
             {@const c = confirmation}
-            <div class="confirmer" role="group" aria-label={$t('v2.meta.dIgnoreAlbumConfirmLabel' as any)} data-confirmer-album>
+            <div class="confirmer" role="group" tabindex="-1" bind:this={panneau}
+              aria-label={$t('v2.meta.dIgnoreAlbumConfirmLabel' as any)} data-confirmer-album data-raison-confirmee={c.raison}>
               {#if c.erreur}
                 <p class="erreur" role="alert">{c.erreur}</p>
               {:else if !c.apercu}
@@ -287,6 +300,7 @@
                     .replace('{album}', c.apercu.album_title || c.titre)
                     .replace('{reason}', $t(cleRaison(c.raison) as any))}
                 </p>
+                <p data-seules-ces-pistes>{$t('v2.meta.dIgnoreAlbumOnlyThese' as any)}</p>
                 {#if c.apercu.folder}<p class="chemin">{c.apercu.folder}</p>{/if}
                 <ul class="pistes-album">
                   {#each c.apercu.tracks as x (x.id)}

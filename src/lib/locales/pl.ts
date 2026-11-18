@@ -3937,6 +3937,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normalne dla {count} utworów tego albumu",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Potwierdź dla całego albumu",
   "v2.meta.dIgnoreAlbumPreview": "Te utwory ({count}) pochodzą z albumu „{album}”. „{reason}” nie będzie już dla nich zgłaszane:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Dotyczy tylko tych utworów: utwór dodany później do albumu nadal będzie oznaczany.",
   "v2.meta.dIgnoreAlbumConfirm": "Potwierdź: normalne dla tych utworów ({count})",
   "v2.meta.dIgnoreAlbumNone": "Żaden utwór tego albumu nie jest już oznaczony z tego powodu.",
   "v2.meta.dIgnoredAlbumDone": "„{reason}” nie będzie już zgłaszane dla {count} utworów albumu „{name}”.",

@@ -4057,6 +4057,7 @@ export default {
   "v2.meta.dIgnoreAlbumN": "Normalt för de {count} spåren i det här albumet",
   "v2.meta.dIgnoreAlbumConfirmLabel": "Bekräfta för hela albumet",
   "v2.meta.dIgnoreAlbumPreview": "De här {count} spåren kommer alla från albumet ”{album}”. ”{reason}” flaggas inte längre för dem:",
+  "v2.meta.dIgnoreAlbumOnlyThese": "Endast de här spåren berörs: ett spår som läggs till i albumet senare flaggas fortfarande.",
   "v2.meta.dIgnoreAlbumConfirm": "Bekräfta: normalt för de här {count} spåren",
   "v2.meta.dIgnoreAlbumNone": "Inget spår i det här albumet är längre flaggat av den här anledningen.",
   "v2.meta.dIgnoredAlbumDone": "”{reason}” flaggas inte längre för de {count} spåren i albumet ”{name}”.",
