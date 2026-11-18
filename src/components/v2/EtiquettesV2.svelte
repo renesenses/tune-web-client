@@ -68,7 +68,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import {
-    cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete, EVENEMENT_ETIQUETTE_MODIFIEE,
+    cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete, origineFicheAlbumEtiquete, EVENEMENT_ETIQUETTE_MODIFIEE,
   } from '../../lib/cibleEtiquette';
   import {
     cibleEtiquetteObjet, gestesObjet,
@@ -873,7 +873,11 @@
     {/if}
 
     {#if albumOuvert}
-      <AlbumDetailV2 album={albumOuvert} depot={null} onClose={retourCalqueAlbum} />
+      <!-- #3224 — un album de SERVICE étiqueté (`id: null`, paire `source` +
+           `source_id`) doit dire son origine à la fiche, sans quoi elle ne
+           sait charger ses pistes nulle part et reste sur « Chargement… ». -->
+      {@const origine = origineFicheAlbumEtiquete(albumOuvert as any)}
+      <AlbumDetailV2 album={albumOuvert} depot={null} service={origine.service} bandcamp={origine.bandcamp} onClose={retourCalqueAlbum} />
     {/if}
 
     <!-- web#1660 — la fiche d'une playlist DE SERVICE, dans son calque, comme
