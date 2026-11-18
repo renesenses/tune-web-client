@@ -2601,6 +2601,7 @@ export default {
   "eq.peqLockedHint": "Grafen är låst: ”Redigera” för att flytta eller lägga till band",
   "eq.peqRemove": "Ta bort bandet",
   "eq.peqType": "Typ",
+  "eq.peqQShelfTip": "Fast lutning: Q har ingen effekt på ett hyllfilter (low_shelf, high_shelf).",
   "eq.peqChannel": "Kanal",
   "eq.peqChannelBoth": "Båda",
   "eq.peqChannelLeft": "Vänster",

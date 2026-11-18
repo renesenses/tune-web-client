@@ -961,6 +961,7 @@ export default {
   'eq.peqFreq': "Frequenza (Hz)",
   'eq.peqGain': "Gain (dB)",
   'eq.peqType': "Tipo",
+  'eq.peqQShelfTip': "Pendenza fissa: il Q non ha effetto su un filtro shelving (low_shelf, high_shelf).",
   "eq.peqChannel": "Canale",
   "eq.peqChannelBoth": "Entrambi",
   "eq.peqChannelLeft": "Sinistro",

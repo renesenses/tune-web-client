@@ -961,6 +961,7 @@ export default {
   'eq.peqFreq': "Frecuencia (Hz)",
   'eq.peqGain': "Ganancia (dB)",
   'eq.peqType': "Tipo",
+  'eq.peqQShelfTip': "Pendiente fija: Q no tiene efecto en un filtro de estantería (low_shelf, high_shelf).",
   "eq.peqChannel": "Canal",
   "eq.peqChannelBoth": "Ambos",
   "eq.peqChannelLeft": "Izquierdo",

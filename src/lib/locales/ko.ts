@@ -2628,6 +2628,7 @@ export default {
   "eq.peqLockedHint": "그래프 잠김: \"편집\"을 눌러 밴드를 이동하거나 추가",
   "eq.peqRemove": "밴드 삭제",
   "eq.peqType": "유형",
+  "eq.peqQShelfTip": "고정 기울기: 셸빙 필터(low_shelf, high_shelf)에서는 Q가 효과가 없습니다.",
   "eq.peqChannel": "채널",
   "eq.peqChannelBoth": "양쪽",
   "eq.peqChannelLeft": "왼쪽",

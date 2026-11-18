@@ -961,6 +961,7 @@ export default {
   'eq.peqFreq': "Frequenz (Hz)",
   'eq.peqGain': "Gain (dB)",
   'eq.peqType': "Typ",
+  'eq.peqQShelfTip': "Feste Flankensteilheit: Q hat bei einem Kuhschwanzfilter (low_shelf, high_shelf) keine Wirkung.",
   "eq.peqChannel": "Kanal",
   "eq.peqChannelBoth": "Beide",
   "eq.peqChannelLeft": "Links",

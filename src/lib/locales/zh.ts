@@ -961,6 +961,7 @@ export default {
   'eq.peqFreq': "频率 (Hz)",
   'eq.peqGain': "增益 (dB)",
   'eq.peqType': "类型",
+  'eq.peqQShelfTip': "斜率固定：Q 对搁架滤波器（low_shelf、high_shelf）无效。",
   "eq.peqChannel": "声道",
   "eq.peqChannelBoth": "两者",
   "eq.peqChannelLeft": "左",

@@ -967,6 +967,7 @@ export default {
   'eq.peqFreq': "Frecvență (Hz)",
   'eq.peqGain': "Câștig (dB)",
   'eq.peqType': "Tip",
+  'eq.peqQShelfTip': "Pantă fixă: Q nu are efect asupra unui filtru de raft (low_shelf, high_shelf).",
   "eq.peqChannel": "Canal",
   "eq.peqChannelBoth": "Ambele",
   "eq.peqChannelLeft": "Stânga",

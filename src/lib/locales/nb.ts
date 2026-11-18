@@ -1007,6 +1007,7 @@ export default {
   "eq.peqFreq": "Frekvens (Hz)",
   "eq.peqGain": "Forsterkning (dB)",
   "eq.peqType": "Type",
+  "eq.peqQShelfTip": "Fast helling: Q har ingen virkning på et hyllefilter (low_shelf, high_shelf).",
   "eq.peqChannel": "Kanal",
   "eq.peqChannelBoth": "Begge",
   "eq.peqChannelLeft": "Venstre",

@@ -196,9 +196,19 @@
     dragging = false;
   }
 
+  // web#3083 (fil 2508) — un plateau est conçu à pente fixe S = 1, côté
+  // serveur (`low_shelf`/`high_shelf` du moteur ignorent `q`) comme dans la
+  // courbe ci-dessus : son Q est sans effet. Le champ est grisé et la molette
+  // ne le change plus ; la valeur reste dans la bande (un import AutoEq la
+  // garde, et elle resservira si la bande repasse en `peak`).
+  const SANS_Q = new Set<string>(['low_shelf', 'high_shelf']);
+  const qSansEffet = (b: EqBand | undefined): boolean => SANS_Q.has(b?.type ?? 'peak');
+
   function onWheel(i: number, e: WheelEvent) {
     // Figé : la molette fait défiler la page, comme partout ailleurs.
     if (!edition) return;
+    // Plateau : pas de Q à régler, la page défile comme en mode figé.
+    if (qSansEffet(bands[i])) return;
     e.preventDefault();
     const b = bands[i];
     const q = b.q && b.q > 0 ? b.q : 1.41;
@@ -408,9 +418,10 @@
           onchange={(e) => validerChamp('gain', e.currentTarget)}
           onblur={(e) => validerChamp('gain', e.currentTarget)} />
       </label>
-      <label>
+      <label title={qSansEffet(b) ? $t('eq.peqQShelfTip' as any) : undefined}>
         <span>Q</span>
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          disabled={qSansEffet(b)}
           data-cle="q" value={texteDuChamp('q')}
           oninput={(e) => surSaisie('q', e)}
           onkeydown={(e) => surTouche('q', e)}
@@ -519,4 +530,6 @@
     border-radius: 6px;
     padding: 0.25rem 0.4rem;
   }
+  /* web#3083 — Q d'un plateau : lisible, mais visiblement inactif. */
+  .peq-editor input:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
