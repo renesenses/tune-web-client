@@ -1084,6 +1084,13 @@ export interface ZoneSupprimee {
   motif: string | null;
   masquee_le: string | null;
   appareil_detecte: boolean;
+  /** tune-server-rust#8987 — l'appareil que la zone a lâché au profit d'une
+   *  autre zone, et la zone qui le tient (`null` : libre). Absent sur un
+   *  serveur antérieur. */
+  sortie_liberee?: {
+    output_device_id: string;
+    reprise_par: { id: number; name: string } | null;
+  } | null;
 }
 /**
  * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
