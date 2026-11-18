@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 // TESS (W3/W5) — le client lit la réponse du serveur telle que le contrat la
 // fixe (`docs/tess/contrat.md`, tune-core/src/tess/api.rs).
 //
