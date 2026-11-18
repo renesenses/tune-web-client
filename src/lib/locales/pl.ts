@@ -2222,7 +2222,7 @@ export default {
   "machineAction.notLocal": "Gdy uwierzytelnianie jest wyłączone, ta czynność jest przyjmowana tylko z komputera, na którym działa Tune. Aby wykonać ją z tego urządzenia, włącz uwierzytelnianie i zaloguj się na konto administratora; w przeciwnym razie otwórz Tune na tym komputerze (http://localhost:8888).",
   "machineAction.notLocalRestart": "Odmowa ponownego uruchomienia: z innego urządzenia Tune przyjmuje tę czynność tylko przy włączonym uwierzytelnianiu (konto administratora). Włącz je albo uruchom Tune ponownie z komputera lub kontenera: {command}.",
   "machineAction.port80Relay": "To urządzenie przekierowuje port 80, więc Tune nie odróżni wywołania lokalnego od sieciowego. Włącz uwierzytelnianie i zaloguj się na konto administratora.",
-  "machineAction.whereToEnable": "Aby włączyć uwierzytelnianie: Ustawienia > System > Uwierzytelnianie (z innego urządzenia, z kodem jednorazowym wyświetlanym przez docker logs, journalctl -u tune lub na ekranie Tune OS).",
+  "machineAction.whereToEnable": "Aby włączyć uwierzytelnianie: Ustawienia > System > Uwierzytelnianie (z innego urządzenia, z kodem jednorazowym wyświetlanym przez docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "settings.updateStatusUnknown": "Nie wiadomo, czy aktualizacja została zainstalowana: serwer nie odpowiedział. Odśwież stronę, aby zobaczyć działającą wersję.",
   "settings.updateInstallFailed": "Aktualizacja nie powiodła się. Przyczyna podana przez serwer: {reason}",
   "settings.updateButton": "Zaktualizuj",

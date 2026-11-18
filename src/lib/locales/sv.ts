@@ -1517,7 +1517,7 @@ export default {
   "machineAction.notLocal": "När autentisering är avstängd accepteras den här åtgärden bara från datorn som kör Tune. Om du vill göra det från den här enheten, aktivera autentisering och logga in med ett administratörskonto; annars öppnar du Tune på själva datorn (http://localhost:8888).",
   "machineAction.notLocalRestart": "Omstart nekad: från en annan enhet accepterar Tune den här åtgärden bara när autentisering är aktiverad (administratörskonto). Aktivera den, eller starta om Tune från datorn eller containern: {command}.",
   "machineAction.port80Relay": "Den här enheten vidarebefordrar port 80, så Tune kan inte skilja ett lokalt anrop från ett nätverksanrop. Aktivera autentisering och logga in med ett administratörskonto.",
-  "machineAction.whereToEnable": "Så aktiverar du autentisering: Inställningar > System > Autentisering (från en annan enhet, med engångskoden som visas av docker logs, journalctl -u tune eller Tune OS-skärmen).",
+  "machineAction.whereToEnable": "Så aktiverar du autentisering: Inställningar > System > Autentisering (från en annan enhet, med engångskoden som visas av docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "settings.updateStatusUnknown": "Går inte att avgöra om uppdateringen installerades: servern svarade inte. Ladda om sidan för att se vilken version som körs.",
   "settings.updateInstallFailed": "Uppdateringen misslyckades. Orsak enligt servern: {reason}",
   "settings.updateButton": "Uppdatera",

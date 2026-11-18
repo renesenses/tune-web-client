@@ -1552,7 +1552,7 @@ export default {
   "machineAction.notLocal": "인증이 꺼져 있는 동안 이 작업은 Tune이 실행 중인 기기에서만 허용됩니다. 이 기기에서 하려면 인증을 켜고 관리자 계정으로 로그인하세요. 그렇지 않으면 해당 기기에서 직접 Tune을 여세요(http://localhost:8888).",
   "machineAction.notLocalRestart": "다시 시작이 거부되었습니다: 다른 기기에서는 인증이 켜져 있을 때(관리자 계정)만 Tune이 이 작업을 허용합니다. 인증을 켜거나, 기기 또는 컨테이너에서 Tune을 다시 시작하세요: {command}.",
   "machineAction.port80Relay": "이 어플라이언스는 포트 80을 중계하므로 Tune이 로컬 호출과 네트워크 호출을 구분할 수 없습니다. 인증을 켜고 관리자 계정으로 로그인하세요.",
-  "machineAction.whereToEnable": "인증을 켜려면: 설정 > 시스템 > 인증(다른 기기에서는 docker logs, journalctl -u tune 또는 Tune OS 화면에 표시되는 일회용 코드 사용).",
+  "machineAction.whereToEnable": "인증을 켜려면: 설정 > 시스템 > 인증(다른 기기에서는 docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "settings.updateStatusUnknown": "업데이트가 설치되었는지 알 수 없습니다. 서버가 응답하지 않았습니다. 페이지를 새로 고쳐 실행 중인 버전을 확인하세요.",
   "settings.updateInstallFailed": "업데이트에 실패했습니다. 서버가 알려 준 이유: {reason}",
   "settings.updateButton": "업데이트",
