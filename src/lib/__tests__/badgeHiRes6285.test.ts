@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { badgeHiRes } from '../badgeHiRes';
+import { badgeHiRes, compteBadgeHiRes, infobulleHiRes } from '../badgeHiRes';
 import fr from '../locales/fr';
 import en from '../locales/en';
 import de from '../locales/de';
@@ -22,14 +22,16 @@ import ko from '../locales/ko';
 import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
+import trLocale from '../locales/tr';
 
 describe('Badge hi-res (#6285)', () => {
   it('vérifié et douteux se montrent, avec la raison du doute', () => {
-    expect(badgeHiRes({ verdict: 'verifie' })).toEqual({ genre: 'verifie', cle: 'v2.album.hiresVerified', cleRaison: null });
+    expect(badgeHiRes({ verdict: 'verifie' })).toEqual({ genre: 'verifie', cle: 'v2.album.hiresVerified', cleRaison: null, coupureHz: null, pistes: null });
     expect(badgeHiRes({ verdict: 'douteux', raison: 'bande_de_cd' }))
-      .toEqual({ genre: 'douteux', cle: 'v2.album.hiresDoubtful', cleRaison: 'v2.album.hiresWhyCd' });
+      .toEqual({ genre: 'douteux', cle: 'v2.album.hiresDoubtful', cleRaison: 'v2.album.hiresWhyCd', coupureHz: null, pistes: null });
     expect(badgeHiRes({ verdict: 'douteux', raison: 'bits_de_remplissage' })?.cleRaison).toBe('v2.album.hiresWhyBits');
-    expect(badgeHiRes({ verdict: 'douteux', raison: 'coupure_de_codec' })?.cleRaison).toBe('v2.album.hiresWhyCodec');
+    expect(badgeHiRes({ verdict: 'douteux', raison: 'coupure_spectrale' })?.cleRaison).toBe('v2.album.hiresWhyCutoffGeneric');
+    expect(badgeHiRes({ verdict: 'douteux', raison: 'signature_de_codec' })?.cleRaison).toBe('v2.album.hiresWhyCodecSigGeneric');
     expect(badgeHiRes({ verdict: 'douteux', raison: 'inconnue' })?.cleRaison).toBeNull();
   });
 
@@ -38,10 +40,18 @@ describe('Badge hi-res (#6285)', () => {
     expect(badgeHiRes(null)).toBeNull();
   });
 
-  it('les six libellés existent dans les 15 langues', () => {
-    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh };
-    const cles = ['v2.album.hiresVerified', 'v2.album.hiresDoubtful', 'v2.album.hiresVerifiedTip', 'v2.album.hiresWhyBits', 'v2.album.hiresWhyCd', 'v2.album.hiresWhyCodec'];
-    for (const [l, table] of Object.entries(tables)) for (const c of cles) expect(table[c], `${l} : ${c}`).toBeTruthy();
+  it('les libellés existent dans les 16 langues, et les {freq}, {n}, {total} y sont', () => {
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh, tr: trLocale };
+    const cles = ['v2.album.hiresVerified', 'v2.album.hiresDoubtful', 'v2.album.hiresVerifiedTip', 'v2.album.hiresWhyBits', 'v2.album.hiresWhyCd',
+      'v2.album.hiresWhyCdAt', 'v2.album.hiresWhyCutoff', 'v2.album.hiresWhyCutoffGeneric', 'v2.album.hiresWhyCodecSig', 'v2.album.hiresWhyCodecSigGeneric', 'v2.album.hiresTracks'];
+    for (const [l, table] of Object.entries(tables)) {
+      for (const c of cles) expect(table[c], `${l} : ${c}`).toBeTruthy();
+      for (const c of ['v2.album.hiresWhyCdAt', 'v2.album.hiresWhyCutoff', 'v2.album.hiresWhyCodecSig']) expect(table[c], `${l} : ${c}`).toContain('{freq}');
+      expect(table['v2.album.hiresTracks'], l).toContain('{n}');
+      expect(table['v2.album.hiresTracks'], l).toContain('{total}');
+      // #9035 — l'ancien libellé « coupé comme par un codec » ne sert plus.
+      expect(table['v2.album.hiresWhyCodec'], l).toBeUndefined();
+    }
   });
 
   it('BRANCHEMENT — la fiche album lit le verdict et pose le badge', () => {
@@ -49,5 +59,57 @@ describe('Badge hi-res (#6285)', () => {
     expect(fiche).toContain('api.getAlbumHiRes(id)');
     expect(fiche).toContain('hiRes = badgeHiRes(v)');
     expect(fiche).toContain('data-hires={hiRes.genre}');
+  });
+
+  // tune-server-rust#9035 — la raison dit la coupure mesurée et combien de
+  // pistes sont en cause ; « codec » seulement sur signature mesurée.
+  const fausseTr = (c: string) => (fr as Record<string, string>)[c] ?? c;
+
+  it('#9035 — une coupure seule dit sa fréquence et « codec OU mastering », jamais « codec » tout court', () => {
+    const b = badgeHiRes({ verdict: 'douteux', raison: 'coupure_spectrale', coupure_hz: 16100, pistes_douteuses: 3, pistes_mesurees: 10 });
+    expect(b).toEqual({ genre: 'douteux', cle: 'v2.album.hiresDoubtful', cleRaison: 'v2.album.hiresWhyCutoff', coupureHz: 16100, pistes: { douteuses: 3, mesurees: 10 } });
+    const texte = infobulleHiRes(b, fausseTr, 'fr');
+    expect(texte).toContain('Spectre coupé net vers 16,1 kHz');
+    expect(texte).toContain('ou un filtrage au mastering');
+    expect(texte).toContain('Pistes en cause : 3 sur 10');
+    expect(compteBadgeHiRes(b)).toBe('3/10');
+  });
+
+  it('#9035 — la signature mesurée, elle, dit « codec avec perte »', () => {
+    const b = badgeHiRes({ verdict: 'douteux', raison: 'signature_de_codec', coupure_hz: 16000 });
+    expect(b?.cleRaison).toBe('v2.album.hiresWhyCodecSig');
+    expect(infobulleHiRes(b, fausseTr, 'fr')).toContain('vers 16 kHz, avec les bandes vides intermittentes d\'un codec avec perte (MP3, AAC)');
+  });
+
+  it('#9035 — compatibilité : un serveur antérieur envoie `coupure_de_codec` sans compte ni coupure d album', () => {
+    const b = badgeHiRes({
+      verdict: 'douteux', raison: 'coupure_de_codec',
+      pistes: [
+        { verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 17800 },
+        { verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 18200 },
+        { verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 18000 },
+        { verdict: 'verifie', raison: null, coupure_hz: null },
+        { verdict: 'non_concluant', raison: null, coupure_hz: null },
+      ],
+    });
+    expect(b?.cleRaison).toBe('v2.album.hiresWhyCutoff');
+    expect(b?.coupureHz).toBe(18000);
+    expect(b?.pistes).toEqual({ douteuses: 3, mesurees: 4 });
+    const texte = infobulleHiRes(b, fausseTr, 'fr');
+    expect(texte).not.toMatch(/comme par un codec/);
+    expect(texte).toContain('18');
+    // Sans pistes ni coupure : la raison générique, sans fréquence inventée.
+    const nu = badgeHiRes({ verdict: 'douteux', raison: 'coupure_de_codec' });
+    expect(nu?.cleRaison).toBe('v2.album.hiresWhyCutoffGeneric');
+    expect(infobulleHiRes(nu, fausseTr, 'fr')).not.toContain('{freq}');
+    expect(compteBadgeHiRes(nu)).toBe('');
+  });
+
+  it('#9035 — BRANCHEMENT : le badge montre le compte et l infobulle la raison, la fiche piste aussi', () => {
+    const fiche = readFileSync('src/components/v2/AlbumDetailV2.svelte', 'utf8');
+    expect(fiche).toContain('infobulleHiRes(hiRes');
+    expect(fiche).toContain('compteBadgeHiRes(hiRes)');
+    const piste = readFileSync('src/components/v2/FicheTechniquePanneau.svelte', 'utf8');
+    expect(piste).toContain('infobulleHiRes(badgeHiRes(fiche.faux_hires)');
   });
 });

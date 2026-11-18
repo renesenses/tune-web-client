@@ -14,7 +14,7 @@
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
-  import { t as tr, tn } from '../../lib/i18n';
+  import { t as tr, tn, locale } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -66,7 +66,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
-  import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
+  import { badgeHiRes, compteBadgeHiRes, infobulleHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -1948,8 +1948,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
         <!-- tune-server-rust#6285 — « hi-res vérifié / douteux » : rien tant que
              le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
-        {#if hiRes}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
-          title={$tr((hiRes.cleRaison ?? 'v2.album.hiresVerifiedTip') as any)}>{$tr(hiRes.cle as any)}</div>{/if}
+        <!-- tune-server-rust#9035 — la raison dit la coupure MESURÉE (« coupé
+             net vers 16,1 kHz ») et le badge combien de pistes sont en cause
+             (« 3/10 ») ; « codec avec perte » seulement sur signature mesurée. -->
+        {#if hiRes}{@const infobulle = infobulleHiRes(hiRes, (c) => $tr(c as any), $locale ?? 'fr')}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
+          title={infobulle} aria-label={`${$tr(hiRes.cle as any)}. ${infobulle}`}>{$tr(hiRes.cle as any)}{#if compteBadgeHiRes(hiRes)}<span class="hires-compte" data-hires-compte> · {compteBadgeHiRes(hiRes)}</span>{/if}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La
