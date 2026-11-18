@@ -306,7 +306,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
           'versions', 'autres versions', 'ordre', 'source', 'qobuz', 'bandcamp',
           // #1428 : le réglage se cherche par le nom du BOUTON — « stop »,
           // « arrêt » — et par l'endroit où il manque, la barre de transport.
-          'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture'] },
+          'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture',
+          // web#3143 : une ligne par titre ou par écoute dans l'Historique.
+          'historique', 'écoutes', 'une ligne par écoute', 'history'] },
       // web#916 — le revers de « Pas pour moi » : revoir et rétablir, par
       // profil, ce qu'on a écarté des suggestions de l'accueil.
       { id: 'dismissedSuggestions', titleKey: 'v2.dismiss.settingsTitle', from: 'general', min: 'beginner',

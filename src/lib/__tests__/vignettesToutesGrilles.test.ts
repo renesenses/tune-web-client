@@ -105,7 +105,7 @@ describe('câblage par écran', () => {
     ['src/components/v2/PageWidgets.svelte', 3],
     ['src/components/v2/ligne1/CarteZoneL1.svelte', 1],
     ['src/components/v2/StreamingV2.svelte', 2],
-    ['src/components/v2/QueueV2.svelte', 2],
+    ['src/components/v2/QueueV2.svelte', 3],
     ['src/components/v2-heritage/SmartPlaylistsView.svelte', 2],
   ])('%s : toutes ses pochettes (%i) sont des vignettes', (fichier, n) => {
     const b = balises(lire(fichier));

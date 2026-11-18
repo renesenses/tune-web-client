@@ -1032,6 +1032,8 @@ export interface LocalAudioDevice {
 
 // Request/Response models
 export interface QueueStateResponse {
+  /** Serveur #8849 : déplacer un bloc atomiquement ; absent = ancien serveur. */
+  block_move_supported?: boolean;
   tracks: Track[];
   position: number;
   length: number;

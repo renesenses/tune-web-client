@@ -29,6 +29,7 @@ import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -737,6 +738,12 @@ export async function fetchJSON<T>(
         ) {
           notifications.error(err.message, 10000, err.detail);
         }
+        err.dejaAnnonce = true;
+      } else if (estLectureYoutubeInactive(err.code)) {
+        // tune-server-rust#8913 — YouTube sans yt-dlp : la phrase traduite du
+        // serveur (ou son repli) et le bouton qui mène au réglage « Lecture
+        // YouTube », au lieu du 502 `upstream_error` brut d'avant.
+        err.message = annoncerLectureYoutubeInactive(err.message);
         err.dejaAnnonce = true;
       } else if (err.code === CODE_RECONNEXION_FAVORIS_SPOTIFY) {
         // tune-server-rust#8579 — favori Spotify refusé faute d'autorisation
@@ -2311,10 +2318,10 @@ export function jumpInQueue(zoneId: number, position: number) {
  *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
  *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
  *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
-export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
+export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number, bloc?: { count: number; expected_order: number[] }) {
   return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
-    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
+    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition, ...bloc }),
   });
 }
 
@@ -3487,6 +3494,8 @@ export async function getFilteredTracks(opts: {
   conductor?: FacetParam;
   ensemble?: FacetParam;
   work?: FacetParam;
+  /** web#3157 — instrument des crédits (CRD-6, serveur rc12). */
+  instrument?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3524,7 +3533,7 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work', 'instrument',
     'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
@@ -6501,6 +6510,11 @@ export function getSystemEnv() {
     container?: string | null;
     /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
     container_id?: string | null;
+    /**
+     * tune-server-rust#8747 — le dossier de données survit-il à la recréation
+     * du conteneur ? `null` hors conteneur ; absent : serveur plus ancien.
+     */
+    data_persistence?: import('./persistanceDonnees').PersistanceDonnees | null;
   }>(`${BASE}/system/env`);
 }
 
@@ -8489,6 +8503,16 @@ export function setCrossfader(zoneId: number, position: number) {
 export function getTrackWaveform(trackId: number) {
   return fetchJSON<{ track_id: number; waveform: number[] | null; error?: string }>(
     `${BASE}/library/tracks/${trackId}/waveform`, undefined, undefined, true,
+  );
+}
+
+/** L'enveloppe de la barre pour une piste Qobuz ou TIDAL en lecture (go du
+ *  17/11/2026, rc13). `202 { pending: true }` tant que le serveur calcule ;
+ *  voir `lib/barreOnde`. */
+export function getServiceTrackWaveform(service: string, sourceId: string) {
+  return fetchJSON<{ waveform: number[] | null; pending?: boolean; error?: string; raison?: string }>(
+    `${BASE}/library/service-tracks/${encodeURIComponent(service)}/${encodeURIComponent(sourceId)}/waveform`,
+    undefined, undefined, true,
   );
 }
 

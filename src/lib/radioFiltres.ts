@@ -24,8 +24,6 @@ export interface FiltresRadio {
    * serveur, flux par flux (`haute_qualite=true`).
    */
   hauteQualite: boolean;
-  /** Un flux SANS PERTE au-delà de 48 kHz (jugé au serveur, flux par flux). */
-  hires: boolean;
   /** Le titre en cours est publié par radio-metadata.fr (badge Metadata+). */
   metadataPlus: boolean;
   /** Seulement les stations en favori dans « Mes radios ». */
@@ -37,7 +35,6 @@ export const FILTRES_RADIO_VIDES: FiltresRadio = Object.freeze({
   qualiteMin: null,
   lossless: false,
   hauteQualite: false,
-  hires: false,
   metadataPlus: false,
   favoris: false,
 });
@@ -81,6 +78,11 @@ function qualiteLue(o: Record<string, unknown>): string | null {
 /**
  * Une valeur lue des préférences (éventuellement ancienne, partielle ou
  * abîmée) ramenée à des critères valides. Rien de lisible : aucun critère.
+ *
+ * Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : le filtre « Hi-Res »
+ * a quitté l'écran. Une préférence qui le portait (`hires: true`) l'OUBLIE
+ * ici : sans bouton pour le voir ni l'éteindre, il filtrerait en silence. Le
+ * serveur, lui, comprend toujours `hires=true` (rc12).
  */
 export function normaliserFiltresRadio(v: unknown): FiltresRadio {
   if (!v || typeof v !== 'object') return { ...FILTRES_RADIO_VIDES };
@@ -91,7 +93,6 @@ export function normaliserFiltresRadio(v: unknown): FiltresRadio {
     qualiteMin: qualiteLue(o),
     lossless: o.lossless === true,
     hauteQualite: o.hauteQualite === true,
-    hires: o.hires === true,
     metadataPlus: o.metadataPlus === true,
     favoris: o.favoris === true,
   };
@@ -99,7 +100,7 @@ export function normaliserFiltresRadio(v: unknown): FiltresRadio {
 
 /** Combien de critères sont actifs (pour le bouton replié). */
 export function nombreDeFiltresActifs(f: FiltresRadio): number {
-  return [f.codec != null, f.qualiteMin != null, f.lossless, f.hauteQualite, f.hires, f.metadataPlus, f.favoris]
+  return [f.codec != null, f.qualiteMin != null, f.lossless, f.hauteQualite, f.metadataPlus, f.favoris]
     .filter(Boolean).length;
 }
 
@@ -112,7 +113,6 @@ export function parametresDesFiltres(f: FiltresRadio): Record<string, string> {
   // tune-server-rust#7466 comprend (`sans_perte` en est l'alias, rc12).
   if (f.lossless) p.lossless = 'true';
   if (f.hauteQualite) p.haute_qualite = 'true';
-  if (f.hires) p.hires = 'true';
   if (f.metadataPlus) p.metadata_plus = 'true';
   if (f.favoris) p.favorites_only = 'true';
   return p;
