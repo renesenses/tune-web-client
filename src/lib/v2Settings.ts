@@ -263,6 +263,14 @@ export const V2_SETTINGS: V2SettingsTab[] = [
         // #1427 — la correction de pièce (FIR) vit ICI : on la cherche par son nom.
         'correction de pièce', 'correction acoustique', 'correction numérique', 'room correction', 'fir', 'convolution', 'réponse impulsionnelle', 'impulse response'] },
       /**
+       * tune-server-rust#9044 — go de Bertrand le 18/11 pour la rc13 : les
+       * appareils partis du réseau restaient listés, grisés, à vie. Ici on
+       * les voit (« absent depuis… ») et on les OUBLIE, avec leur zone.
+       * Niveau débutant : c'est la question d'un testeur, pas d'un expert.
+       */
+      { id: 'absentDevices', titleKey: 'settings.absentDevices', from: 'devices', min: 'beginner',
+        keywords: ['absent', 'absents', 'oublier', 'supprimer', 'ancien', 'anciens', 'vieux', 'fantôme', 'hors ligne', 'disparu', 'old devices', 'forget', 'delete', 'remove', 'offline'] },
+      /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
        * réglages en local ! »
