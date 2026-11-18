@@ -70,5 +70,11 @@ describe('#9070 — micro muet', () => {
     expect(libelleMicro({ nom: 'Umik-1  Gain: 18dB, USB Audio', acces: 'hw' })).toBe('Umik-1  Gain: 18dB, USB Audio (hw)');
     expect(libelleMicro({ nom: 'Micro MacBook', acces: null })).toBe('Micro MacBook');
     expect(libelleMicro({ nom: 'Micro' })).toBe('Micro');
+    expect(libelleMicro({ nom: 'Umik-1', acces: 'hw', id: 'alsa:hw:CARD=U18dB,DEV=0' })).toBe('Umik-1 (hw)');
+  });
+
+  it('pas de type redondant pour les PCM sans carte (default, pipewire)', () => {
+    expect(libelleMicro({ nom: 'Default ALSA Device', acces: 'default', id: 'alsa:default' })).toBe('Default ALSA Device');
+    expect(libelleMicro({ nom: 'PipeWire Sound Server', acces: 'pipewire', id: 'alsa:pipewire' })).toBe('PipeWire Sound Server');
   });
 });

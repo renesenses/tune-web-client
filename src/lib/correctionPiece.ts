@@ -411,8 +411,11 @@ export function avertissementFrequenceMicro(
  * d'accès ALSA quand le serveur le donne : plusieurs PCM d'une même carte
  * portent le même nom.
  */
-export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'>): string =>
-  m.acces ? `${m.nom} (${m.acces})` : m.nom;
+export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'> & { id?: string }): string =>
+  // Seulement pour un accès lié à une carte (`alsa:hw:CARD=…`) : pour
+  // `alsa:default` ou `alsa:pipewire`, le type répéterait le nom
+  // (« Default ALSA Device (default) »).
+  m.acces && (m.id === undefined || /^alsa:[^:]+:/.test(m.id)) ? `${m.nom} (${m.acces})` : m.nom;
 
 /**
  * tune-server-rust#9070 — l'entrée matérielle d'un PCM ALSA
