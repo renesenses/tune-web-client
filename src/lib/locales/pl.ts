@@ -3220,6 +3220,7 @@ export default {
   "acoustic.paused.thermal": "Wstrzymano: procesor jest zbyt gorący. Analiza wznowi się po jego ostygnięciu.",
   "acoustic.paused.low_memory": "Wstrzymano: obecnie brakuje pamięci. Analiza wznowi się, gdy tylko będzie jej dość.",
   "acoustic.paused.not_premium": "Wstrzymano: analiza akustyczna jest funkcją Premium.",
+  "acoustic.paused.model_unavailable": "Wstrzymano: nie udało się wczytać modelu analizy. Uruchom ponownie Tune, aby spróbować jeszcze raz.",
   "acoustic.pausedUnknown": "Wstrzymano ({reason}). Analiza wznowi się sama.",
   "acoustic.modelFetchFailed": "Pobieranie modelu nie powiodło się po {attempts} próbach:",
   "acoustic.failedTracks": "Nieprzeanalizowane utwory: {count}. Plik został odczytany, ale dekoder nic z niego nie uzyskał. Nie będą ponawiane — wskaźnik rzeczywiście wynosi 100 %.",

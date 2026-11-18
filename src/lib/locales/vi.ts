@@ -3222,6 +3222,7 @@ export default {
   "acoustic.paused.thermal": "Tạm dừng: CPU quá nóng. Quá trình phân tích sẽ tiếp tục khi CPU nguội lại.",
   "acoustic.paused.low_memory": "Tạm dừng: hiện không đủ bộ nhớ. Quá trình phân tích sẽ tiếp tục ngay khi có đủ.",
   "acoustic.paused.not_premium": "Tạm dừng: phân tích âm học là tính năng Premium.",
+  "acoustic.paused.model_unavailable": "Tạm dừng: không thể tải mô hình phân tích. Hãy khởi động lại Tune để thử lại.",
   "acoustic.pausedUnknown": "Tạm dừng ({reason}). Quá trình phân tích sẽ tự tiếp tục.",
   "acoustic.modelFetchFailed": "Tải mô hình thất bại sau {attempts} lần thử:",
   "acoustic.failedTracks": "{count} bài hát không thể phân tích: tệp đã được đọc nhưng bộ giải mã không tạo ra gì. Chúng sẽ không được thử lại — thanh tiến trình thực sự đã đạt 100%.",

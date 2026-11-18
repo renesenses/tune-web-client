@@ -3216,6 +3216,7 @@ export default {
   "acoustic.paused.thermal": "Duraklatıldı: işlemci çok ısındı. Soğuyunca analiz sürecek.",
   "acoustic.paused.low_memory": "Duraklatıldı: şu anda yeterli bellek yok. Yeterli bellek olur olmaz analiz sürecek.",
   "acoustic.paused.not_premium": "Duraklatıldı: akustik analiz bir Premium özelliğidir.",
+  "acoustic.paused.model_unavailable": "Duraklatıldı: analiz modeli yüklenemedi. Yeniden denemek için Tune'u yeniden başlatın.",
   "acoustic.pausedUnknown": "Duraklatıldı ({reason}). Analiz kendiliğinden sürecek.",
   "acoustic.modelFetchFailed": "Model indirme {attempts} denemeden sonra başarısız oldu:",
   "acoustic.failedTracks": "{count} parça analiz edilemedi: dosya okundu ama kod çözücü hiçbir şey üretmedi. Yeniden denenmeyecekler — gösterge gerçekten %100'de.",

@@ -2504,6 +2504,7 @@ export default {
   "acoustic.paused.thermal": "Pausad: processorn är för varm. Analysen återupptas när den svalnat.",
   "acoustic.paused.low_memory": "Pausad: för lite minne just nu. Analysen återupptas så snart det finns tillräckligt.",
   "acoustic.paused.not_premium": "Pausad: akustisk analys är en Premium-funktion.",
+  "acoustic.paused.model_unavailable": "Pausad: analysmodellen kunde inte läsas in. Starta om Tune för att försöka igen.",
   "acoustic.pausedUnknown": "Pausad ({reason}). Analysen återupptas av sig själv.",
   "acoustic.modelFetchFailed": "Nedladdningen av modellen misslyckades efter {attempts} försök:",
   "acoustic.failedTracks": "{count} spår kunde inte analyseras: filen lästes men avkodaren gav ingenting. De görs inte om — mätaren står verkligen på 100 %.",

@@ -2572,6 +2572,7 @@ export default {
   "acoustic.paused.thermal": "În pauză: procesorul este prea cald. Analiza va reporni după ce se răcește.",
   "acoustic.paused.low_memory": "În pauză: memorie insuficientă momentan. Analiza va reporni imediat ce este destulă.",
   "acoustic.paused.not_premium": "În pauză: analiza acustică este o funcție Premium.",
+  "acoustic.paused.model_unavailable": "În pauză: modelul de analiză nu a putut fi încărcat. Reporniți Tune pentru a încerca din nou.",
   "acoustic.pausedUnknown": "În pauză ({reason}). Analiza va reporni singură.",
   "acoustic.modelFetchFailed": "Descărcarea modelului a eșuat după {attempts} încercare/încercări:",
   "acoustic.failedTracks": "{count} piese nu au putut fi analizate: fișierul a fost citit, dar decodorul nu a produs nimic. Nu vor fi reîncercate — indicatorul chiar este la 100 %.",

@@ -2566,6 +2566,7 @@ export default {
   "acoustic.paused.thermal": "In pausa: il processore è troppo caldo. L'analisi riprenderà una volta raffreddato.",
   "acoustic.paused.low_memory": "In pausa: memoria insufficiente al momento. L'analisi riprenderà appena ce ne sarà.",
   "acoustic.paused.not_premium": "In pausa: l'analisi acustica è una funzione Premium.",
+  "acoustic.paused.model_unavailable": "In pausa: impossibile caricare il modello di analisi. Riavvia Tune per riprovare.",
   "acoustic.pausedUnknown": "In pausa ({reason}). L'analisi riprenderà da sola.",
   "acoustic.modelFetchFailed": "Download del modello non riuscito dopo {attempts} tentativo/i:",
   "acoustic.failedTracks": "{count} brani non sono stati analizzati: il file è stato letto ma il decoder non ha prodotto nulla. Non verranno ritentati — l'indicatore è davvero al 100 %.",

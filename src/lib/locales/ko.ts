@@ -2546,6 +2546,7 @@ export default {
   "acoustic.paused.thermal": "일시 중지: 프로세서가 너무 뜨겁습니다. 식으면 분석이 다시 시작됩니다.",
   "acoustic.paused.low_memory": "일시 중지: 현재 메모리가 부족합니다. 여유가 생기면 분석이 다시 시작됩니다.",
   "acoustic.paused.not_premium": "일시 중지: 음향 분석은 Premium 기능입니다.",
+  "acoustic.paused.model_unavailable": "일시 중지: 분석 모델을 불러오지 못했습니다. 다시 시도하려면 Tune을 다시 시작하세요.",
   "acoustic.pausedUnknown": "일시 중지({reason}). 분석이 자동으로 다시 시작됩니다.",
   "acoustic.modelFetchFailed": "{attempts}회 시도 후 모델 다운로드에 실패했습니다:",
   "acoustic.failedTracks": "{count}곡을 분석할 수 없습니다. 파일은 읽었지만 디코더가 아무것도 만들어내지 못했습니다. 다시 시도하지 않습니다 — 진행률은 실제로 100 %입니다.",

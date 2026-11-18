@@ -3350,6 +3350,7 @@ export default {
   "acoustic.paused.thermal": "Paused: the processor is too hot. Analysis will resume once it cools down.",
   "acoustic.paused.low_memory": "Paused: not enough memory right now. Analysis will resume as soon as there is.",
   "acoustic.paused.not_premium": "Paused: acoustic analysis is a Premium feature.",
+  "acoustic.paused.model_unavailable": "Paused: the analysis model could not be loaded. Restart Tune to try again.",
   "acoustic.pausedUnknown": "Paused ({reason}). Analysis will resume on its own.",
   "acoustic.modelFetchFailed": "Model download failed after {attempts} attempt(s):",
   "acoustic.failedTracks": "{count} tracks could not be analysed: the file was read but the decoder produced nothing. They will not be retried — the gauge really is at 100%.",

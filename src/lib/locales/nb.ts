@@ -3220,6 +3220,7 @@ export default {
   "acoustic.paused.thermal": "På pause: prosessoren er for varm. Analysen fortsetter når den har kjølt seg ned.",
   "acoustic.paused.low_memory": "På pause: ikke nok minne akkurat nå. Analysen fortsetter så snart det er nok.",
   "acoustic.paused.not_premium": "På pause: akustisk analyse er en Premium-funksjon.",
+  "acoustic.paused.model_unavailable": "På pause: analysemodellen kunne ikke lastes. Start Tune på nytt for å prøve igjen.",
   "acoustic.pausedUnknown": "På pause ({reason}). Analysen fortsetter av seg selv.",
   "acoustic.modelFetchFailed": "Nedlasting av modellen mislyktes etter {attempts} forsøk:",
   "acoustic.failedTracks": "{count} spor kunne ikke analyseres: filen ble lest, men dekoderen ga ingenting. De prøves ikke på nytt — måleren står virkelig på 100 %.",
