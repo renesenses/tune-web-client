@@ -1668,7 +1668,7 @@ export default {
   "machineAction.notLocal": "Kikapcsolt hitelesítés mellett ezt a műveletet a Tune csak arról a gépről fogadja el, amelyen fut. Ha erről az eszközről szeretné elvégezni, kapcsolja be a hitelesítést, és jelentkezzen be rendszergazdai fiókkal; különben nyissa meg a Tune-t magán a gépen (http://localhost:8888).",
   "machineAction.notLocalRestart": "Újraindítás elutasítva: másik eszközről a Tune csak bekapcsolt hitelesítés mellett fogadja el ezt a műveletet (rendszergazdai fiók). Kapcsolja be, vagy indítsa újra a Tune-t a gépről vagy a konténerből: {command}.",
   "machineAction.port80Relay": "Ez az eszköz továbbítja a 80-as portot, ezért a Tune nem tudja megkülönböztetni a helyi hívást a hálózatitól. Kapcsolja be a hitelesítést, és jelentkezzen be rendszergazdai fiókkal.",
-  "machineAction.whereToEnable": "A hitelesítés bekapcsolása: Beállítások > Rendszer > Hitelesítés.",
+  "machineAction.whereToEnable": "A hitelesítés bekapcsolása: Beállítások > Rendszer > Hitelesítés (másik eszközről a docker logs, a journalctl -u tune vagy a Tune OS képernyője által mutatott egyszer használatos kóddal).",
   "settings.updateStatusUnknown": "Nem állapítható meg, hogy a frissítés települt-e: a kiszolgáló nem válaszolt. Töltse újra az oldalt a futó verzió megtekintéséhez.",
   "settings.updateInstallFailed": "A frissítés sikertelen. A kiszolgáló által megadott ok: {reason}",
   "settings.updateButton": "Frissítés",

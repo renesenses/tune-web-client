@@ -2224,7 +2224,7 @@ export default {
   "machineAction.notLocal": "Khi xác thực đang tắt, thao tác này chỉ được chấp nhận từ máy đang chạy Tune. Để thực hiện từ thiết bị này, hãy bật xác thực và đăng nhập bằng tài khoản quản trị; nếu không, hãy mở Tune ngay trên máy đó (http://localhost:8888).",
   "machineAction.notLocalRestart": "Khởi động lại bị từ chối: từ thiết bị khác, Tune chỉ chấp nhận thao tác này khi đã bật xác thực (tài khoản quản trị). Hãy bật xác thực, hoặc khởi động lại Tune từ máy hay container: {command}.",
   "machineAction.port80Relay": "Thiết bị này chuyển tiếp cổng 80 nên Tune không thể phân biệt lệnh gọi cục bộ với lệnh gọi từ mạng. Hãy bật xác thực và đăng nhập bằng tài khoản quản trị.",
-  "machineAction.whereToEnable": "Để bật xác thực: Cài đặt > Hệ thống > Xác thực.",
+  "machineAction.whereToEnable": "Để bật xác thực: Cài đặt > Hệ thống > Xác thực (từ thiết bị khác, dùng mã dùng một lần hiển thị qua docker logs, journalctl -u tune hoặc màn hình Tune OS).",
   "settings.updateStatusUnknown": "Không xác định được bản cập nhật đã cài hay chưa: máy chủ không phản hồi. Hãy tải lại trang để xem phiên bản đang chạy.",
   "settings.updateInstallFailed": "Cập nhật thất bại. Lý do máy chủ đưa ra: {reason}",
   "settings.updateButton": "Cập nhật",
