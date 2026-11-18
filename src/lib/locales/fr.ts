@@ -1095,6 +1095,7 @@ export default {
   'eq.peqFreq': "Fréquence (Hz)",
   'eq.peqGain': "Gain (dB)",
   'eq.peqType': "Type",
+  'eq.peqQShelfTip': "Pente fixe : le Q n’a pas d’effet sur un plateau (low_shelf, high_shelf).",
   "eq.peqChannel": "Canal",
   "eq.peqChannelBoth": "Les deux",
   "eq.peqChannelLeft": "Gauche",

@@ -1004,6 +1004,7 @@ export default {
   "eq.peqFreq": "Frekans (Hz)",
   "eq.peqGain": "Kazanç (dB)",
   "eq.peqType": "Tip",
+  "eq.peqQShelfTip": "Sabit eğim: Q, raf filtresinde (low_shelf, high_shelf) etkisizdir.",
   "eq.peqChannel": "Kanal",
   "eq.peqChannelBoth": "Her ikisi",
   "eq.peqChannelLeft": "Sol",

@@ -1007,6 +1007,7 @@ export default {
   "eq.peqFreq": "Częstotliwość (Hz)",
   "eq.peqGain": "Wzmocnienie (dB)",
   "eq.peqType": "Typ",
+  "eq.peqQShelfTip": "Stałe nachylenie: Q nie ma wpływu na filtr półkowy (low_shelf, high_shelf).",
   "eq.peqChannel": "Kanał",
   "eq.peqChannelBoth": "Oba",
   "eq.peqChannelLeft": "Lewy",

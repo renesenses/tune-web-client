@@ -1066,6 +1066,7 @@ export default {
   "eq.peqFreq": "Frekvencia (Hz)",
   "eq.peqGain": "Erősítés (dB)",
   "eq.peqType": "Típus",
+  "eq.peqQShelfTip": "Rögzített meredekség: a Q nem hat a polcszűrőre (low_shelf, high_shelf).",
   "eq.peqChannel": "Csatorna",
   "eq.peqChannelBoth": "Mindkettő",
   "eq.peqChannelLeft": "Bal",

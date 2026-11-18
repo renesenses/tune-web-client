@@ -1091,6 +1091,7 @@ export default {
   'eq.peqFreq': "Frequency (Hz)",
   'eq.peqGain': "Gain (dB)",
   'eq.peqType': "Type",
+  'eq.peqQShelfTip': "Fixed slope: Q has no effect on a shelf (low_shelf, high_shelf).",
   "eq.peqChannel": "Channel",
   "eq.peqChannelBoth": "Both",
   "eq.peqChannelLeft": "Left",

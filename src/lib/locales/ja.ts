@@ -961,6 +961,7 @@ export default {
   'eq.peqFreq': "周波数 (Hz)",
   'eq.peqGain': "ゲイン (dB)",
   'eq.peqType': "タイプ",
+  'eq.peqQShelfTip': "傾きは固定です：シェルフ（low_shelf、high_shelf）では Q は効果がありません。",
   "eq.peqChannel": "チャンネル",
   "eq.peqChannelBoth": "両方",
   "eq.peqChannelLeft": "左",

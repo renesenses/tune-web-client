@@ -1009,6 +1009,7 @@ export default {
   "eq.peqFreq": "Tần số (Hz)",
   "eq.peqGain": "Gain (dB)",
   "eq.peqType": "Loại",
+  "eq.peqQShelfTip": "Độ dốc cố định: Q không có tác dụng với bộ lọc kệ (low_shelf, high_shelf).",
   "eq.peqChannel": "Kênh",
   "eq.peqChannelBoth": "Cả hai",
   "eq.peqChannelLeft": "Trái",

@@ -1007,6 +1007,7 @@ export default {
   "eq.peqFreq": "Συχνότητα (Hz)",
   "eq.peqGain": "Ενίσχυση (dB)",
   "eq.peqType": "Τύπος",
+  "eq.peqQShelfTip": "Σταθερή κλίση: το Q δεν επηρεάζει ένα φίλτρο ραφιού (low_shelf, high_shelf).",
   "eq.peqChannel": "Κανάλι",
   "eq.peqChannelBoth": "Και τα δύο",
   "eq.peqChannelLeft": "Αριστερό",
