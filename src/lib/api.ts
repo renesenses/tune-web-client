@@ -7769,6 +7769,90 @@ export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
 
+/** Une ligne de `/profiles/{id}/favorites`, telle que le serveur la rend. */
+type LigneFavori = { item_type: string; item_id: number; created_at?: string | null };
+
+function lignesDeFavoris(profileId: number, type?: LocalFavoriteType) {
+  const q = type ? `?item_type=${type}` : '';
+  return fetchJSON<LigneFavori[]>(`${BASE}/profiles/${profileId}/favorites${q}`);
+}
+
+/**
+ * renesenses/tune-web-client#3185 (Rob Sykes, fil 2889) — au plus
+ * `FAVORIS_EN_VOL` relectures de favori en vol, pour TOUT le client.
+ *
+ * `getFavorites` relisait chaque favori un par un, les quatre seaux en même
+ * temps, sans borne : 693 `GET /library/artists/{id}` refusés par Chromium
+ * (`net::ERR_INSUFFICIENT_RESOURCES`) à l'ouverture de l'Accueil, le bandeau
+ * réseau, et des favoris jetés. Le serveur n'a pas de route groupée qui rende
+ * les objets développés : on borne donc la file. Le guichet est COMMUN à tous
+ * les appels — deux bandes de l'Accueil qui chargent en même temps ne
+ * doublent pas la borne.
+ */
+export const FAVORIS_EN_VOL = 6;
+let favorisEnVol = 0;
+const favorisEnAttente: Array<() => void> = [];
+
+function relireFavori<T>(faire: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resoudre, rejeter) => {
+    const lancer = () => {
+      favorisEnVol++;
+      let essai: Promise<T>;
+      try {
+        essai = faire();
+      } catch (e) {
+        essai = Promise.reject(e);
+      }
+      essai
+        .catch((e: any) => {
+          // Une requête REFUSÉE (réseau, navigateur saturé) n'a pas de statut
+          // HTTP : on la rejoue une fois. Un 404 — favori supprimé — non.
+          if (typeof e?.status === 'number') throw e;
+          return faire();
+        })
+        .then(resoudre, rejeter)
+        .finally(() => {
+          favorisEnVol--;
+          favorisEnAttente.shift()?.();
+        });
+    };
+    if (favorisEnVol < FAVORIS_EN_VOL) lancer();
+    else favorisEnAttente.push(lancer);
+  });
+}
+
+/**
+ * Les IDENTIFIANTS des favoris de la bibliothèque, en UNE requête (#3185).
+ *
+ * Les cœurs n'ont besoin que de l'identifiant, et il est déjà dans chaque
+ * ligne de `/profiles/{id}/favorites`. Relire l'objet (ce que fait
+ * `getFavorites`) ne sert qu'à l'écran Favoris et aux bandes de l'Accueil.
+ * Un favori dont l'objet ne se relit pas reste donc un favori : son cœur
+ * reste plein.
+ */
+export async function getFavoriteIds(profileId: number): Promise<{
+  trackIds: number[];
+  albumIds: number[];
+  artistIds: number[];
+  playlistIds: number[];
+  collectionIds: number[];
+  smartCollectionIds: number[];
+  smartPlaylistIds: number[];
+}> {
+  const rows = await lignesDeFavoris(profileId);
+  const ids = (t: string) =>
+    (Array.isArray(rows) ? rows : []).filter((r) => r.item_type === t).map((r) => r.item_id);
+  return {
+    trackIds: ids('track'),
+    albumIds: ids('album'),
+    artistIds: ids('artist'),
+    playlistIds: ids('playlist'),
+    collectionIds: ids('collection'),
+    smartCollectionIds: ids('smart_collection'),
+    smartPlaylistIds: ids('smart_playlist'),
+  };
+}
+
 // The server returns favorites as a FLAT list of rows
 // (`[{ item_type, item_id, ... }]`), but every caller (FavoritesView, the
 // favorite-id stores) expects them grouped and EXPANDED as
@@ -7808,10 +7892,7 @@ export async function getFavorites(
    */
   smartPlaylistIds: number[];
 }> {
-  const q = type ? `?item_type=${type}` : '';
-  const rows = await fetchJSON<
-    Array<{ item_type: string; item_id: number; created_at?: string | null }>
-  >(`${BASE}/profiles/${profileId}/favorites${q}`);
+  const rows = await lignesDeFavoris(profileId, type);
 
   const lignes = (t: string) => rows.filter((r) => r.item_type === t);
   // La date est prélevée sur la ligne d'INDEX i, celle-là même dont la
@@ -7822,7 +7903,9 @@ export async function getFavorites(
     rs: Array<{ item_id: number; created_at?: string | null }>,
     fetchOne: (id: number) => Promise<T>,
   ): Promise<T[]> => {
-    const res = await Promise.allSettled(rs.map((r) => fetchOne(r.item_id)));
+    // #3185 — chaque relecture passe par le guichet borné (`relireFavori`) :
+    // plus jamais des centaines de requêtes lancées d'un coup.
+    const res = await Promise.allSettled(rs.map((r) => relireFavori(() => fetchOne(r.item_id))));
     return res.flatMap((r, i) =>
       r.status === 'fulfilled'
         ? [{ ...r.value, favorite_added_at: rs[i].created_at ?? null }]
