@@ -297,7 +297,7 @@
     color:var(--v2-on-acc); background:var(--v2-acc1)}
   .tag{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; color:var(--v2-txt3); white-space:nowrap}
   .poignee{background:none; border:0; color:var(--v2-txt3); cursor:grab; padding:2px; display:flex}
-  .croix{background:none; border:0; color:var(--v2-txt3); cursor:pointer; font-size:18px; line-height:1; padding:2px 4px}
+  .croix{background:none; border:0; color:var(--v2-txt3); cursor:pointer; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 4px}
   .croix:hover:not(:disabled){color:var(--v2-txt)}
   .ajout{position:relative}
   .ajouter{width:100%; border:1px dashed var(--v2-acc2); border-radius:12px; background:transparent; color:var(--v2-acc1);
