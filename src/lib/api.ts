@@ -4281,6 +4281,49 @@ export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
   });
 }
 
+/**
+ * renesenses/tune-server-rust#9028 — « Normal pour tout l'album » : l'aperçu
+ * (les pistes de l'album qui portent encore l'alerte), à montrer AVANT le
+ * geste, pour que la portée se voie.
+ */
+export interface ApercuAlerteAlbum {
+  album_id: number;
+  album_title: string | null;
+  reason: string;
+  /** Le geste groupé n'écrit que des lignes de pistes. */
+  scope: 'track';
+  /** Affichage : le dossier des pistes de l'album. */
+  folder: string | null;
+  tracks: { id: number; title: string; duration_ms: number; disc_number?: number; track_number?: number; file_path?: string | null }[];
+  total: number;
+  ignored_count: number;
+}
+
+export function apercuAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<ApercuAlerteAlbum>(
+    `${BASE}/metadata/doubtful/album?album_id=${albumId}&reason=${encodeURIComponent(reason)}`,
+  );
+}
+
+/** Marque l'alerte normale pour les pistes `trackIds` de l'album (vérifiées
+ *  par le serveur) : UNE ligne par piste, jamais l'album entier (une piste
+ *  ajoutée plus tard reste signalée). `added_keys` : les lignes que CE geste
+ *  a ajoutées — exactement ce que l'annulation retire. Réservé à l'administrateur. */
+export function ignorerAlerteAlbum(albumId: number, reason: string, trackIds: number[]) {
+  return fetchJSON<{ scope: 'track'; reason: string; track_ids: number[]; track_count: number; added: number; added_keys: CleAlerteIgnoree[] }>(
+    `${BASE}/metadata/doubtful/ignored/album`,
+    { method: 'POST', body: JSON.stringify({ album_id: albumId, reason, track_ids: trackIds }) },
+  );
+}
+
+/** Annule un geste groupé : retire exactement ces lignes (`added_keys`). */
+export function retablirAlerteAlbum(keys: CleAlerteIgnoree[]) {
+  return fetchJSON<{ removed: number }>(`${BASE}/metadata/doubtful/ignored/album`, {
+    method: 'DELETE',
+    body: JSON.stringify({ keys: keys.map((k) => ({ scope: k.scope, key: k.key, title: k.title ?? '', reason: k.reason })) }),
+  });
+}
+
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
