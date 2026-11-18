@@ -42,6 +42,7 @@
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
   import { chargerMixes, estUnMix, sousTitreDeMix } from '../../lib/mixesTidal';
+  import { chargerPourVous, proposePourVous, type PagePourVous } from '../../lib/pourVousTidal';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
@@ -119,7 +120,7 @@
   // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
-  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
+  type Sub = 'editorial' | 'genres' | 'foryou' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
   /**
    * 🔴 LE SOUS-ONGLET EST PUBLIÉ DANS `ongletCourant` — fil 2143, point 2.
    *
@@ -129,7 +130,7 @@
    * Favoris et la Bibliothèque : le raccourci le fige et le repose, l'écran le
    * lit au montage et le suit ensuite.
    */
-  const SOUS_ONGLETS: readonly Sub[] = ['editorial', 'genres', 'playlists', 'favorites', 'mine', 'ytmusic'];
+  const SOUS_ONGLETS: readonly Sub[] = ['editorial', 'foryou', 'genres', 'playlists', 'favorites', 'mine', 'ytmusic'];
   const sousOngletDe = (o: string | null): Sub | null =>
     (SOUS_ONGLETS as readonly string[]).includes(o ?? '') ? (o as Sub) : null;
   let sub = $state<Sub>(sousOngletDe(get(ongletCourant)) ?? 'editorial');
@@ -494,10 +495,35 @@
   });
   /** tune-server-rust#5247 — le compte de ce service se lit-il ? YouTube : sur preuve. */
   const bibliothequeDeCompte = $derived(aUneBibliothequeDeCompte(cleServeur(active), comptesLisibles));
+  /** tune-server-rust#8935 — « Pour vous » : les rangées personnalisées du
+   *  compte TIDAL. Lue à l'ouverture de l'onglet seulement ; `null` = échec. */
+  const ongletPourVous = $derived(proposePourVous(active) && bibliothequeDeCompte);
+  let pourVous = $state<PagePourVous | null>(null);
+  let pourVousEnCours = $state(false);
+  $effect(() => {
+    const svc = active;
+    if (sub !== 'foryou' || !proposePourVous(svc) || ongletExpire) return;
+    let vivant = true;
+    untrack(() => { pourVous = null; pourVousEnCours = true; });
+    chargerPourVous(svc, api.getStreamingForYou).then((p) => {
+      if (!vivant) return;
+      pourVous = p;
+      pourVousEnCours = false;
+    });
+    return () => { vivant = false; };
+  });
+  /** Lire une rangée de titres « Pour vous » à partir du titre cliqué. */
+  function lirePourVousDepuis(pistes: any[], i: number) {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+  }
   // Un sous-onglet du compte resté ouvert (arrivée par un autre chemin que
   // `ouvrirOnglet`) retombe sur l'éditorial plutôt que d'afficher un vide.
   $effect(() => {
     if (!bibliothequeDeCompte && (sub === 'playlists' || sub === 'favorites')) sub = 'editorial';
+    // #8935 — « Pour vous » n'existe que pour TIDAL connecté.
+    if (sub === 'foryou' && !ongletPourVous) sub = 'editorial';
   });
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
@@ -516,6 +542,8 @@
          { id: 'genres', label: $t('common.genres' as any) },
          { id: 'mine', label: $t('v2.str.myCollection' as any) }]
       : [{ id: 'editorial', label: $t('v2.str.editorial' as any) },
+         // tune-server-rust#8935 — la page « Pour vous » du compte TIDAL.
+         ...(ongletPourVous ? [{ id: 'foryou' as Sub, label: $t('v2.stream.forYou' as any) }] : []),
          // tune-server-rust#5247 — pas d'onglets du COMPTE là où Tune ne sait
          // pas le lire (YouTube) : ils affirmaient un compte vide.
          ...(bibliothequeDeCompte
@@ -1775,6 +1803,42 @@
         <div class="state">{$t('v2.str.noEditorial' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
 
+    {:else if sub === 'foryou' && ongletPourVous}
+      <!-- tune-server-rust#8935 — les rangées « Pour vous » du compte TIDAL :
+           albums, playlists et mixes en tuiles, artistes en pastilles, titres
+           en liste (« Lire à partir d'ici » dans la rangée). -->
+      {#if pourVousEnCours}
+        <div class="state">{$t('v2.common.loading' as any)}</div>
+      {:else if pourVous == null}
+        <div class="state" data-pour-vous-echec>{$t('v2.stream.forYouFailed' as any)}</div>
+      {:else if !pourVous.rows.length}
+        <div class="state" data-pour-vous-vide>{$t('v2.stream.forYouEmpty' as any).replace('{s}', label(active ?? ''))}</div>
+      {:else}
+        {#each pourVous.rows as r, i (`${r.id}:${i}`)}
+          <section class="sec" data-rangee-pour-vous>
+            <h2>{r.title}</h2>
+            {#if r.subtitle}<p class="sous-titre-rangee">{r.subtitle}</p>{/if}
+            {#if r.albums.length}
+              <div class="grid">{#each r.albums as a, i (cleItem(a, i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+            {/if}
+            {#if r.playlists.length}
+              <div class="grid">{#each r.playlists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            {/if}
+            {#if r.artists.length}
+              <div class="arow">{#each r.artists as ar, i (cleItem(ar, i))}{@render artiste(ar)}{/each}</div>
+            {/if}
+            {#if r.tracks.length}
+              <div class="liste">
+                <ListePistesV2 pistes={r.tracks as any} numerotation="aucune" pochetteEnTableau
+                  onLire={(_pi, i) => lirePourVousDepuis(r.tracks, i)}
+                  onLireDepuis={(_pi, i) => lirePourVousDepuis(r.tracks, i)}
+                  clef={(pi, i) => cleItem(pi as any, i)} />
+              </div>
+            {/if}
+          </section>
+        {/each}
+      {/if}
+
     {:else if sub === 'mine'}
       <!-- Bandcamp : la collection EST ce qu'on y possede. -->
       {#if bcNeedsLink}
@@ -2454,6 +2518,10 @@
   /* La liste de titres prend toute la largeur : c'est un TABLEAU en mode
      essentiel, ses colonnes ont besoin de la place. */
   .liste{width:100%}
+  /* tune-server-rust#8935 — « Pour vous » : la ligne sous le titre d'une
+     rangée, et l'écart entre les natures d'une rangée mêlée. */
+  .sous-titre-rangee{color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1)); margin:-8px 0 12px}
+  [data-rangee-pour-vous] > :is(.grid, .arow, .liste) + :is(.grid, .arow, .liste){margin-top:16px}
   /* « Voir plus » : une action de LISTE. Le meme dessin que dans la recherche
      globale — c'est le meme geste, il ne doit pas se presenter autrement. */
   .voirplus{display:block; margin:6px auto 22px; padding:9px 18px; cursor:pointer;
