@@ -415,12 +415,42 @@ export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'>): string =>
   m.acces ? `${m.nom} (${m.acces})` : m.nom;
 
 /**
- * tune-server-rust#9070 — la cause d'une mesure refusée ou en erreur. Un code
- * connu se traduit (`micro_muet` : le micro ouvert ne rend aucune trame) ;
- * sinon le texte du greffon, tel quel.
+ * tune-server-rust#9070 — l'entrée matérielle d'un PCM ALSA
+ * (`alsa:dsnoop:CARD=U18dB,DEV=0` → `hw:CARD=U18dB,DEV=0`) ; `null` hors ALSA
+ * ou sans carte. Même règle que le serveur (`entree_materielle_alsa`).
  */
-export function causeMesure(m: Pick<Avancement, 'motif' | 'message' | 'code' | 'peripherique'>, t: (k: string) => string): string | null {
-  if (m.code === 'micro_muet') return t('v2.room.errMicSilent').replace('{peripherique}', m.peripherique ?? '?');
+export function entreeMaterielleAlsa(peripherique: string | null | undefined): string | null {
+  const m = /^alsa:[^:]+:(.*)$/.exec(peripherique ?? '');
+  if (!m) return null;
+  const p = Object.fromEntries(m[1].split(',').map((kv) => kv.split('=') as [string, string]));
+  return p.CARD ? `hw:CARD=${p.CARD},DEV=${p.DEV ?? '0'}` : null;
+}
+
+/**
+ * tune-server-rust#9070 — la cause d'une mesure refusée ou en erreur. Un code
+ * connu se traduit, sinon le texte du greffon, tel quel :
+ * - `micro_muet` (le micro ouvert ne rend aucune trame) : le conseil dépend
+ *   du PCM ouvert, comme le message du serveur (`SansTrame`) — ALSA hors
+ *   `hw:` → choisir l'entrée matérielle ; déjà `hw:` → rapport de
+ *   diagnostic ; hors ALSA → vérifier le branchement ;
+ * - `micro_fige` (#9066, le micro cesse de capter pendant la mesure).
+ */
+export function causeMesure(
+  m: Pick<Avancement, 'motif' | 'message' | 'code' | 'peripherique'> & { entree?: string },
+  t: (k: string) => string,
+): string | null {
+  const p = m.peripherique ?? '?';
+  if (m.code === 'micro_muet') {
+    const hw = entreeMaterielleAlsa(m.peripherique);
+    if (hw && !p.startsWith('alsa:hw:')) {
+      return t('v2.room.errMicSilentChooseHw').replace('{peripherique}', p).replace('{hw}', hw);
+    }
+    if (hw) return t('v2.room.errMicSilentReport').replace('{peripherique}', p);
+    return t('v2.room.errMicSilent').replace('{peripherique}', p);
+  }
+  if (m.code === 'micro_fige') {
+    return t('v2.room.errMicFrozen').replace('{micro}', m.peripherique ?? m.entree ?? '?');
+  }
   return m.motif ?? m.message ?? null;
 }
 
