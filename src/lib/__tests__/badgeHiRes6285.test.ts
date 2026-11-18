@@ -160,4 +160,17 @@ describe('Badge hi-res (#6285)', () => {
     // Sans pistes ni compte : on garde le verdict du serveur.
     expect(badgeHiRes({ verdict: 'douteux', raison: 'bande_de_cd' })?.genre).toBe('douteux');
   });
+
+  it('tune-server-rust#9067 — un CD 16/44,1 n est jamais « Hi-Res douteux », même devant un serveur antérieur', () => {
+    const cd = (n: number) => Array.from({ length: n }, () => ({ verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 16000, sample_rate: 44100, bits_declares: 16 }));
+    expect(badgeHiRes({ verdict: 'douteux', raison: 'coupure_de_codec', pistes: cd(10) })).toBeNull();
+    // 2 pistes 24/96 douteuses + 8 CD : la moitié se compte sur les hi-res (2 sur 2).
+    const b = badgeHiRes({ verdict: 'douteux', raison: 'coupure_de_codec', pistes: [
+      { verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 16000, sample_rate: 96000, bits_declares: 24 },
+      { verdict: 'douteux', raison: 'coupure_de_codec', coupure_hz: 16000, sample_rate: 96000, bits_declares: 24 },
+      ...cd(8),
+    ] });
+    expect(b?.genre).toBe('douteux');
+    expect(b?.pistes).toEqual({ douteuses: 2, mesurees: 2 });
+  });
 });

@@ -39,6 +39,20 @@ export interface PisteHiRes {
   verdict: string;
   raison?: string | null;
   coupure_hz?: number | null;
+  sample_rate?: number | null;
+  bits_declares?: number | null;
+}
+
+/**
+ * tune-server-rust#9067 — le verdict EFFECTIF d'une piste : un fichier qui ne
+ * se dit pas hi-res (16 bits, 48 kHz au plus) n'est jamais « Hi-Res douteux ».
+ * Un serveur antérieur le rend encore douteux ; on le lit conforme, comme le
+ * serveur à jour.
+ */
+export function verdictEffectif(p: PisteHiRes): string {
+  if (p.verdict === 'douteux' && typeof p.sample_rate === 'number'
+    && p.sample_rate <= 48000 && (p.bits_declares ?? 16) <= 16) return 'conforme';
+  return p.verdict;
 }
 
 export interface VerdictHiRes {
@@ -111,18 +125,21 @@ function raisonLaPlusFrequente(pistes: PisteHiRes[]): string | null {
 /** Ce que la fiche montre, ou `null`. */
 export function badgeHiRes(v: VerdictHiRes | null | undefined): BadgeHiRes {
   if (!v) return null;
-  const pistes = v.pistes ?? [];
+  const pistes = (v.pistes ?? []).map((p) => ({ ...p, verdict: verdictEffectif(p) }));
   const douteuses = typeof v.pistes_douteuses === 'number'
     ? v.pistes_douteuses
     : pistes.length ? pistes.filter((p) => p.verdict === 'douteux').length : null;
   const mesurees = typeof v.pistes_mesurees === 'number'
     ? v.pistes_mesurees
-    : pistes.length ? pistes.filter((p) => p.verdict !== 'non_concluant').length : null;
+    // #9067 — la moitié se compte sur les pistes qui se disent hi-res.
+    : pistes.length ? pistes.filter((p) => p.verdict === 'verifie' || p.verdict === 'douteux').length : null;
   const comptes = douteuses != null && mesurees != null && douteuses > 0 && mesurees > 0
     ? { douteuses, mesurees }
     : null;
-  // Douteux, sauf quand le compte dit moins de la moitié (serveur antérieur).
-  const albumDouteux = v.verdict === 'douteux'
+  // Douteux, sauf quand le compte dit moins de la moitié, ou plus aucune
+  // piste douteuse une fois les CD lus conformes (serveur antérieur, #9067).
+  const sansDouteuseEffective = v.verdict === 'douteux' && pistes.length > 0 && douteuses === 0;
+  const albumDouteux = v.verdict === 'douteux' && !sansDouteuseEffective
     && (comptes == null || albumMajoritairementDouteux(comptes.douteuses, comptes.mesurees));
   const minorite = !albumDouteux && comptes != null
     && (v.verdict === 'douteux' || v.verdict === 'verifie' || v.verdict === 'conforme' || v.verdict === 'non_analyse');
