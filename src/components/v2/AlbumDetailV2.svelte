@@ -781,7 +781,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     tracks = [];
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
-    if (id == null && !(svc && sid) && !bc) return;
+    // #3224 — et sans rester sur « Chargement… » : rien à charger, liste vide.
+    if (id == null && !(svc && sid) && !bc) { loading = false; return; }
     loading = true; error = null;
     let perime = false;
     const p = bc
