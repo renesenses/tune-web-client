@@ -310,6 +310,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { cleZone } from '../../lib/listeAppareils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
+  import { modesReplayGain, type ModeReplayGain } from '../../lib/modesReplayGain';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -677,6 +678,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
+  // tune-server-rust#8968 — « Auto » seulement si le serveur l'annonce.
+  let rgModes = $state<ModeReplayGain[]>(['off', 'track', 'album']);
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
@@ -700,6 +703,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
+        rgModes = modesReplayGain(c);
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
@@ -8912,11 +8916,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="lbl">
                     <span>{$t('settings.replayGain' as any)}</span>
                     <span class="hint">{$t('settings.replayGainHint' as any)}</span>
+                    {#if rgMode === 'auto'}
+                      <!-- #8968 : ce que le mode Auto choisit, dit en clair. -->
+                      <span class="hint" data-testid="rg-auto-hint">{$t('settings.replayGainAutoHint' as any)}</span>
+                    {/if}
                   </div>
-                  <div class="seg4">
+                  <div class="seg4 seg-replaygain">
                     <button class:on={rgMode === 'off'} onclick={() => setRgMode('off')}>{$t('settings.replayGainOff' as any)}</button>
                     <button class:on={rgMode === 'track'} onclick={() => setRgMode('track')}>{$t('settings.replayGainTrack' as any)}</button>
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
+                    {#if rgModes.includes('auto')}
+                      <button class:on={rgMode === 'auto'} onclick={() => setRgMode('auto')} title={$t('settings.replayGainAutoHint' as any)}>{$t('settings.replayGainAuto' as any)}</button>
+                    {/if}
                   </div>
                 </div>
                 {#if rgMode !== 'off' && voit('expert', s.id)}
@@ -9498,6 +9509,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .seg4 button:disabled{opacity:.5; cursor:default}
+  /* tune-server-rust#8968 — quatre choix ReplayGain dont un long libellé
+     (« Désactivé (niveau source) ») : sur écran étroit, la rangée passe à la
+     ligne au lieu de déborder de la fenêtre. */
+  @media (max-width:640px){
+    .seg4.seg-replaygain{flex-wrap:wrap; flex:1 1 100%; min-width:0}
+    .seg4.seg-replaygain button{flex:1 1 auto}
+  }
   .devlist{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .dev{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:11px; padding:8px 10px;
     border-radius:9px; cursor:pointer; color:var(--v2-txt2)}

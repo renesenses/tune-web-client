@@ -501,7 +501,8 @@
       const mode = c?.replaygain_mode ?? 'off';
       const analysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
       const modeLabel = mode === 'off' ? $t('v2.health.rgOff' as any)
-        : mode === 'track' ? $t('v2.health.rgTrack' as any) : $t('v2.health.rgAlbum' as any);
+        : mode === 'track' ? $t('v2.health.rgTrack' as any)
+        : mode === 'auto' ? $t('v2.health.rgAuto' as any) : $t('v2.health.rgAlbum' as any);
       // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
       // relire la config une seconde fois.
       cfgDrActive = analysis;
