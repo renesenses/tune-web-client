@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lignesDynamique, resumeDynamiqueAlbum } from './dynamique';
+import { cleUnite, lignesDynamique, resumeDynamiqueAlbum, texteResume } from './dynamique';
 
 describe('dynamique (tune-server-rust#9040)', () => {
   it('rend les lignes mesurées, dans l’ordre, avec leur unité', () => {
@@ -8,11 +8,12 @@ describe('dynamique (tune-server-rust#9040)', () => {
       'en',
     );
     expect(l).toEqual([
-      { cle: 'fiche.dyn.loudness', texte: '-14.8 LUFS' },
-      { cle: 'fiche.dyn.lra', texte: '7.4 LU' },
-      { cle: 'fiche.dyn.samplePeak', texte: '-2.0 dBFS' },
-      { cle: 'fiche.dyn.truePeak', texte: '+0.4 dBTP' },
+      { cle: 'fiche.dyn.loudness', valeur: '-14.8', unite: 'LUFS' },
+      { cle: 'fiche.dyn.lra', valeur: '7.4', unite: 'LU' },
+      { cle: 'fiche.dyn.samplePeak', valeur: '-2.0', unite: 'dBFS' },
+      { cle: 'fiche.dyn.truePeak', valeur: '+0.4', unite: 'dBTP' },
     ]);
+    expect(cleUnite('dBTP')).toBe('fiche.dyn.unit.dBTP');
   });
 
   it('ne montre que ce qui est mesuré, et rien pour une section absente', () => {
@@ -22,13 +23,13 @@ describe('dynamique (tune-server-rust#9040)', () => {
   });
 
   it('écrit les décimales dans la langue de l’interface', () => {
-    expect(lignesDynamique({ lra_lu: 10 }, 'fr')[0].texte).toBe('10,0 LU');
+    expect(lignesDynamique({ lra_lu: 10 }, 'fr')[0].valeur).toBe('10,0');
   });
 
   it('résume l’album sans le DR, déjà dans son badge', () => {
-    expect(resumeDynamiqueAlbum({ album_id: 1, pistes: 2, dr: 11, integree_lufs: -14, lra_lu: 10, crete_vraie_dbtp: 1 }, 'en'))
+    expect(texteResume(resumeDynamiqueAlbum({ album_id: 1, pistes: 2, dr: 11, integree_lufs: -14, lra_lu: 10, crete_vraie_dbtp: 1 }, 'en')))
       .toBe('-14.0 LUFS · LRA 10.0 LU · +1.0 dBTP');
-    expect(resumeDynamiqueAlbum({ album_id: 1, pistes: 2, dr: 11 }, 'en')).toBeNull();
-    expect(resumeDynamiqueAlbum(null, 'en')).toBeNull();
+    expect(resumeDynamiqueAlbum({ album_id: 1, pistes: 2, dr: 11 }, 'en')).toEqual([]);
+    expect(texteResume(resumeDynamiqueAlbum(null, 'en'))).toBeNull();
   });
 });

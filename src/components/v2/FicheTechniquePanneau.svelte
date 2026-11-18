@@ -18,7 +18,7 @@
   import { t, locale } from '../../lib/i18n';
   import MesNotes from '../partages/MesNotes.svelte';
   import FormeOnde from './FormeOnde.svelte';
-  import { lignesDynamique } from '../../lib/dynamique';
+  import { cleUnite, lignesDynamique } from '../../lib/dynamique';
   import { chargerSpectrogramme } from '../../lib/spectrogramme';
   import {
     chargerFicheTechnique, recalculerSpectrogramme, sectionsVisibles, ErreurFiche,
@@ -194,7 +194,7 @@
             {@const lignes = lignesDynamique(fiche.dynamique, langue)}
             {#if lignes.length}
               <dl data-dynamique>
-                {#each lignes as l (l.cle)}<dt>{$t(l.cle as any)}</dt><dd>{l.texte}</dd>{/each}
+                {#each lignes as l (l.cle)}<dt>{$t(l.cle as any)}</dt><dd>{l.valeur} <abbr title={$t(cleUnite(l.unite) as any)} aria-label={$t(cleUnite(l.unite) as any)}>{l.unite}</abbr></dd>{/each}
               </dl>
               <p class="detail">{$t('fiche.dyn.info' as any)}</p>
               {#if fiche.dynamique?.sonie_mesuree_le}<p class="date">{date('fiche.measuredOn', fiche.dynamique.sonie_mesuree_le)}</p>{/if}
