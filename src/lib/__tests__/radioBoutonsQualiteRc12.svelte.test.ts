@@ -3,8 +3,9 @@
 // Bertrand « deux boutons, termes justes ») — la ligne des filtres de la vue
 // Radios :
 //  - des BOUTONS (comme les genres), plus de cases à cocher ;
-//  - l'ordre « Mes favoris », « Sans perte », « Haute qualité », « Hi-Res »,
-//    « Pays », « Tous les formats », « Toute qualité », Metadata+ ;
+//  - l'ordre « Mes favoris », « Sans perte », « Haute qualité », « Pays »,
+//    « Tous les formats », « Toute qualité », Metadata+ (« Hi-Res » retiré
+//    le 17/11, retour de Rémi sur la rc12) ;
 //  - « Haute qualité » = sans perte OU ≥ 256 kbit/s, jugé au serveur
 //    (`haute_qualite=true`) ;
 //  - les pays dans l'ordre alphabétique de la LANGUE EN COURS ;
@@ -92,7 +93,7 @@ describe('recette rc12 (14/11) — la ligne des filtres', () => {
     await monter(C);
     expect(ordre()).toEqual([
       fr['v2.radio.filters.favorites'], fr['v2.radio.filters.lossless'], fr['v2.radio.filters.highQuality'],
-      fr['v2.radio.filters.hires'], fr['v2.radio.country'], fr['v2.radio.filters.format'],
+      fr['v2.radio.country'], fr['v2.radio.filters.format'],
       fr['v2.radio.filters.qualityMin'], 'Metadata+',
     ]);
     // Des boutons, plus une seule case à cocher dans la ligne.

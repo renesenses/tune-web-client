@@ -147,8 +147,12 @@ describe('Dernières lues', () => {
     expect(rangee).toEqual(['Radio Maison', 'FIP']);
     // #2716 : les mêmes stations restent aussi dans « Mes radios », en dessous.
     expect([...hote.querySelectorAll('.mesradios .st .nm')].map((n) => n.textContent)).toEqual(['FIP', 'Radio Maison']);
-    // web#3176 : les filtres sont dans l'en-tête collant, toujours en tête du défilement.
-    expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('entete-collant')).toBe(true);
+    // rc12 (Rémi) : un seul ascenseur pour toute la page ; la rangée en tête
+    // de la zone qui défile, avant les choix et les filtres.
+    expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('recentes')).toBe(true);
+    // web#3176 : les filtres sont dans l'en-tête collant, enfant direct de la
+    // zone qui défile (sinon `position:sticky` ne colle pas).
+    expect(hote.querySelector('.scroll > .entete-collant')).not.toBeNull();
   });
 
   // web#2783 (lot rc12, décision du 10/11) : la rangée est SÉPARÉE de la

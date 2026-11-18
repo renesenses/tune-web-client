@@ -145,7 +145,10 @@ describe('Mes radios : la fiche par le logo, « Modifier » pour la saisie manue
     const apres = [...dialogue()!.querySelectorAll('.flux li')]
       .find((l) => l.querySelector('.url')?.textContent === MP3)!;
     expect(apres.classList.contains('actuel')).toBe(true);
-    expect(tuile('FIP').querySelector('.tk')?.textContent).toContain('MP3');
+    // rc12 (Rémi) : la tuile ne montre plus le format du flux ; elle garde
+    // ses deux lignes, nom puis genre et pays.
+    expect(tuile('FIP').querySelector('.tk')).toBeNull();
+    expect(tuile('FIP').textContent).not.toContain('MP3');
   });
 });
 

@@ -83,7 +83,7 @@ describe('Réglages — carte de la maquette de Levente', () => {
     const cles = ['reglages.barreLaterale.titre', 'reglages.barreLaterale.resume', 'reglages.barreLaterale.deplace',
       'reglages.barreLaterale.ouvrir', 'reglages.interface.apparence', 'reglages.interface.barreLecture',
       'reglages.interface.navigation', 'reglages.interface.details', 'reglages.onglets.precedents', 'reglages.onglets.suivants'];
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(16);
     for (const lg of ONZE_LANGUES) for (const k of cles) expect(dictionnaire(lg)[k], `${lg} : ${k}`).toBeTruthy();
   });
 
