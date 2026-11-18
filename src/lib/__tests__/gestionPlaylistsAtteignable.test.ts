@@ -85,7 +85,7 @@ describe('la gestion complète des playlists est atteignable en v2', () => {
     const menu = sansCommentaires(lire('src/components/v2/Sidebar.svelte'));
     expect(menu).toMatch(/aussi:\s*\[[^\]]*'playlistmanager'/);
     expect(menu).toMatch(/aussi:\s*\[[^\]]*'smart-ai'/);
-    expect(menu, 'l’alias est déclaré mais jamais utilisé').toMatch(/estActif\(it,\s*\$activeView\)/);
+    expect(menu, 'l’alias est déclaré mais jamais utilisé').toMatch(/estActif\(it,\s*vueBarre\)/);
   });
 
   it('l’écran de gestion vit dans v2-heritage, pas à la racine', () => {
