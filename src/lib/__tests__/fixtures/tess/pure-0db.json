@@ -1,0 +1,343 @@
+{
+  "contract_version": 1,
+  "zone_id": 12,
+  "transport": "oaat",
+  "applicability": {
+    "status": "applied"
+  },
+  "chain": {
+    "version": 1,
+    "bypass_all": false,
+    "plugins": [
+      {
+        "id": "convolution",
+        "enabled": true,
+        "settings": {
+          "filter_set": "living-room.zip"
+        }
+      },
+      {
+        "id": "equalizer-graphic",
+        "enabled": true,
+        "settings": null
+      },
+      {
+        "id": "crossfeed",
+        "enabled": false,
+        "settings": null
+      }
+    ],
+    "fixed": {
+      "headroom": {
+        "mode": "auto"
+      },
+      "upsampling": {
+        "mode": "off"
+      },
+      "quantization": {
+        "dither": "tpdf"
+      }
+    }
+  },
+  "active_preset": null,
+  "headroom_db": 0.0,
+  "volume": {
+    "control": "software",
+    "placement": null,
+    "db": 0.0
+  },
+  "badge": "bit_perfect",
+  "signal_path": [
+    {
+      "code": "source",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": true,
+      "effective": true,
+      "reason": null,
+      "detail": null,
+      "params": {
+        "bits": 24,
+        "channels": 2,
+        "kind": "pcm",
+        "sample_rate_hz": 96000
+      },
+      "latency_frames": null
+    },
+    {
+      "code": "headroom",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": true,
+      "effective": false,
+      "reason": "pure_mode",
+      "detail": null,
+      "params": {
+        "db": -3.0,
+        "mode": "auto"
+      },
+      "latency_frames": null
+    },
+    {
+      "code": "plugin",
+      "plugin_id": "convolution",
+      "fixed": false,
+      "requested": true,
+      "effective": false,
+      "reason": "pure_mode",
+      "detail": null,
+      "params": null,
+      "latency_frames": null
+    },
+    {
+      "code": "plugin",
+      "plugin_id": "equalizer-graphic",
+      "fixed": false,
+      "requested": true,
+      "effective": false,
+      "reason": "pure_mode",
+      "detail": null,
+      "params": null,
+      "latency_frames": null
+    },
+    {
+      "code": "plugin",
+      "plugin_id": "crossfeed",
+      "fixed": false,
+      "requested": false,
+      "effective": false,
+      "reason": null,
+      "detail": null,
+      "params": null,
+      "latency_frames": null
+    },
+    {
+      "code": "upsampling",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": false,
+      "effective": false,
+      "reason": null,
+      "detail": null,
+      "params": null,
+      "latency_frames": null
+    },
+    {
+      "code": "volume",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": false,
+      "effective": false,
+      "reason": null,
+      "detail": null,
+      "params": {
+        "control": "software",
+        "db": 0.0
+      },
+      "latency_frames": null
+    },
+    {
+      "code": "quantization",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": true,
+      "effective": false,
+      "reason": "nothing_to_quantize",
+      "detail": "Bit-perfect",
+      "params": {
+        "dither": "tpdf"
+      },
+      "latency_frames": null
+    },
+    {
+      "code": "output",
+      "plugin_id": null,
+      "fixed": true,
+      "requested": true,
+      "effective": true,
+      "reason": null,
+      "detail": null,
+      "params": null,
+      "latency_frames": null
+    }
+  ],
+  "catalog": {
+    "plugins": [
+      {
+        "id": "equalizer-graphic",
+        "name": "Graphic EQ",
+        "category": "equalisation",
+        "entitlement": "free",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "equalizer-parametric",
+        "name": "Parametric EQ",
+        "category": "equalisation",
+        "entitlement": "premium",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "equalizer-headphone",
+        "name": "Headphone EQ",
+        "category": "equalisation",
+        "entitlement": "free",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "crossfeed",
+        "name": "Crossfeed",
+        "category": "spatial",
+        "entitlement": "free",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "stereo_only",
+          "position": "free",
+          "exclusive_group": {
+            "id": "crossfeed_crosstalk",
+            "priority": 1
+          }
+        }
+      },
+      {
+        "id": "crossfeed-pro",
+        "name": "Crossfeed Pro",
+        "category": "spatial",
+        "entitlement": "premium",
+        "feature": null,
+        "origin": "package",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "stereo_only",
+          "position": "free",
+          "exclusive_group": {
+            "id": "crossfeed_crosstalk",
+            "priority": 2
+          }
+        }
+      },
+      {
+        "id": "crosstalk",
+        "name": "Crosstalk",
+        "category": "spatial",
+        "entitlement": "premium",
+        "feature": null,
+        "origin": "package",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "stereo_only",
+          "position": "free",
+          "exclusive_group": {
+            "id": "crossfeed_crosstalk",
+            "priority": 3
+          }
+        }
+      },
+      {
+        "id": "convolution",
+        "name": "Convolution",
+        "category": "room_and_filters",
+        "entitlement": "premium",
+        "feature": "room_correction",
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "room-correction",
+        "name": "Room correction",
+        "category": "room_and_filters",
+        "entitlement": "premium",
+        "feature": "room_correction",
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "declick-live",
+        "name": "Declick",
+        "category": "restoration_and_routing",
+        "entitlement": "premium",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "any",
+          "position": "free",
+          "exclusive_group": null
+        }
+      },
+      {
+        "id": "channel-remap",
+        "name": "Channel remapping",
+        "category": "restoration_and_routing",
+        "entitlement": "free",
+        "feature": null,
+        "origin": "reference",
+        "settings_schema": {
+          "type": "object"
+        },
+        "placement": {
+          "channels": "remaps",
+          "position": "last_plugin",
+          "exclusive_group": null
+        }
+      }
+    ],
+    "groups": [
+      {
+        "id": "crossfeed_crosstalk",
+        "policy": "priority"
+      }
+    ]
+  }
+}
