@@ -244,6 +244,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'adresses-acces', section: 'accessFrom', labelKey: 'settings.accessFromDevice', descKey: 'v2.hint.lanAddresses', techniques: ['URL', 'IP', 'LAN'] },
 
   // ── Système ──────────────────────────────────────────────────────────
+  { id: 'activation-authentification', section: 'authActivation', labelKey: 'authActivation.title', descKey: 'authActivation.intro', techniques: ['auth', 'password', 'login', 'admin'] },
   { id: 'version-mises-a-jour', section: 'about', labelKey: 'settings.updates', termesKey: 'reglages.termes.versionMisesAJour', techniques: ['update', 'version'] },
   { id: 'nouveautes', section: 'about', labelKey: 'whatsnew.title', techniques: ['changelog', 'release notes'] },
   { id: 'doc-api', section: 'about', labelKey: 'settings.apiDocs', techniques: ['API', 'REST'], min: 'expert' },
