@@ -4362,6 +4362,8 @@ export default {
   "v2.sup.bugIntro": "Írja le, mi a gond: a szövege, a diagnosztika és a kiszolgáló legutóbbi naplói egy moderált fórumszálba kerülnek. Licenc nem szükséges.",
   "v2.sup.bugDesc": "Mi történik",
   "v2.sup.bugDescHint": "Pl.: a lejátszás két szám után leáll a DLNA-zónámban…",
+  "v2.sup.bugDescEmpty": "A „Mi történik” mező üres: a jelentés leírás nélkül megy el. Mégis elküldi?",
+  "v2.sup.bugDescEmptyIa": "A „Mi történik” mező üres. A MI-asszisztens mezőjébe írt szöveg nem megy el a jelentéssel: másolja át a „Mi történik” mezőbe. Mégis elküldi leírás nélkül?",
   "v2.sup.bugDraftClear": "Piszkozat törlése",
   "v2.sup.bugSend": "Küldés a fórumra",
   "v2.sup.bugPreview": "A csatolt jelentés megtekintése",

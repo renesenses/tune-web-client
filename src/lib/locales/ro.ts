@@ -4408,6 +4408,8 @@ export default {
   "v2.sup.bugIntro": "Descrieți problema: textul dumneavoastră, diagnosticul și jurnalele recente ale serverului ajung pe forum, într-un fir moderat. Nu este nevoie de licență.",
   "v2.sup.bugDesc": "Ce se întâmplă",
   "v2.sup.bugDescHint": "Ex.: redarea se oprește după două piese în zona mea DLNA…",
+  "v2.sup.bugDescEmpty": "„Ce se întâmplă” este gol: raportul va pleca fără descriere. Îl trimiteți totuși?",
+  "v2.sup.bugDescEmptyIa": "„Ce se întâmplă” este gol. Textul scris în câmpul asistentului IA nu pleacă împreună cu raportul: copiați-l în „Ce se întâmplă”. Trimiteți totuși fără descriere?",
   "v2.sup.bugDraftClear": "Șterge ciorna",
   "v2.sup.bugSend": "Trimite pe forum",
   "v2.sup.bugPreview": "Vezi raportul atașat",

@@ -4279,6 +4279,8 @@ export default {
   "v2.sup.bugIntro": "Sorunu açıklayın: metniniz, tanılama bilgileri ve sunucunun son günlükleri foruma, moderasyonlu bir konuya gönderilir. Lisans gerekmez.",
   "v2.sup.bugDesc": "Ne oluyor",
   "v2.sup.bugDescHint": "Örn. DLNA bölgemde iki parçadan sonra çalma duruyor…",
+  "v2.sup.bugDescEmpty": "“Ne oluyor” boş: rapor açıklamasız gönderilecek. Yine de gönderilsin mi?",
+  "v2.sup.bugDescEmptyIa": "“Ne oluyor” boş. Yapay zekâ asistanının alanına yazdığınız metin raporla birlikte gönderilmez: onu “Ne oluyor” alanına kopyalayın. Yine de açıklamasız gönderilsin mi?",
   "v2.sup.bugDraftClear": "Taslağı temizle",
   "v2.sup.bugSend": "Foruma gönder",
   "v2.sup.bugPreview": "Ekli raporu görüntüle",

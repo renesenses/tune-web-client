@@ -4407,6 +4407,8 @@ export default {
   "v2.sup.bugIntro": "Beskriv vad som är fel: din text, diagnostiken och serverns senaste loggar skickas till forumet i en modererad tråd. Ingen licens behövs.",
   "v2.sup.bugDesc": "Vad händer",
   "v2.sup.bugDescHint": "T.ex. uppspelningen stannar efter två spår i min DLNA-zon…",
+  "v2.sup.bugDescEmpty": "”Vad händer” är tomt: rapporten skickas utan beskrivning. Skicka ändå?",
+  "v2.sup.bugDescEmptyIa": "”Vad händer” är tomt. Texten du skrev i AI-assistentens fält skickas inte med rapporten: kopiera den till ”Vad händer”. Skicka ändå utan beskrivning?",
   "v2.sup.bugDraftClear": "Rensa utkastet",
   "v2.sup.bugSend": "Skicka till forumet",
   "v2.sup.bugPreview": "Visa den bifogade rapporten",

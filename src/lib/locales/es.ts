@@ -4408,6 +4408,8 @@ export default {
   "v2.sup.bugIntro": "Describa lo que falla: su texto, los diagnósticos y los registros recientes del servidor se envían al foro, en un hilo moderado. No se necesita licencia.",
   "v2.sup.bugDesc": "Qué ocurre",
   "v2.sup.bugDescHint": "Ej.: la reproducción se detiene tras dos pistas en mi zona DLNA…",
+  "v2.sup.bugDescEmpty": "«Qué ocurre» está vacío: el informe se enviará sin descripción. ¿Enviarlo de todos modos?",
+  "v2.sup.bugDescEmptyIa": "«Qué ocurre» está vacío. El texto escrito en el campo del asistente de IA no se envía con el informe: cópialo en «Qué ocurre». ¿Enviar de todos modos sin descripción?",
   "v2.sup.bugDraftClear": "Borrar el borrador",
   "v2.sup.bugSend": "Enviar al foro",
   "v2.sup.bugPreview": "Ver el informe adjunto",

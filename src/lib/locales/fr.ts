@@ -4430,6 +4430,8 @@ export default {
   "v2.sup.bugIntro": "Décrivez ce qui ne va pas : votre texte, les diagnostics et les journaux récents du serveur partent sur le forum, dans un fil modéré. Aucune licence n’est nécessaire.",
   "v2.sup.bugDesc": "Ce qui se passe",
   "v2.sup.bugDescHint": "Ex. : la lecture s’arrête après deux titres sur ma zone DLNA…",
+  "v2.sup.bugDescEmpty": "« Ce qui se passe » est vide : le rapport partira sans description. L’envoyer quand même ?",
+  "v2.sup.bugDescEmptyIa": "« Ce qui se passe » est vide. Le texte écrit dans le champ de l’assistant IA ne part pas avec le rapport : recopiez-le dans « Ce qui se passe ». Envoyer quand même sans description ?",
   "v2.sup.bugDraftClear": "Effacer le brouillon",
   "v2.sup.bugSend": "Envoyer au forum",
   "v2.sup.bugPreview": "Voir le rapport joint",

@@ -4408,6 +4408,8 @@ export default {
   "v2.sup.bugIntro": "描述问题：您的文字、诊断信息和服务器最近的日志将发送到论坛的一个审核帖中。无需许可证。",
   "v2.sup.bugDesc": "发生了什么",
   "v2.sup.bugDescHint": "例如：在我的 DLNA 区域播放两首后停止…",
+  "v2.sup.bugDescEmpty": "“发生了什么”为空：报告将不带描述发送。仍要发送吗？",
+  "v2.sup.bugDescEmptyIa": "“发生了什么”为空。在 AI 助手输入框中填写的文字不会随报告发送：请将其复制到“发生了什么”。仍要不带描述发送吗？",
   "v2.sup.bugDraftClear": "清除草稿",
   "v2.sup.bugSend": "发送到论坛",
   "v2.sup.bugPreview": "查看附带的报告",

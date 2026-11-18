@@ -4281,6 +4281,8 @@ export default {
   "v2.sup.bugIntro": "Opisz, co jest nie tak: Twój tekst, diagnostyka i ostatnie logi serwera trafią na forum, do moderowanego wątku. Licencja nie jest potrzebna.",
   "v2.sup.bugDesc": "Co się dzieje",
   "v2.sup.bugDescHint": "Np. odtwarzanie zatrzymuje się po dwóch utworach w mojej strefie DLNA…",
+  "v2.sup.bugDescEmpty": "Pole „Co się dzieje” jest puste: raport zostanie wysłany bez opisu. Wysłać mimo to?",
+  "v2.sup.bugDescEmptyIa": "Pole „Co się dzieje” jest puste. Tekst wpisany w polu asystenta AI nie jest wysyłany z raportem: skopiuj go do pola „Co się dzieje”. Wysłać mimo to bez opisu?",
   "v2.sup.bugDraftClear": "Wyczyść szkic",
   "v2.sup.bugSend": "Wyślij na forum",
   "v2.sup.bugPreview": "Zobacz załączony raport",

@@ -38,6 +38,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   import { sonder, valeurDe, libelleEchec, espaceLibre, type IssueSonde } from '../../lib/sondesDiagnostic';
   import '../../styles/tune-v2.css';
   import DiagnosticIaV2 from './DiagnosticIaV2.svelte';
+  import { dialogs } from '../../lib/stores/dialogs';
 
   /**
    * TROIS volets, comme l'écran du client actuel.
@@ -117,6 +118,9 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   // web#2190 — le texte survit à un départ de l'écran : il vit dans
   // `brouillonSupport`, pas seulement dans le composant (qui est démonté).
   let bogueDesc = $state(lireBrouillon('bogueDesc'));
+  /** web#3206 — le texte du champ de l'assistant IA, et la question en cours. */
+  let questionIa = $state('');
+  let bogueConfirmation = false;
   /** Le résumé du diagnostic de l'assistant (marqué IA, pseudonymisé) et la
    *  case qui le joint au rapport : DÉCOCHÉE par défaut (Bertrand, 23/10/2026). */
   let resumeIa = $state<string | null>(null);
@@ -203,7 +207,18 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   }
 
   async function envoyerBogue() {
-    if (bogueEnvoi || bogueEnvoye) return;
+    if (bogueEnvoi || bogueEnvoye || bogueConfirmation) return;
+    // web#3206 — un rapport sans description ne part plus en silence. Si du
+    // texte attend dans le champ de l'assistant IA, on dit qu'il ne part pas.
+    if (!bogueDesc.trim()) {
+      bogueConfirmation = true;
+      const ok = await dialogs.confirm(tr1(questionIa.trim() ? 'v2.sup.bugDescEmptyIa' : 'v2.sup.bugDescEmpty'));
+      bogueConfirmation = false;
+      if (!ok) {
+        document.querySelector<HTMLTextAreaElement>('textarea.bogue-desc')?.focus();
+        return;
+      }
+    }
     bogueEnvoi = true;
     bogueErreur = null;
     bogueDetail = '';
@@ -610,9 +625,6 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
             </div>
           </div>
         {:else}
-          <DiagnosticIaV2 zones={$zones.filter((z) => z.id != null).map((z) => ({ id: z.id as number, name: z.name }))}
-            zoneParDefaut={$currentZone?.id ?? null}
-            onResume={(r) => { resumeIa = r; joindreResumeIa = false; }} />
           <label class="champ">
             <span>{$t('v2.sup.bugDesc' as any)}</span>
             <textarea class="txt zone bogue-desc" bind:value={bogueDesc} rows="5"
@@ -649,6 +661,15 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
             {/if}
             {#if bogueImagesErreur}<span class="bogue-err">{bogueImagesErreur}</span>{/if}
           </label>
+          <!-- web#3206 (fils 2898 et 2904) — le bloc de l'assistant venait
+               AU-DESSUS de « Ce qui se passe », avec un champ « Décrivez ce qui
+               se passe » : un testeur y a écrit son problème, et le rapport
+               est parti sans description. Le vrai champ passe en premier ;
+               l'assistant suit, à côté de la case qui joint son résumé. -->
+          <DiagnosticIaV2 zones={$zones.filter((z) => z.id != null).map((z) => ({ id: z.id as number, name: z.name }))}
+            zoneParDefaut={$currentZone?.id ?? null}
+            onResume={(r) => { resumeIa = r; joindreResumeIa = false; }}
+            onQuestion={(q) => (questionIa = q)} />
           {#if resumeIa}
             <label class="champ case-ia" data-joindre-resume-ia>
               <span><input type="checkbox" bind:checked={joindreResumeIa} disabled={bogueEnvoi} />

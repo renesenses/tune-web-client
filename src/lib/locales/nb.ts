@@ -4281,6 +4281,8 @@ export default {
   "v2.sup.bugIntro": "Beskriv hva som er galt: teksten din, diagnostikken og serverens siste logger sendes til forumet, i en moderert tråd. Ingen lisens er nødvendig.",
   "v2.sup.bugDesc": "Hva skjer",
   "v2.sup.bugDescHint": "F.eks. avspillingen stopper etter to spor på DLNA-sonen min…",
+  "v2.sup.bugDescEmpty": "«Hva skjer» er tomt: rapporten sendes uten beskrivelse. Sende likevel?",
+  "v2.sup.bugDescEmptyIa": "«Hva skjer» er tomt. Teksten du skrev i feltet til KI-assistenten sendes ikke med rapporten: kopier den til «Hva skjer». Sende likevel uten beskrivelse?",
   "v2.sup.bugDraftClear": "Slett utkast",
   "v2.sup.bugSend": "Send til forumet",
   "v2.sup.bugPreview": "Se den vedlagte rapporten",

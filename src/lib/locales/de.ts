@@ -4408,6 +4408,8 @@ export default {
   "v2.sup.bugIntro": "Beschreiben Sie das Problem: Ihr Text, die Diagnose und die letzten Serverprotokolle gehen in einem moderierten Thread ins Forum. Keine Lizenz nötig.",
   "v2.sup.bugDesc": "Was passiert",
   "v2.sup.bugDescHint": "Z. B.: Die Wiedergabe stoppt nach zwei Titeln in meiner DLNA-Zone…",
+  "v2.sup.bugDescEmpty": "„Was passiert“ ist leer: Der Bericht wird ohne Beschreibung gesendet. Trotzdem senden?",
+  "v2.sup.bugDescEmptyIa": "„Was passiert“ ist leer. Der im Feld des KI-Assistenten eingegebene Text wird nicht mit dem Bericht gesendet: Kopieren Sie ihn in „Was passiert“. Trotzdem ohne Beschreibung senden?",
   "v2.sup.bugDraftClear": "Entwurf löschen",
   "v2.sup.bugSend": "An das Forum senden",
   "v2.sup.bugPreview": "Beigefügten Bericht anzeigen",

@@ -4408,6 +4408,8 @@ export default {
   "v2.sup.bugIntro": "Descrivi cosa non va: il tuo testo, la diagnostica e i log recenti del server vanno sul forum, in una discussione moderata. Nessuna licenza necessaria.",
   "v2.sup.bugDesc": "Cosa succede",
   "v2.sup.bugDescHint": "Es.: la riproduzione si ferma dopo due brani sulla mia zona DLNA…",
+  "v2.sup.bugDescEmpty": "«Cosa succede» è vuoto: il rapporto partirà senza descrizione. Inviarlo comunque?",
+  "v2.sup.bugDescEmptyIa": "«Cosa succede» è vuoto. Il testo scritto nel campo dell’assistente IA non parte con il rapporto: copialo in «Cosa succede». Inviare comunque senza descrizione?",
   "v2.sup.bugDraftClear": "Cancella la bozza",
   "v2.sup.bugSend": "Invia al forum",
   "v2.sup.bugPreview": "Vedi il rapporto allegato",
