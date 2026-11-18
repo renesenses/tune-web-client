@@ -9,6 +9,7 @@ import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrag
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
+import { messageRefusHorsMachine } from './refusHorsMachine';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -765,6 +766,24 @@ export async function fetchJSON<T>(
         // technique du serveur (#5283 — même geste que le refus bit-perfect).
         err.message = traduit;
         // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
+        err.dejaAnnonce = true;
+      }
+    }
+    // tune-server-rust#9029 — une action qui engage la machine, refusée parce
+    // qu'elle ne vient pas de la machine de Tune (authentification coupée) :
+    // la phrase traduite qui dit quoi faire, à la place du texte anglais.
+    const horsMachine = messageRefusHorsMachine(err, get(t) as (cle: string) => string);
+    if (horsMachine !== null) {
+      err.message = horsMachine;
+      // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
+      // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
+      // que soit l'écran — certains n'affichent que leur propre libellé.
+      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // lecture refusée reste silencieuse.
+      const methode = (options?.method ?? 'GET').toUpperCase();
+      const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+        notifications.error(horsMachine);
         err.dejaAnnonce = true;
       }
     }
@@ -3869,6 +3888,9 @@ export function getAcousticStatus() {
     // MÊME couple. `eligible_tracks` exclut les pistes reportées.
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    // tune-server-rust#9046 — parmi `deferred_tracks`, les reports après échecs
+    // répétés d'analyse ; `waiting_reason` vaut alors `analysis_failures`.
+    retry_later_tracks?: number;
     waiting_reason?: string | null;
     // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
     // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.
