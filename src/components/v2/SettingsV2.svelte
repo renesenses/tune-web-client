@@ -192,6 +192,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     transportAppareilIgnore,
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
+  import {
+    absentsAOublier,
+    libelleAbsence,
+    libelleAbsent,
+    JOURS_PAR_DEFAUT as JOURS_ABSENCE,
+    type AppareilAbsent,
+  } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
@@ -964,6 +971,57 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ignoreBusy = false;
     }
   }
+  /* --- Appareils absents : les OUBLIER (tune-server-rust#9044, rc13) ---
+   *
+   * Un appareil parti du réseau restait listé, grisé, à vie : supprimer sa
+   * zone ne faisait que la masquer. Oublier supprime l'appareil ET sa zone,
+   * définitivement — s'il revient, il revient comme neuf. La confirmation
+   * vit DANS la page (pas de `confirm()`), et nomme la zone qui part avec.
+   */
+  let absents = $state<AppareilAbsent[]>([]);
+  let absentsLus = $state(false);
+  let oubliOccupe = $state(false);
+  /** L'appareil dont la confirmation est ouverte, ou null. */
+  let oubliAConfirmer = $state<string | null>(null);
+  let oubliGroupeAConfirmer = $state(false);
+  const absentsVieux = $derived(absentsAOublier(absents, JOURS_ABSENCE));
+
+  async function chargerAbsents() {
+    absents = await api.listAbsentDevices();
+    absentsLus = true;
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
+  });
+
+  async function oublierAppareil(a: AppareilAbsent) {
+    oubliOccupe = true;
+    try {
+      await api.forgetDevice(a.device_id);
+      oubliAConfirmer = null;
+      notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
+      await chargerAbsents();
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
+  async function oublierAbsents() {
+    oubliOccupe = true;
+    try {
+      const r = await api.forgetAbsentDevices(JOURS_ABSENCE);
+      oubliGroupeAConfirmer = false;
+      notifications.success($t('settings.absentDevicesForgotten' as any).replace('{count}', String(r.forgotten?.length ?? 0)));
+      await chargerAbsents();
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
   async function clearDevices() {
     try {
       const r = await api.clearDevices();
@@ -6597,6 +6655,43 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
+            {:else if s.id === 'absentDevices'}
+              <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
+              <div class="devlist" data-reglage="appareils-absents">
+                {#each absents as a (a.device_id)}
+                  <div class="dev ign absent">
+                    <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
+                    <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
+                    <span class="dh" data-absent-depuis>{libelleAbsence(a.absent_for_s, (k) => $t(k as any))}</span>
+                    {#if oubliAConfirmer === a.device_id}
+                      <span class="oubli-conf" role="group" aria-label={$t('settings.forgetDevice' as any)}>
+                        <span class="hint">{$t((a.zone_hidden ? 'settings.forgetDeviceConfirm' : 'settings.forgetDeviceConfirmZone') as any).replace('{zone}', libelleAbsent(a))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={() => (oubliAConfirmer = null)}>{$t('common.cancel' as any)}</button>
+                      </span>
+                    {:else}
+                      <button class="lnk" disabled={oubliOccupe} onclick={() => { oubliAConfirmer = a.device_id; oubliGroupeAConfirmer = false; }}>
+                        {$t('settings.forgetDevice' as any)}
+                      </button>
+                    {/if}
+                  </div>
+                {:else}
+                  <p class="hint">{absentsLus ? $t('settings.noAbsentDevices' as any) : $t('v2.set.searchingDevices' as any)}</p>
+                {/each}
+              </div>
+              {#if absentsVieux.length}
+                <div class="acts" data-reglage="oublier-appareils-absents">
+                  {#if oubliGroupeAConfirmer}
+                    <span class="hint">{$t('settings.forgetAbsentDevicesConfirm' as any).replace('{count}', String(absentsVieux.length)).replace('{days}', String(JOURS_ABSENCE))}</span>
+                    <button class="lnk danger" disabled={oubliOccupe} onclick={oublierAbsents}>{$t('settings.forgetAbsentDevices' as any).replace('{days}', String(JOURS_ABSENCE))}</button>
+                    <button class="lnk" disabled={oubliOccupe} onclick={() => (oubliGroupeAConfirmer = false)}>{$t('common.cancel' as any)}</button>
+                  {:else}
+                    <button class="lnk danger" disabled={oubliOccupe} onclick={() => { oubliGroupeAConfirmer = true; oubliAConfirmer = null; }}>
+                      {$t('settings.forgetAbsentDevices' as any).replace('{days}', String(JOURS_ABSENCE))}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
@@ -9573,6 +9668,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.net .del{margin-left:auto; flex:0 0 auto}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
+  .oubli-conf{display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; grid-column:1 / -1}
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}

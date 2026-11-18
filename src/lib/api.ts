@@ -1,4 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
+import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -1680,6 +1681,40 @@ export function clearDevices() {
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils absents (tune-server-rust#9044) ---------------------------
+
+/** `GET /devices/absent` — les appareils connus qui ne sont plus sur le
+ *  réseau. Liste vide si le serveur est antérieur à la route (404). */
+export async function listAbsentDevices(): Promise<AppareilAbsent[]> {
+  try {
+    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, undefined, true));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et sa
+ * zone, définitivement : s'il revient sur le réseau, il revient comme neuf.
+ * À n'appeler qu'après une confirmation qui NOMME la zone. Le serveur refuse
+ * (409, avec une phrase) une zone en lecture ou un appareil encore présent.
+ */
+export function forgetDevice(deviceId: string) {
+  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: number[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
+    { method: 'DELETE' },
+  );
+}
+
+/** `POST /devices/absent/forget?older_than_days=N` — oublier les appareils
+ *  absents depuis plus de N jours, et leurs zones. */
+export function forgetAbsentDevices(olderThanDays: number) {
+  return fetchJSON<{ older_than_days: number; forgotten: string[]; zones_deleted: number[]; skipped: unknown[] }>(
+    `${BASE}/devices/absent/forget?older_than_days=${encodeURIComponent(String(olderThanDays))}`,
+    { method: 'POST' },
+  );
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
