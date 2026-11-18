@@ -6107,6 +6107,50 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** État de l'écran « Activer l'authentification » (`GET /auth/activation`). */
+export interface EtatActivationAuth {
+  auth_enabled: boolean;
+  /** L'appel vient de la machine qui fait tourner Tune. */
+  from_this_machine: boolean;
+  /** Un code à usage unique (journal du serveur) est demandé. */
+  code_required: boolean;
+  admin_username?: string | null;
+  min_password_length?: number;
+}
+
+/** Réponse de `POST /auth/activation` : succès, ou refus nommé par `error`. */
+export interface ReponseActivationAuth {
+  auth_enabled?: boolean;
+  username?: string;
+  token?: string;
+  error?: string;
+  message?: string;
+}
+
+/** `null` : serveur antérieur à l'écran (404). */
+export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
+  const r = await fetchJSON<EtatActivationAuth | { error?: string }>(
+    `${BASE}/auth/activation`, undefined, (s) => s === 404,
+  );
+  return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
+}
+
+/** Demande au serveur d'écrire un code à usage unique dans son journal. */
+export function requestAuthActivationCode() {
+  return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
+    `${BASE}/auth/activation/code`, { method: 'POST' }, (s) => s === 409,
+  );
+}
+
+/** Active l'authentification ; les refus attendus reviennent comme corps. */
+export function activateAuth(password: string, code?: string) {
+  return fetchJSON<ReponseActivationAuth>(
+    `${BASE}/auth/activation`,
+    { method: 'POST', body: JSON.stringify(code ? { password, code } : { password }) },
+    (s) => s === 400 || s === 403 || s === 409,
+  );
+}
+
 /** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
  *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
