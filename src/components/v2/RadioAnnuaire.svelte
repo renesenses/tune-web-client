@@ -228,20 +228,27 @@
 {/snippet}
 
 <div class="annuaire">
-  <div class="filtres">
-    <RadioRecherche bind:valeur={q} />
-    <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
-         puis la liste « Pays », sur une seule ligne. -->
-    <RadioFiltresAvances pays={listePays} />
-    {#if page}
-      <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
+  <!-- web#3176 (Jean Valjean, fil 2881) — recherche, filtres et genres
+       restent en haut pendant le défilement des stations : en-tête COLLANT,
+       le défilement étant celui de l'écran Radio (`.scroll`). -->
+  <div class="entete-collant" data-testid="radio-entete-collant">
+    <div class="filtres">
+      <RadioRecherche bind:valeur={q} />
+      <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+           puis la liste « Pays », sur une seule ligne. -->
+      <RadioFiltresAvances pays={listePays} />
+      {#if page}
+        <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
+      {/if}
+    </div>
+    {#if genresAffiches.length}
+      <div class="genres">
+        <RadioChipsGenres
+          genres={genresAffiches}
+          choisi={genre} total={totalTous} onChoisir={(c) => (genre = c)} />
+      </div>
     {/if}
   </div>
-  {#if genresAffiches.length}
-    <RadioChipsGenres
-      genres={genresAffiches}
-      choisi={genre} total={totalTous} onChoisir={(c) => (genre = c)} />
-  {/if}
 
   {#if erreur}
     <div class="etat err">{erreur}</div>
@@ -330,6 +337,11 @@
 <style>
   .annuaire{display:flex; flex-direction:column; gap:10px; padding:4px 30px 30px}
   .filtres{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  /* web#3176 — l'en-tête collant couvre toute la largeur (les 30 px de marge
+     de l'annuaire compris), au-dessus des vignettes (z-index 2), sur le fond
+     de l'écran dans les deux thèmes. */
+  .entete-collant{position:sticky; top:0; z-index:5; display:flex; flex-direction:column; gap:10px;
+    margin:0 -30px; padding:4px 30px 10px; background:var(--v2-bg); box-shadow:0 1px 0 var(--v2-line2)}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
   .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
@@ -350,5 +362,13 @@
   .horsligne{color:var(--v2-txt2)}
   .refus{padding:8px 12px; border:1px solid var(--v2-line2); border-radius:9px; background:var(--v2-surface2);
     font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
-  @media (max-width: 640px){ .annuaire{padding:4px 16px 24px} .choix{max-width:none; flex:1} }
+  @media (max-width: 640px){
+    .annuaire{padding:4px 16px 24px} .choix{max-width:none; flex:1}
+    .entete-collant{margin:0 -16px; padding:4px 16px 8px}
+    /* Les genres sur UNE rangée qui défile de côté : l'en-tête collant ne
+       mange pas l'écran du téléphone. */
+    .genres :global(.chips){flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .genres :global(.chips)::-webkit-scrollbar{display:none}
+    .genres :global(.chip){flex:none}
+  }
 </style>

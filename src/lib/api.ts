@@ -1,4 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
+import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -1697,6 +1698,34 @@ export function clearDevices() {
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils absents (tune-server-rust#9044) ---------------------------
+
+/** `GET /devices/absent` — les appareils connus qui ne sont plus sur le
+ *  réseau. `[]` si le serveur est antérieur à la route (404) ; `null` sur
+ *  toute autre erreur (403, 500, réseau) — l'écran ne doit pas la prendre
+ *  pour « aucun appareil absent ». */
+export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
+  try {
+    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
+ * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
+ * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
+ * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
+ * un appareil encore présent ; la réponse nomme les zones supprimées.
+ */
+export function forgetDevice(deviceId: string) {
+  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
+    { method: 'DELETE' },
+  );
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
@@ -3841,6 +3870,9 @@ export function getAcousticStatus() {
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
     waiting_reason?: string | null;
+    // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
+    // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.
+    paused_reason?: string | null;
   }>(
     `${BASE}/library/search/acoustic/status`,
   );
@@ -4162,13 +4194,15 @@ export interface DoubtfulAlbum extends _PisteDouteuse {
 export async function getDoubtfulTracks(
   limit = 1000,
   offset = 0,
-): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number }> {
-  const r = await fetchJSON<{ items?: unknown[]; total?: number } | unknown[]>(
+): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number; can_ignore?: boolean }> {
+  const r = await fetchJSON<{ items?: unknown[]; total?: number; can_ignore?: boolean } | unknown[]>(
     `${BASE}/metadata/doubtful?limit=${limit}&offset=${offset}`,
   );
   const items = (Array.isArray(r) ? r : (r?.items ?? [])) as import('./artisteDepuisChemin').PisteDouteuse[];
   const total = Array.isArray(r) ? r.length : (r?.total ?? items.length);
-  return { items, total };
+  // tune-server-rust#8958 — « C'est normal » n'est offert qu'à qui peut l'écrire.
+  const can_ignore = Array.isArray(r) ? undefined : r?.can_ignore;
+  return { items, total, can_ignore };
 }
 
 /**
@@ -4235,6 +4269,100 @@ export function ecrireArtisteDuDossier(trackIds?: number[]) {
   return fetchJSON<BilanArtisteDuDossier>(`${BASE}/metadata/doubtful/artist-from-folder`, {
     method: 'POST',
     body: JSON.stringify(trackIds ? { track_ids: trackIds } : {}),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#8958 — une alerte de « Albums douteux » marquée
+ * normale. Elle tient par une clé STABLE (survit au rescan complet) :
+ * `key` est le chemin de la piste (`scope: 'track'`) ou le dossier de
+ * l'album (`scope: 'album'`, avec `title`, son titre exact). `scope`, `key`,
+ * `title` et `reason` servent tels quels à l'annulation.
+ */
+export interface AlerteDouteuseIgnoree {
+  scope: 'track' | 'album';
+  key: string;
+  title: string;
+  reason: string;
+  ignored_at: number;
+  /** Le nom figé au moment du choix. */
+  label?: string | null;
+  /** Faux quand plus aucune piste ne porte la clé (fichiers absents). */
+  found?: boolean;
+  track_id?: number | null;
+  track_title?: string | null;
+  album_id?: number | null;
+  album_title?: string | null;
+  file_path?: string | null;
+  track_count?: number;
+}
+
+/** De quoi désigner une alerte ignorée pour l'annuler. */
+export type CleAlerteIgnoree = Pick<AlerteDouteuseIgnoree, 'scope' | 'key' | 'title' | 'reason'>;
+
+export async function getAlertesDouteusesIgnorees() {
+  const r = await fetchJSON<{ items?: AlerteDouteuseIgnoree[]; total?: number }>(
+    `${BASE}/metadata/doubtful/ignored`,
+  );
+  return r?.items ?? [];
+}
+
+/** Marque l'alerte `reason` de la piste comme normale. Réservé à l'administrateur. */
+export function ignorerAlerteDouteuse(trackId: number, reason: string) {
+  return fetchJSON<CleAlerteIgnoree & { added: boolean }>(
+    `${BASE}/metadata/doubtful/ignored`,
+    { method: 'POST', body: JSON.stringify({ track_id: trackId, reason }) },
+  );
+}
+
+/** Annule le choix : l'alerte revient si le problème existe toujours. */
+export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
+  return fetchJSON<{ removed: boolean }>(`${BASE}/metadata/doubtful/ignored`, {
+    method: 'DELETE',
+    body: JSON.stringify({ scope: a.scope, key: a.key, title: a.title, reason: a.reason }),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#9028 — « Normal pour tout l'album » : l'aperçu
+ * (les pistes de l'album qui portent encore l'alerte), à montrer AVANT le
+ * geste, pour que la portée se voie.
+ */
+export interface ApercuAlerteAlbum {
+  album_id: number;
+  album_title: string | null;
+  reason: string;
+  /** Le geste groupé n'écrit que des lignes de pistes. */
+  scope: 'track';
+  /** Affichage : le dossier des pistes de l'album. */
+  folder: string | null;
+  tracks: { id: number; title: string; duration_ms: number; disc_number?: number; track_number?: number; file_path?: string | null }[];
+  total: number;
+  ignored_count: number;
+}
+
+export function apercuAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<ApercuAlerteAlbum>(
+    `${BASE}/metadata/doubtful/album?album_id=${albumId}&reason=${encodeURIComponent(reason)}`,
+  );
+}
+
+/** Marque l'alerte normale pour les pistes `trackIds` de l'album (vérifiées
+ *  par le serveur) : UNE ligne par piste, jamais l'album entier (une piste
+ *  ajoutée plus tard reste signalée). `added_keys` : les lignes que CE geste
+ *  a ajoutées — exactement ce que l'annulation retire. Réservé à l'administrateur. */
+export function ignorerAlerteAlbum(albumId: number, reason: string, trackIds: number[]) {
+  return fetchJSON<{ scope: 'track'; reason: string; track_ids: number[]; track_count: number; added: number; added_keys: CleAlerteIgnoree[] }>(
+    `${BASE}/metadata/doubtful/ignored/album`,
+    { method: 'POST', body: JSON.stringify({ album_id: albumId, reason, track_ids: trackIds }) },
+  );
+}
+
+/** Annule un geste groupé : retire exactement ces lignes (`added_keys`). */
+export function retablirAlerteAlbum(keys: CleAlerteIgnoree[]) {
+  return fetchJSON<{ removed: number }>(`${BASE}/metadata/doubtful/ignored/album`, {
+    method: 'DELETE',
+    body: JSON.stringify({ keys: keys.map((k) => ({ scope: k.scope, key: k.key, title: k.title ?? '', reason: k.reason })) }),
   });
 }
 

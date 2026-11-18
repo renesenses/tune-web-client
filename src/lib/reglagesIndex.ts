@@ -102,6 +102,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'appareils-reseau', section: 'netDevices', labelKey: 'settings.networkDevices', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast', 'PIN'] },
   { id: 'vider-appareils', section: 'netDevices', labelKey: 'settings.clearDevices' },
   { id: 'appareils-ignores', section: 'ignoredDevices', labelKey: 'settings.ignoredDevices', descKey: 'settings.ignoredDevicesIntro' },
+  { id: 'appareils-absents', section: 'absentDevices', labelKey: 'settings.absentDevices', descKey: 'settings.absentDevicesIntro', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
   { id: 'squeezebox-actif', section: 'squeezebox', labelKey: 'settings.squeezeboxEnabled', descKey: 'settings.squeezeboxHint', techniques: ['Squeezebox', 'LMS', 'Lyrion'] },
   { id: 'annonce-slimproto', section: 'squeezebox', labelKey: 'settings.slimprotoAnnonce', descKey: 'settings.slimprotoAnnonceHint', techniques: ['Slimproto', 'Home Assistant'] },
   { id: 'serveur-lms', section: 'squeezebox', labelKey: 'settings.squeezeboxLmsHost', techniques: ['LMS', 'Lyrion'] },
