@@ -4652,6 +4652,7 @@ export default {
   "v2.health.drPriorityFirst": "Đầu tiên, trước ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain đã đo dải động của các bài hát mà nó phân tích; cài đặt này sắp xếp việc bù cho các bài còn lại. Tạm dừng và ưu tiên phát nhạc vẫn được áp dụng.",
   "v2.health.deferredPaths": "{n} bài hát bị hoãn: tệp của chúng không phản hồi (thiếu ổ đĩa hoặc thư mục chia sẻ?). Tự động thử lại trong vòng sáu giờ.",
+  "v2.health.clapRetryLater": "{n} bản nhạc bị hoãn: phân tích đã thất bại nhiều lần. Tự động thử lại trong vòng sáu giờ.",
   "v2.health.cardRgSub": "Chuẩn hóa mức âm lượng",
   "v2.health.rgOff": "Tắt",
   "v2.health.rgTrack": "Theo bài hát",

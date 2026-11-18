@@ -4775,6 +4775,7 @@ export default {
   "v2.health.drPriorityFirst": "가장 먼저, ReplayGain보다 먼저",
   "v2.health.drPriorityHint": "ReplayGain은 분석하는 곡의 다이내믹 레인지를 이미 측정합니다. 이 설정은 나머지 곡을 보충하는 순서를 정합니다. 일시 중지와 재생 우선은 그대로 적용됩니다.",
   "v2.health.deferredPaths": "{n}곡 보류됨: 파일이 응답하지 않습니다(드라이브 또는 공유가 없나요?). 6시간 이내에 자동으로 다시 시도합니다.",
+  "v2.health.clapRetryLater": "{n}개 트랙 보류: 분석이 여러 번 실패했습니다. 6시간 이내에 자동으로 다시 시도합니다.",
   "v2.health.cardRgSub": "레벨 정규화",
   "v2.health.rgOff": "꺼짐",
   "v2.health.rgTrack": "트랙별",

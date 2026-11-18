@@ -4775,6 +4775,7 @@ export default {
   "v2.health.drPriorityFirst": "Prima, înaintea ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain măsoară deja gama dinamică a pieselor pe care le analizează; această opțiune ordonează recuperarea celorlalte. Pauza și prioritatea redării rămân respectate.",
   "v2.health.deferredPaths": "{n} piese amânate: fișierele lor nu răspund (disc sau partajare lipsă?). Reîncercare automată în cel mult șase ore.",
+  "v2.health.clapRetryLater": "{n} piese amânate: analiza a eșuat de mai multe ori pe ele. Reîncercare automată în următoarele șase ore.",
   "v2.health.cardRgSub": "Normalizarea nivelului",
   "v2.health.rgOff": "Dezactivat",
   "v2.health.rgTrack": "Per piesă",

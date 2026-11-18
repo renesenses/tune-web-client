@@ -4729,6 +4729,7 @@ export default {
   "v2.health.drPriorityFirst": "Elsőként, a ReplayGain előtt",
   "v2.health.drPriorityHint": "A ReplayGain már méri az általa elemzett számok dinamikatartományát; ez a beállítás a többi pótlásának sorrendjét adja meg. A szüneteltetés és a lejátszás elsőbbsége továbbra is érvényes.",
   "v2.health.deferredPaths": "{n} szám elhalasztva: a fájljaik nem válaszolnak (hiányzó meghajtó vagy megosztás?). Automatikus újrapróbálás hat órán belül.",
+  "v2.health.clapRetryLater": "{n} szám elhalasztva: az elemzés többször is sikertelen volt rajtuk. Automatikus újrapróbálás hat órán belül.",
   "v2.health.cardRgSub": "Szintnormalizálás",
   "v2.health.rgOff": "Kikapcsolva",
   "v2.health.rgTrack": "Számonként",

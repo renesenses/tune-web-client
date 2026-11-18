@@ -4648,6 +4648,7 @@ export default {
   "v2.health.drPriorityFirst": "Na początku, przed ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain już mierzy dynamikę analizowanych przez siebie utworów; to ustawienie porządkuje nadrabianie pozostałych. Wstrzymanie i priorytet odtwarzania nadal obowiązują.",
   "v2.health.deferredPaths": "Odłożone utwory: {n}. Ich pliki nie odpowiadają (brak dysku lub udziału?). Ponowna próba nastąpi automatycznie w ciągu sześciu godzin.",
+  "v2.health.clapRetryLater": "{n} utworów odłożonych: analiza kilkakrotnie się nie powiodła. Automatyczna ponowna próba w ciągu sześciu godzin.",
   "v2.health.cardRgSub": "Normalizacja poziomu",
   "v2.health.rgOff": "Wyłączone",
   "v2.health.rgTrack": "Dla utworu",

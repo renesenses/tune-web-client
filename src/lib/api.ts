@@ -3830,6 +3830,9 @@ export function getAcousticStatus() {
     // MÊME couple. `eligible_tracks` exclut les pistes reportées.
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    // tune-server-rust#9046 — parmi `deferred_tracks`, les reports après échecs
+    // répétés d'analyse ; `waiting_reason` vaut alors `analysis_failures`.
+    retry_later_tracks?: number;
     waiting_reason?: string | null;
     // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
     // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.

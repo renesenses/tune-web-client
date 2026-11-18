@@ -4650,6 +4650,7 @@ export default {
   "v2.health.drPriorityFirst": "Først, før ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain måler allerede dynamikkområdet til sporene den analyserer; denne innstillingen styrer rekkefølgen for å ta igjen de andre. Pause og avspillingsprioritet gjelder fortsatt.",
   "v2.health.deferredPaths": "{n} spor utsatt: filene svarer ikke (mangler stasjon eller ressurs?). Prøves på nytt automatisk innen seks timer.",
+  "v2.health.clapRetryLater": "{n} spor utsatt: analysen har mislyktes flere ganger på dem. Nytt forsøk automatisk innen seks timer.",
   "v2.health.cardRgSub": "Nivånormalisering",
   "v2.health.rgOff": "Av",
   "v2.health.rgTrack": "Per spor",

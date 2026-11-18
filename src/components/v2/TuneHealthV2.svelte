@@ -474,12 +474,20 @@
       const eligible = typeof s?.eligible_tracks === 'number' ? s.eligible_tracks : undefined;
       const processed = typeof s?.processed_tracks === 'number' ? s.processed_tracks : undefined;
       const reportees = typeof s?.deferred_tracks === 'number' ? s.deferred_tracks : 0;
-      const attendLesFichiers = s?.waiting_reason === 'unresolved_paths' && reportees > 0;
+      // tune-server-rust#9046 — parmi les reportées, celles en échec répété
+      // d'analyse (le modèle plante sur elles) : PAS un fichier qui ne répond
+      // pas. Absent d'un serveur plus ancien, donc 0.
+      const apresEchecs = typeof s?.retry_later_tracks === 'number'
+        ? Math.min(Math.max(0, s.retry_later_tracks), reportees) : 0;
+      const sansFichier = reportees - apresEchecs;
+      const attendLesFichiers = (s?.waiting_reason === 'unresolved_paths' || s?.waiting_reason === 'analysis_failures')
+        && reportees > 0;
       const fait = processed ?? done;
       const total = eligible ?? totalTracks;
-      const reporteesDetail = reportees > 0
-        ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
-        : undefined;
+      const reporteesDetail = [
+        sansFichier > 0 ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(sansFichier)) : undefined,
+        apresEchecs > 0 ? $t('v2.health.clapRetryLater' as any).replace('{n}', $formatNombre(apresEchecs)) : undefined,
+      ].filter(Boolean).join(' ') || undefined;
       if (!s?.available) {
         out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
