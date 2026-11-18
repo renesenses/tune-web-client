@@ -3,6 +3,9 @@ import { avecLangueSignal } from './langueRequete';
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
+import { v2SettingsTarget } from './stores/v2SettingsNav';
+import { activeView } from './stores/navigation';
+import { motifRefusAuth, phraseRefusAuth, CIBLE_ACTIVATION_AUTH } from './refusAuthActivation';
 import { notifierTraduit } from './notificationTraduite';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
@@ -738,6 +741,20 @@ export async function fetchJSON<T>(
         ) {
           notifications.error(err.message, 10000, err.detail);
         }
+        err.dejaAnnonce = true;
+      } else if (motifRefusAuth(err) !== null) {
+        // Refus « depuis cette machine seulement » : la phrase qui dit quoi
+        // faire, et le bouton qui mène à l'activation de l'authentification.
+        err.message = phraseRefusAuth(motifRefusAuth(err)!, err.message, get(t) as (cle: string) => string);
+        notifications.withAction(
+          err.message,
+          get(t)('machineAction.openAuthActivation' as any),
+          () => {
+            v2SettingsTarget.set({ ...CIBLE_ACTIVATION_AUTH });
+            activeView.set('settings');
+          },
+          15000,
+        );
         err.dejaAnnonce = true;
       } else if (estLectureYoutubeInactive(err.code)) {
         // tune-server-rust#8913 — YouTube sans yt-dlp : la phrase traduite du

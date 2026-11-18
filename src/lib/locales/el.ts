@@ -2171,6 +2171,7 @@ export default {
   "settings.errUsernameRejected": "Το όνομα χρήστη απορρίφθηκε — ελέγξτε την ορθογραφία της σελίδας σας στο Bandcamp.",
   "settings.errDisconnectFailed": "Δεν ήταν δυνατή η αποσύνδεση.",
   "settings.errDeactivateFailed": "Δεν ήταν δυνατή η απενεργοποίηση.",
+  "machineAction.openAuthActivation": "Ενεργοποίηση ταυτοποίησης",
   "settings.errFolderRejected": "Ο φάκελος απορρίφθηκε — ελέγξτε τη διαδρομή και τα δικαιώματα.",
   "settings.errSettingRejected": "Η ρύθμιση απορρίφθηκε από τον διακομιστή.",
   "settings.errSettingNotSaved": "Η ρύθμιση δεν αποθηκεύτηκε.",

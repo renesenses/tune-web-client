@@ -3520,6 +3520,7 @@ export default {
   "settings.errUsernameRejected": "사용자 이름이 거부되었습니다 — Bandcamp 페이지 철자를 확인하세요.",
   "settings.errDisconnectFailed": "연결을 끊지 못했습니다.",
   "settings.errDeactivateFailed": "비활성화하지 못했습니다.",
+  "machineAction.openAuthActivation": "인증 켜기",
   "settings.errFolderRejected": "폴더가 거부되었습니다 — 경로와 권한을 확인하세요.",
   "settings.errSettingRejected": "서버가 설정을 거부했습니다.",
   "settings.errSettingNotSaved": "설정이 저장되지 않았습니다.",

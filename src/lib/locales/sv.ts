@@ -3519,6 +3519,7 @@ export default {
   "settings.errUsernameRejected": "Användarnamnet avvisades – kontrollera stavningen på din Bandcamp-sida.",
   "settings.errDisconnectFailed": "Kunde inte koppla från.",
   "settings.errDeactivateFailed": "Kunde inte inaktivera.",
+  "machineAction.openAuthActivation": "Aktivera autentisering",
   "settings.errFolderRejected": "Mappen nekades — kontrollera sökväg och behörigheter.",
   "settings.errSettingRejected": "Inställningen nekades av servern.",
   "settings.errSettingNotSaved": "Inställningen sparades inte.",

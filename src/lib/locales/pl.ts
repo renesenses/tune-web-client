@@ -2171,6 +2171,7 @@ export default {
   "settings.errUsernameRejected": "Nazwa użytkownika odrzucona — sprawdź pisownię swojej strony Bandcamp.",
   "settings.errDisconnectFailed": "Nie udało się rozłączyć.",
   "settings.errDeactivateFailed": "Nie udało się dezaktywować.",
+  "machineAction.openAuthActivation": "Włącz uwierzytelnianie",
   "settings.errFolderRejected": "Folder odrzucony — sprawdź ścieżkę i uprawnienia.",
   "settings.errSettingRejected": "Ustawienie odrzucone przez serwer.",
   "settings.errSettingNotSaved": "Ustawienie nie zostało zapisane.",

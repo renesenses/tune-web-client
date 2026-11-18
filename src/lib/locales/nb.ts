@@ -2171,6 +2171,7 @@ export default {
   "settings.errUsernameRejected": "Brukernavnet ble avvist — sjekk stavemåten på Bandcamp-siden din.",
   "settings.errDisconnectFailed": "Kunne ikke koble fra.",
   "settings.errDeactivateFailed": "Kunne ikke deaktivere.",
+  "machineAction.openAuthActivation": "Slå på autentisering",
   "settings.errFolderRejected": "Mappen ble avvist — sjekk stien og tillatelsene.",
   "settings.errSettingRejected": "Innstillingen ble avvist av serveren.",
   "settings.errSettingNotSaved": "Innstillingen ble ikke lagret.",

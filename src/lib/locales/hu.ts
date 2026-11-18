@@ -3474,6 +3474,7 @@ export default {
   "settings.errUsernameRejected": "A felhasználónevet elutasította – ellenőrizze a Bandcamp-oldala írásmódját.",
   "settings.errDisconnectFailed": "A leválasztás nem sikerült.",
   "settings.errDeactivateFailed": "A kikapcsolás nem sikerült.",
+  "machineAction.openAuthActivation": "Hitelesítés bekapcsolása",
   "settings.errFolderRejected": "A mappa elutasítva — ellenőrizze az útvonalat és a jogosultságokat.",
   "settings.errSettingRejected": "A kiszolgáló elutasította a beállítást.",
   "settings.errSettingNotSaved": "A beállítás nincs mentve.",

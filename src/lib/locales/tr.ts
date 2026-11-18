@@ -2190,6 +2190,7 @@ export default {
   "settings.errUsernameRejected": "Kullanıcı adı reddedildi — Bandcamp sayfanızın yazımını kontrol edin.",
   "settings.errDisconnectFailed": "Bağlantı kesilemedi.",
   "settings.errDeactivateFailed": "Devre dışı bırakılamadı.",
+  "machineAction.openAuthActivation": "Kimlik doğrulamayı etkinleştir",
   "settings.errFolderRejected": "Klasör reddedildi — yolu ve izinleri kontrol edin.",
   "settings.errSettingRejected": "Ayar sunucu tarafından reddedildi.",
   "settings.errSettingNotSaved": "Ayar kaydedilmedi.",

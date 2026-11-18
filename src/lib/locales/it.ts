@@ -3520,6 +3520,7 @@ export default {
   "settings.errUsernameRejected": "Nome utente rifiutato: controlla l'ortografia della tua pagina Bandcamp.",
   "settings.errDisconnectFailed": "Disconnessione impossibile.",
   "settings.errDeactivateFailed": "Disattivazione impossibile.",
+  "machineAction.openAuthActivation": "Attiva l’autenticazione",
   "settings.errFolderRejected": "Cartella rifiutata — verifica il percorso e i permessi.",
   "settings.errSettingRejected": "Impostazione rifiutata dal server.",
   "settings.errSettingNotSaved": "Impostazione non salvata.",

@@ -3520,6 +3520,7 @@ export default {
   "settings.errUsernameRejected": "Nume de utilizator respins — verificați ortografia paginii dvs. Bandcamp.",
   "settings.errDisconnectFailed": "Deconectarea nu a fost posibilă.",
   "settings.errDeactivateFailed": "Dezactivarea nu a fost posibilă.",
+  "machineAction.openAuthActivation": "Activați autentificarea",
   "settings.errFolderRejected": "Dosar refuzat — verificați calea și drepturile.",
   "settings.errSettingRejected": "Setare refuzată de server.",
   "settings.errSettingNotSaved": "Setare nesalvată.",
