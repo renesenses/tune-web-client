@@ -218,6 +218,33 @@ export function cleLigneEtiquetee(o: { id?: unknown; source?: unknown; source_id
 }
 
 /**
+ * L'ORIGINE de la fiche d'un album rendu par l'écran Étiquettes — #3224.
+ *
+ * Pascal (bluevelvet), fils 2924 et 2925 : un album Qobuz ouvert depuis
+ * Étiquettes restait sur « Chargement des pistes… » avec « 0 titre », alors
+ * que le bouton Lire de sa vignette jouait bien l'album. La route
+ * `/tags/{id}/albums` rend la moitié streaming avec `id: null` et la paire
+ * `source` + `source_id` ; l'écran montait pourtant `AlbumDetailV2` SANS lui
+ * dire de quel service l'album venait. Sans `id` et sans `service`, la fiche
+ * ne sait demander ses pistes nulle part : elle sort de son effet de
+ * chargement avant même de commencer, et `loading` reste à `true`.
+ *
+ * La règle est celle des autres écrans (Bibliothèque, Collections, Favoris) :
+ * un album local garde son identifiant ; un album de service passe par sa
+ * source (clé SERVEUR, `cibleDeService`), et un album Bandcamp par l'adresse
+ * de sa page, que sa fiche lit avec `bandcamp`.
+ */
+export function origineFicheAlbumEtiquete(a: { id?: number | null; source?: string | null; source_id?: string | null } | null | undefined):
+  { service: string | null; bandcamp: string | null } {
+  const aucune = { service: null, bandcamp: null };
+  if (!a || a.id != null) return aucune;
+  const c = cibleDeService('album', a);
+  if (!c) return aucune;
+  if (c.source === 'bandcamp') return { service: null, bandcamp: c.sourceId };
+  return { service: c.source, bandcamp: null };
+}
+
+/**
  * Corps de lecture d'un ALBUM rendu par l'écran Étiquettes : l'identifiant
  * pour la bibliothèque, la paire pour un service. `null` s'il ne désigne rien.
  */
