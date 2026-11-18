@@ -18,6 +18,7 @@
   import { t, locale } from '../../lib/i18n';
   import MesNotes from '../partages/MesNotes.svelte';
   import FormeOnde from './FormeOnde.svelte';
+  import { lignesDynamique } from '../../lib/dynamique';
   import { chargerSpectrogramme } from '../../lib/spectrogramme';
   import {
     chargerFicheTechnique, recalculerSpectrogramme, sectionsVisibles, ErreurFiche,
@@ -182,11 +183,22 @@
             {/if}
           {:else if cle === 'formeDOnde'}
             <FormeOnde {trackId} section={fiche.forme_d_onde} {titre} />
-          {:else if cle === 'dynamicRange' && fiche.dynamic_range}
+          {:else if cle === 'dynamicRange' && (fiche.dynamic_range || fiche.dynamique)}
             <h3>{$t('fiche.section.dr' as any)}</h3>
-            <p class="valeur">{$t('fiche.dr.value' as any).replace('{n}', String(fiche.dynamic_range.valeur))}</p>
-            <p>{$t(cleSourceDr(fiche.dynamic_range.source) as any)}</p>
-            {#if fiche.dynamic_range.mesure_le}<p class="date">{date('fiche.measuredOn', fiche.dynamic_range.mesure_le)}</p>{/if}
+            {#if fiche.dynamic_range}
+              <p class="valeur">{$t('fiche.dr.value' as any).replace('{n}', String(fiche.dynamic_range.valeur))}</p>
+              <p>{$t(cleSourceDr(fiche.dynamic_range.source) as any)}</p>
+              {#if fiche.dynamic_range.mesure_le}<p class="date">{date('fiche.measuredOn', fiche.dynamic_range.mesure_le)}</p>{/if}
+            {/if}
+            <!-- tune-server-rust#9040 — sonie, LRA, crêtes : informatif. -->
+            {@const lignes = lignesDynamique(fiche.dynamique, langue)}
+            {#if lignes.length}
+              <dl data-dynamique>
+                {#each lignes as l (l.cle)}<dt>{$t(l.cle as any)}</dt><dd>{l.texte}</dd>{/each}
+              </dl>
+              <p class="detail">{$t('fiche.dyn.info' as any)}</p>
+              {#if fiche.dynamique?.sonie_mesuree_le}<p class="date">{date('fiche.measuredOn', fiche.dynamique.sonie_mesuree_le)}</p>{/if}
+            {/if}
           {:else if cle === 'fauxHires' && fiche.faux_hires}
             <h3>{$t('fiche.section.hires' as any)}</h3>
             <p class="valeur">{$t(cleVerdictHiRes(fiche.faux_hires.verdict) as any)}</p>
