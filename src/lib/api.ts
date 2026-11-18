@@ -8,6 +8,7 @@ import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrag
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
+import { messageRefusHorsMachine } from './refusHorsMachine';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -767,6 +768,11 @@ export async function fetchJSON<T>(
         err.dejaAnnonce = true;
       }
     }
+    // tune-server-rust#9029 — une action qui engage la machine, refusée parce
+    // qu'elle ne vient pas de la machine de Tune (authentification coupée) :
+    // la phrase traduite qui dit quoi faire, à la place du texte anglais.
+    const horsMachine = messageRefusHorsMachine(err, get(t) as (cle: string) => string);
+    if (horsMachine !== null) err.message = horsMachine;
     throw err;
   }
   // #2413 — une réponse normale : si un toast de démarrage était posé, il part.
