@@ -23,6 +23,25 @@
     ENTREES_TOUJOURS_VISIBLES,
   } from '../../lib/ordreBarreLaterale';
   import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';
+  import * as api from '../../lib/api';
+  import { etatGreffons, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
+  import { presenceCrossfeedPro } from '../../lib/stores/crossfeedPro';
+  import { presenceCrosstalk } from '../../lib/stores/crosstalk';
+  import {
+    etatGreffonDeLEntree, interrupteurSansEffet, MENTION_ETAT, GESTE_ETAT, ouvrirLaFicheDuGreffon,
+  } from '../../lib/greffonsDuMenu';
+
+  /**
+   * tune-server-rust#8866 — une entrée portée par un greffon absent ou arrêté
+   * ne s'affiche pas dans la barre, quoi qu'on coche. La ligne le dit et mène
+   * à la fiche du greffon (Réglages › Extensions), au lieu d'un interrupteur
+   * vert sans effet. L'état vient des mêmes lectures que la barre ; on relit
+   * `GET /plugins` à l'ouverture, pour ne pas dire « non installé » d'un
+   * greffon qu'on vient d'installer ailleurs.
+   */
+  $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
+  const natifs = $derived({ crossfeedpro: $presenceCrossfeedPro, crosstalk: $presenceCrosstalk });
+  const etatDe = (vue: string) => etatGreffonDeLEntree(vue, $etatGreffons, natifs);
 
   /** La pastille de niveau d'une entrée qui n'est pas visible dès l'Essentiel. */
   const PASTILLE_NIVEAU = { intermediate: 'settings.levelAdvanced', expert: 'settings.levelExpert' } as const;
@@ -114,6 +133,10 @@
       {@const fixe = ENTREES_TOUJOURS_VISIBLES.includes(it.view)}
       {@const masquee = estMasquee(it.view, choix)}
       {@const niveau = NIVEAU_ENTREE[it.view]}
+      {@const etat = etatDe(it.view)}
+      {@const mention = MENTION_ETAT[etat] ?? null}
+      {@const geste = GESTE_ETAT[etat] ?? null}
+      {@const sansEffet = interrupteurSansEffet(it.view, etat)}
       <li data-vue={it.view} class:masquee class:survol={survol === i} class:glisse={glisse === i}
         draggable="true"
         ondragstart={(e) => debutGlisse(e, i, it.view)}
@@ -130,12 +153,22 @@
         <button class="fl" data-sens="bas" disabled={i === liste.length - 1}
           aria-label={avec('settings.sidebarMoveDown', it)} title={avec('settings.sidebarMoveDown', it)}
           onclick={() => deplacerA(i, i + 1, true)}>↓</button>
-        <label class="sw" title={fixe ? $t('settings.sidebarAlwaysVisible' as any) : avec('settings.sidebarShow', it)}>
-          <input type="checkbox" data-visible={it.view} checked={fixe || !masquee} disabled={fixe}
-            aria-label={fixe ? `${libelle(it)} — ${$t('settings.sidebarAlwaysVisible' as any)}` : avec('settings.sidebarShow', it)}
-            onchange={(e) => basculer(it.view, (e.currentTarget as HTMLInputElement).checked)} />
-          <span class="slider"></span>
-        </label>
+        {#if mention}
+          <span class="greffon" data-etat-greffon={etat} use:bulleTexte>{$t(mention as any)}</span>
+        {/if}
+        {#if geste}
+          <button class="lnk ouvrir-greffon" data-ouvrir-greffon={it.view}
+            aria-label={`${$t(geste as any)} — ${libelle(it)}`}
+            onclick={() => ouvrirLaFicheDuGreffon(it.view)}>{$t(geste as any)}</button>
+        {/if}
+        {#if !sansEffet}
+          <label class="sw" title={fixe ? $t('settings.sidebarAlwaysVisible' as any) : avec('settings.sidebarShow', it)}>
+            <input type="checkbox" data-visible={it.view} checked={fixe || !masquee} disabled={fixe}
+              aria-label={fixe ? `${libelle(it)} — ${$t('settings.sidebarAlwaysVisible' as any)}` : avec('settings.sidebarShow', it)}
+              onchange={(e) => basculer(it.view, (e.currentTarget as HTMLInputElement).checked)} />
+            <span class="slider"></span>
+          </label>
+        {/if}
       </li>
     {/each}
   </ol>
@@ -165,6 +198,11 @@
   .fl{width:28px; height:28px; border-radius:7px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt); cursor:pointer; font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1}
   .fl:disabled{opacity:.3; cursor:default}
+  .greffon{flex:0 1 auto; min-width:0; font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .lnk{flex:0 0 auto; background:none; border:0; padding:0 2px; color:var(--v2-acc2); font:inherit;
+    font-size:calc(12px * var(--v2-txt-echelle, 1)); cursor:pointer; text-decoration:underline}
+  .lnk:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
   .fl:focus-visible, .retablir:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
   .annonce{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   /* L'interrupteur reprend celui des Réglages (`.sw`, scopé là-bas), en 36 px. */
