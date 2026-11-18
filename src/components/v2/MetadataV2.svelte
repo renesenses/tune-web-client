@@ -794,7 +794,9 @@
   let dPeutIgnorer = $state(true);
   /** Le dernier choix, et la liste telle qu'elle était juste avant : l'annuler
    *  la rend telle quelle, sans tout relire. */
-  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
+  /*  tune-server-rust#9028 — `album` : le dernier choix est un geste groupé ;
+   *  l'annuler passe par « ne plus considérer comme normal » pour l'album. */
+  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; album?: { id: number; reason: string }; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
   let dIgnoreOccupe = $state(false);
   let dAOffrir = $derived(doubtful.some((p) => p.ignore_scopes && Object.keys(p.ignore_scopes).length));
 
@@ -854,6 +856,64 @@
         avant,
         apres: doubtful,
       };
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  /**
+   * tune-server-rust#9028 — « Normal pour les N pistes de cet album », après
+   * la confirmation dans la page. Le serveur vérifie la liste ; la liste
+   * affichée perd la raison sur ces pistes-là, sans relecture.
+   */
+  async function ignorerAlerteAlbum(albumId: number, raison: string, ids: number[], titre: string) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      const r = await api.ignorerAlerteAlbum(albumId, raison, ids);
+      const vises = new Set(r.track_ids?.length ? r.track_ids : ids);
+      const avant = doubtful;
+      doubtful = doubtful
+        .map((x) => {
+          if (!vises.has(x.id) || !x.reasons?.includes(raison)) return x;
+          const scopes = { ...(x.ignore_scopes ?? {}) };
+          delete scopes[raison];
+          return { ...x, reasons: x.reasons.filter((y) => y !== raison), ignore_scopes: scopes };
+        })
+        .filter((x) => x.reasons?.length);
+      dIgnoreeDerniere = {
+        texte: $t('v2.meta.dIgnoredAlbumDone' as any)
+          .replace('{reason}', texteRaisonSimple(raison))
+          .replace('{count}', $formatNombre(vises.size))
+          .replace('{name}', titre || '—'),
+        alerte: { scope: r.scope, key: r.key, title: r.title ?? '', reason: r.reason ?? raison },
+        album: { id: albumId, reason: raison },
+        avant,
+        apres: doubtful,
+      };
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
+      throw e;
+    } finally {
+      dIgnoreOccupe = false;
+    }
+  }
+
+  /** « Annuler » le dernier choix : piste ou album selon le geste. */
+  async function annulerDerniere() {
+    const derniere = dIgnoreeDerniere;
+    if (!derniere) return;
+    if (!derniere.album) return retablirAlerte(derniere.alerte);
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      await api.retablirAlerteAlbum(derniere.album.id, derniere.album.reason);
+      dIgnoreeDerniere = null;
+      if (doubtful === derniere.apres) doubtful = derniere.avant;
+      else { dLoaded = false; await chargerDouteuses(true); }
       await chargerIgnorees();
     } catch (e: any) {
       echecIgnore(e);
@@ -1410,7 +1470,7 @@
         <p class="note ignoree" data-bilan-ignore aria-live="polite">
           {derniere.texte}
           {#if dPeutIgnorer}
-            <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(derniere.alerte)}>{$t('v2.meta.dUndo' as any)}</button>
+            <button class="lnk" disabled={dIgnoreOccupe} onclick={annulerDerniere}>{$t('v2.meta.dUndo' as any)}</button>
           {/if}
         </p>
       {/if}
@@ -1425,7 +1485,8 @@
       <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
            vient du serveur, on la relit après l'écriture. -->
       <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }}
-        onIgnorer={dPeutIgnorer ? ignorerAlerte : undefined} />
+        onIgnorer={dPeutIgnorer ? ignorerAlerte : undefined}
+        onIgnorerAlbum={dPeutIgnorer ? ignorerAlerteAlbum : undefined} />
 
       {#if dGroupes.length}
         <div class="cpacts">

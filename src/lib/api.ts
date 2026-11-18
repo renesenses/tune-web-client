@@ -4257,6 +4257,46 @@ export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
   });
 }
 
+/**
+ * renesenses/tune-server-rust#9028 — « Normal pour tout l'album » : l'aperçu
+ * (les pistes de l'album qui portent encore l'alerte), à montrer AVANT le
+ * geste, pour que la portée se voie.
+ */
+export interface ApercuAlerteAlbum {
+  album_id: number;
+  album_title: string | null;
+  reason: string;
+  /** `album` : une ligne pour l'album (dossier + titre) ; `track` : une par piste. */
+  scope: 'track' | 'album';
+  folder: string | null;
+  tracks: { id: number; title: string; duration_ms: number; disc_number?: number; track_number?: number; file_path?: string | null }[];
+  total: number;
+  ignored_count: number;
+}
+
+export function apercuAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<ApercuAlerteAlbum>(
+    `${BASE}/metadata/doubtful/album?album_id=${albumId}&reason=${encodeURIComponent(reason)}`,
+  );
+}
+
+/** Marque l'alerte normale pour les pistes `trackIds` de l'album (vérifiées
+ *  par le serveur). Réservé à l'administrateur. */
+export function ignorerAlerteAlbum(albumId: number, reason: string, trackIds: number[]) {
+  return fetchJSON<{ scope: 'track' | 'album'; key: string; title: string; reason: string; track_ids: number[]; track_count: number; added: number }>(
+    `${BASE}/metadata/doubtful/ignored/album`,
+    { method: 'POST', body: JSON.stringify({ album_id: albumId, reason, track_ids: trackIds }) },
+  );
+}
+
+/** « Ne plus considérer comme normal » pour l'album : tous ses choix de cette raison. */
+export function retablirAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<{ removed: number }>(`${BASE}/metadata/doubtful/ignored/album`, {
+    method: 'DELETE',
+    body: JSON.stringify({ album_id: albumId, reason }),
+  });
+}
+
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
