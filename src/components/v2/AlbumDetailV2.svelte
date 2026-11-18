@@ -2016,8 +2016,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         <!-- tune-server-rust#9040 — informatif : aucune couleur, aucun seuil. -->
         <!-- Focalisable : l'infobulle s'atteint aussi au clavier ; les unités
              sont des <abbr> nommées en toutes lettres pour les lecteurs d'écran. -->
+        {#if dynamiqueAlbum.length}
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-        {#if dynamiqueAlbum.length}<span class="dynamique" data-dynamique-album tabindex="0" use:tip={'v2.album.dynamiqueTip'}
+        <span class="dynamique" data-dynamique-album tabindex="0" use:tip={'v2.album.dynamiqueTip'}
           >{#each dynamiqueAlbum as m, i (m.unite)}{#if i > 0}{' · '}{/if}{#if m.prefixe}<abbr title={$tr('fiche.dyn.lra' as any)}>{m.prefixe}</abbr>{' '}{/if}{m.valeur} <abbr title={$tr(cleUnite(m.unite) as any)} aria-label={$tr(cleUnite(m.unite) as any)}>{m.unite}</abbr>{/each}</span>{/if}
         <!-- #2298 — le total des écoutes de la communauté, lu sur la fiche
              locale (`GET /library/albums/{id}`) ; rien sans le champ. -->
