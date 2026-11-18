@@ -34,26 +34,16 @@
  *   3. aucun retour en arrière : la première carte en vue ne recule jamais
  *      en descendant.
  *
- * Contre-épreuve (Shrek, 18/11) : sur `main` (sans web#3186), les deux
+ * Contre-épreuve (Shrek, 18/11) : sur le `main` d'avant web#3186, les deux
  * témoins qui changent la géométrie EN ROUTE (taille des pochettes, largeur
- * du cadre) sont ROUGES — la grille cesse d'avancer (dernière carte en vue
- * 399 puis 699 sur 2 188), et reculait de 4 albums ; d'où `temoin` =
- * `it.fails` sur main. Avec web#3186 (main + #3186 fusionnés), les cinq sont
- * VERTS. Les deux témoins de descente simple passent déjà sur main dans ce
- * banc : ils restent comme garde de non-régression.
- * À LA FUSION DE web#3186, passer `BUG_3183_PRESENT` à `false` : un
- * `it.fails` qui passe au vert fait rougir la suite, c'est voulu.
+ * du cadre) étaient ROUGES — la grille cessait d'avancer (dernière carte en
+ * vue 399 puis 699 sur 2 188). Avec web#3186, les cinq étaient VERTS. Le banc
+ * a d'abord porté ces deux témoins en `it.fails` ; web#3186 fusionnée, ce
+ * sont de simples `it`. Les deux témoins de descente simple passaient déjà
+ * avant web#3186 dans ce banc : ils restent comme garde de non-régression.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fenetreAlbumsPaginee, type TrancheAlbums } from '../fenetreAlbumsPaginee';
-
-/**
- * `true` tant que web#3186 n'est pas fusionnée : les témoins du bug sont
- * attendus rouges sur `main` (`it.fails`). À passer à `false` (ou retirer)
- * avec la fusion de web#3186.
- */
-const BUG_3183_PRESENT = true;
-const temoin = BUG_3183_PRESENT ? it.fails : it;
 
 const TOTAL = 2189;
 const VUE = 820;
@@ -364,7 +354,7 @@ describe('grille des Albums en pages sous défilement asynchrone (#3183, Firefox
     }
   }, 120_000);
 
-  temoin('la taille des pochettes change en route (web#3189) : la grille repart et va au bout', async () => {
+  it('la taille des pochettes change en route (web#3189) : la grille repart et va au bout', async () => {
     g = monterGrille(180);
     await auRepos(g);
     await defiler(g, 110, () => (g!.premiere() ?? 0) >= 500, 3_000);
@@ -375,7 +365,7 @@ describe('grille des Albums en pages sous défilement asynchrone (#3183, Firefox
     expect(await auRepos(g)).toEqual({ recalculs: 0, scrolls: 0 });
   }, 120_000);
 
-  temoin('le cadre change de largeur, son ResizeObserver prévient en retard : ni recul ni boucle', async () => {
+  it('le cadre change de largeur, son ResizeObserver prévient en retard : ni recul ni boucle', async () => {
     g = monterGrille(180);
     await auRepos(g);
     await defiler(g, 110, () => (g!.premiere() ?? 0) >= 700, 3_000);
