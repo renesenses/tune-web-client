@@ -90,3 +90,31 @@ describe('web#3203 — un conteneur de radio fait des seules lignes du serveur p
     expect(nomDObjet(radio.type, radio.entrees)).toBe(STATION);
   });
 });
+
+describe('#8487 (relecture) — plafond par niveau, nom de station', () => {
+  it('cent titres diffusés sous UNE station n’évincent pas les autres écoutes', () => {
+    const titres = Array.from({ length: 100 }, (_, i) => ({
+      zone_id: 4, title: `Titre ${i}`, artist_name: 'X', cover_url: null,
+      played_at: new Date(Date.parse('2026-11-18T12:00:00Z') - i * 60_000).toISOString(),
+    }));
+    const pistes = Array.from({ length: 150 }, (_, i) => ({
+      id: 100 + i, track_id: 1000 + i, title: `Piste ${i}`, artist_name: 'Y', source: 'local',
+      duration_ms: 180_000, listened_at: new Date(Date.parse('2026-11-17T12:00:00Z') - i * 60_000).toISOString(), zone_id: 1,
+    }));
+    const serveur = entreesDepuisServeur([{ ...ligneDeStation(titres), listened_at: '2026-11-18T09:00:00Z' }, ...pistes]);
+    for (const mode of ['titre', 'ecoute'] as const) {
+      const r = fusionnerHistorique([], serveur, mode);
+      expect(r.filter((x) => x.track.source === 'local'), mode).toHaveLength(150);
+      expect(r.filter((x) => x.track.source === 'radio'), mode).toHaveLength(101);
+    }
+  });
+
+  it('une ligne de radio sans contexte de station ne prête pas son titre ICY comme nom', () => {
+    const [e] = entreesDepuisServeur([{
+      id: 9, track_id: null, title: 'Miles Davis - So What', artist_name: null, album_title: null,
+      source: 'radio', source_id: FLUX, duration_ms: 0, listened_at: '2026-11-18T09:00:00Z', zone_id: 4,
+      context_type: null, context_id: null, context_title: null,
+    }]);
+    expect(e.track.album_title ?? null).toBeNull();
+  });
+});

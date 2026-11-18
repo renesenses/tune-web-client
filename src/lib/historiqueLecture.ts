@@ -31,8 +31,35 @@ import { radioFavListenKey } from './radioFavListenAt';
 import { champAlbumBandcamp } from './albumBandcampDuTitre';
 import { MODE_HISTORIQUE_DEFAUT, type ModeHistorique } from './modeHistorique';
 
-/** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
+/**
+ * Nombre de LIGNES DE PREMIER NIVEAU rendues par la fusion — au-delà, la
+ * liste n'est plus lue. Une ligne est un objet regroupé (album, playlist,
+ * station…) ou un titre nu.
+ */
 const PLAFOND = 200;
+
+/**
+ * Le plafond compte les niveaux regroupés, pas les entrées
+ * (tune-server-rust#8487) : une station sert jusqu'à cent titres diffusés
+ * sous UNE ligne, et compter chacun évinçait des écoutes plus anciennes mais
+ * bien distinctes. Une entrée dont l'objet est déjà retenu passe toujours ;
+ * un objet ou un titre nu nouveau n'entre que tant que le plafond n'est pas
+ * atteint. La liste arrive triée, du plus récent au plus ancien.
+ */
+function plafonnerParNiveau(entrees: readonly HistoryEntry[]): HistoryEntry[] {
+  const niveaux = new Set<string>();
+  const rendu: HistoryEntry[] = [];
+  entrees.forEach((e, i) => {
+    const c = contexteDeLEcoute(e.track, e.contexte);
+    const cle = estRegroupable(c) ? cleDObjet(c!) : `#${i}`;
+    if (!niveaux.has(cle)) {
+      if (niveaux.size >= PLAFOND) return;
+      niveaux.add(cle);
+    }
+    rendu.push(e);
+  });
+  return rendu;
+}
 
 /**
  * L'album CHEZ LE SERVICE d'une écoute de service lancée depuis cet album.
@@ -85,6 +112,10 @@ function nomDeStationServie(e: any): string | null {
   if (e?.source !== 'radio') return null;
   const album = typeof e?.album_title === 'string' ? e.album_title.trim() : '';
   if (album) return album;
+  // Seule une ligne DE STATION (#7965 : `context_type = 'radio'`, écrite au
+  // nom de la station) nomme le conteneur. Une ligne de radio sans ce
+  // contexte porte un titre ICY figé : ce n'est pas un nom de station.
+  if (String(e?.context_type ?? '').toLowerCase() !== 'radio') return null;
   const ctx = typeof e?.context_title === 'string' ? e.context_title.trim() : '';
   if (ctx) return ctx;
   const artiste = typeof e?.artist_name === 'string' ? e.artist_name.trim() : '';
@@ -331,7 +362,7 @@ export function fusionnerHistorique(
   // déduplication survit — donc le local reste devant le serveur, ce qui est
   // exactement la priorité posée à l'étape 1.
   rendu.sort(duPlusRecent);
-  return rendu.slice(0, PLAFOND);
+  return plafonnerParNiveau(rendu);
 }
 
 /**
@@ -379,7 +410,7 @@ function fusionnerParEcoute(
   }
   const rendu = [...locales, ...serveur];
   rendu.sort(duPlusRecent);
-  return rendu.slice(0, PLAFOND);
+  return plafonnerParNiveau(rendu);
 }
 
 /**
