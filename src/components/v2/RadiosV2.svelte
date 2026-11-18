@@ -497,19 +497,24 @@
 
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
     {#if section === 'mes'}
-      <div class="filtres ligne">
-        <RadioRecherche bind:valeur={q} />
-        <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
-             puis la liste « Pays », sur une seule ligne. -->
-        <RadioFiltresAvances total={shown.length} pays={listePays} />
-      </div>
-      {#if showFilters && rayons.length}
-        <div class="filtres">
-          <RadioChipsGenres
-            genres={rayons.map(({ rayon, n }) => ({ cle: rayon.key, libelle: libelle(rayon), n }))}
-            choisi={genre} total={shown.length} onChoisir={(c) => (genre = c)} />
+      <!-- web#3176 (Jean Valjean, fil 2881) — recherche, filtres et genres
+           restent en haut pendant le défilement des stations : en-tête
+           COLLANT dans `.scroll`, sur le fond de l'écran. -->
+      <div class="entete-collant" data-testid="radio-entete-collant">
+        <div class="filtres ligne">
+          <RadioRecherche bind:valeur={q} />
+          <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+               puis la liste « Pays », sur une seule ligne. -->
+          <RadioFiltresAvances total={shown.length} pays={listePays} />
         </div>
-      {/if}
+        {#if showFilters && rayons.length}
+          <div class="filtres genres">
+            <RadioChipsGenres
+              genres={rayons.map(({ rayon, n }) => ({ cle: rayon.key, libelle: libelle(rayon), n }))}
+              choisi={genre} total={shown.length} onChoisir={(c) => (genre = c)} />
+          </div>
+        {/if}
+      </div>
     {/if}
     {#if section === 'carte'}
       <CarteRadios
@@ -672,6 +677,17 @@
   .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
   /* Dépliée, la rangée défile avec la page (un seul ascenseur, rc12). */
   .filtres{padding:4px 30px 10px}
+  /* web#3176 — l'en-tête collant : au-dessus des vignettes (leurs gestes
+     montent à z-index 2), sur le fond de l'écran dans les deux thèmes. */
+  .entete-collant{position:sticky; top:0; z-index:5; background:var(--v2-bg); box-shadow:0 1px 0 var(--v2-line2)}
+  .entete-collant .genres{padding-top:0}
+  /* Mobile : les genres sur UNE rangée qui défile de côté, pour que l'en-tête
+     collant ne mange pas l'écran. */
+  @media (max-width: 640px){
+    .entete-collant .genres :global(.chips){flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .entete-collant .genres :global(.chips)::-webkit-scrollbar{display:none}
+    .entete-collant .genres :global(.chip){flex:none}
+  }
   .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
