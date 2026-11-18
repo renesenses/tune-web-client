@@ -703,13 +703,14 @@
         {/if}
 
         {#if mesure}
+          {@const cause = causeMesure(mesure, (k) => $t(k as any))}
           <div class="avancement" data-room="avancement" data-etat={mesure.etat}>
             <span>{$t(LIBELLES_ETATS[mesure.etat] as any)}</span>
             {#if enCours}
               <progress max="1" value={mesure.progression}></progress>
               <span class="val">{f0(mesure.progression * 100)} %</span>
             {/if}
-            {#if causeMesure(mesure, (k) => $t(k as any))}<span class="hint" data-room="cause">{causeMesure(mesure, (k) => $t(k as any))}</span>{/if}
+            {#if cause}<span class="hint" data-room="cause">{cause}</span>{/if}
           </div>
         {/if}
         {@render erreur(erreurMes)}
