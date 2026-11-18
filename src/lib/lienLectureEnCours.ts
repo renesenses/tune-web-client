@@ -42,6 +42,7 @@ import {
 } from './stores/navigation';
 import { ouvrirParRaccourci, ouvrirPlaylistDeService } from './ouvrirParRaccourci';
 import type { Zone } from './types';
+import { marquerOuvertureLectureEnCours } from './ouvertureLectureEnCours';
 
 export type DestinationLecture =
   | { type: 'playlist'; id: number }
@@ -111,6 +112,7 @@ export async function ouvrirLienLectureEnCours(): Promise<void> {
       if (!toujoursLa()) return;
       if (pl) {
         await ouvrirParRaccourci('playlists', `playlists:${dest.id}`, dest.id, pl.name ?? '');
+        if (moi === clic) marquerOuvertureLectureEnCours();
         return;
       }
     }
@@ -126,12 +128,15 @@ export async function ouvrirLienLectureEnCours(): Promise<void> {
           name: pl.name,
           cover_path: pl.cover_path ?? null,
         });
+        if (moi === clic) marquerOuvertureLectureEnCours();
         return;
       }
     }
 
     // L'album de ce qui joue — la route de #1361. 404 = aucun album connu.
-    if (await ouvrirAlbumEnCours(zid, zone?.current_track ?? null, toujoursLa)) return;
+    // tune-server-rust#7901 — la fiche ouverte par Lecture en cours garde
+    // « Lecture en cours » surlignée dans la barre (`ouvertureLectureEnCours`).
+    if (await ouvrirAlbumEnCours(zid, zone?.current_track ?? null, toujoursLa, marquerOuvertureLectureEnCours)) return;
   } catch {
     /* le repli ci-dessous */
   }
@@ -153,6 +158,8 @@ export async function ouvrirAlbumEnCours(
   zid: number,
   piste: { album_title?: string | null; cover_path?: string | null; artist_name?: string | null } | null,
   toujoursLa: () => boolean = () => true,
+  /** Appelé juste après la navigation vers la fiche (pas en cas d'abandon). */
+  apresOuverture: () => void = () => {},
 ): Promise<boolean> {
   const ac = await api.getZoneCurrentAlbum(zid).catch(() => null);
   if (!toujoursLa()) return true;
@@ -161,6 +168,7 @@ export async function ouvrirAlbumEnCours(
     if (Number.isFinite(n) && n > 0) {
       pendingLibraryAlbum.set(n);
       activeView.set('library');
+      apresOuverture();
       return true;
     }
   }
@@ -174,6 +182,7 @@ export async function ouvrirAlbumEnCours(
       artiste: piste?.artist_name ?? null,
       artisteId: ac.artist_id ?? null,
     });
+    apresOuverture();
     return true;
   }
   return false;

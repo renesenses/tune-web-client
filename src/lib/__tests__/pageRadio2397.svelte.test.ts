@@ -63,15 +63,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// web#3176 — la recherche est dans l'en-tête COLLANT, lui-même dans la zone défilante.
 describe('recherche : même emplacement sur Mes radios et Annuaire', () => {
   it('🔴 le champ est dans la zone défilante, jamais dans l’en-tête, dans les deux onglets', async () => {
     await monter();
     expect(hote.querySelector('.v2-top .v2-rech'), 'recherche dans l’en-tête').toBeNull();
-    const mes = hote.querySelector('.scroll > .filtres .v2-rech input') as HTMLInputElement;
+    const mes = hote.querySelector('.scroll > .entete-collant > .filtres .v2-rech input') as HTMLInputElement;
     expect(mes).not.toBeNull();
     onglet(1).click();
     await respirer();
-    const ann = hote.querySelector('.scroll > .annuaire > .filtres .v2-rech input') as HTMLInputElement;
+    const ann = hote.querySelector('.scroll > .annuaire > .entete-collant > .filtres .v2-rech input') as HTMLInputElement;
     expect(ann).not.toBeNull();
     expect(ann.placeholder).toBe(mes.placeholder);
   });
@@ -149,6 +150,9 @@ describe('Dernières lues', () => {
     // rc12 (Rémi) : un seul ascenseur pour toute la page ; la rangée en tête
     // de la zone qui défile, avant les choix et les filtres.
     expect(hote.querySelector('.scroll')!.firstElementChild!.classList.contains('recentes')).toBe(true);
+    // web#3176 : les filtres sont dans l'en-tête collant, enfant direct de la
+    // zone qui défile (sinon `position:sticky` ne colle pas).
+    expect(hote.querySelector('.scroll > .entete-collant')).not.toBeNull();
   });
 
   // web#2783 (lot rc12, décision du 10/11) : la rangée est SÉPARÉE de la
