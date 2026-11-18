@@ -324,6 +324,8 @@ export interface EntreeMicro {
   frequence_courante: number | null;
   virtuelle: boolean;
   mesurable: boolean;
+  /** tune-server-rust#9070 — type d'accès ALSA (`hw`, `plughw`, `dsnoop`…) ; absent hors ALSA. */
+  acces?: string | null;
 }
 export interface Microphones { pile: string; frequence_requise: number; entrees: EntreeMicro[]; etalonnages: string[] }
 
@@ -343,6 +345,10 @@ export interface Avancement {
   etat: EtatMesure;
   motif?: string;
   message?: string;
+  /** tune-server-rust#9070 — code stable d'une erreur que l'écran traduit (`micro_muet`). */
+  code?: string;
+  /** tune-server-rust#9070 — identifiant exact du micro ouvert (`alsa:hw:CARD=…`). */
+  peripherique?: string;
   progression: number;
   avertissements: string[];
 }
@@ -398,6 +404,54 @@ export function avertissementFrequenceMicro(
   if (!micro || micro.mesurable) return null;
   if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
   return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
+}
+
+/**
+ * tune-server-rust#9070 — le nom d'un micro dans la liste, suivi de son type
+ * d'accès ALSA quand le serveur le donne : plusieurs PCM d'une même carte
+ * portent le même nom.
+ */
+export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'>): string =>
+  m.acces ? `${m.nom} (${m.acces})` : m.nom;
+
+/**
+ * tune-server-rust#9070 — l'entrée matérielle d'un PCM ALSA
+ * (`alsa:dsnoop:CARD=U18dB,DEV=0` → `hw:CARD=U18dB,DEV=0`) ; `null` hors ALSA
+ * ou sans carte. Même règle que le serveur (`entree_materielle_alsa`).
+ */
+export function entreeMaterielleAlsa(peripherique: string | null | undefined): string | null {
+  const m = /^alsa:[^:]+:(.*)$/.exec(peripherique ?? '');
+  if (!m) return null;
+  const p = Object.fromEntries(m[1].split(',').map((kv) => kv.split('=') as [string, string]));
+  return p.CARD ? `hw:CARD=${p.CARD},DEV=${p.DEV ?? '0'}` : null;
+}
+
+/**
+ * tune-server-rust#9070 — la cause d'une mesure refusée ou en erreur. Un code
+ * connu se traduit, sinon le texte du greffon, tel quel :
+ * - `micro_muet` (le micro ouvert ne rend aucune trame) : le conseil dépend
+ *   du PCM ouvert, comme le message du serveur (`SansTrame`) — ALSA hors
+ *   `hw:` → choisir l'entrée matérielle ; déjà `hw:` → rapport de
+ *   diagnostic ; hors ALSA → vérifier le branchement ;
+ * - `micro_fige` (#9066, le micro cesse de capter pendant la mesure).
+ */
+export function causeMesure(
+  m: Pick<Avancement, 'motif' | 'message' | 'code' | 'peripherique'> & { entree?: string },
+  t: (k: string) => string,
+): string | null {
+  const p = m.peripherique ?? '?';
+  if (m.code === 'micro_muet') {
+    const hw = entreeMaterielleAlsa(m.peripherique);
+    if (hw && !p.startsWith('alsa:hw:')) {
+      return t('v2.room.errMicSilentChooseHw').replace('{peripherique}', p).replace('{hw}', hw);
+    }
+    if (hw) return t('v2.room.errMicSilentReport').replace('{peripherique}', p);
+    return t('v2.room.errMicSilent').replace('{peripherique}', p);
+  }
+  if (m.code === 'micro_fige') {
+    return t('v2.room.errMicFrozen').replace('{micro}', m.peripherique ?? m.entree ?? '?');
+  }
+  return m.motif ?? m.message ?? null;
 }
 
 /** Les vrais micros : une entrée virtuelle (Loopback, BlackHole) ne capte pas la pièce. */

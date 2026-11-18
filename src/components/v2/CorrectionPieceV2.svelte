@@ -27,7 +27,7 @@
     SUIVI,
     PIECE_DEFAUT, SURFACES_DEFAUT, SURFACES, QUALITES, LIBELLES_SURFACES, LIBELLES_QUALITES, LIBELLES_TYPES_MODE,
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
-    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros,
+    coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros, libelleMicro, causeMesure,
     placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne, COUPE_MIN_DB,
     ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
@@ -666,7 +666,7 @@
             <label class="surf">
               <span>{$t('v2.room.microphone' as any)}</span>
               <select data-room="entree" bind:value={entree} disabled={enCours}>
-                {#each listeMicros as m (m.id || m.nom)}<option value={m.id || m.nom}>{m.nom}</option>{/each}
+                {#each listeMicros as m (m.id || m.nom)}<option value={m.id || m.nom}>{libelleMicro(m)}</option>{/each}
               </select>
             </label>
             {#if micro && micro.canaux > 1}
@@ -709,7 +709,7 @@
               <progress max="1" value={mesure.progression}></progress>
               <span class="val">{f0(mesure.progression * 100)} %</span>
             {/if}
-            {#if mesure.motif || mesure.message}<span class="hint" data-room="cause">{mesure.motif ?? mesure.message}</span>{/if}
+            {#if causeMesure(mesure, (k) => $t(k as any))}<span class="hint" data-room="cause">{causeMesure(mesure, (k) => $t(k as any))}</span>{/if}
           </div>
         {/if}
         {@render erreur(erreurMes)}
