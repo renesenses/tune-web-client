@@ -88,6 +88,8 @@ describe('#9083 — le bandeau nomme la cause', () => {
     const texte = await monter(BLOCAGE);
     expect(texte).toContain('Tune Server (bloqué)');
     expect(texte).toContain('Règles de trafic entrant');
+    // Windows pose souvent DEUX règles Block de même nom (TCP, UDP).
+    expect(texte).toContain('toutes les règles de blocage nommées Tune Server (bloqué)');
     expect(texte).not.toContain(fr['pareFeu.etapePrive']);
     expect(texte).not.toContain(fr['pareFeu.etapeAutoriser']);
     expect(hote!.querySelector('[data-cause="regle_de_blocage"]')).toBeTruthy();
@@ -105,7 +107,10 @@ describe('#9083 — le bandeau nomme la cause', () => {
     const a = alertePareFeu(charge({ regle_presente: false, cause: 'aucune_regle' }))!;
     const x = texteAlertePareFeu(a, tFr, (p) => PROFIL[p]);
     expect(x.etapes).not.toContain(fr['pareFeu.etapePrive']);
-    expect(x.etapes).toContain(fr['pareFeu.etapeAutoriser']);
+    // Seule, l'étape ne commence pas par « Ou » (relecture de #3229).
+    expect(x.etapes).not.toContain(fr['pareFeu.etapeAutoriser']);
+    expect(x.etapes[0]).toBe(fr['pareFeu.etapeAutoriserSeule']);
+    expect(x.etapes[0]).toMatch(/^Autorisez/);
   });
 
   it('réseau Public (#7371) : les deux remèdes restent', () => {
@@ -129,7 +134,7 @@ describe('#9083 — le bandeau nomme la cause', () => {
     const a = alertePareFeu(charge({ cause: 'martienne' }))!;
     expect(a.cause).toBeNull();
     const b = alertePareFeu(charge({ cause: 'regle_de_blocage', regles_bloquantes: [] }))!;
-    expect(texteAlertePareFeu(b, tFr, (p) => PROFIL[p]).etapes).toContain(fr['pareFeu.etapeAutoriser']);
+    expect(texteAlertePareFeu(b, tFr, (p) => PROFIL[p]).etapes).toContain(fr['pareFeu.etapeAutoriserSeule']);
   });
 });
 
@@ -142,6 +147,7 @@ describe('#9083 — les clés existent dans les 16 langues, avec leurs jetons', 
     'pareFeu.programmeLance': ['{chemin}'],
     'pareFeu.cheminsAutorises': ['{chemins}'],
     'pareFeu.etapeAutoriserLance': ['{chemin}'],
+    'pareFeu.etapeAutoriserSeule': ['tune-server.exe'],
   };
   it('16 langues', () => expect(Object.keys(langues)).toHaveLength(16));
   for (const [cle, jetons] of Object.entries(JETONS)) {
@@ -155,6 +161,12 @@ describe('#9083 — les clés existent dans les 16 langues, avec leurs jetons', 
       }
     });
   }
+  it('l’étape seule ne commence jamais par la conjonction de l’étape alternative', () => {
+    for (const [l, dico] of Object.entries(langues)) {
+      const premierMot = (x: string) => x.split(/[\s,、，]/)[0];
+      expect(premierMot(dico['pareFeu.etapeAutoriserSeule']), l).not.toBe(premierMot(dico['pareFeu.etapeAutoriser']));
+    }
+  });
   it('anglais : les mêmes sens', () => {
     expect(en['pareFeu.etapeSupprimerBlocage']).toContain('Inbound Rules');
     expect(en['pareFeu.programmeLance']).toBe('Running program: {chemin}');

@@ -117,9 +117,15 @@ export function texteAlertePareFeu(
       etapes: [t('pareFeu.etapeAutoriserLance').replace('{chemin}', lance), redemarrer],
     };
   }
+  // « Ou autorisez… » ne se lit qu'APRÈS « Passez le réseau en Privé » ;
+  // seule (réseau déjà Privé ou de domaine), l'étape perd son « Ou ».
   const etapes: string[] = [];
-  if (a.profils.includes('public')) etapes.push(t('pareFeu.etapePrive'));
-  etapes.push(t('pareFeu.etapeAutoriser'));
+  if (a.profils.includes('public')) {
+    etapes.push(t('pareFeu.etapePrive'));
+    etapes.push(t('pareFeu.etapeAutoriser'));
+  } else {
+    etapes.push(t('pareFeu.etapeAutoriserSeule'));
+  }
   etapes.push(redemarrer);
   return { corps: t('pareFeu.corps').replace('{profils}', profils), details: [], etapes };
 }
