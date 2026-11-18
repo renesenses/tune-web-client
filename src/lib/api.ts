@@ -7,7 +7,7 @@ import { notifierTraduit } from './notificationTraduite';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
-import { getToken, clearToken } from './auth';
+import { getToken, clearToken, setToken } from './auth';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -11452,7 +11452,84 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
   if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
-  if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
+  if (!resp.ok) throw erreurAppliance(json, resp.status);
+  return json;
+}
+
+/**
+ * #3195 — plus jamais le CODE brut (« auth_required ») à l'écran : la phrase
+ * traduite du code (`erreursServeur.<code>`), sinon celle du serveur quand il
+ * la dit traduite, sinon le générique ; le brut part dans `detail`. `code` et
+ * `corps` restent lisibles par l'écran.
+ */
+function erreurAppliance(json: any, status: number): ApiError {
+  const lu = lireMessageServeur(json, '', status);
+  const err = new Error(lu.message) as ApiError;
+  err.detail = lu.detail;
+  err.code = json?.code ?? json?.error;
+  err.status = status;
+  if (json && typeof json === 'object') err.corps = json;
+  return err;
+}
+
+// ---- Authentification du serveur (web#3195) ----
+
+/** Ce que `GET /auth/config` dit de l'authentification du serveur. */
+export interface EtatAuthServeur {
+  auth_enabled: boolean;
+  /** Un administrateur a-t-il un mot de passe ? Absent : serveur d'avant #3195. */
+  admin_with_password?: boolean;
+  /** L'appel vient-il de la machine du serveur (pas besoin de code) ? */
+  this_machine?: boolean;
+  activation_code_file?: string;
+  recovery_file?: string;
+  /** Dossier de la base ; `null` pour un anonyme quand l'authentification est active. */
+  data_dir?: string | null;
+}
+
+export function getEtatAuthServeur(): Promise<EtatAuthServeur> {
+  return fetchJSON<EtatAuthServeur>(`${BASE}/auth/config`, undefined, undefined, true);
+}
+
+/** Fait écrire un code d'activation dans le dossier de la base ; rend le chemin du fichier. */
+export function demanderCodeActivation(): Promise<{ file: string; expires_in: number }> {
+  return applianceFetch('/auth/activation-code', {});
+}
+
+export interface DemandeActivationAuth {
+  username: string;
+  password: string;
+  confirm: true;
+  create_admin?: boolean;
+  activation_code?: string;
+}
+
+/**
+ * Active l'authentification ; la réponse ouvre la session de l'administrateur
+ * (jeton posé ici), pour que celui qui active ne se retrouve pas dehors.
+ *
+ * Pas `apiPost` : son 401 vide le jeton et rend « Session expired », alors
+ * qu'ici un 401 dit « mauvais mot de passe ».
+ */
+export async function activerAuthServeur(d: DemandeActivationAuth): Promise<{ auth_enabled: boolean; token: string }> {
+  const r = await applianceFetchSans401('/auth/enable', d);
+  if (r?.token) setToken(r.token);
+  return r;
+}
+
+/** Coupe l'authentification (administrateur seulement). */
+export function desactiverAuthServeur(): Promise<{ auth_enabled: boolean }> {
+  return applianceFetch('/auth/config', { auth_enabled: false });
+}
+
+async function applianceFetchSans401(path: string, body: any): Promise<any> {
+  const token = getToken();
+  const headers: Record<string, string> = { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Accept-Language': acceptLang() };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const resp = await fetch(`${BASE}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
+  let json: any = null;
+  try { json = await resp.json(); } catch { /* non-JSON body */ }
+  if (!resp.ok) throw erreurAppliance(json, resp.status);
   return json;
 }
 

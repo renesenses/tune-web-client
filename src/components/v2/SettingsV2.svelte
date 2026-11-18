@@ -213,6 +213,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import AcousticProgress from '../partages/AcousticProgress.svelte';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
+  import AuthentificationServeurV2 from './AuthentificationServeurV2.svelte';
   import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
@@ -3680,6 +3681,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas accepté
    * l'ordre : le bouton redevient utilisable et le dit.
    */
+  /**
+   * #3195 — le refus `auth_required` de la garde serveur (authentification
+   * coupée, appel venu du réseau) : la phrase traduite, et un bouton qui mène
+   * au réglage qui permet d'activer l'authentification.
+   */
+  function signalerRefusMachine(e: unknown, msg: string) {
+    if ((e as { code?: string } | null)?.code === 'auth_required') {
+      notifications.withAction(msg, get(t)('authServeur.ouvrirReglage' as any),
+        () => v2SettingsTarget.set({ tab: 'system', section: 'serverAuth' }), 20000);
+    } else {
+      notifications.error(msg);
+    }
+  }
+
   let extinctionEnCours = $state(false);
   async function eteindreLaMachine() {
     if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
@@ -3689,7 +3704,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch (e) {
       const msg = errText(e);
       // `null` : coupure de transport générique, attendue pendant l'extinction.
-      if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
+      if (msg !== null) { extinctionEnCours = false; signalerRefusMachine(e, msg); }
     }
   }
 
@@ -3706,7 +3721,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await api.applianceReboot();
     } catch (e) {
       const msg = errText(e);
-      if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
+      if (msg !== null) { redemarrageMachineEnCours = false; signalerRefusMachine(e, msg); }
     }
   }
 
@@ -4983,6 +4998,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'scheduledStop'}
               <ArretProgrammeV2 />
+            {:else if s.id === 'serverAuth'}
+              <AuthentificationServeurV2 />
             {:else if s.id === 'sidebar'}
               <!-- Maquette de Levente (Figma 620:5837, 15/11/2026) : la barre
                    latérale sur son écran secondaire — quelles sources elle
