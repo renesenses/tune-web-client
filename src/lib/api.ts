@@ -6116,6 +6116,18 @@ export interface EtatActivationAuth {
   code_required: boolean;
   admin_username?: string | null;
   min_password_length?: number;
+  /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
+  accounts?: CompteExistant[];
+}
+
+/** Un compte listé par l'écran d'activation. */
+export interface CompteExistant {
+  id: number;
+  username: string;
+  created_at?: string | null;
+  role: 'admin' | 'user' | string;
+  /** Jamais vrai pour le compte administrateur. */
+  deletable: boolean;
 }
 
 /** Réponse de `POST /auth/activation` : succès, ou refus nommé par `error`. */
@@ -6123,6 +6135,7 @@ export interface ReponseActivationAuth {
   auth_enabled?: boolean;
   username?: string;
   token?: string;
+  deleted_accounts?: number[];
   error?: string;
   message?: string;
 }
@@ -6143,10 +6156,13 @@ export function requestAuthActivationCode() {
 }
 
 /** Active l'authentification ; les refus attendus reviennent comme corps. */
-export function activateAuth(password: string, code?: string) {
+export function activateAuth(password: string, code?: string, deleteAccounts: number[] = []) {
+  const corps: Record<string, unknown> = { password };
+  if (code) corps.code = code;
+  if (deleteAccounts.length) corps.delete_accounts = deleteAccounts;
   return fetchJSON<ReponseActivationAuth>(
     `${BASE}/auth/activation`,
-    { method: 'POST', body: JSON.stringify(code ? { password, code } : { password }) },
+    { method: 'POST', body: JSON.stringify(corps) },
     (s) => s === 400 || s === 403 || s === 409,
   );
 }

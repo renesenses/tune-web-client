@@ -6,7 +6,7 @@
  * serveur ne l'accepte que depuis la machine qui fait tourner Tune, ou avec un
  * code à usage unique qu'il écrit dans son journal.
  */
-import type { ReponseActivationAuth } from './api';
+import type { CompteExistant, ReponseActivationAuth } from './api';
 
 /** La clé i18n du refus rendu par le serveur, ou `null` si c'est un succès. */
 export function cleDuRefusActivation(r: ReponseActivationAuth | null | undefined): string | null {
@@ -21,6 +21,8 @@ export function cleDuRefusActivation(r: ReponseActivationAuth | null | undefined
       return 'authActivation.codeInvalid';
     case 'auth_already_enabled':
       return 'authActivation.alreadyEnabled';
+    case 'account_not_deletable':
+      return 'authActivation.accountNotDeletable';
     default:
       return 'authActivation.error';
   }
@@ -38,4 +40,19 @@ export function activationPossible(
   if (motDePasse !== confirmation) return false;
   if (codeExige && code.trim() === '') return false;
   return true;
+}
+
+/** Les comptes cochés qui peuvent vraiment l'être (jamais l'administrateur). */
+export function comptesASupprimer(
+  comptes: CompteExistant[] | undefined,
+  coches: ReadonlySet<number>,
+): CompteExistant[] {
+  return (comptes ?? []).filter((c) => c.deletable && c.role !== 'admin' && coches.has(c.id));
+}
+
+/** Date de création lisible (AAAA-MM-JJ), ou chaîne vide. */
+export function dateDeCreation(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(iso);
+  return m ? m[1] : iso;
 }
