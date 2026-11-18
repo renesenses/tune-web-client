@@ -5,6 +5,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
+  import PastilleTess from '../v2/tess/PastilleTess.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
   // aiguille écrite ici aurait divergé de la sienne au premier réglage.
@@ -1864,6 +1865,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <span class="audiophile-label">{$t('audiophile.pure' as any)}</span>
       {/if}
     </button>
+
+    <!-- TESS (W5, maquettes A1 et A4) : la pastille n'existe que si le serveur
+         annonce TESS (`GET /zones/{id}/tess` ≠ 404) ; elle ouvre le chemin du
+         signal de la zone. -->
+    <PastilleTess zoneId={zone?.id} appareil={zone?.name ?? null} revision={$currentTrack?.id ?? null} />
 
     <div class="zone-selector">
       <button
