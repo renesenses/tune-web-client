@@ -22,6 +22,7 @@ vi.mock('../stores/dialogs', () => ({ dialogs: { confirm: mocks.confirm } }));
 import AuthentificationServeurV2 from '../../components/v2/AuthentificationServeurV2.svelte';
 import { locale, t } from '../i18n';
 import { lireMessageServeur } from '../messageServeur';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 const attendre = () => new Promise((r) => setTimeout(r, 0));
 const respirer = async () => { for (let i = 0; i < 8; i++) await attendre(); flushSync(); };
@@ -172,13 +173,13 @@ describe('#3195 — le refus des actions machine ne montre plus le code brut', (
 });
 
 describe('#3195 — 16 langues', () => {
-  it('chaque clé ajoutée existe dans les 16 dictionnaires', async () => {
-    const langues = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'tr', 'vi', 'zh'];
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
+  it('chaque clé ajoutée existe dans les 16 dictionnaires', () => {
+    expect(ONZE_LANGUES.length).toBe(16);
+    const fr = dictionnaire('fr');
     const cles = Object.keys(fr).filter((k) => k.startsWith('authServeur.') || ['erreursServeur.auth_required', 'erreursServeur.invalid_admin_credentials', 'erreursServeur.activation_code_invalid'].includes(k));
     expect(cles.length).toBeGreaterThan(25);
-    for (const l of langues) {
-      const d = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+    for (const l of ONZE_LANGUES) {
+      const d = dictionnaire(l);
       const manquantes = cles.filter((k) => !d[k]);
       expect(manquantes, l).toEqual([]);
     }
