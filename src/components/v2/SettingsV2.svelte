@@ -193,10 +193,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
   import {
-    absentsAOublier,
-    libelleAbsence,
     libelleAbsent,
-    JOURS_PAR_DEFAUT as JOURS_ABSENCE,
+    libelleAppareil,
+    zonesNommees,
     type AppareilAbsent,
   } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
@@ -974,48 +973,63 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* --- Appareils absents : les OUBLIER (tune-server-rust#9044, rc13) ---
    *
    * Un appareil parti du réseau restait listé, grisé, à vie : supprimer sa
-   * zone ne faisait que la masquer. Oublier supprime l'appareil ET sa zone,
-   * définitivement — s'il revient, il revient comme neuf. La confirmation
-   * vit DANS la page (pas de `confirm()`), et nomme la zone qui part avec.
+   * zone ne faisait que la masquer. Oublier supprime l'appareil ET ses zones,
+   * définitivement — s'il revient, il revient comme neuf. Un appareil à la
+   * fois (l'oubli groupé est pour la rc14). La confirmation vit DANS la page
+   * (pas de `confirm()`), nomme l'appareil et chaque zone qui part, prend le
+   * focus à l'ouverture et le rend au bouton qui l'a ouverte.
    */
   let absents = $state<AppareilAbsent[]>([]);
   let absentsLus = $state(false);
+  let absentsErreur = $state(false);
   let oubliOccupe = $state(false);
-  /** L'appareil dont la confirmation est ouverte, ou null. */
-  let oubliAConfirmer = $state<string | null>(null);
-  let oubliGroupeAConfirmer = $state(false);
-  const absentsVieux = $derived(absentsAOublier(absents, JOURS_ABSENCE));
+  /** La ligne (`zone_id`) dont la confirmation est ouverte, ou null. */
+  let oubliAConfirmer = $state<number | null>(null);
+  let declencheurOubli: HTMLElement | null = null;
 
   async function chargerAbsents() {
-    absents = await api.listAbsentDevices();
+    const r = await api.listAbsentDevices();
+    absentsErreur = r === null;
+    absents = r ?? [];
     absentsLus = true;
   }
   $effect(() => {
     if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
   });
 
+  function ouvrirOubli(a: AppareilAbsent, ev: Event) {
+    declencheurOubli = ev.currentTarget as HTMLElement;
+    oubliAConfirmer = a.zone_id;
+  }
+  function fermerOubli() {
+    oubliAConfirmer = null;
+    const el = declencheurOubli;
+    declencheurOubli = null;
+    // Le bouton déclencheur réapparaît au rendu suivant : on le retrouve par
+    // sa ligne, l'élément d'origine a pu être remplacé.
+    void tick().then(() => {
+      if (el?.isConnected) el.focus();
+      else document.querySelector<HTMLElement>(`[data-oubli-ouvrir="${el?.dataset.oubliOuvrir ?? ''}"]`)?.focus();
+    });
+  }
+  /** Le focus va à la confirmation dès qu'elle s'affiche : un lecteur
+   *  d'écran lit la phrase qui nomme l'appareil et ses zones. PAS au bouton
+   *  qui confirme — Entrée ne doit pas supprimer par réflexe. */
+  function focusALaConfirmation(node: HTMLElement) {
+    node.focus();
+  }
+
   async function oublierAppareil(a: AppareilAbsent) {
     oubliOccupe = true;
     try {
       await api.forgetDevice(a.device_id);
       oubliAConfirmer = null;
+      declencheurOubli = null;
       notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
       await chargerAbsents();
     } catch (e: any) {
-      notifierErreur($t('common.error' as any), e, { motifSeul: true });
-    } finally {
-      oubliOccupe = false;
-    }
-  }
-
-  async function oublierAbsents() {
-    oubliOccupe = true;
-    try {
-      const r = await api.forgetAbsentDevices(JOURS_ABSENCE);
-      oubliGroupeAConfirmer = false;
-      notifications.success($t('settings.absentDevicesForgotten' as any).replace('{count}', String(r.forgotten?.length ?? 0)));
-      await chargerAbsents();
-    } catch (e: any) {
+      // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
+      // la zone, dans la langue de l'interface.
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       oubliOccupe = false;
@@ -6658,40 +6672,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'absentDevices'}
               <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
               <div class="devlist" data-reglage="appareils-absents">
-                {#each absents as a (a.device_id)}
+                {#each absents as a (a.zone_id)}
                   <div class="dev ign absent">
                     <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
                     <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
-                    <span class="dh" data-absent-depuis>{libelleAbsence(a.absent_for_s, (k) => $t(k as any))}</span>
-                    {#if oubliAConfirmer === a.device_id}
-                      <span class="oubli-conf" role="group" aria-label={$t('settings.forgetDevice' as any)}>
-                        <span class="hint">{$t((a.zone_hidden ? 'settings.forgetDeviceConfirm' : 'settings.forgetDeviceConfirmZone') as any).replace('{zone}', libelleAbsent(a))}</span>
+                    <span class="dh" data-absent>{$t('settings.absentLabel' as any)}</span>
+                    {#if oubliAConfirmer === a.zone_id}
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.forgetDevice' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint">{$t('settings.forgetDeviceConfirmZones' as any)
+                          .replace('{device}', libelleAppareil(a, netLabel))
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
                         <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
-                        <button class="lnk" disabled={oubliOccupe} onclick={() => (oubliAConfirmer = null)}>{$t('common.cancel' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
                       </span>
                     {:else}
-                      <button class="lnk" disabled={oubliOccupe} onclick={() => { oubliAConfirmer = a.device_id; oubliGroupeAConfirmer = false; }}>
+                      <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirOubli(a, ev)}>
                         {$t('settings.forgetDevice' as any)}
                       </button>
                     {/if}
                   </div>
                 {:else}
-                  <p class="hint">{absentsLus ? $t('settings.noAbsentDevices' as any) : $t('v2.set.searchingDevices' as any)}</p>
+                  <p class="hint">{absentsErreur ? $t('settings.absentDevicesLoadError' as any)
+                    : absentsLus ? $t('settings.noAbsentDevices' as any)
+                    : $t('v2.set.searchingDevices' as any)}</p>
                 {/each}
               </div>
-              {#if absentsVieux.length}
-                <div class="acts" data-reglage="oublier-appareils-absents">
-                  {#if oubliGroupeAConfirmer}
-                    <span class="hint">{$t('settings.forgetAbsentDevicesConfirm' as any).replace('{count}', String(absentsVieux.length)).replace('{days}', String(JOURS_ABSENCE))}</span>
-                    <button class="lnk danger" disabled={oubliOccupe} onclick={oublierAbsents}>{$t('settings.forgetAbsentDevices' as any).replace('{days}', String(JOURS_ABSENCE))}</button>
-                    <button class="lnk" disabled={oubliOccupe} onclick={() => (oubliGroupeAConfirmer = false)}>{$t('common.cancel' as any)}</button>
-                  {:else}
-                    <button class="lnk danger" disabled={oubliOccupe} onclick={() => { oubliGroupeAConfirmer = true; oubliAConfirmer = null; }}>
-                      {$t('settings.forgetAbsentDevices' as any).replace('{days}', String(JOURS_ABSENCE))}
-                    </button>
-                  {/if}
-                </div>
-              {/if}
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>

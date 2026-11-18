@@ -1686,34 +1686,28 @@ export function deleteDevice(deviceId: string) {
 // --- Appareils absents (tune-server-rust#9044) ---------------------------
 
 /** `GET /devices/absent` — les appareils connus qui ne sont plus sur le
- *  réseau. Liste vide si le serveur est antérieur à la route (404). */
-export async function listAbsentDevices(): Promise<AppareilAbsent[]> {
+ *  réseau. `[]` si le serveur est antérieur à la route (404) ; `null` sur
+ *  toute autre erreur (403, 500, réseau) — l'écran ne doit pas la prendre
+ *  pour « aucun appareil absent ». */
+export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
   try {
-    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, undefined, true));
+    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, (s) => s === 404, true));
   } catch {
-    return [];
+    return null;
   }
 }
 
 /**
- * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et sa
- * zone, définitivement : s'il revient sur le réseau, il revient comme neuf.
- * À n'appeler qu'après une confirmation qui NOMME la zone. Le serveur refuse
- * (409, avec une phrase) une zone en lecture ou un appareil encore présent.
+ * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
+ * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
+ * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
+ * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
+ * un appareil encore présent ; la réponse nomme les zones supprimées.
  */
 export function forgetDevice(deviceId: string) {
-  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: number[] }>(
+  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
     `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
     { method: 'DELETE' },
-  );
-}
-
-/** `POST /devices/absent/forget?older_than_days=N` — oublier les appareils
- *  absents depuis plus de N jours, et leurs zones. */
-export function forgetAbsentDevices(olderThanDays: number) {
-  return fetchJSON<{ older_than_days: number; forgotten: string[]; zones_deleted: number[]; skipped: unknown[] }>(
-    `${BASE}/devices/absent/forget?older_than_days=${encodeURIComponent(String(olderThanDays))}`,
-    { method: 'POST' },
   );
 }
 
