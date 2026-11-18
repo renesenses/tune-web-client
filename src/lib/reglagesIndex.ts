@@ -245,6 +245,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'version-mises-a-jour', section: 'about', labelKey: 'settings.updates', termesKey: 'reglages.termes.versionMisesAJour', techniques: ['update', 'version'] },
   { id: 'nouveautes', section: 'about', labelKey: 'whatsnew.title', techniques: ['changelog', 'release notes'] },
   { id: 'doc-api', section: 'about', labelKey: 'settings.apiDocs', techniques: ['API', 'REST'], min: 'expert' },
+  // web#3195 — Système › Authentification du serveur.
+  { id: 'authentification-serveur', section: 'serverAuth', labelKey: 'authServeur.interrupteur', descKey: 'authServeur.hint', composant: 'AuthentificationServeurV2.svelte', techniques: ['auth', 'JWT', 'admin'] },
   { id: 'actions-serveur', section: 'health', labelKey: 'settings.restartServer', techniques: ['restart', 'reboot'] },
   // tune-server-rust#8213 : redémarrer la MACHINE (appliance Tune OS seulement).
   { id: 'redemarrer-machine', section: 'health', labelKey: 'diagnostics.reboot', descKey: 'diagnostics.confirmReboot', techniques: ['reboot', 'Tune OS'] },
