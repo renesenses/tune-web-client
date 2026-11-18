@@ -4819,6 +4819,7 @@ export default {
   "v2.health.drPriorityFirst": "Per prima, prima di ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain misura già la gamma dinamica dei brani che analizza; questa scelta ordina il recupero degli altri. La pausa e la priorità alla riproduzione restano rispettate.",
   "v2.health.deferredPaths": "{n} brani rinviati: i loro file non rispondono (disco o condivisione assente?). Nuovo tentativo automatico entro sei ore.",
+  "v2.health.clapRetryLater": "{n} brani rimandati: l'analisi è fallita più volte su di essi. Nuovo tentativo automatico entro sei ore.",
   "v2.health.cardRgSub": "Normalizzazione del livello",
   "v2.health.rgOff": "Disattivato",
   "v2.health.rgTrack": "Per brano",

@@ -4839,6 +4839,7 @@ export default {
   "v2.health.drPriorityFirst": "First, before ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain already measures the dynamic range of the tracks it analyses; this setting orders the catch-up of the others. Pausing and playback priority still apply.",
   "v2.health.deferredPaths": "{n} tracks deferred: their files do not respond (drive or share missing?). Retried automatically within six hours.",
+  "v2.health.clapRetryLater": "{n} tracks deferred: analysis failed on them several times. Retried automatically within six hours.",
   "v2.health.cardRgSub": "Level normalisation",
   "v2.health.rgOff": "Off",
   "v2.health.rgTrack": "Per track",

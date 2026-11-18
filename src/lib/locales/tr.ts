@@ -4690,6 +4690,7 @@ export default {
   "v2.health.drPriorityFirst": "İlk sırada, ReplayGain'den önce",
   "v2.health.drPriorityHint": "ReplayGain, analiz ettiği parçaların dinamik aralığını zaten ölçer; bu ayar diğerlerinin telafi sırasını belirler. Duraklatma ve çalma önceliği yine geçerlidir.",
   "v2.health.deferredPaths": "{n} parça ertelendi: dosyaları yanıt vermiyor (sürücü veya paylaşım eksik mi?). Altı saat içinde otomatik olarak yeniden denenecek.",
+  "v2.health.clapRetryLater": "{n} parça ertelendi: analiz bunlarda birkaç kez başarısız oldu. Altı saat içinde otomatik olarak yeniden denenecek.",
   "v2.health.cardRgSub": "Seviye normalleştirme",
   "v2.health.rgOff": "Kapalı",
   "v2.health.rgTrack": "Parça başına",

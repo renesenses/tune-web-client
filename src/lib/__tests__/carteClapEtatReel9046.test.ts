@@ -176,6 +176,33 @@ describe('#9046 — la carte montée', () => {
   });
 });
 
+describe('#9046 suite — échecs d’analyse ≠ fichier absent', () => {
+  const det = () => carteClap()!.querySelector('.detail')?.textContent ?? '';
+  it('🔴 `analysis_failures` : la carte parle d’échecs d’analyse, pas d’un fichier qui ne répond pas', async () => {
+    acoustique = { ...FIL_2907, processed_tracks: 14_576, eligible_tracks: 14_576, deferred_tracks: 3,
+      retry_later_tracks: 3, waiting_reason: 'analysis_failures' };
+    await monter();
+    expect(det()).toContain(fr['v2.health.clapRetryLater'].replace('{n}', '3'));
+    expect(fr['v2.health.deferredPaths']).toContain('ne répond pas');
+    expect(det()).not.toContain('ne répond pas');
+    expect(badge(carteClap()!)).toBe(fr['v2.health.stIdle']);
+  });
+  it('les deux causes ensemble : chacune son compte', async () => {
+    acoustique = { ...FIL_2907, deferred_tracks: 5, retry_later_tracks: 2, waiting_reason: 'unresolved_paths' };
+    await monter();
+    expect(det()).toContain(fr['v2.health.deferredPaths'].replace('{n}', '3'));
+    expect(det()).toContain(fr['v2.health.clapRetryLater'].replace('{n}', '2'));
+  });
+  it('serveur ancien sans `retry_later_tracks` : comme avant', async () => {
+    acoustique = { ...FIL_2907, deferred_tracks: 4, waiting_reason: 'unresolved_paths' };
+    await monter();
+    expect(det()).toContain(fr['v2.health.deferredPaths'].replace('{n}', '4'));
+  });
+  it.each(ONZE_LANGUES)('%s porte clapRetryLater', (code) => {
+    expect(dictionnaire(code)['v2.health.clapRetryLater']).toContain('{n}');
+  });
+});
+
 describe('#9046 — i18n', () => {
   it.each(ONZE_LANGUES)('%s nomme chaque raison de pause', (code) => {
     for (const r of RAISONS_DE_PAUSE) expect(dictionnaire(code)[`acoustic.paused.${r}`], `${code} ${r}`).toBeTruthy();

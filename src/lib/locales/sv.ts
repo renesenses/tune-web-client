@@ -4818,6 +4818,7 @@ export default {
   "v2.health.drPriorityFirst": "Först, före ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain mäter redan det dynamiska omfånget för spåren det analyserar; detta val ordnar ikapphämtningen av övriga. Paus och uppspelningens förtur gäller fortfarande.",
   "v2.health.deferredPaths": "{n} spår uppskjutna: deras filer svarar inte (saknas disken eller utdelningen?). Nytt automatiskt försök inom sex timmar.",
+  "v2.health.clapRetryLater": "{n} spår uppskjutna: analysen har misslyckats flera gånger på dem. Nytt försök automatiskt inom sex timmar.",
   "v2.health.cardRgSub": "Nivånormalisering",
   "v2.health.rgOff": "Av",
   "v2.health.rgTrack": "Per spår",

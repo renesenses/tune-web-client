@@ -4819,6 +4819,7 @@ export default {
   "v2.health.drPriorityFirst": "最初（ReplayGain より前）",
   "v2.health.drPriorityHint": "ReplayGain は解析する曲のダイナミックレンジをすでに測定しています。この設定はそれ以外の曲の補完の順序を決めます。一時停止と再生優先はこれまでどおり守られます。",
   "v2.health.deferredPaths": "{n} 曲を保留中：ファイルが応答しません（ドライブや共有が見つかりませんか？）。6 時間以内に自動的に再試行します。",
+  "v2.health.clapRetryLater": "{n} 曲を保留：解析が何度も失敗しました。6 時間以内に自動で再試行します。",
   "v2.health.cardRgSub": "音量の正規化",
   "v2.health.rgOff": "オフ",
   "v2.health.rgTrack": "トラック単位",

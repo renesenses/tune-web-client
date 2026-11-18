@@ -4819,6 +4819,7 @@ export default {
   "v2.health.drPriorityFirst": "最先，先于 ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain 已会测量它所分析曲目的动态范围；此设置决定其余曲目补全的顺序。暂停和播放优先仍然有效。",
   "v2.health.deferredPaths": "{n} 首曲目已推迟：其文件无响应（磁盘或共享缺失？）。六小时内自动重试。",
+  "v2.health.clapRetryLater": "{n} 首曲目已推迟：分析多次失败。六小时内将自动重试。",
   "v2.health.cardRgSub": "音量标准化",
   "v2.health.rgOff": "关闭",
   "v2.health.rgTrack": "按曲目",

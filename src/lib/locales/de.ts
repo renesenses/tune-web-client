@@ -4819,6 +4819,7 @@ export default {
   "v2.health.drPriorityFirst": "Zuerst, vor ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain misst den Dynamikumfang der analysierten Titel bereits mit; diese Einstellung ordnet das Nachholen der übrigen. Pause und Vorrang der Wiedergabe gelten weiterhin.",
   "v2.health.deferredPaths": "{n} Titel zurückgestellt: ihre Dateien antworten nicht (Laufwerk oder Freigabe fehlt?). Automatischer neuer Versuch innerhalb von sechs Stunden.",
+  "v2.health.clapRetryLater": "{n} Titel zurückgestellt: Die Analyse ist bei ihnen mehrmals fehlgeschlagen. Automatischer neuer Versuch innerhalb von sechs Stunden.",
   "v2.health.cardRgSub": "Pegelnormalisierung",
   "v2.health.rgOff": "Aus",
   "v2.health.rgTrack": "Pro Titel",

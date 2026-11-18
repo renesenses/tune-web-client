@@ -4841,6 +4841,7 @@ export default {
   "v2.health.drPriorityFirst": "En premier, avant le ReplayGain",
   "v2.health.drPriorityHint": "Le ReplayGain mesure déjà la plage dynamique des pistes qu'il analyse ; ce choix règle le rattrapage des autres. La pause et la priorité à la lecture restent respectées.",
   "v2.health.deferredPaths": "{n} pistes reportées : leur fichier ne répond pas (disque ou partage absent ?). Nouvel essai automatique dans les six heures.",
+  "v2.health.clapRetryLater": "{n} pistes reportées : l’analyse a échoué plusieurs fois sur elles. Nouvel essai automatique dans les six heures.",
   "v2.health.cardRgSub": "Normalisation du niveau",
   "v2.health.rgOff": "Désactivé",
   "v2.health.rgTrack": "Par piste",

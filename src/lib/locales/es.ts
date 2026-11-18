@@ -4819,6 +4819,7 @@ export default {
   "v2.health.drPriorityFirst": "Primero, antes de ReplayGain",
   "v2.health.drPriorityHint": "ReplayGain ya mide el rango dinámico de las pistas que analiza; este ajuste ordena la recuperación de las demás. La pausa y la prioridad a la reproducción se siguen respetando.",
   "v2.health.deferredPaths": "{n} pistas aplazadas: sus archivos no responden (¿disco o recurso compartido ausente?). Nuevo intento automático en menos de seis horas.",
+  "v2.health.clapRetryLater": "{n} pistas aplazadas: el análisis ha fallado varias veces con ellas. Nuevo intento automático en las próximas seis horas.",
   "v2.health.cardRgSub": "Normalización de nivel",
   "v2.health.rgOff": "Desactivado",
   "v2.health.rgTrack": "Por pista",
