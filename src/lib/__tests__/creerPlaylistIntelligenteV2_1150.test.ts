@@ -31,10 +31,12 @@
 // nombre : ce sont deux tables. Le décor en pose donc deux, toutes deux `7`,
 // et la suppression doit frapper `/library/smart-playlists/7`, jamais
 // `/playlists/7`. Sans ce piège, un appel au mauvais espace passerait au vert.
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import PlaylistsV2 from '../../components/v2/PlaylistsV2.svelte';
+import PlaylistSmartEditeurV2 from '../../components/v2/PlaylistSmartEditeurV2.svelte';
+import PlaylistParPhraseV2 from '../../components/v2/PlaylistParPhraseV2.svelte';
 import { dialogs } from '../stores/dialogs';
 
 /**
@@ -46,17 +48,13 @@ import { dialogs } from '../stores/dialogs';
  * du plafond de 20 s de `attendreEditeur`. Le délai de 60 s posé ici ne
  * corrigeait rien : il laissait la course entre la compilation et le plafond.
  *
- * L'éditeur est désormais compilé AVANT les tests ; la borne large du
- * crochet ne borne que cette compilation, jamais un comportement de l'écran.
- * Les attentes des tests se comptent en tours de boucle d'événements (les
- * réponses du banc sont des promesses factices), plus en millisecondes.
+ * L'éditeur est désormais importé en tête de fichier : compilé à la
+ * COLLECTE, que vitest ne chronomètre pas (la parade de #1333) ; le
+ * `{#await import(...)}` de l'écran trouve le module déjà chargé. Les attentes
+ * des tests se comptent en tours de boucle d'événements (les réponses du banc
+ * sont des promesses factices), plus en millisecondes.
  */
-beforeAll(async () => {
-  await Promise.all([
-    import('../../components/v2/PlaylistSmartEditeurV2.svelte'),
-    import('../../components/v2/PlaylistParPhraseV2.svelte'),
-  ]);
-}, 120_000);
+const CHARGES_A_LA_COLLECTE = [PlaylistSmartEditeurV2, PlaylistParPhraseV2];
 
 interface Appel {
   methode: string;
@@ -169,7 +167,7 @@ const ecritures = () => appels.filter((a) => a.methode !== 'GET');
 /**
  * Attend que l'éditeur soit à l'écran, ou renonce — après `tours` tours de
  * boucle, pas après un temps : le module de l'éditeur est déjà compilé
- * (`beforeAll`), son `import()` se règle sans compilation ni réseau.
+ * (`CHARGES_A_LA_COLLECTE`), son `import()` se règle sans compilation ni réseau.
  */
 async function attendreEditeur(el: HTMLElement, tours = 50): Promise<HTMLElement | null> {
   for (let i = 0; i < tours; i++) {

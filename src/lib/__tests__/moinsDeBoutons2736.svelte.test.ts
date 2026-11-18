@@ -14,7 +14,7 @@
 // une entrée atteignable, avec son `data-*`, et absente quand elle ne
 // s'applique pas. Le menu est celui des pistes (`MenuPisteV2`) : role=menu,
 // ↑ / ↓, Échap, focus rendu au bouton.
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import { t } from '../i18n';
@@ -23,6 +23,8 @@ import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import BoutonLectureV2 from '../../components/v2/BoutonLectureV2.svelte';
 import CollectionsV2 from '../../components/v2/CollectionsV2.svelte';
+import CreditsTiroir from '../../components/partages/CreditsTiroir.svelte';
+import EnrichissementAlbumV2 from '../../components/v2/EnrichissementAlbumV2.svelte';
 
 class ResizeObserverInerte { observe() {} unobserve() {} disconnect() {} }
 
@@ -60,7 +62,7 @@ const respirer = () => new Promise((r) => setTimeout(r, 0));
  * import(...)}` : `CreditsTiroir`, `EnrichissementAlbumV2`), payée DANS le
  * test. Mesuré sur Shrek : l'onglet Crédits passe de 200 ms au repos à plus de
  * 4 s sous deux suites complètes (charge 88). Ces modules sont désormais
- * chargés avant les tests (`beforeAll` ci-dessous).
+ * importés en tête de fichier (`CHARGES_A_LA_COLLECTE`).
  */
 async function jusqua(condition: () => boolean, tours = 50): Promise<boolean> {
   for (let i = 0; ; i++) {
@@ -72,17 +74,12 @@ async function jusqua(condition: () => boolean, tours = 50): Promise<boolean> {
 }
 const tr = (k: string) => get(t)(k as any);
 
-// Les composants que les fiches chargent à la demande, compilés UNE fois
-// avant les tests : leur compilation n'est pas le comportement mesuré, et
-// sous charge elle dépassait seule le délai d'un test. La borne du crochet
-// est large à dessein (compilation à froid, machine chargée) ; elle ne borne
-// aucun comportement de l'écran.
-beforeAll(async () => {
-  await Promise.all([
-    import('../../components/partages/CreditsTiroir.svelte'),
-    import('../../components/v2/EnrichissementAlbumV2.svelte'),
-  ]);
-}, 120_000);
+// Les composants que les fiches chargent à la demande, importés en tête de
+// fichier : compilés à la COLLECTE, que vitest ne chronomètre pas (la parade
+// de #1333). Leur compilation n'est pas le comportement mesuré, et sous
+// charge elle dépassait seule le délai d'un test. Le `{#await import(...)}`
+// de la fiche trouve ensuite le module déjà chargé.
+const CHARGES_A_LA_COLLECTE = [CreditsTiroir, EnrichissementAlbumV2];
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
