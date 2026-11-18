@@ -1386,6 +1386,16 @@ export function updateZoneExclusiveMode(id: number, mode: boolean | null) {
   });
 }
 
+/** tune-server-rust#8696 — période WASAPI exclusive de la zone, en ms ;
+ *  `null` = Auto (période du pilote). Prise en compte à la prochaine
+ *  ouverture du périphérique. */
+export function updateZoneWasapiExclusivePeriod(id: number, ms: number | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ wasapi_exclusive_period_ms: ms }),
+  });
+}
+
 export function updateZoneMaxSampleRate(id: number, rate: number | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',

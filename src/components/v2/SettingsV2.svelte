@@ -68,6 +68,7 @@
     modeWasapiPertinent,
     type ChoixBackend,
   } from '../../lib/audioBackends';
+  import { choixPeriodeWasapi, periodeWasapiVisible } from '../../lib/periodeWasapi';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
@@ -6859,6 +6860,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#if typeof z.exclusive_mode === 'boolean' && typeof z.exclusive_mode_applique === 'boolean' && z.exclusive_mode_applique !== z.exclusive_mode}
                               <small class="dsd-dop" data-exclusif-en-attente>{$t('settings.zoneExclusivePending' as any)}</small>
                             {/if}
+                          </div>
+                        {/if}
+                        <!--
+                          PÉRIODE WASAPI EXCLUSIF — tune-server-rust#8696.
+                          Didier (SMSL SU-8 en USB) : des « sauts de vinyle »
+                          à 10 ms ; une période plus longue les absorbe. Zone
+                          LOCALE d'un serveur WINDOWS seulement (le serveur le
+                          dit : `wasapi_exclusive_period_applicable`), et pas
+                          quand la zone est réglée en partagé. Masqué sur un
+                          ancien serveur (champ absent).
+                        -->
+                        {#if periodeWasapiVisible(z)}
+                          <div class="zf" data-reglage="zone-periode-wasapi">
+                            <label for={`wasapi-period-${z.id}`}>{$t('settings.wasapiPeriod' as any)}</label>
+                            <select id={`wasapi-period-${z.id}`} aria-describedby={`wasapi-period-hint-${z.id}`} class="sel sm"
+                              value={String(z.wasapi_exclusive_period_ms ?? 0)}
+                              onchange={(e) => { const v = Number(e.currentTarget.value);
+                                setZoneField(z, () => api.updateZoneWasapiExclusivePeriod(z.id as number, v > 0 ? v : null)); }}>
+                              <option value="0">{$t('settings.wasapiPeriodAuto' as any)}</option>
+                              {#each choixPeriodeWasapi(z) as ms (ms)}
+                                <option value={String(ms)}>{ms} ms</option>
+                              {/each}
+                            </select>
+                            <small id={`wasapi-period-hint-${z.id}`}>{$t('settings.wasapiPeriodHint' as any)}</small>
                           </div>
                         {/if}
                         <!--
