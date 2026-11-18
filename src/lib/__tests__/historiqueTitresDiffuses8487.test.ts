@@ -54,7 +54,7 @@ describe('#8487 — titres diffusés servis par le serveur', () => {
     const nom = nomDObjet(radio.type, radio.entrees);
     expect(nom).toBe(STATION);
     // Le tiroir ne redit pas la station (web#2748) : il liste les deux titres.
-    expect(titresDuTiroir(radio.type, radio.entrees, nom).map((x: HistoryEntry) => x.track.title))
+    expect(titresDuTiroir(radio.type, radio.entrees, nom).map((x: any) => x.track.title))
       .toEqual(['Starburster', 'Rattlesnake']);
   });
 
