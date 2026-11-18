@@ -2222,6 +2222,7 @@ export default {
   "machineAction.notLocal": "Når autentisering er slått av, godtas denne handlingen bare fra maskinen som kjører Tune. For å gjøre det fra denne enheten, slå på autentisering og logg inn med en administratorkonto; ellers åpner du Tune på selve maskinen (http://localhost:8888).",
   "machineAction.notLocalRestart": "Omstart avvist: fra en annen enhet godtar Tune denne handlingen bare når autentisering er slått på (administratorkonto). Slå den på, eller start Tune på nytt fra maskinen eller containeren: {command}.",
   "machineAction.port80Relay": "Denne enheten videresender port 80, så Tune kan ikke skille et lokalt kall fra et nettverkskall. Slå på autentisering og logg inn med en administratorkonto.",
+  "machineAction.whereToEnable": "Slik slår du på autentisering: Innstillinger > System > Autentisering.",
   "settings.updateStatusUnknown": "Kan ikke si om oppdateringen ble installert: serveren svarte ikke. Last siden på nytt for å se versjonen som kjører.",
   "settings.updateInstallFailed": "Oppdateringen mislyktes. Årsak oppgitt av serveren: {reason}",
   "settings.updateButton": "Oppdater",

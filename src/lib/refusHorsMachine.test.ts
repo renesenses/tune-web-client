@@ -41,10 +41,12 @@ describe('refus hors de la machine de Tune (tune-server-rust#9029)', () => {
 
   it('autre action : la phrase générique, traduite', () => {
     const e = erreur(403, { error: 'auth_required', reason: 'not_local' });
-    expect(messageRefusHorsMachine(e, tr)).toBe(en['machineAction.notLocal']);
+    expect(messageRefusHorsMachine(e, tr)).toBe(`${en['machineAction.notLocal']} ${en['machineAction.whereToEnable']}`);
     expect(messageRefusHorsMachine(erreur(403, { error: 'auth_required', reason: 'port80_relay' }), tr)).toBe(
-      en['machineAction.port80Relay'],
+      `${en['machineAction.port80Relay']} ${en['machineAction.whereToEnable']}`,
     );
+    // Chaque refus dit où activer l'authentification.
+    expect(messageRefusHorsMachine(e, tr, 'restart')).toContain('Settings > System > Authentication');
   });
 
   it('les trois phrases existent en français et portent {command} où il faut', () => {

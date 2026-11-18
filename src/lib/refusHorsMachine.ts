@@ -39,9 +39,13 @@ export function messageRefusHorsMachine(
 ): string | null {
   const motif = motifHorsMachine(e);
   if (motif === null) return null;
-  if (motif === 'port80_relay') return tr('machineAction.port80Relay');
+  // Où activer l'authentification : l'écran Réglages > Système >
+  // Authentification (code à usage unique du journal depuis un autre appareil).
+  const ou = tr('machineAction.whereToEnable');
+  if (motif === 'port80_relay') return `${tr('machineAction.port80Relay')} ${ou}`;
   if (geste === 'restart') {
-    return tr('machineAction.notLocalRestart').replace('{command}', conteneur?.commande ?? COMMANDE_PAR_DEFAUT);
+    const phrase = tr('machineAction.notLocalRestart').replace('{command}', conteneur?.commande ?? COMMANDE_PAR_DEFAUT);
+    return `${phrase} ${ou}`;
   }
-  return tr('machineAction.notLocal');
+  return `${tr('machineAction.notLocal')} ${ou}`;
 }

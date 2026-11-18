@@ -2368,6 +2368,7 @@ export default {
   "machineAction.notLocal": "This action is only accepted from the machine running Tune while authentication is disabled. To do it from this device, enable authentication and sign in with an administrator account; otherwise, open Tune on the machine itself (http://localhost:8888).",
   "machineAction.notLocalRestart": "Restart refused: from another device, Tune only accepts this action when authentication is enabled (administrator account). Enable it, or restart Tune from the machine or the container: {command}.",
   "machineAction.port80Relay": "This appliance relays port 80, so Tune cannot tell a local call from a network call. Enable authentication and sign in with an administrator account.",
+  "machineAction.whereToEnable": "To enable authentication: Settings > System > Authentication.",
   "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
   "settings.updateInstallFailed": "The update failed. Reason given by the server: {reason}",
   "settings.updateButton": "Update",

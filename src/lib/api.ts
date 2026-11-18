@@ -772,7 +772,20 @@ export async function fetchJSON<T>(
     // qu'elle ne vient pas de la machine de Tune (authentification coupée) :
     // la phrase traduite qui dit quoi faire, à la place du texte anglais.
     const horsMachine = messageRefusHorsMachine(err, get(t) as (cle: string) => string);
-    if (horsMachine !== null) err.message = horsMachine;
+    if (horsMachine !== null) {
+      err.message = horsMachine;
+      // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
+      // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
+      // que soit l'écran — certains n'affichent que leur propre libellé.
+      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // lecture refusée reste silencieuse.
+      const methode = (options?.method ?? 'GET').toUpperCase();
+      const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+        notifications.error(horsMachine);
+        err.dejaAnnonce = true;
+      }
+    }
     throw err;
   }
   // #2413 — une réponse normale : si un toast de démarrage était posé, il part.

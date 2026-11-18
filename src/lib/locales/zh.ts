@@ -1572,6 +1572,7 @@ export default {
   "machineAction.notLocal": "在身份验证关闭期间，此操作只接受来自运行 Tune 的那台机器的请求。若要在此设备上执行，请开启身份验证并使用管理员帐户登录；否则，请在该机器上直接打开 Tune（http://localhost:8888）。",
   "machineAction.notLocalRestart": "重启被拒绝：从其他设备操作时，只有在开启身份验证（管理员帐户）的情况下 Tune 才接受此操作。请开启身份验证，或在机器或容器中重启 Tune：{command}。",
   "machineAction.port80Relay": "此设备转发了 80 端口，Tune 无法区分本机调用和网络调用。请开启身份验证并使用管理员帐户登录。",
+  "machineAction.whereToEnable": "开启身份验证：设置 > 系统 > 身份验证。",
   "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
   "settings.updateInstallFailed": "更新失败。服务器给出的原因：{reason}",
   "settings.updateButton": "更新",
