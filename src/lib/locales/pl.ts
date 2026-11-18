@@ -4456,6 +4456,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Widmo ostro ucięte w okolicy {freq}, z okresowo pustymi pasmami typowymi dla kodeka stratnego (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Widmo ucięte, z okresowo pustymi pasmami typowymi dla kodeka stratnego (MP3, AAC).",
   "v2.album.hiresTracks": "Utwory, których dotyczy: {n} z {total}",
+  "v2.album.hiresDoubtfulTrack": "1 wątpliwy utwór",
+  "v2.album.hiresDoubtfulTracks": "Wątpliwe utwory: {n}",
   "v2.album.artistOnly": "Utwory w wykonaniu: {artist}",
   "v2.album.artistOnlyClear": "Pokaż cały album",
   "v2.album.alsoOn": "Także na: {servers}",

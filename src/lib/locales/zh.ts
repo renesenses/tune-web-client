@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "频谱在约 {freq} 处被陡然截断，并带有有损编解码器（MP3、AAC）特有的间歇性空频带。",
   "v2.album.hiresWhyCodecSigGeneric": "频谱被截断，并带有有损编解码器（MP3、AAC）特有的间歇性空频带。",
   "v2.album.hiresTracks": "涉及曲目：{n} / {total}",
+  "v2.album.hiresDoubtfulTrack": "1 首曲目存疑",
+  "v2.album.hiresDoubtfulTracks": "{n} 首曲目存疑",
   "v2.album.artistOnly": "由 {artist} 演绎的曲目",
   "v2.album.artistOnlyClear": "显示整张专辑",
   "v2.album.alsoOn": "也在 {servers} 上",

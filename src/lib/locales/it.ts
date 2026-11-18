@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spettro tagliato di netto verso {freq}, con le bande vuote intermittenti di un codec con perdita (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spettro tagliato, con le bande vuote intermittenti di un codec con perdita (MP3, AAC).",
   "v2.album.hiresTracks": "Brani interessati: {n} su {total}",
+  "v2.album.hiresDoubtfulTrack": "1 brano dubbio",
+  "v2.album.hiresDoubtfulTracks": "{n} brani dubbi",
   "v2.album.artistOnly": "Brani eseguiti da {artist}",
   "v2.album.artistOnlyClear": "Mostra l'album intero",
   "v2.album.alsoOn": "Anche su {servers}",

@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Espectro cortado en seco hacia {freq}, con las bandas vacías intermitentes de un códec con pérdida (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Espectro cortado, con las bandas vacías intermitentes de un códec con pérdida (MP3, AAC).",
   "v2.album.hiresTracks": "Pistas afectadas: {n} de {total}",
+  "v2.album.hiresDoubtfulTrack": "1 pista dudosa",
+  "v2.album.hiresDoubtfulTracks": "{n} pistas dudosas",
   "v2.album.artistOnly": "Pistas interpretadas por {artist}",
   "v2.album.artistOnlyClear": "Mostrar el álbum completo",
   "v2.album.alsoOn": "También en {servers}",

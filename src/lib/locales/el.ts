@@ -4458,6 +4458,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Φάσμα κομμένο απότομα γύρω στα {freq}, με τις διακοπτόμενες κενές ζώνες ενός codec με απώλειες (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Φάσμα κομμένο, με τις διακοπτόμενες κενές ζώνες ενός codec με απώλειες (MP3, AAC).",
   "v2.album.hiresTracks": "Κομμάτια που αφορά: {n} από {total}",
+  "v2.album.hiresDoubtfulTrack": "1 αμφίβολο κομμάτι",
+  "v2.album.hiresDoubtfulTracks": "{n} αμφίβολα κομμάτια",
   "v2.album.artistOnly": "Κομμάτια που ερμηνεύει ο/η {artist}",
   "v2.album.artistOnlyClear": "Εμφάνιση ολόκληρου του άλμπουμ",
   "v2.album.alsoOn": "Επίσης στο {servers}",

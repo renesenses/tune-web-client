@@ -4460,6 +4460,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Phổ bị cắt gọn quanh {freq}, kèm các dải trống chập chờn của codec nén mất dữ liệu (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Phổ bị cắt, kèm các dải trống chập chờn của codec nén mất dữ liệu (MP3, AAC).",
   "v2.album.hiresTracks": "Bản nhạc liên quan: {n} trên {total}",
+  "v2.album.hiresDoubtfulTrack": "1 bản nhạc đáng ngờ",
+  "v2.album.hiresDoubtfulTracks": "{n} bản nhạc đáng ngờ",
   "v2.album.artistOnly": "Các bài hát do {artist} trình bày",
   "v2.album.artistOnlyClear": "Hiển thị toàn bộ album",
   "v2.album.alsoOn": "Cũng có trên {servers}",

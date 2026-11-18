@@ -4603,6 +4603,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spectrum cut off sharply around {freq}, with the intermittent empty bands of a lossy codec (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spectrum cut off, with the intermittent empty bands of a lossy codec (MP3, AAC).",
   "v2.album.hiresTracks": "Tracks concerned: {n} of {total}",
+  "v2.album.hiresDoubtfulTrack": "1 doubtful track",
+  "v2.album.hiresDoubtfulTracks": "{n} doubtful tracks",
   "v2.album.artistOnly": "Tracks performed by {artist}",
   "v2.album.artistOnlyClear": "Show the whole album",
   "v2.album.alsoOn": "Also on {servers}",

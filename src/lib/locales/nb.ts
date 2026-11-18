@@ -4456,6 +4456,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spekteret er skarpt kuttet rundt {freq}, med de periodisk tomme båndene til en kodek med tap (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spekteret er kuttet, med de periodisk tomme båndene til en kodek med tap (MP3, AAC).",
   "v2.album.hiresTracks": "Berørte spor: {n} av {total}",
+  "v2.album.hiresDoubtfulTrack": "1 tvilsomt spor",
+  "v2.album.hiresDoubtfulTracks": "{n} tvilsomme spor",
   "v2.album.artistOnly": "Spor framført av {artist}",
   "v2.album.artistOnlyClear": "Vis hele albumet",
   "v2.album.alsoOn": "Også på {servers}",

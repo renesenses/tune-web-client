@@ -4537,6 +4537,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "A spektrum élesen le van vágva {freq} körül, egy veszteséges kodek (MP3, AAC) időszakosan üres sávjaival.",
   "v2.album.hiresWhyCodecSigGeneric": "A spektrum le van vágva, egy veszteséges kodek (MP3, AAC) időszakosan üres sávjaival.",
   "v2.album.hiresTracks": "Érintett számok: {n} / {total}",
+  "v2.album.hiresDoubtfulTrack": "1 kétes szám",
+  "v2.album.hiresDoubtfulTracks": "{n} kétes szám",
   "v2.album.artistOnly": "{artist} által előadott számok",
   "v2.album.artistOnlyClear": "A teljes album megjelenítése",
   "v2.album.alsoOn": "Ezen is: {servers}",

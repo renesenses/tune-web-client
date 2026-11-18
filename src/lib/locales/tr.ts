@@ -4454,6 +4454,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spektrum yaklaşık {freq} civarında keskin biçimde kesilmiş; kayıplı bir codec'in (MP3, AAC) aralıklı boş bantları var.",
   "v2.album.hiresWhyCodecSigGeneric": "Spektrum kesilmiş; kayıplı bir codec'in (MP3, AAC) aralıklı boş bantları var.",
   "v2.album.hiresTracks": "İlgili parçalar: {total} parçadan {n}",
+  "v2.album.hiresDoubtfulTrack": "1 şüpheli parça",
+  "v2.album.hiresDoubtfulTracks": "{n} şüpheli parça",
   "v2.album.artistOnly": "Yorumcu: {artist} — parçalar",
   "v2.album.artistOnlyClear": "Albümün tamamını göster",
   "v2.album.alsoOn": "Ayrıca şurada: {servers}",

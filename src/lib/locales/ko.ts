@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "약 {freq}에서 스펙트럼이 급격히 잘려 있고, 손실 코덱(MP3, AAC) 특유의 간헐적인 빈 대역이 있습니다.",
   "v2.album.hiresWhyCodecSigGeneric": "스펙트럼이 잘려 있고, 손실 코덱(MP3, AAC) 특유의 간헐적인 빈 대역이 있습니다.",
   "v2.album.hiresTracks": "해당 트랙: {total}개 중 {n}개",
+  "v2.album.hiresDoubtfulTrack": "의심스러운 트랙 1개",
+  "v2.album.hiresDoubtfulTracks": "의심스러운 트랙 {n}개",
   "v2.album.artistOnly": "{artist} 연주 트랙",
   "v2.album.artistOnlyClear": "앨범 전체 보기",
   "v2.album.alsoOn": "{servers}에도 있음",

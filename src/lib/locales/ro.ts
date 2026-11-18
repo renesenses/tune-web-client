@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spectru tăiat brusc în jur de {freq}, cu benzile goale intermitente ale unui codec cu pierderi (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spectru tăiat, cu benzile goale intermitente ale unui codec cu pierderi (MP3, AAC).",
   "v2.album.hiresTracks": "Piese în cauză: {n} din {total}",
+  "v2.album.hiresDoubtfulTrack": "1 piesă îndoielnică",
+  "v2.album.hiresDoubtfulTracks": "{n} piese îndoielnice",
   "v2.album.artistOnly": "Piese interpretate de {artist}",
   "v2.album.artistOnlyClear": "Afișează albumul întreg",
   "v2.album.alsoOn": "Și pe {servers}",

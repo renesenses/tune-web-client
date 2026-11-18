@@ -4605,6 +4605,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spectre coupé net vers {freq}, avec les bandes vides intermittentes d'un codec avec perte (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spectre coupé, avec les bandes vides intermittentes d'un codec avec perte (MP3, AAC).",
   "v2.album.hiresTracks": "Pistes en cause : {n} sur {total}",
+  "v2.album.hiresDoubtfulTrack": "1 piste douteuse",
+  "v2.album.hiresDoubtfulTracks": "{n} pistes douteuses",
   "v2.album.artistOnly": "Morceaux interprétés par {artist}",
   "v2.album.artistOnlyClear": "Afficher l'album entier",
   "v2.album.alsoOn": "Aussi sur {servers}",

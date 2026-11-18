@@ -66,7 +66,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
-  import { badgeHiRes, compteBadgeHiRes, infobulleHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
+  import { badgeHiRes, compteBadgeHiRes, infobulleHiRes, libelleBadgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -1950,9 +1950,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
         <!-- tune-server-rust#9035 — la raison dit la coupure MESURÉE (« coupé
              net vers 16,1 kHz ») et le badge combien de pistes sont en cause
-             (« 3/10 ») ; « codec avec perte » seulement sur signature mesurée. -->
-        {#if hiRes}{@const infobulle = infobulleHiRes(hiRes, (c) => $tr(c as any), $locale ?? 'fr')}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
-          title={infobulle} aria-label={`${$tr(hiRes.cle as any)}. ${infobulle}`}>{$tr(hiRes.cle as any)}{#if compteBadgeHiRes(hiRes)}<span class="hires-compte" data-hires-compte> · {compteBadgeHiRes(hiRes)}</span>{/if}</div>{/if}
+             (« 6/10 ») ; « codec avec perte » seulement sur signature mesurée.
+             Sous la moitié des pistes, l'album n'est pas douteux : « 2 pistes
+             douteuses » (décision du 18/11, fil 2902). -->
+        {#if hiRes}{@const infobulle = infobulleHiRes(hiRes, (c) => $tr(c as any), $locale ?? 'fr')}{@const libelle = libelleBadgeHiRes(hiRes, (c) => $tr(c as any))}<div class="qbadge cue" class:douteux={hiRes.genre !== 'verifie'} data-hires={hiRes.genre}
+          title={infobulle} aria-label={`${libelle}. ${infobulle}`}>{libelle}{#if compteBadgeHiRes(hiRes)}<span class="hires-compte" data-hires-compte> · {compteBadgeHiRes(hiRes)}</span>{/if}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La

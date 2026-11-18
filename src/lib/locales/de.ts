@@ -4583,6 +4583,8 @@ export default {
   "v2.album.hiresWhyCodecSig": "Spektrum scharf abgeschnitten bei etwa {freq}, mit den zeitweise leeren Bändern eines verlustbehafteten Codecs (MP3, AAC).",
   "v2.album.hiresWhyCodecSigGeneric": "Spektrum abgeschnitten, mit den zeitweise leeren Bändern eines verlustbehafteten Codecs (MP3, AAC).",
   "v2.album.hiresTracks": "Betroffene Titel: {n} von {total}",
+  "v2.album.hiresDoubtfulTrack": "1 zweifelhafter Titel",
+  "v2.album.hiresDoubtfulTracks": "{n} zweifelhafte Titel",
   "v2.album.artistOnly": "Von {artist} gespielte Titel",
   "v2.album.artistOnlyClear": "Ganzes Album anzeigen",
   "v2.album.alsoOn": "Auch auf {servers}",
