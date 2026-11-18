@@ -158,6 +158,7 @@
   import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
+  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3597,7 +3598,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // a échoué. On ne s'arrête que sur une vraie erreur applicative — c'est
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
-      const msg = errText(e);
+      // tune-server-rust#9029 — refusé hors de la machine de Tune
+      // (authentification coupée) : dire quoi faire, commande du conteneur
+      // comprise.
+      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
         notifications.error(msg);
@@ -3745,7 +3750,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // ⚠️ Le `catch` vide est VOULU, ce n'est pas une erreur avalée : le serveur
     // meurt avant d'avoir répondu, donc la requête échoue TOUJOURS — et cet
     // échec-là est le succès du geste.
-    try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
+    try {
+      await api.stopServer();
+    } catch (e) {
+      // Une coupure de transport est le succès du geste (`errText` → null).
+      // Un refus HTTP, lui, prouve que le serveur n'a PAS accepté l'ordre
+      // (tune-server-rust#9029 : refusé hors de la machine de Tune) : le
+      // bouton redevient utilisable et le refus est dit.
+      const msg = errText(e);
+      if (msg !== null) {
+        arretEnCours = false;
+        notifications.error(msg);
+      }
+    }
   }
 
   /**
