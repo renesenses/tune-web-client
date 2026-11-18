@@ -735,6 +735,14 @@ export interface Zone {
    *  Diffère de `exclusive_mode` tant qu'une lecture retient le changement,
    *  ou quand le pilote impose sa règle (ASIO). `null` hors sortie locale. */
   exclusive_mode_applique?: boolean | null;
+  /** tune-server-rust#8696 — période WASAPI exclusive réglée sur la zone, en
+   *  ms ; `null` = Auto ; absent = serveur qui ne connaît pas le réglage. */
+  wasapi_exclusive_period_ms?: number | null;
+  /** Les valeurs proposées (10 / 20 / 50 / 100 ms). */
+  wasapi_exclusive_period_choices_ms?: number[];
+  /** Vrai pour une zone locale d'un serveur Windows dont la sortie n'est
+   *  pas ASIO : seul cas où le réglage a un effet. */
+  wasapi_exclusive_period_applicable?: boolean;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
