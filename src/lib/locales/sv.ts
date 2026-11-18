@@ -7883,6 +7883,7 @@ export default {
   "v2.room.stCancelled": "Mätningen avbröts",
   "v2.room.stDone": "Mätningen klar",
   "v2.room.stError": "Mätfel",
+  "v2.room.errMicSilent": "Mikrofonen ger inget ljud ({peripherique}): kontrollera att den är ordentligt ansluten och välj sedan dess hårdvaruingång (hw:…) i listan.",
   "v2.room.stPreparing": "Förbereder…",
   "v2.room.stRefused": "Mätningen nekades",
   "v2.room.stSweep": "Svep…",

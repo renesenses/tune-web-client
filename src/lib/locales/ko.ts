@@ -7884,6 +7884,7 @@ export default {
   "v2.room.stCancelled": "측정 취소됨",
   "v2.room.stDone": "측정 완료",
   "v2.room.stError": "측정 오류",
+  "v2.room.errMicSilent": "마이크에서 소리가 들어오지 않습니다({peripherique}). 제대로 연결되어 있는지 확인한 뒤 목록에서 하드웨어 입력(hw:…)을 선택하세요.",
   "v2.room.stPreparing": "준비 중…",
   "v2.room.stRefused": "측정 거부됨",
   "v2.room.stSweep": "스윕 중…",

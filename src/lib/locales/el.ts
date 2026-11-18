@@ -7729,6 +7729,7 @@ export default {
   "v2.room.stCancelled": "Η μέτρηση ακυρώθηκε",
   "v2.room.stDone": "Η μέτρηση ολοκληρώθηκε",
   "v2.room.stError": "Σφάλμα μέτρησης",
+  "v2.room.errMicSilent": "Το μικρόφωνο δεν επιστρέφει ήχο ({peripherique}): ελέγξτε ότι είναι σωστά συνδεδεμένο και επιλέξτε την είσοδο υλικού του (hw:…) από τη λίστα.",
   "v2.room.stPreparing": "Προετοιμασία…",
   "v2.room.stRefused": "Η μέτρηση απορρίφθηκε",
   "v2.room.stSweep": "Σάρωση…",

@@ -7904,6 +7904,7 @@ export default {
   "v2.room.stCancelled": "Measurement cancelled",
   "v2.room.stDone": "Measurement complete",
   "v2.room.stError": "Measurement error",
+  "v2.room.errMicSilent": "The microphone returns no sound ({peripherique}): check that it is properly connected, then pick its hardware input (hw:…) in the list.",
   "v2.room.stPreparing": "Preparing…",
   "v2.room.stRefused": "Measurement refused",
   "v2.room.stSweep": "Sweep…",

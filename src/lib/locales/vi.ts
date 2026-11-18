@@ -7736,6 +7736,7 @@ export default {
   "v2.room.stCancelled": "Đã hủy phép đo",
   "v2.room.stDone": "Đã đo xong",
   "v2.room.stError": "Lỗi đo",
+  "v2.room.errMicSilent": "Micro không trả về âm thanh nào ({peripherique}): hãy kiểm tra micro đã được cắm đúng chưa, rồi chọn đầu vào phần cứng (hw:…) của nó trong danh sách.",
   "v2.room.stPreparing": "Đang chuẩn bị…",
   "v2.room.stRefused": "Phép đo bị từ chối",
   "v2.room.stSweep": "Đang quét…",

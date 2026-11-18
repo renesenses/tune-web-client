@@ -7729,6 +7729,7 @@ export default {
   "v2.room.stCancelled": "Pomiar anulowany",
   "v2.room.stDone": "Pomiar zakończony",
   "v2.room.stError": "Błąd pomiaru",
+  "v2.room.errMicSilent": "Mikrofon nie zwraca żadnego dźwięku ({peripherique}): sprawdź, czy jest prawidłowo podłączony, a następnie wybierz jego wejście sprzętowe (hw:…) z listy.",
   "v2.room.stPreparing": "Przygotowanie…",
   "v2.room.stRefused": "Pomiar odrzucony",
   "v2.room.stSweep": "Przemiatanie…",

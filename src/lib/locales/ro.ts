@@ -7884,6 +7884,7 @@ export default {
   "v2.room.stCancelled": "Măsurare anulată",
   "v2.room.stDone": "Măsurare terminată",
   "v2.room.stError": "Eroare de măsurare",
+  "v2.room.errMicSilent": "Microfonul nu returnează niciun sunet ({peripherique}): verificați că este conectat corect, apoi alegeți intrarea hardware (hw:…) din listă.",
   "v2.room.stPreparing": "Pregătire…",
   "v2.room.stRefused": "Măsurare refuzată",
   "v2.room.stSweep": "Baleiaj…",

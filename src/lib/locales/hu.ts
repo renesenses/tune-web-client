@@ -7843,6 +7843,7 @@ export default {
   "v2.room.stCancelled": "Mérés megszakítva",
   "v2.room.stDone": "Mérés kész",
   "v2.room.stError": "Mérési hiba",
+  "v2.room.errMicSilent": "A mikrofon nem ad hangot ({peripherique}): ellenőrizze, hogy megfelelően csatlakozik-e, majd válassza ki a hardveres bemenetét (hw:…) a listában.",
   "v2.room.stPreparing": "Előkészítés…",
   "v2.room.stRefused": "Mérés elutasítva",
   "v2.room.stSweep": "Sweep…",

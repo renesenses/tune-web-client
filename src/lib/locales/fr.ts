@@ -7906,6 +7906,7 @@ export default {
   "v2.room.stCancelled": "Mesure annulée",
   "v2.room.stDone": "Mesure terminée",
   "v2.room.stError": "Erreur de mesure",
+  "v2.room.errMicSilent": "Le micro ne renvoie aucun son ({peripherique}) : vérifiez qu'il est bien branché, puis choisissez son entrée matérielle (hw:…) dans la liste.",
   "v2.room.stPreparing": "Préparation…",
   "v2.room.stRefused": "Mesure refusée",
   "v2.room.stSweep": "Balayage…",

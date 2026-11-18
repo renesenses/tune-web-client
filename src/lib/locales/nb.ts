@@ -7729,6 +7729,7 @@ export default {
   "v2.room.stCancelled": "Målingen ble avbrutt",
   "v2.room.stDone": "Målingen er ferdig",
   "v2.room.stError": "Målefeil",
+  "v2.room.errMicSilent": "Mikrofonen gir ingen lyd ({peripherique}): kontroller at den er riktig tilkoblet, og velg deretter maskinvareinngangen (hw:…) i listen.",
   "v2.room.stPreparing": "Forbereder…",
   "v2.room.stRefused": "Målingen ble avvist",
   "v2.room.stSweep": "Sveip…",

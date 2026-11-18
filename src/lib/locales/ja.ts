@@ -7884,6 +7884,7 @@ export default {
   "v2.room.stCancelled": "測定を中止しました",
   "v2.room.stDone": "測定完了",
   "v2.room.stError": "測定エラー",
+  "v2.room.errMicSilent": "マイクから音声が返ってきません（{peripherique}）。正しく接続されているか確認し、一覧からハードウェア入力（hw:…）を選んでください。",
   "v2.room.stPreparing": "準備中…",
   "v2.room.stRefused": "測定が拒否されました",
   "v2.room.stSweep": "スイープ中…",

@@ -324,6 +324,8 @@ export interface EntreeMicro {
   frequence_courante: number | null;
   virtuelle: boolean;
   mesurable: boolean;
+  /** tune-server-rust#9070 — type d'accès ALSA (`hw`, `plughw`, `dsnoop`…) ; absent hors ALSA. */
+  acces?: string | null;
 }
 export interface Microphones { pile: string; frequence_requise: number; entrees: EntreeMicro[]; etalonnages: string[] }
 
@@ -343,6 +345,10 @@ export interface Avancement {
   etat: EtatMesure;
   motif?: string;
   message?: string;
+  /** tune-server-rust#9070 — code stable d'une erreur que l'écran traduit (`micro_muet`). */
+  code?: string;
+  /** tune-server-rust#9070 — identifiant exact du micro ouvert (`alsa:hw:CARD=…`). */
+  peripherique?: string;
   progression: number;
   avertissements: string[];
 }
@@ -398,6 +404,24 @@ export function avertissementFrequenceMicro(
   if (!micro || micro.mesurable) return null;
   if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
   return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
+}
+
+/**
+ * tune-server-rust#9070 — le nom d'un micro dans la liste, suivi de son type
+ * d'accès ALSA quand le serveur le donne : plusieurs PCM d'une même carte
+ * portent le même nom.
+ */
+export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'>): string =>
+  m.acces ? `${m.nom} (${m.acces})` : m.nom;
+
+/**
+ * tune-server-rust#9070 — la cause d'une mesure refusée ou en erreur. Un code
+ * connu se traduit (`micro_muet` : le micro ouvert ne rend aucune trame) ;
+ * sinon le texte du greffon, tel quel.
+ */
+export function causeMesure(m: Pick<Avancement, 'motif' | 'message' | 'code' | 'peripherique'>, t: (k: string) => string): string | null {
+  if (m.code === 'micro_muet') return t('v2.room.errMicSilent').replace('{peripherique}', m.peripherique ?? '?');
+  return m.motif ?? m.message ?? null;
 }
 
 /** Les vrais micros : une entrée virtuelle (Loopback, BlackHole) ne capte pas la pièce. */

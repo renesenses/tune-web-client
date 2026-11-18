@@ -7884,6 +7884,7 @@ export default {
   "v2.room.stCancelled": "测量已取消",
   "v2.room.stDone": "测量完成",
   "v2.room.stError": "测量出错",
+  "v2.room.errMicSilent": "麦克风没有返回任何声音（{peripherique}）：请检查它是否已正确连接，然后在列表中选择其硬件输入（hw:…）。",
   "v2.room.stPreparing": "正在准备…",
   "v2.room.stRefused": "测量被拒绝",
   "v2.room.stSweep": "扫频中…",

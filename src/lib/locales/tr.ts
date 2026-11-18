@@ -7712,6 +7712,7 @@ export default {
   "v2.room.stCancelled": "Ölçüm iptal edildi",
   "v2.room.stDone": "Ölçüm tamamlandı",
   "v2.room.stError": "Ölçüm hatası",
+  "v2.room.errMicSilent": "Mikrofon hiç ses döndürmüyor ({peripherique}): düzgün bağlı olduğunu kontrol edin, ardından listeden donanım girişini (hw:…) seçin.",
   "v2.room.stPreparing": "Hazırlanıyor…",
   "v2.room.stRefused": "Ölçüm reddedildi",
   "v2.room.stSweep": "Tarama sinyali…",
