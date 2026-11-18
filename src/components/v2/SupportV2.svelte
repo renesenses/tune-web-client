@@ -39,6 +39,8 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   import '../../styles/tune-v2.css';
   import DiagnosticIaV2 from './DiagnosticIaV2.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { assistantIaAbsent } from '../../lib/assistantIa';
+  import { sonderAssistantIa } from '../../lib/assistantIaDialogue';
 
   /**
    * TROIS volets, comme l'écran du client actuel.
@@ -121,6 +123,28 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   /** web#3206 — le texte du champ de l'assistant IA, et la question en cours. */
   let questionIa = $state('');
   let bogueConfirmation = false;
+  /** web#3206 (décision de Bertrand, 18/11) — le bloc de l'assistant n'est
+   *  montré que si l'extension est ACTIVE sur ce serveur : sans elle, son
+   *  champ « Décrivez ce qui se passe (facultatif) » se prenait pour le vrai.
+   *  Tant que la sonde n'a pas répondu, il reste masqué. */
+  let sondeIaFaite = $state(false);
+  $effect(() => { void sonderAssistantIa().finally(() => { sondeIaFaite = true; }); });
+  const blocIaVisible = $derived(sondeIaFaite && !$assistantIaAbsent);
+  /** Le dernier texte de l'assistant recopié dans la description : il n'est
+   *  plus proposé une seconde fois. */
+  let texteIaRecopie = '';
+  /** Le texte qui attend dans le champ de l'assistant et qui serait PERDU à
+   *  l'envoi (il ne part jamais au forum) : vide si le bloc est masqué, ou si
+   *  la description le contient déjà. */
+  function texteIaEnAttente(): string {
+    if (!blocIaVisible) return '';
+    const q = questionIa.trim();
+    if (!q || q === texteIaRecopie || bogueDesc.includes(q)) return '';
+    return q;
+  }
+  function focusDescription() {
+    document.querySelector<HTMLTextAreaElement>('textarea.bogue-desc')?.focus();
+  }
   /** Le résumé du diagnostic de l'assistant (marqué IA, pseudonymisé) et la
    *  case qui le joint au rapport : DÉCOCHÉE par défaut (Bertrand, 23/10/2026). */
   let resumeIa = $state<string | null>(null);
@@ -208,16 +232,30 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
 
   async function envoyerBogue() {
     if (bogueEnvoi || bogueEnvoye || bogueConfirmation) return;
-    // web#3206 — un rapport sans description ne part plus en silence. Si du
-    // texte attend dans le champ de l'assistant IA, on dit qu'il ne part pas.
-    if (!bogueDesc.trim()) {
-      bogueConfirmation = true;
-      const ok = await dialogs.confirm(tr1(questionIa.trim() ? 'v2.sup.bugDescEmptyIa' : 'v2.sup.bugDescEmpty'));
-      bogueConfirmation = false;
-      if (!ok) {
-        document.querySelector<HTMLTextAreaElement>('textarea.bogue-desc')?.focus();
-        return;
+    // web#3206 — un rapport ne part plus en silence sans description, ni en
+    // perdant le texte écrit dans le champ de l'assistant IA (décisions de
+    // Bertrand, 18/11). Ce texte ne part JAMAIS d'office : le rapport est
+    // publié sur le forum public. S'il en reste, on propose de le recopier
+    // dans la description (l'utilisateur la relit, puis envoie) ; s'il
+    // refuse, on confirme l'envoi sans lui — que la description soit vide ou
+    // non.
+    const texteIa = texteIaEnAttente();
+    bogueConfirmation = true;
+    try {
+      if (texteIa) {
+        if (await dialogs.confirm(tr1('v2.sup.bugCopyIa'))) {
+          bogueDesc = bogueDesc.trim() ? `${bogueDesc.trimEnd()}\n\n${texteIa}` : texteIa;
+          texteIaRecopie = texteIa;
+          focusDescription();
+          return;
+        }
+        const ok = await dialogs.confirm(tr1(bogueDesc.trim() ? 'v2.sup.bugSendWithoutIa' : 'v2.sup.bugDescEmptyIa'));
+        if (!ok) { focusDescription(); return; }
+      } else if (!bogueDesc.trim()) {
+        if (!(await dialogs.confirm(tr1('v2.sup.bugDescEmpty')))) { focusDescription(); return; }
       }
+    } finally {
+      bogueConfirmation = false;
     }
     bogueEnvoi = true;
     bogueErreur = null;
@@ -665,11 +703,15 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
                AU-DESSUS de « Ce qui se passe », avec un champ « Décrivez ce qui
                se passe » : un testeur y a écrit son problème, et le rapport
                est parti sans description. Le vrai champ passe en premier ;
-               l'assistant suit, à côté de la case qui joint son résumé. -->
-          <DiagnosticIaV2 zones={$zones.filter((z) => z.id != null).map((z) => ({ id: z.id as number, name: z.name }))}
-            zoneParDefaut={$currentZone?.id ?? null}
-            onResume={(r) => { resumeIa = r; joindreResumeIa = false; }}
-            onQuestion={(q) => (questionIa = q)} />
+               l'assistant suit, à côté de la case qui joint son résumé.
+               Décision de Bertrand (18/11) : sans l'extension active, le bloc
+               est MASQUÉ. -->
+          {#if blocIaVisible}
+            <DiagnosticIaV2 zones={$zones.filter((z) => z.id != null).map((z) => ({ id: z.id as number, name: z.name }))}
+              zoneParDefaut={$currentZone?.id ?? null}
+              onResume={(r) => { resumeIa = r; joindreResumeIa = false; }}
+              onQuestion={(q) => (questionIa = q)} />
+          {/if}
           {#if resumeIa}
             <label class="champ case-ia" data-joindre-resume-ia>
               <span><input type="checkbox" bind:checked={joindreResumeIa} disabled={bogueEnvoi} />
