@@ -6,7 +6,25 @@
 
   /** `onEcrit` reçoit le bilan : c'est le parent qui l'affiche, la liste
    *  relue pouvant ne plus contenir ce composant (#8679). */
-  let { pistes, onEcrit }: { pistes: PisteDouteuse[]; onEcrit?: (bilan: string) => void | Promise<void> } = $props();
+  /*  `onIgnorer` — renesenses/tune-server-rust#8958 : « C'est normal » sur une
+   *  alerte. Le parent appelle le serveur et relit la liste. */
+  let { pistes, onEcrit, onIgnorer }: {
+    pistes: PisteDouteuse[];
+    onEcrit?: (bilan: string) => void | Promise<void>;
+    onIgnorer?: (piste: PisteDouteuse, raison: string) => void | Promise<void>;
+  } = $props();
+  let ignorant = $state<string | null>(null);
+
+  async function ignorer(piste: PisteDouteuse, raison: string) {
+    if (ignorant || !onIgnorer) return;
+    ignorant = `${piste.id}:${raison}`;
+    try { await onIgnorer(piste, raison); } finally { ignorant = null; }
+  }
+
+  /** La portée annoncée par le serveur ; sans elle (serveur ancien), pas de geste. */
+  function porteeDe(piste: PisteDouteuse, raison: string): 'track' | 'album' | null {
+    return onIgnorer ? (piste.ignore_scopes?.[raison] ?? null) : null;
+  }
   let limite = $state(50);
   let visibles = $derived(pistes.slice(0, limite));
 
@@ -115,7 +133,27 @@
       <li data-piste-id={piste.id}>
         <strong>{piste.title || '—'}</strong>
         <span class="chemin">{piste.file_path || $t('v2.meta.dNoPath' as any)}</span>
-        <span class="raisons">{raisons.map((raison) => texteRaison(piste, raison)).join(' · ')}</span>
+        {#if piste.reasons?.length && piste.reasons.some((r) => porteeDe(piste, r))}
+          <!-- tune-server-rust#8958 — une alerte par ligne, chacune avec son
+               « C'est normal » : piste, ou tout l'album selon sa nature. -->
+          <ul class="raisons alertes">
+            {#each piste.reasons as raison (raison)}
+              {@const portee = porteeDe(piste, raison)}
+              <li data-raison={raison}>
+                <span>{texteRaison(piste, raison)}</span>
+                {#if portee}
+                  <button type="button" class="normal" data-portee={portee}
+                    disabled={ignorant != null}
+                    onclick={() => ignorer(piste, raison)}>
+                    {$t((portee === 'album' ? 'v2.meta.dIgnoreAlbum' : 'v2.meta.dIgnoreTrack') as any)}
+                  </button>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <span class="raisons">{raisons.map((raison) => texteRaison(piste, raison)).join(' · ')}</span>
+        {/if}
         {#if dossierDe(piste)}
           <button type="button" class="ligne" disabled={occupe} onclick={() => ecrire([piste.id])}>
             {$t('v2.meta.dFolderWrite' as any)}
@@ -142,6 +180,10 @@
   strong{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
   .chemin{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); overflow-wrap:anywhere}
   .raisons{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); overflow-wrap:anywhere}
+  ul.alertes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
+  ul.alertes li{flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:0; border:0}
+  button.normal{padding:3px 10px; font-weight:500; color:var(--v2-txt2); align-self:auto}
+  button.normal:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .suite{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .dossier{display:flex; flex-direction:column; gap:8px; margin:0 0 12px}
   .dossier p{margin:0; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
