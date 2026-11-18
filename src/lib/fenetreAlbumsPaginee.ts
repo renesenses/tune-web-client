@@ -29,6 +29,14 @@ export function trancheAlbums(total: number, position: number, vue: number, colo
 
 interface Options {
   total: number;
+  /**
+   * web#3189 — la taille des pochettes choisie au curseur. L'action ne la lit
+   * pas : elle n'est là que pour que Svelte rappelle `update()` quand elle
+   * change. Le cadre ne change pas de taille (aucun `ResizeObserver` ne le
+   * voit), mais les colonnes et la hauteur des rangées, si : la tranche et les
+   * cales sont alors remesurées.
+   */
+  taille?: number | null;
   mode: string;
   surFenetre: (tranche: TrancheAlbums) => void;
   surPret: (aller: ((index: number) => Promise<void>) | undefined) => void;
