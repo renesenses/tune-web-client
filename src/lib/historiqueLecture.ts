@@ -20,7 +20,7 @@
  */
 
 import type { HistoryEntry } from './stores/history';
-import { cleDObjet, estRegroupable } from './historiqueParContexte';
+import { cleDObjet, contexteDeLEcoute, estRegroupable } from './historiqueParContexte';
 import type { Track } from './types';
 import * as api from './api';
 import { playAndSync } from './stores/zones';
@@ -72,14 +72,75 @@ function albumDeServiceServi(e: any): string | null {
   return id ? id : null;
 }
 
+/**
+ * web#3203 — le NOM de la station d'une ligne de radio du serveur.
+ *
+ * Le serveur écrit la ligne d'une station (#7965) avec `album_title` vide et
+ * le nom en `title` et en `context_title`. Le conteneur RADIO tire son nom
+ * de `album_title` (`contexteDeLEcoute`) : sans ce report, un conteneur fait
+ * des seules lignes du serveur s'affichait « sans nom » (FabienM, fil 2723,
+ * point 15).
+ */
+function nomDeStationServie(e: any): string | null {
+  if (e?.source !== 'radio') return null;
+  const album = typeof e?.album_title === 'string' ? e.album_title.trim() : '';
+  if (album) return album;
+  const ctx = typeof e?.context_title === 'string' ? e.context_title.trim() : '';
+  if (ctx) return ctx;
+  const artiste = typeof e?.artist_name === 'string' ? e.artist_name.trim() : '';
+  const titre = typeof e?.title === 'string' ? e.title.trim() : '';
+  return !artiste && titre ? titre : null;
+}
+
+/**
+ * tune-server-rust#8487 — les titres DIFFUSÉS par une station, notés par le
+ * serveur sous la ligne de la station (`broadcast_titles`), en entrées du
+ * même conteneur que le carnet local : même flux (`source_id`), même nom de
+ * station (`album_title`), même contexte. Ils viennent de tous les appareils,
+ * pas seulement de ce navigateur.
+ */
+function titresDiffusesServis(e: any, station: HistoryEntry): HistoryEntry[] {
+  const titres = Array.isArray(e?.broadcast_titles) ? e.broadcast_titles : [];
+  const out: HistoryEntry[] = [];
+  for (const t of titres) {
+    const titre = typeof t?.title === 'string' ? t.title.trim() : '';
+    if (!titre || !t?.played_at) continue;
+    out.push({
+      track: {
+        id: null,
+        title: titre,
+        artist_name: t.artist_name ?? null,
+        album_title: station.track.album_title ?? null,
+        duration_ms: 0,
+        source: 'radio',
+        source_id: e.source_id,
+        album_id: null,
+        cover_path: t.cover_url ?? e.cover_url ?? null,
+      } as unknown as Track,
+      playedAt: t.played_at,
+      zoneId: t.zone_id ?? e.zone_id ?? null,
+      zoneName: `Zone ${t.zone_id ?? e.zone_id ?? '?'}`,
+      contexte: station.contexte,
+    });
+  }
+  return out;
+}
+
 /** Traduit les lignes de `/library/history` dans la forme du store local. */
 export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
-  return (items ?? []).map((e: any) => ({
+  return (items ?? []).flatMap((e: any) => {
+    const station = entreeDepuisServeur(e);
+    return [station, ...titresDiffusesServis(e, station)];
+  });
+}
+
+function entreeDepuisServeur(e: any): HistoryEntry {
+  return {
     track: {
       id: e.track_id,
       title: e.title,
       artist_name: e.artist_name,
-      album_title: e.album_title,
+      album_title: nomDeStationServie(e) ?? e.album_title,
       duration_ms: e.duration_ms,
       source: e.source,
       source_id: e.source_id,
@@ -108,7 +169,7 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       // playlist (un identifiant Qobuz est un entier, comme un local).
       source: e.context_source ?? null,
     },
-  }));
+  };
 }
 
 /**
@@ -364,9 +425,17 @@ function memePiste(a: Track, b: Track): boolean {
   if (a.id != null && b.id != null) return String(a.id) === String(b.id);
   const sa = a.source ?? null;
   if (!sa || sa !== (b.source ?? null)) return false;
-  if (a.source_id != null && b.source_id != null) return String(a.source_id) === String(b.source_id);
   const norm = (s?: string | null) => (s ?? '').trim().toLowerCase();
-  return !!norm(a.title) && norm(a.title) === norm(b.title) && norm(a.artist_name) === norm(b.artist_name);
+  const memeTitre = !!norm(a.title) && norm(a.title) === norm(b.title) && norm(a.artist_name) === norm(b.artist_name);
+  // tune-server-rust#8487 — à la radio, `source_id` est le FLUX : il désigne
+  // la station, pas le morceau. Deux titres de la même station ne sont la
+  // même écoute que s'ils portent aussi le même titre et le même interprète.
+  if (sa === 'radio') {
+    if (a.source_id != null && b.source_id != null && String(a.source_id) !== String(b.source_id)) return false;
+    return memeTitre;
+  }
+  if (a.source_id != null && b.source_id != null) return String(a.source_id) === String(b.source_id);
+  return memeTitre;
 }
 /**
  * Clé de déduplication d'une LIGNE.
@@ -381,7 +450,11 @@ function memePiste(a: Track, b: Track): boolean {
  * d'origine voulait — mais deux objets distincts gardent chacun la leur.
  */
 function cleDeLigne(e: HistoryEntry): string {
-  const c = e.contexte;
+  // tune-server-rust#8487 — l'objet tel que l'écran le REGROUPE : une radio
+  // se range sous son flux, que l'entrée vienne du carnet local ou du
+  // serveur (dont le `context_id` est l'identifiant de la station). Sans
+  // cela, un même titre noté des deux côtés sortait deux fois dans le tiroir.
+  const c = contexteDeLEcoute(e.track, e.contexte);
   const obj = estRegroupable(c) ? cleDObjet(c!) : '';
   return `${cleDePiste(e.track)}@${obj}`;
 }
