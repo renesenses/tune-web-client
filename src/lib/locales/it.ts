@@ -7764,7 +7764,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Misurata da Tune",
   "fiche.dr.sourceSidecar": "Letta da un rapporto DR accanto al file",
   "fiche.dr.sourceUnknown": "Fonte sconosciuta",
-  "fiche.section.hires": "Falso Hi-Res",
+  "fiche.section.hires": "Verifica Hi-Res",
   "fiche.hires.verifie": "Hi-Res verificato",
   "fiche.hires.conforme": "Conforme a quanto dichiara il file",
   "fiche.hires.douteux": "Hi-Res dubbio",

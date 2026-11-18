@@ -7591,7 +7591,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Tune tarafından ölçüldü",
   "fiche.dr.sourceSidecar": "Dosyanın yanındaki bir DR raporundan okundu",
   "fiche.dr.sourceUnknown": "Bilinmeyen kaynak",
-  "fiche.section.hires": "Sahte Hi-Res",
+  "fiche.section.hires": "Hi-Res doğrulaması",
   "fiche.hires.verifie": "Hi-Res doğrulandı",
   "fiche.hires.conforme": "Dosyanın beyan ettiğiyle uyumlu",
   "fiche.hires.douteux": "Hi-Res şüpheli",

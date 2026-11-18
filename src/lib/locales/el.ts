@@ -7609,7 +7609,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Μετρήθηκε από το Tune",
   "fiche.dr.sourceSidecar": "Από αναφορά DR δίπλα στο αρχείο",
   "fiche.dr.sourceUnknown": "Άγνωστη πηγή",
-  "fiche.section.hires": "Ψευδές Hi-Res",
+  "fiche.section.hires": "Έλεγχος Hi-Res",
   "fiche.hires.verifie": "Επιβεβαιωμένο Hi-Res",
   "fiche.hires.conforme": "Σύμφωνο με όσα δηλώνει το αρχείο",
   "fiche.hires.douteux": "Αμφίβολο Hi-Res",

@@ -7764,7 +7764,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Măsurată de Tune",
   "fiche.dr.sourceSidecar": "Citită dintr-un raport DR de lângă fișier",
   "fiche.dr.sourceUnknown": "Sursă necunoscută",
-  "fiche.section.hires": "Fals Hi-Res",
+  "fiche.section.hires": "Verificare Hi-Res",
   "fiche.hires.verifie": "Hi-Res verificat",
   "fiche.hires.conforme": "Conform cu ce declară fișierul",
   "fiche.hires.douteux": "Hi-Res îndoielnic",

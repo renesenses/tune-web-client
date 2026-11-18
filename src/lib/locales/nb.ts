@@ -7609,7 +7609,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Målt av Tune",
   "fiche.dr.sourceSidecar": "Lest fra en DR-rapport ved siden av filen",
   "fiche.dr.sourceUnknown": "Ukjent kilde",
-  "fiche.section.hires": "Falsk hi-res",
+  "fiche.section.hires": "Hi-res-kontroll",
   "fiche.hires.verifie": "Hi-res bekreftet",
   "fiche.hires.conforme": "Samsvarer med det filen oppgir",
   "fiche.hires.douteux": "Tvilsom hi-res",

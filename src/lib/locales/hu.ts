@@ -7723,7 +7723,7 @@ export default {
   "fiche.dr.sourceAnalysis": "A Tune mérte",
   "fiche.dr.sourceSidecar": "A fájl melletti DR-jelentésből",
   "fiche.dr.sourceUnknown": "Ismeretlen forrás",
-  "fiche.section.hires": "Hamis Hi-Res",
+  "fiche.section.hires": "Hi-Res ellenőrzés",
   "fiche.hires.verifie": "Hi-Res igazolva",
   "fiche.hires.conforme": "Megfelel annak, amit a fájl állít",
   "fiche.hires.douteux": "Kétes Hi-Res",

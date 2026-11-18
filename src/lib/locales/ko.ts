@@ -7764,7 +7764,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Tune이 측정",
   "fiche.dr.sourceSidecar": "파일 옆 DR 보고서에서 읽음",
   "fiche.dr.sourceUnknown": "알 수 없는 출처",
-  "fiche.section.hires": "가짜 하이레즈",
+  "fiche.section.hires": "하이레즈 검증",
   "fiche.hires.verifie": "하이레즈 확인됨",
   "fiche.hires.conforme": "파일이 밝힌 사양과 일치",
   "fiche.hires.douteux": "하이레즈 의심",

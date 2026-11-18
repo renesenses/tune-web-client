@@ -7763,7 +7763,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Uppmätt av Tune",
   "fiche.dr.sourceSidecar": "Läst från en DR-rapport bredvid filen",
   "fiche.dr.sourceUnknown": "Okänd källa",
-  "fiche.section.hires": "Falsk hi-res",
+  "fiche.section.hires": "Hi-res-kontroll",
   "fiche.hires.verifie": "Hi-res bekräftad",
   "fiche.hires.conforme": "Stämmer med vad filen anger",
   "fiche.hires.douteux": "Tveksam hi-res",

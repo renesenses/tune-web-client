@@ -7764,7 +7764,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Tune による測定",
   "fiche.dr.sourceSidecar": "ファイル横の DR レポートから読み取り",
   "fiche.dr.sourceUnknown": "不明なソース",
-  "fiche.section.hires": "偽ハイレゾ",
+  "fiche.section.hires": "ハイレゾ検証",
   "fiche.hires.verifie": "ハイレゾ確認済み",
   "fiche.hires.conforme": "ファイルの表示どおり",
   "fiche.hires.douteux": "ハイレゾの疑い",

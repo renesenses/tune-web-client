@@ -7764,7 +7764,7 @@ export default {
   "fiche.dr.sourceAnalysis": "由 Tune 测量",
   "fiche.dr.sourceSidecar": "读取自文件旁的 DR 报告",
   "fiche.dr.sourceUnknown": "来源未知",
-  "fiche.section.hires": "伪高解析",
+  "fiche.section.hires": "高解析验证",
   "fiche.hires.verifie": "已确认高解析",
   "fiche.hires.conforme": "与文件声明一致",
   "fiche.hires.douteux": "高解析存疑",

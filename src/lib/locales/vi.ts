@@ -7616,7 +7616,7 @@ export default {
   "fiche.dr.sourceAnalysis": "Do Tune đo",
   "fiche.dr.sourceSidecar": "Đọc từ báo cáo DR cạnh tệp",
   "fiche.dr.sourceUnknown": "Nguồn không xác định",
-  "fiche.section.hires": "Hi-Res giả",
+  "fiche.section.hires": "Kiểm tra Hi-Res",
   "fiche.hires.verifie": "Hi-Res đã xác minh",
   "fiche.hires.conforme": "Đúng như tệp khai báo",
   "fiche.hires.douteux": "Hi-Res đáng ngờ",

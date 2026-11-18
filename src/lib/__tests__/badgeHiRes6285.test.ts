@@ -173,4 +173,15 @@ describe('Badge hi-res (#6285)', () => {
     expect(b?.genre).toBe('douteux');
     expect(b?.pistes).toEqual({ douteuses: 2, mesurees: 2 });
   });
+
+  it('web#3217 — la rubrique de la fiche technique nomme la vérification, neutre, dans les 16 langues', () => {
+    const tables: Record<string, Record<string, string>> = { fr, en, de, es, it: it_, hu, vi: viLocale, el: elLocale, nb: nbLocale, pl: plLocale, ja, ko, ro, sv, zh, tr: trLocale };
+    // L'ancien titre affirmait « faux » au-dessus d'un « Hi-Res vérifié ».
+    const faux = /faux|fake|falsch|falso|fals\b|falsk|fałszyw|hamis|sahte|giả|ψευδ|偽|가짜|伪/i;
+    for (const [l, table] of Object.entries(tables)) {
+      expect(table['fiche.section.hires'], l).toBeTruthy();
+      expect(table['fiche.section.hires'], l).not.toMatch(faux);
+    }
+    expect((fr as Record<string, string>)['fiche.section.hires']).toBe('Vérification Hi-Res');
+  });
 });
