@@ -3860,6 +3860,9 @@ export function getAcousticStatus() {
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
     waiting_reason?: string | null;
+    // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
+    // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.
+    paused_reason?: string | null;
   }>(
     `${BASE}/library/search/acoustic/status`,
   );
