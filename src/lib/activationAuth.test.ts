@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activationPossible, cleDuRefusActivation, comptesASupprimer, dateDeCreation } from './activationAuth';
+import { activationPossible, cleDeLaDemandeDeCode, cleDuRefusActivation, comptesASupprimer, dateDeCreation } from './activationAuth';
 import en from './locales/en';
 
 describe('écran « Activer l’authentification »', () => {
@@ -15,7 +15,7 @@ describe('écran « Activer l’authentification »', () => {
 
   it('toutes les clés de refus existent', () => {
     for (const r of [{ error: 'activation_code_required' }, { error: 'activation_code_invalid' },
-      { error: 'auth_already_enabled' }, { error: 'password_too_short' }, { error: 'account_not_deletable' }, { error: 'x' }]) {
+      { error: 'auth_already_enabled' }, { error: 'password_too_short' }, { error: 'account_not_deletable' }, { error: 'activation_attempts_exceeded' }, { error: 'x' }]) {
       expect((en as Record<string, string>)[cleDuRefusActivation(r)!]).toBeTruthy();
     }
   });
@@ -43,5 +43,17 @@ describe('comptes à revoir avant l’activation', () => {
   it('affiche la date de création', () => {
     expect(dateDeCreation('2026-11-17T22:01:00Z')).toBe('2026-11-17');
     expect(dateDeCreation(null)).toBe('');
+  });
+});
+
+describe('demande de code', () => {
+  it('dit ce que le serveur a fait', () => {
+    expect(cleDeLaDemandeDeCode({ status: 'code_written_to_server_console' })).toBe('authActivation.codeSent');
+    expect(cleDeLaDemandeDeCode({ status: 'code_already_pending' })).toBe('authActivation.codePending');
+    expect(cleDeLaDemandeDeCode({ error: 'activation_code_too_soon' })).toBe('authActivation.codeTooSoon');
+    expect(cleDeLaDemandeDeCode(null)).toBe('authActivation.error');
+    for (const r of [{ status: 'x' }, { status: 'code_already_pending' }, { error: 'activation_code_too_soon' }]) {
+      expect((en as Record<string, string>)[cleDeLaDemandeDeCode(r)]).toBeTruthy();
+    }
   });
 });

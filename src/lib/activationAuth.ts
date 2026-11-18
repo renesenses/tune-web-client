@@ -23,6 +23,8 @@ export function cleDuRefusActivation(r: ReponseActivationAuth | null | undefined
       return 'authActivation.alreadyEnabled';
     case 'account_not_deletable':
       return 'authActivation.accountNotDeletable';
+    case 'activation_attempts_exceeded':
+      return 'authActivation.attemptsExceeded';
     default:
       return 'authActivation.error';
   }
@@ -55,4 +57,13 @@ export function dateDeCreation(iso: string | null | undefined): string {
   if (!iso) return '';
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(iso);
   return m ? m[1] : iso;
+}
+
+/** Le message qui suit une demande de code, selon la réponse du serveur. */
+export function cleDeLaDemandeDeCode(r: { status?: string; error?: string } | null | undefined): string {
+  if (r?.error === 'activation_code_too_soon') return 'authActivation.codeTooSoon';
+  if (r?.error === 'auth_already_enabled') return 'authActivation.alreadyEnabled';
+  if (r?.status === 'code_already_pending') return 'authActivation.codePending';
+  if (r?.status) return 'authActivation.codeSent';
+  return 'authActivation.error';
 }

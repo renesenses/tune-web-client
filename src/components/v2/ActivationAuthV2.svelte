@@ -23,6 +23,7 @@
   import {
     activationPossible,
     cleDuRefusActivation,
+    cleDeLaDemandeDeCode,
     comptesASupprimer,
     dateDeCreation,
   } from '../../lib/activationAuth';
@@ -33,6 +34,8 @@
   let confirmation = $state('');
   let code = $state('');
   let codeDemande = $state(false);
+  /** Ce que le serveur a répondu à la dernière demande de code. */
+  let messageCode = $state('authActivation.codeSent');
   let enCours = $state(false);
   let refus = $state<string | null>(null);
   /** Comptes cochés pour suppression (jamais l'administrateur). */
@@ -67,7 +70,8 @@
   async function demanderCode() {
     refus = null;
     try {
-      await requestAuthActivationCode();
+      const r = await requestAuthActivationCode();
+      messageCode = cleDeLaDemandeDeCode(r);
       codeDemande = true;
     } catch {
       refus = 'authActivation.error';
@@ -136,7 +140,7 @@
           </button>
         </div>
         {#if codeDemande}
-          <p class="hint" data-activation-code-envoye>{$t('authActivation.codeSent' as any)}</p>
+          <p class="hint" data-activation-code-envoye>{$t(messageCode as any)}</p>
         {/if}
         <label class="lbl" for="activation-auth-code">{$t('authActivation.codeLabel' as any)}</label>
         <input id="activation-auth-code" class="txt code" type="text" autocomplete="one-time-code"

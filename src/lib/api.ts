@@ -6151,7 +6151,7 @@ export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
 /** Demande au serveur d'écrire un code à usage unique dans son journal. */
 export function requestAuthActivationCode() {
   return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
-    `${BASE}/auth/activation/code`, { method: 'POST' }, (s) => s === 409,
+    `${BASE}/auth/activation/code`, { method: 'POST' }, (s) => s === 409 || s === 429,
   );
 }
 
@@ -6163,7 +6163,7 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
   return fetchJSON<ReponseActivationAuth>(
     `${BASE}/auth/activation`,
     { method: 'POST', body: JSON.stringify(corps) },
-    (s) => s === 400 || s === 403 || s === 409,
+    (s) => s === 400 || s === 403 || s === 409 || s === 429,
   );
 }
 
