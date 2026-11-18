@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "许可证待核实",
   "v2.labels.logosEnPause": "标志待处理：补全已暂停",
   "erreursServeur.generique": "服务器无法完成该请求。",
+  "erreursServeur.exclusive_channels_exceed_device": "此输出在独占模式下拒绝了该文件的 {source_channels} 个声道（Windows 只为它声明了 {device_channels} 个）：独占模式不会混合声道。要在此输出上播放，请在区域的“声道重新分配”插件中设置 {source_channels} → {device_channels} 网格。",
   "erreursServeur.details": "详情",
   "toast.erreursRepliees": "已折叠 {n} 条较早的错误",
   "erreursServeur.track_decode_failed": "无法解码该曲目。",

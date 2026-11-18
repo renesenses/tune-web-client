@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licență de verificat",
   "v2.labels.logosEnPause": "Logo-uri în așteptare: îmbogățirea este în pauză",
   "erreursServeur.generique": "Serverul nu a putut finaliza cererea.",
+  "erreursServeur.exclusive_channels_exceed_device": "Această ieșire a refuzat în modul exclusiv cele {source_channels} canale ale fișierului (Windows îi declară doar {device_channels}): modul exclusiv nu mixează canalele. Pentru a-l asculta pe această ieșire, setați o grilă {source_channels} → {device_channels} în pluginul „Realocarea canalelor” al zonei.",
   "erreursServeur.details": "Detalii",
   "toast.erreursRepliees": "{n} erori mai vechi restrânse",
   "erreursServeur.track_decode_failed": "Piesa nu a putut fi decodată.",

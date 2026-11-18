@@ -7020,6 +7020,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "a licenc ellenőrizendő",
   "v2.labels.logosEnPause": "Logók függőben: a gazdagítás szünetel",
   "erreursServeur.generique": "A szerver nem tudta teljesíteni a kérést.",
+  "erreursServeur.exclusive_channels_exceed_device": "Ez a kimenet kizárólagos módban elutasította a fájl {source_channels} csatornáját (a Windows csak {device_channels} csatornát jelez hozzá): a kizárólagos mód nem keveri a csatornákat. A lejátszáshoz ezen a kimeneten állítson be {source_channels} → {device_channels} rácsot a zóna „Csatorna-átrendelés” bővítményében.",
   "erreursServeur.details": "Részletek",
   "toast.erreursRepliees": "{n} régebbi hiba összecsukva",
   "erreursServeur.track_decode_failed": "A számot nem sikerült dekódolni.",

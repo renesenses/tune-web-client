@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licenza da verificare",
   "v2.labels.logosEnPause": "Loghi in attesa: l’arricchimento è in pausa",
   "erreursServeur.generique": "Il server non ha potuto completare la richiesta.",
+  "erreursServeur.exclusive_channels_exceed_device": "Questa uscita ha rifiutato in modalità esclusiva i {source_channels} canali del file (Windows gliene dichiara solo {device_channels}): la modalità esclusiva non mixa i canali. Per ascoltarlo su questa uscita, impostate una griglia {source_channels} → {device_channels} nel plugin «Riassegnazione dei canali» della zona.",
   "erreursServeur.details": "Dettagli",
   "toast.erreursRepliees": "{n} errori precedenti compressi",
   "erreursServeur.track_decode_failed": "Non è stato possibile decodificare il brano.",

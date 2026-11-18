@@ -6906,6 +6906,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "η άδεια χρήσης πρέπει να ελεγχθεί",
   "v2.labels.logosEnPause": "Λογότυπα σε αναμονή: ο εμπλουτισμός είναι σε παύση",
   "erreursServeur.generique": "Ο διακομιστής δεν μπόρεσε να ολοκληρώσει το αίτημα.",
+  "erreursServeur.exclusive_channels_exceed_device": "Αυτή η έξοδος απέρριψε σε αποκλειστική λειτουργία τα {source_channels} κανάλια του αρχείου (τα Windows δηλώνουν μόνο {device_channels} για αυτήν): η αποκλειστική λειτουργία δεν αναμειγνύει κανάλια. Για να το ακούσετε σε αυτή την έξοδο, ορίστε ένα πλέγμα {source_channels} → {device_channels} στο πρόσθετο «Ανακατανομή καναλιών» της ζώνης.",
   "erreursServeur.details": "Λεπτομέρειες",
   "toast.erreursRepliees": "{n} παλαιότερα σφάλματα συμπτύχθηκαν",
   "erreursServeur.track_decode_failed": "Το κομμάτι δεν μπόρεσε να αποκωδικοποιηθεί.",

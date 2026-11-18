@@ -6906,6 +6906,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "lisensen må kontrolleres",
   "v2.labels.logosEnPause": "Logoer venter: berikelsen er satt på pause",
   "erreursServeur.generique": "Serveren kunne ikke fullføre forespørselen.",
+  "erreursServeur.exclusive_channels_exceed_device": "Denne utgangen avviste filens {source_channels} kanaler i eksklusiv modus (Windows oppgir bare {device_channels} for den): eksklusiv modus mikser ikke kanaler. For å spille den på denne utgangen, sett opp et rutenett {source_channels} → {device_channels} i sonens «Kanalomlegging»-tillegg.",
   "erreursServeur.details": "Detaljer",
   "toast.erreursRepliees": "{n} eldre feil skjult",
   "erreursServeur.track_decode_failed": "Sporet kunne ikke dekodes.",

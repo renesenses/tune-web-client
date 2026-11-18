@@ -7081,6 +7081,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "license to be checked",
   "v2.labels.logosEnPause": "Logos pending: enrichment is paused",
   "erreursServeur.generique": "The server could not complete the request.",
+  "erreursServeur.exclusive_channels_exceed_device": "This output refused the file’s {source_channels} channels in exclusive mode (Windows declares only {device_channels} for it): exclusive mode does not mix channels. To play it on this output, set a {source_channels} → {device_channels} grid in the zone’s “Channel remapping” plugin.",
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} older errors collapsed",
   "erreursServeur.track_decode_failed": "The track could not be decoded.",

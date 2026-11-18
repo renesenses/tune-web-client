@@ -6901,6 +6901,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "lisans doğrulanmalı",
   "v2.labels.logosEnPause": "Logolar bekliyor: zenginleştirme duraklatıldı",
   "erreursServeur.generique": "Sunucu isteği işleyemedi.",
+  "erreursServeur.exclusive_channels_exceed_device": "Bu çıkış, dosyanın {source_channels} kanalını özel modda reddetti (Windows bu çıkış için yalnızca {device_channels} kanal bildiriyor): özel mod kanalları karıştırmaz. Bu çıkışta dinlemek için bölgenin “Kanal yeniden atama” eklentisinde {source_channels} → {device_channels} ızgarası ayarlayın.",
   "erreursServeur.details": "Ayrıntılar",
   "toast.erreursRepliees": "{n} eski hata daraltıldı",
   "erreursServeur.track_decode_failed": "Parçanın kodu çözülemedi.",

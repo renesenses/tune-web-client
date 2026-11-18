@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "Lizenz zu prüfen",
   "v2.labels.logosEnPause": "Logos ausstehend: die Anreicherung ist pausiert",
   "erreursServeur.generique": "Der Server konnte die Anfrage nicht ausführen.",
+  "erreursServeur.exclusive_channels_exceed_device": "Diese Ausgabe hat die {source_channels} Kanäle dieser Datei im Exklusivmodus abgelehnt (Windows meldet für sie nur {device_channels}): Der Exklusivmodus mischt keine Kanäle. Um sie auf dieser Ausgabe abzuspielen, richten Sie im Plugin „Kanalzuordnung“ der Zone ein Raster {source_channels} → {device_channels} ein.",
   "erreursServeur.details": "Details",
   "toast.erreursRepliees": "{n} ältere Fehler eingeklappt",
   "erreursServeur.track_decode_failed": "Der Titel konnte nicht dekodiert werden.",

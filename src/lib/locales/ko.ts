@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "라이선스 확인 필요",
   "v2.labels.logosEnPause": "로고 대기 중: 보강 작업이 일시 중지되었습니다",
   "erreursServeur.generique": "서버가 요청을 처리하지 못했습니다.",
+  "erreursServeur.exclusive_channels_exceed_device": "이 출력이 독점 모드에서 파일의 {source_channels}개 채널을 거부했습니다(Windows가 이 출력에 {device_channels}개만 선언함). 독점 모드는 채널을 믹스하지 않습니다. 이 출력에서 재생하려면 영역의 ‘채널 재할당’ 플러그인에서 {source_channels} → {device_channels} 그리드를 설정하세요.",
   "erreursServeur.details": "세부 정보",
   "toast.erreursRepliees": "이전 오류 {n}개 접힘",
   "erreursServeur.track_decode_failed": "트랙을 디코딩하지 못했습니다.",

@@ -7083,6 +7083,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licence à vérifier",
   "v2.labels.logosEnPause": "Logos en attente : l’enrichissement est en pause",
   "erreursServeur.generique": "Le serveur n'a pas pu traiter la demande.",
+  "erreursServeur.exclusive_channels_exceed_device": "Cette sortie a refusé en mode exclusif les {source_channels} voies de ce fichier (Windows ne lui en déclare que {device_channels}) : le mode exclusif ne mélange pas les voies. Pour l’écouter sur cette sortie, réglez une grille {source_channels} → {device_channels} dans le greffon « Réaffectation des canaux » de la zone.",
   "erreursServeur.details": "Détails",
   "toast.erreursRepliees": "{n} erreurs plus anciennes repliées",
   "erreursServeur.track_decode_failed": "La piste n'a pas pu être décodée.",

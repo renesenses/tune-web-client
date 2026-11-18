@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licencia por verificar",
   "v2.labels.logosEnPause": "Logotipos pendientes: el enriquecimiento está en pausa",
   "erreursServeur.generique": "El servidor no ha podido completar la solicitud.",
+  "erreursServeur.exclusive_channels_exceed_device": "Esta salida rechazó en modo exclusivo los {source_channels} canales de este archivo (Windows solo le declara {device_channels}): el modo exclusivo no mezcla canales. Para escucharlo en esta salida, configure una cuadrícula {source_channels} → {device_channels} en el complemento «Reasignación de canales» de la zona.",
   "erreursServeur.details": "Detalles",
   "toast.erreursRepliees": "{n} errores anteriores plegados",
   "erreursServeur.track_decode_failed": "No se ha podido decodificar la pista.",

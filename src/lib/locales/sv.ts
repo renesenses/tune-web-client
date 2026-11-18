@@ -7060,6 +7060,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licensen behöver kontrolleras",
   "v2.labels.logosEnPause": "Logotyper väntar: berikningen är pausad",
   "erreursServeur.generique": "Servern kunde inte slutföra begäran.",
+  "erreursServeur.exclusive_channels_exceed_device": "Den här utgången avvisade filens {source_channels} kanaler i exklusivt läge (Windows anger bara {device_channels} för den): exklusivt läge mixar inte kanaler. För att spela den på den här utgången, ställ in ett rutnät {source_channels} → {device_channels} i zonens tillägg ”Kanalomfördelning”.",
   "erreursServeur.details": "Detaljer",
   "toast.erreursRepliees": "{n} äldre fel hopfällda",
   "erreursServeur.track_decode_failed": "Spåret kunde inte avkodas.",

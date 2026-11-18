@@ -740,7 +740,8 @@ export interface Zone {
   wasapi_exclusive_period_ms?: number | null;
   /** Les valeurs proposées (10 / 20 / 50 / 100 ms). */
   wasapi_exclusive_period_choices_ms?: number[];
-  /** Vrai sur un serveur Windows : seul cas où le réglage a un effet. */
+  /** Vrai pour une zone locale d'un serveur Windows dont la sortie n'est
+   *  pas ASIO : seul cas où le réglage a un effet. */
   wasapi_exclusive_period_applicable?: boolean;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */

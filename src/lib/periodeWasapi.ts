@@ -14,7 +14,6 @@ export const CHOIX_PERIODE_WASAPI_MS = [10, 20, 50, 100] as const;
 
 type ZonePeriode = Pick<
   Zone,
-  | 'output_type'
   | 'exclusive_mode'
   | 'wasapi_exclusive_period_ms'
   | 'wasapi_exclusive_period_choices_ms'
@@ -22,12 +21,13 @@ type ZonePeriode = Pick<
 >;
 
 /**
- * Le sélecteur n'a de sens que pour une zone LOCALE d'un serveur Windows
- * qui connaît le réglage, et pas quand la zone est réglée en partagé.
+ * Le sélecteur suit le SERVEUR : `wasapi_exclusive_period_applicable` vaut
+ * vrai pour une zone locale d'un serveur Windows dont la sortie n'est pas
+ * ASIO. Il se tait aussi quand la zone est réglée en partagé, et sur un
+ * ancien serveur (champ absent).
  */
 export function periodeWasapiVisible(z: ZonePeriode): boolean {
   return (
-    z.output_type === 'local' &&
     z.wasapi_exclusive_period_applicable === true &&
     z.exclusive_mode !== false &&
     z.wasapi_exclusive_period_ms !== undefined

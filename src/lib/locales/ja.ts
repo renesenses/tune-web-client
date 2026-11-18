@@ -7061,6 +7061,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "ライセンス要確認",
   "v2.labels.logosEnPause": "ロゴは保留中：補完は一時停止中です",
   "erreursServeur.generique": "サーバーはリクエストを完了できませんでした。",
+  "erreursServeur.exclusive_channels_exceed_device": "この出力は排他モードでこのファイルの {source_channels} チャンネルを拒否しました（Windows はこの出力に {device_channels} チャンネルしか宣言していません）。排他モードではチャンネルをミックスしません。この出力で再生するには、ゾーンの「チャンネル再割り当て」プラグインで {source_channels} → {device_channels} のグリッドを設定してください。",
   "erreursServeur.details": "詳細",
   "toast.erreursRepliees": "古いエラー {n} 件を折りたたみました",
   "erreursServeur.track_decode_failed": "トラックをデコードできませんでした。",

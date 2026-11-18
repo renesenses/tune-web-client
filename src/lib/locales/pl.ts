@@ -6906,6 +6906,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "licencja do sprawdzenia",
   "v2.labels.logosEnPause": "Logo oczekują: wzbogacanie jest wstrzymane",
   "erreursServeur.generique": "Serwer nie mógł zrealizować żądania.",
+  "erreursServeur.exclusive_channels_exceed_device": "To wyjście odrzuciło w trybie wyłącznym {source_channels} kanałów tego pliku (Windows deklaruje dla niego tylko {device_channels}): tryb wyłączny nie miksuje kanałów. Aby odtworzyć go na tym wyjściu, ustaw siatkę {source_channels} → {device_channels} we wtyczce strefy „Przypisanie kanałów”.",
   "erreursServeur.details": "Szczegóły",
   "toast.erreursRepliees": "Zwinięto starsze błędy: {n}",
   "erreursServeur.track_decode_failed": "Nie udało się zdekodować utworu.",

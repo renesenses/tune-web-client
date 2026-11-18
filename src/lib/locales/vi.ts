@@ -6913,6 +6913,7 @@ export default {
   "v2.labels.logoLicenceDouteuse": "giấy phép cần kiểm tra",
   "v2.labels.logosEnPause": "Logo đang chờ: bổ sung thông tin đang tạm dừng",
   "erreursServeur.generique": "Máy chủ không thể hoàn tất yêu cầu.",
+  "erreursServeur.exclusive_channels_exceed_device": "Đầu ra này đã từ chối {source_channels} kênh của tệp ở chế độ độc quyền (Windows chỉ khai báo {device_channels} kênh cho nó): chế độ độc quyền không trộn kênh. Để nghe trên đầu ra này, hãy đặt lưới {source_channels} → {device_channels} trong plugin “Phân bổ lại kênh” của vùng.",
   "erreursServeur.details": "Chi tiết",
   "toast.erreursRepliees": "Đã thu gọn {n} lỗi cũ hơn",
   "erreursServeur.track_decode_failed": "Không thể giải mã bản nhạc.",
