@@ -759,16 +759,19 @@
     margin: 0 0 1.4vh;
     color: currentColor;
     opacity: 0.35;
-    transition: opacity 0.35s ease-out, transform 0.35s ease-out;
-    transform-origin: left center;
+    transition: opacity 0.35s ease-out, color 0.35s ease-out;
   }
   .tv-lyrics:not(.synced) .tv-line {
     opacity: 0.85;
     font-weight: 500;
   }
+  /* #3223 : la ligne active se distingue par la couleur, l'opacité et le
+     halo, SANS agrandissement. Un `transform: scale()` ne remet pas le texte
+     en page : une ligne longue débordait de `.tv-lyrics` et sa fin était
+     rognée. Changer `font-size` la remettrait en page, mais ferait sauter
+     le retour à la ligne et décalerait le centrage du défilement. */
   .tv-line.active {
     opacity: 1;
-    transform: scale(1.06);
     color: var(--tune-accent, #00bcd4);
     text-shadow: 0 0 30px rgba(0, 188, 212, 0.35);
   }
@@ -781,9 +784,6 @@
   @media (prefers-reduced-motion: reduce) {
     .tv-line {
       transition: none;
-    }
-    .tv-line.active {
-      transform: none;
     }
   }
 

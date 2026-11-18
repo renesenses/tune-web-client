@@ -352,6 +352,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1',
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
+      /* Activer l'authentification : compte administrateur et mot de passe.
+       * 'beginner' : c'est ce que les refus « depuis un autre appareil »
+       * renvoient faire. */
+      { id: 'authActivation', titleKey: 'authActivation.title', from: 'system', min: 'beginner', keywords: ['authentification', 'mot de passe', 'administrateur', 'connexion', 'sécurité', 'compte', 'authentication', 'password', 'admin', 'login', 'security'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
       /* Le Wi-Fi de l'appliance Tune OS relève du réseau de la MACHINE, pas de
        * la chaîne audio : il était rangé dans l'onglet Audio, où personne ne

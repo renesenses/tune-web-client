@@ -155,6 +155,7 @@
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
+  import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
@@ -6445,6 +6446,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
+
+            {:else if s.id === 'authActivation'}
+              <div data-reglage="activation-authentification"><ActivationAuthV2 /></div>
 
             {:else if s.id === 'accessFrom'}
               <p class="hint" data-reglage="adresses-acces">
