@@ -28,6 +28,7 @@
   import LienEntite from './LienEntite.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import PastilleTess from '../v2/tess/PastilleTess.svelte';
   import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
@@ -1775,6 +1776,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          poser le cadran à gauche d'elle. -->
     <div class="tb-pile">
     <div class="transport-right-top">
+    <!-- Lot TESS W1 : la pastille « TESS » (icône Wave T, maquettes A1 et A5),
+         absente tant que le serveur n'annonce pas TESS. -->
+    <PastilleTess />
     <!-- Sleep Timer — masquable par réglage (web#1861) -->
     {#if minuteurVisible}
     <div class="sleep-timer-wrapper">

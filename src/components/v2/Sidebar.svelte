@@ -10,6 +10,7 @@
    */
   import type { View } from '../../lib/stores/navigation';
   import IconeReglages from './IconeReglages.svelte';
+  import { ICONE_TESS } from '../../lib/tess';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -201,6 +202,10 @@
   ];
 
   export const STUDIO: Item[] = [
+    // TESS (lot W1, maquette A1) — en tête de Studio, icône « Wave T » (A5).
+    // N'apparaît que si le serveur annonce TESS (`stores/tess`) ; il remplace
+    // alors les entrées Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk.
+    { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
@@ -306,6 +311,7 @@
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
+  import { capaciteTess, sonderTess, entreesAvecTess } from '../../lib/stores/tess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -349,9 +355,12 @@
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
   const studioDisponibles = $derived(
-    entreesAvecCrosstalk(
-      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-      $presenceCrosstalk,
+    entreesAvecTess(
+      entreesAvecCrosstalk(
+        entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+        $presenceCrosstalk,
+      ),
+      $capaciteTess,
     ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
@@ -372,6 +381,8 @@
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
   $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
+  // Lot TESS W1 : le serveur annonce-t-il TESS ? (`GET /zones/{id}/tess`, 404 = non).
+  $effect(() => { const z = $zoneCouranteCd; if (z != null && get(capaciteTess) !== 'oui') void sonderTess(z); });
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte

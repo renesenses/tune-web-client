@@ -90,6 +90,8 @@ const VUES: Record<View, boolean> = {
   crossfeedpro: true,
   // web#2580 — Crosstalk : l'écran dit lui-même quand le greffon est absent.
   crosstalk: true,
+  // Lot TESS W1 : l'écran dit lui-même quand le serveur n'a pas TESS.
+  tess: true,
   roomcorrection: true,
   // tune-server-rust#6044 — l'écran dit lui-même quand le serveur n'a pas
   // le greffon : l'adresse reste atteignable.
