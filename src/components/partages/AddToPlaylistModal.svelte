@@ -1,7 +1,8 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
-  import type { Track, StreamingTrackInfo } from '../../lib/types';
+  import type { Track } from '../../lib/types';
+  import { corpsAjoutPlaylist } from '../../lib/playlistDepuisPistes';
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
@@ -163,36 +164,8 @@
    */
   const lot = $derived(tracks?.length ? tracks : track ? [track] : []);
 
-  function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
-    const locales = lot.filter(estPisteLocale);
-    const distantes = lot.filter((x) => !estPisteLocale(x));
-    return {
-      trackIds: locales.map((x) => x.id!),
-      // Streaming tracks — send as streaming_tracks (#4889), dans l'ordre reçu.
-      streamingTracks: distantes.length ? distantes.map(versStreaming) : undefined,
-    };
-  }
-
-  function versStreaming(track: Track): StreamingTrackInfo {
-    const st: StreamingTrackInfo = {
-      source: track.source!,
-      source_id: track.source_id!,
-      title: track.title,
-      artist_name: track.artist_name,
-      album_title: track.album_title,
-      duration_ms: track.duration_ms,
-      format: track.format,
-      sample_rate: track.sample_rate,
-      bit_depth: track.bit_depth,
-      channels: track.channels,
-      cover_path: track.cover_path,
-      // #4889 — l'album CHEZ LE SERVICE, pour rouvrir l'album depuis la
-      // playlist. Une piste de service porte son id d'album dans `album_id`
-      // (chaîne à l'exécution) ou dans `album_id_service` (Historique).
-      album_id: track.album_id_service ?? (track.album_id != null ? String(track.album_id) : null),
-    };
-    return st;
-  }
+  /** Le corps partagé (`lib/playlistDepuisPistes`, sorti d'ici pour web#3267). */
+  const buildAddArgs = () => corpsAjoutPlaylist(lot);
 
   /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
   async function ecrire(ou: Ou, cle: string) {
