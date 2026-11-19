@@ -12902,3 +12902,65 @@ export function convertisseurSupprimerLien(
 ): Promise<{ lien_id: string; supprime: boolean; playlists_touchees: boolean }> {
   return fetchJSON(`${CONVERTISSEUR}/lien/supprimer`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
 }
+
+import { estReponseTess, estRefusTess } from './tess';
+
+// ── TESS (lot W1) ───────────────────────────────────────────────────────────
+// Routes du contrat T01 (`docs/tess/contrat.md` § 7), servies par T08.
+// Un serveur sans TESS répond 404 : l'écran reste caché, les anciens écrans
+// servent. Les refus (400, 402, 409) portent un `refusal` que l'écran affiche
+// lui-même : ni bandeau ni exception.
+
+/** Résultat d'un appel TESS : la zone, un refus du contrat, ou « pas de TESS ». */
+export type ResultatTess =
+  | { ok: true; reponse: import('./tess').ReponseTessZone }
+  | { ok: false; refus: import('./tess').RefusTess }
+  | { ok: false; absent: true };
+
+async function appelTess(chemin: string, options?: RequestInit): Promise<ResultatTess> {
+  let statut = 200;
+  let corps: unknown;
+  try {
+    corps = await fetchJSON<unknown>(`${BASE}${chemin}`, options, (s) => {
+      statut = s;
+      return s === 400 || s === 402 || s === 404 || s === 405 || s === 409;
+    }, true);
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { ok: false, absent: true };
+    throw e;
+  }
+  if (statut === 404 || statut === 405) return { ok: false, absent: true };
+  if (estRefusTess(corps)) return { ok: false, refus: corps };
+  if (estReponseTess(corps)) return { ok: true, reponse: corps };
+  // Un 2xx qui n'a pas la forme du contrat : ce n'est pas TESS.
+  return { ok: false, absent: true };
+}
+
+/** `GET /zones/{id}/tess` — chaîne, chemin du signal résolu et catalogue. */
+export function getTessZone(zoneId: number): Promise<ResultatTess> {
+  return appelTess(`/zones/${zoneId}/tess`);
+}
+
+/** `PUT /zones/{id}/tess` — remplace la chaîne de la zone (lue strictement). */
+export function putTessZone(zoneId: number, chaine: import('./tess').ChaineTess): Promise<ResultatTess> {
+  return appelTess(`/zones/${zoneId}/tess`, { method: 'PUT', body: JSON.stringify(chaine) });
+}
+
+/**
+ * `GET /tess/presets` — préréglages de chaîne, communs au serveur (contrat
+ * § 5, routes de T17). `null` quand le serveur ne les sert pas encore : le
+ * sélecteur ne s'affiche pas.
+ */
+export async function getTessPresets(): Promise<import('./tess').PreReglagesTess | null> {
+  let statut = 200;
+  try {
+    const r = await fetchJSON<any>(`${BASE}/tess/presets`, undefined, (s) => {
+      statut = s;
+      return s === 404 || s === 405;
+    }, true);
+    if (statut >= 300) return null;
+    return r && Array.isArray(r.presets) ? r : null;
+  } catch {
+    return null;
+  }
+}

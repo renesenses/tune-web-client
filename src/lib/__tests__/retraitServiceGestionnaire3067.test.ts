@@ -167,6 +167,10 @@ describe('(1) #3067 — Gestionnaire de playlists : retirer un titre d’une pla
     const e = await entree();
     expect(e, 'entrée absente').toBeTruthy();
     e!.click();
+    // web#3255 — l'entrée demande confirmation : rien ne part avant le « oui ».
+    await souffler();
+    expect(retraits(), 'retrait parti sans confirmation').toEqual([]);
+    expect(await confirmerLaBoite()).toContain('Lovely Day');
     await souffler();
     const r = retraits();
     expect(r.length).toBe(1);

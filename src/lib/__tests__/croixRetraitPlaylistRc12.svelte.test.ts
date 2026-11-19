@@ -19,6 +19,8 @@ import { entreesMenuPiste } from '../menuPiste';
 import { entreeParLibelle } from './aides/menuFiche';
 import lFr from '../locales/fr';
 import { confirmerLaBoite } from './aides/confirmerLaBoite';
+import { get } from 'svelte/store';
+import { dialogs } from '../stores/dialogs';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -180,6 +182,11 @@ describe('rc12 — « Supprimer de cette playlist » dans le menu « … » de l
     const e = await entreeSupprimer(2);
     expect(e, 'entrée « Supprimer de cette playlist » absente').toBeTruthy();
     e!.click();
+    // web#3255 — l'entrée demande confirmation : rien ne part avant le « oui ».
+    await vi.waitFor(() => { if (get(dialogs).length === 0) throw new Error('aucune confirmation demandée'); });
+    for (let k = 0; k < 8; k++) await new Promise((r) => setTimeout(r, 0));
+    expect(requetes.some((r) => r.method === 'POST' && r.url.includes('/tracks/remove')), 'retrait parti sans confirmation').toBe(false);
+    expect(await confirmerLaBoite()).toContain('Nightswimming');
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.endsWith('/playlists/12/tracks/remove')), 'le retrait');
     expect(requetes.find((r) => r.url.endsWith('/tracks/remove'))!.body).toEqual({ entry_id: 346 });
     await attendreQue(() => nb('Nightswimming') === 1, 'la ligne retirée');
@@ -190,6 +197,7 @@ describe('rc12 — « Supprimer de cette playlist » dans le menu « … » de l
     const e = await entreeSupprimer(0);
     expect(e).toBeTruthy();
     e!.click();
+    expect(await confirmerLaBoite()).toContain('Lovely Day');
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.includes('/tracks/remove')), 'le retrait');
     const w = requetes.find((r) => r.method === 'POST')!;
     expect(w.url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/11\/tracks\/remove$/);
