@@ -221,6 +221,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'classicalTags', titleKey: 'classicalTags.title', from: 'library', min: 'expert',
         keywords: ['classique', 'balises', 'tags', 'chef', 'orchestre', 'ensemble', 'chœur', 'choeur', 'œuvre', 'mouvement', 'band', 'choir', 'chorus', 'conductor', 'work', 'movement', 'classical'] },
+      /** tune-server-rust#9158 (Rob) — les balises personnelles des
+       * fichiers (TXXX libres, clés Vorbis, atomes MP4 libres) deviennent
+       * des tags Tune au scan. Expert, comme les balises du classique. */
+      { id: 'personalTags', titleKey: 'personalTags.title', from: 'library', min: 'expert',
+        keywords: ['balises', 'personnelles', 'tags', 'étiquettes', 'txxx', 'vorbis', 'mp4', 'mood', 'humeur', 'personal', 'custom', 'scan'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },

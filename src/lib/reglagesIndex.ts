@@ -178,6 +178,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'rangement-ecrire-tags', section: 'ingest', labelKey: 'settings.writeTags', descKey: 'settings.writeTagsHint', techniques: ['tags'] },
   // tune-server-rust#8325 / ESL63P — Bibliothèque › Balises du classique.
   { id: 'balises-classique', section: 'classicalTags', labelKey: 'classicalTags.title', descKey: 'classicalTags.hint', composant: 'BalisesClassiqueV2.svelte', techniques: ['BAND', 'CHOIR', 'CHORUS', 'CONDUCTOR', 'WORK', 'MOVEMENTNAME', 'TXXX'] },
+  { id: 'balises-perso', section: 'personalTags', labelKey: 'personalTags.title', descKey: 'personalTags.hint', composant: 'BalisesPersoV2.svelte', techniques: ['TXXX', 'VORBIS', 'MP4', 'MOOD'] },
   { id: 'vue-oxygen', section: 'oxygen', labelKey: 'v2.lbl.oxygenView', descKey: 'settings.facetsNavHint', techniques: ['Oxygen'] },
   { id: 'valeurs-facettes', section: 'oxygen', labelKey: 'oxygen.facetValues', descKey: 'settings.facetValuesHint', techniques: ['Oxygen'] },
 

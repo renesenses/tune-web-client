@@ -7,6 +7,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
+  import { annulerRestaurationDefilement, memoireEcran } from '../../lib/memoireNavigation';
   // 🔴 PLUS d'import de `get` : ce fichier n'a plus AUCUN lecteur de magasin
   // par `get()`. Les deux derniers étaient les effets `pendingLibraryArtist`
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
@@ -2920,6 +2921,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   /** Après un tri ou une recherche, la liste repart de sa tête. */
   function remonterEnTeteDesPistes() {
+    // web#3275 — l'écran remet sa liste en tête : la reprise d'un Précédent
+    // en cours (mémoire par entrée) ne doit pas la contredire.
+    annulerRestaurationDefilement();
     const avant = elPistes?.querySelector<HTMLElement>('[data-espace="avant"]');
     const sc = avant ? parentDefilant(avant) : null;
     if (sc) sc.scrollTop = 0;
@@ -3737,6 +3741,52 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   $effect(() => {
     if (grilleLocaleVide) untrack(() => void lireCauseVide());
     else causeVide = null;
+  });
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — L'ÉCRAN RETROUVÉ PAR PRÉCÉDENT / SUIVANT.
+   *
+   * Quitter la Bibliothèque la DÉTRUIT : onglet, recherche, filtres et facette
+   * ouverte sont des `$state` locaux. La coquille retient ce qui suit au moment
+   * où l'on quitte l'entrée (`lib/memoireNavigation`) et le rend ici, au
+   * remontage par l'historique seulement — une arrivée par la barre latérale
+   * repart de la racine (#3843). Le tri et l'affichage sont déjà retenus
+   * d'une visite à l'autre (`lireChoix`) : ils voyagent quand même, l'entrée
+   * dit ce que l'écran montrait À CE MOMENT.
+   *
+   * Posé à la FIN du script, de façon synchrone : avant tout effet de montage.
+   * La facette ouverte, elle, est remise à nul par le premier passage de
+   * l'effet `void tab; void q` — elle est rendue par un effet déclaré APRÈS.
+   */
+  interface MemoireBibliotheque {
+    tab: Tab; q: string; sortKey: SortKey; navMode: NavMode; modeAnnee: ModeAnnee; ordreAnnee: 'asc' | 'desc';
+    fQuality: string[]; fRate: number[]; fFormat: string[]; fDepth: number[];
+    fDrMin: number | null; fDrMax: number | null; fCompilation: boolean | null;
+    fIncomplets: boolean; fFavoris: boolean; fInstrument: string[]; fYear: number | null;
+    periode: Periode; paysChoisi: PaysDeLaBibliotheque | null; sourcePays: SourcePays;
+    facetteOuverte: string | null;
+  }
+  const memoireBibliotheque = untrack(() => depot) ? null : memoireEcran<MemoireBibliotheque>('library', () => $state.snapshot({
+    tab: tabChoisi, q, sortKey, navMode, modeAnnee, ordreAnnee,
+    fQuality, fRate, fFormat, fDepth, fDrMin, fDrMax, fCompilation,
+    fIncomplets, fFavoris, fInstrument, fYear, periode, paysChoisi, sourcePays,
+    facetteOuverte,
+  }) as MemoireBibliotheque);
+  $effect(() => memoireBibliotheque?.arreter);
+  const repriseBibliotheque = memoireBibliotheque?.reprise ?? null;
+  if (repriseBibliotheque) {
+    const r = repriseBibliotheque;
+    tabChoisi = r.tab; q = r.q; qPistes = r.q; sortKey = r.sortKey; navMode = r.navMode;
+    modeAnnee = r.modeAnnee; dernierMode = r.modeAnnee; ordreAnnee = r.ordreAnnee;
+    fQuality = r.fQuality; fRate = r.fRate; fFormat = r.fFormat; fDepth = r.fDepth;
+    fDrMin = r.fDrMin; fDrMax = r.fDrMax; fCompilation = r.fCompilation;
+    fIncomplets = r.fIncomplets; fFavoris = r.fFavoris; fInstrument = r.fInstrument;
+    fYear = r.fYear; periode = r.periode; paysChoisi = r.paysChoisi; sourcePays = r.sourcePays;
+  }
+  $effect(() => {
+    // Un seul passage : après le premier de `void tab; void q`, qui vide la facette.
+    const f = repriseBibliotheque?.facetteOuverte ?? null;
+    if (f) untrack(() => { facetteOuverte = f; });
   });
 </script>
 
