@@ -30,6 +30,7 @@
   import IndicateurLecture from '../v2/IndicateurLecture.svelte';
   import ChampRecherche from '../v2/ChampRecherche.svelte';
   import { filtrerParTexte } from '../../lib/filtreTexte';
+  import { attendreLesComptes } from '../../lib/comptesDifferes';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -52,6 +53,9 @@
 
   // Navigation state
   let roots = $state<BrowseRootEntry[]>([]);
+  /** tune-server-rust#9116 : comptes des emplacements pas encore connus. */
+  let comptesRacinesEnAttente = $state(false);
+  let demandeRacines = 0;
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
   /**
@@ -123,6 +127,8 @@
     try {
       const res = await api.getBrowseRoots();
       roots = res.roots;
+      comptesRacinesEnAttente = !!res.comptes_en_attente;
+      if (res.comptes_en_attente) completerLesComptesDesRacines();
     } catch (e) {
       console.error('Browse roots error:', e);
     }
@@ -247,6 +253,7 @@
       const res = await api.browseDirectory(path);
       if (mienne !== demande) return;
       browseResult = res;
+      if (res.comptes_en_attente) completerLesComptes(path, mienne);
     } catch (e) {
       if (mienne !== demande) return;
       console.error('Browse directory error:', e);
@@ -254,6 +261,30 @@
       notifications.error($tr('browse.openError'));
     }
     loading = false;
+  }
+
+  /**
+   * tune-server-rust#9116 — les comptes arrivent APRÈS les dossiers : la liste
+   * est déjà affichée (et navigable) ; seuls les nombres se posent ensuite,
+   * si l'écran montre encore ce dossier.
+   */
+  function completerLesComptes(path: string, mienne: number) {
+    void attendreLesComptes(() => api.browseDirectory(path), () => mienne === demande).then((r) => {
+      if (!r || mienne !== demande || !browseResult) return;
+      browseResult = { ...browseResult, directories: r.directories, comptes_en_attente: false };
+    });
+  }
+
+  // Quitter l'écran arrête les relances de comptes en cours.
+  $effect(() => () => { demande++; demandeRacines++; });
+
+  function completerLesComptesDesRacines() {
+    const mienne = ++demandeRacines;
+    void attendreLesComptes(() => api.getBrowseRoots(), () => mienne === demandeRacines).then((r) => {
+      if (!r || mienne !== demandeRacines) return;
+      roots = r.roots;
+      comptesRacinesEnAttente = false;
+    });
   }
 
   function goToRoots() {
@@ -523,7 +554,7 @@
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
               <span class="dir-name">{dir.name}</span>
-              <span class="dir-count">{dir.track_count}</span>
+              <span class="dir-count" data-compte-en-attente={browseResult.comptes_en_attente || undefined}>{browseResult.comptes_en_attente ? '' : dir.track_count}</span>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
           {/each}
@@ -616,7 +647,7 @@
       <div class="roots-list">
         {#each racinesTrouvees as root}
           {@const missing = root.exists === false}
-          {@const empty = !missing && root.track_count === 0}
+          {@const empty = !missing && !comptesRacinesEnAttente && root.track_count === 0}
           <button class="root-item" class:root-warn={missing || empty} onclick={() => navigateTo(root.path, missing)}>
             <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
               <path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
@@ -630,7 +661,7 @@
                 <span class="root-warning">{$tr('browse.rootEmpty')}</span>
               {/if}
             </div>
-            <span class="root-count">{root.track_count} {$tr('common.tracks')}</span>
+            <span class="root-count" data-compte-en-attente={comptesRacinesEnAttente || undefined}>{comptesRacinesEnAttente ? '' : `${root.track_count} ${$tr('common.tracks')}`}</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
         {/each}
