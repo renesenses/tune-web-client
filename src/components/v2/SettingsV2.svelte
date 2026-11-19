@@ -42,7 +42,8 @@
     lireApercu, compterReglages, compterZones, rienNeChange, reglagesQuiChangent,
     cleStatutZone, remplir, type ApercuRestauration,
   } from '../../lib/apercuRestauration';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
@@ -4907,6 +4908,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } finally {
       installationEntreeAudio = false;
     }
+  }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉGLAGES RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * Onglet, écran secondaire et zone dépliée sont des `$state` locaux, perdus
+   * quand on quitte l'écran. Retenus à la sortie de l'entrée
+   * (`lib/memoireNavigation`), rendus au remontage par l'historique seulement,
+   * avant les effets de montage. Le défilement suit par la coquille.
+   */
+  interface MemoireReglages {
+    tabId: V2SettingsTabId; sousEcran: string | null; ongletRetour: V2SettingsTabId | null; zoneOuverte: string | null;
+  }
+  const memoireReglages = memoireEcran<MemoireReglages>('settings', () => ({
+    tabId: String(tabId) as V2SettingsTabId,
+    sousEcran: sousEcran == null ? null : String(sousEcran),
+    ongletRetour: ongletRetour == null ? null : (String(ongletRetour) as V2SettingsTabId),
+    zoneOuverte: zoneOuverte == null ? null : String(zoneOuverte),
+  }));
+  $effect(() => memoireReglages.arreter);
+  if (memoireReglages.reprise && !untrack(() => $v2SettingsTarget)) {
+    const r = memoireReglages.reprise;
+    tabId = r.tabId; sousEcran = r.sousEcran; ongletRetour = r.ongletRetour; zoneOuverte = r.zoneOuverte;
   }
 </script>
 
