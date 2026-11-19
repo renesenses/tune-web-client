@@ -1229,7 +1229,7 @@
   .v2-sidebar{
     display:flex; flex-direction:column; height:100%;
     background:var(--v2-bg); border-right:1px solid var(--v2-line);
-    padding:22px 16px 18px; font-family:var(--v2-sans); color:var(--v2-txt);
+    padding:22px 16px 18px; font-family:var(--v2-police-texte); color:var(--v2-txt);
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
@@ -1324,14 +1324,14 @@
   a.logo{text-decoration:none; transition:opacity .15s}
   a.logo:hover{opacity:.7}
   .brand .name{font-weight:700; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1}
-  .brand .sub{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  .brand .sub{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
-  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
-  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
+  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
-    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono);
+    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
@@ -1346,7 +1346,7 @@
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
-    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint);
+    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
   .analyse:hover{color:var(--v2-txt)}
   .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -1365,7 +1365,7 @@
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
+  .grp-label{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
   /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
@@ -1437,7 +1437,7 @@
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
   .taches{display:block; max-width:100%; margin-top:3px; padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .taches:hover{color:var(--v2-txt)}
   .taches:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 </style>
