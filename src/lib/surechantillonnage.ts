@@ -12,8 +12,11 @@
  * porte les routes, la forme du réglage et les quelques décisions d'affichage
  * (quels filtres proposer, quel message de contrainte, quel libellé).
  *
- * Un changement de réglage ne s'applique qu'à la PISTE SUIVANTE : le serveur
- * le dit (`applies_at: "next_track"`), l'écran aussi.
+ * Décision de Bertrand du 19/11/2026 : un changement de réglage s'applique
+ * TOUT DE SUITE. Le serveur relance le flux à la position en cours (environ
+ * une seconde de silence) et le dit (`applies_at: "now"`, `restart: true`) ;
+ * `"next_track"` seulement quand rien ne peut agir avant (lecture en pause).
+ * Sa réserve de 3 dB est rendue par le volume de Tune (chemin du signal).
  */
 import { BASE, fetchJSON } from './api';
 
@@ -76,7 +79,10 @@ export interface EtatSurechantillonnage {
   settings: ReglageSurechantillonnage;
   constraint: Contrainte | null;
   admitted_filters: string[] | null;
-  applies_at: 'next_track';
+  /** Quand le réglage atteint le son (19/11/2026 : tout de suite). */
+  applies_at: 'now' | 'next_track';
+  /** Le flux qui jouait est relancé à la même position. Absent avant le 19/11. */
+  restart?: boolean;
 }
 
 const RACINE = () => `${BASE}/upsampler`;
@@ -155,6 +161,17 @@ export function cleContrainte(c: Contrainte | null): string | null {
     case 'strict_bitperfect': return 'upsampling.constraint.strictBitPerfect';
     default: return null;
   }
+}
+
+/**
+ * Clef i18n de la confirmation après un enregistrement : « appliqué » tout de
+ * suite (avec la reprise à la même position quand le flux est relancé), ou
+ * « au prochain flux » quand le serveur le dit. Un serveur d'avant le 19/11
+ * (`next_track` toujours) garde son message.
+ */
+export function clePortee(etat: Pick<EtatSurechantillonnage, 'applies_at' | 'restart'>): string {
+  if (etat.applies_at !== 'now') return 'upsampling.nextTrack';
+  return etat.restart ? 'upsampling.appliedRestart' : 'upsampling.applied';
 }
 
 /** Le verdict de la machine, résumé : filtres admis sur filtres mesurés. */

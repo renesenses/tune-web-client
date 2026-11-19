@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   filtresProposes, filtreNonAdmis, cleContrainte, libelleReserve, reserveMaxDb, resumeMachine,
-  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre,
+  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre, clePortee,
   type FiltreSurechantillonnage,
 } from '../surechantillonnage';
 import fr from '../locales/fr';
@@ -100,6 +100,30 @@ describe('routes', () => {
   });
 });
 
+/**
+ * Décision de Bertrand du 19/11/2026 — un réglage s'applique tout de suite :
+ * l'écran confirme « appliqué » d'après la réponse du serveur.
+ */
+describe('portée du réglage (19/11/2026)', () => {
+  it('« appliqué » tout de suite, avec la reprise quand le flux est relancé', () => {
+    expect(clePortee({ applies_at: 'now', restart: true })).toBe('upsampling.appliedRestart');
+    expect(clePortee({ applies_at: 'now', restart: false })).toBe('upsampling.applied');
+    expect(clePortee({ applies_at: 'now' })).toBe('upsampling.applied');
+  });
+
+  it('« au prochain flux » seulement quand le serveur le dit', () => {
+    expect(clePortee({ applies_at: 'next_track', restart: false })).toBe('upsampling.nextTrack');
+  });
+
+  it('les trois messages existent dans les seize langues', () => {
+    for (const l of ONZE_LANGUES) {
+      for (const cle of ['upsampling.applied', 'upsampling.appliedRestart', 'upsampling.appliesNow', 'upsampling.nextTrack']) {
+        expect(dictionnaire(l)[cle], `${l} ${cle}`).toBeTruthy();
+      }
+    }
+  });
+});
+
 describe('câblage de l’écran', () => {
   const lire = (f: string) => readFileSync(join(process.cwd(), f), 'utf8');
   const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
@@ -114,16 +138,23 @@ describe('câblage de l’écran', () => {
     expect(plugins).toMatch(/DSP_PURE = new Set\(\[[^\]]*'upsampler'/);
   });
 
-  it('l’écran dit le bit-perfect perdu, PURE, et la piste suivante', () => {
+  it('l’écran dit le bit-perfect perdu, PURE, et que le réglage s’applique tout de suite', () => {
     const ecran = lire('src/components/v2/SurechantillonnageV2.svelte');
     expect(ecran).toContain("$t('upsampling.bitPerfect'");
-    expect(ecran).toContain("$t('upsampling.nextTrack'");
+    // 19/11/2026 — plus de « piste suivante » sous le bouton : tout de suite.
+    expect(ecran).toContain("$t('upsampling.appliesNow'");
+    expect(ecran).not.toContain("<span class=\"hint\">{$t('upsampling.nextTrack'");
+    expect(ecran).toContain('clePortee(etat)');
     expect(fr['upsampling.bitPerfect']).toMatch(/bit-perfect/);
     expect(fr['upsampling.bitPerfect']).toMatch(/PURE/);
-    expect(fr['upsampling.nextTrack']).toMatch(/piste suivante/);
+    expect(fr['upsampling.appliesNow']).toMatch(/tout de suite/);
+    expect(fr['upsampling.appliesNow']).toMatch(/même position/);
+    expect(fr['upsampling.nextTrack']).not.toMatch(/ne change jamais pendant une piste/);
     // Décision du 07/11 : réserve de 3 dB + limiteur, pas la réserve L1 complète.
     expect(fr['upsampling.lead']).toMatch(/3 dB/);
     expect(fr['upsampling.lead']).toMatch(/limiteur/);
+    // 19/11/2026 — et ces 3 dB sont rendus par le volume.
+    expect(fr['upsampling.lead']).toMatch(/volume/);
   });
 
   it('chaque clef de l’écran existe dans les quinze langues', () => {

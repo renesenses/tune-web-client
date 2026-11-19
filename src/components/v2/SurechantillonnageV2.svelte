@@ -9,8 +9,9 @@
    * est toujours suivie (44,1 → 352,8 ; 48 → 384) et le dither reste le TPDF
    * de la sortie : l'écran le dit, il ne le règle pas.
    *
-   * Le serveur décide de tout ce qui touche au son ; un changement ne
-   * s'applique qu'à la piste suivante, jamais pendant une piste.
+   * Le serveur décide de tout ce qui touche au son ; depuis le 19/11/2026,
+   * un changement s'applique tout de suite (le flux reprend à la même
+   * position), et l'écran le confirme d'après la réponse (`clePortee`).
    */
   import { t, locale } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -20,7 +21,7 @@
     type CatalogueSurechantillonnage, type EtatSurechantillonnage, type ReglageSurechantillonnage,
     getCatalogueSurechantillonnage, getSurechantillonnageZone, setSurechantillonnageZone,
     lancerLeTestDeLaMachine, reglageParDefaut, filtresProposes, filtreNonAdmis, reserveMaxDb,
-    libelleReserve, cleFiltre, cleContrainte, resumeMachine, RAPPORTS,
+    libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, RAPPORTS,
   } from '../../lib/surechantillonnage';
   import '../../styles/tune-v2.css';
 
@@ -59,7 +60,9 @@
       reglage = { ...etat.settings };
       erreur = null;
       chargerLeCatalogue();
-      notifications.info($t('upsampling.nextTrack' as any));
+      const cle = clePortee(etat);
+      if (cle === 'upsampling.nextTrack') notifications.info($t(cle as any));
+      else notifications.success($t(cle as any));
     } catch (e: any) {
       erreur = e?.message ?? String(e);
     } finally { occupe = false; }
@@ -157,7 +160,7 @@
 
         <div class="actions">
           <button class="go" disabled={occupe || aJour} onclick={enregistrer}>{occupe ? '…' : $t('upsampling.save' as any)}</button>
-          <span class="hint">{$t('upsampling.nextTrack' as any)}</span>
+          <span class="hint">{$t('upsampling.appliesNow' as any)}</span>
         </div>
       </div>
     {/if}
