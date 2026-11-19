@@ -1691,6 +1691,8 @@ export default {
   "settings.crossfadeHint": "Tranziție (crossfade) între piese. Debifează pentru redare fără pauze (fără liniște sau estompare).",
   "settings.loopByDefault": "Redă în buclă implicit",
   "settings.loopByDefaultHint": "Reia fiecare piesă în loc să se oprească la final.",
+  "settings.retraitEcouterPlusTard": "Elimină din „Ascultă mai târziu” după o ascultare completă",
+  "settings.retraitEcouterPlusTardHint": "Un album salvat în „Ascultă mai târziu” iese singur după ce toate piesele au fost ascultate (90% sau până la capăt) în aceeași redare. Dezactivat: rămâne până îl eliminați.",
   "settings.controlesEcranVerrouille": "Comenzi pe ecranul de blocare",
   "settings.controlesEcranVerrouilleHint": "Redare, pauză, anterior și următor de pe ecranul de blocare controlează serverul. Vizibile cât timp o zonă de browser redă în această filă.",
   "settings.voiceCommand": "Comandă vocală",

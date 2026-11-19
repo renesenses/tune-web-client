@@ -1781,6 +1781,8 @@ export default {
   "settings.crossfadeHint": "Áttűnés a számok között. Vedd ki a pipát a gapless lejátszáshoz (nincs csend és nincs elhalkulás).",
   "settings.loopByDefault": "Alapból ismétlés",
   "settings.loopByDefaultHint": "Minden számot újraindít ahelyett, hogy a végén leállna.",
+  "settings.retraitEcouterPlusTard": "Eltávolítás a „Meghallgatás később” listából teljes meghallgatás után",
+  "settings.retraitEcouterPlusTardHint": "A „Meghallgatás később” listába tett album magától kikerül, ha minden számát meghallgatta (90%-ig vagy végig) ugyanabban a lejátszásban. Kikapcsolva: marad, amíg el nem távolítja.",
   "settings.controlesEcranVerrouille": "Vezérlés a lezárási képernyőn",
   "settings.controlesEcranVerrouilleHint": "A lezárási képernyő lejátszás, szünet, előző és következő gombjai a szervert vezérlik. Akkor látszanak, ha ebben a lapon böngészőzóna szól.",
   "settings.voiceCommand": "Hangparancs",

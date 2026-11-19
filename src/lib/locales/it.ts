@@ -1685,6 +1685,8 @@ export default {
   "settings.crossfadeHint": "Dissolvenza incrociata tra le tracce. Deseleziona per la riproduzione gapless (nessun silenzio o dissolvenza).",
   "settings.loopByDefault": "Riproduci in loop per impostazione predefinita",
   "settings.loopByDefaultHint": "Riavvia ogni traccia invece di fermarsi alla fine.",
+  "settings.retraitEcouterPlusTard": "Rimuovi da «Ascolta più tardi» dopo un ascolto completo",
+  "settings.retraitEcouterPlusTardHint": "Un album salvato in «Ascolta più tardi» esce da solo quando tutte le sue tracce sono state ascoltate (90% o fino alla fine) nella stessa riproduzione. Disattivato: resta finché non lo rimuovi.",
   "settings.controlesEcranVerrouille": "Controlli della schermata di blocco",
   "settings.controlesEcranVerrouilleHint": "Riproduci, pausa, precedente e successivo sulla schermata di blocco controllano il server. Visibili mentre una zona browser suona in questa scheda.",
   "settings.voiceCommand": "Comando vocale",

@@ -51,6 +51,8 @@ export const REGLAGES: Reglage[] = [
   // ── Général › Lecture ────────────────────────────────────────────────
   { id: 'verrou-volume', section: 'playback', labelKey: 'audiophile.lockVolume', descKey: 'audiophile.lockVolumeHelp', termesKey: 'reglages.termes.verrouVolume' },
   { id: 'boucle-defaut', section: 'playback', labelKey: 'settings.loopByDefault', descKey: 'settings.loopByDefaultHint', termesKey: 'reglages.termes.boucleParDefaut' },
+  // tune-server-rust#9143 / web#3248 — fil forum 2934.
+  { id: 'retrait-ecouter-plus-tard', section: 'playback', labelKey: 'settings.retraitEcouterPlusTard', descKey: 'settings.retraitEcouterPlusTardHint' },
   { id: 'commandes-ecran-verrouille', section: 'playback', labelKey: 'settings.controlesEcranVerrouille', descKey: 'settings.controlesEcranVerrouilleHint' },
   { id: 'recul-podcast', section: 'playback', labelKey: 'settings.podcastRewind', descKey: 'settings.podcastRewindHint', techniques: ['podcast'] },
   { id: 'file-aleatoire-max', section: 'playback', labelKey: 'settings.shuffleMaxTracks', descKey: 'settings.shuffleMaxTracksHint', termesKey: 'reglages.termes.fileAleatoireMax', techniques: ['shuffle', '500'] },

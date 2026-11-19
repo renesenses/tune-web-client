@@ -2354,6 +2354,8 @@ export default {
   "settings.crossfadeHint": "Parçalar arasında crossfade. Kesintisiz (gapless) çalma için işareti kaldırın (sessizlik veya geçiş efekti olmadan).",
   "settings.loopByDefault": "Varsayılan olarak döngüde çal",
   "settings.loopByDefaultHint": "Sonunda durmak yerine her parçayı yeniden başlatır.",
+  "settings.retraitEcouterPlusTard": "Tamamen dinlendikten sonra “Sonra dinle”den kaldır",
+  "settings.retraitEcouterPlusTardHint": "“Sonra dinle”ye eklenen bir albüm, tüm parçaları aynı çalmada dinlendiğinde (%90 veya sonuna kadar) kendiliğinden çıkar. Kapalı: siz kaldırana kadar kalır.",
   "settings.controlesEcranVerrouille": "Kilit ekranı denetimleri",
   "settings.controlesEcranVerrouilleHint": "Telefonun kilit ekranındaki çal, duraklat, önceki ve sonraki düğmeleri sunucuyu yönetir. Bu sekmede bir tarayıcı bölgesi çalarken görünür.",
   "settings.voiceCommand": "Sesli komut",

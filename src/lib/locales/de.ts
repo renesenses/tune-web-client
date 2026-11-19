@@ -1685,6 +1685,8 @@ export default {
   "settings.crossfadeHint": "Überblenden zwischen Titeln. Deaktivieren für lückenlose Wiedergabe (keine Stille oder Blende).",
   "settings.loopByDefault": "Standardmäßig wiederholen",
   "settings.loopByDefaultHint": "Startet jeden Titel neu, statt am Ende zu stoppen.",
+  "settings.retraitEcouterPlusTard": "Nach vollständigem Hören aus „Später hören“ entfernen",
+  "settings.retraitEcouterPlusTardHint": "Ein unter „Später hören“ abgelegtes Album verschwindet von selbst, sobald alle Titel in derselben Wiedergabe gehört wurden (90 % oder bis zum Ende). Aus: Es bleibt, bis Sie es entfernen.",
   "settings.controlesEcranVerrouille": "Steuerung auf dem Sperrbildschirm",
   "settings.controlesEcranVerrouilleHint": "Wiedergabe, Pause, Zurück und Weiter auf dem Sperrbildschirm steuern den Server. Sichtbar, solange eine Browser-Zone in diesem Tab spielt.",
   "settings.voiceCommand": "Sprachbefehl",

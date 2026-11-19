@@ -2484,6 +2484,8 @@ export default {
   "settings.crossfadeHint": "Fondu enchaîné entre les pistes. Décochez pour un enchaînement gapless (sans silence ni fondu).",
   "settings.loopByDefault": "Lire en boucle par défaut",
   "settings.loopByDefaultHint": "Relance chaque piste au lieu de s'arrêter à la fin.",
+  "settings.retraitEcouterPlusTard": "Retirer d'« Écouter plus tard » après écoute complète",
+  "settings.retraitEcouterPlusTardHint": "Un album rangé dans « Écouter plus tard » en sort tout seul une fois toutes ses pistes écoutées (90 % ou jusqu'au bout) dans la même lecture. Désactivé : il reste jusqu'à ce que vous le retiriez.",
   "settings.controlesEcranVerrouille": "Commandes de l'écran verrouillé",
   "settings.controlesEcranVerrouilleHint": "Lecture, pause, précédent et suivant sur l'écran verrouillé du téléphone pilotent le serveur. Visibles quand une zone navigateur joue dans cet onglet.",
   "settings.voiceCommand": "Commande vocale",
