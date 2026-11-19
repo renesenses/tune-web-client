@@ -83,3 +83,22 @@ describe('fil 2954 — la résolution fine est demandée au serveur', () => {
     expect(urls[0]).toMatch(/\/library\/tracks\/7\/waveform$/);
   });
 });
+
+describe('fil 2954 — l’onde de la barre du bas tient dans `--transport-height`', () => {
+  it('bordure + marge + bouton lecture + interligne + onde + marge ≤ 90 px', async () => {
+    const { readFileSync } = await import('node:fs');
+    const css = readFileSync('src/components/partages/TransportBar.svelte', 'utf8');
+    const theme = readFileSync('src/styles/tune-theme.css', 'utf8');
+    const hauteurBarre = Number(/--transport-height:\s*(\d+)px/.exec(theme)![1]);
+    const bouton = /\.play-btn\s*\{[^}]*?width:\s*(\d+)px;\s*height:\s*(\d+)px/.exec(css);
+    expect(bouton, '.play-btn introuvable').not.toBeNull();
+    const regle = /\.progress-track\.onde\s*\{\s*height:\s*clamp\(\s*(\d+)px,\s*calc\(var\(--transport-height, 90px\) - (\d+)px - max\((\d+)px[^)]*\)\)\),\s*(\d+)px\s*\)/.exec(css);
+    expect(regle, 'la hauteur de l’onde suit la place restante').not.toBeNull();
+    const [, mini, retrait, margeBas, maxi] = regle!.map(Number);
+    // Le retrait du calc = bordure 1 + marge 6 + bouton + interligne 2.
+    expect(retrait).toBe(1 + 6 + Number(bouton![2]) + 2);
+    expect(retrait + maxi + margeBas).toBeLessThanOrEqual(hauteurBarre);
+    expect(mini).toBe(22);
+    expect(maxi).toBeGreaterThan(mini);
+  });
+});

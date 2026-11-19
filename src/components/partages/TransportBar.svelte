@@ -2503,14 +2503,21 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
-     la hauteur de la piste de clic. Fil 2954 : 32 px (22 avant) — la barre
-     du bas fait 90 px (`--transport-height`) : 6 + 40 (commandes) + 2 + 32
-     + 6 = 86, elle tient sans pousser la mise en page. Sur un écran bas
-     (paysage de téléphone, 72 px) et en kiosque, les 22 px d'avant restent.
-     Sur téléphone (≤ 768 px), la barre de saut n'est pas dans la mini-barre
-     (web#1870) : rien ne change. */
+     la hauteur de la piste de clic. Fil 2954 : jusqu'à 28 px (22 avant), mais
+     seulement dans la place que laisse `--transport-height` (90 px) :
+     1 (bordure du haut) + 6 (marge) + 44 (`.play-btn`) + 2 (interligne)
+     + l'onde + la marge du bas, qui vaut max(6 px, zone sûre). Sans zone
+     sûre : 1 + 6 + 44 + 2 + 28 + 6 = 87 px ≤ 90. Avec la zone sûre d'un iPad
+     ou d'un iPhone (≈ 20 px), il ne reste pas de place : l'onde garde ses
+     22 px d'avant, rien ne déborde plus qu'avant. Écran bas (72 px) et
+     kiosque : 22 px. Sur téléphone (≤ 768 px), la barre de saut n'est pas
+     dans la mini-barre (web#1870) : rien ne change. */
   .progress-track.onde {
-    height: 32px;
+    height: clamp(
+      22px,
+      calc(var(--transport-height, 90px) - 53px - max(6px, env(safe-area-inset-bottom, 0px))),
+      28px
+    );
   }
 
   @media (max-height: 520px) {
