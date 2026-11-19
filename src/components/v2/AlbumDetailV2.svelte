@@ -14,7 +14,7 @@
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
-  import { t as tr, tn } from '../../lib/i18n';
+  import { t as tr, tn, locale } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -66,7 +66,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
-  import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
+  import { badgeHiRes, compteBadgeHiRes, infobulleHiRes, libelleBadgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -781,7 +781,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     tracks = [];
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
-    if (id == null && !(svc && sid) && !bc) return;
+    // #3224 — et sans rester sur « Chargement… » : rien à charger, liste vide.
+    if (id == null && !(svc && sid) && !bc) { loading = false; return; }
     loading = true; error = null;
     let perime = false;
     const p = bc
@@ -1948,8 +1949,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
         <!-- tune-server-rust#6285 — « hi-res vérifié / douteux » : rien tant que
              le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
-        {#if hiRes}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
-          title={$tr((hiRes.cleRaison ?? 'v2.album.hiresVerifiedTip') as any)}>{$tr(hiRes.cle as any)}</div>{/if}
+        <!-- tune-server-rust#9035 — la raison dit la coupure MESURÉE (« coupé
+             net vers 16,1 kHz ») et le badge combien de pistes sont en cause
+             (« 6/10 ») ; « codec avec perte » seulement sur signature mesurée.
+             Sous la moitié des pistes, l'album n'est pas douteux : « 2 pistes
+             douteuses » (décision du 18/11, fil 2902). -->
+        {#if hiRes}{@const infobulle = infobulleHiRes(hiRes, (c) => $tr(c as any), $locale ?? 'fr')}{@const libelle = libelleBadgeHiRes(hiRes, (c) => $tr(c as any))}<div class="qbadge cue" class:douteux={hiRes.genre !== 'verifie'} data-hires={hiRes.genre}
+          title={infobulle} aria-label={`${libelle}. ${infobulle}`}>{libelle}{#if compteBadgeHiRes(hiRes)}<span class="hires-compte" data-hires-compte> · {compteBadgeHiRes(hiRes)}</span>{/if}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La

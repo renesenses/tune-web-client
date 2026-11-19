@@ -36,3 +36,18 @@ it('une lecture de service hors file remplace également la carte courante',asyn
  jouer({source:'qobuz',source_id:'12345',title:'Titre hors file'});await ouvrir();
  expect(host.querySelector('.now')?.textContent).toContain('Titre hors file');expect(host.querySelector('.list')?.textContent).toContain('Dernière piste');
 });
+
+it('garde le début du bloc album au curseur pendant une radio', async () => {
+ rows[1] = {...rows[1], album_id:50, album_title:'Album en attente'};
+ rows.push({id:103,track_id:903,title:'Suite de l’album',source:'local',album_id:50,album_title:'Album en attente'});
+ await ouvrir();
+ const bloc = host.querySelector<HTMLElement>('[data-queue-album]');
+ expect(bloc?.dataset.queueStart).toBe('1');
+ expect(bloc?.textContent).toContain('Album en attente');
+ bloc!.querySelector<HTMLButtonElement>('button.play')!.click();
+ flushSync();
+ expect(host.querySelector('.list')?.textContent).toContain('Dernière piste');
+ expect(host.querySelector('.list')?.textContent).toContain('Suite de l’album');
+ host.querySelector<HTMLButtonElement>('[data-queue-start="1"]:not([data-queue-album]) button.play')!.click();
+ await vi.waitFor(() => expect(jumps).toEqual([{position:1}]));
+});

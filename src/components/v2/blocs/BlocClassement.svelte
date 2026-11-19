@@ -25,6 +25,11 @@
    * construction autonome, il ne reçoit que `donnees`, et un second afficheur
    * de fiche divergerait du premier (leçon écrite de #1016 et #1108). Un album
    * de SERVICE n'a pas de fiche ici : sa ligne joue.
+   *
+   * web#3117 — TROISIÈME bloc : « Top artistes ». Un élément d'ARTISTE
+   * (`ouvrir: 'artiste'`, `elementsArtistesTop`) a un portrait ROND, sa ligne
+   * ouvre la page artiste, et son sous-titre est le nombre de lectures — du
+   * texte, pas un lien.
    */
   import type { Element } from '../../../lib/accueilWidgets';
   import { t } from '../../../lib/i18n';
@@ -64,7 +69,19 @@
     return typeof id === 'number' && Number.isInteger(id) && id > 0 ? id : null;
   }
 
+  /** web#3117 — une ligne d'ARTISTE : elle ouvre sa page. */
+  function estArtiste(el: Element): boolean {
+    return el.ouvrir === 'artiste' && !!el.artiste;
+  }
+
   function activer(el: Element) {
+    if (estArtiste(el)) {
+      void ouvrirArtisteDepuis(
+        el.artisteService ? { name: el.artiste, service_ecoute: el.artisteService } : { name: el.artiste },
+        get(activeView),
+      );
+      return;
+    }
     const id = albumAOuvrir(el);
     if (id != null) ouvrirAlbumLocal(id);
     else void jouer(el);
@@ -91,7 +108,9 @@
 {:else}
   <ol class="liste">
     {#each elements as el, rang (el.id)}
-      {@const ouvre = albumAOuvrir(el) != null}
+      {@const artiste = estArtiste(el)}
+      {@const ouvre = artiste || albumAOuvrir(el) != null}
+      {@const libelle = artiste ? $t('dashboard.viewArtist' as any) : $t(ouvre ? 'common.open' as any : 'common.play' as any)}
       <li>
         <span class="rang">{rang + 1}</span>
         <button
@@ -99,10 +118,10 @@
           class="corps"
           disabled={!ouvre && !el.jouer}
           onclick={() => activer(el)}
-          aria-label={`${$t(ouvre ? 'common.open' as any : 'common.play' as any)} — ${el.titre}`}
-          title={ouvre ? $t('common.open' as any) : el.jouer ? $t('common.play' as any) : undefined}
+          aria-label={`${libelle} — ${el.titre}`}
+          title={ouvre || el.jouer ? libelle : undefined}
         >
-          <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={36} alt="" /></span>
+          <span class="vign" class:rond={artiste}><AlbumArt coverPath={el.cover ?? null} size={36} alt="" round={artiste} fallbackInitials={artiste ? el.titre?.slice(0, 1) : null} /></span>
           <span class="txt"><span class="t">{el.titre}</span></span>
         </button>
         {#if ouvre && el.jouer}
@@ -111,7 +130,10 @@
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
           </button>
         {/if}
-        {#if el.sous}
+        {#if el.sous && artiste}
+          <!-- web#3117 — le nombre de lectures : du texte, pas un lien. -->
+          <span class="art compte" title={el.sous}>{el.sous}</span>
+        {:else if el.sous}
           <button
             type="button"
             class="art"
@@ -141,6 +163,8 @@
   .corps:disabled { cursor: default; }
   .corps:focus-visible, .art:focus-visible, .lire:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: -2px; }
   .vign { flex: 0 0 36px; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; }
+  /* web#3117 — le portrait d'un artiste est ROND, comme partout ailleurs. */
+  .vign.rond { border-radius: 50%; }
   .txt { min-width: 0; display: flex; flex-direction: column; }
   .t {
     font: 500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
@@ -159,6 +183,8 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
   }
   .art:hover { color: var(--v2-acc1); }
+  .art.compte { cursor: default; font-variant-numeric: tabular-nums; }
+  .art.compte:hover { color: var(--v2-txt2); }
 
   /* rc12 — maquette « My listening » : sur la grille fluide, un classement
      tient dans une TUILE (un sixième de la page). Titre et artiste côte à

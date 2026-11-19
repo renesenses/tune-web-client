@@ -726,6 +726,23 @@ export interface Zone {
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
   fixed_sample_rate?: number | null;
+  /** tune-server-rust#3245 — mode exclusif réglé sur CETTE zone, pour son
+   *  appareil local. `null` = la zone suit le réglage de machine
+   *  `local_exclusive_mode` ; absent = serveur qui ne connaît pas le réglage. */
+  exclusive_mode?: boolean | null;
+  /** #3245 — le mode sous lequel la sortie locale ouvrira réellement
+   *  l'appareil (servi par `GET /zones/{id}`, donc par la réponse au PATCH).
+   *  Diffère de `exclusive_mode` tant qu'une lecture retient le changement,
+   *  ou quand le pilote impose sa règle (ASIO). `null` hors sortie locale. */
+  exclusive_mode_applique?: boolean | null;
+  /** tune-server-rust#8696 — période WASAPI exclusive réglée sur la zone, en
+   *  ms ; `null` = Auto ; absent = serveur qui ne connaît pas le réglage. */
+  wasapi_exclusive_period_ms?: number | null;
+  /** Les valeurs proposées (10 / 20 / 50 / 100 ms). */
+  wasapi_exclusive_period_choices_ms?: number[];
+  /** Vrai pour une zone locale d'un serveur Windows dont la sortie n'est
+   *  pas ASIO : seul cas où le réglage a un effet. */
+  wasapi_exclusive_period_applicable?: boolean;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
@@ -1023,6 +1040,8 @@ export interface LocalAudioDevice {
 
 // Request/Response models
 export interface QueueStateResponse {
+  /** Serveur #8849 : déplacer un bloc atomiquement ; absent = ancien serveur. */
+  block_move_supported?: boolean;
   tracks: Track[];
   position: number;
   length: number;
