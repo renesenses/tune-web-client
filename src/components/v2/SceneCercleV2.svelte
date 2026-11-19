@@ -87,8 +87,10 @@
      * partage) : quand il change, le globe relit les lieux.
      */
     clePartageMembres?: string;
+    /** #3283 — ai-je posé ma ville ? `null` : on ne sait pas (pas encore lu, ou serveur sans globe). */
+    onMonLieuPose?: (pose: boolean | null) => void;
   }
-  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux, clePartageMembres = '' }: Props = $props();
+  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux, clePartageMembres = '', onMonLieuPose }: Props = $props();
   let paysMonde = $state<PaysMonde | null>(null);
   let montrerPays = $state(true);
   const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
@@ -101,6 +103,7 @@
   // ── Données ─────────────────────────────────────────────────────────────
   let relais = $state<EtatRelais | null>(null);
   let monLieu = $state<Lieu | null>(null);
+  $effect(() => { onMonLieuPose?.(relais === 'ok' ? monLieu !== null : null); });
   let lieux = $state.raw<Map<number, Lieu>>(new Map());
   /** #3283 — les membres de mes cercles partagés (pas mes contacts), lus avec les lieux. */
   let membresCercles = $state.raw<MembreDeCercleLieu[]>([]);

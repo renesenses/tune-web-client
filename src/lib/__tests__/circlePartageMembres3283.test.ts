@@ -20,6 +20,8 @@ let appels: Appel[] = [];
 let memberOf: unknown = undefined;
 let circles: unknown = undefined;
 let routesPresentes = true;
+/** `undefined` : route absente (404) ; `null` : pas de ville (204) ; sinon ma ville. */
+let monLieu: unknown = undefined;
 
 const rep = (status: number, corps?: unknown): Response => ({
   ok: status >= 200 && status < 300, status, statusText: String(status),
@@ -38,6 +40,8 @@ function cloud(chemin: string, method: string): Response {
     // Greffon plus ancien : 404 sans corps du cloud.
     return routesPresentes ? rep(200, {}) : rep(404);
   }
+  if (chemin === '/me/location' && method === 'GET') return monLieu === undefined ? rep(404, { error: 'not_found' }) : monLieu === null ? rep(204) : rep(200, monLieu);
+  if (chemin === '/contacts/locations' || chemin === '/world/points') return rep(200, []);
   if (chemin === '/library-sync') return rep(200, { last_sync: null });
   if (chemin === '/shared-with-me') return rep(200, []);
   if (chemin === '/blocks') return rep(200, []);
@@ -47,7 +51,7 @@ function cloud(chemin: string, method: string): Response {
 beforeAll(async () => { await preparerLocale('fr'); });
 beforeEach(() => {
   vi.useFakeTimers();
-  appels = []; memberOf = undefined; circles = undefined; routesPresentes = true;
+  appels = []; memberOf = undefined; circles = undefined; routesPresentes = true; monLieu = undefined;
   circlePlugin.set(null);
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const u = String(url);
@@ -89,6 +93,8 @@ describe('lecture défensive', () => {
     ] };
     const m = cerclesOuJeSuisInvite(e as any);
     expect(m[0]).toMatchObject({ members_see_each_other: true, show_me: true });
+    expect(cerclesOuJeSuisInvite({ ...e, member_of: [{ ...MEMBRE, members_see_each_other: true, audience_count: 4 }] } as any)[0].audience_count).toBe(4);
+    expect(cerclesOuJeSuisInvite({ ...e, member_of: [{ ...MEMBRE, members_see_each_other: true, audience_count: -1 }] } as any)[0].audience_count).toBeUndefined();
     expect(m[1]).toMatchObject({ members_see_each_other: false, show_me: false });
     expect('members_see_each_other' in m[2]).toBe(false);
   });
@@ -166,6 +172,26 @@ describe('écran Tune Circle', () => {
     b2.click();
     await laisserFaire();
     expect(ecrits()).toEqual(['DELETE /member-of/3/show-me']);
+  });
+
+  it('sans ville posée : interrupteur grisé et « posez votre ville » ; avec une ville : actif ; l’audience est dite', async () => {
+    memberOf = [{ ...MEMBRE, members_see_each_other: true, show_me: false, audience_count: 12 }];
+    monLieu = null;
+    const el = await poser();
+    const bouton = el.querySelector('.interrupteur-montrer') as HTMLButtonElement;
+    expect(bouton.disabled).toBe(true);
+    expect(texte(el.querySelector('.montrer-sans-ville'))).toBe(fr['v2.circle.members.needCity']);
+    expect(texte(el.querySelector('.montrer-audience'))).toContain('12 autres membres');
+    expect(texte(el.querySelector('.montrer-quoi'))).toMatch(/présents et futurs.*50 km/);
+    bouton.click();
+    await laisserFaire();
+    expect(ecrits()).toEqual([]);
+
+    monte && unmount(monte); monte = null; hote?.remove();
+    monLieu = { label: 'Dijon', country_code: 'FR', lat: 47.5, lon: 5 };
+    const el2 = await poser();
+    expect((el2.querySelector('.interrupteur-montrer') as HTMLButtonElement).disabled).toBe(false);
+    expect(el2.querySelector('.montrer-sans-ville')).toBeNull();
   });
 
   it('propriétaire : « Partager ce cercle entre ses membres » ; couper demande confirmation', async () => {

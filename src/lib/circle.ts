@@ -103,6 +103,8 @@ export interface CercleOuJeSuisInvite {
   members_see_each_other?: boolean;
   /** #3283 : MON accord pour être montré aux autres membres. Faux par défaut. */
   show_me?: boolean;
+  /** #3283 : combien d'AUTRES membres le cercle compte aujourd'hui (le propriétaire peut en ajouter). */
+  audience_count?: number;
 }
 
 export interface EtatCercleConnecte {
@@ -129,6 +131,7 @@ export function cerclesOuJeSuisInvite(e: EtatCercleConnecte | null | undefined):
     if (typeof b.members_see_each_other === 'boolean') {
       m.members_see_each_other = b.members_see_each_other;
       m.show_me = b.members_see_each_other && b.show_me === true;
+      if (b.members_see_each_other && Number.isInteger(b.audience_count) && b.audience_count >= 0) m.audience_count = b.audience_count;
     }
     out.push(m);
   }

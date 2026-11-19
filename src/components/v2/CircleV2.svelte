@@ -149,6 +149,8 @@
   /** #2434 : les cercles des autres où je suis rangé (lien actif). */
   const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
   /** #3283 — mes accords dans les cercles partagés : le globe relit quand ils changent. */
+  /** #3283 — ma ville posée ? (lue par la scène). Sans ville, on ne peut pas apparaître : l'interrupteur se grise. */
+  let monLieuPose = $state<boolean | null>(null);
   const clePartageMembres = $derived(invitePar.map((m) => `${m.circle_id}:${m.members_see_each_other ? 1 : 0}${m.show_me ? 1 : 0}`).join(','));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
@@ -578,6 +580,8 @@
   function basculerMeMontrer(m: CercleOuJeSuisInvite) {
     if (occupe !== null || m.members_see_each_other !== true) return;
     const voulu = m.show_me !== true;
+    // Sans ville, apparaître est impossible (le cloud ne montre ni ne fait voir personne) : on le dit au lieu d'activer.
+    if (voulu && monLieuPose === false) return;
     void geste(`montrer-${m.circle_id}`, () => meMontrerDansCercle(m.circle_id, voulu), {
       succes: voulu ? 'v2.circle.members.shown' : 'v2.circle.members.hidden',
     });
@@ -799,7 +803,7 @@
         onOnglet={(o) => void choisirOnglet(o)} onInviter={() => void allerInviter()}
         onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
         {#snippet scene()}
-      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length} {clePartageMembres}
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length} {clePartageMembres} onMonLieuPose={(v) => (monLieuPose = v)}
         playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
         {/snippet}
       </DecouvrirCercleV2>
@@ -1128,11 +1132,17 @@
                 {#if m.members_see_each_other === true}
                   <div class="partage montrer-moi">
                     <button class="interrupteur interrupteur-montrer" role="switch" aria-checked={m.show_me === true}
-                      disabled={occupe !== null} onclick={() => basculerMeMontrer(m)}>
+                      disabled={occupe !== null || (m.show_me !== true && monLieuPose === false)} onclick={() => basculerMeMontrer(m)}>
                       <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                       <span>{$t('v2.circle.members.showMe' as any).replace('{circle}', m.circle_name)}</span>
                     </button>
+                    {#if monLieuPose === false}
+                      <p class="note montrer-sans-ville">{$t('v2.circle.members.needCity' as any)}</p>
+                    {/if}
                     <p class="note montrer-quoi">{$t('v2.circle.members.showMeWhat' as any).replace('{circle}', m.circle_name)}</p>
+                    {#if m.audience_count != null}
+                      <p class="note montrer-audience">{$tn('v2.circle.members.audience', m.audience_count)}</p>
+                    {/if}
                   </div>
                 {/if}
               </article>
