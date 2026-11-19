@@ -35,6 +35,7 @@
    */
   import PageWidgets from './PageWidgets.svelte';
   import {
+    AJOUTS_TABLEAU_DE_BORD,
     BLOCS_TABLEAU_DE_BORD,
     DISPOSITION_DEFAUT_TABLEAU_DE_BORD,
   } from '../../lib/tableauDeBordWidgets';
@@ -83,6 +84,7 @@
     cle="tableau_de_bord_widgets"
     cleChiffres="tableau_de_bord_stats"
     cleChiffresMigre="tableau_de_bord_stats_migre"
+    ajoutsUniques={AJOUTS_TABLEAU_DE_BORD}
     cleTitre="dashboard.title"
     grille
     grilleFluide

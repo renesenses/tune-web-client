@@ -60,6 +60,23 @@ function sous(enfant: string, parent: string): boolean {
 }
 
 /**
+ * tune-server-rust#8746 (fil 2816) — le dossier choisi dans l'explorateur,
+ * s'il est le point de montage du partage ou un dossier EN DESSOUS ; sinon
+ * `null`.
+ *
+ * L'assistant ne déclarait que la racine du partage, et l'analyse parcourait
+ * tout le NAS. Il ouvre désormais l'explorateur sur le point de montage ; mais
+ * l'explorateur laisse remonter (« .. ») : un dossier pris ailleurs n'est plus
+ * « une source de ce partage », il est refusé. Un chemin qui porte un segment
+ * `..` aussi : il pourrait sortir du point en ayant l'air d'y être.
+ */
+export function sousDossierDuPartage(point: string, choisi: string): string | null {
+  if (!point?.trim() || !choisi?.trim()) return null;
+  if (choisi.split(/[\\/]/).includes('..')) return null;
+  return sous(choisi, point) ? sansBarreFinale(choisi) : null;
+}
+
+/**
  * Fil 2145 (Daniel Levy) — la racine de ce partage est-elle déjà lue par la
  * bibliothèque ?
  *

@@ -95,3 +95,40 @@ export function marqueurAEnregistrer(
 ): Record<string, true> {
   return dispositionDefaut.includes(ID_PREMIERE_LIGNE) ? { [cleMarqueur]: true } : {};
 }
+
+/**
+ * web#3117 — UN WIDGET NEUF ENTRE UNE FOIS DANS LES DISPOSITIONS DÉJÀ RANGÉES.
+ *
+ * Même trou que la première ligne : le bloc « Top artistes » est au défaut du
+ * Tableau de bord, mais une disposition enregistrée l'emporte toujours, et
+ * quiconque a rangé son tableau de bord ne le verrait jamais. Même remède,
+ * mêmes refus — rien d'enregistré, marqueur posé ou widget déjà là : rien —,
+ * à une différence près : il entre EN QUEUE, sans réordonner le reste.
+ *
+ * Le marqueur est propre au widget (`cleMarqueur`) : il part avec la
+ * disposition dans le même appel, et avec chaque enregistrement de
+ * l'utilisateur (`marqueursAjouts`), pour qu'un widget retiré ne revienne pas.
+ */
+export interface AjoutUnique {
+  /** L'identifiant du widget à ajouter une fois. */
+  id: string;
+  /** La clé des préférences qui retient que c'est fait. */
+  cleMarqueur: string;
+}
+
+export function migrationAjoutUnique(
+  enregistree: readonly string[] | null | undefined,
+  marqueur: unknown,
+  id: string,
+): MigrationDisposition {
+  const actuelle = [...(enregistree ?? [])];
+  if (!actuelle.length || marqueur === true || actuelle.includes(id)) {
+    return { disposition: actuelle, aMigrer: false };
+  }
+  return { disposition: [...actuelle, id], aMigrer: true };
+}
+
+/** Les marqueurs d'ajouts uniques qu'un enregistrement de l'utilisateur pose. */
+export function marqueursAjouts(ajouts: readonly AjoutUnique[]): Record<string, true> {
+  return Object.fromEntries(ajouts.map((a) => [a.cleMarqueur, true as const]));
+}

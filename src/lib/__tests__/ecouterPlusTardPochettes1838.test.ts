@@ -185,7 +185,8 @@ describe('#1838 — le dépôt d’une playlist de service emporte son image', (
 
   it('playlist locale : aucune pochette inventée, elle se désigne par son id', () => {
     const o = objetPlaylist({ id: 23, name: '00. Genesis - Genesis', track_count: 9 });
-    expect(o).toEqual({ type: 'playlist', id: 23, nom: '00. Genesis - Genesis' });
+    // web#3255 — le nombre de titres voyage pour la question de suppression.
+    expect(o).toEqual({ type: 'playlist', id: 23, nom: '00. Genesis - Genesis', nbTitres: 9 });
     expect(cibleEtiquetteObjet(o)).toEqual({ itemType: 'playlist', itemId: 23 });
   });
 });

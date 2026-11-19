@@ -25,12 +25,16 @@
     zones: { id: number; name: string }[];
     zoneParDefaut?: number | null;
     onResume?: (resume: string | null) => void;
+    /** web#3206 — le texte du champ, pour que le rapport de bug sache qu'on
+     *  a décrit le problème ICI et non dans « Ce qui se passe ». */
+    onQuestion?: (question: string) => void;
   }
-  let { zones, zoneParDefaut = null, onResume }: Props = $props();
+  let { zones, zoneParDefaut = null, onResume, onQuestion }: Props = $props();
 
   let zoneId = $state<number | null>(null);
   $effect(() => { if (zoneId == null && zoneParDefaut != null) zoneId = zoneParDefaut; });
   let question = $state('');
+  $effect(() => { onQuestion?.(question); });
   let secondAvis = $state(false);
   let apercu = $state<ApercuDiagnosticIa | null>(null);
   let diag = $state<DiagnosticIa | null>(null);

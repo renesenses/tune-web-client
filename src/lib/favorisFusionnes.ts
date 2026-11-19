@@ -92,11 +92,33 @@ export interface FavorisFusionnes {
 }
 
 /**
+ * #3185 — UN chargement partagé entre toutes les bandes de l'Accueil.
+ *
+ * Chaque bande « favoris » (`parSeau`, « Albums favoris »…) appelait ce
+ * chargeur pour son compte, et `PageWidgets` les charge toutes d'un coup : la
+ * relecture de chaque favori un par un était relancée autant de fois qu'il y a
+ * de bandes. La promesse est désormais partagée TANT QU'ELLE EST EN VOL — pas
+ * au-delà : un appel suivant (écran Favoris, cœur posé entre-temps) relit la
+ * vérité.
+ */
+const enVol = new Map<number, Promise<FavorisFusionnes>>();
+
+export function chargerFavorisFusionnes(pid: number): Promise<FavorisFusionnes> {
+  const deja = enVol.get(pid);
+  if (deja) return deja;
+  const p = lireFavorisFusionnes(pid).finally(() => {
+    if (enVol.get(pid) === p) enVol.delete(pid);
+  });
+  enVol.set(pid, p);
+  return p;
+}
+
+/**
  * Les deux sources en PARALLÈLE, et celle des services au mieux : un serveur
  * plus ancien ne sert pas la route, et cela ne doit pas vider les favoris de
  * la bibliothèque.
  */
-export async function chargerFavorisFusionnes(pid: number): Promise<FavorisFusionnes> {
+async function lireFavorisFusionnes(pid: number): Promise<FavorisFusionnes> {
   const [f, s] = await Promise.all([
     api.getFavorites(pid),
     api.getProfileStreamingFavorites(pid).catch(() => null),

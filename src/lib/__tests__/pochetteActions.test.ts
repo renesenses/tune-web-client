@@ -309,7 +309,9 @@ describe('Playlists — les cinq actions', () => {
     // date de mise en favori (#2001). Le seau des playlists est inchange.
     expect(src.includes("settle(lignes('playlist'), getPlaylist)"), 'les playlists ne sont plus relues').toBe(true);
     expect(
-      lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set((favs.playlists'),
+      // #3185 — le magasin se remplit des IDENTIFIANTS (`getFavoriteIds`),
+      // sans relire chaque playlist.
+      lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set(favs.playlistIds'),
       'le magasin n’est plus rempli au chargement du profil.',
     ).toBe(true);
   });

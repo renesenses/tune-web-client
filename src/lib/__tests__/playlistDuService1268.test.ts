@@ -164,29 +164,16 @@ describe('#1268 — un titre Qobuz va dans une playlist Qobuz du compte', () => 
     expect(requetes.some((r) => r.method === 'POST' && /\/api\/v1\/playlists\//.test(r.url))).toBe(false);
   });
 
-  it('🔴 le bouton « playlist » de la barre mène AUSSI aux playlists Qobuz', async () => {
-    // C'est ce bouton que Cyrille cliquait : il ouvrait les playlists TUNE,
-    // où l'ajout d'une piste de service se perdait en silence (201, liste vide).
-    monte = mount(PisteActions, { target: hote!, props: { piste: PISTE_QOBUZ } });
-    await souffler();
-    const b = hote!.querySelector<HTMLButtonElement>(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`);
-    expect(b, 'le bouton playlist de la barre est absent').toBeTruthy();
-    b!.click();
-    await attendreQue(
-      () => !!document.querySelector('.modal .playlist-list'),
-      'la fenêtre ouverte par le bouton « playlist » de la barre',
-    );
-    await souffler();
-    expect(nomsProposesDe('service')).toEqual(['Soirées jazz', 'Route']);
-  });
+  // web#3121 (16/11/2026) — « Ajouter à une playlist » a quitté la barre : le
+  // menu « … » est désormais le seul chemin, et c'est lui que `ouvrirAjout`
+  // emprunte (témoins ci-dessus : il mène aux playlists Qobuz).
 
-  // 🔄 #4889 : un service sans playlists à lui (YouTube, Bandcamp) a le
-  // bouton, qui mène aux playlists TUNE.
-  it('un service qui ne sait pas écrire a le bouton playlist, vers Tune (#4889)', async () => {
+  // 🔄 #4889 : un service sans playlists à lui (YouTube, Bandcamp) a l'entrée,
+  // qui mène aux playlists TUNE.
+  it('un service qui ne sait pas écrire a l’entrée playlist, vers Tune (#4889)', async () => {
     const yt = { ...PISTE_QOBUZ, source: 'youtube', source_id: 'abc' } as unknown as Track;
-    monte = mount(PisteActions, { target: hote!, props: { piste: yt } });
-    await souffler();
-    expect(hote!.querySelector(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`)).toBeTruthy();
+    expect(await ouvrirAjout(yt), '« Ajouter à une playlist » absent pour un titre YouTube').toBe(true);
+    expect(nomsProposes()).toEqual(['Liste Tune']);
   });
 
   it('une piste de la bibliothèque garde les playlists Tune', async () => {
