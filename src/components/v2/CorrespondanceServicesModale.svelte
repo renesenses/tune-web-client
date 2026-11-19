@@ -158,7 +158,7 @@
         <ul data-services-retires>
           {#each actuel.streaming_retires as service (service)}
             <li class="ligne" data-service-retire={service}>
-              <span class="ti"><span class="tt">{nomService(service)}</span></span>
+              <span class="ti"><span class="tt" title={nomService(service)}>{nomService(service)}</span></span>
               <button class="sec" onclick={() => void revenir(service)} disabled={travail} data-revenir-auto={service}>
                 {$t('collectionPhysique.correspondance.revenirAuto' as any)}
               </button>
