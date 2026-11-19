@@ -189,6 +189,18 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
     expect(bouton(el, fr['settings.signOut']), 'aucun moyen de délier le compte').not.toBeNull();
   });
 
+  it('relié sans détails (autre appareil) : l’écran dit « relié », sans compte ni bouton', async () => {
+    // Le serveur ne rend le compte qu'à l'administrateur ou à sa propre
+    // machine : ailleurs, `connected` sans `user`.
+    statutSso = { configured: true, connected: true };
+    const el = await ouvrirSysteme('beginner');
+    const ligne = ligneCompte(el)!;
+    expect(ligne.textContent).toContain(fr['settings.accountLinkedNoDetails']);
+    expect(ligne.textContent).not.toContain(fr['settings.notConnected']);
+    expect(bouton(el, fr['settings.signIn']), 'propose de relier un serveur déjà relié').toBeNull();
+    expect(bouton(el, fr['settings.signOut']), 'propose de délier sans pouvoir le faire d’ici').toBeNull();
+  });
+
   it('se déconnecter passe par la route de déconnexion et relit l’état', async () => {
     statutSso = {
       configured: true,

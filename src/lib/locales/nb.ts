@@ -700,6 +700,8 @@ export default {
   "settings.enable": "Slå på",
   "settings.disable": "Slå av",
   "settings.notConnected": "Ikke tilkoblet",
+  "settings.accountLinkedNoDetails": "Koblet til en Mozaiklabs-konto",
+  "settings.accountLinkedNoDetailsHint": "Kontodetaljene vises på serverens egen maskin.",
   "settings.email": "E-post",
   "settings.password": "Passord",
   "settings.connecting": "Kobler til...",

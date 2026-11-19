@@ -700,6 +700,8 @@ export default {
   "settings.enable": "Włącz",
   "settings.disable": "Wyłącz",
   "settings.notConnected": "Brak połączenia",
+  "settings.accountLinkedNoDetails": "Połączono z kontem Mozaiklabs",
+  "settings.accountLinkedNoDetailsHint": "Szczegóły konta są widoczne na komputerze serwera.",
   "settings.email": "E-mail",
   "settings.password": "Hasło",
   "settings.connecting": "Łączenie...",

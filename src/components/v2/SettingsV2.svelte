@@ -1551,12 +1551,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ssoConfigure = $state(false);
   let ssoNom = $state('');
   let ssoCourriel = $state('');
+  // Serveur relié, mais le compte n'est pas montré à cet appareil : le serveur
+  // ne rend le détail du compte qu'à l'administrateur, ou à sa propre machine
+  // quand l'authentification est coupée. On dit « relié », sans détails.
+  let ssoRelieSansDetails = $state(false);
   let ssoQuitte = $state(false);
 
   async function chargerSso() {
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
+      ssoRelieSansDetails = !!sso?.connected && !sso?.user;
       if (sso?.connected && sso?.user) {
         ssoConnecte = true;
         ssoNom = sso.user.display_name || sso.user.email || '';
@@ -1567,6 +1572,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // Serveur muet ou hors ligne : on ne propose pas de relier un compte à
       // un nuage dont on ne sait même pas s'il existe sur ce serveur.
       ssoConfigure = false;
+      ssoRelieSansDetails = false;
     }
     ssoConnecte = false;
     ssoNom = '';
@@ -6037,6 +6043,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
                     {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                  {:else if ssoRelieSansDetails}
+                    <span>{$t('settings.accountLinkedNoDetails' as any)}</span>
+                    <span class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</span>
                   {:else}
                     <span>{$t('settings.notConnected' as any)}</span>
                     {#if !ssoConfigure}<span class="hint">{$t('settings.cloudComingSoon' as any)}</span>{/if}
@@ -6045,7 +6054,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ssoConnecte}
                   <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
                     >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
-                {:else if ssoConfigure && ssoDisponible()}
+                {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
                     >{$t('settings.signIn' as any)}</button>

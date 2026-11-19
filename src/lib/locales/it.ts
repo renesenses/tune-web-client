@@ -633,6 +633,8 @@ export default {
   'settings.enable': 'Attiva',
   'settings.disable': 'Disattiva',
   'settings.notConnected': 'Non connesso',
+  'settings.accountLinkedNoDetails': 'Collegato a un account Mozaiklabs',
+  'settings.accountLinkedNoDetailsHint': 'I dettagli dell\'account sono visibili sulla macchina del server.',
   'settings.email': 'Email',
   'settings.password': 'Password',
   'settings.connecting': 'Connessione in corso...',

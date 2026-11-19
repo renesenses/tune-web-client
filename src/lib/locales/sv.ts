@@ -608,6 +608,8 @@ export default {
   'settings.enable': 'Aktivera',
   'settings.disable': 'Inaktivera',
   'settings.notConnected': 'Ej ansluten',
+  'settings.accountLinkedNoDetails': 'Kopplad till ett Mozaiklabs-konto',
+  'settings.accountLinkedNoDetailsHint': 'Kontouppgifterna visas på serverns egen dator.',
   'settings.email': 'E-post',
   'settings.password': 'Lösenord',
   'settings.connecting': 'Ansluter...',

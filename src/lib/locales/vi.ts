@@ -702,6 +702,8 @@ export default {
   "settings.enable": "Bật",
   "settings.disable": "Tắt",
   "settings.notConnected": "Chưa kết nối",
+  "settings.accountLinkedNoDetails": "Đã liên kết với tài khoản Mozaiklabs",
+  "settings.accountLinkedNoDetailsHint": "Chi tiết tài khoản hiển thị trên chính máy chủ.",
   "settings.email": "Email",
   "settings.password": "Mật khẩu",
   "settings.connecting": "Đang kết nối...",

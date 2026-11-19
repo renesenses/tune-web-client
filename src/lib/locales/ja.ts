@@ -633,6 +633,8 @@ export default {
   'settings.enable': '有効にする',
   'settings.disable': '無効にする',
   'settings.notConnected': '未接続',
+  'settings.accountLinkedNoDetails': 'Mozaiklabs アカウントに連携済み',
+  'settings.accountLinkedNoDetailsHint': 'アカウントの詳細はサーバー本体のマシンで表示されます。',
   'settings.email': 'メール',
   'settings.password': 'パスワード',
   'settings.connecting': '接続中...',

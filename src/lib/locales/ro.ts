@@ -639,6 +639,8 @@ export default {
   'settings.enable': 'Activează',
   'settings.disable': 'Dezactivează',
   'settings.notConnected': 'Neconectat',
+  'settings.accountLinkedNoDetails': 'Conectat la un cont Mozaiklabs',
+  'settings.accountLinkedNoDetailsHint': 'Detaliile contului se afișează pe calculatorul serverului.',
   'settings.email': 'Email',
   'settings.password': 'Parolă',
   'settings.connecting': 'Se conectează...',
