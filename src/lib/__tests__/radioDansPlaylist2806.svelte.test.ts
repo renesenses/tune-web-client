@@ -25,6 +25,7 @@ import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import { entreeDuMenu, MENU_LECTURE } from './aides/menuFiche';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -246,6 +247,7 @@ describe('(b) les lignes radio dans la playlist', () => {
     const rm = ligne('Radio Partie').querySelector<HTMLButtonElement>('button.rm')!;
     expect(rm, 'pas de bouton « Retirer » sur la station indisponible').toBeTruthy();
     rm.click();
+    await confirmerLaBoite();
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.endsWith('/tracks/remove')), 'le retrait');
     expect(requetes.find((r) => r.url.endsWith('/tracks/remove'))!.body).toEqual({ entry_id: 346 });
   });
