@@ -47,7 +47,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
-  import { dialogs } from '../../lib/stores/dialogs';
+  import { confirmerRetraitTitre, confirmerSuppressionPlaylist } from '../../lib/confirmationsPlaylist';
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import RemplacerIndisponibleModale from './RemplacerIndisponibleModale.svelte';
@@ -190,8 +190,17 @@
    * de l'en-tête, chacun sous SA garde d'avant (absent quand il ne s'applique
    * pas, jamais grisé sauf pendant sa requête).
    */
-  function supprimerPlaylist() {
-    if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
+  /**
+   * web#3255 (reprend web#3090, fil 2849) — « Supprimer » (mode « Éditer »)
+   * effaçait la playlist et toutes ses lignes au premier clic. La question
+   * nomme la playlist et son nombre de titres ; confirmé, même appel qu'avant.
+   */
+  async function supprimerPlaylist() {
+    if (item.kind !== 'local' || item.pl.id == null) return;
+    const id = item.pl.id;
+    const nb = loading || error ? (item.pl.track_count ?? null) : tracks.length;
+    if (!(await confirmerSuppressionPlaylist(item.pl.name, nb))) return;
+    api.deletePlaylist(id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
   }
   function entreesPlus(): EntreeMenu[] {
     const l: EntreeMenu[] = [];
@@ -464,19 +473,13 @@
   /**
    * web#3245 (Régis, fil 2941) — la croix « Retirer » d'une vignette (vue en
    * pochettes) se touchait par mégarde, et le retrait partait aussitôt. Elle
-   * demande désormais confirmation, dans la boîte du client (jamais un
-   * dialogue natif, #166) : le message nomme le titre et son album, « Annuler »
-   * est le bouton par défaut, Échap annule. La croix de la vue en liste est le
-   * MÊME fragment (`suffixe`) : même règle. Confirmé, le retrait est inchangé.
+   * demande désormais confirmation (`confirmerRetraitTitre`, la boîte du
+   * client) ; la croix de la vue en liste est le MÊME fragment (`suffixe`).
+   * web#3255 — l'entrée « Supprimer de cette playlist » du menu « … » de la
+   * piste (`retirerDe`) passe par la même question. Confirmé, rien ne change.
    */
   function confirmerRetrait(t: Track): Promise<boolean> {
-    const titre = t.title ?? '';
-    const album = t.album_title && !estLigneRadio(t) ? t.album_title : '';
-    const message = $tr((album ? 'v2.pl.confirmRemoveAlbum' : 'v2.pl.confirmRemove') as any)
-      .replace('{title}', () => titre)
-      .replace('{album}', () => album)
-      .replace('{playlist}', () => item.pl.name ?? '');
-    return dialogs.confirm(message, { danger: true, annulerParDefaut: true, valider: $tr('v2.pl.remove' as any) });
+    return confirmerRetraitTitre(t, item.pl.name);
   }
 
   /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
@@ -828,7 +831,8 @@
         </div>
       {:else}
       <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px"
-        retirerDe={isLocal ? (t) => removeAt(rangReel(t)) : aMoiChezLeService ? (t) => retirerDuService(t) : null} />
+        retirerDe={isLocal ? async (t) => { if (await confirmerRetrait(t)) void removeAt(rangReel(t)); }
+          : aMoiChezLeService ? async (t) => { if (await confirmerRetrait(t)) void retirerDuService(t); } : null} />
       {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
