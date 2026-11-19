@@ -822,6 +822,7 @@ export default {
   "browse.rootMissing": "Klasör bulunamadı — bağlamayı kontrol edin",
   "browse.openError": "Bu klasör açılamadı — diskin veya ağ paylaşımının erişilebilir olduğunu kontrol edin",
   "browse.rootEmpty": "Boş klasör",
+  "browse.comptesEnCours": "Sayılıyor…",
   "browse.dirUnreachable": "Klasöre ulaşılamıyor",
   "browse.dirUnreachableHint": "Sunucu bu klasörü açamadı. Windows'ta eşlenmiş bir ağ sürücüsü (Z:) yalnızca onu oluşturan oturum tarafından görülebilir — bunun yerine UNC yolunu (\\\\sunucu\\paylaşım) kullanın.",
   "browse.noTracks": "Bu klasörde parça yok",

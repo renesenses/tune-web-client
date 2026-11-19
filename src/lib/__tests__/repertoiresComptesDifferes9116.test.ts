@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import BrowseView from '../../components/v2-heritage/BrowseView.svelte';
 import { locale } from '../i18n';
-import { attendreLesComptes } from '../comptesDifferes';
+import { suivreLesComptes, DELAIS_DES_COMPTES_MS, RELANCE_LENTE_MS } from '../comptesDifferes';
 import { detailOuvert } from '../historiqueCoquille';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -29,12 +29,15 @@ function reponse(corps: unknown): Response {
 }
 
 let comptesPrets = false;
+let pistesPretes = true;
 let appels: string[] = [];
+let requetes: string[] = [];
 
 function repondre(url: string): Response {
   const u = new URL(url, 'http://localhost');
   const p = u.pathname.replace(/^\/api\/v1/, '');
   appels.push(p);
+  requetes.push(url);
   if (p === '/library/browse') {
     return reponse({
       roots: [{ name: 'music2', path: '/mnt/music2', track_count: comptesPrets ? 272000 : 0, exists: true }],
@@ -43,9 +46,11 @@ function repondre(url: string): Response {
   }
   if (p === '/library/browse/dir') {
     return reponse({
-      path: '/mnt/music2', parent: null, music_root: '/mnt/music2', accessible: true, tracks: [],
+      path: '/mnt/music2', parent: null, music_root: '/mnt/music2', accessible: true,
+      tracks: pistesPretes ? [{ id: 7, title: 'Inédit', file_path: '/mnt/music2/inedit.flac' }] : [],
       directories: [{ name: '1 Classic', path: '/mnt/music2/1 Classic', track_count: comptesPrets ? 150000 : 0 }],
       comptes_en_attente: !comptesPrets,
+      pistes_en_attente: !pistesPretes,
     });
   }
   if (/\/zones/.test(p)) return reponse([]);
@@ -68,7 +73,9 @@ class ResizeObserverInerte { observe() {} unobserve() {} disconnect() {} }
 
 beforeEach(() => {
   comptesPrets = false;
+  pistesPretes = true;
   appels = [];
+  requetes = [];
   locale.set('fr');
   detailOuvert.set(null);
   vi.stubGlobal('fetch', vi.fn(async (url: string) => repondre(String(url))));
@@ -127,21 +134,92 @@ describe('#9116 — Répertoires : les dossiers d’abord, les comptes ensuite',
     expect(appels.filter((p) => p === '/library/browse').length).toBe(1);
   });
 
-  it('attendreLesComptes s’arrête dès que l’écran ne veut plus de la réponse', async () => {
-    let lu = 0;
-    let voulu = true;
-    const r = await attendreLesComptes(
-      async () => { lu++; voulu = false; return { comptes_en_attente: true }; },
-      () => voulu,
-      async () => {},
+  it('l’écran annonce les comptes différés au serveur', async () => {
+    comptesPrets = true;
+    monte = mount(BrowseView, { target: hote!, props: {} });
+    flushSync();
+    await attendreQue(() => !!hote!.querySelector('.root-item'), 'les emplacements');
+    expect(requetes.some((u) => u.includes('/library/browse?comptes_differes=1'))).toBe(true);
+  });
+
+  it('pistes d’un très grand dossier en attente : elles arrivent à la relance', async () => {
+    pistesPretes = false;
+    monte = mount(BrowseView, { target: hote!, props: {} });
+    flushSync();
+    await attendreQue(() => !!hote!.querySelector('.root-item'), 'les emplacements');
+    hote!.querySelector<HTMLButtonElement>('.root-item')!.click();
+    flushSync();
+    await attendreQue(() => !!hote!.querySelector('.dir-item'), 'les sous-dossiers');
+    expect(hote!.textContent).not.toContain('Inédit');
+    pistesPretes = true;
+    comptesPrets = true;
+    await attendreQue(() => hote!.textContent!.includes('Inédit'), 'les pistes du dossier');
+  });
+
+  it('🔴 quitter l’écran arrête les relances', async () => {
+    monte = mount(BrowseView, { target: hote!, props: {} });
+    flushSync();
+    await attendreQue(() => !!hote!.querySelector('.root-item'), 'les emplacements');
+    unmount(monte);
+    monte = null;
+    const avant = appels.length;
+    await new Promise((r) => setTimeout(r, 1600));
+    expect(appels.length, 'relance après démontage').toBe(avant);
+  });
+});
+
+describe('#9116 — suivreLesComptes', () => {
+  function fausseMinuterie() {
+    const posees: { f: () => void; ms: number; id: number }[] = [];
+    const retirees: number[] = [];
+    let n = 0;
+    return {
+      posees, retirees,
+      minuterie: {
+        poser: (f: () => void, ms: number) => { posees.push({ f, ms, id: ++n }); return n; },
+        retirer: (id: unknown) => { retirees.push(id as number); },
+      },
+      async declencher() {
+        const m = posees[posees.length - 1];
+        m.f();
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+      },
+    };
+  }
+
+  it('🔴 cinq relances sans comptes : « comptes en cours », puis une relance lente, sans fin', async () => {
+    const fm = fausseMinuterie();
+    let lent = 0;
+    let applique: unknown = null;
+    let lectures = 0;
+    const arreter = suivreLesComptes(
+      async () => { lectures++; return { comptes_en_attente: lectures < 8 }; },
+      (r) => { applique = r; },
+      () => { lent++; },
+      fm.minuterie,
     );
-    expect(r).toBeNull();
-    expect(lu).toBe(1);
-    const pret = await attendreLesComptes(
-      async () => ({ comptes_en_attente: lu++ < 3 }),
-      () => true,
-      async () => {},
-    );
-    expect(pret).toEqual({ comptes_en_attente: false });
+    for (let i = 0; i < 5; i++) await fm.declencher();
+    expect(fm.posees.slice(0, 5).map((m) => m.ms)).toEqual([...DELAIS_DES_COMPTES_MS]);
+    expect(lent).toBe(1);
+    expect(fm.posees[5].ms).toBe(RELANCE_LENTE_MS);
+    await fm.declencher();
+    await fm.declencher();
+    expect(lent).toBe(1);
+    expect(fm.posees[fm.posees.length - 1].ms).toBe(RELANCE_LENTE_MS);
+    await fm.declencher();
+    expect(applique).toEqual({ comptes_en_attente: false });
+    const nb = fm.posees.length;
+    arreter();
+    expect(fm.posees.length).toBe(nb);
+  });
+
+  it('arrêter retire la minuterie en cours et n’applique plus rien', async () => {
+    const fm = fausseMinuterie();
+    let applique = false;
+    const arreter = suivreLesComptes(async () => ({ comptes_en_attente: false }), () => { applique = true; }, () => {}, fm.minuterie);
+    arreter();
+    expect(fm.retirees).toEqual([1]);
+    await fm.declencher();
+    expect(applique).toBe(false);
   });
 });

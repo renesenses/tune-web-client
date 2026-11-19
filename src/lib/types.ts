@@ -1477,6 +1477,8 @@ export interface BrowseRootsResponse {
   /** tune-server-rust#9116 : `true` tant que le serveur n'a pas encore les
    *  comptes (ils valent alors 0) ; la liste s'affiche sans les attendre. */
   comptes_en_attente?: boolean;
+  /** tune-server-rust#9116 : comptes d'un état passé (un scan tourne). */
+  comptes_approximatifs?: boolean;
 }
 
 export interface BrowseDirectory {
@@ -1501,6 +1503,11 @@ export interface BrowseResult {
   /** tune-server-rust#9116 : `true` tant que les comptes des sous-dossiers ne
    *  sont pas connus (ils valent alors 0) ; voir `comptesDifferes.ts`. */
   comptes_en_attente?: boolean;
+  /** tune-server-rust#9116 : comptes d'un état passé (un scan tourne). */
+  comptes_approximatifs?: boolean;
+  /** tune-server-rust#9116 : pistes du dossier pas encore lues (`tracks`
+   *  vide) ; elles arrivent à la relance. */
+  pistes_en_attente?: boolean;
 }
 
 // Media Server (UPnP/DLNA) models

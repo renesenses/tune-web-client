@@ -751,6 +751,7 @@ export default {
   'browse.rootMissing': 'Carpeta no encontrada — comprueba el montaje',
   'browse.openError': 'No se pudo abrir esta carpeta — comprueba que la unidad o el recurso de red esté accesible',
   'browse.rootEmpty': 'Carpeta vacía',
+  'browse.comptesEnCours': 'Contando…',
   'browse.noTracks': 'No hay pistas en este directorio',
   "browse.noTracksHint": "Aquí solo aparecen las pistas ya analizadas. Si esta carpeta contiene música, todavía no está en la biblioteca: «Reescanear» la analiza (cuando termine el análisis en curso, si lo hay).",
   'browse.playAll': 'Reproducir todo',

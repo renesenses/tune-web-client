@@ -848,6 +848,7 @@ export default {
   "browse.rootMissing": "A mappa nem található — ellenőrizd a csatolást",
   "browse.openError": "Nem sikerült megnyitni ezt a mappát — ellenőrizd, hogy a meghajtó vagy a hálózati megosztás elérhető-e",
   "browse.rootEmpty": "Üres mappa",
+  "browse.comptesEnCours": "Számlálás folyamatban…",
   "browse.dirUnreachable": "A mappa nem érhető el",
   "browse.dirUnreachableHint": "A szerver nem tudta megnyitni ezt a mappát. Windowson a csatlakoztatott hálózati meghajtó (Z:) csak azt a munkamenetet látja, amelyik létrehozta — használd helyette az UNC-elérési utat (\\\\szerver\\megosztas).",
   "browse.noTracks": "Nincs szám ebben a könyvtárban",

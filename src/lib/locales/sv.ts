@@ -739,6 +739,7 @@ export default {
   'browse.rootMissing': 'Mappen hittades inte – kontrollera monteringen',
   'browse.openError': 'Kunde inte öppna den här mappen – kontrollera att enheten eller nätverksresursen är åtkomlig',
   'browse.rootEmpty': 'Tom mapp',
+  'browse.comptesEnCours': 'Räknar…',
   'browse.noTracks': 'Inga spår i den här mappen',
   "browse.noTracksHint": "Här visas bara spår som redan har skannats. Om mappen innehåller musik finns den inte i biblioteket än: ”Skanna om” skannar den (när en pågående skanning är klar).",
   'browse.playAll': 'Spela alla',

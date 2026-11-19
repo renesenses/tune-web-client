@@ -30,7 +30,7 @@
   import IndicateurLecture from '../v2/IndicateurLecture.svelte';
   import ChampRecherche from '../v2/ChampRecherche.svelte';
   import { filtrerParTexte } from '../../lib/filtreTexte';
-  import { attendreLesComptes } from '../../lib/comptesDifferes';
+  import { suivreLesComptes, encoreEnAttente } from '../../lib/comptesDifferes';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -55,7 +55,13 @@
   let roots = $state<BrowseRootEntry[]>([]);
   /** tune-server-rust#9116 : comptes des emplacements pas encore connus. */
   let comptesRacinesEnAttente = $state(false);
-  let demandeRacines = 0;
+  let comptesRacinesApproches = $state(false);
+  /** Les relances des comptes (emplacements, dossier ouvert) : leur arrêt. */
+  let arreterRacines: (() => void) | null = null;
+  let arreterDossier: (() => void) | null = null;
+  /** Cinq relances sans comptes : l'écran le dit (« comptes en cours »). */
+  let comptesLents = $state(false);
+  let comptesRacinesLents = $state(false);
   let browseResult = $state<BrowseResult | null>(null);
   let currentPath = $state<string | null>(null);
   /**
@@ -128,7 +134,9 @@
       const res = await api.getBrowseRoots();
       roots = res.roots;
       comptesRacinesEnAttente = !!res.comptes_en_attente;
+      comptesRacinesApproches = !!res.comptes_approximatifs;
       if (res.comptes_en_attente) completerLesComptesDesRacines();
+      else arreterRacines?.();
     } catch (e) {
       console.error('Browse roots error:', e);
     }
@@ -247,13 +255,15 @@
   /** Afficher un dossier, sans rien écrire dans l'historique. */
   async function charger(path: string) {
     const mienne = ++demande;
+    arreterDossier?.();
+    comptesLents = false;
     loading = true;
     currentPath = path;
     try {
       const res = await api.browseDirectory(path);
       if (mienne !== demande) return;
       browseResult = res;
-      if (res.comptes_en_attente) completerLesComptes(path, mienne);
+      if (encoreEnAttente(res)) completerLesComptes(path, mienne);
     } catch (e) {
       if (mienne !== demande) return;
       console.error('Browse directory error:', e);
@@ -264,31 +274,58 @@
   }
 
   /**
-   * tune-server-rust#9116 — les comptes arrivent APRÈS les dossiers : la liste
-   * est déjà affichée (et navigable) ; seuls les nombres se posent ensuite,
-   * si l'écran montre encore ce dossier.
+   * tune-server-rust#9116 — les comptes (et, pour un très grand dossier, ses
+   * pistes) arrivent APRÈS les dossiers : la liste est déjà affichée et
+   * navigable ; ce qui manque se pose ensuite, si l'écran montre encore ce
+   * dossier. Changer de dossier ou quitter l'écran arrête les relances.
    */
   function completerLesComptes(path: string, mienne: number) {
-    void attendreLesComptes(() => api.browseDirectory(path), () => mienne === demande).then((r) => {
-      if (!r || mienne !== demande || !browseResult) return;
-      browseResult = { ...browseResult, directories: r.directories, comptes_en_attente: false };
-    });
+    arreterDossier?.();
+    comptesLents = false;
+    arreterDossier = suivreLesComptes(
+      () => api.browseDirectory(path),
+      (r) => {
+        if (mienne !== demande || !browseResult) return;
+        browseResult = {
+          ...browseResult,
+          directories: r.directories,
+          tracks: browseResult.pistes_en_attente ? r.tracks : browseResult.tracks,
+          comptes_en_attente: false,
+          pistes_en_attente: false,
+          comptes_approximatifs: r.comptes_approximatifs,
+        };
+        comptesLents = false;
+      },
+      () => { if (mienne === demande) comptesLents = true; },
+    );
   }
-
-  // Quitter l'écran arrête les relances de comptes en cours.
-  $effect(() => () => { demande++; demandeRacines++; });
 
   function completerLesComptesDesRacines() {
-    const mienne = ++demandeRacines;
-    void attendreLesComptes(() => api.getBrowseRoots(), () => mienne === demandeRacines).then((r) => {
-      if (!r || mienne !== demandeRacines) return;
-      roots = r.roots;
-      comptesRacinesEnAttente = false;
-    });
+    arreterRacines?.();
+    comptesRacinesLents = false;
+    arreterRacines = suivreLesComptes(
+      () => api.getBrowseRoots(),
+      (r) => {
+        roots = r.roots;
+        comptesRacinesEnAttente = false;
+        comptesRacinesApproches = !!r.comptes_approximatifs;
+        comptesRacinesLents = false;
+      },
+      () => { comptesRacinesLents = true; },
+    );
   }
+
+  // Quitter l'écran arrête toutes les relances (et leurs minuteries).
+  $effect(() => () => {
+    demande++;
+    arreterDossier?.();
+    arreterRacines?.();
+  });
 
   function goToRoots() {
     demande++;
+    arreterDossier?.();
+    comptesLents = false;
     loading = false;
     browseResult = null;
     currentPath = null;
@@ -543,6 +580,10 @@
         </div>
       {/if}
 
+      {#if comptesLents}
+        <div class="comptes-en-cours" data-comptes-en-cours>{$tr('browse.comptesEnCours' as any)}</div>
+      {/if}
+
       <!-- Subdirectories -->
       {#if browseResult.directories.length > 0 && !dossiersTrouves.length}
         <div class="empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
@@ -554,7 +595,7 @@
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
               </svg>
               <span class="dir-name">{dir.name}</span>
-              <span class="dir-count" data-compte-en-attente={browseResult.comptes_en_attente || undefined}>{browseResult.comptes_en_attente ? '' : dir.track_count}</span>
+              <span class="dir-count" data-compte-en-attente={browseResult.comptes_en_attente || undefined}>{browseResult.comptes_en_attente ? '' : `${browseResult.comptes_approximatifs ? '≈ ' : ''}${dir.track_count}`}</span>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
             </button>
           {/each}
@@ -644,6 +685,9 @@
     {:else if !racinesTrouvees.length}
       <div class="empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
+      {#if comptesRacinesLents}
+        <div class="comptes-en-cours" data-comptes-en-cours>{$tr('browse.comptesEnCours' as any)}</div>
+      {/if}
       <div class="roots-list">
         {#each racinesTrouvees as root}
           {@const missing = root.exists === false}
@@ -661,7 +705,7 @@
                 <span class="root-warning">{$tr('browse.rootEmpty')}</span>
               {/if}
             </div>
-            <span class="root-count" data-compte-en-attente={comptesRacinesEnAttente || undefined}>{comptesRacinesEnAttente ? '' : `${root.track_count} ${$tr('common.tracks')}`}</span>
+            <span class="root-count" data-compte-en-attente={comptesRacinesEnAttente || undefined}>{comptesRacinesEnAttente ? '' : `${comptesRacinesApproches ? '≈ ' : ''}${root.track_count} ${$tr('common.tracks')}`}</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
         {/each}
@@ -918,6 +962,12 @@
   .dir-name {
     flex: 1;
     font-weight: 600;
+  }
+
+  .comptes-en-cours {
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text-muted);
+    padding: 4px 0 8px;
   }
 
   .dir-count {
