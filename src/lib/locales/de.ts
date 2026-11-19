@@ -2196,6 +2196,8 @@ export default {
   "smartPlaylists.joinAny": "ODER",
   "collections.title": "Sammlungen",
   "v2.pl.remove": "Entfernen",
+  "v2.pl.confirmRemove": "„{title}“ aus der Playlist „{playlist}“ entfernen?",
+  "v2.pl.confirmRemoveAlbum": "„{title}“ (Album „{album}“) aus der Playlist „{playlist}“ entfernen?",
   "v2.pl.removeFromThisPlaylist": "Aus dieser Playlist entfernen",
   "v2.pl.missingTrack": "Nicht gefunden",
   "v2.pl.radioLive": "Live",

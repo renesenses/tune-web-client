@@ -18,6 +18,7 @@ import { currentZoneId } from '../stores/zones';
 import { entreesMenuPiste } from '../menuPiste';
 import { entreeParLibelle } from './aides/menuFiche';
 import lFr from '../locales/fr';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -119,6 +120,7 @@ describe('rc12 — la croix « Retirer » sur chaque ligne de playlist modifiabl
     expect(nb('Nightswimming')).toBe(2);
     // La TROISIÈME ligne : la seconde occurrence de « Nightswimming ».
     croix()[2].click();
+    await confirmerLaBoite();
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.endsWith('/playlists/12/tracks/remove')), 'le retrait');
     expect(requetes.find((r) => r.url.endsWith('/tracks/remove'))!.body).toEqual({ entry_id: 346 });
     await attendreQue(() => nb('Nightswimming') === 1, 'la ligne retirée');
@@ -137,6 +139,7 @@ describe('rc12 — la croix « Retirer » sur chaque ligne de playlist modifiabl
     await ouvrirQobuz(true);
     expect(croix().length).toBe(2);
     croix()[0].click();
+    await confirmerLaBoite();
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.includes('/tracks/remove')), 'le retrait');
     const w = requetes.find((r) => r.method === 'POST')!;
     expect(w.url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/11\/tracks\/remove$/);

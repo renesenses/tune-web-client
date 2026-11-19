@@ -2175,6 +2175,8 @@ export default {
   "smartPlaylists.joinAny": "또는",
   "collections.title": "컬렉션",
   "v2.pl.remove": "제거",
+  "v2.pl.confirmRemove": "“{title}”을(를) 재생목록 “{playlist}”에서 제거할까요?",
+  "v2.pl.confirmRemoveAlbum": "“{title}”(앨범 “{album}”)을(를) 재생목록 “{playlist}”에서 제거할까요?",
   "v2.pl.removeFromThisPlaylist": "이 재생목록에서 삭제",
   "v2.pl.missingTrack": "찾을 수 없음",
   "v2.pl.radioLive": "라이브",

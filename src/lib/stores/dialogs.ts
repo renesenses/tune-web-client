@@ -27,6 +27,11 @@ export interface DialogRequest {
   /** Une case à cocher sous le message (confirm seulement, fil 2145). Le
    *  résultat est alors `{ coche }`, ou `null` si l'utilisateur annule. */
   case?: { label: string; coche: boolean };
+  /** Le bouton par défaut est « Annuler » (focus, Entrée) : pour un geste
+   *  destructif facile à déclencher par mégarde (web#3245, fil 2941). */
+  annulerParDefaut?: boolean;
+  /** Libellé du bouton de validation (par défaut « OK »). */
+  valider?: string;
 }
 
 /** Réponse de `confirmAvecCase` : `null` = annulé. */
@@ -63,13 +68,18 @@ function createStore() {
     subscribe,
     settle,
     /** Drop-in for window.confirm(): true = validated, false = cancelled. */
-    confirm(message: string, opts: { danger?: boolean } = {}): Promise<boolean> {
+    confirm(
+      message: string,
+      opts: { danger?: boolean; annulerParDefaut?: boolean; valider?: string } = {},
+    ): Promise<boolean> {
       return new Promise<boolean>((resolve) => {
         push({
           kind: 'confirm',
           message,
           danger: opts.danger ?? false,
           initial: '',
+          annulerParDefaut: opts.annulerParDefaut,
+          valider: opts.valider,
           resolve: resolve as (value: boolean | string | null | { coche: boolean }) => void,
         });
       });

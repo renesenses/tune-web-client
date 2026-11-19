@@ -2880,6 +2880,8 @@ export default {
   "smartPlaylists.joinAny": "VEYA",
   "collections.title": "Koleksiyonlar",
   "v2.pl.remove": "Kaldır",
+  "v2.pl.confirmRemove": "“{title}” “{playlist}” çalma listesinden kaldırılsın mı?",
+  "v2.pl.confirmRemoveAlbum": "“{title}” (“{album}” albümü) “{playlist}” çalma listesinden kaldırılsın mı?",
   "v2.pl.removeFromThisPlaylist": "Bu çalma listesinden kaldır",
   "v2.pl.missingTrack": "Bulunamadı",
   "v2.pl.radioLive": "Canlı",

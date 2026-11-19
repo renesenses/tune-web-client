@@ -2861,6 +2861,8 @@ export default {
   "smartPlaylists.joinAny": "Ή",
   "collections.title": "Συλλογές",
   "v2.pl.remove": "Αφαίρεση",
+  "v2.pl.confirmRemove": "Αφαίρεση του «{title}» από τη λίστα αναπαραγωγής «{playlist}»;",
+  "v2.pl.confirmRemoveAlbum": "Αφαίρεση του «{title}» (άλμπουμ «{album}») από τη λίστα αναπαραγωγής «{playlist}»;",
   "v2.pl.removeFromThisPlaylist": "Αφαίρεση από αυτή τη λίστα αναπαραγωγής",
   "v2.pl.missingTrack": "Λείπει",
   "v2.pl.radioLive": "Ζωντανά",

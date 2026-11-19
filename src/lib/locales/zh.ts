@@ -2196,6 +2196,8 @@ export default {
   "smartPlaylists.joinAny": "或",
   "collections.title": "合集",
   "v2.pl.remove": "移除",
+  "v2.pl.confirmRemove": "要从播放列表“{playlist}”中移除“{title}”吗？",
+  "v2.pl.confirmRemoveAlbum": "要从播放列表“{playlist}”中移除“{title}”（专辑“{album}”）吗？",
   "v2.pl.removeFromThisPlaylist": "从此播放列表中移除",
   "v2.pl.missingTrack": "找不到",
   "v2.pl.radioLive": "直播",
