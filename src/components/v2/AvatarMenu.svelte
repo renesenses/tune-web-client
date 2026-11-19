@@ -454,11 +454,12 @@
         <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
       </button>
-      {#if ssoRelieSansDetails}
-        <div class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</div>
-      {:else if !ssoConnected && ssoConfigured}
-        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
-        {#if ssoDisponible()}
+      {#if !ssoConnected && ssoConfigured}
+        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`.
+             Serveur déjà relié, compte non montré ici : rien à relier. -->
+        {#if ssoRelieSansDetails}
+          <div class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</div>
+        {:else if ssoDisponible()}
           <button class="item" onclick={signIn}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
             {$t('settings.signIn')}

@@ -17,6 +17,7 @@ import AvatarMenu from '../../components/v2/AvatarMenu.svelte';
 import { locale } from '../i18n';
 import { currentProfileId, profiles } from '../stores/profile';
 import { preferences } from '../stores/preferences';
+import lEn from '../locales/en';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -185,7 +186,7 @@ describe('Menu de compte — serveur relié, compte non montré à cet appareil'
       } as unknown as Response;
     }));
     const m = await ouvrir();
-    const en = (await import('../locales/en')).default as unknown as Record<string, string>;
+    const en = lEn as unknown as Record<string, string>;
     expect(m.querySelector('.avname')?.textContent?.trim()).toBe(en['settings.accountLinkedNoDetails']);
     const libelles = Array.from(m.querySelectorAll('button')).map((b) => b.textContent?.trim());
     expect(libelles).not.toContain(en['settings.signIn']);
