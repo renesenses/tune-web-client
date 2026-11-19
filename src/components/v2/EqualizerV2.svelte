@@ -39,7 +39,7 @@
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
-  import { bandesGraphiques } from '../../lib/eqGraphicChannels';
+  import { bandesGraphiques, courbesDepuisBandes, CANAL_DROITE } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
   import { bilanImportPeq, db, lignesApercu, lignesEcartees, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
   import '../../styles/tune-v2.css';
@@ -521,10 +521,26 @@
       return bandes.length === pBandes.length
         && bandes.every((b, i) => memeBandeParametrique(b, pBandes[i]));
     }
-    if (sousMode !== 'graphique' || gainsRight !== null) return false;
+    if (sousMode !== 'graphique') return false;
     if (courbeEnServiceParametrique) return false;
-    return bandes.length === BANDS.length
-      && bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]));
+    // web#3264 — les deux canaux : un préréglage délié porte deux passes sur
+    // la grille, un préréglage lié une seule, sans canal. Lié contre délié ne
+    // correspond jamais : « Enregistrer » changerait ce qui est écrit.
+    const { grille, gauche, droite } = courbesDuPreset(bandes);
+    if (grille.length !== BANDS.length || grille.some((f, i) => f !== BANDS[i])) return false;
+    if ((droite === null) !== (gainsRight === null)) return false;
+    const memeCourbe = (a: number[], b: number[]) => a.every((g, i) => memeGain(g, b[i]));
+    return memeCourbe(gauche, gains) && (droite === null || memeCourbe(droite, gainsRight!));
+  }
+
+  /**
+   * Les courbes d'un préréglage graphique, sur SA grille : la passe gauche (ou
+   * unique) donne les fréquences, une passe `channel: 1` la courbe droite.
+   */
+  function courbesDuPreset(bandes: EqBand[]): { grille: number[]; gauche: number[]; droite: number[] | null } {
+    const grille = bandes.filter((b) => b.channel !== CANAL_DROITE).map((b) => b.freq);
+    const { gauche, droite } = courbesDepuisBandes(bandes, grille.length);
+    return { grille, gauche, droite };
   }
 
   /** Le préréglage PERSONNEL dont la courbe est celle affichée. */
@@ -568,7 +584,9 @@
     const eq_type = sousMode === 'parametrique' ? 'parametric' : 'graphic';
     const bands: EqBand[] = sousMode === 'parametrique'
       ? $state.snapshot(pBandes)
-      : bandesGraphiques(BANDS, gains, null, GRID_Q[bandCount] ?? 1.0);
+      // web#3264 — courbes déliées : les DEUX passes (`channel` 0 puis 1),
+      // que le serveur garde telles quelles (routes/eq_pro.rs, `EqBand.channel`).
+      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     return { name: nom, eq_type, bands };
   }
 
@@ -617,10 +635,14 @@
       pBandes = bandes.map((b) => ({ ...b }));
       sousMode = 'parametrique';
     } else {
-      const g = bandes.map((b) => b.gain);
-      const grille = bandes.map((b) => b.freq);
+      // web#3264 — un préréglage délié rend ses deux courbes ; un préréglage
+      // lié relie les canaux (sinon la droite affichée resterait l'ancienne).
+      const { grille, gauche, droite } = courbesDuPreset(bandes);
       // Enregistré sur une autre grille : on rééchantillonne sur la courante.
-      gains = g.length === BANDS.length ? g : resample(g, grille, BANDS);
+      const surGrille = (g: number[]) => (g.length === BANDS.length ? g : resample(g, grille, BANDS));
+      gains = surGrille(gauche);
+      gainsRight = droite === null ? null : surGrille(droite);
+      editing = 'left';
       sousMode = 'graphique';
     }
     if (!enabled) enabled = true;
