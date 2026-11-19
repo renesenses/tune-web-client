@@ -254,6 +254,7 @@
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille, revenirA } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
+  import FlechesNavigation from './FlechesNavigation.svelte';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
 
@@ -695,6 +696,13 @@
       déjà (leur en-tête réserve `var(--v2-grappe-w)`). Posé à
       gauche, il se serait couché sur le titre de chaque écran.
     -->
+    <!--
+      web#3275 (alec_eiffel, fil 2953) — Précédent / Suivant de l'interface,
+      en TÊTE de la grappe : le premier geste qu'on cherche en haut d'un écran.
+      Dans la grappe, que les écrans réservent déjà (`--v2-grappe-w`, mesurée) :
+      aucun titre n'est recouvert.
+    -->
+    <FlechesNavigation />
     {#if $formatEcran === 'tiroir'}
       <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
         aria-expanded={$tiroirOuvert}

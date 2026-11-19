@@ -17,7 +17,8 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -1154,6 +1155,42 @@ import { sansDoublons } from '../../lib/clesUniques';
         duration_ms: t.duration_ms, ...champAlbumBandcamp(t) } as any).catch(signalerEchecLecture);
     }
   }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉSULTATS RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * La requête survit déjà au démontage (`currentSearchCriteria`) ; les
+   * pastilles de type et de source, et les sections dépliées par « Voir
+   * plus », non. Retenues à la sortie de l'entrée (`lib/memoireNavigation`),
+   * rendues au remontage par l'historique seulement. La requête est reposée
+   * avant les effets : la recherche repart d'elle-même, rien d'autre n'est
+   * rejoué (aucune lecture, aucun ajout).
+   *
+   * Les sections dépliées sont remises au pas par le premier passage de
+   * l'effet `void q` : elles sont rendues par un effet déclaré APRÈS lui.
+   */
+  interface MemoireRecherche {
+    q: string; types: TypeRecherche[]; sources: string[];
+    montreArtistes: number; montreAlbums: number; montreTitres: number;
+  }
+  const memoireRecherche = memoireEcran<MemoireRecherche>('search', () => $state.snapshot({
+    q, types: [...typesActifs], sources: [...sourcesActives],
+    montreArtistes, montreAlbums, montreTitres,
+  }) as MemoireRecherche);
+  $effect(() => memoireRecherche.arreter);
+  const repriseRecherche = memoireRecherche.reprise;
+  if (repriseRecherche) {
+    q = repriseRecherche.q;
+    // `doitViderLePerimetre` ne vide pas au premier passage : les sources tiennent.
+    typesActifs = new Set(repriseRecherche.types);
+    sourcesActives = new Set(repriseRecherche.sources);
+  }
+  $effect(() => {
+    const r = repriseRecherche;
+    if (r) untrack(() => {
+      montreArtistes = r.montreArtistes; montreAlbums = r.montreAlbums; montreTitres = r.montreTitres;
+    });
+  });
 </script>
 
 <section class="v2-search tune-v2">
