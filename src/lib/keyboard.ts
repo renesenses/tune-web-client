@@ -25,10 +25,13 @@ import { activeView, mobileNowPlayingOpen } from './stores/navigation';
  * - Les flèches seules ne pilotent la lecture que sur l'écran de lecture.
  */
 export function flecheDeLecture(
-  e: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'defaultPrevented'>,
+  e: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'defaultPrevented'> & { altKey?: boolean },
   surEcranDeLecture: boolean,
 ): boolean {
   if (e.defaultPrevented) return false;
+  // web#3275 — Alt + ← / → appartient à la navigation (Précédent / Suivant),
+  // jamais à la lecture : sans cela, l'écouteur arrivé le premier gagnait.
+  if (e.altKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) return false;
   if (e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) return true;
   return surEcranDeLecture;
 }

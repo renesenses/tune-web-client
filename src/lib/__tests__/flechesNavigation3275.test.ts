@@ -39,6 +39,12 @@ function geste(sens: 'reculer' | 'avancer'): Promise<void> {
   });
 }
 
+/** Défiler comme l'utilisateur : la position, PUIS l'événement que le navigateur émet. */
+function defiler(el: HTMLElement, top: number): void {
+  el.scrollTop = top;
+  el.dispatchEvent(new Event('scroll'));
+}
+
 let racine: HTMLElement;
 let debrancher: (() => void) | null = null;
 const avantMiseEnPage = {
@@ -102,11 +108,11 @@ describe('web#3275 — Précédent / Suivant retrouvent chaque écran comme il �
     expect(get(peutAvancer), 'au démarrage, rien après : Suivant grisé').toBe(false);
 
     a.etat.filtre = 'FLAC';
-    a.liste.scrollTop = 1800;
+    defiler(a.liste, 1800);
 
     const b = allerA('search');
     b.etat.filtre = 'miles davis';
-    b.liste.scrollTop = 420;
+    defiler(b.liste, 420);
     allerA('settings');
 
     expect(get(peutReculer)).toBe(true);

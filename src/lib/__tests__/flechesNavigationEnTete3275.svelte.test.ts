@@ -28,6 +28,9 @@ import loc_zh from '../locales/zh';
 
 const LANGUES: Record<string, Record<string, string>> = { de: loc_de, el: loc_el, en: loc_en, es: loc_es, fr: loc_fr, hu: loc_hu, it: loc_it, ja: loc_ja, ko: loc_ko, nb: loc_nb, pl: loc_pl, ro: loc_ro, sv: loc_sv, tr: loc_tr, vi: loc_vi, zh: loc_zh } as any;
 
+/** Grisée par `aria-disabled` (le bouton garde le focus). */
+const grisee = (b: Element) => b.getAttribute('aria-disabled') === 'true';
+
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
@@ -54,18 +57,18 @@ describe('web#3275 — flèches Précédent / Suivant de l’en-tête', () => {
     expect(p.getAttribute('aria-label')).toBeTruthy();
     expect(s.getAttribute('aria-label')).toBeTruthy();
     expect(p.getAttribute('aria-label')).not.toBe(s.getAttribute('aria-label'));
-    expect(p.disabled, 'début de session : Précédent grisé').toBe(true);
-    expect(s.disabled, 'début de session : Suivant grisé').toBe(true);
+    expect(grisee(p), 'début de session : Précédent grisé').toBe(true);
+    expect(grisee(s), 'début de session : Suivant grisé').toBe(true);
 
     empilerAuRang(1); empilerAuRang(2);
     flushSync();
-    expect(p.disabled).toBe(false);
-    expect(s.disabled, 'au bout du chemin').toBe(true);
+    expect(grisee(p)).toBe(false);
+    expect(grisee(s), 'au bout du chemin').toBe(true);
 
     atteindreLeRang(0);
     flushSync();
-    expect(p.disabled, 'revenu au début').toBe(true);
-    expect(s.disabled).toBe(false);
+    expect(grisee(p), 'revenu au début').toBe(true);
+    expect(grisee(s)).toBe(false);
   });
 
   it('le clic fait le geste du navigateur, une fois', () => {
@@ -81,6 +84,22 @@ describe('web#3275 — flèches Précédent / Suivant de l’en-tête', () => {
     expect(forward).not.toHaveBeenCalled();
     back.mockRestore();
     forward.mockRestore();
+  });
+
+  it('grisée, la flèche garde le focus et le clic ne part pas (relecture de #3278)', () => {
+    empilerAuRang(1);
+    flushSync();
+    const p = bouton('reculer')!;
+    p.focus();
+    expect(document.activeElement).toBe(p);
+    atteindreLeRang(0);
+    flushSync();
+    expect(grisee(p)).toBe(true);
+    expect(document.activeElement, '`disabled` aurait jeté le focus sur le document').toBe(p);
+    const back = vi.spyOn(history, 'back').mockImplementation(() => {});
+    p.click();
+    expect(back).not.toHaveBeenCalled();
+    back.mockRestore();
   });
 
   it('montées en tête de la grappe de la coquille v2', () => {

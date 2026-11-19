@@ -7,7 +7,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
-  import { memoireEcran } from '../../lib/memoireNavigation';
+  import { annulerRestaurationDefilement, memoireEcran } from '../../lib/memoireNavigation';
   // 🔴 PLUS d'import de `get` : ce fichier n'a plus AUCUN lecteur de magasin
   // par `get()`. Les deux derniers étaient les effets `pendingLibraryArtist`
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
@@ -2921,6 +2921,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   /** Après un tri ou une recherche, la liste repart de sa tête. */
   function remonterEnTeteDesPistes() {
+    // web#3275 — l'écran remet sa liste en tête : la reprise d'un Précédent
+    // en cours (mémoire par entrée) ne doit pas la contredire.
+    annulerRestaurationDefilement();
     const avant = elPistes?.querySelector<HTMLElement>('[data-espace="avant"]');
     const sc = avant ? parentDefilant(avant) : null;
     if (sc) sc.scrollTop = 0;

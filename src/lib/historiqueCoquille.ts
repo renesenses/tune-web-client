@@ -65,8 +65,10 @@ import {
   demarrerAuRang,
   empilerAuRang,
   nouvelleEntree,
+  atteindreEntreeEtrangere,
   restaurerDefilements,
   retenirEntree,
+  suivreLesDefilements,
 } from './memoireNavigation';
 
 /** web#3275 — le rang porté par une entrée ; une entrée empilée d'avant ce lot vaut 1. */
@@ -712,7 +714,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     const vueQuittee = vueConnue;
     entConnue = estEtatCoquille(etat) ? (etat.ent ?? null) : null;
     vueConnue = estEtatCoquille(etat) ? etat.vue : null;
-    if (!estEtatCoquille(etat)) return;
+    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); return; }
     atteindreLeRang(rangDe(etat));
     arriverParHistorique(etat.ent, etat.vue, vueQuittee);
     enRestauration = true;
@@ -729,6 +731,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     restaurerDefilements(etat.ent);
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
+  // web#3275 — les conteneurs défilés, suivis pour la mémoire par entrée.
+  const arretSuivi = suivreLesDefilements();
 
   // Fils 2166 et 2168 — la vue du PROFIL, une fois relue du serveur. Posée
   // comme l'ancrage du montage : l'entrée courante est RÉÉCRITE, rien n'est
@@ -754,6 +758,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretOnglet();
     arretRetour();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
+    arretSuivi();
   };
 }
 

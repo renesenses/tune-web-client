@@ -29,6 +29,9 @@ function reponsePour(url: string) {
   } as unknown as Response;
 }
 
+/** Grisée par `aria-disabled` (le bouton garde le focus). */
+const grisee = (b: Element) => b.getAttribute('aria-disabled') === 'true';
+
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
@@ -42,7 +45,7 @@ function cliquerFleche(sens: 'reculer' | 'avancer'): Promise<void> {
   return new Promise((resolve, reject) => {
     const b = hote!.querySelector<HTMLButtonElement>(`.av-tr [data-fleche-nav="${sens}"]`);
     if (!b) { reject(new Error(`flèche ${sens} absente de l’en-tête`)); return; }
-    if (b.disabled) { reject(new Error(`flèche ${sens} grisée`)); return; }
+    if (grisee(b)) { reject(new Error(`flèche ${sens} grisée`)); return; }
     const filet = setTimeout(() => reject(new Error('aucun popstate')), 4_000);
     window.addEventListener('popstate', () => { clearTimeout(filet); resolve(); }, { once: true });
     b.click();
@@ -90,8 +93,8 @@ describe('web#3275 — flèches de l’en-tête dans la coquille v2', () => {
     const p = () => hote!.querySelector<HTMLButtonElement>('.av-tr [data-fleche-nav="reculer"]')!;
     const s = () => hote!.querySelector<HTMLButtonElement>('.av-tr [data-fleche-nav="avancer"]')!;
     expect(p(), 'la flèche Précédent est dans l’en-tête').toBeTruthy();
-    expect(p().disabled, 'début de session : grisée').toBe(true);
-    expect(s().disabled, 'début de session : grisée').toBe(true);
+    expect(grisee(p()), 'début de session : grisée').toBe(true);
+    expect(grisee(s()), 'début de session : grisée').toBe(true);
 
     const champ = champBibliotheque();
     expect(champ, 'le champ de recherche de la Bibliothèque').toBeTruthy();
@@ -105,8 +108,8 @@ describe('web#3275 — flèches de l’en-tête dans la coquille v2', () => {
     activeView.set('settings');
     flushSync();
     await laisserPasser();
-    expect(p().disabled).toBe(false);
-    expect(s().disabled).toBe(true);
+    expect(grisee(p())).toBe(false);
+    expect(grisee(s())).toBe(true);
 
     await cliquerFleche('reculer');
     await laisserPasser();
@@ -115,8 +118,8 @@ describe('web#3275 — flèches de l’en-tête dans la coquille v2', () => {
     await laisserPasser();
     expect(get(activeView)).toBe('library');
     expect(champBibliotheque()?.value, 'la Bibliothèque remontée garde la recherche qu’on y avait tapée').toBe('miles');
-    expect(p().disabled, 'première entrée : Précédent grisé').toBe(true);
-    expect(s().disabled, 'Suivant actif').toBe(false);
+    expect(grisee(p()), 'première entrée : Précédent grisé').toBe(true);
+    expect(grisee(s()), 'Suivant actif').toBe(false);
 
     await cliquerFleche('avancer');
     await laisserPasser();

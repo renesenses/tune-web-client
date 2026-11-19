@@ -95,6 +95,31 @@ export function atteindreLeRang(rang: number): void {
   publier();
 }
 
+/**
+ * Une entrée qui n'est PAS à nous (`popstate` sans état : une ancre, une
+ * page d'avant Tune). On ne sait plus ce qu'il y a de part et d'autre : les
+ * deux flèches s'éteignent plutôt que de promettre une entrée de Tune.
+ */
+export function atteindreEntreeEtrangere(): void {
+  rangCourant = 0;
+  rangMax = 0;
+  peutReculer.set(false);
+  peutAvancer.set(false);
+}
+
+/**
+ * La page est quittée (lien vers un autre site, onglet fermé). Si l'on y
+ * revient, les entrées qui suivaient la courante ont pu être remplacées par
+ * le site externe : le rang maximal retenu redescend au rang courant. Au pire,
+ * Suivant reste éteint alors qu'une entrée de Tune existe encore — jamais
+ * l'inverse (une flèche allumée qui mènerait hors de Tune).
+ */
+export function quitterLaPage(): void {
+  rangMax = rangCourant;
+  ecrireRangMax(rangMax);
+  publier();
+}
+
 /** Remise à zéro — tests uniquement. */
 export function _reinitialiserRangs(): void {
   rangCourant = 0;
@@ -143,10 +168,34 @@ export function estChampDeSaisie(cible: EventTarget | null | undefined): boolean
   return !!role && ROLES_DE_SAISIE.has(role);
 }
 
-/** Une fenêtre modale est ouverte : les raccourcis ne naviguent pas derrière elle. */
-export function modaleOuverte(doc: Pick<Document, 'querySelector'> | undefined =
+/**
+ * Une fenêtre modale, un dialogue ou un menu est ouvert : les raccourcis ne
+ * naviguent pas derrière lui. Les écrans de Tune ne montent ces éléments que
+ * lorsqu'ils sont ouverts (`{#if}`) ; plusieurs dialogues n'ont pas
+ * `aria-modal` (assistant d'import, sélecteur d'émoji), d'où les rôles.
+ */
+const SELECTEUR_MODALES = '[aria-modal="true"], dialog[open], [role="dialog"], [role="alertdialog"], [role="menu"]';
+export function modaleOuverte(doc: Pick<Document, 'querySelectorAll'> | undefined =
   typeof document !== 'undefined' ? document : undefined): boolean {
-  return !!doc?.querySelector('[aria-modal="true"], dialog[open]');
+  if (!doc) return false;
+  for (const el of Array.from(doc.querySelectorAll<HTMLElement>(SELECTEUR_MODALES))) {
+    if (el.closest('[hidden], [aria-hidden="true"], [inert]')) continue;
+    if (el.tagName === 'DIALOG' && !(el as HTMLDialogElement).open) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * L'élément focalisé déclare SON usage d'Alt+flèche (`aria-keyshortcuts`) :
+ * l'ordre des étiquettes (`EtiquettesV2`), l'ordre des colonnes
+ * (`ListePistesV2`). Il garde la touche. Nos propres flèches exceptées.
+ */
+export function declareAltFleche(cible: EventTarget | null | undefined): boolean {
+  const el = cible as HTMLElement | null;
+  if (!el || typeof el.closest !== 'function') return false;
+  const porteur = el.closest('[aria-keyshortcuts*="Alt+Arrow"]');
+  return !!porteur && !porteur.hasAttribute('data-fleche-nav');
 }
 
 /**
@@ -162,7 +211,7 @@ export function modaleOuverte(doc: Pick<Document, 'querySelector'> | undefined =
  */
 export function sensDuRaccourci(
   e: Pick<KeyboardEvent, 'key' | 'code' | 'altKey' | 'ctrlKey' | 'metaKey' | 'shiftKey' | 'target' | 'defaultPrevented' | 'isComposing'>,
-  doc?: Pick<Document, 'querySelector'>,
+  doc?: Pick<Document, 'querySelectorAll'>,
 ): Sens | null {
   if (e.defaultPrevented || e.isComposing) return null;
   let sens: Sens | null = null;
@@ -175,15 +224,18 @@ export function sensDuRaccourci(
   }
   if (!sens) return null;
   if (estChampDeSaisie(e.target)) return null;
+  if (e.altKey && declareAltFleche(e.target)) return null;
   if (modaleOuverte(doc ?? (typeof document !== 'undefined' ? document : undefined))) return null;
   return sens;
 }
 
 /**
- * Brancher les raccourcis. En phase de CAPTURE, et `preventDefault` : sur
- * « Lecture en cours », ← / → déplacent la lecture (`keyboard.ts`), qui
- * s'efface devant une touche déjà consommée (`flecheDeLecture`). Sans cela
- * Alt+← reculerait ET ferait reculer la lecture de dix secondes.
+ * Brancher les raccourcis. En phase de BOUILLONNEMENT, sur `window` : tout
+ * composant qui consomme Alt+flèche (`preventDefault`) passe avant et garde
+ * la touche — l'ordre des étiquettes, enregistré sur le serveur, et celui des
+ * colonnes ne doivent pas faire reculer l'écran en plus. Les raccourcis de
+ * lecture (`keyboard.ts`) laissent Alt+flèche à la navigation
+ * (`flecheDeLecture`), quel que soit l'ordre des écouteurs.
  *
  * Le défaut du navigateur est empêché même à l'extrémité : Alt+← sur la
  * première entrée quitterait Tune (#828), alors que la flèche est grisée.
@@ -199,8 +251,14 @@ export function brancherRaccourcisNavigation(
     e.preventDefault();
     naviguer(sens, fenetre.history);
   };
-  fenetre.addEventListener('keydown', surTouche as EventListener, true);
-  return () => fenetre.removeEventListener('keydown', surTouche as EventListener, true);
+  // Quitter la page : le rang maximal redescend (voir `quitterLaPage`).
+  const surDepart = () => quitterLaPage();
+  fenetre.addEventListener('keydown', surTouche as EventListener);
+  fenetre.addEventListener('pagehide', surDepart as EventListener);
+  return () => {
+    fenetre.removeEventListener('keydown', surTouche as EventListener);
+    fenetre.removeEventListener('pagehide', surDepart as EventListener);
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -228,9 +286,42 @@ const capteurs = new Map<string, () => unknown>();
  * `StreamingV2`, `PageWidgets`), et celles dont la position suit la lecture
  * (la file, « Lecture en cours ») : la mémoire générique ne s'en mêle pas.
  */
+// Relecture de #3278 — et celles qui en tiennent un à elles : l'annuaire des
+// Radios (`RadiosV2`, contexte de vue) et la messagerie du Cercle, qui se
+// cale en bas sur le dernier message (`MessagerieCercleV2`).
 const VUES_SANS_DEFILEMENT: ReadonlySet<string> = new Set([
-  'streaming', 'home', 'tableaudebord', 'queue', 'nowplaying', 'tv',
+  'streaming', 'home', 'tableaudebord', 'queue', 'nowplaying', 'tv', 'radios', 'circle',
 ]);
+
+/**
+ * LES CONTENEURS QUI ONT DÉFILÉ, suivis au fil de l'eau (relecture de #3278).
+ *
+ * Parcourir tout l'écran (`querySelectorAll('*')` et un `scrollTop` par nœud)
+ * à chaque navigation coûtait un passage sur des milliers de nœuds — une
+ * grille d'albums, une liste de pistes. Un seul écouteur `scroll` en CAPTURE
+ * sur le document entend tous les conteneurs (l'événement ne bouillonne pas,
+ * la capture le voit) : la mesure ne lit plus que ceux qui ont bougé.
+ */
+const defiles = new Set<Element>();
+let suiviBranche = 0;
+const surDefilement = (e: Event) => {
+  const el = e.target;
+  if (el && (el as Element).nodeType === 1) defiles.add(el as Element);
+};
+export function suivreLesDefilements(doc: Pick<Document, 'addEventListener' | 'removeEventListener'> | undefined =
+  typeof document !== 'undefined' ? document : undefined): () => void {
+  if (!doc) return () => {};
+  if (suiviBranche++ === 0) doc.addEventListener('scroll', surDefilement, { capture: true, passive: true });
+  let arrete = false;
+  return () => {
+    if (arrete) return;
+    arrete = true;
+    if (--suiviBranche === 0) {
+      doc.removeEventListener('scroll', surDefilement, { capture: true } as EventListenerOptions);
+      defiles.clear();
+    }
+  };
+}
 
 /** La racine où chercher les conteneurs défilés : la zone des écrans de la coquille. */
 let racineParDefaut: () => ParentNode | null = () =>
@@ -252,9 +343,11 @@ function selecteurDe(el: Element): string {
 export function mesurerDefilements(racine: ParentNode | null = racineParDefaut()): Defilement[] {
   if (!racine || typeof (racine as ParentNode).querySelectorAll !== 'function') return [];
   const sortie: Defilement[] = [];
-  const tous = racine.querySelectorAll('*');
-  for (let k = 0; k < tous.length && sortie.length < 12; k++) {
-    const el = tous[k] as HTMLElement;
+  for (const el of Array.from(defiles) as HTMLElement[]) {
+    // Démonté avec son écran : il ne reviendra pas, on l'oublie.
+    if (!el.isConnected) { defiles.delete(el); continue; }
+    if (sortie.length >= 12) break;
+    if (!(racine as Node).contains?.(el)) continue;
     const top = el.scrollTop;
     if (!(top > 0)) continue;
     const sel = selecteurDe(el);
@@ -414,11 +507,22 @@ export function restaurerDefilements(ent: string | null | undefined, options: Op
   programmer(passe, 0);
 }
 
+/**
+ * L'écran remet LUI-MÊME son défilement (la liste des pistes repart en tête
+ * après un tri ou une recherche) : la reprise en cours s'efface, elle ne
+ * doit pas le contredire.
+ */
+export function annulerRestaurationDefilement(): void {
+  jetonRestauration++;
+  entEnRestauration = null;
+}
+
 /** Tests : tout oublier. */
 export function _reinitialiserMemoire(): void {
   memoire.clear();
   capteurs.clear();
   aReprendre = null;
   entEnRestauration = null;
+  defiles.clear();
   jetonRestauration++;
 }
