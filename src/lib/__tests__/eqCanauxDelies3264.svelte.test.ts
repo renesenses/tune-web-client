@@ -121,7 +121,11 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  // Un curseur déplacé arme un enregistrement différé (300 ms, `queueSave`)
+  // que le démontage n'annule pas : sous charge, il tombait dans le témoin
+  // SUIVANT et y faussait le dernier appel à `setEq`. On le laisse partir ici.
+  await new Promise((r) => setTimeout(r, 350));
   if (monte) unmount(monte as any);
   monte = null;
   hote?.remove();
