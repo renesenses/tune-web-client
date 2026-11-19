@@ -112,7 +112,7 @@ async function entreeDuMenu(attr: string): Promise<HTMLElement> {
 describe('web#3247 — « Tout lire » dans l’écran d’une étiquette', () => {
   it('🔴 « Tout lire » lance les titres de l’album ET les titres étiquetés, sans doublon', async () => {
     await ouvrirEtiquette();
-    const lire = hote.querySelector<HTMLButtonElement>('[data-tout-lire-etiquette]');
+    const lire = hote.querySelector<HTMLButtonElement>('[data-lire-etiquette]');
     expect(lire, 'pas de bouton « Tout lire »').not.toBeNull();
     lire!.click();
     await souffler();
@@ -145,7 +145,7 @@ describe('web#3247 — « Tout lire » dans l’écran d’une étiquette', () =
 
   it('« Tout lire » seul ne touche pas à la répétition', async () => {
     await ouvrirEtiquette();
-    hote.querySelector<HTMLButtonElement>('[data-tout-lire-etiquette]')!.click();
+    hote.querySelector<HTMLButtonElement>('[data-lire-etiquette]')!.click();
     await souffler();
     expect(appels.some((a) => /\/repeat/.test(a.url))).toBe(false);
   });

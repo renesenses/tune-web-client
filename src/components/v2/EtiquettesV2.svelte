@@ -802,7 +802,7 @@
              autres listes, et l'ajout à une playlist (existante ou nouvelle). -->
         <div class="tirage" data-lecture-etiquette>
           <BoutonLectureV2 onLire={() => lireTout('tout')} cle="collections.playAll" cleBulle="collections.playAll"
-            desactive={masseEnCours} attrsLire={{ 'data-tout-lire-etiquette': true }}
+            desactive={masseEnCours} attrsLire={{ 'data-lire-etiquette': true }}
             aleatoire={{ faire: () => lireTout('aleatoire'), desactive: masseEnCours, bulle: 'collections.shuffleAll' }}
             boucle={{ faire: () => lireTout('boucle'), desactive: masseEnCours }}
             ensuite={{ faire: () => void enfilerTout(rangLireEnsuite(), 'v2.album.queuedNext'), desactive: masseEnCours }}
