@@ -39,6 +39,13 @@
 
   let selected = $state<number | null>(null);
   let dragging = $state(false);
+  // web#3207 — le point où le glisser a commencé. Tant que le pointeur n'a pas
+  // franchi `SEUIL_GLISSER`, la bande n'est pas touchée : un simple clic (avec
+  // le tremblement de la main) ne réécrit plus en Hz entier et en demi-dB une
+  // fréquence et un gain saisis à la main.
+  let departGlisser: { x: number; y: number } | null = null;
+  let glisserEngage = false;
+  const SEUIL_GLISSER = 3;
 
   // rc11 — le graphe est FIGÉ par défaut : survoler, faire défiler la page
   // avec la molette ou cliquer à côté d'un point ne change plus rien. Le
@@ -180,12 +187,18 @@
     selected = i;
     if (!edition) return;
     dragging = true;
+    glisserEngage = false;
+    departGlisser = svgEl ? svgPoint(e) : null;
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function onPointMove(e: PointerEvent) {
     if (!edition || !dragging || selected === null) return;
     const { x, y } = svgPoint(e);
+    if (!glisserEngage) {
+      if (departGlisser && Math.hypot(x - departGlisser.x, y - departGlisser.y) < SEUIL_GLISSER) return;
+      glisserEngage = true;
+    }
     const b = bands[selected];
     b.freq = Math.round(Math.max(F_MIN, Math.min(F_MAX, fOf(x))));
     b.gain = Math.round(Math.max(MIN_GAIN, Math.min(MAX_GAIN, dbOf(y))) * 2) / 2;
@@ -194,6 +207,8 @@
 
   function onPointUp() {
     dragging = false;
+    departGlisser = null;
+    glisserEngage = false;
   }
 
   // web#3083 (fil 2508) — un plateau est conçu à pente fixe S = 1, côté
@@ -213,7 +228,7 @@
     const b = bands[i];
     const q = b.q && b.q > 0 ? b.q : 1.41;
     const next = q * (e.deltaY < 0 ? 1.12 : 1 / 1.12);
-    b.q = Math.round(Math.max(0.1, Math.min(30, next)) * 100) / 100;
+    b.q = arrondir(Math.max(0.1, Math.min(30, next)), CHAMPS.q.decimales);
     selected = i;
     notify();
   }
@@ -244,11 +259,17 @@
   // frappe ne touche ni la bande ni le champ ; la valeur n'est lue, bornée et
   // appliquée qu'en sortant du champ ou sur Entrée. Échap annule la saisie ;
   // les flèches haut/bas ajustent finement (Maj : pas plus grand).
+  //
+  // web#3207 (fil 2903) — la précision gardée à la validation était de 0
+  // décimale pour la fréquence, 1 pour le gain et 2 pour le Q : une valeur
+  // relevée par mesure (ou importée, Q à 3 décimales) était tronquée dès qu'on
+  // retouchait le champ. Le serveur garde des `f64` ; l'éditeur garde
+  // désormais 2 décimales pour la fréquence, 3 pour le gain et le Q.
   type Cle = 'freq' | 'gain' | 'q';
   const CHAMPS: Record<Cle, { min: number; max: number; decimales: number }> = {
-    freq: { min: F_MIN, max: F_MAX, decimales: 0 },
-    gain: { min: MIN_GAIN, max: MAX_GAIN, decimales: 1 },
-    q: { min: 0.1, max: 30, decimales: 2 },
+    freq: { min: F_MIN, max: F_MAX, decimales: 2 },
+    gain: { min: MIN_GAIN, max: MAX_GAIN, decimales: 3 },
+    q: { min: 0.1, max: 30, decimales: 3 },
   };
   // `bande` : l'indice de la bande éditée, figé à la première frappe. Cliquer
   // un autre point change `selected` AVANT que le champ ne perde le focus :
