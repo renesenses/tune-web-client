@@ -1,4 +1,5 @@
 export default {
+  "settings.orphanTracksFailed": "{count} parça kütüphaneden kaldırılamadı.",
   "classicalTags.title": "Klasik müzik etiketleri",
   "classicalTags.hint": "Her rol için okunan etiketler. CONDUCTOR, WORK ve MOVEMENTNAME tüm varyantlarını (ID3, MP4) kapsar; başka her ad özel bir etikettir: CHORUS, TXXX:CHORUS etiketini de okur.",
   "classicalTags.unavailable": "Bu sunucu henüz bu ayarı sunmuyor. Lütfen Tune'u güncelleyin.",
