@@ -26,7 +26,7 @@
 
 import { cleCodeSpotify } from './messagesSpotify';
 
-export type NatureErreurConnexion = 'identifiants' | 'application' | 'reseau' | 'brut' | 'texte';
+export type NatureErreurConnexion = 'identifiants' | 'application' | 'reseau' | 'relais' | 'incomplete' | 'brut' | 'texte';
 
 export const CODE_IDENTIFIANTS_REFUSES = 'invalid_credentials';
 
@@ -63,6 +63,8 @@ export function nomDeService(service: string): string {
 export function natureErreurConnexion(
   e: { code?: unknown; message?: unknown; detail?: unknown } | null | undefined,
 ): NatureErreurConnexion {
+  if (e?.code === 'qobuz_relay_login_refused') return 'relais';
+  if (e?.code === 'qobuz_login_incomplete') return 'incomplete';
   if (e?.code === CODE_APPLICATION_REFUSEE) return 'application';
   if (e?.code === CODE_RESEAU_REFUSE) return 'reseau';
   if (e?.code === CODE_IDENTIFIANTS_REFUSES) return 'identifiants';

@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Le relais Qobuz a refusé la connexion. Cela ne confirme pas que le mot de passe est incorrect. Réessayez.",
+  "settings.errQobuzIncomplete": "Connexion Qobuz incomplète : la réponse ne contient pas de jeton utilisable. Réessayez.",
   "classicalTags.title": "Balises du classique",
   "classicalTags.hint": "Les balises lues pour chaque rôle. CONDUCTOR, WORK et MOVEMENTNAME couvrent toutes leurs variantes (ID3, MP4) ; tout autre nom est une balise libre : CHORUS lit aussi TXXX:CHORUS.",
   "classicalTags.unavailable": "Ce serveur ne propose pas encore ce réglage. Mettez Tune à jour.",

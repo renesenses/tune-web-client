@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Releul Qobuz a refuzat conexiunea. Acest lucru nu confirmă o parolă incorectă. Încercați din nou.",
+  "settings.errQobuzIncomplete": "Conexiune Qobuz incompletă: răspunsul nu conține un token utilizabil. Încercați din nou.",
   "classicalTags.title": "Etichete pentru muzica clasică",
   "classicalTags.hint": "Etichetele citite pentru fiecare rol. CONDUCTOR, WORK și MOVEMENTNAME acoperă toate variantele lor (ID3, MP4); orice alt nume este o etichetă liberă: CHORUS citește și TXXX:CHORUS.",
   "classicalTags.unavailable": "Acest server nu oferă încă această setare. Actualizați Tune.",

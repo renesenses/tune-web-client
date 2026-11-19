@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Qobuz 中继服务器拒绝了连接。这不能确认密码有误。请重试。",
+  "settings.errQobuzIncomplete": "Qobuz 连接未完成：响应中没有可用的令牌。请重试。",
   "classicalTags.title": "古典音乐标签",
   "classicalTags.hint": "每个角色读取的标签。CONDUCTOR、WORK 和 MOVEMENTNAME 涵盖其所有变体（ID3、MP4）；其他名称为自定义标签：CHORUS 也会读取 TXXX:CHORUS。",
   "classicalTags.unavailable": "此服务器尚不支持此设置。请更新 Tune。",

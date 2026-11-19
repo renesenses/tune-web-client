@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "Máy chủ chuyển tiếp Qobuz đã từ chối kết nối. Điều này không xác nhận mật khẩu sai. Hãy thử lại.",
+  "settings.errQobuzIncomplete": "Kết nối Qobuz chưa hoàn tất: phản hồi không chứa mã xác thực dùng được. Hãy thử lại.",
   "classicalTags.title": "Thẻ nhạc cổ điển",
   "classicalTags.hint": "Các thẻ được đọc cho từng vai trò. CONDUCTOR, WORK và MOVEMENTNAME bao gồm mọi biến thể (ID3, MP4); mọi tên khác là thẻ tùy chỉnh: CHORUS cũng đọc TXXX:CHORUS.",
   "classicalTags.unavailable": "Máy chủ này chưa hỗ trợ cài đặt này. Hãy cập nhật Tune.",

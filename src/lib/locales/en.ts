@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "The Qobuz relay refused the connection. This does not confirm an incorrect password. Try again.",
+  "settings.errQobuzIncomplete": "Qobuz connection incomplete: the response contains no usable token. Try again.",
   "classicalTags.title": "Classical tags",
   "classicalTags.hint": "The tags read for each role. CONDUCTOR, WORK and MOVEMENTNAME cover all their variants (ID3, MP4); any other name is a custom tag: CHORUS also reads TXXX:CHORUS.",
   "classicalTags.unavailable": "This server does not offer this setting yet. Please update Tune.",

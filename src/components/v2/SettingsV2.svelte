@@ -2036,7 +2036,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         svcErr = {
           ...svcErr,
           [name]:
-            f === 'pseudo_motdepasse' ? get(t)('settings.errCredentialsRejected')
+            name === 'qobuz' ? get(t)('settings.errQobuzIncomplete' as any)
+            : f === 'pseudo_motdepasse' ? get(t)('settings.errCredentialsRejected')
             : f === 'pseudo' ? get(t)('settings.errUsernameRejected')
             : get(t)('settings.errNoAuthLink'),
         };
@@ -2054,7 +2055,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       svcErr = {
         ...svcErr,
         [name]:
-          nature === 'application'
+          nature === 'relais' ? get(t)('settings.errQobuzRelay' as any)
+          : nature === 'incomplete' ? get(t)('settings.errQobuzIncomplete' as any)
+          : nature === 'application'
             ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
           : nature === 'reseau'
             ? get(t)('settings.errNetworkRefused' as any).replace('{service}', nomAffiche(name))

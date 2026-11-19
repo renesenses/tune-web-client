@@ -1,4 +1,6 @@
 export default {
+  "settings.errQobuzRelay": "A Qobuz közvetítője elutasította a kapcsolatot. Ez nem igazolja, hogy hibás a jelszó. Próbálja újra.",
+  "settings.errQobuzIncomplete": "A Qobuz-kapcsolat hiányos: a válasz nem tartalmaz használható tokent. Próbálja újra.",
   "classicalTags.title": "Klasszikus címkék",
   "classicalTags.hint": "Az egyes szerepekhez olvasott címkék. A CONDUCTOR, a WORK és a MOVEMENTNAME minden változatukat lefedi (ID3, MP4); minden más név szabad címke: a CHORUS a TXXX:CHORUS-t is olvassa.",
   "classicalTags.unavailable": "Ez a szerver még nem kínálja ezt a beállítást. Frissítse a Tune-t.",
