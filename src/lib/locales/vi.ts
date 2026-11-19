@@ -584,6 +584,7 @@ export default {
   "playlist.remove": "Gỡ",
   "playlist.addToPlaylist": "Thêm vào danh sách phát",
   "playlist.addedTo": "Đã thêm vào {name}",
+  "playlist.addedPartial": "{tracks} trên {total}; không thể thêm các bài còn lại.",
   "playlist.noExisting": "Chưa có danh sách phát nào",
   "playlist.noMatch": "Không có danh sách phát nào khớp",
   "playlist.addFailed": "Không thể thêm bài hát: dịch vụ đã từ chối danh sách phát này.",

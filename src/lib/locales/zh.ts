@@ -517,6 +517,7 @@ export default {
   'playlist.remove': '移除',
   'playlist.addToPlaylist': '添加到播放列表',
   'playlist.addedTo': '已添加到 {name}',
+  'playlist.addedPartial': '{total} 首中的 {tracks}；其余无法添加。',
   'playlist.noExisting': '无现有播放列表',
   'playlist.noMatch': '没有匹配的播放列表',
   'playlist.addFailed': '添加失败：该服务拒绝了此播放列表。',

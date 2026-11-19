@@ -623,6 +623,7 @@ export default {
   'playlist.remove': 'Retirer',
   'playlist.addToPlaylist': 'Ajouter à une playlist',
   'playlist.addedTo': 'Ajoutée à {name}',
+  'playlist.addedPartial': '{tracks} sur {total} : les autres n’ont pas pu être ajoutés.',
   'playlist.noExisting': 'Aucune playlist existante',
   'playlist.noMatch': 'Aucune playlist ne correspond',
   'playlist.addFailed': 'L’ajout a échoué : le service a refusé cette playlist.',

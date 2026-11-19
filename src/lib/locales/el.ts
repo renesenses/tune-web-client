@@ -582,6 +582,7 @@ export default {
   "playlist.remove": "Αφαίρεση",
   "playlist.addToPlaylist": "Προσθήκη σε λίστα αναπαραγωγής",
   "playlist.addedTo": "Προστέθηκε στη λίστα {name}",
+  "playlist.addedPartial": "{tracks} από {total}· τα υπόλοιπα δεν προστέθηκαν.",
   "playlist.noExisting": "Δεν υπάρχουν λίστες αναπαραγωγής",
   "playlist.noMatch": "Καμία λίστα δεν ταιριάζει",
   "playlist.addFailed": "Δεν ήταν δυνατή η προσθήκη του κομματιού: η υπηρεσία απέρριψε αυτή τη λίστα.",

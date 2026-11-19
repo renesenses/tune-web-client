@@ -38,6 +38,7 @@ const PISTE_ETIQUETEE = [{ id: 102, title: 'Freddie Freeloader', album_id: 12, s
   { id: 200, title: 'Naima', source: 'local', duration_ms: 1000 }];
 
 let compteServeur = 3;
+let echecService = false;
 let tagSansRangeable = false;
 let appels: { url: string; method: string; body: any }[] = [];
 let hote: HTMLDivElement;
@@ -65,6 +66,7 @@ function repondre(url: string, method: string): unknown {
 beforeEach(() => {
   appels = [];
   compteServeur = 3;
+  echecService = false;
   tagSansRangeable = false;
   locale.set('fr');
   currentZoneId.set(1);
@@ -80,6 +82,13 @@ beforeEach(() => {
     try { body = init?.body ? JSON.parse(String(init.body)) : null; } catch { body = init?.body; }
     appels.push({ url, method, body });
     const charge = repondre(url, method);
+    if (echecService && method === 'POST' && /\/playlists\/7\/tracks/.test(url) && body?.streaming_tracks?.length) {
+      return {
+        ok: false, status: 500, statusText: 'Internal Server Error',
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        text: async () => '{"error":"boom"}', json: async () => ({ error: 'boom' }),
+      } as unknown as Response;
+    }
     return {
       ok: true, status: 200, statusText: 'OK',
       headers: new Headers({ 'Content-Type': 'application/json' }),
@@ -210,5 +219,31 @@ describe('web#3267 — « Ajouter tout à une playlist » garde l’ordre d’un
       .map((a) => [a.body.track_ids, (a.body.streaming_tracks ?? []).map((x: any) => x.source_id)]);
     expect(envois).toEqual([[[1], []], [[], ['q1']], [[2], []]]);
     expect(hote.querySelector('[data-ajout-confirme]')).not.toBeNull();
+  });
+
+  it('🔴 un envoi refusé parmi d’autres : « k sur n », pas « Ajoutée » seul', async () => {
+    echecService = true;
+    const lot = [
+      { id: 1, title: 'L1', source: 'local', duration_ms: 1 },
+      { id: null, title: 'Q', source: 'qobuz', source_id: 'q1', duration_ms: 1 },
+      { id: 2, title: 'L2', source: 'local', duration_ms: 1 },
+    ] as any[];
+    montes.push(mount(AddToPlaylistModal, { target: hote, props: { track: lot[0], tracks: lot, onClose: () => {} } }));
+    await souffler();
+    [...hote.querySelectorAll<HTMLElement>('button')].find((x) => x.textContent?.includes('Soirée'))!.click();
+    await souffler();
+    expect(hote.querySelector('[data-ajout-confirme]')).not.toBeNull();
+    expect(hote.querySelector('[data-ajout-partiel]')?.textContent)
+      .toBe('2 titres sur 3 : les autres n’ont pas pu être ajoutés.');
+  });
+
+  it('tout passe : aucun avertissement', async () => {
+    const lot = [{ id: 1, title: 'L1', source: 'local', duration_ms: 1 }] as any[];
+    montes.push(mount(AddToPlaylistModal, { target: hote, props: { track: lot[0], tracks: lot, onClose: () => {} } }));
+    await souffler();
+    [...hote.querySelectorAll<HTMLElement>('button')].find((x) => x.textContent?.includes('Soirée'))!.click();
+    await souffler();
+    expect(hote.querySelector('[data-ajout-confirme]')).not.toBeNull();
+    expect(hote.querySelector('[data-ajout-partiel]')).toBeNull();
   });
 });

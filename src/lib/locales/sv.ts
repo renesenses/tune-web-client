@@ -488,6 +488,7 @@ export default {
   'playlist.remove': 'Ta bort',
   'playlist.addToPlaylist': 'Lägg till i spellista',
   'playlist.addedTo': 'Tillagd i {name}',
+  'playlist.addedPartial': '{tracks} av {total}; resten kunde inte läggas till.',
   'playlist.noExisting': 'Inga befintliga spellistor',
   'playlist.noMatch': 'Ingen spellista matchar',
   'playlist.addFailed': 'Det gick inte att lägga till: tjänsten avvisade den här spellistan.',

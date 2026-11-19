@@ -517,6 +517,7 @@ export default {
   'playlist.remove': '제거',
   'playlist.addToPlaylist': '재생목록에 추가',
   'playlist.addedTo': '{name}에 추가됨',
+  'playlist.addedPartial': '{total}곡 중 {tracks}. 나머지는 추가하지 못했습니다.',
   'playlist.noExisting': '기존 재생목록 없음',
   'playlist.noMatch': '일치하는 재생목록 없음',
   'playlist.addFailed': '추가하지 못했습니다: 서비스가 이 재생목록을 거부했습니다.',

@@ -87,6 +87,8 @@ export interface Versement {
   trackCount: number | null;
   /** Envois acceptés / refusés. */
   reussis: number;
+  /** Titres portés par les envois ACCEPTÉS (à comparer à `lot.length`). */
+  titresAcceptes: number;
   echecs: number;
   /** La dernière erreur, pour la dire quand rien n'est passé. */
   derniere: unknown;
@@ -103,20 +105,23 @@ export async function verserDansPlaylist(
   deps: DepsVerser = api,
   avancement?: Avancement,
 ): Promise<Versement> {
-  const v: Versement = { trackCount: null, reussis: 0, echecs: 0, derniere: null };
+  const v: Versement = { trackCount: null, reussis: 0, titresAcceptes: 0, echecs: 0, derniere: null };
   let envoyes = 0;
-  for (const morceau of envoisOrdonnes(lot)) {
+  const morceaux = envoisOrdonnes(lot);
+  for (const morceau of morceaux) {
     const { trackIds, streamingTracks } = corpsAjoutPlaylist(morceau);
     try {
       const r: Playlist = await deps.addPlaylistTracks(id, trackIds, undefined, streamingTracks);
       v.reussis++;
+      v.titresAcceptes += morceau.length;
       if (typeof r?.track_count === 'number') v.trackCount = r.track_count;
     } catch (e) {
       v.echecs++;
       v.derniere = e;
     }
     envoyes += morceau.length;
-    avancement?.(envoyes, lot.length);
+    // Un seul envoi : rien à suivre, « n / n » ne dirait rien.
+    if (morceaux.length > 1) avancement?.(envoyes, lot.length);
   }
   return v;
 }

@@ -78,4 +78,11 @@ describe('playlistDepuisPistes (web#3267)', () => {
     expect(c.streamingTracks?.[0]).toMatchObject({ source: 'qobuz', source_id: 'b' });
     expect(tronconsParFamille([])).toEqual([]);
   });
+
+  it('🔴 un seul envoi : pas d’avancement « n / n »', async () => {
+    const d = faux([2]);
+    const vus: string[] = [];
+    await creerPlaylistAvecPistes('X', [L(1), L(2)], d, (k, n) => vus.push(`${k} / ${n}`));
+    expect(vus).toEqual([]);
+  });
 });

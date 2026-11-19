@@ -582,6 +582,7 @@ export default {
   "playlist.remove": "Fjern",
   "playlist.addToPlaylist": "Legg til i spilleliste",
   "playlist.addedTo": "Lagt til i {name}",
+  "playlist.addedPartial": "{tracks} av {total}; resten kunne ikke legges til.",
   "playlist.noExisting": "Ingen eksisterende spillelister",
   "playlist.noMatch": "Ingen samsvarende spilleliste",
   "playlist.addFailed": "Kunne ikke legge til sporet: tjenesten avviste denne spillelisten.",

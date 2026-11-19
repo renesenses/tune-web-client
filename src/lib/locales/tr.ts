@@ -579,6 +579,7 @@ export default {
   "playlist.remove": "Kaldır",
   "playlist.addToPlaylist": "Çalma listesine ekle",
   "playlist.addedTo": "Eklendi: {name}",
+  "playlist.addedPartial": "{total} parçadan {tracks}; diğerleri eklenemedi.",
   "playlist.noExisting": "Mevcut çalma listesi yok",
   "playlist.noMatch": "Eşleşen çalma listesi yok",
   "playlist.addFailed": "Parça eklenemedi: hizmet bu çalma listesini reddetti.",

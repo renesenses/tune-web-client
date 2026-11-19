@@ -609,6 +609,7 @@ export default {
   "playlist.remove": "Eltávolítás",
   "playlist.addToPlaylist": "Hozzáadás lejátszási listához",
   "playlist.addedTo": "Hozzáadva ehhez: {name}",
+  "playlist.addedPartial": "{total} közül {tracks}; a többit nem sikerült hozzáadni.",
   "playlist.addFailed": "A hozzáadás nem sikerült: a szolgáltatás elutasította ezt a lejátszási listát.",
   "playlist.servicePlaylistsOf": "{service}-lejátszási listáid",
   "playlist.groupTune": "Tune lejátszási listák",

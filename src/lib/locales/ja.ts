@@ -517,6 +517,7 @@ export default {
   'playlist.remove': '削除',
   'playlist.addToPlaylist': 'プレイリストに追加',
   'playlist.addedTo': '{name}に追加しました',
+  'playlist.addedPartial': '{total} 曲中 {tracks}。残りは追加できませんでした。',
   'playlist.noExisting': '既存のプレイリストがありません',
   'playlist.noMatch': '一致するプレイリストはありません',
   'playlist.addFailed': '追加できませんでした：サービスがこのプレイリストを拒否しました。',
