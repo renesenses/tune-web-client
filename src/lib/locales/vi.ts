@@ -7532,7 +7532,7 @@ export default {
   "upsampling.noZone": "Hãy chọn một vùng để chỉnh tăng tần số lấy mẫu.",
   "upsampling.bitPerfect": "Khi bật, mỗi mẫu đều bị thay đổi: đường tín hiệu không còn bit-perfect. Chế độ PURE luôn bỏ qua nó, và luồng DoP không bao giờ được tăng tần số.",
   "upsampling.enabled": "Tăng tần số cho vùng này",
-  "upsampling.enabledHint": "Mặc định tắt. Chỉ đầu ra cục bộ, ở chế độ chia sẻ, với DAC có tần số đã được đo.",
+  "upsampling.enabledHint": "Mặc định tắt. Chỉ đầu ra cục bộ, với DAC có tần số đã được đo. Trên macOS và Windows, không ở chế độ độc quyền; trên Linux, cả với đầu ra trực tiếp hw:.",
   "upsampling.filter": "Bộ lọc",
   "upsampling.filterHint": "Chỉ đề xuất các bộ lọc mà máy này chạy được theo thời gian thực (dư ×3). Trong ngoặc: mức giảm âm lượng.",
   "upsampling.filterNotAdmitted": "Máy này không chạy được bộ lọc này theo thời gian thực: nó sẽ không được áp dụng. Hãy chọn bộ lọc khác hoặc đo lại máy.",

@@ -7680,7 +7680,7 @@ export default {
   "upsampling.noZone": "Elija una zona para ajustar su sobremuestreo.",
   "upsampling.bitPerfect": "Activo, el sobremuestreo cambia cada muestra: la ruta deja de ser bit-perfect. El modo PURE siempre lo omite y un flujo DoP nunca se sobremuestrea.",
   "upsampling.enabled": "Sobremuestrear esta zona",
-  "upsampling.enabledHint": "Desactivado por defecto. Solo salida local, en modo compartido, con un DAC cuyas frecuencias se han medido.",
+  "upsampling.enabledHint": "Desactivado por defecto. Solo salida local, con un DAC cuyas frecuencias se han medido. En macOS y Windows, no en modo exclusivo; en Linux, también con salida directa hw:.",
   "upsampling.filter": "Filtro",
   "upsampling.filterHint": "Solo se ofrecen los filtros que este equipo procesa en tiempo real (con un margen de ×3). Entre paréntesis: la bajada de nivel.",
   "upsampling.filterNotAdmitted": "Este equipo no puede procesar este filtro en tiempo real: no se aplicará. Elija otro o vuelva a medir el equipo.",

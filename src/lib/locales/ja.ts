@@ -7680,7 +7680,7 @@ export default {
   "upsampling.noZone": "アップサンプリングを設定するゾーンを選んでください。",
   "upsampling.bitPerfect": "有効時はすべてのサンプルが変わるため、経路は bit-perfect ではなくなります。PURE モードでは常にバイパスされ、DoP ストリームはアップサンプリングされません。",
   "upsampling.enabled": "このゾーンをアップサンプリング",
-  "upsampling.enabledHint": "既定ではオフ。ローカル出力の共有モードで、レートが計測済みの DAC のみ。",
+  "upsampling.enabledHint": "既定ではオフ。ローカル出力のみ、レートが計測済みの DAC で有効。macOS と Windows では排他モード以外、Linux では hw: への直接出力でも有効。",
   "upsampling.filter": "フィルター",
   "upsampling.filterHint": "このマシンがリアルタイム（×3 の余裕）で処理できるフィルターのみ表示します。括弧内はレベルの低下量です。",
   "upsampling.filterNotAdmitted": "このマシンはこのフィルターをリアルタイムで処理できないため、適用されません。別のフィルターを選ぶか、再計測してください。",

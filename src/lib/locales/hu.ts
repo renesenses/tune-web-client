@@ -7639,7 +7639,7 @@ export default {
   "upsampling.noZone": "Válasszon zónát a felülmintavételezés beállításához.",
   "upsampling.bitPerfect": "Bekapcsolva minden mintát megváltoztat: a jelút többé nem bit-perfect. A PURE mód mindig megkerüli, DoP-folyamot pedig soha nem mintavételez fel.",
   "upsampling.enabled": "Zóna felülmintavételezése",
-  "upsampling.enabledHint": "Alapból ki. Csak helyi kimenet, megosztott módban, mért frekvenciájú DAC-on.",
+  "upsampling.enabledHint": "Alapból ki. Csak helyi kimenet, mért frekvenciájú DAC-on. macOS-en és Windowson nem kizárólagos módban; Linuxon közvetlen hw: kimenettel is.",
   "upsampling.filter": "Szűrő",
   "upsampling.filterHint": "Csak azok a szűrők jelennek meg, amelyeket ez a gép valós időben futtat (×3 tartalékkal). Zárójelben: a szintcsökkenés.",
   "upsampling.filterNotAdmitted": "Ez a gép nem tudja valós időben futtatni ezt a szűrőt: nem lesz alkalmazva. Válasszon másikat, vagy mérje újra a gépet.",

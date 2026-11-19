@@ -15,6 +15,7 @@ import {
   type FiltreSurechantillonnage,
 } from '../surechantillonnage';
 import fr from '../locales/fr';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
 vi.mock('../stores/notifications', () => ({
@@ -138,5 +139,26 @@ describe('câblage de l’écran', () => {
       const manquantes = [...cles].filter((c) => !source.includes(`"${c}"`));
       expect(manquantes, l).toEqual([]);
     }
+  });
+});
+
+/**
+ * tune-server-rust#9165 (fil 2945) — sous Linux, le greffon s'applique aussi
+ * sur un PCM `hw:` réglé en exclusif : seuls les bras exclusifs macOS
+ * (CoreAudio) et Windows (WASAPI, ASIO) l'ignorent. L'aide ne doit plus dire
+ * « en mode partagé » pour toutes les plateformes.
+ */
+describe('aide du réglage, exacte sur toutes les plateformes (#9165)', () => {
+  it('nomme macOS/Windows pour l’exclusif et Linux hw: dans toutes les langues', () => {
+    for (const l of ONZE_LANGUES) {
+      const aide = dictionnaire(l)['upsampling.enabledHint'];
+      expect(aide, l).toBeTruthy();
+      expect(aide, l).toMatch(/macOS/);
+      expect(aide, l).toMatch(/Windows/);
+      expect(aide, l).toMatch(/Linu[xk]/); // pl : « w Linuksie »
+      expect(aide, l).toMatch(/hw:/);
+    }
+    expect(dictionnaire('en')['upsampling.enabledHint']).not.toMatch(/in shared mode/);
+    expect(dictionnaire('fr')['upsampling.enabledHint']).not.toMatch(/en mode partagé/);
   });
 });

@@ -7680,7 +7680,7 @@ export default {
   "upsampling.noZone": "请选择一个区域来设置其升频。",
   "upsampling.bitPerfect": "启用后，升频会改变每个采样：信号路径不再是 bit-perfect。PURE 模式始终绕过它，DoP 流永远不会被升频。",
   "upsampling.enabled": "对此区域升频",
-  "upsampling.enabledHint": "默认关闭。仅限本地输出、共享模式，且 DAC 的采样率经过测量。",
+  "upsampling.enabledHint": "默认关闭。仅限本地输出，且 DAC 的采样率经过测量。在 macOS 和 Windows 上不适用于独占模式；在 Linux 上直接 hw: 输出也可用。",
   "upsampling.filter": "滤波器",
   "upsampling.filterHint": "仅提供本机能实时运行（余量 ×3）的滤波器。括号内为电平降低量。",
   "upsampling.filterNotAdmitted": "本机无法实时运行此滤波器：它不会被应用。请选择其他滤波器或重新测量本机。",

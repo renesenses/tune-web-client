@@ -7525,7 +7525,7 @@ export default {
   "upsampling.noZone": "Wybierz strefę, aby ustawić jej nadpróbkowanie.",
   "upsampling.bitPerfect": "Gdy jest aktywne, zmienia każdą próbkę: tor nie jest już bit-perfect. Tryb PURE zawsze je pomija, a strumień DoP nigdy nie jest nadpróbkowywany.",
   "upsampling.enabled": "Nadpróbkowuj tę strefę",
-  "upsampling.enabledHint": "Domyślnie wyłączone. Tylko wyjście lokalne, w trybie współdzielonym, z przetwornikiem o zmierzonych częstotliwościach.",
+  "upsampling.enabledHint": "Domyślnie wyłączone. Tylko wyjście lokalne, z przetwornikiem o zmierzonych częstotliwościach. W macOS i Windows nie w trybie wyłącznym; w Linuksie także przy bezpośrednim wyjściu hw:.",
   "upsampling.filter": "Filtr",
   "upsampling.filterHint": "Proponowane są tylko filtry, które ten komputer obsługuje w czasie rzeczywistym (z zapasem ×3). W nawiasie: spadek poziomu.",
   "upsampling.filterNotAdmitted": "Ten komputer nie obsłuży tego filtra w czasie rzeczywistym: nie zostanie zastosowany. Wybierz inny lub zmierz komputer ponownie.",

@@ -7700,7 +7700,7 @@ export default {
   "upsampling.noZone": "Choose a zone to set its upsampling.",
   "upsampling.bitPerfect": "When active, upsampling changes every sample: the path is no longer bit-perfect. PURE mode always bypasses it, and a DoP stream is never upsampled.",
   "upsampling.enabled": "Upsample this zone",
-  "upsampling.enabledHint": "Off by default. Local output only, in shared mode, on a DAC whose rates are measured.",
+  "upsampling.enabledHint": "Off by default. Local output only, on a DAC whose rates are measured. On macOS and Windows, not in exclusive mode; on Linux, also with direct hw: output.",
   "upsampling.filter": "Filter",
   "upsampling.filterHint": "Only the filters this machine runs in real time (with a ×3 margin) are offered. In brackets: the level drop.",
   "upsampling.filterNotAdmitted": "This machine cannot run this filter in real time: it will not be applied. Choose another one or measure the machine again.",
