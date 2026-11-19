@@ -835,9 +835,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
   function ddEchap(e: KeyboardEvent) {
-    if (e.key !== 'Escape') return;
     // web#3258 — Échap referme d'abord un menu ouvert, puis le mode sélection
     // (un panneau de la barre d'actions l'a déjà consommé : `defaultPrevented`).
+    if (!(e.key === 'Escape')) return;
     if (ddOpen) { ddClose(); return; }
     if (modeSelection && !e.defaultPrevented) quitterSelection();
   }
