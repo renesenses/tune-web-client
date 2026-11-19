@@ -20,8 +20,9 @@ function familles(css: string): string[] {
   for (const m of css.matchAll(/(?<![-\w])font\s*:\s*([^;}]+)/g)) {
     const v = m[1].trim();
     if (v === 'inherit') continue;
-    const j = v.indexOf('var(--v2-');
-    out.push(j === -1 ? v : v.slice(j).trim());
+    // La famille est le DERNIER terme du raccourci (`font:600 calc(…) var(--x)`).
+    const fin = v.match(/(var\(--[\w-]+\)|[^\s)]+)\s*$/);
+    out.push(fin ? fin[1] : v);
   }
   return out;
 }
