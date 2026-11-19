@@ -16,7 +16,7 @@
 // boutons de Réglages affichent.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { applianceReboot, applianceShutdown } from '../api';
+import { applianceReboot, applianceShutdown, applianceWifiConnect, applianceWifiForget } from '../api';
 import { locale, t } from '../i18n';
 import { messageEchecActionMachine } from '../refusHorsMachine';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
@@ -112,5 +112,33 @@ describe('#3195 — 16 langues', () => {
   it('machineAction.adminRequired existe dans les 16 dictionnaires', () => {
     expect(ONZE_LANGUES.length).toBe(16);
     for (const l of ONZE_LANGUES) expect(dictionnaire(l)['machineAction.adminRequired'], l).toBeTruthy();
+  });
+});
+
+describe('#3195 — relecture : les phrases Wi-Fi du serveur restent affichées', () => {
+  // `AppError` (tune-http-types/src/error.rs) : `{ error: <phrase traduite par
+  // le serveur>, code }`. Avant #3195, `e.message` était cette phrase ; elle ne
+  // doit pas devenir « Le serveur n'a pas pu traiter la demande ».
+  it('🔴 wifi/connect 400 avec `error` en phrase → la phrase est affichée', async () => {
+    const phrase = 'Mot de passe Wi-Fi incorrect.';
+    repondre(400, { error: phrase, code: 'bad_request' });
+    const e: any = await applianceWifiConnect('Maison', 'faux').catch((x) => x);
+    expect(e.message).toBe(phrase);
+    expect(e.status).toBe(400);
+  });
+
+  it('wifi/connect 400, code null (forme de la relecture) → la phrase', async () => {
+    const phrase = 'La commande Wi-Fi a échoué : Error: No network with SSID \'Maison\' found.';
+    repondre(400, { error: phrase, code: null });
+    const e: any = await applianceWifiConnect('Maison').catch((x) => x);
+    expect(e.message).toBe(phrase);
+  });
+
+  it('wifi/forget 504 `code: "timeout"` (pas de clé erreursServeur.timeout) → la phrase net.wifiTimeout', async () => {
+    const phrase = 'Le Wi-Fi n’a pas répondu à temps.';
+    repondre(504, { error: phrase, code: 'timeout' });
+    const e: any = await applianceWifiForget('Maison').catch((x) => x);
+    expect(e.message).toBe(phrase);
+    expect(e.code).toBe('timeout');
   });
 });

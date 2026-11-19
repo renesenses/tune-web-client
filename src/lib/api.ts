@@ -30,7 +30,7 @@ import { estDepotTuneDistant } from './depotsTuneDistants';
 import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
-import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { estMessageGenerique, estUnCode, lireMessageServeur } from './messageServeur';
 import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -11845,11 +11845,20 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
  *    `machineAction.*`, qui renvoie à Réglages > Système > Authentification ;
  *  - `403 "admin role required"` (authentification active, compte non
  *    administrateur) : `machineAction.adminRequired` ;
+ *  - `AppError` des routes Wi-Fi (`{ error: "<phrase>", code }`, phrase déjà
+ *    traduite par le serveur : `net.wifiBadPassword`, `net.wifiCommandFailed`
+ *    avec la sortie de nmcli, `net.wifiUnavailable`, `net.wifiTimeout` sous
+ *    `code: "timeout"`) : la PHRASE de `error` reste le message, comme avant ;
+ *    `lireMessageServeur` ne lit que `message` et la rendrait générique ;
  *  - sinon la règle de `lireMessageServeur` (#2417).
  */
 export function erreurAppliance(json: any, status: number): ApiError {
   const lu = lireMessageServeur(json, '', status);
-  const err = new Error(lu.message) as ApiError;
+  const phraseDuServeur = typeof json?.error === 'string' && json.error.trim() && !estUnCode(json.error)
+    ? json.error.trim() as string
+    : null;
+  const message = phraseDuServeur !== null && estMessageGenerique(lu.message) ? phraseDuServeur : lu.message;
+  const err = new Error(message) as ApiError;
   err.detail = lu.detail;
   err.code = lu.code ?? (status === 403 && json?.error === 'admin role required' ? 'admin_required' : undefined);
   err.status = status;
