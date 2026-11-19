@@ -698,7 +698,7 @@ export default {
   "settings.disable": "Devre dışı bırak",
   "settings.notConnected": "Bağlı değil",
   "settings.accountLinkedNoDetails": "Bir Mozaiklabs hesabına bağlı",
-  "settings.accountLinkedNoDetailsHint": "Hesap ayrıntıları sunucunun kendi makinesinde gösterilir.",
+  "settings.accountLinkedNoDetailsHint": "Hesap ayrıntıları sunucunun kendi makinesinde veya yöneticiye gösterilir.",
   "settings.email": "E-posta",
   "settings.password": "Parola",
   "settings.connecting": "Bağlanıyor...",

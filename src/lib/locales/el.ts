@@ -701,7 +701,7 @@ export default {
   "settings.disable": "Απενεργοποίηση",
   "settings.notConnected": "Μη συνδεδεμένο",
   "settings.accountLinkedNoDetails": "Συνδεδεμένο με λογαριασμό Mozaiklabs",
-  "settings.accountLinkedNoDetailsHint": "Τα στοιχεία του λογαριασμού εμφανίζονται στον υπολογιστή του διακομιστή.",
+  "settings.accountLinkedNoDetailsHint": "Τα στοιχεία του λογαριασμού εμφανίζονται στον υπολογιστή του διακομιστή ή στον διαχειριστή.",
   "settings.email": "Email",
   "settings.password": "Κωδικός πρόσβασης",
   "settings.connecting": "Σύνδεση...",
