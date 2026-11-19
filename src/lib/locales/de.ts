@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "Die gemeinsame Bearbeitung ist fehlgeschlagen.",
   "bibliotheque.selection.editEmpty": "Füllen Sie mindestens ein Feld aus (Jahr vierstellig).",
   "bibliotheque.selection.cancel": "Abbrechen",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# Album ausgewählt} other {# Alben ausgewählt}}, davon {m} außerhalb der Ansicht",
+  "bibliotheque.selection.hiddenConfirm": "Diese Aktion betrifft {n, plural, one {# ausgewähltes Album} other {# ausgewählte Alben}}, davon {m} außerhalb der Ansicht (Filter, Suche oder Facette). Fortfahren?",
+  "bibliotheque.selection.hiddenValider": "Fortfahren",
+  "bibliotheque.selection.queueProgress": "Zur Warteschlange: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Hinzufügen stoppen",
+  "bibliotheque.selection.queuePartial": "{k} von {n} zur Warteschlange hinzugefügt, {x} fehlgeschlagen",
+  "bibliotheque.selection.queueStopped": "Hinzufügen gestoppt: {k} von {n} zur Warteschlange hinzugefügt",
+  "bibliotheque.selection.playlistPartial": "{x} von {n} Alben konnten nicht gelesen werden: ihre Titel fehlen.",
+  "bibliotheque.selection.editGenreScope": "Das Genre gilt nur für das Album, nicht für seine Titel.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

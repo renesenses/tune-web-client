@@ -8151,5 +8151,14 @@ export default {
   "bibliotheque.selection.editError": "Η μαζική επεξεργασία απέτυχε.",
   "bibliotheque.selection.editEmpty": "Συμπληρώστε τουλάχιστον ένα πεδίο (τετραψήφιο έτος).",
   "bibliotheque.selection.cancel": "Ακύρωση",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# άλμπουμ επιλέχθηκε} other {# άλμπουμ επιλέχθηκαν}}, {m} εκτός προβολής",
+  "bibliotheque.selection.hiddenConfirm": "Η ενέργεια αφορά {n, plural, one {# επιλεγμένο άλμπουμ} other {# επιλεγμένα άλμπουμ}}, από τα οποία {m} εκτός προβολής (φίλτρο, αναζήτηση ή κατηγορία). Συνέχεια;",
+  "bibliotheque.selection.hiddenValider": "Συνέχεια",
+  "bibliotheque.selection.queueProgress": "Προσθήκη στην ουρά: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Διακοπή",
+  "bibliotheque.selection.queuePartial": "{k} από {n} προστέθηκαν στην ουρά, {x} απέτυχαν",
+  "bibliotheque.selection.queueStopped": "Διακόπηκε: {k} από {n} προστέθηκαν στην ουρά",
+  "bibliotheque.selection.playlistPartial": "{x} από {n} άλμπουμ δεν διαβάστηκαν: λείπουν τα κομμάτια τους.",
+  "bibliotheque.selection.editGenreScope": "Το είδος ισχύει μόνο για το άλμπουμ, όχι για τα κομμάτια του.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

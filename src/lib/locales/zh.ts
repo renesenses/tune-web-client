@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "批量编辑失败。",
   "bibliotheque.selection.editEmpty": "请至少填写一个字段（年份为4位数字）。",
   "bibliotheque.selection.cancel": "取消",
+  "bibliotheque.selection.countHidden": "{n, plural, other {已选 # 张专辑}}，其中 {m} 张不在当前视图中",
+  "bibliotheque.selection.hiddenConfirm": "此操作将作用于{n, plural, other {已选的 # 张专辑}}，其中 {m} 张不在当前视图中（筛选、搜索或分类）。是否继续？",
+  "bibliotheque.selection.hiddenValider": "继续",
+  "bibliotheque.selection.queueProgress": "正在添加到队列：{k} / {n}",
+  "bibliotheque.selection.queueCancel": "停止",
+  "bibliotheque.selection.queuePartial": "已将 {k} / {n} 添加到队列，{x} 个失败",
+  "bibliotheque.selection.queueStopped": "已停止：已将 {k} / {n} 添加到队列",
+  "bibliotheque.selection.playlistPartial": "{n} 张专辑中有 {x} 张无法读取：缺少其曲目。",
+  "bibliotheque.selection.editGenreScope": "流派仅作用于专辑，不作用于其曲目。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

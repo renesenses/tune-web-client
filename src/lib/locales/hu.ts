@@ -8265,6 +8265,15 @@ export default {
   "bibliotheque.selection.editError": "A csoportos szerkesztés nem sikerült.",
   "bibliotheque.selection.editEmpty": "Töltsön ki legalább egy mezőt (négyjegyű év).",
   "bibliotheque.selection.cancel": "Mégse",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album kijelölve} other {# album kijelölve}}, ebből {m} a nézeten kívül",
+  "bibliotheque.selection.hiddenConfirm": "A művelet {n, plural, one {# kijelölt albumot} other {# kijelölt albumot}} érint, ebből {m} a nézeten kívül van (szűrő, keresés vagy csoport). Folytatja?",
+  "bibliotheque.selection.hiddenValider": "Folytatás",
+  "bibliotheque.selection.queueProgress": "Hozzáadás a sorhoz: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Leállítás",
+  "bibliotheque.selection.queuePartial": "{k} / {n} hozzáadva a sorhoz, {x} sikertelen",
+  "bibliotheque.selection.queueStopped": "Leállítva: {k} / {n} hozzáadva a sorhoz",
+  "bibliotheque.selection.playlistPartial": "{x} / {n} album nem olvasható: hiányoznak a számai.",
+  "bibliotheque.selection.editGenreScope": "A műfaj csak az albumra vonatkozik, a számaira nem.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

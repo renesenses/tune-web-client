@@ -8305,4 +8305,13 @@ export default {
   "bibliotheque.selection.editError": "Samtidig redigering misslyckades.",
   "bibliotheque.selection.editEmpty": "Fyll i minst ett fält (årtal med 4 siffror).",
   "bibliotheque.selection.cancel": "Avbryt",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album valt} other {# album valda}}, varav {m} utanför vyn",
+  "bibliotheque.selection.hiddenConfirm": "Åtgärden gäller {n, plural, one {# valt album} other {# valda album}}, varav {m} utanför vyn (filter, sökning eller fasett). Fortsätta?",
+  "bibliotheque.selection.hiddenValider": "Fortsätt",
+  "bibliotheque.selection.queueProgress": "Lägger till i kön: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Stoppa",
+  "bibliotheque.selection.queuePartial": "{k} av {n} tillagda i kön, {x} misslyckades",
+  "bibliotheque.selection.queueStopped": "Stoppat: {k} av {n} tillagda i kön",
+  "bibliotheque.selection.playlistPartial": "{x} av {n} album kunde inte läsas: deras spår saknas.",
+  "bibliotheque.selection.editGenreScope": "Genren gäller bara albumet, inte dess spår.",
 } as const;

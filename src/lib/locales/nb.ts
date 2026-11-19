@@ -8151,5 +8151,14 @@ export default {
   "bibliotheque.selection.editError": "Samlet redigering mislyktes.",
   "bibliotheque.selection.editEmpty": "Fyll ut minst ett felt (årstall med 4 sifre).",
   "bibliotheque.selection.cancel": "Avbryt",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album valgt} other {# album valgt}}, hvorav {m} utenfor visningen",
+  "bibliotheque.selection.hiddenConfirm": "Handlingen gjelder {n, plural, one {# valgt album} other {# valgte album}}, hvorav {m} utenfor visningen (filter, søk eller fasett). Fortsette?",
+  "bibliotheque.selection.hiddenValider": "Fortsett",
+  "bibliotheque.selection.queueProgress": "Legger til i køen: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Stopp",
+  "bibliotheque.selection.queuePartial": "{k} av {n} lagt til i køen, {x} mislyktes",
+  "bibliotheque.selection.queueStopped": "Stoppet: {k} av {n} lagt til i køen",
+  "bibliotheque.selection.playlistPartial": "{x} av {n} album kunne ikke leses: sporene mangler.",
+  "bibliotheque.selection.editGenreScope": "Sjangeren gjelder bare albumet, ikke sporene.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

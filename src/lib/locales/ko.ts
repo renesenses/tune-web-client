@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "일괄 편집에 실패했습니다.",
   "bibliotheque.selection.editEmpty": "적어도 한 항목을 입력하세요 (연도는 4자리).",
   "bibliotheque.selection.cancel": "취소",
+  "bibliotheque.selection.countHidden": "{n, plural, other {앨범 #장 선택됨}} (그중 {m}장은 보기 밖)",
+  "bibliotheque.selection.hiddenConfirm": "이 작업은 {n, plural, other {선택한 앨범 #장}}에 적용됩니다. 그중 {m}장은 보기 밖에 있습니다(필터, 검색 또는 분류). 계속할까요?",
+  "bibliotheque.selection.hiddenValider": "계속",
+  "bibliotheque.selection.queueProgress": "대기열에 추가 중: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "중지",
+  "bibliotheque.selection.queuePartial": "{n}장 중 {k}장을 대기열에 추가, {x}장 실패",
+  "bibliotheque.selection.queueStopped": "중지됨: {n}장 중 {k}장을 대기열에 추가",
+  "bibliotheque.selection.playlistPartial": "앨범 {n}장 중 {x}장을 읽지 못했습니다. 해당 트랙은 빠집니다.",
+  "bibliotheque.selection.editGenreScope": "장르는 앨범에만 적용되며 트랙에는 적용되지 않습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

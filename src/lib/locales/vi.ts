@@ -8158,5 +8158,14 @@ export default {
   "bibliotheque.selection.editError": "Sửa hàng loạt thất bại.",
   "bibliotheque.selection.editEmpty": "Hãy điền ít nhất một trường (năm gồm 4 chữ số).",
   "bibliotheque.selection.cancel": "Hủy",
+  "bibliotheque.selection.countHidden": "{n, plural, other {Đã chọn # album}}, trong đó {m} nằm ngoài khung xem",
+  "bibliotheque.selection.hiddenConfirm": "Thao tác này áp dụng cho {n, plural, other {# album đã chọn}}, trong đó {m} nằm ngoài khung xem (bộ lọc, tìm kiếm hoặc phân loại). Tiếp tục?",
+  "bibliotheque.selection.hiddenValider": "Tiếp tục",
+  "bibliotheque.selection.queueProgress": "Đang thêm vào hàng đợi: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Dừng",
+  "bibliotheque.selection.queuePartial": "Đã thêm {k} / {n} vào hàng đợi, {x} lỗi",
+  "bibliotheque.selection.queueStopped": "Đã dừng: đã thêm {k} / {n} vào hàng đợi",
+  "bibliotheque.selection.playlistPartial": "Không đọc được {x} / {n} album: thiếu các bài của chúng.",
+  "bibliotheque.selection.editGenreScope": "Thể loại chỉ áp dụng cho album, không áp dụng cho các bài.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

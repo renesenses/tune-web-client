@@ -74,3 +74,54 @@ export function idsSelectionnables(liste: ReadonlyArray<{ id?: number | null } |
   for (const a of liste) if (a && Number.isInteger(a.id)) ids.push(a.id as number);
   return ids;
 }
+
+/** Les albums cochés qui ne sont plus dans la vue (filtre, recherche ou
+ *  facette changés après coup) : ils restent sélectionnés (décision de
+ *  Bertrand, relecture du 19/11) et le compteur les nomme. */
+export function horsDeLaVue(sel: SelectionAlbums, ordre: readonly number[]): number {
+  if (!sel.ids.size) return 0;
+  const vue = new Set(ordre);
+  let n = 0;
+  for (const id of sel.ids) if (!vue.has(id)) n++;
+  return n;
+}
+
+/** Ce qu'Échap doit faire au mode sélection. */
+export type GesteEchap = 'rien' | 'panneau' | 'quitter';
+
+/** Une fenêtre ou un dialogue est-il ouvert (au-dessus de la Bibliothèque) ? */
+const SELECTEUR_FENETRE = '.modal-backdrop, [aria-modal="true"], [role="dialog"], [role="alertdialog"], dialog[open]';
+
+function champDeSaisie(el: Element | null): boolean {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (tag === 'INPUT') {
+    const type = ((el as HTMLInputElement).type || 'text').toLowerCase();
+    return !['button', 'submit', 'reset', 'checkbox', 'radio', 'range', 'color', 'file', 'image'].includes(type);
+  }
+  return (el as HTMLElement).isContentEditable === true;
+}
+
+/**
+ * web#3258 (relecture du 19/11) — Échap ne quitte le mode sélection que s'il
+ * n'y a RIEN d'autre à fermer :
+ * - un autre écouteur l'a déjà consommé (`defaultPrevented`) ;
+ * - une confirmation attend (`dialogs`), ou une fenêtre est ouverte (« Ajouter
+ *   à une playlist » ferme la sienne sans `preventDefault`) — Échap est pour
+ *   elle ;
+ * - un panneau de la barre est ouvert : Échap le ferme, lui seulement ;
+ * - le focus est dans un champ de saisie (la recherche) : Échap y reste.
+ */
+export function gesteEchap(
+  e: KeyboardEvent,
+  etat: { panneauOuvert: boolean; dialoguesEnAttente: number },
+  doc: Document = document,
+): GesteEchap {
+  if (e.defaultPrevented || etat.dialoguesEnAttente > 0) return 'rien';
+  const cible = e.target instanceof Element ? e.target : null;
+  if (cible?.closest(SELECTEUR_FENETRE) || doc.querySelector(SELECTEUR_FENETRE)) return 'rien';
+  if (etat.panneauOuvert) return 'panneau';
+  if (champDeSaisie(cible) || champDeSaisie(doc.activeElement)) return 'rien';
+  return 'quitter';
+}

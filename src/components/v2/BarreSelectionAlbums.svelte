@@ -20,6 +20,7 @@
    *   barre de l'écran Métadonnées. Il ÉCRASE des valeurs : confirmation par
    *   `dialogs.confirm`, Annuler par défaut.
    */
+  import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
   import { t, tn } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -28,29 +29,46 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import { demanderConversion } from '../../lib/demandeConversion';
-  import { mettreAJourAlbum } from '../../lib/stores/albumsPagines';
+  import { mettreAJourAlbums, invaliderBibliotheque } from '../../lib/stores/albumsPagines';
   import { etatGreffons, entreeStudioVisible } from '../../lib/stores/greffonsStudio';
   import type { UserTag } from '../../lib/types';
 
+  type Panneau = 'tag' | 'edition' | null;
+
   interface Props {
-    /** Les albums cochés, dans l'ordre affiché. */
+    /** Les albums cochés, dans l'ordre affiché, puis ceux hors de la vue. */
     ids: number[];
+    /** Combien des albums cochés ne sont plus dans la vue (filtre, recherche,
+     *  facette changés après coup). Décision de Bertrand (relecture du
+     *  19/11) : ils RESTENT sélectionnés, le compteur les nomme, et toute
+     *  action qui les toucherait demande confirmation. */
+    horsVue?: number;
     /** Le nombre d'albums sélectionnables de la vue filtrée. */
     total: number;
+    /** « Tout sélectionner » est en cours (liste entière demandée en pages). */
+    occupe?: boolean;
+    /** Le panneau ouvert, lu par l'écran : Échap le ferme, lui seulement. */
+    panneau?: Panneau;
     onToutSelectionner: () => void;
     onToutDeselectionner: () => void;
     onTerminer: () => void;
   }
-  let { ids, total, onToutSelectionner, onToutDeselectionner, onTerminer }: Props = $props();
+  let {
+    ids, horsVue = 0, total, occupe = false, panneau = $bindable(null),
+    onToutSelectionner, onToutDeselectionner, onTerminer,
+  }: Props = $props();
 
-  type Panneau = 'tag' | 'edition' | null;
-  let panneau = $state<Panneau>(null);
   let travail = $state(false);
 
   const n = $derived(ids.length);
   const vide = $derived(n === 0);
   /** Le Convertisseur est un greffon : pas d'entrée s'il est absent. */
   const convertisseur = $derived(entreeStudioVisible($etatGreffons?.converter));
+  const libelleCompte = $derived(
+    horsVue > 0
+      ? $tn('bibliotheque.selection.countHidden', n).replace('{m}', String(horsVue))
+      : $tn('bibliotheque.selection.count', n),
+  );
 
   function basculer(p: Exclude<Panneau, null>) {
     panneau = panneau === p ? null : p;
@@ -65,6 +83,18 @@
     panneau = null;
   }
 
+  /**
+   * Des albums cochés sont hors de la vue : l'action les toucherait sans
+   * qu'on les voie. On le dit, avec les deux nombres, Annuler par défaut.
+   */
+  async function confirmerHorsVue(lot: number): Promise<boolean> {
+    if (horsVue <= 0) return true;
+    return dialogs.confirm(
+      $tn('bibliotheque.selection.hiddenConfirm', lot).replace('{m}', String(horsVue)),
+      { annulerParDefaut: true, valider: $t('bibliotheque.selection.hiddenValider' as any) },
+    );
+  }
+
   // ── Tag ──────────────────────────────────────────────────────────────
   let tags = $state<UserTag[] | null>(null);
   let nouveauTag = $state('');
@@ -77,9 +107,10 @@
     }
   }
 
-  async function poserTag(tag: { id: number | null; name: string }) {
+  async function poserTag(tag: { id: number | null; name: string }, dejaConfirme = false) {
     const lot = [...ids];
     if (tag.id == null || !lot.length || travail) return;
+    if (!dejaConfirme && !(await confirmerHorsVue(lot.length))) return;
     const succes = $t('bibliotheque.selection.tagDone' as any);
     const echec = $t('bibliotheque.selection.tagError' as any);
     travail = true;
@@ -95,7 +126,8 @@
 
   async function creerEtPoser() {
     const nom = nouveauTag.trim();
-    if (!nom || travail) return;
+    if (!nom || travail || !ids.length) return;
+    if (!(await confirmerHorsVue(ids.length))) return;
     const echec = $t('bibliotheque.selection.tagError' as any);
     let id: number;
     try {
@@ -105,45 +137,81 @@
       return;
     }
     nouveauTag = '';
-    await poserTag({ id, name: nom });
+    // Déjà confirmé avant la création : pas une seconde question.
+    await poserTag({ id, name: nom }, true);
   }
 
-  // ── File et playlist ─────────────────────────────────────────────────
+  // ── File ─────────────────────────────────────────────────────────────
+  /**
+   * Un album après l'autre (la file garde l'ordre affiché), avec sa
+   * progression. Un échec n'arrête pas la suite ; « Annuler », « Terminé »
+   * ou la barre démontée arrêtent la boucle (`AbortController`) après l'album
+   * en cours. `travail` empêche un second ajout de s'entrelacer.
+   */
+  let file = $state<{ fait: number; total: number; echecs: number } | null>(null);
+  let controleur: AbortController | null = null;
+  onDestroy(() => controleur?.abort());
+
   async function enfiler() {
     const lot = [...ids];
     if (!lot.length || travail) return;
-    const zid = zoneRequise();
-    if (zid == null) return;
-    const succes = $t('bibliotheque.selection.queueDone' as any);
-    const echec = $t('v2.pa.queueError' as any);
     travail = true;
-    let ajoutes = 0;
     try {
-      // Un album après l'autre : la file garde l'ordre affiché.
+      if (!(await confirmerHorsVue(lot.length))) return;
+      const zid = zoneRequise();
+      if (zid == null) return;
+      const textes = {
+        fait: $t('bibliotheque.selection.queueDone' as any),
+        partiel: $t('bibliotheque.selection.queuePartial' as any),
+        arrete: $t('bibliotheque.selection.queueStopped' as any),
+      };
+      const c = new AbortController();
+      controleur = c;
+      let ok = 0;
+      let ko = 0;
+      file = { fait: 0, total: lot.length, echecs: 0 };
       for (const id of lot) {
-        await api.addToQueue(zid, { album_id: id });
-        ajoutes++;
+        if (c.signal.aborted) break;
+        try { await api.addToQueue(zid, { album_id: id }); ok++; } catch { ko++; }
+        file = { fait: ok + ko, total: lot.length, echecs: ko };
       }
-      notifications.success(succes.replace('{n}', String(ajoutes)));
-    } catch {
-      notifications.error(echec);
+      const arrete = c.signal.aborted && ok + ko < lot.length;
+      if (controleur === c) controleur = null;
+      file = null;
+      const remplir = (m: string) => m.replace('{k}', String(ok)).replace('{n}', String(lot.length)).replace('{x}', String(ko));
+      if (arrete) notifications.info(remplir(textes.arrete));
+      else if (ko > 0) notifications.error(remplir(textes.partiel));
+      else notifications.success(remplir(textes.fait));
+    } finally {
+      travail = false;
     }
-    travail = false;
   }
 
-  function versPlaylist() {
+  // ── Playlist ─────────────────────────────────────────────────────────
+  async function versPlaylist() {
     const lot = [...ids];
-    if (!lot.length) return;
+    if (!lot.length || travail) return;
+    if (!(await confirmerHorsVue(lot.length))) return;
+    const partiel = $t('bibliotheque.selection.playlistPartial' as any);
     demandeAjoutPlaylist.set({
       nom: $tn('bibliotheque.selection.count', lot.length),
-      pistes: async () => (await api.getAlbumTracksBatch(lot)).tracks,
+      pistes: async () => {
+        const r = await api.getAlbumTracksBatch(lot);
+        // Un album illisible n'empêche pas les autres, mais on le DIT.
+        if (r.failedAlbums > 0) {
+          notifications.error(partiel.replace('{x}', String(r.failedAlbums)).replace('{n}', String(lot.length)));
+        }
+        return r.tracks;
+      },
     });
   }
 
   // ── Conversion ───────────────────────────────────────────────────────
-  function convertir() {
-    if (vide) return;
-    demanderConversion(ids);
+  async function convertir() {
+    const lot = [...ids];
+    if (!lot.length || travail) return;
+    if (!(await confirmerHorsVue(lot.length))) return;
+    demanderConversion(lot);
     activeView.set('converter');
   }
 
@@ -154,9 +222,10 @@
   let label = $state('');
   let compilation = $state<'' | 'oui' | 'non'>('');
 
+  type Majs = Parameters<typeof api.batchUpdateAlbums>[1];
   /** Les champs renseignés, tels que `batch-update` les attend. */
-  function champs(): { updates: Parameters<typeof api.batchUpdateAlbums>[1]; noms: string[] } | null {
-    const updates: Parameters<typeof api.batchUpdateAlbums>[1] = {};
+  function champs(): { updates: Majs; noms: string[] } | null {
+    const updates: Majs = {};
     const noms: string[] = [];
     if (genre.trim()) { updates.genre = genre.trim(); noms.push($t('bibliotheque.selection.editGenre' as any)); }
     const y = Number(annee.trim());
@@ -176,7 +245,9 @@
     if (!lot.length || travail) return;
     const c = champs();
     if (!c) { notifications.error($t('bibliotheque.selection.editEmpty' as any)); return; }
-    const message = $tn('bibliotheque.selection.editConfirm', lot.length).replace('{fields}', c.noms.join(', '));
+    let message = $tn('bibliotheque.selection.editConfirm', lot.length).replace('{fields}', c.noms.join(', '));
+    // Une SEULE question : les albums cachés y sont nommés.
+    if (horsVue > 0) message += ' ' + $tn('bibliotheque.selection.hiddenConfirm', lot.length).replace('{m}', String(horsVue));
     const ok = await dialogs.confirm(message, {
       danger: true,
       annulerParDefaut: true,
@@ -188,10 +259,17 @@
     travail = true;
     try {
       const r = await api.batchUpdateAlbums(lot, c.updates);
-      // Report dans la grille : le genre, l'année… changent sans relecture.
-      const { artist_id: _ignore, ...visibles } = c.updates;
-      for (const id of lot) mettreAJourAlbum({ id, ...visibles });
-      notifications.success(succes.replace('{updated}', String(r?.updated ?? lot.length)).replace('{total}', String(r?.total ?? lot.length)));
+      const misAJour = r?.updated ?? lot.length;
+      const sur = r?.total ?? lot.length;
+      // Report dans la grille, en UNE passe. Deux cas où l'on ne sait pas
+      // reporter juste, et où l'on relit plutôt la bibliothèque :
+      // - le serveur n'a pas tout mis à jour (`updated < total`) et ne dit
+      //   pas lesquels ;
+      // - l'artiste a changé : le serveur résout un `artist_id` que la
+      //   réponse ne rend pas, et la carte mènerait à l'ancien artiste.
+      if (misAJour >= sur && c.updates.artist_name == null) mettreAJourAlbums(lot, c.updates);
+      else invaliderBibliotheque();
+      notifications.success(succes.replace('{updated}', String(misAJour)).replace('{total}', String(sur)));
       genre = ''; annee = ''; artiste = ''; label = ''; compilation = '';
       panneau = null;
     } catch {
@@ -203,8 +281,8 @@
 
 <div class="barre-selection" role="toolbar" aria-label={$t('bibliotheque.selection.barre' as any)} data-barre-selection onkeydown={echap} tabindex="-1">
   <div class="rangee">
-    <span class="compte" data-selection-compte aria-live="polite">{$tn('bibliotheque.selection.count', n)}</span>
-    <button class="v2-btn lien" data-selection-tout onclick={onToutSelectionner} disabled={travail}>
+    <span class="compte" data-selection-compte aria-live="polite">{libelleCompte}</span>
+    <button class="v2-btn lien" data-selection-tout onclick={onToutSelectionner} disabled={travail || occupe} aria-busy={occupe}>
       {$t('bibliotheque.selection.selectAll' as any).replace('{n}', String(total))}
     </button>
     {#if !vide}
@@ -234,6 +312,14 @@
       {$t('bibliotheque.selection.done' as any)}
     </button>
   </div>
+
+  {#if file}
+    <div class="panneau" data-selection-file role="status">
+      <progress max={file.total} value={file.fait}></progress>
+      <span>{$t('bibliotheque.selection.queueProgress' as any).replace('{k}', String(file.fait)).replace('{n}', String(file.total))}</span>
+      <button class="v2-btn" data-selection-file-annuler onclick={() => controleur?.abort()}>{$t('bibliotheque.selection.queueCancel' as any)}</button>
+    </div>
+  {/if}
 
   {#if panneau === 'tag'}
     <div class="panneau" data-selection-panneau="tag">
@@ -268,6 +354,7 @@
         </select>
       </label>
       <p class="discret">{$t('bibliotheque.selection.editHint' as any)}</p>
+      <p class="discret">{$t('bibliotheque.selection.editGenreScope' as any)}</p>
       <div class="pied">
         <button class="v2-btn" type="button" onclick={() => (panneau = null)}>{$t('bibliotheque.selection.cancel' as any)}</button>
         <button class="v2-btn primaire" type="submit" data-selection-appliquer disabled={travail}>{$t('bibliotheque.selection.editApply' as any)}</button>

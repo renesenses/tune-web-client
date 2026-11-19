@@ -8328,6 +8328,15 @@ export default {
   "bibliotheque.selection.editError": "La modification en lot a échoué.",
   "bibliotheque.selection.editEmpty": "Renseignez au moins un champ (année sur 4 chiffres).",
   "bibliotheque.selection.cancel": "Annuler",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album sélectionné} other {# albums sélectionnés}}, dont {m} hors de la vue",
+  "bibliotheque.selection.hiddenConfirm": "Cette action porte sur {n, plural, one {# album sélectionné} other {# albums sélectionnés}}, dont {m} hors de la vue (filtre, recherche ou facette). Continuer ?",
+  "bibliotheque.selection.hiddenValider": "Continuer",
+  "bibliotheque.selection.queueProgress": "Ajout à la file : {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Arrêter l’ajout",
+  "bibliotheque.selection.queuePartial": "{k} sur {n} ajoutés à la file, {x} en échec",
+  "bibliotheque.selection.queueStopped": "Ajout arrêté : {k} sur {n} ajoutés à la file",
+  "bibliotheque.selection.playlistPartial": "{x} albums sur {n} n’ont pas pu être lus : leurs pistes manquent.",
+  "bibliotheque.selection.editGenreScope": "Le genre s’applique à l’album seulement, pas à ses pistes.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

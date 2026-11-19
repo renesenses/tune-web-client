@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "La modifica in blocco non è riuscita.",
   "bibliotheque.selection.editEmpty": "Compila almeno un campo (anno a 4 cifre).",
   "bibliotheque.selection.cancel": "Annulla",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album selezionato} other {# album selezionati}}, di cui {m} fuori dalla vista",
+  "bibliotheque.selection.hiddenConfirm": "Questa azione riguarda {n, plural, one {# album selezionato} other {# album selezionati}}, di cui {m} fuori dalla vista (filtro, ricerca o faccetta). Continuare?",
+  "bibliotheque.selection.hiddenValider": "Continua",
+  "bibliotheque.selection.queueProgress": "Aggiunta alla coda: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Interrompi",
+  "bibliotheque.selection.queuePartial": "{k} su {n} aggiunti alla coda, {x} non riusciti",
+  "bibliotheque.selection.queueStopped": "Interrotto: {k} su {n} aggiunti alla coda",
+  "bibliotheque.selection.playlistPartial": "{x} album su {n} non sono stati letti: mancano le loro tracce.",
+  "bibliotheque.selection.editGenreScope": "Il genere si applica solo all’album, non alle sue tracce.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

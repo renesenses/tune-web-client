@@ -21,8 +21,11 @@ import { activeView } from '../stores/navigation';
 import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { currentZoneId } from '../stores/zones';
 import { dialogs } from '../stores/dialogs';
+import { notifications } from '../stores/notifications';
+import { listeEntierePerimee } from '../stores/albumsPagines';
+import { demandeAjoutPlaylist } from '../demandeAjoutPlaylist';
 import { locale } from '../i18n';
-import { cliquerAlbum, idsDansLOrdre, toutSelectionner, SELECTION_VIDE } from '../selectionAlbums';
+import { cliquerAlbum, idsDansLOrdre, toutSelectionner, SELECTION_VIDE, horsDeLaVue, gesteEchap } from '../selectionAlbums';
 import { consommerDemandeConversion } from '../demandeConversion';
 import type { Album } from '../types';
 
@@ -45,6 +48,8 @@ const ALBUMS: Album[] = [
 
 interface Appel { methode: string; url: string; corps: any }
 let appels: Appel[] = [];
+/** Une réponse imposée par un témoin (échec, lenteur) ; `null` : la normale. */
+let surcharge: ((url: string, methode: string, corps: any) => Promise<Response> | Response | null) | null = null;
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 const respirer = () => new Promise((r) => setTimeout(r, 0));
@@ -97,6 +102,9 @@ beforeEach(() => {
   localStorage.clear();
   consommerDemandeConversion();
   appels = [];
+  surcharge = null;
+  for (const n of get(notifications)) notifications.dismiss(n.id);
+  for (const d of get(dialogs)) dialogs.settle(d.id, false);
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
   vi.stubGlobal('fetch', vi.fn(async (entree: unknown, options?: RequestInit) => {
     const url = String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree);
@@ -104,6 +112,8 @@ beforeEach(() => {
     let corps: any = null;
     try { corps = options?.body ? JSON.parse(String(options.body)) : null; } catch { corps = options?.body; }
     appels.push({ methode, url, corps });
+    const imposee = surcharge?.(url, methode, corps);
+    if (imposee) return imposee;
     if (/\/tags\/(\?|$)/.test(url) && methode === 'GET') {
       return reponse([{ id: 5, name: 'Jazz du dimanche', color: '#c80' }, { id: 6, name: 'À revoir', color: '#08c' }]);
     }
@@ -292,5 +302,302 @@ describe('web#3258 — `lib/selectionAlbums`', () => {
   it('« Tout sélectionner » ajoute la vue, et les albums hors vue suivent', () => {
     const s = toutSelectionner(cliquerAlbum(SELECTION_VIDE, 9, ORDRE), [3, 4]);
     expect(idsDansLOrdre(s, [3, 4])).toEqual([3, 4, 9]);
+  });
+});
+
+// ── Relecture du 19/11 ────────────────────────────────────────────────────
+
+const barre = (el: HTMLElement) => q(el, '[data-barre-selection]');
+function echap(cible: EventTarget = window) {
+  cible.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+}
+async function chercherTexte(el: HTMLElement, texte: string) {
+  const input = q<HTMLInputElement>(el, '.search input, input[placeholder]')!;
+  input.value = texte;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  await laisser(8);
+  return input;
+}
+const messages = () => get(notifications).map((n: any) => n.message as string);
+const erreurReponse = () => ({
+  ok: false, status: 500, statusText: 'Erreur',
+  headers: new Map([['content-type', 'application/json']]),
+  json: async () => ({ detail: 'boum' }), text: async () => '{"detail":"boum"}',
+} as unknown as Response);
+
+describe('web#3258 relecture — Échap ne quitte le mode que s’il n’y a rien d’autre à fermer', () => {
+  it('🔴 une confirmation en attente : Échap est pour elle, la sélection reste', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(q(el, '[data-selection-action="edition"]'));
+    const genre = q<HTMLInputElement>(el, '[data-champ="genre"]')!;
+    genre.value = 'Jazz';
+    genre.dispatchEvent(new Event('input', { bubbles: true }));
+    q<HTMLFormElement>(el, '[data-selection-panneau="edition"]')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await laisser(4);
+    expect(get(dialogs)).toHaveLength(1);
+    echap();
+    await laisser(4);
+    expect(barre(el), 'la barre a disparu avec la confirmation ouverte').not.toBeNull();
+    expect(cochees(el)).toEqual([1]);
+    dialogs.settle(get(dialogs)[0].id, false);
+    await laisser(4);
+  });
+
+  it('🔴 une fenêtre ouverte (« Ajouter à une playlist ») : Échap la ferme, pas la sélection', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 3));
+    const fond = document.createElement('div');
+    fond.className = 'modal-backdrop';
+    const bouton = document.createElement('button');
+    fond.appendChild(bouton);
+    document.body.appendChild(fond);
+    bouton.focus();
+    echap(bouton);
+    await laisser(4);
+    fond.remove();
+    expect(barre(el)).not.toBeNull();
+    expect(cochees(el)).toEqual([3]);
+  });
+
+  it('🔴 Échap dans le champ de recherche ne vide pas la sélection', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 4));
+    const input = q<HTMLInputElement>(el, '.search input, input[placeholder]')!;
+    input.focus();
+    echap(input);
+    await laisser(4);
+    expect(barre(el)).not.toBeNull();
+    expect(cochees(el)).toEqual([4]);
+    input.blur();
+  });
+
+  it('🔴 panneau ouvert, focus hors de la barre : Échap ferme le panneau SEULEMENT, puis le mode', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(q(el, '[data-selection-action="tag"]'));
+    expect(q(el, '[data-selection-panneau="tag"]')).not.toBeNull();
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    echap();
+    await laisser(4);
+    expect(q(el, '[data-selection-panneau="tag"]'), 'le panneau reste ouvert').toBeNull();
+    expect(barre(el), 'Échap a quitté le mode au lieu du panneau').not.toBeNull();
+    expect(cochees(el)).toEqual([1]);
+    // Contre-épreuve : plus rien d'autre à fermer, Échap quitte le mode.
+    echap();
+    await laisser(4);
+    expect(barre(el)).toBeNull();
+  });
+});
+
+describe('web#3258 relecture — la sélection survit au changement de vue', () => {
+  it('🔴 la recherche cache un album coché : il reste sélectionné et le compteur le dit', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 2)); // Red Clay
+    await cliquer(caseDe(el, 3)); // Blue Monk
+    await chercherTexte(el, 'blue');
+    expect(caseDe(el, 2), 'Red Clay est hors de la vue').toBeNull();
+    expect(compte(el)).toBe('2 albums sélectionnés, dont 1 hors de la vue');
+    await chercherTexte(el, '');
+    expect(new Set(cochees(el))).toEqual(new Set([2, 3]));
+    expect(compte(el)).toBe('2 albums sélectionnés');
+  });
+
+  it('🔴 une action sur des albums cachés demande confirmation, avec les deux nombres', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 2));
+    await cliquer(caseDe(el, 3));
+    await chercherTexte(el, 'blue');
+    await cliquer(q(el, '[data-selection-action="tag"]'));
+    await laisser(6);
+    await cliquer(q(el, '[data-tag-lot="5"]'));
+    let file = get(dialogs);
+    expect(file).toHaveLength(1);
+    expect(file[0].message).toContain('2 albums sélectionnés, dont 1 hors de la vue');
+    expect(file[0].annulerParDefaut).toBe(true);
+    dialogs.settle(file[0].id, false);
+    await laisser(4);
+    expect(appels.filter((a) => /\/items\/batch$/.test(a.url)), 'annulé : rien ne part').toHaveLength(0);
+
+    await cliquer(q(el, '[data-tag-lot="5"]'));
+    file = get(dialogs);
+    dialogs.settle(file[0].id, true);
+    await laisser(6);
+    const lots = appels.filter((a) => /\/items\/batch$/.test(a.url));
+    expect(lots).toHaveLength(1);
+    expect(lots[0].corps.item_ids).toEqual([3, 2]);
+  });
+
+  it('🔴 file, playlist, conversion : la même question quand des albums sont cachés', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 2));
+    await cliquer(caseDe(el, 3));
+    await chercherTexte(el, 'blue');
+    for (const action of ['file', 'playlist', 'convertir']) {
+      await cliquer(q(el, `[data-selection-action="${action}"]`));
+      const file = get(dialogs);
+      expect(file, `pas de question avant « ${action} »`).toHaveLength(1);
+      expect(file[0].message).toContain('dont 1 hors de la vue');
+      dialogs.settle(file[0].id, false);
+      await laisser(4);
+    }
+    expect(appels.filter((a) => /queue\/add/.test(a.url))).toHaveLength(0);
+    expect(get(demandeAjoutPlaylist)).toBeNull();
+    expect(get(activeView)).toBe('library');
+  });
+
+  it('contre-épreuve : rien de caché, aucune question avant l’action', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 3));
+    await cliquer(q(el, '[data-selection-action="file"]'));
+    await laisser(6);
+    expect(get(dialogs)).toHaveLength(0);
+    expect(appels.filter((a) => /queue\/add/.test(a.url))).toHaveLength(1);
+  });
+});
+
+describe('web#3258 relecture — « Modifier en lot » reporte en une passe', () => {
+  async function editer(el: HTMLElement, champ: string, valeur: string) {
+    await cliquer(q(el, '[data-selection-action="edition"]'));
+    const c = q<HTMLInputElement>(el, `[data-champ="${champ}"]`)!;
+    c.value = valeur;
+    c.dispatchEvent(new Event('input', { bubbles: true }));
+    q<HTMLFormElement>(el, '[data-selection-panneau="edition"]')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await laisser(4);
+    dialogs.settle(get(dialogs)[0].id, true);
+    await laisser(8);
+  }
+
+  it('🔴 tout mis à jour : le genre est reporté dans la liste en UNE émission', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(caseDe(el, 4));
+    let emissions = 0;
+    const stop = albumsStore.subscribe(() => { emissions++; });
+    emissions = 0;
+    await editer(el, 'genre', 'Hard bop');
+    stop();
+    expect(emissions, 'une émission par album au lieu d’une seule').toBe(1);
+    const liste = get(albumsStore);
+    expect(liste.filter((a) => a.genre === 'Hard bop').map((a) => a.id).sort()).toEqual([1, 4]);
+  });
+
+  it('🔴 `updated < total` : rien n’est reporté à l’aveugle, la bibliothèque est relue', async () => {
+    surcharge = (url) => (/batch-update$/.test(url) ? reponse({ updated: 1, total: 2 }) : null);
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(caseDe(el, 4));
+    await editer(el, 'genre', 'Hard bop');
+    expect(get(albumsStore).some((a) => a.genre === 'Hard bop')).toBe(false);
+    expect(get(listeEntierePerimee)).toBe(true);
+  });
+
+  it('🔴 artiste changé : la bibliothèque est relue (l’`artist_id` vient du serveur)', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await editer(el, 'artiste', 'John Coltrane');
+    expect(get(albumsStore).find((a) => a.id === 1)?.artist_name).toBe('Coltrane');
+    expect(get(listeEntierePerimee)).toBe(true);
+  });
+});
+
+describe('web#3258 relecture — erreurs partielles', () => {
+  it('🔴 file : un échec n’arrête pas la suite, et le bilan le dit', async () => {
+    surcharge = (url, methode, corps) =>
+      (methode === 'POST' && /queue\/add/.test(url) && corps?.album_id === 4 ? erreurReponse() : null);
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    for (const id of [3, 4, 1]) await cliquer(caseDe(el, id));
+    await cliquer(q(el, '[data-selection-action="file"]'));
+    await laisser(20);
+    const ajouts = appels.filter((a) => a.methode === 'POST' && /queue\/add/.test(a.url)).map((a) => a.corps.album_id);
+    expect(ajouts.filter((x) => x !== 4)).toEqual([3, 1]);
+    expect(messages()).toContain('2 sur 3 ajoutés à la file, 1 en échec');
+  });
+
+  async function fileLente(el: HTMLElement) {
+    const enAttente: Array<() => void> = [];
+    surcharge = (url, methode) =>
+      (methode === 'POST' && /queue\/add/.test(url)
+        ? new Promise<Response>((ok) => enAttente.push(() => ok(reponse({ queue_length: 1 }))))
+        : null);
+    await entrerEnSelection(el);
+    for (const id of [3, 4, 1]) await cliquer(caseDe(el, id));
+    await cliquer(q(el, '[data-selection-action="file"]'));
+    await laisser(4);
+    return enAttente;
+  }
+  const nbAjouts = () => appels.filter((a) => a.methode === 'POST' && /queue\/add/.test(a.url)).length;
+
+  it('🔴 file : progression, « Arrêter » coupe la boucle après l’album en cours', async () => {
+    const el = await poserBibliotheque();
+    const enAttente = await fileLente(el);
+    expect(q(el, '[data-selection-file]')?.textContent).toContain('0 / 3');
+    // Un second ajout ne peut pas s'entrelacer : le bouton est grisé.
+    expect(q<HTMLButtonElement>(el, '[data-selection-action="file"]')!.disabled).toBe(true);
+    await cliquer(q(el, '[data-selection-file-annuler]'));
+    enAttente.shift()!();
+    await laisser(10);
+    expect(nbAjouts()).toBe(1);
+    expect(messages()).toContain('Ajout arrêté : 1 sur 3 ajoutés à la file');
+  });
+
+  it('🔴 file : « Terminé » (barre démontée) arrête aussi la boucle', async () => {
+    const el = await poserBibliotheque();
+    const enAttente = await fileLente(el);
+    await cliquer(q(el, '[data-selection-terminer]'));
+    expect(barre(el)).toBeNull();
+    enAttente.shift()!();
+    await laisser(10);
+    expect(nbAjouts()).toBe(1);
+  });
+
+  it('🔴 playlist : les albums illisibles sont signalés', async () => {
+    surcharge = (url) => (/\/library\/albums\/2\/tracks/.test(url) ? erreurReponse() : null);
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 2));
+    await cliquer(caseDe(el, 3));
+    await cliquer(q(el, '[data-selection-action="playlist"]'));
+    const demande = get(demandeAjoutPlaylist);
+    expect(demande?.pistes).toBeTypeOf('function');
+    await demande!.pistes!();
+    expect(messages()).toContain('1 albums sur 2 n’ont pas pu être lus : leurs pistes manquent.');
+    demandeAjoutPlaylist.set(null);
+  });
+});
+
+describe('web#3258 relecture — `gesteEchap` et `horsDeLaVue`', () => {
+  const ev = (cible?: EventTarget) => {
+    const e = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    if (cible) Object.defineProperty(e, 'target', { value: cible });
+    return e;
+  };
+  it('quitte seulement quand rien d’autre n’est à fermer', () => {
+    expect(gesteEchap(ev(), { panneauOuvert: false, dialoguesEnAttente: 0 })).toBe('quitter');
+    expect(gesteEchap(ev(), { panneauOuvert: true, dialoguesEnAttente: 0 })).toBe('panneau');
+    expect(gesteEchap(ev(), { panneauOuvert: false, dialoguesEnAttente: 1 })).toBe('rien');
+    const e = ev(); e.preventDefault();
+    expect(gesteEchap(e, { panneauOuvert: true, dialoguesEnAttente: 0 })).toBe('rien');
+    const champ = document.createElement('input');
+    expect(gesteEchap(ev(champ), { panneauOuvert: false, dialoguesEnAttente: 0 })).toBe('rien');
+  });
+  it('compte les albums cochés hors de la vue', () => {
+    const s = { ids: new Set([1, 2, 3]), ancre: null };
+    expect(horsDeLaVue(s, [1, 3, 4])).toBe(1);
+    expect(horsDeLaVue(SELECTION_VIDE, [1])).toBe(0);
   });
 });

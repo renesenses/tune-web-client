@@ -8326,6 +8326,15 @@ export default {
   "bibliotheque.selection.editError": "The batch edit failed.",
   "bibliotheque.selection.editEmpty": "Fill in at least one field (4-digit year).",
   "bibliotheque.selection.cancel": "Cancel",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album selected} other {# albums selected}}, {m} of them outside the view",
+  "bibliotheque.selection.hiddenConfirm": "This action applies to {n, plural, one {# selected album} other {# selected albums}}, {m} of them outside the view (filter, search or facet). Continue?",
+  "bibliotheque.selection.hiddenValider": "Continue",
+  "bibliotheque.selection.queueProgress": "Adding to the queue: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Stop adding",
+  "bibliotheque.selection.queuePartial": "{k} of {n} added to the queue, {x} failed",
+  "bibliotheque.selection.queueStopped": "Adding stopped: {k} of {n} added to the queue",
+  "bibliotheque.selection.playlistPartial": "{x} of {n} albums could not be read: their tracks are missing.",
+  "bibliotheque.selection.editGenreScope": "The genre applies to the album only, not to its tracks.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "一括編集に失敗しました。",
   "bibliotheque.selection.editEmpty": "少なくとも1項目を入力してください（年は4桁）。",
   "bibliotheque.selection.cancel": "キャンセル",
+  "bibliotheque.selection.countHidden": "{n, plural, other {# 枚のアルバムを選択中}}（うち {m} 枚は表示外）",
+  "bibliotheque.selection.hiddenConfirm": "この操作は{n, plural, other {選択中の # 枚のアルバム}}に適用されます（うち {m} 枚はフィルター・検索・分類により表示外）。続けますか？",
+  "bibliotheque.selection.hiddenValider": "続ける",
+  "bibliotheque.selection.queueProgress": "キューに追加中：{k} / {n}",
+  "bibliotheque.selection.queueCancel": "停止",
+  "bibliotheque.selection.queuePartial": "{n} 枚中 {k} 枚をキューに追加、{x} 枚は失敗",
+  "bibliotheque.selection.queueStopped": "停止しました：{n} 枚中 {k} 枚をキューに追加",
+  "bibliotheque.selection.playlistPartial": "{n} 枚中 {x} 枚のアルバムを読み込めませんでした。それらのトラックは含まれません。",
+  "bibliotheque.selection.editGenreScope": "ジャンルはアルバムにのみ適用され、トラックには適用されません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

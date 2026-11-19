@@ -8306,6 +8306,15 @@ export default {
   "bibliotheque.selection.editError": "Editarea în lot a eșuat.",
   "bibliotheque.selection.editEmpty": "Completează cel puțin un câmp (an din 4 cifre).",
   "bibliotheque.selection.cancel": "Anulează",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# album selectat} few {# albume selectate} other {# de albume selectate}}, dintre care {m} în afara vizualizării",
+  "bibliotheque.selection.hiddenConfirm": "Acțiunea privește {n, plural, one {# album selectat} few {# albume selectate} other {# de albume selectate}}, dintre care {m} în afara vizualizării (filtru, căutare sau fațetă). Continui?",
+  "bibliotheque.selection.hiddenValider": "Continuă",
+  "bibliotheque.selection.queueProgress": "Adăugare în coadă: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Oprește",
+  "bibliotheque.selection.queuePartial": "{k} din {n} adăugate în coadă, {x} eșuate",
+  "bibliotheque.selection.queueStopped": "Oprit: {k} din {n} adăugate în coadă",
+  "bibliotheque.selection.playlistPartial": "{x} din {n} albume nu au putut fi citite: lipsesc piesele lor.",
+  "bibliotheque.selection.editGenreScope": "Genul se aplică doar albumului, nu și pieselor sale.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

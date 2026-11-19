@@ -8151,5 +8151,14 @@ export default {
   "bibliotheque.selection.editError": "Edycja zbiorcza nie powiodła się.",
   "bibliotheque.selection.editEmpty": "Wypełnij co najmniej jedno pole (rok czterocyfrowy).",
   "bibliotheque.selection.cancel": "Anuluj",
+  "bibliotheque.selection.countHidden": "{n, plural, one {Zaznaczono # album} few {Zaznaczono # albumy} many {Zaznaczono # albumów} other {Zaznaczone albumy: #}}, w tym {m} poza widokiem",
+  "bibliotheque.selection.hiddenConfirm": "To działanie obejmie {n, plural, one {# zaznaczony album} few {# zaznaczone albumy} many {# zaznaczonych albumów} other {# zaznaczonych albumów}}, w tym {m} poza widokiem (filtr, wyszukiwanie lub kategoria). Kontynuować?",
+  "bibliotheque.selection.hiddenValider": "Kontynuuj",
+  "bibliotheque.selection.queueProgress": "Dodawanie do kolejki: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Zatrzymaj",
+  "bibliotheque.selection.queuePartial": "Dodano {k} z {n} do kolejki, {x} z błędem",
+  "bibliotheque.selection.queueStopped": "Zatrzymano: dodano {k} z {n} do kolejki",
+  "bibliotheque.selection.playlistPartial": "Nie udało się odczytać {x} z {n} albumów: brakuje ich utworów.",
+  "bibliotheque.selection.editGenreScope": "Gatunek dotyczy tylko albumu, nie jego utworów.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

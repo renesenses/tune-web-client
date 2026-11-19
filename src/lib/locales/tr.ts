@@ -8130,5 +8130,14 @@ export default {
   "bibliotheque.selection.editError": "Toplu düzenleme başarısız oldu.",
   "bibliotheque.selection.editEmpty": "En az bir alanı doldurun (4 haneli yıl).",
   "bibliotheque.selection.cancel": "İptal",
+  "bibliotheque.selection.countHidden": "{n, plural, one {# albüm seçildi} other {# albüm seçildi}}, {m} tanesi görünüm dışında",
+  "bibliotheque.selection.hiddenConfirm": "Bu işlem {n, plural, one {# seçili albüme} other {# seçili albüme}} uygulanacak; {m} tanesi görünüm dışında (filtre, arama veya kategori). Devam edilsin mi?",
+  "bibliotheque.selection.hiddenValider": "Devam et",
+  "bibliotheque.selection.queueProgress": "Kuyruğa ekleniyor: {k} / {n}",
+  "bibliotheque.selection.queueCancel": "Durdur",
+  "bibliotheque.selection.queuePartial": "{n} albümden {k} tanesi kuyruğa eklendi, {x} başarısız",
+  "bibliotheque.selection.queueStopped": "Durduruldu: {n} albümden {k} tanesi kuyruğa eklendi",
+  "bibliotheque.selection.playlistPartial": "{n} albümden {x} tanesi okunamadı: parçaları eksik.",
+  "bibliotheque.selection.editGenreScope": "Tür yalnızca albüme uygulanır, parçalarına değil.",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

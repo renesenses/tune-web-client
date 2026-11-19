@@ -173,8 +173,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import BarreSelectionAlbums from './BarreSelectionAlbums.svelte';
   import {
     SELECTION_VIDE, cliquerAlbum, toutSelectionner as toutCocher, idsDansLOrdre, idsSelectionnables,
-    type SelectionAlbums,
+    horsDeLaVue, gesteEchap, type SelectionAlbums,
   } from '../../lib/selectionAlbums';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
@@ -835,11 +836,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
   function ddEchap(e: KeyboardEvent) {
-    // web#3258 — Échap referme d'abord un menu ouvert, puis le mode sélection
-    // (un panneau de la barre d'actions l'a déjà consommé : `defaultPrevented`).
+    // web#3258 — Échap referme d'abord un menu ouvert ; le mode sélection ne
+    // se quitte que s'il n'y a rien d'autre à fermer (`gesteEchap` : dialogue,
+    // fenêtre, panneau de la barre, champ de saisie focalisé).
     if (!(e.key === 'Escape')) return;
     if (ddOpen) { ddClose(); return; }
-    if (modeSelection && !e.defaultPrevented) quitterSelection();
+    if (!modeSelection) return;
+    const geste = gesteEchap(e, { panneauOuvert: panneauBarre != null, dialoguesEnAttente: $dialogs.length });
+    if (geste === 'panneau') panneauBarre = null;
+    else if (geste === 'quitter') quitterSelection();
   }
 
   /**
@@ -3546,11 +3551,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let modeSelection = $state(false);
   let selection = $state<SelectionAlbums>(SELECTION_VIDE);
+  /** Le panneau ouvert de la barre (tag, édition) : Échap le ferme d'abord. */
+  let panneauBarre = $state<'tag' | 'edition' | null>(null);
   const selectionPossible = $derived(!depot && (tab === 'albums' || groupeOuvert != null));
   const ordreSelection: number[] = $derived(
     idsSelectionnables(tab === 'albums' && nu ? cases : albumsDansLOrdre),
   );
   const idsSelectionnes: number[] = $derived(idsDansLOrdre(selection, ordreSelection));
+  /**
+   * Décision de Bertrand (relecture du 19/11) : la sélection est GARDÉE quand
+   * la vue change (filtre, facette, recherche). Ce qui en sort est compté, et
+   * la barre le dit et le fait confirmer. En pages, aucun filtre n'est posé
+   * (`sortirDesPages`) : la vue est la bibliothèque entière, rien n'est caché
+   * — les cases pas encore arrivées ne sont pas « hors de la vue ».
+   */
+  const selectionHorsVue: number = $derived(tab === 'albums' && nu ? 0 : horsDeLaVue(selection, ordreSelection));
   function entrerSelection() {
     selection = SELECTION_VIDE;
     modeSelection = true;
@@ -3558,6 +3573,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function quitterSelection() {
     modeSelection = false;
     selection = SELECTION_VIDE;
+    panneauBarre = null;
   }
   function cliquerCase(a: Album, e: MouseEvent) {
     e.preventDefault();
@@ -3565,7 +3581,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (a.id == null) return;
     selection = cliquerAlbum(selection, a.id, ordreSelection, e.shiftKey);
   }
-  let toutEnCours = false;
+  let toutEnCours = $state(false);
   async function toutSelectionnerVue() {
     if (toutEnCours) return;
     toutEnCours = true;
@@ -3576,9 +3592,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     } catch { /* le bandeau d'`api` a parlé */ }
     toutEnCours = false;
   }
-  // Un onglet sans albums à cocher (Artistes, Titres, liste des genres…) ou
-  // un dépôt distant referme le mode : la barre ne survit pas à sa grille.
-  $effect(() => { if (modeSelection && !selectionPossible) untrack(quitterSelection); });
+  // Un onglet sans albums à cocher (Artistes, Titres, liste des genres) MASQUE
+  // la barre et les cases sans rien oublier : la sélection est gardée. Un
+  // dépôt distant, lui, la vide — ses identifiants ne désignent pas les
+  // albums de cette bibliothèque.
+  $effect(() => { if (depot) untrack(quitterSelection); });
 
   /** Rien à lire : bouton grisé. Pendant un chargement, on ne conclut pas. */
   const selectionVide = $derived(
@@ -4202,6 +4220,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {#if modeSelection && selectionPossible}
     <BarreSelectionAlbums
       ids={idsSelectionnes}
+      horsVue={selectionHorsVue}
+      occupe={toutEnCours}
+      bind:panneau={panneauBarre}
       total={tab === 'albums' && nu ? matchCount : ordreSelection.length}
       onToutSelectionner={toutSelectionnerVue}
       onToutDeselectionner={() => (selection = SELECTION_VIDE)}
@@ -4675,8 +4696,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                 {#each g.albums as a (a.id)}
                   <div class="lhote" class:selmode={modeSelection}>
                   {@render caseSelection(a)}
-                  <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
-                  <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
+                  <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
+                  <button class="lrow" inert={modeSelection} data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
@@ -4692,7 +4713,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                 {#each g.albums as a (a.id)}
                   <div class="card" class:selmode={modeSelection}>
                     {@render caseSelection(a)}
-                    <div class="cover">
+                    <div class="cover" inert={modeSelection}>
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
                         etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
@@ -4706,7 +4727,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                       </PochetteActions>
                       {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
                     </div>
-                    <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+                    <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
                       <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
@@ -4853,7 +4874,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
        ligne) entière. En mode sélection, un clic n'importe où coche au lieu
        d'ouvrir ou de lire ; hors mode, rien n'est rendu. -->
   {#snippet caseSelection(a: Album)}
-    {#if modeSelection && a.id != null}
+    {#if modeSelection && selectionPossible && a.id != null}
       {@const coche = selection.ids.has(a.id)}
       <button type="button" class="case-selection" class:coche role="checkbox" aria-checked={coche}
         aria-label={$tr('bibliotheque.selection.toggle' as any).replace('{title}', a.title ?? '')}
@@ -4868,7 +4889,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {#snippet carte(a: Album, i: number)}
     <div class="card" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
       {@render caseSelection(a)}
-      <div class="cover">
+      <div class="cover" inert={modeSelection}>
         <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
              que la grille de facette et le carrousel portaient déjà
              (#1222) : c'est pourtant elle que voit tout le monde. -->
@@ -4887,7 +4908,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         {#if estAlbumDeServiceEtendu(a)}<span class="prov" title={$tr('v2.lib.extendedFavorite' as any)}>{libelleProvenance(provenanceDe(a))}</span>{/if}
         {#if nbVersions(a) > 1}<span class="nver">{$tr('v2.lib.versionsCount' as any).replace('{n}', String(nbVersions(a)))}</span>{/if}
       </div>
-      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+      <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
@@ -4903,8 +4924,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
     <div class="lhote" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
     {@render caseSelection(a)}
-    <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
-    <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
+    <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
+    <button class="lrow" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
       <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
@@ -4933,7 +4954,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {#snippet carteCarrou(a: Album, i: number)}
     <div class="ccard" class:centre={i === iCentre} class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
       {@render caseSelection(a)}
-      <div class="cover">
+      <div class="cover" inert={modeSelection}>
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
           etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
@@ -4947,7 +4968,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </PochetteActions>
         {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
       </div>
-      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+      <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
