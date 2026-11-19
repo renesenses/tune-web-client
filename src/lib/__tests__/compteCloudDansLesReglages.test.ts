@@ -192,7 +192,7 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
   it('relié sans détails (autre appareil) : l’écran dit « relié », sans compte ni bouton', async () => {
     // Le serveur ne rend le compte qu'à l'administrateur ou à sa propre
     // machine : ailleurs, `connected` sans `user`.
-    statutSso = { configured: true, connected: true };
+    statutSso = { configured: true, connected: true, details_hidden: true };
     const el = await ouvrirSysteme('beginner');
     const ligne = ligneCompte(el)!;
     expect(ligne.textContent).toContain(fr['settings.accountLinkedNoDetails']);

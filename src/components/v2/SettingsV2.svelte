@@ -1561,7 +1561,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
-      ssoRelieSansDetails = !!sso?.connected && !sso?.user;
+      ssoRelieSansDetails = !!sso?.connected && !!sso?.details_hidden && !sso?.user;
       if (sso?.connected && sso?.user) {
         ssoConnecte = true;
         ssoNom = sso.user.display_name || sso.user.email || '';

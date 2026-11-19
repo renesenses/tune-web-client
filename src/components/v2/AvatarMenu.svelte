@@ -51,12 +51,16 @@
   let ssoName = $state('');
   let ssoEmail = $state('');
   let ssoAvatar = $state('');
+  // Relié, mais le serveur ne montre pas le compte à cet appareil (voir
+  // `details_hidden` de `/cloud/sso/status`) : « relié », sans nom ni geste.
+  let ssoRelieSansDetails = $state(false);
   let signingOut = $state(false);
 
   async function loadSso() {
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigured = !!sso?.configured;
+      ssoRelieSansDetails = !!sso?.connected && !!sso?.details_hidden && !sso?.user;
       if (sso?.connected && sso?.user) {
         ssoConnected = true;
         ssoName = sso.user.display_name || sso.user.email || '';
@@ -70,6 +74,7 @@
       // ne propose pas de se connecter — on ne sait même pas si le nuage
       // existe sur ce serveur.
       ssoConfigured = false;
+      ssoRelieSansDetails = false;
     }
     ssoConnected = false;
     ssoName = '';
@@ -349,6 +354,8 @@
             <div class="avname" use:bulleTexte>{ssoName}</div>
             <!-- Bertrand, 15/11/2026 : l'adresse reste, discrète, en style secondaire. -->
             {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
+          {:else if ssoRelieSansDetails}
+            <div class="avname" use:bulleTexte>{$t('settings.accountLinkedNoDetails' as any)}</div>
           {:else}
             <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
@@ -447,7 +454,9 @@
         <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
       </button>
-      {#if !ssoConnected && ssoConfigured}
+      {#if ssoRelieSansDetails}
+        <div class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</div>
+      {:else if !ssoConnected && ssoConfigured}
         <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
         {#if ssoDisponible()}
           <button class="item" onclick={signIn}>
