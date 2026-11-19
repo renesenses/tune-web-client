@@ -154,7 +154,7 @@ describe('appareil déjà Tune tested (tune-server-rust#8084)', () => {
   });
 
   it('la phrase existe dans les quinze langues', () => {
-    expect(ONZE_LANGUES).toHaveLength(15);
+    expect(ONZE_LANGUES).toHaveLength(16);
     for (const langue of ONZE_LANGUES) {
       const texte = dictionnaire(langue)['v2.tuneTestedPropose.alreadyTested'];
       expect(typeof texte === 'string' && texte.includes('Tune tested'), `[${langue}]`).toBe(true);

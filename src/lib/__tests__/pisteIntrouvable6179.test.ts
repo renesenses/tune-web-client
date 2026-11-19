@@ -111,6 +111,6 @@ describe('#6179 — PlaylistDetailV2 garde « Retirer » à portée de la ligne 
     const src = readFileSync('src/components/v2/PlaylistDetailV2.svelte', 'utf8');
     // rc12 (15/11) : la croix « Retirer » vaut pour TOUTE ligne d'une playlist
     // Tune, hors mode édition — la ligne introuvable comprise.
-    expect(src).toMatch(/\{#if isLocal\}\s*<button class="rm retrait-titre" data-retirer-titre onclick=\{\(\) => removeAt\(rangReel\(_t\)\)\}/);
+    expect(src).toMatch(/\{#if isLocal\}\s*<button class="rm retrait-titre" data-retirer-titre onclick=\{async \(\) => \{ if \(await confirmerRetrait\(_t\)\) void removeAt\(rangReel\(_t\)\); \}\}/);
   });
 });

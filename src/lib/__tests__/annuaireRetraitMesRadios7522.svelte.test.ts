@@ -87,13 +87,17 @@ const boutonRetirer = (f: Element) =>
   f.querySelector<HTMLButtonElement>(`.coin[aria-label="${fr['v2.radio.removeFromMine']}"]`);
 
 describe('#7522 — l’annuaire montre et retire ce qui est dans « Mes radios »', () => {
-  it('🔴 une station déjà ajoutée porte le badge ET « Retirer » ; les autres non', async () => {
+  // Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : le badge « Dans
+  // mes radios » quitte la vignette (sauts de ligne). « Retirer » reste.
+  it('🔴 une station déjà ajoutée porte « Retirer », sans badge ; les autres « Ajouter »', async () => {
     await ouvrirAnnuaire();
     const fiches = hote.querySelectorAll('.fiche');
-    expect(fiches[0].querySelector('.dedans')?.textContent).toContain(fr['v2.radio.dir.inMine']);
+    expect(fiches[0].querySelector('.dedans')).toBeNull();
+    expect(fiches[0].textContent).not.toContain(fr['v2.radio.dir.inMine']);
     expect(boutonRetirer(fiches[0])).not.toBeNull();
-    expect(fiches[1].querySelector('.dedans')).toBeNull();
+    expect(fiches[0].querySelector('.tl2')).toBeNull();
     expect(boutonRetirer(fiches[1])).toBeNull();
+    expect(fiches[1].querySelector('.tl2')).not.toBeNull();
   });
 
   it('🔴 Retirer : confirmation (la station reste dans l’annuaire), deleteRadio, puis « Ajouter » revient', async () => {
@@ -107,7 +111,6 @@ describe('#7522 — l’annuaire montre et retire ce qui est dans « Mes radios 
     await respirer();
     expect(mocks.deleteRadio).toHaveBeenCalledWith(7);
     const f0 = hote.querySelectorAll('.fiche')[0];
-    expect(f0.querySelector('.dedans')).toBeNull();
     expect(boutonRetirer(f0)).toBeNull();
     expect(f0.querySelector('.tl2'), 'le bouton Ajouter revient').not.toBeNull();
     // Retour sur « Mes radios » : la station n'y est plus (le serveur, relu,
@@ -125,7 +128,7 @@ describe('#7522 — l’annuaire montre et retire ce qui est dans « Mes radios 
     dialogs.settle(get(dialogs)[0].id, false);
     await respirer();
     expect(mocks.deleteRadio).not.toHaveBeenCalled();
-    expect(hote.querySelectorAll('.fiche')[0].querySelector('.dedans')).not.toBeNull();
+    expect(boutonRetirer(hote.querySelectorAll('.fiche')[0])).not.toBeNull();
   });
 
   it('🔴 double clic sur Retirer : une seule question, un seul deleteRadio', async () => {
@@ -141,8 +144,9 @@ describe('#7522 — l’annuaire montre et retire ce qui est dans « Mes radios 
     expect(mocks.deleteRadio).toHaveBeenCalledTimes(1);
   });
 
-  it('le badge reste à l’échelle du texte (réglage « Taille du texte »)', () => {
+  it('rc12 : le badge « Dans mes radios » n’est plus dans l’annuaire (ni son style)', () => {
     const src = readFileSync(resolve(__dirname, '../../components/v2/RadioAnnuaire.svelte'), 'utf8');
-    expect(src).toMatch(/\.dedans\{[^}]*calc\(9\.5px \* var\(--v2-txt-echelle, 1\)\)/);
+    expect(src).not.toContain('v2.radio.dir.inMine');
+    expect(src).not.toMatch(/\.dedans\{/);
   });
 });

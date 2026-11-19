@@ -172,6 +172,10 @@
   .remplacer-chemin-apercu{display:flex; flex-direction:column; gap:6px; align-items:flex-start}
   .remplacer-chemin-panneau {
     grid-column: 1 / -1;
+    /* web#3137 — la ligne du dossier est désormais une boîte souple : le
+       panneau y prend toute la largeur, après les autres commandes. */
+    flex-basis: 100%;
+    order: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;

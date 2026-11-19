@@ -7,6 +7,10 @@
   import { parseSmbAddress } from '../../lib/smbAddress';
   import { notifications } from '../../lib/stores/notifications';
   import type { BrowseRootEntry } from '../../lib/types';
+  import FolderBrowser from './FolderBrowser.svelte';
+  import DetailsServeur from './DetailsServeur.svelte';
+  import { detailServeur } from '../../lib/messageServeur';
+  import { sousDossierDuPartage } from '../../lib/smbMountState';
 
   interface Props {
     onClose: () => void;
@@ -77,6 +81,20 @@
   // un partage monté à chaque démarrage, jamais lu, sans rien qui le signale.
   // La déclaration suit désormais le montage, sauf si l'utilisateur décoche.
   let ajouterApresMontage = $state(true);
+  // tune-server-rust#8746 (fil 2816), variante B décidée le 15/11 : la source
+  // était toujours la RACINE du partage, et l'analyse parcourait tout le NAS.
+  // Cochée AVANT le montage, cette case ouvre l'explorateur sur le point de
+  // montage ; le dossier choisi est déclaré et analysé à la place de la
+  // racine. Décochée (par défaut), rien ne change : la règle du fil 2145
+  // (la déclaration suit le montage) tient. Fermer l'explorateur sans choisir
+  // déclare la racine, pour ne jamais laisser un partage monté jamais lu.
+  let choisirSousDossier = $state(false);
+  let explorateurOuvert = $state(false);
+  /** Le dossier réellement déclaré : la racine ou le sous-dossier choisi. */
+  let dossierDeclare = $state<string | null>(null);
+  let sousDossierRefuse = $state<string | null>(null);
+  /** #8069 : le détail technique d'un montage refusé, replié sous le message. */
+  let mountDetail = $state('');
   let scanningLibrary = $state(false);
   let scanStarted = $state(false);
 
@@ -253,6 +271,7 @@
     if (!selectedHost || !selectedShare) return;
     mounting = true;
     mountError = null;
+    mountDetail = '';
     try {
       const result = await api.mountSmbShare(
         selectedHost.host,
@@ -263,16 +282,22 @@
       mountResult = { mount_path: result.mount_path, id: result.id };
     } catch (e: any) {
       mountError = e?.message || $t('smb.mountError');
+      mountDetail = detailServeur(e);
     }
     mounting = false;
-    if (mountResult && ajouterApresMontage) await addToLibrary();
+    if (mountResult && ajouterApresMontage) {
+      if (choisirSousDossier) explorateurOuvert = true;
+      else await addToLibrary();
+    }
   }
 
-  async function addToLibrary() {
-    if (!mountResult) return;
+  /** Déclare `chemin` (la racine du partage par défaut) comme dossier de musique. */
+  async function addToLibrary(chemin: string | undefined = mountResult?.mount_path) {
+    if (!mountResult || !chemin) return;
     addingToLibrary = true;
     try {
-      await api.addMusicDir(mountResult.mount_path);
+      await api.addMusicDir(chemin);
+      dossierDeclare = chemin;
       addedToLibrary = true;
       onMusicDirsChanged();
     } catch (e: any) {
@@ -281,10 +306,30 @@
     addingToLibrary = false;
   }
 
+  /** L'explorateur a rendu un dossier : il doit être sous le point de montage. */
+  async function sousDossierChoisi(chemin: string) {
+    if (!mountResult) return;
+    const retenu = sousDossierDuPartage(mountResult.mount_path, chemin);
+    if (!retenu) {
+      sousDossierRefuse = chemin;
+      return;
+    }
+    sousDossierRefuse = null;
+    explorateurOuvert = false;
+    await addToLibrary(retenu);
+  }
+
+  /** Explorateur fermé sans choix : la racine, comme sans la case (fil 2145). */
+  async function explorateurFerme() {
+    explorateurOuvert = false;
+    sousDossierRefuse = null;
+    if (!addedToLibrary && ajouterApresMontage && choisirSousDossier) await addToLibrary();
+  }
+
   async function startScan() {
     scanningLibrary = true;
     try {
-      await api.triggerScan(mountResult?.mount_path);
+      await api.triggerScan(dossierDeclare ?? mountResult?.mount_path);
       scanStarted = true;
     } catch (e: any) {
       if (e?.message?.includes('409') || e?.message?.includes('already')) {
@@ -305,6 +350,9 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    // L'explorateur de sous-dossier (#8746) gère sa propre touche Échap : elle
+    // le ferme, elle ne doit pas fermer l'assistant derrière lui.
+    if (explorateurOuvert) return;
     if (e.key === 'Escape') onClose();
   }
 </script>
@@ -541,6 +589,11 @@
             <input type="checkbox" bind:checked={ajouterApresMontage} disabled={mounting} />
             {$t('smb.addToLibrary')}
           </label>
+          <label class="add-after-mount sub-option">
+            <input type="checkbox" data-choisir-sous-dossier bind:checked={choisirSousDossier}
+              disabled={mounting || !ajouterApresMontage} />
+            {$t('smb.chooseSubfolderAfterMount' as any)}
+          </label>
 
           <button class="scan-btn" onclick={mountShare} disabled={mounting}>
             {#if mounting}
@@ -556,6 +609,7 @@
 
           {#if mountError}
             <div class="wizard-error">{mountError}</div>
+            <DetailsServeur detail={mountDetail} />
           {/if}
         {:else}
           <div class="wizard-success">
@@ -563,8 +617,14 @@
             <span class="mount-path">{mountResult.mount_path}</span>
           </div>
 
+          {#if sousDossierRefuse}
+            <div class="wizard-error" role="alert">
+              {$t('smb.subfolderOutsideShare' as any).replace('{path}', mountResult.mount_path)}
+            </div>
+          {/if}
+
           {#if !addedToLibrary}
-            <button class="scan-btn" onclick={addToLibrary} disabled={addingToLibrary}>
+            <button class="scan-btn" onclick={() => addToLibrary()} disabled={addingToLibrary}>
               {#if addingToLibrary}
                 <div class="spinner small"></div>
                 {$t('smb.adding')}
@@ -575,8 +635,17 @@
                 {$t('smb.addToLibrary')}
               {/if}
             </button>
+            <button class="link-btn" data-choisir-sous-dossier-apres onclick={() => (explorateurOuvert = true)}
+              disabled={addingToLibrary}>
+              {$t('smb.chooseSubfolder' as any)}
+            </button>
           {:else}
-            <div class="wizard-success">{$t('smb.folderAdded')}</div>
+            <div class="wizard-success">
+              {$t('smb.folderAdded')}
+              {#if dossierDeclare && dossierDeclare !== mountResult.mount_path}
+                <span class="mount-path" data-dossier-declare>{dossierDeclare}</span>
+              {/if}
+            </div>
 
             {#if !scanStarted}
               <button class="scan-btn" onclick={startScan} disabled={scanningLibrary}>
@@ -632,6 +701,12 @@
             <span class="summary-label">{$t('smb.library')}</span>
             <span class="summary-value" use:bulleTexte>{addedToLibrary ? $t('smb.added') : $t('smb.notAdded')}</span>
           </div>
+          {#if addedToLibrary && dossierDeclare && dossierDeclare !== summaryPath}
+            <div class="summary-row">
+              <span class="summary-label">{$t('smb.libraryFolder' as any)}</span>
+              <span class="summary-value mono" use:bulleTexte>{dossierDeclare}</span>
+            </div>
+          {/if}
           {#if scanStarted}
             <div class="summary-row">
               <span class="summary-label">{$t('smb.scanLabel')}</span>
@@ -647,6 +722,14 @@
     {/if}
   </div>
 </div>
+
+{#if explorateurOuvert && mountResult}
+  <FolderBrowser
+    initialPath={mountResult.mount_path}
+    onSelect={sousDossierChoisi}
+    onClose={explorateurFerme}
+  />
+{/if}
 
 <style>
   .modal-overlay {
@@ -1021,6 +1104,16 @@
     font-size: calc(13px * var(--v2-txt-echelle, 1));
     color: var(--tune-text);
     cursor: pointer;
+  }
+
+  /* #8746 : l'option dépend de « Ajouter à la bibliothèque » — en retrait. */
+  .add-after-mount.sub-option {
+    margin-left: 24px;
+  }
+
+  .add-after-mount.sub-option:has(input:disabled) {
+    opacity: 0.6;
+    cursor: default;
   }
 
   .mount-path {

@@ -477,3 +477,33 @@ async function basculerVraiment(cle: string, c: CibleEtiquette): Promise<boolean
     return estDansLeSas(c);
   }
 }
+
+/**
+ * tune-server-rust#9143 (fil forum 2934) — l'option « retirer après écoute
+ * complète », rangée dans le MÊME objet de réglages du profil que
+ * l'étiquette : c'est le serveur qui la lit au moment où l'album finit, et
+ * qui retire alors l'album de l'étiquette `CLE_REGLAGE`.
+ *
+ * ÉTEINTE par défaut (clé absente = non) : le sas a été pensé pour « voir ce
+ * qu'on en fait » après l'écoute (FabienM, fil 1986). La retirer d'office
+ * changerait en silence l'usage de ceux qui s'en servent ainsi.
+ */
+export const CLE_RETRAIT_AUTO = 'ecouterPlusTardRetraitAuto';
+
+/** L'option est-elle allumée dans ces réglages de profil ? Seul `true` compte. */
+export function retraitAutoActif(reglages: Record<string, unknown> | null | undefined): boolean {
+  return reglages?.[CLE_RETRAIT_AUTO] === true;
+}
+
+/** Lit l'option du profil. Une lecture ratée lève : l'écran la dit. */
+export async function lireRetraitAuto(profileId: number): Promise<boolean> {
+  return retraitAutoActif(await api.getProfilePreferences(profileId));
+}
+
+/**
+ * Écrit l'option du profil. `setProfilePreferences` FUSIONNE : l'étiquette du
+ * sas et la disposition d'accueil survivent à l'écriture.
+ */
+export async function ecrireRetraitAuto(profileId: number, actif: boolean): Promise<void> {
+  await api.setProfilePreferences(profileId, { [CLE_RETRAIT_AUTO]: actif === true });
+}
