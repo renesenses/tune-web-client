@@ -492,7 +492,9 @@ import { sansDoublons } from '../../lib/clesUniques';
     if (!query) return;
     const mine = ++seq;
     busy = true;
-    api.searchAcoustic(query, 40)
+    // #9157 — une recherche par le son rend les plus proches, toujours les
+    // mêmes ; seule l'Ambiance rappelée tire une sélection variée.
+    api.searchAcoustic(query, 40, { vary: false })
       .then((r) => { if (mine === seq) acoustic = r; })
       .catch(() => { if (mine === seq) acoustic = null; })
       .finally(() => { if (mine === seq) busy = false; });
