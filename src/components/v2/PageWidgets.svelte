@@ -1599,7 +1599,9 @@
               itemType: typeFavori,
               service: el.fiche?.source ?? el.source ?? '',
               serviceId: String(sidDistant),
-              title: el.titre,
+              // web#3234 — une écoute de piste ouvre et met en favori son
+              // ALBUM : le favori porte le titre de l'album, pas de la piste.
+              title: (typeFavori === 'album' && el.fiche?.title) || el.titre,
               artist: el.sous ?? undefined,
               coverUrl: el.cover ?? undefined,
             })
