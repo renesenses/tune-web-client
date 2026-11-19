@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Zeitzone für Wecker und geplanten Stopp",
+  "alarms.timezoneCurrent": "Aktuelle Zeitzone",
+  "alarms.timezoneSystem": "Systemzeitzone des Servers",
+  "alarms.timezoneHint": "Diese Einstellung gilt für Wecker und den geplanten Stopp. Der Vorschlag kommt vom Browser und wird erst beim Speichern übernommen. Ein leeres Feld behält die Systemzeitzone bei.",
+  "alarms.nextTrigger": "Nächste Auslösung",
   "classicalTags.title": "Klassik-Tags",
   "classicalTags.hint": "Die pro Rolle gelesenen Tags. CONDUCTOR, WORK und MOVEMENTNAME decken alle ihre Varianten ab (ID3, MP4); jeder andere Name ist ein eigener Tag: CHORUS liest auch TXXX:CHORUS.",
   "classicalTags.unavailable": "Dieser Server bietet diese Einstellung noch nicht an. Bitte Tune aktualisieren.",

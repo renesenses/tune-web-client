@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "알람 및 예약 정지 시간대",
+  "alarms.timezoneCurrent": "현재 시간대",
+  "alarms.timezoneSystem": "서버 시스템 시간대",
+  "alarms.timezoneHint": "이 설정은 알람과 예약 정지에 공통으로 적용됩니다. 제안된 시간대는 브라우저 설정을 따르며 저장해야 변경됩니다. 비워 두면 시스템 시간대를 유지합니다.",
+  "alarms.nextTrigger": "다음 알람",
   "classicalTags.title": "클래식 태그",
   "classicalTags.hint": "역할별로 읽는 태그입니다. CONDUCTOR, WORK, MOVEMENTNAME은 모든 형식(ID3, MP4)을 포함하며, 그 밖의 이름은 사용자 태그입니다. CHORUS는 TXXX:CHORUS도 읽습니다.",
   "classicalTags.unavailable": "이 서버는 아직 이 설정을 지원하지 않습니다. Tune을 업데이트하세요.",

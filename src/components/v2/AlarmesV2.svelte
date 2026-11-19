@@ -45,10 +45,13 @@
   import { atLeast } from '../../lib/uiLevel';
   import { errText } from '../../lib/utils';
   import { champsJours, EN_SEMAINE, joursDuReveil, WEEK_END } from '../../lib/joursReveil';
+  import FuseauReveils from './FuseauReveils.svelte';
   import SelecteurSourceReveil from './SelecteurSourceReveil.svelte';
   import '../../styles/tune-v2.css';
 
   interface Reveil {
+    timezone?: string;
+    next_fired_at?: string | null;
     id: number;
     name: string;
     time: string;
@@ -148,6 +151,14 @@
     fVolume = r.volume;
     fMontee = r.fade_in_seconds;
     formulaire = true;
+  }
+
+  function prochain(r: Reveil): string {
+    if (!r.next_fired_at) return '';
+    if (!r.timezone) return r.next_fired_at.slice(0, 16).replace('T', ' ');
+    try {
+      return new Intl.DateTimeFormat(undefined, { timeZone: r.timezone, dateStyle: 'short', timeStyle: 'short', hourCycle: 'h23' }).format(new Date(r.next_fired_at));
+    } catch { return r.next_fired_at; }
   }
 
   function basculerJour(j: number) {
@@ -257,6 +268,8 @@
       {$t('alarms.newAlarm')}
     </button>
   </header>
+
+  <FuseauReveils onSaved={charger} />
 
   {#if formulaire}
     <section class="carte form">
@@ -373,6 +386,7 @@
               <span class="jours-txt">
                 {libelleJours(r)}{r.skip_holidays ? ' · ' + $t('alarms.exceptHolidays') : ''}
               </span>
+              {#if r.next_fired_at}<span data-reveil-prochain>{$t('alarms.nextTrigger')}: {prochain(r)} · {r.timezone || $t('alarms.timezoneSystem')}</span>{/if}
               <span class="source">{r.source_name || r.source_id}</span>
               {#if atLeast(niveau, 'intermediate')}
                 <span class="zone">{nomZone(r.zone_id)}</span>

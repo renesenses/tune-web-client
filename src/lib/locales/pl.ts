@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Strefa czasowa alarmów i zaplanowanego zatrzymania",
+  "alarms.timezoneCurrent": "Bieżąca strefa czasowa",
+  "alarms.timezoneSystem": "Systemowa strefa czasowa serwera",
+  "alarms.timezoneHint": "To ustawienie jest wspólne dla alarmów i zaplanowanego zatrzymania. Proponowana strefa pochodzi z przeglądarki i zmienia się dopiero po zapisaniu. Puste pole zachowuje strefę systemową.",
+  "alarms.nextTrigger": "Następne uruchomienie",
   "classicalTags.title": "Tagi muzyki klasycznej",
   "classicalTags.hint": "Tagi odczytywane dla każdej roli. CONDUCTOR, WORK i MOVEMENTNAME obejmują wszystkie swoje warianty (ID3, MP4); każda inna nazwa to tag własny: CHORUS odczytuje też TXXX:CHORUS.",
   "classicalTags.unavailable": "Ten serwer nie oferuje jeszcze tego ustawienia. Zaktualizuj Tune.",

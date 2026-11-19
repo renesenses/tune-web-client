@@ -985,6 +985,8 @@ export interface ArretProgramme {
 }
 
 export interface EtatArretProgramme {
+  /** Même réglage que les réveils ; absent sur un ancien serveur. */
+  timezone?: string;
   scheduled_stop: ArretProgramme | null;
   next_stop_at: string | null;
   /** Absent sur un serveur d'avant l'option : `false`. */

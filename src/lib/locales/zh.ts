@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "闹钟和定时停止的时区",
+  "alarms.timezoneCurrent": "当前使用的时区",
+  "alarms.timezoneSystem": "服务器系统时区",
+  "alarms.timezoneHint": "此设置由闹钟和定时停止共用。建议时区来自浏览器，仅在保存后更改。留空可保留系统时区。",
+  "alarms.nextTrigger": "下次触发时间",
   "classicalTags.title": "古典音乐标签",
   "classicalTags.hint": "每个角色读取的标签。CONDUCTOR、WORK 和 MOVEMENTNAME 涵盖其所有变体（ID3、MP4）；其他名称为自定义标签：CHORUS 也会读取 TXXX:CHORUS。",
   "classicalTags.unavailable": "此服务器尚不支持此设置。请更新 Tune。",

@@ -1,4 +1,9 @@
 export default {
+  "alarms.timezone": "Time zone for alarms and scheduled stop",
+  "alarms.timezoneCurrent": "Current time zone",
+  "alarms.timezoneSystem": "Server system time zone",
+  "alarms.timezoneHint": "This setting is shared by alarms and scheduled stop. The suggested zone comes from your browser; it changes only when you save. An empty value keeps the system time zone.",
+  "alarms.nextTrigger": "Next alarm",
   "classicalTags.title": "Classical tags",
   "classicalTags.hint": "The tags read for each role. CONDUCTOR, WORK and MOVEMENTNAME cover all their variants (ID3, MP4); any other name is a custom tag: CHORUS also reads TXXX:CHORUS.",
   "classicalTags.unavailable": "This server does not offer this setting yet. Please update Tune.",
