@@ -18,6 +18,8 @@ export interface CorrespondancePerso {
   mode: ModeBalisePerso;
   tag?: string;
   prefix?: string;
+  /** Séparateur des valeurs d'une balise : absent = `;`, `''` = aucun. */
+  separator?: string;
 }
 
 export interface ReglageBalisesPerso {
@@ -27,9 +29,35 @@ export interface ReglageBalisesPerso {
 export const MAX_CORRESPONDANCES = 32;
 export const MAX_LONGUEUR_CLE = 64;
 export const MAX_LONGUEUR_PREFIXE = 32;
+export const MAX_LONGUEUR_SEPARATEUR = 8;
+export const SEPARATEUR_DEFAUT = ';';
+/** Les balises proposées (Rob, Roon, foobar2000) ; le serveur envoie les siennes. */
+export const SUGGESTIONS_DEFAUT = ['GROUPING', 'MOOD', 'STYLE', 'ROONTRACKTAG', 'ROONALBUMTAG'];
+
+export type ChoixSeparateur = 'semicolon' | 'pipe' | 'slash' | 'none' | 'custom';
+
+/** Le choix affiché pour un séparateur stocké. */
+export function choixDuSeparateur(sep: string | undefined): ChoixSeparateur {
+  if (sep === undefined || sep === ';') return 'semicolon';
+  if (sep === '|') return 'pipe';
+  if (sep === '/') return 'slash';
+  if (sep === '') return 'none';
+  return 'custom';
+}
+
+/** Le séparateur stocké pour un choix (`custom` garde la saisie). */
+export function separateurDuChoix(choix: ChoixSeparateur, saisie = ''): string | undefined {
+  switch (choix) {
+    case 'semicolon': return undefined;
+    case 'pipe': return '|';
+    case 'slash': return '/';
+    case 'none': return '';
+    default: return saisie;
+  }
+}
 
 export type RefusCle = 'empty' | 'tooLong' | 'chars' | 'tooMany';
-export type RefusCorrespondance = RefusCle | 'tagRequired' | 'prefixTooLong';
+export type RefusCorrespondance = RefusCle | 'tagRequired' | 'prefixTooLong' | 'separatorTooLong';
 
 /** Une clé saisie, mise en capitales, ou la raison de son refus. */
 export function normaliserCle(
@@ -50,6 +78,7 @@ export function refusDe(c: CorrespondancePerso): RefusCorrespondance | null {
   if ('refus' in r) return r.refus;
   if (c.mode === 'fixed' && !(c.tag ?? '').trim()) return 'tagRequired';
   if (c.mode === 'values' && [...(c.prefix ?? '').trim()].length > MAX_LONGUEUR_PREFIXE) return 'prefixTooLong';
+  if (c.mode === 'values' && [...(c.separator ?? '')].length > MAX_LONGUEUR_SEPARATEUR) return 'separatorTooLong';
   return null;
 }
 
@@ -60,7 +89,10 @@ export function corpsDe(r: ReglageBalisesPerso): ReglageBalisesPerso {
       const key = c.key.trim().toUpperCase();
       if (c.mode === 'fixed') return { key, mode: 'fixed', tag: (c.tag ?? '').trim() };
       const prefix = (c.prefix ?? '').trimStart();
-      return prefix.trim() ? { key, mode: 'values', prefix } : { key, mode: 'values' };
+      const corps: CorrespondancePerso = { key, mode: 'values' };
+      if (prefix.trim()) corps.prefix = prefix;
+      if (c.separator !== undefined && c.separator !== SEPARATEUR_DEFAUT) corps.separator = c.separator;
+      return corps;
     }),
   };
 }

@@ -1053,6 +1053,8 @@ export interface AvancementBalisesPerso {
 export interface EtatBalisesPerso {
   personal_tags: import('./balisesPerso').ReglageBalisesPerso;
   max_mappings?: number;
+  suggestions?: string[];
+  default_separator?: string;
   apply?: AvancementBalisesPerso;
 }
 

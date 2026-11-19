@@ -17,8 +17,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { notifierErreur } from '../../lib/notifierErreur';
   import {
-    copieReglage, corpsDe, memesReglages, nomDeCle, normaliserCle, refusDe,
-    type ModeBalisePerso, type ReglageBalisesPerso,
+    SUGGESTIONS_DEFAUT, choixDuSeparateur, copieReglage, corpsDe, memesReglages, nomDeCle, normaliserCle,
+    refusDe, separateurDuChoix, type ChoixSeparateur, type ModeBalisePerso, type ReglageBalisesPerso,
   } from '../../lib/balisesPerso';
   import '../../styles/tune-v2.css';
 
@@ -29,6 +29,9 @@
   let enBase = $state<ReglageBalisesPerso>({ mappings: [] });
   let form = $state<ReglageBalisesPerso>({ mappings: [] });
   let saisie = $state('');
+  let suggestions = $state<string[]>([...SUGGESTIONS_DEFAUT]);
+  /** Lignes dont le séparateur est « personnalisé » (même vide pendant la saisie). */
+  let personnalises = $state<Record<number, boolean>>({});
   let refusSaisie = $state<string | null>(null);
   let refusLignes = $state<Record<number, string>>({});
 
@@ -47,6 +50,16 @@
   onMount(() => { void charger(); });
 
   const modifie = $derived(!memesReglages(form, enBase));
+  const suggestionsLibres = $derived(suggestions.filter((s) => !form.mappings.some((c) => nomDeCle(c.key) === s)));
+
+  function choix(i: number): ChoixSeparateur {
+    return personnalises[i] ? 'custom' : choixDuSeparateur(form.mappings[i].separator);
+  }
+
+  function changerSeparateur(i: number, valeur: ChoixSeparateur) {
+    personnalises = { ...personnalises, [i]: valeur === 'custom' };
+    form.mappings[i].separator = separateurDuChoix(valeur, valeur === 'custom' ? (form.mappings[i].separator ?? '') : '');
+  }
   const configurees = $derived(new Set(form.mappings.map((c) => nomDeCle(c.key))));
   const clesVisibles = $derived(
     (apercu?.keys ?? []).filter((k) => voirConnues || !k.known),
@@ -55,6 +68,8 @@
   function appliquerEtat(etat: api.EtatBalisesPerso) {
     enBase = copieReglage(etat.personal_tags ?? { mappings: [] });
     form = copieReglage(enBase);
+    if (etat.suggestions?.length) suggestions = [...etat.suggestions];
+    personnalises = Object.fromEntries(form.mappings.map((c, i) => [i, choixDuSeparateur(c.separator) === 'custom']));
     refusLignes = {};
     if (etat.apply && (etat.apply.running || etat.apply.finished)) suivre(etat.apply);
   }
@@ -87,6 +102,7 @@
   function retirer(i: number) {
     form.mappings = form.mappings.filter((_, j) => j !== i);
     refusLignes = {};
+    personnalises = Object.fromEntries(form.mappings.map((c, j) => [j, choixDuSeparateur(c.separator) === 'custom']));
   }
 
   function touche(e: KeyboardEvent) {
@@ -185,6 +201,18 @@
           {:else}
             <input type="text" class="valeur" data-prefixe bind:value={c.prefix}
               placeholder={$t('personalTags.prefixPlaceholder' as any)} aria-label={$t('personalTags.prefix' as any)} />
+            <select aria-label={$t('personalTags.separator' as any)} data-separateur value={choix(i)}
+              onchange={(e) => changerSeparateur(i, (e.currentTarget as HTMLSelectElement).value as ChoixSeparateur)}>
+              <option value="semicolon">{$t('personalTags.separator.semicolon' as any)}</option>
+              <option value="pipe">{$t('personalTags.separator.pipe' as any)}</option>
+              <option value="slash">{$t('personalTags.separator.slash' as any)}</option>
+              <option value="none">{$t('personalTags.separator.none' as any)}</option>
+              <option value="custom">{$t('personalTags.separator.custom' as any)}</option>
+            </select>
+            {#if choix(i) === 'custom'}
+              <input type="text" class="sep" data-separateur-perso bind:value={c.separator} maxlength="8"
+                aria-label={$t('personalTags.separatorCustom' as any)} />
+            {/if}
           {/if}
           <button type="button" class="retirer" data-retirer
             aria-label={texte('personalTags.remove', { key: c.key })} onclick={() => retirer(i)}>×</button>
@@ -203,6 +231,14 @@
       <button type="button" class="v2-btn" data-ajouter onclick={() => ajouter()}>{$t('personalTags.add' as any)}</button>
     </div>
     {#if refusSaisie}<p class="hint erreur" role="alert" data-refus>{refusSaisie}</p>{/if}
+    {#if suggestionsLibres.length}
+      <div class="suggestions" data-suggestions>
+        <span class="hint">{$t('personalTags.suggestions' as any)}</span>
+        {#each suggestionsLibres as s (s)}
+          <button type="button" class="v2-btn petit" data-suggestion={s} onclick={() => ajouter(s)}>{s}</button>
+        {/each}
+      </div>
+    {/if}
 
     <p class="hint">{$t('personalTags.scanHint' as any)}</p>
     <div class="actions">
@@ -294,6 +330,9 @@
   }
   .retirer:hover { color: var(--v2-danger); }
   .ajout { display: flex; gap: 8px; flex-wrap: wrap; }
+  .suggestions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .sep { width: 64px; padding: 8px 10px; border-radius: var(--v2-r-input, 8px); border: 1px solid var(--v2-line2);
+    background: var(--v2-bg); color: var(--v2-txt); font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono, var(--v2-sans)); }
   .ajout input { flex: 1 1 160px; min-width: 0; text-transform: uppercase; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; align-items: center; }
   .actions.gauche { justify-content: flex-start; }

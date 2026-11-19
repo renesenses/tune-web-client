@@ -218,3 +218,60 @@ describe('Réglages › Bibliothèque › Balises personnelles', () => {
     expect(hote.textContent).toContain('Mettez Tune à jour');
   });
 });
+
+describe('Retour de Rob (19/11) — séparateur et suggestions', () => {
+  it('le séparateur se règle par correspondance et part au serveur', async () => {
+    const { choixDuSeparateur, separateurDuChoix } = await import('../balisesPerso');
+    expect(choixDuSeparateur(undefined)).toBe('semicolon');
+    expect(choixDuSeparateur('')).toBe('none');
+    expect(choixDuSeparateur('|')).toBe('pipe');
+    expect(choixDuSeparateur('//')).toBe('custom');
+    expect(separateurDuChoix('slash')).toBe('/');
+    expect(separateurDuChoix('semicolon')).toBeUndefined();
+    expect(refusDe({ key: 'GROUPING', mode: 'values', separator: '123456789' })).toBe('separatorTooLong');
+    expect(corpsDe({ mappings: [{ key: 'grouping', mode: 'values', separator: ';' }] }))
+      .toEqual({ mappings: [{ key: 'GROUPING', mode: 'values' }] });
+  });
+
+  it('🔴 GROUPING ajouté par suggestion, séparateur « | », puis « aucun », envoyés tels quels', async () => {
+    mocks.getBalisesPerso.mockResolvedValue({ ...etat(), suggestions: ['GROUPING', 'MOOD', 'STYLE', 'ROONTRACKTAG', 'ROONALBUMTAG'] });
+    await monter();
+    expect([...hote.querySelectorAll('[data-suggestion]')].map((b) => b.getAttribute('data-suggestion')))
+      .toEqual(['GROUPING', 'MOOD', 'STYLE', 'ROONTRACKTAG', 'ROONALBUMTAG']);
+    q<HTMLButtonElement>('[data-suggestion=GROUPING]').click();
+    flushSync();
+    q<HTMLButtonElement>('[data-suggestion=STYLE]').click();
+    flushSync();
+    expect(lignes()).toEqual(['GROUPING', 'STYLE']);
+    expect(q('[data-suggestion=GROUPING]'), 'une suggestion reprise disparaît').toBeNull();
+    const sel = (cle: string) => q(`[data-correspondance=${cle}]`).querySelector<HTMLSelectElement>('[data-separateur]')!;
+    sel('GROUPING').value = 'pipe';
+    sel('GROUPING').dispatchEvent(new Event('change', { bubbles: true }));
+    sel('STYLE').value = 'none';
+    sel('STYLE').dispatchEvent(new Event('change', { bubbles: true }));
+    flushSync();
+    q<HTMLButtonElement>('[data-enregistrer]').click();
+    await respirer();
+    expect(mocks.setBalisesPerso.mock.calls[0][0]).toEqual({ mappings: [
+      { key: 'GROUPING', mode: 'values', separator: '|' },
+      { key: 'STYLE', mode: 'values', separator: '' },
+    ] });
+  });
+
+  it('un séparateur personnalisé se saisit', async () => {
+    await monter();
+    saisir('GROUPING');
+    const ligne = q('[data-correspondance=GROUPING]');
+    const sel = ligne.querySelector<HTMLSelectElement>('[data-separateur]')!;
+    sel.value = 'custom';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSync();
+    const champ = ligne.querySelector<HTMLInputElement>('[data-separateur-perso]')!;
+    champ.value = ' // ';
+    champ.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    q<HTMLButtonElement>('[data-enregistrer]').click();
+    await respirer();
+    expect(mocks.setBalisesPerso.mock.calls[0][0]).toEqual({ mappings: [{ key: 'GROUPING', mode: 'values', separator: ' // ' }] });
+  });
+});
