@@ -62,6 +62,7 @@
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
     inviterAuCercle, accepterInvitation, cerclesOuJeSuisInvite, refuserInvitation, annulerInvitation,
+    partagerEntreMembres, meMontrerDansCercle,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
@@ -147,6 +148,10 @@
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
   /** #2434 : les cercles des autres où je suis rangé (lien actif). */
   const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
+  /** #3283 — mes accords dans les cercles partagés : le globe relit quand ils changent. */
+  /** #3283 — ma ville posée ? (lue par la scène). Sans ville, on ne peut pas apparaître : l'interrupteur se grise. */
+  let monLieuPose = $state<boolean | null>(null);
+  const clePartageMembres = $derived(invitePar.map((m) => `${m.circle_id}:${m.members_see_each_other ? 1 : 0}${m.show_me ? 1 : 0}`).join(','));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
   /**
@@ -376,6 +381,8 @@
     if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
     if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; onglet = 'messages'; demandeConversation.set({ conversation: n.conversation_id }); void tick().then(() => document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' })); return; }
     if (n.kind === 'contact_request') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' })); }
+    // #3283 : un cercle où je suis devient partagé — l'interrupteur « Me montrer » est sous « Mes cercles ».
+    if (n.kind === 'circle_shared') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-invite')?.scrollIntoView?.({ block: 'start' })); }
   }
 
   function inviter(ev: SubmitEvent) {
@@ -554,6 +561,30 @@
       if (!ok) return;
     }
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
+  }
+
+  /**
+   * #3283 — propriétaire : « Partager ce cercle entre ses membres ». Couper
+   * efface les accords de tous les membres : on le dit avant.
+   */
+  async function basculerPartageMembres(c: CercleNomme) {
+    if (occupe !== null) return;
+    const voulu = c.members_see_each_other !== true;
+    if (!voulu && !(await dialogs.confirm($t('v2.circle.members.confirmStop' as any).replace('{circle}', c.name), { danger: true }))) return;
+    void geste(`membres-${c.id}`, () => partagerEntreMembres(c.id, voulu), {
+      succes: voulu ? 'v2.circle.members.started' : 'v2.circle.members.stopped',
+    });
+  }
+
+  /** #3283 — membre : « Me montrer aux autres membres de « X » », faux par défaut. */
+  function basculerMeMontrer(m: CercleOuJeSuisInvite) {
+    if (occupe !== null || m.members_see_each_other !== true) return;
+    const voulu = m.show_me !== true;
+    // Sans ville, apparaître est impossible (le cloud ne montre ni ne fait voir personne) : on le dit au lieu d'activer.
+    if (voulu && monLieuPose === false) return;
+    void geste(`montrer-${m.circle_id}`, () => meMontrerDansCercle(m.circle_id, voulu), {
+      succes: voulu ? 'v2.circle.members.shown' : 'v2.circle.members.hidden',
+    });
   }
 
   /** #6521 — couper efface chez le cloud les vignettes déjà envoyées. */
@@ -772,7 +803,7 @@
         onOnglet={(o) => void choisirOnglet(o)} onInviter={() => void allerInviter()}
         onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
         {#snippet scene()}
-      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length} {clePartageMembres} onMonLieuPose={(v) => (monLieuPose = v)}
         playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
         {/snippet}
       </DecouvrirCercleV2>
@@ -968,6 +999,17 @@
                 {/if}
                 <button class="lnk danger supprimer" disabled={occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
               </div>
+              {#if typeof c.members_see_each_other === 'boolean'}
+                <div class="partage partage-membres">
+                  <button class="interrupteur interrupteur-membres" role="switch" aria-checked={c.members_see_each_other}
+                    aria-label={$t('v2.circle.members.toggleNamed' as any).replace('{circle}', c.name)}
+                    disabled={occupe !== null} onclick={() => void basculerPartageMembres(c)}>
+                    <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                    <span>{$t('v2.circle.members.toggle' as any)}</span>
+                  </button>
+                  <p class="note membres-quoi">{$t('v2.circle.members.what' as any)}</p>
+                </div>
+              {/if}
               {#if t2}
                 <div class="partage">
                   <button class="interrupteur interrupteur-partage" role="switch" aria-checked={ou(c) === 'ici'}
@@ -1087,6 +1129,22 @@
                   {/if}
                 </div>
                 <p class="note cercle-de">{$t('v2.circle.msg.circleOf' as any).replace('{name}', m.owner_name)}</p>
+                {#if m.members_see_each_other === true}
+                  <div class="partage montrer-moi">
+                    <button class="interrupteur interrupteur-montrer" role="switch" aria-checked={m.show_me === true}
+                      disabled={occupe !== null || (m.show_me !== true && monLieuPose === false)} onclick={() => basculerMeMontrer(m)}>
+                      <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                      <span>{$t('v2.circle.members.showMe' as any).replace('{circle}', m.circle_name)}</span>
+                    </button>
+                    {#if monLieuPose === false}
+                      <p class="note montrer-sans-ville">{$t('v2.circle.members.needCity' as any)}</p>
+                    {/if}
+                    <p class="note montrer-quoi">{$t('v2.circle.members.showMeWhat' as any).replace('{circle}', m.circle_name)}</p>
+                    {#if m.audience_count != null}
+                      <p class="note montrer-audience">{$tn('v2.circle.members.audience', m.audience_count)}</p>
+                    {/if}
+                  </div>
+                {/if}
               </article>
             {/each}
           </div>

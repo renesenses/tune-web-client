@@ -44,6 +44,7 @@
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import ChampRecherche from './ChampRecherche.svelte';
   import { champsRepondent } from '../../lib/filtreTexte';
+  import { comparerAlphabetique, initialeAlphabetique } from '../../lib/ordreAlphabetique';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { objetAlbum, objetCollection } from '../../lib/gestesObjet';
@@ -280,10 +281,11 @@
   function parNom(a: Entree, b: Entree): number {
     // On range sur ce qui est LU, pas sur ce qui est stocké : un lecteur
     // roumain verrait sinon « Recente » classé à la lettre R du français.
-    return libelleTradu(a).localeCompare(libelleTradu(b), undefined, {
-      sensitivity: 'base',
-      numeric: true,
-    });
+    // web#3177 — et sur la règle commune (`comparerAlphabetique`), qui ignore
+    // le pictogramme de tête : avec `localeCompare`, « 🎧 Electronic » passait
+    // avant les lettres et « 🆕 Récents » se rangeait à N (décomposition
+    // « NEW » de U+1F195).
+    return comparerAlphabetique(libelleTradu(a), libelleTradu(b));
   }
   function parDate(a: Entree, b: Entree, recentDabord: boolean): number {
     const ta = a.creee ? Date.parse(a.creee) : NaN;
@@ -382,7 +384,7 @@
    */
   const railListe = $derived(tri === 'alpha' || tri === 'alphaInverse');
   const lettresListe = $derived(
-    railListe ? new Set(visibles.map((e) => initiale(libelleTradu(e)))) : new Set<string>(),
+    railListe ? new Set(visibles.map((e) => initialeAlphabetique(libelleTradu(e)))) : new Set<string>(),
   );
   let grilleListeEl: HTMLDivElement | undefined = $state();
   function sauterAListe(L: string) {
@@ -1601,7 +1603,7 @@
           <!-- La lettre du rail suit le libelle LU ; la teinte reste derivee du nom
                STOCKE, pour qu'une collection ne change pas de couleur en changeant
                de langue. -->
-          <div class="card" data-lettre={initiale(libelleTradu(e))} style="--teinte:{teinte(e.nom)}"
+          <div class="card" data-lettre={initialeAlphabetique(libelleTradu(e))} style="--teinte:{teinte(e.nom)}"
             data-collection={`${e.sorte}:${e.id}`}
             role="listitem"
             draggable={tri === 'manuel'}

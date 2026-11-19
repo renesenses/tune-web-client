@@ -36,6 +36,13 @@ export interface PisteDouteuse {
    * et points de montage écartés). Absent d'un serveur plus ancien.
    */
   folder_artist?: string | null;
+  /**
+   * renesenses/tune-server-rust#8958 — pour chaque raison encore affichée,
+   * où « C'est normal » mémoriserait le choix : la piste, ou tout l'album.
+   * Absent d'un serveur plus ancien : l'écran n'offre alors pas le geste.
+   */
+  ignore_scopes?: Record<string, 'track' | 'album'>;
+  album_id?: number | null;
 }
 
 /** Le dossier parent d'un chemin, quel que soit le séparateur. */

@@ -129,11 +129,11 @@ describe('web#3123 — « Compléments Qobuz » en sous-onglets', () => {
   });
 });
 
-describe('web#3123 — le libellé « Détails » dans les 15 langues', () => {
+describe('web#3123 — le libellé « Détails » dans les 16 langues', () => {
   const dossier = resolve(process.cwd(), 'src/lib/locales') + '/';
   const langues = readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
-  it('15 langues, chacune avec « v2.album.qobuz.tabDetails »', () => {
-    expect(langues).toHaveLength(15);
+  it('16 langues, chacune avec « v2.album.qobuz.tabDetails »', () => {
+    expect(langues).toHaveLength(16);
     for (const f of langues) {
       expect(readFileSync(dossier + f, 'utf-8'), f).toMatch(/"v2\.album\.qobuz\.tabDetails": "[^"]+"/);
     }

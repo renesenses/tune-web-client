@@ -110,11 +110,15 @@ describe('fiche radio : Lecture au centre du logo', () => {
 });
 
 describe('fiche radio : flux', () => {
-  it('🔴 classés par qualité, HLS ou direct, flux par défaut marqué', async () => {
+  it('🔴 classés par qualité, HLS marqué (plus de badge « Direct », rc12), flux par défaut marqué', async () => {
     await monter(RadioFicheModale, { station: FIP, onClose: () => {} });
     const li = [...dialogue()!.querySelectorAll('.flux li')];
     expect(li.map((l) => l.querySelector('.url')?.textContent)).toEqual([AAC, MP3, HLS]);
-    expect(li.map((l) => l.querySelector('.transport')?.textContent)).toEqual(['Direct', 'Direct', 'HLS']);
+    // Retour de Rémi sur la rc12 : le badge « Direct » ne servait à rien ;
+    // seul un flux HLS garde sa pastille. Et plus de « Choisissez un flux ».
+    expect(li.map((l) => l.querySelector('.transport')?.textContent)).toEqual([undefined, undefined, 'HLS']);
+    expect(dialogue()!.querySelector('.flux .aide')).toBeNull();
+    expect(dialogue()!.textContent).not.toContain('Choisissez un flux');
     expect(li.map((l) => !!l.querySelector('.prin'))).toEqual([true, false, false]);
   });
 
