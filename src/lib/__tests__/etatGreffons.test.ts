@@ -123,11 +123,26 @@ describe('intégrés actifs (#9151)', () => {
   });
 });
 
+describe('redémarrage attendu (#9151, relecture de #9219)', () => {
+  it('un intégré installé en cours de session dit « Redémarrage requis », pas « Actif »', async () => {
+    const up = { id: 'upsampler', third_party: false, native_loaded: false, engine: 'bundled' as const,
+      active: false, restart_required: true, licensed: true, error: null, version: null };
+    expect(etatAffiche(up)).toBe('restart');
+    // Contre-épreuve : monté au démarrage, le même est actif.
+    expect(etatAffiche({ ...up, active: true, restart_required: false })).toBe('active');
+    await monter(200, { plugins: [up] });
+    const e = cible.querySelector('[data-etat-greffon="upsampler"] [data-etat]')!;
+    expect(e.getAttribute('data-etat')).toBe('restart');
+    expect(e.classList.contains('ok')).toBe(false);
+    expect(texteRapportGreffons([up])).toContain('upsampler | builtin | restart | version=-');
+  });
+});
+
 describe('i18n', () => {
   it('les libellés existent dans les 15 langues', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
-      for (const k of ['etatTitle','etatThirdParty','etatBuiltin','etatLoaded','etatNotLoaded','etatActive','etatInactive','etatCopy','etatCopied'])
+      for (const k of ['etatTitle','etatThirdParty','etatBuiltin','etatLoaded','etatNotLoaded','etatActive','etatInactive','etatRestart','etatCopy','etatCopied'])
         expect(d[`v2.plug.${k}`], `${l} ${k}`).toBeTruthy();
     }
   });

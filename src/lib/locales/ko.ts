@@ -6592,6 +6592,7 @@ export default {
   "v2.plug.etatNotLoaded": "로드되지 않음",
   "v2.plug.etatActive": "활성",
   "v2.plug.etatInactive": "비활성",
+  "v2.plug.etatRestart": "재시작 필요",
   "v2.plug.etatCopy": "버그 보고용으로 복사",
   "v2.plug.etatCopied": "복사됨",
   "v2.plug.nativeBadge": "네이티브",

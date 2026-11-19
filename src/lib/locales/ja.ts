@@ -6592,6 +6592,7 @@ export default {
   "v2.plug.etatNotLoaded": "未読み込み",
   "v2.plug.etatActive": "有効",
   "v2.plug.etatInactive": "無効",
+  "v2.plug.etatRestart": "再起動が必要",
   "v2.plug.etatCopy": "不具合報告用にコピー",
   "v2.plug.etatCopied": "コピーしました",
   "v2.plug.nativeBadge": "ネイティブ",

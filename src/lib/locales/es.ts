@@ -6592,6 +6592,7 @@ export default {
   "v2.plug.etatNotLoaded": "No cargado",
   "v2.plug.etatActive": "Activo",
   "v2.plug.etatInactive": "Inactivo",
+  "v2.plug.etatRestart": "Requiere reinicio",
   "v2.plug.etatCopy": "Copiar para un informe de error",
   "v2.plug.etatCopied": "Copiado",
   "v2.plug.nativeBadge": "Nativo",

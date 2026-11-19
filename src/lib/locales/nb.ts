@@ -6446,6 +6446,7 @@ export default {
   "v2.plug.etatNotLoaded": "Ikke lastet",
   "v2.plug.etatActive": "Aktiv",
   "v2.plug.etatInactive": "Inaktiv",
+  "v2.plug.etatRestart": "Omstart kreves",
   "v2.plug.etatCopy": "Kopier til en feilrapport",
   "v2.plug.etatCopied": "Kopiert",
   "v2.plug.nativeBadge": "Innebygd",

@@ -6446,6 +6446,7 @@ export default {
   "v2.plug.etatNotLoaded": "Μη φορτωμένο",
   "v2.plug.etatActive": "Ενεργό",
   "v2.plug.etatInactive": "Ανενεργό",
+  "v2.plug.etatRestart": "Απαιτείται επανεκκίνηση",
   "v2.plug.etatCopy": "Αντιγραφή για αναφορά σφάλματος",
   "v2.plug.etatCopied": "Αντιγράφηκε",
   "v2.plug.nativeBadge": "Εγγενές",

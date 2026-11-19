@@ -45,12 +45,16 @@ export function lignesEtatGreffons(liste: GreffonAudioNatif[] | null | undefined
  * `native_loaded` ne dit que le chargement d'un PAQUET natif : un emplacement
  * intégré sans paquet tourne par son moteur embarqué, et il paraissait « Non
  * chargé » chez tout le monde alors qu'il marchait. Un intégré se lit donc par
- * `active` (actif / inactif) quand le serveur le rend ; un serveur ancien
+ * `active` (actif / inactif) quand le serveur le rend, et « Redémarrage
+ * requis » sur `restart_required` ; un serveur ancien
  * (sans `active`) garde l'ancien affichage.
  */
-export type EtatAffiche = 'loaded' | 'active' | 'inactive' | 'not_loaded';
+export type EtatAffiche = 'loaded' | 'active' | 'inactive' | 'restart' | 'not_loaded';
 
 export function etatAffiche(g: GreffonAudioNatif): EtatAffiche {
+  // Voulu actif mais pas encore monté (installé en cours de session) : ni
+  // « Actif » ni « Non chargé », un redémarrage est attendu.
+  if (g.restart_required === true && !g.error) return 'restart';
   if (g.native_loaded) return 'loaded';
   if (!g.third_party && typeof g.active === 'boolean') return g.active ? 'active' : 'inactive';
   return 'not_loaded';

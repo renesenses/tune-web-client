@@ -14,6 +14,7 @@
     loaded: 'v2.plug.etatLoaded',
     active: 'v2.plug.etatActive',
     inactive: 'v2.plug.etatInactive',
+    restart: 'v2.plug.etatRestart',
     not_loaded: 'v2.plug.etatNotLoaded',
   } as const;
 

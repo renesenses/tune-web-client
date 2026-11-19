@@ -6546,6 +6546,7 @@ export default {
   "v2.plug.etatNotLoaded": "Nincs betöltve",
   "v2.plug.etatActive": "Aktív",
   "v2.plug.etatInactive": "Inaktív",
+  "v2.plug.etatRestart": "Újraindítás szükséges",
   "v2.plug.etatCopy": "Másolás hibajelentéshez",
   "v2.plug.etatCopied": "Másolva",
   "v2.plug.nativeBadge": "Natív",

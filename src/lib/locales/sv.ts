@@ -6591,6 +6591,7 @@ export default {
   "v2.plug.etatNotLoaded": "Inte laddad",
   "v2.plug.etatActive": "Aktiv",
   "v2.plug.etatInactive": "Inaktiv",
+  "v2.plug.etatRestart": "Omstart krävs",
   "v2.plug.etatCopy": "Kopiera för en felrapport",
   "v2.plug.etatCopied": "Kopierad",
   "v2.plug.nativeBadge": "Inbyggt",

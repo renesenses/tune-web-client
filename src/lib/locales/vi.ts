@@ -6449,6 +6449,7 @@ export default {
   "v2.plug.etatNotLoaded": "Chưa tải",
   "v2.plug.etatActive": "Đang bật",
   "v2.plug.etatInactive": "Đã tắt",
+  "v2.plug.etatRestart": "Cần khởi động lại",
   "v2.plug.etatCopy": "Sao chép cho báo cáo lỗi",
   "v2.plug.etatCopied": "Đã sao chép",
   "v2.plug.nativeBadge": "Native",

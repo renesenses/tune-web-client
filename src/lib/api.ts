@@ -5272,6 +5272,11 @@ export interface GreffonAudioNatif {
   /** tune-server-rust#9151 — l'état effectif (installé, activé, et pour un
    *  tiers chargé). Absent sur un serveur ancien. */
   active?: boolean;
+  /** tune-server-rust#9151 — voulu actif, mais pas encore monté par le
+   *  serveur en cours : un redémarrage est attendu. */
+  restart_required?: boolean;
+  /** tune-server-rust#9151 — le droit que les routes du greffon exigent. */
+  licensed?: boolean;
   /** La version annoncée par le catalogue à l'installation ; `null` (ou
    *  absent, serveur ancien) pour un paquet envoyé à la main. */
   version?: string | null;

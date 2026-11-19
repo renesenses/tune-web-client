@@ -6441,6 +6441,7 @@ export default {
   "v2.plug.etatNotLoaded": "Yüklenmedi",
   "v2.plug.etatActive": "Etkin",
   "v2.plug.etatInactive": "Devre dışı",
+  "v2.plug.etatRestart": "Yeniden başlatma gerekli",
   "v2.plug.etatCopy": "Hata raporu için kopyala",
   "v2.plug.etatCopied": "Kopyalandı",
   "v2.plug.nativeBadge": "Yerel",

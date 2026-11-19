@@ -6592,6 +6592,7 @@ export default {
   "v2.plug.etatNotLoaded": "Neîncărcat",
   "v2.plug.etatActive": "Activ",
   "v2.plug.etatInactive": "Inactiv",
+  "v2.plug.etatRestart": "Repornire necesară",
   "v2.plug.etatCopy": "Copiază pentru un raport de eroare",
   "v2.plug.etatCopied": "Copiat",
   "v2.plug.nativeBadge": "Nativ",
