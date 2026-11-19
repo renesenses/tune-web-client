@@ -2319,6 +2319,7 @@ export default {
   "machineAction.notLocalRestart": "Odmowa ponownego uruchomienia: z innego urządzenia Tune przyjmuje tę czynność tylko przy włączonym uwierzytelnianiu (konto administratora). Włącz je albo uruchom Tune ponownie z komputera lub kontenera: {command}.",
   "machineAction.port80Relay": "To urządzenie przekierowuje port 80, więc Tune nie odróżni wywołania lokalnego od sieciowego. Włącz uwierzytelnianie i zaloguj się na konto administratora.",
   "machineAction.whereToEnable": "Aby włączyć uwierzytelnianie: Ustawienia > System > Uwierzytelnianie (z innego urządzenia, z kodem jednorazowym wyświetlanym przez docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
+  "machineAction.adminRequired": "Tylko konto administratora może wyłączyć lub ponownie uruchomić urządzenie. Zaloguj się na konto administratora.",
   "settings.updateStatusUnknown": "Nie wiadomo, czy aktualizacja została zainstalowana: serwer nie odpowiedział. Odśwież stronę, aby zobaczyć działającą wersję.",
   "settings.updateInstallFailed": "Aktualizacja nie powiodła się. Przyczyna podana przez serwer: {reason}",
   "settings.updateButton": "Zaktualizuj",

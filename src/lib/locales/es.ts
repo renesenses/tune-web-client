@@ -1669,6 +1669,7 @@ export default {
   "machineAction.notLocalRestart": "Reinicio rechazado: desde otro dispositivo, Tune solo acepta esta acción si la autenticación está activada (cuenta de administrador). Actívela, o reinicie Tune desde el equipo o el contenedor: {command}.",
   "machineAction.port80Relay": "Este equipo redirige el puerto 80, así que Tune no puede distinguir una llamada local de una llamada de la red. Active la autenticación e inicie sesión con una cuenta de administrador.",
   "machineAction.whereToEnable": "Para activar la autenticación: Ajustes > Sistema > Autenticación (desde otro dispositivo, con el código de un solo uso que muestran docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
+  "machineAction.adminRequired": "Solo una cuenta de administrador puede apagar o reiniciar la máquina. Inicie sesión con una cuenta de administrador.",
   "settings.updateStatusUnknown": "No se puede saber si la actualización se instaló: el servidor no respondió. Recarga la página para ver la versión en curso.",
   "settings.updateInstallFailed": "La actualización ha fallado. Motivo indicado por el servidor: {reason}",
   "settings.updateButton": "Actualizar",

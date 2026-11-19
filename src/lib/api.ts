@@ -30,7 +30,7 @@ import { estDepotTuneDistant } from './depotsTuneDistants';
 import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
-import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { estMessageGenerique, estUnCode, lireMessageServeur } from './messageServeur';
 import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -11829,8 +11829,45 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
   if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
-  if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
+  if (!resp.ok) throw erreurAppliance(json, resp.status);
   return json;
+}
+
+/**
+ * web#3195 — plus jamais le CODE brut (« auth_required ») à l'écran.
+ *
+ * Avant, `applianceFetch` jetait `new Error(json.error)` : « Éteindre » et
+ * « Redémarrer » refusés par la garde `AdminOuCetteMachine` affichaient
+ * `auth_required`. L'erreur porte désormais la phrase traduite, et `code`,
+ * `status`, `corps` (lus par `messageRefusHorsMachine`), le brut dans `detail` :
+ *
+ *  - `403 auth_required` + `reason` (`not_local`, `port80_relay`) : la phrase
+ *    `machineAction.*`, qui renvoie à Réglages > Système > Authentification ;
+ *  - `403 "admin role required"` (authentification active, compte non
+ *    administrateur) : `machineAction.adminRequired` ;
+ *  - `AppError` des routes Wi-Fi (`{ error: "<phrase>", code }`, phrase déjà
+ *    traduite par le serveur : `net.wifiBadPassword`, `net.wifiCommandFailed`
+ *    avec la sortie de nmcli, `net.wifiUnavailable`, `net.wifiTimeout` sous
+ *    `code: "timeout"`) : la PHRASE de `error` reste le message, comme avant ;
+ *    `lireMessageServeur` ne lit que `message` et la rendrait générique ;
+ *  - sinon la règle de `lireMessageServeur` (#2417).
+ */
+export function erreurAppliance(json: any, status: number): ApiError {
+  const lu = lireMessageServeur(json, '', status);
+  const phraseDuServeur = typeof json?.error === 'string' && json.error.trim() && !estUnCode(json.error)
+    ? json.error.trim() as string
+    : null;
+  const message = phraseDuServeur !== null && estMessageGenerique(lu.message) ? phraseDuServeur : lu.message;
+  const err = new Error(message) as ApiError;
+  err.detail = lu.detail;
+  err.code = lu.code ?? (status === 403 && json?.error === 'admin role required' ? 'admin_required' : undefined);
+  err.status = status;
+  if (json && typeof json === 'object') err.corps = json;
+  const tr = get(t) as (cle: string) => string;
+  const horsMachine = messageRefusHorsMachine(err, tr);
+  if (horsMachine !== null) err.message = horsMachine;
+  else if (err.code === 'admin_required') err.message = tr('machineAction.adminRequired');
+  return err;
 }
 
 export function getApplianceStatus(): Promise<ApplianceStatus> {

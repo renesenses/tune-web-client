@@ -1669,6 +1669,7 @@ export default {
   "machineAction.notLocalRestart": "重启被拒绝：从其他设备操作时，只有在开启身份验证（管理员帐户）的情况下 Tune 才接受此操作。请开启身份验证，或在机器或容器中重启 Tune：{command}。",
   "machineAction.port80Relay": "此设备转发了 80 端口，Tune 无法区分本机调用和网络调用。请开启身份验证并使用管理员帐户登录。",
   "machineAction.whereToEnable": "开启身份验证：设置 > 系统 > 身份验证（从其他设备操作时，使用 docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)）。",
+  "machineAction.adminRequired": "只有管理员账户才能关闭或重启这台机器。请使用管理员账户登录。",
   "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
   "settings.updateInstallFailed": "更新失败。服务器给出的原因：{reason}",
   "settings.updateButton": "更新",

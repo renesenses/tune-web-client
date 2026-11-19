@@ -2319,6 +2319,7 @@ export default {
   "machineAction.notLocalRestart": "Omstart avvist: fra en annen enhet godtar Tune denne handlingen bare når autentisering er slått på (administratorkonto). Slå den på, eller start Tune på nytt fra maskinen eller containeren: {command}.",
   "machineAction.port80Relay": "Denne enheten videresender port 80, så Tune kan ikke skille et lokalt kall fra et nettverkskall. Slå på autentisering og logg inn med en administratorkonto.",
   "machineAction.whereToEnable": "Slik slår du på autentisering: Innstillinger > System > Autentisering (fra en annen enhet, med engangskoden som vises av docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
+  "machineAction.adminRequired": "Bare en administratorkonto kan slå av eller starte maskinen på nytt. Logg inn med en administratorkonto.",
   "settings.updateStatusUnknown": "Kan ikke si om oppdateringen ble installert: serveren svarte ikke. Last siden på nytt for å se versjonen som kjører.",
   "settings.updateInstallFailed": "Oppdateringen mislyktes. Årsak oppgitt av serveren: {reason}",
   "settings.updateButton": "Oppdater",
