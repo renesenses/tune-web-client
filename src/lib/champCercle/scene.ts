@@ -42,6 +42,8 @@ export interface DonneesCercle {
   contacts: ContactScene[];
   /** MES cercles nommés (classements privés). */
   cercles: { id: number; nom: string; membres: number[] }[];
+  /** #3283 — les membres de mes cercles PARTAGÉS (pas mes contacts) : sur le globe seulement. */
+  membresDeCercles?: { id: number; nom: string; cercles: string[]; lieu: Lieu }[];
   /** Contact au centre de la vue Lien ; `null` = le premier qui partage, sinon le premier. */
   focus: number | null;
   /** Nombre de contacts autour de moi avant la puce « +N » (8 sur mobile, 30 sinon). */
@@ -83,6 +85,8 @@ export interface NoeudScene {
   lon?: number;
   place?: string;
   me?: boolean;
+  /** #3283 — épingle d'un membre de cercle partagé : les cercles par lesquels je le vois. */
+  viaCercles?: string[];
 }
 
 export interface Cible { x?: number; y?: number; sphere?: number; avatar?: number; cluster?: number; alpha?: number }
@@ -96,6 +100,8 @@ export const idCercle = (id: number) => `k:${id}`;
 export const idCercleSolo = (id: number) => `ks:${id}`;
 export const ID_PLUS_CERCLES = 'more-k';
 export const idEpingle = (uid: number | 'moi') => `p:${uid}`;
+/** #3283 — l'épingle d'un membre de cercle partagé (jamais un contact : autre préfixe). */
+export const idEpingleMembre = (uid: number) => `pm:${uid}`;
 export const cleLien = (a: string, b: string) => `${a}|${b}`;
 
 /** Teinte stable d'un cercle (angle d'or : deux cercles voisins ne se ressemblent pas). */
@@ -352,6 +358,16 @@ export function construireScene(d: DonneesCercle): Scene {
   };
   if (d.moi.lieu) epingle('moi', d.moi.nom, d.moi.lieu, true);
   for (const c of d.contacts) if (c.lieu) epingle(c.id, c.nom, c.lieu, false);
+  // #3283 : les membres de mes cercles partagés, sur le globe SEULEMENT (ni en
+  // Réseau, ni en Genres : ce ne sont pas mes contacts). Un contact n'y est
+  // jamais deux fois.
+  const dejaContacts = new Set(d.contacts.map((c) => c.id));
+  for (const m of d.membresDeCercles ?? []) {
+    if (dejaContacts.has(m.id)) continue;
+    const id = idEpingleMembre(m.id);
+    noeuds.push({ id, kind: 'pin', label: m.nom, hue: 205, albums: null, members: 0, lat: m.lieu.lat * DEG, lon: m.lieu.lon * DEG, place: m.lieu.label, me: false, viaCercles: m.cercles });
+    vues.monde.noeuds[id] = { alpha: 1 };
+  }
 
   return { noeuds, liens, vues };
 }
