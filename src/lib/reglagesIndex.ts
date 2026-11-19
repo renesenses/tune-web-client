@@ -51,6 +51,8 @@ export const REGLAGES: Reglage[] = [
   // ── Général › Lecture ────────────────────────────────────────────────
   { id: 'verrou-volume', section: 'playback', labelKey: 'audiophile.lockVolume', descKey: 'audiophile.lockVolumeHelp', termesKey: 'reglages.termes.verrouVolume' },
   { id: 'boucle-defaut', section: 'playback', labelKey: 'settings.loopByDefault', descKey: 'settings.loopByDefaultHint', termesKey: 'reglages.termes.boucleParDefaut' },
+  // tune-server-rust#9143 / web#3248 — fil forum 2934.
+  { id: 'retrait-ecouter-plus-tard', section: 'playback', labelKey: 'settings.retraitEcouterPlusTard', descKey: 'settings.retraitEcouterPlusTardHint' },
   { id: 'commandes-ecran-verrouille', section: 'playback', labelKey: 'settings.controlesEcranVerrouille', descKey: 'settings.controlesEcranVerrouilleHint' },
   { id: 'recul-podcast', section: 'playback', labelKey: 'settings.podcastRewind', descKey: 'settings.podcastRewindHint', techniques: ['podcast'] },
   { id: 'file-aleatoire-max', section: 'playback', labelKey: 'settings.shuffleMaxTracks', descKey: 'settings.shuffleMaxTracksHint', termesKey: 'reglages.termes.fileAleatoireMax', techniques: ['shuffle', '500'] },
@@ -67,6 +69,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'visualiseur-barre', section: 'interface', labelKey: 'v2.set.barViz', descKey: 'v2.set.barVizHint' },
   { id: 'barre-vu-metres', section: 'interface', labelKey: 'v2.set.barVu', descKey: 'v2.set.barVuHint', techniques: ['VU'] },
   { id: 'barre-onde', section: 'interface', labelKey: 'v2.set.barOnde', descKey: 'v2.set.barOndeHint', termesKey: 'reglages.termes.barreOnde', techniques: ['waveform'] },
+  { id: 'onde-streaming', section: 'interface', labelKey: 'v2.set.ondeStreaming', descKey: 'v2.set.ondeStreamingHint', termesKey: 'reglages.termes.ondeStreaming', techniques: ['waveform', 'Qobuz', 'TIDAL'] },
   { id: 'langue', section: 'interface', labelKey: 'settings.language', termesKey: 'reglages.termes.langue' },
   { id: 'ecran-demarrage', section: 'interface', labelKey: 'settings.startupView', descKey: 'v2.hint.startupView', termesKey: 'reglages.termes.ecranDemarrage' },
   { id: 'lienLectureVersSource', section: 'interface', labelKey: 'settings.nowPlayingLinkToSource', descKey: 'settings.nowPlayingLinkToSourceHint' },
@@ -74,7 +77,6 @@ export const REGLAGES: Reglage[] = [
   { id: 'affichage-volume', section: 'interface', labelKey: 'settings.volumeDisplay', descKey: 'v2.hint.volumeDisplay', termesKey: 'reglages.termes.affichageVolume', techniques: ['dB', '%'], min: 'intermediate' },
   { id: 'boutons-volume', section: 'interface', labelKey: 'settings.volumeStepButtons', descKey: 'settings.volumeStepButtonsHint', min: 'intermediate' },
   { id: 'ligne-technique-album', section: 'interface', labelKey: 'settings.albumTechLine', descKey: 'settings.albumTechLineHint', techniques: ['kHz', 'bit'], min: 'expert' },
-  { id: 'actions-piste-reduites', section: 'interface', labelKey: 'settings.trackActionsReduced', descKey: 'settings.trackActionsReducedHint', min: 'intermediate' },
   { id: 'infobulles', section: 'interface', labelKey: 'settings.tooltips', descKey: 'settings.tooltipsHint', termesKey: 'reglages.termes.infobulles', min: 'intermediate' },
   // ── Général › Barre latérale (écran secondaire, maquette de Levente 15/11) ──
   { id: 'sources-barre', section: 'sidebar', labelKey: 'settings.sidebarSources', descKey: 'settings.sidebarSourcesHint', termesKey: 'reglages.termes.sourcesBarre' },
@@ -102,6 +104,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'appareils-reseau', section: 'netDevices', labelKey: 'settings.networkDevices', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast', 'PIN'] },
   { id: 'vider-appareils', section: 'netDevices', labelKey: 'settings.clearDevices' },
   { id: 'appareils-ignores', section: 'ignoredDevices', labelKey: 'settings.ignoredDevices', descKey: 'settings.ignoredDevicesIntro' },
+  { id: 'appareils-absents', section: 'absentDevices', labelKey: 'settings.absentDevices', descKey: 'settings.absentDevicesIntro', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
   { id: 'squeezebox-actif', section: 'squeezebox', labelKey: 'settings.squeezeboxEnabled', descKey: 'settings.squeezeboxHint', techniques: ['Squeezebox', 'LMS', 'Lyrion'] },
   { id: 'annonce-slimproto', section: 'squeezebox', labelKey: 'settings.slimprotoAnnonce', descKey: 'settings.slimprotoAnnonceHint', techniques: ['Slimproto', 'Home Assistant'] },
   { id: 'serveur-lms', section: 'squeezebox', labelKey: 'settings.squeezeboxLmsHost', techniques: ['LMS', 'Lyrion'] },
@@ -175,6 +178,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'rangement-ecrire-tags', section: 'ingest', labelKey: 'settings.writeTags', descKey: 'settings.writeTagsHint', techniques: ['tags'] },
   // tune-server-rust#8325 / ESL63P — Bibliothèque › Balises du classique.
   { id: 'balises-classique', section: 'classicalTags', labelKey: 'classicalTags.title', descKey: 'classicalTags.hint', composant: 'BalisesClassiqueV2.svelte', techniques: ['BAND', 'CHOIR', 'CHORUS', 'CONDUCTOR', 'WORK', 'MOVEMENTNAME', 'TXXX'] },
+  { id: 'balises-perso', section: 'personalTags', labelKey: 'personalTags.title', descKey: 'personalTags.hint', composant: 'BalisesPersoV2.svelte', techniques: ['TXXX', 'VORBIS', 'MP4', 'MOOD'] },
   { id: 'vue-oxygen', section: 'oxygen', labelKey: 'v2.lbl.oxygenView', descKey: 'settings.facetsNavHint', techniques: ['Oxygen'] },
   { id: 'valeurs-facettes', section: 'oxygen', labelKey: 'oxygen.facetValues', descKey: 'settings.facetValuesHint', techniques: ['Oxygen'] },
 
@@ -189,6 +193,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-dsd', section: 'perZone', label: 'DSD', techniques: ['DSD', 'DoP', 'PCM'], min: 'intermediate' },
   { id: 'zone-debit-max', section: 'perZone', labelKey: 'settings.maxSampleRate', descKey: 'settings.maxSampleRateHint', techniques: ['kHz', 'sample rate'], min: 'intermediate' },
   { id: 'zone-frequence-fixe', section: 'perZone', labelKey: 'settings.fixedSampleRate', descKey: 'settings.fixedSampleRateHint', techniques: ['kHz', 'sample rate', 'SRC', 'PCM'], min: 'intermediate' },
+  { id: 'zone-mode-exclusif', section: 'perZone', labelKey: 'settings.zoneExclusiveMode', descKey: 'settings.zoneExclusiveHint', techniques: ['WASAPI', 'ASIO', 'ALSA', 'exclusive'], min: 'intermediate' },
+  { id: 'zone-periode-wasapi', section: 'perZone', labelKey: 'settings.wasapiPeriod', descKey: 'settings.wasapiPeriodHint', techniques: ['WASAPI', 'exclusive', 'buffer', 'period'], min: 'intermediate' },
   { id: 'zone-decalage-paroles', section: 'perZone', labelKey: 'settings.lyricsOffset', techniques: ['lyrics'], min: 'intermediate' },
   { id: 'zone-volume-fixe', section: 'perZone', labelKey: 'v2.lbl.fixedVolume', techniques: ['100'], min: 'intermediate' },
   { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
@@ -216,6 +222,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'bouton-stop', section: 'displayPrefs', labelKey: 'settings.showStopButton', descKey: 'settings.showStopButtonHint', techniques: ['stop'] },
   { id: 'minuteur-sommeil', section: 'displayPrefs', labelKey: 'settings.showSleepTimer', descKey: 'settings.showSleepTimerHint', termesKey: 'reglages.termes.minuteurSommeil', techniques: ['sleep'] },
   { id: 'ordre-autres-versions', section: 'displayPrefs', labelKey: 'settings.versionsOrder', descKey: 'settings.versionsOrderHint', techniques: ['Qobuz', 'Bandcamp'] },
+  { id: 'historique-lignes', section: 'displayPrefs', labelKey: 'settings.historyRows', descKey: 'settings.historyRowsHint', termesKey: 'reglages.termes.historiqueLignes' },
   { id: 'cadence-animations', section: 'displayPrefs', labelKey: 'settings.animationRate', descKey: 'settings.animationRateHint', techniques: ['CPU', 'GPU', 'fps'] },
   { id: 'ouvrir-file-defilement', section: 'displayPrefs', labelKey: 'settings.openQueueOnScroll', descKey: 'settings.openQueueOnScrollHint' },
   { id: 'disposition-file', section: 'displayPrefs', labelKey: 'settings.queuePlacement', descKey: 'settings.queuePlacementHint', termesKey: 'reglages.termes.dispositionFile' },
@@ -240,6 +247,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'adresses-acces', section: 'accessFrom', labelKey: 'settings.accessFromDevice', descKey: 'v2.hint.lanAddresses', techniques: ['URL', 'IP', 'LAN'] },
 
   // ── Système ──────────────────────────────────────────────────────────
+  { id: 'activation-authentification', section: 'authActivation', labelKey: 'authActivation.title', descKey: 'authActivation.intro', techniques: ['auth', 'password', 'login', 'admin'] },
   { id: 'version-mises-a-jour', section: 'about', labelKey: 'settings.updates', termesKey: 'reglages.termes.versionMisesAJour', techniques: ['update', 'version'] },
   { id: 'nouveautes', section: 'about', labelKey: 'whatsnew.title', techniques: ['changelog', 'release notes'] },
   { id: 'doc-api', section: 'about', labelKey: 'settings.apiDocs', techniques: ['API', 'REST'], min: 'expert' },

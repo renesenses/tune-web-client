@@ -87,6 +87,13 @@ export interface OptionsCale {
   repli: number;
   /** La cale approche du cadre : il faut `besoin` éléments montés au total. */
   surVue: (besoin: number) => void;
+  /**
+   * web#3189 — ce qui change la taille des éléments sans changer leur nombre
+   * (la taille des pochettes). Quand elle change, la cale se redimensionne et
+   * se RE-observe : des pochettes plus petites peuvent l'amener dans le cadre,
+   * et la fenêtre doit alors s'élargir comme au défilement.
+   */
+  geometrie?: unknown;
 }
 
 /**
@@ -140,9 +147,13 @@ export function cale(el: HTMLElement, options: OptionsCale) {
   return {
     update(n: OptionsCale) {
       const elargie = n.rendus !== o.rendus;
+      const regeometrie = n.geometrie !== o.geometrie;
       o = n;
       dimensionner();
-      if (elargie && io) { io.unobserve(el); io.observe(el); }
+      // La nouvelle taille n'est peut-être pas encore mise en page : on remesure
+      // à la trame suivante, après le navigateur.
+      if (regeometrie && typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(dimensionner);
+      if ((elargie || regeometrie) && io) { io.unobserve(el); io.observe(el); }
     },
     destroy() { io?.disconnect(); io = null; },
   };

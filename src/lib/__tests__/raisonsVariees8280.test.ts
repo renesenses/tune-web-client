@@ -52,7 +52,7 @@ describe('#8280 — les nouvelles raisons de « À découvrir »', () => {
 
   it('les trois phrases existent dans les quinze langues, avec leurs marques', async () => {
     const langues = Object.keys(CHARGEURS) as Locale[];
-    expect(langues).toHaveLength(15);
+    expect(langues).toHaveLength(16);
     for (const l of langues) {
       const d = (await CHARGEURS[l]()).default as unknown as Record<string, string>;
       expect(d['v2.why.sameEra'], `${l} sameEra`).toContain('{decennie}');

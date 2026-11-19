@@ -161,7 +161,7 @@ describe('#8160 — les règles pures', () => {
   it('toutes les langues du client ont toutes les clés de la fiche', () => {
     const clesFr = Object.keys(fr).filter((k) => k.startsWith('fiche.'));
     expect(clesFr.length).toBeGreaterThan(50);
-    expect(ONZE_LANGUES).toHaveLength(15);
+    expect(ONZE_LANGUES).toHaveLength(16);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const k of clesFr) expect(d[k], `${l} : ${k}`).toBeTruthy();

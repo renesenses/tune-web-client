@@ -375,4 +375,8 @@
   .titre-menu{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); padding:4px 8px}
   .hors{margin-top:22px; padding:8px; border-radius:10px}
   .hors h2{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:0 0 4px}
+  /* #3277 (ticket 318) — replié dans la barre latérale, l'arbre parle la police
+     de la barre : le texte, jamais la monospace. L'onglet « Rayons » de
+     Collections (`compact` faux) ne change pas — l'audit rc14 en décidera. */
+  .compact .compte, .compact .sorte, .compact .titre-menu, .compact .hors h2{font-family:var(--v2-police-texte)}
 </style>

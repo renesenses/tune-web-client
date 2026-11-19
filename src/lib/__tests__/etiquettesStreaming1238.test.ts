@@ -29,6 +29,7 @@ import {
 } from '../cibleEtiquette';
 import lFr from '../locales/fr';
 import type { Track } from '../types';
+import { entreeMenuPiste, fermerMenu } from './aides/menuFiche';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -75,6 +76,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  fermerMenu();
   if (monte) unmount(monte);
   monte = null;
   hote?.remove();
@@ -152,10 +154,9 @@ describe('#1238 — le bouton Étiquettes d’une piste de service', () => {
     source: 'qobuz', source_id: '52528016', duration_ms: 255000,
   } as unknown as Track;
 
+  // web#3121 — « Étiquettes » a quitté la barre pour son menu « … ».
   function boutonEtiquettes(): HTMLButtonElement | undefined {
-    return [...hote!.querySelectorAll('button')].find(
-      (b) => b.getAttribute('aria-label') === fr['v2.cover.tags'],
-    ) as HTMLButtonElement | undefined;
+    return (entreeMenuPiste(hote!, fr['v2.cover.tags']) ?? undefined) as HTMLButtonElement | undefined;
   }
 
   it('🔴 une piste Qobuz porte le bouton, et il ouvre le panneau sur sa paire', async () => {

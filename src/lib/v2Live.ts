@@ -98,6 +98,11 @@ import { positionFileAnnoncee } from './suiviPisteEnCours';
 import { ancrerPosition } from './positionsZones';
 import { doitRechargerLaFile } from './rechargementFile';
 import {
+  CODE_LECTURE_YOUTUBE_INACTIVE,
+  annoncerLectureYoutubeInactive,
+  estLectureYoutubeInactive,
+} from './lectureYoutubeInactive';
+import {
   appliquerPistesAnnoncees,
   retenirPisteAnnoncee,
   DELAI_RELECTURE_MS,
@@ -530,6 +535,13 @@ export function demarrerTransportV2(): () => void {
       // suivante. Un avertissement, dit même dans la fenêtre de grâce.
       if (estAvisFichierAbime(event?.data)) {
         notifications.info(texteAvisFichierAbime(event.data), 12000);
+        void rechargerZones();
+        return;
+      }
+      // tune-server-rust#8913 — « Suivant » vers une piste YouTube sans
+      // yt-dlp : la phrase et le bouton du réglage, pas le texte brut.
+      if (estLectureYoutubeInactive(event?.data?.code)) {
+        if (!dejaAnnonce(CODE_LECTURE_YOUTUBE_INACTIVE)) annoncerLectureYoutubeInactive();
         void rechargerZones();
         return;
       }

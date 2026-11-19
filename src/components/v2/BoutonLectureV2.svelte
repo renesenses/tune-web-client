@@ -55,6 +55,11 @@
     desactive?: boolean;
     /** rc12 — « Lecture aléatoire », première entrée du menu. */
     aleatoire?: Geste | null;
+    /**
+     * web#3247 — « Lire en boucle » : tout lire, puis répéter toute la file.
+     * Absent (le cas de toutes les fiches jusqu'ici) : pas d'entrée.
+     */
+    boucle?: Geste | null;
     /** Absent : l'entrée n'apparaît pas (rien à mettre en file). */
     ensuite?: Geste | null;
     file?: Geste | null;
@@ -69,7 +74,7 @@
     compact?: boolean;
   }
   let {
-    onLire, cle, cleBulle, desactive = false, aleatoire = null, ensuite = null, file = null,
+    onLire, cle, cleBulle, desactive = false, aleatoire = null, boucle = null, ensuite = null, file = null,
     attrsAleatoire = {}, compact = false, classeLire = '', attrsLire = {}, suffixe = '',
   }: Props = $props();
 
@@ -77,13 +82,15 @@
     const l: EntreeMenu[] = [];
     if (aleatoire) l.push({ cle: 'v2.menu.shufflePlay', icone: ICONES.shuffle, faire: aleatoire.faire,
       desactive: aleatoire.desactive, bulle: aleatoire.bulle, attrs: { 'data-lecture-aleatoire': true, ...attrsAleatoire } });
+    if (boucle) l.push({ cle: 'v2.menu.repeatPlay', icone: ICONES.repeat, faire: boucle.faire,
+      desactive: boucle.desactive, bulle: boucle.bulle, attrs: { 'data-lecture-boucle': true } });
     if (ensuite) l.push({ cle: 'v2.album.playNext', icone: ICONES.next, faire: ensuite.faire,
       desactive: ensuite.desactive, bulle: ensuite.bulle, attrs: { 'data-lire-ensuite': true } });
     if (file) l.push({ cle: 'v2.menu.addToQueue', icone: ICONES.queue, faire: file.faire,
       desactive: file.desactive, bulle: file.bulle, attrs: { 'data-ajouter-file': true } });
     return l;
   }
-  const aUneFleche = $derived(!!(aleatoire || ensuite || file));
+  const aUneFleche = $derived(!!(aleatoire || boucle || ensuite || file));
 </script>
 
 <div class="bl" class:seul={!aUneFleche} class:compact data-bouton-lecture>
