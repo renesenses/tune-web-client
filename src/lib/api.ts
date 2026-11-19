@@ -12121,6 +12121,9 @@ export interface EtatFauxHiRes {
   active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
   /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
   catalogue_hires_verdict?: boolean;
+  /** tune-server-rust#9067 — « Source altérée » : le verdict `douteux` couvre
+   *  tous les formats, CD compris (raison `mur_de_codec`). Absent : serveur ancien. */
+  source_alteree?: boolean;
 }
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {
