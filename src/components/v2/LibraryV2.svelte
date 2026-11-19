@@ -170,6 +170,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import SuggestionsIaLotV2 from './SuggestionsIaLotV2.svelte';
+  import BarreSelectionAlbums from './BarreSelectionAlbums.svelte';
+  import {
+    SELECTION_VIDE, cliquerAlbum, toutSelectionner as toutCocher, idsDansLOrdre, idsSelectionnables,
+    type SelectionAlbums,
+  } from '../../lib/selectionAlbums';
   import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
@@ -829,7 +834,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ddDehors(e: MouseEvent) {
     if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
-  function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
+  function ddEchap(e: KeyboardEvent) {
+    if (e.key !== 'Escape') return;
+    // web#3258 — Échap referme d'abord un menu ouvert, puis le mode sélection
+    // (un panneau de la barre d'actions l'a déjà consommé : `defaultPrevented`).
+    if (ddOpen) { ddClose(); return; }
+    if (modeSelection && !e.defaultPrevented) quitterSelection();
+  }
 
   /**
    * Cocher ou décocher UNE valeur d'une facette — #898.
@@ -3519,6 +3530,56 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       : groups.length ? groups.flatMap((g) => g.albums)
       : affiches,
   );
+  /**
+   * web#3258 (Rob, VIP ; go de Bertrand le 19/11) — LA SÉLECTION MULTIPLE.
+   *
+   * « Sélectionner » pose une case sur chaque pochette : un clic coche, Maj+
+   * clic coche la plage depuis le dernier album cliqué, « Tout sélectionner »
+   * prend la vue filtrée entière. La barre (`BarreSelectionAlbums`) applique
+   * ensuite l'action groupée. Échap ou « Terminé » referme le mode.
+   *
+   * L'ordre des cases est celui que lisent « Lire » et l'aléatoire
+   * (`albumsDansLOrdre`) ; en pages, celui des cases déjà arrivées — et
+   * « Tout sélectionner » demande d'abord la liste entière, comme « Lire ».
+   * Seuls les albums de la bibliothèque se cochent : un favori de service n'a
+   * pas d'identifiant local, et aucun geste groupé ne le saurait viser.
+   */
+  let modeSelection = $state(false);
+  let selection = $state<SelectionAlbums>(SELECTION_VIDE);
+  const selectionPossible = $derived(!depot && (tab === 'albums' || groupeOuvert != null));
+  const ordreSelection: number[] = $derived(
+    idsSelectionnables(tab === 'albums' && nu ? cases : albumsDansLOrdre),
+  );
+  const idsSelectionnes: number[] = $derived(idsDansLOrdre(selection, ordreSelection));
+  function entrerSelection() {
+    selection = SELECTION_VIDE;
+    modeSelection = true;
+  }
+  function quitterSelection() {
+    modeSelection = false;
+    selection = SELECTION_VIDE;
+  }
+  function cliquerCase(a: Album, e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (a.id == null) return;
+    selection = cliquerAlbum(selection, a.id, ordreSelection, e.shiftKey);
+  }
+  let toutEnCours = false;
+  async function toutSelectionnerVue() {
+    if (toutEnCours) return;
+    toutEnCours = true;
+    try {
+      // En pages, la grille n'est qu'une fenêtre : la liste entière d'abord.
+      if (tab === 'albums' && nu) { await demanderBibliothequeEntiere(); await tick(); }
+      selection = toutCocher(selection, ordreSelection);
+    } catch { /* le bandeau d'`api` a parlé */ }
+    toutEnCours = false;
+  }
+  // Un onglet sans albums à cocher (Artistes, Titres, liste des genres…) ou
+  // un dépôt distant referme le mode : la barre ne survit pas à sa grille.
+  $effect(() => { if (modeSelection && !selectionPossible) untrack(quitterSelection); });
+
   /** Rien à lire : bouton grisé. Pendant un chargement, on ne conclut pas. */
   const selectionVide = $derived(
     tab === 'tracks' ? (pagine ? totalPagine === 0 : !tracksLoading && pistesFiltrees.length === 0)
@@ -4100,6 +4161,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          le bout de la rangée du champ de recherche, à droite : l'en-tête ne
          garde que le titre et les onglets, et les filtres ne bougent pas. -->
     <div class="v2-actions gestes-lib">
+    {#if selectionPossible}
+      <!-- web#3258 — la sélection multiple d'albums. -->
+      <button class="v2-btn" data-selection-mode aria-pressed={modeSelection}
+        onclick={() => (modeSelection ? quitterSelection() : entrerSelection())}
+        title={$tr('bibliotheque.selection.selectTip' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>{modeSelection ? $tr('bibliotheque.selection.done' as any) : $tr('bibliotheque.selection.select' as any)}
+      </button>
+    {/if}
     {#if !depot}
       <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
         disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
@@ -4129,6 +4198,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
     </div>
   </div>
+
+  {#if modeSelection && selectionPossible}
+    <BarreSelectionAlbums
+      ids={idsSelectionnes}
+      total={tab === 'albums' && nu ? matchCount : ordreSelection.length}
+      onToutSelectionner={toutSelectionnerVue}
+      onToutDeselectionner={() => (selection = SELECTION_VIDE)}
+      onTerminer={quitterSelection}
+    />
+  {/if}
 
   {#if carteOuverte && showFilters && !depot}
     <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
@@ -4594,7 +4673,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {#if display === 'list'}
               <div class="rows facetrows" style="--lcols:{colonnesListe}">
                 {#each g.albums as a (a.id)}
-                  <div class="lhote">
+                  <div class="lhote" class:selmode={modeSelection}>
+                  {@render caseSelection(a)}
                   <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
@@ -4610,7 +4690,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {:else}
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
-                  <div class="card">
+                  <div class="card" class:selmode={modeSelection}>
+                    {@render caseSelection(a)}
                     <div class="cover">
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
@@ -4768,8 +4849,25 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     la liste, cible du saut A–Z en pages ; `data-letter` : l'initiale, cible
     du saut sur la liste entière (#1487).
   -->
+  <!-- web#3258 — la case de sélection : un voile posé SUR la carte (ou la
+       ligne) entière. En mode sélection, un clic n'importe où coche au lieu
+       d'ouvrir ou de lire ; hors mode, rien n'est rendu. -->
+  {#snippet caseSelection(a: Album)}
+    {#if modeSelection && a.id != null}
+      {@const coche = selection.ids.has(a.id)}
+      <button type="button" class="case-selection" class:coche role="checkbox" aria-checked={coche}
+        aria-label={$tr('bibliotheque.selection.toggle' as any).replace('{title}', a.title ?? '')}
+        data-case-album={a.id}
+        onmousedown={(e) => { if (e.shiftKey) e.preventDefault(); }}
+        onclick={(e) => cliquerCase(a, e)}>
+        <span class="marque" aria-hidden="true">{#if coche}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>{/if}</span>
+      </button>
+    {/if}
+  {/snippet}
+
   {#snippet carte(a: Album, i: number)}
-    <div class="card" data-letter={firstLetter(a)} data-i={i}>
+    <div class="card" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+      {@render caseSelection(a)}
       <div class="cover">
         <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
              que la grille de facette et le carrousel portaient déjà
@@ -4803,7 +4901,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          dedans : un bouton dans un bouton est du HTML invalide. `data-i` et
          `data-letter` passent sur l'HÔTE : c'est lui l'enfant direct de
          `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
-    <div class="lhote" data-letter={firstLetter(a)} data-i={i}>
+    <div class="lhote" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+    {@render caseSelection(a)}
     <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
     <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
       <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
@@ -4832,7 +4931,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/snippet}
 
   {#snippet carteCarrou(a: Album, i: number)}
-    <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i}>
+    <div class="ccard" class:centre={i === iCentre} class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+      {@render caseSelection(a)}
       <div class="cover">
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
@@ -5342,6 +5442,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      bouton de ligne garde toute la largeur ; le menu se pose au bout, par-
      dessus la marge qu'on lui réserve. */
   .lhote{position:relative; display:block}
+  /* web#3258 — la case de sélection, posée sur la carte ou la ligne. */
+  /* `isolation` : le voile reste DANS la carte, sous les intertitres collants. */
+  .selmode{position:relative; isolation:isolate}
+  .case-selection{position:absolute; inset:0; z-index:5; margin:0; padding:0; border:2px solid transparent;
+    border-radius:var(--v2-r-card); background:transparent; cursor:pointer; color:#fff}
+  .case-selection:hover{background:color-mix(in srgb, var(--tune-accent) 8%, transparent)}
+  .case-selection:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
+  .case-selection.coche{border-color:var(--tune-accent); background:color-mix(in srgb, var(--tune-accent) 16%, transparent)}
+  .case-selection .marque{position:absolute; top:6px; left:6px; width:22px; height:22px; border-radius:50%;
+    border:2px solid #fff; background:rgba(0,0,0,.35); box-shadow:0 1px 3px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center}
+  .case-selection.coche .marque{background:var(--tune-accent); border-color:var(--tune-accent)}
+  .case-selection .marque svg{width:14px; height:14px}
   .lhote > .lrow{padding-right:44px}
   .lmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
