@@ -49,7 +49,16 @@
    * Pour une piste de la bibliothèque, rien ne change : les playlists Tune,
    * sans titre de groupe.
    */
-  const service = $derived(deRadio || !track ? null : serviceDePlaylist(track));
+  /**
+   * web#3247 — un lot MÊLÉ (les titres d'une étiquette : bibliothèque, Qobuz,
+   * TIDAL…) ne va que dans une playlist Tune. Le groupe « Vos playlists
+   * <Service> », décidé par la PREMIÈRE piste, y aurait envoyé les titres des
+   * autres services sous les identifiants du premier.
+   */
+  const lotHomogene = $derived(
+    !tracks?.length || !track || tracks.every((x) => !estPisteLocale(x) && x.source === track!.source),
+  );
+  const service = $derived(deRadio || !track || !lotHomogene ? null : serviceDePlaylist(track));
   const deService = $derived(!deRadio && !!track && !estPisteLocale(track));
   const versTune = $derived(deRadio || (!!track && rangeableEnPlaylist(track)));
   const nomService = $derived(service ? service.charAt(0).toUpperCase() + service.slice(1) : '');
