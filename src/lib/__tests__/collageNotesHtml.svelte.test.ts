@@ -16,7 +16,7 @@ de <a href="/wiki/Miles_Davis" title="Miles Davis">Miles Davis</a>, sorti en <a 
 chez <i>Columbia Records</i> au <abbr>XX</abbr><sup>e</sup> siècle<sup id="cite_ref-1" class="reference"><a href="#cite_note-1">[1]</a></sup>.</p>
 <h2><span class="mw-headline">Musiciens</span><span class="mw-editsection">[<a href="/w/index.php?action=edit">modifier</a>]</span></h2>
 <ul><li><a href="/wiki/Miles_Davis">Miles Davis</a> : trompette</li><li>John Coltrane : saxophone ténor</li></ul>
-<style>.x{color:red}</style><script>alert(1)</script><img src="https://exemple.test/x.png" onerror="alert(2)">`;
+<style>.x{color:red}</style><script>pirate(1)</script><img src="https://exemple.test/x.png" onerror="pirate(2)">`;
 
 describe('htmlVersMarkdown — conversion', () => {
   it('Wikipédia avec source connue : liens relatifs rendus absolus, gras, italique, titre, liste', () => {
@@ -48,14 +48,14 @@ describe('htmlVersMarkdown — conversion', () => {
   });
 
   it('liens `javascript:`, `data:`, `vbscript:` neutralisés, même avec une source', () => {
-    for (const href of ['javascript:alert(1)', ' JaVaScRiPt:alert(1)', 'java\tscript:alert(1)',
-      'data:text/html,<script>alert(1)</script>', 'vbscript:msgbox(1)', '//evil.test/x']) {
+    for (const href of ['javascript:pirate(1)', ' JaVaScRiPt:pirate(1)', 'java\tscript:pirate(1)',
+      'data:text/html,<script>pirate(1)</script>', 'vbscript:pirate(1)', '//evil.test/x']) {
       const md = htmlVersMarkdown(`<p><b>Clic</b> <a href="${href.replace(/"/g, '&quot;')}">ici</a></p>`)!;
       expect(md).toBe('**Clic** ici');
       expect(adresseCollee(href, null)).toBeNull();
     }
-    expect(adresseCollee('javascript:alert(1)', 'https://fr.wikipedia.org/')).toBeNull();
-    expect(adresseCollee('/x', 'javascript:alert(1)')).toBeNull();
+    expect(adresseCollee('javascript:pirate(1)', 'https://fr.wikipedia.org/')).toBeNull();
+    expect(adresseCollee('/x', 'javascript:pirate(1)')).toBeNull();
   });
 
   it('listes numérotées (avec `start`), imbriquées, citations, paragraphes', () => {
@@ -66,8 +66,8 @@ describe('htmlVersMarkdown — conversion', () => {
   });
 
   it('aucun HTML brut : balises en texte échappées, scripts, styles, images et attributs ignorés', () => {
-    const md = htmlVersMarkdown('<p onclick="x()"><b>Gras</b> &lt;script&gt;alert(1)&lt;/script&gt; <img src=x onerror=alert(1)> [lien](javascript:alert(1))</p><script>alert(2)</script><style>p{}</style><iframe src="https://x"></iframe>')!;
-    expect(md).toBe('**Gras** \\<script\\>alert(1)\\</script\\> \\[lien\\](javascript:alert(1))');
+    const md = htmlVersMarkdown('<p onclick="x()"><b>Gras</b> &lt;script&gt;pirate(1)&lt;/script&gt; <img src=x onerror=pirate(1)> [lien](javascript:pirate(1))</p><script>pirate(2)</script><style>p{}</style><iframe src="https://x"></iframe>')!;
+    expect(md).toBe('**Gras** \\<script\\>pirate(1)\\</script\\> \\[lien\\](javascript:pirate(1))');
     const html = rendreMarkdownSur(md);
     expect(html).not.toMatch(/<script|<img|<iframe|onerror|onclick|href="javascript/i);
     expect(html).toContain('&lt;script&gt;');
@@ -150,7 +150,7 @@ describe('« Mes notes » — collage d’une page web', () => {
     zone.setSelectionRange(7, 7);
     const e = coller(zone, {
       'text/plain': 'Miles Davis trompette',
-      'text/html': '<base href="https://fr.wikipedia.org/wiki/A"><a href="/wiki/Miles_Davis">Miles Davis</a> <b>trompette</b> <a href="javascript:alert(1)">piège</a>',
+      'text/html': '<base href="https://fr.wikipedia.org/wiki/A"><a href="/wiki/Miles_Davis">Miles Davis</a> <b>trompette</b> <a href="javascript:pirate(1)">piège</a>',
     });
     expect(e.defaultPrevented).toBe(true);
     expect(zone.value).toBe('Avant. [Miles Davis](https://fr.wikipedia.org/wiki/Miles_Davis) **trompette** piègeAprès.');
