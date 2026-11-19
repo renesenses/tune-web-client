@@ -22,7 +22,6 @@ import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { currentZoneId } from '../stores/zones';
 import { dialogs } from '../stores/dialogs';
 import { notifications } from '../stores/notifications';
-import { listeEntierePerimee } from '../stores/albumsPagines';
 import { demandeAjoutPlaylist } from '../demandeAjoutPlaylist';
 import { locale } from '../i18n';
 import { cliquerAlbum, idsDansLOrdre, toutSelectionner, SELECTION_VIDE, horsDeLaVue, gesteEchap } from '../selectionAlbums';
@@ -493,24 +492,42 @@ describe('web#3258 relecture — « Modifier en lot » reporte en une passe', ()
     expect(liste.filter((a) => a.genre === 'Hard bop').map((a) => a.id).sort()).toEqual([1, 4]);
   });
 
+  // La bibliothèque relue, telle que le serveur la rend APRÈS la modification.
+  let relue: Album[] | null = null;
+  const serveurQuiRelit = (base: ((u: string) => Response | null) | null = null) =>
+    (url: string) => base?.(url) ?? (relue && /\/library\/albums\?limit=/.test(url) ? reponse(relue) : null);
+  const relectures = () => appels.filter((a) => a.methode === 'GET' && /\/library\/albums\?limit=/.test(a.url)).length;
+
   it('🔴 `updated < total` : rien n’est reporté à l’aveugle, la bibliothèque est relue', async () => {
-    surcharge = (url) => (/batch-update$/.test(url) ? reponse({ updated: 1, total: 2 }) : null);
     const el = await poserBibliotheque();
+    // Le serveur n'a mis à jour QUE l'album 1, sans dire lequel.
+    relue = ALBUMS.map((a) => (a.id === 1 ? { ...a, genre: 'Hard bop' } : a));
+    surcharge = serveurQuiRelit((url) => (/batch-update$/.test(url) ? reponse({ updated: 1, total: 2 }) : null));
     await entrerEnSelection(el);
     await cliquer(caseDe(el, 1));
     await cliquer(caseDe(el, 4));
+    const avant = relectures();
     await editer(el, 'genre', 'Hard bop');
-    expect(get(albumsStore).some((a) => a.genre === 'Hard bop')).toBe(false);
-    expect(get(listeEntierePerimee)).toBe(true);
+    await laisser(10);
+    expect(relectures(), 'la bibliothèque n’a pas été relue').toBeGreaterThan(avant);
+    // L'album 4 ne porte PAS le genre : le report n'a pas été fait à l'aveugle.
+    expect(get(albumsStore).filter((a) => a.genre === 'Hard bop').map((a) => a.id)).toEqual([1]);
+    relue = null;
   });
 
   it('🔴 artiste changé : la bibliothèque est relue (l’`artist_id` vient du serveur)', async () => {
     const el = await poserBibliotheque();
     await entrerEnSelection(el);
     await cliquer(caseDe(el, 1));
+    // Le serveur a résolu un NOUVEL artiste : seul la relecture le rapporte.
+    relue = ALBUMS.map((a) => (a.id === 1 ? { ...a, artist_name: 'John Coltrane', artist_id: 99 } : a)) as Album[];
+    surcharge = serveurQuiRelit();
+    const avant = relectures();
     await editer(el, 'artiste', 'John Coltrane');
-    expect(get(albumsStore).find((a) => a.id === 1)?.artist_name).toBe('Coltrane');
-    expect(get(listeEntierePerimee)).toBe(true);
+    await laisser(10);
+    expect(relectures()).toBeGreaterThan(avant);
+    expect(get(albumsStore).find((a) => a.id === 1)?.artist_id).toBe(99);
+    relue = null;
   });
 });
 
