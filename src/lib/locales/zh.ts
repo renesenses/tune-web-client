@@ -6590,6 +6590,8 @@ export default {
   "v2.plug.etatBuiltin": "内置",
   "v2.plug.etatLoaded": "已加载",
   "v2.plug.etatNotLoaded": "未加载",
+  "v2.plug.etatActive": "已启用",
+  "v2.plug.etatInactive": "未启用",
   "v2.plug.etatCopy": "复制以用于错误报告",
   "v2.plug.etatCopied": "已复制",
   "v2.plug.nativeBadge": "原生",

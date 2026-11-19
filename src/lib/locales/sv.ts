@@ -6589,6 +6589,8 @@ export default {
   "v2.plug.etatBuiltin": "Inbyggd",
   "v2.plug.etatLoaded": "Laddad",
   "v2.plug.etatNotLoaded": "Inte laddad",
+  "v2.plug.etatActive": "Aktiv",
+  "v2.plug.etatInactive": "Inaktiv",
   "v2.plug.etatCopy": "Kopiera för en felrapport",
   "v2.plug.etatCopied": "Kopierad",
   "v2.plug.nativeBadge": "Inbyggt",

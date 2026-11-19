@@ -6612,6 +6612,8 @@ export default {
   "v2.plug.etatBuiltin": "Intégré",
   "v2.plug.etatLoaded": "Chargé",
   "v2.plug.etatNotLoaded": "Non chargé",
+  "v2.plug.etatActive": "Actif",
+  "v2.plug.etatInactive": "Inactif",
   "v2.plug.etatCopy": "Copier pour un rapport de bogue",
   "v2.plug.etatCopied": "Copié",
   "v2.plug.nativeBadge": "Natif",

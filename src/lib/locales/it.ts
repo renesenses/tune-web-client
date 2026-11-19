@@ -6590,6 +6590,8 @@ export default {
   "v2.plug.etatBuiltin": "Integrato",
   "v2.plug.etatLoaded": "Caricato",
   "v2.plug.etatNotLoaded": "Non caricato",
+  "v2.plug.etatActive": "Attivo",
+  "v2.plug.etatInactive": "Inattivo",
   "v2.plug.etatCopy": "Copia per una segnalazione di bug",
   "v2.plug.etatCopied": "Copiato",
   "v2.plug.nativeBadge": "Nativo",

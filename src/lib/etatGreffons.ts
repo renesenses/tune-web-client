@@ -39,6 +39,23 @@ export function lignesEtatGreffons(liste: GreffonAudioNatif[] | null | undefined
     .sort((a, b) => Number(!!b.third_party) - Number(!!a.third_party) || a.id.localeCompare(b.id));
 }
 
+/**
+ * L'état à afficher pour un emplacement (tune-server-rust#9151).
+ *
+ * `native_loaded` ne dit que le chargement d'un PAQUET natif : un emplacement
+ * intégré sans paquet tourne par son moteur embarqué, et il paraissait « Non
+ * chargé » chez tout le monde alors qu'il marchait. Un intégré se lit donc par
+ * `active` (actif / inactif) quand le serveur le rend ; un serveur ancien
+ * (sans `active`) garde l'ancien affichage.
+ */
+export type EtatAffiche = 'loaded' | 'active' | 'inactive' | 'not_loaded';
+
+export function etatAffiche(g: GreffonAudioNatif): EtatAffiche {
+  if (g.native_loaded) return 'loaded';
+  if (!g.third_party && typeof g.active === 'boolean') return g.active ? 'active' : 'inactive';
+  return 'not_loaded';
+}
+
 /** Le texte à coller dans un rapport de bogue : clés techniques, non traduites. */
 export function texteRapportGreffons(
   liste: GreffonAudioNatif[] | null | undefined,
@@ -51,7 +68,7 @@ export function texteRapportGreffons(
     const parties = [
       g.id,
       g.third_party ? 'third_party' : 'builtin',
-      g.native_loaded ? 'loaded' : 'not_loaded',
+      etatAffiche(g),
       `version=${g.version || '-'}`,
     ];
     if (g.error) parties.push(`error=${masquerLesCheminsLocaux(g.error)}`);

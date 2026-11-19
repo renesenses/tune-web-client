@@ -6,7 +6,16 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
-  import { lignesEtatGreffons, masquerLesCheminsLocaux, texteRapportGreffons } from '../../lib/etatGreffons';
+  import { etatAffiche, lignesEtatGreffons, masquerLesCheminsLocaux, texteRapportGreffons } from '../../lib/etatGreffons';
+
+  // tune-server-rust#9151 — un intégré sans paquet natif se dit actif ou
+  // inactif, plus « Non chargé » alors que son moteur embarqué tourne.
+  const LIBELLES = {
+    loaded: 'v2.plug.etatLoaded',
+    active: 'v2.plug.etatActive',
+    inactive: 'v2.plug.etatInactive',
+    not_loaded: 'v2.plug.etatNotLoaded',
+  } as const;
 
   let etat = $state<api.EtatGreffonsAudioNatifs | null>(null);
   let copie = $state(false);
@@ -32,13 +41,14 @@
     <h3 class="sect">{$t('v2.plug.etatTitle' as any)}</h3>
     <div class="list">
       {#each lignes as g (g.id)}
+        {@const e = etatAffiche(g)}
         <article class="pl" class:err={!!g.error} data-etat-greffon={g.id}>
           <div class="pi">
             <div class="ph">
               <h2>{g.id}</h2>
               <span class="cat">{g.third_party ? $t('v2.plug.etatThirdParty' as any) : $t('v2.plug.etatBuiltin' as any)}</span>
-              <span class="etat" class:ok={g.native_loaded && !g.error}>
-                {g.native_loaded ? $t('v2.plug.etatLoaded' as any) : $t('v2.plug.etatNotLoaded' as any)}
+              <span class="etat" class:ok={(e === 'loaded' || e === 'active') && !g.error} data-etat={e}>
+                {$t(LIBELLES[e] as any)}
               </span>
               {#if g.version}<span class="ver">{g.version}</span>{/if}
             </div>

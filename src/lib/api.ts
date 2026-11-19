@@ -5265,6 +5265,13 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** tune-server-rust#9151 — le moteur qui sert l'emplacement : `native`
+   *  (paquet chargé), `bundled` (intégré, moteur embarqué), `null` (tiers sans
+   *  bibliothèque). Absent sur un serveur ancien. */
+  engine?: 'native' | 'bundled' | null;
+  /** tune-server-rust#9151 — l'état effectif (installé, activé, et pour un
+   *  tiers chargé). Absent sur un serveur ancien. */
+  active?: boolean;
   /** La version annoncée par le catalogue à l'installation ; `null` (ou
    *  absent, serveur ancien) pour un paquet envoyé à la main. */
   version?: string | null;
