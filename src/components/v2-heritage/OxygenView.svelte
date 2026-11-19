@@ -123,7 +123,7 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'conductor', 'ensemble', 'work', 'instrument', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
   // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
   // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
   //
@@ -264,6 +264,8 @@
     artist: 'artist', composer: 'composer', format: 'format',
     // #2762 — chef, ensemble, œuvre (tune-server-rust#8325).
     conductor: 'conductor', ensemble: 'ensemble', work: 'work',
+    // web#3157 — l'instrument des crédits (CRD-6, servi dès la rc12).
+    instrument: 'instrument',
     sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
     mood: 'mood', source: 'source_media', rating: 'rating',
     collection: 'collection', favorite: 'favorite', playlist: 'playlist',

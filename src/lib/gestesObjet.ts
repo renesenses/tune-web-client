@@ -28,6 +28,7 @@ import * as api from './api';
 import { t } from './i18n';
 import { notifications } from './stores/notifications';
 import { dialogs } from './stores/dialogs';
+import { confirmerSuppressionPlaylist } from './confirmationsPlaylist';
 import { playAndSync } from './stores/zones';
 import { rangLireEnsuite } from './stores/queue';
 import {
@@ -111,6 +112,9 @@ export interface ObjetMenu {
   /** Album : l'artiste — un `i64` local, ou l'identifiant chez le service. */
   artisteId?: number | string | null;
   artisteNom?: string | null;
+  /** Playlist locale : son nombre de titres (`track_count`), pour la
+   *  confirmation de suppression (web#3255). Absent s'il est inconnu. */
+  nbTitres?: number;
 }
 
 // ── Constructeurs ─────────────────────────────────────────────────────────
@@ -174,7 +178,12 @@ export function objetPlaylist(pl: any, service: string | null = null): ObjetMenu
     const pochette = texte(pl?.cover_path ?? pl?.cover_url ?? pl?.image ?? pl?.pochette);
     return { type: 'playlist', service: svc, sourceId: texte(pl?.source_id ?? pl?.id), nom, ...(pochette ? { pochette } : {}) };
   }
-  return { type: 'playlist', id: Number.isInteger(pl?.id) ? pl.id : null, nom };
+  return {
+    type: 'playlist',
+    id: Number.isInteger(pl?.id) ? pl.id : null,
+    nom,
+    ...(Number.isInteger(pl?.track_count) ? { nbTitres: pl.track_count as number } : {}),
+  };
 }
 
 /**
@@ -831,13 +840,17 @@ async function supprimer(o: ObjetMenu, apres?: () => void): Promise<void> {
   if (o.id == null) return;
   const traduire = get(t);
   const nom = o.nom ?? '';
-  const question =
-    o.type === 'playlist'
-      ? traduire('menuObjet.deletePlaylistAsk' as any).replace('{name}', nom)
-      : o.type === 'playlistIntelligente'
+  // web#3255 — une playlist locale : la question de tous les écrans (nom,
+  // nombre de titres, « définitif », « Supprimer », « Annuler » par défaut).
+  if (o.type === 'playlist') {
+    if (!(await confirmerSuppressionPlaylist(nom, o.nbTitres))) return;
+  } else {
+    const question =
+      o.type === 'playlistIntelligente'
         ? traduire('v2.spl.deleteAsk' as any).replace('{name}', nom)
         : traduire('v2.col.deleteAsk' as any).replace('{nom}', nom);
-  if (!(await dialogs.confirm(question, { danger: true }))) return;
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+  }
   try {
     if (o.type === 'playlist') await api.deletePlaylist(o.id);
     else if (o.type === 'playlistIntelligente') await api.deleteSmartPlaylist(o.id);
@@ -954,7 +967,8 @@ export function objetAUnMenu(o: ObjetMenu, gestes: GestesPochette = {}): boolean
   if (o.type === 'radio') return o.id != null || !!gestes.pasPourMoi;
   if (o.type === 'podcast') return false;
   if (o.type === 'label') return !!o.nom;
-  return o.id != null || deService(o) || !!gestes.ouvrir || ouvrirParDefaut(o) != null;
+  return o.id != null || deService(o) || !!gestes.ouvrir || !!gestes.allerAlbum || !!gestes.allerPlaylist
+    || ouvrirParDefaut(o) != null;
 }
 
 /**

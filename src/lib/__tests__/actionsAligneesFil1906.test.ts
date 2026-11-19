@@ -20,9 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import PisteActions from '../../components/v2/PisteActions.svelte';
-import { get } from 'svelte/store';
 import { currentZoneId } from '../stores/zones';
-import { t } from '../i18n';
 
 const QOBUZ = {
   id: null, title: 'Second Song', source: 'qobuz', source_id: '441078583',
@@ -64,7 +62,8 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
   it('Qobuz et Bandcamp : le même nombre de cases, le cœur et le « … » au même rang', () => {
     const q = barre(QOBUZ);
     const b = barre(BANDCAMP);
-    expect(cases(q).length, 'la barre Qobuz n’a pas ses huit cases').toBe(8);
+    // web#3121 — quatre cases : lire, à partir d'ici, cœur, « … ».
+    expect(cases(q).length, 'la barre Qobuz n’a pas ses quatre cases').toBe(4);
     expect(cases(b).length, 'la barre Bandcamp a perdu une case : ses icônes glissent').toBe(cases(q).length);
     expect(rangDe(q, estCoeur)).toBeGreaterThan(-1);
     expect(rangDe(b, estCoeur), 'le cœur Bandcamp n’est pas en face du cœur Qobuz').toBe(rangDe(q, estCoeur));
@@ -72,18 +71,9 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
     expect(rangDe(b, estMenu), 'le « … » Bandcamp n’est pas en face du « … » Qobuz').toBe(rangDe(q, estMenu));
   });
 
-  // 🔄 #4889 (24/09/2026) : une playlist TUNE enregistre désormais un titre
-  // de service. La case playlist d'une ligne Bandcamp n'est plus vide : c'est
-  // le MÊME bouton, au MÊME rang que celui de la ligne Qobuz.
-  it('la case de la playlist Bandcamp porte le bouton, au rang de celui de Qobuz (#4889)', () => {
-    const q = barre(QOBUZ);
-    const b = barre(BANDCAMP);
-    const playlist = get(t)('v2.pa.playlist' as any);
-    const rang = cases(q).findIndex((el) => el.getAttribute('aria-label') === playlist);
-    expect(rang, 'Qobuz n’offre plus la playlist').toBeGreaterThan(-1);
-    expect(cases(b)[rang].tagName, 'la case playlist Bandcamp est restée vide').toBe('BUTTON');
-    expect(cases(b)[rang].getAttribute('aria-label')).toBe(playlist);
-  });
+  // 🔄 web#3121 (16/11/2026) : la case PLAYLIST a quitté la barre (elle est
+  // au menu « … »). Le témoin #4889 de sa case Bandcamp n'a plus d'objet ici ;
+  // l'entrée du menu reste tenue par `playlistsTitresDeService4889.test.ts`.
 
   it('une case vide ne se vise pas : ni bouton, ni focus, ni annonce', () => {
     // #4889 : la case playlist d'une ligne Bandcamp est pleine désormais. Sans
@@ -101,15 +91,15 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
     }
   });
 
-  it('une piste qu’on ne sait pas désigner garde ses huit cases, toutes vides', () => {
+  it('une piste qu’on ne sait pas désigner garde ses quatre cases, toutes vides', () => {
     const b = barre({ id: null, title: 'Sans rien', source: 'qobuz', source_id: null });
-    expect(cases(b).length).toBe(8);
+    expect(cases(b).length).toBe(4);
     expect(b.querySelectorAll('button').length).toBe(0);
   });
 
   it('sans « lire à partir d’ici », la case reste aussi', () => {
     const q = barre(QOBUZ, { onLireDepuis: null });
-    expect(cases(q).length).toBe(8);
+    expect(cases(q).length).toBe(4);
     expect(q.querySelector('[data-depuis]')).toBeNull();
     expect(cases(q)[1].classList.contains('vide')).toBe(true);
   });

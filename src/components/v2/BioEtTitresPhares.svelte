@@ -85,8 +85,10 @@
 </script>
 
 {#if bioPropre || actionsBio}
-  <section class="bloc bio-bloc">
-    <h2>{$t('v2.art.bio' as any)}</h2>
+  <!-- web#3122 (FabienM, fil 2864) : plus de titre BIOGRAPHIE au-dessus du
+       texte — il se lit de lui-même sous l'en-tête. Le nom de la section
+       reste pour les lecteurs d'écran (`aria-label`). -->
+  <section class="bloc bio-bloc" aria-label={$t('v2.art.bio' as any)}>
     {#if bioPropre}
       <ClampedText lines={4} resetKey={cle}
         moreLabel={$t('v2.art.bioReadMore' as any)} lessLabel={$t('v2.art.bioReadLess' as any)}>

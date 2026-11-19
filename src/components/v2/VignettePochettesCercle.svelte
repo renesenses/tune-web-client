@@ -42,6 +42,9 @@
   .pochettes-carte{position:absolute; inset:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
     overflow:hidden; border-radius:inherit; pointer-events:none}
   .pochettes-carte.une{grid-template-columns:1fr; grid-template-rows:1fr}
-  .pochettes-carte.vide{display:none}
+  /* Vide : invisible, mais GARDE sa boîte. C'est cet élément que l'IntersectionObserver
+     observe ; en `display:none`, il n'a pas de boîte, n'entre jamais à l'écran et les
+     pochettes ne se chargeaient jamais (recette du 16/11 sur le .18). */
+  .pochettes-carte.vide{visibility:hidden}
   .tuile{display:block; min-width:0; min-height:0; overflow:hidden}
 </style>

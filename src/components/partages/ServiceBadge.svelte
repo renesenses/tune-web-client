@@ -60,65 +60,69 @@
     letter-spacing: 0.3px;
   }
 
+  /* web#3232 — le texte de chaque puce lit `--v2-puce-<source>` : la couleur
+     d'origine (fond sombre) en repli, une variante assombrie sur les thèmes
+     clairs et sur un « Mon thème » clair (`src/lib/pucesSource.ts`). */
+
   /* Tidal: cyan text on dark bg with subtle border */
   .service-badge.tidal {
-    color: #00FFFF;
+    color: var(--v2-puce-tidal, #00FFFF);
     background: rgba(0, 255, 255, 0.10);
     border: 1px solid rgba(0, 255, 255, 0.30);
   }
 
   /* Qobuz: blue tones */
   .service-badge.qobuz {
-    color: #6B9FFF;
+    color: var(--v2-puce-qobuz, #6B9FFF);
     background: rgba(44, 84, 165, 0.15);
     border: 1px solid rgba(44, 84, 165, 0.35);
   }
 
   /* Deezer: purple tones */
   .service-badge.deezer {
-    color: #C98FFF;
+    color: var(--v2-puce-deezer, #C98FFF);
     background: rgba(162, 56, 255, 0.12);
     border: 1px solid rgba(162, 56, 255, 0.30);
   }
 
   /* Spotify: green tones */
   .service-badge.spotify {
-    color: #1DB954;
+    color: var(--v2-puce-spotify, #1DB954);
     background: rgba(29, 185, 84, 0.12);
     border: 1px solid rgba(29, 185, 84, 0.30);
   }
 
   /* YouTube: red tones */
   .service-badge.youtube {
-    color: #FF6B6B;
+    color: var(--v2-puce-youtube, #FF6B6B);
     background: rgba(255, 0, 0, 0.10);
     border: 1px solid rgba(255, 0, 0, 0.25);
   }
 
   /* Amazon: cyan-blue tones */
   .service-badge.amazon {
-    color: #00C8FF;
+    color: var(--v2-puce-amazon, #00C8FF);
     background: rgba(0, 168, 225, 0.12);
     border: 1px solid rgba(0, 168, 225, 0.30);
   }
 
   /* Bandcamp: teal tones */
   .service-badge.bandcamp {
-    color: #4FC3E0;
+    color: var(--v2-puce-bandcamp, #4FC3E0);
     background: rgba(29, 160, 195, 0.12);
     border: 1px solid rgba(29, 160, 195, 0.30);
   }
 
   /* UPnP/DLNA server: amber tones */
   .service-badge.upnp {
-    color: #F5B942;
+    color: var(--v2-puce-upnp, #F5B942);
     background: rgba(217, 119, 6, 0.14);
     border: 1px solid rgba(217, 119, 6, 0.35);
   }
 
   /* Local library: neutral grey tones */
   .service-badge.local {
-    color: #B4BCC8;
+    color: var(--v2-puce-local, #B4BCC8);
     background: rgba(75, 85, 99, 0.18);
     border: 1px solid rgba(75, 85, 99, 0.40);
   }

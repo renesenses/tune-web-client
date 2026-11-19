@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleDuRefus, confirmable, creditsQobuz, lignesApports, retirable, type ApportsQobuz } from './apportsQobuz';
+import { cleDuRefus, confirmable, creditsQobuz, lignesApports, ongletsApports, retirable, type ApportsQobuz } from './apportsQobuz';
 
 const q = (valeur: unknown) => ({ valeur, source: 'qobuz' });
 
@@ -35,6 +35,23 @@ describe('tune-server-rust#8077 — apports Qobuz de la fiche album', () => {
     expect(l[3].texte).toBe('℗ 2015 Phono');
     expect(l[4].texte).toBe('© 2015 Droits');
     expect(l[6].texte).toBe("Diapason d'or (Diapason, 2015-03-02)");
+  });
+
+  it('web#3123 — chaque ligne tombe dans son sous-onglet : Label (l’édition) puis Détails', () => {
+    const l = lignesApports(applique);
+    expect(l.map((x) => x.onglet)).toEqual([
+      'label', 'label', 'label', 'label', 'label',
+      'details', 'details', 'details', 'details', 'details',
+    ]);
+  });
+
+  it('web#3123 — un sous-onglet sans contenu n’existe pas', () => {
+    const l = lignesApports(applique);
+    expect(ongletsApports(l, 2)).toEqual(['label', 'details', 'credits']);
+    expect(ongletsApports(l, 0)).toEqual(['label', 'details']);
+    expect(ongletsApports(l.filter((x) => x.onglet === 'details'), 0)).toEqual(['details']);
+    expect(ongletsApports([], 3)).toEqual(['credits']);
+    expect(ongletsApports([], 0)).toEqual([]);
   });
 
   it('une adresse qui n’est pas en https n’est jamais proposée', () => {

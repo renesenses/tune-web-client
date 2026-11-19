@@ -203,12 +203,18 @@ describe("l'onglet Facettes des Favoris", () => {
 });
 
 describe('ce que ce client ne sait PAS faire', () => {
-  it("« instruments » n'a aucune surface — et la garde le dit", () => {
+  it("« instruments » n'a pas de cœur de favori — et la garde le dit", () => {
     // Mesuré le 06/09/2026 : `/library/facets?facet=instrument` rend 200 avec
     // ZÉRO valeur sur le .18, aucun onglet ne l'expose, aucun champ d'album ne
     // le porte. Poser un cœur « instrument » aurait été inventer une donnée.
+    //
+    // web#3157 (go de Bertrand, 17/11) — geste conscient : la Bibliothèque a
+    // désormais un FILTRE Instrument (facette `instrument` des crédits, servie
+    // dès la rc12). Il ne crée aucun favori : l'écran Favoris reste sans
+    // instrument, et le filtre ne pose aucun cœur.
     const lib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-    expect(lib).not.toMatch(/instrument/i);
+    expect(lib).toMatch(/fInstrument/);
+    expect(lib).not.toMatch(/favori[a-zA-Z]*\([^)]*instrument/i);
     const fav = sansCommentaires(lire('src/components/v2/FavoritesV2.svelte'));
     expect(fav).not.toMatch(/instrument/i);
   });

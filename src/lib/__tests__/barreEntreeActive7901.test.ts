@@ -38,10 +38,12 @@ describe('#7901 — l’entrée surlignée suit l’écran affiché', () => {
     }
   });
 
-  it('les boutons de la barre lisent la route courante, pas la vue précédente', () => {
+  it('les boutons de la barre lisent la vue allumée (route courante), pas la vue précédente', () => {
     const appels = SIDEBAR.match(/class:active=\{estActif\(it, ([^)]+)\)/g) ?? [];
     expect(appels.length).toBeGreaterThan(0);
-    for (const a of appels) expect(a).toContain('estActif(it, $activeView)');
+    // Fil 2658 (rc12) : `vueBarre` = la route, ou `nowplaying` sur la fiche
+    // ouverte par Lecture en cours — voir barreFicheLectureEnCours7901.test.ts.
+    for (const a of appels) expect(a).toContain('estActif(it, vueBarre)');
     expect(SIDEBAR).not.toMatch(/estActif\([^)]*previousView/);
   });
 });

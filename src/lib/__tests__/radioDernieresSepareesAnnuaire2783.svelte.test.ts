@@ -67,7 +67,9 @@ describe('#2783 — « Dernières écoutées » séparée de la liste et de l’
     const choix = hote.querySelector('.sections')!;
     expect(sec!.compareDocumentPosition(choix) & Node.DOCUMENT_POSITION_FOLLOWING,
       '« Dernières écoutées » n’est pas au-dessus des choix Mes radios / Annuaire / Carte').toBeTruthy();
-    expect(sec!.closest('.scroll'), 'la rangée est encore dans la liste filtrée').toBeNull();
+    expect(sec!.closest('.mesradios'), 'la rangée est encore dans la liste filtrée').toBeNull();
+    // Retour de Rémi sur la rc12 : elle défile AVEC la page (un seul ascenseur).
+    expect(sec!.closest('.scroll'), 'la rangée a son propre défilement, hors de la page').not.toBeNull();
   });
 
   // rc12 (14/11, retour de Rémi point 1) : la rangée n'est plus montrée dans
