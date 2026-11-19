@@ -20,6 +20,7 @@
    * découpage gauche/droite finiraient par diverger.
    */
   import { untrack } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { zoneChangee } from '../../lib/eqPresetEnCours';
   import { rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
@@ -39,7 +40,7 @@
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import ProfilerV2 from './ProfilerV2.svelte';
   import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
-  import { bandesGraphiques } from '../../lib/eqGraphicChannels';
+  import { bandesGraphiques, courbesDepuisBandes, CANAL_DROITE } from '../../lib/eqGraphicChannels';
   import { estCourbeGraphique } from '../../lib/eqHydratation';
   import { bilanImportPeq, db, lignesApercu, lignesEcartees, messageErreurImport, nomDuFichierPeq, TAILLE_MAX_FICHIER_PEQ, type BilanImportPeq, type TextesErreurImport } from '../../lib/eqImportPeq';
   import '../../styles/tune-v2.css';
@@ -179,7 +180,12 @@
     // web#2303 — mais SEULEMENT sur un vrai changement de zone : une relance
     // du chargement (« Réessayer », installation du greffon, traduction qui
     // arrive, même zone réannoncée) garde le préréglage en cours.
-    if (zoneChangee(zoneDuChargement, zid)) enCoursId = null;
+    if (zoneChangee(zoneDuChargement, zid)) {
+      enCoursId = null;
+      // web#3272 — le geste fait sur la zone précédente part vers ELLE, tout
+      // de suite, avant que la courbe affichée ne soit remplacée.
+      untrack(() => void viderEnAttente());
+    }
     zoneDuChargement = zid;
     // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
     // zone n'est choisie, sinon l'écran réclamerait une zone pour un
@@ -308,25 +314,70 @@
     }
   }
 
+  /**
+   * web#3272 — ce qu'un enregistrement écrit, figé AU MOMENT DU GESTE : la
+   * zone ET la courbe. Le minuteur de `queueSave` relisait l'une et l'autre
+   * 300 ms plus tard : changer de zone entre-temps écrivait la courbe de A
+   * sur la zone B.
+   */
+  type Ecriture = { zid: number | null; bands: EqBand[]; enabled: boolean; parametrique: boolean };
+  function ecritureCourante(): Ecriture {
+    const parametrique = sousMode === 'parametrique';
+    return {
+      zid: get(currentZoneId),
+      bands: parametrique
+        ? $state.snapshot(pBandes)
+        : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0),
+      enabled,
+      parametrique,
+    };
+  }
+
   let timer: ReturnType<typeof setTimeout> | null = null;
+  /** L'écriture que le minuteur enverra : le DERNIER geste, figé. */
+  let enAttente: Ecriture | null = null;
+  // Quitter l'écran dans les 300 ms : le geste part quand même, vers sa zone.
+  $effect(() => () => { void viderEnAttente(); });
   function queueSave() {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { timer = null; void save(); }, 300);
+    enAttente = ecritureCourante();
+    timer = setTimeout(() => { void viderEnAttente(); }, 300);
+  }
+  /**
+   * Envoie tout de suite l'écriture en attente, vers SA zone. Appelé au
+   * changement de zone et au démontage : le dernier geste n'est pas perdu, et
+   * il ne part pas ailleurs.
+   */
+  function viderEnAttente(): Promise<void> {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    const e = enAttente;
+    enAttente = null;
+    return e ? ecrire(e) : Promise.resolve();
   }
   async function save() {
-    const zid = zoneRequise();
+    // L'écriture immédiate porte l'état le plus récent : celle qui attendait
+    // est périmée, et partirait APRÈS elle avec une courbe plus ancienne.
+    if (timer) clearTimeout(timer);
+    timer = null;
+    enAttente = null;
+    await ecrire(ecritureCourante());
+  }
+  async function ecrire({ zid: zidFige, bands, enabled: allume, parametrique }: Ecriture) {
+    const zid = zidFige ?? zoneRequise();
     if (zid == null) return;
-    const bands: EqBand[] = sousMode === 'parametrique'
-      ? $state.snapshot(pBandes)
-      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
-      const res: any = await api.setEq(zid, { bands, enabled });
-      courbeEnServiceParametrique = sousMode === 'parametrique';
+      const res: any = await api.setEq(zid, { bands, enabled: allume });
+      // Une écriture partie vers la zone qu'on vient de quitter ne parle pas
+      // de la zone affichée : l'écran n'en tire rien.
+      if (get(currentZoneId) !== zid) return;
+      courbeEnServiceParametrique = parametrique;
       reportReach(atteintLeSon(res?.applied_live, res?.portee));
       // La courbe a changé : ce que la compensation rend aussi (#4685).
       revisionDsp++;
       error = null;
     } catch (e: any) {
+      if (get(currentZoneId) !== zid) return;
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas » : les
       // curseurs bougent, la courbe tient à l'écran, et le son ne change
       // jamais. On le remonte.
@@ -521,10 +572,26 @@
       return bandes.length === pBandes.length
         && bandes.every((b, i) => memeBandeParametrique(b, pBandes[i]));
     }
-    if (sousMode !== 'graphique' || gainsRight !== null) return false;
+    if (sousMode !== 'graphique') return false;
     if (courbeEnServiceParametrique) return false;
-    return bandes.length === BANDS.length
-      && bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]));
+    // web#3264 — les deux canaux : un préréglage délié porte deux passes sur
+    // la grille, un préréglage lié une seule, sans canal. Lié contre délié ne
+    // correspond jamais : « Enregistrer » changerait ce qui est écrit.
+    const { grille, gauche, droite } = courbesDuPreset(bandes);
+    if (grille.length !== BANDS.length || grille.some((f, i) => f !== BANDS[i])) return false;
+    if ((droite === null) !== (gainsRight === null)) return false;
+    const memeCourbe = (a: number[], b: number[]) => a.every((g, i) => memeGain(g, b[i]));
+    return memeCourbe(gauche, gains) && (droite === null || memeCourbe(droite, gainsRight!));
+  }
+
+  /**
+   * Les courbes d'un préréglage graphique, sur SA grille : la passe gauche (ou
+   * unique) donne les fréquences, une passe `channel: 1` la courbe droite.
+   */
+  function courbesDuPreset(bandes: EqBand[]): { grille: number[]; gauche: number[]; droite: number[] | null } {
+    const grille = bandes.filter((b) => b.channel !== CANAL_DROITE).map((b) => b.freq);
+    const { gauche, droite } = courbesDepuisBandes(bandes, grille.length);
+    return { grille, gauche, droite };
   }
 
   /** Le préréglage PERSONNEL dont la courbe est celle affichée. */
@@ -568,7 +635,9 @@
     const eq_type = sousMode === 'parametrique' ? 'parametric' : 'graphic';
     const bands: EqBand[] = sousMode === 'parametrique'
       ? $state.snapshot(pBandes)
-      : bandesGraphiques(BANDS, gains, null, GRID_Q[bandCount] ?? 1.0);
+      // web#3264 — courbes déliées : les DEUX passes (`channel` 0 puis 1),
+      // que le serveur garde telles quelles (routes/eq_pro.rs, `EqBand.channel`).
+      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     return { name: nom, eq_type, bands };
   }
 
@@ -617,10 +686,14 @@
       pBandes = bandes.map((b) => ({ ...b }));
       sousMode = 'parametrique';
     } else {
-      const g = bandes.map((b) => b.gain);
-      const grille = bandes.map((b) => b.freq);
+      // web#3264 — un préréglage délié rend ses deux courbes ; un préréglage
+      // lié relie les canaux (sinon la droite affichée resterait l'ancienne).
+      const { grille, gauche, droite } = courbesDuPreset(bandes);
       // Enregistré sur une autre grille : on rééchantillonne sur la courante.
-      gains = g.length === BANDS.length ? g : resample(g, grille, BANDS);
+      const surGrille = (g: number[]) => (g.length === BANDS.length ? g : resample(g, grille, BANDS));
+      gains = surGrille(gauche);
+      gainsRight = droite === null ? null : surGrille(droite);
+      editing = 'left';
       sousMode = 'graphique';
     }
     if (!enabled) enabled = true;

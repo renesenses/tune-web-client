@@ -42,7 +42,8 @@
     lireApercu, compterReglages, compterZones, rienNeChange, reglagesQuiChangent,
     cleStatutZone, remplir, type ApercuRestauration,
   } from '../../lib/apercuRestauration';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
@@ -224,6 +225,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
   import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
+  import BalisesPersoV2 from './BalisesPersoV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -4908,6 +4910,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       installationEntreeAudio = false;
     }
   }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉGLAGES RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * Onglet, écran secondaire et zone dépliée sont des `$state` locaux, perdus
+   * quand on quitte l'écran. Retenus à la sortie de l'entrée
+   * (`lib/memoireNavigation`), rendus au remontage par l'historique seulement,
+   * avant les effets de montage. Le défilement suit par la coquille.
+   */
+  interface MemoireReglages {
+    tabId: V2SettingsTabId; sousEcran: string | null; ongletRetour: V2SettingsTabId | null; zoneOuverte: string | null;
+  }
+  const memoireReglages = memoireEcran<MemoireReglages>('settings', () => ({
+    tabId: String(tabId) as V2SettingsTabId,
+    sousEcran: sousEcran == null ? null : String(sousEcran),
+    ongletRetour: ongletRetour == null ? null : (String(ongletRetour) as V2SettingsTabId),
+    zoneOuverte: zoneOuverte == null ? null : String(zoneOuverte),
+  }));
+  $effect(() => memoireReglages.arreter);
+  if (memoireReglages.reprise && !untrack(() => $v2SettingsTarget)) {
+    const r = memoireReglages.reprise;
+    tabId = r.tabId; sousEcran = r.sousEcran; ongletRetour = r.ongletRetour; zoneOuverte = r.zoneOuverte;
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -5987,6 +6012,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'classicalTags'}
               <BalisesClassiqueV2 />
+
+            {:else if s.id === 'personalTags'}
+              <BalisesPersoV2 />
 
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">

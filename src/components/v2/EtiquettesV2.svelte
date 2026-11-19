@@ -90,6 +90,7 @@
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { repeatMode } from '../../lib/stores/repeatStore';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
+  import { creerPlaylistAvecPistes, AucunTitreRangeable } from '../../lib/playlistDepuisPistes';
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
   import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { deplacer, rangVise } from '../../lib/ordreEtiquettes';
@@ -723,6 +724,47 @@
     masseEnCours = false;
   }
 
+  /*
+   * web#3267 (fil 2912) — « Créer une playlist » en un geste : une playlist
+   * Tune avec tous les titres de l'étiquette, dans l'ordre de « Tout lire »,
+   * nom proposé = nom de l'étiquette (modifiable). Le message donne le nombre
+   * de titres que le serveur a ENREGISTRÉS.
+   */
+  /** « k / n » pendant le versement d'une longue étiquette, sinon `null`. */
+  let avancementPlaylist = $state<string | null>(null);
+
+  async function creerPlaylistDeLEtiquette() {
+    if (masseEnCours || !ouverte) return;
+    masseEnCours = true;
+    // Résolus AVANT l'attente.
+    const question = $t('v2.tags.createPlaylistPrompt' as any);
+    const cree = $t('v2.tags.playlistCreated' as any);
+    const partielle = $t('v2.tags.playlistCreatedPartial' as any);
+    const vide = $t('v2.tags.noTracks' as any);
+    const compte = (n: number) => $tn('v2.common.trackCountN', n);
+    const proposition = ouverte.name;
+    try {
+      const l = await titresDeLEtiquette();
+      if (l) {
+        const saisi = await dialogs.prompt(question, proposition);
+        const nom = saisi?.trim();
+        if (nom) {
+          const r = await creerPlaylistAvecPistes(nom, l, undefined, (k, n) => { avancementPlaylist = `${k} / ${n}`; });
+          notifications.success(
+            r.ajoutees < r.demandees
+              ? partielle.replace('{name}', r.nom).replace('{tracks}', compte(r.ajoutees)).replace('{total}', String(r.demandees))
+              : cree.replace('{name}', r.nom).replace('{tracks}', compte(r.ajoutees)),
+          );
+        }
+      }
+    } catch (e: any) {
+      if (e instanceof AucunTitreRangeable) notifications.error(vide);
+      else notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    }
+    avancementPlaylist = null;
+    masseEnCours = false;
+  }
+
   /** « Lire à partir d'ici » — #1061, point 9 de FabienM : les pistes de
    *  l'étiquette, dans l'ordre affiché, depuis celle qu'on désigne. */
   function lireLesPistesDepuis(i: number) {
@@ -810,6 +852,8 @@
             attrsAleatoire={{ 'data-aleatoire-etiquette': true }} />
           <button class="v2-btn" data-ajouter-etiquette-playlist disabled={masseEnCours}
             onclick={() => void ajouterToutAUnePlaylist()}>{$t('v2.tags.addAllToPlaylist' as any)}</button>
+          <button class="v2-btn" data-creer-playlist-etiquette disabled={masseEnCours}
+            onclick={() => void creerPlaylistDeLEtiquette()}>{$t('v2.tags.createPlaylist' as any)}{#if avancementPlaylist}<span data-avancement-playlist> · {avancementPlaylist}</span>{/if}</button>
         </div>
       {/if}
       <nav class="onglets">

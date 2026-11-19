@@ -1,8 +1,9 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
-  import type { Track, StreamingTrackInfo } from '../../lib/types';
-  import { t } from '../../lib/i18n';
+  import type { Track } from '../../lib/types';
+  import { verserDansPlaylist } from '../../lib/playlistDepuisPistes';
+  import { t, tn } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { playlistsModifiables } from '../../lib/playlistsModifiables';
@@ -163,39 +164,14 @@
    */
   const lot = $derived(tracks?.length ? tracks : track ? [track] : []);
 
-  function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
-    const locales = lot.filter(estPisteLocale);
-    const distantes = lot.filter((x) => !estPisteLocale(x));
-    return {
-      trackIds: locales.map((x) => x.id!),
-      // Streaming tracks — send as streaming_tracks (#4889), dans l'ordre reçu.
-      streamingTracks: distantes.length ? distantes.map(versStreaming) : undefined,
-    };
-  }
-
-  function versStreaming(track: Track): StreamingTrackInfo {
-    const st: StreamingTrackInfo = {
-      source: track.source!,
-      source_id: track.source_id!,
-      title: track.title,
-      artist_name: track.artist_name,
-      album_title: track.album_title,
-      duration_ms: track.duration_ms,
-      format: track.format,
-      sample_rate: track.sample_rate,
-      bit_depth: track.bit_depth,
-      channels: track.channels,
-      cover_path: track.cover_path,
-      // #4889 — l'album CHEZ LE SERVICE, pour rouvrir l'album depuis la
-      // playlist. Une piste de service porte son id d'album dans `album_id`
-      // (chaîne à l'exécution) ou dans `album_id_service` (Historique).
-      album_id: track.album_id_service ?? (track.album_id != null ? String(track.album_id) : null),
-    };
-    return st;
-  }
-
   /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
+  /** web#3267 — « k sur n », quand une partie du lot n'est pas entrée. */
+  let partiel = $state<string | null>(null);
+  /** Le temps de LIRE l'avertissement avant que la fenêtre se ferme. */
+  const delaiFermeture = () => (partiel ? 4000 : 800);
+
   async function ecrire(ou: Ou, cle: string) {
+    partiel = null;
     if (deRadio) {
       // web#2806 — une radio ne va que chez Tune (`service` est nul).
       await api.addPlaylistRadios(Number(cle), radioIds!);
@@ -204,8 +180,18 @@
       const ids = lot.filter((x) => !estPisteLocale(x) && x.source_id != null).map((x) => String(x.source_id));
       await api.addStreamingPlaylistTracks(service, cle, ids);
     } else {
-      const { trackIds, streamingTracks } = buildAddArgs();
-      await api.addPlaylistTracks(Number(cle), trackIds, undefined, streamingTracks);
+      // web#3267 — par tronçons bibliothèque / service : un lot MÊLÉ (une
+      // étiquette) garde son ordre. Refusé seulement si RIEN n'est passé,
+      // comme l'appel unique d'avant (le serveur acceptait déjà le partiel).
+      const v = await verserDansPlaylist(Number(cle), lot);
+      if (!v.reussis && v.echecs) throw v.derniere;
+      // Un envoi refusé parmi d'autres (500, coupure) : une partie MANQUE, et
+      // « Ajoutée à X » seul mentirait.
+      if (v.echecs) {
+        partiel = $t('playlist.addedPartial')
+          .replace('{tracks}', $tn('v2.common.trackCountN', v.titresAcceptes))
+          .replace('{total}', String(lot.length));
+      }
     }
   }
 
@@ -215,7 +201,7 @@
     try {
       await ecrire(c.ou, c.cle);
       success = c.nom;
-      setTimeout(() => onClose(), 800);
+      setTimeout(() => onClose(), delaiFermeture());
     } catch (e) {
       console.error('Add to playlist error:', e);
       adding = null;
@@ -235,7 +221,7 @@
       if (cle != null && String(cle) !== '') {
         await ecrire(ou, String(cle));
         success = nom;
-        setTimeout(() => onClose(), 800);
+        setTimeout(() => onClose(), delaiFermeture());
       }
     } catch (e) {
       console.error('Create playlist error:', e);
@@ -268,6 +254,7 @@
       <div class="success-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32"><polyline points="20 6 9 17 4 12" /></svg>
         <p data-ajout-confirme>{avantLeNom}<strong>{success}</strong>{apresLeNom}</p>
+        {#if partiel}<p class="empty-hint" data-ajout-partiel role="status">{partiel}</p>{/if}
       </div>
     {:else}
       <div class="modal-header">
