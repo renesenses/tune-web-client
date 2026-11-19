@@ -488,6 +488,30 @@
     return PRESETS.find((p) => p.gains.every((g, i) => memeGain(g, gains[i])))?.key ?? null;
   });
 
+  /**
+   * web#3260 — une bande paramétrique se compare sur TOUT ce qu'elle
+   * enregistre : fréquence, gain, Q, type de filtre et canal. Ne comparer que
+   * fréquence et gain laissait « Enregistrer » grisé après un changement de Q,
+   * de type ou de canal, pourtant appliqué au son.
+   *
+   * Valeurs absentes lues comme le reste de l'écran les lit : Q absent ou nul
+   * = 1,0 (`ParametricEq`, tracé de la courbe), type absent = `peak`, canal
+   * absent = les deux.
+   */
+  function memeQ(a: number | null | undefined, b: number | null | undefined): boolean {
+    const qa = a && a > 0 ? a : 1.0;
+    const qb = b && b > 0 ? b : 1.0;
+    // Le champ Q garde trois décimales : en deçà, c'est un arrondi de transport.
+    return Math.abs(qa - qb) < 0.0005;
+  }
+  function memeBandeParametrique(a: EqBand, b: EqBand): boolean {
+    return a.freq === b.freq
+      && memeGain(a.gain, b.gain)
+      && memeQ(a.q, b.q)
+      && (a.type ?? 'peak') === (b.type ?? 'peak')
+      && (a.channel ?? null) === (b.channel ?? null);
+  }
+
   /** La courbe affichée est-elle exactement celle de ce préréglage personnel ? */
   function correspond(p: api.EqProPreset): boolean {
     const bandes = p.bands ?? [];
@@ -495,7 +519,7 @@
     if (p.eq_type === 'parametric') {
       if (sousMode !== 'parametrique') return false;
       return bandes.length === pBandes.length
-        && bandes.every((b, i) => b.freq === pBandes[i].freq && memeGain(b.gain, pBandes[i].gain));
+        && bandes.every((b, i) => memeBandeParametrique(b, pBandes[i]));
     }
     if (sousMode !== 'graphique' || gainsRight !== null) return false;
     if (courbeEnServiceParametrique) return false;
