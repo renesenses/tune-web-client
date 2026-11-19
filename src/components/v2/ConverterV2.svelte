@@ -15,6 +15,7 @@
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
+  import { consommerDemandeConversion } from '../../lib/demandeConversion';
   import {
     tachesConversion, ajouter, avecStatut, avecTelechargement, sans, fusionner, aSonder,
     sansTelechargement, urlDeTelechargement,
@@ -42,6 +43,9 @@
   import '../../styles/tune-v2.css';
 
   const retour = consommerRetourConvertisseur('v2');
+  // web#3258 — les albums cochés dans la Bibliothèque (« Convertir » de la
+  // barre de sélection). Le retour de Localiser, plus précis, prime.
+  const demandes = consommerDemandeConversion();
   let alive = true;
   onDestroy(() => { alive = false; });
   let locating = $state<number | null>(null);
@@ -55,7 +59,7 @@
   // `picked` reste l'ensemble des albums CONCERNÉS (entiers ou partiels) :
   // compteur, dossiers d'origine et ligne de format le lisent comme avant.
   let selection = $state<Selection>({
-    albums: new Set(retour?.picked ?? []),
+    albums: new Set(retour?.picked ?? demandes ?? []),
     pistes: new Map((retour?.pistes ?? []).map(([id, ts]) => [id, new Set(ts)])),
   });
   const picked = $derived(new Set(albumsConcernes(selection)));
