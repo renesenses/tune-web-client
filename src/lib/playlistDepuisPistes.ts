@@ -65,11 +65,74 @@ export function tronconsParFamille(lot: readonly Track[]): Track[][] {
   return troncons;
 }
 
+/** Au-delà, un tronçon est coupé : requêtes bornées, et un avancement « k / n » qui bouge. */
+export const TAILLE_ENVOI = 200;
+
+/** Les envois à faire, dans l'ordre : tronçons de famille, coupés à `TAILLE_ENVOI`. */
+export function envoisOrdonnes(lot: readonly Track[], taille = TAILLE_ENVOI): Track[][] {
+  return tronconsParFamille(lot).flatMap((t) => {
+    const morceaux: Track[][] = [];
+    for (let i = 0; i < t.length; i += taille) morceaux.push(t.slice(i, i + taille));
+    return morceaux;
+  });
+}
+
+/** `(envoyes, total)` après chaque envoi — titres envoyés, pas enregistrés. */
+export type Avancement = (envoyes: number, total: number) => void;
+
+type DepsVerser = Pick<typeof api, 'addPlaylistTracks'>;
+
+export interface Versement {
+  /** `track_count` de la playlist après le dernier envoi accepté (null : aucun). */
+  trackCount: number | null;
+  /** Envois acceptés / refusés. */
+  reussis: number;
+  echecs: number;
+  /** La dernière erreur, pour la dire quand rien n'est passé. */
+  derniere: unknown;
+}
+
+/**
+ * Verse `lot` dans la playlist Tune `id`, À LA FIN, dans l'ordre (voir en
+ * tête). Un envoi refusé (422, réseau) ne coûte que ses titres ; il est
+ * COMPTÉ, jamais tu.
+ */
+export async function verserDansPlaylist(
+  id: number,
+  lot: readonly Track[],
+  deps: DepsVerser = api,
+  avancement?: Avancement,
+): Promise<Versement> {
+  const v: Versement = { trackCount: null, reussis: 0, echecs: 0, derniere: null };
+  let envoyes = 0;
+  for (const morceau of envoisOrdonnes(lot)) {
+    const { trackIds, streamingTracks } = corpsAjoutPlaylist(morceau);
+    try {
+      const r: Playlist = await deps.addPlaylistTracks(id, trackIds, undefined, streamingTracks);
+      v.reussis++;
+      if (typeof r?.track_count === 'number') v.trackCount = r.track_count;
+    } catch (e) {
+      v.echecs++;
+      v.derniere = e;
+    }
+    envoyes += morceau.length;
+    avancement?.(envoyes, lot.length);
+  }
+  return v;
+}
+
+/** Aucun titre de la liste ne peut entrer dans une playlist Tune : rien n'est créé. */
+export class AucunTitreRangeable extends Error {
+  constructor() { super('no track can go into a playlist'); this.name = 'AucunTitreRangeable'; }
+}
+
 export interface PlaylistCreee {
   id: number;
   nom: string;
   /** Titres que le serveur a ENREGISTRÉS (son `track_count`), pas ceux envoyés. */
   ajoutees: number;
+  /** Titres demandés (la liste reçue, rangeables ou non). */
+  demandees: number;
 }
 
 type Deps = Pick<typeof api, 'createPlaylist' | 'addPlaylistTracks' | 'deletePlaylist'>;
@@ -77,32 +140,27 @@ type Deps = Pick<typeof api, 'createPlaylist' | 'addPlaylistTracks' | 'deletePla
 /**
  * Crée une playlist Tune `nom` et y verse `pistes`, dans l'ordre.
  *
- * Un tronçon refusé (422 : titres de service incomplets) ne coûte que ses
- * propres titres. Si AUCUN titre n'entre, la playlist vide est retirée et
- * l'erreur remonte : on ne laisse pas une playlist vide derrière un échec.
+ * - Aucun titre rangeable : `AucunTitreRangeable`, AVANT toute création.
+ * - Playlist créée sans `id` : erreur explicite (comme SearchV2).
+ * - Rien d'enregistré : la playlist vide est retirée et l'erreur remonte.
+ * - `ajoutees < demandees` : à l'appelant de dire « N sur M ».
  */
 export async function creerPlaylistAvecPistes(
   nom: string,
   pistes: readonly Track[],
   deps: Deps = api,
+  avancement?: Avancement,
 ): Promise<PlaylistCreee> {
   const rangeables = pistes.filter(rangeableEnPlaylist);
+  if (!rangeables.length) throw new AucunTitreRangeable();
   const pl = await deps.createPlaylist(nom);
+  if (pl?.id == null) throw new Error('created playlist has no id');
   const id = Number(pl.id);
-  let ajoutees = 0;
-  let derniere: unknown = null;
-  for (const lot of tronconsParFamille(rangeables)) {
-    const { trackIds, streamingTracks } = corpsAjoutPlaylist(lot);
-    try {
-      const r: Playlist = await deps.addPlaylistTracks(id, trackIds, undefined, streamingTracks);
-      if (typeof r?.track_count === 'number') ajoutees = Math.max(ajoutees, r.track_count);
-    } catch (e) {
-      derniere = e;
-    }
-  }
+  const v = await verserDansPlaylist(id, rangeables, deps, avancement);
+  const ajoutees = v.trackCount ?? 0;
   if (ajoutees === 0) {
     try { await deps.deletePlaylist(id); } catch { /* déjà dit par l'erreur ci-dessous */ }
-    throw derniere ?? new Error('playlist_empty');
+    throw v.derniere ?? new Error('playlist_empty');
   }
-  return { id, nom, ajoutees };
+  return { id, nom, ajoutees, demandees: pistes.length };
 }

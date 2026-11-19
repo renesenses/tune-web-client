@@ -2,7 +2,7 @@
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
   import type { Track } from '../../lib/types';
-  import { corpsAjoutPlaylist } from '../../lib/playlistDepuisPistes';
+  import { verserDansPlaylist } from '../../lib/playlistDepuisPistes';
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
@@ -164,9 +164,6 @@
    */
   const lot = $derived(tracks?.length ? tracks : track ? [track] : []);
 
-  /** Le corps partagé (`lib/playlistDepuisPistes`, sorti d'ici pour web#3267). */
-  const buildAddArgs = () => corpsAjoutPlaylist(lot);
-
   /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
   async function ecrire(ou: Ou, cle: string) {
     if (deRadio) {
@@ -177,8 +174,11 @@
       const ids = lot.filter((x) => !estPisteLocale(x) && x.source_id != null).map((x) => String(x.source_id));
       await api.addStreamingPlaylistTracks(service, cle, ids);
     } else {
-      const { trackIds, streamingTracks } = buildAddArgs();
-      await api.addPlaylistTracks(Number(cle), trackIds, undefined, streamingTracks);
+      // web#3267 — par tronçons bibliothèque / service : un lot MÊLÉ (une
+      // étiquette) garde son ordre. Refusé seulement si RIEN n'est passé,
+      // comme l'appel unique d'avant (le serveur acceptait déjà le partiel).
+      const v = await verserDansPlaylist(Number(cle), lot);
+      if (!v.reussis && v.echecs) throw v.derniere;
     }
   }
 

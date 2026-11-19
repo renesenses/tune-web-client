@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import EtiquettesV2 from '../../components/v2/EtiquettesV2.svelte';
+import AddToPlaylistModal from '../../components/partages/AddToPlaylistModal.svelte';
 import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import { repeatMode } from '../stores/repeatStore';
@@ -36,6 +37,8 @@ const PISTES_ALBUM = [
 const PISTE_ETIQUETEE = [{ id: 102, title: 'Freddie Freeloader', album_id: 12, source: 'local', duration_ms: 1000 },
   { id: 200, title: 'Naima', source: 'local', duration_ms: 1000 }];
 
+let compteServeur = 3;
+let tagSansRangeable = false;
 let appels: { url: string; method: string; body: any }[] = [];
 let hote: HTMLDivElement;
 let montes: Record<string, unknown>[] = [];
@@ -44,12 +47,15 @@ function repondre(url: string, method: string): unknown {
   if (/\/zones\/1\/repeat/.test(url)) return { repeat: 'all' };
   if (/\/zones\/1\/play(\?|$)/.test(url)) return { id: 1, state: 'playing' };
   if (/\/zones\/1\/queue/.test(url) && method === 'POST') return { ok: true };
-  if (url.includes('/tags/4/albums')) return { albums: [ALBUM], count: 1 };
-  if (url.includes('/tags/4/tracks')) return { tracks: PISTE_ETIQUETEE, count: 2 };
+  if (url.includes('/tags/4/albums')) return tagSansRangeable ? { albums: [], count: 0 } : { albums: [ALBUM], count: 1 };
+  if (url.includes('/tags/4/tracks')) return tagSansRangeable
+    ? { tracks: [{ id: null, title: 'Sans id', source: 'qobuz', duration_ms: 1 }], count: 1 }
+    : { tracks: PISTE_ETIQUETEE, count: 2 };
   if (url.includes('/tags/4/')) return {};
   if (/\/library\/albums\/12\/tracks/.test(url)) return PISTES_ALBUM;
   if (/\/streaming\/[^/]+\/playlists/.test(url)) return [{ source_id: 'p1', name: 'Mes Qobuz', track_count: 3, owned: true }];
-  if (/\/playlists\/55\/tracks/.test(url) && method === 'POST') return { id: 55, name: 'x', track_count: 3 };
+  if (/\/playlists\/55\/tracks/.test(url) && method === 'POST') return { id: 55, name: 'x', track_count: compteServeur };
+  if (/\/playlists\/7\/tracks/.test(url) && method === 'POST') return { id: 7, name: 'Soirée', track_count: 9 };
   if (/\/playlists$/.test(url) && method === 'POST') return { id: 55, name: 'x', track_count: 0 };
   if (/\/playlists(\?|$)/.test(url)) return [{ id: 7, name: 'Soirée', track_count: 2 }];
   if (url.includes('/tags')) return [TAG];
@@ -58,6 +64,8 @@ function repondre(url: string, method: string): unknown {
 
 beforeEach(() => {
   appels = [];
+  compteServeur = 3;
+  tagSansRangeable = false;
   locale.set('fr');
   currentZoneId.set(1);
   repeatMode.set('off');
@@ -156,5 +164,51 @@ describe('web#3267 — « Créer une playlist » dans l’écran d’une étique
     hote.querySelector<HTMLButtonElement>('[data-creer-playlist-etiquette]')!.click();
     await repondreALaQuestion('   ');
     expect(creations()).toHaveLength(0);
+  });
+
+  it('🔴 un titre refusé se DIT : « N sur M »', async () => {
+    compteServeur = 2;
+    const succes = vi.spyOn(notifications, 'success');
+    await ouvrirEtiquette();
+    hote.querySelector<HTMLButtonElement>('[data-creer-playlist-etiquette]')!.click();
+    await repondreALaQuestion('Mon jazz');
+    expect(succes).toHaveBeenCalledWith('Playlist « Mon jazz » créée : 2 titres sur 3, les autres n’ont pas pu être ajoutés.');
+  });
+
+  it('un seul titre : le singulier', async () => {
+    compteServeur = 1;
+    const succes = vi.spyOn(notifications, 'success');
+    await ouvrirEtiquette();
+    hote.querySelector<HTMLButtonElement>('[data-creer-playlist-etiquette]')!.click();
+    await repondreALaQuestion('Mon jazz');
+    expect(succes.mock.calls.at(-1)?.[0]).toContain('1 titre sur 3');
+  });
+
+  it('🔴 aucun titre rangeable : état vide, AUCUNE playlist créée', async () => {
+    tagSansRangeable = true;
+    const erreur = vi.spyOn(notifications, 'error');
+    await ouvrirEtiquette();
+    hote.querySelector<HTMLButtonElement>('[data-creer-playlist-etiquette]')!.click();
+    await repondreALaQuestion('X');
+    expect(creations()).toHaveLength(0);
+    expect(erreur).toHaveBeenCalledWith('Aucun titre à lire sous cette étiquette.');
+  });
+});
+
+describe('web#3267 — « Ajouter tout à une playlist » garde l’ordre d’un lot mêlé', () => {
+  it('🔴 bibliothèque, service, bibliothèque : trois envois, dans l’ordre', async () => {
+    const lot = [
+      { id: 1, title: 'L1', source: 'local', duration_ms: 1 },
+      { id: null, title: 'Q', source: 'qobuz', source_id: 'q1', duration_ms: 1 },
+      { id: 2, title: 'L2', source: 'local', duration_ms: 1 },
+    ] as any[];
+    montes.push(mount(AddToPlaylistModal, { target: hote, props: { track: lot[0], tracks: lot, onClose: () => {} } }));
+    await souffler();
+    [...hote.querySelectorAll<HTMLElement>('button')].find((x) => x.textContent?.includes('Soirée'))!.click();
+    await souffler();
+    const envois = appels.filter((a) => a.method === 'POST' && /\/playlists\/7\/tracks/.test(a.url))
+      .map((a) => [a.body.track_ids, (a.body.streaming_tracks ?? []).map((x: any) => x.source_id)]);
+    expect(envois).toEqual([[[1], []], [[], ['q1']], [[2], []]]);
+    expect(hote.querySelector('[data-ajout-confirme]')).not.toBeNull();
   });
 });
