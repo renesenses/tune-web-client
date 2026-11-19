@@ -2335,6 +2335,8 @@ export default {
   "settings.crossfadeHint": "Płynne przejście (crossfade) między utworami. Odznacz, aby uzyskać odtwarzanie gapless (bez ciszy i bez wyciszania).",
   "settings.loopByDefault": "Domyślnie odtwarzaj w pętli",
   "settings.loopByDefaultHint": "Uruchamia każdy utwór od nowa zamiast zatrzymywać się na końcu.",
+  "settings.retraitEcouterPlusTard": "Usuń z „Posłuchaj później” po pełnym odsłuchu",
+  "settings.retraitEcouterPlusTardHint": "Album zapisany w „Posłuchaj później” znika sam, gdy wszystkie jego utwory zostaną odsłuchane (90% lub do końca) w tym samym odtwarzaniu. Wyłączone: zostaje, dopóki go nie usuniesz.",
   "settings.controlesEcranVerrouille": "Sterowanie na ekranie blokady",
   "settings.controlesEcranVerrouilleHint": "Odtwarzanie, pauza, poprzedni i następny na ekranie blokady telefonu sterują serwerem. Widoczne, gdy w tej karcie gra strefa przeglądarkowa.",
   "settings.voiceCommand": "Polecenia głosowe",

@@ -1629,6 +1629,8 @@ export default {
   "settings.crossfadeHint": "Övertoning mellan spår. Avmarkera för gapless-uppspelning (ingen tystnad eller toning).",
   "settings.loopByDefault": "Upprepa som standard",
   "settings.loopByDefaultHint": "Startar om varje spår istället för att stoppa vid slutet.",
+  "settings.retraitEcouterPlusTard": "Ta bort från ”Lyssna senare” efter full lyssning",
+  "settings.retraitEcouterPlusTardHint": "Ett album i ”Lyssna senare” försvinner av sig självt när alla spår har spelats (90 % eller till slutet) i samma uppspelning. Av: det ligger kvar tills du tar bort det.",
   "settings.controlesEcranVerrouille": "Kontroller på låsskärmen",
   "settings.controlesEcranVerrouilleHint": "Spela, paus, föregående och nästa på låsskärmen styr servern. Visas medan en webbläsarzon spelar i den här fliken.",
   "settings.voiceCommand": "Röstkommando",

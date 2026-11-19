@@ -2335,6 +2335,8 @@ export default {
   "settings.crossfadeHint": "Krysstoning mellom spor. Fjern avmerkingen for gapless avspilling (ingen stillhet eller toning).",
   "settings.loopByDefault": "Gjenta som standard",
   "settings.loopByDefaultHint": "Starter hvert spor på nytt i stedet for å stoppe på slutten.",
+  "settings.retraitEcouterPlusTard": "Fjern fra «Lytt senere» etter full avspilling",
+  "settings.retraitEcouterPlusTardHint": "Et album i «Lytt senere» fjernes av seg selv når alle sporene er spilt (90 % eller til slutten) i samme avspilling. Av: det blir liggende til du fjerner det.",
   "settings.controlesEcranVerrouille": "Kontroller på låseskjermen",
   "settings.controlesEcranVerrouilleHint": "Spill av, pause, forrige og neste på telefonens låseskjerm styrer serveren. Vises mens en nettlesersone spiller i denne fanen.",
   "settings.voiceCommand": "Talekommando",

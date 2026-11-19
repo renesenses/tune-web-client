@@ -1685,6 +1685,8 @@ export default {
   "settings.crossfadeHint": "Fundido encadenado entre pistas. Desmarca para reproducción sin pausas (sin silencio ni fundido).",
   "settings.loopByDefault": "Reproducir en bucle por defecto",
   "settings.loopByDefaultHint": "Reinicia cada pista en lugar de detenerse al final.",
+  "settings.retraitEcouterPlusTard": "Quitar de «Escuchar más tarde» tras una escucha completa",
+  "settings.retraitEcouterPlusTardHint": "Un álbum guardado en «Escuchar más tarde» sale solo cuando todas sus pistas se han escuchado (90 % o hasta el final) en la misma reproducción. Desactivado: se queda hasta que lo quite.",
   "settings.controlesEcranVerrouille": "Controles de la pantalla de bloqueo",
   "settings.controlesEcranVerrouilleHint": "Reproducir, pausa, anterior y siguiente en la pantalla de bloqueo controlan el servidor. Visibles mientras una zona de navegador suena en esta pestaña.",
   "settings.voiceCommand": "Comando de voz",

@@ -1685,6 +1685,8 @@ export default {
   "settings.crossfadeHint": "曲目之间交叉淡入淡出。取消勾选以实现无缝播放（无静音或淡变）。",
   "settings.loopByDefault": "默认循环播放",
   "settings.loopByDefaultHint": "每首曲目结束后重新开始播放，而不是停止。",
+  "settings.retraitEcouterPlusTard": "完整收听后从“稍后收听”中移除",
+  "settings.retraitEcouterPlusTardHint": "保存在“稍后收听”中的专辑，在同一次播放中所有曲目都听完（90% 或播放到结尾）后会自动移除。关闭时会一直保留，直到您手动移除。",
   "settings.controlesEcranVerrouille": "锁屏控制",
   "settings.controlesEcranVerrouilleHint": "锁屏上的播放、暂停、上一首和下一首控制服务器。仅在此标签页中的浏览器区域播放时显示。",
   "settings.voiceCommand": "语音指令",

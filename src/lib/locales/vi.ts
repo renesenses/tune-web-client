@@ -2337,6 +2337,8 @@ export default {
   "settings.crossfadeHint": "Crossfade giữa các bài hát. Bỏ chọn để phát gapless (không khoảng lặng, không chuyển mờ).",
   "settings.loopByDefault": "Lặp lại theo mặc định",
   "settings.loopByDefaultHint": "Phát lại từng bài hát thay vì dừng ở cuối bài.",
+  "settings.retraitEcouterPlusTard": "Gỡ khỏi “Nghe sau” sau khi nghe hết",
+  "settings.retraitEcouterPlusTardHint": "Album đã lưu trong “Nghe sau” sẽ tự rời danh sách khi mọi bản nhạc đã được nghe (90% hoặc đến hết) trong cùng một lần phát. Tắt: album ở lại cho đến khi bạn gỡ.",
   "settings.controlesEcranVerrouille": "Điều khiển trên màn hình khóa",
   "settings.controlesEcranVerrouilleHint": "Phát, tạm dừng, bài trước và bài tiếp theo trên màn hình khóa điều khiển máy chủ. Hiển thị khi một vùng trình duyệt đang phát trong thẻ này.",
   "settings.voiceCommand": "Điều khiển bằng giọng nói",

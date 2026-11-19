@@ -74,6 +74,7 @@
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
+  import { ecrireRetraitAuto, lireRetraitAuto } from '../../lib/ecouterPlusTard';
   import { bibliothequeEtendueActive, chargerReglageEtendue, changerReglageEtendue } from '../../lib/bibliothequeEtendue';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
@@ -3137,6 +3138,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       dedupMemeRacineErr = get(t)('settings.errSaveFailed');
     }
   }
+  // tune-server-rust#9143 / web#3248 — « Écouter plus tard » : retirer un
+  // album écouté en entier. Rangé dans les réglages du profil, que le serveur
+  // lit à la fin de l'album. Un refus du serveur remet la case et le dit.
+  let retraitSas = $state(false);
+  let retraitSasErr = $state<string | null>(null);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid == null) return;
+    lireRetraitAuto(pid).then((v) => { retraitSas = v; }, () => { retraitSas = false; });
+  });
+  async function setRetraitSas(v: boolean) {
+    const pid = get(currentProfileId);
+    if (pid == null) return;
+    const before = retraitSas; retraitSas = v; retraitSasErr = null;
+    try { await ecrireRetraitAuto(pid, v); }
+    catch { retraitSas = before; retraitSasErr = get(t)('settings.errSaveFailed'); }
+  }
   // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
   // par profil, activé par défaut ; remplace le bouton de la Bibliothèque.
   $effect(() => {
@@ -5022,6 +5040,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={$loopByDefault} onchange={() => { if (!$loopByDefault) void remettreRepetitionAOff(); }} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- tune-server-rust#9143 / web#3248 (fil 2934) — retrait du sas
+                   après écoute complète, par profil, éteint par défaut. -->
+              <div class="row" data-reglage="retrait-ecouter-plus-tard">
+                <div class="lbl">
+                  <span>{$t('settings.retraitEcouterPlusTard' as any)}</span>
+                  <span class="hint">{$t('settings.retraitEcouterPlusTardHint' as any)}</span>
+                  {#if retraitSasErr}<span class="hint err">{retraitSasErr}</span>{/if}
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={retraitSas} disabled={$currentProfileId == null}
+                    onchange={(e) => setRetraitSas((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
               </div>

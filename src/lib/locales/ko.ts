@@ -1664,6 +1664,8 @@ export default {
   "settings.crossfadeHint": "트랙 간 크로스페이드. 갭리스 재생(무음 또는 페이드 없음)을 원하면 체크 해제하세요.",
   "settings.loopByDefault": "기본으로 반복 재생",
   "settings.loopByDefaultHint": "끝에서 멈추지 않고 각 트랙을 다시 시작합니다.",
+  "settings.retraitEcouterPlusTard": "끝까지 들으면 ‘나중에 듣기’에서 제거",
+  "settings.retraitEcouterPlusTardHint": "‘나중에 듣기’에 담은 앨범은 같은 재생에서 모든 트랙을 들으면(90% 이상 또는 끝까지) 자동으로 빠집니다. 끄면 직접 제거할 때까지 남아 있습니다.",
   "settings.controlesEcranVerrouille": "잠금 화면 컨트롤",
   "settings.controlesEcranVerrouilleHint": "잠금 화면의 재생, 일시정지, 이전, 다음 버튼으로 서버를 제어합니다. 이 탭에서 브라우저 존이 재생 중일 때 표시됩니다.",
   "settings.voiceCommand": "음성 명령",
