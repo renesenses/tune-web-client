@@ -7623,7 +7623,7 @@ export default {
   "upsampling.noZone": "Velg en sone for å stille inn oppsamplingen.",
   "upsampling.bitPerfect": "Når den er aktiv, endres hver sampling: banen er ikke lenger bit-perfect. PURE-modus omgår den alltid, og en DoP-strøm oppsamples aldri.",
   "upsampling.enabled": "Oppsample denne sonen",
-  "upsampling.enabledHint": "Av som standard. Bare lokal utgang i delt modus, på en DAC med målte frekvenser.",
+  "upsampling.enabledHint": "Av som standard. Bare lokal utgang, på en DAC med målte frekvenser. På macOS og Windows bare i delt modus (ikke eksklusiv, ikke ASIO); på Linux også med direkte hw:-utgang. Innebygd DSD og komprimerte strømmer som dekodes i sin helhet, oppsamples ikke.",
   "upsampling.filter": "Filter",
   "upsampling.filterHint": "Bare filtre denne maskinen klarer i sanntid (med ×3 margin) tilbys. I parentes: nivåsenkningen.",
   "upsampling.filterNotAdmitted": "Denne maskinen klarer ikke filteret i sanntid: det blir ikke brukt. Velg et annet eller mål maskinen på nytt.",

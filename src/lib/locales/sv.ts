@@ -7777,7 +7777,7 @@ export default {
   "upsampling.noZone": "Välj en zon för att ställa in dess uppsampling.",
   "upsampling.bitPerfect": "När den är aktiv ändrar uppsamplingen varje sampel: vägen är inte längre bit-perfect. PURE-läget kringgår den alltid, och en DoP-ström uppsamplas aldrig.",
   "upsampling.enabled": "Uppsampla denna zon",
-  "upsampling.enabledHint": "Av som standard. Endast lokal utgång i delat läge, på en DAC vars frekvenser är uppmätta.",
+  "upsampling.enabledHint": "Av som standard. Endast lokal utgång, på en DAC vars frekvenser är uppmätta. På macOS och Windows endast i delat läge (inte exklusivt, inte ASIO); på Linux även med direkt hw:-utgång. Inbyggt DSD och komprimerade strömmar som avkodas i sin helhet uppsamplas inte.",
   "upsampling.filter": "Filter",
   "upsampling.filterHint": "Endast filter som den här datorn klarar i realtid (med ×3 marginal) erbjuds. Inom parentes: nivåsänkningen.",
   "upsampling.filterNotAdmitted": "Den här datorn klarar inte filtret i realtid: det tillämpas inte. Välj ett annat eller mät datorn igen.",

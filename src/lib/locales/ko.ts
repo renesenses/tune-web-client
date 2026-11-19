@@ -7778,7 +7778,7 @@ export default {
   "upsampling.noZone": "업샘플링을 설정할 영역을 선택하세요.",
   "upsampling.bitPerfect": "켜져 있으면 모든 샘플이 바뀌므로 경로는 더 이상 bit-perfect가 아닙니다. PURE 모드는 항상 이를 우회하며, DoP 스트림은 업샘플링되지 않습니다.",
   "upsampling.enabled": "이 영역 업샘플링",
-  "upsampling.enabledHint": "기본값은 꺼짐. 공유 모드의 로컬 출력에서, 샘플링 레이트가 측정된 DAC에만 적용됩니다.",
+  "upsampling.enabledHint": "기본값은 꺼짐. 샘플링 레이트가 측정된 DAC의 로컬 출력에만 적용됩니다. macOS와 Windows에서는 공유 모드에서만(배타 모드와 ASIO 제외), Linux에서는 hw: 직접 출력에서도 적용됩니다. 네이티브 DSD와 전체 디코딩되는 압축 스트림은 업샘플링되지 않습니다.",
   "upsampling.filter": "필터",
   "upsampling.filterHint": "이 기기가 실시간(×3 여유)으로 처리할 수 있는 필터만 표시됩니다. 괄호 안은 레벨 감소량입니다.",
   "upsampling.filterNotAdmitted": "이 기기는 이 필터를 실시간으로 처리할 수 없어 적용되지 않습니다. 다른 필터를 고르거나 다시 측정하세요.",
