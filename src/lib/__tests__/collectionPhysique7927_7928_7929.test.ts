@@ -72,8 +72,12 @@ describe('#7928 — chercher sur les services', () => {
     // web#3270 : un disque déjà rapproché d'un service garde la recherche,
     // pour corriger la correspondance.
     expect(peutChercherSurLesServices(disque({
-      streaming: [{ service: 'qobuz', id: 'q', titre: 't', artiste: 'a', par: 'code_barre' }],
+      streaming: [{ service: 'qobuz', id: 'q', titre: 't', artiste: 'a', par: 'code_barre' }], streaming_retires: [],
     }))).toBe(true);
+    // Un serveur antérieur (sans `streaming_retires`) : comme avant.
+    expect(peutChercherSurLesServices(disque({
+      streaming: [{ service: 'qobuz', id: 'q', titre: 't', artiste: 'a', par: 'code_barre' }],
+    }))).toBe(false);
     expect(peutChercherSurLesServices(disque({
       bibliotheque: { album_id: 1, titre: 't', artiste: null, qualite: null, format: null, sample_rate: null, bit_depth: null, par: 'code_barre' },
     }))).toBe(false);

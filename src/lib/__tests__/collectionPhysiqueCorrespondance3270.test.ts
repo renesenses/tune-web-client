@@ -10,7 +10,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import CorrespondanceServicesModale from '../../components/v2/CorrespondanceServicesModale.svelte';
 import CollectionPhysiqueV2 from '../../components/v2/CollectionPhysiqueV2.svelte';
 import {
-  aUneCorrespondance, cleBoutonRecherche, cleErreur, collectionPhysiquePlugin, correspondanceACorriger,
+  aUneCorrespondance, cleBoutonRecherche, serveurGereLesChoix, cleErreur, collectionPhysiquePlugin, correspondanceACorriger,
   estCorrespondanceActuelle, peutChercherSurLesServices, raisonDuDisque, RAISONS,
   type Disque, type PropositionService,
 } from '../collectionPhysique';
@@ -36,7 +36,7 @@ function disque(p: Partial<Disque> = {}): Disque {
     instance_id: 5, release_id: 1050, artiste: 'Janice McClain', titre: 'Giving My Love / Brazil',
     annee: 1979, labels: [], numeros_catalogue: [], formats: ['Vinyl'], precisions: [],
     format: 'vinyle', lien_discogs: 'https://www.discogs.com/release/1050', pochette: false,
-    bibliotheque: null, streaming: [T42], etat: 'streaming', copie: null, proposer_extraction: false,
+    bibliotheque: null, streaming: [T42], streaming_retires: [], etat: 'streaming', copie: null, proposer_extraction: false,
     ...p,
   };
 }
@@ -85,6 +85,7 @@ beforeEach(() => {
     }
     if (methode === 'PUT' && /\/disques\/1050\/streaming$/.test(url)) return reponse({ disque: REMPLACE });
     if (methode === 'DELETE' && /\/disques\/1050\/streaming\/tidal$/.test(url)) return reponse({ disque: RETIRE });
+    if (methode === 'DELETE' && /\/disques\/1050\/streaming\/tidal\/choix$/.test(url)) return reponse({ disque: disque() });
     if (url.includes('/ext/collection-physique/reglages')) return reponse({ nom_utilisateur: 'exemple', jeton: 'personnel' });
     if (url.includes('/ext/collection-physique/etat')) {
       return reponse({ nom_utilisateur: 'exemple', avancement: { en_cours: false, etape: null, fait: 0, total: 0 },
@@ -120,6 +121,19 @@ describe('web#3270 — quand et sous quel libellé la recherche s’offre', () =
     const jamais = disque({ streaming: [], etat: 'nulle_part' });
     expect(correspondanceACorriger(jamais)).toBe(false);
     expect(cleBoutonRecherche(jamais)).toBe('collectionPhysique.recherche.bouton');
+  });
+
+  it('🔴 un serveur antérieur (sans `streaming_retires`) garde l’écran d’avant', () => {
+    const ancien = disque();
+    delete ancien.streaming_retires;
+    expect(serveurGereLesChoix(ancien)).toBe(false);
+    expect(peutChercherSurLesServices(ancien), 'pas de recherche sur un disque rapproché').toBe(false);
+    expect(aUneCorrespondance(ancien)).toBe(false);
+    expect(correspondanceACorriger(ancien)).toBe(false);
+    // Un disque jamais rapproché garde « Chercher sur les services ».
+    const jamais = disque({ streaming: [], etat: 'nulle_part' });
+    delete jamais.streaming_retires;
+    expect(peutChercherSurLesServices(jamais)).toBe(true);
   });
 
   it('la correspondance actuelle se reconnaît par service ET identifiant', () => {
@@ -187,7 +201,37 @@ describe('web#3270 — la fenêtre « Correspondance sur les services »', () =>
     const del = appels.find((a) => a.methode === 'DELETE')!;
     expect(del.url).toMatch(/\/disques\/1050\/streaming\/tidal$/);
     expect(recus).toEqual([RETIRE]);
-    expect(document.querySelector('[data-sans-correspondance]')?.textContent).toBe(fr['collectionPhysique.correspondance.vide']);
+    // Le service retiré se montre, avec « Revenir à l'automatique ».
+    expect(document.querySelector('[data-service-retire="tidal"]')?.textContent).toContain('TIDAL');
+    expect(document.querySelector('[data-correspondance-actuelle]')).toBeNull();
+  });
+
+  it('🔴 « Revenir à l’automatique » oublie le retrait et rend la correspondance automatique', async () => {
+    const recus: Disque[] = [];
+    monte = mount(CorrespondanceServicesModale, { target: hote, props: { disque: RETIRE, onClose: () => {}, onChange: (d: Disque) => recus.push(d) } });
+    await souffler();
+    const b = document.querySelector<HTMLButtonElement>('[data-service-retire="tidal"] [data-revenir-auto="tidal"]');
+    expect(b, 'pas de « Revenir à l’automatique » pour un service retiré').not.toBeNull();
+    expect(b!.textContent?.trim()).toBe(fr['collectionPhysique.correspondance.revenirAuto']);
+    b!.click();
+    await souffler();
+    const del = appels.find((a) => a.methode === 'DELETE')!;
+    expect(del.url).toMatch(/\/disques\/1050\/streaming\/tidal\/choix$/);
+    expect(recus).toEqual([disque()]);
+    expect(document.querySelector('[data-correspondance-actuelle="tidal"]')).not.toBeNull();
+    expect(document.querySelector('[data-services-retires]')).toBeNull();
+  });
+
+  it('une correspondance choisie à la main offre aussi « Revenir à l’automatique »', async () => {
+    monte = mount(CorrespondanceServicesModale, { target: hote, props: { disque: REMPLACE, onClose: () => {}, onChange: () => {} } });
+    await souffler();
+    expect(document.querySelector('[data-correspondance-actuelle="tidal"] [data-revenir-auto="tidal"]')).not.toBeNull();
+    // Contre-épreuve : la correspondance automatique ne l'offre pas.
+    unmount(monte); monte = null;
+    document.querySelectorAll('[data-correspondance-services]').forEach((e) => e.closest('.fond')?.remove());
+    monte = mount(CorrespondanceServicesModale, { target: hote, props: { disque: disque(), onClose: () => {}, onChange: () => {} } });
+    await souffler();
+    expect(document.querySelector('[data-correspondance-actuelle="tidal"] [data-revenir-auto]')).toBeNull();
   });
 });
 
@@ -205,14 +249,25 @@ describe('web#3270 — l’écran monté', () => {
     await souffler();
     expect(document.querySelector('[data-correspondance-services="1050"]')).not.toBeNull();
   });
+
+  it('🔴 serveur antérieur : pas de « Changer la correspondance » sur l’écran', async () => {
+    for (const d of collection.disques) delete d.streaming_retires;
+    monte = mount(CollectionPhysiqueV2 as any, { target: hote });
+    await souffler(40);
+    expect(hote.querySelector('[data-disque="1050"]'), 'disque absent').not.toBeNull();
+    expect(hote.querySelector('[data-disque="1050"] [data-changer-correspondance]')).toBeNull();
+    expect(hote.querySelector('[data-disque="1050"] [data-chercher-services]')).toBeNull();
+    expect(hote.querySelector('[data-disque="7"] [data-chercher-services]')).not.toBeNull();
+  });
 });
 
 describe('web#3270 — i18n', () => {
   it('chaque libellé existe dans les seize langues', () => {
     expect(cleErreur('corps_invalide')).toBe('collectionPhysique.erreur.corps_invalide');
+    expect(cleErreur('service_inconnu')).toBe('collectionPhysique.erreur.service_inconnu');
     const cles = Object.keys(fr).filter((k) => k.startsWith('collectionPhysique.correspondance.')
-      || /correspondance_retiree$|erreur\.corps_invalide$/.test(k));
-    expect(cles.length).toBe(15);
+      || /correspondance_retiree$|erreur\.(corps_invalide|service_inconnu)$/.test(k));
+    expect(cles.length).toBe(18);
     for (const langue of dictionnaires.ONZE_LANGUES) {
       const dico = (dictionnaires as unknown as Record<string, Record<string, string>>)[langue];
       for (const cle of cles) expect(dico[cle], `${langue} : ${cle}`).toBeTruthy();

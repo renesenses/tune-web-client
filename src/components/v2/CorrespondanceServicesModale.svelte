@@ -19,7 +19,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import {
     chercherSurLesServices, correspondanceDuService, estCorrespondanceActuelle, messageErreurCollection,
-    nomService, remplacerCorrespondance, retirerCorrespondance,
+    nomService, remplacerCorrespondance, retirerCorrespondance, revenirALAutomatique,
     type Disque, type PropositionService, type ResultatServices, type SurUnService,
   } from '../../lib/collectionPhysique';
 
@@ -92,6 +92,23 @@
     }
   }
 
+  /** « Revenir à l'automatique » : le choix ou le retrait du service est
+   *  oublié, le rapprochement automatique reprend. */
+  async function revenir(service: string) {
+    if (travail) return;
+    travail = true;
+    erreur = null;
+    try {
+      const r = await revenirALAutomatique(actuel.release_id, service);
+      actuel = r.disque;
+      onChange(r.disque);
+    } catch (e) {
+      erreur = e;
+    } finally {
+      travail = false;
+    }
+  }
+
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') onClose();
   }
@@ -124,13 +141,32 @@
                 <span class="tt" title={s.titre}>{s.titre}</span>
                 <em title={s.artiste}>{nomService(s.service)} · {s.artiste}{#if s.par === 'manuel'} · {$t('collectionPhysique.correspondance.manuelle' as any)}{/if}</em>
               </span>
+              {#if s.par === 'manuel'}
+                <button class="sec" onclick={() => void revenir(s.service)} disabled={travail} data-revenir-auto={s.service}>
+                  {$t('collectionPhysique.correspondance.revenirAuto' as any)}
+                </button>
+              {/if}
               <button class="sec" onclick={() => void retirer(s)} disabled={travail} data-retirer-correspondance={s.service}>
                 {$t('collectionPhysique.correspondance.retirer' as any)}
               </button>
             </li>
           {/each}
         </ul>
-      {:else}
+      {/if}
+      {#if actuel.streaming_retires?.length}
+        <h3>{$t('collectionPhysique.correspondance.retirees' as any)}</h3>
+        <ul data-services-retires>
+          {#each actuel.streaming_retires as service (service)}
+            <li class="ligne" data-service-retire={service}>
+              <span class="ti"><span class="tt">{nomService(service)}</span></span>
+              <button class="sec" onclick={() => void revenir(service)} disabled={travail} data-revenir-auto={service}>
+                {$t('collectionPhysique.correspondance.revenirAuto' as any)}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if !actuel.streaming.length && !actuel.streaming_retires?.length}
         <p class="q" data-sans-correspondance>{$t('collectionPhysique.correspondance.vide' as any)}</p>
       {/if}
 
@@ -187,7 +223,7 @@
   .fermer:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .listes{overflow-y:auto; margin-top:4px}
   ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px}
-  .ligne{display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; padding:6px 8px; border-radius:8px;
+  .ligne{display:grid; grid-template-columns:minmax(0,1fr); grid-auto-flow:column; grid-auto-columns:auto; align-items:center; gap:10px; padding:6px 8px; border-radius:8px;
     border:1px solid transparent}
   .ligne:hover{background:var(--v2-hover)}
   .ligne.actuelle{border-color:var(--v2-acc1); background:var(--v2-surface2)}
