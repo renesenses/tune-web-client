@@ -216,7 +216,7 @@
       <p class="hint">{$t('personalTags.preview.hint' as any)}</p>
       <div class="actions gauche">
         <button class="v2-btn" data-analyser disabled={apercuEnCours} onclick={analyser}>
-          {$t(apercuEnCours ? 'personalTags.preview.running' as any : 'personalTags.preview.run' as any)}
+          {#if apercuEnCours}{$t('personalTags.preview.running' as any)}{:else}{$t('personalTags.preview.run' as any)}{/if}
         </button>
         {#if apercu}
           <label class="coche"><input type="checkbox" bind:checked={voirConnues} data-voir-connues />
