@@ -136,7 +136,8 @@ describe('web#3245 — vue en pochettes : la croix « Retirer » demande confirm
     await souffler();
     expect(retraits()).toEqual([]);
     expect(croixPochettes().length).toBe(3);
-    expect(hote!.textContent).toContain('Nightswimming');
+    // #3281 (fil 2941) : la légende d'une pochette nomme l'ALBUM, plus la piste.
+    expect(hote!.querySelector('[data-pgrille] .pcarte .pnom')?.textContent).toBe('Automatic for the People');
   });
 
   it('Échap annule ; Entrée, sans avoir choisi « Retirer », annule aussi', async () => {
