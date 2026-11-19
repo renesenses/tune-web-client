@@ -63,8 +63,10 @@ export type Etape = 'liste' | 'streaming' | 'bibliotheque';
  * chaque disque `nulle_part`, `candidats_locaux` pour `plusieurs_candidats`,
  * et `compteurs.par_raison`. Absent d'un greffon antérieur : rien ne s'affiche.
  */
-export type RaisonNullePart = 'aucun_candidat' | 'plusieurs_candidats' | 'service_non_interroge';
-export const RAISONS: readonly RaisonNullePart[] = ['aucun_candidat', 'plusieurs_candidats', 'service_non_interroge'];
+export type RaisonNullePart = 'aucun_candidat' | 'plusieurs_candidats' | 'service_non_interroge' | 'correspondance_retiree';
+/** `correspondance_retiree` : tune-server-rust#9166, la correspondance de
+ *  service retirée à la main. */
+export const RAISONS: readonly RaisonNullePart[] = ['aucun_candidat', 'plusieurs_candidats', 'service_non_interroge', 'correspondance_retiree'];
 
 export const FAMILLES: readonly Famille[] = ['vinyle', 'cd', 'sacd', 'cassette', 'autre'];
 export const ETATS: readonly EtatDisque[] = ['bibliotheque', 'streaming', 'nulle_part', 'a_verifier'];
@@ -136,7 +138,8 @@ export interface SurUnService {
   id: string;
   titre: string;
   artiste: string;
-  par: 'code_barre' | 'artiste_titre';
+  /** `manuel` : choisie à la main (tune-server-rust#9166). */
+  par: 'code_barre' | 'artiste_titre' | 'manuel';
 }
 
 export interface Disque {
@@ -156,6 +159,9 @@ export interface Disque {
   pochette?: boolean;
   bibliotheque: AlbumDeLaBibliotheque | null;
   streaming: SurUnService[];
+  /** tune-server-rust#9166 : les services dont la correspondance a été
+   *  retirée à la main ; absent d'un serveur antérieur. */
+  streaming_retires?: string[];
   etat: EtatDisque;
   /** `null` pour un support qui ne se copie pas (vinyle, cassette). */
   copie: boolean | null;
@@ -295,9 +301,54 @@ export function versSurUnService(p: PropositionService): SurUnService {
   };
 }
 
-/** Un disque où « Chercher sur les services » a du sens : ni dans la
- *  bibliothèque, ni déjà trouvé sur un service. */
-export const peutChercherSurLesServices = (d: Disque) => !d.bibliotheque && d.streaming.length === 0;
+/** Un disque où « Chercher sur les services » a du sens : absent de la
+ *  bibliothèque. Depuis web#3270, aussi quand il est déjà rapproché d'un
+ *  album de service : la recherche sert alors à corriger la correspondance. */
+export const peutChercherSurLesServices = (d: Disque) => !d.bibliotheque;
+
+/** web#3270 — le disque a déjà une correspondance sur un service : le
+ *  bouton devient « Changer la correspondance ». */
+export const aUneCorrespondance = (d: Disque) => !d.bibliotheque && d.streaming.length > 0;
+
+/** web#3270 — la recherche s'ouvre dans la fenêtre « Correspondance sur
+ *  les services » (remplacer, retirer) : le disque a une correspondance, ou
+ *  en a eu une, retirée à la main. Sinon, la recherche reste en ligne. */
+export const correspondanceACorriger = (d: Disque) =>
+  !d.bibliotheque && (d.streaming.length > 0 || (d.streaming_retires?.length ?? 0) > 0);
+
+/** web#3270 — le libellé du bouton : « Changer la correspondance » quand il
+ *  y en a une, « Chercher à nouveau » après un retrait, « Chercher sur les
+ *  services » sinon. */
+export function cleBoutonRecherche(d: Disque): string {
+  if (aUneCorrespondance(d)) return 'collectionPhysique.correspondance.changer';
+  if (correspondanceACorriger(d)) return 'collectionPhysique.correspondance.chercherANouveau';
+  return 'collectionPhysique.recherche.bouton';
+}
+
+/** web#3270 — la proposition est-elle la correspondance actuelle du disque ? */
+export const estCorrespondanceActuelle = (d: Pick<Disque, 'streaming'>, p: Pick<PropositionService, 'service' | 'id'>) =>
+  d.streaming.some((s) => s.service === p.service && s.id === p.id);
+
+/** web#3270 — le service a-t-il déjà une correspondance (que « Remplacer »
+ *  écrasera) ? */
+export const correspondanceDuService = (d: Pick<Disque, 'streaming'>, service: string) =>
+  d.streaming.find((s) => s.service === service) ?? null;
+
+/** tune-server-rust#9166 : remplace la correspondance du service de `p` par
+ *  `p`, choisie à la main. Rend le disque relu. */
+export const remplacerCorrespondance = (releaseId: number, p: Pick<PropositionService, 'service' | 'id' | 'titre' | 'artiste'>) =>
+  fetchJSON<{ disque: Disque }>(
+    `${RACINE}/disques/${encodeURIComponent(String(releaseId))}/streaming`,
+    JSON_PUT({ service: p.service, id: p.id, titre: p.titre, artiste: p.artiste }), undefined, true,
+  );
+
+/** tune-server-rust#9166 : retire la correspondance du service ; le
+ *  rapprochement automatique ne la recrée pas. Rend le disque relu. */
+export const retirerCorrespondance = (releaseId: number, service: string) =>
+  fetchJSON<{ disque: Disque }>(
+    `${RACINE}/disques/${encodeURIComponent(String(releaseId))}/streaming/${encodeURIComponent(service)}`,
+    { method: 'DELETE' }, undefined, true,
+  );
 
 // ─── « Associer à un album » (tune-server-rust#8672) ───────────────────────
 
@@ -421,6 +472,8 @@ const ERREURS_CONNUES = new Set([
   'album_inconnu', 'disque_inconnu',
   // #8678 : le disque est déjà rattaché à un autre album (409).
   'deja_associe',
+  // #9166 : un choix de correspondance irrecevable (422).
+  'corps_invalide',
 ]);
 
 /** La clé i18n d'une erreur (de synchronisation ou de refus). */
