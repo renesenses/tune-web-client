@@ -6121,6 +6121,8 @@ export default {
   "v2.circle.members.shown": "I membri di questa cerchia che hanno accettato anche loro ora ti vedono.",
   "v2.circle.members.hidden": "I membri di questa cerchia non ti vedono più.",
   "v2.circle.members.err.notShared": "Questa cerchia non è più condivisa tra i suoi membri.",
+  "v2.circle.err.adminRequired": "Solo un amministratore di questo server può modificare la cerchia: puoi consultarla.",
+  "v2.circle.err.remoteReadOnly": "Da remoto la cerchia è solo consultabile: per modificarla, apri Tune sulla rete locale.",
   "v2.circle.members.err.updateServer": "Il tuo server Tune non conosce ancora questa funzione. Aggiorna Tune.",
   "v2.circle.scene.info.pinMember": "Città mostrata da {name}, membro di «{circles}».",
   "v2.circle.notif.circleShared": "{name} condivide la cerchia «{circle}» tra i suoi membri: sta a te scegliere se apparire",

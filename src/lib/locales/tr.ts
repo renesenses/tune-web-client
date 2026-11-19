@@ -5976,6 +5976,8 @@ export default {
   "v2.circle.members.shown": "Bu çevrenin onay veren üyeleri artık sizi görüyor.",
   "v2.circle.members.hidden": "Bu çevrenin üyeleri artık sizi görmüyor.",
   "v2.circle.members.err.notShared": "Bu çevre artık üyeleri arasında paylaşılmıyor.",
+  "v2.circle.err.adminRequired": "Çevreyi yalnızca bu sunucunun yöneticisi değiştirebilir: görüntüleyebilirsiniz.",
+  "v2.circle.err.remoteReadOnly": "Uzaktan çevre yalnızca görüntülenebilir: değiştirmek için Tune'u yerel ağda açın.",
   "v2.circle.members.err.updateServer": "Tune sunucunuz bu özelliği henüz tanımıyor. Tune'u güncelleyin.",
   "v2.circle.scene.info.pinMember": "{name} tarafından gösterilen şehir, “{circles}” üyesi.",
   "v2.circle.notif.circleShared": "{name}, “{circle}” çevresini üyeleri arasında paylaşıyor: görünüp görünmemeyi siz seçin",

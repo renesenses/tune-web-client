@@ -6121,6 +6121,8 @@ export default {
   "v2.circle.members.shown": "同意したこのサークルのメンバーにあなたが表示されるようになりました。",
   "v2.circle.members.hidden": "このサークルのメンバーにあなたは表示されなくなりました。",
   "v2.circle.members.err.notShared": "このサークルはメンバー間で共有されなくなりました。",
+  "v2.circle.err.adminRequired": "サークルを変更できるのはこのサーバーの管理者だけです。閲覧はできます。",
+  "v2.circle.err.remoteReadOnly": "リモートではサークルは閲覧のみです。変更するにはローカルネットワークで Tune を開いてください。",
   "v2.circle.members.err.updateServer": "お使いの Tune サーバーはまだこの機能に対応していません。Tune を更新してください。",
   "v2.circle.scene.info.pinMember": "{name}さんが示した都市（「{circles}」のメンバー）。",
   "v2.circle.notif.circleShared": "{name}さんがサークル「{circle}」をメンバー間で共有しました：表示するかどうかはあなたが選べます",

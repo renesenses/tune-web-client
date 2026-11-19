@@ -5984,6 +5984,8 @@ export default {
   "v2.circle.members.shown": "Các thành viên của vòng này cũng đồng ý giờ đã thấy bạn.",
   "v2.circle.members.hidden": "Các thành viên của vòng này không còn thấy bạn.",
   "v2.circle.members.err.notShared": "Vòng này không còn được chia sẻ giữa các thành viên.",
+  "v2.circle.err.adminRequired": "Chỉ quản trị viên của máy chủ này mới có thể thay đổi vòng kết nối: bạn vẫn có thể xem.",
+  "v2.circle.err.remoteReadOnly": "Khi truy cập từ xa, vòng kết nối chỉ xem được: để thay đổi, hãy mở Tune trong mạng cục bộ.",
   "v2.circle.members.err.updateServer": "Máy chủ Tune của bạn chưa biết tính năng này. Hãy cập nhật Tune.",
   "v2.circle.scene.info.pinMember": "Thành phố do {name} hiển thị, thành viên của “{circles}”.",
   "v2.circle.notif.circleShared": "{name} chia sẻ vòng “{circle}” giữa các thành viên: bạn tự chọn có xuất hiện hay không",

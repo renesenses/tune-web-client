@@ -5979,6 +5979,8 @@ export default {
   "v2.circle.members.shown": "Członkowie tego kręgu, którzy też wyrazili zgodę, widzą Cię teraz.",
   "v2.circle.members.hidden": "Członkowie tego kręgu już Cię nie widzą.",
   "v2.circle.members.err.notShared": "Ten krąg nie jest już udostępniany między członkami.",
+  "v2.circle.err.adminRequired": "Tylko administrator tego serwera może zmieniać krąg: możesz go przeglądać.",
+  "v2.circle.err.remoteReadOnly": "Zdalnie krąg można tylko przeglądać: aby go zmienić, otwórz Tune w sieci lokalnej.",
   "v2.circle.members.err.updateServer": "Twój serwer Tune nie zna jeszcze tej funkcji. Zaktualizuj Tune.",
   "v2.circle.scene.info.pinMember": "Miasto pokazane przez {name}, członek „{circles}”.",
   "v2.circle.notif.circleShared": "{name} udostępnia krąg „{circle}” między członkami: sam zdecyduj, czy się pojawisz",

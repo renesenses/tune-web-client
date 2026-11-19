@@ -6121,6 +6121,8 @@ export default {
   "v2.circle.members.shown": "Mitglieder dieses Kreises, die ebenfalls zugestimmt haben, sehen Sie jetzt.",
   "v2.circle.members.hidden": "Mitglieder dieses Kreises sehen Sie nicht mehr.",
   "v2.circle.members.err.notShared": "Dieser Kreis wird nicht mehr unter seinen Mitgliedern geteilt.",
+  "v2.circle.err.adminRequired": "Nur ein Administrator dieses Servers kann den Kreis ändern: Sie können ihn ansehen.",
+  "v2.circle.err.remoteReadOnly": "Aus der Ferne lässt sich der Kreis nur ansehen: Um ihn zu ändern, öffnen Sie Tune im lokalen Netzwerk.",
   "v2.circle.members.err.updateServer": "Ihr Tune-Server kennt diese Funktion noch nicht. Aktualisieren Sie Tune.",
   "v2.circle.scene.info.pinMember": "Von {name} gezeigte Stadt, Mitglied von „{circles}“.",
   "v2.circle.notif.circleShared": "{name} teilt den Kreis „{circle}“ unter seinen Mitgliedern: Sie entscheiden, ob Sie erscheinen",
