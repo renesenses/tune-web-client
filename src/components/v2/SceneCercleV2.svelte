@@ -52,10 +52,10 @@
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
   import { couleurFrontiere, PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
-    lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
+    lireMonLieu, lireLieuxDuGlobe, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
     lirePointsPublics, lireRetraitCarte, changerRetraitCarte,
-    type EtatRelais, type ResumeBibliotheque, type PointPublic,
+    type EtatRelais, type ResumeBibliotheque, type PointPublic, type MembreDeCercleLieu,
   } from '../../lib/circleMonde';
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
@@ -82,8 +82,15 @@
     onLirePlaylist?: (p: PlaylistCercleResume) => void;
     /** rc12 — les lieux de mes contacts, lus ici, partagés avec l'écran (ville de Mon cercle, compteur Pays). */
     onLieux?: (lieux: Map<number, Lieu>) => void;
+    /**
+     * #3283 — l'état de MES accords dans les cercles partagés (et de leur
+     * partage) : quand il change, le globe relit les lieux.
+     */
+    clePartageMembres?: string;
+    /** #3283 — ai-je posé ma ville ? `null` : on ne sait pas (pas encore lu, ou serveur sans globe). */
+    onMonLieuPose?: (pose: boolean | null) => void;
   }
-  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux }: Props = $props();
+  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux, clePartageMembres = '', onMonLieuPose }: Props = $props();
   let paysMonde = $state<PaysMonde | null>(null);
   let montrerPays = $state(true);
   const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
@@ -96,7 +103,10 @@
   // ── Données ─────────────────────────────────────────────────────────────
   let relais = $state<EtatRelais | null>(null);
   let monLieu = $state<Lieu | null>(null);
+  $effect(() => { onMonLieuPose?.(relais === 'ok' ? monLieu !== null : null); });
   let lieux = $state.raw<Map<number, Lieu>>(new Map());
+  /** #3283 — les membres de mes cercles partagés (pas mes contacts), lus avec les lieux. */
+  let membresCercles = $state.raw<MembreDeCercleLieu[]>([]);
   $effect(() => { onLieux?.(lieux); });
   let resumes = $state<Record<number, ResumeBibliotheque | null>>({});
   let mes = $state.raw<ResumeBibliotheque>({ albums: null, genres: [] });
@@ -175,6 +185,7 @@
     moi: { nom: nomAffiche, albums: mes.albums, genres: mes.genres, lieu: relais === 'ok' ? monLieu : null },
     contacts: contactsScene,
     cercles: cercles.map((c) => ({ id: c.id, nom: c.name, membres: c.member_ids })),
+    membresDeCercles: relais === 'ok' ? membresCercles : [],
     focus,
     // Grand écran : TOUS les contacts (jusqu'à 30, en deux couronnes) ; mobile : 8 puis « +N ».
     maxAutour: petit ? 8 : 30,
@@ -200,9 +211,10 @@
     mes = m;
     monNom = nom;
     if (l.relais === 'ok') {
-      const [lx, pp, rc] = await Promise.all([lireLieuxContacts(), lirePointsPublics(), lireRetraitCarte()]);
+      const [lx, pp, rc] = await Promise.all([lireLieuxDuGlobe(), lirePointsPublics(), lireRetraitCarte()]);
       if (fini) return;
-      lieux = lx;
+      lieux = lx.contacts;
+      membresCercles = lx.membres;
       pointsPublics = pp.points;
       retraitCarte = rc;
     }
@@ -217,7 +229,7 @@
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && (lieux.size > 0 || pointsPublics.length > 0)) vue = 'monde';
+    if (relais === 'ok' && (lieux.size > 0 || membresCercles.length > 0 || pointsPublics.length > 0)) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
     else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
@@ -245,7 +257,18 @@
     const premiere = derniereCleContacts === '';
     derniereCleContacts = k;
     if (premiere) return;
-    void lireLieuxContacts().then((lx) => { if (!fini) lieux = lx; });
+    void lireLieuxDuGlobe().then((lx) => { if (!fini) { lieux = lx.contacts; membresCercles = lx.membres; } });
+  });
+
+  // #3283 : un accord donné ou retiré, un cercle partagé ou non — on relit.
+  let derniereClePartage: string | null = null;
+  $effect(() => {
+    const k = clePartageMembres;
+    if (relais !== 'ok') return;
+    if (derniereClePartage === null) { derniereClePartage = k; return; }
+    if (k === derniereClePartage) return;
+    derniereClePartage = k;
+    void lireLieuxDuGlobe().then((lx) => { if (!fini) { lieux = lx.contacts; membresCercles = lx.membres; } });
   });
 
   // Plus de globe sur ce serveur : on quitte la vue Monde.
@@ -543,7 +566,11 @@
         return tr('v2.circle.scene.info.ring', { name: n.label, list: liste2([...noms, tr('v2.circle.scene.info.ringYou')]) });
       }
       case 'more': return n.plusDe === 'cercles' ? tr('v2.circle.scene.info.moreCircles', { n: n.members }) : tr('v2.circle.scene.info.more', { n: n.members });
-      case 'pin': return n.me ? `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMe')}` : `${n.place ?? ''} — ${tr('v2.circle.scene.info.pin', { name: n.label })}`;
+      case 'pin':
+        if (n.me) return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMe')}`;
+        // #3283 : un membre de cercle partagé, pas un contact — le dire, avec le cercle.
+        if (n.viaCercles) return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMember', { name: n.label, circles: liste2(n.viaCercles) })}`;
+        return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pin', { name: n.label })}`;
     }
   }
 
