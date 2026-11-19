@@ -9,10 +9,24 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import FlechesNavigation from '../../components/v2/FlechesNavigation.svelte';
 import { atteindreLeRang, demarrerAuRang, empilerAuRang, _reinitialiserRangs } from '../memoireNavigation';
-import fr from '../locales/fr';
-import en from '../locales/en';
+import loc_de from '../locales/de';
+import loc_el from '../locales/el';
+import loc_en from '../locales/en';
+import loc_es from '../locales/es';
+import loc_fr from '../locales/fr';
+import loc_hu from '../locales/hu';
+import loc_it from '../locales/it';
+import loc_ja from '../locales/ja';
+import loc_ko from '../locales/ko';
+import loc_nb from '../locales/nb';
+import loc_pl from '../locales/pl';
+import loc_ro from '../locales/ro';
+import loc_sv from '../locales/sv';
+import loc_tr from '../locales/tr';
+import loc_vi from '../locales/vi';
+import loc_zh from '../locales/zh';
 
-const LANGUES = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'tr', 'vi', 'zh'];
+const LANGUES: Record<string, Record<string, string>> = { de: loc_de, el: loc_el, en: loc_en, es: loc_es, fr: loc_fr, hu: loc_hu, it: loc_it, ja: loc_ja, ko: loc_ko, nb: loc_nb, pl: loc_pl, ro: loc_ro, sv: loc_sv, tr: loc_tr, vi: loc_vi, zh: loc_zh } as any;
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
@@ -78,14 +92,14 @@ describe('web#3275 — flèches Précédent / Suivant de l’en-tête', () => {
     expect(src.indexOf('<GlobalSearchBar />')).toBeGreaterThan(fleches);
   });
 
-  it('libellés présents dans les seize langues', async () => {
-    for (const l of LANGUES) {
-      const mod = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+  it('libellés présents dans les seize langues', () => {
+    expect(Object.keys(LANGUES)).toHaveLength(16);
+    for (const [l, mod] of Object.entries(LANGUES)) {
       for (const k of ['v2.nav.precedent', 'v2.nav.suivant', 'v2.nav.historique']) {
         expect(mod[k], `${l} : ${k}`).toBeTruthy();
       }
     }
-    expect((fr as any)['v2.nav.precedent']).toBe('Précédent');
-    expect((en as any)['v2.nav.suivant']).toBe('Forward');
+    expect(LANGUES.fr['v2.nav.precedent']).toBe('Précédent');
+    expect(LANGUES.en['v2.nav.suivant']).toBe('Forward');
   });
 });

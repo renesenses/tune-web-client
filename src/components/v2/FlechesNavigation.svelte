@@ -28,7 +28,7 @@
 </script>
 
 <div class="fleches-nav" role="group" aria-label={$t('v2.nav.historique' as any)}>
-  <button class="raccourci fleche" data-fleche-nav="reculer" disabled={!$peutReculer}
+  <button class="fleche" data-fleche-nav="reculer" disabled={!$peutReculer}
     onclick={() => naviguer('reculer')}
     aria-label={$t('v2.nav.precedent' as any)}
     aria-keyshortcuts={surMac ? 'Meta+BracketLeft Alt+ArrowLeft' : 'Alt+ArrowLeft'}
@@ -36,7 +36,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
   {#if $formatEcran !== 'tiroir'}
-    <button class="raccourci fleche" data-fleche-nav="avancer" disabled={!$peutAvancer}
+    <button class="fleche" data-fleche-nav="avancer" disabled={!$peutAvancer}
       onclick={() => naviguer('avancer')}
       aria-label={$t('v2.nav.suivant' as any)}
       aria-keyshortcuts={surMac ? 'Meta+BracketRight Alt+ArrowRight' : 'Alt+ArrowRight'}
@@ -48,10 +48,10 @@
 
 <style>
   .fleches-nav{display:flex; align-items:center; gap:4px; flex:0 0 auto}
-  .raccourci{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
+  .fleche{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s; padding:0}
-  .raccourci:hover:not(:disabled){color:var(--v2-acc1); background:var(--v2-hover)}
-  .raccourci:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .raccourci:disabled{opacity:.4; cursor:default}
-  .raccourci svg{width:16px; height:16px}
+  .fleche:hover:not(:disabled){color:var(--v2-acc1); background:var(--v2-hover)}
+  .fleche:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .fleche:disabled{opacity:.4; cursor:default}
+  .fleche svg{width:16px; height:16px}
 </style>
