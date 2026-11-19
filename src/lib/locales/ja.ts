@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "一致を変更",
   "collectionPhysique.correspondance.chercherANouveau": "もう一度検索",
   "collectionPhysique.correspondance.actuelle": "現在の一致",
-  "collectionPhysique.correspondance.aucune": "まだ一致はありません。",
+  "collectionPhysique.correspondance.vide": "まだ一致はありません。",
   "collectionPhysique.correspondance.manuelle": "手動で選択",
   "collectionPhysique.correspondance.marqueActuelle": "現在",
   "collectionPhysique.correspondance.remplacer": "置き換え",

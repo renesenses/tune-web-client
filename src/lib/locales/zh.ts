@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "更改匹配",
   "collectionPhysique.correspondance.chercherANouveau": "重新搜索",
   "collectionPhysique.correspondance.actuelle": "当前匹配",
-  "collectionPhysique.correspondance.aucune": "暂无匹配。",
+  "collectionPhysique.correspondance.vide": "暂无匹配。",
   "collectionPhysique.correspondance.manuelle": "手动选择",
   "collectionPhysique.correspondance.marqueActuelle": "当前",
   "collectionPhysique.correspondance.remplacer": "替换",

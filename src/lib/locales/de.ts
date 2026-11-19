@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Zuordnung ändern",
   "collectionPhysique.correspondance.chercherANouveau": "Erneut suchen",
   "collectionPhysique.correspondance.actuelle": "Aktuelle Zuordnung",
-  "collectionPhysique.correspondance.aucune": "Noch keine Zuordnung.",
+  "collectionPhysique.correspondance.vide": "Noch keine Zuordnung.",
   "collectionPhysique.correspondance.manuelle": "von Hand gewählt",
   "collectionPhysique.correspondance.marqueActuelle": "Aktuell",
   "collectionPhysique.correspondance.remplacer": "Ersetzen",

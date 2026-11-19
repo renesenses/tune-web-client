@@ -7503,7 +7503,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Changer la correspondance",
   "collectionPhysique.correspondance.chercherANouveau": "Chercher à nouveau",
   "collectionPhysique.correspondance.actuelle": "Correspondance actuelle",
-  "collectionPhysique.correspondance.aucune": "Aucune correspondance pour l’instant.",
+  "collectionPhysique.correspondance.vide": "Aucune correspondance pour l’instant.",
   "collectionPhysique.correspondance.manuelle": "choisie à la main",
   "collectionPhysique.correspondance.marqueActuelle": "Actuelle",
   "collectionPhysique.correspondance.remplacer": "Remplacer",

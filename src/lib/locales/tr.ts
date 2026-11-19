@@ -7314,7 +7314,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Eşleşmeyi değiştir",
   "collectionPhysique.correspondance.chercherANouveau": "Yeniden ara",
   "collectionPhysique.correspondance.actuelle": "Geçerli eşleşme",
-  "collectionPhysique.correspondance.aucune": "Henüz eşleşme yok.",
+  "collectionPhysique.correspondance.vide": "Henüz eşleşme yok.",
   "collectionPhysique.correspondance.manuelle": "elle seçildi",
   "collectionPhysique.correspondance.marqueActuelle": "Geçerli",
   "collectionPhysique.correspondance.remplacer": "Değiştir",

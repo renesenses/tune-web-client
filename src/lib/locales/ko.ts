@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "일치 항목 변경",
   "collectionPhysique.correspondance.chercherANouveau": "다시 검색",
   "collectionPhysique.correspondance.actuelle": "현재 일치 항목",
-  "collectionPhysique.correspondance.aucune": "아직 일치 항목이 없습니다.",
+  "collectionPhysique.correspondance.vide": "아직 일치 항목이 없습니다.",
   "collectionPhysique.correspondance.manuelle": "직접 선택함",
   "collectionPhysique.correspondance.marqueActuelle": "현재",
   "collectionPhysique.correspondance.remplacer": "바꾸기",

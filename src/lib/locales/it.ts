@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Cambia la corrispondenza",
   "collectionPhysique.correspondance.chercherANouveau": "Cerca di nuovo",
   "collectionPhysique.correspondance.actuelle": "Corrispondenza attuale",
-  "collectionPhysique.correspondance.aucune": "Ancora nessuna corrispondenza.",
+  "collectionPhysique.correspondance.vide": "Ancora nessuna corrispondenza.",
   "collectionPhysique.correspondance.manuelle": "scelta a mano",
   "collectionPhysique.correspondance.marqueActuelle": "Attuale",
   "collectionPhysique.correspondance.remplacer": "Sostituisci",

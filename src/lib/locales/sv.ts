@@ -7480,7 +7480,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Ändra matchningen",
   "collectionPhysique.correspondance.chercherANouveau": "Sök igen",
   "collectionPhysique.correspondance.actuelle": "Nuvarande matchning",
-  "collectionPhysique.correspondance.aucune": "Ingen matchning ännu.",
+  "collectionPhysique.correspondance.vide": "Ingen matchning ännu.",
   "collectionPhysique.correspondance.manuelle": "vald för hand",
   "collectionPhysique.correspondance.marqueActuelle": "Nuvarande",
   "collectionPhysique.correspondance.remplacer": "Ersätt",

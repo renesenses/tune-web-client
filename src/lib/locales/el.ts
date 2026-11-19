@@ -7326,7 +7326,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Αλλαγή αντιστοίχισης",
   "collectionPhysique.correspondance.chercherANouveau": "Νέα αναζήτηση",
   "collectionPhysique.correspondance.actuelle": "Τρέχουσα αντιστοίχιση",
-  "collectionPhysique.correspondance.aucune": "Καμία αντιστοίχιση ακόμη.",
+  "collectionPhysique.correspondance.vide": "Καμία αντιστοίχιση ακόμη.",
   "collectionPhysique.correspondance.manuelle": "επιλεγμένη χειροκίνητα",
   "collectionPhysique.correspondance.marqueActuelle": "Τρέχουσα",
   "collectionPhysique.correspondance.remplacer": "Αντικατάσταση",

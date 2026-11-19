@@ -7440,7 +7440,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Egyezés módosítása",
   "collectionPhysique.correspondance.chercherANouveau": "Keresés újra",
   "collectionPhysique.correspondance.actuelle": "Jelenlegi egyezés",
-  "collectionPhysique.correspondance.aucune": "Még nincs egyezés.",
+  "collectionPhysique.correspondance.vide": "Még nincs egyezés.",
   "collectionPhysique.correspondance.manuelle": "kézzel választva",
   "collectionPhysique.correspondance.marqueActuelle": "Jelenlegi",
   "collectionPhysique.correspondance.remplacer": "Csere",

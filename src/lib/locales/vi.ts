@@ -7333,7 +7333,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Đổi kết quả khớp",
   "collectionPhysique.correspondance.chercherANouveau": "Tìm lại",
   "collectionPhysique.correspondance.actuelle": "Kết quả khớp hiện tại",
-  "collectionPhysique.correspondance.aucune": "Chưa có kết quả khớp.",
+  "collectionPhysique.correspondance.vide": "Chưa có kết quả khớp.",
   "collectionPhysique.correspondance.manuelle": "chọn thủ công",
   "collectionPhysique.correspondance.marqueActuelle": "Hiện tại",
   "collectionPhysique.correspondance.remplacer": "Thay thế",

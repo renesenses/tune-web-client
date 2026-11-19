@@ -187,7 +187,7 @@ describe('web#3270 — la fenêtre « Correspondance sur les services »', () =>
     const del = appels.find((a) => a.methode === 'DELETE')!;
     expect(del.url).toMatch(/\/disques\/1050\/streaming\/tidal$/);
     expect(recus).toEqual([RETIRE]);
-    expect(document.querySelector('[data-sans-correspondance]')?.textContent).toBe(fr['collectionPhysique.correspondance.aucune']);
+    expect(document.querySelector('[data-sans-correspondance]')?.textContent).toBe(fr['collectionPhysique.correspondance.vide']);
   });
 });
 

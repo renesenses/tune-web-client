@@ -131,7 +131,7 @@
           {/each}
         </ul>
       {:else}
-        <p class="q" data-sans-correspondance>{$t('collectionPhysique.correspondance.aucune' as any)}</p>
+        <p class="q" data-sans-correspondance>{$t('collectionPhysique.correspondance.vide' as any)}</p>
       {/if}
 
       <div class="entete">

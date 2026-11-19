@@ -7481,7 +7481,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Schimbă corespondența",
   "collectionPhysique.correspondance.chercherANouveau": "Caută din nou",
   "collectionPhysique.correspondance.actuelle": "Corespondența actuală",
-  "collectionPhysique.correspondance.aucune": "Nicio corespondență deocamdată.",
+  "collectionPhysique.correspondance.vide": "Nicio corespondență deocamdată.",
   "collectionPhysique.correspondance.manuelle": "aleasă manual",
   "collectionPhysique.correspondance.marqueActuelle": "Actuală",
   "collectionPhysique.correspondance.remplacer": "Înlocuiește",

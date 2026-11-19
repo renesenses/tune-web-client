@@ -7326,7 +7326,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Endre treffet",
   "collectionPhysique.correspondance.chercherANouveau": "Søk igjen",
   "collectionPhysique.correspondance.actuelle": "Gjeldende treff",
-  "collectionPhysique.correspondance.aucune": "Ingen treff ennå.",
+  "collectionPhysique.correspondance.vide": "Ingen treff ennå.",
   "collectionPhysique.correspondance.manuelle": "valgt for hånd",
   "collectionPhysique.correspondance.marqueActuelle": "Gjeldende",
   "collectionPhysique.correspondance.remplacer": "Erstatt",

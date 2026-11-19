@@ -7501,7 +7501,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Change the match",
   "collectionPhysique.correspondance.chercherANouveau": "Search again",
   "collectionPhysique.correspondance.actuelle": "Current match",
-  "collectionPhysique.correspondance.aucune": "No match yet.",
+  "collectionPhysique.correspondance.vide": "No match yet.",
   "collectionPhysique.correspondance.manuelle": "chosen by hand",
   "collectionPhysique.correspondance.marqueActuelle": "Current",
   "collectionPhysique.correspondance.remplacer": "Replace",

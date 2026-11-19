@@ -7326,7 +7326,7 @@ export default {
   "collectionPhysique.correspondance.changer": "Zmień dopasowanie",
   "collectionPhysique.correspondance.chercherANouveau": "Szukaj ponownie",
   "collectionPhysique.correspondance.actuelle": "Obecne dopasowanie",
-  "collectionPhysique.correspondance.aucune": "Brak dopasowania.",
+  "collectionPhysique.correspondance.vide": "Brak dopasowania.",
   "collectionPhysique.correspondance.manuelle": "wybrane ręcznie",
   "collectionPhysique.correspondance.marqueActuelle": "Obecne",
   "collectionPhysique.correspondance.remplacer": "Zastąp",
