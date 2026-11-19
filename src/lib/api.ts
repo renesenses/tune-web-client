@@ -1034,6 +1034,71 @@ export function setBalisesClassique(
   }, undefined, true);
 }
 
+/**
+ * tune-server-rust#9158 (Rob) — « Balises personnelles → tags Tune » : les
+ * correspondances clé de fichier → tags, l'aperçu des clés rencontrées dans
+ * un échantillon, et la passe « Appliquer à la bibliothèque existante ».
+ */
+export interface AvancementBalisesPerso {
+  running: boolean;
+  processed: number;
+  total: number;
+  added: number;
+  removed: number;
+  unreadable: number;
+  error?: string | null;
+  finished: boolean;
+}
+
+export interface EtatBalisesPerso {
+  personal_tags: import('./balisesPerso').ReglageBalisesPerso;
+  max_mappings?: number;
+  apply?: AvancementBalisesPerso;
+}
+
+export interface CleVue {
+  key: string;
+  forms: string[];
+  files: number;
+  examples: string[];
+  known: boolean;
+  configured: boolean;
+}
+
+export interface ApercuClesPerso {
+  sampled_files: number;
+  unreadable_files: number;
+  timed_out: boolean;
+  keys: CleVue[];
+}
+
+export function getBalisesPerso(): Promise<EtatBalisesPerso> {
+  // Sans bandeau : un serveur d'avant le réglage répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/personal-tags`, undefined, undefined, true);
+}
+
+export function setBalisesPerso(
+  reglage: import('./balisesPerso').ReglageBalisesPerso,
+): Promise<EtatBalisesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
+export function getClesBalisesPerso(echantillon = 200): Promise<ApercuClesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags/keys?sample=${echantillon}`, undefined, undefined, true);
+}
+
+export function appliquerBalisesPerso(): Promise<{ apply: AvancementBalisesPerso }> {
+  // 409 : une passe tourne déjà — l'écran suit son avancement.
+  return fetchJSON(`${BASE}/system/settings/personal-tags/apply`, { method: 'POST' }, (s) => s === 409, true);
+}
+
+export function getAvancementBalisesPerso(): Promise<AvancementBalisesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags/apply`, undefined, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
