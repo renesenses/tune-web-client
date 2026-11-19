@@ -57,7 +57,7 @@ export function separateurDuChoix(choix: ChoixSeparateur, saisie = ''): string |
 }
 
 export type RefusCle = 'empty' | 'tooLong' | 'chars' | 'tooMany';
-export type RefusCorrespondance = RefusCle | 'tagRequired' | 'prefixTooLong' | 'separatorTooLong';
+export type RefusCorrespondance = RefusCle | 'tagRequired' | 'prefixTooLong' | 'separatorTooLong' | 'separatorEmpty';
 
 /** Une clé saisie, mise en capitales, ou la raison de son refus. */
 export function normaliserCle(
@@ -72,13 +72,18 @@ export function normaliserCle(
   return { cle };
 }
 
-/** Le refus d'une correspondance complète, ou `null`. */
-export function refusDe(c: CorrespondancePerso): RefusCorrespondance | null {
+/**
+ * Le refus d'une correspondance complète, ou `null`. `personnalise` : la ligne
+ * a choisi « Personnalisé » ; un séparateur vide y est refusé (il voudrait dire
+ * « Aucun », que l'utilisateur n'a pas choisi).
+ */
+export function refusDe(c: CorrespondancePerso, personnalise = false): RefusCorrespondance | null {
   const r = normaliserCle(c.key, 0);
   if ('refus' in r) return r.refus;
   if (c.mode === 'fixed' && !(c.tag ?? '').trim()) return 'tagRequired';
   if (c.mode === 'values' && [...(c.prefix ?? '').trim()].length > MAX_LONGUEUR_PREFIXE) return 'prefixTooLong';
   if (c.mode === 'values' && [...(c.separator ?? '')].length > MAX_LONGUEUR_SEPARATEUR) return 'separatorTooLong';
+  if (c.mode === 'values' && personnalise && !(c.separator ?? '')) return 'separatorEmpty';
   return null;
 }
 

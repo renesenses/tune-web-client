@@ -21,6 +21,7 @@ import { locale } from '../i18n';
 import { corpsDe, normaliserCle, refusDe } from '../balisesPerso';
 import { V2_SETTINGS } from '../v2Settings';
 import { REGLAGES } from '../reglagesIndex';
+import { dialogs } from '../stores/dialogs';
 
 const LANGUES = ['de', 'el', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'tr', 'vi', 'zh'];
 const dictionnaires = import.meta.glob('../locales/*.ts', { eager: true }) as Record<string, { default: Record<string, string> }>;
@@ -273,5 +274,75 @@ describe('Retour de Rob (19/11) — séparateur et suggestions', () => {
     q<HTMLButtonElement>('[data-enregistrer]').click();
     await respirer();
     expect(mocks.setBalisesPerso.mock.calls[0][0]).toEqual({ mappings: [{ key: 'GROUPING', mode: 'values', separator: ' // ' }] });
+  });
+});
+
+describe('Relecture du 19/11 — garde-fous', () => {
+  it('le texte des niveaux dit ce que devient un tag retiré ou repris à la main', async () => {
+    await monter();
+    expect(hote.textContent).toContain(
+      'un tag du scan retiré à la main revient au prochain scan ; un tag repris à la main ne sera plus retiré',
+    );
+  });
+
+  it('🔴 « Appliquer » avec un réglage vide demande confirmation, et rien ne part sur un refus', async () => {
+    const confirmer = vi.spyOn(dialogs, 'confirm').mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    mocks.appliquerBalisesPerso.mockResolvedValue({ apply: { ...repos, running: false, finished: true } });
+    await monter();
+    q<HTMLButtonElement>('[data-lancer]').click();
+    await respirer();
+    expect(confirmer).toHaveBeenCalledTimes(1);
+    expect(String(confirmer.mock.calls[0][0])).toContain('retirer tous les tags posés par le scan');
+    expect(mocks.appliquerBalisesPerso).not.toHaveBeenCalled();
+    q<HTMLButtonElement>('[data-lancer]').click();
+    await respirer();
+    expect(mocks.appliquerBalisesPerso).toHaveBeenCalledTimes(1);
+    confirmer.mockRestore();
+  });
+
+  it('« Appliquer » avec des correspondances ne demande rien', async () => {
+    const confirmer = vi.spyOn(dialogs, 'confirm');
+    mocks.getBalisesPerso.mockResolvedValue(etat([{ key: 'MOOD', mode: 'values' }]));
+    mocks.appliquerBalisesPerso.mockResolvedValue({ apply: { ...repos, finished: true } });
+    await monter();
+    q<HTMLButtonElement>('[data-lancer]').click();
+    await respirer();
+    expect(confirmer).not.toHaveBeenCalled();
+    expect(mocks.appliquerBalisesPerso).toHaveBeenCalledTimes(1);
+    confirmer.mockRestore();
+  });
+
+  it('🔴 un séparateur personnalisé vide est refusé, rien ne part', async () => {
+    expect(refusDe({ key: 'GROUPING', mode: 'values', separator: '' }, true)).toBe('separatorEmpty');
+    expect(refusDe({ key: 'GROUPING', mode: 'values', separator: '' }, false), '« Aucun » reste permis').toBeNull();
+    await monter();
+    saisir('GROUPING');
+    const ligne = q('[data-correspondance=GROUPING]');
+    const sel = ligne.querySelector<HTMLSelectElement>('[data-separateur]')!;
+    sel.value = 'custom';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSync();
+    q<HTMLButtonElement>('[data-enregistrer]').click();
+    await respirer();
+    expect(mocks.setBalisesPerso).not.toHaveBeenCalled();
+    expect(ligne.querySelector('[role=alert]')?.textContent).toContain('séparateur personnalisé');
+  });
+
+  it('l’aperçu dit les fichiers illisibles et l’arrêt au délai', async () => {
+    mocks.getClesBalisesPerso.mockResolvedValue({ sampled_files: 50, unreadable_files: 7, timed_out: true, keys: [] });
+    await monter();
+    q<HTMLButtonElement>('[data-analyser]').click();
+    await respirer();
+    expect(q('[data-illisibles]')?.textContent).toContain('7');
+    expect(q('[data-delai]')).not.toBeNull();
+  });
+
+  it('rien d’affiché quand tout a été lu dans le délai', async () => {
+    mocks.getClesBalisesPerso.mockResolvedValue({ sampled_files: 50, unreadable_files: 0, timed_out: false, keys: [] });
+    await monter();
+    q<HTMLButtonElement>('[data-analyser]').click();
+    await respirer();
+    expect(q('[data-illisibles]')).toBeNull();
+    expect(q('[data-delai]')).toBeNull();
   });
 });

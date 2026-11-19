@@ -16,6 +16,7 @@
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { dialogs } from '../../lib/stores/dialogs';
   import {
     SUGGESTIONS_DEFAUT, choixDuSeparateur, copieReglage, corpsDe, memesReglages, nomDeCle, normaliserCle,
     refusDe, separateurDuChoix, type ChoixSeparateur, type ModeBalisePerso, type ReglageBalisesPerso,
@@ -118,7 +119,7 @@
     if (refusSaisie) return;
     const refus: Record<number, string> = {};
     form.mappings.forEach((c, i) => {
-      const r = refusDe(c);
+      const r = refusDe(c, !!personnalises[i]);
       if (r) refus[i] = $t(`personalTags.refus.${r}` as any);
     });
     refusLignes = refus;
@@ -163,6 +164,11 @@
   }
 
   async function appliquerBibliotheque() {
+    // Réglage vide : la passe retire d'un coup tout ce que le scan a posé.
+    if (enBase.mappings.length === 0) {
+      const ok = await dialogs.confirm($t('personalTags.apply.confirmEmpty' as any), { danger: true });
+      if (!ok || !vivant) return;
+    }
     try {
       const r = await api.appliquerBalisesPerso();
       if (vivant && r?.apply) suivre(r.apply);
@@ -261,6 +267,12 @@
       </div>
       {#if apercu}
         <p class="hint" data-echantillon>{texte('personalTags.preview.sampled', { n: apercu.sampled_files })}</p>
+        {#if apercu.unreadable_files > 0}
+          <p class="hint" data-illisibles>{texte('personalTags.preview.unreadable', { n: apercu.unreadable_files })}</p>
+        {/if}
+        {#if apercu.timed_out}
+          <p class="hint" data-delai>{$t('personalTags.preview.timedOut' as any)}</p>
+        {/if}
         {#if clesVisibles.length === 0}
           <p class="hint" data-apercu-vide>{$t('personalTags.preview.empty' as any)}</p>
         {:else}
