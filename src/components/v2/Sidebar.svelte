@@ -203,8 +203,8 @@
 
   export const STUDIO: Item[] = [
     // TESS (lot W1, maquette A1) — en tête de Studio, icône « Wave T » (A5).
-    // N'apparaît que si le serveur annonce TESS (`stores/tess`) ; il remplace
-    // alors les entrées Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk.
+    // N'apparaît que si le serveur annonce TESS (`stores/tess`). Les entrées
+    // Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk restent jusqu'au lot W8.
     { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
@@ -311,7 +311,7 @@
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
-  import { capaciteTess, sonderTess, entreesAvecTess } from '../../lib/stores/tess';
+  import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -382,7 +382,10 @@
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
   $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
   // Lot TESS W1 : le serveur annonce-t-il TESS ? (`GET /zones/{id}/tess`, 404 = non).
-  $effect(() => { const z = $zoneCouranteCd; if (z != null && get(capaciteTess) !== 'oui') void sonderTess(z); });
+  // UNE sonde par connexion : `sonderTess` ne repart pas une fois `oui` ou `non`
+  // su ; seule une reconnexion du flux la relance (le serveur a pu changer).
+  $effect(() => { const z = $zoneCouranteCd; if (z != null) void sonderTess(z); });
+  $effect(() => suivreConnexionTess(tuneWS, () => get(zoneCouranteCd) ?? null));
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte

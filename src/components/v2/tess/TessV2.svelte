@@ -8,8 +8,10 @@
    *
    * 🔴 CACHÉ sans la capacité serveur : l'entrée de la barre et la pastille
    * de la barre de lecture n'existent que si `GET /zones/{id}/tess` répond
-   * selon le contrat. Ouvert par son adresse sur un serveur sans TESS, cet
-   * écran le dit et ne montre rien d'autre.
+   * selon le contrat. Ouvert par son adresse sur un serveur sans TESS, la
+   * coquille revient à l'accueil dès que la capacité vaut `non` ; en attendant,
+   * l'écran le dit et ne montre rien d'autre. Les préréglages ne sont lus
+   * qu'une fois la capacité confirmée.
    *
    * Chaque geste envoie la chaîne entière (`PUT /zones/{id}/tess`) et
    * l'écran se redessine depuis la RÉPONSE : l'ordre affiché est toujours
@@ -70,7 +72,14 @@
   }
 
   $effect(() => { if (zoneId != null) void charger(zoneId); });
-  $effect(() => { void api.getTessPresets().then((p) => { preReglages = p; }); });
+  // `GET /tess/presets` seulement sur un serveur qui annonce TESS (pas de 404
+  // inutile face à un rc12 ou rc13), et une seule fois.
+  let preReglagesDemandes = false;
+  $effect(() => {
+    if ($capaciteTess !== 'oui' || preReglagesDemandes) return;
+    preReglagesDemandes = true;
+    void api.getTessPresets().then((p) => { preReglages = p; });
+  });
 
   const nom = (id: string) =>
     libelleOuRepli(tr(`tess.plugin.${id}`), `tess.plugin.${id}`, descripteur(reponse?.catalog, id)?.name ?? id);

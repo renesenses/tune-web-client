@@ -41,6 +41,7 @@
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import CrosstalkV2 from './CrosstalkV2.svelte';
   import TessV2 from './tess/TessV2.svelte';
+  import { capaciteTess, renvoyerHorsTessSansCapacite } from '../../lib/stores/tess';
   import CorrectionPieceV2 from './CorrectionPieceV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
@@ -454,6 +455,8 @@
   // le calque mobile (`mobileNowPlayingOpen`) est mené à l'onglet Écouter.
   // Vue mini : changer d'écran referme les filtres de l'écran quitté.
   $effect(() => { void $activeView; filtresOuverts.set(false); });
+  // Lot TESS W1 : `#tess` sur un serveur sans TESS ramène à l'accueil.
+  $effect(() => renvoyerHorsTessSansCapacite());
   $effect(() => {
     if (vueMini && $mobileNowPlayingOpen) {
       mobileNowPlayingOpen.set(false);
@@ -908,7 +911,7 @@
       {:else if $activeView === 'crosstalk'}
         <CrosstalkV2 />
       {:else if $activeView === 'tess'}
-        <TessV2 />
+        {#if $capaciteTess !== 'non'}<TessV2 />{/if}
       {:else if $activeView === 'roomcorrection'}
         <CorrectionPieceV2 />
       {:else if $activeView === 'reaffectation'}

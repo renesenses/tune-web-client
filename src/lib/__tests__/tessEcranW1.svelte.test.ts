@@ -8,9 +8,10 @@
 //   1. CACHÉ sans capacité serveur : face à un serveur sans TESS (404), ni
 //      entrée « TESS » dans la barre, ni pastille dans la barre de lecture,
 //      et les anciennes entrées (Égaliseur, Crossfeed…) restent ; avec TESS,
-//      l'entrée apparaît et les entrées remplacées sortent (Declick, outil de
-//      fichiers, RESTE : décision Q4) ; l'écran ouvert par son adresse sur un
-//      serveur sans TESS le dit et ne montre aucun chemin ;
+//      l'entrée apparaît et les quatre anciennes entrées RESTENT (leur retrait
+//      est le lot W8 ; Declick, outil de fichiers, reste aussi : décision Q4) ;
+//      l'adresse `#tess` sur un serveur sans TESS ramène à l'accueil, sans
+//      lire les préréglages ; une seule sonde de capacité par connexion ;
 //   2. ORDRE AFFICHÉ = ORDRE RENVOYÉ : l'écran suit `signal_path` à la lettre,
 //      même quand il diffère de l'ordre de `chain.plugins` ; Q9 (Upsampling
 //      avant Volume, Dither en dernier) et l'exception DSD ;
@@ -37,7 +38,7 @@ import { presenceCrossfeedPro } from '../stores/crossfeedPro';
 import { presenceCrosstalk } from '../stores/crosstalk';
 import { zones, currentZoneId } from '../stores/zones';
 import { licenseState } from '../stores/license';
-import { capaciteTess, entreesAvecTess } from '../stores/tess';
+import { capaciteTess, entreesAvecTess, sonderTess, suivreConnexionTess, renvoyerHorsTessSansCapacite } from '../stores/tess';
 import { locale } from '../i18n';
 import {
   lignesDuChemin, conflitExclusif, basculerGreffon, ajouterGreffon, deplacerGreffon,
@@ -152,14 +153,14 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(un('[data-pastille-tess]')).toBeNull();
   });
 
-  it('serveur AVEC TESS : l’entrée apparaît en tête de Studio et remplace les quatre écrans ; Declick (fichiers) reste', async () => {
+  it('serveur AVEC TESS : l’entrée apparaît en tête de Studio ; les quatre anciens écrans RESTENT jusqu’à W8, Declick aussi', async () => {
     await monter(Sidebar);
     natifsActifs();
     expect(get(capaciteTess)).toBe('oui');
     const vues = vuesDeLaBarre();
     expect(vues).toContain('tess');
-    for (const v of ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk']) expect(vues).not.toContain(v);
-    expect(vues).toContain('declick');
+    for (const v of ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']) expect(vues).toContain(v);
+    expect(vues.indexOf('tess')).toBeLessThan(vues.indexOf('equalizer'));
     expect(vues.indexOf('tess')).toBeLessThan(vues.indexOf('converter'));
   });
 
@@ -173,11 +174,56 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(get(activeView)).toBe('tess');
   });
 
-  it('écran ouvert par son adresse sur un serveur sans TESS : il le dit, sans chemin du signal', async () => {
+  it('🔴 `#tess` sur un serveur sans TESS : retour à l’accueil, sans chemin et sans lire les préréglages', async () => {
     serveur.avecTess = false;
-    await monter(TessV2);
-    expect(un('[data-tess-indisponible]')?.textContent?.trim()).toBe(en['tess.unavailable']);
-    expect(un('[data-tess-chemin]')).toBeNull();
+    const arreter = renvoyerHorsTessSansCapacite();
+    try {
+      activeView.set('tess');
+      await monter(TessV2);
+      expect(get(capaciteTess)).toBe('non');
+      expect(get(activeView)).toBe('home');
+      expect(un('[data-tess-chemin]')).toBeNull();
+      const urls = (fetch as any).mock.calls.map((c: any[]) => String(c[0]));
+      expect(urls.some((u: string) => /\/tess\/presets/.test(u))).toBe(false);
+    } finally {
+      arreter();
+    }
+  });
+
+  it('contre-épreuve : avec TESS, l’adresse `#tess` reste ouverte et les préréglages sont lus une fois', async () => {
+    const arreter = renvoyerHorsTessSansCapacite();
+    try {
+      activeView.set('tess');
+      await monter(TessV2);
+      expect(get(capaciteTess)).toBe('oui');
+      expect(get(activeView)).toBe('tess');
+      const urls = (fetch as any).mock.calls.map((c: any[]) => String(c[0]));
+      expect(urls.filter((u: string) => /\/tess\/presets/.test(u))).toHaveLength(1);
+    } finally {
+      arreter();
+    }
+  });
+
+  it('une seule sonde par connexion : un changement de zone ne relance rien ; une reconnexion relit la capacité', async () => {
+    serveur.avecTess = false;
+    const sondes = () => (fetch as any).mock.calls.filter((c: any[]) => /\/zones\/\d+\/tess/.test(String(c[0]))).length;
+    expect(await sonderTess(ZONE)).toBe('non');
+    expect(await sonderTess(ZONE + 1)).toBe('non');
+    expect(await sonderTess(ZONE)).toBe('non');
+    expect(sondes()).toBe(1);
+    // Le flux : la première connexion ne relance rien, une REconnexion oui.
+    let h: (e: { type: string }) => void = () => {};
+    const arreter = suivreConnexionTess({ onEvent: (f) => { h = f; return () => {}; } }, () => ZONE);
+    h({ type: '_connected' });
+    await laisserTourner(5);
+    expect(sondes()).toBe(1);
+    serveur.avecTess = true;
+    h({ type: '_disconnected' });
+    h({ type: '_connected' });
+    await laisserTourner(5);
+    expect(sondes()).toBe(2);
+    expect(get(capaciteTess)).toBe('oui');
+    arreter();
   });
 
   it('un contrat d’une autre version : l’écran reste caché (les anciens écrans servent)', async () => {
@@ -188,10 +234,11 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(vuesDeLaBarre()).not.toContain('tess');
   });
 
-  it('filtre pur : rien ne change tant que la capacité est inconnue', () => {
-    const items = ['tess', 'equalizer', 'crossfeed', 'declick'].map((view) => ({ view }));
-    expect(entreesAvecTess(items, 'inconnue').map((i) => i.view)).toEqual(['equalizer', 'crossfeed', 'declick']);
-    expect(entreesAvecTess(items, 'oui').map((i) => i.view)).toEqual(['tess', 'declick']);
+  it('filtre pur : `tess` seulement avec la capacité ; aucune autre entrée ne sort (retrait = W8)', () => {
+    const items = ['tess', 'equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick'].map((view) => ({ view }));
+    expect(entreesAvecTess(items, 'inconnue').map((i) => i.view)).toEqual(['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
+    expect(entreesAvecTess(items, 'non').map((i) => i.view)).toEqual(['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
+    expect(entreesAvecTess(items, 'oui').map((i) => i.view)).toEqual(['tess', 'equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
   });
 });
 

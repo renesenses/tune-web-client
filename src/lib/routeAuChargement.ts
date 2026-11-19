@@ -90,7 +90,8 @@ const VUES: Record<View, boolean> = {
   crossfeedpro: true,
   // web#2580 — Crosstalk : l'écran dit lui-même quand le greffon est absent.
   crosstalk: true,
-  // Lot TESS W1 : l'écran dit lui-même quand le serveur n'a pas TESS.
+  // Lot TESS W1 : sur un serveur sans TESS, la coquille renvoie vers l'accueil
+  // dès que la capacité vaut `non` (`stores/tess`, `renvoyerHorsTessSansCapacite`).
   tess: true,
   roomcorrection: true,
   // tune-server-rust#6044 — l'écran dit lui-même quand le serveur n'a pas
