@@ -12,7 +12,7 @@ function faux(totaux: (number | Error)[]) {
   let i = 0;
   return {
     createPlaylist: vi.fn(async () => ({ id: 9, name: 'n', track_count: 0 }) as any),
-    addPlaylistTracks: vi.fn(async () => {
+    addPlaylistTracks: vi.fn(async (..._a: any[]) => {
       const r = totaux[i++];
       if (r instanceof Error) throw r;
       return { id: 9, track_count: r } as any;
