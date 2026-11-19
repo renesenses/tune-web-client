@@ -104,44 +104,44 @@
 <div class="fond tune-v2" role="presentation" use:portail onclick={onClose}>
   <!-- svelte-ignore a11y_click_events_have_key_events : le clic ne fait
        qu'empêcher la fermeture par le fond ; Échap ferme au clavier. -->
-  <div class="panneau" role="dialog" aria-modal="true" tabindex="-1" aria-label={traduire('collectionPhysique.correspondance.titre')}
+  <div class="panneau" role="dialog" aria-modal="true" tabindex="-1" aria-label={$t('collectionPhysique.correspondance.titre' as any)}
     onclick={(e) => e.stopPropagation()} data-correspondance-services={actuel.release_id}>
-    <h2>{traduire('collectionPhysique.correspondance.titre')}</h2>
+    <h2>{$t('collectionPhysique.correspondance.titre' as any)}</h2>
     <p class="disque">{actuel.artiste} — {actuel.titre}</p>
-    <button class="fermer" aria-label={traduire('common.close')} onclick={onClose}>×</button>
+    <button class="fermer" aria-label={$t('common.close' as any)} onclick={onClose}>×</button>
 
     {#if erreur}
       <p class="err" data-erreur-correspondance>{messageErreurCollection(erreur, traduire)}</p>
     {/if}
 
     <div class="listes">
-      <h3>{traduire('collectionPhysique.correspondance.actuelle')}</h3>
+      <h3>{$t('collectionPhysique.correspondance.actuelle' as any)}</h3>
       {#if actuel.streaming.length}
         <ul data-correspondances-actuelles>
           {#each actuel.streaming as s (s.service)}
             <li class="ligne actuelle" data-correspondance-actuelle={s.service}>
               <span class="ti">
                 <span class="tt" title={s.titre}>{s.titre}</span>
-                <em title={s.artiste}>{nomService(s.service)} · {s.artiste}{#if s.par === 'manuel'} · {traduire('collectionPhysique.correspondance.manuelle')}{/if}</em>
+                <em title={s.artiste}>{nomService(s.service)} · {s.artiste}{#if s.par === 'manuel'} · {$t('collectionPhysique.correspondance.manuelle' as any)}{/if}</em>
               </span>
               <button class="sec" onclick={() => void retirer(s)} disabled={travail} data-retirer-correspondance={s.service}>
-                {traduire('collectionPhysique.correspondance.retirer')}
+                {$t('collectionPhysique.correspondance.retirer' as any)}
               </button>
             </li>
           {/each}
         </ul>
       {:else}
-        <p class="q" data-sans-correspondance>{traduire('collectionPhysique.correspondance.aucune')}</p>
+        <p class="q" data-sans-correspondance>{$t('collectionPhysique.correspondance.aucune' as any)}</p>
       {/if}
 
       <div class="entete">
-        <h3>{traduire('collectionPhysique.associer.resultats')}</h3>
+        <h3>{$t('collectionPhysique.associer.resultats' as any)}</h3>
         <button class="sec" onclick={() => void chercher()} disabled={enCours || travail} data-chercher-a-nouveau>
-          {traduire('collectionPhysique.correspondance.chercherANouveau')}
+          {$t('collectionPhysique.correspondance.chercherANouveau' as any)}
         </button>
       </div>
       {#if enCours}
-        <p class="q">{traduire('collectionPhysique.recherche.enCours')}</p>
+        <p class="q">{$t('collectionPhysique.recherche.enCours' as any)}</p>
       {:else if resultat && resultat.propositions.length}
         <ul data-propositions>
           {#each resultat.propositions as p (`${p.service}:${p.id}`)}
@@ -149,15 +149,15 @@
             <li class="ligne" class:actuelle={courante} data-proposition={`${p.service}:${p.id}`} data-courante={courante}>
               <span class="ti">
                 <span class="tt" title={p.titre}>{p.titre}</span>
-                <em title={p.artiste}>{nomService(p.service)} · {p.artiste} · {p.score} %{#if p.exact} · {traduire('collectionPhysique.correspondance.exact')}{/if}</em>
+                <em title={p.artiste}>{nomService(p.service)} · {p.artiste} · {p.score} %{#if p.exact} · {$t('collectionPhysique.correspondance.exact' as any)}{/if}</em>
               </span>
               {#if courante}
-                <span class="marque" data-marque-actuelle>{traduire('collectionPhysique.correspondance.marqueActuelle')}</span>
+                <span class="marque" data-marque-actuelle>{$t('collectionPhysique.correspondance.marqueActuelle' as any)}</span>
               {:else}
                 <button class="pri" onclick={() => void remplacer(p)} disabled={travail} data-remplacer={`${p.service}:${p.id}`}>
                   {correspondanceDuService(actuel, p.service)
-                    ? traduire('collectionPhysique.correspondance.remplacer')
-                    : traduire('collectionPhysique.correspondance.choisir')}
+                    ? $t('collectionPhysique.correspondance.remplacer' as any)
+                    : $t('collectionPhysique.correspondance.choisir' as any)}
                 </button>
               {/if}
             </li>
@@ -165,7 +165,7 @@
         </ul>
       {:else if resultat}
         <p class="q" data-recherche-vide>
-          {resultat.services.length ? traduire('collectionPhysique.recherche.rienDeProche') : traduire('collectionPhysique.recherche.aucunService')}
+          {resultat.services.length ? $t('collectionPhysique.recherche.rienDeProche' as any) : $t('collectionPhysique.recherche.aucunService' as any)}
         </p>
       {/if}
     </div>
