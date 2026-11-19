@@ -71,15 +71,17 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
     await monter();
     expect(hote.querySelector('[data-testid="radio-filtres-bascule"]')).toBeNull();
     expect(hote.textContent).not.toContain('Plus de filtres');
-    // Le bouton Hi-Res est là sans rien ouvrir, dans la MÊME ligne que la recherche.
-    const hires = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-hires"]')!;
-    expect(hires).not.toBeNull();
-    expect(hires.closest('.filtres.ligne')).not.toBeNull();
-    expect(hires.closest('.filtres.ligne')!.querySelector('.v2-rech')).not.toBeNull();
-    hires.click();
+    // Le bouton « Haute qualité » est là sans rien ouvrir, dans la MÊME ligne
+    // que la recherche. (Le bouton Hi-Res, qui servait ici, a quitté l'écran :
+    // retour de Rémi sur la rc12.)
+    const hq = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-hq"]')!;
+    expect(hq).not.toBeNull();
+    expect(hq.closest('.filtres.ligne')).not.toBeNull();
+    expect(hq.closest('.filtres.ligne')!.querySelector('.v2-rech')).not.toBeNull();
+    hq.click();
     await respirer();
-    expect(get(preferences).radioFiltres?.hires).toBe(true);
-    expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { hires: 'true' });
+    expect(get(preferences).radioFiltres?.hauteQualite).toBe(true);
+    expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { haute_qualite: 'true' });
 
     // L'annuaire : les critères suivent le filtre « Pays », dans la même ligne.
     [...hote.querySelectorAll<HTMLButtonElement>('.sections button')]
@@ -95,7 +97,7 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
   });
 
   it('🔴 « Sans perte » : seules les stations que le serveur retient, et le compteur suit', async () => {
-    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, qualiteMin: null, lossless: true, hauteQualite: false, hires: false, metadataPlus: false, favoris: false } }));
+    preferences.update((p) => ({ ...p, radioFiltres: { codec: null, qualiteMin: null, lossless: true, hauteQualite: false, metadataPlus: false, favoris: false } }));
     await monter();
     expect(mocks.rechercherRadiosParCriteres).toHaveBeenCalledWith('', { lossless: 'true' });
     expect(noms()).toEqual(['Jazz Sans Perte']);

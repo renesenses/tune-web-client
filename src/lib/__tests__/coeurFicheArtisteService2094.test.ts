@@ -96,7 +96,11 @@ describe('#2094 — le cœur sur la fiche d’un artiste de service', () => {
     monte = mount(ArtisteServiceV2, { target: hote!, props: {} as any });
     await jusqua(() => !!coeur());
     expect(coeur()!.getAttribute('aria-pressed')).toBe('true');
-    expect(coeur()!.textContent?.trim()).toBe(fr['favorites.inFavorites']);
+    // web#3122 — le cœur SEUL : pas de texte, le geste est dans l'infobulle
+    // et le libellé accessible.
+    expect(coeur()!.textContent?.trim()).toBe('');
+    expect(coeur()!.getAttribute('aria-label')).toBe(fr['favorites.removeAlbum']);
+    expect(coeur()!.getAttribute('title')).toBe(fr['favorites.removeAlbum']);
   });
 
   it('un artiste de la BIBLIOTHÈQUE : pas ce cœur-là', async () => {

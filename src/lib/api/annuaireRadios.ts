@@ -90,7 +90,27 @@ export interface AnnuaireRadios {
   /** `reseau`, `cache` (copie locale, hors ligne) ou `aucun`. */
   origine: 'reseau' | 'cache' | 'aucun' | string;
   releve_le?: string | null;
+  /**
+   * tune-server-rust#8156 — le site a refusé le dernier relevé (401, 403) :
+   * le serveur sert le relevé d'avant (`origine` reste `reseau` ou `cache`)
+   * et dit pourquoi l'annuaire n'est pas rafraîchi. `null` dès qu'un relevé
+   * passe de nouveau ; absent d'un serveur d'avant la rc12.
+   */
+  refus?: RefusAnnuaire | null;
   attribution: { name: string; url: string; support_url: string };
+}
+
+/** #8156 — le refus du site, tel que le serveur le rend (`annuaire_refuse`). */
+export interface RefusAnnuaire {
+  status: number;
+  code: 'annuaire_refuse' | string;
+}
+
+/** Le refus à dire à l'écran, ou `null` : seul un refus bien formé compte. */
+export function refusDeLAnnuaire(page: Pick<AnnuaireRadios, 'refus'> | null | undefined): RefusAnnuaire | null {
+  const r = page?.refus;
+  if (!r || typeof r !== 'object' || typeof r.status !== 'number') return null;
+  return r;
 }
 
 export interface FiltresAnnuaireRadios {

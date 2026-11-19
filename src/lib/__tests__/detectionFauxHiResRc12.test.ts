@@ -33,7 +33,7 @@ afterEach(async () => { if (component) await unmount(component); component = und
 it('éteint par défaut, avec la phrase d\'aide, sans rien envoyer au montage', async () => {
   component = mount(DetectionFauxHiRes, { target: host }); await attendre();
   expect(interrupteur()?.checked).toBe(false);
-  expect(host.textContent).toContain('Détecter les faux Hi-Res');
+  expect(host.textContent).toContain('Détecter les sources altérées');
   expect(host.textContent).toContain("s'efface pendant la lecture");
   expect(host.querySelector('[data-faux-hires-avancement]')).toBeNull();
   expect(requetes.some((r) => r.method !== 'GET')).toBe(false);

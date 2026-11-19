@@ -21,5 +21,6 @@ import viLocale from '../locales/vi';
 import elLocale from '../locales/el';
 import nbLocale from '../locales/nb';
 import plLocale from '../locales/pl';
+import trLocale from '../locales/tr';
 
-export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl };
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu, viLocale as vi, elLocale as el, nbLocale as nb, plLocale as pl, trLocale as tr };
