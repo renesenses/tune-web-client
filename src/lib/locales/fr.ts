@@ -7800,7 +7800,7 @@ export default {
   "upsampling.noZone": "Choisissez une zone pour régler son suréchantillonnage.",
   "upsampling.bitPerfect": "Actif, le suréchantillonnage change chaque échantillon : le chemin n'est plus bit-perfect. Le mode PURE le contourne toujours, et un flux DoP n'est jamais suréchantillonné.",
   "upsampling.enabled": "Suréchantillonner cette zone",
-  "upsampling.enabledHint": "Désactivé par défaut. Sortie locale seulement, sur un DAC dont les cadences sont mesurées. Sous macOS et Windows, pas en mode exclusif ; sous Linux, aussi en sortie directe hw:.",
+  "upsampling.enabledHint": "Désactivé par défaut. Sortie locale seulement, sur un DAC dont les cadences sont mesurées. Sous macOS et Windows, en mode partagé seulement (ni exclusif, ni ASIO) ; sous Linux, aussi en sortie directe hw:. Le DSD natif et les flux compressés décodés en entier ne sont pas suréchantillonnés.",
   "upsampling.filter": "Filtre",
   "upsampling.filterHint": "Seuls les filtres que cette machine tient en temps réel (avec une marge de ×3) sont proposés. Entre parenthèses : la baisse de niveau.",
   "upsampling.filterNotAdmitted": "Cette machine ne tient pas ce filtre en temps réel : il ne sera pas appliqué. Choisissez-en un autre ou remesurez la machine.",

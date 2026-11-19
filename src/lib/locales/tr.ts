@@ -7610,7 +7610,7 @@ export default {
   "upsampling.noZone": "Upsampling ayarı için bir bölge seçin.",
   "upsampling.bitPerfect": "Etkinken upsampling her örneği değiştirir: yol artık bit-perfect değildir. PURE modu onu her zaman atlar ve bir DoP akışına asla upsampling uygulanmaz.",
   "upsampling.enabled": "Bu bölgeye upsampling uygula",
-  "upsampling.enabledHint": "Varsayılan olarak kapalı. Yalnızca yerel çıkışta, örnekleme hızları ölçülmüş bir DAC’ta. macOS ve Windows’ta özel modda değil; Linux’ta doğrudan hw: çıkışında da.",
+  "upsampling.enabledHint": "Varsayılan olarak kapalı. Yalnızca yerel çıkışta, örnekleme hızları ölçülmüş bir DAC’ta. macOS ve Windows’ta yalnızca paylaşımlı modda (özel modda ve ASIO’da değil); Linux’ta doğrudan hw: çıkışında da. Yerel DSD ve tamamen çözülen sıkıştırılmış akışlara upsampling uygulanmaz.",
   "upsampling.filter": "Filtre",
   "upsampling.filterHint": "Yalnızca bu makinenin gerçek zamanlı çalıştırabildiği filtreler (×3 payla) sunulur. Parantez içinde: seviye düşüşü.",
   "upsampling.filterNotAdmitted": "Bu makine bu filtreyi gerçek zamanlı çalıştıramıyor: uygulanmayacak. Başka bir filtre seçin ya da makineyi yeniden ölçün.",

@@ -7778,7 +7778,7 @@ export default {
   "upsampling.noZone": "Alegeți o zonă pentru a-i regla supraeșantionarea.",
   "upsampling.bitPerfect": "Activă, supraeșantionarea modifică fiecare eșantion: calea nu mai este bit-perfect. Modul PURE o ocolește mereu, iar un flux DoP nu este niciodată supraeșantionat.",
   "upsampling.enabled": "Supraeșantionează această zonă",
-  "upsampling.enabledHint": "Dezactivat implicit. Doar ieșire locală, pe un DAC cu frecvențe măsurate. Pe macOS și Windows, nu în mod exclusiv; pe Linux, și cu ieșire directă hw:.",
+  "upsampling.enabledHint": "Dezactivat implicit. Doar ieșire locală, pe un DAC cu frecvențe măsurate. Pe macOS și Windows, doar în mod partajat (nici exclusiv, nici ASIO); pe Linux, și cu ieșire directă hw:. DSD nativ și fluxurile comprimate decodate integral nu sunt supraeșantionate.",
   "upsampling.filter": "Filtru",
   "upsampling.filterHint": "Sunt propuse doar filtrele pe care această mașină le rulează în timp real (cu o marjă de ×3). În paranteză: scăderea de nivel.",
   "upsampling.filterNotAdmitted": "Această mașină nu poate rula filtrul în timp real: nu va fi aplicat. Alegeți altul sau remăsurați mașina.",

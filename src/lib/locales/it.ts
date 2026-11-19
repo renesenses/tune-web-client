@@ -7778,7 +7778,7 @@ export default {
   "upsampling.noZone": "Scegli una zona per regolarne il sovracampionamento.",
   "upsampling.bitPerfect": "Quando è attivo, il sovracampionamento modifica ogni campione: il percorso non è più bit-perfect. La modalità PURE lo esclude sempre e un flusso DoP non viene mai sovracampionato.",
   "upsampling.enabled": "Sovracampiona questa zona",
-  "upsampling.enabledHint": "Disattivato per impostazione predefinita. Solo uscita locale, su un DAC con frequenze misurate. Su macOS e Windows, non in modalità esclusiva; su Linux, anche con uscita diretta hw:.",
+  "upsampling.enabledHint": "Disattivato per impostazione predefinita. Solo uscita locale, su un DAC con frequenze misurate. Su macOS e Windows, solo in modalità condivisa (né esclusiva né ASIO); su Linux, anche con uscita diretta hw:. Il DSD nativo e i flussi compressi decodificati per intero non vengono sovracampionati.",
   "upsampling.filter": "Filtro",
   "upsampling.filterHint": "Sono proposti solo i filtri che questa macchina regge in tempo reale (con margine ×3). Tra parentesi: l'abbassamento di livello.",
   "upsampling.filterNotAdmitted": "Questa macchina non regge questo filtro in tempo reale: non sarà applicato. Scegline un altro o rimisura la macchina.",

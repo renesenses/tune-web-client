@@ -157,8 +157,12 @@ describe('aide du réglage, exacte sur toutes les plateformes (#9165)', () => {
       expect(aide, l).toMatch(/Windows/);
       expect(aide, l).toMatch(/Linu[xk]/); // pl : « w Linuksie »
       expect(aide, l).toMatch(/hw:/);
+      // ASIO n'est pas un « mode exclusif » : nommé à part (relecture #9169).
+      expect(aide, l).toMatch(/ASIO/);
+      expect(aide, l).toMatch(/DSD/);
     }
-    expect(dictionnaire('en')['upsampling.enabledHint']).not.toMatch(/in shared mode/);
-    expect(dictionnaire('fr')['upsampling.enabledHint']).not.toMatch(/en mode partagé/);
+    // L'ancienne aide imposait le mode partagé à toutes les plateformes.
+    expect(dictionnaire('en')['upsampling.enabledHint']).not.toMatch(/Local output only, in shared mode/);
+    expect(dictionnaire('fr')['upsampling.enabledHint']).not.toMatch(/Sortie locale seulement, en mode partagé/);
   });
 });

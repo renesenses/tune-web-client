@@ -7778,7 +7778,7 @@ export default {
   "upsampling.noZone": "Wählen Sie eine Zone, um ihr Upsampling einzustellen.",
   "upsampling.bitPerfect": "Aktiv verändert das Upsampling jedes Sample: Der Signalweg ist nicht mehr bit-perfect. Der PURE-Modus umgeht es immer, und ein DoP-Strom wird nie hochgerechnet.",
   "upsampling.enabled": "Diese Zone hochrechnen",
-  "upsampling.enabledHint": "Standardmäßig aus. Nur lokaler Ausgang, an einem DAC mit gemessenen Abtastraten. Unter macOS und Windows nicht im exklusiven Modus; unter Linux auch bei direktem hw:-Ausgang.",
+  "upsampling.enabledHint": "Standardmäßig aus. Nur lokaler Ausgang, an einem DAC mit gemessenen Abtastraten. Unter macOS und Windows nur im gemeinsamen Modus (nicht exklusiv, nicht ASIO); unter Linux auch bei direktem hw:-Ausgang. Natives DSD und vollständig dekodierte komprimierte Streams werden nicht hochgerechnet.",
   "upsampling.filter": "Filter",
   "upsampling.filterHint": "Angeboten werden nur Filter, die dieser Rechner in Echtzeit schafft (mit ×3 Reserve). In Klammern: die Pegelabsenkung.",
   "upsampling.filterNotAdmitted": "Dieser Rechner schafft diesen Filter nicht in Echtzeit: Er wird nicht angewendet. Wählen Sie einen anderen oder messen Sie neu.",
