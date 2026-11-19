@@ -86,6 +86,8 @@ export interface CercleNomme {
   name: string;
   member_ids: number[];
   sharing?: PartageCercle | null;
+  /** #3283 : je partage CE cercle entre ses membres (globe). Absent : cloud plus ancien. */
+  members_see_each_other?: boolean;
 }
 
 /**
@@ -97,6 +99,12 @@ export interface CercleOuJeSuisInvite {
   owner_id: number;
   owner_name: string;
   circle_name: string;
+  /** #3283 : le propriétaire partage ce cercle entre ses membres. Absent : cloud plus ancien. */
+  members_see_each_other?: boolean;
+  /** #3283 : MON accord pour être montré aux autres membres. Faux par défaut. */
+  show_me?: boolean;
+  /** #3283 : combien d'AUTRES membres le cercle compte aujourd'hui (le propriétaire peut en ajouter). */
+  audience_count?: number;
 }
 
 export interface EtatCercleConnecte {
@@ -118,7 +126,14 @@ export function cerclesOuJeSuisInvite(e: EtatCercleConnecte | null | undefined):
     if (!b || typeof b !== 'object') continue;
     if (!Number.isFinite(b.circle_id) || !Number.isFinite(b.owner_id)) continue;
     if (typeof b.circle_name !== 'string' || b.circle_name === '' || typeof b.owner_name !== 'string') continue;
-    out.push({ circle_id: b.circle_id, owner_id: b.owner_id, owner_name: b.owner_name, circle_name: b.circle_name });
+    const m: CercleOuJeSuisInvite = { circle_id: b.circle_id, owner_id: b.owner_id, owner_name: b.owner_name, circle_name: b.circle_name };
+    // #3283 : les deux drapeaux, seulement s'ils sont lisibles ; un accord sans partage ne vaut rien.
+    if (typeof b.members_see_each_other === 'boolean') {
+      m.members_see_each_other = b.members_see_each_other;
+      m.show_me = b.members_see_each_other && b.show_me === true;
+      if (b.members_see_each_other && Number.isInteger(b.audience_count) && b.audience_count >= 0) m.audience_count = b.audience_count;
+    }
+    out.push(m);
   }
   return out;
 }
@@ -201,6 +216,40 @@ export function partagerBibliotheque(id: number): Promise<unknown> {
 
 export function arreterPartageBibliotheque(id: number): Promise<{ ok: boolean }> {
   return envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/library`, 'DELETE');
+}
+
+// ── #3283 (site-mozaiklabs#568) : le cercle partagé ─────────────────────────
+//
+//   PUT|DELETE /circles/{id}/sharing/members → le cercle (`members_see_each_other`)
+//     — propriétaire : « Partager ce cercle entre ses membres » ; couper efface
+//       les accords de tous les membres ;
+//   PUT|DELETE /member-of/{id}/show-me       → l'entrée `member_of` (`show_me`)
+//     — membre : « Me montrer aux autres membres », faux par défaut ;
+//       409 `circle_not_shared` si le propriétaire ne partage pas.
+//
+// Un 404 SANS code vient d'un greffon `circle` plus ancien, qui ne relaie pas
+// encore ces routes : l'écran le dit (« mettez à jour votre serveur Tune »)
+// au lieu de « introuvable ».
+
+/** Le code posé quand le greffon ne connaît pas la route (404 sans corps du cloud). */
+export const CODE_ROUTE_ABSENTE = 'circle.route_missing';
+
+async function geste404Nu<T>(appel: () => Promise<T>): Promise<T> {
+  try {
+    return await appel();
+  } catch (e) {
+    const err = e as ApiError | null;
+    if (err && err.status === 404 && !err.code) err.code = CODE_ROUTE_ABSENTE;
+    throw e;
+  }
+}
+
+export function partagerEntreMembres(id: number, oui: boolean): Promise<unknown> {
+  return geste404Nu(() => envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/members`, oui ? 'PUT' : 'DELETE'));
+}
+
+export function meMontrerDansCercle(circleId: number, oui: boolean): Promise<unknown> {
+  return geste404Nu(() => envoyer(`${BASE}/ext/circle/member-of/${seg(circleId)}/show-me`, oui ? 'PUT' : 'DELETE'));
 }
 
 /** L'état LOCAL de la copie en ligne : sans lui, on croirait partager un catalogue vide ou vieux. */
@@ -890,6 +939,9 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | 'pseudo' | nul
     case 'too_many_links': return { cle: 'v2.circle.link.err.tooMany' };
     case 'not_found':
     case 'circle.not_found': return { cle: 'v2.circle.err.notFound' };
+    // #3283 : le cercle partagé.
+    case 'circle_not_shared': return { cle: 'v2.circle.members.err.notShared' };
+    case CODE_ROUTE_ABSENTE: return { cle: 'v2.circle.members.err.updateServer' };
   }
   if (status === 422) {
     const erreurs = (err?.corps as { errors?: Record<string, unknown> } | undefined)?.errors;

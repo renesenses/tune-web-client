@@ -36,6 +36,14 @@ const ANNUAIRE = {
 };
 
 const respirer = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setTimeout(r, 0)); flushSync(); };
+/** Attend `condition` pendant au plus `n` passages de `respirer` (des tours de boucle, pas des millisecondes). */
+async function tours(condition: () => boolean, n = 20): Promise<boolean> {
+  for (let i = 0; i < n; i++) {
+    if (condition()) return true;
+    await respirer();
+  }
+  return condition();
+}
 let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
@@ -144,7 +152,15 @@ describe('#2630 — retrouver recherche, filtres et défilement de l’Annuaire'
     expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(0);
   });
 
-  it('recharge les pages visibles avant de restaurer le défilement, même si le serveur borne les pages', async () => {
+  // QA 18/11 (tests instables) — ce témoin MONTE 600 fiches (120, puis 240,
+  // puis 240 au retour) : c'est son coût, et il est fait de calcul, pas
+  // d'attente. Mesuré sur Shrek : 1,9 s au repos, 6,7 à 7,1 s sous deux
+  // suites complètes en parallèle (charge 88) — au-delà des 5 s par défaut.
+  // Le délai explicite (30 s, ×15 le repos) ne couvre que ce calcul ; les
+  // attentes du test se comptent en tours de boucle (`tours`), plus en
+  // millisecondes (`vi.waitFor` abandonnait après 1 s, quelle que soit la
+  // charge).
+  it('recharge les pages visibles avant de restaurer le défilement, même si le serveur borne les pages', { timeout: 30_000 }, async () => {
     const stations = Array.from({ length: 260 }, (_, i) => fiche({ external_id: `S${i}`, name: `Station ${i}` }));
     mocks.getAnnuaireRadios.mockImplementation(async ({ offset = 0, limit = 120 }) => {
       const items = stations.slice(offset, offset + Math.min(limit, 120));
@@ -161,7 +177,7 @@ describe('#2630 — retrouver recherche, filtres et défilement de l’Annuaire'
     hote.querySelector('.scroll')!.dispatchEvent(new Event('scroll'));
     mocks.getAnnuaireRadios.mockClear();
     await quitterEtRevenir();
-    await vi.waitFor(() => expect(hote.querySelectorAll('.annuaire .fiche')).toHaveLength(240));
+    expect(await tours(() => hote.querySelectorAll('.annuaire .fiche').length === 240), 'les deux pages ne sont pas revenues').toBe(true);
     expect((hote.querySelector('.scroll') as HTMLElement).scrollTop, 'le défilement doit revenir après les résultats').toBe(1850);
     expect(mocks.getAnnuaireRadios).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 120, limit: 120 }));
   });

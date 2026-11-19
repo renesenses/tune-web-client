@@ -9,6 +9,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { tuneWS } from '../../lib/websocket';
   import { notifications } from '../../lib/stores/notifications';
+  import { proposerApresConnexion } from '../../lib/lectureYoutubeInactive';
   import type { BrowseRootEntry } from '../../lib/types';
   import { dialogs } from '../../lib/stores/dialogs';
   import { formatNombre } from '../../lib/formats';
@@ -453,6 +454,22 @@
     }
   }
 
+  /**
+   * tune-server-rust#8913 — le compte YouTube vient d'être relié : sans
+   * yt-dlp, aucune piste ne se lira. On propose d'activer la lecture, et le
+   * bouton lance le téléchargement sur place.
+   */
+  async function proposerLectureYoutube() {
+    try {
+      const s = await api.getYoutubeStatus();
+      proposerApresConnexion('youtube', !!s.installed || s.status === 'downloading', () => {
+        api.enableYoutubePlayback()
+          .then(() => notifications.info(get(t)('settings.youtubePlaybackDownloading' as any), 6000))
+          .catch((e) => notifierErreur(get(t)('common.error' as any), e, { motifSeul: true }));
+      });
+    } catch { /* serveur antérieur à la route : rien à proposer */ }
+  }
+
   async function handleYoutubeAuth() {
     youtubeAuthLoading = true;
     youtubeAuthError = null;
@@ -463,6 +480,7 @@
       if (res.authenticated) {
         $streamingServicesStore = { ...$streamingServicesStore, youtube: { ...$streamingServicesStore['youtube'], authenticated: true } };
         youtubeAuthLoading = false;
+        void proposerLectureYoutube();
         return;
       }
       if (res.verification_url) {
@@ -492,6 +510,7 @@
           if (service === 'deezer') { deezerPollingInterval = null; deezerVerificationUrl = null; deezerAuthLoading = false; }
           if (service === 'youtube') { youtubePollingInterval = null; youtubeVerificationUrl = null; youtubeUserCode = null; youtubeAuthLoading = false; }
           $streamingServicesStore = { ...$streamingServicesStore, [service]: { ...$streamingServicesStore[service], authenticated: true } };
+          if (service === 'youtube') void proposerLectureYoutube();
         }
       } catch { /* ignore */ }
     }, service === 'youtube' ? 5000 : 3000);

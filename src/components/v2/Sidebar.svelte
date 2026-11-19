@@ -10,6 +10,7 @@
    */
   import type { View } from '../../lib/stores/navigation';
   import IconeReglages from './IconeReglages.svelte';
+  import { ICONE_TESS } from '../../lib/tess';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -201,6 +202,10 @@
   ];
 
   export const STUDIO: Item[] = [
+    // TESS (lot W1, maquette A1) — en tête de Studio, icône « Wave T » (A5).
+    // N'apparaît que si le serveur annonce TESS (`stores/tess`). Les entrées
+    // Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk restent jusqu'au lot W8.
+    { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
@@ -296,6 +301,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes, type Tranche } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
+  import { ouvertureLectureEnCours, oublierOuvertureLectureEnCours, vueAllumee } from '../../lib/ouvertureLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
@@ -306,6 +312,7 @@
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
+  import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -349,9 +356,12 @@
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
   const studioDisponibles = $derived(
-    entreesAvecCrosstalk(
-      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-      $presenceCrosstalk,
+    entreesAvecTess(
+      entreesAvecCrosstalk(
+        entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+        $presenceCrosstalk,
+      ),
+      $capaciteTess,
     ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
@@ -372,6 +382,11 @@
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
   $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
+  // Lot TESS W1 : le serveur annonce-t-il TESS ? (`GET /zones/{id}/tess`, 404 = non).
+  // UNE sonde par connexion : `sonderTess` ne repart pas une fois `oui` ou `non`
+  // su ; seule une reconnexion du flux la relance (le serveur a pu changer).
+  $effect(() => { const z = $zoneCouranteCd; if (z != null) void sonderTess(z); });
+  $effect(() => suivreConnexionTess(tuneWS, () => get(zoneCouranteCd) ?? null));
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
@@ -438,7 +453,7 @@
    * le noyau ne se replie jamais (relecture de web#2960).
    */
   const entreesDuGroupe = (id: string, l: Item[]) =>
-    repliee(id) ? l.filter((it) => estActif(it, $activeView) || groupeOrigine(it) === 0) : l;
+    repliee(id) ? l.filter((it) => estActif(it, vueBarre) || groupeOrigine(it) === 0) : l;
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -599,7 +614,17 @@
    * détail réécrirait l'entrée qu'on QUITTE : le Précédent n'y retrouverait
    * plus la fiche qu'on y avait laissée.
    */
+  /**
+   * tune-server-rust#7901 (fil 2658, revenu en rc12) — la vue que la barre
+   * ALLUME. C'est la route, sauf quand l'écran affiché est la fiche ouverte
+   * par « Lecture en cours » (réglage web#1784) : la route est alors
+   * `library` (ou `playlists`, `streaming`), et c'est pourtant Lecture en
+   * cours qu'on vient de demander. Toutes les entrées lisent celle-ci.
+   */
+  const vueBarre = $derived(vueAllumee($activeView, $ouvertureLectureEnCours));
+
   function go(v: View) {
+    oublierOuvertureLectureEnCours();
     if (versCeQuiJoue(v)) return;
     const dejaSurPlace = $activeView === v;
     requestListReset();
@@ -705,7 +730,7 @@
    * Collections n'ont pas d'enfant sélectionné dans l'arbre).
    */
   const serviceOuvert = $derived(
-    $activeView === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
+    vueBarre === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
       ? $activeStreamingService
       : null,
   );
@@ -993,7 +1018,7 @@
 
   <div class="navscroll">
     {#snippet boutonEntree(it: Item)}
-      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre) && !parentSansBulle(it)} class:parent-actif={estActif(it, vueBarre) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
         <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
       </button>
@@ -1001,7 +1026,7 @@
     {#snippet servicesSousStreaming()}
       {#each servicesBarre as svc (svc)}
         <button class="nav svc" data-service={svc}
-          class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+          class:active={vueBarre === 'streaming' && $activeStreamingService === svc}
           onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
           <span>{nomService(svc)}</span>
@@ -1012,7 +1037,7 @@
       <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
            bouton frère et non enfant, replie l'arbre entier. -->
       <div class="nav-pli">
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1066,7 +1091,7 @@
     {:else}
     <nav class="grp">
       {#each noyauAffiche as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre) && !parentSansBulle(it)} class:parent-actif={estActif(it, vueBarre) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1080,7 +1105,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each avanceVisibles as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1092,7 +1117,7 @@
       <nav class="grp sources-barre" aria-label={$t('v2.sources.title' as any)}>
         <div class="grp-label">{$t('v2.sources.title' as any)}</div>
         {#snippet entreeSource(s: Source, sous: boolean)}
-          <button class="nav src" class:sous class:active={sourceActive(s, $activeView, $sourceCourante)}
+          <button class="nav src" class:sous class:active={sourceActive(s, vueBarre, $sourceCourante)}
             class:grisee={sourceGrisee(s)} aria-disabled={sourceGrisee(s) ? 'true' : undefined}
             data-source={s.id} onclick={() => ouvrirSource(s)} title={enIcones ? nomDansLaBarre(s) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_SOURCE[s.type]} /></svg>
@@ -1168,7 +1193,7 @@
     {#if selectionsAffichees.length}
     <nav class="grp" data-groupe="selections">
       {@render intertitreRepliable('selections', 'v2.nav.selections')}
-      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, $activeView)) : selectionsAffichees) as it (it.view)}
+      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, vueBarre)) : selectionsAffichees) as it (it.view)}
         {@render entreeLibre(it)}
       {/each}
     </nav>
@@ -1178,8 +1203,8 @@
          son intitulé plutôt que de laisser « Studio » seul. -->
     <nav class="grp reveal" data-groupe="studio" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
       {@render intertitreRepliable('studio', 'v2.nav.studio')}
-      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, $activeView)) : studioVisible) as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, vueBarre)) : studioVisible) as it (it.view)}
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1204,7 +1229,7 @@
   .v2-sidebar{
     display:flex; flex-direction:column; height:100%;
     background:var(--v2-bg); border-right:1px solid var(--v2-line);
-    padding:22px 16px 18px; font-family:var(--v2-sans); color:var(--v2-txt);
+    padding:22px 16px 18px; font-family:var(--v2-police-texte); color:var(--v2-txt);
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
@@ -1299,14 +1324,14 @@
   a.logo{text-decoration:none; transition:opacity .15s}
   a.logo:hover{opacity:.7}
   .brand .name{font-weight:700; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1}
-  .brand .sub{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  .brand .sub{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
-  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
-  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
+  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
-    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono);
+    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
@@ -1321,7 +1346,7 @@
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
-    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint);
+    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
   .analyse:hover{color:var(--v2-txt)}
   .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -1340,7 +1365,7 @@
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
+  .grp-label{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
   /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
@@ -1412,7 +1437,7 @@
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
   .taches{display:block; max-width:100%; margin-top:3px; padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .taches:hover{color:var(--v2-txt)}
   .taches:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 </style>

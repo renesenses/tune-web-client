@@ -323,7 +323,10 @@
       {#if fiche.flux?.length}
         <section class="flux">
           <h3>{$t('v2.radio.fiche.streams' as any)}</h3>
-          {#if jouable}<p class="aide">{$t('v2.radio.fiche.pick' as any)}</p>{/if}
+          <!-- Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : plus de
+               « Choisissez un flux pour l'écouter » (évident, chaque flux a
+               son ▶), ni de badge « Direct » sur chaque flux. Seul un flux
+               HLS garde sa pastille : c'est l'exception qu'elle signale. -->
           <ul aria-label={$t('v2.radio.fiche.streams' as any)}>
             {#each fluxRanges as f (f.url)}
               {@const joue = enDirect && lecture?.source_id === f.url}
@@ -336,13 +339,13 @@
                     onclick={() => lire(f.url)}>
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
                     <span class="lib">{libelleFlux(f) || f.url}</span>
-                    <span class="transport">{estHls(f) ? $t('v2.radio.fiche.hls' as any) : $t('v2.radio.fiche.direct' as any)}</span>
+                    {#if estHls(f)}<span class="transport">{$t('v2.radio.fiche.hls' as any)}</span>{/if}
                     {#if f.url === fluxParDefaut}<span class="prin">{$t('v2.radio.fiche.default' as any)}</span>{/if}
                   </button>
                 {:else}
                   <span class="flux-lire statique">
                     <span class="lib">{libelleFlux(f) || f.url}</span>
-                    <span class="transport">{estHls(f) ? $t('v2.radio.fiche.hls' as any) : $t('v2.radio.fiche.direct' as any)}</span>
+                    {#if estHls(f)}<span class="transport">{$t('v2.radio.fiche.hls' as any)}</span>{/if}
                     {#if f.url === fluxParDefaut}<span class="prin">{$t('v2.radio.fiche.default' as any)}</span>{/if}
                   </span>
                 {/if}
@@ -402,7 +405,6 @@
   .desc{font:calc(13.5px * var(--v2-txt-echelle, 1))/1.5 var(--v2-sans); color:var(--v2-txt); margin:8px 0}
   .site{display:inline-block; margin-top:6px; color:var(--v2-acc2); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .vide{color:var(--v2-txt3); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); margin-top:8px}
-  .aide{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); margin:0 0 6px}
   .flux ul{list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px}
   .flux li{display:flex; flex-direction:column; gap:2px; padding:7px 10px;
     border:1px solid var(--v2-line2); border-radius:10px}

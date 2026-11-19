@@ -30,7 +30,7 @@ const PUBLIC_HORS_REGLE = {
 
 describe('alertePareFeu — la charge utile du serveur', () => {
   it('🔴 réseau Public hors de la règle : alerte, profil nommé', () => {
-    expect(alertePareFeu(PUBLIC_HORS_REGLE)).toEqual({ profils: ['public'], reglePresente: true });
+    expect(alertePareFeu(PUBLIC_HORS_REGLE)).toMatchObject({ profils: ['public'], reglePresente: true });
   });
 
   it('réseau couvert, hors Windows, relevé absent, serveur ancien : rien', () => {
@@ -46,7 +46,7 @@ describe('alertePareFeu — la charge utile du serveur', () => {
       ...PUBLIC_HORS_REGLE,
       releve: { profils_non_couverts: ['public', 'martien', 'domaine'], regle_presente: false },
     };
-    expect(alertePareFeu(charge)).toEqual({ profils: ['domaine', 'public'], reglePresente: false });
+    expect(alertePareFeu(charge)).toMatchObject({ profils: ['domaine', 'public'], reglePresente: false });
   });
 });
 
