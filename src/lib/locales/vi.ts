@@ -2863,6 +2863,8 @@ export default {
   "smartPlaylists.joinAny": "HOẶC",
   "collections.title": "Bộ sưu tập",
   "v2.pl.remove": "Gỡ",
+  "v2.pl.confirmRemove": "Gỡ “{title}” khỏi danh sách phát “{playlist}”?",
+  "v2.pl.confirmRemoveAlbum": "Gỡ “{title}” (album “{album}”) khỏi danh sách phát “{playlist}”?",
   "v2.pl.removeFromThisPlaylist": "Xóa khỏi danh sách phát này",
   "v2.pl.missingTrack": "Không tìm thấy",
   "v2.pl.radioLive": "Trực tiếp",

@@ -3013,6 +3013,8 @@ export default {
   "smartPlaylists.joinAny": "OU",
   "collections.title": "Collections",
   "v2.pl.remove": "Retirer",
+  "v2.pl.confirmRemove": "Retirer « {title} » de la playlist « {playlist} » ?",
+  "v2.pl.confirmRemoveAlbum": "Retirer « {title} » (album « {album} ») de la playlist « {playlist} » ?",
   "v2.pl.removeFromThisPlaylist": "Supprimer de cette playlist",
   "v2.pl.missingTrack": "Introuvable",
   "v2.pl.radioLive": "En direct",

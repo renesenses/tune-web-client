@@ -2861,6 +2861,8 @@ export default {
   "smartPlaylists.joinAny": "ELLER",
   "collections.title": "Samlinger",
   "v2.pl.remove": "Fjern",
+  "v2.pl.confirmRemove": "Fjerne «{title}» fra spillelisten «{playlist}»?",
+  "v2.pl.confirmRemoveAlbum": "Fjerne «{title}» (album «{album}») fra spillelisten «{playlist}»?",
   "v2.pl.removeFromThisPlaylist": "Fjern fra denne spillelisten",
   "v2.pl.missingTrack": "Mangler",
   "v2.pl.radioLive": "Direkte",
