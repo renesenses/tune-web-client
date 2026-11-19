@@ -68,6 +68,7 @@
     modeWasapiPertinent,
     type ChoixBackend,
   } from '../../lib/audioBackends';
+  import { choixPeriodeWasapi, periodeWasapiVisible } from '../../lib/periodeWasapi';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
@@ -154,8 +155,10 @@
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
+  import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
+  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -192,6 +195,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     transportAppareilIgnore,
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
+  import {
+    libelleAbsent,
+    libelleAppareil,
+    zonesNommees,
+    type AppareilAbsent,
+  } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
@@ -310,6 +319,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { cleZone } from '../../lib/listeAppareils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
+  import { modesReplayGain, type ModeReplayGain } from '../../lib/modesReplayGain';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -677,6 +687,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
+  // tune-server-rust#8968 — « Auto » seulement si le serveur l'annonce.
+  let rgModes = $state<ModeReplayGain[]>(['off', 'track', 'album']);
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
@@ -700,6 +712,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
+        rgModes = modesReplayGain(c);
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
@@ -964,6 +977,72 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ignoreBusy = false;
     }
   }
+  /* --- Appareils absents : les OUBLIER (tune-server-rust#9044, rc13) ---
+   *
+   * Un appareil parti du réseau restait listé, grisé, à vie : supprimer sa
+   * zone ne faisait que la masquer. Oublier supprime l'appareil ET ses zones,
+   * définitivement — s'il revient, il revient comme neuf. Un appareil à la
+   * fois (l'oubli groupé est pour la rc14). La confirmation vit DANS la page
+   * (pas de `confirm()`), nomme l'appareil et chaque zone qui part, prend le
+   * focus à l'ouverture et le rend au bouton qui l'a ouverte.
+   */
+  let absents = $state<AppareilAbsent[]>([]);
+  let absentsLus = $state(false);
+  let absentsErreur = $state(false);
+  let oubliOccupe = $state(false);
+  /** La ligne (`zone_id`) dont la confirmation est ouverte, ou null. */
+  let oubliAConfirmer = $state<number | null>(null);
+  let declencheurOubli: HTMLElement | null = null;
+
+  async function chargerAbsents() {
+    const r = await api.listAbsentDevices();
+    absentsErreur = r === null;
+    absents = r ?? [];
+    absentsLus = true;
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
+  });
+
+  function ouvrirOubli(a: AppareilAbsent, ev: Event) {
+    declencheurOubli = ev.currentTarget as HTMLElement;
+    oubliAConfirmer = a.zone_id;
+  }
+  function fermerOubli() {
+    oubliAConfirmer = null;
+    const el = declencheurOubli;
+    declencheurOubli = null;
+    // Le bouton déclencheur réapparaît au rendu suivant : on le retrouve par
+    // sa ligne, l'élément d'origine a pu être remplacé.
+    void tick().then(() => {
+      if (el?.isConnected) el.focus();
+      else document.querySelector<HTMLElement>(`[data-oubli-ouvrir="${el?.dataset.oubliOuvrir ?? ''}"]`)?.focus();
+    });
+  }
+  /** Le focus va à la confirmation dès qu'elle s'affiche : un lecteur
+   *  d'écran lit la phrase qui nomme l'appareil et ses zones. PAS au bouton
+   *  qui confirme — Entrée ne doit pas supprimer par réflexe. */
+  function focusALaConfirmation(node: HTMLElement) {
+    node.focus();
+  }
+
+  async function oublierAppareil(a: AppareilAbsent) {
+    oubliOccupe = true;
+    try {
+      await api.forgetDevice(a.device_id);
+      oubliAConfirmer = null;
+      declencheurOubli = null;
+      notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
+      await chargerAbsents();
+    } catch (e: any) {
+      // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
+      // la zone, dans la langue de l'interface.
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
   async function clearDevices() {
     try {
       const r = await api.clearDevices();
@@ -3519,7 +3598,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // a échoué. On ne s'arrête que sur une vraie erreur applicative — c'est
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
-      const msg = errText(e);
+      // tune-server-rust#9029 — refusé hors de la machine de Tune
+      // (authentification coupée) : dire quoi faire, commande du conteneur
+      // comprise.
+      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
         notifications.error(msg);
@@ -3667,7 +3750,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // ⚠️ Le `catch` vide est VOULU, ce n'est pas une erreur avalée : le serveur
     // meurt avant d'avoir répondu, donc la requête échoue TOUJOURS — et cet
     // échec-là est le succès du geste.
-    try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
+    try {
+      await api.stopServer();
+    } catch (e) {
+      // Une coupure de transport est le succès du geste (`errText` → null).
+      // Un refus HTTP, lui, prouve que le serveur n'a PAS accepté l'ordre
+      // (tune-server-rust#9029 : refusé hors de la machine de Tune) : le
+      // bouton redevient utilisable et le refus est dit.
+      const msg = errText(e);
+      if (msg !== null) {
+        arretEnCours = false;
+        notifications.error(msg);
+      }
+    }
   }
 
   /**
@@ -6352,6 +6447,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
+            {:else if s.id === 'authActivation'}
+              <div data-reglage="activation-authentification"><ActivationAuthV2 /></div>
+
             {:else if s.id === 'accessFrom'}
               <p class="hint" data-reglage="adresses-acces">
                 {$t('v2.hint.lanAddresses' as any)}
@@ -6597,6 +6695,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
+            {:else if s.id === 'absentDevices'}
+              <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
+              <div class="devlist" data-reglage="appareils-absents">
+                {#each absents as a (a.zone_id)}
+                  <div class="dev ign absent">
+                    <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
+                    <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
+                    <span class="dh" data-absent>{$t('settings.absentLabel' as any)}</span>
+                    {#if oubliAConfirmer === a.zone_id}
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.forgetDevice' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint">{$t('settings.forgetDeviceConfirmZones' as any)
+                          .replace('{device}', libelleAppareil(a, netLabel))
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                      </span>
+                    {:else}
+                      <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirOubli(a, ev)}>
+                        {$t('settings.forgetDevice' as any)}
+                      </button>
+                    {/if}
+                  </div>
+                {:else}
+                  <p class="hint">{absentsErreur ? $t('settings.absentDevicesLoadError' as any)
+                    : absentsLus ? $t('settings.noAbsentDevices' as any)
+                    : $t('v2.set.searchingDevices' as any)}</p>
+                {/each}
+              </div>
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
@@ -6859,6 +6987,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {#if typeof z.exclusive_mode === 'boolean' && typeof z.exclusive_mode_applique === 'boolean' && z.exclusive_mode_applique !== z.exclusive_mode}
                               <small class="dsd-dop" data-exclusif-en-attente>{$t('settings.zoneExclusivePending' as any)}</small>
                             {/if}
+                          </div>
+                        {/if}
+                        <!--
+                          PÉRIODE WASAPI EXCLUSIF — tune-server-rust#8696.
+                          Didier (SMSL SU-8 en USB) : des « sauts de vinyle »
+                          à 10 ms ; une période plus longue les absorbe. Zone
+                          LOCALE d'un serveur WINDOWS seulement (le serveur le
+                          dit : `wasapi_exclusive_period_applicable`), et pas
+                          quand la zone est réglée en partagé. Masqué sur un
+                          ancien serveur (champ absent).
+                        -->
+                        {#if periodeWasapiVisible(z)}
+                          <div class="zf" data-reglage="zone-periode-wasapi">
+                            <label for={`wasapi-period-${z.id}`}>{$t('settings.wasapiPeriod' as any)}</label>
+                            <select id={`wasapi-period-${z.id}`} aria-describedby={`wasapi-period-hint-${z.id}`} class="sel sm"
+                              value={String(z.wasapi_exclusive_period_ms ?? 0)}
+                              onchange={(e) => { const v = Number(e.currentTarget.value);
+                                setZoneField(z, () => api.updateZoneWasapiExclusivePeriod(z.id as number, v > 0 ? v : null)); }}>
+                              <option value="0">{$t('settings.wasapiPeriodAuto' as any)}</option>
+                              {#each choixPeriodeWasapi(z) as ms (ms)}
+                                <option value={String(ms)}>{ms} ms</option>
+                              {/each}
+                            </select>
+                            <small id={`wasapi-period-hint-${z.id}`}>{$t('settings.wasapiPeriodHint' as any)}</small>
                           </div>
                         {/if}
                         <!--
@@ -8912,11 +9064,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="lbl">
                     <span>{$t('settings.replayGain' as any)}</span>
                     <span class="hint">{$t('settings.replayGainHint' as any)}</span>
+                    {#if rgMode === 'auto'}
+                      <!-- #8968 : ce que le mode Auto choisit, dit en clair. -->
+                      <span class="hint" data-testid="rg-auto-hint">{$t('settings.replayGainAutoHint' as any)}</span>
+                    {/if}
                   </div>
-                  <div class="seg4">
+                  <div class="seg4 seg-replaygain">
                     <button class:on={rgMode === 'off'} onclick={() => setRgMode('off')}>{$t('settings.replayGainOff' as any)}</button>
                     <button class:on={rgMode === 'track'} onclick={() => setRgMode('track')}>{$t('settings.replayGainTrack' as any)}</button>
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
+                    {#if rgModes.includes('auto')}
+                      <button class:on={rgMode === 'auto'} onclick={() => setRgMode('auto')} title={$t('settings.replayGainAutoHint' as any)}>{$t('settings.replayGainAuto' as any)}</button>
+                    {/if}
                   </div>
                 </div>
                 {#if rgMode !== 'off' && voit('expert', s.id)}
@@ -9498,6 +9657,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .seg4 button:disabled{opacity:.5; cursor:default}
+  /* tune-server-rust#8968 — quatre choix ReplayGain dont un long libellé
+     (« Désactivé (niveau source) ») : sur écran étroit, la rangée passe à la
+     ligne au lieu de déborder de la fenêtre. */
+  @media (max-width:640px){
+    .seg4.seg-replaygain{flex-wrap:wrap; flex:1 1 100%; min-width:0}
+    .seg4.seg-replaygain button{flex:1 1 auto}
+  }
   .devlist{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .dev{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:11px; padding:8px 10px;
     border-radius:9px; cursor:pointer; color:var(--v2-txt2)}
@@ -9573,6 +9739,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.net .del{margin-left:auto; flex:0 0 auto}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
+  .oubli-conf{display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; grid-column:1 / -1}
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}

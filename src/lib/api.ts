@@ -1,4 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
+import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -8,6 +9,7 @@ import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrag
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
+import { messageRefusHorsMachine } from './refusHorsMachine';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -767,6 +769,24 @@ export async function fetchJSON<T>(
         err.dejaAnnonce = true;
       }
     }
+    // tune-server-rust#9029 — une action qui engage la machine, refusée parce
+    // qu'elle ne vient pas de la machine de Tune (authentification coupée) :
+    // la phrase traduite qui dit quoi faire, à la place du texte anglais.
+    const horsMachine = messageRefusHorsMachine(err, get(t) as (cle: string) => string);
+    if (horsMachine !== null) {
+      err.message = horsMachine;
+      // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
+      // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
+      // que soit l'écran — certains n'affichent que leur propre libellé.
+      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // lecture refusée reste silencieuse.
+      const methode = (options?.method ?? 'GET').toUpperCase();
+      const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+        notifications.error(horsMachine);
+        err.dejaAnnonce = true;
+      }
+    }
     throw err;
   }
   // #2413 — une réponse normale : si un toast de démarrage était posé, il part.
@@ -1084,6 +1104,13 @@ export interface ZoneSupprimee {
   motif: string | null;
   masquee_le: string | null;
   appareil_detecte: boolean;
+  /** tune-server-rust#8987 — l'appareil que la zone a lâché au profit d'une
+   *  autre zone, et la zone qui le tient (`null` : libre). Absent sur un
+   *  serveur antérieur. */
+  sortie_liberee?: {
+    output_device_id: string;
+    reprise_par: { id: number; name: string } | null;
+  } | null;
 }
 /**
  * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
@@ -1376,6 +1403,16 @@ export function updateZoneExclusiveMode(id: number, mode: boolean | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ exclusive_mode: mode }),
+  });
+}
+
+/** tune-server-rust#8696 — période WASAPI exclusive de la zone, en ms ;
+ *  `null` = Auto (période du pilote). Prise en compte à la prochaine
+ *  ouverture du périphérique. */
+export function updateZoneWasapiExclusivePeriod(id: number, ms: number | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ wasapi_exclusive_period_ms: ms }),
   });
 }
 
@@ -1680,6 +1717,34 @@ export function clearDevices() {
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils absents (tune-server-rust#9044) ---------------------------
+
+/** `GET /devices/absent` — les appareils connus qui ne sont plus sur le
+ *  réseau. `[]` si le serveur est antérieur à la route (404) ; `null` sur
+ *  toute autre erreur (403, 500, réseau) — l'écran ne doit pas la prendre
+ *  pour « aucun appareil absent ». */
+export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
+  try {
+    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
+ * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
+ * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
+ * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
+ * un appareil encore présent ; la réponse nomme les zones supprimées.
+ */
+export function forgetDevice(deviceId: string) {
+  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
+    { method: 'DELETE' },
+  );
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
@@ -3823,7 +3888,13 @@ export function getAcousticStatus() {
     // MÊME couple. `eligible_tracks` exclut les pistes reportées.
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    // tune-server-rust#9046 — parmi `deferred_tracks`, les reports après échecs
+    // répétés d'analyse ; `waiting_reason` vaut alors `analysis_failures`.
+    retry_later_tracks?: number;
     waiting_reason?: string | null;
+    // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
+    // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.
+    paused_reason?: string | null;
   }>(
     `${BASE}/library/search/acoustic/status`,
   );
@@ -4145,13 +4216,15 @@ export interface DoubtfulAlbum extends _PisteDouteuse {
 export async function getDoubtfulTracks(
   limit = 1000,
   offset = 0,
-): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number }> {
-  const r = await fetchJSON<{ items?: unknown[]; total?: number } | unknown[]>(
+): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number; can_ignore?: boolean }> {
+  const r = await fetchJSON<{ items?: unknown[]; total?: number; can_ignore?: boolean } | unknown[]>(
     `${BASE}/metadata/doubtful?limit=${limit}&offset=${offset}`,
   );
   const items = (Array.isArray(r) ? r : (r?.items ?? [])) as import('./artisteDepuisChemin').PisteDouteuse[];
   const total = Array.isArray(r) ? r.length : (r?.total ?? items.length);
-  return { items, total };
+  // tune-server-rust#8958 — « C'est normal » n'est offert qu'à qui peut l'écrire.
+  const can_ignore = Array.isArray(r) ? undefined : r?.can_ignore;
+  return { items, total, can_ignore };
 }
 
 /**
@@ -4218,6 +4291,100 @@ export function ecrireArtisteDuDossier(trackIds?: number[]) {
   return fetchJSON<BilanArtisteDuDossier>(`${BASE}/metadata/doubtful/artist-from-folder`, {
     method: 'POST',
     body: JSON.stringify(trackIds ? { track_ids: trackIds } : {}),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#8958 — une alerte de « Albums douteux » marquée
+ * normale. Elle tient par une clé STABLE (survit au rescan complet) :
+ * `key` est le chemin de la piste (`scope: 'track'`) ou le dossier de
+ * l'album (`scope: 'album'`, avec `title`, son titre exact). `scope`, `key`,
+ * `title` et `reason` servent tels quels à l'annulation.
+ */
+export interface AlerteDouteuseIgnoree {
+  scope: 'track' | 'album';
+  key: string;
+  title: string;
+  reason: string;
+  ignored_at: number;
+  /** Le nom figé au moment du choix. */
+  label?: string | null;
+  /** Faux quand plus aucune piste ne porte la clé (fichiers absents). */
+  found?: boolean;
+  track_id?: number | null;
+  track_title?: string | null;
+  album_id?: number | null;
+  album_title?: string | null;
+  file_path?: string | null;
+  track_count?: number;
+}
+
+/** De quoi désigner une alerte ignorée pour l'annuler. */
+export type CleAlerteIgnoree = Pick<AlerteDouteuseIgnoree, 'scope' | 'key' | 'title' | 'reason'>;
+
+export async function getAlertesDouteusesIgnorees() {
+  const r = await fetchJSON<{ items?: AlerteDouteuseIgnoree[]; total?: number }>(
+    `${BASE}/metadata/doubtful/ignored`,
+  );
+  return r?.items ?? [];
+}
+
+/** Marque l'alerte `reason` de la piste comme normale. Réservé à l'administrateur. */
+export function ignorerAlerteDouteuse(trackId: number, reason: string) {
+  return fetchJSON<CleAlerteIgnoree & { added: boolean }>(
+    `${BASE}/metadata/doubtful/ignored`,
+    { method: 'POST', body: JSON.stringify({ track_id: trackId, reason }) },
+  );
+}
+
+/** Annule le choix : l'alerte revient si le problème existe toujours. */
+export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
+  return fetchJSON<{ removed: boolean }>(`${BASE}/metadata/doubtful/ignored`, {
+    method: 'DELETE',
+    body: JSON.stringify({ scope: a.scope, key: a.key, title: a.title, reason: a.reason }),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#9028 — « Normal pour tout l'album » : l'aperçu
+ * (les pistes de l'album qui portent encore l'alerte), à montrer AVANT le
+ * geste, pour que la portée se voie.
+ */
+export interface ApercuAlerteAlbum {
+  album_id: number;
+  album_title: string | null;
+  reason: string;
+  /** Le geste groupé n'écrit que des lignes de pistes. */
+  scope: 'track';
+  /** Affichage : le dossier des pistes de l'album. */
+  folder: string | null;
+  tracks: { id: number; title: string; duration_ms: number; disc_number?: number; track_number?: number; file_path?: string | null }[];
+  total: number;
+  ignored_count: number;
+}
+
+export function apercuAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<ApercuAlerteAlbum>(
+    `${BASE}/metadata/doubtful/album?album_id=${albumId}&reason=${encodeURIComponent(reason)}`,
+  );
+}
+
+/** Marque l'alerte normale pour les pistes `trackIds` de l'album (vérifiées
+ *  par le serveur) : UNE ligne par piste, jamais l'album entier (une piste
+ *  ajoutée plus tard reste signalée). `added_keys` : les lignes que CE geste
+ *  a ajoutées — exactement ce que l'annulation retire. Réservé à l'administrateur. */
+export function ignorerAlerteAlbum(albumId: number, reason: string, trackIds: number[]) {
+  return fetchJSON<{ scope: 'track'; reason: string; track_ids: number[]; track_count: number; added: number; added_keys: CleAlerteIgnoree[] }>(
+    `${BASE}/metadata/doubtful/ignored/album`,
+    { method: 'POST', body: JSON.stringify({ album_id: albumId, reason, track_ids: trackIds }) },
+  );
+}
+
+/** Annule un geste groupé : retire exactement ces lignes (`added_keys`). */
+export function retablirAlerteAlbum(keys: CleAlerteIgnoree[]) {
+  return fetchJSON<{ removed: number }>(`${BASE}/metadata/doubtful/ignored/album`, {
+    method: 'DELETE',
+    body: JSON.stringify({ keys: keys.map((k) => ({ scope: k.scope, key: k.key, title: k.title ?? '', reason: k.reason })) }),
   });
 }
 
@@ -6105,6 +6272,66 @@ export function trackBetterQuality(id: number) {
 /** La meilleure édition possédée d'un album, ou null. */
 export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
+}
+
+/** État de l'écran « Activer l'authentification » (`GET /auth/activation`). */
+export interface EtatActivationAuth {
+  auth_enabled: boolean;
+  /** L'appel vient de la machine qui fait tourner Tune. */
+  from_this_machine: boolean;
+  /** Un code à usage unique (journal du serveur) est demandé. */
+  code_required: boolean;
+  admin_username?: string | null;
+  min_password_length?: number;
+  /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
+  accounts?: CompteExistant[];
+}
+
+/** Un compte listé par l'écran d'activation. */
+export interface CompteExistant {
+  id: number;
+  username: string;
+  created_at?: string | null;
+  role: 'admin' | 'user' | string;
+  /** Jamais vrai pour le compte administrateur. */
+  deletable: boolean;
+}
+
+/** Réponse de `POST /auth/activation` : succès, ou refus nommé par `error`. */
+export interface ReponseActivationAuth {
+  auth_enabled?: boolean;
+  username?: string;
+  token?: string;
+  deleted_accounts?: number[];
+  error?: string;
+  message?: string;
+}
+
+/** `null` : serveur antérieur à l'écran (404). */
+export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
+  const r = await fetchJSON<EtatActivationAuth | { error?: string }>(
+    `${BASE}/auth/activation`, undefined, (s) => s === 404,
+  );
+  return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
+}
+
+/** Demande au serveur d'écrire un code à usage unique dans son journal. */
+export function requestAuthActivationCode() {
+  return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
+    `${BASE}/auth/activation/code`, { method: 'POST' }, (s) => s === 409 || s === 429,
+  );
+}
+
+/** Active l'authentification ; les refus attendus reviennent comme corps. */
+export function activateAuth(password: string, code?: string, deleteAccounts: number[] = []) {
+  const corps: Record<string, unknown> = { password };
+  if (code) corps.code = code;
+  if (deleteAccounts.length) corps.delete_accounts = deleteAccounts;
+  return fetchJSON<ReponseActivationAuth>(
+    `${BASE}/auth/activation`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (s) => s === 400 || s === 403 || s === 409 || s === 429,
+  );
 }
 
 /** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
@@ -11894,6 +12121,9 @@ export interface EtatFauxHiRes {
   active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
   /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
   catalogue_hires_verdict?: boolean;
+  /** tune-server-rust#9067 — « Source altérée » : le verdict `douteux` couvre
+   *  tous les formats, CD compris (raison `mur_de_codec`). Absent : serveur ancien. */
+  source_alteree?: boolean;
 }
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {

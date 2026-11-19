@@ -301,6 +301,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { estMasquee, ordonnerEntrees, ordreModifie, repartirEnGroupes, type Tranche } from '../../lib/ordreBarreLaterale';
   import { ouvrirLienLectureEnCours } from '../../lib/lienLectureEnCours';
+  import { ouvertureLectureEnCours, oublierOuvertureLectureEnCours, vueAllumee } from '../../lib/ouvertureLectureEnCours';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
@@ -452,7 +453,7 @@
    * le noyau ne se replie jamais (relecture de web#2960).
    */
   const entreesDuGroupe = (id: string, l: Item[]) =>
-    repliee(id) ? l.filter((it) => estActif(it, $activeView) || groupeOrigine(it) === 0) : l;
+    repliee(id) ? l.filter((it) => estActif(it, vueBarre) || groupeOrigine(it) === 0) : l;
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -613,7 +614,17 @@
    * détail réécrirait l'entrée qu'on QUITTE : le Précédent n'y retrouverait
    * plus la fiche qu'on y avait laissée.
    */
+  /**
+   * tune-server-rust#7901 (fil 2658, revenu en rc12) — la vue que la barre
+   * ALLUME. C'est la route, sauf quand l'écran affiché est la fiche ouverte
+   * par « Lecture en cours » (réglage web#1784) : la route est alors
+   * `library` (ou `playlists`, `streaming`), et c'est pourtant Lecture en
+   * cours qu'on vient de demander. Toutes les entrées lisent celle-ci.
+   */
+  const vueBarre = $derived(vueAllumee($activeView, $ouvertureLectureEnCours));
+
   function go(v: View) {
+    oublierOuvertureLectureEnCours();
     if (versCeQuiJoue(v)) return;
     const dejaSurPlace = $activeView === v;
     requestListReset();
@@ -719,7 +730,7 @@
    * Collections n'ont pas d'enfant sélectionné dans l'arbre).
    */
   const serviceOuvert = $derived(
-    $activeView === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
+    vueBarre === 'streaming' && $activeStreamingService && servicesBarre.includes($activeStreamingService)
       ? $activeStreamingService
       : null,
   );
@@ -1007,7 +1018,7 @@
 
   <div class="navscroll">
     {#snippet boutonEntree(it: Item)}
-      <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre) && !parentSansBulle(it)} class:parent-actif={estActif(it, vueBarre) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
         <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
       </button>
@@ -1015,7 +1026,7 @@
     {#snippet servicesSousStreaming()}
       {#each servicesBarre as svc (svc)}
         <button class="nav svc" data-service={svc}
-          class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+          class:active={vueBarre === 'streaming' && $activeStreamingService === svc}
           onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
           <span>{nomService(svc)}</span>
@@ -1026,7 +1037,7 @@
       <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
            bouton frère et non enfant, replie l'arbre entier. -->
       <div class="nav-pli">
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1080,7 +1091,7 @@
     {:else}
     <nav class="grp">
       {#each noyauAffiche as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView) && !parentSansBulle(it)} class:parent-actif={estActif(it, $activeView) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre) && !parentSansBulle(it)} class:parent-actif={estActif(it, vueBarre) && parentSansBulle(it)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1094,7 +1105,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each avanceVisibles as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>
@@ -1106,7 +1117,7 @@
       <nav class="grp sources-barre" aria-label={$t('v2.sources.title' as any)}>
         <div class="grp-label">{$t('v2.sources.title' as any)}</div>
         {#snippet entreeSource(s: Source, sous: boolean)}
-          <button class="nav src" class:sous class:active={sourceActive(s, $activeView, $sourceCourante)}
+          <button class="nav src" class:sous class:active={sourceActive(s, vueBarre, $sourceCourante)}
             class:grisee={sourceGrisee(s)} aria-disabled={sourceGrisee(s) ? 'true' : undefined}
             data-source={s.id} onclick={() => ouvrirSource(s)} title={enIcones ? nomDansLaBarre(s) : undefined}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_SOURCE[s.type]} /></svg>
@@ -1182,7 +1193,7 @@
     {#if selectionsAffichees.length}
     <nav class="grp" data-groupe="selections">
       {@render intertitreRepliable('selections', 'v2.nav.selections')}
-      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, $activeView)) : selectionsAffichees) as it (it.view)}
+      {#each (repliee('selections') ? selectionsAffichees.filter((it) => estActif(it, vueBarre)) : selectionsAffichees) as it (it.view)}
         {@render entreeLibre(it)}
       {/each}
     </nav>
@@ -1192,8 +1203,8 @@
          son intitulé plutôt que de laisser « Studio » seul. -->
     <nav class="grp reveal" data-groupe="studio" class:show={showStudio && studioVisible.length > 0} aria-hidden={!showStudio || !studioVisible.length}>
       {@render intertitreRepliable('studio', 'v2.nav.studio')}
-      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, $activeView)) : studioVisible) as it (it.view)}
-        <button class="nav" data-vue={it.view} class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
+      {#each (repliee('studio') ? studioVisible.filter((it) => estActif(it, vueBarre)) : studioVisible) as it (it.view)}
+        <button class="nav" data-vue={it.view} class:active={estActif(it, vueBarre)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>{#if it.view === 'circle'}<PastilleNotifsCercle />{/if}
         </button>

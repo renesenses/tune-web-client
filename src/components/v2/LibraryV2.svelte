@@ -158,6 +158,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre, lireTexte } from '../../lib/preferencesEcran';
   import BasculeAffichage from './BasculeAffichage.svelte';
+  import { BORNES_POCHETTES_BIBLIOTHEQUE, lireTaillePochettesBibliotheque, ecrireTaillePochettesBibliotheque } from '../../lib/taillePochettesBibliotheque';
   import { AFFICHAGES, GRILLE_OU_LISTE, type Affichage } from '../../lib/affichage';
   import ArtistesDuLabel from './ArtistesDuLabel.svelte';
   import { carteDesLogos, carteDesCredits, creditDuLabel, texteDuCredit, logoDuLabel, logosEnAttente, monogramme, VUES_LABELS, CLE_VUE_LABELS, type VueLabels } from '../../lib/logosLabels';
@@ -1459,6 +1460,21 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    */
   let vueLabels = $state<VueLabels>(lireChoix(CLE_VUE_LABELS, VUES_LABELS, 'list'));
   $effect(() => ecrireChoix(CLE_VUE_LABELS, vueLabels));
+
+  /**
+   * web#3189 — LA TAILLE DES POCHETTES (Lio, fil 2897 ; Joaquim Ventura, fil
+   * 2900 ; go de Bertrand du 18/11/2026). Le curseur de la fiche d'une
+   * playlist (web#2601), repris tel quel : mêmes bornes, même libellé, même
+   * rangement — voir `lib/taillePochettesBibliotheque`.
+   *
+   * UNE taille pour toutes les grilles de l'écran, posée en variable CSS
+   * (`--lib-pochette`) sur la racine : les grilles des onglets Artistes,
+   * Derniers ajouts et Coffrets, composants à part, en héritent. `null` tant
+   * que personne n'y a touché : aucune variable, chaque grille garde son pas.
+   * Écrite au geste seulement (#1650).
+   */
+  let taillePochettes = $state<number | null>(lireTaillePochettesBibliotheque());
+  function reglerTaillePochettes(n: number) { taillePochettes = ecrireTaillePochettesBibliotheque(n); }
   /** Les logos connus du serveur (tune-server-rust#6736), relus à chaque
    *  entrée dans l'onglet : le serveur les cherche en arrière-plan, un logo
    *  trouvé entre-temps apparaît à l'ouverture suivante. Jamais pour un dépôt
@@ -2639,6 +2655,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const groupeOuvert = $derived(
     facetteOuverte == null ? null : (groups.find((g) => memeFacette(g.key, facetteOuverte!)) ?? null),
   );
+  /**
+   * web#3189 — une grille de POCHETTES est-elle à l'écran ? Le curseur de
+   * taille n'est offert que là : en liste ou en carrousel (dont la géométrie
+   * est calculée, #929), il serait un réglage sans effet. Les Artistes sont
+   * toujours en grille. Genres, Années et Labels montrent d'abord la LISTE de
+   * leurs entrées (des noms, pas des pochettes) — sauf les Labels en grille de
+   * logos, au pas des albums (web#2297). Un genre, une année ou un label
+   * ouvert montre ses albums, dans l'affichage choisi. Derniers ajouts et
+   * Coffrets reçoivent la grille à la place du carrousel.
+   */
+  const grilleDePochettes = $derived(
+    tab === 'tracks' ? false
+      : tab === 'artists' ? true
+      : (tab === 'genres' || tab === 'years' || tab === 'labels') && groupeOuvert == null
+        ? tab === 'labels' && vueLabels === 'grid'
+      : display !== 'list' && !enCarrousel,
+  );
 
   // Pistes et appartenances des artistes : un chargement partagé par portée.
   // #1716 — `$state.raw` : la liste n'est jamais modifiée sur place, seulement
@@ -3633,7 +3666,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 {/snippet}
 
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
-<section class="v2-lib tune-v2">
+<section class="v2-lib tune-v2" style:--lib-pochette={taillePochettes == null ? undefined : `${taillePochettes}px`}>
   <header class="v2-top">
     <div class="v2-titres">
       <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
@@ -4047,6 +4080,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       <BasculeAffichage modes={modesAffichage} valeur={display}
         onChanger={(v) => (display = v)} />
       {/if}
+    {/if}
+    <!-- web#3189 — le curseur de la fiche d'une playlist (web#2601), même
+           libellé, mêmes bornes : la taille des pochettes de toutes les
+           grilles de la Bibliothèque. Hors de la rangée d'outils : l'onglet
+           Artistes n'en a pas (`showTools`), et sa grille se règle aussi. -->
+    {#if grilleDePochettes}
+      <label class="taille-pochettes" title={$tr('v2.pl.thumbSize' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <input type="range" data-taille-pochettes min={BORNES_POCHETTES_BIBLIOTHEQUE.min} max={BORNES_POCHETTES_BIBLIOTHEQUE.max}
+          step={BORNES_POCHETTES_BIBLIOTHEQUE.pas} value={taillePochettes ?? BORNES_POCHETTES_BIBLIOTHEQUE.defaut}
+          aria-label={$tr('v2.pl.thumbSize' as any)}
+          oninput={(e) => reglerTaillePochettes(Number((e.currentTarget as HTMLInputElement).value))} />
+      </label>
     {/if}
     <!-- web#2198 (fil 2277, capture annotée) — Lire, Aléatoire et Ajouter
          occupaient une rangée à eux au-dessus des onglets sur un écran de
@@ -4600,7 +4646,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
              dans le cadre. Pas d'intertitre d'année : le tri par année sort
              du mode paginé. Les trois dessins sont ceux des snippets. -->
         {#if display === 'list'}
-          <div class="rows paginee" style="--lcols:{colonnesListe}" bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+          <div class="rows paginee" style="--lcols:{colonnesListe}" bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, taille: taillePochettes, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
             {@render calePaginee(tranchePaginee.avant)}
             {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
               {@const i = tranchePaginee.debut + relatif}
@@ -4609,7 +4655,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else if display === 'carousel'}
-          <div class="carrou paginee" use:defilementHorizontal bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}
+          <div class="carrou paginee" use:defilementHorizontal bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, taille: taillePochettes, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}
                use:centrageCarrousel={{ nombre: casesFenestrees.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
                style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
                role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
@@ -4621,7 +4667,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else}
-          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, taille: taillePochettes, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
             {@render calePaginee(tranchePaginee.avant)}
             {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
               {@const i = tranchePaginee.debut + relatif}
@@ -4826,7 +4872,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {#snippet caleDeFin(total: number, horizontal: boolean, repli: number)}
     {#if total > plafond}
       <div class="cale" aria-hidden="true"
-           use:cale={{ restant: total - plafond, rendus: plafond, horizontal, repli, surVue: etendreFenetre }}></div>
+           use:cale={{ restant: total - plafond, rendus: plafond, horizontal, repli, geometrie: taillePochettes, surVue: etendreFenetre }}></div>
     {/if}
   {/snippet}
   {#snippet caseVide(i: number)}
@@ -5143,6 +5189,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   /* web#1719 — les pastilles sont parties avec le bouton, dans
      `BasculeAffichage.svelte`. Ce qui reste de `.viewtog` ici ne sert plus
      qu'au re-tirage (#4558), qui en emprunte la taille et le cadre. */
+  /* web#3189 — le curseur de taille des pochettes (celui de la fiche d'une playlist). */
+  .taille-pochettes{display:inline-flex; align-items:center; gap:6px; flex:0 0 auto; color:var(--v2-txt2)}
+  .taille-pochettes svg{width:15px; height:15px}
+  .taille-pochettes input{width:110px; accent-color:var(--v2-acc2)}
   /* web#2622 — « Exporter le catalogue » : même cadre, classe à part pour que
      `.viewtog` reste la bascule d'affichage que les tests et l'écran cherchent. */
   .exportcat{width:38px; height:38px; flex:0 0 auto; border-radius:10px; cursor:pointer;
@@ -5184,7 +5234,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
   /* web#2297 — la grille des labels : des cases carrées, logo au-dessus,
      au pas de la grille des albums (`.grid`) — même colonne, même gouttière. */
-  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:22px 18px; padding:8px 30px 40px}
+  .fliste:has(.lgcase){grid-template-columns:repeat(auto-fill,minmax(var(--lib-pochette, 148px),1fr)); gap:22px 18px; padding:8px 30px 40px}
   .lgcase{position:relative; display:flex; flex-direction:column; min-width:0; border-radius:12px}
   .lgcase:hover{background:var(--v2-hover)}
   .lgouvrir{display:flex; flex-direction:column; align-items:stretch; gap:6px; min-width:0;
@@ -5332,7 +5382,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     margin:0; padding:6px 0 5px; background:var(--v2-bg); border-bottom:1px solid var(--v2-line);
     font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .yinter .yn{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+  /* web#3189 — `--lib-pochette` : la taille choisie au curseur, absente par défaut. */
+  .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(var(--lib-pochette, 148px),1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .cale-paginee{grid-column:1 / -1; flex:none; pointer-events:none}
   .paginee{overflow-anchor:none}

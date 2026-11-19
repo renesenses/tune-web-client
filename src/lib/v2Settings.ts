@@ -263,6 +263,14 @@ export const V2_SETTINGS: V2SettingsTab[] = [
         // #1427 — la correction de pièce (FIR) vit ICI : on la cherche par son nom.
         'correction de pièce', 'correction acoustique', 'correction numérique', 'room correction', 'fir', 'convolution', 'réponse impulsionnelle', 'impulse response'] },
       /**
+       * tune-server-rust#9044 — go de Bertrand le 18/11 pour la rc13 : les
+       * appareils partis du réseau restaient listés, grisés, à vie. Ici on
+       * les voit (« absent depuis… ») et on les OUBLIE, avec leur zone.
+       * Niveau débutant : c'est la question d'un testeur, pas d'un expert.
+       */
+      { id: 'absentDevices', titleKey: 'settings.absentDevices', from: 'devices', min: 'beginner',
+        keywords: ['absent', 'absents', 'oublier', 'supprimer', 'ancien', 'anciens', 'vieux', 'fantôme', 'hors ligne', 'disparu', 'old devices', 'forget', 'delete', 'remove', 'offline'] },
+      /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
        * réglages en local ! »
@@ -344,6 +352,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1',
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
+      /* Activer l'authentification : compte administrateur et mot de passe.
+       * 'beginner' : c'est ce que les refus « depuis un autre appareil »
+       * renvoient faire. */
+      { id: 'authActivation', titleKey: 'authActivation.title', from: 'system', min: 'beginner', keywords: ['authentification', 'mot de passe', 'administrateur', 'connexion', 'sécurité', 'compte', 'authentication', 'password', 'admin', 'login', 'security'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
       /* Le Wi-Fi de l'appliance Tune OS relève du réseau de la MACHINE, pas de
        * la chaîne audio : il était rangé dans l'onglet Audio, où personne ne

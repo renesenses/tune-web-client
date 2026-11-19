@@ -29,6 +29,7 @@ import {
 } from '../stores/playlists';
 import { currentZoneId, zones } from '../stores/zones';
 import { entreeParLibelle } from './aides/menuFiche';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -212,6 +213,7 @@ describe('(2) #3067 — fiche venue de la recherche / d’un widget : `editable`
     await attendreQue(() => croix().length === 2, 'les croix');
     expect(boutonEditer()).toBeUndefined();
     croix()[1].click();
+    await confirmerLaBoite();
     await souffler();
     expect(retraits()[0]?.url).toMatch(/\/streaming\/qobuz\/playlists\/q-11\/tracks\/remove$/);
     expect(retraits()[0]?.body).toEqual({ track_ids: ['4791524'] });

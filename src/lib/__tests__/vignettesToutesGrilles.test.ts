@@ -99,7 +99,8 @@ const avecVignette = (b: string) => /\svignette[\s/>]/.test(b);
 describe('câblage par écran', () => {
   it.each([
     ['src/components/v2/FavoritesV2.svelte', 5],
-    ['src/components/v2/SearchV2.svelte', 7],
+    // web#3230 — + la vignette des playlists trouvées.
+    ['src/components/v2/SearchV2.svelte', 8],
     ['src/components/v2/CollectionsV2.svelte', 2],
     ['src/components/v2/PlaylistsV2.svelte', 1],
     ['src/components/v2/PageWidgets.svelte', 3],

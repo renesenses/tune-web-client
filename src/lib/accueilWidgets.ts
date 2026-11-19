@@ -701,11 +701,18 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
   // Qobuz pour des albums de la bibliothèque — d'où le crayon et les
   // étiquettes sur les uns et pas sur les autres.
   const idLocal = idLocalValide(o?.album_id) ?? (dist ? null : idLocalValide(o?.id));
-  if (idLocal == null && !(svc && dist)) return {};
+  // web#3234 (fil 2864, point 15) — l'ALBUM d'une ligne d'historique de
+  // service, quand le serveur le connaît. Sans lui, une écoute Qobuz de
+  // « Récemment écoutés » (piste : `source_id` = la piste) tombait dans la
+  // garde « une piste n'ouvre pas un album » ci-dessous : pas de fiche, donc
+  // ni cœur, ni « … », ni étiquette sur la vignette, là où l'écoute locale
+  // (qui porte `album_id`) les a.
+  const albumSvc = svc && idLocal == null ? albumDeLigneDeService(o) : null;
+  if (idLocal == null && !albumSvc && !(svc && dist)) return {};
   // Un identifiant qui désigne une PLAYLIST n'ouvre pas plus un album qu'un
   // identifiant de piste.
-  if (idLocal == null && dist && dist.genre !== 'album') return {};
-  const sid = dist?.id ?? null;
+  if (idLocal == null && !albumSvc && dist && dist.genre !== 'album') return {};
+  const sid = albumSvc ?? dist?.id ?? null;
 
   /**
    * 🔴 Un identifiant de PISTE n'ouvre pas un album.
@@ -732,7 +739,7 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
    *  - un `album_title` different du `title` : le titre de l'objet est celui
    *    d'une piste, pas d'un album.
    */
-  if (idLocal == null) {
+  if (idLocal == null && !albumSvc) {
     const titre = champ(o, 'title');
     const titreAlbum = champ(o, 'album_title');
     const estUnePiste =
@@ -814,6 +821,25 @@ function estProvenanceBibliotheque(source: string | null | undefined): boolean {
 /** Le service de streaming à qui parler — jamais une provenance de bibliothèque. */
 function serviceDistant(service: string | null): string | null {
   return service && !estProvenanceBibliotheque(service) ? service : null;
+}
+
+/**
+ * web#3234 — l'identifiant de l'ALBUM chez le service, pour une ligne
+ * d'historique ou de file qui désigne une piste :
+ *  - `album_id_service`, que `/library/history` sert depuis
+ *    tune-server-rust#7778 (rc11) ;
+ *  - sinon `context_id` quand l'écoute était celle d'un album
+ *    (`context_type === 'album'`), comme le rejoue `gesteHistorique`.
+ * Ni l'un ni l'autre : `null`, et l'on ne devine pas (05/09/2026).
+ */
+function albumDeLigneDeService(o: any): string | null {
+  const a = champ(o, 'album_id_service');
+  if (a) return a.trim();
+  if (o?.context_type === 'album') {
+    const ctx = champ(o, 'context_id');
+    if (ctx) return ctx.trim();
+  }
+  return null;
 }
 
 function idDistant(o: any): { id: string; genre: string } | null {

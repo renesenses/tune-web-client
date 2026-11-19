@@ -46,6 +46,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import RemplacerIndisponibleModale from './RemplacerIndisponibleModale.svelte';
@@ -459,6 +460,24 @@
     if (issue.ok) onChanged?.();
   }
 
+  /**
+   * web#3245 (Régis, fil 2941) — la croix « Retirer » d'une vignette (vue en
+   * pochettes) se touchait par mégarde, et le retrait partait aussitôt. Elle
+   * demande désormais confirmation, dans la boîte du client (jamais un
+   * dialogue natif, #166) : le message nomme le titre et son album, « Annuler »
+   * est le bouton par défaut, Échap annule. La croix de la vue en liste est le
+   * MÊME fragment (`suffixe`) : même règle. Confirmé, le retrait est inchangé.
+   */
+  function confirmerRetrait(t: Track): Promise<boolean> {
+    const titre = t.title ?? '';
+    const album = t.album_title && !estLigneRadio(t) ? t.album_title : '';
+    const message = $tr((album ? 'v2.pl.confirmRemoveAlbum' : 'v2.pl.confirmRemove') as any)
+      .replace('{title}', () => titre)
+      .replace('{album}', () => album)
+      .replace('{playlist}', () => item.pl.name ?? '');
+    return dialogs.confirm(message, { danger: true, annulerParDefaut: true, valider: $tr('v2.pl.remove' as any) });
+  }
+
   /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
   let retraitService = $state(false);
   async function retirerDuService(t: Track) {
@@ -825,12 +844,12 @@
           </button>
         {/if}
         {#if isLocal}
-          <button class="rm retrait-titre" data-retirer-titre onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+          <button class="rm retrait-titre" data-retirer-titre onclick={async () => { if (await confirmerRetrait(_t)) void removeAt(rangReel(_t)); }} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         {:else if aMoiChezLeService}
-          <button class="rm retrait-service" data-retirer-titre onclick={() => retirerDuService(_t)} disabled={retraitService}
+          <button class="rm retrait-service" data-retirer-titre onclick={async () => { if (await confirmerRetrait(_t)) void retirerDuService(_t); }} disabled={retraitService}
             aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
             title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>

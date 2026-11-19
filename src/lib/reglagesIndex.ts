@@ -102,6 +102,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'appareils-reseau', section: 'netDevices', labelKey: 'settings.networkDevices', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast', 'PIN'] },
   { id: 'vider-appareils', section: 'netDevices', labelKey: 'settings.clearDevices' },
   { id: 'appareils-ignores', section: 'ignoredDevices', labelKey: 'settings.ignoredDevices', descKey: 'settings.ignoredDevicesIntro' },
+  { id: 'appareils-absents', section: 'absentDevices', labelKey: 'settings.absentDevices', descKey: 'settings.absentDevicesIntro', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
   { id: 'squeezebox-actif', section: 'squeezebox', labelKey: 'settings.squeezeboxEnabled', descKey: 'settings.squeezeboxHint', techniques: ['Squeezebox', 'LMS', 'Lyrion'] },
   { id: 'annonce-slimproto', section: 'squeezebox', labelKey: 'settings.slimprotoAnnonce', descKey: 'settings.slimprotoAnnonceHint', techniques: ['Slimproto', 'Home Assistant'] },
   { id: 'serveur-lms', section: 'squeezebox', labelKey: 'settings.squeezeboxLmsHost', techniques: ['LMS', 'Lyrion'] },
@@ -190,6 +191,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'zone-debit-max', section: 'perZone', labelKey: 'settings.maxSampleRate', descKey: 'settings.maxSampleRateHint', techniques: ['kHz', 'sample rate'], min: 'intermediate' },
   { id: 'zone-frequence-fixe', section: 'perZone', labelKey: 'settings.fixedSampleRate', descKey: 'settings.fixedSampleRateHint', techniques: ['kHz', 'sample rate', 'SRC', 'PCM'], min: 'intermediate' },
   { id: 'zone-mode-exclusif', section: 'perZone', labelKey: 'settings.zoneExclusiveMode', descKey: 'settings.zoneExclusiveHint', techniques: ['WASAPI', 'ASIO', 'ALSA', 'exclusive'], min: 'intermediate' },
+  { id: 'zone-periode-wasapi', section: 'perZone', labelKey: 'settings.wasapiPeriod', descKey: 'settings.wasapiPeriodHint', techniques: ['WASAPI', 'exclusive', 'buffer', 'period'], min: 'intermediate' },
   { id: 'zone-decalage-paroles', section: 'perZone', labelKey: 'settings.lyricsOffset', techniques: ['lyrics'], min: 'intermediate' },
   { id: 'zone-volume-fixe', section: 'perZone', labelKey: 'v2.lbl.fixedVolume', techniques: ['100'], min: 'intermediate' },
   { id: 'zone-mono', section: 'perZone', labelKey: 'zoneConfig.monoTitle', descKey: 'zoneConfig.monoDesc', techniques: ['mono', 'downmix'], min: 'intermediate' },
@@ -242,6 +244,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'adresses-acces', section: 'accessFrom', labelKey: 'settings.accessFromDevice', descKey: 'v2.hint.lanAddresses', techniques: ['URL', 'IP', 'LAN'] },
 
   // ── Système ──────────────────────────────────────────────────────────
+  { id: 'activation-authentification', section: 'authActivation', labelKey: 'authActivation.title', descKey: 'authActivation.intro', techniques: ['auth', 'password', 'login', 'admin'] },
   { id: 'version-mises-a-jour', section: 'about', labelKey: 'settings.updates', termesKey: 'reglages.termes.versionMisesAJour', techniques: ['update', 'version'] },
   { id: 'nouveautes', section: 'about', labelKey: 'whatsnew.title', techniques: ['changelog', 'release notes'] },
   { id: 'doc-api', section: 'about', labelKey: 'settings.apiDocs', techniques: ['API', 'REST'], min: 'expert' },
