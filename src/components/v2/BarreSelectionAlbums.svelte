@@ -20,7 +20,6 @@
    *   barre de l'écran Métadonnées. Il ÉCRASE des valeurs : confirmation par
    *   `dialogs.confirm`, Annuler par défaut.
    */
-  import { onDestroy } from 'svelte';
   import * as api from '../../lib/api';
   import { t, tn } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -31,6 +30,7 @@
   import { demanderConversion } from '../../lib/demandeConversion';
   import { mettreAJourAlbums, invaliderBibliotheque } from '../../lib/stores/albumsPagines';
   import { etatGreffons, entreeStudioVisible } from '../../lib/stores/greffonsStudio';
+  import { fileSelection, enfilerAlbums, arreterFile } from '../../lib/fileSelectionAlbums';
   import type { UserTag } from '../../lib/types';
 
   type Panneau = 'tag' | 'edition' | null;
@@ -143,48 +143,37 @@
 
   // ── File ─────────────────────────────────────────────────────────────
   /**
-   * Un album après l'autre (la file garde l'ordre affiché), avec sa
-   * progression. Un échec n'arrête pas la suite ; « Annuler », « Terminé »
-   * ou la barre démontée arrêtent la boucle (`AbortController`) après l'album
-   * en cours. `travail` empêche un second ajout de s'entrelacer.
+   * La boucle vit dans `lib/fileSelectionAlbums` : masquer la barre (changer
+   * d'onglet) ne l'arrête pas ; « Arrêter » et « Terminé » seuls l'arrêtent.
+   * La barre remontée relit la progression.
    */
-  let file = $state<{ fait: number; total: number; echecs: number } | null>(null);
-  let controleur: AbortController | null = null;
-  onDestroy(() => controleur?.abort());
+  const file = $derived($fileSelection);
+  const fileOccupee = $derived(file != null);
 
   async function enfiler() {
     const lot = [...ids];
-    if (!lot.length || travail) return;
+    if (!lot.length || travail || fileOccupee) return;
     travail = true;
+    let zid: number | null = null;
     try {
       if (!(await confirmerHorsVue(lot.length))) return;
-      const zid = zoneRequise();
-      if (zid == null) return;
-      const textes = {
-        fait: $t('bibliotheque.selection.queueDone' as any),
-        partiel: $t('bibliotheque.selection.queuePartial' as any),
-        arrete: $t('bibliotheque.selection.queueStopped' as any),
-      };
-      const c = new AbortController();
-      controleur = c;
-      let ok = 0;
-      let ko = 0;
-      file = { fait: 0, total: lot.length, echecs: 0 };
-      for (const id of lot) {
-        if (c.signal.aborted) break;
-        try { await api.addToQueue(zid, { album_id: id }); ok++; } catch { ko++; }
-        file = { fait: ok + ko, total: lot.length, echecs: ko };
-      }
-      const arrete = c.signal.aborted && ok + ko < lot.length;
-      if (controleur === c) controleur = null;
-      file = null;
-      const remplir = (m: string) => m.replace('{k}', String(ok)).replace('{n}', String(lot.length)).replace('{x}', String(ko));
-      if (arrete) notifications.info(remplir(textes.arrete));
-      else if (ko > 0) notifications.error(remplir(textes.partiel));
-      else notifications.success(remplir(textes.fait));
+      zid = zoneRequise();
     } finally {
       travail = false;
     }
+    if (zid == null) return;
+    const textes = {
+      fait: $t('bibliotheque.selection.queueDone' as any),
+      partiel: $t('bibliotheque.selection.queuePartial' as any),
+      arrete: $t('bibliotheque.selection.queueStopped' as any),
+    };
+    const z = zid;
+    const bilan = await enfilerAlbums(lot, (id) => api.addToQueue(z, { album_id: id }));
+    if (!bilan) return;
+    const remplir = (m: string) => m.replace('{k}', String(bilan.ajoutes)).replace('{n}', String(bilan.total)).replace('{x}', String(bilan.echecs));
+    if (bilan.arrete) notifications.info(remplir(textes.arrete));
+    else if (bilan.echecs > 0) notifications.error(remplir(textes.partiel));
+    else notifications.success(remplir(textes.fait));
   }
 
   // ── Playlist ─────────────────────────────────────────────────────────
@@ -192,14 +181,15 @@
     const lot = [...ids];
     if (!lot.length || travail) return;
     if (!(await confirmerHorsVue(lot.length))) return;
-    const partiel = $t('bibliotheque.selection.playlistPartial' as any);
+    const pluriel = $tn;
+    const partielN = (x: number) => pluriel('bibliotheque.selection.playlistPartial', x);
     demandeAjoutPlaylist.set({
       nom: $tn('bibliotheque.selection.count', lot.length),
       pistes: async () => {
         const r = await api.getAlbumTracksBatch(lot);
         // Un album illisible n'empêche pas les autres, mais on le DIT.
         if (r.failedAlbums > 0) {
-          notifications.error(partiel.replace('{x}', String(r.failedAlbums)).replace('{n}', String(lot.length)));
+          notifications.error(partielN(r.failedAlbums).replace('{total}', String(lot.length)));
         }
         return r.tracks;
       },
@@ -267,7 +257,10 @@
       //   pas lesquels ;
       // - l'artiste a changé : le serveur résout un `artist_id` que la
       //   réponse ne rend pas, et la carte mènerait à l'ancien artiste.
-      if (misAJour >= sur && c.updates.artist_name == null) mettreAJourAlbums(lot, c.updates);
+      // - le genre a changé : le serveur réécrit aussi `genres` (la liste
+      //   multiple, que lisent les regroupements) et le recopie sur les
+      //   pistes — un report de `genre` seul laisserait la grille fausse.
+      if (misAJour >= sur && c.updates.artist_name == null && c.updates.genre == null) mettreAJourAlbums(lot, c.updates);
       else invaliderBibliotheque();
       notifications.success(succes.replace('{updated}', String(misAJour)).replace('{total}', String(sur)));
       genre = ''; annee = ''; artiste = ''; label = ''; compilation = '';
@@ -291,21 +284,21 @@
       </button>
     {/if}
     <span class="espace"></span>
-    <button class="v2-btn" data-selection-action="tag" aria-expanded={panneau === 'tag'} onclick={() => basculer('tag')} disabled={vide || travail}>
+    <button class="v2-btn" data-selection-action="tag" aria-expanded={panneau === 'tag'} onclick={() => basculer('tag')} disabled={vide || travail || fileOccupee}>
       {$t('bibliotheque.selection.addTag' as any)}
     </button>
-    <button class="v2-btn" data-selection-action="file" onclick={enfiler} disabled={vide || travail}>
+    <button class="v2-btn" data-selection-action="file" onclick={enfiler} disabled={vide || travail || fileOccupee}>
       {$t('bibliotheque.selection.queue' as any)}
     </button>
-    <button class="v2-btn" data-selection-action="playlist" onclick={versPlaylist} disabled={vide || travail}>
+    <button class="v2-btn" data-selection-action="playlist" onclick={versPlaylist} disabled={vide || travail || fileOccupee}>
       {$t('bibliotheque.selection.playlist' as any)}
     </button>
     {#if convertisseur}
-      <button class="v2-btn" data-selection-action="convertir" onclick={convertir} disabled={vide || travail}>
+      <button class="v2-btn" data-selection-action="convertir" onclick={convertir} disabled={vide || travail || fileOccupee}>
         {$t('bibliotheque.selection.convert' as any)}
       </button>
     {/if}
-    <button class="v2-btn" data-selection-action="edition" aria-expanded={panneau === 'edition'} onclick={() => basculer('edition')} disabled={vide || travail}>
+    <button class="v2-btn" data-selection-action="edition" aria-expanded={panneau === 'edition'} onclick={() => basculer('edition')} disabled={vide || travail || fileOccupee}>
       {$t('bibliotheque.selection.edit' as any)}
     </button>
     <button class="v2-btn primaire" data-selection-terminer onclick={onTerminer}>
@@ -317,7 +310,7 @@
     <div class="panneau" data-selection-file role="status">
       <progress max={file.total} value={file.fait}></progress>
       <span>{$t('bibliotheque.selection.queueProgress' as any).replace('{k}', String(file.fait)).replace('{n}', String(file.total))}</span>
-      <button class="v2-btn" data-selection-file-annuler onclick={() => controleur?.abort()}>{$t('bibliotheque.selection.queueCancel' as any)}</button>
+      <button class="v2-btn" data-selection-file-annuler onclick={arreterFile}>{$t('bibliotheque.selection.queueCancel' as any)}</button>
     </div>
   {/if}
 

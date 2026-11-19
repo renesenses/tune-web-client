@@ -8272,8 +8272,8 @@ export default {
   "bibliotheque.selection.queueCancel": "Leállítás",
   "bibliotheque.selection.queuePartial": "{k} / {n} hozzáadva a sorhoz, {x} sikertelen",
   "bibliotheque.selection.queueStopped": "Leállítva: {k} / {n} hozzáadva a sorhoz",
-  "bibliotheque.selection.playlistPartial": "{x} / {n} album nem olvasható: hiányoznak a számai.",
-  "bibliotheque.selection.editGenreScope": "A műfaj csak az albumra vonatkozik, a számaira nem.",
+  "bibliotheque.selection.playlistPartial": "{total} albumból {n, plural, one {# nem olvasható: hiányoznak a számai.} other {# nem olvasható: hiányoznak a számaik.}}",
+  "bibliotheque.selection.editGenreScope": "A műfaj az album számaira is átkerül, kivéve az olyan válogatást, amelynek számai különböző műfajúak.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -8312,6 +8312,6 @@ export default {
   "bibliotheque.selection.queueCancel": "Stoppa",
   "bibliotheque.selection.queuePartial": "{k} av {n} tillagda i kön, {x} misslyckades",
   "bibliotheque.selection.queueStopped": "Stoppat: {k} av {n} tillagda i kön",
-  "bibliotheque.selection.playlistPartial": "{x} av {n} album kunde inte läsas: deras spår saknas.",
-  "bibliotheque.selection.editGenreScope": "Genren gäller bara albumet, inte dess spår.",
+  "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunde # inte läsas: dess spår saknas.} other {kunde # inte läsas: deras spår saknas.}}",
+  "bibliotheque.selection.editGenreScope": "Genren kopieras också till albumets spår, utom för ett samlingsalbum vars spår har olika genrer.",
 } as const;

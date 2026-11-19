@@ -23,6 +23,7 @@ import { currentZoneId } from '../stores/zones';
 import { dialogs } from '../stores/dialogs';
 import { notifications } from '../stores/notifications';
 import { demandeAjoutPlaylist } from '../demandeAjoutPlaylist';
+import { _remiseAZeroFile } from '../fileSelectionAlbums';
 import { locale } from '../i18n';
 import { cliquerAlbum, idsDansLOrdre, toutSelectionner, SELECTION_VIDE, horsDeLaVue, gesteEchap } from '../selectionAlbums';
 import { consommerDemandeConversion } from '../demandeConversion';
@@ -102,6 +103,7 @@ beforeEach(() => {
   consommerDemandeConversion();
   appels = [];
   surcharge = null;
+  _remiseAZeroFile();
   for (const n of get(notifications)) notifications.dismiss(n.id);
   for (const d of get(dialogs)) dialogs.settle(d.id, false);
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
@@ -477,7 +479,7 @@ describe('web#3258 relecture — « Modifier en lot » reporte en une passe', ()
     await laisser(8);
   }
 
-  it('🔴 tout mis à jour : le genre est reporté dans la liste en UNE émission', async () => {
+  it('🔴 tout mis à jour : le label est reporté dans la liste en UNE émission', async () => {
     const el = await poserBibliotheque();
     await entrerEnSelection(el);
     await cliquer(caseDe(el, 1));
@@ -485,11 +487,11 @@ describe('web#3258 relecture — « Modifier en lot » reporte en une passe', ()
     let emissions = 0;
     const stop = albumsStore.subscribe(() => { emissions++; });
     emissions = 0;
-    await editer(el, 'genre', 'Hard bop');
+    await editer(el, 'label', 'Blue Note');
     stop();
     expect(emissions, 'une émission par album au lieu d’une seule').toBe(1);
     const liste = get(albumsStore);
-    expect(liste.filter((a) => a.genre === 'Hard bop').map((a) => a.id).sort()).toEqual([1, 4]);
+    expect(liste.filter((a) => a.label === 'Blue Note').map((a) => a.id).sort()).toEqual([1, 4]);
   });
 
   // La bibliothèque relue, telle que le serveur la rend APRÈS la modification.
@@ -528,6 +530,102 @@ describe('web#3258 relecture — « Modifier en lot » reporte en une passe', ()
     expect(relectures()).toBeGreaterThan(avant);
     expect(get(albumsStore).find((a) => a.id === 1)?.artist_id).toBe(99);
     relue = null;
+  });
+});
+
+describe('web#3258 relecture de suivi — genre, Échap masqué, file hors de la barre', () => {
+  async function editerGenre(el: HTMLElement, valeur: string) {
+    await cliquer(q(el, '[data-selection-action="edition"]'));
+    const c = q<HTMLInputElement>(el, '[data-champ="genre"]')!;
+    c.value = valeur;
+    c.dispatchEvent(new Event('input', { bubbles: true }));
+    q<HTMLFormElement>(el, '[data-selection-panneau="edition"]')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await laisser(4);
+    dialogs.settle(get(dialogs)[0].id, true);
+    await laisser(12);
+  }
+  const relectures = () => appels.filter((a) => a.methode === 'GET' && /\/library\/albums\?limit=/.test(a.url)).length;
+
+  it('🔴 A — l’aide dit que le genre est recopié sur les pistes (sauf compilation hétérogène)', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(q(el, '[data-selection-action="edition"]'));
+    const texte = q(el, '[data-selection-panneau="edition"]')!.textContent ?? '';
+    expect(texte).toContain('recopié sur les pistes');
+    expect(texte).toContain('compilation');
+    expect(texte).not.toContain('album seulement');
+  });
+
+  it('🔴 B — un genre changé relit la bibliothèque : `genres` (que lisent les regroupements) suit', async () => {
+    const el = await poserBibliotheque();
+    const relue = ALBUMS.map((a) => (a.id === 1 || a.id === 4 ? { ...a, genre: 'Hard bop', genres: 'Hard bop' } : a));
+    surcharge = (url) => (/\/library\/albums\?limit=/.test(url) ? reponse(relue) : null);
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    await cliquer(caseDe(el, 4));
+    const avant = relectures();
+    await editerGenre(el, 'Hard bop');
+    expect(relectures(), 'genre changé sans relecture').toBeGreaterThan(avant);
+    expect(get(albumsStore).filter((a) => (a as any).genres === 'Hard bop').map((a) => a.id).sort()).toEqual([1, 4]);
+  });
+
+  it('🔴 C — Échap sur un onglet sans cases ne vide pas la sélection masquée', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 3));
+    await cliquer(q(el, 'button[data-onglet="artists"]'));
+    await laisser(8);
+    expect(barre(el)).toBeNull();
+    echap();
+    await laisser(4);
+    await cliquer(q(el, 'button[data-onglet="albums"]'));
+    await laisser(8);
+    expect(barre(el), 'le mode a été quitté en silence').not.toBeNull();
+    expect(cochees(el)).toEqual([3]);
+  });
+
+  it('🔴 D — changer d’onglet n’arrête pas l’ajout à la file ; le retour montre la progression', async () => {
+    const el = await poserBibliotheque();
+    const enAttente: Array<() => void> = [];
+    surcharge = (url, methode) =>
+      (methode === 'POST' && /queue\/add/.test(url)
+        ? new Promise<Response>((ok) => enAttente.push(() => ok(reponse({ queue_length: 1 }))))
+        : null);
+    await entrerEnSelection(el);
+    for (const id of [3, 4, 1]) await cliquer(caseDe(el, id));
+    await cliquer(q(el, '[data-selection-action="file"]'));
+    await laisser(4);
+    await cliquer(q(el, 'button[data-onglet="artists"]'));
+    await laisser(8);
+    enAttente.shift()!();
+    await laisser(8);
+    const ajouts = () => appels.filter((a) => a.methode === 'POST' && /queue\/add/.test(a.url)).length;
+    expect(ajouts(), 'la boucle s’est arrêtée au changement d’onglet').toBe(2);
+    await cliquer(q(el, 'button[data-onglet="albums"]'));
+    await laisser(8);
+    expect(q(el, '[data-selection-file]')?.textContent).toContain('1 / 3');
+    enAttente.shift()!();
+    await laisser(6);
+    enAttente.shift()!();
+    await laisser(8);
+    expect(ajouts()).toBe(3);
+    expect(messages()).toContain('Sélection ajoutée à la file (3)');
+  });
+
+  it('E — un menu « … » ouvert : Échap est pour lui, pas pour le mode', async () => {
+    const el = await poserBibliotheque();
+    await entrerEnSelection(el);
+    await cliquer(caseDe(el, 1));
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.appendChild(menu);
+    echap();
+    await laisser(4);
+    menu.remove();
+    expect(barre(el)).not.toBeNull();
+    expect(cochees(el)).toEqual([1]);
   });
 });
 
@@ -592,7 +690,7 @@ describe('web#3258 relecture — erreurs partielles', () => {
     const demande = get(demandeAjoutPlaylist);
     expect(demande?.pistes).toBeTypeOf('function');
     await demande!.pistes!();
-    expect(messages()).toContain('1 albums sur 2 n’ont pas pu être lus : leurs pistes manquent.');
+    expect(messages()).toContain('Sur 2 albums, 1 n’a pas pu être lu : ses pistes manquent.');
     demandeAjoutPlaylist.set(null);
   });
 });

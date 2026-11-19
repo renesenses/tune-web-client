@@ -8313,8 +8313,8 @@ export default {
   "bibliotheque.selection.queueCancel": "Detener",
   "bibliotheque.selection.queuePartial": "{k} de {n} añadidos a la cola, {x} con error",
   "bibliotheque.selection.queueStopped": "Detenido: {k} de {n} añadidos a la cola",
-  "bibliotheque.selection.playlistPartial": "No se pudieron leer {x} de {n} álbumes: faltan sus pistas.",
-  "bibliotheque.selection.editGenreScope": "El género se aplica solo al álbum, no a sus pistas.",
+  "bibliotheque.selection.playlistPartial": "De {total} álbumes, {n, plural, one {# no se pudo leer: faltan sus pistas.} other {# no se pudieron leer: faltan sus pistas.}}",
+  "bibliotheque.selection.editGenreScope": "El género también se copia a las pistas del álbum, salvo en un recopilatorio cuyas pistas tienen géneros distintos.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

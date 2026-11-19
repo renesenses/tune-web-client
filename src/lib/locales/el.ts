@@ -8158,7 +8158,7 @@ export default {
   "bibliotheque.selection.queueCancel": "Διακοπή",
   "bibliotheque.selection.queuePartial": "{k} από {n} προστέθηκαν στην ουρά, {x} απέτυχαν",
   "bibliotheque.selection.queueStopped": "Διακόπηκε: {k} από {n} προστέθηκαν στην ουρά",
-  "bibliotheque.selection.playlistPartial": "{x} από {n} άλμπουμ δεν διαβάστηκαν: λείπουν τα κομμάτια τους.",
-  "bibliotheque.selection.editGenreScope": "Το είδος ισχύει μόνο για το άλμπουμ, όχι για τα κομμάτια του.",
+  "bibliotheque.selection.playlistPartial": "Από {total} άλμπουμ, {n, plural, one {# δεν διαβάστηκε: λείπουν τα κομμάτια του.} other {# δεν διαβάστηκαν: λείπουν τα κομμάτια τους.}}",
+  "bibliotheque.selection.editGenreScope": "Το είδος αντιγράφεται και στα κομμάτια του άλμπουμ, εκτός από συλλογή με κομμάτια διαφορετικών ειδών.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

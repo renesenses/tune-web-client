@@ -8313,8 +8313,8 @@ export default {
   "bibliotheque.selection.queueCancel": "停止",
   "bibliotheque.selection.queuePartial": "已将 {k} / {n} 添加到队列，{x} 个失败",
   "bibliotheque.selection.queueStopped": "已停止：已将 {k} / {n} 添加到队列",
-  "bibliotheque.selection.playlistPartial": "{n} 张专辑中有 {x} 张无法读取：缺少其曲目。",
-  "bibliotheque.selection.editGenreScope": "流派仅作用于专辑，不作用于其曲目。",
+  "bibliotheque.selection.playlistPartial": "{total} 张专辑中{n, plural, other {有 # 张无法读取：缺少其曲目。}}",
+  "bibliotheque.selection.editGenreScope": "流派也会复制到专辑的曲目上，曲目流派各不相同的合辑除外。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

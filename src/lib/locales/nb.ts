@@ -8158,7 +8158,7 @@ export default {
   "bibliotheque.selection.queueCancel": "Stopp",
   "bibliotheque.selection.queuePartial": "{k} av {n} lagt til i køen, {x} mislyktes",
   "bibliotheque.selection.queueStopped": "Stoppet: {k} av {n} lagt til i køen",
-  "bibliotheque.selection.playlistPartial": "{x} av {n} album kunne ikke leses: sporene mangler.",
-  "bibliotheque.selection.editGenreScope": "Sjangeren gjelder bare albumet, ikke sporene.",
+  "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunne # ikke leses: sporene mangler.} other {kunne # ikke leses: sporene mangler.}}",
+  "bibliotheque.selection.editGenreScope": "Sjangeren kopieres også til albumets spor, unntatt for et samlealbum der sporene har ulike sjangre.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

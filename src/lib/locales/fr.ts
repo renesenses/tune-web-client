@@ -8335,8 +8335,8 @@ export default {
   "bibliotheque.selection.queueCancel": "Arrêter l’ajout",
   "bibliotheque.selection.queuePartial": "{k} sur {n} ajoutés à la file, {x} en échec",
   "bibliotheque.selection.queueStopped": "Ajout arrêté : {k} sur {n} ajoutés à la file",
-  "bibliotheque.selection.playlistPartial": "{x} albums sur {n} n’ont pas pu être lus : leurs pistes manquent.",
-  "bibliotheque.selection.editGenreScope": "Le genre s’applique à l’album seulement, pas à ses pistes.",
+  "bibliotheque.selection.playlistPartial": "Sur {total} albums, {n, plural, one {# n’a pas pu être lu : ses pistes manquent.} other {# n’ont pas pu être lus : leurs pistes manquent.}}",
+  "bibliotheque.selection.editGenreScope": "Le genre est aussi recopié sur les pistes de l’album, sauf pour une compilation dont les pistes ont des genres différents.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

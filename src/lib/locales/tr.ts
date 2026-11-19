@@ -8137,7 +8137,7 @@ export default {
   "bibliotheque.selection.queueCancel": "Durdur",
   "bibliotheque.selection.queuePartial": "{n} albümden {k} tanesi kuyruğa eklendi, {x} başarısız",
   "bibliotheque.selection.queueStopped": "Durduruldu: {n} albümden {k} tanesi kuyruğa eklendi",
-  "bibliotheque.selection.playlistPartial": "{n} albümden {x} tanesi okunamadı: parçaları eksik.",
-  "bibliotheque.selection.editGenreScope": "Tür yalnızca albüme uygulanır, parçalarına değil.",
+  "bibliotheque.selection.playlistPartial": "{total} albümden {n, plural, one {# tanesi okunamadı: parçaları eksik.} other {# tanesi okunamadı: parçaları eksik.}}",
+  "bibliotheque.selection.editGenreScope": "Tür, parçalarının türleri farklı olan bir derleme dışında, albümün parçalarına da kopyalanır.",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

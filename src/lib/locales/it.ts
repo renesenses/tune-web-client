@@ -8313,8 +8313,8 @@ export default {
   "bibliotheque.selection.queueCancel": "Interrompi",
   "bibliotheque.selection.queuePartial": "{k} su {n} aggiunti alla coda, {x} non riusciti",
   "bibliotheque.selection.queueStopped": "Interrotto: {k} su {n} aggiunti alla coda",
-  "bibliotheque.selection.playlistPartial": "{x} album su {n} non sono stati letti: mancano le loro tracce.",
-  "bibliotheque.selection.editGenreScope": "Il genere si applica solo all’album, non alle sue tracce.",
+  "bibliotheque.selection.playlistPartial": "Su {total} album, {n, plural, one {# non è stato letto: mancano le sue tracce.} other {# non sono stati letti: mancano le loro tracce.}}",
+  "bibliotheque.selection.editGenreScope": "Il genere viene copiato anche sulle tracce dell’album, tranne per una compilation le cui tracce hanno generi diversi.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

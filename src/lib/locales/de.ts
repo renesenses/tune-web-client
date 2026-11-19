@@ -8313,8 +8313,8 @@ export default {
   "bibliotheque.selection.queueCancel": "Hinzufügen stoppen",
   "bibliotheque.selection.queuePartial": "{k} von {n} zur Warteschlange hinzugefügt, {x} fehlgeschlagen",
   "bibliotheque.selection.queueStopped": "Hinzufügen gestoppt: {k} von {n} zur Warteschlange hinzugefügt",
-  "bibliotheque.selection.playlistPartial": "{x} von {n} Alben konnten nicht gelesen werden: ihre Titel fehlen.",
-  "bibliotheque.selection.editGenreScope": "Das Genre gilt nur für das Album, nicht für seine Titel.",
+  "bibliotheque.selection.playlistPartial": "Von {total} Alben {n, plural, one {konnte # nicht gelesen werden: seine Titel fehlen.} other {konnten # nicht gelesen werden: ihre Titel fehlen.}}",
+  "bibliotheque.selection.editGenreScope": "Das Genre wird auch auf die Titel des Albums übertragen, außer bei einer Compilation, deren Titel verschiedene Genres haben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

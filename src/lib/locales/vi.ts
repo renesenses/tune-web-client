@@ -8165,7 +8165,7 @@ export default {
   "bibliotheque.selection.queueCancel": "Dừng",
   "bibliotheque.selection.queuePartial": "Đã thêm {k} / {n} vào hàng đợi, {x} lỗi",
   "bibliotheque.selection.queueStopped": "Đã dừng: đã thêm {k} / {n} vào hàng đợi",
-  "bibliotheque.selection.playlistPartial": "Không đọc được {x} / {n} album: thiếu các bài của chúng.",
-  "bibliotheque.selection.editGenreScope": "Thể loại chỉ áp dụng cho album, không áp dụng cho các bài.",
+  "bibliotheque.selection.playlistPartial": "Trong {total} album, {n, plural, other {# album không đọc được: thiếu các bài của chúng.}}",
+  "bibliotheque.selection.editGenreScope": "Thể loại cũng được chép sang các bài của album, trừ tuyển tập có các bài khác thể loại.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

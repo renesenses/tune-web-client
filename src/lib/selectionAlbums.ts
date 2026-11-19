@@ -90,7 +90,10 @@ export function horsDeLaVue(sel: SelectionAlbums, ordre: readonly number[]): num
 export type GesteEchap = 'rien' | 'panneau' | 'quitter';
 
 /** Une fenêtre ou un dialogue est-il ouvert (au-dessus de la Bibliothèque) ? */
-const SELECTEUR_FENETRE = '.modal-backdrop, [aria-modal="true"], [role="dialog"], [role="alertdialog"], dialog[open]';
+// `[role="menu"]` : un menu « … » d'album ouvert (`MenuObjetV2`) se ferme à
+// Échap par son propre écouteur, posé APRÈS celui de l'écran — sans cette
+// ligne, le même Échap refermait le menu ET quittait le mode.
+const SELECTEUR_FENETRE = '.modal-backdrop, [aria-modal="true"], [role="dialog"], [role="alertdialog"], [role="menu"], dialog[open]';
 
 function champDeSaisie(el: Element | null): boolean {
   if (!el) return false;
@@ -107,9 +110,9 @@ function champDeSaisie(el: Element | null): boolean {
  * web#3258 (relecture du 19/11) — Échap ne quitte le mode sélection que s'il
  * n'y a RIEN d'autre à fermer :
  * - un autre écouteur l'a déjà consommé (`defaultPrevented`) ;
- * - une confirmation attend (`dialogs`), ou une fenêtre est ouverte (« Ajouter
- *   à une playlist » ferme la sienne sans `preventDefault`) — Échap est pour
- *   elle ;
+ * - une confirmation attend (`dialogs`), une fenêtre ou un menu est ouvert
+ *   (« Ajouter à une playlist » ferme la sienne sans `preventDefault`) —
+ *   Échap est pour eux ;
  * - un panneau de la barre est ouvert : Échap le ferme, lui seulement ;
  * - le focus est dans un champ de saisie (la recherche) : Échap y reste.
  */

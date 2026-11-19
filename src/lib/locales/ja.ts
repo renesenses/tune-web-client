@@ -8313,8 +8313,8 @@ export default {
   "bibliotheque.selection.queueCancel": "停止",
   "bibliotheque.selection.queuePartial": "{n} 枚中 {k} 枚をキューに追加、{x} 枚は失敗",
   "bibliotheque.selection.queueStopped": "停止しました：{n} 枚中 {k} 枚をキューに追加",
-  "bibliotheque.selection.playlistPartial": "{n} 枚中 {x} 枚のアルバムを読み込めませんでした。それらのトラックは含まれません。",
-  "bibliotheque.selection.editGenreScope": "ジャンルはアルバムにのみ適用され、トラックには適用されません。",
+  "bibliotheque.selection.playlistPartial": "{total} 枚のアルバムのうち{n, plural, other { # 枚を読み込めませんでした。それらのトラックは含まれません。}}",
+  "bibliotheque.selection.editGenreScope": "ジャンルはアルバムのトラックにもコピーされます（トラックのジャンルが異なるコンピレーションを除く）。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

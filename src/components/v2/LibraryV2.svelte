@@ -176,6 +176,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     horsDeLaVue, gesteEchap, type SelectionAlbums,
   } from '../../lib/selectionAlbums';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { arreterFile } from '../../lib/fileSelectionAlbums';
   import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
@@ -841,7 +842,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     // fenêtre, panneau de la barre, champ de saisie focalisé).
     if (!(e.key === 'Escape')) return;
     if (ddOpen) { ddClose(); return; }
-    if (!modeSelection) return;
+    // Barre et cases masquées (onglet Artistes, Titres…) : Échap ne vide pas
+    // en silence une sélection qu'on ne voit pas.
+    if (!modeSelection || !selectionPossible) return;
     const geste = gesteEchap(e, { panneauOuvert: panneauBarre != null, dialoguesEnAttente: $dialogs.length });
     if (geste === 'panneau') panneauBarre = null;
     else if (geste === 'quitter') quitterSelection();
@@ -3571,6 +3574,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     modeSelection = true;
   }
   function quitterSelection() {
+    // « Terminé » (ou Échap) arrête un ajout à la file en cours ; masquer la
+    // barre en changeant d'onglet, non (`lib/fileSelectionAlbums`).
+    arreterFile();
     modeSelection = false;
     selection = SELECTION_VIDE;
     panneauBarre = null;
@@ -3579,7 +3585,30 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     e.preventDefault();
     e.stopPropagation();
     if (a.id == null) return;
-    selection = cliquerAlbum(selection, a.id, ordreSelection, e.shiftKey);
+    const id = a.id;
+    if (e.shiftKey && selection.ancre != null && tab === 'albums' && nu && clef) {
+      void plageEnPages(id, clef);
+      return;
+    }
+    selection = cliquerAlbum(selection, id, ordreSelection, e.shiftKey);
+  }
+  /**
+   * Maj+clic en PAGES : les cases entre l'ancre et l'album cliqué dont la page
+   * n'est pas arrivée sont demandées d'abord — la plage ne saute rien.
+   */
+  async function plageEnPages(id: number, c: NonNullable<typeof clef>) {
+    const de = cases.findIndex((x) => x?.id === selection.ancre);
+    const a = cases.findIndex((x) => x?.id === id);
+    if (de >= 0 && a >= 0) {
+      const [lo, hi] = de <= a ? [de, a] : [a, de];
+      const pages = new Set<number>();
+      for (let i = lo; i <= hi; i++) if (!cases[i]) pages.add(Math.floor(i / TAILLE_PAGE));
+      if (pages.size) {
+        try { await Promise.all([...pages].map((p) => demanderPage(c, p))); } catch { /* le bandeau d'`api` a parlé */ }
+        await tick();
+      }
+    }
+    selection = cliquerAlbum(selection, id, ordreSelection, true);
   }
   let toutEnCours = $state(false);
   async function toutSelectionnerVue() {
