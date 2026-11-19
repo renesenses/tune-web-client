@@ -1375,6 +1375,30 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+/**
+ * tune-server-rust#9149 (Jon, fil 2757) — décalage manuel (ms, signé) d'une
+ * zone quand elle SUIT la meneuse de son groupe : positif, elle joue plus
+ * tard ; négatif, plus tôt. Le serveur borne à `min_ms`..`max_ms` (±2000) et
+ * refuse au-delà (422).
+ */
+export interface DecalageDeGroupe {
+  zone_id: number;
+  offset_ms: number;
+  min_ms: number;
+  max_ms: number;
+}
+
+export function getZoneGroupOffset(id: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`);
+}
+
+export function setZoneGroupOffset(id: number, offsetMs: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`, {
+    method: 'PUT',
+    body: JSON.stringify({ offset_ms: offsetMs }),
+  });
+}
+
 /** Décalage des paroles, en millisecondes (positif = paroles retardées).
  *  Le serveur borne à ±60 s. */
 export function updateZoneLyricsOffset(id: number, offsetMs: number) {
