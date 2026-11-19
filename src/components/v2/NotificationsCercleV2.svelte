@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle rc9 (web#2437, décision de Bertrand du 26/10/2026) : les
    * notifications dans l'écran Tune Circle. Une liste (lire, tout marquer lu)
@@ -65,7 +66,7 @@
   }
 
   function ouvrir(n: NotifCercle) {
-    void geste(async () => { if (!n.read) await marquerLue(n.id); });
+    if (!lectureSeule) void geste(async () => { if (!n.read) await marquerLue(n.id); });
     onOuvrir?.(n);
     // La ligne vient de quitter la liste : le focus ne se perd pas dans la page.
     queueMicrotask(() => {
@@ -91,6 +92,10 @@
     message: 'v2.circle.notif.pref.message',
     contact: 'v2.circle.notif.pref.contact',
   };
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 {#if etat.relais === 'ok' || etat.relais === 'indisponible'}
@@ -99,7 +104,7 @@
       <h2 id="circle-notifs" tabindex="-1" bind:this={titre}>{$t('v2.circle.notif.title' as any)}</h2>
       {#if etat.nonLues > 0}
         <span class="notifs-compte">{$tn('v2.circle.notif.unreadAria', etat.nonLues)}</span>
-        <button type="button" class="lnk tout-lu" disabled={occupe} onclick={() => void geste(toutMarquerLu)}>{$t('v2.circle.notif.markAll' as any)}</button>
+        <button type="button" class="lnk tout-lu" disabled={occupe || lectureSeule} onclick={() => void geste(toutMarquerLu)}>{$t('v2.circle.notif.markAll' as any)}</button>
       {/if}
     </div>
     {#if etat.relais === 'indisponible' || erreur}
@@ -134,7 +139,7 @@
         <p class="note">{$t('v2.circle.notif.settingsHint' as any)}</p>
         {#each TYPES_REGLAGE as type (type)}
           <button type="button" class="interrupteur interrupteur-notif" data-type={type} role="switch" aria-checked={reglages[type]}
-            disabled={occupe} onclick={() => basculer(type)}>
+            disabled={occupe || lectureSeule} onclick={() => basculer(type)}>
             <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
             <span>{$t(libelleType[type] as any)}</span>
           </button>

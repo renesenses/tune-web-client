@@ -16,7 +16,6 @@
  * donc rien ici.
  */
 import { writable } from 'svelte/store';
-import { getToken } from './auth';
 import { viaRelais } from './bridge';
 
 export const CODE_ADMIN_REQUIS = 'circle.admin_required';
@@ -53,8 +52,8 @@ type Moi = { role?: unknown } | null | undefined;
  * Décide, avant tout geste, si l'écran est en lecture seule.
  *
  * - page servie par le relais : `distant` ;
- * - session ouverte (l'authentification est donc active) d'un profil dont le
- *   rôle n'est pas `admin` : `admin` ;
+ * - session ouverte (jeton ou cookie) d'un profil dont `/auth/me` rend un
+ *   rôle autre que `admin` : `admin` ;
  * - sinon (authentification coupée, serveur plus ancien, `/auth/me` absent ou
  *   en échec) : rien — le serveur reste juge, et son refus est noté.
  */
@@ -65,12 +64,13 @@ export async function verifierDroitsCercle(
     return fetchJSON<Moi>(`${BASE}/auth/me`, undefined, (s) => s === 401 || s === 403 || s === 404, true);
   },
   relais: () => boolean = viaRelais,
-  jeton: () => string | null = getToken,
 ): Promise<MotifLectureSeule | null> {
   let motif: MotifLectureSeule | null = null;
   if (relais()) {
     motif = 'distant';
-  } else if (jeton()) {
+  } else {
+    // Avec ou sans jeton lisible : une session par cookie n'en expose pas.
+    // Authentification coupée, `/auth/me` rend 401 : aucun rôle, rien ne change.
     try {
       const moi = await lireMoi();
       const role = moi && typeof moi === 'object' ? moi.role : undefined;

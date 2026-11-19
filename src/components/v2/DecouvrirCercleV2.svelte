@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle rc12 — l'onglet « Découvrir » des maquettes de Levente
    * (15/11/2026), autour de la scène rc8 (`SceneCercleV2`, son globe, ses
@@ -63,6 +64,10 @@
     return tr('v2.circle.disc.joined', v);
   }
   const ouvrirConversation = (id: number) => demandeConversation.set({ conversation: id });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <div class="decouvrir">
@@ -121,8 +126,8 @@
             <strong class="coupe" use:bulleTexte>{c.name}</strong>
             {#if lieu}<span class="note coupe" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code}{/if}</span>{/if}</li>
         {/each}
-        <li class="membre"><button type="button" class="ajouter" onclick={onInviter}><span class="avatar grand plus" aria-hidden="true">+</span>
-          <span>{tr('v2.circle.addMember')}</span></button></li>
+        {#if !lectureSeule}<li class="membre"><button type="button" class="ajouter" onclick={onInviter}><span class="avatar grand plus" aria-hidden="true">+</span>
+          <span>{tr('v2.circle.addMember')}</span></button></li>{/if}
       </ul>
     </section>
   </div>

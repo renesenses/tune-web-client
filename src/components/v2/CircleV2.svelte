@@ -912,7 +912,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
                 {#if lieu}<span class="note ville-membre" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code.toUpperCase()}{/if}</span>{/if}
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
-                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $messagerieSupport === true}<button class="lnk ecrire-au-contact" disabled={lectureSeule} onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
                   {#if $erreurOuvertureConversation?.contact === c.user_id}<span role="alert">{$t($erreurOuvertureConversation.cle as any)}</span>{/if}
                   <button class="lnk danger revoquer" disabled={lectureSeule || occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
@@ -1004,7 +1004,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
                 <h3 class="cercle-nom">{c.name}</h3>
                 <button class="lnk renommer" disabled={lectureSeule || occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
                 {#if $messagerieSupport === true}
-                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
+                  <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
                     onclick={() => ecrireAuCercle(c.id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                 {/if}
                 {#if t5}
@@ -1132,7 +1132,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
                 <div class="cercle-tete">
                   <h4 class="cercle-nom" use:bulleTexte>{m.circle_name}</h4>
                   {#if $messagerieSupport === true}
-                    <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
+                    <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
                       onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                   {/if}
                   {#if t5}

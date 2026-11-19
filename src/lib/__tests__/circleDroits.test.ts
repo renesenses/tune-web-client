@@ -106,22 +106,21 @@ describe('les deux codes de refus', () => {
 describe('verifierDroitsCercle', () => {
   it('relais : lecture seule sans rien demander', async () => {
     const lireMoi = vi.fn();
-    expect(await verifierDroitsCercle(lireMoi, () => true, () => 'jeton')).toBe('distant');
+    expect(await verifierDroitsCercle(lireMoi, () => true)).toBe('distant');
     expect(lireMoi).not.toHaveBeenCalled();
     expect(get(cercleLectureSeule)).toBe('distant');
   });
 
-  it('session d’un profil non administrateur : lecture seule', async () => {
-    expect(await verifierDroitsCercle(async () => ({ role: 'user' }), () => false, () => 'jeton')).toBe('admin');
+  it('session d’un profil non administrateur (jeton ou cookie) : lecture seule', async () => {
+    expect(await verifierDroitsCercle(async () => ({ role: 'user' }), () => false)).toBe('admin');
   });
 
   it('administrateur, authentification coupée ou /auth/me en échec : gestes offerts', async () => {
-    expect(await verifierDroitsCercle(async () => ({ role: 'admin' }), () => false, () => 'jeton')).toBeNull();
-    const lireMoi = vi.fn();
-    expect(await verifierDroitsCercle(lireMoi, () => false, () => null)).toBeNull();
-    expect(lireMoi).not.toHaveBeenCalled();
-    expect(await verifierDroitsCercle(async () => { throw new Error('x'); }, () => false, () => 'jeton')).toBeNull();
-    expect(await verifierDroitsCercle(async () => ({ error: 'profile not found' }) as never, () => false, () => 'jeton')).toBeNull();
+    expect(await verifierDroitsCercle(async () => ({ role: 'admin' }), () => false)).toBeNull();
+    // Authentification coupée : `/auth/me` rend 401, sans rôle.
+    expect(await verifierDroitsCercle(async () => ({ error: 'authentication not configured' }) as never, () => false)).toBeNull();
+    expect(await verifierDroitsCercle(async () => { throw new Error('x'); }, () => false)).toBeNull();
+    expect(await verifierDroitsCercle(async () => ({ error: 'profile not found' }) as never, () => false)).toBeNull();
     expect(get(cercleLectureSeule)).toBeNull();
   });
 });

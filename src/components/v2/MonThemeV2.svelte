@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * « Mon thème » — #2527 (go de Bertrand du 30/10/2026, rc10).
    *
@@ -164,6 +165,10 @@
       installation = false;
     }
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <div class="mt" bind:this={racine} data-mon-theme={$etatGreffonTheme}>
@@ -259,7 +264,7 @@
               {$t('monTheme.enregistrer' as any)}
             </button>
             <button class="lnk" disabled={!jugement.ok} onclick={exporter}>{$t('monTheme.exporter' as any)}</button>
-            <button class="lnk" disabled={!jugement.ok} onclick={envoyer}>{$t('monTheme.envoyer' as any)}</button>
+            <button class="lnk" disabled={!jugement.ok || lectureSeule} onclick={envoyer}>{$t('monTheme.envoyer' as any)}</button>
             <button class="lnk" onclick={() => { ouvert = false; }}>{$t('monTheme.fermer' as any)}</button>
           </div>
           {#if !jugement.ok && 'champ' in jugement && jugement.champ === 'name'}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle (rc8) — la scène de la maquette de Levente, au-dessus des
    * blocs de gestion de `CircleV2` (qui portent toujours le consentement).
@@ -733,6 +734,10 @@
   }
 
   const montrerListe = $derived(liste || sansToile);
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <section class="sc" aria-labelledby="sc-titre" bind:this={racine}>
@@ -857,7 +862,7 @@
       {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
-          {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
+          {#if relais === 'ok'}<button type="button" class="go sc-poser" disabled={lectureSeule} onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
@@ -894,7 +899,7 @@
   {#if relais === 'ok'}
     <div class="sc-lieu partage">
       <button type="button" class="interrupteur interrupteur-lieu" role="switch" aria-checked={monLieu !== null}
-        disabled={occupeLieu} onclick={basculerLieu}>
+        disabled={occupeLieu || lectureSeule} onclick={basculerLieu}>
         <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
         <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
       </button>
@@ -908,7 +913,7 @@
       {/if}
       {#if retraitCarte !== null}
         <button type="button" class="interrupteur interrupteur-retrait" role="switch" aria-checked={retraitCarte}
-          disabled={occupeRetrait} onclick={() => void basculerRetrait()}>
+          disabled={occupeRetrait || lectureSeule} onclick={() => void basculerRetrait()}>
           <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
           <span>{$t('v2.circle.scene.public.optOut' as any)}</span>
         </button>
@@ -919,9 +924,9 @@
         <p class="note sc-lieu-actuel">
           {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
           {#if !poseOuverte}
-            <button type="button" class="lnk sc-changer-lieu" disabled={occupeLieu} onclick={() => ouvrirPose(monLieu)}>{$t('v2.circle.scene.loc.change' as any)}</button>
+            <button type="button" class="lnk sc-changer-lieu" disabled={occupeLieu || lectureSeule} onclick={() => ouvrirPose(monLieu)}>{$t('v2.circle.scene.loc.change' as any)}</button>
           {/if}
-          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
+          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu || lectureSeule} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
         </p>
       {/if}
       {#if poseOuverte}
@@ -962,7 +967,7 @@
             </div>
           </details>
           <div class="rangee">
-            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu}>{$t('v2.circle.scene.loc.save' as any)}</button>
+            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu || lectureSeule}>{$t('v2.circle.scene.loc.save' as any)}</button>
             <button type="button" class="lnk sc-annuler-lieu" onclick={annulerPose}>{$t('v2.circle.scene.loc.cancel' as any)}</button>
           </div>
           <p class="note sc-source-villes">{$t('v2.circle.scene.loc.source' as any)}</p>

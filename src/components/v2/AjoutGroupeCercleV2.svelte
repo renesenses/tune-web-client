@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
+  import LectureSeuleCercleV2 from './LectureSeuleCercleV2.svelte';
   /**
    * Playlists de cercle — l'ajout GROUPÉ et le partage d'une playlist.
    *
@@ -154,6 +156,10 @@
   function surTouche(e: KeyboardEvent) { if (e.key === 'Escape' && !occupe) onClose(); }
 
   $effect(() => { void demande; void charger(); });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -164,6 +170,7 @@
         {$t((partage ? 'v2.circle.pl.shareTitle' : 'v2.circle.pl.bulkTitle') as any).replace('{name}', demande.nom)}
       </h3>
       <button class="lnk fermer" onclick={onClose} disabled={occupe} aria-label={$t('common.close' as any)}>×</button>
+      <LectureSeuleCercleV2 />
     </header>
 
     {#if bilan}
@@ -199,7 +206,7 @@
               <span>{$t('v2.circle.pl.shareName' as any)}</span>
               <input type="text" bind:value={nom} maxlength={NOM_PLAYLIST_MAX} disabled={occupe} data-nom-partage />
             </label>
-            <button class="primaire" type="submit" disabled={occupe || cercleChoisi === '' || !nom.trim()} data-partager>
+            <button class="primaire" type="submit" disabled={occupe || lectureSeule || cercleChoisi === '' || !nom.trim()} data-partager>
               {$t((occupe ? 'v2.circle.pl.working' : 'v2.circle.pl.shareGo') as any)}
             </button>
           </form>
@@ -213,7 +220,7 @@
           <ul class="choix">
             {#each playlists as p (String(p.id))}
               <li>
-                <button class="ligne choix-playlist" disabled={occupe} onclick={() => void ajouterA(p)}>
+                <button class="ligne choix-playlist" disabled={occupe || lectureSeule} onclick={() => void ajouterA(p)}>
                   <span class="nom" title={p.name}>{p.name}</span>
                   <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}</span>
                 </button>

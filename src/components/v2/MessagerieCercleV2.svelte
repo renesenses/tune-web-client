@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
+  import LectureSeuleCercleV2 from './LectureSeuleCercleV2.svelte';
   import { onMount, tick } from 'svelte';
   // #2527 — la carte « thème » (Mon thème) dans le fil.
   import CarteThemeCercleV2 from './CarteThemeCercleV2.svelte';
@@ -140,7 +142,9 @@
     // Ne marquer que la page réellement affichée, sans absorber un message
     // qui arriverait entre le GET et le POST.
     const dernier = Math.max(0, ...p.messages.map((m) => m.id));
-    if (dernier) await marquerConversationLue(id, dernier);
+    // Lecture seule : ne rien marquer (le serveur refuserait l'écriture). Un
+    // refus ou une panne n'empêche jamais d'afficher la conversation.
+    if (dernier && !lectureSeule) await marquerConversationLue(id, dernier).catch(() => undefined);
     if (fini || tour !== generation || choix?.id !== id) return;
     liste = liste.map((c) => c.id === id ? { ...c, unread_count: 0 } : c);
     await relireNotifications();
@@ -249,6 +253,10 @@
     window.addEventListener(ADHESION_GENERALE_CHANGEE, adhesion);
     return () => { fini = true; clearInterval(timer); document.removeEventListener('visibilitychange', tour); window.removeEventListener(ADHESION_GENERALE_CHANGEE, adhesion); };
   });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <svelte:window onkeydown={(ev) => { if (ev.key === 'Escape' && menuMessage !== null) { (document.querySelector('#circle-messages .menu-bouton[aria-expanded="true"]') as HTMLButtonElement | null)?.focus(); menuMessage = null; } }} />
@@ -320,7 +328,7 @@
                       <button class="menu-bouton" type="button" aria-label={tr('v2.circle.msg.actions')} aria-expanded={menuMessage === m.id} onclick={() => menuMessage = menuMessage === m.id ? null : m.id}>⋯</button>
                       {#if menuMessage === m.id}
                         <div class="menu-message" role="group" aria-label={tr('v2.circle.msg.actions')}>
-                          {#if m.mine}<button type="button" disabled={occupe} onclick={() => void supprimer(m)}>{tr('common.delete')}</button>
+                          {#if m.mine}<button type="button" disabled={occupe || lectureSeule} onclick={() => void supprimer(m)}>{tr('common.delete')}</button>
                           {:else}<label><input type="checkbox" checked={selection.includes(m.id)} disabled={!selection.includes(m.id) && selection.length >= 20} onchange={(ev) => cocher(m.id, ev.currentTarget.checked)} />{tr('v2.circle.msg.select')}</label><button type="button" onclick={() => { cocher(m.id, true); signalement = true; menuMessage = null; }}>{tr('v2.circle.msg.report')}</button>{/if}
                         </div>
                       {/if}
@@ -331,7 +339,7 @@
             </ol>
           </div>
           <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques.at(-1)?.body ?? chronologiques.at(-1)?.card?.title ?? ''}</p>
-          {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else}
+          {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else if lectureSeule}<LectureSeuleCercleV2 />{:else}
           <form class="composeur" bind:this={formulaire} onsubmit={envoyer} onfocusout={(ev) => { if (emojis && ev.relatedTarget instanceof Node && !formulaire?.contains(ev.relatedTarget)) emojis = false; }}>
       <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
             {#if emojis}<div class="ligne-emojis"><SelecteurEmojiV2 id="message-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { fermerEmojis(false); boutonEmoji?.focus(); }} /></div>{/if}
@@ -341,7 +349,7 @@
             {#if longueurMessage(texte) >= 3500}<span class="compteur note">{longueurMessage(texte)} / {MESSAGE_MAX}</span>{/if}
           </form>{/if}
           <p class="note moderation"><span aria-hidden="true">ⓘ</span> {tr(choix.kind === 'circle' ? 'v2.circle.msg.circlePrivacy' : choix.kind === 'general' ? 'v2.circle.general.privacy' : 'v2.circle.msg.privacy')}</p>
-          {#if selection.length}<button type="button" onclick={() => signalement = !signalement}>{tr('v2.circle.msg.report')} ({selection.length})</button>{/if}
+          {#if selection.length}<button type="button" disabled={lectureSeule} onclick={() => signalement = !signalement}>{tr('v2.circle.msg.report')} ({selection.length})</button>{/if}
           {#if signalement}
             <form class="signalement" onsubmit={signaler}>
               <p class="note">{tr('v2.circle.msg.reportHint')}</p>
