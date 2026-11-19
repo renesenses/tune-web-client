@@ -134,7 +134,7 @@
         <p class="q" data-sans-correspondance>{$t('collectionPhysique.correspondance.vide' as any)}</p>
       {/if}
 
-      <div class="entete">
+      <div class="tete-resultats">
         <h3>{$t('collectionPhysique.associer.resultats' as any)}</h3>
         <button class="sec" onclick={() => void chercher()} disabled={enCours || travail} data-chercher-a-nouveau>
           {$t('collectionPhysique.correspondance.chercherANouveau' as any)}
@@ -180,7 +180,7 @@
   h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0 32px 4px 0}
   h3{margin:12px 0 6px; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em;
     text-transform:uppercase; color:var(--v2-txt3)}
-  .entete{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .tete-resultats{display:flex; align-items:center; justify-content:space-between; gap:8px}
   .disque{margin:0 0 4px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .fermer{position:absolute; top:12px; right:12px; width:28px; height:28px; border:0; border-radius:8px;
     background:transparent; color:var(--v2-txt3); font-size:calc(20px * var(--v2-txt-echelle, 1)); line-height:1; cursor:pointer}
