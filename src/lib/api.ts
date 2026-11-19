@@ -11829,8 +11829,36 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
   if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
-  if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
+  if (!resp.ok) throw erreurAppliance(json, resp.status);
   return json;
+}
+
+/**
+ * web#3195 — plus jamais le CODE brut (« auth_required ») à l'écran.
+ *
+ * Avant, `applianceFetch` jetait `new Error(json.error)` : « Éteindre » et
+ * « Redémarrer » refusés par la garde `AdminOuCetteMachine` affichaient
+ * `auth_required`. L'erreur porte désormais la phrase traduite, et `code`,
+ * `status`, `corps` (lus par `messageRefusHorsMachine`), le brut dans `detail` :
+ *
+ *  - `403 auth_required` + `reason` (`not_local`, `port80_relay`) : la phrase
+ *    `machineAction.*`, qui renvoie à Réglages > Système > Authentification ;
+ *  - `403 "admin role required"` (authentification active, compte non
+ *    administrateur) : `machineAction.adminRequired` ;
+ *  - sinon la règle de `lireMessageServeur` (#2417).
+ */
+export function erreurAppliance(json: any, status: number): ApiError {
+  const lu = lireMessageServeur(json, '', status);
+  const err = new Error(lu.message) as ApiError;
+  err.detail = lu.detail;
+  err.code = lu.code ?? (status === 403 && json?.error === 'admin role required' ? 'admin_required' : undefined);
+  err.status = status;
+  if (json && typeof json === 'object') err.corps = json;
+  const tr = get(t) as (cle: string) => string;
+  const horsMachine = messageRefusHorsMachine(err, tr);
+  if (horsMachine !== null) err.message = horsMachine;
+  else if (err.code === 'admin_required') err.message = tr('machineAction.adminRequired');
+  return err;
 }
 
 export function getApplianceStatus(): Promise<ApplianceStatus> {

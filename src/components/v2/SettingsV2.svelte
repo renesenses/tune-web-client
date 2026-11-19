@@ -160,7 +160,7 @@
   import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
-  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3802,7 +3802,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceShutdown();
     } catch (e) {
-      const msg = errText(e);
+      // #3195 : la phrase traduite du refus, jamais le code brut.
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       // `null` : coupure de transport générique, attendue pendant l'extinction.
       if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
     }
@@ -3820,7 +3821,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceReboot();
     } catch (e) {
-      const msg = errText(e);
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
     }
   }

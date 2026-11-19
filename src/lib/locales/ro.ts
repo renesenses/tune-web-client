@@ -1675,6 +1675,7 @@ export default {
   "machineAction.notLocalRestart": "Repornire refuzată: de pe alt dispozitiv, Tune acceptă această acțiune doar dacă autentificarea este activată (cont de administrator). Activați-o sau reporniți Tune de pe mașină ori din container: {command}.",
   "machineAction.port80Relay": "Acest echipament redirecționează portul 80, așa că Tune nu poate deosebi un apel local de unul din rețea. Activați autentificarea și conectați-vă cu un cont de administrator.",
   "machineAction.whereToEnable": "Pentru a activa autentificarea: Setări > Sistem > Autentificare (de pe alt dispozitiv, cu codul de unică folosință afișat de docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
+  "machineAction.adminRequired": "Doar un cont de administrator poate opri sau reporni mașina. Conectați-vă cu un cont de administrator.",
   "settings.updateStatusUnknown": "Nu se poate şti dacă actualizarea s-a instalat: serverul nu a răspuns. Reîncarcă pagina pentru a vedea versiunea curentă.",
   "settings.updateInstallFailed": "Actualizarea a eșuat. Motivul dat de server: {reason}",
   "settings.updateButton": "Actualizează",
