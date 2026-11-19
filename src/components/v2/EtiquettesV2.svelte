@@ -63,7 +63,7 @@
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { gestesDeZone } from '../../lib/gestesDeZone';
-  import { lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -84,7 +84,12 @@
   import { quatreDistinctes } from '../../lib/mosaique';
   import { detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
-  import { corpsDeLecture } from '../../lib/pisteFile';
+  import { corpsDeFileListe, corpsDeLecture } from '../../lib/pisteFile';
+  import BoutonLectureV2 from './BoutonLectureV2.svelte';
+  import { pistesDeLEtiquette } from '../../lib/pistesEtiquette';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
+  import { repeatMode } from '../../lib/stores/repeatStore';
+  import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
   import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import { deplacer, rangVise } from '../../lib/ordreEtiquettes';
@@ -631,6 +636,93 @@
     albumsChargement = false;
   }
 
+  /*
+   * 🔴 TOUT LIRE, ET TOUT AJOUTER À UNE PLAYLIST — web#3247.
+   *
+   * Patatorz, fil 2912 : « lire la totalité (avec option aléatoire et repeat)
+   * des titres sous le tag […] ajouter la totalité des titres dans une
+   * playlist (existante ou à créer) ». Validé par Bertrand le 19/11/2026.
+   *
+   * Le bouton Lecture est celui des autres listes (`BoutonLectureV2`), avec
+   * sous sa flèche : lecture aléatoire, lecture EN BOUCLE (toute la file
+   * répétée), lire ensuite, ajouter à la file. Les titres viennent de
+   * `pistesDeLEtiquette` : albums, titres, artistes et playlists de
+   * l'étiquette, sans doublon. « Ajouter tout à une playlist » ouvre la
+   * fenêtre partagée (`demandeAjoutPlaylist`), comme pour un album entier.
+   */
+  let masseEnCours = $state(false);
+  const aDesTitres = $derived(albums.length + artistes.length + pistes.length + listes.length > 0);
+
+  /** Les titres de l'étiquette ouverte, ou `null` (déjà dit à l'écran). */
+  async function titresDeLEtiquette(): Promise<Track[] | null> {
+    // Résolus AVANT l'attente.
+    const vide = $t('v2.tags.noTracks' as any);
+    const partiel = $t('v2.tags.partialTracks' as any);
+    const { pistes: l, echecs } = await pistesDeLEtiquette({ albums, pistes, artistes, listes });
+    if (!l.length) { notifications.error(vide); return null; }
+    if (echecs) notifications.error(partiel);
+    return l;
+  }
+
+  async function lireTout(mode: 'tout' | 'aleatoire' | 'boucle') {
+    const zid = zoneRequise();
+    if (zid == null || masseEnCours) return;
+    masseEnCours = true;
+    const lecture = $t('collections.playingAll' as any);
+    const vide = $t('v2.tags.noTracks' as any);
+    try {
+      const l = await titresDeLEtiquette();
+      if (l) {
+        const g = gestesDeZone(zid);
+        const n = mode === 'aleatoire' ? await lireListeAleatoire(l, g) : await lireListe(l, g);
+        if (!n) notifications.error(vide);
+        else {
+          // Après le lancement : « Lire en boucle par défaut » (playAndSync)
+          // poserait sinon `one` par-dessus.
+          if (mode === 'boucle') repeatMode.set((await api.setRepeat(zid, 'all')).repeat);
+          notifications.success(lecture.replace('{count}', String(n)));
+        }
+      }
+    } catch (e) {
+      signalerEchecLecture(e);
+    }
+    masseEnCours = false;
+  }
+
+  /** « Lire ensuite » (`position` = rang suivant) ou « Ajouter à la file » : UNE requête. */
+  async function enfilerTout(position: number | undefined, cle: string) {
+    const zid = zoneRequise();
+    if (zid == null || masseEnCours) return;
+    masseEnCours = true;
+    const fait = $t(cle as any).replace('{title}', ouverte?.name ?? '');
+    const vide = $t('v2.tags.noTracks' as any);
+    try {
+      const l = await titresDeLEtiquette();
+      const corps = l ? corpsDeFileListe(l, position) : null;
+      if (l && !corps) notifications.error(vide);
+      else if (corps) {
+        await api.addToQueue(zid, corps);
+        notifications.success(fait);
+      }
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    }
+    masseEnCours = false;
+  }
+
+  async function ajouterToutAUnePlaylist() {
+    if (masseEnCours || !ouverte) return;
+    masseEnCours = true;
+    const nom = ouverte.name;
+    try {
+      const l = await titresDeLEtiquette();
+      if (l) demandeAjoutPlaylist.set({ nom, pistes: async () => l });
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    }
+    masseEnCours = false;
+  }
+
   /** « Lire à partir d'ici » — #1061, point 9 de FabienM : les pistes de
    *  l'étiquette, dans l'ordre affiché, depuis celle qu'on désigne. */
   function lireLesPistesDepuis(i: number) {
@@ -705,6 +797,21 @@
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else}
+      {#if aDesTitres}
+        <!-- web#3247 — tous les titres de l'étiquette : le bouton Lecture des
+             autres listes, et l'ajout à une playlist (existante ou nouvelle). -->
+        <div class="tirage" data-lecture-etiquette>
+          <BoutonLectureV2 onLire={() => lireTout('tout')} cle="collections.playAll" cleBulle="collections.playAll"
+            desactive={masseEnCours} attrsLire={{ 'data-tout-lire-etiquette': true }}
+            aleatoire={{ faire: () => lireTout('aleatoire'), desactive: masseEnCours, bulle: 'collections.shuffleAll' }}
+            boucle={{ faire: () => lireTout('boucle'), desactive: masseEnCours }}
+            ensuite={{ faire: () => void enfilerTout(rangLireEnsuite(), 'v2.album.queuedNext'), desactive: masseEnCours }}
+            file={{ faire: () => void enfilerTout(undefined, 'v2.album.queued'), desactive: masseEnCours }}
+            attrsAleatoire={{ 'data-aleatoire-etiquette': true }} />
+          <button class="v2-btn" data-ajouter-etiquette-playlist disabled={masseEnCours}
+            onclick={() => void ajouterToutAUnePlaylist()}>{$t('v2.tags.addAllToPlaylist' as any)}</button>
+        </div>
+      {/if}
       <nav class="onglets">
         {#each ONGLETS as o (o.id)}
           <button class:on={famille === o.id} onclick={() => choisirFamille(o.id)}>
@@ -978,7 +1085,7 @@
   .pastille{--c:var(--v2-acc1); width:9px; height:9px; border-radius:50%; background:var(--c); flex:none}
 
   .onglets{display:flex; gap:4px; padding:4px 30px 0; flex-wrap:wrap}
-  .tirage{display:flex; gap:8px; padding:12px 30px 0; flex-wrap:wrap}
+  .tirage{display:flex; gap:8px; padding:12px 30px 0; flex-wrap:wrap; align-items:center}
   .tirage svg{width:14px; height:14px}
   .tirage .on{border-color:var(--v2-acc2); color:var(--v2-txt)}
   .onglets button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2);
