@@ -243,7 +243,11 @@
   function removeBand(i: number) {
     brouillon = null;
     bands.splice(i, 1);
-    selected = null;
+    // web#3272 — la liste supprime une bande qui n'est pas forcément la
+    // sélectionnée : la sélection suit SA bande, et ne tombe que si c'est elle
+    // qu'on supprime.
+    if (selected === i) selected = null;
+    else if (selected !== null && selected > i) selected--;
     notify();
   }
 
@@ -310,8 +314,11 @@
     brouillon = null;
     champ.value = String(valeurDe(champ.dataset.cle as Cle));
   }
-  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement) {
-    const base = lireDecimal(brouillon?.cle === cle ? brouillon.texte : champ.value) ?? valeurDe(cle);
+  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement, i: number | null = selected) {
+    // Le tampon de l'éditeur ne vaut que pour l'éditeur ; une ligne de la
+    // liste lit son propre champ.
+    const tampon = i === selected && brouillon?.cle === cle ? brouillon.texte : champ.value;
+    const base = lireDecimal(tampon) ?? valeurDe(cle, i);
     let v: number;
     if (cle === 'freq') {
       // Pas relatif : 1 % (au moins 1 Hz), un tiers d'octave avec Maj.
@@ -320,8 +327,8 @@
     } else {
       v = base + sens * (cle === 'gain' ? (grand ? 1 : 0.1) : grand ? 0.1 : 0.01);
     }
-    brouillon = null;
-    champ.value = String(appliquer(cle, v));
+    if (i === selected) brouillon = null;
+    champ.value = String(appliquer(cle, v, i));
   }
   // web#3266 (forum, fil 2948) — la LISTE des bandes sous la courbe : chaque
   // bande lisible et éditable sur place, et supprimable d'une croix, sans
@@ -348,6 +355,11 @@
       e.preventDefault();
       e.stopPropagation();
       champ.value = String(valeurDe(cle, i));
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // web#3272 — comme dans l'éditeur : pas fin, Maj pour un grand pas.
+      e.preventDefault();
+      if (champ.disabled) return;
+      ajuster(cle, e.key === 'ArrowUp' ? 1 : -1, e.shiftKey, champ, i);
     }
   }
   function majBande(i: number, patch: Partial<EqBand>) {
@@ -362,6 +374,12 @@
     await tick();
     const croix = listeEl?.querySelectorAll<HTMLButtonElement>('button.peq-ligne-suppr');
     if (croix?.length) croix[Math.min(i, croix.length - 1)].focus();
+    else {
+      // web#3272 — plus aucune bande, donc plus de liste : le focus irait au
+      // <body>. Il passe au bouton « + » (toujours actif : il ne se grise
+      // qu'au plafond de bandes, et il n'en reste aucune).
+      svgEl?.closest('.peq')?.querySelector<HTMLButtonElement>('button.peq-add')?.focus();
+    }
   }
   const nomBande = (i: number) => $t('eq.peqBandN' as any).replace('{n}', String(i + 1));
 
@@ -709,5 +727,8 @@
   @media (max-width: 600px) {
     .peq-ligne input { width: 4.25rem; }
     .peq-ligne select { width: 5.75rem; }
+    /* web#3272 — cibles tactiles de 44 px au doigt. */
+    .peq-ligne input, .peq-ligne select { min-height: 44px; }
+    .peq-ligne-num, .peq-ligne-suppr { min-width: 44px; min-height: 44px; }
   }
 </style>
