@@ -26,6 +26,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { pochettesDePlaylist } from '../../lib/mosaique';
@@ -788,8 +789,20 @@
                 title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
                 <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={p.title ?? ''}>
                   <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
-                    alt={p.title ?? ''} source={mixte ? null : p.source} />
+                    alt={p.title ?? ''} />
                 </PochetteActions>
+                <!-- web#3246 (Régis, fil 2941) — la PROVENANCE de chaque titre,
+                     sur sa pochette : « LOCAL », « QOBUZ », « TIDAL »… La puce
+                     n'était posée (par `AlbumArt`) que si la playlist n'était PAS
+                     mixte, et jamais pour la bibliothèque : elle manquait là où
+                     elle sert. Même règle que la colonne de la vue en liste
+                     (#1113) : la `source` telle quelle, une source absente ou
+                     inconnue ne rend rien. Le fond est celui du thème, pour que
+                     la puce se lise sur n'importe quelle pochette avec les
+                     couleurs du thème (#3232). Sans contenu (source inconnue),
+                     l'enveloppe ne mesure rien. Elle ne prend aucun clic : la
+                     pochette reste le geste. -->
+                {#if p.source}<span class="psrc" data-provenance={p.source}><ServiceBadge source={p.source} compact /></span>{/if}
               </div>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
@@ -972,8 +985,10 @@
   .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
-  .pvig{display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
+  .pvig{position:relative; display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
     background:var(--v2-surface2); line-height:0}
+  .psrc{position:absolute; left:6px; bottom:6px; z-index:2; display:inline-flex; line-height:1;
+    border-radius:4px; background:var(--v2-bg); pointer-events:none}
   .pvig.injouable{opacity:.5}
   .pnom{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .part{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
