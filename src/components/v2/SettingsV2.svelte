@@ -225,6 +225,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
   import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
+  import BalisesPersoV2 from './BalisesPersoV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -6011,6 +6012,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'classicalTags'}
               <BalisesClassiqueV2 />
+
+            {:else if s.id === 'personalTags'}
+              <BalisesPersoV2 />
 
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">
