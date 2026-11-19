@@ -2503,8 +2503,23 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
-     la hauteur de la piste de clic (22 px, 4 de plus que la barre classique). */
+     la hauteur de la piste de clic. Fil 2954 : 32 px (22 avant) — la barre
+     du bas fait 90 px (`--transport-height`) : 6 + 40 (commandes) + 2 + 32
+     + 6 = 86, elle tient sans pousser la mise en page. Sur un écran bas
+     (paysage de téléphone, 72 px) et en kiosque, les 22 px d'avant restent.
+     Sur téléphone (≤ 768 px), la barre de saut n'est pas dans la mini-barre
+     (web#1870) : rien ne change. */
   .progress-track.onde {
+    height: 32px;
+  }
+
+  @media (max-height: 520px) {
+    .progress-track.onde {
+      height: 22px;
+    }
+  }
+
+  :global([data-kiosk]) .progress-track.onde {
     height: 22px;
   }
 
