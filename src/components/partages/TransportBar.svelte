@@ -3,7 +3,7 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
-  import { descriptionDEtape, etapeIntacte, etatSansPerte, formatDuFluxRadio, traitIntact } from '../../lib/formatInconnu';
+  import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -28,6 +28,7 @@
   import LienEntite from './LienEntite.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import PastilleTess from '../v2/tess/PastilleTess.svelte';
   import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
@@ -1036,19 +1037,25 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
    * (#2411). Elle ne se laisse pas recopier telle quelle dans un `title=` :
    * son balisage mêle la donnée à des pastilles (badge YT, badge de qualité,
    * pictogramme d'antenne) qui n'ont rien à faire dans une bulle. On refait
-   * donc le texte, et lui seul : l'artiste, ou — sur une radio — l'artiste
-   * suivi de la station.
+   * donc le texte, et lui seul : l'artiste. Sur une radio, la station a
+   * maintenant sa propre ligne (rc12) : la bulle ne porte que l'artiste.
    */
   function miniArtistLabel(t: typeof displayTrack): string {
     if (!t) return '';
-    if (t.source === 'radio') {
-      const nom =
-        t.artist_name && t.artist_name !== t.album_title
-          ? t.artist_name
-          : t.album_title || 'Live Radio';
-      return `${nom} · ${t.album_title || 'Radio'}`;
-    }
+    if (t.source === 'radio') return artisteDeLaRadio(t) ?? '';
     return t.artist_name ?? '';
+  }
+
+  /**
+   * Retour de Rémi sur la rc12 (go de Bertrand du 17/11) — l'artiste du titre
+   * capté sur une radio, s'il y en a un vrai. Tant que la station n'a rien
+   * publié, le serveur pose son NOM en titre (ou en artiste) et « Live Radio »
+   * en artiste : rien à montrer, la station a déjà sa ligne.
+   */
+  function artisteDeLaRadio(t: typeof displayTrack): string | null {
+    const a = t?.artist_name?.trim();
+    if (!a || a === t?.album_title || a === 'Live Radio') return null;
+    return a;
   }
 
   // Remember the current track's duration so a transient duration_ms=0 during
@@ -1372,24 +1379,23 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         <div class="track-mini">
           <span class="mini-title truncate" title={displayTrack.title}>
             {displayTrack.title}
-            {#if displayTrack.source === 'radio'}
-              <span class="live-badge"><span class="live-dot"></span>LIVE</span>
-            {/if}
           </span>
           <!-- web#2770 (lot 1) — l'artiste, l'album et la station sont des
                LIENS (`LienEntite`), posés DANS le bloc qui ouvre Lecture en
                cours : chacun arrête la propagation, le reste du bloc garde
                son geste. L'album de la zone se demande au serveur (#1361). -->
+          <!-- Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : pour une
+               RADIO, plus de badge « LIVE » ni de format du flux (il reste dans
+               le chemin du signal). Le titre, l'artiste s'il y en a un, puis
+               la station, sur la ligne qu'occupait le format. -->
+          {#if displayTrack.source !== 'radio' || ytActive || artisteDeLaRadio(displayTrack)}
           <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
-              {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
-                <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name, artiste: artisteDePisteEcoutee(displayTrack) }} />
-              {:else}
-                <LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Live Radio', ouvrir: () => (ficheStationOuverte = true) }} />
+              {@const artisteRadio = artisteDeLaRadio(displayTrack)}
+              {#if artisteRadio}
+                <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: artisteRadio, artiste: artisteDePisteEcoutee(displayTrack) }} />
               {/if}
-              <span class="radio-station-sep">·</span>
-              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title || 'Radio', ouvrir: () => (ficheStationOuverte = true) }} />
             {:else}
               <LienEntite classe="mini-lien" entite={{ type: 'artiste', nom: displayTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(displayTrack) }} />
               {#if displayTrack.album_title}
@@ -1398,6 +1404,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {/if}
             {/if}
           </span>
+          {/if}
           <!--
             TROISIEME LIGNE. Bertrand, 05/09/2026 : « transport bar : badges
             source et qualité sur une troisième ligne !! Je me répète ! ».
@@ -1407,8 +1414,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             « F… » coupé net. Une ligne à eux, et ils ne dépendent plus de la
             longueur du nom.
 
-            La RADIO est exclue : sa deuxième ligne porte déjà la station, et
-            un flux en direct n'a ni service ni fiche technique à annoncer.
+            La RADIO est exclue : un flux en direct n'a ni service ni fiche
+            technique à annoncer ici (rc12, Rémi) ; sa troisième ligne porte
+            la station.
           -->
           {#if displayTrack.source !== 'radio'}
             <span class="mini-badges">
@@ -1430,19 +1438,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || (etatSansPerte(zone?.signal_path) === 'unknown' ? $t('signal.unknownFormat') : etatSansPerte(zone?.signal_path) === 'lossless' ? 'Lossless' : 'Lossy'))}</span>
             {/if}
             </span>
-          {:else if formatDuFluxRadio(zone?.signal_path)}
-            <!-- web#2300 (fil 2376) — une radio a aussi son format : celui que
-                 la sonde du flux a relevé (étape Source du chemin du signal). -->
-            {@const formatRadio = formatDuFluxRadio(zone?.signal_path)}
-            <span class="mini-badges">
-              <span
-                class="tb-quality-badge tier-{getQualityTierColor(etatSansPerte(zone?.signal_path) === 'lossless' ? 'cd' : 'lossy')} sp-clickable"
-                role="button"
-                tabindex={0}
-                onclick={(e) => { e.stopPropagation(); showSignalPath = true; }}
-                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
-                title={zone?.signal_path?.summary ?? ''}
-              >{formatRadio}</span>
+          {:else if displayTrack.album_title}
+            <!-- La station, à la place du format du flux (web#2300, retiré
+                 en rc12) : son lien ouvre la fiche de la station. -->
+            <span class="mini-artist mini-station truncate" data-testid="mini-station" title={displayTrack.album_title}>
+              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title, ouvrir: () => (ficheStationOuverte = true) }} />
             </span>
           {/if}
         </div>
@@ -1776,6 +1776,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          poser le cadran à gauche d'elle. -->
     <div class="tb-pile">
     <div class="transport-right-top">
+    <!-- Lot TESS W1 : la pastille « TESS » (icône Wave T, maquettes A1 et A5),
+         absente tant que le serveur n'annonce pas TESS. -->
+    <PastilleTess />
     <!-- Sleep Timer — masquable par réglage (web#1861) -->
     {#if minuteurVisible}
     <div class="sleep-timer-wrapper">
@@ -2388,36 +2391,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     background: rgba(248, 113, 113, 0.08);
   }
 
-  .live-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-family: var(--font-label);
-    font-size: 9px;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 3px;
-    background: var(--tune-warning);
-    color: white;
-    flex-shrink: 0;
-    letter-spacing: 0.5px;
-    margin-left: 6px;
-    vertical-align: middle;
-  }
-
-  .live-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: white;
-    animation: live-pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes live-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
   .radio-antenna {
     font-size: 11px;
     flex-shrink: 0;
@@ -2428,6 +2401,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     margin: 0 4px;
     opacity: 0.4;
   }
+
+  /* rc12 — la ligne de la station (radio), à la place du format du flux. */
+  .mini-station { margin-top: 3px; }
+
 
   .fav-btn {
     background: none;

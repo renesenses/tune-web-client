@@ -1,4 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
+import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -8,6 +9,7 @@ import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrag
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
+import { messageRefusHorsMachine } from './refusHorsMachine';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -29,6 +31,7 @@ import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
 import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -738,6 +741,12 @@ export async function fetchJSON<T>(
           notifications.error(err.message, 10000, err.detail);
         }
         err.dejaAnnonce = true;
+      } else if (estLectureYoutubeInactive(err.code)) {
+        // tune-server-rust#8913 — YouTube sans yt-dlp : la phrase traduite du
+        // serveur (ou son repli) et le bouton qui mène au réglage « Lecture
+        // YouTube », au lieu du 502 `upstream_error` brut d'avant.
+        err.message = annoncerLectureYoutubeInactive(err.message);
+        err.dejaAnnonce = true;
       } else if (err.code === CODE_RECONNEXION_FAVORIS_SPOTIFY) {
         // tune-server-rust#8579 — favori Spotify refusé faute d'autorisation
         // d'écriture : « Reconnectez Spotify une fois… », avec le bouton.
@@ -757,6 +766,24 @@ export async function fetchJSON<T>(
         // technique du serveur (#5283 — même geste que le refus bit-perfect).
         err.message = traduit;
         // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
+        err.dejaAnnonce = true;
+      }
+    }
+    // tune-server-rust#9029 — une action qui engage la machine, refusée parce
+    // qu'elle ne vient pas de la machine de Tune (authentification coupée) :
+    // la phrase traduite qui dit quoi faire, à la place du texte anglais.
+    const horsMachine = messageRefusHorsMachine(err, get(t) as (cle: string) => string);
+    if (horsMachine !== null) {
+      err.message = horsMachine;
+      // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
+      // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
+      // que soit l'écran — certains n'affichent que leur propre libellé.
+      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // lecture refusée reste silencieuse.
+      const methode = (options?.method ?? 'GET').toUpperCase();
+      const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+        notifications.error(horsMachine);
         err.dejaAnnonce = true;
       }
     }
@@ -1007,6 +1034,73 @@ export function setBalisesClassique(
   }, undefined, true);
 }
 
+/**
+ * tune-server-rust#9158 (Rob) — « Balises personnelles → tags Tune » : les
+ * correspondances clé de fichier → tags, l'aperçu des clés rencontrées dans
+ * un échantillon, et la passe « Appliquer à la bibliothèque existante ».
+ */
+export interface AvancementBalisesPerso {
+  running: boolean;
+  processed: number;
+  total: number;
+  added: number;
+  removed: number;
+  unreadable: number;
+  error?: string | null;
+  finished: boolean;
+}
+
+export interface EtatBalisesPerso {
+  personal_tags: import('./balisesPerso').ReglageBalisesPerso;
+  max_mappings?: number;
+  suggestions?: string[];
+  default_separator?: string;
+  apply?: AvancementBalisesPerso;
+}
+
+export interface CleVue {
+  key: string;
+  forms: string[];
+  files: number;
+  examples: string[];
+  known: boolean;
+  configured: boolean;
+}
+
+export interface ApercuClesPerso {
+  sampled_files: number;
+  unreadable_files: number;
+  timed_out: boolean;
+  keys: CleVue[];
+}
+
+export function getBalisesPerso(): Promise<EtatBalisesPerso> {
+  // Sans bandeau : un serveur d'avant le réglage répond 404, l'écran le dit seul.
+  return fetchJSON(`${BASE}/system/settings/personal-tags`, undefined, undefined, true);
+}
+
+export function setBalisesPerso(
+  reglage: import('./balisesPerso').ReglageBalisesPerso,
+): Promise<EtatBalisesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags`, {
+    method: 'PUT',
+    body: JSON.stringify(reglage),
+  }, undefined, true);
+}
+
+export function getClesBalisesPerso(echantillon = 200): Promise<ApercuClesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags/keys?sample=${echantillon}`, undefined, undefined, true);
+}
+
+export function appliquerBalisesPerso(): Promise<{ apply: AvancementBalisesPerso }> {
+  // 409 : une passe tourne déjà — l'écran suit son avancement.
+  return fetchJSON(`${BASE}/system/settings/personal-tags/apply`, { method: 'POST' }, (s) => s === 409, true);
+}
+
+export function getAvancementBalisesPerso(): Promise<AvancementBalisesPerso> {
+  return fetchJSON(`${BASE}/system/settings/personal-tags/apply`, undefined, undefined, true);
+}
+
 export function setDefaultZone(zoneId: number | null): Promise<{ zone_id: number | null }> {
   return fetchJSON(`${BASE}/system/settings/default-zone`, {
     method: 'PUT',
@@ -1077,6 +1171,13 @@ export interface ZoneSupprimee {
   motif: string | null;
   masquee_le: string | null;
   appareil_detecte: boolean;
+  /** tune-server-rust#8987 — l'appareil que la zone a lâché au profit d'une
+   *  autre zone, et la zone qui le tient (`null` : libre). Absent sur un
+   *  serveur antérieur. */
+  sortie_liberee?: {
+    output_device_id: string;
+    reprise_par: { id: number; name: string } | null;
+  } | null;
 }
 /**
  * tune-server-rust#7836 — les zones supprimées par l'utilisateur. `null` : le
@@ -1361,6 +1462,24 @@ export function updateZoneFixedSampleRate(id: number, rate: number | null) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ fixed_sample_rate: rate }),
+  });
+}
+
+/** tune-server-rust#3245 — mode exclusif de la zone ; `null` = suivre la machine. */
+export function updateZoneExclusiveMode(id: number, mode: boolean | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ exclusive_mode: mode }),
+  });
+}
+
+/** tune-server-rust#8696 — période WASAPI exclusive de la zone, en ms ;
+ *  `null` = Auto (période du pilote). Prise en compte à la prochaine
+ *  ouverture du périphérique. */
+export function updateZoneWasapiExclusivePeriod(id: number, ms: number | null) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ wasapi_exclusive_period_ms: ms }),
   });
 }
 
@@ -1665,6 +1784,34 @@ export function clearDevices() {
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils absents (tune-server-rust#9044) ---------------------------
+
+/** `GET /devices/absent` — les appareils connus qui ne sont plus sur le
+ *  réseau. `[]` si le serveur est antérieur à la route (404) ; `null` sur
+ *  toute autre erreur (403, 500, réseau) — l'écran ne doit pas la prendre
+ *  pour « aucun appareil absent ». */
+export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
+  try {
+    return lireAbsents(await fetchJSON<unknown>(`${BASE}/devices/absent`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
+ * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
+ * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
+ * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
+ * un appareil encore présent ; la réponse nomme les zones supprimées.
+ */
+export function forgetDevice(deviceId: string) {
+  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
+    { method: 'DELETE' },
+  );
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
@@ -2303,10 +2450,10 @@ export function jumpInQueue(zoneId: number, position: number) {
  *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
  *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
  *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
-export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
+export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number, bloc?: { count: number; expected_order: number[] }) {
   return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
-    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
+    body: JSON.stringify({ from_position: fromPosition, to_position: toPosition, ...bloc }),
   });
 }
 
@@ -3479,6 +3626,8 @@ export async function getFilteredTracks(opts: {
   conductor?: FacetParam;
   ensemble?: FacetParam;
   work?: FacetParam;
+  /** web#3157 — instrument des crédits (CRD-6, serveur rc12). */
+  instrument?: FacetParam;
   q?: string;
   artist?: FacetParam;
   country?: FacetParam;       // release_country (track_metadata k/v)
@@ -3516,7 +3665,7 @@ export async function getFilteredTracks(opts: {
   // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
-    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work',
+    'year', 'source', 'label', 'composer', 'conductor', 'ensemble', 'work', 'instrument',
     'artist', 'country', 'mood', 'source_media',
     'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
     // #2108 — pas une facette : l'opérateur « Et » de celles qu'il nomme.
@@ -3806,7 +3955,13 @@ export function getAcousticStatus() {
     // MÊME couple. `eligible_tracks` exclut les pistes reportées.
     processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
     pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    // tune-server-rust#9046 — parmi `deferred_tracks`, les reports après échecs
+    // répétés d'analyse ; `waiting_reason` vaut alors `analysis_failures`.
+    retry_later_tracks?: number;
     waiting_reason?: string | null;
+    // Pourquoi la passe ne travaille pas (`playback`, `thermal`, `low_memory`,
+    // `not_premium`, `model_unavailable` — tune-server-rust#9046), ou `null`.
+    paused_reason?: string | null;
   }>(
     `${BASE}/library/search/acoustic/status`,
   );
@@ -4128,13 +4283,15 @@ export interface DoubtfulAlbum extends _PisteDouteuse {
 export async function getDoubtfulTracks(
   limit = 1000,
   offset = 0,
-): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number }> {
-  const r = await fetchJSON<{ items?: unknown[]; total?: number } | unknown[]>(
+): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number; can_ignore?: boolean }> {
+  const r = await fetchJSON<{ items?: unknown[]; total?: number; can_ignore?: boolean } | unknown[]>(
     `${BASE}/metadata/doubtful?limit=${limit}&offset=${offset}`,
   );
   const items = (Array.isArray(r) ? r : (r?.items ?? [])) as import('./artisteDepuisChemin').PisteDouteuse[];
   const total = Array.isArray(r) ? r.length : (r?.total ?? items.length);
-  return { items, total };
+  // tune-server-rust#8958 — « C'est normal » n'est offert qu'à qui peut l'écrire.
+  const can_ignore = Array.isArray(r) ? undefined : r?.can_ignore;
+  return { items, total, can_ignore };
 }
 
 /**
@@ -4201,6 +4358,100 @@ export function ecrireArtisteDuDossier(trackIds?: number[]) {
   return fetchJSON<BilanArtisteDuDossier>(`${BASE}/metadata/doubtful/artist-from-folder`, {
     method: 'POST',
     body: JSON.stringify(trackIds ? { track_ids: trackIds } : {}),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#8958 — une alerte de « Albums douteux » marquée
+ * normale. Elle tient par une clé STABLE (survit au rescan complet) :
+ * `key` est le chemin de la piste (`scope: 'track'`) ou le dossier de
+ * l'album (`scope: 'album'`, avec `title`, son titre exact). `scope`, `key`,
+ * `title` et `reason` servent tels quels à l'annulation.
+ */
+export interface AlerteDouteuseIgnoree {
+  scope: 'track' | 'album';
+  key: string;
+  title: string;
+  reason: string;
+  ignored_at: number;
+  /** Le nom figé au moment du choix. */
+  label?: string | null;
+  /** Faux quand plus aucune piste ne porte la clé (fichiers absents). */
+  found?: boolean;
+  track_id?: number | null;
+  track_title?: string | null;
+  album_id?: number | null;
+  album_title?: string | null;
+  file_path?: string | null;
+  track_count?: number;
+}
+
+/** De quoi désigner une alerte ignorée pour l'annuler. */
+export type CleAlerteIgnoree = Pick<AlerteDouteuseIgnoree, 'scope' | 'key' | 'title' | 'reason'>;
+
+export async function getAlertesDouteusesIgnorees() {
+  const r = await fetchJSON<{ items?: AlerteDouteuseIgnoree[]; total?: number }>(
+    `${BASE}/metadata/doubtful/ignored`,
+  );
+  return r?.items ?? [];
+}
+
+/** Marque l'alerte `reason` de la piste comme normale. Réservé à l'administrateur. */
+export function ignorerAlerteDouteuse(trackId: number, reason: string) {
+  return fetchJSON<CleAlerteIgnoree & { added: boolean }>(
+    `${BASE}/metadata/doubtful/ignored`,
+    { method: 'POST', body: JSON.stringify({ track_id: trackId, reason }) },
+  );
+}
+
+/** Annule le choix : l'alerte revient si le problème existe toujours. */
+export function retablirAlerteDouteuse(a: CleAlerteIgnoree) {
+  return fetchJSON<{ removed: boolean }>(`${BASE}/metadata/doubtful/ignored`, {
+    method: 'DELETE',
+    body: JSON.stringify({ scope: a.scope, key: a.key, title: a.title, reason: a.reason }),
+  });
+}
+
+/**
+ * renesenses/tune-server-rust#9028 — « Normal pour tout l'album » : l'aperçu
+ * (les pistes de l'album qui portent encore l'alerte), à montrer AVANT le
+ * geste, pour que la portée se voie.
+ */
+export interface ApercuAlerteAlbum {
+  album_id: number;
+  album_title: string | null;
+  reason: string;
+  /** Le geste groupé n'écrit que des lignes de pistes. */
+  scope: 'track';
+  /** Affichage : le dossier des pistes de l'album. */
+  folder: string | null;
+  tracks: { id: number; title: string; duration_ms: number; disc_number?: number; track_number?: number; file_path?: string | null }[];
+  total: number;
+  ignored_count: number;
+}
+
+export function apercuAlerteAlbum(albumId: number, reason: string) {
+  return fetchJSON<ApercuAlerteAlbum>(
+    `${BASE}/metadata/doubtful/album?album_id=${albumId}&reason=${encodeURIComponent(reason)}`,
+  );
+}
+
+/** Marque l'alerte normale pour les pistes `trackIds` de l'album (vérifiées
+ *  par le serveur) : UNE ligne par piste, jamais l'album entier (une piste
+ *  ajoutée plus tard reste signalée). `added_keys` : les lignes que CE geste
+ *  a ajoutées — exactement ce que l'annulation retire. Réservé à l'administrateur. */
+export function ignorerAlerteAlbum(albumId: number, reason: string, trackIds: number[]) {
+  return fetchJSON<{ scope: 'track'; reason: string; track_ids: number[]; track_count: number; added: number; added_keys: CleAlerteIgnoree[] }>(
+    `${BASE}/metadata/doubtful/ignored/album`,
+    { method: 'POST', body: JSON.stringify({ album_id: albumId, reason, track_ids: trackIds }) },
+  );
+}
+
+/** Annule un geste groupé : retire exactement ces lignes (`added_keys`). */
+export function retablirAlerteAlbum(keys: CleAlerteIgnoree[]) {
+  return fetchJSON<{ removed: number }>(`${BASE}/metadata/doubtful/ignored/album`, {
+    method: 'DELETE',
+    body: JSON.stringify({ keys: keys.map((k) => ({ scope: k.scope, key: k.key, title: k.title ?? '', reason: k.reason })) }),
   });
 }
 
@@ -6090,6 +6341,66 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** État de l'écran « Activer l'authentification » (`GET /auth/activation`). */
+export interface EtatActivationAuth {
+  auth_enabled: boolean;
+  /** L'appel vient de la machine qui fait tourner Tune. */
+  from_this_machine: boolean;
+  /** Un code à usage unique (journal du serveur) est demandé. */
+  code_required: boolean;
+  admin_username?: string | null;
+  min_password_length?: number;
+  /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
+  accounts?: CompteExistant[];
+}
+
+/** Un compte listé par l'écran d'activation. */
+export interface CompteExistant {
+  id: number;
+  username: string;
+  created_at?: string | null;
+  role: 'admin' | 'user' | string;
+  /** Jamais vrai pour le compte administrateur. */
+  deletable: boolean;
+}
+
+/** Réponse de `POST /auth/activation` : succès, ou refus nommé par `error`. */
+export interface ReponseActivationAuth {
+  auth_enabled?: boolean;
+  username?: string;
+  token?: string;
+  deleted_accounts?: number[];
+  error?: string;
+  message?: string;
+}
+
+/** `null` : serveur antérieur à l'écran (404). */
+export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
+  const r = await fetchJSON<EtatActivationAuth | { error?: string }>(
+    `${BASE}/auth/activation`, undefined, (s) => s === 404,
+  );
+  return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
+}
+
+/** Demande au serveur d'écrire un code à usage unique dans son journal. */
+export function requestAuthActivationCode() {
+  return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
+    `${BASE}/auth/activation/code`, { method: 'POST' }, (s) => s === 409 || s === 429,
+  );
+}
+
+/** Active l'authentification ; les refus attendus reviennent comme corps. */
+export function activateAuth(password: string, code?: string, deleteAccounts: number[] = []) {
+  const corps: Record<string, unknown> = { password };
+  if (code) corps.code = code;
+  if (deleteAccounts.length) corps.delete_accounts = deleteAccounts;
+  return fetchJSON<ReponseActivationAuth>(
+    `${BASE}/auth/activation`,
+    { method: 'POST', body: JSON.stringify(corps) },
+    (s) => s === 400 || s === 403 || s === 409 || s === 429,
+  );
+}
+
 /** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
  *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
@@ -6493,6 +6804,11 @@ export function getSystemEnv() {
     container?: string | null;
     /** Le nom d'hôte du conteneur quand c'est un identifiant court (`docker restart <id>`). */
     container_id?: string | null;
+    /**
+     * tune-server-rust#8747 — le dossier de données survit-il à la recréation
+     * du conteneur ? `null` hors conteneur ; absent : serveur plus ancien.
+     */
+    data_persistence?: import('./persistanceDonnees').PersistanceDonnees | null;
   }>(`${BASE}/system/env`);
 }
 
@@ -7747,6 +8063,90 @@ export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
 
+/** Une ligne de `/profiles/{id}/favorites`, telle que le serveur la rend. */
+type LigneFavori = { item_type: string; item_id: number; created_at?: string | null };
+
+function lignesDeFavoris(profileId: number, type?: LocalFavoriteType) {
+  const q = type ? `?item_type=${type}` : '';
+  return fetchJSON<LigneFavori[]>(`${BASE}/profiles/${profileId}/favorites${q}`);
+}
+
+/**
+ * renesenses/tune-web-client#3185 (Rob Sykes, fil 2889) — au plus
+ * `FAVORIS_EN_VOL` relectures de favori en vol, pour TOUT le client.
+ *
+ * `getFavorites` relisait chaque favori un par un, les quatre seaux en même
+ * temps, sans borne : 693 `GET /library/artists/{id}` refusés par Chromium
+ * (`net::ERR_INSUFFICIENT_RESOURCES`) à l'ouverture de l'Accueil, le bandeau
+ * réseau, et des favoris jetés. Le serveur n'a pas de route groupée qui rende
+ * les objets développés : on borne donc la file. Le guichet est COMMUN à tous
+ * les appels — deux bandes de l'Accueil qui chargent en même temps ne
+ * doublent pas la borne.
+ */
+export const FAVORIS_EN_VOL = 6;
+let favorisEnVol = 0;
+const favorisEnAttente: Array<() => void> = [];
+
+function relireFavori<T>(faire: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resoudre, rejeter) => {
+    const lancer = () => {
+      favorisEnVol++;
+      let essai: Promise<T>;
+      try {
+        essai = faire();
+      } catch (e) {
+        essai = Promise.reject(e);
+      }
+      essai
+        .catch((e: any) => {
+          // Une requête REFUSÉE (réseau, navigateur saturé) n'a pas de statut
+          // HTTP : on la rejoue une fois. Un 404 — favori supprimé — non.
+          if (typeof e?.status === 'number') throw e;
+          return faire();
+        })
+        .then(resoudre, rejeter)
+        .finally(() => {
+          favorisEnVol--;
+          favorisEnAttente.shift()?.();
+        });
+    };
+    if (favorisEnVol < FAVORIS_EN_VOL) lancer();
+    else favorisEnAttente.push(lancer);
+  });
+}
+
+/**
+ * Les IDENTIFIANTS des favoris de la bibliothèque, en UNE requête (#3185).
+ *
+ * Les cœurs n'ont besoin que de l'identifiant, et il est déjà dans chaque
+ * ligne de `/profiles/{id}/favorites`. Relire l'objet (ce que fait
+ * `getFavorites`) ne sert qu'à l'écran Favoris et aux bandes de l'Accueil.
+ * Un favori dont l'objet ne se relit pas reste donc un favori : son cœur
+ * reste plein.
+ */
+export async function getFavoriteIds(profileId: number): Promise<{
+  trackIds: number[];
+  albumIds: number[];
+  artistIds: number[];
+  playlistIds: number[];
+  collectionIds: number[];
+  smartCollectionIds: number[];
+  smartPlaylistIds: number[];
+}> {
+  const rows = await lignesDeFavoris(profileId);
+  const ids = (t: string) =>
+    (Array.isArray(rows) ? rows : []).filter((r) => r.item_type === t).map((r) => r.item_id);
+  return {
+    trackIds: ids('track'),
+    albumIds: ids('album'),
+    artistIds: ids('artist'),
+    playlistIds: ids('playlist'),
+    collectionIds: ids('collection'),
+    smartCollectionIds: ids('smart_collection'),
+    smartPlaylistIds: ids('smart_playlist'),
+  };
+}
+
 // The server returns favorites as a FLAT list of rows
 // (`[{ item_type, item_id, ... }]`), but every caller (FavoritesView, the
 // favorite-id stores) expects them grouped and EXPANDED as
@@ -7786,10 +8186,7 @@ export async function getFavorites(
    */
   smartPlaylistIds: number[];
 }> {
-  const q = type ? `?item_type=${type}` : '';
-  const rows = await fetchJSON<
-    Array<{ item_type: string; item_id: number; created_at?: string | null }>
-  >(`${BASE}/profiles/${profileId}/favorites${q}`);
+  const rows = await lignesDeFavoris(profileId, type);
 
   const lignes = (t: string) => rows.filter((r) => r.item_type === t);
   // La date est prélevée sur la ligne d'INDEX i, celle-là même dont la
@@ -7800,7 +8197,9 @@ export async function getFavorites(
     rs: Array<{ item_id: number; created_at?: string | null }>,
     fetchOne: (id: number) => Promise<T>,
   ): Promise<T[]> => {
-    const res = await Promise.allSettled(rs.map((r) => fetchOne(r.item_id)));
+    // #3185 — chaque relecture passe par le guichet borné (`relireFavori`) :
+    // plus jamais des centaines de requêtes lancées d'un coup.
+    const res = await Promise.allSettled(rs.map((r) => relireFavori(() => fetchOne(r.item_id))));
     return res.flatMap((r, i) =>
       r.status === 'fulfilled'
         ? [{ ...r.value, favorite_added_at: rs[i].created_at ?? null }]
@@ -8481,6 +8880,16 @@ export function setCrossfader(zoneId: number, position: number) {
 export function getTrackWaveform(trackId: number) {
   return fetchJSON<{ track_id: number; waveform: number[] | null; error?: string }>(
     `${BASE}/library/tracks/${trackId}/waveform`, undefined, undefined, true,
+  );
+}
+
+/** L'enveloppe de la barre pour une piste Qobuz ou TIDAL en lecture (go du
+ *  17/11/2026, rc13). `202 { pending: true }` tant que le serveur calcule ;
+ *  voir `lib/barreOnde`. */
+export function getServiceTrackWaveform(service: string, sourceId: string) {
+  return fetchJSON<{ waveform: number[] | null; pending?: boolean; error?: string; raison?: string }>(
+    `${BASE}/library/service-tracks/${encodeURIComponent(service)}/${encodeURIComponent(sourceId)}/waveform`,
+    undefined, undefined, true,
   );
 }
 
@@ -11779,6 +12188,9 @@ export interface EtatFauxHiRes {
   active: boolean; douteux_visible: boolean; restantes?: number; rangees?: number;
   /** rc12 — `GET /export/catalogue.html` accepte `hires_verdict=`. Absent : serveur ancien. */
   catalogue_hires_verdict?: boolean;
+  /** tune-server-rust#9067 — « Source altérée » : le verdict `douteux` couvre
+   *  tous les formats, CD compris (raison `mur_de_codec`). Absent : serveur ancien. */
+  source_alteree?: boolean;
 }
 /** `GET /library/hires-check` ; sans bandeau : un serveur ancien ne l'a pas. */
 export function getEtatFauxHiRes() {
@@ -12556,4 +12968,66 @@ export function convertisseurSupprimerLien(
   lienId: string,
 ): Promise<{ lien_id: string; supprime: boolean; playlists_touchees: boolean }> {
   return fetchJSON(`${CONVERTISSEUR}/lien/supprimer`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
+}
+
+import { estReponseTess, estRefusTess } from './tess';
+
+// ── TESS (lot W1) ───────────────────────────────────────────────────────────
+// Routes du contrat T01 (`docs/tess/contrat.md` § 7), servies par T08.
+// Un serveur sans TESS répond 404 : l'écran reste caché, les anciens écrans
+// servent. Les refus (400, 402, 409) portent un `refusal` que l'écran affiche
+// lui-même : ni bandeau ni exception.
+
+/** Résultat d'un appel TESS : la zone, un refus du contrat, ou « pas de TESS ». */
+export type ResultatTess =
+  | { ok: true; reponse: import('./tess').ReponseTessZone }
+  | { ok: false; refus: import('./tess').RefusTess }
+  | { ok: false; absent: true };
+
+async function appelTess(chemin: string, options?: RequestInit): Promise<ResultatTess> {
+  let statut = 200;
+  let corps: unknown;
+  try {
+    corps = await fetchJSON<unknown>(`${BASE}${chemin}`, options, (s) => {
+      statut = s;
+      return s === 400 || s === 402 || s === 404 || s === 405 || s === 409;
+    }, true);
+  } catch (e) {
+    if (statut === 404 || statut === 405) return { ok: false, absent: true };
+    throw e;
+  }
+  if (statut === 404 || statut === 405) return { ok: false, absent: true };
+  if (estRefusTess(corps)) return { ok: false, refus: corps };
+  if (estReponseTess(corps)) return { ok: true, reponse: corps };
+  // Un 2xx qui n'a pas la forme du contrat : ce n'est pas TESS.
+  return { ok: false, absent: true };
+}
+
+/** `GET /zones/{id}/tess` — chaîne, chemin du signal résolu et catalogue. */
+export function getTessZone(zoneId: number): Promise<ResultatTess> {
+  return appelTess(`/zones/${zoneId}/tess`);
+}
+
+/** `PUT /zones/{id}/tess` — remplace la chaîne de la zone (lue strictement). */
+export function putTessZone(zoneId: number, chaine: import('./tess').ChaineTess): Promise<ResultatTess> {
+  return appelTess(`/zones/${zoneId}/tess`, { method: 'PUT', body: JSON.stringify(chaine) });
+}
+
+/**
+ * `GET /tess/presets` — préréglages de chaîne, communs au serveur (contrat
+ * § 5, routes de T17). `null` quand le serveur ne les sert pas encore : le
+ * sélecteur ne s'affiche pas.
+ */
+export async function getTessPresets(): Promise<import('./tess').PreReglagesTess | null> {
+  let statut = 200;
+  try {
+    const r = await fetchJSON<any>(`${BASE}/tess/presets`, undefined, (s) => {
+      statut = s;
+      return s === 404 || s === 405;
+    }, true);
+    if (statut >= 300) return null;
+    return r && Array.isArray(r.presets) ? r : null;
+  } catch {
+    return null;
+  }
 }

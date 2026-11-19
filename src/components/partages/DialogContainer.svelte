@@ -7,6 +7,7 @@
   let value = $state('');
   let coche = $state(true);
   let currentId = -1;
+  let boutonValider = $state<HTMLButtonElement | null>(null);
 
   // Seed the input when a new request becomes visible (and only then —
   // typing must not be overwritten by the $effect re-running).
@@ -33,7 +34,10 @@
       cancel();
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      validate();
+      // web#3245 — « Annuler » par défaut : Entrée ne valide que si l'on a
+      // explicitement porté le focus sur le bouton de validation.
+      if (current.annulerParDefaut && document.activeElement !== boutonValider) cancel();
+      else validate();
     }
   }
   function handleBackdropClick(e: MouseEvent) {
@@ -63,11 +67,17 @@
         </label>
       {/if}
       <div class="dialog-actions">
-        <button class="dialog-btn" onclick={cancel}>{$t('common.cancel')}</button>
+        {#if current.annulerParDefaut}
+          <button class="dialog-btn" data-dialog-annuler onclick={cancel} use:autofocus>{$t('common.cancel')}</button>
+        {:else}
+          <button class="dialog-btn" data-dialog-annuler onclick={cancel}>{$t('common.cancel')}</button>
+        {/if}
         {#if current.kind === 'prompt'}
           <button class="dialog-btn primary" onclick={validate}>{$t('common.ok')}</button>
+        {:else if current.annulerParDefaut}
+          <button class="dialog-btn primary" class:danger={current.danger} data-dialog-valider bind:this={boutonValider} onclick={validate}>{current.valider ?? $t('common.ok')}</button>
         {:else}
-          <button class="dialog-btn primary" class:danger={current.danger} onclick={validate} use:autofocus>{$t('common.ok')}</button>
+          <button class="dialog-btn primary" class:danger={current.danger} data-dialog-valider bind:this={boutonValider} onclick={validate} use:autofocus>{current.valider ?? $t('common.ok')}</button>
         {/if}
       </div>
     </div>

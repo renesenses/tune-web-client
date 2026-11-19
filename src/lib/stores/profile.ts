@@ -266,11 +266,14 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     return;
   }
   try {
-    const favs = await api.getFavorites(profileId);
-    favoriteTrackIds.set(new Set((favs.tracks ?? []).map((t: any) => t.id)));
-    favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
-    favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
-    favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
+    // #3185 — les IDENTIFIANTS seuls, en une requête. `getFavorites` relisait
+    // chaque favori un par un (693 requêtes refusées chez Rob Sykes) et jetait
+    // ceux dont la relecture échouait : leurs cœurs s'éteignaient.
+    const favs = await api.getFavoriteIds(profileId);
+    favoriteTrackIds.set(new Set(favs.trackIds ?? []));
+    favoriteAlbumIds.set(new Set(favs.albumIds ?? []));
+    favoriteArtistIds.set(new Set(favs.artistIds ?? []));
+    favoritePlaylistIds.set(new Set(favs.playlistIds ?? []));
     favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
     favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
     favoriteSmartPlaylistIds.set(new Set(favs.smartPlaylistIds ?? []));

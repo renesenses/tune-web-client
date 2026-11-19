@@ -1,0 +1,113 @@
+/**
+ * Réglage « Balises personnelles → tags Tune » (tune-server-rust#9158,
+ * demande de Rob, go de Bertrand du 19/11).
+ *
+ * Une correspondance : une clé lue dans le fichier (casse ignorée, préfixe de
+ * conteneur ignoré : `MOOD` lit aussi `TXXX:MOOD` et
+ * `----:com.apple.iTunes:MOOD`), et un mode : chaque valeur devient un tag
+ * (`values`, préfixe facultatif), ou un tag fixe dès que la balise est
+ * présente (`fixed`). La validation est la MÊME que celle du serveur
+ * (`tune_core::metadata::tags_perso`).
+ */
+import { nomDeCle } from './balisesClassique';
+
+export type ModeBalisePerso = 'values' | 'fixed';
+
+export interface CorrespondancePerso {
+  key: string;
+  mode: ModeBalisePerso;
+  tag?: string;
+  prefix?: string;
+  /** Séparateur des valeurs d'une balise : absent = `;`, `''` = aucun. */
+  separator?: string;
+}
+
+export interface ReglageBalisesPerso {
+  mappings: CorrespondancePerso[];
+}
+
+export const MAX_CORRESPONDANCES = 32;
+export const MAX_LONGUEUR_CLE = 64;
+export const MAX_LONGUEUR_PREFIXE = 32;
+export const MAX_LONGUEUR_SEPARATEUR = 8;
+export const SEPARATEUR_DEFAUT = ';';
+/** Les balises proposées (Rob, Roon, foobar2000) ; le serveur envoie les siennes. */
+export const SUGGESTIONS_DEFAUT = ['GROUPING', 'MOOD', 'STYLE', 'ROONTRACKTAG', 'ROONALBUMTAG'];
+
+export type ChoixSeparateur = 'semicolon' | 'pipe' | 'slash' | 'none' | 'custom';
+
+/** Le choix affiché pour un séparateur stocké. */
+export function choixDuSeparateur(sep: string | undefined): ChoixSeparateur {
+  if (sep === undefined || sep === ';') return 'semicolon';
+  if (sep === '|') return 'pipe';
+  if (sep === '/') return 'slash';
+  if (sep === '') return 'none';
+  return 'custom';
+}
+
+/** Le séparateur stocké pour un choix (`custom` garde la saisie). */
+export function separateurDuChoix(choix: ChoixSeparateur, saisie = ''): string | undefined {
+  switch (choix) {
+    case 'semicolon': return undefined;
+    case 'pipe': return '|';
+    case 'slash': return '/';
+    case 'none': return '';
+    default: return saisie;
+  }
+}
+
+export type RefusCle = 'empty' | 'tooLong' | 'chars' | 'tooMany';
+export type RefusCorrespondance = RefusCle | 'tagRequired' | 'prefixTooLong' | 'separatorTooLong' | 'separatorEmpty';
+
+/** Une clé saisie, mise en capitales, ou la raison de son refus. */
+export function normaliserCle(
+  saisie: string,
+  nombre: number,
+): { cle: string } | { refus: RefusCle } {
+  const cle = saisie.trim().toUpperCase();
+  if (!cle || !nomDeCle(cle)) return { refus: 'empty' };
+  if ([...cle].length > MAX_LONGUEUR_CLE) return { refus: 'tooLong' };
+  if (!/^[A-Z0-9 _\-:.]+$/.test(cle)) return { refus: 'chars' };
+  if (nombre >= MAX_CORRESPONDANCES) return { refus: 'tooMany' };
+  return { cle };
+}
+
+/**
+ * Le refus d'une correspondance complète, ou `null`. `personnalise` : la ligne
+ * a choisi « Personnalisé » ; un séparateur vide y est refusé (il voudrait dire
+ * « Aucun », que l'utilisateur n'a pas choisi).
+ */
+export function refusDe(c: CorrespondancePerso, personnalise = false): RefusCorrespondance | null {
+  const r = normaliserCle(c.key, 0);
+  if ('refus' in r) return r.refus;
+  if (c.mode === 'fixed' && !(c.tag ?? '').trim()) return 'tagRequired';
+  if (c.mode === 'values' && [...(c.prefix ?? '').trim()].length > MAX_LONGUEUR_PREFIXE) return 'prefixTooLong';
+  if (c.mode === 'values' && [...(c.separator ?? '')].length > MAX_LONGUEUR_SEPARATEUR) return 'separatorTooLong';
+  if (c.mode === 'values' && personnalise && !(c.separator ?? '')) return 'separatorEmpty';
+  return null;
+}
+
+/** Le corps envoyé : seuls les champs du mode, clés en capitales. */
+export function corpsDe(r: ReglageBalisesPerso): ReglageBalisesPerso {
+  return {
+    mappings: r.mappings.map((c) => {
+      const key = c.key.trim().toUpperCase();
+      if (c.mode === 'fixed') return { key, mode: 'fixed', tag: (c.tag ?? '').trim() };
+      const prefix = (c.prefix ?? '').trimStart();
+      const corps: CorrespondancePerso = { key, mode: 'values' };
+      if (prefix.trim()) corps.prefix = prefix;
+      if (c.separator !== undefined && c.separator !== SEPARATEUR_DEFAUT) corps.separator = c.separator;
+      return corps;
+    }),
+  };
+}
+
+export function copieReglage(r: ReglageBalisesPerso): ReglageBalisesPerso {
+  return { mappings: r.mappings.map((c) => ({ ...c })) };
+}
+
+export function memesReglages(a: ReglageBalisesPerso, b: ReglageBalisesPerso): boolean {
+  return JSON.stringify(corpsDe(a)) === JSON.stringify(corpsDe(b));
+}
+
+export { nomDeCle };

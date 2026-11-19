@@ -12,12 +12,17 @@
   - album : repli sur `album_ratings.note` (`getAlbumRating` / `rateAlbum`),
     qui n'existe qu'avec une note sur 5 étoiles ;
   - artiste et piste : le bloc dit que les notes ne sont pas disponibles.
+
+  Coller un extrait de page web (presse-papiers `text/html`) dans la saisie
+  le convertit en Markdown (`lib/htmlVersMarkdown`) : liens, gras, italique,
+  titres, listes, citations. Le texte simple se colle comme d'habitude.
 -->
 <script lang="ts">
   import * as api from '../../lib/api';
   import type { NotePersonnelle, TypeNote } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { rendreMarkdownSur } from '../../lib/markdownSur';
+  import { htmlVersMarkdown } from '../../lib/htmlVersMarkdown';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
@@ -78,6 +83,33 @@
   function commencer() {
     brouillon = texte;
     edition = true;
+  }
+
+  /**
+   * Un collage `text/html` devient du Markdown, inséré au curseur comme un
+   * collage normal. Sans mise en forme utile : collage natif du texte brut.
+   */
+  function coller(e: ClipboardEvent) {
+    const html = e.clipboardData?.getData('text/html');
+    if (!html) return;
+    const md = htmlVersMarkdown(html);
+    if (md === null) return;
+    e.preventDefault();
+    const zone = e.currentTarget as HTMLTextAreaElement;
+    // `insertText` garde l'annulation (Ctrl+Z) du navigateur ; repli sur
+    // `setRangeText` là où la commande n'existe pas.
+    const avant = zone.value;
+    let insere = false;
+    try {
+      zone.focus();
+      insere = typeof document.execCommand === 'function' && document.execCommand('insertText', false, md);
+    } catch {
+      insere = false;
+    }
+    if (!insere || zone.value === avant) {
+      zone.setRangeText(md, zone.selectionStart, zone.selectionEnd, 'end');
+    }
+    brouillon = zone.value;
   }
 
   async function enregistrer() {
@@ -208,7 +240,7 @@
   {:else if mode === 'erreur'}
     <p class="etat err">{$t('mesNotes.erreurLecture' as any)}</p>
   {:else if edition}
-    <textarea class="saisie" data-mes-notes-saisie rows="6" bind:value={brouillon}
+    <textarea class="saisie" data-mes-notes-saisie rows="6" bind:value={brouillon} onpaste={coller}
       placeholder={$t('mesNotes.placeholder' as any)} disabled={occupe}></textarea>
     <p class="aide">{$t('mesNotes.aide' as any)}</p>
     {#if mode === 'repli'}<p class="aide">{$t('mesNotes.repliEtoiles' as any)}</p>{/if}

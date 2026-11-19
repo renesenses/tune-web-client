@@ -61,7 +61,8 @@
    * un second inventé pour l'occasion. C'est exactement la divergence v1/v2 qui
    * a produit ce chantier ; en créer une de plus serait le reproduire.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
@@ -861,6 +862,25 @@
   });
   // web#2299 — « Retour aux similaires » vise la liste de l'aperçu.
   $effect(() => { if ($defilerVersSimilaires) ongletDemande = 'apercu'; });
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — l'ONGLET de la page (Aperçu, Albums,
+   * Similaires), retrouvé par Précédent / Suivant sur la page du MÊME artiste.
+   * Rendu par un effet déclaré après celui qui remet l'aperçu à chaque
+   * artiste, dont le premier passage l'effacerait. Le défilement suit par la
+   * coquille (`lib/memoireNavigation`).
+   */
+  const memoirePageArtiste = memoireEcran<{ cle: string; onglet: OngletArtiste }>('streamingartist', () => ({
+    cle: `${cible?.service ?? ''}:${cible?.id ?? ''}`, onglet: String(ongletDemande) as OngletArtiste,
+  }));
+  $effect(() => memoirePageArtiste.arreter);
+  let repriseOngletFaite = false;
+  $effect(() => {
+    const r = memoirePageArtiste.reprise;
+    const k = `${cible?.service ?? ''}:${cible?.id ?? ''}`;
+    if (repriseOngletFaite || !r) return;
+    repriseOngletFaite = true;
+    if (r.cle === k) untrack(() => { ongletDemande = r.onglet; });
+  });
   const libelleOnglet = (o: OngletArtiste) =>
     $tr((o === 'apercu' ? 'artist.page.overview' : o === 'albums' ? 'v2.fas.albums' : 'artist.similarArtists') as any);
 

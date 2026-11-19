@@ -402,6 +402,31 @@ export function mettreAJourAlbum(maj: Partial<Album> & { id: number | null }): v
   if (get(albums).length) albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
 }
 
+/**
+ * web#3258 — la MÊME modification portée sur plusieurs fiches (« Modifier en
+ * lot » de la sélection), en UNE passe : une seule émission par magasin, et
+ * une recherche par ensemble — pas `mettreAJourAlbum` par identifiant, qui
+ * parcourrait toute la bibliothèque pour chacun et réveillerait la grille
+ * autant de fois.
+ */
+export function mettreAJourAlbums(ids: Iterable<number>, maj: Partial<Album>): void {
+  const cibles = new Set(ids);
+  if (!cibles.size) return;
+  const { id: _id, ...champs } = maj as Partial<Album> & { id?: unknown };
+  const appliquer = (a: Album) => (a.id != null && cibles.has(a.id) ? { ...a, ...champs } : a);
+  albumsPagines.update((e) => {
+    let touche = false;
+    const pages = new Map(e.pages);
+    for (const [index, page] of pages) {
+      if (!page.some((a) => a.id != null && cibles.has(a.id))) continue;
+      pages.set(index, page.map(appliquer));
+      touche = true;
+    }
+    return touche ? { ...e, pages } : e;
+  });
+  if (get(albums).length) albums.update((liste) => liste.map(appliquer));
+}
+
 /** Pour les témoins : tout à zéro, comme au premier chargement du module. */
 export function _remiseAZeroPourTests(): void {
   demandesEnVol.clear();
