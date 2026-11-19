@@ -20,6 +20,7 @@
    * découpage gauche/droite finiraient par diverger.
    */
   import { untrack } from 'svelte';
+  import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { zoneChangee } from '../../lib/eqPresetEnCours';
   import { rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
@@ -179,7 +180,12 @@
     // web#2303 — mais SEULEMENT sur un vrai changement de zone : une relance
     // du chargement (« Réessayer », installation du greffon, traduction qui
     // arrive, même zone réannoncée) garde le préréglage en cours.
-    if (zoneChangee(zoneDuChargement, zid)) enCoursId = null;
+    if (zoneChangee(zoneDuChargement, zid)) {
+      enCoursId = null;
+      // web#3272 — le geste fait sur la zone précédente part vers ELLE, tout
+      // de suite, avant que la courbe affichée ne soit remplacée.
+      untrack(() => void viderEnAttente());
+    }
     zoneDuChargement = zid;
     // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
     // zone n'est choisie, sinon l'écran réclamerait une zone pour un
@@ -308,25 +314,70 @@
     }
   }
 
+  /**
+   * web#3272 — ce qu'un enregistrement écrit, figé AU MOMENT DU GESTE : la
+   * zone ET la courbe. Le minuteur de `queueSave` relisait l'une et l'autre
+   * 300 ms plus tard : changer de zone entre-temps écrivait la courbe de A
+   * sur la zone B.
+   */
+  type Ecriture = { zid: number | null; bands: EqBand[]; enabled: boolean; parametrique: boolean };
+  function ecritureCourante(): Ecriture {
+    const parametrique = sousMode === 'parametrique';
+    return {
+      zid: get(currentZoneId),
+      bands: parametrique
+        ? $state.snapshot(pBandes)
+        : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0),
+      enabled,
+      parametrique,
+    };
+  }
+
   let timer: ReturnType<typeof setTimeout> | null = null;
+  /** L'écriture que le minuteur enverra : le DERNIER geste, figé. */
+  let enAttente: Ecriture | null = null;
+  // Quitter l'écran dans les 300 ms : le geste part quand même, vers sa zone.
+  $effect(() => () => { void viderEnAttente(); });
   function queueSave() {
     if (timer) clearTimeout(timer);
-    timer = setTimeout(() => { timer = null; void save(); }, 300);
+    enAttente = ecritureCourante();
+    timer = setTimeout(() => { void viderEnAttente(); }, 300);
+  }
+  /**
+   * Envoie tout de suite l'écriture en attente, vers SA zone. Appelé au
+   * changement de zone et au démontage : le dernier geste n'est pas perdu, et
+   * il ne part pas ailleurs.
+   */
+  function viderEnAttente(): Promise<void> {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    const e = enAttente;
+    enAttente = null;
+    return e ? ecrire(e) : Promise.resolve();
   }
   async function save() {
-    const zid = zoneRequise();
+    // L'écriture immédiate porte l'état le plus récent : celle qui attendait
+    // est périmée, et partirait APRÈS elle avec une courbe plus ancienne.
+    if (timer) clearTimeout(timer);
+    timer = null;
+    enAttente = null;
+    await ecrire(ecritureCourante());
+  }
+  async function ecrire({ zid: zidFige, bands, enabled: allume, parametrique }: Ecriture) {
+    const zid = zidFige ?? zoneRequise();
     if (zid == null) return;
-    const bands: EqBand[] = sousMode === 'parametrique'
-      ? $state.snapshot(pBandes)
-      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
-      const res: any = await api.setEq(zid, { bands, enabled });
-      courbeEnServiceParametrique = sousMode === 'parametrique';
+      const res: any = await api.setEq(zid, { bands, enabled: allume });
+      // Une écriture partie vers la zone qu'on vient de quitter ne parle pas
+      // de la zone affichée : l'écran n'en tire rien.
+      if (get(currentZoneId) !== zid) return;
+      courbeEnServiceParametrique = parametrique;
       reportReach(atteintLeSon(res?.applied_live, res?.portee));
       // La courbe a changé : ce que la compensation rend aussi (#4685).
       revisionDsp++;
       error = null;
     } catch (e: any) {
+      if (get(currentZoneId) !== zid) return;
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas » : les
       // curseurs bougent, la courbe tient à l'écran, et le son ne change
       // jamais. On le remonte.
