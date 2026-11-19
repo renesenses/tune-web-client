@@ -26,6 +26,8 @@ export const FACETTES_COMBINABLES_EN_ET: ReadonlySet<string> = new Set([
   'playlist', 'favorite', 'untagged',
   // #2762 — un chœur ET un orchestre, un chef ET un chef de chœur.
   'conductor', 'ensemble',
+  // web#3157 — piano ET violon sur la même piste (sonate, trio…).
+  'instrument',
 ]);
 
 /** Le choix « Et / Ou » a-t-il un sens pour cette facette, avec ce nombre de

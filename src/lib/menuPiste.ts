@@ -84,6 +84,8 @@ export const ICONES = {
   /** rc12 — « Lecture aléatoire », le ⤮ de la fiche album (BoutonLectureV2). */
   shuffle: 'M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3',
   queue: 'M4 7h11M4 12h11M4 17h7M18 14.5v6M15 17.5h6',
+  /** web#3247 — « Lire en boucle » : les deux flèches du bouton Répéter. */
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
   similar: 'M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
   versions: 'M7 7h14v14H7zM3 17V5a2 2 0 0 1 2-2h12',
   playlist: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6M16 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4',

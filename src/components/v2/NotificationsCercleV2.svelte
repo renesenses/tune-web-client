@@ -53,6 +53,7 @@
       case 'message': return tr(n.count > 1 ? 'v2.circle.notif.messages' : 'v2.circle.notif.message', v);
       case 'contact_request': return tr('v2.circle.notif.contactRequest', v);
       case 'contact_accepted': return tr('v2.circle.notif.contactAccepted', v);
+      case 'circle_shared': return tr('v2.circle.notif.circleShared', v);
     }
   }
 

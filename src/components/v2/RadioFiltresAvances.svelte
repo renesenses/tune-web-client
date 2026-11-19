@@ -2,8 +2,8 @@
   /**
    * tune-server-rust#7466 — les critères de recherche de radios, LES MÊMES
    * sur « Mes radios » et sur « Annuaire ». Format, qualité minimale
-   * (tune-server-rust#7718), sans perte, haute qualité, Hi-Res, Metadata+ et
-   * favoris ; le serveur les combine en ET.
+   * (tune-server-rust#7718), sans perte, haute qualité, Metadata+ et favoris ;
+   * le serveur les combine en ET.
    *
    * Recette rc12 (13/11) : plus de bouton « Plus de filtres » ni de barre
    * repliée. Les critères sont toujours visibles, sur la MÊME ligne que la
@@ -14,13 +14,18 @@
    * Recette rc12 (14/11, Rémi ; décision de Bertrand « deux boutons, termes
    * justes ») : des BOUTONS qui changent de couleur, comme les genres, et non
    * des cases à cocher. Ordre de la ligne : « Mes favoris », « Sans perte »,
-   * « Haute qualité », « Hi-Res », la liste « Pays » (rendue par le parent,
+   * « Haute qualité », la liste « Pays » (rendue par le parent,
    * `pays`), « Tous les formats », « Toute qualité », Metadata+, puis
    * « Effacer ». Les termes :
    *   - « Sans perte » : un flux sans perte par son codec réel ;
    *   - « Haute qualité » : sans perte OU au moins 256 kbit/s (la définition
-   *     de Rémi de son « Hi-Res », sous un nom honnête) ;
-   *   - « Hi-Res » : sans perte ET au-delà de 48 kHz.
+   *     de Rémi de son « Hi-Res », sous un nom honnête).
+   *
+   * Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : plus de bouton
+   * « Hi-Res » (« n'a aucun sens pour les webradios », une douzaine de
+   * stations). Le critère `hires` reste compris du serveur ; le client ne
+   * l'envoie plus, et une préférence enregistrée l'oublie
+   * (`normaliserFiltresRadio`).
    *
    * Le choix est retenu dans les préférences (`radioFiltres`), comme les
    * autres choix d'affichage : il suit le profil d'un appareil à l'autre.
@@ -54,7 +59,7 @@
   }
 </script>
 
-{#snippet bouton(cle: 'favoris' | 'lossless' | 'hauteQualite' | 'hires', libelle: string, bulle: string | null, testid: string)}
+{#snippet bouton(cle: 'favoris' | 'lossless' | 'hauteQualite', libelle: string, bulle: string | null, testid: string)}
   <button type="button" class="bf" class:active={filtres[cle]} aria-pressed={filtres[cle]}
     title={bulle ?? undefined} data-testid={testid}
     onclick={() => poser({ [cle]: !filtres[cle] } as Partial<FiltresRadio>)}>{libelle}</button>
@@ -64,7 +69,6 @@
   {@render bouton('favoris', $t('v2.radio.filters.favorites' as any), null, 'radio-filtres-favoris')}
   {@render bouton('lossless', $t('v2.radio.filters.lossless' as any), $t('v2.radio.filters.losslessTip' as any), 'radio-filtres-lossless')}
   {@render bouton('hauteQualite', $t('v2.radio.filters.highQuality' as any), $t('v2.radio.filters.highQualityTip' as any), 'radio-filtres-hq')}
-  {@render bouton('hires', $t('v2.radio.filters.hires' as any), $t('v2.radio.filters.hiresTip' as any), 'radio-filtres-hires')}
   {@render pays?.()}
   <select class="choix" aria-label={$t('v2.radio.filters.format' as any)}
     value={filtres.codec ?? ''}
@@ -109,7 +113,8 @@
     font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill); transition:.15s}
   .bf:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .bf.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .bf.badge{padding:5px 10px; line-height:1}
-  .bf.badge.active :global(.mdp){color:var(--v2-on-acc); border-color:var(--v2-on-acc)}
+  /* Le badge n'a plus de cadre (rc12) : le seul cadre est celui du bouton. */
+  .bf.badge{line-height:1}
+  .bf.badge.active :global(.mdp){color:var(--v2-on-acc)}
   @media (max-width: 640px){ .choix{max-width:none; flex:1} }
 </style>

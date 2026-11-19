@@ -17,7 +17,8 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -342,6 +343,20 @@ import { sansDoublons } from '../../lib/clesUniques';
     idLocal?: number;
     idService?: string;
     serviceSource?: string;
+    /**
+     * web#3230 (fil 2864, point 14) — la vignette d'une playlist de service.
+     * Le serveur la rend depuis longtemps (`cover_path`, et `covers` pour la
+     * mosaïque Qobuz) ; cet écran ne la recopiait pas, et la ligne n'affichait
+     * qu'une case grise avec ▶. Absente pour une playlist locale.
+     */
+    image?: string | null;
+  }
+  /** La pochette à montrer : l'image de la playlist, sinon la première de la mosaïque. */
+  function imagePlaylist(pl: { cover_path?: string | null; covers?: string[] | null }): string | null {
+    const c = typeof pl?.cover_path === 'string' ? pl.cover_path.trim() : '';
+    if (c) return c;
+    const m = Array.isArray(pl?.covers) ? pl.covers.find((x) => typeof x === 'string' && x.trim()) : undefined;
+    return m ?? null;
   }
   let playlists = $state<PlaylistTrouvee[]>([]);
 
@@ -373,6 +388,7 @@ import { sansDoublons } from '../../lib/clesUniques';
                   trouvees.push({
                     nom: pl.name, pistes: pl.track_count, source: svc.charAt(0).toUpperCase() + svc.slice(1),
                     idService: pl.source_id, serviceSource: pl.source,
+                    image: imagePlaylist(pl),
                   });
                 }
               }
@@ -401,6 +417,7 @@ import { sansDoublons } from '../../lib/clesUniques';
         out.push({
           nom: pl.name, pistes: pl.track_count ?? 0, source: svc.charAt(0).toUpperCase() + svc.slice(1),
           idService: String(pl.source_id), serviceSource: svc,
+          image: imagePlaylist(pl as any),
         });
       }
     }
@@ -1138,6 +1155,42 @@ import { sansDoublons } from '../../lib/clesUniques';
         duration_ms: t.duration_ms, ...champAlbumBandcamp(t) } as any).catch(signalerEchecLecture);
     }
   }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉSULTATS RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * La requête survit déjà au démontage (`currentSearchCriteria`) ; les
+   * pastilles de type et de source, et les sections dépliées par « Voir
+   * plus », non. Retenues à la sortie de l'entrée (`lib/memoireNavigation`),
+   * rendues au remontage par l'historique seulement. La requête est reposée
+   * avant les effets : la recherche repart d'elle-même, rien d'autre n'est
+   * rejoué (aucune lecture, aucun ajout).
+   *
+   * Les sections dépliées sont remises au pas par le premier passage de
+   * l'effet `void q` : elles sont rendues par un effet déclaré APRÈS lui.
+   */
+  interface MemoireRecherche {
+    q: string; types: TypeRecherche[]; sources: string[];
+    montreArtistes: number; montreAlbums: number; montreTitres: number;
+  }
+  const memoireRecherche = memoireEcran<MemoireRecherche>('search', () => $state.snapshot({
+    q, types: [...typesActifs], sources: [...sourcesActives],
+    montreArtistes, montreAlbums, montreTitres,
+  }) as MemoireRecherche);
+  $effect(() => memoireRecherche.arreter);
+  const repriseRecherche = memoireRecherche.reprise;
+  if (repriseRecherche) {
+    q = repriseRecherche.q;
+    // `doitViderLePerimetre` ne vide pas au premier passage : les sources tiennent.
+    typesActifs = new Set(repriseRecherche.types);
+    sourcesActives = new Set(repriseRecherche.sources);
+  }
+  $effect(() => {
+    const r = repriseRecherche;
+    if (r) untrack(() => {
+      montreArtistes = r.montreArtistes; montreAlbums = r.montreAlbums; montreTitres = r.montreTitres;
+    });
+  });
 </script>
 
 <section class="v2-search tune-v2">
@@ -1680,7 +1733,8 @@ import { sansDoublons } from '../../lib/clesUniques';
                    son bouton ▶ à gauche (et le menu « … »). -->
               <div class="plhote">
               <span class="plmenu"><MenuObjetV2 objet={objetPlaylistTrouvee(pl)} nom={pl.nom ?? ''} /></span>
-              <button class="plg lire" onclick={() => lirePlaylist(pl)} title={$t('common.play' as any)} aria-label={`${$t('common.play' as any)} — ${pl.nom ?? ''}`}>
+              <button class="plg lire" onclick={() => lirePlaylist(pl)} class:avecimg={!!pl.image} title={$t('common.play' as any)} aria-label={`${$t('common.play' as any)} — ${pl.nom ?? ''}`}>
+                {#if pl.image}<span class="plimg" aria-hidden="true"><AlbumArt coverPath={pl.image} albumId={null} size={0} vignette recadrer alt="" /></span>{/if}
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               </button>
               <button class="trk pl-row" onclick={() => ouvrirPlaylistTrouvee(pl)}>
@@ -1891,6 +1945,11 @@ import { sansDoublons } from '../../lib/clesUniques';
   /* web#2770 — le bouton ▶ de la playlist, hors de la ligne qui l'ouvre. */
   .plg.lire{flex:0 0 44px; cursor:pointer; padding:0; font:inherit}
   .plg.lire:hover{color:var(--v2-acc1); border-color:var(--v2-acc2)}
+  /* web#3230 — la pochette remplit la case, le ▶ reste lisible par-dessus. */
+  .plg.lire.avecimg{position:relative; overflow:hidden; color:#fff}
+  .plg.lire .plimg{position:absolute; inset:0; display:block}
+  .plg.lire .plimg :global(img){width:100%; height:100%; object-fit:cover; display:block}
+  .plg.lire.avecimg svg{position:relative; z-index:1; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
   .plmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .ln{font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lc{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}

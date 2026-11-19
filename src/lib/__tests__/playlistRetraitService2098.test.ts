@@ -34,6 +34,7 @@ import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import { entreeParLibelle } from './aides/menuFiche';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -129,6 +130,7 @@ describe('#2098 — retirer un titre d’une playlist Qobuz personnelle', () => 
     expect(croix()[0].getAttribute('aria-label'))
       .toBe(fr['v2.pl.removeFromService'].replace('{service}', 'qobuz'));
     croix()[0].click();
+    await confirmerLaBoite();
     await souffler();
     const w = requetes.find((r) => r.method === 'POST');
     expect(w?.url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/11\/tracks\/remove$/);
