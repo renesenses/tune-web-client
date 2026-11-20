@@ -4414,6 +4414,8 @@ export default {
   "streaming.allGenres": 'All genres',
   "streaming.pickGenre": 'Pick a genre to see its albums.',
   "streaming.genreNoAlbums": 'No albums in this genre.',
+  "streaming.genreRefused": "{service} refused this genre: it is probably not offered in your country.",
+  "streaming.genreLoadFailed": "Could not load this genre. Please try again later.",
   "streaming.genrePlaylists": 'Playlists in this genre',
   "streaming.genresEmpty": 'This service offers no genres.',
   "v2.hist.eyebrow": "What you have listened to",

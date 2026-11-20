@@ -4394,6 +4394,8 @@ export default {
   "streaming.allGenres": '모든 장르',
   "streaming.pickGenre": '장르를 선택하면 해당 앨범이 표시됩니다.',
   "streaming.genreNoAlbums": '이 장르에는 앨범이 없습니다.',
+  "streaming.genreRefused": "{service}에서 이 장르를 거부했습니다. 해당 국가에서는 제공되지 않는 것 같습니다.",
+  "streaming.genreLoadFailed": "이 장르를 불러올 수 없습니다. 잠시 후 다시 시도하세요.",
   "streaming.genrePlaylists": '이 장르의 플레이리스트',
   "streaming.genresEmpty": '이 서비스는 장르를 제공하지 않습니다.',
   "v2.hist.eyebrow": "지금까지 들은 음악",

@@ -4271,6 +4271,8 @@ export default {
   "streaming.allGenres": "Tất cả thể loại",
   "streaming.pickGenre": "Chọn một thể loại để xem các album của nó.",
   "streaming.genreNoAlbums": "Không có album nào trong thể loại này.",
+  "streaming.genreRefused": "{service} từ chối thể loại này: có lẽ thể loại này không được cung cấp tại quốc gia của bạn.",
+  "streaming.genreLoadFailed": "Không thể tải thể loại này. Vui lòng thử lại sau.",
   "streaming.genrePlaylists": "Danh sách phát thuộc thể loại này",
   "streaming.genresEmpty": "Dịch vụ này không cung cấp thể loại nào.",
   "v2.hist.eyebrow": "Những gì bạn đã nghe",

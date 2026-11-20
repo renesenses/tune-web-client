@@ -7297,10 +7297,13 @@ export function getStreamingGenres(service: string, parentId?: string) {
  * Un serveur antérieur à tune-server-rust#4524 (0.9.156 et avant) ne rejette
  * pas `section`, il l'ignore et re-sert les nouveautés : c'est
  * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
+ *
+ * #3300 — `sansBandeau` : l'écran Genres et les widgets de genre disent
+ * eux-mêmes l'échec (refus 409 `genre_refuse` ou panne 502), sans bandeau.
  */
-export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string, sansBandeau = false) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`, undefined, undefined, sansBandeau);
 }
 
 /**

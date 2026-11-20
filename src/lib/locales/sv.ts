@@ -4393,6 +4393,8 @@ export default {
   "streaming.allGenres": 'Alla genrer',
   "streaming.pickGenre": 'Välj en genre för att se dess album.',
   "streaming.genreNoAlbums": 'Inga album i den här genren.',
+  "streaming.genreRefused": "{service} avvisar den här genren: den erbjuds troligen inte i ditt land.",
+  "streaming.genreLoadFailed": "Det gick inte att läsa in den här genren. Försök igen senare.",
   "streaming.genrePlaylists": 'Spellistor i den här genren',
   "streaming.genresEmpty": 'Den här tjänsten erbjuder inga genrer.',
   "v2.hist.eyebrow": "Vad du har lyssnat på",

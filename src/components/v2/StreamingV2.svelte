@@ -38,7 +38,7 @@
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
   import { filtrerParSaisie } from '../../lib/filtreSaisieOnglet';
-  import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
+  import { CLE_ECHEC_GENRE, chargerRubriquesGenre, motifEchecGenre, type BandeRubrique, type EchecGenre } from '../../lib/rubriquesGenre';
   import { chargerPlaylistsDuGenre } from '../../lib/playlistsDuGenre';
   import { sansLaPlaylistRetiree } from '../../lib/playlistsSuiviesRetrait';
   import { chargerMixes, estUnMix, sousTitreDeMix } from '../../lib/mixesTidal';
@@ -280,6 +280,9 @@
   let genreId = $state<string>('');
   let genreAlbums = $state<any[]>([]);
   let genreLoading = $state(false);
+  /** #3300 — les albums du genre n'ont pas pu être lus : refus du service (502,
+   *  tune-server-rust#9247) ou autre panne. `null` : rien n'a échoué. */
+  let genreEchec = $state<EchecGenre | null>(null);
   /**
    * Les RUBRIQUES éditoriales du genre ouvert (#1300).
    *
@@ -315,7 +318,7 @@
    */
   $effect(() => {
     const svc = active;
-    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; rubriques = [];
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreEchec = null; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
     // web#2828 — le fil de genres quitté pour « Lecture en cours » se repose
@@ -350,7 +353,7 @@
   async function ouvrirGenre(g: StreamingGenre) {
     const svc = active;
     if (!svc || svc === BANDCAMP) return;
-    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = []; genrePlaylists = [];
+    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreEchec = null;
     if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
     genreId = '';
     const mien = ++sousSeq;
@@ -376,7 +379,7 @@
 
   function retourGenres() {
     sousSeq++;
-    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreLoading = false;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreEchec = null; genreLoading = false;
   }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
@@ -894,16 +897,19 @@
     // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
     // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
     // geste, et l'effet editorial rechargeait la liste a chaque puce.
-    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; genrePlaylists = []; return; }
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; genrePlaylists = []; genreEchec = null; return; }
     genreLoading = true;
+    genreEchec = null;
     // #5313 — les playlists du genre, en parallele des albums : leur echec ne
     // touche pas aux bandes d'albums, et un service sans playlists editoriales
     // rend une liste vide (pas de bande).
     genrePlaylists = [];
     chargerPlaylistsDuGenre(() => api.getStreamingGenrePlaylists(svc, gid))
       .then((p) => { if (genreId === gid) genrePlaylists = p as StreamingPlaylist[]; });
+    // #3300 — `sansBandeau` : l'échec se dit DANS la page du genre, pas dans
+    // un bandeau « Server error » qui laisse la page vide.
     chargerRubriquesGenre(rubs, (section) =>
-      api.getStreamingGenreAlbums(svc, gid, 40, section) as Promise<unknown[]>)
+      api.getStreamingGenreAlbums(svc, gid, 40, section, true) as Promise<unknown[]>)
       .then((b) => {
         if (genreId !== gid) return;
         bandesGenre = b;
@@ -911,7 +917,7 @@
         // qui ne sait rien des rubriques est celui d'avant, au pixel pres.
         genreAlbums = b.length === 1 && !b[0].cle ? (b[0].albums as any[]) : [];
       })
-      .catch(() => { if (genreId === gid) { bandesGenre = []; genreAlbums = []; } })
+      .catch((e) => { if (genreId === gid) { bandesGenre = []; genreAlbums = []; genreEchec = motifEchecGenre(e); } })
       .finally(() => { if (genreId === gid) genreLoading = false; });
   });
 
@@ -1952,6 +1958,17 @@
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
           <div class="state">{$t('v2.common.noResult' as any)}</div>
+        {:else if genreId && genreEchec === 'echec'}
+          <!-- #3300 — la lecture des albums a ÉCHOUÉ (panne du service, délai,
+               502) : on le dit, playlists du genre arrivées ou non. « Aucun
+               album dans ce genre » serait faux : on n'en sait rien. -->
+          <div class="state" data-genre-echec="echec">{$t(CLE_ECHEC_GENRE.echec as any)}</div>
+        {:else if genreId && genreEchec === 'refuse' && !genrePlaylists.length}
+          <!-- #3300 — le service a REFUSÉ le genre (409 `genre_refuse`, seul
+               signal retenu) : on le dit, au lieu d'une page vide. Si des
+               playlists du genre sont arrivées, elles sont la matière du genre
+               et « aucun album » est exact : on y retombe. -->
+          <div class="state" data-genre-echec="refuse">{$t(CLE_ECHEC_GENRE.refuse as any).replace('{service}', nomDeService(active ?? ''))}</div>
         {:else if genreId}
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}

@@ -4265,6 +4265,8 @@ export default {
   "streaming.allGenres": "Tüm türler",
   "streaming.pickGenre": "Albümlerini görmek için bir tür seçin.",
   "streaming.genreNoAlbums": "Bu türde albüm yok.",
+  "streaming.genreRefused": "{service} bu türü reddetti: muhtemelen ülkenizde sunulmuyor.",
+  "streaming.genreLoadFailed": "Bu tür yüklenemedi. Lütfen daha sonra tekrar deneyin.",
   "streaming.genrePlaylists": "Bu türdeki çalma listeleri",
   "streaming.genresEmpty": "Bu hizmet hiç tür sunmuyor.",
   "v2.hist.eyebrow": "Dinledikleriniz",
