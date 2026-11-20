@@ -352,7 +352,7 @@
     border: 1px solid var(--tune-border); color: var(--tune-text-secondary);
   }
   .ir-file-used { border-color: var(--tune-success, #4ade80); color: var(--tune-text); }
-  .ir-file-x { background: none; border: none; cursor: pointer; color: var(--tune-text-muted); padding: 0 2px; font-size: 14px; }
+  .ir-file-x { background: none; border: none; cursor: pointer; color: var(--tune-text-muted); padding: 0 2px; font-size: calc(14px * var(--v2-txt-echelle, 1)); }
   .ir-file-x:hover { color: var(--tune-error, #ef4444); }
   .ir-in-use { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); margin-bottom: 8px; }
   .ir-message { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin-top: 4px; }
