@@ -7436,6 +7436,13 @@ export default {
   "v2.circle.worldCountries.country": "国",
   "v2.circle.worldCountries.servers": "アクティブなサーバー",
   "v2.circle.worldCountries.updated": "更新日時：{date}",
+  "v2.circle.worldCircles.title": "世界の Tune Circle",
+  "v2.circle.worldCircles.show": "サークル数で国を色分け",
+  "v2.circle.worldCircles.legend": "国別の Tune サークル（匿名）：数は範囲で表示し、サークル名もメンバー名も出しません。あなたのサークルはここでは数えず、これまでどおり表示されます。",
+  "v2.circle.worldCircles.circles": "サークル",
+  "v2.circle.worldCircles.members": "メンバー",
+  "v2.circle.scene.circlesMap.noticeTitle": "新機能：あなたのサークルが世界地図に",
+  "v2.circle.scene.circlesMap.notice": "あなたのサークルが世界地図に匿名で表示されるようになりました。設定した都市の国に、国ごとの数が範囲で表示されます。サークル名もメンバー名も出ません。表示されたくない場合は、公開マップから外してください。",
   "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "マイテーマ",

@@ -7395,6 +7395,13 @@ export default {
   "v2.circle.worldCountries.country": "Ország",
   "v2.circle.worldCountries.servers": "Aktív kiszolgálók",
   "v2.circle.worldCountries.updated": "Frissítve: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle a világban",
+  "v2.circle.worldCircles.show": "Országok színezése körök szerint",
+  "v2.circle.worldCircles.legend": "Tune-körök országonként, névtelenül: számok sávokban, kör- és tagnév nélkül. A saját köreit itt nem számoljuk: úgy látja őket, mint eddig.",
+  "v2.circle.worldCircles.circles": "Körök",
+  "v2.circle.worldCircles.members": "Tagok",
+  "v2.circle.scene.circlesMap.noticeTitle": "Újdonság: körei a világtérképen",
+  "v2.circle.scene.circlesMap.notice": "Körei mostantól névtelenül megjelennek a világtérképen: országonként egy szám, sávokban, az Ön által megadott város országában. Kör neve és tagok neve nélkül. Ha nem szeretne megjelenni, távolítsa el magát a nyilvános térképről.",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Saját téma",

@@ -7436,6 +7436,13 @@ export default {
   "v2.circle.worldCountries.country": "Țară",
   "v2.circle.worldCountries.servers": "Servere active",
   "v2.circle.worldCountries.updated": "Actualizat: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle în lume",
+  "v2.circle.worldCircles.show": "Colorează țările după cercuri",
+  "v2.circle.worldCircles.legend": "Cercuri Tune pe țări, anonime: numere pe intervale, fără nume de cerc sau de membru. Ale dumneavoastră nu sunt numărate aici: le vedeți ca înainte.",
+  "v2.circle.worldCircles.circles": "Cercuri",
+  "v2.circle.worldCircles.members": "Membri",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nou: cercurile dumneavoastră pe harta lumii",
+  "v2.circle.scene.circlesMap.notice": "Cercurile dumneavoastră apar acum anonim pe harta lumii: un număr pe țară, pe intervale, în țara orașului pe care l-ați setat. Fără numele cercului, fără numele membrilor. Pentru a nu apărea, retrageți-vă de pe harta publică.",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Tema mea",

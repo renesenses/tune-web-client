@@ -7435,6 +7435,13 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktiva servrar",
   "v2.circle.worldCountries.updated": "Uppdaterad: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle i världen",
+  "v2.circle.worldCircles.show": "Färglägg länder efter cirklar",
+  "v2.circle.worldCircles.legend": "Tune-cirklar per land, anonymt: antal i intervall, utan namn på cirklar eller medlemmar. Dina egna räknas inte här: du ser dem som förut.",
+  "v2.circle.worldCircles.circles": "Cirklar",
+  "v2.circle.worldCircles.members": "Medlemmar",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nytt: dina cirklar på världskartan",
+  "v2.circle.scene.circlesMap.notice": "Dina cirklar visas nu anonymt på världskartan: ett antal per land, i intervall, i landet för staden du har angett. Utan cirkelnamn och utan medlemsnamn. För att inte synas där, ta bort dig från den offentliga kartan.",
   "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mitt tema",

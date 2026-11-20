@@ -7436,6 +7436,13 @@ export default {
   "v2.circle.worldCountries.country": "국가",
   "v2.circle.worldCountries.servers": "활성 서버",
   "v2.circle.worldCountries.updated": "업데이트: {date}",
+  "v2.circle.worldCircles.title": "세계의 Tune Circle",
+  "v2.circle.worldCircles.show": "서클별로 국가 색상 표시",
+  "v2.circle.worldCircles.legend": "국가별 Tune 서클(익명): 숫자는 구간으로만 표시하며 서클 이름이나 멤버 이름은 없습니다. 내 서클은 여기서 세지 않으며 이전처럼 보입니다.",
+  "v2.circle.worldCircles.circles": "서클",
+  "v2.circle.worldCircles.members": "멤버",
+  "v2.circle.scene.circlesMap.noticeTitle": "새 기능: 세계 지도에 내 서클 표시",
+  "v2.circle.scene.circlesMap.notice": "이제 내 서클이 세계 지도에 익명으로 표시됩니다. 내가 설정한 도시의 국가에 국가별 숫자가 구간으로 표시되며, 서클 이름과 멤버 이름은 없습니다. 표시되지 않으려면 공개 지도에서 빠지세요.",
   "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "내 테마",

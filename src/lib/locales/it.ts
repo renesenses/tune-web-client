@@ -7436,6 +7436,13 @@ export default {
   "v2.circle.worldCountries.country": "Paese",
   "v2.circle.worldCountries.servers": "Server attivi",
   "v2.circle.worldCountries.updated": "Aggiornato: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle nel mondo",
+  "v2.circle.worldCircles.show": "Colora i paesi per cerchie",
+  "v2.circle.worldCircles.legend": "Cerchie Tune per paese, anonime: numeri per fasce, senza nome di cerchia né di membro. Le sue non sono contate qui: le vede come prima.",
+  "v2.circle.worldCircles.circles": "Cerchie",
+  "v2.circle.worldCircles.members": "Membri",
+  "v2.circle.scene.circlesMap.noticeTitle": "Novità: le sue cerchie sulla mappa del mondo",
+  "v2.circle.scene.circlesMap.notice": "Le sue cerchie compaiono ora in forma anonima sulla mappa del mondo: un numero per paese, per fasce, nel paese della città che ha indicato. Nessun nome di cerchia, nessun nome di membro. Per non comparire, si ritiri dalla mappa pubblica.",
   "volume.outputRange": "Volume fuori intervallo: da {min}% a {max}%, con incrementi del {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Il mio tema",

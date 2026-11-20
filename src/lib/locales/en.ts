@@ -7456,6 +7456,13 @@ export default {
   "v2.circle.worldCountries.country": "Country",
   "v2.circle.worldCountries.servers": "Active servers",
   "v2.circle.worldCountries.updated": "Updated: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle around the world",
+  "v2.circle.worldCircles.show": "Colour countries by circles",
+  "v2.circle.worldCircles.legend": "Tune circles by country, anonymous: counts in bands, no circle or member name. Yours are not counted here: you see them as before.",
+  "v2.circle.worldCircles.circles": "Circles",
+  "v2.circle.worldCircles.members": "Members",
+  "v2.circle.scene.circlesMap.noticeTitle": "New: your circles on the world map",
+  "v2.circle.scene.circlesMap.notice": "Your circles now appear anonymously on the world map: a count per country, in bands, in the country of the city you set. No circle name, no member name. To stay off it, remove yourself from the public map.",
   "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "My theme",

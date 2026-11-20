@@ -7281,6 +7281,13 @@ export default {
   "v2.circle.worldCountries.country": "Χώρα",
   "v2.circle.worldCountries.servers": "Ενεργοί διακομιστές",
   "v2.circle.worldCountries.updated": "Ενημερώθηκε: {date}",
+  "v2.circle.worldCircles.title": "Το Tune Circle στον κόσμο",
+  "v2.circle.worldCircles.show": "Χρωματισμός χωρών ανά κύκλους",
+  "v2.circle.worldCircles.legend": "Κύκλοι Tune ανά χώρα, ανώνυμα: αριθμοί σε κλίμακες, χωρίς όνομα κύκλου ή μέλους. Οι δικοί σας δεν μετρώνται εδώ: τους βλέπετε όπως πριν.",
+  "v2.circle.worldCircles.circles": "Κύκλοι",
+  "v2.circle.worldCircles.members": "Μέλη",
+  "v2.circle.scene.circlesMap.noticeTitle": "Νέο: οι κύκλοι σας στον παγκόσμιο χάρτη",
+  "v2.circle.scene.circlesMap.notice": "Οι κύκλοι σας εμφανίζονται πλέον ανώνυμα στον παγκόσμιο χάρτη: ένας αριθμός ανά χώρα, σε κλίμακες, στη χώρα της πόλης που ορίσατε. Χωρίς όνομα κύκλου, χωρίς όνομα μέλους. Για να μην εμφανίζεστε, αφαιρεθείτε από τον δημόσιο χάρτη.",
   "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Το θέμα μου",

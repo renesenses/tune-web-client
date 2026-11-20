@@ -7458,6 +7458,13 @@ export default {
   "v2.circle.worldCountries.country": "Pays",
   "v2.circle.worldCountries.servers": "Serveurs actifs",
   "v2.circle.worldCountries.updated": "Mis à jour : {date}",
+  "v2.circle.worldCircles.title": "Tune Circle dans le monde",
+  "v2.circle.worldCircles.show": "Colorer les pays par cercles",
+  "v2.circle.worldCircles.legend": "Cercles Tune par pays, anonymes : nombres en tranches, sans nom de cercle ni de membre. Les vôtres n'y sont pas comptés : vous les voyez comme avant.",
+  "v2.circle.worldCircles.circles": "Cercles",
+  "v2.circle.worldCircles.members": "Membres",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nouveau : vos cercles sur la carte du monde",
+  "v2.circle.scene.circlesMap.notice": "Vos cercles apparaissent désormais anonymement sur la carte du monde : un nombre par pays, en tranches, au pays de la ville que vous avez posée. Sans nom de cercle, sans nom de membre. Pour ne pas y figurer, retirez-vous de la carte publique.",
   "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mon thème",

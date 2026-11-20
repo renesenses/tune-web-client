@@ -7281,6 +7281,13 @@ export default {
   "v2.circle.worldCountries.country": "Kraj",
   "v2.circle.worldCountries.servers": "Aktywne serwery",
   "v2.circle.worldCountries.updated": "Zaktualizowano: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle na świecie",
+  "v2.circle.worldCircles.show": "Koloruj kraje według kręgów",
+  "v2.circle.worldCircles.legend": "Kręgi Tune według kraju, anonimowo: liczby w przedziałach, bez nazw kręgów i członków. Twoje nie są tu liczone: widzisz je jak dotąd.",
+  "v2.circle.worldCircles.circles": "Kręgi",
+  "v2.circle.worldCircles.members": "Członkowie",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nowość: Twoje kręgi na mapie świata",
+  "v2.circle.scene.circlesMap.notice": "Twoje kręgi pojawiają się teraz anonimowo na mapie świata: jedna liczba na kraj, w przedziałach, w kraju miasta, które ustawiłeś. Bez nazwy kręgu i bez nazw członków. Aby się tam nie pojawiać, usuń się z mapy publicznej.",
   "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mój motyw",

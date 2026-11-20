@@ -7436,6 +7436,13 @@ export default {
   "v2.circle.worldCountries.country": "国家",
   "v2.circle.worldCountries.servers": "活跃服务器",
   "v2.circle.worldCountries.updated": "更新时间：{date}",
+  "v2.circle.worldCircles.title": "全球的 Tune Circle",
+  "v2.circle.worldCircles.show": "按圈子为国家着色",
+  "v2.circle.worldCircles.legend": "按国家统计的 Tune 圈子（匿名）：数量按区间显示，不含圈子名称或成员名称。你自己的圈子不计入此处，仍按原样显示。",
+  "v2.circle.worldCircles.circles": "圈子",
+  "v2.circle.worldCircles.members": "成员",
+  "v2.circle.scene.circlesMap.noticeTitle": "新功能：你的圈子出现在世界地图上",
+  "v2.circle.scene.circlesMap.notice": "你的圈子现在会匿名显示在世界地图上：在你所设城市所在的国家，按区间显示每个国家的数量。不显示圈子名称，也不显示成员名称。如不想出现，请将自己从公开地图移除。",
   "volume.outputRange": "音量超出范围：{min}% 至 {max}%，步长为 {step}%。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "我的主题",
