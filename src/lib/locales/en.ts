@@ -794,6 +794,8 @@ export default {
   'settings.enable': 'Enable',
   'settings.disable': 'Disable',
   'settings.notConnected': 'Not Connected',
+  'settings.accountLinkedNoDetails': 'Linked to a Mozaiklabs account',
+  'settings.accountLinkedNoDetailsHint': 'Account details are shown on the server\'s own machine, or to the administrator.',
   'settings.email': 'Email',
   'settings.password': 'Password',
   'settings.connecting': 'Connecting...',

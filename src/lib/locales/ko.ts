@@ -687,6 +687,8 @@ export default {
   'settings.enable': '활성화',
   'settings.disable': '비활성화',
   'settings.notConnected': '연결되지 않음',
+  'settings.accountLinkedNoDetails': 'Mozaiklabs 계정에 연결됨',
+  'settings.accountLinkedNoDetailsHint': '계정 세부 정보는 서버 컴퓨터 또는 관리자에게 표시됩니다.',
   'settings.email': '이메일',
   'settings.password': '비밀번호',
   'settings.connecting': '연결 중...',

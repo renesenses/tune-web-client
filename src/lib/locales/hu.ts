@@ -774,6 +774,8 @@ export default {
   "settings.enable": "Bekapcsolás",
   "settings.disable": "Kikapcsolás",
   "settings.notConnected": "Nincs csatlakoztatva",
+  "settings.accountLinkedNoDetails": "Mozaiklabs-fiókhoz kapcsolva",
+  "settings.accountLinkedNoDetailsHint": "A fiók adatai a szervergépen vagy a rendszergazdának láthatók.",
   "settings.email": "E-mail",
   "settings.password": "Jelszó",
   "settings.connecting": "Csatlakozás...",

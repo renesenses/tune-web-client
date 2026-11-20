@@ -687,6 +687,8 @@ export default {
   'settings.enable': '启用',
   'settings.disable': '禁用',
   'settings.notConnected': '未连接',
+  'settings.accountLinkedNoDetails': '已关联 Mozaiklabs 账户',
+  'settings.accountLinkedNoDetailsHint': '账户详情仅在服务器本机上或向管理员显示。',
   'settings.email': '邮箱',
   'settings.password': '密码',
   'settings.connecting': '连接中...',
