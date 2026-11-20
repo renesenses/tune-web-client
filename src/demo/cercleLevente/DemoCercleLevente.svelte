@@ -528,7 +528,8 @@
   .liste-conv{display:flex; flex-direction:column; gap:12px; padding:16px 12px}
   .etiquette-non-lus{padding:2px 8px; border-radius:var(--v2-r-pill); background:var(--v2-acc-soft); border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
     font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
-  .champ-conv{width:100%}
+  /* `.v2-rech` prend `flex:1 1 160px` sous 1000 px : dans cette colonne, ce serait 160 px de HAUTEUR. */
+  .champ-conv{width:100%; flex:none}
   .puces{display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; min-width:0}
   .puce{flex:none; padding:7px 16px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
