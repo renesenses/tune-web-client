@@ -45,6 +45,8 @@
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
   import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
@@ -635,12 +637,15 @@
    */
   function entreesDe(z: Zone): EntreeMenuZone[] {
     const j = jumelle(z);
+    // web#3180 : relu à chaque prise ou relâchement de zone par cet onglet.
+    void $versionZonesRetenues;
     return entreesMenuZone(
       {
         expert: showExpert,
         appairable: estAirplay(z) && !!z.output_device_id,
         jumelle: j ? j.name : null,
         rattachable: z.sortie_absente === true,
+        tenueIci: estZoneDeCetAppareil(z),
       },
       {
         renommer: () => startRename(z),
@@ -652,6 +657,7 @@
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
         rattacher: () => { void rattacher(z); },
+        nePlusJouerIci: () => nePlusJouerZoneIci(z),
         supprimer: () => { void supprimerZone(z); },
       },
     );

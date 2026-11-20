@@ -5292,6 +5292,7 @@ export default {
   "v2.set.browserZoneExists": "Ta strefa już istnieje: „{nom}” jest teraz strefą aktywną.",
   "v2.zone.browserOtherDevice": "„{nom}” to strefa przeglądarkowa, której ta przeglądarka nie odtwarza (należy do innego urządzenia): tutaj nie wydobywa się żaden dźwięk.",
   "v2.zone.browserPlayHere": "Odtwarzaj na tym urządzeniu",
+  "v2.zone.browserStopHere": "Nie odtwarzaj już tutaj",
   "v2.set.browserZoneDuplicates": "Istniejące strefy przeglądarkowe: {n}. Są wymienne — wystarczy jedna.",
   "v2.set.peakMeter": "Miernik szczytowy",
   "v2.set.peakMeterHint": "Tylko wyświetlanie — sygnał pozostaje bez zmian. Pasek odtwarzania pokazuje tylko lampki: dwa bargrafy są dla niego za szerokie.",

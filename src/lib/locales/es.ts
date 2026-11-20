@@ -5425,6 +5425,7 @@ export default {
   "v2.set.browserZoneExists": "Esa zona ya existe: «{nom}» es ahora la zona activa.",
   "v2.zone.browserOtherDevice": "«{nom}» es una zona de navegador que este navegador no reproduce (pertenece a otro dispositivo): aquí no suena nada.",
   "v2.zone.browserPlayHere": "Reproducirla en este dispositivo",
+  "v2.zone.browserStopHere": "Dejar de reproducir aquí",
   "v2.set.browserZoneDuplicates": "Ya existen {n} zonas de navegador. Son intercambiables: basta con una.",
   "v2.set.peakMeter": "Medidor de picos",
   "v2.set.peakMeterHint": "Solo visualización: la señal no cambia. La barra de reproducción muestra solo las lámparas; los dos gráficos de barras son demasiado anchos.",

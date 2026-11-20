@@ -9,35 +9,34 @@
  *
  * Une zone navigateur n'appartient à aucune machine côté serveur
  * (`output_device_id: null`, voir `zoneNavigateur.ts`) : c'est donc CET
- * appareil qui retient la sienne, par son identifiant dans `localStorage`.
+ * appareil qui retient la sienne.
  * Deux appareils sur la même zone navigateur se voleraient le flux (session
  * à consommateur unique) : chaque appareil a la sienne.
  *
+ * 🔴 web#3180 — la retenue passe par `retenirZoneDeCetAppareil`, la clé de
+ * `zoneNavigateurProprietaire.ts` (pour l'onglet). Avant, « Ce téléphone »
+ * rangeait la sienne sous une autre clé : la zone qu'il créait ou retrouvait
+ * n'était pas jouable ici dès que ce navigateur en avait retenu une autre.
+ *
  * Ordre de résolution :
- *   1. l'identifiant retenu, s'il désigne encore une zone navigateur ;
- *   2. une zone navigateur qui porte déjà le nom proposé (stockage effacé,
+ *   1. la dernière zone retenue qui est encore une zone navigateur ;
+ *   2. une zone navigateur qui porte déjà le nom proposé (onglet neuf,
  *      navigation privée) — on ne recrée pas un doublon ;
  *   3. sinon on la crée, et on la retient.
  */
 import type { ZoneCandidate } from './zoneNavigateur';
-
-export const CLE_ZONE_DE_CET_APPAREIL = 'tune.zoneNavigateur.cetAppareil';
+import {
+  derniereZoneRetenue,
+  retenirZoneDeCetAppareil,
+  zonesRetenues,
+} from './zoneNavigateurProprietaire';
 
 export function idRetenu(): number | null {
-  try {
-    const v = Number(localStorage.getItem(CLE_ZONE_DE_CET_APPAREIL));
-    return Number.isInteger(v) && v > 0 ? v : null;
-  } catch {
-    return null;
-  }
+  return derniereZoneRetenue();
 }
 
 function retenir(id: number): void {
-  try {
-    localStorage.setItem(CLE_ZONE_DE_CET_APPAREIL, String(id));
-  } catch {
-    /* navigation privée : on recréera ou retrouvera par le nom */
-  }
+  retenirZoneDeCetAppareil(id);
 }
 
 export async function zoneDeCetAppareil(
@@ -46,8 +45,10 @@ export async function zoneDeCetAppareil(
   creer: (nom: string) => Promise<{ id?: number | null } | null | undefined>,
 ): Promise<number> {
   const navigateurs = zones.filter((z) => z?.output_type === 'browser' && z.id != null);
-  const retenu = idRetenu();
-  if (retenu != null && navigateurs.some((z) => z.id === retenu)) return retenu;
+  const retenues = zonesRetenues() ?? [];
+  for (let i = retenues.length - 1; i >= 0; i--) {
+    if (navigateurs.some((z) => z.id === retenues[i])) return retenues[i];
+  }
   // Le serveur suffixe le nom d'une zone navigateur par l'IP du client
   // (`create_zone_handler`) : « Ce téléphone (127.0.0.1) » par le pont.
   const base = nom.trim();

@@ -5294,6 +5294,7 @@ export default {
   "v2.set.browserZoneExists": "Den sonen finnes allerede: «{nom}» er nå den aktive sonen.",
   "v2.zone.browserOtherDevice": "«{nom}» er en nettlesersone som denne nettleseren ikke spiller (den tilhører en annen enhet): ingen lyd kommer ut her.",
   "v2.zone.browserPlayHere": "Spill den på denne enheten",
+  "v2.zone.browserStopHere": "Slutt å spille her",
   "v2.set.browserZoneDuplicates": "{n} nettlesersoner finnes allerede. De er utskiftbare — én er nok.",
   "v2.set.peakMeter": "Toppnivåmåler",
   "v2.set.peakMeterHint": "Bare visning — signalet er uendret. Avspillingslinjen viser bare lampene: de to stolpediagrammene er for brede for den.",

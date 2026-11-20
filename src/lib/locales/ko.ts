@@ -5425,6 +5425,7 @@ export default {
   "v2.set.browserZoneExists": "해당 존은 이미 있습니다. 이제 「{nom}」이(가) 활성 존입니다.",
   "v2.zone.browserOtherDevice": "「{nom}」은(는) 이 브라우저가 재생하지 않는 브라우저 존입니다(다른 기기의 존). 여기서는 소리가 나지 않습니다.",
   "v2.zone.browserPlayHere": "이 기기에서 재생",
+  "v2.zone.browserStopHere": "여기서 재생 중지",
   "v2.set.browserZoneDuplicates": "브라우저 존이 이미 {n}개 있습니다. 서로 같은 역할이며 하나면 충분합니다.",
   "v2.set.peakMeter": "피크 미터",
   "v2.set.peakMeterHint": "표시 전용이며 신호는 바뀌지 않습니다. 재생 바에는 램프만 표시합니다. 막대 그래프는 너무 넓습니다.",
