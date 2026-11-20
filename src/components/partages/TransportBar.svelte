@@ -1375,7 +1375,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d={ICONES_ZONE.nePlusJouerIci}/></svg>
               </span>
               <span class="zone-popover-labels">
-                <span class="zone-popover-geste truncate">{$t('v2.zone.browserStopHere' as any)}</span>
+                <span class="zone-popover-geste truncate" title={$t('v2.zone.browserStopHere' as any)}>{$t('v2.zone.browserStopHere' as any)}</span>
               </span>
             </button>
           {/if}
