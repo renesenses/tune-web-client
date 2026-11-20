@@ -10,8 +10,12 @@
  * élément `role="slider"` : clic, glissé, clavier et ARIA ne changent pas, seul
  * le dessin de l'intérieur change.
  *
- * La donnée vient de `GET /library/tracks/{id}/waveform` (serveur, enveloppe
- * RMS normalisée, 200 points, mise en cache en base). ⚠️ À ne pas confondre
+ * La donnée vient de `GET /library/tracks/{id}/waveform?points=1000` (serveur,
+ * enveloppe RMS normalisée). PLUS FINE depuis le fil du forum 2954 (rc13,
+ * web#3276, server#9173) : 1 000 points demandés ([`POINTS_ONDE_FIN`]), une
+ * barre tous les 2 px. Un serveur d'avant ignore le paramètre et rend ses
+ * 200 points : la barre les dessine tels quels (barres plus larges), sans
+ * rien demander d'autre. ⚠️ À ne pas confondre
  * avec `api.getWaveform`, qui vise `/dj/waveform/{id}` — la route du greffon DJ.
  *
  * QOBUZ ET TIDAL (go de Bertrand du 17/11/2026, rc13 ; option C le soir
@@ -146,21 +150,38 @@ export function reduireOnde(points: Onde, n: number): Onde {
   return sortie;
 }
 
-/** Combien de barres pour une largeur donnée : une barre pour 3 px (2 px de
- *  trait, 1 px de jour), entre 24 et le nombre de points du serveur. À 400 px
- *  de large (mobile), la barre en garde une centaine. */
+/** La résolution fine demandée au serveur (`?points=`, fil 2954). */
+export const POINTS_ONDE_FIN = 1000;
+
+/** Pixels par barre : 2 (un trait d'environ 1 px, 1 px de jour). Fil 2954 —
+ *  à 3 px et 200 points, l'onde paraissait grossière à côté d'autres
+ *  lecteurs. */
+export const PX_PAR_BARRE = 2;
+
+/** Combien de barres pour une largeur donnée : une barre pour
+ *  [`PX_PAR_BARRE`] px, entre 24 et le nombre de points du serveur (jamais
+ *  plus de barres que de points : pas d'interpolation inventée). À 400 px
+ *  de large (mobile), la barre en garde 200 ; à 760 px (barre du bas), 380. */
 export function nombreDeBarres(largeurPx: number, nbPoints: number): number {
   if (!Number.isFinite(largeurPx) || largeurPx <= 0) return Math.min(nbPoints, 100);
-  return Math.max(Math.min(24, nbPoints), Math.min(nbPoints, Math.floor(largeurPx / 3)));
+  return Math.max(Math.min(24, nbPoints), Math.min(nbPoints, Math.floor(largeurPx / PX_PAR_BARRE)));
+}
+
+/** La part de chaque case occupée par le trait : 2/3 tant que les cases sont
+ *  larges (3 px et plus : barres bien séparées), la moitié en dessous — à
+ *  2 px la case, un trait de 1 px et 1 px de jour plutôt qu'un trait de
+ *  1,3 px qui baverait sur deux pixels. */
+export function largeurTrait(largeurPx: number, nbBarres: number): number {
+  if (!(nbBarres > 0) || !Number.isFinite(largeurPx) || largeurPx <= 0) return 0.66;
+  return largeurPx / nbBarres >= 3 ? 0.66 : 0.5;
 }
 
 /** Le chemin SVG des barres, dans un repère `0 0 n 100` : une barre centrée
  *  verticalement par point, de hauteur proportionnelle (6 % au minimum, pour
  *  que les silences restent un trait visible et non un trou). */
-export function cheminOnde(points: Onde): string {
+export function cheminOnde(points: Onde, largeur = 0.66): string {
   const n = points.length;
   if (n === 0) return '';
-  const largeur = 0.66;
   const marge = (1 - largeur) / 2;
   let d = '';
   for (let i = 0; i < n; i++) {

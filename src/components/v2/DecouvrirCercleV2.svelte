@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle rc12 — l'onglet « Découvrir » des maquettes de Levente
    * (15/11/2026), autour de la scène rc8 (`SceneCercleV2`, son globe, ses
@@ -63,6 +64,13 @@
     return tr('v2.circle.disc.joined', v);
   }
   const ouvrirConversation = (id: number) => demandeConversation.set({ conversation: id });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <div class="decouvrir">
@@ -121,8 +129,8 @@
             <strong class="coupe" use:bulleTexte>{c.name}</strong>
             {#if lieu}<span class="note coupe" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code}{/if}</span>{/if}</li>
         {/each}
-        <li class="membre"><button type="button" class="ajouter" onclick={onInviter}><span class="avatar grand plus" aria-hidden="true">+</span>
-          <span>{tr('v2.circle.addMember')}</span></button></li>
+        {#if !lectureSeule}<li class="membre"><button type="button" class="ajouter" onclick={onInviter}><span class="avatar grand plus" aria-hidden="true">+</span>
+          <span>{tr('v2.circle.addMember')}</span></button></li>{/if}
       </ul>
     </section>
   </div>
@@ -136,7 +144,7 @@
           <li class="mini-playlist">
             <div class="vignette"><span aria-hidden="true">♪</span>
               <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
-              <button type="button" class="lire" disabled={occupe || p.count === 0}
+              <button type="button" class="lire" disabled={occupe || distant || p.count === 0}
                 aria-label={tr('v2.circle.pl.playNamed', { name: p.name })} onclick={() => onLirePlaylist(p)}>
                 <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg></button></div>
             <button type="button" class="ouvrir" onclick={() => onOuvrirPlaylist(p.id)}><strong class="coupe" use:bulleTexte>{p.name}</strong></button>

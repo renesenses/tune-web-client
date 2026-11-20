@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { untrack } from 'svelte';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
@@ -207,7 +208,7 @@
     if (cibleEtiquettes) l.push({ cle: 'v2.cover.tags', faire: () => (etiquettesOuvertes = true),
       attrs: { 'data-etiquettes-playlist': true, 'aria-haspopup': 'dialog' } });
     const partager = partagerAvecUnCercle;
-    if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
+    if (partager && !lectureSeule) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
     // EXPORT : la route ne connaît que les playlists locales.
     if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
     // web#2971 — l'entrée « Playlists » de la barre ouvre désormais CETTE fiche,
@@ -637,6 +638,10 @@
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
     return [t.format?.toUpperCase(), rate, depth].filter(Boolean).join(' · ');
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <div class="v2-pldetail tune-v2">
