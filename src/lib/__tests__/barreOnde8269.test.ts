@@ -41,7 +41,8 @@ describe('#8269 — la réponse du serveur', () => {
   it('réduit par le maximum de chaque tranche, et dessine une barre par point', () => {
     expect(reduireOnde([0.1, 0.9, 0.2, 0.3], 2)).toEqual([0.9, 0.3]);
     expect(reduireOnde([0.1, 0.2], 10)).toEqual([0.1, 0.2]);
-    expect(nombreDeBarres(400, 200)).toBe(133);
+    expect(nombreDeBarres(400, 200)).toBe(200);
+    expect(nombreDeBarres(300, 200)).toBe(150);
     expect(nombreDeBarres(30, 200)).toBe(24);
     expect(cheminOnde([0.5, 1]).match(/M/g)!.length).toBe(2);
   });
