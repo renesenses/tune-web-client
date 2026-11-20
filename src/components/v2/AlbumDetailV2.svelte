@@ -1,6 +1,9 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
+  import { entiteAnnee, entiteGenre, entiteLabel, menePart, type ContexteLiensFiche } from '../../lib/liensFicheAlbum';
+  import { anneeAlbum } from '../../lib/anneeAlbum';
+  import LienEntite from '../partages/LienEntite.svelte';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import ApportsQobuzAlbum from './ApportsQobuzAlbum.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -328,15 +331,20 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * Sans compte Qobuz, ni service, ni label rapproché : aucun lien.
    */
   let labelQobuz = $state<{ id: string; nom: string } | null>(null);
+  /** web#3315 — le genre de l'album chez Qobuz, lu sur la même réponse. */
+  let genreQobuz = $state<{ id: string; nom: string } | null>(null);
   let jetonLabelQobuz = 0;
   $effect(() => {
     const j = ++jetonLabelQobuz;
     labelQobuz = null;
+    genreQobuz = null;
     if (depot || bandcamp) return;
     if (service === 'qobuz' && sidDistant) {
       const sid = String(sidDistant);
       void api.getStreamingAlbumContext('qobuz', sid).then((c) => {
-        if (j === jetonLabelQobuz && c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+        if (j !== jetonLabelQobuz) return;
+        if (c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+        if (c?.genre_id) genreQobuz = { id: c.genre_id, nom: c.genre_name ?? '' };
       });
       return;
     }
@@ -1241,6 +1249,42 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   const genreAffiche = $derived(
     listeDeGenres((albumAffiche as any).genre)[0] ?? listeDeGenres((albumAffiche as any).genres)[0] ?? '',
   );
+  /**
+   * web#3315 — où mènent l'année, le genre et le label de la fiche (en-tête,
+   * « Album details », colonnes des pistes) : `lib/liensFicheAlbum`. Album de
+   * la bibliothèque → la Bibliothèque ; album Qobuz → ses pages Genre et
+   * Label ; sinon du texte.
+   */
+  const ctxLiens = $derived<ContexteLiensFiche>({
+    local: creditsPossibles,
+    service: service ?? null,
+    genreService: service === 'qobuz' ? genreQobuz : null,
+    labelService: service ? labelQobuz : null,
+    genresAffiches: [
+      ...new Set([
+        ...listeDeGenres((albumAffiche as any).genre),
+        ...listeDeGenres((albumAffiche as any).genres),
+        ...genresDesPistes(tracks as any),
+      ].map((g) => g.trim().toLocaleLowerCase())),
+    ],
+    fermer: onClose,
+  });
+  const entiteAnneeAlbum = $derived(entiteAnnee(ctxLiens, anneeAlbum(albumAffiche as any), $formatAnneeAlbum(albumAffiche)));
+  /** Le lien d'une cellule de piste : année, genre, label ; `null` ailleurs. */
+  function lienCellulePiste(p: any, cle: string, valeur: string) {
+    const e = cle === 'year' ? entiteAnnee(ctxLiens, typeof p?.year === 'number' ? p.year : Number(valeur) || null, valeur)
+      : cle === 'genre' ? (listeDeGenres(valeur).length === 1 ? entiteGenre(ctxLiens, valeur) : null)
+      : cle === 'label' ? entiteLabel(ctxLiens, valeur)
+      : null;
+    return menePart(e) ? e : null;
+  }
+  /** Le lien d'une ligne de « Album details » (Release, Genre, Label). */
+  function lienDetail(cle: string, valeur: string) {
+    if (cle === 'v2.album.fiche.release') return entiteAnneeAlbum ? { ...entiteAnneeAlbum, nom: valeur } : null;
+    if (cle === 'v2.album.fiche.genre') return entiteGenre(ctxLiens, valeur);
+    if (cle === 'v2.album.fiche.label') return entiteLabel(ctxLiens, valeur);
+    return null;
+  }
   const qLabel = $derived.by(() => {
     if (!qualite) return null;
     if (tier === 'dsd') return 'DSD';
@@ -1994,9 +2038,10 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         </div>
       {/if}
       <div class="facts">
-        {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
+        <!-- web#3315 — l'année et le genre mènent à leur page (`lib/liensFicheAlbum`). -->
+        {#if $formatAnneeAlbum(albumAffiche)}<span data-annee-album><LienEntite entite={entiteAnneeAlbum} /></span>{/if}
         <!-- Maquette rc12 : « 1959 · Jazz » — le genre, seulement s'il est connu. -->
-        {#if genreAffiche}<span data-genre-album>{genreAffiche}</span>{/if}
+        {#if genreAffiche}<span data-genre-album><LienEntite entite={entiteGenre(ctxLiens, genreAffiche)} /></span>{/if}
         <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,
@@ -2296,6 +2341,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
         onGesteDisque={gesteDisque}
+        lienCellule={(p, _i, cle, v) => lienCellulePiste(p, cle, v)}
       />
     {/if}
   </div>
@@ -2308,7 +2354,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     onArtiste={nomArtiste && (albumAffiche.artist_id != null || artisteDeService) ? allerArtiste : null}
     onAlbum={changerVersion}
     onCredits={onglets.includes('credits') ? () => choisirOnglet('credits') : null}
-    complement={complementDetails} onBlocs={(n) => (blocsColonne = n)}
+    complement={complementDetails} onBlocs={(n) => (blocsColonne = n)} {lienDetail}
     onOuvrirArtiste={(a) => {
       // La fiche se referme AVANT de router (comme `allerArtiste`) ; par la
       // fiche de bibliothèque quand l'id est connu, sinon par le nom exact.

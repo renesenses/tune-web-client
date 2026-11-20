@@ -92,6 +92,8 @@
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -217,6 +219,12 @@
      * tableau s'en sert pour la colonne Album.
      */
     ouvertureAlbum?: ((piste: Track, index: number) => (() => void) | null) | null;
+    /**
+     * web#3315 — le lien d'une cellule (année, genre, label), fourni par
+     * l'écran qui en connaît la destination (la fiche album). `null` : la
+     * cellule reste du texte, comme avant.
+     */
+    lienCellule?: ((piste: Track, index: number, cle: CleColonne, valeur: string) => Entite | null) | null;
     /**
      * Contenu propre à un écran, rendu APRÈS chaque ligne.
      *
@@ -430,7 +438,7 @@
     pochetteEnTableau = false,
     tailleVignette = 36,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres, coeurDe = null, retirerDe = null,
+    ouvertureAlbum = null, lienCellule = null, apres, coeurDe = null, retirerDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     onGesteDisque = null,
@@ -1077,6 +1085,8 @@
             {@const versAlbum = lectureSeule || c.cle !== 'album' || !v
               ? null
               : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
+            <!-- web#3315 — année, genre, label : la destination vient de l'écran. -->
+            {@const lienE = lectureSeule || !v || artiste || versAlbum || !lienCellule ? null : lienCellule(p, i, c.cle, v)}
             {#if artiste && v}
               <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste" title={v}
@@ -1087,6 +1097,9 @@
                 <button class="lien-artiste lien-album" title={v}
                   onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>
+            {:else if lienE}
+              <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+                role="cell" data-lien-cellule={c.cle}><LienEntite entite={lienE} titre={v} /></span>
             {:else}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
                 role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>

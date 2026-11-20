@@ -105,7 +105,7 @@
   import { untrack } from 'svelte';
   import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
-  import { activeStreamingService, ficheAlbumDeRetour } from '../../lib/stores/streaming';
+  import { activeStreamingService, ficheAlbumDeRetour, genreDeServiceDemande } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -764,6 +764,27 @@
   $effect(() => {
     const cible = ongletApresDemande(services, bandcampLive, active, $activeStreamingService);
     if (cible) ouvrirOnglet(cible);
+  });
+
+  /**
+   * web#3315 — le GENRE demandé par la fiche d'un album de service (le genre
+   * d'un album Qobuz, cliqué dans l'en-tête, « Album details » ou la colonne
+   * Genre des pistes). Consommé UNE fois, quand l'onglet du service est
+   * ouvert : Genres › ce genre, ses albums. Déclaré APRÈS la remise à zéro des
+   * genres au changement de service, qui l'effacerait sinon.
+   */
+  $effect(() => {
+    const d = $genreDeServiceDemande;
+    const svc = active;
+    if (!d || !svc || cleServeur(svc) !== d.service) return;
+    untrack(() => {
+      genreDeServiceDemande.set(null);
+      if (fiche || ficheBc) fermerCalqueAlbum();
+      q = '';
+      results = null;
+      sub = 'genres';
+      void ouvrirGenre({ id: d.id, name: d.nom || d.id, has_children: false });
+    });
   });
 
   /**
