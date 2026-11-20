@@ -1807,6 +1807,8 @@ export default {
   "v2.pl.tabSmart": "Smart playlists",
   "v2.pl.rule": "rule",
   "v2.pl.noSmart": "No smart playlist.",
+  "v2.pl.smartLoadFailed": "Could not read the smart playlists: the server did not answer in time or refused the request.",
+  "v2.pl.smartRetry": "Retry",
   "v2.pl.import": "Import",
   "v2.pl.importDone": "Playlist imported",
   "v2.pl.backups": "Backups",

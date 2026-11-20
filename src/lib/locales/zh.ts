@@ -3058,6 +3058,8 @@ export default {
   "v2.pl.tabSmart": "智能播放列表",
   "v2.pl.rule": "条规则",
   "v2.pl.noSmart": "没有智能播放列表。",
+  "v2.pl.smartLoadFailed": "无法读取智能歌单：服务器未及时响应或拒绝了请求。",
+  "v2.pl.smartRetry": "重试",
   "v2.pl.import": "导入",
   "v2.pl.importDone": "播放列表已导入",
   "v2.pl.backups": "备份",

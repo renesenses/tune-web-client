@@ -3057,6 +3057,8 @@ export default {
   "v2.pl.tabSmart": "Smarta spellistor",
   "v2.pl.rule": "regel",
   "v2.pl.noSmart": "Ingen smart spellista.",
+  "v2.pl.smartLoadFailed": "Det gick inte att läsa de smarta spellistorna: servern svarade inte i tid eller avvisade begäran.",
+  "v2.pl.smartRetry": "Försök igen",
   "v2.pl.import": "Importera",
   "v2.pl.importDone": "Spellistan importerad",
   "v2.pl.backups": "Säkerhetskopior",

@@ -3058,6 +3058,8 @@ export default {
   "v2.pl.tabSmart": "Intelligente Playlists",
   "v2.pl.rule": "Regel",
   "v2.pl.noSmart": "Keine intelligente Playlist.",
+  "v2.pl.smartLoadFailed": "Die intelligenten Playlists konnten nicht gelesen werden: Der Server hat nicht rechtzeitig geantwortet oder die Anfrage abgelehnt.",
+  "v2.pl.smartRetry": "Erneut versuchen",
   "v2.pl.import": "Importieren",
   "v2.pl.importDone": "Playlist importiert",
   "v2.pl.backups": "Sicherungen",

@@ -1661,6 +1661,8 @@ export default {
   "v2.pl.tabSmart": "Inteligentne playlisty",
   "v2.pl.rule": "reguła",
   "v2.pl.noSmart": "Brak inteligentnych playlist.",
+  "v2.pl.smartLoadFailed": "Nie udało się odczytać inteligentnych playlist: serwer nie odpowiedział na czas lub odrzucił żądanie.",
+  "v2.pl.smartRetry": "Spróbuj ponownie",
   "v2.pl.import": "Importuj",
   "v2.pl.importDone": "Playlista zaimportowana",
   "v2.pl.backups": "Kopie zapasowe",

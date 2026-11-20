@@ -1661,6 +1661,8 @@ export default {
   "v2.pl.tabSmart": "Smarte spillelister",
   "v2.pl.rule": "regel",
   "v2.pl.noSmart": "Ingen smart spilleliste.",
+  "v2.pl.smartLoadFailed": "Kunne ikke lese de smarte spillelistene: serveren svarte ikke i tide eller avviste forespørselen.",
+  "v2.pl.smartRetry": "Prøv igjen",
   "v2.pl.import": "Importer",
   "v2.pl.importDone": "Spilleliste importert",
   "v2.pl.backups": "Sikkerhetskopier",
