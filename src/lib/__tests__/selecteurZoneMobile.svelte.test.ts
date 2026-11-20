@@ -17,6 +17,7 @@ import { zones, currentZoneId } from '../stores/zones';
 import { selecteurZoneOuvert } from '../stores/selecteurZone';
 import { locale } from '../i18n';
 import type { Zone } from '../types';
+import { retenirZoneDeCetAppareil, zonesRetenues } from "../zoneNavigateurProprietaire";
 
 const ZONES = [
   { id: 10, name: 'Eversolo DMP-A8', output_type: 'dlna', state: 'playing', online: true, volume: 0.4 },
@@ -118,7 +119,7 @@ describe('« Ce téléphone » en tête de la feuille', () => {
   let posts: { url: string; corps: any }[] = [];
   beforeEach(() => {
     posts = [];
-    localStorage.clear();
+    localStorage.clear(); sessionStorage.clear();
     let creee = false;
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       if ((init?.method ?? 'GET') === 'POST' && /\/zones(?:\?lang=[a-z]{2})?$/.test(String(url))) {
@@ -152,13 +153,13 @@ describe('« Ce téléphone » en tête de la feuille', () => {
     await vi.waitFor(() => expect(get(currentZoneId)).toBe(42));
     expect(posts).toHaveLength(1);
     expect(posts[0].corps).toMatchObject({ name: 'Ce téléphone', output_type: 'browser' });
-    expect(localStorage.getItem('tune.zoneNavigateur.cetAppareil')).toBe('42');
+    expect(zonesRetenues()).toEqual([42]);
     expect(get(zones).some((z: any) => z.id === 42)).toBe(true);
     expect(get(selecteurZoneOuvert)).toBe(false);
   });
 
   it('la retrouve sans rien créer quand cet appareil la connaît déjà', async () => {
-    localStorage.setItem('tune.zoneNavigateur.cetAppareil', '15');
+    retenirZoneDeCetAppareil(15);
     const el = monter(TransportBar);
     el.querySelector<HTMLButtonElement>('.mobile-zone-wrapper button')!.click();
     flushSync();

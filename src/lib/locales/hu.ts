@@ -5383,6 +5383,7 @@ export default {
   "v2.set.browserZoneExists": "Ez a zóna már létezik: „{nom}” mostantól az aktív zóna.",
   "v2.zone.browserOtherDevice": "„{nom}” egy böngészőzóna, amelyet ez a böngésző nem játszik le (egy másik eszközé): itt nem szól semmi.",
   "v2.zone.browserPlayHere": "Lejátszás ezen az eszközön",
+  "v2.zone.browserStopHere": "Lejátszás leállítása itt",
   "v2.set.browserZoneDuplicates": "Már {n} böngészőzóna létezik. Egymással felcserélhetők — egy is elég.",
   "v2.set.peakMeter": "Csúcsszintmérő",
   "v2.set.peakMeterHint": "Csak megjelenítés — a jel nem változik. A lejátszássáv csak a lámpákat mutatja: a két oszlopdiagram túl széles hozzá.",

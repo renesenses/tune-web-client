@@ -12,6 +12,7 @@ import { sourceDuLecteur } from '../urlDeFluxNavigateur';
 import { fluxParLeRelais } from '../bridge';
 import { confirmerLectureNavigateur } from '../confirmationLectureNavigateur';
 import { signalerErreurMedia, signalerLectureRefusee } from '../erreurMediaNavigateur';
+import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -68,11 +69,20 @@ function pilotLaBarreAffichee(): boolean {
   return isBrowserZone(affichee);
 }
 
-/** La zone à qui appartient le média chargé — repli : la zone affichée si elle sort ici. */
+/**
+ * La zone à qui appartient le média chargé — repli : la zone affichée si CET
+ * appareil la joue.
+ *
+ * 🔴 web#3180 — le repli prenait toute zone navigateur affichée
+ * (`isBrowserZone`) : après un changement de zone affichée, la fin ou l'échec
+ * d'une piste d'ici faisait avancer la file de la zone d'un AUTRE appareil
+ * (un téléphone) et en tirait le flux. Le repli suit maintenant la règle
+ * rc4 (`estZoneJouableIci`).
+ */
 function zoneDeLaSource(): number | null {
   if (sourceZoneId !== null) return sourceZoneId;
   const affichee = get(currentZone) as { id?: number; output_type?: string } | null;
-  return isBrowserZone(affichee) && typeof affichee?.id === 'number' ? affichee.id : null;
+  return estZoneJouableIci(affichee) && typeof affichee?.id === 'number' ? affichee.id : null;
 }
 
 /**
@@ -114,7 +124,8 @@ async function sauterLaPisteEnErreur(zoneId: number | null): Promise<void> {
     if (res?.status === 'stopped') return; // fin de file
     const z = await api.getZone(zoneId);
     syncZone(z);
-    if (isBrowserZone(z) && z.stream_url && z.state !== 'stopped') {
+    // web#3180 : la piste suivante ne se tire ici que si cet appareil joue la zone.
+    if (estZoneJouableIci(z) && z.stream_url && z.state !== 'stopped') {
       browserPlay(z.stream_url, true, z.id);
     }
   } catch {
@@ -176,7 +187,8 @@ function getAudio(): HTMLAudioElement {
           await api.next(zoneId);
           const z = await api.getZone(zoneId);
           syncZone(z);
-          if (isBrowserZone(z) && z.stream_url) {
+          // web#3180 : seulement une zone que CET appareil joue.
+          if (estZoneJouableIci(z) && z.stream_url) {
             browserPlay(z.stream_url, true, z.id);
           }
         } catch {

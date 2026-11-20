@@ -5300,6 +5300,7 @@ export default {
   "v2.set.browserZoneExists": "Vùng phát này đã tồn tại: “{nom}” hiện là vùng phát đang hoạt động.",
   "v2.zone.browserOtherDevice": "“{nom}” là vùng phát trình duyệt mà trình duyệt này không phát (nó thuộc về một thiết bị khác): không có âm thanh nào phát ra ở đây.",
   "v2.zone.browserPlayHere": "Phát trên thiết bị này",
+  "v2.zone.browserStopHere": "Ngừng phát ở đây",
   "v2.set.browserZoneDuplicates": "Đã có {n} vùng phát trình duyệt. Chúng có thể thay thế cho nhau — chỉ cần một là đủ.",
   "v2.set.peakMeter": "Đồng hồ đỉnh",
   "v2.set.peakMeterHint": "Chỉ hiển thị — tín hiệu không thay đổi. Thanh phát chỉ hiện các đèn: hai thanh bargraph quá rộng cho nó.",

@@ -5294,6 +5294,7 @@ export default {
   "v2.set.browserZoneExists": "Bu bölge zaten var: etkin bölge artık “{nom}”.",
   "v2.zone.browserOtherDevice": "“{nom}”, bu tarayıcının çalmadığı bir tarayıcı bölgesi (başka bir cihaza ait): burada ses çıkmaz.",
   "v2.zone.browserPlayHere": "Bu cihazda çal",
+  "v2.zone.browserStopHere": "Burada çalmayı bırak",
   "v2.set.browserZoneDuplicates": "Zaten {n} tarayıcı bölgesi var. Birbirlerinin yerine geçebilirler — biri yeterli.",
   "v2.set.peakMeter": "Tepe ölçer",
   "v2.set.peakMeterHint": "Yalnızca görüntü — sinyal değişmez. Çalma çubuğu yalnızca lambaları gösterir: iki çubuk gösterge ona sığmayacak kadar geniştir.",
