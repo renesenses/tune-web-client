@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "无法连接。",
   "settings.errActivationRejected": "激活被拒绝。",
   "settings.errConfigUnavailable": "无法获取配置。",
+  "settings.consentsReading": "正在读取设置…",
   "settings.errRemoveFailed": "无法移除。",
   "settings.errScanStartFailed": "无法启动扫描。",
   "settings.savedNeedsFullScan": "已保存 — 需要一次完整扫描。",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "暂无其他圈子可显示。",
   "v2.circle.scene.circlesMap.noticeTitle": "新功能：你的圈子出现在世界地图上",
   "v2.circle.scene.circlesMap.notice": "你的圈子现在会匿名显示在世界地图上，位于你所在城市的位置（精度约 50 公里），不显示圈子名称或人名。如不想出现，请将自己从公开地图移除。",
+  "v2.circle.worldCountries.attribution": "位置数据：",
   "volume.outputRange": "音量超出范围：{min}% 至 {max}%，步长为 {step}%。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "我的主题",

@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "Conectarea nu a fost posibilă.",
   "settings.errActivationRejected": "Activare refuzată.",
   "settings.errConfigUnavailable": "Configurație indisponibilă.",
+  "settings.consentsReading": "Se citesc setările…",
   "settings.errRemoveFailed": "Eliminarea nu a fost posibilă.",
   "settings.errScanStartFailed": "Analiza nu a putut fi pornită.",
   "settings.savedNeedsFullScan": "Salvat — este necesară o analiză completă.",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "Încă nu sunt alte cercuri de arătat.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nou: cercurile dumneavoastră pe harta lumii",
   "v2.circle.scene.circlesMap.notice": "Cercurile dumneavoastră apar acum anonim pe harta lumii, în locul orașului dumneavoastră (cu o precizie de circa 50 km), fără numele cercului sau al persoanelor. Pentru a nu apărea, retrageți-vă de pe harta publică.",
+  "v2.circle.worldCountries.attribution": "Date de localizare:",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Tema mea",

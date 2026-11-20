@@ -3551,6 +3551,7 @@ export default {
   "settings.errConnectFailed": "A kapcsolódás nem sikerült.",
   "settings.errActivationRejected": "Az aktiválás elutasítva.",
   "settings.errConfigUnavailable": "A beállítások nem érhetők el.",
+  "settings.consentsReading": "Beállítások beolvasása…",
   "settings.errRemoveFailed": "Az eltávolítás nem sikerült.",
   "settings.errScanStartFailed": "Az elemzést nem sikerült elindítani.",
   "settings.savedNeedsFullScan": "Mentve — teljes elemzés szükséges.",
@@ -7402,6 +7403,7 @@ export default {
   "v2.circle.worldCircles.empty": "Még nincs más megjeleníthető kör.",
   "v2.circle.scene.circlesMap.noticeTitle": "Újdonság: körei a világtérképen",
   "v2.circle.scene.circlesMap.notice": "Körei mostantól névtelenül megjelennek a világtérképen, városa helyén (kb. 50 km pontossággal), kör- és személynév nélkül. Ha nem szeretne megjelenni, távolítsa el magát a nyilvános térképről.",
+  "v2.circle.worldCountries.attribution": "Helymeghatározási adatok:",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Saját téma",

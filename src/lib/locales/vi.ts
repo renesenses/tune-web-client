@@ -2202,6 +2202,7 @@ export default {
   "settings.errConnectFailed": "Không thể kết nối.",
   "settings.errActivationRejected": "Kích hoạt bị từ chối.",
   "settings.errConfigUnavailable": "Cấu hình không khả dụng.",
+  "settings.consentsReading": "Đang đọc cài đặt…",
   "settings.errRemoveFailed": "Không thể gỡ.",
   "settings.errScanStartFailed": "Không thể bắt đầu quét.",
   "settings.savedNeedsFullScan": "Đã lưu — cần quét toàn bộ.",
@@ -7295,6 +7296,7 @@ export default {
   "v2.circle.worldCircles.empty": "Chưa có vòng nào khác để hiển thị.",
   "v2.circle.scene.circlesMap.noticeTitle": "Mới: các vòng của bạn trên bản đồ thế giới",
   "v2.circle.scene.circlesMap.notice": "Các vòng của bạn giờ xuất hiện ẩn danh trên bản đồ thế giới, tại vị trí thành phố của bạn (sai số khoảng 50 km), không có tên vòng hay tên người. Để không xuất hiện, hãy rút khỏi bản đồ công khai.",
+  "v2.circle.worldCountries.attribution": "Dữ liệu vị trí:",
   "volume.outputRange": "Âm lượng ngoài phạm vi: từ {min}% đến {max}%, theo bước {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Giao diện của tôi",

@@ -2346,6 +2346,7 @@ export default {
   "settings.errConnectFailed": "Could not connect.",
   "settings.errActivationRejected": "Activation rejected.",
   "settings.errConfigUnavailable": "Configuration unavailable.",
+  "settings.consentsReading": "Reading settings…",
   "settings.errRemoveFailed": "Could not remove.",
   "settings.errScanStartFailed": "Could not start the scan.",
   "settings.savedNeedsFullScan": "Saved — a full scan is required.",
@@ -7463,6 +7464,7 @@ export default {
   "v2.circle.worldCircles.empty": "No other circles to show yet.",
   "v2.circle.scene.circlesMap.noticeTitle": "New: your circles on the world map",
   "v2.circle.scene.circlesMap.notice": "Your circles now appear anonymously on the world map, at the location of your city (to about 50 km), with no circle or person name. To stay off it, remove yourself from the public map.",
+  "v2.circle.worldCountries.attribution": "Location data:",
   "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "My theme",

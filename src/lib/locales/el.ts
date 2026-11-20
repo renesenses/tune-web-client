@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Δεν ήταν δυνατή η σύνδεση.",
   "settings.errActivationRejected": "Η ενεργοποίηση απορρίφθηκε.",
   "settings.errConfigUnavailable": "Η διαμόρφωση δεν είναι διαθέσιμη.",
+  "settings.consentsReading": "Ανάγνωση ρυθμίσεων…",
   "settings.errRemoveFailed": "Δεν ήταν δυνατή η αφαίρεση.",
   "settings.errScanStartFailed": "Δεν ήταν δυνατή η έναρξη της σάρωσης.",
   "settings.savedNeedsFullScan": "Αποθηκεύτηκε — απαιτείται πλήρης σάρωση.",
@@ -7288,6 +7289,7 @@ export default {
   "v2.circle.worldCircles.empty": "Δεν υπάρχουν ακόμη άλλοι κύκλοι για εμφάνιση.",
   "v2.circle.scene.circlesMap.noticeTitle": "Νέο: οι κύκλοι σας στον παγκόσμιο χάρτη",
   "v2.circle.scene.circlesMap.notice": "Οι κύκλοι σας εμφανίζονται πλέον ανώνυμα στον παγκόσμιο χάρτη, στη θέση της πόλης σας (με ακρίβεια περίπου 50 km), χωρίς όνομα κύκλου ή προσώπου. Για να μην εμφανίζεστε, αφαιρεθείτε από τον δημόσιο χάρτη.",
+  "v2.circle.worldCountries.attribution": "Δεδομένα τοποθεσίας:",
   "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Το θέμα μου",

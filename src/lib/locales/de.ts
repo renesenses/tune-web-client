@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "Verbindung nicht möglich.",
   "settings.errActivationRejected": "Aktivierung abgelehnt.",
   "settings.errConfigUnavailable": "Konfiguration nicht verfügbar.",
+  "settings.consentsReading": "Einstellungen werden gelesen…",
   "settings.errRemoveFailed": "Entfernen nicht möglich.",
   "settings.errScanStartFailed": "Analyse konnte nicht gestartet werden.",
   "settings.savedNeedsFullScan": "Gespeichert — eine vollständige Analyse ist erforderlich.",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "Noch keine weiteren Kreise zu zeigen.",
   "v2.circle.scene.circlesMap.noticeTitle": "Neu: Ihre Kreise auf der Weltkarte",
   "v2.circle.scene.circlesMap.notice": "Ihre Kreise erscheinen jetzt anonym auf der Weltkarte, am Ort Ihrer Stadt (auf etwa 50 km genau), ohne Kreis- oder Personennamen. Um dort nicht zu erscheinen, entfernen Sie sich von der öffentlichen Karte.",
+  "v2.circle.worldCountries.attribution": "Standortdaten:",
   "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mein Design",

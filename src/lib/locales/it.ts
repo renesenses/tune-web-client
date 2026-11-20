@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "Connessione impossibile.",
   "settings.errActivationRejected": "Attivazione rifiutata.",
   "settings.errConfigUnavailable": "Configurazione non disponibile.",
+  "settings.consentsReading": "Lettura delle impostazioni…",
   "settings.errRemoveFailed": "Rimozione impossibile.",
   "settings.errScanStartFailed": "Impossibile avviare l'analisi.",
   "settings.savedNeedsFullScan": "Salvato — è necessaria un'analisi completa.",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "Non ci sono ancora altre cerchie da mostrare.",
   "v2.circle.scene.circlesMap.noticeTitle": "Novità: le sue cerchie sulla mappa del mondo",
   "v2.circle.scene.circlesMap.notice": "Le sue cerchie compaiono ora in forma anonima sulla mappa del mondo, nel luogo della sua città (con circa 50 km di approssimazione), senza nome di cerchia né di persona. Per non comparire, si ritiri dalla mappa pubblica.",
+  "v2.circle.worldCountries.attribution": "Dati di localizzazione:",
   "volume.outputRange": "Volume fuori intervallo: da {min}% a {max}%, con incrementi del {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Il mio tema",

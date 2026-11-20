@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "연결하지 못했습니다.",
   "settings.errActivationRejected": "활성화가 거부되었습니다.",
   "settings.errConfigUnavailable": "설정을 가져올 수 없습니다.",
+  "settings.consentsReading": "설정을 읽는 중…",
   "settings.errRemoveFailed": "제거하지 못했습니다.",
   "settings.errScanStartFailed": "스캔을 시작하지 못했습니다.",
   "settings.savedNeedsFullScan": "저장했습니다 — 전체 스캔이 필요합니다.",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "아직 표시할 다른 서클이 없습니다.",
   "v2.circle.scene.circlesMap.noticeTitle": "새 기능: 세계 지도에 내 서클 표시",
   "v2.circle.scene.circlesMap.notice": "이제 내 서클이 세계 지도에 익명으로 표시됩니다. 내 도시 위치(약 50km 정확도)에 서클 이름이나 사람 이름 없이 표시됩니다. 표시되지 않으려면 공개 지도에서 빠지세요.",
+  "v2.circle.worldCountries.attribution": "위치 데이터:",
   "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "내 테마",

@@ -3596,6 +3596,7 @@ export default {
   "settings.errConnectFailed": "Kunde inte ansluta.",
   "settings.errActivationRejected": "Aktivering nekad.",
   "settings.errConfigUnavailable": "Konfigurationen är inte tillgänglig.",
+  "settings.consentsReading": "Läser inställningarna…",
   "settings.errRemoveFailed": "Kunde inte ta bort.",
   "settings.errScanStartFailed": "Kunde inte starta genomsökningen.",
   "settings.savedNeedsFullScan": "Sparat — en fullständig genomsökning krävs.",
@@ -7442,6 +7443,7 @@ export default {
   "v2.circle.worldCircles.empty": "Inga andra cirklar att visa ännu.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nytt: dina cirklar på världskartan",
   "v2.circle.scene.circlesMap.notice": "Dina cirklar visas nu anonymt på världskartan, där din stad ligger (på ungefär 50 km när), utan cirkel- eller personnamn. För att inte synas där, ta bort dig från den offentliga kartan.",
+  "v2.circle.worldCountries.attribution": "Platsdata:",
   "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mitt tema",

@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "接続できませんでした。",
   "settings.errActivationRejected": "有効化が拒否されました。",
   "settings.errConfigUnavailable": "設定を取得できません。",
+  "settings.consentsReading": "設定を読み込み中…",
   "settings.errRemoveFailed": "削除できませんでした。",
   "settings.errScanStartFailed": "スキャンを開始できませんでした。",
   "settings.savedNeedsFullScan": "保存しました — 完全スキャンが必要です。",
@@ -7443,6 +7444,7 @@ export default {
   "v2.circle.worldCircles.empty": "まだ表示できる他のサークルはありません。",
   "v2.circle.scene.circlesMap.noticeTitle": "新機能：あなたのサークルが世界地図に",
   "v2.circle.scene.circlesMap.notice": "あなたのサークルが世界地図に匿名で表示されるようになりました。あなたの都市の位置（約 50 km の精度）に、サークル名も人名もなしで表示されます。表示されたくない場合は、公開マップから外してください。",
+  "v2.circle.worldCountries.attribution": "位置データ：",
   "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "マイテーマ",

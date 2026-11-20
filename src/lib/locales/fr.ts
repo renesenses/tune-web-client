@@ -2349,6 +2349,7 @@ export default {
   "settings.errConnectFailed": "Connexion impossible.",
   "settings.errActivationRejected": "Activation refusée.",
   "settings.errConfigUnavailable": "Configuration indisponible.",
+  "settings.consentsReading": "Lecture des réglages…",
   "settings.errRemoveFailed": "Retrait impossible.",
   "settings.errScanStartFailed": "Analyse impossible à lancer.",
   "settings.savedNeedsFullScan": "Enregistré — une analyse complète est nécessaire.",
@@ -7465,6 +7466,7 @@ export default {
   "v2.circle.worldCircles.empty": "Pas encore d'autres cercles à montrer.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nouveau : vos cercles sur la carte du monde",
   "v2.circle.scene.circlesMap.notice": "Vos cercles apparaissent désormais anonymement sur la carte du monde, à l'emplacement de votre ville (à environ 50 km près), sans nom de cercle ni de personne. Pour ne pas y figurer, retirez-vous de la carte publique.",
+  "v2.circle.worldCountries.attribution": "Données de localisation :",
   "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mon thème",

@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Kunne ikke koble til.",
   "settings.errActivationRejected": "Aktiveringen ble avvist.",
   "settings.errConfigUnavailable": "Konfigurasjonen er utilgjengelig.",
+  "settings.consentsReading": "Leser innstillingene…",
   "settings.errRemoveFailed": "Kunne ikke fjerne.",
   "settings.errScanStartFailed": "Kunne ikke starte skanningen.",
   "settings.savedNeedsFullScan": "Lagret — en full skanning kreves.",
@@ -7288,6 +7289,7 @@ export default {
   "v2.circle.worldCircles.empty": "Ingen andre sirkler å vise ennå.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nytt: sirklene dine på verdenskartet",
   "v2.circle.scene.circlesMap.notice": "Sirklene dine vises nå anonymt på verdenskartet, der byen din ligger (med omtrent 50 km nøyaktighet), uten sirkel- eller personnavn. For å holde deg unna, fjern deg fra det offentlige kartet.",
+  "v2.circle.worldCountries.attribution": "Posisjonsdata:",
   "volume.outputRange": "Volumet er utenfor området: fra {min} % til {max} %, i trinn på {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mitt tema",

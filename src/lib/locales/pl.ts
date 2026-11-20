@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Nie można nawiązać połączenia.",
   "settings.errActivationRejected": "Aktywacja odrzucona.",
   "settings.errConfigUnavailable": "Konfiguracja niedostępna.",
+  "settings.consentsReading": "Odczytywanie ustawień…",
   "settings.errRemoveFailed": "Nie udało się usunąć.",
   "settings.errScanStartFailed": "Nie udało się rozpocząć analizy.",
   "settings.savedNeedsFullScan": "Zapisano — wymagana jest pełna analiza.",
@@ -7288,6 +7289,7 @@ export default {
   "v2.circle.worldCircles.empty": "Na razie brak innych kręgów do pokazania.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nowość: Twoje kręgi na mapie świata",
   "v2.circle.scene.circlesMap.notice": "Twoje kręgi pojawiają się teraz anonimowo na mapie świata, w miejscu Twojego miasta (z dokładnością ok. 50 km), bez nazwy kręgu i bez imion. Aby się tam nie pojawiać, usuń się z mapy publicznej.",
+  "v2.circle.worldCountries.attribution": "Dane lokalizacji:",
   "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mój motyw",
