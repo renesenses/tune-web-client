@@ -87,3 +87,66 @@ describe('web#3314 — deux téléphones, un foyer', () => {
     expect(nomLibre([{ name: 'Ce téléphone' }, { name: 'Ce téléphone (3)' }], 'Ce téléphone')).toBe('Ce téléphone (2)');
   });
 });
+
+describe('web#3314 — migration de la zone gardée jusqu\'à rc12', () => {
+  const ANCIENNE = 'tune.zoneNavigateur.cetAppareil';
+  const A = { id: 44, name: 'Ce téléphone (192.168.1.31)', output_type: 'browser' };
+
+  // Module neuf : `oublierAncienneRetention` ne joue qu'une fois par chargement.
+  async function modulesNeufs() {
+    vi.resetModules();
+    return {
+      m: await import('../zoneDeCetAppareil'),
+      p: await import('../zoneNavigateurProprietaire'),
+    };
+  }
+
+  it('ancienne clé → registre : premier appui, sa zone, pas de « (2) »', async () => {
+    localStorage.setItem(ANCIENNE, '44');
+    const { m, p } = await modulesNeufs();
+    const creer = vi.fn(async () => ({ id: 50 }));
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(44);
+    expect(creer).not.toHaveBeenCalled();
+    expect(localStorage.getItem(ANCIENNE)).toBeNull();
+    expect(m.zonesNeesIci()).toEqual([44]);
+    expect(p.zonesRetenues()).toEqual([44]);
+  });
+
+  it("migrée même quand l'effacement (#3180) a lieu avant le premier appui", async () => {
+    localStorage.setItem(ANCIENNE, '44');
+    const { m, p } = await modulesNeufs();
+    expect(p.zonesRetenues()).toBeNull(); // efface l'ancienne clé
+    expect(localStorage.getItem(ANCIENNE)).toBeNull();
+    const creer = vi.fn();
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(44);
+    expect(creer).not.toHaveBeenCalled();
+  });
+
+  it('une ancienne valeur invalide est ignorée', async () => {
+    localStorage.setItem(ANCIENNE, 'abc');
+    const { m } = await modulesNeufs();
+    const creer = vi.fn(async () => ({ id: 51 }));
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(51);
+    expect(creer).toHaveBeenCalledWith('Ce téléphone (2)');
+    expect(m.zonesNeesIci()).toEqual([51]);
+  });
+});
+
+describe('web#3314 — stockage qui lève une erreur', () => {
+  it('le registre ne fait rien planter : la zone est créée et retenue', async () => {
+    const piege = () => { throw new DOMException('refusé', 'SecurityError'); };
+    vi.stubGlobal('localStorage', { getItem: piege, setItem: piege, removeItem: piege, clear: () => {}, key: piege, length: 0 });
+    try {
+      vi.resetModules();
+      const m = await import('../zoneDeCetAppareil');
+      const p = await import('../zoneNavigateurProprietaire');
+      expect(() => m.identifiantDeCetAppareil()).not.toThrow();
+      expect(m.zonesNeesIci()).toEqual([]);
+      const creer = vi.fn(async () => ({ id: 52 }));
+      expect(await m.zoneDeCetAppareil(Z, 'Ce téléphone', creer)).toBe(52);
+      expect(p.zonesRetenues()).toEqual([52]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

@@ -33,6 +33,10 @@
  */
 
 import { writable } from 'svelte/store';
+import {
+  ANCIENNE_CLE_ZONE_DE_CET_APPAREIL,
+  migrerAncienneZoneDeCetAppareil,
+} from './registreCetAppareil';
 
 const CLE = 'tune.zonesNavigateurDeCetAppareil';
 
@@ -69,14 +73,17 @@ interface ZoneLue {
  * Décision de Bertrand (20/11) : la prise vit dans `sessionStorage` — elle
  * meurt avec l'onglet — et la carte de la zone offre « Ne plus jouer ici ».
  * L'ancienne valeur persistée est oubliée, comme celle de « Ce téléphone »
- * (`tune.zoneNavigateur.cetAppareil`), qui passe par la même clé.
+ * (`tune.zoneNavigateur.cetAppareil`), qui passe par la même clé — après
+ * que sa zone est entrée au registre de cet appareil (web#3314).
  */
-const ANCIENNES_CLES_PERSISTEES = [CLE, 'tune.zoneNavigateur.cetAppareil'];
+const ANCIENNES_CLES_PERSISTEES = [CLE, ANCIENNE_CLE_ZONE_DE_CET_APPAREIL];
 let ancienneRetentionOubliee = false;
 
 function oublierAncienneRetention(): void {
   if (ancienneRetentionOubliee) return;
   ancienneRetentionOubliee = true;
+  // web#3314 — la zone de « Ce téléphone » passe au registre AVANT l'effacement.
+  migrerAncienneZoneDeCetAppareil();
   try {
     for (const cle of ANCIENNES_CLES_PERSISTEES) localStorage.removeItem(cle);
   } catch {
