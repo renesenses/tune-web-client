@@ -5113,7 +5113,9 @@ export interface CrossfeedStatus {
   effective: boolean;
   /** La contrainte s'applique — verrouille le contrôle. */
   unavailable: boolean;
-  /** `non_local_output` | `pure_mode` ; `null` quand le réglage est honoré. */
+  /** `non_local_output` | `pure_mode` | … ; `null` quand le réglage est honoré.
+   *  `non_local_partial` (tune-server-rust#9254) arrive avec `unavailable:
+   *  false` : une réserve, pas un verrou (voir `cleReserveCrossfeed`). */
   reason: string | null;
   /** Phrase serveur, en français uniquement. Non affichée par l'écran web. */
   detail: string | null;

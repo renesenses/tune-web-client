@@ -83,6 +83,7 @@
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
   import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
+  import { ouvrirReconnexionSpotify } from '../../lib/spotifyReconnexionFavoris';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -409,6 +410,9 @@
   let triFavoris = $state<Tri | null>(null);
   /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
   let favSuiteEnCours = $state(false);
+  /** #3307 — Spotify refuse les artistes suivis faute de `user-follow-read`
+   *  (tune-server-rust#9250) : inviter à reconnecter, pas « aucun favori ». */
+  let artistesPorteeManquante = $state(false);
   let seqFavoris = 0;
   /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
   function allerA(id: string) {
@@ -798,6 +802,7 @@
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
     triFavoris = null;
+    artistesPorteeManquante = false;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
@@ -869,6 +874,8 @@
           else favTracks = items;
         },
         () => { if (mien === seqFavoris) done(); },
+        undefined,
+        (type) => { if (mien === seqFavoris && type === 'artists') artistesPorteeManquante = true; },
       ).finally(() => { if (mien === seqFavoris) favSuiteEnCours = false; });
     }
   });
@@ -2000,6 +2007,15 @@
             <button class="chip" onclick={() => allerA(x.id)}>{$t(x.cle as any)} <span class="n">{x.n}</span></button>
           {/each}
         </nav>
+      {/if}
+      {#if artistesPorteeManquante}
+        <!-- #3307 — compte Spotify relié avant user-follow-read
+             (tune-server-rust#9250) : la liste des artistes arrive vide, en
+             200. Le dire, avec le geste qui règle. -->
+        <div class="state" data-reconnexion-artistes>
+          {$t('favorites.spotifyReconnectFollowed' as any)}
+          <button class="chip" onclick={ouvrirReconnexionSpotify}>{$t('favorites.spotifyReconnectAction' as any)}</button>
+        </div>
       {/if}
       {#if favAlbumsVus.length}
         <section class="sec" id="fav-albums"><h2>{$t('v2.rech.albums' as any)}</h2>
