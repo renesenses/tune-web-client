@@ -2220,6 +2220,7 @@ export default {
   "settings.errConnectFailed": "Bağlanılamadı.",
   "settings.errActivationRejected": "Etkinleştirme reddedildi.",
   "settings.errConfigUnavailable": "Yapılandırma kullanılamıyor.",
+  "settings.consentsReading": "Ayarlar okunuyor…",
   "settings.errRemoveFailed": "Kaldırılamadı.",
   "settings.errScanStartFailed": "Tarama başlatılamadı.",
   "settings.savedNeedsFullScan": "Kaydedildi — tam tarama gerekiyor.",

@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Δεν ήταν δυνατή η σύνδεση.",
   "settings.errActivationRejected": "Η ενεργοποίηση απορρίφθηκε.",
   "settings.errConfigUnavailable": "Η διαμόρφωση δεν είναι διαθέσιμη.",
+  "settings.consentsReading": "Ανάγνωση ρυθμίσεων…",
   "settings.errRemoveFailed": "Δεν ήταν δυνατή η αφαίρεση.",
   "settings.errScanStartFailed": "Δεν ήταν δυνατή η έναρξη της σάρωσης.",
   "settings.savedNeedsFullScan": "Αποθηκεύτηκε — απαιτείται πλήρης σάρωση.",

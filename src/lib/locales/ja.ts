@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "接続できませんでした。",
   "settings.errActivationRejected": "有効化が拒否されました。",
   "settings.errConfigUnavailable": "設定を取得できません。",
+  "settings.consentsReading": "設定を読み込み中…",
   "settings.errRemoveFailed": "削除できませんでした。",
   "settings.errScanStartFailed": "スキャンを開始できませんでした。",
   "settings.savedNeedsFullScan": "保存しました — 完全スキャンが必要です。",

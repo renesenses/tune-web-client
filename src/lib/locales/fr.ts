@@ -2349,6 +2349,7 @@ export default {
   "settings.errConnectFailed": "Connexion impossible.",
   "settings.errActivationRejected": "Activation refusée.",
   "settings.errConfigUnavailable": "Configuration indisponible.",
+  "settings.consentsReading": "Lecture des réglages…",
   "settings.errRemoveFailed": "Retrait impossible.",
   "settings.errScanStartFailed": "Analyse impossible à lancer.",
   "settings.savedNeedsFullScan": "Enregistré — une analyse complète est nécessaire.",

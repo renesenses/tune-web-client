@@ -2830,7 +2830,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       enrichExcludedDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
-      await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
@@ -2840,6 +2839,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
+      // #3103 — APRÈS tout ce que `/system/config` a rendu : les consentements
+      // attendaient la fin de ce second appel, et restaient « non lus » (donc
+      // éteints à l'œil) jusqu'à 40 s sur un serveur dont la base est tenue.
+      // `refreshDirectoryOrder` ne lève jamais (repli interne).
+      await refreshDirectoryOrder();
     } catch {
       libErr = get(t)('settings.errConfigUnavailable');
       relireConsentementsPlusTard();
@@ -5813,7 +5817,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.fileWrites' as any)}</span>
                   <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
                 </div>
-                <label class="sw">
+                <label class="sw" class:non-lu={ecritureFichiersOn === null} aria-busy={ecritureFichiersOn === null && !consentementsIllisibles}>
                   <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn === true}
                     disabled={ecritureFichiersOn === null}
                     onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
@@ -5828,7 +5832,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.lyricsLrclib' as any)}</span>
                   <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
                 </div>
-                <label class="sw">
+                <label class="sw" class:non-lu={lrclibOn === null} aria-busy={lrclibOn === null && !consentementsIllisibles}>
                   <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn === true}
                     disabled={lrclibOn === null}
                     onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
@@ -5839,6 +5843,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- tune-server-rust#8521 — réglages pas encore lus : on le dit
                    ICI, pas seulement sous les dossiers de musique. -->
               {#if consentementsIllisibles}<div class="errline" data-temoin="consentements-illisibles">{$t('settings.errConfigUnavailable')}</div>{/if}
+              <!-- #3103 — lecture en cours : dit, et l'interrupteur « non lu » ne
+                   ressemble plus à un interrupteur éteint (voir `.sw.non-lu`). -->
+              {#if !consentementsIllisibles && (lrclibOn === null || ecritureFichiersOn === null)}<div class="hint" role="status" data-temoin="consentements-lecture">{$t('settings.consentsReading' as any)}</div>{/if}
               {#if voit('intermediate', s.id)}
                 <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
               {/if}
@@ -9534,6 +9541,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .sw input:checked + .slider{background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #3103 — réglage pas encore lu : ni allumé ni éteint. Hachures, curseur au
+     milieu ; sans cette règle, la case grisée était identique à « éteint ». */
+  .sw.non-lu{cursor:progress}
+  .sw.non-lu .slider{opacity:.55; background:repeating-linear-gradient(135deg,var(--v2-line2) 0 4px,transparent 4px 8px)}
+  .sw.non-lu .slider::before{transform:translateX(9.5px); opacity:.6}
 
   .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar2 span{display:block; height:100%; border-radius:4px;

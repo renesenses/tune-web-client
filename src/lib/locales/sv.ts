@@ -3596,6 +3596,7 @@ export default {
   "settings.errConnectFailed": "Kunde inte ansluta.",
   "settings.errActivationRejected": "Aktivering nekad.",
   "settings.errConfigUnavailable": "Konfigurationen är inte tillgänglig.",
+  "settings.consentsReading": "Läser inställningarna…",
   "settings.errRemoveFailed": "Kunde inte ta bort.",
   "settings.errScanStartFailed": "Kunde inte starta genomsökningen.",
   "settings.savedNeedsFullScan": "Sparat — en fullständig genomsökning krävs.",

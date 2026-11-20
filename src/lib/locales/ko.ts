@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "연결하지 못했습니다.",
   "settings.errActivationRejected": "활성화가 거부되었습니다.",
   "settings.errConfigUnavailable": "설정을 가져올 수 없습니다.",
+  "settings.consentsReading": "설정을 읽는 중…",
   "settings.errRemoveFailed": "제거하지 못했습니다.",
   "settings.errScanStartFailed": "스캔을 시작하지 못했습니다.",
   "settings.savedNeedsFullScan": "저장했습니다 — 전체 스캔이 필요합니다.",

@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "Conectarea nu a fost posibilă.",
   "settings.errActivationRejected": "Activare refuzată.",
   "settings.errConfigUnavailable": "Configurație indisponibilă.",
+  "settings.consentsReading": "Se citesc setările…",
   "settings.errRemoveFailed": "Eliminarea nu a fost posibilă.",
   "settings.errScanStartFailed": "Analiza nu a putut fi pornită.",
   "settings.savedNeedsFullScan": "Salvat — este necesară o analiză completă.",

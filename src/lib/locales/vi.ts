@@ -2202,6 +2202,7 @@ export default {
   "settings.errConnectFailed": "Không thể kết nối.",
   "settings.errActivationRejected": "Kích hoạt bị từ chối.",
   "settings.errConfigUnavailable": "Cấu hình không khả dụng.",
+  "settings.consentsReading": "Đang đọc cài đặt…",
   "settings.errRemoveFailed": "Không thể gỡ.",
   "settings.errScanStartFailed": "Không thể bắt đầu quét.",
   "settings.savedNeedsFullScan": "Đã lưu — cần quét toàn bộ.",

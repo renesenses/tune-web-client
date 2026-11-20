@@ -3551,6 +3551,7 @@ export default {
   "settings.errConnectFailed": "A kapcsolódás nem sikerült.",
   "settings.errActivationRejected": "Az aktiválás elutasítva.",
   "settings.errConfigUnavailable": "A beállítások nem érhetők el.",
+  "settings.consentsReading": "Beállítások beolvasása…",
   "settings.errRemoveFailed": "Az eltávolítás nem sikerült.",
   "settings.errScanStartFailed": "Az elemzést nem sikerült elindítani.",
   "settings.savedNeedsFullScan": "Mentve — teljes elemzés szükséges.",
