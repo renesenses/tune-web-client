@@ -3643,7 +3643,7 @@ export default {
   "settings.avatarErrorType": "该文件不是图片。",
   "settings.avatarErrorSize": "图片过大：最多 16 MB。",
   "settings.avatarErrorRead": "无法读取图片：不支持此格式。",
-  "settings.avatarErrorWeight": "无法将该图片压缩到足够小，请换一个文件。",
+  "settings.avatarErrorWeight": "此浏览器无法缩小该图片。请将其另存为 JPEG、裁剪得更小，或换一个浏览器。",
   "settings.titleV2": "设置",
   "settings.levelEssential": "基础",
   "settings.levelAdvanced": "高级",

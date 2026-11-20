@@ -3643,7 +3643,7 @@ export default {
   "settings.avatarErrorType": "このファイルは画像ではありません。",
   "settings.avatarErrorSize": "画像が大きすぎます: 最大 16 MB。",
   "settings.avatarErrorRead": "画像を読み取れません: この形式には対応していません。",
-  "settings.avatarErrorWeight": "この画像は十分に小さくできません。別のファイルをお試しください。",
+  "settings.avatarErrorWeight": "このブラウザーでは画像を縮小できませんでした。JPEG で保存するか、小さくトリミングするか、別のブラウザーをお試しください。",
   "settings.titleV2": "設定",
   "settings.levelEssential": "基本",
   "settings.levelAdvanced": "アドバンスト",

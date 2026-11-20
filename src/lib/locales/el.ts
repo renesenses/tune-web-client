@@ -2246,7 +2246,7 @@ export default {
   "settings.avatarErrorType": "Αυτό το αρχείο δεν είναι εικόνα.",
   "settings.avatarErrorSize": "Η εικόνα είναι πολύ μεγάλη: έως 16 MB.",
   "settings.avatarErrorRead": "Μη αναγνώσιμη εικόνα: αυτή η μορφή δεν υποστηρίζεται.",
-  "settings.avatarErrorWeight": "Δεν είναι δυνατή η επαρκής σμίκρυνση αυτής της εικόνας. Δοκιμάστε άλλο αρχείο.",
+  "settings.avatarErrorWeight": "Αυτό το πρόγραμμα περιήγησης δεν μπόρεσε να σμικρύνει την εικόνα. Αποθηκεύστε τη ως JPEG, περικόψτε τη μικρότερη ή δοκιμάστε άλλο πρόγραμμα περιήγησης.",
   "settings.titleV2": "Ρυθμίσεις",
   "settings.levelEssential": "Βασικό",
   "settings.levelAdvanced": "Προχωρημένο",

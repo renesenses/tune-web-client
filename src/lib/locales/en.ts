@@ -2392,7 +2392,7 @@ export default {
   "settings.avatarErrorType": "That file is not an image.",
   "settings.avatarErrorSize": "Image too large: 16 MB maximum.",
   "settings.avatarErrorRead": "Unreadable image: this format is not supported.",
-  "settings.avatarErrorWeight": "This image cannot be made small enough. Try another file.",
+  "settings.avatarErrorWeight": "This browser could not shrink this image. Save it as JPEG, crop it smaller, or try another browser.",
   "settings.titleV2": "Settings",
   "settings.levelEssential": "Essential",
   "settings.levelAdvanced": "Advanced",

@@ -2246,7 +2246,7 @@ export default {
   "settings.avatarErrorType": "Ten plik nie jest obrazem.",
   "settings.avatarErrorSize": "Obraz jest za duży: maksymalnie 16 MB.",
   "settings.avatarErrorRead": "Nie można odczytać obrazu: ten format nie jest obsługiwany.",
-  "settings.avatarErrorWeight": "Nie udało się wystarczająco zmniejszyć tego obrazu. Spróbuj użyć innego pliku.",
+  "settings.avatarErrorWeight": "Ta przeglądarka nie zdołała zmniejszyć obrazu. Zapisz go jako JPEG, przytnij do mniejszego rozmiaru lub użyj innej przeglądarki.",
   "settings.titleV2": "Ustawienia",
   "settings.levelEssential": "Podstawowy",
   "settings.levelAdvanced": "Zaawansowany",

@@ -3643,7 +3643,7 @@ export default {
   "settings.avatarErrorType": "Este archivo no es una imagen.",
   "settings.avatarErrorSize": "Imagen demasiado pesada: 16 MB como máximo.",
   "settings.avatarErrorRead": "Imagen ilegible: este formato no es compatible.",
-  "settings.avatarErrorWeight": "No se puede reducir lo suficiente esta imagen. Prueba con otro archivo.",
+  "settings.avatarErrorWeight": "Este navegador no ha podido reducir esta imagen. Guárdala en JPEG, recórtala más pequeña o prueba con otro navegador.",
   "settings.titleV2": "Ajustes",
   "settings.levelEssential": "Esencial",
   "settings.levelAdvanced": "Avanzado",
