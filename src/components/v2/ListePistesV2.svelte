@@ -1099,7 +1099,7 @@
               </span>
             {:else if lienE}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-                role="cell" data-lien-cellule={c.cle}><LienEntite entite={lienE} titre={v} /></span>
+                role="cell" title={v} data-lien-cellule={c.cle}><LienEntite entite={lienE} titre={v} /></span>
             {:else}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
                 role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>
