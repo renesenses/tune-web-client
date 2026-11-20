@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { zoneDeCetAppareil } from '../zoneDeCetAppareil';
+import {
+  identifiantDeCetAppareil, nomLibre, zoneDeCetAppareil, zonesNeesIci,
+} from '../zoneDeCetAppareil';
 import { retenirZoneDeCetAppareil, zonesRetenues } from '../zoneNavigateurProprietaire';
 
 const Z = [
@@ -31,10 +33,120 @@ describe('zone navigateur de cet appareil', () => {
     expect(await zoneDeCetAppareil(Z, 'Ce téléphone', creer)).toBe(43);
   });
 
-  it('retrouve son homonyme suffixé par le serveur (stockage effacé)', async () => {
-    const creer = vi.fn();
-    const zs = [...Z, { id: 44, name: 'Ce téléphone (127.0.0.1)', output_type: 'browser' }];
-    expect(await zoneDeCetAppareil(zs, 'Ce téléphone', creer)).toBe(44);
+  it("web#3314 : n'emprunte pas l'homonyme d'un autre appareil, crée « Ce téléphone (2) »", async () => {
+    const creer = vi.fn(async () => ({ id: 45 }));
+    const zs = [...Z, { id: 44, name: 'Ce téléphone (192.168.1.31)', output_type: 'browser' }];
+    expect(await zoneDeCetAppareil(zs, 'Ce téléphone', creer)).toBe(45);
+    expect(creer).toHaveBeenCalledWith('Ce téléphone (2)');
+    expect(zonesRetenues()).toEqual([45]);
+  });
+});
+
+describe('web#3314 — deux téléphones, un foyer', () => {
+  const A = { id: 44, name: 'Ce téléphone (192.168.1.31)', output_type: 'browser' };
+
+  it('onglet neuf sur le MÊME appareil : il reprend sa zone sans rien créer', async () => {
+    const creer = vi.fn(async () => ({ id: 46 }));
+    await zoneDeCetAppareil(Z, 'Ce téléphone', creer);
+    const zs = [...Z, A, { id: 46, name: 'Ce téléphone (2) (192.168.1.32)', output_type: 'browser' }];
+    sessionStorage.clear(); // nouvel onglet : la prise est perdue, le registre reste
+    expect(zonesRetenues()).toBeNull();
+    creer.mockClear();
+    expect(await zoneDeCetAppareil(zs, 'Ce téléphone', creer)).toBe(46);
     expect(creer).not.toHaveBeenCalled();
+    expect(zonesRetenues()).toEqual([46]);
+  });
+
+  it("la prise reste à l'onglet : rien de retenu dans localStorage", async () => {
+    await zoneDeCetAppareil(Z, 'Ce téléphone', async () => ({ id: 47 }));
+    expect(localStorage.getItem('tune.zonesNavigateurDeCetAppareil')).toBeNull();
+    expect(sessionStorage.getItem('tune.zonesNavigateurDeCetAppareil')).toBe('[47]');
+  });
+
+  it("l'identifiant de l'appareil est tiré une fois et survit à l'onglet", () => {
+    const id = identifiantDeCetAppareil();
+    expect(id).toMatch(/^[0-9a-f]{32}$/);
+    sessionStorage.clear();
+    expect(identifiantDeCetAppareil()).toBe(id);
+    localStorage.clear();
+    expect(identifiantDeCetAppareil()).not.toBe(id);
+  });
+
+  it('une zone née ici puis supprimée ne compte plus : on en recrée une', async () => {
+    await zoneDeCetAppareil(Z, 'Ce téléphone', async () => ({ id: 48 }));
+    sessionStorage.clear();
+    const creer = vi.fn(async () => ({ id: 49 }));
+    expect(await zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(49);
+    expect(zonesNeesIci()).toEqual([48, 49]);
+  });
+
+  it('nomLibre : le premier numéro libre, suffixe d\'IP du serveur compris', () => {
+    expect(nomLibre(Z, 'Ce téléphone')).toBe('Ce téléphone');
+    expect(nomLibre([A], 'Ce téléphone')).toBe('Ce téléphone (2)');
+    expect(nomLibre([A, { name: 'Ce téléphone (2) (10.0.0.4)' }], 'Ce téléphone')).toBe('Ce téléphone (3)');
+    expect(nomLibre([{ name: 'Ce téléphone' }, { name: 'Ce téléphone (3)' }], 'Ce téléphone')).toBe('Ce téléphone (2)');
+  });
+});
+
+describe('web#3314 — migration de la zone gardée jusqu\'à rc12', () => {
+  const ANCIENNE = 'tune.zoneNavigateur.cetAppareil';
+  const A = { id: 44, name: 'Ce téléphone (192.168.1.31)', output_type: 'browser' };
+
+  // Module neuf : `oublierAncienneRetention` ne joue qu'une fois par chargement.
+  async function modulesNeufs() {
+    vi.resetModules();
+    return {
+      m: await import('../zoneDeCetAppareil'),
+      p: await import('../zoneNavigateurProprietaire'),
+    };
+  }
+
+  it('ancienne clé → registre : premier appui, sa zone, pas de « (2) »', async () => {
+    localStorage.setItem(ANCIENNE, '44');
+    const { m, p } = await modulesNeufs();
+    const creer = vi.fn(async () => ({ id: 50 }));
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(44);
+    expect(creer).not.toHaveBeenCalled();
+    expect(localStorage.getItem(ANCIENNE)).toBeNull();
+    expect(m.zonesNeesIci()).toEqual([44]);
+    expect(p.zonesRetenues()).toEqual([44]);
+  });
+
+  it("migrée même quand l'effacement (#3180) a lieu avant le premier appui", async () => {
+    localStorage.setItem(ANCIENNE, '44');
+    const { m, p } = await modulesNeufs();
+    expect(p.zonesRetenues()).toBeNull(); // efface l'ancienne clé
+    expect(localStorage.getItem(ANCIENNE)).toBeNull();
+    const creer = vi.fn();
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(44);
+    expect(creer).not.toHaveBeenCalled();
+  });
+
+  it('une ancienne valeur invalide est ignorée', async () => {
+    localStorage.setItem(ANCIENNE, 'abc');
+    const { m } = await modulesNeufs();
+    const creer = vi.fn(async () => ({ id: 51 }));
+    expect(await m.zoneDeCetAppareil([...Z, A], 'Ce téléphone', creer)).toBe(51);
+    expect(creer).toHaveBeenCalledWith('Ce téléphone (2)');
+    expect(m.zonesNeesIci()).toEqual([51]);
+  });
+});
+
+describe('web#3314 — stockage qui lève une erreur', () => {
+  it('le registre ne fait rien planter : la zone est créée et retenue', async () => {
+    const piege = () => { throw new DOMException('refusé', 'SecurityError'); };
+    vi.stubGlobal('localStorage', { getItem: piege, setItem: piege, removeItem: piege, clear: () => {}, key: piege, length: 0 });
+    try {
+      vi.resetModules();
+      const m = await import('../zoneDeCetAppareil');
+      const p = await import('../zoneNavigateurProprietaire');
+      expect(() => m.identifiantDeCetAppareil()).not.toThrow();
+      expect(m.zonesNeesIci()).toEqual([]);
+      const creer = vi.fn(async () => ({ id: 52 }));
+      expect(await m.zoneDeCetAppareil(Z, 'Ce téléphone', creer)).toBe(52);
+      expect(p.zonesRetenues()).toEqual([52]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

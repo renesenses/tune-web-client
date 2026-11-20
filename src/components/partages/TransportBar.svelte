@@ -15,6 +15,9 @@
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
   import { piloteDeLaZone } from '../../lib/zoneHorsBackend';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
+  import { ICONES_ZONE } from '../../lib/menuZone';
   import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
@@ -524,7 +527,26 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
    * CET appareil, retrouvée ou créée en un appui, puis pilotée. Voir
    * `lib/zoneDeCetAppareil.ts`.
    */
-  let idCetAppareil = $state<number | null>(idRetenu());
+  /**
+   * web#3314 — relu à chaque prise ou relâchement (`versionZonesRetenues`),
+   * et non au seul montage : « Ne plus jouer ici » ou une prise faite ailleurs
+   * dans l'onglet change la ligne active.
+   */
+  const idCetAppareil = $derived.by<number | null>(() => {
+    void $versionZonesRetenues;
+    return idRetenu();
+  });
+  /** web#3314 — la zone pilotée est-elle tenue par cet onglet ? */
+  const zoneTenueIci = $derived.by(() => {
+    void $versionZonesRetenues;
+    return estZoneDeCetAppareil(zone);
+  });
+  /** web#3314 — « Ne plus jouer ici » depuis le sélecteur et la feuille. */
+  function nePlusJouerIci() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    nePlusJouerZoneIci(zone);
+  }
   let rattachement = $state(false);
   async function choisirCetAppareil(e: Event) {
     e.stopPropagation();
@@ -534,7 +556,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       const id = await zoneDeCetAppareil($zones, $t('zone.thisDevice' as any), (nom) =>
         api.createZone(nom, 'browser'),
       );
-      idCetAppareil = id;
       if (!$zones.some((z) => z.id === id)) zones.set(await api.getZones());
       currentZoneId.set(id);
       $selecteurZoneOuvert = false;
@@ -1343,6 +1364,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               </span>
               <span class="zone-popover-labels">
                 <span class="zone-popover-geste truncate">{$t('zone.settingsOpen' as any)}</span>
+              </span>
+            </button>
+          {/if}
+          {#if zone && zoneTenueIci}
+            <!-- web#3314 — la zone pilotée est jouée par cet onglet : la
+                 relâcher sans passer par l'écran Zones (#3180). -->
+            <button class="zone-popover-item zone-popover-groupe" data-ne-plus-jouer-ici onclick={nePlusJouerIci}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d={ICONES_ZONE.nePlusJouerIci}/></svg>
+              </span>
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate" title={$t('v2.zone.browserStopHere' as any)}>{$t('v2.zone.browserStopHere' as any)}</span>
               </span>
             </button>
           {/if}
