@@ -196,7 +196,7 @@
     {:else if zoneId == null}
       <div class="etat">{$t('tess.noZone' as any)}</div>
     {:else if !reponse}
-      <div class="etat">{chargement ? $t('tess.loading' as any) : (message ?? '')}</div>
+      <div class="etat" data-tess-etat>{chargement ? $t('tess.loading' as any) : (message ?? '')}</div>
     {:else}
       {#if horsTess}
         <div class="avis" role="note" data-tess-hors={horsTess.reason ?? ''}>

@@ -103,7 +103,8 @@ describe('W1 suite — 1. zone inconnue ≠ pas de TESS', () => {
     await monter(TessV2);
     expect(get(capaciteTess)).toBe('oui');
     expect(un('[data-tess-indisponible]')).toBeNull();
-    expect(un('[data-tess-message]')?.textContent).toBe(en['tess.zoneNotFound']);
+    expect(un('[data-tess-chemin]')).toBeNull();
+    expect(un('[data-tess-etat]')?.textContent?.trim()).toBe(en['tess.zoneNotFound']);
   });
 
   it('contre-épreuve : un 404 nu (serveur sans TESS) cache toujours l’écran', async () => {
