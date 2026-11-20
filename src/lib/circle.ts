@@ -58,6 +58,7 @@
 import { writable, derived } from 'svelte/store';
 import * as api from './api';
 import { BASE, fetchJSON, type ApiError } from './api';
+import { CLES_LECTURE_SEULE, CODE_ADMIN_REQUIS, CODE_LECTURE_SEULE_A_DISTANCE } from './circleDroits';
 import type { Track } from './types';
 
 export interface ContactCercle {
@@ -941,6 +942,9 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | 'pseudo' | nul
     case 'circle.not_found': return { cle: 'v2.circle.err.notFound' };
     // #3283 : le cercle partagé.
     case 'circle_not_shared': return { cle: 'v2.circle.members.err.notShared' };
+    // 19/11/2026 : écritures réservées à l'administrateur, lecture seule à distance.
+    case CODE_ADMIN_REQUIS: return { cle: CLES_LECTURE_SEULE.admin };
+    case CODE_LECTURE_SEULE_A_DISTANCE: return { cle: CLES_LECTURE_SEULE.distant };
     case CODE_ROUTE_ABSENTE: return { cle: 'v2.circle.members.err.updateServer' };
   }
   if (status === 422) {

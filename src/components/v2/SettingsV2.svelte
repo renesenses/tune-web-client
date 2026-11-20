@@ -160,7 +160,7 @@
   import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
-  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3802,7 +3802,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceShutdown();
     } catch (e) {
-      const msg = errText(e);
+      // #3195 : la phrase traduite du refus, jamais le code brut.
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       // `null` : coupure de transport générique, attendue pendant l'extinction.
       if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
     }
@@ -3820,7 +3821,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceReboot();
     } catch (e) {
-      const msg = errText(e);
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
     }
   }
@@ -9549,7 +9550,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
   .apercu{display:inline-block; min-width:150px}
-  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
+  .svcon{display:inline-flex; flex:none; white-space:nowrap; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
      par réglage, le libellé à gauche en casse normale, le contrôle à droite,
@@ -9693,11 +9694,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
   .svc:hover{background:var(--v2-hover)}
-  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
+  .sname{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; flex:1 1 14rem; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
     text-transform:capitalize}
-  .sst{font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
+  .sst{flex:none; white-space:nowrap; font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
   .sst.ok{color:var(--v2-acc1)} .sst.off{color:var(--v2-txt3)}
-  .sname em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
+  .sname em{min-width:0; overflow-wrap:anywhere; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
   .sname em.sub{color:var(--v2-acc2)}
   .flow{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
   .ucode{font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);

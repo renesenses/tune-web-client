@@ -69,6 +69,9 @@ export interface VoieOnde extends ChiffresOnde {
   rms: number[];
   /** Les colonnes qui contiennent un écrêtage, selon le serveur (#8664). */
   colonnes_ecretees?: number[];
+  /** Fil 2954 — au fort zoom (plage courte), chaque échantillon (−1..1) :
+   *  le tracé suit alors la courbe des échantillons, comme un éditeur. */
+  echantillons?: number[];
 }
 
 export interface FormeOnde {
@@ -174,6 +177,27 @@ export function cheminBande(
 }
 
 /**
+ * Fil 2954 — la courbe des ÉCHANTILLONS d'une plage courte (le serveur les
+ * rend sous `ECHANTILLONS_MAX` trames) : une ligne brisée, échantillon par
+ * échantillon, sur le même repère que [`cheminBande`] (premier au bord
+ * gauche, dernier au bord droit). Moins de deux échantillons : rien.
+ */
+export function cheminEchantillons(
+  echantillons: number[] | undefined, largeur: number, hauteur: number, echelle: Echelle,
+): string {
+  const n = echantillons?.length ?? 0;
+  if (!echantillons || n < 2) return '';
+  const demi = hauteur / 2;
+  const arrondi = (v: number) => Math.round(v * 100) / 100;
+  const points: string[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const x = (i / (n - 1)) * largeur;
+    points.push(`${arrondi(x)},${arrondi(demi - versY(echantillons[i], echelle) * demi)}`);
+  }
+  return `M${points.join('L')}`;
+}
+
+/**
  * Les index des colonnes écrêtées : celles que le serveur désigne
  * (`colonnes_ecretees`, suites d'échantillons à la pleine échelle) ; à
  * défaut (serveur plus ancien), celles qui touchent la pleine échelle.
@@ -202,6 +226,8 @@ export function trancher(f: FormeOnde, plage: Plage): FormeOnde {
     duree_s: (i1 - i0) * parCol,
     voies: f.voies.map((v) => ({
       ...v, min: v.min.slice(i0, i1), max: v.max.slice(i0, i1), rms: v.rms.slice(i0, i1),
+      // Les échantillons valent pour la plage du serveur, pas pour la découpe.
+      echantillons: undefined,
       ...(Array.isArray(v.colonnes_ecretees)
         ? { colonnes_ecretees: v.colonnes_ecretees.filter((i) => i >= i0 && i < i1).map((i) => i - i0) }
         : {}),

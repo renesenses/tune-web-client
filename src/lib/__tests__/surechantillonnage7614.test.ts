@@ -11,10 +11,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   filtresProposes, filtreNonAdmis, cleContrainte, libelleReserve, reserveMaxDb, resumeMachine,
-  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre,
+  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre, clePortee, cleIndicationPortee,
   type FiltreSurechantillonnage,
 } from '../surechantillonnage';
 import fr from '../locales/fr';
+import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
 vi.mock('../stores/notifications', () => ({
@@ -99,6 +100,46 @@ describe('routes', () => {
   });
 });
 
+/**
+ * Décision de Bertrand du 19/11/2026 — un réglage s'applique tout de suite :
+ * l'écran confirme « appliqué » d'après la réponse du serveur.
+ */
+describe('portée du réglage (19/11/2026)', () => {
+  it('« appliqué » tout de suite, avec la reprise quand le flux est relancé', () => {
+    expect(clePortee({ applies_at: 'now', restart: true })).toBe('upsampling.appliedRestart');
+    expect(clePortee({ applies_at: 'now', restart: false })).toBe('upsampling.applied');
+    expect(clePortee({ applies_at: 'now' })).toBe('upsampling.applied');
+  });
+
+  it('« au prochain flux » seulement quand le serveur le dit, « enregistré » là où le réglage n’agit pas', () => {
+    expect(clePortee({ applies_at: 'next_track', restart: false })).toBe('upsampling.nextTrack');
+    expect(clePortee({ applies_at: 'never', restart: false })).toBe('upsampling.saved');
+  });
+
+  it('l’indication sous « Enregistrer » ne promet « tout de suite » que si le serveur l’annonce', () => {
+    expect(cleIndicationPortee({ applies_at: 'now' })).toBe('upsampling.appliesNow');
+    // Serveur d'avant #9221, pause, position inconnue : texte neutre.
+    expect(cleIndicationPortee({ applies_at: 'next_track' })).toBe('upsampling.appliesLater');
+    expect(cleIndicationPortee(null)).toBe('upsampling.appliesLater');
+    expect(cleIndicationPortee({ applies_at: 'never' })).toBeNull();
+  });
+
+  it('« au prochain flux » est neutre : il ne prétend pas que la lecture est en pause', () => {
+    for (const l of ONZE_LANGUES) {
+      expect(dictionnaire(l)['upsampling.nextTrack'], l).not.toMatch(/pause|paus|暂停|一時停止|일시 정지|szünet|tạm dừng|παύση|wstrzym|duraklat/i);
+    }
+    expect(fr['upsampling.nextTrack']).toBe("Enregistré : le réglage s'appliquera au prochain flux.");
+  });
+
+  it('les trois messages existent dans les seize langues', () => {
+    for (const l of ONZE_LANGUES) {
+      for (const cle of ['upsampling.applied', 'upsampling.appliedRestart', 'upsampling.appliesNow', 'upsampling.appliesLater', 'upsampling.saved', 'upsampling.nextTrack']) {
+        expect(dictionnaire(l)[cle], `${l} ${cle}`).toBeTruthy();
+      }
+    }
+  });
+});
+
 describe('câblage de l’écran', () => {
   const lire = (f: string) => readFileSync(join(process.cwd(), f), 'utf8');
   const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl'];
@@ -113,16 +154,24 @@ describe('câblage de l’écran', () => {
     expect(plugins).toMatch(/DSP_PURE = new Set\(\[[^\]]*'upsampler'/);
   });
 
-  it('l’écran dit le bit-perfect perdu, PURE, et la piste suivante', () => {
+  it('l’écran dit le bit-perfect perdu, PURE, et que le réglage s’applique tout de suite', () => {
     const ecran = lire('src/components/v2/SurechantillonnageV2.svelte');
     expect(ecran).toContain("$t('upsampling.bitPerfect'");
-    expect(ecran).toContain("$t('upsampling.nextTrack'");
+    // 19/11/2026 — plus de « piste suivante » sous le bouton : tout de suite.
+    expect(ecran).toContain('cleIndicationPortee(etat)');
+    expect(ecran).not.toContain("<span class=\"hint\">{$t('upsampling.nextTrack'");
+    expect(ecran).toContain('clePortee(etat)');
+    expect(lire('src/lib/surechantillonnage.ts')).toContain("'upsampling.appliesNow'");
     expect(fr['upsampling.bitPerfect']).toMatch(/bit-perfect/);
     expect(fr['upsampling.bitPerfect']).toMatch(/PURE/);
-    expect(fr['upsampling.nextTrack']).toMatch(/piste suivante/);
+    expect(fr['upsampling.appliesNow']).toMatch(/tout de suite/);
+    expect(fr['upsampling.appliesNow']).toMatch(/même position/);
+    expect(fr['upsampling.nextTrack']).not.toMatch(/ne change jamais pendant une piste/);
     // Décision du 07/11 : réserve de 3 dB + limiteur, pas la réserve L1 complète.
     expect(fr['upsampling.lead']).toMatch(/3 dB/);
     expect(fr['upsampling.lead']).toMatch(/limiteur/);
+    // 19/11/2026 — et ces 3 dB sont rendus par le volume.
+    expect(fr['upsampling.lead']).toMatch(/volume/);
   });
 
   it('chaque clef de l’écran existe dans les quinze langues', () => {
@@ -138,5 +187,30 @@ describe('câblage de l’écran', () => {
       const manquantes = [...cles].filter((c) => !source.includes(`"${c}"`));
       expect(manquantes, l).toEqual([]);
     }
+  });
+});
+
+/**
+ * tune-server-rust#9165 (fil 2945) — sous Linux, le greffon s'applique aussi
+ * sur un PCM `hw:` réglé en exclusif : seuls les bras exclusifs macOS
+ * (CoreAudio) et Windows (WASAPI, ASIO) l'ignorent. L'aide ne doit plus dire
+ * « en mode partagé » pour toutes les plateformes.
+ */
+describe('aide du réglage, exacte sur toutes les plateformes (#9165)', () => {
+  it('nomme macOS/Windows pour l’exclusif et Linux hw: dans toutes les langues', () => {
+    for (const l of ONZE_LANGUES) {
+      const aide = dictionnaire(l)['upsampling.enabledHint'];
+      expect(aide, l).toBeTruthy();
+      expect(aide, l).toMatch(/macOS/);
+      expect(aide, l).toMatch(/Windows/);
+      expect(aide, l).toMatch(/Linu[xk]/); // pl : « w Linuksie »
+      expect(aide, l).toMatch(/hw:/);
+      // ASIO n'est pas un « mode exclusif » : nommé à part (relecture #9169).
+      expect(aide, l).toMatch(/ASIO/);
+      expect(aide, l).toMatch(/DSD/);
+    }
+    // L'ancienne aide imposait le mode partagé à toutes les plateformes.
+    expect(dictionnaire('en')['upsampling.enabledHint']).not.toMatch(/Local output only, in shared mode/);
+    expect(dictionnaire('fr')['upsampling.enabledHint']).not.toMatch(/Sortie locale seulement, en mode partagé/);
   });
 });

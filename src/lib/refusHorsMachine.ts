@@ -10,6 +10,7 @@
  * remplace par une phrase traduite qui donne les deux issues.
  */
 import type { InfoConteneur } from './conteneurServeur';
+import { errText } from './utils';
 
 export type MotifHorsMachine = 'not_local' | 'port80_relay';
 
@@ -48,4 +49,23 @@ export function messageRefusHorsMachine(
     return `${phrase} ${ou}`;
   }
   return `${tr('machineAction.notLocal')} ${ou}`;
+}
+
+/**
+ * web#3195 — ce que « Éteindre » / « Redémarrer » la machine (Tune OS)
+ * affichent quand l'ordre échoue, ou `null` pour une coupure de transport
+ * (attendue : la machine s'arrête et peut couper avant de répondre).
+ *
+ * D'abord la phrase du refus « hors de cette machine », puis le texte de
+ * l'erreur (déjà traduit par `erreurAppliance`). Une réponse HTTP, même au
+ * message générique (que `errText` tait), prouve que l'ordre a été refusé :
+ * on la dit, sinon le bouton resterait grisé sans explication.
+ */
+export function messageEchecActionMachine(e: unknown, tr: (cle: string) => string): string | null {
+  const horsMachine = messageRefusHorsMachine(e, tr);
+  if (horsMachine !== null) return horsMachine;
+  const texte = errText(e);
+  if (texte !== null) return texte;
+  const status = e && typeof e === 'object' ? (e as { status?: unknown }).status : undefined;
+  return typeof status === 'number' && e instanceof Error && e.message ? e.message : null;
 }
