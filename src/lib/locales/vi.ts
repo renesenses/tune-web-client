@@ -2250,7 +2250,7 @@ export default {
   "settings.avatarErrorType": "Tệp này không phải là hình ảnh.",
   "settings.avatarErrorSize": "Ảnh quá lớn: tối đa 16 MB.",
   "settings.avatarErrorRead": "Không đọc được ảnh: định dạng này không được hỗ trợ.",
-  "settings.avatarErrorWeight": "Không thể thu nhỏ ảnh này đủ mức. Hãy thử tệp khác.",
+  "settings.avatarErrorWeight": "Trình duyệt này không thể thu nhỏ ảnh. Hãy lưu ảnh dạng JPEG, cắt ảnh nhỏ hơn hoặc thử trình duyệt khác.",
   "settings.titleV2": "Cài đặt",
   "settings.levelEssential": "Cơ bản",
   "settings.levelAdvanced": "Nâng cao",

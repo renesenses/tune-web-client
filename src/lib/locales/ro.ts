@@ -3645,7 +3645,7 @@ export default {
   "settings.avatarErrorType": "Acest fișier nu este o imagine.",
   "settings.avatarErrorSize": "Imagine prea mare: maximum 16 MB.",
   "settings.avatarErrorRead": "Imagine ilizibilă: acest format nu este acceptat.",
-  "settings.avatarErrorWeight": "Această imagine nu poate fi redusă suficient. Încearcă alt fișier.",
+  "settings.avatarErrorWeight": "Acest browser nu a putut micșora imaginea. Salveaz-o ca JPEG, decupeaz-o mai mică sau încearcă alt browser.",
   "settings.titleV2": "Setări",
   "settings.levelEssential": "Esențial",
   "settings.levelAdvanced": "Avansat",

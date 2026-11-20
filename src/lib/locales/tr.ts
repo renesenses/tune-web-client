@@ -2268,7 +2268,7 @@ export default {
   "settings.avatarErrorType": "Bu dosya bir görsel değil.",
   "settings.avatarErrorSize": "Görsel çok büyük: en fazla 16 MB.",
   "settings.avatarErrorRead": "Görsel okunamıyor: bu biçim desteklenmiyor.",
-  "settings.avatarErrorWeight": "Bu görsel yeterince küçültülemiyor. Başka bir dosya deneyin.",
+  "settings.avatarErrorWeight": "Bu tarayıcı görseli küçültemedi. JPEG olarak kaydedin, daha küçük kırpın veya başka bir tarayıcı deneyin.",
   "settings.titleV2": "Ayarlar",
   "settings.levelEssential": "Temel",
   "settings.levelAdvanced": "Gelişmiş",

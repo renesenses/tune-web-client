@@ -3645,7 +3645,7 @@ export default {
   "settings.avatarErrorType": "이 파일은 이미지가 아닙니다.",
   "settings.avatarErrorSize": "이미지가 너무 큽니다: 최대 16 MB.",
   "settings.avatarErrorRead": "이미지를 읽을 수 없습니다: 지원하지 않는 형식입니다.",
-  "settings.avatarErrorWeight": "이 이미지를 충분히 줄일 수 없습니다. 다른 파일을 사용해 보세요.",
+  "settings.avatarErrorWeight": "이 브라우저에서 이미지를 줄이지 못했습니다. JPEG로 저장하거나 더 작게 자르거나 다른 브라우저를 사용해 보세요.",
   "settings.titleV2": "설정",
   "settings.levelEssential": "기본",
   "settings.levelAdvanced": "고급",

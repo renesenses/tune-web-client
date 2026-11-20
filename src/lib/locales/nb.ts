@@ -2248,7 +2248,7 @@ export default {
   "settings.avatarErrorType": "Den filen er ikke et bilde.",
   "settings.avatarErrorSize": "Bildet er for stort: maks 16 MB.",
   "settings.avatarErrorRead": "Bildet kan ikke leses: dette formatet støttes ikke.",
-  "settings.avatarErrorWeight": "Dette bildet kan ikke gjøres lite nok. Prøv en annen fil.",
+  "settings.avatarErrorWeight": "Denne nettleseren klarte ikke å gjøre bildet mindre. Lagre det som JPEG, beskjær det mindre eller prøv en annen nettleser.",
   "settings.titleV2": "Innstillinger",
   "settings.levelEssential": "Grunnleggende",
   "settings.levelAdvanced": "Avansert",

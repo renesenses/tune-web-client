@@ -3644,7 +3644,7 @@ export default {
   "settings.avatarErrorType": "Filen är inte en bild.",
   "settings.avatarErrorSize": "Bilden är för stor: högst 16 MB.",
   "settings.avatarErrorRead": "Bilden går inte att läsa: formatet stöds inte.",
-  "settings.avatarErrorWeight": "Bilden går inte att förminska tillräckligt. Prova en annan fil.",
+  "settings.avatarErrorWeight": "Den här webbläsaren kunde inte förminska bilden. Spara den som JPEG, beskär den mindre eller prova en annan webbläsare.",
   "settings.titleV2": "Inställningar",
   "settings.levelEssential": "Grundläggande",
   "settings.levelAdvanced": "Avancerad",

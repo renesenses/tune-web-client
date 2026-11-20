@@ -3645,7 +3645,7 @@ export default {
   "settings.avatarErrorType": "Diese Datei ist kein Bild.",
   "settings.avatarErrorSize": "Bild zu groß: maximal 16 MB.",
   "settings.avatarErrorRead": "Bild nicht lesbar: Dieses Format wird nicht unterstützt.",
-  "settings.avatarErrorWeight": "Dieses Bild lässt sich nicht ausreichend verkleinern. Versuchen Sie eine andere Datei.",
+  "settings.avatarErrorWeight": "Dieser Browser konnte das Bild nicht verkleinern. Speichern Sie es als JPEG, schneiden Sie es kleiner zu oder versuchen Sie einen anderen Browser.",
   "settings.titleV2": "Einstellungen",
   "settings.levelEssential": "Grundlegend",
   "settings.levelAdvanced": "Fortgeschritten",

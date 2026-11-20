@@ -3599,7 +3599,7 @@ export default {
   "settings.avatarErrorType": "Ez a fájl nem kép.",
   "settings.avatarErrorSize": "A kép túl nagy: legfeljebb 16 MB.",
   "settings.avatarErrorRead": "A kép olvashatatlan: ez a formátum nem támogatott.",
-  "settings.avatarErrorWeight": "Ezt a képet nem lehet eléggé lekicsinyíteni. Próbálj másik fájlt.",
+  "settings.avatarErrorWeight": "Ez a böngésző nem tudta lekicsinyíteni a képet. Mentsd el JPEG formátumban, vágd kisebbre, vagy próbálj másik böngészőt.",
   "settings.titleV2": "Beállítások",
   "settings.levelEssential": "Alapszintű",
   "settings.levelAdvanced": "Haladó",
