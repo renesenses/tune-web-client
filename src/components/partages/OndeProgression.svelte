@@ -8,7 +8,7 @@
    * attributs ARIA. Deux calques identiques : l'onde à venir, atténuée, et
    * par-dessus l'onde jouée, en couleur d'accent, découpée à la position.
    */
-  import { cheminOnde, nombreDeBarres, reduireOnde, type Onde } from '../../lib/barreOnde';
+  import { cheminOnde, largeurTrait, nombreDeBarres, reduireOnde, type Onde } from '../../lib/barreOnde';
 
   interface Props {
     points: Onde;
@@ -20,7 +20,7 @@
 
   let largeur = $state(0);
   let barres = $derived(reduireOnde(points, nombreDeBarres(largeur, points.length)));
-  let chemin = $derived(cheminOnde(barres));
+  let chemin = $derived(cheminOnde(barres, largeurTrait(largeur, barres.length)));
   let reste = $derived(100 - Math.max(0, Math.min(100, Number.isFinite(progress) ? progress : 0)));
 </script>
 

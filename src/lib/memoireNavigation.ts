@@ -452,6 +452,12 @@ const PAS = 50;
 let jetonRestauration = 0;
 /** L'entrée dont le défilement est en train d'être reposé. */
 let entEnRestauration: string | null = null;
+/**
+ * Arrêter TOUT DE SUITE la reprise en cours : écouteurs de gestes retirés,
+ * passe programmée oubliée. Sans lui, une reprise annulée tournait encore une
+ * passe — et, coquille débranchée, touchait une fenêtre qui n'était plus là.
+ */
+let arreterLaReprise: (() => void) | null = null;
 
 /**
  * Reposer les positions retenues pour `ent`. L'écran remonté charge ses
@@ -460,13 +466,17 @@ let entEnRestauration: string | null = null;
  * toucher, clic, touche) arrête tout : on ne lui arrache jamais la main.
  */
 export function restaurerDefilements(ent: string | null | undefined, options: OptionsRestauration = {}): void {
+  arreterLaReprise?.();
   const jeton = ++jetonRestauration;
   entEnRestauration = null;
   const m = ent ? memoire.get(ent) : null;
   if (!ent || !m || m.defilements.length === 0) return;
   entEnRestauration = ent;
   const racine = options.racine ?? racineParDefaut;
-  const programmer = options.programmer ?? ((cb: () => void, ms: number) => setTimeout(cb, ms));
+  // La minuterie par défaut se retire à l'arrêt ; un `programmer` injecté
+  // (tests) voit sa passe rendre la main d'elle-même (`arrete`).
+  let minuterie: ReturnType<typeof setTimeout> | undefined;
+  const programmer = options.programmer ?? ((cb: () => void, ms: number) => { minuterie = setTimeout(cb, ms); });
   const maintenant = options.maintenant ?? (() => Date.now());
   const fenetre = options.fenetre ?? (typeof window !== 'undefined' ? window : undefined);
   const debut = maintenant();
@@ -474,14 +484,20 @@ export function restaurerDefilements(ent: string | null | undefined, options: Op
   let arrete = false;
   const GESTES = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
   const arreter = () => {
+    if (arrete) return;
     arrete = true;
+    if (minuterie !== undefined) { clearTimeout(minuterie); minuterie = undefined; }
+    if (arreterLaReprise === arreter) arreterLaReprise = null;
     if (jeton === jetonRestauration) entEnRestauration = null;
     for (const g of GESTES) fenetre?.removeEventListener(g, arreter, true);
   };
+  arreterLaReprise = arreter;
   for (const g of GESTES) fenetre?.addEventListener(g, arreter, { capture: true, passive: true } as AddEventListenerOptions);
 
   const passe = () => {
-    if (arrete || jeton !== jetonRestauration) { arreter(); return; }
+    minuterie = undefined;
+    if (arrete) return;
+    if (jeton !== jetonRestauration) { arreter(); return; }
     const t = maintenant();
     const r = racine();
     const fin = t - debut >= DELAI_MAX;
@@ -515,6 +531,7 @@ export function restaurerDefilements(ent: string | null | undefined, options: Op
 export function annulerRestaurationDefilement(): void {
   jetonRestauration++;
   entEnRestauration = null;
+  arreterLaReprise?.();
 }
 
 /** Tests : tout oublier. */
@@ -525,4 +542,5 @@ export function _reinitialiserMemoire(): void {
   entEnRestauration = null;
   defiles.clear();
   jetonRestauration++;
+  arreterLaReprise?.();
 }

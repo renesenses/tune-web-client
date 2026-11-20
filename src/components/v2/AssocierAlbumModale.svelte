@@ -18,7 +18,7 @@
   import { portail } from '../../lib/portail';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import {
-    albumsAAssocier, associerALAlbum, messageErreurCollection, qualiteDe,
+    albumsAAssocier, associerALAlbum, messageErreurCollection, qualiteDe, codeDeRefus,
     type AlbumDeLaBibliotheque, type Disque,
   } from '../../lib/collectionPhysique';
 
@@ -27,8 +27,10 @@
     onClose: () => void;
     /** Le disque relu par le serveur, associé. */
     onAssocie: (d: Disque) => void;
+    /** Relire la carte et les compteurs après une association concurrente. */
+    onConflit?: () => Promise<void>;
   }
-  let { disque, onClose, onAssocie }: Props = $props();
+  let { disque, onClose, onAssocie, onConflit }: Props = $props();
 
   let requete = $state('');
   let candidats = $state<AlbumDeLaBibliotheque[]>([]);
@@ -72,6 +74,11 @@
     } catch (e) {
       // On ne ferme pas : fermer sur un échec ferait croire à l'association.
       erreur = e;
+      if ((e as { status?: number } | null)?.status === 409 && codeDeRefus(e) === 'deja_associe') {
+        // Pas de GET /disques/{release} dans le contrat : le parent relit
+        // la collection avec ses filtres, ce qui remet aussi les compteurs.
+        try { await onConflit?.(); } catch (lecture) { erreur = lecture; }
+      }
     } finally {
       travail = false;
     }

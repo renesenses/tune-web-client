@@ -47,6 +47,8 @@ function defiler(el: HTMLElement, top: number): void {
 
 let racine: HTMLElement;
 let debrancher: (() => void) | null = null;
+let ajouts: ReturnType<typeof vi.spyOn>;
+let retraits: ReturnType<typeof vi.spyOn>;
 const avantMiseEnPage = {
   scrollHeight: Object.getOwnPropertyDescriptor(Element.prototype, 'scrollHeight'),
   clientHeight: Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight'),
@@ -76,6 +78,8 @@ function allerA(vue: string): Ecran {
 }
 
 beforeEach(() => {
+  ajouts = vi.spyOn(window, 'addEventListener');
+  retraits = vi.spyOn(window, 'removeEventListener');
   Object.defineProperty(Element.prototype, 'scrollHeight', { configurable: true, get: () => 12000 });
   Object.defineProperty(Element.prototype, 'clientHeight', { configurable: true, get: () => 600 });
   _reinitialiserMemoire();
@@ -90,15 +94,30 @@ beforeEach(() => {
   debrancher = brancherHistoriqueCoquille({ fenetre: window });
 });
 
-afterEach(() => {
+afterEach(async () => {
   debrancher?.();
   debrancher = null;
   monte?.arreter();
   monte = null;
+  // Invalider la restauration et laisser sa prochaine passe (50 ms)
+  // débrancher ses écouteurs AVANT que Vitest détruise la fenêtre.
+  _reinitialiserMemoire();
+  await attendre(100);
   racine.remove();
   if (avantMiseEnPage.scrollHeight) Object.defineProperty(Element.prototype, 'scrollHeight', avantMiseEnPage.scrollHeight);
   if (avantMiseEnPage.clientHeight) Object.defineProperty(Element.prototype, 'clientHeight', avantMiseEnPage.clientHeight);
   document.body.innerHTML = '';
+  // Une restauration encore branchée peut survivre à la fenêtre de jsdom
+  // et lever une exception dans le fichier suivant de la suite complète.
+  try {
+    const restants = ajouts.mock.calls
+      .filter((appel: unknown[]) => appel[0] === 'wheel')
+      .filter((ajout: unknown[]) => !retraits.mock.calls.some((retrait: unknown[]) => retrait[0] === 'wheel' && retrait[1] === ajout[1]));
+    expect(restants, 'aucune restauration encore branchée au démontage du banc').toHaveLength(0);
+  } finally {
+    ajouts.mockRestore();
+    retraits.mockRestore();
+  }
 });
 
 describe('web#3275 — Précédent / Suivant retrouvent chaque écran comme il était', () => {
