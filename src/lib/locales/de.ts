@@ -3957,6 +3957,7 @@ export default {
   "v2.zone.rightChannel": "rechter Kanal",
   "v2.fav.allSources": "Alle Quellen",
   "v2.fav.sourceLibrary": "Bibliothek",
+  "v2.fav.sourceOf": "Quelle: {source}",
   "v2.fav.sortBy": "Sortieren nach",
   "v2.fav.sortRecent": "Zuletzt hinzugefügt",
   "v2.fav.sortOldest": "Zuerst hinzugefügt",

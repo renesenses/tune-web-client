@@ -3836,6 +3836,7 @@ export default {
   "v2.zone.rightChannel": "høyre kanal",
   "v2.fav.allSources": "Alle kilder",
   "v2.fav.sourceLibrary": "Bibliotek",
+  "v2.fav.sourceOf": "Kilde: {source}",
   "v2.fav.sortBy": "Sorter etter",
   "v2.fav.sortRecent": "Nylig lagt til",
   "v2.fav.sortOldest": "Lagt til for lenge siden",

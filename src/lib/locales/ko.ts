@@ -3957,6 +3957,7 @@ export default {
   "v2.zone.rightChannel": "오른쪽 채널",
   "v2.fav.allSources": "모든 소스",
   "v2.fav.sourceLibrary": "라이브러리",
+  "v2.fav.sourceOf": "소스: {source}",
   "v2.fav.sortBy": "정렬 기준",
   "v2.fav.sortRecent": "최근 추가순",
   "v2.fav.sortOldest": "오래된 추가순",

@@ -3957,6 +3957,7 @@ export default {
   "v2.zone.rightChannel": "canalul drept",
   "v2.fav.allSources": "Toate sursele",
   "v2.fav.sourceLibrary": "Bibliotecă",
+  "v2.fav.sourceOf": "Sursă: {source}",
   "v2.fav.sortBy": "Sortează după",
   "v2.fav.sortRecent": "Adăugate recent",
   "v2.fav.sortOldest": "Adăugate demult",

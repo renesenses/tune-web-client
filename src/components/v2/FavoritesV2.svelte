@@ -39,12 +39,13 @@
     smartPlaylistsFavorites,
   } from '../../lib/favorisFusionnes';
   import {
-    trierEtFiltrer, sourcesPresentes, sourceDe, SOURCE_BIBLIOTHEQUE, type TriFavoris,
+    trierEtFiltrer, sourcesPresentes, sourceDe, SOURCE_BIBLIOTHEQUE, repereSource, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
   import { fold } from '../../lib/utils';
 import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ServiceBadge, { SERVICES_BADGE } from '../partages/ServiceBadge.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import { artisteDAlbum } from '../../lib/lienEntite';
@@ -490,6 +491,21 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   });
 
   /**
+   * web#3145 (Didier, fil 2690, rc12) — quand l'onglet Playlists montre TOUTES
+   * les sources, chaque playlist dit d'où elle vient : la playlist locale
+   * n'avait aucun signe, seules les vignettes de service portaient leur
+   * badge. Le repère ne paraît que si plusieurs sources sont mêlées : filtré
+   * sur une source, ou avec une seule source, il ne dirait rien de plus que
+   * la puce choisie.
+   */
+  const reperesSource = $derived(sourceFiltre === null && sourcesOnglet.length > 1);
+  /** Le repère d'une playlist : clé et libellé suivent `sourceDe` (web#3145). */
+  function reperePl(pl: any) {
+    const r = repereSource(pl, $t('v2.fav.sourceLibrary' as any), nomService);
+    return { ...r, bulle: $t('v2.fav.sourceOf' as any).replace('{source}', r.libelle) };
+  }
+
+  /**
    * web#1719 / web#1650 — LA POCHETTE d'une playlist favorite, en mode grille.
    *
    * Le serveur ne rend AUCUNE pochette pour une playlist locale : `/playlists`
@@ -574,6 +590,24 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   const vFacettes = $derived(
     facettes.filter((f) => $favoriteFacetKeys.has(facetFavKey(f.facet, f.value)) && match(f.value)),
   );
+
+  /**
+   * web#3144 (Didier, fil 2690, rc12) — les facettes RANGÉES par type, chaque
+   * groupe sous son intitulé (Genre, Label, Année), au lieu d'une seule liste
+   * où le type n'était écrit qu'en petit au bout de chaque ligne. L'ordre est
+   * celui de la demande ; un type que l'écran ne connaît pas encore vient
+   * après, sous son nom brut, plutôt que de disparaître.
+   */
+  const ORDRE_FACETTES = ['genre', 'label', 'year'];
+  const groupesFacettes = $derived.by(() => {
+    const types = [
+      ...ORDRE_FACETTES,
+      ...new Set(vFacettes.map((f) => f.facet).filter((x) => !ORDRE_FACETTES.includes(x))),
+    ];
+    return types
+      .map((type) => ({ type, items: vFacettes.filter((f) => f.facet === type) }))
+      .filter((g) => g.items.length > 0);
+  });
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
   const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
@@ -1000,6 +1034,21 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   <!-- web#2679 point 3 — la pochette d'une playlist, UNE seule fois : la grille
        et la liste appellent ce même gabarit. Mosaïque des pistes (locale), image
        du service, sinon le pictogramme. -->
+  <!-- web#3145 — le repère de source d'une playlist (liste et grille). Le
+       texte accessible est en clair, masqué à l'œil ; la pastille est
+       décorative. Un service que `ServiceBadge` ne sait pas dessiner retombe
+       sur la pastille texte, avec son nom. -->
+  {#snippet repereSrc(pl: any)}
+    {@const r = reperePl(pl)}
+    <span class="repere" data-repere-source={r.bibliotheque ? 'bibliotheque' : r.cle} title={r.bulle}>
+      <span class="vh">{r.bulle}</span>
+      <span aria-hidden="true" class="repere-v">
+        {#if !r.bibliotheque && SERVICES_BADGE.has(r.cle)}<ServiceBadge source={r.cle} compact />
+        {:else}<span class="src-loc">{r.libelle}</span>{/if}
+      </span>
+    </span>
+  {/snippet}
+
   {#snippet visuelPl(pl: any, mos: string[] | undefined)}
     {#if mos}
       <MosaiquePochettes pochettes={mos} initiales={pl.name?.slice(0, 1)} alt={pl.name} />
@@ -1264,7 +1313,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 </PochetteActions>
               </span>
               <span class="ct" title={pl.name}>{pl.name}</span>
-              <span class="ca" title={sousTitre}>{sousTitre}</span>
+              <!-- web#3145 — le repère de source, en tête de la seconde ligne :
+                   sur la vignette, il recouvrait un des coins d'actions de
+                   `PochetteActions` (toujours visibles au tactile). -->
+              <span class="ca" title={sousTitre}>{#if reperesSource}{@render repereSrc(pl)}{/if}{sousTitre}</span>
             </div>
           {/each}
         </div>
@@ -1312,6 +1364,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 {@render visuelPl(pl, mosaiquesPl[clefMosaique(pl) ?? ''])}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
+              <!-- web#3145 — le repère de source, en clair à côté du nom : la
+                   vignette de 40 px est trop petite pour qu'un badge s'y lise. -->
+              {#if reperesSource}
+                {@render repereSrc(pl)}
+              {/if}
               {#if nbTitresPl(pl) != null}<span class="sc">{nbTitresPl(pl)}</span>{/if}
               <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
                    pochette et exige un enfant ; cette liste porte une icône. On
@@ -1347,26 +1404,33 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {#if !vFacettes.length}
         <div class="state">{facettes.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyFacets' as any)}</div>
       {:else}
-        <div class="simples">
-          {#each vFacettes as f (facetFavKey(f.facet, f.value))}
-            <div class="shote">
-            {#if f.facet === 'label'}
-              <span class="smenu"><MenuObjetV2 objet={objetLabel(f.value)} gestes={{ ouvrir: () => void ouvrirFacette(f) }} nom={f.value} /></span>
-            {/if}
-            <button class="simple" onclick={() => ouvrirFacette(f)} disabled={!ONGLET_FACETTE[f.facet]}>
-              <span class="si" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
-                  <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
-                </svg>
-              </span>
-              <span class="sn" title={f.value}>{f.value}</span>
-              <span class="sc">{NOM_FACETTE[f.facet] ?? f.facet}</span>
-            </button>
+        {#each groupesFacettes as g (g.type)}
+          <section class="groupe-facettes" data-facette={g.type} aria-labelledby={`gf-${g.type}`}>
+            <h2 class="gf-titre" id={`gf-${g.type}`}>
+              <span>{NOM_FACETTE[g.type] ?? g.type}</span>
+              <span class="gf-n">{g.items.length}</span>
+            </h2>
+            <div class="simples">
+              {#each g.items as f (facetFavKey(f.facet, f.value))}
+                <div class="shote">
+                {#if f.facet === 'label'}
+                  <span class="smenu"><MenuObjetV2 objet={objetLabel(f.value)} gestes={{ ouvrir: () => void ouvrirFacette(f) }} nom={f.value} /></span>
+                {/if}
+                <button class="simple" onclick={() => ouvrirFacette(f)} disabled={!ONGLET_FACETTE[f.facet]}>
+                  <span class="si" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
+                      <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
+                    </svg>
+                  </span>
+                  <span class="sn" title={f.value}>{f.value}</span>
+                </button>
+                </div>
+              {/each}
             </div>
-          {/each}
-        </div>
+          </section>
+        {/each}
       {/if}
 
     {:else if tab === 'collections'}
@@ -1648,7 +1712,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .sfav:hover{color:var(--v2-txt); border-color:var(--v2-line2)}
   .sfav.on{color:var(--v2-danger)}
   .sfav svg{width:14px; height:14px}
-  .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%;
+  /* web#3145 — autant de colonnes que la ligne a de pièces, sur UNE rangée :
+     avec `auto 1fr auto` fixes, la 4e pièce d'une ligne de service (le cœur,
+     après le nombre de titres) passait sous la ligne. */
+  .simple{display:grid; grid-auto-flow:column; grid-template-columns:auto minmax(0,1fr); grid-auto-columns:auto;
+    align-items:center; gap:12px; width:100%;
     padding:9px 12px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
     text-align:left; cursor:pointer; font:inherit}
   .simple:hover{background:var(--v2-hover); color:var(--v2-txt)}
@@ -1662,6 +1730,23 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .simple .sv svg{width:20px; height:20px; opacity:.9}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(14px * var(--v2-txt-echelle, 1))}
   .simple .sc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  /* web#3145 — le repère de source. Les services gardent `ServiceBadge` (leurs
+     couleurs, partout les mêmes) ; la Bibliothèque a la même forme, aux
+     couleurs du thème (clair comme sombre). */
+  .repere{display:inline-flex; align-items:center; min-width:0; vertical-align:middle}
+  .ca > .repere{margin-right:6px}
+  .repere-v{display:inline-flex}
+  .vh{position:absolute; width:1px; height:1px; margin:-1px; padding:0; border:0; overflow:hidden;
+    clip:rect(0 0 0 0); white-space:nowrap}
+  .src-loc{display:inline-flex; align-items:center; font:700 calc(8px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    letter-spacing:.3px; text-transform:uppercase; line-height:1.4; padding:1px 4px; border-radius:3px;
+    white-space:nowrap; color:var(--v2-txt2); background:var(--v2-bg); border:1px solid var(--v2-line2)}
+  /* web#3144 — un groupe de facettes par type, sous son intitulé. */
+  .groupe-facettes + .groupe-facettes{margin-top:16px}
+  .gf-titre{display:flex; align-items:baseline; gap:8px; margin:0 0 6px; padding:0 12px;
+    font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--v2-txt2)}
+  .gf-n{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); letter-spacing:0}
   /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
      LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
   .aide-facettes{margin:0 0 14px; padding:12px 14px; border-radius:10px; background:var(--v2-hover);

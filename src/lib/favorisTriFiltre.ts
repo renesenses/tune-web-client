@@ -197,3 +197,20 @@ export function trierEtFiltrer<T extends Favori>(
     return (recent ? db - da : da - db) || comparerTitres(a, b);
   });
 }
+
+/**
+ * web#3145 — le repère de source d'une playlist favorite, quand l'onglet
+ * mêle plusieurs sources. La clé suit `sourceDe` : une playlist sans `id` NI
+ * `source` est rangée « Bibliothèque » par le filtre, son repère dit donc la
+ * même chose (sinon : pastille vide). `libelle` est le nom lisible : celui de
+ * la Bibliothèque (traduit, fourni par l'appelant) ou celui du service.
+ */
+export function repereSource(
+  o: Favori,
+  libelleBibliotheque: string,
+  nomDuService: (s: string) => string,
+): { cle: string; bibliotheque: boolean; libelle: string } {
+  const cle = sourceDe(o);
+  const bibliotheque = cle === SOURCE_BIBLIOTHEQUE;
+  return { cle, bibliotheque, libelle: bibliotheque ? libelleBibliotheque : nomDuService(cle) };
+}

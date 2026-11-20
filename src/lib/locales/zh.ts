@@ -3957,6 +3957,7 @@ export default {
   "v2.zone.rightChannel": "右声道",
   "v2.fav.allSources": "所有来源",
   "v2.fav.sourceLibrary": "音乐库",
+  "v2.fav.sourceOf": "来源：{source}",
   "v2.fav.sortBy": "排序方式",
   "v2.fav.sortRecent": "最近添加",
   "v2.fav.sortOldest": "最早添加",
