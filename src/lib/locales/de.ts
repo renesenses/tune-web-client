@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktive Server",
   "v2.circle.worldCountries.updated": "Aktualisiert: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle weltweit",
+  "v2.circle.worldCircles.show": "Alle Kreise zeigen",
+  "v2.circle.worldCircles.legend": "Dezente Ringe: alle Tune-Kreise, anonym, in der vom Eigentümer gesetzten Stadt (auf etwa 50 km genau), ohne Namen von Personen oder Kreisen. Je größer der Ring, desto mehr Kreise an diesem Ort (in Spannen). Ihre Kreise bleiben außerdem benannt, wie bisher.",
+  "v2.circle.worldCircles.count": "{n} Orte mit Kreisen auf dem Globus.",
+  "v2.circle.worldCircles.empty": "Noch keine weiteren Kreise zu zeigen.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Neu: Ihre Kreise auf der Weltkarte",
+  "v2.circle.scene.circlesMap.notice": "Ihre Kreise erscheinen jetzt anonym auf der Weltkarte, am Ort Ihrer Stadt (auf etwa 50 km genau), ohne Kreis- oder Personennamen. Um dort nicht zu erscheinen, entfernen Sie sich von der öffentlichen Karte.",
   "v2.circle.worldCountries.attribution": "Standortdaten:",
   "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",
   // #2527 — « Mon thème ».

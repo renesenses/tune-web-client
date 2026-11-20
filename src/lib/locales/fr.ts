@@ -7459,6 +7459,13 @@ export default {
   "v2.circle.worldCountries.country": "Pays",
   "v2.circle.worldCountries.servers": "Serveurs actifs",
   "v2.circle.worldCountries.updated": "Mis à jour : {date}",
+  "v2.circle.worldCircles.title": "Tune Circle dans le monde",
+  "v2.circle.worldCircles.show": "Montrer tous les cercles",
+  "v2.circle.worldCircles.legend": "Anneaux discrets : tous les cercles Tune, anonymes, à la ville posée par leur propriétaire (à environ 50 km près), sans nom de personne ni de cercle. Plus l'anneau est grand, plus il y a de cercles à cet endroit (en tranches). Vos cercles restent aussi nommés, comme avant.",
+  "v2.circle.worldCircles.count": "{n} lieux de cercles sur le globe.",
+  "v2.circle.worldCircles.empty": "Pas encore d'autres cercles à montrer.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nouveau : vos cercles sur la carte du monde",
+  "v2.circle.scene.circlesMap.notice": "Vos cercles apparaissent désormais anonymement sur la carte du monde, à l'emplacement de votre ville (à environ 50 km près), sans nom de cercle ni de personne. Pour ne pas y figurer, retirez-vous de la carte publique.",
   "v2.circle.worldCountries.attribution": "Données de localisation :",
   "volume.outputRange": "Volume hors plage : de {min} % à {max} %, par pas de {step} %.",
   // #2527 — « Mon thème ».

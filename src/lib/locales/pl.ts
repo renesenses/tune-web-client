@@ -7282,6 +7282,13 @@ export default {
   "v2.circle.worldCountries.country": "Kraj",
   "v2.circle.worldCountries.servers": "Aktywne serwery",
   "v2.circle.worldCountries.updated": "Zaktualizowano: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle na świecie",
+  "v2.circle.worldCircles.show": "Pokaż wszystkie kręgi",
+  "v2.circle.worldCircles.legend": "Dyskretne pierścienie: wszystkie kręgi Tune, anonimowo, w mieście ustawionym przez właściciela (z dokładnością ok. 50 km), bez imion osób i nazw kręgów. Im większy pierścień, tym więcej kręgów w tym miejscu (w przedziałach). Twoje kręgi nadal widać też z nazwami, jak dotąd.",
+  "v2.circle.worldCircles.count": "Miejsca z kręgami na globusie: {n}.",
+  "v2.circle.worldCircles.empty": "Na razie brak innych kręgów do pokazania.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nowość: Twoje kręgi na mapie świata",
+  "v2.circle.scene.circlesMap.notice": "Twoje kręgi pojawiają się teraz anonimowo na mapie świata, w miejscu Twojego miasta (z dokładnością ok. 50 km), bez nazwy kręgu i bez imion. Aby się tam nie pojawiać, usuń się z mapy publicznej.",
   "v2.circle.worldCountries.attribution": "Dane lokalizacji:",
   "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
   // #2527 — « Mon thème ».

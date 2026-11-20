@@ -7282,6 +7282,13 @@ export default {
   "v2.circle.worldCountries.country": "Χώρα",
   "v2.circle.worldCountries.servers": "Ενεργοί διακομιστές",
   "v2.circle.worldCountries.updated": "Ενημερώθηκε: {date}",
+  "v2.circle.worldCircles.title": "Το Tune Circle στον κόσμο",
+  "v2.circle.worldCircles.show": "Εμφάνιση όλων των κύκλων",
+  "v2.circle.worldCircles.legend": "Διακριτικοί δακτύλιοι: όλοι οι κύκλοι Tune, ανώνυμα, στην πόλη που όρισε ο ιδιοκτήτης τους (με ακρίβεια περίπου 50 km), χωρίς όνομα προσώπου ή κύκλου. Όσο μεγαλύτερος ο δακτύλιος, τόσο περισσότεροι κύκλοι σε εκείνο το σημείο (σε κλίμακες). Οι κύκλοι σας παραμένουν και ονομαστικοί, όπως πριν.",
+  "v2.circle.worldCircles.count": "{n} σημεία κύκλων στην υδρόγειο.",
+  "v2.circle.worldCircles.empty": "Δεν υπάρχουν ακόμη άλλοι κύκλοι για εμφάνιση.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Νέο: οι κύκλοι σας στον παγκόσμιο χάρτη",
+  "v2.circle.scene.circlesMap.notice": "Οι κύκλοι σας εμφανίζονται πλέον ανώνυμα στον παγκόσμιο χάρτη, στη θέση της πόλης σας (με ακρίβεια περίπου 50 km), χωρίς όνομα κύκλου ή προσώπου. Για να μην εμφανίζεστε, αφαιρεθείτε από τον δημόσιο χάρτη.",
   "v2.circle.worldCountries.attribution": "Δεδομένα τοποθεσίας:",
   "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
   // #2527 — « Mon thème ».

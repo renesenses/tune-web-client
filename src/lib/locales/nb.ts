@@ -7282,6 +7282,13 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktive servere",
   "v2.circle.worldCountries.updated": "Oppdatert: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle i verden",
+  "v2.circle.worldCircles.show": "Vis alle sirkler",
+  "v2.circle.worldCircles.legend": "Diskrete ringer: alle Tune-sirkler, anonymt, i byen eieren har satt (med omtrent 50 km nøyaktighet), uten navn på personer eller sirkler. Jo større ring, desto flere sirkler på stedet (i intervaller). Sirklene dine vises også med navn, som før.",
+  "v2.circle.worldCircles.count": "{n} steder med sirkler på globusen.",
+  "v2.circle.worldCircles.empty": "Ingen andre sirkler å vise ennå.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nytt: sirklene dine på verdenskartet",
+  "v2.circle.scene.circlesMap.notice": "Sirklene dine vises nå anonymt på verdenskartet, der byen din ligger (med omtrent 50 km nøyaktighet), uten sirkel- eller personnavn. For å holde deg unna, fjern deg fra det offentlige kartet.",
   "v2.circle.worldCountries.attribution": "Posisjonsdata:",
   "volume.outputRange": "Volumet er utenfor området: fra {min} % til {max} %, i trinn på {step} %.",
   // #2527 — « Mon thème ».

@@ -7457,6 +7457,13 @@ export default {
   "v2.circle.worldCountries.country": "Country",
   "v2.circle.worldCountries.servers": "Active servers",
   "v2.circle.worldCountries.updated": "Updated: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle around the world",
+  "v2.circle.worldCircles.show": "Show all circles",
+  "v2.circle.worldCircles.legend": "Subtle rings: every Tune circle, anonymous, at the city its owner set (to about 50 km), with no person or circle name. The bigger the ring, the more circles at that place (in bands). Your circles also stay named, as before.",
+  "v2.circle.worldCircles.count": "{n} circle places on the globe.",
+  "v2.circle.worldCircles.empty": "No other circles to show yet.",
+  "v2.circle.scene.circlesMap.noticeTitle": "New: your circles on the world map",
+  "v2.circle.scene.circlesMap.notice": "Your circles now appear anonymously on the world map, at the location of your city (to about 50 km), with no circle or person name. To stay off it, remove yourself from the public map.",
   "v2.circle.worldCountries.attribution": "Location data:",
   "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",
   // #2527 — « Mon thème ».

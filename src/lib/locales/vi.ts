@@ -7289,6 +7289,13 @@ export default {
   "v2.circle.worldCountries.country": "Quốc gia",
   "v2.circle.worldCountries.servers": "Máy chủ hoạt động",
   "v2.circle.worldCountries.updated": "Cập nhật: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle trên thế giới",
+  "v2.circle.worldCircles.show": "Hiện tất cả các vòng",
+  "v2.circle.worldCircles.legend": "Vòng tròn mờ: mọi vòng Tune, ẩn danh, tại thành phố do chủ vòng đặt (sai số khoảng 50 km), không có tên người hay tên vòng. Vòng càng lớn thì nơi đó càng nhiều vòng (theo khoảng). Các vòng của bạn vẫn hiện kèm tên như trước.",
+  "v2.circle.worldCircles.count": "{n} địa điểm có vòng trên quả địa cầu.",
+  "v2.circle.worldCircles.empty": "Chưa có vòng nào khác để hiển thị.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Mới: các vòng của bạn trên bản đồ thế giới",
+  "v2.circle.scene.circlesMap.notice": "Các vòng của bạn giờ xuất hiện ẩn danh trên bản đồ thế giới, tại vị trí thành phố của bạn (sai số khoảng 50 km), không có tên vòng hay tên người. Để không xuất hiện, hãy rút khỏi bản đồ công khai.",
   "v2.circle.worldCountries.attribution": "Dữ liệu vị trí:",
   "volume.outputRange": "Âm lượng ngoài phạm vi: từ {min}% đến {max}%, theo bước {step}%.",
   // #2527 — « Mon thème ».

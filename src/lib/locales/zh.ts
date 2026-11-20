@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "国家",
   "v2.circle.worldCountries.servers": "活跃服务器",
   "v2.circle.worldCountries.updated": "更新时间：{date}",
+  "v2.circle.worldCircles.title": "全球的 Tune Circle",
+  "v2.circle.worldCircles.show": "显示所有圈子",
+  "v2.circle.worldCircles.legend": "淡色圆环：所有 Tune 圈子，匿名显示在圈主所设城市（精度约 50 公里），不显示人名或圈子名称。圆环越大，该处的圈子越多（按区间）。你自己的圈子仍会像以前一样带名称显示。",
+  "v2.circle.worldCircles.count": "地球上有 {n} 处圈子。",
+  "v2.circle.worldCircles.empty": "暂无其他圈子可显示。",
+  "v2.circle.scene.circlesMap.noticeTitle": "新功能：你的圈子出现在世界地图上",
+  "v2.circle.scene.circlesMap.notice": "你的圈子现在会匿名显示在世界地图上，位于你所在城市的位置（精度约 50 公里），不显示圈子名称或人名。如不想出现，请将自己从公开地图移除。",
   "v2.circle.worldCountries.attribution": "位置数据：",
   "volume.outputRange": "音量超出范围：{min}% 至 {max}%，步长为 {step}%。",
   // #2527 — « Mon thème ».

@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "국가",
   "v2.circle.worldCountries.servers": "활성 서버",
   "v2.circle.worldCountries.updated": "업데이트: {date}",
+  "v2.circle.worldCircles.title": "세계의 Tune Circle",
+  "v2.circle.worldCircles.show": "모든 서클 보기",
+  "v2.circle.worldCircles.legend": "은은한 고리: 모든 Tune 서클을 소유자가 설정한 도시(약 50km 정확도)에 익명으로 표시하며, 사람 이름이나 서클 이름은 없습니다. 고리가 클수록 그곳의 서클이 많습니다(구간 표시). 내 서클은 이전처럼 이름과 함께도 표시됩니다.",
+  "v2.circle.worldCircles.count": "지구본의 서클 위치 {n}곳.",
+  "v2.circle.worldCircles.empty": "아직 표시할 다른 서클이 없습니다.",
+  "v2.circle.scene.circlesMap.noticeTitle": "새 기능: 세계 지도에 내 서클 표시",
+  "v2.circle.scene.circlesMap.notice": "이제 내 서클이 세계 지도에 익명으로 표시됩니다. 내 도시 위치(약 50km 정확도)에 서클 이름이나 사람 이름 없이 표시됩니다. 표시되지 않으려면 공개 지도에서 빠지세요.",
   "v2.circle.worldCountries.attribution": "위치 데이터:",
   "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
   // #2527 — « Mon thème ».

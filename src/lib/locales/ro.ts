@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "Țară",
   "v2.circle.worldCountries.servers": "Servere active",
   "v2.circle.worldCountries.updated": "Actualizat: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle în lume",
+  "v2.circle.worldCircles.show": "Arată toate cercurile",
+  "v2.circle.worldCircles.legend": "Inele discrete: toate cercurile Tune, anonime, în orașul setat de proprietar (cu o precizie de circa 50 km), fără nume de persoană sau de cerc. Cu cât inelul e mai mare, cu atât sunt mai multe cercuri acolo (pe intervale). Cercurile dumneavoastră rămân și cu numele lor, ca înainte.",
+  "v2.circle.worldCircles.count": "{n} locuri cu cercuri pe glob.",
+  "v2.circle.worldCircles.empty": "Încă nu sunt alte cercuri de arătat.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Nou: cercurile dumneavoastră pe harta lumii",
+  "v2.circle.scene.circlesMap.notice": "Cercurile dumneavoastră apar acum anonim pe harta lumii, în locul orașului dumneavoastră (cu o precizie de circa 50 km), fără numele cercului sau al persoanelor. Pentru a nu apărea, retrageți-vă de pe harta publică.",
   "v2.circle.worldCountries.attribution": "Date de localizare:",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
   // #2527 — « Mon thème ».

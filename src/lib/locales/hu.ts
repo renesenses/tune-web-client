@@ -7396,6 +7396,13 @@ export default {
   "v2.circle.worldCountries.country": "Ország",
   "v2.circle.worldCountries.servers": "Aktív kiszolgálók",
   "v2.circle.worldCountries.updated": "Frissítve: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle a világban",
+  "v2.circle.worldCircles.show": "Minden kör mutatása",
+  "v2.circle.worldCircles.legend": "Halvány gyűrűk: minden Tune-kör, névtelenül, a tulajdonos által megadott városban (kb. 50 km pontossággal), személy- és körnév nélkül. Minél nagyobb a gyűrű, annál több kör van ott (sávokban). Saját körei továbbra is névvel látszanak, mint eddig.",
+  "v2.circle.worldCircles.count": "{n} körhely a földgömbön.",
+  "v2.circle.worldCircles.empty": "Még nincs más megjeleníthető kör.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Újdonság: körei a világtérképen",
+  "v2.circle.scene.circlesMap.notice": "Körei mostantól névtelenül megjelennek a világtérképen, városa helyén (kb. 50 km pontossággal), kör- és személynév nélkül. Ha nem szeretne megjelenni, távolítsa el magát a nyilvános térképről.",
   "v2.circle.worldCountries.attribution": "Helymeghatározási adatok:",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
   // #2527 — « Mon thème ».

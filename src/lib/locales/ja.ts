@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "国",
   "v2.circle.worldCountries.servers": "アクティブなサーバー",
   "v2.circle.worldCountries.updated": "更新日時：{date}",
+  "v2.circle.worldCircles.title": "世界の Tune Circle",
+  "v2.circle.worldCircles.show": "すべてのサークルを表示",
+  "v2.circle.worldCircles.legend": "控えめなリング：すべての Tune サークルを、オーナーが設定した都市（約 50 km の精度）に匿名で表示します。人名もサークル名も出しません。リングが大きいほど、その場所のサークルが多いことを示します（範囲表示）。あなたのサークルはこれまでどおり名前付きでも表示されます。",
+  "v2.circle.worldCircles.count": "地球儀上のサークルの場所：{n} か所。",
+  "v2.circle.worldCircles.empty": "まだ表示できる他のサークルはありません。",
+  "v2.circle.scene.circlesMap.noticeTitle": "新機能：あなたのサークルが世界地図に",
+  "v2.circle.scene.circlesMap.notice": "あなたのサークルが世界地図に匿名で表示されるようになりました。あなたの都市の位置（約 50 km の精度）に、サークル名も人名もなしで表示されます。表示されたくない場合は、公開マップから外してください。",
   "v2.circle.worldCountries.attribution": "位置データ：",
   "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
   // #2527 — « Mon thème ».

@@ -7437,6 +7437,13 @@ export default {
   "v2.circle.worldCountries.country": "Paese",
   "v2.circle.worldCountries.servers": "Server attivi",
   "v2.circle.worldCountries.updated": "Aggiornato: {date}",
+  "v2.circle.worldCircles.title": "Tune Circle nel mondo",
+  "v2.circle.worldCircles.show": "Mostra tutte le cerchie",
+  "v2.circle.worldCircles.legend": "Anelli discreti: tutte le cerchie Tune, anonime, nella città indicata dal proprietario (con circa 50 km di approssimazione), senza nome di persona né di cerchia. Più l'anello è grande, più cerchie ci sono in quel luogo (per fasce). Le sue cerchie restano anche con il loro nome, come prima.",
+  "v2.circle.worldCircles.count": "{n} luoghi di cerchie sul globo.",
+  "v2.circle.worldCircles.empty": "Non ci sono ancora altre cerchie da mostrare.",
+  "v2.circle.scene.circlesMap.noticeTitle": "Novità: le sue cerchie sulla mappa del mondo",
+  "v2.circle.scene.circlesMap.notice": "Le sue cerchie compaiono ora in forma anonima sulla mappa del mondo, nel luogo della sua città (con circa 50 km di approssimazione), senza nome di cerchia né di persona. Per non comparire, si ritiri dalla mappa pubblica.",
   "v2.circle.worldCountries.attribution": "Dati di localizzazione:",
   "volume.outputRange": "Volume fuori intervallo: da {min}% a {max}%, con incrementi del {step}%.",
   // #2527 — « Mon thème ».
