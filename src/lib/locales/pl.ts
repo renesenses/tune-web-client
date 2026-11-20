@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Nie można nawiązać połączenia.",
   "settings.errActivationRejected": "Aktywacja odrzucona.",
   "settings.errConfigUnavailable": "Konfiguracja niedostępna.",
+  "settings.consentsReading": "Odczytywanie ustawień…",
   "settings.errRemoveFailed": "Nie udało się usunąć.",
   "settings.errScanStartFailed": "Nie udało się rozpocząć analizy.",
   "settings.savedNeedsFullScan": "Zapisano — wymagana jest pełna analiza.",

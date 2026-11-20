@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "No se pudo conectar.",
   "settings.errActivationRejected": "Activación rechazada.",
   "settings.errConfigUnavailable": "Configuración no disponible.",
+  "settings.consentsReading": "Leyendo los ajustes…",
   "settings.errRemoveFailed": "No se pudo quitar.",
   "settings.errScanStartFailed": "No se pudo iniciar el análisis.",
   "settings.savedNeedsFullScan": "Guardado — hace falta un análisis completo.",

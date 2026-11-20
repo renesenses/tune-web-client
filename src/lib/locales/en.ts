@@ -2346,6 +2346,7 @@ export default {
   "settings.errConnectFailed": "Could not connect.",
   "settings.errActivationRejected": "Activation rejected.",
   "settings.errConfigUnavailable": "Configuration unavailable.",
+  "settings.consentsReading": "Reading settings…",
   "settings.errRemoveFailed": "Could not remove.",
   "settings.errScanStartFailed": "Could not start the scan.",
   "settings.savedNeedsFullScan": "Saved — a full scan is required.",

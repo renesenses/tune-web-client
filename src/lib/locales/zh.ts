@@ -3597,6 +3597,7 @@ export default {
   "settings.errConnectFailed": "无法连接。",
   "settings.errActivationRejected": "激活被拒绝。",
   "settings.errConfigUnavailable": "无法获取配置。",
+  "settings.consentsReading": "正在读取设置…",
   "settings.errRemoveFailed": "无法移除。",
   "settings.errScanStartFailed": "无法启动扫描。",
   "settings.savedNeedsFullScan": "已保存 — 需要一次完整扫描。",

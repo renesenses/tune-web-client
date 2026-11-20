@@ -2200,6 +2200,7 @@ export default {
   "settings.errConnectFailed": "Kunne ikke koble til.",
   "settings.errActivationRejected": "Aktiveringen ble avvist.",
   "settings.errConfigUnavailable": "Konfigurasjonen er utilgjengelig.",
+  "settings.consentsReading": "Leser innstillingene…",
   "settings.errRemoveFailed": "Kunne ikke fjerne.",
   "settings.errScanStartFailed": "Kunne ikke starte skanningen.",
   "settings.savedNeedsFullScan": "Lagret — en full skanning kreves.",
