@@ -3058,6 +3058,8 @@ export default {
   "v2.pl.tabSmart": "スマートプレイリスト",
   "v2.pl.rule": "ルール",
   "v2.pl.noSmart": "スマートプレイリストはありません。",
+  "v2.pl.smartLoadFailed": "スマートプレイリストを読み込めませんでした。サーバーが時間内に応答しなかったか、要求を拒否しました。",
+  "v2.pl.smartRetry": "再試行",
   "v2.pl.import": "読み込む",
   "v2.pl.importDone": "プレイリストを読み込みました",
   "v2.pl.backups": "バックアップ",

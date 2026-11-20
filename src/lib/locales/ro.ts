@@ -3058,6 +3058,8 @@ export default {
   "v2.pl.tabSmart": "Playlisturi inteligente",
   "v2.pl.rule": "regulă",
   "v2.pl.noSmart": "Nicio listă inteligentă.",
+  "v2.pl.smartLoadFailed": "Playlisturile inteligente nu au putut fi citite: serverul nu a răspuns la timp sau a refuzat cererea.",
+  "v2.pl.smartRetry": "Reîncercați",
   "v2.pl.import": "Importă",
   "v2.pl.importDone": "Listă importată",
   "v2.pl.backups": "Copii de siguranță",

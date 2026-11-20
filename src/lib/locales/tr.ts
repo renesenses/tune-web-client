@@ -1681,6 +1681,8 @@ export default {
   "v2.pl.tabSmart": "Akıllı çalma listeleri",
   "v2.pl.rule": "kural",
   "v2.pl.noSmart": "Akıllı çalma listesi yok.",
+  "v2.pl.smartLoadFailed": "Akıllı çalma listeleri okunamadı: sunucu zamanında yanıt vermedi veya isteği reddetti.",
+  "v2.pl.smartRetry": "Yeniden dene",
   "v2.pl.import": "İçe aktar",
   "v2.pl.importDone": "Çalma listesi içe aktarıldı",
   "v2.pl.backups": "Yedekler",

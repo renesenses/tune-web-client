@@ -3012,6 +3012,8 @@ export default {
   "v2.pl.tabSmart": "Intelligens lejátszási listák",
   "v2.pl.rule": "szabály",
   "v2.pl.noSmart": "Nincs intelligens lejátszási lista.",
+  "v2.pl.smartLoadFailed": "Nem sikerült beolvasni az intelligens lejátszási listákat: a szerver nem válaszolt időben, vagy elutasította a kérést.",
+  "v2.pl.smartRetry": "Újra",
   "v2.pl.import": "Importálás",
   "v2.pl.importDone": "Lejátszási lista importálva",
   "v2.pl.backups": "Biztonsági mentések",

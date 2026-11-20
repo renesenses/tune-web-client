@@ -1663,6 +1663,8 @@ export default {
   "v2.pl.tabSmart": "Danh sách phát thông minh",
   "v2.pl.rule": "quy tắc",
   "v2.pl.noSmart": "Không có danh sách phát thông minh nào.",
+  "v2.pl.smartLoadFailed": "Không thể đọc danh sách phát thông minh: máy chủ không phản hồi kịp thời hoặc đã từ chối yêu cầu.",
+  "v2.pl.smartRetry": "Thử lại",
   "v2.pl.import": "Nhập",
   "v2.pl.importDone": "Đã nhập danh sách phát",
   "v2.pl.backups": "Sao lưu",

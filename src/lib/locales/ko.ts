@@ -3058,6 +3058,8 @@ export default {
   "v2.pl.tabSmart": "스마트 플레이리스트",
   "v2.pl.rule": "규칙",
   "v2.pl.noSmart": "스마트 재생목록이 없습니다.",
+  "v2.pl.smartLoadFailed": "스마트 플레이리스트를 읽을 수 없습니다. 서버가 제때 응답하지 않았거나 요청을 거부했습니다.",
+  "v2.pl.smartRetry": "다시 시도",
   "v2.pl.import": "가져오기",
   "v2.pl.importDone": "재생목록을 가져왔습니다",
   "v2.pl.backups": "백업",

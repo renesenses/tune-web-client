@@ -431,14 +431,31 @@
   let smart = $state<any[]>([]);
   let smartCharge = false;
   let smartMosaiques = $state<Record<number, string[]>>({});
+  /**
+   * #3167 — l'état de la LECTURE de la liste, distinct de son contenu.
+   *
+   * Fil 2880 (47 489 pistes, accès à distance) : la lecture échouait
+   * (« timed out ») et l'onglet disait « Aucune playlist intelligente » à un
+   * testeur qui en a plusieurs. Un échec n'est pas une liste vide : l'écran le
+   * dit, garde ce qu'il avait déjà lu, et propose de réessayer. Le même
+   * « aucune » s'affichait aussi PENDANT la lecture : il attend désormais la
+   * réponse.
+   */
+  let smartLecture = $state<'chargement' | 'lue' | 'echec'>('chargement');
 
   async function chargerSmart() {
     if (smartCharge) return;
     smartCharge = true;
+    smartLecture = 'chargement';
     try {
       smart = (await api.getSmartPlaylists()) ?? [];
+      smartLecture = 'lue';
     } catch {
-      smart = [];
+      // Ni vidée, ni marquée lue : revenir sur l'onglet, ou « Réessayer »,
+      // relance la lecture.
+      smartCharge = false;
+      smartLecture = 'echec';
+      return;
     }
     // Les pochettes APRÈS la grille : les cadres sont déjà à l'écran, les
     // mosaïques les rejoignent. Une règle peut viser des milliers de pistes,
@@ -851,8 +868,20 @@
         <button class="v2-btn primaire" onclick={() => ouvrirEditeurSmart(null)}>{$t('smartPlaylists.new')}</button>
         <button class="v2-btn" onclick={() => (parPhrase = true)} data-playlist-ia>{$t('assistantIa.playlist.button' as any)}</button>
       </div>
+      {#if smartLecture === 'echec'}
+        <!-- #3167 — un échec de lecture n'est pas « aucune playlist ». -->
+        <div class="state" role="alert" data-smart-echec>
+          {$t('v2.pl.smartLoadFailed' as any)}
+          <button class="v2-btn" onclick={rechargerSmart}>{$t('v2.pl.smartRetry' as any)}</button>
+        </div>
+      {/if}
       {#if !smart.length}
-        <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+        <!-- Échec sans rien de lu avant : le message ci-dessus suffit. -->
+        {#if smartLecture === 'chargement'}
+          <div class="state">{$t('v2.pl.loading' as any)}</div>
+        {:else if smartLecture === 'lue'}
+          <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+        {/if}
       {:else}
         <section class="grp">
           <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
