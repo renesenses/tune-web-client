@@ -262,9 +262,10 @@
   /* Barre en forme d'onde (Discussion #8269) : le sillon cède la place au
      dessin, assez haut pour qu'on lise l'enveloppe. La poignée reste celle de
      la barre classique, en trait vertical pour ne pas masquer l'onde. */
+  /* Fil 2954 : 48 px (32 avant), l'enveloppe se lit d'un coup d'œil. */
   .seek-track.onde,
   .seek-track.onde:hover {
-    height: 32px;
+    height: 48px;
     background: transparent;
     border-radius: 0;
   }
@@ -275,10 +276,10 @@
     border-radius: 1px;
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 480px), (max-height: 520px) {
     .seek-track.onde,
     .seek-track.onde:hover {
-      height: 28px;
+      height: 36px;
     }
   }
 

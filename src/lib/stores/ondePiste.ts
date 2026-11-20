@@ -5,14 +5,14 @@
  */
 import { derived } from 'svelte/store';
 import { getServiceTrackWaveform, getTrackWaveform } from '../api';
-import { creerCacheOndes, ondeDeLaPiste, pisteDeServiceDe, type ClePiste } from '../barreOnde';
+import { POINTS_ONDE_FIN, creerCacheOndes, ondeDeLaPiste, pisteDeServiceDe, type ClePiste } from '../barreOnde';
 import { preferences } from './preferences';
 import { currentTrack, playbackState } from './nowPlaying';
 
 /** Une piste locale par son identifiant de bibliothèque ; une piste Qobuz
  *  ou TIDAL par son service et son identifiant chez lui. */
 export function chargerOnde(cle: ClePiste): Promise<unknown> {
-  if (typeof cle === 'number') return getTrackWaveform(cle);
+  if (typeof cle === 'number') return getTrackWaveform(cle, POINTS_ONDE_FIN);
   const p = pisteDeServiceDe(cle);
   return p ? getServiceTrackWaveform(p.service, p.id) : Promise.resolve(null);
 }

@@ -13,19 +13,24 @@
     if (zid == null || pur) return;
     let termine = false;
     let lecture = false;
+    let absent = false;
     async function relire() {
-      if (lecture) return;
+      if (lecture || absent) return;
       lecture = true;
       try {
         const actuelle = await api.getRetainedEqPreamp(zid!);
         if (!termine && identite === generation) mesure = actuelle;
-      } catch {
+      } catch (e) {
+        if (e && typeof e === 'object' && 'status' in e && e.status === 404) {
+          absent = true;
+          clearInterval(minuterie);
+        }
         // Serveur ancien ou mesure indisponible : aucun gain n'est inventé.
         if (!termine && identite === generation) mesure = null;
       } finally { lecture = false; }
     }
-    void relire();
     const minuterie = setInterval(relire, 2000);
+    void relire();
     return () => { termine = true; clearInterval(minuterie); };
   });
   const garde = $derived(mesure?.db != null && Number.isFinite(mesure.db) && mesure.db < -0.05);

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * rc12 — « Cercles généraux » (site-mozaiklabs#422) : le catalogue, rejoindre,
    * quitter, écrire au cercle. Un cercle général se rejoint volontairement ; le
@@ -49,6 +50,10 @@
   }
   const categorie = (c: CercleGeneral) => c.category ? tr(`v2.circle.general.cat.${c.category}`) : '';
   onMount(() => { void charger(); return () => { fini = true; }; });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 {#if !absent && (liste.length || erreur)}
@@ -63,8 +68,8 @@
             <strong>{c.name}</strong>
             <span>{[categorie(c), tr('v2.circle.general.members').replace('{count}', String(c.member_count))].filter(Boolean).join(' · ')}</span>
           </div>
-          {#if c.joined}<button type="button" class="ecrire" disabled={occupe} onclick={() => ecrireAuCercleGeneral(c.id)}>{tr('v2.circle.msg.writeToCircle')}</button>{/if}
-          <button type="button" disabled={occupe} aria-pressed={c.joined} onclick={() => void adhesion(c)}>{tr(c.joined ? 'v2.circle.general.leave' : 'v2.circle.general.join')}</button>
+          {#if c.joined}<button type="button" class="ecrire" disabled={occupe || lectureSeule} onclick={() => ecrireAuCercleGeneral(c.id)}>{tr('v2.circle.msg.writeToCircle')}</button>{/if}
+          <button type="button" disabled={occupe || lectureSeule} aria-pressed={c.joined} onclick={() => void adhesion(c)}>{tr(c.joined ? 'v2.circle.general.leave' : 'v2.circle.general.join')}</button>
         </li>
       {/each}
     </ul>

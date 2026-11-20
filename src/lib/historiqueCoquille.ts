@@ -66,6 +66,7 @@ import {
   empilerAuRang,
   nouvelleEntree,
   atteindreEntreeEtrangere,
+  annulerRestaurationDefilement,
   restaurerDefilements,
   retenirEntree,
   suivreLesDefilements,
@@ -759,6 +760,9 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretRetour();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
     arretSuivi();
+    // La reprise du défilement lancée par un retour ne survit pas à la
+    // coquille : elle visait ses écrans, et la fenêtre a pu partir avec elle.
+    annulerRestaurationDefilement();
   };
 }
 

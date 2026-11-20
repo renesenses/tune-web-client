@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
+  import LectureSeuleCercleV2 from './LectureSeuleCercleV2.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Tune Circle T5 — « Ajouter à une playlist de cercle », depuis le menu
@@ -94,6 +96,10 @@
   function surTouche(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
 
   $effect(() => { void charger(); });
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -102,6 +108,7 @@
     <header class="tete">
       <h3 id="ajout-cercle-titre">{$t('v2.circle.pl.addToCircle' as any)}</h3>
       <button class="lnk fermer" onclick={onClose} aria-label={$t('common.close' as any)}>×</button>
+      <LectureSeuleCercleV2 />
     </header>
     <p class="note">{$t('v2.circle.pl.addHint' as any)}</p>
     <RecherchePlaylist bind:valeur={requete} onEntree={surEntree} />
@@ -113,7 +120,7 @@
       <ul class="choix">
         {#each vues as p (String(p.id))}
           <li>
-            <button class="ligne choix-playlist" disabled={occupe !== null} onclick={() => void choisir(p)}>
+            <button class="ligne choix-playlist" disabled={lectureSeule || occupe !== null} onclick={() => void choisir(p)}>
               <span class="nom" use:bulleTexte>{p.name}</span>
               <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}</span>
             </button>

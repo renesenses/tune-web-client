@@ -10,6 +10,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { messageRefusHorsMachine } from './refusHorsMachine';
+import { CLES_LECTURE_SEULE, noterRefusDeDroit } from './circleDroits';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -30,7 +31,7 @@ import { estDepotTuneDistant } from './depotsTuneDistants';
 import { cleCodeSpotify } from './messagesSpotify';
 import { CODE_RECONNEXION_FAVORIS_SPOTIFY, annoncerReconnexionFavoris } from './spotifyReconnexionFavoris';
 import { noterRetrait } from './rubriquesRetirees';
-import { estMessageGenerique, lireMessageServeur } from './messageServeur';
+import { estMessageGenerique, estUnCode, lireMessageServeur } from './messageServeur';
 import { annoncerLectureYoutubeInactive, estLectureYoutubeInactive } from './lectureYoutubeInactive';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -622,6 +623,13 @@ export async function fetchJSON<T>(
       throw sentinelle;
     }
     const err = await apiError(response);
+    // Tune Circle (19/11/2026) : les deux refus de droit du greffon disent
+    // leur phrase dans la langue de l'interface, et l'écran du cercle passe
+    // en lecture seule (`circleDroits`).
+    if (response.status === 403) {
+      const motif = noterRefusDeDroit(err.code);
+      if (motif) err.message = get(t)(CLES_LECTURE_SEULE[motif] as any);
+    }
     // #2413 — le 503 du répondeur de démarrage est une information traduite,
     // pas un « Server error » : voir `demarrageServeur`.
     if (response.status === 503) {
@@ -5265,6 +5273,18 @@ export interface GreffonAudioNatif {
   native_loaded: boolean;
   /** Le motif d'un échec de chargement, sinon `null`. */
   error: string | null;
+  /** tune-server-rust#9151 — le moteur qui sert l'emplacement : `native`
+   *  (paquet chargé), `bundled` (intégré, moteur embarqué), `null` (tiers sans
+   *  bibliothèque). Absent sur un serveur ancien. */
+  engine?: 'native' | 'bundled' | null;
+  /** tune-server-rust#9151 — l'état effectif (installé, activé, et pour un
+   *  tiers chargé). Absent sur un serveur ancien. */
+  active?: boolean;
+  /** tune-server-rust#9151 — voulu actif, mais pas encore monté par le
+   *  serveur en cours : un redémarrage est attendu. */
+  restart_required?: boolean;
+  /** tune-server-rust#9151 — le droit que les routes du greffon exigent. */
+  licensed?: boolean;
   /** La version annoncée par le catalogue à l'installation ; `null` (ou
    *  absent, serveur ancien) pour un paquet envoyé à la main. */
   version?: string | null;
@@ -8873,13 +8893,16 @@ export function setCrossfader(zoneId: number, position: number) {
 }
 
 /** Enveloppe d'une piste de BIBLIOTHÈQUE (`GET /library/tracks/{id}/waveform`,
- *  200 points dans [0, 1], `waveform: null` sans fichier lisible) — celle de la
+ *  `points` valeurs dans [0, 1], `waveform: null` sans fichier lisible) — celle de la
  *  barre de progression en forme d'onde (Discussion #8269). À ne pas confondre
  *  avec `getWaveform` juste dessous, qui vise le greffon DJ. `sansBandeau` :
  *  un échec se replie sur la barre classique, il n'a rien à annoncer. */
-export function getTrackWaveform(trackId: number) {
-  return fetchJSON<{ track_id: number; waveform: number[] | null; error?: string }>(
-    `${BASE}/library/tracks/${trackId}/waveform`, undefined, undefined, true,
+export function getTrackWaveform(trackId: number, points?: number) {
+  // Fil 2954 : la résolution fine. Un serveur d'avant ignore le paramètre et
+  // rend 200 points — la barre s'en accommode.
+  const q = points ? `?points=${Math.round(points)}` : '';
+  return fetchJSON<{ track_id: number; waveform: number[] | null; points?: number; error?: string }>(
+    `${BASE}/library/tracks/${trackId}/waveform${q}`, undefined, undefined, true,
   );
 }
 
@@ -11829,8 +11852,45 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
   if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
-  if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
+  if (!resp.ok) throw erreurAppliance(json, resp.status);
   return json;
+}
+
+/**
+ * web#3195 — plus jamais le CODE brut (« auth_required ») à l'écran.
+ *
+ * Avant, `applianceFetch` jetait `new Error(json.error)` : « Éteindre » et
+ * « Redémarrer » refusés par la garde `AdminOuCetteMachine` affichaient
+ * `auth_required`. L'erreur porte désormais la phrase traduite, et `code`,
+ * `status`, `corps` (lus par `messageRefusHorsMachine`), le brut dans `detail` :
+ *
+ *  - `403 auth_required` + `reason` (`not_local`, `port80_relay`) : la phrase
+ *    `machineAction.*`, qui renvoie à Réglages > Système > Authentification ;
+ *  - `403 "admin role required"` (authentification active, compte non
+ *    administrateur) : `machineAction.adminRequired` ;
+ *  - `AppError` des routes Wi-Fi (`{ error: "<phrase>", code }`, phrase déjà
+ *    traduite par le serveur : `net.wifiBadPassword`, `net.wifiCommandFailed`
+ *    avec la sortie de nmcli, `net.wifiUnavailable`, `net.wifiTimeout` sous
+ *    `code: "timeout"`) : la PHRASE de `error` reste le message, comme avant ;
+ *    `lireMessageServeur` ne lit que `message` et la rendrait générique ;
+ *  - sinon la règle de `lireMessageServeur` (#2417).
+ */
+export function erreurAppliance(json: any, status: number): ApiError {
+  const lu = lireMessageServeur(json, '', status);
+  const phraseDuServeur = typeof json?.error === 'string' && json.error.trim() && !estUnCode(json.error)
+    ? json.error.trim() as string
+    : null;
+  const message = phraseDuServeur !== null && estMessageGenerique(lu.message) ? phraseDuServeur : lu.message;
+  const err = new Error(message) as ApiError;
+  err.detail = lu.detail;
+  err.code = lu.code ?? (status === 403 && json?.error === 'admin role required' ? 'admin_required' : undefined);
+  err.status = status;
+  if (json && typeof json === 'object') err.corps = json;
+  const tr = get(t) as (cle: string) => string;
+  const horsMachine = messageRefusHorsMachine(err, tr);
+  if (horsMachine !== null) err.message = horsMachine;
+  else if (err.code === 'admin_required') err.message = tr('machineAction.adminRequired');
+  return err;
 }
 
 export function getApplianceStatus(): Promise<ApplianceStatus> {
@@ -13035,7 +13095,7 @@ export async function getTessPresets(): Promise<import('./tess').PreReglagesTess
 /** #6524 — mesure du gain retenu ; lire ne modifie jamais le son. */
 export interface RetainedEqPreamp { db:number|null; returning:boolean }
 export function getRetainedEqPreamp(zoneId:number):Promise<RetainedEqPreamp> {
-  return fetchJSON<RetainedEqPreamp>(`${BASE}/zones/${zoneId}/eq/retained-preamp`);
+  return fetchJSON<RetainedEqPreamp>(`${BASE}/zones/${zoneId}/eq/retained-preamp`, undefined, undefined, true);
 }
 /** Geste explicite : remonter progressivement au signal sans préampli. */
 export function releaseRetainedEqPreamp(zoneId:number):Promise<{released:boolean}> {

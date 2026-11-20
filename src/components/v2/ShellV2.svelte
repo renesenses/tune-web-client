@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { verifierDroitsCercle } from '../../lib/circleDroits';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -346,6 +347,9 @@
     appliquerMonTheme(mien);
   });
   onMount(() => { void chargerMonTheme(); });
+  // Tune Circle (19/11/2026) : la lecture seule (profil non administrateur,
+  // client distant) vaut aussi hors de l'écran du cercle — une fois au démarrage.
+  onMount(() => { void verifierDroitsCercle(); });
 
   /**
    * 🔴 LA LANGUE ENREGISTRÉE, que personne n'appliquait.
