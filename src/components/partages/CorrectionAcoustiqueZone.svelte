@@ -56,6 +56,36 @@
   let irRefresh = $state(0);
 
   /**
+   * #8761 — le jeu de fichiers par fréquence d'échantillonnage, et celui que
+   * le serveur a RÉELLEMENT employé pour le dernier flux (`in_use`). Un
+   * serveur d'avant #8761 ne renvoie ni l'un ni l'autre : le bloc reste alors
+   * tel qu'il était.
+   */
+  interface FichierRi { path: string; sample_rate?: number; main?: boolean; error?: string }
+  interface RiEnUsage { stream_sample_rate: number; file_sample_rate: number; resampled: boolean }
+  let irFiles = $state<FichierRi[]>([]);
+  let irInUse = $state<RiEnUsage | null>(null);
+
+  function khz(hz: number): string {
+    const v = hz / 1000;
+    return Number.isInteger(v) ? String(v) : v.toFixed(1);
+  }
+
+  function appliquerStatut(res: any) {
+    irActive = res?.active ?? false;
+    irPath = res?.ir_path ?? null;
+    irFiles = Array.isArray(res?.files) ? res.files : [];
+    irInUse = res?.in_use ?? null;
+  }
+
+  async function relireStatut() {
+    if (zone.id == null) return;
+    try {
+      appliquerStatut(await api.fetchJSON<any>(`${api.BASE}/room-correction/ir/status/${zone.id}`));
+    } catch { /* ignore */ }
+  }
+
+  /**
    * 🔴 L'état suit la ZONE, pas le montage.
    *
    * Dans le panneau du clic droit, une instance = une zone. Dans
@@ -75,15 +105,15 @@
       .fetchJSON<any>(`${api.BASE}/room-correction/ir/status/${id}`)
       .then((res) => {
         if (!vivant) return;
-        irActive = res?.active ?? false;
-        irPath = res?.ir_path ?? null;
+        appliquerStatut(res);
       })
       .catch(() => { /* ignore */ })
       .finally(() => { if (vivant) irLoading = false; });
     return () => { vivant = false; };
   });
 
-  async function handleIrUpload(e: Event) {
+  /** #8761 — `parFrequence` : AJOUTER le fichier au jeu, pour sa fréquence. */
+  async function handleIrUpload(e: Event, parFrequence = false) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file || !zone.id) return;
@@ -91,7 +121,8 @@
     irLoading = true;
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const res = await fetch(`${api.BASE}/room-correction/ir/upload/${zone.id}`, {
+      const suffixe = parFrequence ? '?per_rate=1' : '';
+      const res = await fetch(`${api.BASE}/room-correction/ir/upload/${zone.id}${suffixe}`, {
         method: 'POST',
         // #7532 — le jeton (et le profil) : un `fetch` nu repartait sans
         // `Authorization`, donc en 401 sur un serveur à authentification.
@@ -123,6 +154,7 @@
         irMessage = $t('zoneConfig.irLoaded').replace('{size}', (file.size / 1024).toFixed(0));
         irError = false;
         irRefresh++;
+        await relireStatut();
       } else {
         irMessage = $t('common.error') + ' : ' + data.error;
         irError = true;
@@ -135,6 +167,18 @@
     input.value = '';
   }
 
+  /** #8761 — retirer le seul fichier d'une fréquence. */
+  async function retirerFrequence(rate: number) {
+    if (!zone.id) return;
+    irLoading = true;
+    try {
+      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}?rate=${rate}`, { method: 'POST', headers: api.authHeaders() });
+      irRefresh++;
+      await relireStatut();
+    } catch { irMessage = $t('common.error'); irError = true; }
+    irLoading = false;
+  }
+
   async function clearIr() {
     if (!zone.id) return;
     irLoading = true;
@@ -142,6 +186,8 @@
       await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST', headers: api.authHeaders() });
       irActive = false;
       irPath = null;
+      irFiles = [];
+      irInUse = null;
       irMessage = $t('zoneConfig.firDisabled');
       irError = false;
     } catch { irMessage = $t('common.error'); irError = true; }
@@ -171,11 +217,10 @@
       - une IR au NOMBRE de canaux du flux est appliquée canal par canal ;
       - tout autre compte est refusé.
 
-    Et la cadence ne pardonne pas : « Aucun rééchantillonnage silencieux »
-    y est écrit noir sur blanc — `self.sample_rate != target_sample_rate`
-    rend une erreur, jamais un filtre approché. Sur une zone LOCALE le refus
-    remonte au dépôt ; sur une zone réseau il n'apparaît qu'à la lecture,
-    donc l'écran doit le dire AVANT.
+    La cadence : depuis tune-server-rust#8761, la zone garde un fichier par
+    fréquence d'échantillonnage et Tune prend celui du morceau ; à défaut,
+    il rééchantillonne le plus proche (et le dit, « Fichier utilisé : … »).
+    L'écran doit le dire AVANT la lecture.
 
     Une seule phrase de plus, dans le même paragraphe : deux paragraphes
     auraient fait un pavé au-dessus du bouton.
@@ -187,12 +232,37 @@
     <div class="ir-status ir-active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
       {$t('zoneConfig.firActive')}
-      {#if irPath}<span class="ir-path">{irPath.split('/').pop()}</span>{/if}
+      {#if irPath && irFiles.length < 2}<span class="ir-path">{irPath.split('/').pop()}</span>{/if}
     </div>
+    {#if irFiles.length > 1}
+      <!-- #8761 — un fichier par fréquence ; Tune prend celui du morceau. -->
+      <ul class="ir-files" data-testid="ir-files">
+        {#each irFiles as f (f.path)}
+          <li class="ir-file" class:ir-file-used={irInUse && !irInUse.resampled && f.sample_rate === irInUse.file_sample_rate}>
+            <span>{f.sample_rate ? `${khz(f.sample_rate)} kHz` : f.path.split('/').pop()}</span>
+            {#if f.error}<span class="ir-path">{f.error}</span>{/if}
+            {#if f.sample_rate}
+              <button class="ir-file-x" title={$t('zoneConfig.firRemoveRate')} aria-label={$t('zoneConfig.firRemoveRate')} onclick={() => retirerFrequence(f.sample_rate!)}>×</button>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+    {#if irInUse}
+      <div class="ir-in-use" data-testid="ir-in-use">
+        {irInUse.resampled
+          ? $t('zoneConfig.firUsedResampled').replace('{rate}', khz(irInUse.stream_sample_rate)).replace('{from}', khz(irInUse.file_sample_rate))
+          : $t('zoneConfig.firUsed').replace('{rate}', khz(irInUse.file_sample_rate))}
+      </div>
+    {/if}
     <div class="ir-actions">
       <label class="ir-btn ir-btn-2 ir-upload-btn">
         {$t('zoneConfig.replace')}
         <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
+      </label>
+      <label class="ir-btn ir-btn-2 ir-upload-btn">
+        {$t('zoneConfig.firAddRate')}
+        <input type="file" accept=".wav" class="ir-file-input" data-testid="ir-add-rate" onchange={(e) => handleIrUpload(e, true)} />
       </label>
       <button class="ir-btn ir-btn-danger" onclick={clearIr}>{$t('zoneConfig.disable')}</button>
     </div>
@@ -274,6 +344,17 @@
   .ir-btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
   .ir-upload-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
   .ir-file-input { display: none; }
+  .ir-files { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .ir-file {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    padding: 2px 8px; border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--tune-border); color: var(--tune-text-secondary);
+  }
+  .ir-file-used { border-color: var(--tune-success, #4ade80); color: var(--tune-text); }
+  .ir-file-x { background: none; border: none; cursor: pointer; color: var(--tune-text-muted); padding: 0 2px; font-size: 14px; }
+  .ir-file-x:hover { color: var(--tune-error, #ef4444); }
+  .ir-in-use { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-secondary); margin-bottom: 8px; }
   .ir-message { font-size: calc(12px * var(--v2-txt-echelle, 1)); color: var(--tune-text-muted); margin-top: 4px; }
   .ir-message.ir-error { color: var(--tune-error, #ef4444); }
 </style>
