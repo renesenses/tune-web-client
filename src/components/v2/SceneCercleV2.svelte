@@ -738,6 +738,9 @@
   // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
   const lectureSeule = $derived($cercleLectureSeule !== null);
 
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <section class="sc" aria-labelledby="sc-titre" bind:this={racine}>
@@ -772,7 +775,7 @@
               <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}</span>
               <span class="sc-pl-gestes">
                 {#if onLirePlaylist}
-                  <button type="button" class="lnk sc-lire-playlist" disabled={p.count === 0}
+                  <button type="button" class="lnk sc-lire-playlist" disabled={distant || p.count === 0}
                     aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
                     onclick={() => onLirePlaylist?.(p)}>{$t('v2.circle.pl.play' as any)}</button>
                 {/if}

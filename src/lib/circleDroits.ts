@@ -15,7 +15,7 @@
  * APRÈS un refus sinon — un serveur plus ancien ne refuse rien et ne change
  * donc rien ici.
  */
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { viaRelais } from './bridge';
 
 export const CODE_ADMIN_REQUIS = 'circle.admin_required';
@@ -38,6 +38,11 @@ export function motifLectureSeuleDuCode(code: unknown): MotifLectureSeule | null
 
 /** `null` : les gestes d'écriture du cercle sont offerts. */
 export const cercleLectureSeule = writable<MotifLectureSeule | null>(null);
+
+/** Client distant : ni écoute, ni résolution (POST refusés à distance). */
+export function lectureSeuleADistance(): boolean {
+  return get(cercleLectureSeule) === 'distant';
+}
 
 /** Note un refus de droit du serveur ; rend son motif, `null` s'il n'en est pas un. */
 export function noterRefusDeDroit(code: unknown): MotifLectureSeule | null {

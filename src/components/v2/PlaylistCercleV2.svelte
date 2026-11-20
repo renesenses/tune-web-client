@@ -108,6 +108,8 @@
   }
 
   async function resoudre() {
+    // À distance, la résolution (POST) est refusée : les morceaux restent, sans état.
+    if (distant) return;
     try {
       const r = await resoudrePlaylistCercle(id);
       if (!fini) resolution = r;
@@ -480,6 +482,9 @@
   // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
   const lectureSeule = $derived($cercleLectureSeule !== null);
 
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <svelte:window onclick={clicDehors} />
@@ -532,8 +537,8 @@
           <!-- rc12 (Bertrand, 12/11/2026) : un seul bouton Play ; « Lecture
                aléatoire » passe sous sa flèche (`data-aleatoire-playlist-cercle`). -->
           <BoutonLectureV2 onLire={() => void lire()} cle="v2.circle.pl.play" classeLire="lire-playlist"
-            desactive={occupe || items.length === 0}
-            aleatoire={{ faire: () => void lireAleatoire(), desactive: occupe || items.length === 0 }}
+            desactive={occupe || distant || items.length === 0}
+            aleatoire={{ faire: () => void lireAleatoire(), desactive: occupe || distant || items.length === 0 }}
             attrsAleatoire={{ 'data-aleatoire-playlist-cercle': true }} />
           <button class="ghost ajouter-morceaux" disabled={lectureSeule} onclick={ajouterDesMorceaux}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{$t('v2.circle.pl.addTracks' as any)}
@@ -608,7 +613,7 @@
             </button>
             <span class="rang-cell">
               <span class="rang" aria-hidden="true">{i + 1}</span>
-              <button class="lire-morceau" type="button" disabled={!peutJouer || occupe}
+              <button class="lire-morceau" type="button" disabled={!peutJouer || occupe || distant}
                 title={r?.etat === 'introuvable' ? $t('v2.circle.pl.res.notFound' as any) : $t('v2.circle.pl.playFromNamed' as any).replace('{title}', m.title)}
                 aria-label={$t('v2.circle.pl.playFromNamed' as any).replace('{title}', m.title)}
                 onclick={() => lireDepuis(m)}>
@@ -658,7 +663,7 @@
               {#if menuOuvert === k}
                 <!-- svelte-ignore a11y_interactive_supports_focus -->
                 <div class="menu" role="menu" tabindex="-1" onkeydown={(ev) => clavierMenu(ev, m)}>
-                  <button role="menuitem" class="lire-seul" disabled={!peutJouer || occupe} onclick={() => lireSeul(m)}>{$t('v2.circle.pl.playOnly' as any)}</button>
+                  <button role="menuitem" class="lire-seul" disabled={!peutJouer || occupe || distant} onclick={() => lireSeul(m)}>{$t('v2.circle.pl.playOnly' as any)}</button>
                   <button role="menuitem" class="lire-ensuite" disabled={!peutJouer || fileOccupee} onclick={() => void enfiler(m, true)}>{$t('v2.album.playNext' as any)}</button>
                   <button role="menuitem" class="ajouter-file" disabled={!peutJouer || fileOccupee} onclick={() => void enfiler(m, false)}>{$t('v2.ms.addToQueue' as any)}</button>
                   {#if !peutJouer && r?.etat === 'introuvable'}<span class="raison" role="note">{$t('v2.circle.pl.res.notFound' as any)}</span>{/if}

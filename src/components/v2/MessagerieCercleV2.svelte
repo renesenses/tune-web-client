@@ -293,7 +293,7 @@
           <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind !== 'direct'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
             {#if choix.kind === 'circle' && choix.circle.mine}
               <label class="reglage-ecriture">{tr('v2.circle.msg.writeSetting')}
-                <select value={choix.circle.write} disabled={occupe} onchange={(ev) => void regler(ev.currentTarget.value as EcritureCercle)}>
+                <select value={choix.circle.write} disabled={occupe || lectureSeule} onchange={(ev) => void regler(ev.currentTarget.value as EcritureCercle)}>
                   <option value="all">{tr('v2.circle.msg.writeAll')}</option>
                   <option value="owner">{tr('v2.circle.msg.writeOwner')}</option>
                 </select>

@@ -68,6 +68,9 @@
   // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
   const lectureSeule = $derived($cercleLectureSeule !== null);
 
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <div class="decouvrir">
@@ -141,7 +144,7 @@
           <li class="mini-playlist">
             <div class="vignette"><span aria-hidden="true">♪</span>
               <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
-              <button type="button" class="lire" disabled={occupe || p.count === 0}
+              <button type="button" class="lire" disabled={occupe || distant || p.count === 0}
                 aria-label={tr('v2.circle.pl.playNamed', { name: p.name })} onclick={() => onLirePlaylist(p)}>
                 <svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg></button></div>
             <button type="button" class="ouvrir" onclick={() => onOuvrirPlaylist(p.id)}><strong class="coupe" use:bulleTexte>{p.name}</strong></button>

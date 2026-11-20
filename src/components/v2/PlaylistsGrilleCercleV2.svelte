@@ -70,6 +70,9 @@
   // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
   const lectureSeule = $derived($cercleLectureSeule !== null);
 
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <svelte:window onkeydown={clavier} onclick={clicDehors} />
@@ -147,7 +150,7 @@
           <div class="vignette teinte-{teinte(p)}">
             <span class="note-vignette" aria-hidden="true">♪</span>
             <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
-            <button type="button" class="lire-playlist-ligne" disabled={occupe || p.count === 0}
+            <button type="button" class="lire-playlist-ligne" disabled={occupe || distant || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)}
               onclick={() => onLire(p)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
@@ -179,7 +182,7 @@
               <strong use:bulleTexte>{p.name}</strong>
               <span class="note">{$tn('v2.common.trackCountN', p.count)}</span>
             </button>
-            <button type="button" class="lire-ma-playlist" disabled={occupe || p.count === 0}
+            <button type="button" class="lire-ma-playlist" disabled={occupe || distant || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)} onclick={() => onLire(p)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
             </button>

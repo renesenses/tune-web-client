@@ -15,6 +15,7 @@ import { fetchJSON } from '../api';
 import { preparerLocale } from '../i18n';
 import { carteAPartager, messagerieSupport, demandeConversation } from '../circleMessagerie';
 import { cercleLectureSeule } from '../circleDroits';
+import { pochettesDeCarte, viderPochettesDeCarte } from '../circlePochettesCartes';
 import fr from '../locales/fr';
 
 vi.mock('../api', () => ({ BASE: '/api/v1', fetchJSON: vi.fn(), searchLibrary: vi.fn(), getPlaylists: vi.fn() }));
@@ -26,6 +27,7 @@ let vue: ReturnType<typeof mount> | null = null;
 let refusLu: Error | null = null;
 
 const direct = { id: 12, kind: 'direct', contact: { user_id: 7, name: 'Alice' }, unread_count: 2 };
+const groupe = { id: 30, kind: 'circle', contact: null, can_write: true, unread_count: 0, circle: { id: 5, name: 'Amis', owner_id: 1, owner_name: 'Moi', mine: true, write: 'all' } };
 const messages = [{ id: 5, sender_id: 7, sender_name: 'Alice', mine: false, body: 'Bonjour', card: null, created_at: '2026-11-19T10:00:00Z' }];
 const PHRASE_ADMIN = (fr as Record<string, string>)['v2.circle.err.adminRequired'];
 const finir = async () => { for (let i = 0; i < 8; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); } };
@@ -42,7 +44,8 @@ beforeEach(() => {
     const u = String(url); const m = options?.method ?? 'GET';
     if (u.endsWith('/ext/circle')) return { members: [{ user_id: 7, name: 'Alice' }], sent: [], received: [] } as any;
     if (u.endsWith('/general-circles')) return { circles: [{ id: 8, name: 'Jazz modal', category: 'genre', member_count: 3, joined: false }] } as any;
-    if (u.endsWith('/conversations')) return { conversations: [direct] } as any;
+    if (u.endsWith('/conversations')) return { conversations: [direct, groupe] } as any;
+    if (u.includes('/conversations/30/messages?')) return { conversation: groupe, messages: [], next_cursor: null } as any;
     if (u.includes('/conversations/12/messages?')) return { conversation: direct, messages, next_cursor: null } as any;
     if (u.endsWith('/conversations/12/read') && m === 'POST') { if (refusLu) throw refusLu; return { ok: true } as any; }
     return { unread_count: 0 } as any;
@@ -54,10 +57,10 @@ afterEach(async () => {
   cercleLectureSeule.set(null);
 });
 
-async function ouvrirAlice() {
+async function ouvrir(nom: string) {
   vue = mount(Messagerie, { target: hote });
   await finir();
-  const b = [...hote.querySelectorAll('button.conversation')].find((x) => x.textContent?.includes('Alice')) as HTMLButtonElement;
+  const b = [...hote.querySelectorAll('button.conversation')].find((x) => x.textContent?.includes(nom)) as HTMLButtonElement;
   expect(b).toBeTruthy();
   b.click();
   await finir();
@@ -65,7 +68,7 @@ async function ouvrirAlice() {
 
 it('messagerie en lecture seule : la conversation s’affiche, rien n’est marqué lu, on n’écrit pas', async () => {
   cercleLectureSeule.set('admin');
-  await ouvrirAlice();
+  await ouvrir('Alice');
   expect(hote.textContent).toContain('Bonjour');
   expect(appels('/conversations/12/read')).toHaveLength(0);
   expect(hote.querySelector('form.composeur')).toBeNull();
@@ -77,7 +80,7 @@ it('un refus du marquage « lu » ne casse pas l’ouverture de la conversation'
   const rejet = vi.fn();
   process.on('unhandledRejection', rejet);
   try {
-    await ouvrirAlice();
+    await ouvrir('Alice');
     expect(appels('/conversations/12/read')).toHaveLength(1);
     expect(hote.textContent).toContain('Bonjour');
     await finir();
@@ -125,4 +128,35 @@ it('grille des playlists : créer et partager désactivés en lecture seule, off
   await finir();
   expect(creer()?.disabled).toBe(true);
   expect(partager()?.disabled).toBe(true);
+});
+
+it('messagerie : le réglage « qui peut écrire » du cercle est désactivé en lecture seule', async () => {
+  await ouvrir('Amis');
+  const choix = () => hote.querySelector('.reglage-ecriture select') as HTMLSelectElement | null;
+  expect(choix()).toBeTruthy();
+  expect(choix()!.disabled).toBe(false);
+  cercleLectureSeule.set('admin');
+  await finir();
+  expect(choix()!.disabled).toBe(true);
+});
+
+it('à distance : pas de résolution automatique des mosaïques, et « Lire » désactivé', async () => {
+  viderPochettesDeCarte();
+  cercleLectureSeule.set('distant');
+  expect(await pochettesDeCarte('p1', 1)).toEqual([]);
+  expect(appel).not.toHaveBeenCalled();
+  const props = {
+    playlists: [{ id: 'p1', name: 'Jazz', count: 3, mine: false, circle_id: 1, version: 1 }] as any, occupe: false,
+    cercles: [] as any, invitePar: [] as any,
+    onOuvrir: () => {}, onLire: () => {}, onCreer: () => {}, onPartager: () => {},
+  };
+  vue = mount(Grille, { target: hote, props });
+  await finir();
+  const lire = () => hote.querySelector('button.lire-playlist-ligne') as HTMLButtonElement | null;
+  expect(lire()).toBeTruthy();
+  expect(lire()!.disabled).toBe(true);
+  // Profil non administrateur en local : la lecture reste offerte.
+  cercleLectureSeule.set('admin');
+  await finir();
+  expect(lire()!.disabled).toBe(false);
 });
