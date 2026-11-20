@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 //
-// Tune Circle rc13 — tous les cercles du monde (décisions de Bertrand du
-// 20/11/2026) : par pays, en tranches, anonymes. Témoin : aucun nom ni
-// identifiant d'un non-membre ne sort, même si le cloud se trompait et en
-// envoyait (contre-épreuve). Mes cercles gardent leur affichage nommé. Un
+// Tune Circle rc13 — tous les cercles du monde sur le globe (décisions de
+// Bertrand du 20/11/2026, « Affiche tous les cercles comme les miens ») : un
+// anneau anonyme par lieu de propriétaire, une tranche, aucun nom. Témoin :
+// aucun nom ni identifiant d'un non-membre ne sort, même si le cloud se
+// trompait et en envoyait (contre-épreuve). Mes cercles restent nommés. Un
 // serveur sans la route (404) garde l'écran tel quel. jsdom : vue liste.
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
@@ -12,8 +13,7 @@ import { preparerLocale } from '../i18n';
 import { circlePlugin } from '../circle';
 import fr from '../locales/fr';
 import { chargerVilles } from '../champCercle/villes';
-import { cerclesDuMondeValides, teinteCercles, trancheEnNombre, TRANCHES } from '../cerclesMonde';
-import { niveauPays } from '../paysMonde';
+import { niveauTranche, pointsCerclesValides, TRANCHES } from '../cerclesMonde';
 
 type Appel = { url: string; method: string };
 let appels: Appel[] = [];
@@ -91,41 +91,43 @@ async function poser(): Promise<HTMLDivElement> {
 }
 const texte = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-/** Ce qu'un cloud fautif enverrait en trop : rien de tout cela ne doit s'afficher. */
-const FUITE = { name: 'Zoé Fantôme', circle_name: 'Club-Secret', owner_id: 4242, member_id: 4343, circle_id: 4444, lat: 50.85, lon: 4.35, label: 'Village-Secret', members_exact: 3 };
+/** Ce qu'un cloud fautif enverrait en trop : rien de tout cela ne doit sortir. */
+const FUITE = { name: 'Zoé Fantôme', circle_name: 'Club-Secret', owner_id: 4242, member_id: 4343, circle_id: 4444, label: 'Village-Secret', country_code: 'BE', since: '2026-10-01', exact: 3 };
 const CERCLES = [
-  { country_code: 'BE', circles: '<5', members: '5-19', ...FUITE },
-  { country_code: 'fr', circles: '5-19', members: '20-99' },
+  { lat: 51.0, lon: 4.5, circles: '<5', ...FUITE },
+  { lat: 46.0, lon: 5.0, circles: '5-19' },
 ];
 
 describe('Tune Circle rc13 — lecture des cercles du monde', () => {
-  it('ne garde que le code pays et deux tranches connues ; tout autre champ est perdu (témoin)', () => {
-    const v = cerclesDuMondeValides([
+  it('ne garde que lat, lon (au demi-degré) et une tranche connue ; tout autre champ est perdu (témoin)', () => {
+    const v = pointsCerclesValides([
       ...CERCLES,
-      { country_code: 'BE', circles: '5-19', members: '5-19' }, // doublon : le premier reste
-      { country_code: 'XX', circles: '<5', members: '<5' },     // pays inconnu
-      { country_code: 'DE', circles: 3, members: '<5' },         // nombre exact refusé
-      { country_code: 'IT', circles: '<5', members: '7' },       // tranche inconnue
+      { lat: 50.87, lon: 4.38, circles: '<5' },  // plus fin que 0,5° → 51 ; 4,5 : doublon, le premier reste
+      { lat: 10, lon: 180, circles: '<5' },      // 180 replié sur -180
+      { lat: 91, lon: 0, circles: '<5' },        // hors bornes
+      { lat: '12', lon: 3, circles: '<5' },      // pas un nombre
+      { lat: 12, lon: 3, circles: 3 },           // nombre exact refusé
+      { lat: 12, lon: 3, circles: '7' },         // tranche inconnue
       null, 'Bob',
     ]);
     expect(v).toEqual([
-      { code: 'BE', cercles: '<5', membres: '5-19' },
-      { code: 'FR', cercles: '5-19', membres: '20-99' },
+      { lat: 10, lon: -180, cercles: '<5' },
+      { lat: 46, lon: 5, cercles: '5-19' },
+      { lat: 51, lon: 4.5, cercles: '<5' },
     ]);
-    for (const p of v) expect(Object.keys(p).sort()).toEqual(['cercles', 'code', 'membres']);
+    for (const p of v) expect(Object.keys(p).sort()).toEqual(['cercles', 'lat', 'lon']);
     // Contre-épreuve : la fuite était bien dans la réponse, elle n'est plus dans ce qui est gardé.
     expect(JSON.stringify(CERCLES)).toContain('Zoé Fantôme');
     const garde = JSON.stringify(v);
-    for (const interdit of ['Zoé', 'Club-Secret', 'Village-Secret', '4242', '4343', '4444', '50.85', '4.35']) {
+    for (const interdit of ['Zoé', 'Club-Secret', 'Village-Secret', 'BE', '4242', '4343', '4444', '2026']) {
       expect(garde).not.toContain(interdit);
     }
-    expect(cerclesDuMondeValides({ data: CERCLES })).toEqual([]);
+    expect(pointsCerclesValides({ data: CERCLES })).toEqual([]);
   });
 
-  it('les tranches sont celles de la carte /world, et teintent le globe au même niveau', () => {
+  it('les tranches sont celles de la carte /world, et donnent la taille de l\'anneau', () => {
     expect([...TRANCHES]).toEqual(['<5', '5-19', '20-99', '100-499', '500+']);
-    expect(TRANCHES.map((t) => niveauPays(trancheEnNombre(t)))).toEqual([0, 1, 2, 3, 4]);
-    expect({ ...teinteCercles([{ code: 'BE', cercles: '<5', membres: '5-19' }]) }).toEqual({ BE: '<5' });
+    expect(TRANCHES.map(niveauTranche)).toEqual([0, 1, 2, 3, 4]);
   });
 });
 
@@ -138,24 +140,33 @@ describe('Tune Circle rc13 — écran', () => {
     expect(el.querySelector('.sc-avis-cercles')).toBeNull();
   });
 
-  it('montre tous les cercles du monde par pays, en tranches, sans aucun nom ni identifiant de non-membre (témoin)', async () => {
+  it('montre tous les cercles du monde, anonymes, sans aucun nom ni identifiant de non-membre (témoin)', async () => {
     cercles = CERCLES;
     const el = await poser();
     const couche = el.querySelector('.cercles-monde');
     expect(couche).not.toBeNull();
-    const t = texte(couche);
-    expect(t).toContain(fr['v2.circle.worldCircles.title']);
-    expect(t).toContain('Belgique');
-    expect(t).toContain('France');
-    expect(t).toContain('5–19');
-    expect(t).toContain('20–99');
-    expect(t).toContain(fr['v2.circle.worldCountries.lessFive']);
+    expect(texte(couche)).toContain(fr['v2.circle.worldCircles.title']);
+    expect(texte(couche)).toContain(fr['v2.circle.worldCircles.legend']);
+    expect(texte(couche?.querySelector('.cercles-compte') ?? null)).toBe(fr['v2.circle.worldCircles.count'].replace('{n}', '2'));
     // Contre-épreuve : rien de la fuite n'atteint l'écran.
     const tout = texte(el);
     for (const interdit of ['Zoé', 'Fantôme', 'Club-Secret', 'Village-Secret']) expect(tout).not.toContain(interdit);
     expect(tout).not.toMatch(/\b(4242|4343|4444)\b/);
+    // Les anneaux ne sont pas des personnes : aucune ligne, aucun bouton pour eux.
+    expect(el.querySelectorAll('.sc-liste .sc-ligne')).toHaveLength(0);
     // Mon cercle garde son nom, comme avant.
     expect(tout).toContain('Famille');
+  });
+
+  it('liste vide : la couche le dit, sans rien inventer', async () => {
+    cercles = [];
+    const el = await poser();
+    (el.querySelector('.vue-monde') as HTMLButtonElement).click();
+    await laisserFaire();
+    const couche = el.querySelector('.cercles-monde');
+    expect(couche).not.toBeNull();
+    expect(texte(couche?.querySelector('.cercles-vide') ?? null)).toBe(fr['v2.circle.worldCircles.empty']);
+    expect(couche?.querySelector('.cercles-interrupteur')).toBeNull();
   });
 
   it('prévient le propriétaire qui a posé sa ville, et « Compris » le range pour de bon', async () => {
@@ -165,25 +176,14 @@ describe('Tune Circle rc13 — écran', () => {
     const avis = el.querySelector('.sc-avis-cercles');
     expect(texte(avis?.querySelector('.sc-avis-titre') ?? null)).toBe(fr['v2.circle.scene.circlesMap.noticeTitle']);
     expect(texte(avis)).toContain(fr['v2.circle.scene.circlesMap.notice']);
-    expect(fr['v2.circle.scene.circlesMap.notice']).toMatch(/sans nom de cercle, sans nom de membre/i);
+    expect(fr['v2.circle.scene.circlesMap.notice']).toMatch(/à l'emplacement de votre ville/);
+    expect(fr['v2.circle.scene.circlesMap.notice']).toMatch(/sans nom de cercle ni de personne/);
     (avis!.querySelector('.sc-avis-compris') as HTMLButtonElement).click();
     await laisserFaire();
     expect(el.querySelector('.sc-avis-cercles')).toBeNull();
     unmount(monte!); monte = null; hote?.remove();
     el = await poser();
     expect(el.querySelector('.sc-avis-cercles')).toBeNull();
-  });
-
-  it('liste vide (aucun pays n\'atteint 3 propriétaires) : la couche le dit, sans rien inventer', async () => {
-    cercles = [];
-    const el = await poser();
-    (el.querySelector('.vue-monde') as HTMLButtonElement).click();
-    await laisserFaire();
-    const couche = el.querySelector('.cercles-monde');
-    expect(couche).not.toBeNull();
-    expect(texte(couche?.querySelector('.cercles-vide') ?? null)).toBe(fr['v2.circle.worldCircles.empty']);
-    expect(couche?.querySelector('table')).toBeNull();
-    expect(couche?.querySelector('.cercles-interrupteur')).toBeNull();
   });
 
   it('pas d\'avis des cercles pour qui n\'a pas posé sa ville', async () => {

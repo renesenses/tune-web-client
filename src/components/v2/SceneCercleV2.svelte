@@ -42,7 +42,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
   import CerclesMondeV2 from './CerclesMondeV2.svelte';
-  import { lireCerclesDuMonde, teinteCercles, type CerclesPays } from '../../lib/cerclesMonde';
+  import { lireCerclesDuMonde, niveauTranche, type PointCercles } from '../../lib/cerclesMonde';
   import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
   import { formatNombre } from '../../lib/formats';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
@@ -118,15 +118,15 @@
   let pointsPublics = $state.raw<PointPublic[]>([]);
   let retraitCarte = $state<boolean | null>(null);
   /**
-   * rc13 (décisions du 20/11/2026) : tous les cercles du monde, anonymes, par
-   * pays et en tranches. Mes cercles n'y sont pas (le cloud les retire) : je les
-   * vois nommés, comme avant. `routeCerclesMonde` : le serveur a la route.
+   * rc13 (décisions du 20/11/2026) : tous les cercles du monde, en anneaux
+   * anonymes sur le globe (un par lieu de propriétaire, une tranche, aucun nom).
+   * Mes cercles y sont aussi, en anonyme, et restent en plus nommés, comme
+   * avant. `routeCerclesMonde` : le serveur a la route.
    */
-  let cerclesMonde = $state.raw<CerclesPays[]>([]);
+  let cerclesMonde = $state.raw<PointCercles[]>([]);
   let routeCerclesMonde = $state(false);
-  /** La teinte des pays : par cercles d'abord ; « Colorer les pays » (serveurs) la remplace. */
+  /** L'interrupteur des anneaux anonymes (allumé par défaut). */
   let montrerCercles = $state(true);
-  const teinteParCercles = $derived(montrerCercles && cerclesMonde.length > 0);
   const CLE_AVIS_CERCLES = 'tune.circle.carte-cercles.avis-vu';
   let avisCerclesVu = $state((() => { try { return localStorage.getItem(CLE_AVIS_CERCLES) === '1'; } catch { return false; } })());
   let occupeRetrait = $state(false);
@@ -232,7 +232,7 @@
       membresCercles = lx.membres;
       pointsPublics = pp.points;
       retraitCarte = rc;
-      cerclesMonde = cm.pays;
+      cerclesMonde = cm.points;
       routeCerclesMonde = cm.relais === 'ok';
     }
     choisirVue();
@@ -476,11 +476,15 @@
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
   $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
+  // rc13 : les cercles du monde, en anneaux anonymes (lat, lon, taille de la tranche ; rien d'autre).
   $effect(() => {
-    const m = moteur; const serveurs = montrerPays && !teinteParCercles;
-    const donnees = teinteParCercles ? teinteCercles(cerclesMonde) : serveurs ? paysMonde?.pays ?? null : null;
+    const m = moteur; const p = montrerCercles ? cerclesMonde : [];
+    m?.majCerclesAnonymes(p.map((x) => ({ lat: x.lat, lon: x.lon, niveau: niveauTranche(x.cercles) })));
+  });
+  $effect(() => {
+    const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
     if (!m) return;
-    m.majCases(serveurs ? paysMonde?.cases ?? [] : []);
+    m.majCases(montrerPays ? paysMonde?.cases ?? [] : []);
     const appliquer = () => m.majPays(donnees, typeof getComputedStyle === 'function' && hote
       ? getComputedStyle(hote).getPropertyValue('--v2-acc2').trim() : undefined);
     appliquer();
@@ -737,9 +741,9 @@
   }
   /**
    * rc13 : l'avis aux propriétaires dont les cercles entrent dans la couche
-   * anonyme — ville posée avec un pays, pas retirés de la carte publique.
+   * anonyme — ville posée, pas retirés de la carte publique.
    */
-  const montrerAvisCercles = $derived(routeCerclesMonde && retraitCarte === false && !!monLieu?.country_code
+  const montrerAvisCercles = $derived(routeCerclesMonde && retraitCarte === false && monLieu !== null
     && cercles.length > 0 && !avisCerclesVu);
   function fermerAvisCercles() {
     avisCerclesVu = true;
@@ -824,10 +828,10 @@
   {/if}
 
   {#if vue === 'monde' && paysMonde}
-    <PaysMondeV2 donnees={paysMonde} afficher={montrerPays && !teinteParCercles} onAfficher={(v) => { montrerPays = v; if (v) montrerCercles = false; }} liste={montrerListe} />
+    <PaysMondeV2 donnees={paysMonde} afficher={montrerPays} onAfficher={(v) => (montrerPays = v)} liste={montrerListe} />
   {/if}
   {#if vue === 'monde' && routeCerclesMonde}
-    <CerclesMondeV2 pays={cerclesMonde} afficher={teinteParCercles} onAfficher={(v) => (montrerCercles = v)} liste={montrerListe} />
+    <CerclesMondeV2 points={cerclesMonde} afficher={montrerCercles} onAfficher={(v) => (montrerCercles = v)} />
   {/if}
 
   <p class="sr sc-resume" aria-live="polite">{resume}</p>
