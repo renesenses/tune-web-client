@@ -20,6 +20,9 @@ import { ondePisteEnCours } from '../stores/ondePiste';
 import { zones, currentZoneId } from '../stores/zones';
 import { seekPositionMs } from '../stores/nowPlaying';
 
+// `bind:clientWidth` d'`OndeProgression` : jsdom n'a pas de ResizeObserver.
+vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as any);
+
 let demonter: (() => void) | null = null;
 afterEach(() => { demonter?.(); demonter = null; (ondePisteEnCours as any).set(null); });
 
