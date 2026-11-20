@@ -21,7 +21,7 @@
     type CatalogueSurechantillonnage, type EtatSurechantillonnage, type ReglageSurechantillonnage,
     getCatalogueSurechantillonnage, getSurechantillonnageZone, setSurechantillonnageZone,
     lancerLeTestDeLaMachine, reglageParDefaut, filtresProposes, filtreNonAdmis, reserveMaxDb,
-    libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, RAPPORTS,
+    libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, cleIndicationPortee, RAPPORTS,
   } from '../../lib/surechantillonnage';
   import '../../styles/tune-v2.css';
 
@@ -36,6 +36,7 @@
   const proposes = $derived(catalogue ? filtresProposes(catalogue.filters, admis, reglage.filter) : []);
   const contrainte = $derived(cleContrainte(etat?.constraint ?? null));
   const machine = $derived(resumeMachine(catalogue?.machine_test ?? null));
+  const indication = $derived(cleIndicationPortee(etat));
   const aJour = $derived(etat != null && JSON.stringify(reglage) === JSON.stringify(etat.settings));
 
   function chargerLeCatalogue() {
@@ -160,7 +161,7 @@
 
         <div class="actions">
           <button class="go" disabled={occupe || aJour} onclick={enregistrer}>{occupe ? '…' : $t('upsampling.save' as any)}</button>
-          <span class="hint">{$t('upsampling.appliesNow' as any)}</span>
+          {#if indication}<span class="hint">{$t(indication as any)}</span>{/if}
         </div>
       </div>
     {/if}

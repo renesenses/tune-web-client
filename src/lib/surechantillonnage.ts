@@ -15,7 +15,8 @@
  * Décision de Bertrand du 19/11/2026 : un changement de réglage s'applique
  * TOUT DE SUITE. Le serveur relance le flux à la position en cours (environ
  * une seconde de silence) et le dit (`applies_at: "now"`, `restart: true`) ;
- * `"next_track"` seulement quand rien ne peut agir avant (lecture en pause).
+ * `"next_track"` quand rien ne peut agir avant (lecture en pause, position
+ * inconnue, serveur d'avant le 19/11), `"never"` sur une zone non locale.
  * Sa réserve de 3 dB est rendue par le volume de Tune (chemin du signal).
  */
 import { BASE, fetchJSON } from './api';
@@ -80,7 +81,7 @@ export interface EtatSurechantillonnage {
   constraint: Contrainte | null;
   admitted_filters: string[] | null;
   /** Quand le réglage atteint le son (19/11/2026 : tout de suite). */
-  applies_at: 'now' | 'next_track';
+  applies_at: 'now' | 'next_track' | 'never';
   /** Le flux qui jouait est relancé à la même position. Absent avant le 19/11. */
   restart?: boolean;
 }
@@ -170,8 +171,20 @@ export function cleContrainte(c: Contrainte | null): string | null {
  * (`next_track` toujours) garde son message.
  */
 export function clePortee(etat: Pick<EtatSurechantillonnage, 'applies_at' | 'restart'>): string {
+  if (etat.applies_at === 'never') return 'upsampling.saved';
   if (etat.applies_at !== 'now') return 'upsampling.nextTrack';
   return etat.restart ? 'upsampling.appliedRestart' : 'upsampling.applied';
+}
+
+/**
+ * Clef i18n de l'indication fixe sous « Enregistrer » : « tout de suite »
+ * seulement si le serveur l'annonce ; rien sur une zone où le réglage
+ * n'agit pas (la contrainte le dit) ; sinon « au prochain flux ».
+ */
+export function cleIndicationPortee(etat: Pick<EtatSurechantillonnage, 'applies_at'> | null): string | null {
+  if (etat?.applies_at === 'now') return 'upsampling.appliesNow';
+  if (etat?.applies_at === 'never') return null;
+  return 'upsampling.appliesLater';
 }
 
 /** Le verdict de la machine, résumé : filtres admis sur filtres mesurés. */

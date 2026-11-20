@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   filtresProposes, filtreNonAdmis, cleContrainte, libelleReserve, reserveMaxDb, resumeMachine,
-  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre, clePortee,
+  reglageParDefaut, setSurechantillonnageZone, lancerLeTestDeLaMachine, cleFiltre, clePortee, cleIndicationPortee,
   type FiltreSurechantillonnage,
 } from '../surechantillonnage';
 import fr from '../locales/fr';
@@ -111,13 +111,29 @@ describe('portée du réglage (19/11/2026)', () => {
     expect(clePortee({ applies_at: 'now' })).toBe('upsampling.applied');
   });
 
-  it('« au prochain flux » seulement quand le serveur le dit', () => {
+  it('« au prochain flux » seulement quand le serveur le dit, « enregistré » là où le réglage n’agit pas', () => {
     expect(clePortee({ applies_at: 'next_track', restart: false })).toBe('upsampling.nextTrack');
+    expect(clePortee({ applies_at: 'never', restart: false })).toBe('upsampling.saved');
+  });
+
+  it('l’indication sous « Enregistrer » ne promet « tout de suite » que si le serveur l’annonce', () => {
+    expect(cleIndicationPortee({ applies_at: 'now' })).toBe('upsampling.appliesNow');
+    // Serveur d'avant #9221, pause, position inconnue : texte neutre.
+    expect(cleIndicationPortee({ applies_at: 'next_track' })).toBe('upsampling.appliesLater');
+    expect(cleIndicationPortee(null)).toBe('upsampling.appliesLater');
+    expect(cleIndicationPortee({ applies_at: 'never' })).toBeNull();
+  });
+
+  it('« au prochain flux » est neutre : il ne prétend pas que la lecture est en pause', () => {
+    for (const l of ONZE_LANGUES) {
+      expect(dictionnaire(l)['upsampling.nextTrack'], l).not.toMatch(/pause|paus|暂停|一時停止|일시 정지|szünet|tạm dừng|παύση|wstrzym|duraklat/i);
+    }
+    expect(fr['upsampling.nextTrack']).toBe("Enregistré : le réglage s'appliquera au prochain flux.");
   });
 
   it('les trois messages existent dans les seize langues', () => {
     for (const l of ONZE_LANGUES) {
-      for (const cle of ['upsampling.applied', 'upsampling.appliedRestart', 'upsampling.appliesNow', 'upsampling.nextTrack']) {
+      for (const cle of ['upsampling.applied', 'upsampling.appliedRestart', 'upsampling.appliesNow', 'upsampling.appliesLater', 'upsampling.saved', 'upsampling.nextTrack']) {
         expect(dictionnaire(l)[cle], `${l} ${cle}`).toBeTruthy();
       }
     }
@@ -142,9 +158,10 @@ describe('câblage de l’écran', () => {
     const ecran = lire('src/components/v2/SurechantillonnageV2.svelte');
     expect(ecran).toContain("$t('upsampling.bitPerfect'");
     // 19/11/2026 — plus de « piste suivante » sous le bouton : tout de suite.
-    expect(ecran).toContain("$t('upsampling.appliesNow'");
+    expect(ecran).toContain('cleIndicationPortee(etat)');
     expect(ecran).not.toContain("<span class=\"hint\">{$t('upsampling.nextTrack'");
     expect(ecran).toContain('clePortee(etat)');
+    expect(lire('src/lib/surechantillonnage.ts')).toContain("'upsampling.appliesNow'");
     expect(fr['upsampling.bitPerfect']).toMatch(/bit-perfect/);
     expect(fr['upsampling.bitPerfect']).toMatch(/PURE/);
     expect(fr['upsampling.appliesNow']).toMatch(/tout de suite/);
