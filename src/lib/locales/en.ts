@@ -6142,6 +6142,8 @@ export default {
   "v2.circle.members.shown": "Members of this circle who agreed too can now see you.",
   "v2.circle.members.hidden": "Members of this circle can no longer see you.",
   "v2.circle.members.err.notShared": "This circle is no longer shared between its members.",
+  "v2.circle.err.adminRequired": "Only an administrator of this server can change the circle: you can still view it.",
+  "v2.circle.err.remoteReadOnly": "Remotely, the circle is view-only: to change it, open Tune on the local network.",
   "v2.circle.members.err.updateServer": "Your Tune server does not know this feature yet. Update Tune.",
   "v2.circle.scene.info.pinMember": "City shown by {name}, member of “{circles}”.",
   "v2.circle.notif.circleShared": "{name} shares the circle “{circle}” between its members: it is up to you whether to appear",

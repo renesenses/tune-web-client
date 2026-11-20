@@ -6122,6 +6122,8 @@ export default {
   "v2.circle.members.shown": "함께 동의한 이 서클 멤버에게 이제 내가 보입니다.",
   "v2.circle.members.hidden": "이 서클 멤버에게 더 이상 내가 보이지 않습니다.",
   "v2.circle.members.err.notShared": "이 서클은 더 이상 멤버끼리 공유되지 않습니다.",
+  "v2.circle.err.adminRequired": "이 서버의 관리자만 서클을 변경할 수 있습니다. 보기는 가능합니다.",
+  "v2.circle.err.remoteReadOnly": "원격에서는 서클을 보기만 할 수 있습니다. 변경하려면 로컬 네트워크에서 Tune을 여세요.",
   "v2.circle.members.err.updateServer": "Tune 서버가 아직 이 기능을 모릅니다. Tune을 업데이트하세요.",
   "v2.circle.scene.info.pinMember": "{name} 님이 표시한 도시, “{circles}” 멤버.",
   "v2.circle.notif.circleShared": "{name} 님이 서클 “{circle}”을(를) 멤버끼리 공유합니다: 표시 여부는 직접 선택하세요",

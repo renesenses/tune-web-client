@@ -10,6 +10,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { messageRefusHorsMachine } from './refusHorsMachine';
+import { CLES_LECTURE_SEULE, noterRefusDeDroit } from './circleDroits';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
 import { locale, t } from './i18n';
@@ -622,6 +623,13 @@ export async function fetchJSON<T>(
       throw sentinelle;
     }
     const err = await apiError(response);
+    // Tune Circle (19/11/2026) : les deux refus de droit du greffon disent
+    // leur phrase dans la langue de l'interface, et l'écran du cercle passe
+    // en lecture seule (`circleDroits`).
+    if (response.status === 403) {
+      const motif = noterRefusDeDroit(err.code);
+      if (motif) err.message = get(t)(CLES_LECTURE_SEULE[motif] as any);
+    }
     // #2413 — le 503 du répondeur de démarrage est une information traduite,
     // pas un « Server error » : voir `demarrageServeur`.
     if (response.status === 503) {

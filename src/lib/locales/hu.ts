@@ -6076,6 +6076,8 @@ export default {
   "v2.circle.members.shown": "A kör szintén beleegyező tagjai most látnak téged.",
   "v2.circle.members.hidden": "A kör tagjai már nem látnak téged.",
   "v2.circle.members.err.notShared": "Ez a kör már nincs megosztva a tagjai között.",
+  "v2.circle.err.adminRequired": "Csak a szerver rendszergazdája módosíthatja a kört, Ön megtekintheti.",
+  "v2.circle.err.remoteReadOnly": "Távolról a kör csak megtekinthető: a módosításhoz nyissa meg a Tune-t a helyi hálózaton.",
   "v2.circle.members.err.updateServer": "A Tune-kiszolgálód még nem ismeri ezt a funkciót. Frissítsd a Tune-t.",
   "v2.circle.scene.info.pinMember": "{name} által mutatott város, a(z) „{circles}” tagja.",
   "v2.circle.notif.circleShared": "{name} megosztja a(z) „{circle}” kört a tagjai között: te döntöd el, megjelensz-e",

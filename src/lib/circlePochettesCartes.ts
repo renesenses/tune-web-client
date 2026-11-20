@@ -14,6 +14,7 @@
  * (`IntersectionObserver` dans `VignettePochettesCercle`).
  */
 import { lirePlaylistCercle, resoudrePlaylistCercle, type IdOpaque } from './circlePlaylists';
+import { lectureSeuleADistance } from './circleDroits';
 import { mosaique, type PochetteMorceau } from './circlePlaylistVue';
 
 const cache = new Map<string, Promise<PochetteMorceau[]>>();
@@ -32,6 +33,8 @@ function avecDelai<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 export function pochettesDeCarte(id: IdOpaque, version: number): Promise<PochetteMorceau[]> {
+  // À distance, la résolution (POST) est refusée : pas de mosaïque, la tuile générique.
+  if (lectureSeuleADistance()) return Promise.resolve([]);
   const cle = `${String(id)}@${version}`;
   const deja = cache.get(cle);
   if (deja) return deja;

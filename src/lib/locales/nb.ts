@@ -5982,6 +5982,8 @@ export default {
   "v2.circle.members.shown": "Medlemmer av denne sirkelen som også har samtykket, ser deg nå.",
   "v2.circle.members.hidden": "Medlemmer av denne sirkelen ser deg ikke lenger.",
   "v2.circle.members.err.notShared": "Denne sirkelen deles ikke lenger mellom medlemmene.",
+  "v2.circle.err.adminRequired": "Bare en administrator for denne serveren kan endre sirkelen: du kan se den.",
+  "v2.circle.err.remoteReadOnly": "Eksternt kan sirkelen bare vises: åpne Tune på det lokale nettverket for å endre den.",
   "v2.circle.members.err.updateServer": "Tune-serveren din kjenner ikke denne funksjonen ennå. Oppdater Tune.",
   "v2.circle.scene.info.pinMember": "By vist av {name}, medlem av «{circles}».",
   "v2.circle.notif.circleShared": "{name} deler sirkelen «{circle}» mellom medlemmene: du velger selv om du vil vises",

@@ -6144,6 +6144,8 @@ export default {
   "v2.circle.members.shown": "Vous êtes visible des membres de ce cercle qui l'ont aussi accepté.",
   "v2.circle.members.hidden": "Vous n'êtes plus visible des membres de ce cercle.",
   "v2.circle.members.err.notShared": "Ce cercle n'est plus partagé entre ses membres.",
+  "v2.circle.err.adminRequired": "Seul un administrateur de ce serveur peut modifier le cercle : vous pouvez le consulter.",
+  "v2.circle.err.remoteReadOnly": "À distance, le cercle se consulte seulement : pour le modifier, ouvrez Tune sur le réseau local.",
   "v2.circle.members.err.updateServer": "Votre serveur Tune ne connaît pas encore cette fonction. Mettez Tune à jour.",
   "v2.circle.scene.info.pinMember": "Ville montrée par {name}, membre de « {circles} ».",
   "v2.circle.notif.circleShared": "{name} partage le cercle « {circle} » entre ses membres : à vous de choisir d'y apparaître",

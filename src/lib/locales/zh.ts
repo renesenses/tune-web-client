@@ -6122,6 +6122,8 @@ export default {
   "v2.circle.members.shown": "同样同意的此圈子成员现在可以看到你。",
   "v2.circle.members.hidden": "此圈子的成员已看不到你。",
   "v2.circle.members.err.notShared": "此圈子已不再在成员之间共享。",
+  "v2.circle.err.adminRequired": "只有此服务器的管理员才能修改圈子：您可以查看它。",
+  "v2.circle.err.remoteReadOnly": "远程访问时只能查看圈子：如需修改，请在本地网络中打开 Tune。",
   "v2.circle.members.err.updateServer": "你的 Tune 服务器尚不支持此功能。请更新 Tune。",
   "v2.circle.scene.info.pinMember": "{name} 显示的城市，“{circles}”成员。",
   "v2.circle.notif.circleShared": "{name} 在成员之间共享圈子“{circle}”：是否显示由你决定",

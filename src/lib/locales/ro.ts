@@ -6122,6 +6122,8 @@ export default {
   "v2.circle.members.shown": "Membrii acestui cerc care au acceptat și ei te văd acum.",
   "v2.circle.members.hidden": "Membrii acestui cerc nu te mai văd.",
   "v2.circle.members.err.notShared": "Acest cerc nu mai este partajat între membrii săi.",
+  "v2.circle.err.adminRequired": "Doar un administrator al acestui server poate modifica cercul: îl puteți consulta.",
+  "v2.circle.err.remoteReadOnly": "De la distanță, cercul poate fi doar consultat: pentru a-l modifica, deschideți Tune în rețeaua locală.",
   "v2.circle.members.err.updateServer": "Serverul tău Tune nu cunoaște încă această funcție. Actualizează Tune.",
   "v2.circle.scene.info.pinMember": "Oraș arătat de {name}, membru al „{circles}”.",
   "v2.circle.notif.circleShared": "{name} partajează cercul „{circle}” între membrii săi: tu alegi dacă apari",

@@ -6121,6 +6121,8 @@ export default {
   "v2.circle.members.shown": "Medlemmar i den här cirkeln som också samtyckt ser dig nu.",
   "v2.circle.members.hidden": "Medlemmar i den här cirkeln ser dig inte längre.",
   "v2.circle.members.err.notShared": "Den här cirkeln delas inte längre mellan dess medlemmar.",
+  "v2.circle.err.adminRequired": "Endast en administratör för den här servern kan ändra cirkeln: du kan visa den.",
+  "v2.circle.err.remoteReadOnly": "På distans kan cirkeln bara visas: öppna Tune i det lokala nätverket för att ändra den.",
   "v2.circle.members.err.updateServer": "Din Tune-server känner inte till den här funktionen ännu. Uppdatera Tune.",
   "v2.circle.scene.info.pinMember": "Stad visad av {name}, medlem i ”{circles}”.",
   "v2.circle.notif.circleShared": "{name} delar cirkeln ”{circle}” mellan dess medlemmar: du väljer själv om du vill synas",
