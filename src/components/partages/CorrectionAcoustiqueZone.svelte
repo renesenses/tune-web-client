@@ -38,7 +38,7 @@
    */
   import type { Zone } from '../../lib/types';
   import * as api from '../../lib/api';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { messageRefusPremium } from '../../lib/premiumRefus';
   import FirResponseCurve from './FirResponseCurve.svelte';
 
@@ -65,16 +65,23 @@
   interface RiEnUsage { stream_sample_rate: number; file_sample_rate: number; resampled: boolean }
   let irFiles = $state<FichierRi[]>([]);
   let irInUse = $state<RiEnUsage | null>(null);
+  /**
+   * Garde de version : seul un serveur qui connaît le jeu par fréquence
+   * renvoie `files`. Sans lui, « Ajouter un fichier pour une autre
+   * fréquence » remplacerait le fichier principal (`per_rate` ignoré).
+   */
+  let jeuParFrequence = $state(false);
 
+  /** « 44,1 » en français, « 44.1 » en anglais. */
   function khz(hz: number): string {
-    const v = hz / 1000;
-    return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    return new Intl.NumberFormat($locale, { maximumFractionDigits: 1 }).format(hz / 1000);
   }
 
   function appliquerStatut(res: any) {
     irActive = res?.active ?? false;
     irPath = res?.ir_path ?? null;
-    irFiles = Array.isArray(res?.files) ? res.files : [];
+    jeuParFrequence = Array.isArray(res?.files);
+    irFiles = jeuParFrequence ? res.files : [];
     irInUse = res?.in_use ?? null;
   }
 
@@ -172,9 +179,15 @@
     if (!zone.id) return;
     irLoading = true;
     try {
-      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}?rate=${rate}`, { method: 'POST', headers: api.authHeaders() });
-      irRefresh++;
-      await relireStatut();
+      const res = await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}?rate=${rate}`, { method: 'POST', headers: api.authHeaders() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        irMessage = res.status === 402 ? messageRefusPremium(data) : $t('common.error') + (data?.error ? ' : ' + data.error : '');
+        irError = true;
+      } else {
+        irRefresh++;
+        await relireStatut();
+      }
     } catch { irMessage = $t('common.error'); irError = true; }
     irLoading = false;
   }
@@ -260,10 +273,12 @@
         {$t('zoneConfig.replace')}
         <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
       </label>
-      <label class="ir-btn ir-btn-2 ir-upload-btn">
-        {$t('zoneConfig.firAddRate')}
-        <input type="file" accept=".wav" class="ir-file-input" data-testid="ir-add-rate" onchange={(e) => handleIrUpload(e, true)} />
-      </label>
+      {#if jeuParFrequence}
+        <label class="ir-btn ir-btn-2 ir-upload-btn">
+          {$t('zoneConfig.firAddRate')}
+          <input type="file" accept=".wav" class="ir-file-input" data-testid="ir-add-rate" onchange={(e) => handleIrUpload(e, true)} />
+        </label>
+      {/if}
       <button class="ir-btn ir-btn-danger" onclick={clearIr}>{$t('zoneConfig.disable')}</button>
     </div>
     {#if zone.id !== null}

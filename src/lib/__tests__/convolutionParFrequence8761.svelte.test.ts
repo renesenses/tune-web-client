@@ -56,6 +56,17 @@ describe('#8761 — fichiers par fréquence et fichier utilisé', () => {
     expect(ligne?.textContent?.trim()).toBe('Fichier utilisé : 96 kHz (rééchantillonné depuis 48 kHz)');
   });
 
+  it('écrit les kHz à l’anglaise en anglais', async () => {
+    locale.set('en');
+    await monter({
+      active: true,
+      ir_path: '/d/ir/zone_7.wav',
+      files: [{ path: '/d/ir/zone_7.wav', sample_rate: 44100, main: true }],
+      in_use: { stream_sample_rate: 88200, file_sample_rate: 44100, resampled: true },
+    });
+    expect(hote.querySelector('[data-testid="ir-in-use"]')?.textContent?.trim()).toBe('File in use: 88.2 kHz (resampled from 44.1 kHz)');
+  });
+
   it('liste les fichiers par fréquence et marque celui pris tel quel', async () => {
     await monter({
       active: true,
@@ -67,10 +78,10 @@ describe('#8761 — fichiers par fréquence et fichier utilisé', () => {
       in_use: { stream_sample_rate: 44100, file_sample_rate: 44100, resampled: false },
     });
     const items = [...hote.querySelectorAll('[data-testid="ir-files"] li')];
-    expect(items.map((li) => li.textContent?.replace('×', '').trim())).toEqual(['44.1 kHz', '96 kHz']);
+    expect(items.map((li) => li.textContent?.replace('×', '').trim())).toEqual(['44,1 kHz', '96 kHz']);
     expect(items[0].classList.contains('ir-file-used')).toBe(true);
     expect(items[1].classList.contains('ir-file-used')).toBe(false);
-    expect(hote.querySelector('[data-testid="ir-in-use"]')?.textContent?.trim()).toBe('Fichier utilisé : 44.1 kHz');
+    expect(hote.querySelector('[data-testid="ir-in-use"]')?.textContent?.trim()).toBe('Fichier utilisé : 44,1 kHz');
     expect(hote.querySelector('[data-testid="ir-add-rate"]')).toBeTruthy();
   });
 
@@ -79,5 +90,8 @@ describe('#8761 — fichiers par fréquence et fichier utilisé', () => {
     expect(hote.querySelector('[data-testid="ir-in-use"]')).toBeNull();
     expect(hote.querySelector('[data-testid="ir-files"]')).toBeNull();
     expect(hote.querySelector('.ir-path')?.textContent).toBe('zone_7.wav');
+    // Garde de version : sans `files`, pas de dépôt par fréquence (un ancien
+    // serveur ignorerait `per_rate` et remplacerait le fichier principal).
+    expect(hote.querySelector('[data-testid="ir-add-rate"]')).toBeNull();
   });
 });
