@@ -17,6 +17,7 @@
   import {
     type CatalogueReaffectation, type EtatReaffectation, type ReglageReaffectation,
     getPrereglagesReaffectation, getReaffectationZone, setReaffectationZone, deleteReaffectationZone,
+    setBalanceZone, avertissementDeSortie,
     getReaffectationAlbum, setReaffectationAlbum, deleteReaffectationAlbum,
     nomsDesCanaux, redimensionner, lireGain, afficherGain, avecGain, formeValide, identite,
     LIBELLES_PREREGLAGES, CANAUX_MAX,
@@ -46,6 +47,18 @@
    *  `effective` décrit l'ancienne et ne s'affiche pas. */
   const etatAffiche = $derived(source === 'album' ? albumEtat : etat);
   const aJour = $derived(etatAffiche != null && JSON.stringify(reglage) === JSON.stringify(etatAffiche.settings));
+  /**
+   * tune-server-rust#8740 (balance sous GentooPlayer, écoute par DrUPnP).
+   * rc13 : seule une sortie locale appliquait la matrice. rc14 : un lecteur
+   * réseau l'applique aussi quand Tune traite le PCM, pour une matrice 2 → 2
+   * sans hausse de niveau, hors PURE et bit-perfect strict. L'avertissement
+   * ne s'affiche que quand la règle est VRAIMENT inactive, avec sa raison.
+   */
+  const avertissement = $derived(avertissementDeSortie(etat));
+  /** Lecteur réseau qui applique la règle : seulement si Tune traite le PCM. */
+  const reseauSousCondition = $derived(etat?.applies_to_output === true && etat?.requires_processed_pcm === true);
+  /** La balance −100…+100 du curseur, posée depuis la règle de zone. */
+  let balance = $state(0);
   /** La grille diffère de la règle enregistrée qu'elle montre (web#2146). */
   const nonEnregistre = $derived(etatAffiche != null && !aJour);
 
@@ -82,6 +95,7 @@
         if ($currentZoneId !== zid) return;
         const avant = nonEnregistre;
         etat = e; erreur = null;
+        balance = e.balance ?? 0;
         if (!avant && source === 'zone') reglage = e.settings;
         montrerLaRegleQuiPrime();
       })
@@ -135,7 +149,32 @@
       source = 'zone';
       reglage = etat.settings;
       erreur = null;
-      if (!etat.applied_live) notifications.info($t('v2.cr.nextTrack' as any));
+      notifierLEnregistrement(etat);
+    } catch (e: any) {
+      erreur = e?.message ?? String(e);
+    } finally { occupe = false; }
+  }
+
+  function notifierLEnregistrement(e: EtatReaffectation) {
+    const a = avertissementDeSortie(e);
+    if (a === 'v2.cr.networkOutput') notifications.info($t('v2.cr.savedNotApplied' as any), 8000);
+    else if (a) notifications.info($t(a as any), 8000);
+    else if (!e.applied_live) notifications.info($t('v2.cr.nextTrack' as any));
+  }
+
+  /** tune-server-rust#8740 — écrire la balance (matrice 2 → 2 de la zone). */
+  async function appliquerBalance() {
+    const zid = zoneRequise();
+    if (zid == null) return;
+    if (source === 'album' && !(await dialogs.confirm($t('v2.cr.saveZoneFromAlbumConfirm' as any)))) return;
+    occupe = true;
+    try {
+      etat = await setBalanceZone(zid, balance);
+      source = 'zone';
+      reglage = etat.settings;
+      balance = etat.balance ?? balance;
+      erreur = null;
+      notifierLEnregistrement(etat);
     } catch (e: any) {
       erreur = e?.message ?? String(e);
     } finally { occupe = false; }
@@ -184,6 +223,27 @@
       <div class="state">{$t('v2.cr.noZone' as any)}</div>
     {:else}
       <div class="warn" data-bit-perfect>{$t('v2.cr.bitPerfect' as any)}</div>
+      {#if avertissement}<div class="warn" data-sortie-reseau data-raison={etat?.output_reason ?? ''}>{$t(avertissement as any)}</div>{/if}
+      {#if reseauSousCondition}<p class="hint" data-reseau-pcm>{$t('v2.cr.networkProcessed' as any)}</p>{/if}
+
+      <div class="card" data-balance>
+        <div class="row">
+          <div class="lbl">
+            <span>{$t('v2.cr.balance' as any)}</span>
+            <span class="hint">{$t('v2.cr.balanceHint' as any)}</span>
+          </div>
+          <div class="balance">
+            <span aria-hidden="true">{nomsDesCanaux(2)[0]}</span>
+            <input type="range" min="-100" max="100" step="1" bind:value={balance}
+              aria-label={$t('v2.cr.balance' as any)} />
+            <span aria-hidden="true">{nomsDesCanaux(2)[1]}</span>
+            <output class="val" data-balance-valeur>{balance > 0 ? `+${balance}` : `${balance}`}</output>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="go" disabled={occupe} onclick={appliquerBalance}>{$t('v2.cr.balanceApply' as any)}</button>
+        </div>
+      </div>
 
       <div class="card">
         <div class="row" data-source={source}>
@@ -327,6 +387,9 @@
   .val{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .sel{background:var(--v2-surface); color:var(--v2-txt); border:1px solid var(--v2-line2); border-radius:8px; padding:6px 8px}
   .taille{display:flex; align-items:center; gap:8px}
+  .balance{display:flex; align-items:center; gap:8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
+  .balance input{width:180px; accent-color:var(--v2-acc2)}
+  .balance output{min-width:4ch; text-align:right}
   .grille-cadre{overflow-x:auto; padding:14px 0 6px}
   .grille{border-collapse:collapse; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
   .grille th{padding:4px 6px; color:var(--v2-txt2); font-weight:600; text-align:center}
