@@ -875,12 +875,13 @@
           <button class="v2-btn" onclick={rechargerSmart}>{$t('v2.pl.smartRetry' as any)}</button>
         </div>
       {/if}
-      {#if !smart.length && smartLecture === 'chargement'}
-        <div class="state">{$t('v2.pl.loading' as any)}</div>
-      {:else if !smart.length && smartLecture === 'lue'}
-        <div class="state">{$t('v2.pl.noSmart' as any)}</div>
-      {:else if !smart.length}
-        <!-- échec sans rien de lu avant : le message ci-dessus suffit -->
+      {#if !smart.length}
+        <!-- Échec sans rien de lu avant : le message ci-dessus suffit. -->
+        {#if smartLecture === 'chargement'}
+          <div class="state">{$t('v2.pl.loading' as any)}</div>
+        {:else if smartLecture === 'lue'}
+          <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+        {/if}
       {:else}
         <section class="grp">
           <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
