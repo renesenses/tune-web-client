@@ -7288,6 +7288,7 @@ export default {
   "v2.circle.worldCountries.country": "Quốc gia",
   "v2.circle.worldCountries.servers": "Máy chủ hoạt động",
   "v2.circle.worldCountries.updated": "Cập nhật: {date}",
+  "v2.circle.worldCountries.attribution": "Dữ liệu vị trí:",
   "volume.outputRange": "Âm lượng ngoài phạm vi: từ {min}% đến {max}%, theo bước {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Giao diện của tôi",

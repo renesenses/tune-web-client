@@ -3,12 +3,29 @@ export const CODES_PAYS = new Set('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX 
 export type NombrePays = number | '<5';
 export interface CaseMonde { lat: number; lng: number; n: number }
 export const rayonCase = (n: number) => Math.min(18, 2 + Math.sqrt(n));
-export interface PaysMonde { cases?: CaseMonde[]; pays: Record<string, NombrePays>; maj: string }
+/**
+ * #3240 — attribution de la source de géolocalisation (DB-IP, licence CC BY 4.0),
+ * fournie par le serveur : lien obligatoire là où la carte s'affiche.
+ */
+export interface AttributionMonde { label: string; url: string; licence?: string }
+export interface PaysMonde { cases?: CaseMonde[]; pays: Record<string, NombrePays>; maj: string; attribution?: AttributionMonde }
+
+/** Attribution lisible ou `null` : libellé non vide, lien http(s) seulement (jamais `javascript:`). */
+export function attributionValide(value: unknown): AttributionMonde | null {
+  if (!value || typeof value !== 'object') return null;
+  const { label, url, licence } = value as { label?: unknown; url?: unknown; licence?: unknown };
+  if (typeof label !== 'string' || !label.trim() || label.length > 200 || typeof url !== 'string') return null;
+  let lien: URL;
+  try { lien = new URL(url); } catch { return null; }
+  if (lien.protocol !== 'https:' && lien.protocol !== 'http:') return null;
+  const lic = typeof licence === 'string' && licence.trim() && licence.length <= 60 ? licence.trim() : undefined;
+  return { label: label.trim(), url: lien.href, ...(lic ? { licence: lic } : {}) };
+}
 export const URL_PAYS_MONDE = 'https://mozaiklabs.fr/api/v1/world/countries';
 
 export function paysMondeValides(value: unknown): PaysMonde | null {
   if (!value || typeof value !== 'object') return null;
-  const raw = value as { pays?: unknown; cases?: unknown; maj?: unknown };
+  const raw = value as { pays?: unknown; cases?: unknown; maj?: unknown; attribution?: unknown };
   if (!raw.pays || typeof raw.pays !== 'object' || Array.isArray(raw.pays)
     || typeof raw.maj !== 'string' || !Number.isFinite(Date.parse(raw.maj))) return null;
   const pays: Record<string, NombrePays> = Object.create(null);
@@ -30,7 +47,9 @@ export function paysMondeValides(value: unknown): PaysMonde | null {
     const key = `${lat}:${lng}`;
     if (!seen.has(key)) { cases.push({ lat, lng, n }); seen.add(key); }
   }
-  return { pays, ...(raw.cases !== undefined ? { cases } : {}), maj: raw.maj };
+  // Ancien site sans le champ (ou champ illisible) : pas d'attribution affichée.
+  const attribution = attributionValide(raw.attribution);
+  return { pays, ...(raw.cases !== undefined ? { cases } : {}), maj: raw.maj, ...(attribution ? { attribution } : {}) };
 }
 
 export async function lirePaysMonde(): Promise<PaysMonde | null> {

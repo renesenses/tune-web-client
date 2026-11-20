@@ -7436,6 +7436,7 @@ export default {
   "v2.circle.worldCountries.country": "国",
   "v2.circle.worldCountries.servers": "アクティブなサーバー",
   "v2.circle.worldCountries.updated": "更新日時：{date}",
+  "v2.circle.worldCountries.attribution": "位置データ：",
   "volume.outputRange": "音量が範囲外です：{min}%～{max}%、刻み幅は {step}% です。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "マイテーマ",

@@ -7435,6 +7435,7 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktiva servrar",
   "v2.circle.worldCountries.updated": "Uppdaterad: {date}",
+  "v2.circle.worldCountries.attribution": "Platsdata:",
   "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mitt tema",

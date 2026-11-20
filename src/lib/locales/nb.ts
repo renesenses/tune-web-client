@@ -7281,6 +7281,7 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktive servere",
   "v2.circle.worldCountries.updated": "Oppdatert: {date}",
+  "v2.circle.worldCountries.attribution": "Posisjonsdata:",
   "volume.outputRange": "Volumet er utenfor området: fra {min} % til {max} %, i trinn på {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mitt tema",

@@ -7436,6 +7436,7 @@ export default {
   "v2.circle.worldCountries.country": "Land",
   "v2.circle.worldCountries.servers": "Aktive Server",
   "v2.circle.worldCountries.updated": "Aktualisiert: {date}",
+  "v2.circle.worldCountries.attribution": "Standortdaten:",
   "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mein Design",

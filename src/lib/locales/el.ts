@@ -7281,6 +7281,7 @@ export default {
   "v2.circle.worldCountries.country": "Χώρα",
   "v2.circle.worldCountries.servers": "Ενεργοί διακομιστές",
   "v2.circle.worldCountries.updated": "Ενημερώθηκε: {date}",
+  "v2.circle.worldCountries.attribution": "Δεδομένα τοποθεσίας:",
   "volume.outputRange": "Η ένταση είναι εκτός ορίων: από {min}% έως {max}%, με βήμα {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Το θέμα μου",

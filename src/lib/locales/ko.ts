@@ -7436,6 +7436,7 @@ export default {
   "v2.circle.worldCountries.country": "국가",
   "v2.circle.worldCountries.servers": "활성 서버",
   "v2.circle.worldCountries.updated": "업데이트: {date}",
+  "v2.circle.worldCountries.attribution": "위치 데이터:",
   "volume.outputRange": "음량이 범위를 벗어났습니다: {min}%~{max}%, 조절 간격 {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "내 테마",

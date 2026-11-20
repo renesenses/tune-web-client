@@ -7281,6 +7281,7 @@ export default {
   "v2.circle.worldCountries.country": "Kraj",
   "v2.circle.worldCountries.servers": "Aktywne serwery",
   "v2.circle.worldCountries.updated": "Zaktualizowano: {date}",
+  "v2.circle.worldCountries.attribution": "Dane lokalizacji:",
   "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Mój motyw",
