@@ -4343,6 +4343,8 @@ export default {
   "streaming.allGenres": "Összes műfaj",
   "streaming.pickGenre": "Válassz egy műfajt az albumok megtekintéséhez.",
   "streaming.genreNoAlbums": "Nincs album ebben a műfajban.",
+  "streaming.genreRefused": "A(z) {service} elutasítja ezt a műfajt: valószínűleg nem érhető el az Ön országában.",
+  "streaming.genreLoadFailed": "Nem sikerült betölteni ezt a műfajt. Próbálja újra később.",
   "streaming.genrePlaylists": 'Lejátszási listák ebben a műfajban',
   "streaming.genresEmpty": "Ez a szolgáltatás nem kínál műfajokat.",
   "v2.hist.eyebrow": "Amit hallgatott",

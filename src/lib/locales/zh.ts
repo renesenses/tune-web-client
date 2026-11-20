@@ -4389,6 +4389,8 @@ export default {
   "streaming.allGenres": '全部风格',
   "streaming.pickGenre": '选择一个风格以查看其专辑。',
   "streaming.genreNoAlbums": '该风格下没有专辑。',
+  "streaming.genreRefused": "{service} 拒绝了该风格：您所在的国家或地区可能不提供该风格。",
+  "streaming.genreLoadFailed": "无法加载该风格，请稍后重试。",
   "streaming.genrePlaylists": '该风格的歌单',
   "streaming.genresEmpty": '该服务未提供风格分类。',
   "v2.hist.eyebrow": "你听过的音乐",

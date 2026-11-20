@@ -4389,6 +4389,8 @@ export default {
   "streaming.allGenres": 'Toate genurile',
   "streaming.pickGenre": 'Alege un gen pentru a-i vedea albumele.',
   "streaming.genreNoAlbums": 'Niciun album în acest gen.',
+  "streaming.genreRefused": "{service} refuză acest gen: probabil nu este disponibil în țara dvs.",
+  "streaming.genreLoadFailed": "Genul nu a putut fi încărcat. Încercați din nou mai târziu.",
   "streaming.genrePlaylists": 'Playlisturi din acest gen',
   "streaming.genresEmpty": 'Acest serviciu nu oferă genuri.',
   "v2.hist.eyebrow": "Ce ați ascultat",

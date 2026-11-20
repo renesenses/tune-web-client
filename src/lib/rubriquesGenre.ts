@@ -82,11 +82,42 @@ function bande(s: FeaturedSection, albums: unknown[]): BandeRubrique {
   return { id: s.id, cle: CLE_RUBRIQUE[s.id] ?? null, nom: s.name ?? s.id, albums };
 }
 
-/** La bande SANS titre : exactement ce que l'écran rendait avant ce lot. */
+/**
+ * La bande SANS titre : exactement ce que l'écran rendait avant ce lot.
+ *
+ * #3300 — son échec n'est plus avalé. C'est le dernier recours de l'écran :
+ * quand il échoue, rien d'autre n'a répondu, et une liste vide ferait croire
+ * à un genre sans albums. Depuis tune-server-rust#9247, un genre que TIDAL
+ * refuse rend un 502 au lieu d'un `200 []` : l'erreur remonte jusqu'à l'écran,
+ * qui le dit (`motifEchecGenre`).
+ */
 async function bandeParDefaut(charger: ChargeurRubrique): Promise<BandeRubrique[]> {
-  const albums = await charger().catch(() => [] as unknown[]);
+  const albums = await charger();
   return albums?.length ? [{ id: '', cle: null, nom: '', albums }] : [];
 }
+
+/**
+ * Pourquoi les albums d'un genre n'ont pas pu être lus (#3300).
+ *
+ * - `refuse` : le serveur rend 502, c'est-à-dire que le SERVICE a refusé la
+ *   demande (tune-server-rust#9247 : TIDAL répond 404 sur un genre qu'il ne
+ *   sert pas dans le pays du compte) ;
+ * - `echec` : toute autre panne (réseau, serveur, session).
+ *
+ * Aucun des deux n'est « aucun album dans ce genre ».
+ */
+export type EchecGenre = 'refuse' | 'echec';
+
+export function motifEchecGenre(err: unknown): EchecGenre {
+  const statut = (err as { status?: unknown } | null)?.status;
+  return statut === 502 ? 'refuse' : 'echec';
+}
+
+/** La clé de traduction du message de l'écran pour un échec du genre. */
+export const CLE_ECHEC_GENRE: Readonly<Record<EchecGenre, string>> = {
+  refuse: 'streaming.genreRefused',
+  echec: 'streaming.genreLoadFailed',
+};
 
 /** Une rubrique qui échoue — un `type` inconnu vaut un 400 de Qobuz — ne doit
  *  pas emporter les autres avec elle : elle rend une liste vide, et disparaît. */
@@ -107,6 +138,10 @@ function sonder(charger: ChargeurRubrique, id: string): Promise<unknown[]> {
  *    demandées ;
  * 3. **une rubrique vide ou en erreur** — elle est écartée ; si toutes le sont,
  *    on retombe sur la liste par défaut plutôt que sur un écran vide.
+ *
+ * Si la liste par défaut échoue à son tour, la promesse est REJETÉE avec
+ * l'erreur de l'API (#3300) : l'écran distingue alors le refus du service
+ * d'un genre réellement vide.
  *
  * Deux bandes ne portent jamais la même liste : à empreinte égale, la première
  * gagne.

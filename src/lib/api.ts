@@ -7299,9 +7299,10 @@ export function getStreamingGenres(service: string, parentId?: string) {
  * pas `section`, il l'ignore et re-sert les nouveautés : c'est
  * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
  */
-export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string, sansBandeau = false) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
+  // #3300 — `sansBandeau` : l'écran Genres dit lui-même le refus du service.
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`, undefined, undefined, sansBandeau);
 }
 
 /**
