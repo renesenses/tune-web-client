@@ -7437,6 +7437,7 @@ export default {
   "v2.circle.worldCountries.country": "国家",
   "v2.circle.worldCountries.servers": "活跃服务器",
   "v2.circle.worldCountries.updated": "更新时间：{date}",
+  "v2.circle.worldCountries.attribution": "位置数据：",
   "volume.outputRange": "音量超出范围：{min}% 至 {max}%，步长为 {step}%。",
   // #2527 — « Mon thème ».
   "monTheme.titre": "我的主题",

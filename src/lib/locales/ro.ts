@@ -7437,6 +7437,7 @@ export default {
   "v2.circle.worldCountries.country": "Țară",
   "v2.circle.worldCountries.servers": "Servere active",
   "v2.circle.worldCountries.updated": "Actualizat: {date}",
+  "v2.circle.worldCountries.attribution": "Date de localizare:",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Tema mea",

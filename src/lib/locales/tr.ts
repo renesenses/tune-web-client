@@ -7272,6 +7272,7 @@ export default {
   "v2.circle.worldCountries.country": "Ülke",
   "v2.circle.worldCountries.servers": "Etkin sunucular",
   "v2.circle.worldCountries.updated": "Güncellendi: {date}",
+  "v2.circle.worldCountries.attribution": "Konum verileri:",
   "volume.outputRange": "Ses düzeyi aralık dışında: %{min} ile %{max} arası, %{step} adımlarla.",
   "monTheme.titre": "Temam",
   "monTheme.hint": "Arayüzün tüm renklerini seçin. Profilinizde saklanır, tüm cihazlarınızda geçerlidir.",

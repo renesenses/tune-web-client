@@ -7396,6 +7396,7 @@ export default {
   "v2.circle.worldCountries.country": "Ország",
   "v2.circle.worldCountries.servers": "Aktív kiszolgálók",
   "v2.circle.worldCountries.updated": "Frissítve: {date}",
+  "v2.circle.worldCountries.attribution": "Helymeghatározási adatok:",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "Saját téma",

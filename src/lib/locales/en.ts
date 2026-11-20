@@ -7457,6 +7457,7 @@ export default {
   "v2.circle.worldCountries.country": "Country",
   "v2.circle.worldCountries.servers": "Active servers",
   "v2.circle.worldCountries.updated": "Updated: {date}",
+  "v2.circle.worldCountries.attribution": "Location data:",
   "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",
   // #2527 — « Mon thème ».
   "monTheme.titre": "My theme",
