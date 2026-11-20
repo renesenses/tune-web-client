@@ -148,7 +148,13 @@
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
-  import { retablirLargeurs } from '../../lib/largeursColonnes';
+  import { retablirLargeurs as retablirToutesLargeurs, largeursColonnes, largeursDe, ECRANS_COLONNES } from '../../lib/largeursColonnes';
+  const largeursPersonnalisees = $derived(ECRANS_COLONNES.some(e => Object.keys(largeursDe($largeursColonnes, e)).length > 0));
+  let largeursRetablies = $state(false);
+  function retablirLargeurs() {
+    retablirToutesLargeurs();
+    largeursRetablies = true;
+  }
   import { retablirOrdre } from '../../lib/ordreColonnes';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -5287,10 +5293,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.colWidthsReset' as any)}</span>
                   <span class="hint">{$t('settings.colWidthsResetHint' as any)}</span>
                 </div>
-                <button class="lnk" type="button" data-retablir-largeurs onclick={() => retablirLargeurs()}>
+                <button class="lnk" type="button" disabled={!largeursPersonnalisees} data-retablir-largeurs onclick={() => retablirLargeurs()}>
                   {$t('settings.colWidthsResetAction' as any)}
                 </button>
               </div>
+
+              <p class="hint" role="status" aria-live="polite" data-largeurs-retablies>{largeursRetablies ? $t('settings.colWidthsRestored') : ''}</p>
 
               <!-- web#2599 — « Rétablir l'ordre par défaut » : même place, même
                    portée (tous les écrans) que les largeurs. -->

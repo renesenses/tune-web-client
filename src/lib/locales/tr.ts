@@ -1,4 +1,5 @@
 export default {
+  "settings.colWidthsRestored": "Sütun genişlikleri geri yüklendi",
   "v2.queue.waiting": "Bekleyen kuyruk",
   "classicalTags.title": "Klasik müzik etiketleri",
   "classicalTags.hint": "Her rol için okunan etiketler. CONDUCTOR, WORK ve MOVEMENTNAME tüm varyantlarını (ID3, MP4) kapsar; başka her ad özel bir etikettir: CHORUS, TXXX:CHORUS etiketini de okur.",
@@ -5163,8 +5164,8 @@ export default {
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "{m} modundan itibaren sunulur.",
   "settings.colWidthsReset": "Sütun genişlikleri",
-  "settings.colWidthsResetHint": "Bir albüm sayfasında, bir çalma listesinde veya Kitaplık › Parçalar'da elle genişletilen ya da daraltılan sütunlar otomatik genişliklerine döner.",
-  "settings.colWidthsResetAction": "Genişlikleri sıfırla",
+  "settings.colWidthsResetHint": "Albüm sayfasında, çalma listesinde veya Kütüphane › Parçalar bölümünde elle genişletilen ya da daraltılan sütunlar otomatik genişliklerine döner. Kaydırma çubuklarının kalınlığını değiştirmez (bkz. “Geniş kaydırma çubukları”).",
+  "settings.colWidthsResetAction": "Sütun genişliklerini otomatiğe döndür",
   "settings.colOrderReset": "Sütun sırası",
   "settings.colOrderResetHint": "Bir albüm sayfasında, bir çalma listesinde veya Kitaplık › Parçalar'da elle taşınan sütunlar varsayılan sıralarına döner.",
   "settings.colOrderResetAction": "Varsayılan sırayı geri yükle",
