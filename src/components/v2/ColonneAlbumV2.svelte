@@ -14,6 +14,8 @@
   import { t as tr } from '../../lib/i18n';
   import type { Album, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import PochetteActions from './PochetteActions.svelte';
   import { chargerCreditsAlbum } from '../../lib/library/chargerCredits';
   import {
@@ -47,9 +49,12 @@
     /** Ouvre la page d'un artiste : par sa fiche de bibliothèque (`id`), sinon
      *  par son nom — la fiche se referme d'abord (voir `AlbumDetailV2`). */
     onOuvrirArtiste?: ((a: { id: number | null; nom: string }) => void) | null;
+    /** web#3315 — la destination d'une valeur de « Album details » (année,
+     *  genre, label) ; `null` ou absent : la valeur reste du texte. */
+    lienDetail?: ((cle: string, valeur: string) => Entite | null) | null;
   }
   let { album, artistId, nomArtiste, annee, pistes, exclus = [], avecCredits, onArtiste = null, onAlbum, onCredits = null,
-    complement = {}, onBlocs = null, onOuvrirArtiste = null }: Props = $props();
+    complement = {}, onBlocs = null, onOuvrirArtiste = null, lienDetail = null }: Props = $props();
 
   /**
    * L'artiste LOCAL : son identifiant s'il est connu, sinon — album de service
@@ -200,7 +205,9 @@
       <h2>{$tr('v2.album.fiche.details' as any)}</h2>
       <dl class="grille">
         {#each details as d (d.cle)}
-          <dt>{$tr(d.cle as any)}</dt><dd>{d.valeur}</dd>
+          <dt>{$tr(d.cle as any)}</dt>
+          <!-- web#3315 — année, genre, label : un lien quand la fiche connaît leur page. -->
+          <dd data-detail={d.cle}>{#if !lienDetail}{d.valeur}{:else if d.valeurs}{#each d.valeurs as v, i (i)}{#if i > 0}, {/if}<LienEntite entite={lienDetail(d.cle, v) ?? { type: 'genre', nom: v, ouvrir: null }} />{/each}{:else}{@const e = lienDetail(d.cle, d.valeur)}{#if e}<LienEntite entite={e} />{:else}{d.valeur}{/if}{/if}</dd>
         {/each}
       </dl>
     </section>
