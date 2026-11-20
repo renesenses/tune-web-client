@@ -38,6 +38,7 @@
   import type { Snippet } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
+  import { estGenreRefuse } from '../../lib/rubriquesGenre';
   import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
   import * as api from '../../lib/api';
   import AccueilBibliothequeVide from '../partages/AccueilBibliothequeVide.svelte';
@@ -797,6 +798,11 @@
         // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
         // « réessayer » : réessayer ne changera rien.
         if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
+        // #3300 — un genre que le service refuse (409 `genre_refuse` : TIDAL
+        // ne le sert pas dans le pays du compte) n'est pas non plus une
+        // panne : « non proposé », sans rouge ni « Réessayer ». Une panne
+        // (502) reste un échec, avec son bouton.
+        if (estGenreRefuse(err)) { majEtat(id, { phase: 'non-propose' }); return; }
         // tune-server-rust#8578 — rubrique RETIRÉE par le service (Spotify,
         // applications personnelles) : la phrase qui le dit, sans rouge ni
         // « Réessayer » (décision de Bertrand, 12/11/2026).

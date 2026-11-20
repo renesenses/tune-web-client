@@ -7299,7 +7299,8 @@ export function getStreamingGenres(service: string, parentId?: string) {
  * pas `section`, il l'ignore et re-sert les nouveautés : c'est
  * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
  *
- * #3300 — `sansBandeau` : l'écran Genres dit lui-même le refus du service (502).
+ * #3300 — `sansBandeau` : l'écran Genres et les widgets de genre disent
+ * eux-mêmes l'échec (refus 409 `genre_refuse` ou panne 502), sans bandeau.
  */
 export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string, sansBandeau = false) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';

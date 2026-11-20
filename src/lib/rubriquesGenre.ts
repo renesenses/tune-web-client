@@ -88,8 +88,8 @@ function bande(s: FeaturedSection, albums: unknown[]): BandeRubrique {
  * #3300 — son échec n'est plus avalé. C'est le dernier recours de l'écran :
  * quand il échoue, rien d'autre n'a répondu, et une liste vide ferait croire
  * à un genre sans albums. Depuis tune-server-rust#9247, un genre que TIDAL
- * refuse rend un 502 au lieu d'un `200 []` : l'erreur remonte jusqu'à l'écran,
- * qui le dit (`motifEchecGenre`).
+ * refuse rend une erreur au lieu d'un `200 []` : elle remonte jusqu'à l'écran,
+ * qui la dit (`motifEchecGenre`).
  */
 async function bandeParDefaut(charger: ChargeurRubrique): Promise<BandeRubrique[]> {
   const albums = await charger();
@@ -99,18 +99,31 @@ async function bandeParDefaut(charger: ChargeurRubrique): Promise<BandeRubrique[
 /**
  * Pourquoi les albums d'un genre n'ont pas pu être lus (#3300).
  *
- * - `refuse` : le serveur rend 502, c'est-à-dire que le SERVICE a refusé la
- *   demande (tune-server-rust#9247 : TIDAL répond 404 sur un genre qu'il ne
- *   sert pas dans le pays du compte) ;
- * - `echec` : toute autre panne (réseau, serveur, session).
+ * - `refuse` : le serveur rend **409 avec le code stable `genre_refuse`**
+ *   (tune-server-rust, suite de #9247 : TIDAL répond 404/400 sur un genre
+ *   qu'il ne sert pas dans le pays du compte) ;
+ * - `echec` : TOUT le reste — un 502 compris. `svc_response` rend 502 pour
+ *   n'importe quelle panne d'un service (Qobuz, Deezer, Spotify en
+ *   difficulté, délai de TIDAL) : le lire comme un refus du genre aurait dit
+ *   « TIDAL refuse ce genre » à tort.
  *
  * Aucun des deux n'est « aucun album dans ce genre ».
  */
 export type EchecGenre = 'refuse' | 'echec';
 
+/** Le code stable du refus d'un genre par le service (409 JSON du serveur,
+ *  `tune_core::streaming::REFUS_GENRE_DU_SERVICE`). */
+export const CODE_GENRE_REFUSE = 'genre_refuse';
+
+/** L'erreur de l'API dit-elle « le service refuse ce genre » ? Seul le 409 au
+ *  code `genre_refuse` le dit ; aucun statut seul ne suffit. */
+export function estGenreRefuse(err: unknown): boolean {
+  const e = err as { status?: unknown; code?: unknown } | null;
+  return e?.status === 409 && e?.code === CODE_GENRE_REFUSE;
+}
+
 export function motifEchecGenre(err: unknown): EchecGenre {
-  const statut = (err as { status?: unknown } | null)?.status;
-  return statut === 502 ? 'refuse' : 'echec';
+  return estGenreRefuse(err) ? 'refuse' : 'echec';
 }
 
 /** La clé de traduction du message de l'écran pour un échec du genre. */

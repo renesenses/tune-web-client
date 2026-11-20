@@ -1951,12 +1951,17 @@
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
           <div class="state">{$t('v2.common.noResult' as any)}</div>
-        {:else if genreId && genreEchec && !genrePlaylists.length}
-          <!-- #3300 — le service a refusé le genre (502, tune-server-rust#9247)
-               ou la lecture a échoué : on le DIT, au lieu d'une page vide ou
-               d'un « aucun album » qui serait faux. Si des playlists du genre
-               sont arrivées, elles suffisent : on retombe sur « aucun album ». -->
-          <div class="state" data-genre-echec={genreEchec}>{$t(CLE_ECHEC_GENRE[genreEchec] as any).replace('{service}', nomDeService(active ?? ''))}</div>
+        {:else if genreId && genreEchec === 'echec'}
+          <!-- #3300 — la lecture des albums a ÉCHOUÉ (panne du service, délai,
+               502) : on le dit, playlists du genre arrivées ou non. « Aucun
+               album dans ce genre » serait faux : on n'en sait rien. -->
+          <div class="state" data-genre-echec="echec">{$t(CLE_ECHEC_GENRE.echec as any)}</div>
+        {:else if genreId && genreEchec === 'refuse' && !genrePlaylists.length}
+          <!-- #3300 — le service a REFUSÉ le genre (409 `genre_refuse`, seul
+               signal retenu) : on le dit, au lieu d'une page vide. Si des
+               playlists du genre sont arrivées, elles sont la matière du genre
+               et « aucun album » est exact : on y retombe. -->
+          <div class="state" data-genre-echec="refuse">{$t(CLE_ECHEC_GENRE.refuse as any).replace('{service}', nomDeService(active ?? ''))}</div>
         {:else if genreId}
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
