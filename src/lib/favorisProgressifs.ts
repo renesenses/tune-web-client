@@ -36,6 +36,20 @@ export function elementsDe(reponse: unknown, nature: NatureFavori): unknown[] {
 }
 
 /**
+ * La portée qui manque au service pour lire cette nature, ou `null`.
+ *
+ * tune-server-rust#9250 (#3307) : un compte Spotify relié avant #8579 n'a pas
+ * `user-follow-read`. `favorites/artists` rend alors **200** avec une liste
+ * vide et `{"portee_manquante": "user-follow-read", "code":
+ * "spotify_reconnexion_artistes_suivis"}`. Sans lecture de ce champ, l'écran
+ * dirait « aucun favori » là où il faut dire « reconnectez Spotify ».
+ */
+export function porteeManquante(reponse: unknown): string | null {
+  const v = (reponse as Record<string, unknown> | null | undefined)?.portee_manquante;
+  return typeof v === 'string' && v.length > 0 ? v : null;
+}
+
+/**
  * La réponse à une première page contient-elle TOUT ?
  *
  * - pas de clé `total` : serveur antérieur, qui a rendu la liste entière ;
@@ -55,12 +69,15 @@ export function pageComplete(reponse: unknown, nature: NatureFavori, limit: numb
  * la suite. `afficher` reçoit chaque liste au moment où elle est connue ;
  * `pret` est appelé une fois, quand les trois premières pages ont répondu.
  * La promesse rendue se résout quand tout — suite comprise — est terminé.
+ * `signalerPortee` est appelé quand le service refuse une nature faute d'une
+ * portée (voir `porteeManquante`).
  */
 export async function chargerFavorisProgressifs(
   lire: LectureFavoris,
   afficher: (nature: NatureFavori, items: unknown[]) => void,
   pret: () => void,
   limit = PREMIERE_PAGE,
+  signalerPortee?: (nature: NatureFavori, portee: string) => void,
 ): Promise<void> {
   let restantes = NATURES.length;
   const premierePageVue = () => { if (--restantes === 0) pret(); };
@@ -70,6 +87,8 @@ export async function chargerFavorisProgressifs(
     try {
       const reponse = await lire(nature, { limit, offset: 0 });
       afficher(nature, elementsDe(reponse, nature));
+      const portee = porteeManquante(reponse);
+      if (portee) signalerPortee?.(nature, portee);
       complete = pageComplete(reponse, nature, limit);
     } catch {
       afficher(nature, []);
