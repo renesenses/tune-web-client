@@ -4257,6 +4257,7 @@ export default {
   "v2.queue.loadFailed": "Kön är inte tillgänglig.",
   "v2.queue.upNextCount": "{n} härnäst",
   "v2.queue.remaining": "{d} kvar",
+  "v2.queue.waiting": "Väntande kö",
   "v2.queue.upNext": "Härnäst",
   "v2.queue.upNextNone": "inget",
   "v2.queue.playTrack": "Spela {t}",

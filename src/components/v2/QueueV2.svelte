@@ -29,7 +29,7 @@
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
-  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne, estLaPisteEnLecture, nowPlayingToTrack }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
@@ -191,10 +191,14 @@
   // correspondance rang ↔ ligne est conservée par `map`.
   const tracks = $derived($queueTracks.map(pisteDeFile));
   const pos = $derived($queuePosition);
-  const current = $derived(tracks[pos] ?? null);
-  const upNext = $derived(tracks.slice(pos + 1));
+  const pisteAuCurseur = $derived(tracks[pos] ?? null);
+  const horsFile = $derived($currentTrack != null &&
+    (!pisteAuCurseur || !estLaPisteEnLecture(pisteAuCurseur, $currentTrackId, $currentTrack)));
+  const current = $derived(horsFile && $currentTrack ? nowPlayingToTrack($currentTrack) : pisteAuCurseur);
+  const debutSuite = $derived(Math.max(0, horsFile ? pos : pos + 1));
+  const upNext = $derived(tracks.slice(debutSuite));
   let albumsOuverts = $state(new Set<string>());
-  const lignes = $derived(lignesDeFile($queueTracks, pos, albumsOuverts));
+  const lignes = $derived(lignesDeFile($queueTracks, debutSuite - 1, albumsOuverts));
   function basculerAlbum(cle: string) {
     const suivant = new Set(albumsOuverts);
     if (suivant.has(cle)) suivant.delete(cle); else suivant.add(cle);
@@ -487,7 +491,7 @@
       <div class="state">{$tr('v2.queue.loading' as any)}</div>
     {:else if $currentZoneId == null}
       <div class="state">{$tr('v2.queue.noZone' as any)}</div>
-    {:else if !tracks.length}
+    {:else if !tracks.length && !current}
       <div class="state">{$tr('v2.queue.empty' as any)}</div>
     {:else}
       {#if current}
@@ -500,7 +504,7 @@
               <div class="na" use:bulleTexte>{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
-            <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
+            <span class="ndur">{current.source === 'radio' ? $tr('v2.pl.radioLive') : formatTime(current.duration_ms ?? 0)}</span>
             <!-- 🔴 #3780 — la piste EN COURS portait zéro action, alors que
                  chaque ligne « à suivre » en dessous porte la barre complète.
                  FabienM, fil 1739 point 6 : « Menu file d'attente : il manque
@@ -511,13 +515,13 @@
                  saut au rang courant, donc une reprise du titre depuis son
                  début. Le geste que la file sait faire, et le seul sens que
                  « la suite » ait ici. -->
-            <PisteActions piste={current} onLire={() => jump(pos)} onLireDepuis={() => jump(pos)} />
+            {#if !horsFile}<PisteActions piste={current} onLire={() => jump(pos)} onLireDepuis={() => jump(pos)} />{/if}
           </div>
         </section>
       {/if}
 
       <section class="sec">
-        <h2>{$tr('v2.queue.upNext' as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
+        <h2>{$tr((horsFile ? 'v2.queue.waiting' : 'v2.queue.upNext') as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
         <p class="aide-file" id="aide-deplacement-file">{$tr('v2.queue.moveHelp' as any)}</p>
         {#if !blocsPermis && lignes.some(l => l.album)}<p class="aide-file">{$tr('v2.queue.blockUnavailable' as any)}</p>{/if}
         <span class="annonce-file" role="status" aria-live="polite">{saisie ? $tr('v2.queue.movePosition' as any).replace('{n}', $formatNombre(rangApresDepot(saisie.ligne, saisie.cible) + 1)) : ''}</span>
@@ -529,7 +533,7 @@
           {#each visibles as ligne (ligne.cle)}
             {@const t = ligne.piste}
             {@const idx = ligne.debut}
-            {@const i = idx - pos - 1}
+            {@const i = idx - debutSuite}
             <div class="row" data-queue-key={ligne.cle} data-queue-start={idx} data-queue-album={ligne.album ? '' : undefined}
               class:cible-depot={saisie?.cible.cle === ligne.cle} class:np={!ligne.album && t.id != null && t.id === $currentTrackId} class:bannie={!ligne.album && bannieDe(t)}>
               <button class="poignee-file" data-queue-handle={ligne.cle} disabled={!deplacable(ligne)}

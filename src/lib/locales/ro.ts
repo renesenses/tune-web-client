@@ -4258,6 +4258,7 @@ export default {
   "v2.queue.loadFailed": "Coada nu este disponibilă.",
   "v2.queue.upNextCount": "{n} în continuare",
   "v2.queue.remaining": "{d} rămase",
+  "v2.queue.waiting": "Coadă în așteptare",
   "v2.queue.upNext": "În continuare",
   "v2.queue.upNextNone": "nimic",
   "v2.queue.playTrack": "Redă {t}",

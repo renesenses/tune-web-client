@@ -4258,6 +4258,7 @@ export default {
   "v2.queue.loadFailed": "대기열을 사용할 수 없습니다.",
   "v2.queue.upNextCount": "다음 {n}곡",
   "v2.queue.remaining": "{d} 남음",
+  "v2.queue.waiting": "대기 중인 재생 목록",
   "v2.queue.upNext": "다음 곡",
   "v2.queue.upNextNone": "없음",
   "v2.queue.playTrack": "{t} 재생",

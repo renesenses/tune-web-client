@@ -4258,6 +4258,7 @@ export default {
   "v2.queue.loadFailed": "Coda non disponibile.",
   "v2.queue.upNextCount": "{n} in coda",
   "v2.queue.remaining": "{d} rimanenti",
+  "v2.queue.waiting": "Coda in attesa",
   "v2.queue.upNext": "In coda",
   "v2.queue.upNextNone": "niente",
   "v2.queue.playTrack": "Riproduci {t}",
