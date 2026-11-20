@@ -181,6 +181,9 @@ export class ServeurTessSimule {
         return json(200, this.reponse(id));
       }
     }
+    // Serveur AVEC TESS, zone inconnue : la route existe, la zone non (forme
+    // de T08). Ce 404-là ne veut PAS dire « pas de TESS ».
+    if (zone && this.avecTess) return json(404, { error: 'zone_not_found', zone_id: Number(zone[1]) });
     if (/\/api\/v1\/tess\/presets(?:\?|$)/.test(url) && this.avecTess && this.presets) return json(200, this.presets);
     return json(404, { error: 'not_found' });
   };

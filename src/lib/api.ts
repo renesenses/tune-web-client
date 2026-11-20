@@ -13041,7 +13041,18 @@ import { estReponseTess, estRefusTess } from './tess';
 export type ResultatTess =
   | { ok: true; reponse: import('./tess').ReponseTessZone }
   | { ok: false; refus: import('./tess').RefusTess }
-  | { ok: false; absent: true };
+  | { ok: false; absent: true }
+  /**
+   * 404 d'une zone que le serveur ne connaît pas (`{"error":"zone_not_found"}`,
+   * forme de T08) : la route EXISTE, donc ce n'est PAS « pas de TESS ». La
+   * capacité ne doit pas basculer à `non` sur une zone supprimée entre-temps.
+   */
+  | { ok: false; zoneInconnue: true };
+
+/** Le corps d'un 404 dit-il « zone inconnue » (et non « route inconnue ») ? */
+export function estZoneInconnueTess(corps: unknown): boolean {
+  return typeof corps === 'object' && corps !== null && (corps as any).error === 'zone_not_found';
+}
 
 async function appelTess(chemin: string, options?: RequestInit): Promise<ResultatTess> {
   let statut = 200;
@@ -13055,6 +13066,7 @@ async function appelTess(chemin: string, options?: RequestInit): Promise<Resulta
     if (statut === 404 || statut === 405) return { ok: false, absent: true };
     throw e;
   }
+  if (statut === 404 && estZoneInconnueTess(corps)) return { ok: false, zoneInconnue: true };
   if (statut === 404 || statut === 405) return { ok: false, absent: true };
   if (estRefusTess(corps)) return { ok: false, refus: corps };
   if (estReponseTess(corps)) return { ok: true, reponse: corps };
