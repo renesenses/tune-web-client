@@ -7400,6 +7400,7 @@ export default {
   "v2.circle.worldCircles.legend": "Tune-körök országonként, névtelenül: számok sávokban, kör- és tagnév nélkül. A saját köreit itt nem számoljuk: úgy látja őket, mint eddig.",
   "v2.circle.worldCircles.circles": "Körök",
   "v2.circle.worldCircles.members": "Tagok",
+  "v2.circle.worldCircles.empty": "Még nincs elég kör a megjelenítéshez: egy ország 3 körtulajdonostól kezdve jelenik meg.",
   "v2.circle.scene.circlesMap.noticeTitle": "Újdonság: körei a világtérképen",
   "v2.circle.scene.circlesMap.notice": "Körei mostantól névtelenül megjelennek a világtérképen: országonként egy szám, sávokban, az Ön által megadott város országában. Kör neve és tagok neve nélkül. Ha nem szeretne megjelenni, távolítsa el magát a nyilvános térképről.",
   "volume.outputRange": "A hangerő a tartományon kívül van: {min}% és {max}% között, {step}%-os lépésekben.",

@@ -7293,6 +7293,7 @@ export default {
   "v2.circle.worldCircles.legend": "Các vòng Tune theo quốc gia, ẩn danh: số lượng theo khoảng, không có tên vòng hay tên thành viên. Vòng của bạn không được tính ở đây: bạn vẫn thấy chúng như trước.",
   "v2.circle.worldCircles.circles": "Vòng",
   "v2.circle.worldCircles.members": "Thành viên",
+  "v2.circle.worldCircles.empty": "Chưa đủ vòng để hiển thị: một quốc gia xuất hiện khi có từ 3 chủ vòng.",
   "v2.circle.scene.circlesMap.noticeTitle": "Mới: các vòng của bạn trên bản đồ thế giới",
   "v2.circle.scene.circlesMap.notice": "Các vòng của bạn giờ xuất hiện ẩn danh trên bản đồ thế giới: một con số cho mỗi quốc gia, theo khoảng, tại quốc gia của thành phố bạn đã đặt. Không có tên vòng, không có tên thành viên. Để không xuất hiện, hãy rút khỏi bản đồ công khai.",
   "volume.outputRange": "Âm lượng ngoài phạm vi: từ {min}% đến {max}%, theo bước {step}%.",

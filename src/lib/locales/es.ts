@@ -7441,6 +7441,7 @@ export default {
   "v2.circle.worldCircles.legend": "Círculos de Tune por país, anónimos: cifras por tramos, sin nombre de círculo ni de miembro. Los suyos no se cuentan aquí: los ve como antes.",
   "v2.circle.worldCircles.circles": "Círculos",
   "v2.circle.worldCircles.members": "Miembros",
+  "v2.circle.worldCircles.empty": "Aún no hay suficientes círculos para mostrarlos: un país aparece a partir de 3 propietarios de círculos.",
   "v2.circle.scene.circlesMap.noticeTitle": "Novedad: sus círculos en el mapa del mundo",
   "v2.circle.scene.circlesMap.notice": "Sus círculos aparecen ahora de forma anónima en el mapa del mundo: una cifra por país, por tramos, en el país de la ciudad que indicó. Sin nombre de círculo ni de miembro. Para no figurar, retírese del mapa público.",
   "volume.outputRange": "Volumen fuera del intervalo: del {min} % al {max} %, en pasos del {step} %.",

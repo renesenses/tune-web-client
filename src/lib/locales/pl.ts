@@ -7286,6 +7286,7 @@ export default {
   "v2.circle.worldCircles.legend": "Kręgi Tune według kraju, anonimowo: liczby w przedziałach, bez nazw kręgów i członków. Twoje nie są tu liczone: widzisz je jak dotąd.",
   "v2.circle.worldCircles.circles": "Kręgi",
   "v2.circle.worldCircles.members": "Członkowie",
+  "v2.circle.worldCircles.empty": "Za mało kręgów, by je pokazać: kraj pojawia się od 3 właścicieli kręgów.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nowość: Twoje kręgi na mapie świata",
   "v2.circle.scene.circlesMap.notice": "Twoje kręgi pojawiają się teraz anonimowo na mapie świata: jedna liczba na kraj, w przedziałach, w kraju miasta, które ustawiłeś. Bez nazwy kręgu i bez nazw członków. Aby się tam nie pojawiać, usuń się z mapy publicznej.",
   "volume.outputRange": "Głośność poza zakresem: od {min}% do {max}%, w krokach co {step}%.",

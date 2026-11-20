@@ -7461,6 +7461,7 @@ export default {
   "v2.circle.worldCircles.legend": "Tune circles by country, anonymous: counts in bands, no circle or member name. Yours are not counted here: you see them as before.",
   "v2.circle.worldCircles.circles": "Circles",
   "v2.circle.worldCircles.members": "Members",
+  "v2.circle.worldCircles.empty": "Not enough circles to show yet: a country appears once it has 3 circle owners.",
   "v2.circle.scene.circlesMap.noticeTitle": "New: your circles on the world map",
   "v2.circle.scene.circlesMap.notice": "Your circles now appear anonymously on the world map: a count per country, in bands, in the country of the city you set. No circle name, no member name. To stay off it, remove yourself from the public map.",
   "volume.outputRange": "Volume outside the range: {min}% to {max}%, in steps of {step}%.",

@@ -174,6 +174,18 @@ describe('Tune Circle rc13 — écran', () => {
     expect(el.querySelector('.sc-avis-cercles')).toBeNull();
   });
 
+  it('liste vide (aucun pays n\'atteint 3 propriétaires) : la couche le dit, sans rien inventer', async () => {
+    cercles = [];
+    const el = await poser();
+    (el.querySelector('.vue-monde') as HTMLButtonElement).click();
+    await laisserFaire();
+    const couche = el.querySelector('.cercles-monde');
+    expect(couche).not.toBeNull();
+    expect(texte(couche?.querySelector('.cercles-vide') ?? null)).toBe(fr['v2.circle.worldCircles.empty']);
+    expect(couche?.querySelector('table')).toBeNull();
+    expect(couche?.querySelector('.cercles-interrupteur')).toBeNull();
+  });
+
   it('pas d\'avis des cercles pour qui n\'a pas posé sa ville', async () => {
     cercles = CERCLES;
     const el = await poser();

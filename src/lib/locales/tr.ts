@@ -7276,6 +7276,7 @@ export default {
   "v2.circle.worldCircles.legend": "Ülkelere göre Tune çevreleri, anonim: sayılar aralıklarla, çevre ya da üye adı olmadan. Sizinkiler burada sayılmaz: onları eskisi gibi görürsünüz.",
   "v2.circle.worldCircles.circles": "Çevreler",
   "v2.circle.worldCircles.members": "Üyeler",
+  "v2.circle.worldCircles.empty": "Henüz gösterilecek kadar çevre yok: bir ülke 3 çevre sahibinden itibaren görünür.",
   "v2.circle.scene.circlesMap.noticeTitle": "Yeni: çevreleriniz dünya haritasında",
   "v2.circle.scene.circlesMap.notice": "Çevreleriniz artık dünya haritasında anonim olarak görünüyor: belirlediğiniz şehrin ülkesinde, ülke başına aralıklarla bir sayı. Çevre adı yok, üye adı yok. Görünmek istemiyorsanız kendinizi herkese açık haritadan çıkarın.",
   "volume.outputRange": "Ses düzeyi aralık dışında: %{min} ile %{max} arası, %{step} adımlarla.",

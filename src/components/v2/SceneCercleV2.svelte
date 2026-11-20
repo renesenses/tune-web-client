@@ -826,7 +826,7 @@
   {#if vue === 'monde' && paysMonde}
     <PaysMondeV2 donnees={paysMonde} afficher={montrerPays && !teinteParCercles} onAfficher={(v) => { montrerPays = v; if (v) montrerCercles = false; }} liste={montrerListe} />
   {/if}
-  {#if vue === 'monde' && cerclesMonde.length}
+  {#if vue === 'monde' && routeCerclesMonde}
     <CerclesMondeV2 pays={cerclesMonde} afficher={teinteParCercles} onAfficher={(v) => (montrerCercles = v)} liste={montrerListe} />
   {/if}
 

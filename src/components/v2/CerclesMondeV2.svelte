@@ -2,6 +2,7 @@
   // Tune Circle rc13 — tous les cercles du monde, anonymes, par pays et en
   // tranches (décisions du 20/11/2026). Aucun nom, aucun identifiant : le code
   // pays et deux tranches, rien d'autre. Mes cercles n'y sont pas comptés.
+  // Liste vide (aucun pays n'atteint 3 propriétaires) : une phrase le dit.
   import { t, locale } from '../../lib/i18n';
   import { FORCES_PAYS, nomPays } from '../../lib/paysMonde';
   import type { CerclesPays, Tranche } from '../../lib/cerclesMonde';
@@ -18,9 +19,11 @@
   const niveaux = $derived((['<5', '5-19', '20-99', '100-499', '500+'] as Tranche[]).map(libelle));
 </script>
 
-{#if lignes.length}
-  <section class="cercles-monde" aria-label={$t('v2.circle.worldCircles.title' as any)}>
+<section class="cercles-monde" aria-label={$t('v2.circle.worldCircles.title' as any)}>
     <p class="titre">{$t('v2.circle.worldCircles.title' as any)}</p>
+    {#if !lignes.length}
+      <p class="note cercles-vide">{$t('v2.circle.worldCircles.empty' as any)}</p>
+    {:else}
     <button type="button" class="lnk cercles-interrupteur" role="switch" aria-checked={afficher}
       onclick={() => onAfficher(!afficher)}>{$t('v2.circle.worldCircles.show' as any)}</button>
     <p class="note">{$t('v2.circle.worldCircles.legend' as any)}</p>
@@ -41,8 +44,8 @@
         <tbody>{#each lignes as l (l.code)}<tr><th scope="row">{l.nom}</th><td>{libelle(l.cercles)}</td><td>{libelle(l.membres)}</td></tr>{/each}</tbody>
       </table></div>
     </details>
+    {/if}
   </section>
-{/if}
 
 <style>
   .cercles-monde{margin-top:8px;padding:12px;border:1px solid var(--v2-line);border-radius:var(--v2-r-md);background:var(--v2-surface2);color:var(--v2-txt);

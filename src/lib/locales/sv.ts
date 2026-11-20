@@ -7440,6 +7440,7 @@ export default {
   "v2.circle.worldCircles.legend": "Tune-cirklar per land, anonymt: antal i intervall, utan namn på cirklar eller medlemmar. Dina egna räknas inte här: du ser dem som förut.",
   "v2.circle.worldCircles.circles": "Cirklar",
   "v2.circle.worldCircles.members": "Medlemmar",
+  "v2.circle.worldCircles.empty": "Inte tillräckligt många cirklar att visa ännu: ett land visas från 3 cirkelägare.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nytt: dina cirklar på världskartan",
   "v2.circle.scene.circlesMap.notice": "Dina cirklar visas nu anonymt på världskartan: ett antal per land, i intervall, i landet för staden du har angett. Utan cirkelnamn och utan medlemsnamn. För att inte synas där, ta bort dig från den offentliga kartan.",
   "volume.outputRange": "Volymen är utanför intervallet: {min} % till {max} %, i steg om {step} %.",

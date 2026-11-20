@@ -7441,6 +7441,7 @@ export default {
   "v2.circle.worldCircles.legend": "Tune-Kreise nach Land, anonym: Anzahlen in Spannen, ohne Namen von Kreisen oder Mitgliedern. Ihre eigenen werden hier nicht mitgezählt: Sie sehen sie wie bisher.",
   "v2.circle.worldCircles.circles": "Kreise",
   "v2.circle.worldCircles.members": "Mitglieder",
+  "v2.circle.worldCircles.empty": "Noch nicht genug Kreise, um sie anzuzeigen: Ein Land erscheint ab 3 Kreis-Eigentümern.",
   "v2.circle.scene.circlesMap.noticeTitle": "Neu: Ihre Kreise auf der Weltkarte",
   "v2.circle.scene.circlesMap.notice": "Ihre Kreise erscheinen jetzt anonym auf der Weltkarte: eine Anzahl pro Land, in Spannen, im Land der von Ihnen gesetzten Stadt. Kein Kreisname, kein Mitgliedername. Um dort nicht zu erscheinen, entfernen Sie sich von der öffentlichen Karte.",
   "volume.outputRange": "Lautstärke außerhalb des Bereichs: {min} % bis {max} %, in Schritten von {step} %.",

@@ -7441,6 +7441,7 @@ export default {
   "v2.circle.worldCircles.legend": "Cerchie Tune per paese, anonime: numeri per fasce, senza nome di cerchia né di membro. Le sue non sono contate qui: le vede come prima.",
   "v2.circle.worldCircles.circles": "Cerchie",
   "v2.circle.worldCircles.members": "Membri",
+  "v2.circle.worldCircles.empty": "Non ci sono ancora abbastanza cerchie da mostrare: un paese compare a partire da 3 proprietari di cerchie.",
   "v2.circle.scene.circlesMap.noticeTitle": "Novità: le sue cerchie sulla mappa del mondo",
   "v2.circle.scene.circlesMap.notice": "Le sue cerchie compaiono ora in forma anonima sulla mappa del mondo: un numero per paese, per fasce, nel paese della città che ha indicato. Nessun nome di cerchia, nessun nome di membro. Per non comparire, si ritiri dalla mappa pubblica.",
   "volume.outputRange": "Volume fuori intervallo: da {min}% a {max}%, con incrementi del {step}%.",

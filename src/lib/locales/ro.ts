@@ -7441,6 +7441,7 @@ export default {
   "v2.circle.worldCircles.legend": "Cercuri Tune pe țări, anonime: numere pe intervale, fără nume de cerc sau de membru. Ale dumneavoastră nu sunt numărate aici: le vedeți ca înainte.",
   "v2.circle.worldCircles.circles": "Cercuri",
   "v2.circle.worldCircles.members": "Membri",
+  "v2.circle.worldCircles.empty": "Încă nu sunt destule cercuri de afișat: o țară apare de la 3 proprietari de cercuri.",
   "v2.circle.scene.circlesMap.noticeTitle": "Nou: cercurile dumneavoastră pe harta lumii",
   "v2.circle.scene.circlesMap.notice": "Cercurile dumneavoastră apar acum anonim pe harta lumii: un număr pe țară, pe intervale, în țara orașului pe care l-ați setat. Fără numele cercului, fără numele membrilor. Pentru a nu apărea, retrageți-vă de pe harta publică.",
   "volume.outputRange": "Volum în afara intervalului: de la {min}% la {max}%, în pași de {step}%.",
