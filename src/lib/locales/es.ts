@@ -5503,6 +5503,8 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "Rechazar la reproducción en lugar de convertir la frecuencia cuando la salida no admite la de la fuente.",
+  "settings.lockSilence": "Silencio al cambiar de formato",
+  "settings.lockSilenceHelp": "Silencio insertado antes de la música cada vez que se abre la salida y en cada cambio de formato (frecuencia, PCM, DSD, DoP), mientras el DAC se sincroniza. Nada entre pistas encadenadas sin pausa. 0 = ninguno (salidas locales).",
   "radioDidl.label": "Enviar el título de la radio por DLNA (para reproductores que ignoran ICY)",
   "radioDidl.off": "Desactivado",
   "radioDidl.next": "Sí, sin cortar el sonido",

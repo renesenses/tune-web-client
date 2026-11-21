@@ -5457,6 +5457,8 @@ export default {
   // #3973 — « Bit-perfect strict » et conversion de fréquence
   "bitperfect.strictLabel": "Bit-perfect strict",
   "bitperfect.strictHelp": "A lejátszás megtagadása a mintavételi frekvencia átalakítása helyett, ha a kimenet nem tudja lejátszani a forrás frekvenciáját.",
+  "settings.lockSilence": "Csend formátumváltáskor",
+  "settings.lockSilenceHelp": "A zene elé beszúrt csend a kimenet minden megnyitásakor és minden formátumváltáskor (mintavételi frekvencia, PCM, DSD, DoP), amíg a DAC rááll. Szünet nélkül egymásba fűzött számok közé nem kerül. 0 = nincs (helyi kimenetek).",
   "radioDidl.label": "Rádiócím küldése DLNA-n (az ICY-t figyelmen kívül hagyó lejátszókhoz)",
   "radioDidl.off": "Ki",
   "radioDidl.next": "Igen, megszakítás nélkül",
