@@ -874,6 +874,7 @@ export default {
   'browse.rootMissing': 'Folder not found — check the mount',
   'browse.openError': 'Could not open this folder — check that the drive or network share is reachable',
   'browse.rootEmpty': 'Empty folder',
+  'browse.comptesEnCours': 'Counting…',
   "browse.dirUnreachable": "Folder unreachable",
   "browse.dirUnreachableHint": "The server could not open this folder. On Windows, a mapped network drive (Z:) is only visible to the session that created it — use the UNC path (\\\\server\\share) instead.",
   'browse.noTracks': 'No tracks in this directory',

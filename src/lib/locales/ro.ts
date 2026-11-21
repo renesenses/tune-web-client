@@ -760,6 +760,7 @@ export default {
   'browse.rootMissing': 'Dosar negăsit — verificați montarea',
   'browse.openError': 'Nu s-a putut deschide acest dosar — verificați dacă discul sau partajarea de rețea este accesibilă',
   'browse.rootEmpty': 'Dosar gol',
+  'browse.comptesEnCours': 'Numărare în curs…',
   'browse.noTracks': 'Nicio piesă în acest director',
   "browse.noTracksHint": "Aici apar doar piesele deja scanate. Dacă acest dosar conține muzică, ea nu este încă în bibliotecă: „Rescanează” o scanează (după ce se termină scanarea în curs, dacă există).",
   'browse.playAll': 'Redă tot',

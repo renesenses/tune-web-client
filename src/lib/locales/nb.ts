@@ -828,6 +828,7 @@ export default {
   "browse.rootMissing": "Mappen ble ikke funnet — sjekk monteringen",
   "browse.openError": "Kunne ikke åpne denne mappen — sjekk at stasjonen eller nettverksressursen er tilgjengelig",
   "browse.rootEmpty": "Tom mappe",
+  "browse.comptesEnCours": "Teller…",
   "browse.dirUnreachable": "Mappen er utilgjengelig",
   "browse.dirUnreachableHint": "Serveren kunne ikke åpne denne mappen. På Windows er en tilordnet nettverksstasjon (Z:) bare synlig for økten som opprettet den — bruk UNC-stien (\\\\server\\share) i stedet.",
   "browse.noTracks": "Ingen spor i denne mappen",

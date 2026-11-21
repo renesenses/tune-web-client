@@ -828,6 +828,7 @@ export default {
   "browse.rootMissing": "Nie znaleziono folderu — sprawdź montowanie",
   "browse.openError": "Nie udało się otworzyć tego folderu — sprawdź, czy dysk lub udział sieciowy jest dostępny",
   "browse.rootEmpty": "Pusty folder",
+  "browse.comptesEnCours": "Liczenie w toku…",
   "browse.dirUnreachable": "Folder nieosiągalny",
   "browse.dirUnreachableHint": "Serwer nie mógł otworzyć tego folderu. W systemie Windows litera zmapowanego dysku sieciowego (Z:) jest widoczna tylko dla sesji, która ją utworzyła — użyj zamiast niej ścieżki UNC (\\\\serwer\\udział).",
   "browse.noTracks": "Brak utworów w tym folderze",
