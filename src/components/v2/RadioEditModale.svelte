@@ -129,6 +129,37 @@
     }
   }
 
+  /*
+   * tune-server-rust#8452 — Cover+ pour CETTE station : la pochette du titre
+   * en cours, retrouvée d'après son titre quand la station n'en donne pas.
+   * Actif par défaut. Comme le téléversement, la case écrit tout de suite,
+   * hors du formulaire. `null` : réglage pas encore lu (serveur antérieur).
+   */
+  let coverPlus = $state<boolean | null>(null);
+  let coverPlusTravail = $state(false);
+  $effect(() => {
+    const id = radio.id;
+    if (id == null) return;
+    let vivant = true;
+    api.getRadioCoverPlus(id)
+      .then((r) => { if (vivant) coverPlus = r.enabled; })
+      .catch(() => { /* serveur sans Cover+ : la case reste cachée */ });
+    return () => { vivant = false; };
+  });
+  async function basculerCoverPlus(e: Event) {
+    const id = radio.id;
+    const voulu = (e.currentTarget as HTMLInputElement).checked;
+    if (id == null || coverPlusTravail) return;
+    coverPlusTravail = true;
+    try {
+      coverPlus = (await api.setRadioCoverPlus(id, voulu)).enabled;
+    } catch (err: any) {
+      notifierErreur($t('common.error' as any), err, { motifSeul: true });
+    } finally {
+      coverPlusTravail = false;
+    }
+  }
+
   const modifie = $derived(
     nom !== (radio.name ?? '') ||
       flux !== (radio.stream_url ?? '') ||
@@ -206,6 +237,15 @@
           <input type="file" accept="image/*" onchange={televerserPochette} disabled={televersement} />
         </label>
       {/if}
+      {#if !creation && coverPlus != null}
+        <label class="case" data-cover-plus-reglage>
+          <input type="checkbox" checked={coverPlus} disabled={coverPlusTravail} onchange={basculerCoverPlus} />
+          <span class="case-texte">
+            <strong>{$t('v2.radio.coverPlusSetting' as any)}</strong>
+            <small>{$t('v2.radio.coverPlusHint' as any)}</small>
+          </span>
+        </label>
+      {/if}
       {#if surcharge}
         <p class="aide">{$t('v2.radio.overrideHint' as any)}</p>
       {:else}
@@ -245,6 +285,11 @@
   input{width:100%; box-sizing:border-box; background:var(--v2-bg); border:1px solid var(--v2-line2);
     border-radius:8px; color:var(--v2-txt); font:inherit; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); padding:8px 10px}
   input:focus{outline:2px solid var(--v2-acc1); outline-offset:-1px}
+  .case{display:flex; align-items:flex-start; gap:9px; margin:4px 0 12px; cursor:pointer}
+  .case input{width:auto; margin-top:2px; flex:none}
+  .case .case-texte{display:block; margin:0; text-transform:none; letter-spacing:0; font:inherit}
+  .case strong{display:block; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt)}
+  .case small{display:block; margin-top:2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; color:var(--v2-txt3)}
   .aide{margin:2px 0 4px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3)}
   .pied{flex-wrap:wrap}
   .deux{display:grid; grid-template-columns:1fr 1fr; gap:10px}
