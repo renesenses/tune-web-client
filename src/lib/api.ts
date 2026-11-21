@@ -11132,9 +11132,13 @@ export function getHomeRecommendations(limit?: number) {
  * web#3118 — « Parce que vous aimez <artiste> » : jusqu'à cinq playlists
  * générées de vingt titres, refaites tous les trois jours.
  */
-export function getBecauseYouLike(limit?: number) {
+export function getBecauseYouLike(limit?: number, signal?: AbortSignal) {
   const q = limit != null ? `?limit=${limit}` : '';
-  return fetchJSON<import('./parceQueVousAimez').ReponseParceQueVousAimez>(`${BASE}/home/because-you-like${q}`);
+  // #1763 — le widget passe le signal de sa page : délai et démontage annulent.
+  return fetchJSON<import('./parceQueVousAimez').ReponseParceQueVousAimez>(
+    `${BASE}/home/because-you-like${q}`,
+    signal ? { signal } : undefined,
+  );
 }
 
 export function getTopMixes() {

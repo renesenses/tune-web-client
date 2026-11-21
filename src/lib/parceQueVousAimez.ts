@@ -16,7 +16,7 @@
  */
 import { writable } from 'svelte/store';
 import * as api from './api';
-import { lireListe } from './lectureEnMasse';
+import { lireListeDepuis } from './lectureEnMasse';
 import type { StreamingTrackInfo, Track } from './types';
 
 /** Un titre tel que le serveur le rend : local, ou d'un service. */
@@ -63,10 +63,10 @@ export interface ReponseParceQueVousAimez {
   playlists: PlaylistGeneree[];
 }
 
-/** Ce que rend la route, ou une liste vide quand la forme est inattendue
- *  (serveur antérieur : 404, attrapé par l'appelant). */
-export async function chargerPlaylistsGenerees(limite?: number): Promise<PlaylistGeneree[]> {
-  return (await chargerGenerees(limite)).playlists;
+/** Ce que rend la route, ou une liste vide quand la forme est inattendue ou
+ *  que le serveur ne connaît pas la route (404 : serveur antérieur). */
+export async function chargerPlaylistsGenerees(limite?: number, signal?: AbortSignal): Promise<PlaylistGeneree[]> {
+  return (await chargerGenerees(limite, signal)).playlists;
 }
 
 /**
@@ -76,8 +76,15 @@ export async function chargerPlaylistsGenerees(limite?: number): Promise<Playlis
  */
 export async function chargerGenerees(
   limite?: number,
+  signal?: AbortSignal,
 ): Promise<{ playlists: PlaylistGeneree[]; pending: boolean }> {
-  const r = await api.getBecauseYouLike(limite);
+  // Un serveur antérieur n'a pas la route : 404 veut dire « fonction
+  // absente », pas « panne ». Liste vide, et le widget (`masqueSiVide`) se
+  // cache au lieu d'afficher sa carte d'échec. Toute autre erreur (abandon
+  // #1763 compris) remonte telle quelle.
+  const r = await api
+    .getBecauseYouLike(limite, signal)
+    .catch((e) => ((e as api.ApiError | null)?.status === 404 ? null : Promise.reject(e)));
   return { playlists: normaliser(r), pending: r?.pending === true };
 }
 
@@ -144,9 +151,17 @@ export function versPistes(p: PlaylistGeneree): Track[] {
   return pistes;
 }
 
-/** « Lire » : la liste dans son ordre, sur la zone donnée. */
+/**
+ * « Lire » : la liste dans son ordre, sur la zone donnée.
+ *
+ * `lireListeDepuis(…, 0, …)` et non `lireListe` : sur une liste MIXTE (locale
+ * + Qobuz/TIDAL), `lireListe` enfile toute la suite en UNE requête qui mêle
+ * `track_ids` et `tracks`, que le serveur range par nature — l'ordre composé
+ * serait perdu. `lireListeDepuis` enfile par segments homogènes
+ * (`enfilerDansLOrdre`), comme le fait l'enregistrement (`segments`).
+ */
 export function lirePlaylistGeneree(zoneId: number, p: PlaylistGeneree): Promise<number> {
-  return lireListe(versPistes(p), {
+  return lireListeDepuis(versPistes(p), 0, {
     lire: (c) => api.play(zoneId, c as any),
     enfiler: (c) => api.addToQueue(zoneId, c),
   });

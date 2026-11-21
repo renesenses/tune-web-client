@@ -2122,9 +2122,17 @@ export const WIDGETS: Widget[] = [
     masqueSiVide: true,
     charger: async (ctx) => {
       const tr = get(t) as (k: string) => string;
-      const { playlists, pending } = await chargerGenerees();
+      // #1763 — le délai du widget et le démontage de la page annulent la requête.
+      const { playlists, pending } = await chargerGenerees(undefined, ctx.signal);
       // Premier calcul de la période encore en cours côté serveur : on le
       // dit, et on relance UNE fois (`programmerRelance`).
+      //
+      // Cette carte « Préparation… » peut rester affichée toute la session,
+      // et c'est VOULU : si la relance unique (~60 s) trouve encore le calcul
+      // en cours, aucune autre relance n'est programmée (jamais de boucle qui
+      // interrogerait le serveur sans fin). La carte reste alors jusqu'au
+      // prochain chargement de l'accueil (navigation, « Actualiser », nouvelle
+      // session), qui lira les playlists calculées entre-temps.
       if (pending && !playlists.length) {
         programmerRelance();
         return [{ id: 'pvaa-preparation', titre: tr('v2.home.becauseYouLikePending'), cover: null, source: null }];

@@ -1645,8 +1645,10 @@
         {#if el.pochettes || el.mosaique}
           <!-- Playlist ou collection : la MOSAÏQUE de son
                écran (`MosaiquePochettes`), pas une pochette. -->
+          <!-- web#3118 — sans pochette, l'initiale de l'ARTISTE d'une
+               playlist générée, pas le « P » de « Parce que vous aimez… ». -->
           <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
-            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+            initiales={(el.generee?.artist ?? el.titre)?.slice(0, 1)} alt={el.titre} />
         {:else}
           <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
             source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />

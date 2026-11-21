@@ -107,6 +107,34 @@ describe('parce que vous aimez — client', () => {
     expect(mocks.addToQueue.mock.calls[0][0]).toBe(3);
   });
 
+  it('« Lire » une liste MIXTE garde l’ordre composé : segments homogènes, dans l’ordre', async () => {
+    mocks.play.mockResolvedValue({});
+    mocks.addToQueue.mockResolvedValue({});
+    // Ordre composé : 11, 12 (locaux), q1 (Qobuz), 13 (local).
+    await lirePlaylistGeneree(3, playlist());
+    // Ce qu'emporte chaque requête, dans l'ordre : ids locaux, puis titres de service.
+    const contenu = (c: any) => ({
+      ...(c.track_id != null ? { track_id: c.track_id } : {}),
+      ...(c.track_ids ? { track_ids: c.track_ids } : {}),
+      ...(c.tracks ? { tracks: c.tracks.map((x: any) => `${x.source}:${x.source_id}`) } : {}),
+    });
+    expect(mocks.play).toHaveBeenCalledTimes(1);
+    expect(mocks.play.mock.calls[0][0]).toBe(3);
+    expect(mocks.play.mock.calls[0][1]).toMatchObject({ track_id: 11, start_index: 0 });
+    expect(mocks.addToQueue.mock.calls.map((c) => [c[0], contenu(c[1])])).toEqual([
+      [3, { track_id: 12 }],
+      [3, { tracks: ['qobuz:q1'] }],
+      [3, { track_id: 13 }],
+    ]);
+    // Aucune requête ne mêle les deux natures (le serveur les rangerait à part).
+    for (const [, c] of mocks.addToQueue.mock.calls as any[]) {
+      const locaux = c.track_id != null || (c.track_ids?.length ?? 0) > 0;
+      expect(locaux && (c.tracks?.length ?? 0) > 0).toBe(false);
+    }
+    // La tête part AVANT la suite.
+    expect(mocks.play.mock.invocationCallOrder[0]).toBeLessThan(mocks.addToQueue.mock.invocationCallOrder[0]);
+  });
+
   it('ignore les réponses mal formées et les playlists vides', async () => {
     mocks.getBecauseYouLike.mockResolvedValue({ playlists: [playlist(), { artist: 'X', tracks: [] }, null] });
     expect((await chargerPlaylistsGenerees()).map((p) => p.artist)).toEqual(['Miles Davis']);
@@ -180,6 +208,28 @@ describe('parce que vous aimez — widget', () => {
     }
     const src = readFileSync(resolve(__dirname, '../../components/v2/PageWidgets.svelte'), 'utf8');
     expect(src).toMatch(/relanceDemandee\.subscribe[\s\S]{0,200}rechargerWidget\(ID_PARCE_QUE_VOUS_AIMEZ\)/);
+  });
+
+  it('serveur sans la route (404) : liste vide, le widget se CACHE ; une vraie panne remonte', async () => {
+    const w = widgetParId('parce-que-vous-aimez')!;
+    mocks.getBecauseYouLike.mockRejectedValue(Object.assign(new Error('Not Found'), { status: 404 }));
+    expect(await w.charger({} as any)).toEqual([]);
+    expect(await chargerPlaylistsGenerees()).toEqual([]);
+    mocks.getBecauseYouLike.mockRejectedValue(Object.assign(new Error('boom'), { status: 500 }));
+    await expect(w.charger({} as any)).rejects.toThrow('boom');
+  });
+
+  it('#1763 — passe le signal de sa page à la requête', async () => {
+    const w = widgetParId('parce-que-vous-aimez')!;
+    const controle = new AbortController();
+    mocks.getBecauseYouLike.mockResolvedValue({ playlists: [playlist()] });
+    await w.charger({ signal: controle.signal } as any);
+    expect(mocks.getBecauseYouLike).toHaveBeenCalledWith(undefined, controle.signal);
+  });
+
+  it('sans pochette, l’initiale est celle de l’ARTISTE, pas du titre', () => {
+    const src = readFileSync(resolve(__dirname, '../../components/v2/PageWidgets.svelte'), 'utf8');
+    expect(src).toContain('initiales={(el.generee?.artist ?? el.titre)?.slice(0, 1)}');
   });
 
   it('PageWidgets ouvre la liste d’une playlist générée', () => {
