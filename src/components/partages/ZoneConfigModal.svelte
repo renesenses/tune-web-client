@@ -12,6 +12,7 @@
   import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
   import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
+  import { DECALAGE_MAX_MS, DECALAGE_MIN_MS, PAS_MS, bornerDecalage, mene } from '../../lib/decalageDeGroupe';
 
   interface Props {
     zone: Zone;
@@ -62,6 +63,48 @@
 
   let editSyncDelay = $state(zone.sync_delay_ms ?? 0);
   let savingSync = $state(false);
+
+  /**
+   * tune-server-rust#9149 (Jon, fil 2757) — décalage manuel de la zone quand
+   * elle suit la meneuse de son groupe. Lu au serveur une fois la zone
+   * groupée ; le curseur et le champ partagent la même valeur.
+   */
+  let decalageGroupe = $state(0);
+  let decalageGroupeServeur = $state(0);
+  let decalageMin = $state(DECALAGE_MIN_MS);
+  let decalageMax = $state(DECALAGE_MAX_MS);
+  let decalageCharge = $state(false);
+  let decalageEnregistrement = $state(false);
+  let decalageErreur = $state('');
+  let zoneMene = $derived(mene(currentGroup, zone.id));
+
+  $effect(() => {
+    const id = zone.id;
+    if (!currentGroup || id === null || untrack(() => decalageCharge)) return;
+    decalageCharge = true;
+    api.getZoneGroupOffset(id).then((r) => {
+      decalageMin = r.min_ms;
+      decalageMax = r.max_ms;
+      decalageGroupe = r.offset_ms;
+      decalageGroupeServeur = r.offset_ms;
+    }).catch(() => { /* réglage absent : 0 */ });
+  });
+
+  async function enregistrerDecalageGroupe() {
+    if (zone.id === null) return;
+    const valeur = bornerDecalage(decalageGroupe, decalageMin, decalageMax);
+    decalageEnregistrement = true;
+    decalageErreur = '';
+    try {
+      const r = await api.setZoneGroupOffset(zone.id, valeur);
+      decalageGroupe = r.offset_ms;
+      decalageGroupeServeur = r.offset_ms;
+    } catch {
+      decalageErreur = get(t)('zone.groupOffsetError');
+    } finally {
+      decalageEnregistrement = false;
+    }
+  }
 
   // Pins (OpenHome presets)
   let pinsSupported = $state(false);
@@ -631,6 +674,47 @@
             </button>
           {/if}
         </div>
+
+        {#if currentGroup}
+          <div class="group-offset" data-testid="decalage-de-groupe">
+            <h4 class="group-offset-title">{$t('zone.groupOffset')}</h4>
+            <p class="section-desc">{$t('zone.groupOffsetDesc')}</p>
+            {#if zoneMene}
+              <p class="empty-hint">{$t('zone.groupOffsetLeader')}</p>
+            {/if}
+            <div class="sync-offset-row">
+              <input
+                class="group-offset-range"
+                type="range"
+                min={decalageMin}
+                max={decalageMax}
+                step={PAS_MS}
+                bind:value={decalageGroupe}
+                disabled={decalageEnregistrement}
+                aria-label={$t('zone.groupOffset')}
+              />
+              <input
+                class="sync-input"
+                type="number"
+                min={decalageMin}
+                max={decalageMax}
+                step={PAS_MS}
+                bind:value={decalageGroupe}
+                disabled={decalageEnregistrement}
+                aria-label={$t('zone.groupOffset')}
+              />
+              <span class="sync-unit">ms</span>
+              {#if bornerDecalage(decalageGroupe, decalageMin, decalageMax) !== decalageGroupeServeur}
+                <button class="btn btn-primary btn-sm" onclick={enregistrerDecalageGroupe} disabled={decalageEnregistrement}>
+                  {decalageEnregistrement ? '...' : $t('common.apply')}
+                </button>
+              {/if}
+            </div>
+            {#if decalageErreur}
+              <p class="error-msg">{decalageErreur}</p>
+            {/if}
+          </div>
+        {/if}
       {/if}
     </div>
 
@@ -1139,6 +1223,24 @@
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+
+  .group-offset {
+    margin-top: 16px;
+  }
+
+  .group-offset-title {
+    font-family: var(--font-body);
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    font-weight: 600;
+    color: var(--tune-text);
+    margin: 0 0 4px;
+  }
+
+  .group-offset-range {
+    flex: 1;
+    min-width: 0;
+    accent-color: var(--tune-accent);
   }
 
   /* Les styles « appareil » vivent désormais dans ZoneDeviceEditor. */
