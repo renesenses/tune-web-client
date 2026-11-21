@@ -23,6 +23,8 @@ import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import BoutonLectureV2 from '../../components/v2/BoutonLectureV2.svelte';
 import CollectionsV2 from '../../components/v2/CollectionsV2.svelte';
+import CreditsTiroir from '../../components/partages/CreditsTiroir.svelte';
+import EnrichissementAlbumV2 from '../../components/v2/EnrichissementAlbumV2.svelte';
 
 class ResizeObserverInerte { observe() {} unobserve() {} disconnect() {} }
 
@@ -50,16 +52,34 @@ const reponse = (corps: unknown, status = 200) => ({
   text: async () => JSON.stringify(corps),
 } as unknown as Response);
 const respirer = () => new Promise((r) => setTimeout(r, 0));
-async function jusqua(condition: () => boolean, borne = 4000): Promise<boolean> {
-  const fin = Date.now() + borne;
-  for (;;) {
+/**
+ * QA 18/11 (tests instables) — attend `condition`, borné en TOURS de boucle
+ * d'événements et non plus en millisecondes. Les réponses de ce banc sont des
+ * promesses factices : elles se règlent en un nombre de tours qui ne dépend
+ * pas de la vitesse de la machine. Une borne en millisecondes (4 s, puis le
+ * délai de 5 s du test) rougissait sous charge pour une seule raison : la
+ * PREMIÈRE compilation des composants chargés à la demande (`{#await
+ * import(...)}` : `CreditsTiroir`, `EnrichissementAlbumV2`), payée DANS le
+ * test. Mesuré sur Shrek : l'onglet Crédits passe de 200 ms au repos à plus de
+ * 4 s sous deux suites complètes (charge 88). Ces modules sont désormais
+ * importés en tête de fichier (`CHARGES_A_LA_COLLECTE`).
+ */
+async function jusqua(condition: () => boolean, tours = 50): Promise<boolean> {
+  for (let i = 0; ; i++) {
     flushSync();
     if (condition()) return true;
-    if (Date.now() >= fin) return false;
+    if (i >= tours) return false;
     await respirer();
   }
 }
 const tr = (k: string) => get(t)(k as any);
+
+// Les composants que les fiches chargent à la demande, importés en tête de
+// fichier : compilés à la COLLECTE, que vitest ne chronomètre pas (la parade
+// de #1333). Leur compilation n'est pas le comportement mesuré, et sous
+// charge elle dépassait seule le délai d'un test. Le `{#await import(...)}`
+// de la fiche trouve ensuite le module déjà chargé.
+const CHARGES_A_LA_COLLECTE = [CreditsTiroir, EnrichissementAlbumV2];
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
@@ -169,7 +189,7 @@ describe('la fiche album : trois boutons et un menu', () => {
   // la rangée pour la flèche de Lecture (voir `boutonPlayUnique`).
   it('l’en-tête ne garde que Lecture (et sa flèche), Favori et « … »', async () => {
     poser(AlbumDetailV2, { album: LOCAL });
-    await jusqua(() => hote!.querySelectorAll('.tracks [data-track-id], .tracks .row, .tracks tr').length > 0, 1500);
+    await jusqua(() => hote!.querySelectorAll('.tracks [data-track-id], .tracks .row, .tracks tr').length > 0);
     const boutons = Array.from(hote!.querySelectorAll<HTMLButtonElement>('.actions:not(.local) > button, .actions:not(.local) > .bl > button'));
     expect(boutons.map((b) => b.getAttribute('aria-label') ?? b.textContent?.trim())).toEqual([
       tr('v2.album.play'), tr('v2.menu.playOptions'),
@@ -181,7 +201,7 @@ describe('la fiche album : trois boutons et un menu', () => {
     poser(AlbumDetailV2, { album: LOCAL });
     // Les gestes qui dépendent d'une lecture : pistes (dossier, sélection) et fiche d'édition.
     await jusqua(() => appels.some((u) => /\/edition/.test(u)) && appels.some((u) => /\/tracks/.test(u)));
-    await jusqua(() => false, 200);
+    await jusqua(() => false, 10);
     const plus = await ouvrirMenuAlbum();
     expect(plus.getAttribute('aria-expanded')).toBe('true');
     const attendus = [
@@ -215,7 +235,7 @@ describe('la fiche album : trois boutons et un menu', () => {
 
   it('album de service : ni Collection, ni Bibliothèque, ni Localiser', async () => {
     poser(AlbumDetailV2, { album: QOBUZ, service: 'qobuz' });
-    await jusqua(() => false, 150);
+    await jusqua(() => false, 10);
     await ouvrirMenuAlbum();
     expect(menu()!.querySelector('[data-album-collection]')).toBeNull();
     expect(menu()!.querySelector('[data-localiser-album]')).toBeNull();
@@ -269,7 +289,7 @@ describe('la fiche playlist : même principe', () => {
 
   it('Lecture scindé, Aléatoire, Favori, « … » — et les gestes d’avant dans le menu', async () => {
     poser(PlaylistDetailV2, { item: PL });
-    await jusqua(() => false, 150);
+    await jusqua(() => false, 10);
     expect(hote!.querySelector('[data-bouton-lecture] [data-lecture-options]')).not.toBeNull();
     const plus = hote!.querySelector<HTMLButtonElement>('[data-menu-playlist]')!;
     plus.click();

@@ -279,7 +279,7 @@ describe('Réglages › Tune Voice AI', () => {
 describe('commandeVocale : diagnostic et langues', () => {
   it('ordre des raisons', () => {
     expect(raisonIndisponible({ isSecureContext: true })).toBe('nonPrisEnCharge');
-    expect(raisonIndisponible({ isSecureContext: false })).toBe('nonPrisEnCharge');
+    expect(raisonIndisponible({ isSecureContext: false })).toBe('nonSecurise');
     expect(raisonIndisponible({ isSecureContext: false, webkitSpeechRecognition: FausseReco })).toBe('nonSecurise');
     expect(raisonIndisponible({ isSecureContext: true, SpeechRecognition: FausseReco })).toBeNull();
   });

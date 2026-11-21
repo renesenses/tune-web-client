@@ -58,6 +58,26 @@ import {
   reculerAvecIntention,
 } from './historiqueNavigation';
 import { nomDeRoute, vueAuChargement } from './routeAuChargement';
+import {
+  arriverParGeste,
+  arriverParHistorique,
+  atteindreLeRang,
+  demarrerAuRang,
+  empilerAuRang,
+  nouvelleEntree,
+  atteindreEntreeEtrangere,
+  annulerRestaurationDefilement,
+  restaurerDefilements,
+  retenirEntree,
+  suivreLesDefilements,
+} from './memoireNavigation';
+
+/** web#3275 — le rang porté par une entrée ; une entrée empilée d'avant ce lot vaut 1. */
+function rangDe(etat: unknown): number {
+  if (!estEtatCoquille(etat)) return 0;
+  if (typeof etat.n === 'number' && Number.isFinite(etat.n)) return etat.n;
+  return etat.empilee === true ? 1 : 0;
+}
 
 /**
  * Ce qu'une entrée d'historique de la coquille v2 transporte.
@@ -93,6 +113,14 @@ export interface EtatCoquille {
    * racine. Absent ailleurs : les autres entrées gardent leur forme.
    */
   page?: string;
+  /**
+   * web#3275 — le RANG de l'entrée dans la session (0 : l'entrée de démarrage,
+   * +1 à chaque empilement) et son IDENTIFIANT. Les flèches Précédent /
+   * Suivant de l'en-tête se grisent sur le rang ; la mémoire d'écran
+   * (`memoireNavigation`) est rangée sous l'identifiant.
+   */
+  n?: number;
+  ent?: string;
 }
 
 /** Fil 2694 — les vues dont les entrées portent un identifiant de page. */
@@ -536,9 +564,24 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 
   /** Fil 2694 — l'entrée sur laquelle on se trouve, telle qu'on la connaît. */
   let pageConnue: string | null = null;
+  /** web#3275 — l'entrée courante (identifiant, vue), telle qu'on la connaît. */
+  let entConnue: string | null = null;
+  let vueConnue: string | null = null;
+  let premiereEcriture = true;
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
     const courant = historique.state as unknown;
+    // web#3275 — rang et identifiant. Une réécriture garde ceux de l'entrée.
+    const notre = estEtatCoquille(courant);
+    if (pousser) {
+      // L'entrée qu'on QUITTE est retenue tant que son écran est à l'écran.
+      if (notre) retenirEntree(courant.ent, courant.vue);
+      etat.n = rangDe(courant) + 1;
+      etat.ent = nouvelleEntree();
+    } else {
+      etat.n = rangDe(courant);
+      etat.ent = notre && typeof courant.ent === 'string' ? courant.ent : nouvelleEntree();
+    }
     if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
     // Fil 2694 — une entrée neuve reçoit son identifiant ; une réécriture de
     // la même vue le garde.
@@ -549,6 +592,11 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
     pageConnue = etat.page ?? null;
+    entConnue = etat.ent ?? null;
+    vueConnue = etat.vue;
+    if (pousser) { arriverParGeste(); empilerAuRang(etat.n ?? 0); }
+    else if (premiereEcriture) demarrerAuRang(etat.n ?? 0, notre);
+    premiereEcriture = false;
   };
 
   /**
@@ -662,7 +710,14 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // qu'on connaissait.
     pageQuitteeAuChangement = pageConnue;
     pageConnue = estEtatCoquille(etat) ? (etat.page ?? null) : null;
-    if (!estEtatCoquille(etat)) return;
+    // web#3275 — l'entrée QUITTÉE est retenue avant que son écran ne parte.
+    retenirEntree(entConnue, vueConnue);
+    const vueQuittee = vueConnue;
+    entConnue = estEtatCoquille(etat) ? (etat.ent ?? null) : null;
+    vueConnue = estEtatCoquille(etat) ? etat.vue : null;
+    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); return; }
+    atteindreLeRang(rangDe(etat));
+    arriverParHistorique(etat.ent, etat.vue, vueQuittee);
     enRestauration = true;
     try {
       // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
@@ -673,8 +728,12 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     } finally {
       enRestauration = false;
     }
+    // web#3275 — le défilement de l'entrée atteinte, une fois l'écran remonté.
+    restaurerDefilements(etat.ent);
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
+  // web#3275 — les conteneurs défilés, suivis pour la mémoire par entrée.
+  const arretSuivi = suivreLesDefilements();
 
   // Fils 2166 et 2168 — la vue du PROFIL, une fois relue du serveur. Posée
   // comme l'ancrage du montage : l'entrée courante est RÉÉCRITE, rien n'est
@@ -700,6 +759,10 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretOnglet();
     arretRetour();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
+    arretSuivi();
+    // La reprise du défilement lancée par un retour ne survit pas à la
+    // coquille : elle visait ses écrans, et la fenêtre a pu partir avec elle.
+    annulerRestaurationDefilement();
   };
 }
 

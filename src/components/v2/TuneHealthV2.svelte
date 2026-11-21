@@ -80,6 +80,9 @@
   // pictogrammes. Rien n'y est inventé : voir `lib/etatServeurEnTete.ts`.
   import IconeEtatServeur from './IconeEtatServeur.svelte';
   import { lireEnTete, tailleBibliotheque, type EnTeteEtatServeur } from '../../lib/etatServeurEnTete';
+  // tune-server-rust#9046 — l'état de la carte CLAP se lit sur le serveur.
+  import { etatCarteClap, etatServeurAcoustique } from '../../lib/santeClap';
+  import { RAISONS_DE_PAUSE } from '../../lib/stores/acoustic';
 
   type Card = {
     id: string;
@@ -103,6 +106,12 @@
      * nulle part ailleurs.
      */
     traitement?: string;
+    /**
+     * tune-server-rust#9046 — la raison, déjà traduite, pour laquelle le
+     * serveur dit que la passe ne travaille pas (`paused_reason`). La carte
+     * porte alors « en pause » et cette phrase, jamais « en cours ».
+     */
+    raisonPause?: string;
   };
 
   /** L'analyse ReplayGain est-elle armée ? Le DR dépend du même interrupteur
@@ -443,6 +452,15 @@
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
+    // ── Pause des traitements de fond (#1352) ─────────────────────────────
+    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
+    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
+    // L'instantané est lu AVANT la carte CLAP (tune-server-rust#9046) : son
+    // état « en cours » se lit dans `pausable[acoustic].state`, plus sur la
+    // jauge seule ; la carte « Plage dynamique » le lit aussi, plus bas.
+    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
+    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+
     // ── Analyse acoustique (CLAP) ─────────────────────────────────────────
     const ac = await Promise.allSettled([api.getAcousticStatus()]);
     if (ac[0].status === 'fulfilled') {
@@ -456,12 +474,20 @@
       const eligible = typeof s?.eligible_tracks === 'number' ? s.eligible_tracks : undefined;
       const processed = typeof s?.processed_tracks === 'number' ? s.processed_tracks : undefined;
       const reportees = typeof s?.deferred_tracks === 'number' ? s.deferred_tracks : 0;
-      const attendLesFichiers = s?.waiting_reason === 'unresolved_paths' && reportees > 0;
+      // tune-server-rust#9046 — parmi les reportées, celles en échec répété
+      // d'analyse (le modèle plante sur elles) : PAS un fichier qui ne répond
+      // pas. Absent d'un serveur plus ancien, donc 0.
+      const apresEchecs = typeof s?.retry_later_tracks === 'number'
+        ? Math.min(Math.max(0, s.retry_later_tracks), reportees) : 0;
+      const sansFichier = reportees - apresEchecs;
+      const attendLesFichiers = (s?.waiting_reason === 'unresolved_paths' || s?.waiting_reason === 'analysis_failures')
+        && reportees > 0;
       const fait = processed ?? done;
       const total = eligible ?? totalTracks;
-      const reporteesDetail = reportees > 0
-        ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
-        : undefined;
+      const reporteesDetail = [
+        sansFichier > 0 ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(sansFichier)) : undefined,
+        apresEchecs > 0 ? $t('v2.health.clapRetryLater' as any).replace('{n}', $formatNombre(apresEchecs)) : undefined,
+      ].filter(Boolean).join(' ') || undefined;
       if (!s?.available) {
         out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
@@ -470,12 +496,26 @@
           etat: 'off', ligne: $t('v2.health.clapDisabled' as any),
           detail: $t('v2.health.clapAnalysed' as any).replace('{n}', $formatNombre(done)) });
       } else {
+        // tune-server-rust#9046 (fil 2907) — « en cours » SEULEMENT quand le
+        // serveur dit que la passe travaille (`pausable[acoustic].state`) ;
+        // une raison de pause (`paused_reason`) se nomme ; sinon « au
+        // repos », jauge conservée. La jauge seule disait « en cours » à une
+        // passe immobile, sous un « Ce qui tourne » qui disait l'inverse.
+        // Il ne reste QUE des reports : « au repos », avec la cause en
+        // détail — pas « terminée », pas une jauge immobile sans un mot.
+        const clap = etatCarteClap({
+          fait, total, attendLesFichiers,
+          etatServeur: etatServeurAcoustique(tdf[0].status === 'fulfilled' ? tdf[0].value : null),
+          raisonPause: s.paused_reason,
+        });
+        const raisonPause = clap.raisonPause === null ? undefined
+          : (RAISONS_DE_PAUSE as readonly string[]).includes(clap.raisonPause)
+            ? $t(`acoustic.paused.${clap.raisonPause}` as any)
+            : $t('acoustic.pausedUnknown' as any).replace('{reason}', clap.raisonPause);
         out.push({
           id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
-          // Il ne reste QUE des reports : « au repos », avec la cause en
-          // détail — pas « terminée », pas une jauge immobile sans un mot.
-          etat: attendLesFichiers ? 'idle'
-            : total && fait >= total ? 'done' : fait > 0 ? 'running' : 'idle',
+          etat: clap.etat,
+          raisonPause,
           ligne: total
             ? $t('v2.health.clapProgress' as any).replace('{n}', $formatNombre(fait)).replace('{t}', $formatNombre(total))
             : $t('v2.health.clapDone' as any).replace('{n}', $formatNombre(fait)),
@@ -501,7 +541,8 @@
       const mode = c?.replaygain_mode ?? 'off';
       const analysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
       const modeLabel = mode === 'off' ? $t('v2.health.rgOff' as any)
-        : mode === 'track' ? $t('v2.health.rgTrack' as any) : $t('v2.health.rgAlbum' as any);
+        : mode === 'track' ? $t('v2.health.rgTrack' as any)
+        : mode === 'auto' ? $t('v2.health.rgAuto' as any) : $t('v2.health.rgAlbum' as any);
       // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
       // relire la config une seconde fois.
       cfgDrActive = analysis;
@@ -563,13 +604,9 @@
     // autres n'ont plus rien). Une jauge sans cette explication laisserait
     // l'utilisateur devant un chiffre sans prise : le levier est sur la carte
     // d'à côté.
-    // ── Pause des traitements de fond (#1352) ─────────────────────────────
-    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
-    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
-    // Lu AVANT la carte « Plage dynamique » : son détail dépend de l'ordre de
-    // passage réglé (tune-server-rust#5169).
-    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
-    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    // L'instantané des traitements de fond (#1352) est lu plus haut, avant la
+    // carte CLAP (tune-server-rust#9046) : le détail de la plage dynamique
+    // dépend de l'ordre de passage réglé (tune-server-rust#5169).
     // Le registre nomme l’audit, son avancement persistant est sur cette route.
     // Aucun sondage supplémentaire lorsqu’aucun audit n’est inscrit.
     if (tourne?.lignes.some((l) => l.id === 'tache:integrity')) {
@@ -1078,7 +1115,8 @@
         {#each cards as c (c.id)}
           {@const p = pct(c)}
           {@const enPause = !!(c.traitement && pauses[c.traitement])}
-          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
+          {@const cedee = !enPause && !!c.raisonPause}
+          <article class="card {enPause || cedee ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
             <div class="chead">
               <span class="cicone"><IconeEtatServeur nom={c.id} /></span>
               <div class="ctitres">
@@ -1088,7 +1126,7 @@
               <!-- #1352 — « En pause » PRIME sur l'état propre de la carte : un
                    traitement suspendu dont la route d'avancement continue de
                    dire « en cours » afficherait sinon deux vérités à la fois. -->
-              {#if enPause}
+              {#if enPause || cedee}
                 <span class="badge pause">{$t('v2.health.stPaused' as any)}</span>
               {:else}
                 <span class="badge {ETATS[c.etat].cls}">{ETATS[c.etat].txt}</span>
@@ -1107,7 +1145,10 @@
             <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
                  POURQUOI : le serveur cède la place à la lecture. Pas sur une
                  carte suspendue, dont « en pause » dit déjà la raison. -->
-            {#if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
+            {#if cedee}
+              <!-- tune-server-rust#9046 — la raison que le serveur donne. -->
+              <div class="frein" role="note" data-raison-pause>{c.raisonPause}</div>
+            {:else if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
               <div class="frein" role="note" data-frein-lecture>{$t('v2.health.throttledForPlayback' as any)}</div>
             {/if}
 

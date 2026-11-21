@@ -16,6 +16,7 @@
    */
   import { portail } from '../../lib/portail';
   import { t, locale } from '../../lib/i18n';
+  import { badgeHiRes, infobulleHiRes } from '../../lib/badgeHiRes';
   import MesNotes from '../partages/MesNotes.svelte';
   import FormeOnde from './FormeOnde.svelte';
   import { chargerSpectrogramme } from '../../lib/spectrogramme';
@@ -190,6 +191,8 @@
           {:else if cle === 'fauxHires' && fiche.faux_hires}
             <h3>{$t('fiche.section.hires' as any)}</h3>
             <p class="valeur">{$t(cleVerdictHiRes(fiche.faux_hires.verdict) as any)}</p>
+            <!-- tune-server-rust#9035 — la raison d'un douteux, avec la coupure mesurée. -->
+            {#if fiche.faux_hires.verdict === 'douteux'}{@const raisonHiRes = infobulleHiRes(badgeHiRes(fiche.faux_hires), (c) => $t(c as any), langue)}{#if raisonHiRes}<p data-hires-raison>{raisonHiRes}</p>{/if}{/if}
             <dl>
               {#if fiche.faux_hires.bits_effectifs}<dt>{$t('fiche.hires.effectiveBits' as any)}</dt><dd>{$t('fiche.bits' as any).replace('{n}', String(fiche.faux_hires.bits_effectifs))}</dd>{/if}
               {#if fiche.faux_hires.coupure_hz}<dt>{$t('fiche.hires.cutoff' as any)}</dt><dd>{frequenceLisible(fiche.faux_hires.coupure_hz, langue)}</dd>{/if}

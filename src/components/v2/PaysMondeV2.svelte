@@ -38,6 +38,11 @@
       </table>{/if}
     </details>
     <p class="note">{$t('v2.circle.worldCountries.updated').replace('{date}', new Intl.DateTimeFormat($locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(donnees.maj)))}</p>
+    {#if donnees.attribution}
+      <!-- #3240 — licence CC BY 4.0 : attribution et lien vers la source, fournis par le serveur. -->
+      <p class="note attribution">{$t('v2.circle.worldCountries.attribution')}
+        <a href={donnees.attribution.url} target="_blank" rel="noopener noreferrer">{donnees.attribution.label}</a>{#if donnees.attribution.licence}{' '}({donnees.attribution.licence}){/if}</p>
+    {/if}
   </section>
 {/if}
 
@@ -53,6 +58,8 @@
   .pays-teinte{display:inline-block;width:18px;height:12px;background:var(--v2-acc2);border:1px solid currentColor;border-radius:2px}
   .pays-interrupteur[aria-checked='true']{color:var(--v2-acc2)}
   .pays-interrupteur:focus-visible,summary:focus-visible{outline:2px solid var(--v2-acc2);outline-offset:3px}
+  .attribution a{color:var(--v2-acc-tint)}
+  .attribution a:focus-visible{outline:2px solid var(--v2-acc2);outline-offset:2px}
   summary{cursor:pointer}
   .pays-tableau{max-height:260px;overflow:auto}
   table{border-collapse:collapse;width:100%;font-size:calc(13px * var(--v2-txt-echelle, 1))}

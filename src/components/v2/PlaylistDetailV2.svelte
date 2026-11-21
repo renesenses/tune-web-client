@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { untrack } from 'svelte';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
@@ -26,6 +27,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { pochettesDePlaylist } from '../../lib/mosaique';
@@ -46,6 +48,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
+  import { confirmerRetraitTitre, confirmerSuppressionPlaylist } from '../../lib/confirmationsPlaylist';
   import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import RemplacerIndisponibleModale from './RemplacerIndisponibleModale.svelte';
@@ -188,15 +191,24 @@
    * de l'en-tête, chacun sous SA garde d'avant (absent quand il ne s'applique
    * pas, jamais grisé sauf pendant sa requête).
    */
-  function supprimerPlaylist() {
-    if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
+  /**
+   * web#3255 (reprend web#3090, fil 2849) — « Supprimer » (mode « Éditer »)
+   * effaçait la playlist et toutes ses lignes au premier clic. La question
+   * nomme la playlist et son nombre de titres ; confirmé, même appel qu'avant.
+   */
+  async function supprimerPlaylist() {
+    if (item.kind !== 'local' || item.pl.id == null) return;
+    const id = item.pl.id;
+    const nb = loading || error ? (item.pl.track_count ?? null) : tracks.length;
+    if (!(await confirmerSuppressionPlaylist(item.pl.name, nb))) return;
+    api.deletePlaylist(id).then(() => { onChanged?.(); onClose(); }).catch(() => {});
   }
   function entreesPlus(): EntreeMenu[] {
     const l: EntreeMenu[] = [];
     if (cibleEtiquettes) l.push({ cle: 'v2.cover.tags', faire: () => (etiquettesOuvertes = true),
       attrs: { 'data-etiquettes-playlist': true, 'aria-haspopup': 'dialog' } });
     const partager = partagerAvecUnCercle;
-    if (partager) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
+    if (partager && !lectureSeule) l.push({ cle: 'v2.circle.pl.shareWithCircle', faire: () => partager(), attrs: { 'data-partager-cercle': true } });
     // EXPORT : la route ne connaît que les playlists locales.
     if (isLocal) l.push({ cle: 'v2.pl.export', desactive: exportEnCours, faire: () => void exporter(), attrs: { 'data-exporter-playlist': true } });
     // web#2971 — l'entrée « Playlists » de la barre ouvre désormais CETTE fiche,
@@ -459,6 +471,18 @@
     if (issue.ok) onChanged?.();
   }
 
+  /**
+   * web#3245 (Régis, fil 2941) — la croix « Retirer » d'une vignette (vue en
+   * pochettes) se touchait par mégarde, et le retrait partait aussitôt. Elle
+   * demande désormais confirmation (`confirmerRetraitTitre`, la boîte du
+   * client) ; la croix de la vue en liste est le MÊME fragment (`suffixe`).
+   * web#3255 — l'entrée « Supprimer de cette playlist » du menu « … » de la
+   * piste (`retirerDe`) passe par la même question. Confirmé, rien ne change.
+   */
+  function confirmerRetrait(t: Track): Promise<boolean> {
+    return confirmerRetraitTitre(t, item.pl.name);
+  }
+
   /** Retire un titre de la playlist du service (#2098) — toutes ses occurrences. */
   let retraitService = $state(false);
   async function retirerDuService(t: Track) {
@@ -614,6 +638,10 @@
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
     return [t.format?.toUpperCase(), rate, depth].filter(Boolean).join(' · ');
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <div class="v2-pldetail tune-v2">
@@ -769,8 +797,20 @@
                 title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
                 <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={p.title ?? ''}>
                   <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
-                    alt={p.title ?? ''} source={mixte ? null : p.source} />
+                    alt={p.title ?? ''} />
                 </PochetteActions>
+                <!-- web#3246 (Régis, fil 2941) — la PROVENANCE de chaque titre,
+                     sur sa pochette : « LOCAL », « QOBUZ », « TIDAL »… La puce
+                     n'était posée (par `AlbumArt`) que si la playlist n'était PAS
+                     mixte, et jamais pour la bibliothèque : elle manquait là où
+                     elle sert. Même règle que la colonne de la vue en liste
+                     (#1113) : la `source` telle quelle, une source absente ou
+                     inconnue ne rend rien. Le fond est celui du thème, pour que
+                     la puce se lise sur n'importe quelle pochette avec les
+                     couleurs du thème (#3232). Sans contenu (source inconnue),
+                     l'enveloppe ne mesure rien. Elle ne prend aucun clic : la
+                     pochette reste le geste. -->
+                {#if p.source}<span class="psrc" data-provenance={p.source}><ServiceBadge source={p.source} compact /></span>{/if}
               </div>
               <div class="pnom" title={p.title}>{p.title}</div>
               {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
@@ -796,7 +836,8 @@
         </div>
       {:else}
       <ListePistesV2 pistes={pistesVues} pochetteEnTableau tailleVignette={tailleListe} ecranColonnes="playlist" contexte={conteneur()} clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px"
-        retirerDe={isLocal ? (t) => removeAt(rangReel(t)) : aMoiChezLeService ? (t) => retirerDuService(t) : null} />
+        retirerDe={isLocal ? async (t) => { if (await confirmerRetrait(t)) void removeAt(rangReel(t)); }
+          : aMoiChezLeService ? async (t) => { if (await confirmerRetrait(t)) void retirerDuService(t); } : null} />
       {/if}
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
@@ -825,12 +866,12 @@
           </button>
         {/if}
         {#if isLocal}
-          <button class="rm retrait-titre" data-retirer-titre onclick={() => removeAt(rangReel(_t))} disabled={retraitEnCours}
+          <button class="rm retrait-titre" data-retirer-titre onclick={async () => { if (await confirmerRetrait(_t)) void removeAt(rangReel(_t)); }} disabled={retraitEnCours}
             aria-label={$tr('v2.pl.remove' as any)} title={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
         {:else if aMoiChezLeService}
-          <button class="rm retrait-service" data-retirer-titre onclick={() => retirerDuService(_t)} disabled={retraitService}
+          <button class="rm retrait-service" data-retirer-titre onclick={async () => { if (await confirmerRetrait(_t)) void retirerDuService(_t); }} disabled={retraitService}
             aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}
             title={$tr('v2.pl.removeFromService' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -953,8 +994,10 @@
   .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
-  .pvig{display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
+  .pvig{position:relative; display:block; width:100%; aspect-ratio:1; border-radius:8px; overflow:hidden;
     background:var(--v2-surface2); line-height:0}
+  .psrc{position:absolute; left:6px; bottom:6px; z-index:2; display:inline-flex; line-height:1;
+    border-radius:4px; background:var(--v2-bg); pointer-events:none}
   .pvig.injouable{opacity:.5}
   .pnom{font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .part{font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

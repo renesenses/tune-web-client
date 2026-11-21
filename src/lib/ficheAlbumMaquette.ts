@@ -36,7 +36,12 @@ export function listeDeGenres(v: unknown): string[] {
 }
 
 /** Une ligne du bloc « Détails de l'album » : la clé i18n et la valeur. */
-export interface LigneDetail { cle: string; valeur: string }
+export interface LigneDetail {
+  cle: string;
+  valeur: string;
+  /** web#3315 — les valeurs une à une (les genres), chacune son propre lien. */
+  valeurs?: string[];
+}
 
 interface AlbumDetaille {
   genre?: string | null;
@@ -91,7 +96,10 @@ export function detailsAlbum(a: AlbumDetaille, annee: string | null | undefined,
   ajouter('v2.album.fiche.release', annee);
   const genres = listeDeGenres(a.genres);
   const genreAlbum = genres.length ? genres : listeDeGenres(a.genre);
-  ajouter('v2.album.fiche.genre', (genreAlbum.length ? genreAlbum : (c.genres ?? []).slice(0, 4)).join(', '));
+  const genresLigne = genreAlbum.length ? genreAlbum : (c.genres ?? []).slice(0, 4);
+  ajouter('v2.album.fiche.genre', genresLigne.join(', '));
+  const ligneGenre = lignes.find((l) => l.cle === 'v2.album.fiche.genre');
+  if (ligneGenre && genresLigne.length > 1) ligneGenre.valeurs = genresLigne.map((g) => g.trim()).filter(Boolean);
   ajouter('v2.album.fiche.label', a.label || c.label);
   const format = a.format || c.format;
   const res = resolution({ sample_rate: a.sample_rate ?? c.sample_rate ?? null, bit_depth: a.bit_depth ?? c.bit_depth ?? null });

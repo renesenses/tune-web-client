@@ -93,7 +93,7 @@ describe('urlSsoAuthorize', () => {
   });
 
   it('les 15 langues du client sont connues du transmetteur', () => {
-    expect(Object.keys(localeNames)).toHaveLength(15);
+    expect(Object.keys(localeNames)).toHaveLength(16);
   });
 
   it.each(V2_THEMES.map((x) => x.id))('thème %s transmis', (id) => {
