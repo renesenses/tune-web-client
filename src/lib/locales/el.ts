@@ -723,6 +723,7 @@ export default {
   "settings.orphanTracksAsk": "Ο φάκελος αφαιρέθηκε. {count} κομμάτια δεν βρίσκονται πλέον σε κανέναν φάκελο μουσικής, οπότε η σάρωση δεν θα τα επισκεφθεί ποτέ ξανά. Να αφαιρεθούν και από τη βιβλιοθήκη;",
   "settings.orphanTracksImpact": "Θα αφαιρεθούν επίσης — λίστες αναπαραγωγής: {playlists}, αγαπημένα: {favorites}, ουρά: {queue}.",
   "settings.orphanTracksFilesSafe": "Τα αρχεία στον δίσκο δεν αγγίζονται.",
+  "settings.orphanTracksFailed": "Δεν ήταν δυνατή η αφαίρεση {count} κομματιών από τη βιβλιοθήκη.",
   "settings.orphanTracksPurged": "{count} κομμάτια αφαιρέθηκαν από τη βιβλιοθήκη.",
   "settings.orphanTracksRefused": "Ο φάκελος αφαιρέθηκε, αλλά τα {count} κομμάτια δεν διαγράφηκαν: η επιβεβαίωση δεν κάλυπτε πλέον τον αριθμό τους. Ξεκινήστε ξανά για να τα αφαιρέσετε.",
   "settings.orphanTracksNothingLeft": "Δεν είχαν απομείνει ορφανά κομμάτια για αφαίρεση.",

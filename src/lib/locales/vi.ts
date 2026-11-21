@@ -725,6 +725,7 @@ export default {
   "settings.orphanTracksAsk": "Thư mục đã bị gỡ. {count} bài hát không còn nằm trong thư mục nhạc nào, nên việc quét sẽ không bao giờ ghé qua chúng nữa. Gỡ chúng khỏi thư viện luôn?",
   "settings.orphanTracksImpact": "Cũng sẽ bị gỡ — danh sách phát: {playlists}, yêu thích: {favorites}, hàng đợi: {queue}.",
   "settings.orphanTracksFilesSafe": "Các tệp trên ổ đĩa vẫn được giữ nguyên.",
+  "settings.orphanTracksFailed": "Không thể xóa {count} bản nhạc khỏi thư viện.",
   "settings.orphanTracksPurged": "Đã gỡ {count} bài hát khỏi thư viện.",
   "settings.orphanTracksRefused": "Thư mục đã bị gỡ, nhưng {count} bài hát chưa bị xóa: xác nhận không còn khớp với số lượng của chúng. Hãy làm lại để gỡ chúng.",
   "settings.orphanTracksNothingLeft": "Không còn bài hát mồ côi nào để gỡ.",

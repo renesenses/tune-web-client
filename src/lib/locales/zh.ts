@@ -660,6 +660,7 @@ export default {
   "settings.orphanTracksAsk": "文件夹已移除。{count} 首曲目不再位于任何音乐文件夹下，扫描将不会再访问它们。是否也从音乐库中移除？",
   "settings.orphanTracksImpact": "同时会移除 — 播放列表：{playlists}，收藏：{favorites}，播放队列：{queue}。",
   "settings.orphanTracksFilesSafe": "磁盘上的文件不会被改动。",
+  "settings.orphanTracksFailed": "无法从音乐库中移除 {count} 首曲目。",
   "settings.orphanTracksPurged": "已从音乐库移除 {count} 首曲目。",
   "settings.orphanTracksRefused": "文件夹已移除，但这 {count} 首曲目未被删除：确认数量已不再匹配。请重新操作以移除它们。",
   "settings.orphanTracksNothingLeft": "已经没有需要移除的孤立曲目。",

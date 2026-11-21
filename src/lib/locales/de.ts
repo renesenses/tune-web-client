@@ -660,6 +660,7 @@ export default {
   "settings.orphanTracksAsk": "Der Ordner wurde entfernt. {count} Titel liegen unter keinem Musikordner mehr, der Scan wird sie nie wieder erfassen. Auch aus der Bibliothek entfernen?",
   "settings.orphanTracksImpact": "Ebenfalls entfernt — Wiedergabelisten: {playlists}, Favoriten: {favorites}, Warteschlange: {queue}.",
   "settings.orphanTracksFilesSafe": "Die Dateien auf der Festplatte bleiben unberührt.",
+  "settings.orphanTracksFailed": "{count} Titel konnten nicht aus der Bibliothek entfernt werden.",
   "settings.orphanTracksPurged": "{count} Titel aus der Bibliothek entfernt.",
   "settings.orphanTracksRefused": "Der Ordner wurde entfernt, die {count} Titel jedoch nicht gelöscht: Die Bestätigung deckte ihre Anzahl nicht mehr ab. Beginnen Sie erneut, um sie zu entfernen.",
   "settings.orphanTracksNothingLeft": "Es waren keine verwaisten Titel mehr zu entfernen.",

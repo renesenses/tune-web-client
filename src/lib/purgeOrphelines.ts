@@ -67,6 +67,7 @@ export interface RetraitDossier {
   orphan_tracks?: number;
   confirm_purge_required?: number;
   purged?: number;
+  purge_failed?: number;
   purge_refused?: boolean;
   purge_refused_reason?: string;
   impact?: ImpactPurge;
@@ -167,6 +168,10 @@ export function verdictDePurge(rep: RetraitDossier, tr: Traduire): Verdict {
       ton: 'error',
       message: phrase(tr, 'settings.orphanTracksRefused', { count: entier(rep.orphan_tracks) }),
     };
+  }
+  const echecs = entier(rep.purge_failed);
+  if (echecs > 0) {
+    return { ton: 'error', message: phrase(tr, 'settings.orphanTracksFailed', { count: echecs }) };
   }
   const purgees = entier(rep.purged);
   if (purgees > 0) {

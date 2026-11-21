@@ -723,6 +723,7 @@ export default {
   "settings.orphanTracksAsk": "Folder został usunięty. Utwory: {count} — nie leżą już w żadnym folderze muzycznym, więc skanowanie nigdy ich nie odwiedzi. Usunąć je także z biblioteki?",
   "settings.orphanTracksImpact": "Zostaną też usunięte — playlisty: {playlists}, ulubione: {favorites}, kolejka: {queue}.",
   "settings.orphanTracksFilesSafe": "Pliki na dysku pozostają nietknięte.",
+  "settings.orphanTracksFailed": "Nie udało się usunąć {count} utworów z biblioteki.",
   "settings.orphanTracksPurged": "Utwory usunięte z biblioteki: {count}.",
   "settings.orphanTracksRefused": "Folder został usunięty, ale utwory ({count}) nie zostały skasowane: potwierdzenie nie obejmowało już ich liczby. Zacznij od nowa, aby je usunąć.",
   "settings.orphanTracksNothingLeft": "Nie zostały już żadne osierocone utwory do usunięcia.",

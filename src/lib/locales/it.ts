@@ -660,6 +660,7 @@ export default {
   "settings.orphanTracksAsk": "La cartella è stata rimossa. {count} brani non si trovano più sotto alcuna cartella musicale, quindi la scansione non li visiterà più. Rimuoverli anche dalla libreria?",
   "settings.orphanTracksImpact": "Verrebbero rimossi anche — playlist: {playlists}, preferiti: {favorites}, coda: {queue}.",
   "settings.orphanTracksFilesSafe": "I file sul disco non vengono toccati.",
+  "settings.orphanTracksFailed": "Impossibile rimuovere {count} brani dalla libreria.",
   "settings.orphanTracksPurged": "{count} brani rimossi dalla libreria.",
   "settings.orphanTracksRefused": "La cartella è stata rimossa, ma i {count} brani non sono stati eliminati: la conferma non copriva più il loro numero. Ricomincia per rimuoverli.",
   "settings.orphanTracksNothingLeft": "Non c'erano più brani orfani da rimuovere.",

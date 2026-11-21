@@ -660,6 +660,7 @@ export default {
   "settings.orphanTracksAsk": "폴더를 제거했습니다. {count}개 트랙이 더 이상 어떤 음악 폴더에도 속하지 않아 검색이 다시 찾지 않습니다. 라이브러리에서도 제거할까요?",
   "settings.orphanTracksImpact": "함께 제거됩니다 — 재생목록: {playlists}, 즐겨찾기: {favorites}, 대기열: {queue}.",
   "settings.orphanTracksFilesSafe": "디스크의 파일은 그대로 유지됩니다.",
+  "settings.orphanTracksFailed": "라이브러리에서 {count}개 트랙을 제거하지 못했습니다.",
   "settings.orphanTracksPurged": "{count}개 트랙을 라이브러리에서 제거했습니다.",
   "settings.orphanTracksRefused": "폴더는 제거되었지만 {count}개 트랙은 삭제되지 않았습니다. 확인한 개수와 더 이상 일치하지 않습니다. 다시 시도하세요.",
   "settings.orphanTracksNothingLeft": "제거할 고아 트랙이 남아 있지 않았습니다.",

@@ -46,6 +46,7 @@ export function dossierDuFichier(chemin: string | null | undefined): string | nu
 
 export interface PisteLocalisable {
   file_path?: string | null;
+  cue_media_path?: string | null;
   source?: string | null;
 }
 
@@ -59,7 +60,7 @@ export interface PisteLocalisable {
 export function dossierDeLAlbum(pistes: readonly PisteLocalisable[] | null | undefined): string | null {
   const dossiers = (pistes ?? [])
     .filter((p) => (p?.source ?? 'local') === 'local')
-    .map((p) => dossierDuFichier(p?.file_path))
+    .map((p) => dossierDuFichier(p?.file_path || p?.cue_media_path))
     .filter((d): d is string => !!d);
 
   if (!dossiers.length) return null;

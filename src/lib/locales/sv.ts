@@ -631,6 +631,7 @@ export default {
   "settings.orphanTracksAsk": "Mappen togs bort. {count} spår ligger inte längre under någon musikmapp, så genomsökningen kommer aldrig att hitta dem igen. Ta bort dem från biblioteket också?",
   "settings.orphanTracksImpact": "Tas också bort — spellistor: {playlists}, favoriter: {favorites}, kö: {queue}.",
   "settings.orphanTracksFilesSafe": "Filerna på disken lämnas orörda.",
+  "settings.orphanTracksFailed": "{count} spår kunde inte tas bort från biblioteket.",
   "settings.orphanTracksPurged": "{count} spår togs bort från biblioteket.",
   "settings.orphanTracksRefused": "Mappen togs bort, men de {count} spåren raderades inte: bekräftelsen täckte inte längre deras antal. Börja om för att ta bort dem.",
   "settings.orphanTracksNothingLeft": "Det fanns inga föräldralösa spår kvar att ta bort.",
