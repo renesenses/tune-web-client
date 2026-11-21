@@ -9,6 +9,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
 
   interface Props {
@@ -70,6 +72,14 @@
   let savingQueuePin = $state(false);
 
   let confirmDelete = $state(false);
+  /**
+   * web#3314 — « Ne plus jouer ici » dans la fenêtre de la zone aussi, pas
+   * seulement dans l'écran Zones (#3180). Relu à chaque prise ou relâchement.
+   */
+  const tenueIci = $derived.by(() => {
+    void $versionZonesRetenues;
+    return estZoneDeCetAppareil(zone);
+  });
   let loading = $state(false);
   let error = $state('');
 
@@ -876,6 +886,11 @@
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
+      {#if tenueIci}
+        <button class="btn btn-secondary" data-ne-plus-jouer-ici onclick={() => nePlusJouerZoneIci(zone)}>
+          {$t('v2.zone.browserStopHere' as any)}
+        </button>
+      {/if}
       {#if !confirmDelete}
         <button class="btn btn-danger" onclick={() => confirmDelete = true}>
           {$t('zone.deleteZone')}
