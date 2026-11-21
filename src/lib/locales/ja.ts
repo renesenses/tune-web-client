@@ -7286,6 +7286,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE 切り替え：{position} から再開",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：このゾーンの音量は PURE でロックされているため、耳とスピーカーを守るために 0% で再生を開始しました。デバイスまたは Tune で音量を上げてください。",
   "erreursServeur.track_file_damaged": "「{title}」：ファイルは {position} 以降が破損しています。Tune はトラックの残りをスキップしました。",
+  "erreursServeur.smart_collection_name_taken": "この名前のコレクションはすでにあります。別の名前を選んでください。",
   "v2.dev.listAria": "デバイスとゾーン",
   "v2.dev.filterLabel": "デバイスを絞り込む",
   "v2.dev.filterPlaceholder": "デバイスを検索…",

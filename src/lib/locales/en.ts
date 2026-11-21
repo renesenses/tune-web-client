@@ -7306,6 +7306,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE switch: resumed at {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: this zone's volume is locked by PURE, so playback started at 0% to protect your ears and speakers. Turn the volume up on the device or in Tune.",
   "erreursServeur.track_file_damaged": "“{title}”: the file is damaged from {position} on. Tune skipped the rest of the track.",
+  "erreursServeur.smart_collection_name_taken": "A collection already has this name. Please choose another one.",
   "v2.dev.listAria": "Devices and zones",
   "v2.dev.filterLabel": "Filter devices",
   "v2.dev.filterPlaceholder": "Search for a device…",

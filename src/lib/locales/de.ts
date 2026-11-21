@@ -7286,6 +7286,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE-Umschaltung: Wiedergabe ab {position} fortgesetzt",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: Die Lautstärke dieser Zone ist durch PURE gesperrt, daher startete die Wiedergabe zum Schutz Ihrer Ohren und Lautsprecher bei 0 %. Erhöhen Sie die Lautstärke am Gerät oder in Tune.",
   "erreursServeur.track_file_damaged": "„{title}“: Die Datei ist ab {position} beschädigt. Tune hat den Rest des Titels übersprungen.",
+  "erreursServeur.smart_collection_name_taken": "Eine Sammlung trägt bereits diesen Namen. Bitte wählen Sie einen anderen.",
   "v2.dev.listAria": "Geräte und Zonen",
   "v2.dev.filterLabel": "Geräte filtern",
   "v2.dev.filterPlaceholder": "Gerät suchen …",

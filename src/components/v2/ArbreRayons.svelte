@@ -345,6 +345,9 @@
   .rayon, .col{position:relative}
   .tete{display:flex; align-items:center; gap:4px; border-radius:8px; padding:2px 4px}
   .tete.survol, .hors.survol, .col.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
+  /* Ligne entière matérialisée au survol et au clavier : les boutons de droite
+     (déplacer, actions) se visent sur la bonne ligne (forum, 21/11). */
+  .tete:hover, .tete:focus-within, .col:hover, .col:focus-within{background:var(--v2-hover); border-radius:8px}
   .ordre{display:flex; align-items:center; gap:6px; margin-left:auto; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .ordre select{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .pli, .geste, .plus{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;

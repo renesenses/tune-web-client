@@ -7131,6 +7131,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "Przełączenie PURE: wznowiono od {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: głośność tej strefy jest zablokowana przez PURE, dlatego odtwarzanie rozpoczęło się od 0%, aby chronić Twój słuch i głośniki. Zwiększ głośność na urządzeniu lub w Tune.",
   "erreursServeur.track_file_damaged": "„{title}”: plik jest uszkodzony od {position}. Tune pominął resztę utworu.",
+  "erreursServeur.smart_collection_name_taken": "Kolekcja o tej nazwie już istnieje. Wybierz inną nazwę.",
   "v2.dev.listAria": "Urządzenia i strefy",
   "v2.dev.filterLabel": "Filtruj urządzenia",
   "v2.dev.filterPlaceholder": "Szukaj urządzenia…",

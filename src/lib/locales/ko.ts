@@ -7286,6 +7286,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE 전환: {position}부터 재개",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: 이 존의 볼륨은 PURE로 잠겨 있으므로 귀와 스피커를 보호하기 위해 0%에서 재생을 시작했습니다. 기기나 Tune에서 볼륨을 올리세요.",
   "erreursServeur.track_file_damaged": "\"{title}\": 파일이 {position}부터 손상되었습니다. Tune이 트랙의 나머지 부분을 건너뛰었습니다.",
+  "erreursServeur.smart_collection_name_taken": "이 이름의 컬렉션이 이미 있습니다. 다른 이름을 선택하세요.",
   "v2.dev.listAria": "장치 및 존",
   "v2.dev.filterLabel": "장치 필터",
   "v2.dev.filterPlaceholder": "장치 검색…",
