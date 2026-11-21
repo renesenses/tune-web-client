@@ -55,12 +55,31 @@ export const TAILLE_SOURCE_MAX = 16 * 1024 * 1024;
  * Il borne ce qui repart dans CHAQUE écriture de préférences. À 192 px, un
  * WebP de qualité 0,82 pèse typiquement 5 à 12 Ko : la marge est large, et le
  * plafond n'existe que pour le cas où le navigateur ne connaîtrait pas WebP et
- * retomberait sur un PNG (voir `encodeCanevas`).
+ * retomberait sur un PNG : on passe alors au JPEG, puis on réduit le côté
+ * (voir `encodeCanevas` et `encodeAvecReduction`).
  */
 export const POIDS_ENCODE_MAX = 96 * 1024;
 
 /** Qualités WebP essayées dans l'ordre, jusqu'à tenir sous le plafond. */
 export const QUALITES = [0.82, 0.7, 0.6, 0.5, 0.4];
+
+/**
+ * Qualités JPEG du repli, quand le navigateur ne sait pas produire de WebP
+ * (#3306, signalé sur HCFR : Safari rendait un PNG, et toute photo était
+ * refusée). JPEG est le seul format avec perte que la spécification de
+ * `toDataURL` impose à tous les navigateurs, en plus du PNG.
+ */
+export const QUALITES_JPEG = [0.85, 0.75, 0.65, 0.55, 0.45, 0.35];
+
+/**
+ * Côtés essayés si, même ré-encodée, l'image dépasse encore le plafond.
+ *
+ * 🔴 Le dernier pas GARANTIT le passage : un PNG de 48 × 48 sans aucune
+ * compression pèse 9 216 octets bruts, soit ~12 Ko en base64, très en dessous
+ * de `POIDS_ENCODE_MAX`. Toute image décodable de 16 Mo au plus aboutit donc,
+ * quel que soit le navigateur.
+ */
+export const COTES_REPLI = [160, 128, 96, 64, 48];
 
 /** Pourquoi une image a été refusée. Chaque motif a son message à l'écran :
  *  « ça n'a pas marché » sans dire quoi corriger renvoie l'utilisateur à
@@ -187,23 +206,72 @@ function dimensions(image: ImageBitmap | HTMLImageElement): { l: number; h: numb
 }
 
 /**
- * Encode le canevas en data-URL, la plus légère qui tienne.
+ * Encode le canevas dans UN format, aux qualités données, et rend les essais.
  *
- * 🔴 `toDataURL('image/webp', q)` ne signale PAS un format inconnu : il rend
+ * 🔴 `toDataURL(type, q)` ne signale PAS un format inconnu : il rend
  * silencieusement un PNG. C'est écrit dans la spécification, et c'est
  * exactement le genre de repli muet qui fait boucler une recherche de
- * qualité — la qualité n'a aucun effet sur PNG, donc réessayer cinq fois
- * produirait cinq octets près la même chaîne. On lit donc le préfixe rendu, et
- * on s'arrête au premier tour si ce n'est pas du WebP.
+ * qualité — la qualité n'a aucun effet sur PNG. On lit donc le préfixe rendu,
+ * et on s'arrête au premier tour si ce n'est pas le format demandé.
+ *
+ * `honore` dit si le navigateur a produit le format demandé.
+ */
+function essaieFormat(
+  canevas: HTMLCanvasElement,
+  type: string,
+  qualites: readonly number[],
+): { url: string; honore: boolean } {
+  let dernier = '';
+  for (const q of qualites) {
+    dernier = canevas.toDataURL(type, q);
+    if (!dernier.startsWith(`data:${type}`)) return { url: dernier, honore: false };
+    if (octetsDataUrl(dernier) <= POIDS_ENCODE_MAX) break;
+  }
+  return { url: dernier, honore: true };
+}
+
+/** La plus légère de plusieurs data-URL non vides. */
+function plusLegere(urls: string[]): string {
+  return urls
+    .filter((u) => u.length > 0)
+    .reduce((a, b) => (octetsDataUrl(b) < octetsDataUrl(a) ? b : a));
+}
+
+/**
+ * Encode le canevas en data-URL, la plus légère qui tienne.
+ *
+ * WebP d'abord. Si le navigateur ne le connaît pas (il rend un PNG), on garde
+ * ce PNG s'il tient — il conserve la transparence d'un logo —, sinon on passe
+ * au JPEG à qualités décroissantes (#3306). Si rien ne tient, on rend le plus
+ * léger des essais : c'est à l'appelant de réduire la dimension
+ * (`encodeAvecReduction`).
  */
 export function encodeCanevas(canevas: HTMLCanvasElement): string {
-  let dernier = '';
-  for (const q of QUALITES) {
-    dernier = canevas.toDataURL('image/webp', q);
-    if (!dernier.startsWith('data:image/webp')) return dernier;
-    if (octetsDataUrl(dernier) <= POIDS_ENCODE_MAX) return dernier;
+  const webp = essaieFormat(canevas, 'image/webp', QUALITES);
+  if (webp.honore || octetsDataUrl(webp.url) <= POIDS_ENCODE_MAX) return webp.url;
+  const jpeg = essaieFormat(canevas, 'image/jpeg', QUALITES_JPEG);
+  return plusLegere([jpeg.url, webp.url]);
+}
+
+/**
+ * Encode l'image en réduisant son côté jusqu'à tenir sous le plafond.
+ *
+ * `dessine(cote)` rend un canevas carré de ce côté, l'image déjà dessinée
+ * dedans. On essaie d'abord `cible`, puis chaque côté de `COTES_REPLI` plus
+ * petit que lui. Rend la dernière data-URL produite, même trop lourde : le
+ * refus `poids` reste la décision de l'appelant.
+ */
+export function encodeAvecReduction(
+  dessine: (cote: number) => HTMLCanvasElement,
+  cible: number,
+): string {
+  const cotes = [cible, ...COTES_REPLI.filter((c) => c < cible)];
+  let url = '';
+  for (const cote of cotes) {
+    url = encodeCanevas(dessine(cote));
+    if (octetsDataUrl(url) <= POIDS_ENCODE_MAX) return url;
   }
-  return dernier;
+  return url;
 }
 
 /**
@@ -231,22 +299,26 @@ export async function avatarDepuisFichier(fichier: File): Promise<string> {
     if (!l || !h) throw new AvatarRefuse('lecture');
 
     const cadre = cadreCarre(l, h);
-    const canevas = document.createElement('canvas');
-    canevas.width = cadre.cible;
-    canevas.height = cadre.cible;
-    const ctx = canevas.getContext('2d');
-    if (!ctx) throw new AvatarRefuse('lecture');
-    // Le lissage de qualité change visiblement une réduction 4000 → 192 ; sans
-    // lui, le rééchantillonnage au plus proche voisin crénelle les contours.
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(
-      image as CanvasImageSource,
-      cadre.sx, cadre.sy, cadre.source, cadre.source,
-      0, 0, cadre.cible, cadre.cible,
-    );
+    const dessine = (cote: number): HTMLCanvasElement => {
+      const canevas = document.createElement('canvas');
+      canevas.width = cote;
+      canevas.height = cote;
+      const ctx = canevas.getContext('2d');
+      if (!ctx) throw new AvatarRefuse('lecture');
+      // Le lissage de qualité change visiblement une réduction 4000 → 192 ;
+      // sans lui, le rééchantillonnage au plus proche voisin crénelle les
+      // contours.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(
+        image as CanvasImageSource,
+        cadre.sx, cadre.sy, cadre.source, cadre.source,
+        0, 0, cote, cote,
+      );
+      return canevas;
+    };
 
-    const url = encodeCanevas(canevas);
+    const url = encodeAvecReduction(dessine, cadre.cible);
     if (octetsDataUrl(url) > POIDS_ENCODE_MAX) throw new AvatarRefuse('poids');
     return url;
   } finally {

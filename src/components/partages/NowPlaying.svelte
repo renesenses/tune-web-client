@@ -31,7 +31,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
-    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed, cleReserveCrossfeed,
   } from '../../lib/crossfeed';
   import { crossfeedProTraiteLaZone } from '../../lib/stores/crossfeedPro';
   import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
@@ -305,6 +305,8 @@ import { ICONES } from '../../lib/menuPiste';
   // controle ; a defaut du champ, le type de sortie de la zone tranche.
   let cfStatut = $state<api.CrossfeedStatus | null>(null);
   let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
+  // #3307 — reserve non verrouillante (`non_local_partial`, tune-server-rust#9254).
+  let cfReserve = $derived(cleReserveCrossfeed(cfStatut));
   // Le bout des curseurs : celui du SERVEUR quand il le publie
   // (`crossfeed_limits`, tune-server-rust#4683), sinon `lib/crossfeed`.
   let cfBornes = $state(bornesCrossfeed(null));
@@ -2483,6 +2485,10 @@ import { ICONES } from '../../lib/menuPiste';
                      piste suivante y serait faux : il ne prendra jamais
                      (tune-server-rust#2742). -->
                 <p class="cf-note cf-note-alerte">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+              {:else if cfReserve}
+                <!-- #3307 — le controle reste actif, mais le crossfeed ne
+                     s'applique qu'aux pistes converties pour cette sortie. -->
+                <p class="cf-note" data-crossfeed-reserve>{$t(cfReserve as any)}</p>
               {:else if cfPorteeLive === false}
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->

@@ -41,6 +41,8 @@
   import { nomDuPays } from '../../lib/paysAffichage';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
+  import CerclesMondeV2 from './CerclesMondeV2.svelte';
+  import { lireCerclesDuMonde, niveauTranche, type PointCercles } from '../../lib/cerclesMonde';
   import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
   import { formatNombre } from '../../lib/formats';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
@@ -115,6 +117,18 @@
   /** rc9 : la carte publique (points anonymes) et mon retrait (`null` : route absente, interrupteur caché). */
   let pointsPublics = $state.raw<PointPublic[]>([]);
   let retraitCarte = $state<boolean | null>(null);
+  /**
+   * rc13 (décisions du 20/11/2026) : tous les cercles du monde, en anneaux
+   * anonymes sur le globe (un par lieu de propriétaire, une tranche, aucun nom).
+   * Mes cercles y sont aussi, en anonyme, et restent en plus nommés, comme
+   * avant. `routeCerclesMonde` : le serveur a la route.
+   */
+  let cerclesMonde = $state.raw<PointCercles[]>([]);
+  let routeCerclesMonde = $state(false);
+  /** L'interrupteur des anneaux anonymes (allumé par défaut). */
+  let montrerCercles = $state(true);
+  const CLE_AVIS_CERCLES = 'tune.circle.carte-cercles.avis-vu';
+  let avisCerclesVu = $state((() => { try { return localStorage.getItem(CLE_AVIS_CERCLES) === '1'; } catch { return false; } })());
   let occupeRetrait = $state(false);
   let retourRetrait = $state<{ texte: string; erreur: boolean } | null>(null);
   const CLE_AVIS = 'tune.circle.carte-publique.avis-vu';
@@ -212,12 +226,14 @@
     mes = m;
     monNom = nom;
     if (l.relais === 'ok') {
-      const [lx, pp, rc] = await Promise.all([lireLieuxDuGlobe(), lirePointsPublics(), lireRetraitCarte()]);
+      const [lx, pp, rc, cm] = await Promise.all([lireLieuxDuGlobe(), lirePointsPublics(), lireRetraitCarte(), lireCerclesDuMonde()]);
       if (fini) return;
       lieux = lx.contacts;
       membresCercles = lx.membres;
       pointsPublics = pp.points;
       retraitCarte = rc;
+      cerclesMonde = cm.points;
+      routeCerclesMonde = cm.relais === 'ok';
     }
     choisirVue();
   }
@@ -230,7 +246,7 @@
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && (lieux.size > 0 || membresCercles.length > 0 || pointsPublics.length > 0)) vue = 'monde';
+    if (relais === 'ok' && (lieux.size > 0 || membresCercles.length > 0 || pointsPublics.length > 0 || cerclesMonde.length > 0)) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
     else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
@@ -460,6 +476,11 @@
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
   $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
+  // rc13 : les cercles du monde, en anneaux anonymes (lat, lon, taille de la tranche ; rien d'autre).
+  $effect(() => {
+    const m = moteur; const p = montrerCercles ? cerclesMonde : [];
+    m?.majCerclesAnonymes(p.map((x) => ({ lat: x.lat, lon: x.lon, niveau: niveauTranche(x.cercles) })));
+  });
   $effect(() => {
     const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
     if (!m) return;
@@ -718,6 +739,16 @@
     avisVu = true;
     try { localStorage.setItem(CLE_AVIS, '1'); } catch { /* l'avis reviendra : rien de grave */ }
   }
+  /**
+   * rc13 : l'avis aux propriétaires dont les cercles entrent dans la couche
+   * anonyme — ville posée, pas retirés de la carte publique.
+   */
+  const montrerAvisCercles = $derived(routeCerclesMonde && retraitCarte === false && monLieu !== null
+    && cercles.length > 0 && !avisCerclesVu);
+  function fermerAvisCercles() {
+    avisCerclesVu = true;
+    try { localStorage.setItem(CLE_AVIS_CERCLES, '1'); } catch { /* l'avis reviendra : rien de grave */ }
+  }
 
   /** « Me retirer de la carte publique » : effectif tout de suite, côté cloud. */
   async function basculerRetrait() {
@@ -799,6 +830,9 @@
   {#if vue === 'monde' && paysMonde}
     <PaysMondeV2 donnees={paysMonde} afficher={montrerPays} onAfficher={(v) => (montrerPays = v)} liste={montrerListe} />
   {/if}
+  {#if vue === 'monde' && routeCerclesMonde}
+    <CerclesMondeV2 points={cerclesMonde} afficher={montrerCercles} onAfficher={(v) => (montrerCercles = v)} />
+  {/if}
 
   <p class="sr sc-resume" aria-live="polite">{resume}</p>
 
@@ -845,7 +879,7 @@
           {/if}
         {/each}
       </div>
-      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte)}
+      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles && !poseOuverte)}
         <div class="sc-zoom" role="group" aria-label={$t('v2.circle.scene.zoom.label' as any)}>
           <button type="button" class="sc-zoom-btn sc-zoom-plus" disabled={zoom >= ZOOM_MAX}
             aria-label={$t('v2.circle.scene.zoom.in' as any)} title={$t('v2.circle.scene.zoom.in' as any)} onclick={() => zoomer(1)}>
@@ -862,7 +896,7 @@
           <span class="sr" aria-live="polite">{tr('v2.circle.scene.zoom.level', { n: zoomTexte })}</span>
         </div>
       {/if}
-      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
+      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
           {#if relais === 'ok'}<button type="button" class="go sc-poser" disabled={lectureSeule} onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
@@ -873,7 +907,7 @@
         <p class="sc-vide">{$t('v2.circle.scene.link.empty' as any)}</p>
       {/if}
     </div>
-    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles)}
+    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles)}
       <!-- web#2697 : l'aide passe SOUS le globe, plus par-dessus son bas. -->
       <p class="sc-astuce sc-astuce-sous">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
     {/if}
@@ -883,7 +917,7 @@
       {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
       {#if vue === 'monde' && pointsPublics.length}<p class="note sc-compte-public">{tr('v2.circle.scene.world.publicCount', { n: pointsPublics.length })}</p>{/if}
       {#if noeudsVue.length === 0}
-        {#if !(vue === 'monde' && (pointsPublics.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
+        {#if !(vue === 'monde' && (pointsPublics.length || cerclesMonde.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
       {:else}
         <ul class="sc-liste">
           {#each noeudsVue as n (n.id)}
@@ -912,6 +946,13 @@
           <p class="sc-avis-titre" id="sc-avis-titre">{$t('v2.circle.scene.public.noticeTitle' as any)}</p>
           <p class="note">{$t('v2.circle.scene.public.notice' as any)}</p>
           <button type="button" class="lnk sc-avis-compris" onclick={fermerAvis}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
+        </div>
+      {/if}
+      {#if montrerAvisCercles}
+        <div class="sc-avis-public sc-avis-cercles" role="note" aria-labelledby="sc-avis-cercles-titre">
+          <p class="sc-avis-titre" id="sc-avis-cercles-titre">{$t('v2.circle.scene.circlesMap.noticeTitle' as any)}</p>
+          <p class="note">{$t('v2.circle.scene.circlesMap.notice' as any)}</p>
+          <button type="button" class="lnk sc-avis-compris" onclick={fermerAvisCercles}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
         </div>
       {/if}
       {#if retraitCarte !== null}

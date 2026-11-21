@@ -26,7 +26,7 @@
   import {
     CF_PRESETS,
     reglagesCrossfeed, presetActif, bornesCrossfeed, niveauEnPourcent,
-    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed, cleReserveCrossfeed,
     bornesOmbre, reglagesOmbre, positionDeCoupure, coupureDePosition, libelleCoupure,
     CF_COUPURE_DEFAUT, CF_PENTE_DEFAUT, CF_COUPURE_POSITIONS,
   } from '../../lib/crossfeed';
@@ -68,6 +68,9 @@
    *  chemin de code (tune-server-rust#2742). */
   let status = $state<api.CrossfeedStatus | null>(null);
   const indispo = $derived(indisponibiliteCrossfeed(status, $currentZone?.output_type));
+  /** #3307 — réserve non verrouillante (`non_local_partial`) : le contrôle
+   *  reste actif, une ligne d'aide dit quand il s'applique. */
+  const reserve = $derived(cleReserveCrossfeed(status));
   /** Crossfeed Pro traite la zone : le serveur éteint le crossfeed intégré
    *  (les deux ne s'additionnent jamais). L'écran le dit et se verrouille. */
   let proTraite = $state(false);
@@ -317,6 +320,7 @@
           <div class="lbl">
             <span>{$t('v2.cf.enable' as any)}</span>
             {#if zoneName}<span class="hint">{$t('v2.cf.perZoneA' as any)} <b>{zoneName}</b>{$t('v2.cf.perZoneB' as any)}</span>{/if}
+            {#if reserve}<span class="hint" data-crossfeed-reserve>{$t(reserve as any)}</span>{/if}
           </div>
           <label class="sw">
             <input type="checkbox" checked={enabled} onchange={toggle} disabled={indispo.indisponible} />

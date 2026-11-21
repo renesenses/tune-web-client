@@ -4,7 +4,7 @@ import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
 import { notifications } from './stores/notifications';
-import { notifierTraduit } from './notificationTraduite';
+import { annoncerServeurInjoignable, serveurARepondu } from './bandeauServeurInjoignable';
 import { leServeurRepond, phaseDeDemarrage, signalerDemarrage } from './demarrageServeur';
 import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
@@ -109,14 +109,6 @@ const acceptLang = (): string => {
   }
 };
 
-let _lastNetworkError = 0;
-function showNetworkError() {
-  const now = Date.now();
-  if (now - _lastNetworkError < 30000) return;
-  _lastNetworkError = now;
-  // Souvent au démarrage, avant la langue choisie : retraduite (voir `notificationTraduite`).
-  notifierTraduit((m) => notifications.error(m), (tr) => tr('common.serverUnreachable'));
-}
 
 import type {
   Zone,
@@ -588,9 +580,11 @@ export async function fetchJSON<T>(
   } catch (e) {
     // Une requête abandonnée par son appelant (délai d'abandon, #1788) n'est
     // pas une panne du réseau : pas de bandeau, l'appelant dit ce qui s'est passé.
-    if (!options?.signal?.aborted) showNetworkError();
+    annoncerServeurInjoignable(options?.signal, 30000);
     throw e;
   }
+  // #3185 — le serveur a répondu (quel que soit le statut) : le bandeau se retire.
+  serveurARepondu();
   if (!response.ok && !accepter?.(response.status)) {
     if (response.status === 401) {
       clearToken();
@@ -885,9 +879,12 @@ async function fetchEcriture<T>(url: string, options?: RequestInit): Promise<T |
       headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
-    showNetworkError();
+    // #3185 — comme `fetchJSON` : une écriture abandonnée par son appelant
+    // n'annonce pas une panne du serveur.
+    annoncerServeurInjoignable(options?.signal, 30000);
     throw e;
   }
+  serveurARepondu();
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
@@ -5116,7 +5113,9 @@ export interface CrossfeedStatus {
   effective: boolean;
   /** La contrainte s'applique — verrouille le contrôle. */
   unavailable: boolean;
-  /** `non_local_output` | `pure_mode` ; `null` quand le réglage est honoré. */
+  /** `non_local_output` | `pure_mode` | … ; `null` quand le réglage est honoré.
+   *  `non_local_partial` (tune-server-rust#9254) arrive avec `unavailable:
+   *  false` : une réserve, pas un verrou (voir `cleReserveCrossfeed`). */
   reason: string | null;
   /** Phrase serveur, en français uniquement. Non affichée par l'écran web. */
   detail: string | null;
@@ -11127,6 +11126,19 @@ export function getTrackVersions(id: number, streaming = true) {
 export function getHomeRecommendations(limit?: number) {
   const q = limit != null ? `?limit=${limit}` : '';
   return fetchJSON<any[]>(`${BASE}/home/recommendations${q}`);
+}
+
+/**
+ * web#3118 — « Parce que vous aimez <artiste> » : jusqu'à cinq playlists
+ * générées de vingt titres, refaites tous les trois jours.
+ */
+export function getBecauseYouLike(limit?: number, signal?: AbortSignal) {
+  const q = limit != null ? `?limit=${limit}` : '';
+  // #1763 — le widget passe le signal de sa page : délai et démontage annulent.
+  return fetchJSON<import('./parceQueVousAimez').ReponseParceQueVousAimez>(
+    `${BASE}/home/because-you-like${q}`,
+    signal ? { signal } : undefined,
+  );
 }
 
 export function getTopMixes() {
