@@ -62,9 +62,11 @@ describe("#1481 — l'écran de correction acoustique dit ce qu'il accepte", () 
     expect(v).toContain('stéréo');
   });
 
-  it("le français dit que la cadence n'est pas rattrapée", () => {
-    // `build_for` : « Aucun rééchantillonnage silencieux ». Sur une zone
-    // réseau, le refus ne se voit qu'à la lecture : l'écran doit prévenir.
-    expect((valeur('fr') ?? '').toLowerCase()).toContain('cadence');
+  it('le français dit ce que Tune fait de la cadence', () => {
+    // tune-server-rust#8761 : un fichier par cadence, et le plus proche
+    // rééchantillonné en repli. L'écran doit le dire avant la lecture.
+    const v = (valeur('fr') ?? '').toLowerCase();
+    expect(v).toContain('cadence');
+    expect(v).toContain('rééchantillonne');
   });
 });
