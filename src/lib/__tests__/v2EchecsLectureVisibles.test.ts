@@ -88,6 +88,8 @@ function reponsePour(url: string, options?: RequestInit): Response {
   if (/\/queue/.test(url)) corps = { tracks: [], position: 0, length: 0 };
   else if (/\/zones(\?|$)/.test(url)) corps = [ZONE];
   else if (/\/zones\/\d+/.test(url)) corps = ZONE;
+  // Les œuvres sont désactivées dans ce banc de refus de lecture (#3100).
+  else if (/\/library\/albums\/works\/members/.test(url)) corps = { enabled: false, works: [] };
   else if (/\/library\/albums\b/.test(url)) corps = [ALBUM];
   else if (COLLECTIONS.test(url)) corps = [];
   return {

@@ -158,6 +158,8 @@ describe('Bibliothèque : puce Instrument (#3157)', { timeout: 30_000 }, () => {
   ];
   function route(url: string): unknown {
     const u = new URL(url, 'http://localhost');
+    // Réponse réelle du serveur quand le regroupement des œuvres est désactivé.
+    if (u.pathname.endsWith('/library/albums/works/members')) return { enabled: false, works: [] };
     if (u.pathname.endsWith('/library/facets')) return facettes;
     if (u.pathname.endsWith('/library/albums-detailed')) {
       const instr = u.searchParams.getAll('instrument').map((x) => x.toLowerCase());

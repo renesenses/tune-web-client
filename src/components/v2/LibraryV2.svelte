@@ -48,6 +48,7 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  import { tuneWS } from '../../lib/websocket';
   import { chargerMembresOeuvres, regrouperAlbums, type MembresOeuvre } from '../../lib/oeuvres';
   // tune-server-rust#7597 — le bouton « Répertoire » et la lecture du dossier.
   import ChoixRepertoireBibliotheque from './ChoixRepertoireBibliotheque.svelte';
@@ -355,11 +356,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
    * tout (`lib/oeuvres`). Serveur ancien ou réglage désactivé : rien ne change.
    */
   let membresOeuvres = $state.raw<MembresOeuvre[]>([]);
+  let revisionOeuvres = $state(0);
+  $effect(() => tuneWS.onEvent(e => { if (e.type === '_connected') revisionOeuvres++; }));
   $effect(() => {
     void $albums;
+    void revisionOeuvres;
     if (depot) return;
     let perime = false;
-    chargerMembresOeuvres().then((m) => { if (!perime) membresOeuvres = m; });
+    chargerMembresOeuvres().then((m) => { if (!perime) membresOeuvres = m; })
+      .catch(() => { if (!perime) notifications.error($tr('works.loadError' as any)); });
     return () => { perime = true; };
   });
   // `$derived.by` : `nu` est déclaré plus bas — lu paresseusement, jamais à l'initialisation.

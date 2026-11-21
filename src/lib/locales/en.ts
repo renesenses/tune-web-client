@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Unable to load album versions.",
   "classicalTags.title": "Classical tags",
   "classicalTags.hint": "The tags read for each role. CONDUCTOR, WORK and MOVEMENTNAME cover all their variants (ID3, MP4); any other name is a custom tag: CHORUS also reads TXXX:CHORUS.",
   "classicalTags.unavailable": "This server does not offer this setting yet. Please update Tune.",

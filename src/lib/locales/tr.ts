@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Albüm sürümleri yüklenemedi.",
   "v2.queue.waiting": "Bekleyen kuyruk",
   "classicalTags.title": "Klasik müzik etiketleri",
   "classicalTags.hint": "Her rol için okunan etiketler. CONDUCTOR, WORK ve MOVEMENTNAME tüm varyantlarını (ID3, MP4) kapsar; başka her ad özel bir etikettir: CHORUS, TXXX:CHORUS etiketini de okur.",

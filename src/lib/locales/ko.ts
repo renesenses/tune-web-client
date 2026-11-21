@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "앨범 버전을 불러올 수 없습니다.",
   "classicalTags.title": "클래식 태그",
   "classicalTags.hint": "역할별로 읽는 태그입니다. CONDUCTOR, WORK, MOVEMENTNAME은 모든 형식(ID3, MP4)을 포함하며, 그 밖의 이름은 사용자 태그입니다. CHORUS는 TXXX:CHORUS도 읽습니다.",
   "classicalTags.unavailable": "이 서버는 아직 이 설정을 지원하지 않습니다. Tune을 업데이트하세요.",

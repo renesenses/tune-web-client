@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Nu se pot încărca versiunile albumelor.",
   "classicalTags.title": "Etichete pentru muzica clasică",
   "classicalTags.hint": "Etichetele citite pentru fiecare rol. CONDUCTOR, WORK și MOVEMENTNAME acoperă toate variantele lor (ID3, MP4); orice alt nume este o etichetă liberă: CHORUS citește și TXXX:CHORUS.",
   "classicalTags.unavailable": "Acest server nu oferă încă această setare. Actualizați Tune.",

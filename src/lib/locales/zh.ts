@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "无法加载专辑版本。",
   "classicalTags.title": "古典音乐标签",
   "classicalTags.hint": "每个角色读取的标签。CONDUCTOR、WORK 和 MOVEMENTNAME 涵盖其所有变体（ID3、MP4）；其他名称为自定义标签：CHORUS 也会读取 TXXX:CHORUS。",
   "classicalTags.unavailable": "此服务器尚不支持此设置。请更新 Tune。",

@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Δεν είναι δυνατή η φόρτωση των εκδόσεων των άλμπουμ.",
   "classicalTags.title": "Ετικέτες κλασικής μουσικής",
   "classicalTags.hint": "Οι ετικέτες που διαβάζονται για κάθε ρόλο. Τα CONDUCTOR, WORK και MOVEMENTNAME καλύπτουν όλες τις παραλλαγές τους (ID3, MP4)· κάθε άλλο όνομα είναι ελεύθερη ετικέτα: το CHORUS διαβάζει και το TXXX:CHORUS.",
   "classicalTags.unavailable": "Αυτός ο διακομιστής δεν προσφέρει ακόμη αυτή τη ρύθμιση. Ενημερώστε το Tune.",

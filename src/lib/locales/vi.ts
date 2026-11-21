@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Không thể tải các phiên bản album.",
   "classicalTags.title": "Thẻ nhạc cổ điển",
   "classicalTags.hint": "Các thẻ được đọc cho từng vai trò. CONDUCTOR, WORK và MOVEMENTNAME bao gồm mọi biến thể (ID3, MP4); mọi tên khác là thẻ tùy chỉnh: CHORUS cũng đọc TXXX:CHORUS.",
   "classicalTags.unavailable": "Máy chủ này chưa hỗ trợ cài đặt này. Hãy cập nhật Tune.",

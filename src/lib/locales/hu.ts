@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "Az albumverziók nem tölthetők be.",
   "classicalTags.title": "Klasszikus címkék",
   "classicalTags.hint": "Az egyes szerepekhez olvasott címkék. A CONDUCTOR, a WORK és a MOVEMENTNAME minden változatukat lefedi (ID3, MP4); minden más név szabad címke: a CHORUS a TXXX:CHORUS-t is olvassa.",
   "classicalTags.unavailable": "Ez a szerver még nem kínálja ezt a beállítást. Frissítse a Tune-t.",

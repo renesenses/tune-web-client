@@ -109,6 +109,7 @@ import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCre
 import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentationRefuses, type EtatPresentation } from '../../lib/presentationAlbumService';
   import { dialogs } from '../../lib/stores/dialogs';
   import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
+  import { tuneWS } from '../../lib/websocket';
   import { chargerOeuvreAlbum, choisirVersionPreferee, libelleVersion, type OeuvreAlbum } from '../../lib/oeuvres';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
@@ -1319,11 +1320,17 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * autre version, un dépôt distant, un service, ou un serveur ancien.
    */
   let oeuvre = $state.raw<OeuvreAlbum | null>(null);
+  let revisionOeuvres = $state(0);
+  let dernierAlbumOeuvre: number | null = null;
+  $effect(() => tuneWS.onEvent(e => { if (e.type === '_connected') revisionOeuvres++; }));
   $effect(() => {
+    void revisionOeuvres;
     const id = album.id, d = depot, svc = service, bc = bandcamp;
-    if (id == null || d || svc || bc) { oeuvre = null; return; }
+    if (id == null || d || svc || bc) { oeuvre = null; dernierAlbumOeuvre = null; return; }
+    if (dernierAlbumOeuvre !== id) { oeuvre = null; dernierAlbumOeuvre = id; }
     let vivant = true;
-    chargerOeuvreAlbum(id).then((o) => { if (vivant) oeuvre = o && o.versions.length > 1 ? o : null; });
+    chargerOeuvreAlbum(id).then((o) => { if (vivant) oeuvre = o && o.versions.length > 1 ? o : null; })
+      .catch(() => { if (vivant) notifications.error($tr('works.loadError' as any)); });
     return () => { vivant = false; };
   });
   async function changerVersion(id: number) {

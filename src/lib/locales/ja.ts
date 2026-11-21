@@ -1,4 +1,5 @@
 export default {
+  "works.loadError": "アルバムのバージョンを読み込めません。",
   "classicalTags.title": "クラシックのタグ",
   "classicalTags.hint": "各役割で読み取るタグ。CONDUCTOR、WORK、MOVEMENTNAME はすべての形式（ID3、MP4）を含みます。その他の名前は独自タグです：CHORUS は TXXX:CHORUS も読み取ります。",
   "classicalTags.unavailable": "このサーバーはまだこの設定に対応していません。Tune を更新してください。",
