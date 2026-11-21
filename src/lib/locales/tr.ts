@@ -7111,6 +7111,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE geçişi: şu konumdan sürdürüldü: {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: bu bölgenin ses düzeyi PURE tarafından kilitli; kulaklarınızı ve hoparlörlerinizi korumak için çalma %0’da başladı. Ses düzeyini cihazdan ya da Tune’dan yükseltin.",
   "erreursServeur.track_file_damaged": "“{title}”: dosya şu konumdan itibaren bozuk: {position}. Tune parçanın kalanını atladı.",
+  "erreursServeur.smart_collection_name_taken": "Bu adda bir koleksiyon zaten var. Lütfen başka bir ad seçin.",
   "v2.dev.listAria": "Cihazlar ve bölgeler",
   "v2.dev.filterLabel": "Cihazları filtrele",
   "v2.dev.filterPlaceholder": "Cihaz ara…",

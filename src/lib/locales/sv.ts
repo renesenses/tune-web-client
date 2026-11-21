@@ -7270,6 +7270,7 @@ export default {
   "avisServeur.pure_resumed_at_position": "PURE-växling: återupptaget vid {position}",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volymen i den här zonen är låst av PURE, så uppspelningen startade på 0 % för att skydda dina öron och högtalare. Höj volymen på enheten eller i Tune.",
   "erreursServeur.track_file_damaged": "”{title}”: filen är skadad från {position}. Tune hoppade över resten av spåret.",
+  "erreursServeur.smart_collection_name_taken": "En samling har redan det här namnet. Välj ett annat.",
   "v2.dev.listAria": "Enheter och zoner",
   "v2.dev.filterLabel": "Filtrera enheter",
   "v2.dev.filterPlaceholder": "Sök efter en enhet …",
