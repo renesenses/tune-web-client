@@ -11128,6 +11128,19 @@ export function getHomeRecommendations(limit?: number) {
   return fetchJSON<any[]>(`${BASE}/home/recommendations${q}`);
 }
 
+/**
+ * web#3118 — « Parce que vous aimez <artiste> » : jusqu'à cinq playlists
+ * générées de vingt titres, refaites tous les trois jours.
+ */
+export function getBecauseYouLike(limit?: number, signal?: AbortSignal) {
+  const q = limit != null ? `?limit=${limit}` : '';
+  // #1763 — le widget passe le signal de sa page : délai et démontage annulent.
+  return fetchJSON<import('./parceQueVousAimez').ReponseParceQueVousAimez>(
+    `${BASE}/home/because-you-like${q}`,
+    signal ? { signal } : undefined,
+  );
+}
+
 export function getTopMixes() {
   return fetchJSON<any[]>(`${BASE}/home/top-mixes`);
 }
