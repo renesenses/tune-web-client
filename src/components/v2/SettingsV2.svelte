@@ -8360,6 +8360,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
                       </div>
 
+                      {#if st.session_unreadable && !st.authenticated}
+                        <!-- tune-server-rust#9216 — la session enregistrée ne
+                             se relit pas (clé du coffre absente, illisible ou
+                             autre) : le dire, au lieu d'un simple « non
+                             connecté ». Rien n'est effacé côté serveur. -->
+                        <p class="hint err" data-session-illisible={st.session_unreadable}>
+                          {$t(`v2.set.sessionUnreadable.${st.session_unreadable}` as any)}
+                        </p>
+                      {/if}
+
                       {#if name === 'spotify' && !st.authenticated && !flow}
                         <!-- tune-server-rust#8198 — Spotify Connect d'abord : pour
                              seulement écouter, aucun compte développeur. -->

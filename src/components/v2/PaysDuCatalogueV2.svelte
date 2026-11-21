@@ -1,8 +1,8 @@
 <script lang="ts">
   /**
-   * tune-server-rust#8481 — le pays du catalogue d'un service de streaming
-   * (TIDAL), comme le réglage « PL » de LMS : le service se comporte alors
-   * comme depuis ce pays. Vide : le pays du compte.
+   * tune-server-rust#8481 — le pays de NAVIGATION d'un service de streaming
+   * (TIDAL) : il ne vaut que pour parcourir et rechercher le catalogue ; la
+   * lecture part toujours avec le pays du compte. Vide : le pays du compte.
    *
    * Le champ ne s'affiche que si le serveur dit le réglage possible : Qobuz
    * répond 422 (il sert toujours le magasin du compte), un serveur plus
