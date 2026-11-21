@@ -61,6 +61,10 @@
         reponse = null;
         absent = true;
         capaciteTess.set('non');
+      } else if ('zoneInconnue' in r) {
+        // La zone a disparu : TESS reste annoncé, on le dit sans rien cacher.
+        reponse = null;
+        message = tr('tess.zoneNotFound');
       } else {
         message = texteRefus(r.refus);
       }
@@ -97,6 +101,7 @@
       const r = await api.putTessZone(zoneId, chaine);
       if (r.ok) reponse = r.reponse;
       else if ('refus' in r) message = texteRefus(r.refus);
+      else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
       else { absent = true; capaciteTess.set('non'); }
     } catch {
       message = tr('tess.saveError');
@@ -191,7 +196,7 @@
     {:else if zoneId == null}
       <div class="etat">{$t('tess.noZone' as any)}</div>
     {:else if !reponse}
-      <div class="etat">{chargement ? $t('tess.loading' as any) : (message ?? '')}</div>
+      <div class="etat" data-tess-etat>{chargement ? $t('tess.loading' as any) : (message ?? '')}</div>
     {:else}
       {#if horsTess}
         <div class="avis" role="note" data-tess-hors={horsTess.reason ?? ''}>
