@@ -3764,6 +3764,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "将此网格保存为整个区域的默认设置？当前的区域规则将被替换；专辑的规则不变。",
   "v2.cr.reset": "移除重映射",
   "v2.cr.nextTrack": "已保存：重映射将从下一次播放起生效。",
+  "v2.cr.networkOutput": "此区域通过网络播放器（DLNA、Squeezebox、AirPlay…）播放，它不会应用声道重映射。设置已保存，但在此处听不到；请在播放器或 DAC 上调整声道平衡。",
+  "v2.cr.savedNotApplied": "已保存，但此区域的网络输出不会应用声道重映射。",
   "v2.cr.albumTitle": "当前专辑的规则",
   "v2.cr.albumHint": "为该专辑保存上面的矩阵：它优先于分区的设置，适用于所有分区。",
   "v2.cr.albumActive": "该专辑已保存一条规则。",

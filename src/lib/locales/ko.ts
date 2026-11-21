@@ -3764,6 +3764,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "이 그리드를 존 전체의 기본 설정으로 저장할까요? 현재 존 규칙은 대체되며 앨범의 규칙은 바뀌지 않습니다.",
   "v2.cr.reset": "재할당 제거",
   "v2.cr.nextTrack": "저장됨: 다음 재생부터 재할당이 적용됩니다.",
+  "v2.cr.networkOutput": "이 존은 네트워크 플레이어(DLNA, Squeezebox, AirPlay…)로 재생되며, 채널 재배치를 적용하지 않습니다. 설정은 저장되었지만 여기서는 들리지 않습니다. 밸런스는 플레이어나 DAC에서 조정하세요.",
+  "v2.cr.savedNotApplied": "저장되었지만 이 존의 네트워크 출력은 채널 재배치를 적용하지 않습니다.",
   "v2.cr.albumTitle": "재생 중인 앨범의 규칙",
   "v2.cr.albumHint": "위 매트릭스를 이 앨범에 저장합니다: 모든 존에서 존 설정보다 우선합니다.",
   "v2.cr.albumActive": "이 앨범에 규칙이 저장되어 있습니다.",

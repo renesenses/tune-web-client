@@ -3718,6 +3718,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Menti ezt a rácsot az egész zóna alapértelmezett beállításaként? A zóna jelenlegi szabálya lecserélődik; az album szabálya nem változik.",
   "v2.cr.reset": "Átrendezés eltávolítása",
   "v2.cr.nextTrack": "Mentve: az átrendezés a következő lejátszástól hallható.",
+  "v2.cr.networkOutput": "Ez a zóna hálózati lejátszón (DLNA, Squeezebox, AirPlay…) szól, amely nem alkalmazza a csatornakiosztást. A beállítás mentve, de itt nem hallható; a balanszot a lejátszón vagy a DAC-on állítsa be.",
+  "v2.cr.savedNotApplied": "Mentve, de a zóna hálózati kimenete nem alkalmazza a csatornakiosztást.",
   "v2.cr.albumTitle": "Az aktuális album szabálya",
   "v2.cr.albumHint": "A fenti mátrixot ehhez az albumhoz menti: minden zónában elsőbbséget élvez a zóna beállításával szemben.",
   "v2.cr.albumActive": "Ehhez az albumhoz szabály van mentve.",

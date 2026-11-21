@@ -46,6 +46,10 @@ export interface EtatReaffectation {
   zone_id?: number;
   album_id?: number;
   applied_live?: boolean;
+  /** tune-server-rust#8740 — la sortie de la zone applique-t-elle la
+   *  matrice ? `false` : lecteur réseau, le réglage ne s'entend pas.
+   *  `null` ou absent : rien d'affirmé (zone sans sortie, serveur antérieur). */
+  applies_to_output?: boolean | null;
 }
 
 export interface PrereglageReaffectation {
