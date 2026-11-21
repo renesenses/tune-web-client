@@ -16,15 +16,15 @@
    *  5. export et import du document de session (v2).
    *
    * Le parent ne le monte que si le serveur connaît les sessions
-   * (`capaciteSessions`, `GET /sessions`).
+   * (`sonderSessions`, `404 session_inconnue` sur un id factice).
    */
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
     POSITIONS_MIN, POSITIONS_MAX, POSITIONS_DEFAUT, SUIVI, LIBELLES_ETATS, ETATS_FINAUX,
     positionsBornees, positionMesuree, etatPosition, verdictPosition, prochainePosition, causeRejet, causeMesure,
-    nomExportSession, telechargerJson, lireErreur,
+    nomExportSession, telechargerJson, lireErreur, IMPORT_MAX_OCTETS, RELANCES_SUIVI, delaiRelance,
     creerSession, lireSession, mesurerPosition, lireAvancement, annulerMesure, exporterSession, importerSession,
     proposerSession, enregistrerProfilSession, comparer,
     type VueSession, type Avancement, type Proposition, type TypeCible, type Comparaison, type DemandeMesure,
@@ -37,6 +37,7 @@
 
   let {
     zoneId, zoneNom, verrouille, demande, application, erreurDe, onAppliquer, onOccupe, onReinitialiser,
+    memoire, onMemoire,
   }: {
     zoneId: number;
     zoneNom: string;
@@ -49,6 +50,14 @@
     onAppliquer: (enregistrer: () => Promise<ProfilEnregistre>, poserErreur: (e: Erreur | null) => void) => void;
     onOccupe: (occupe: boolean) => void;
     onReinitialiser: () => void;
+    /**
+     * Les sessions en cours, gardées par le PARENT : un changement d'onglet
+     * démonte ce composant, et il les reprend au retour (mesure en cours
+     * comprise). Le parent y range aussi la session retrouvée par
+     * `GET /mesures` quand l'écran entier est rouvert.
+     */
+    memoire: { a: string | null; b: string | null };
+    onMemoire: (m: { a: string | null; b: string | null }) => void;
   } = $props();
 
   let nombre = $state(POSITIONS_DEFAUT);
@@ -63,9 +72,62 @@
   let comparaison = $state<Comparaison | null>(null);
   let erreur = $state<Erreur | null>(null);
   let minuterie: ReturnType<typeof setTimeout> | null = null;
+  /** Le POST d'une position est parti, sa réponse pas encore arrivée (M3). */
+  let lancement = $state(false);
+  /** L'annulation est demandée : on attend l'état final du serveur (M4). */
+  let annulation = $state(false);
+  let reprise = $state(false);
+  /** Démonté : plus aucun suivi ne doit écrire (M2). */
+  let detruit = false;
 
-  const enCours = $derived(courante != null && !ETATS_FINAUX.has(courante.avancement.etat));
+  const enCours = $derived(lancement || reprise || (courante != null && !ETATS_FINAUX.has(courante.avancement.etat)));
   $effect(() => { onOccupe(enCours || creation); });
+  // B1 — un onglet quitté pendant une mesure ne laisse pas l'écran figé.
+  onDestroy(() => { detruit = true; arreterSuivi(); onOccupe(false); });
+
+  // Le parent garde les ids : au retour sur l'onglet, on reprend où on en était.
+  const memoriser = () => onMemoire({ a: session?.id ?? null, b: verification?.id ?? null });
+  $effect(() => {
+    const { a, b } = memoire;
+    untrack(() => { if (a && session?.id !== a) void reprendre(a, b); });
+  });
+
+  /** Le serveur ne connaît plus la mesure ou la session : redémarré (sessions en mémoire). */
+  function perdue(e: unknown): boolean {
+    const x = lireErreur(e);
+    return x.status === 404 && (x.code === 'mesure_inconnue' || x.code === 'session_inconnue');
+  }
+  const ERREUR_PERDUE = (code: string | null): Erreur => ({ cle: 'v2.room.multiErrLost', cause: null, code });
+
+  async function reprendre(a: string, b: string | null) {
+    reprise = true;
+    erreur = null;
+    try {
+      const va = await lireSession(a);
+      const vb = b ? await lireSession(b).catch(() => null) : null;
+      if (detruit) return;
+      session = va;
+      verification = vb;
+      // Une position encore en cours se suit de nouveau.
+      for (const v of [vb, va]) {
+        const e = v?.etats.find((x) => x.mesure_id && !ETATS_FINAUX.has(x.etat));
+        if (v && e?.mesure_id) {
+          courante = { session: v.id, index: e.index,
+            avancement: { id: e.mesure_id, zone_id: zoneId, entree: '', etat: e.etat, progression: 0, avertissements: [] } };
+          suivre(e.mesure_id);
+          break;
+        }
+      }
+      if (va.moyenne) await proposer();
+      if (vb?.moyenne) await comparerAvantApres();
+    } catch (e) {
+      if (detruit) return;
+      erreur = perdue(e) ? ERREUR_PERDUE('session_inconnue') : erreurDe('v2.room.multiErrSession', e);
+      onMemoire({ a: null, b: null });
+    } finally {
+      reprise = false;
+    }
+  }
 
   /** Une session importée d'une autre zone (ou sans zone) se consulte : on n'y mesure pas. */
   const lectureSeule = (s: VueSession) => s.zone_id !== zoneId;
@@ -92,6 +154,7 @@
     try {
       session = await creerSession(zoneId, positionsBornees(nombre));
       verification = null;
+      memoriser();
       proposition = null;
       comparaison = null;
       onReinitialiser();
@@ -108,6 +171,7 @@
     erreur = null;
     try {
       verification = await creerSession(zoneId, session.positions_prevues);
+      memoriser();
       comparaison = null;
     } catch (e) {
       erreur = erreurDe('v2.room.multiErrCreate', e);
@@ -124,25 +188,31 @@
     proposition = null;
     comparaison = null;
     erreur = null;
+    memoriser();
     onReinitialiser();
   }
 
   async function mesurer(s: VueSession, index: number) {
     if (verrouille || enCours || !demande || lectureSeule(s)) return;
+    lancement = true;
     const lieu = index === s.centrale ? tr('v2.room.multiCentral') : tr('v2.room.multiAround');
     const question = tr('v2.room.multiConfirm')
       .replace('{n}', String(index + 1)).replace('{lieu}', lieu).replace('{zone}', zoneNom);
-    if (!(await dialogs.confirm(question))) return;
+    if (!(await dialogs.confirm(question))) { lancement = false; return; }
     erreur = null;
+    annulation = false;
     try {
       const r = await mesurerPosition(s.id, { ...demande, index });
+      if (detruit) return;
       courante = {
         session: s.id, index: r.position,
         avancement: { id: r.id, zone_id: zoneId, entree: demande.entree, etat: 'preparation', progression: 0, avertissements: [] },
       };
       suivre(r.id);
     } catch (e) {
-      erreur = erreurDe('v2.room.errMeasure', e);
+      erreur = perdue(e) ? ERREUR_PERDUE('session_inconnue') : erreurDe('v2.room.errMeasure', e);
+    } finally {
+      lancement = false;
     }
   }
 
@@ -150,32 +220,58 @@
     if (minuterie) clearTimeout(minuterie);
     minuterie = null;
   }
-  function suivre(id: string) {
+  /** La mesure suivie passe en erreur : l'écran se débloque (B2). */
+  function abandonner(id: string, e: Erreur | null) {
+    if (courante?.avancement.id === id) {
+      courante = { ...courante, avancement: { ...courante.avancement, etat: 'erreur', message: undefined } };
+    }
+    annulation = false;
+    erreur = e;
+  }
+  /**
+   * Le suivi d'une mesure. Un 404 (`mesure_inconnue`) dit que le serveur l'a
+   * oubliée : redémarrage, les mesures vivent en mémoire. Une panne passagère
+   * (réseau, 5xx) se relance RELANCES_SUIVI fois, à intervalle croissant.
+   */
+  function suivre(id: string, echecs = 0) {
     arreterSuivi();
+    const delai = echecs ? delaiRelance(echecs, SUIVI.intervalleMs) : SUIVI.intervalleMs;
     minuterie = setTimeout(async () => {
       minuterie = null;
+      if (detruit) return;
+      let a: Avancement;
       try {
-        const a = await lireAvancement(id);
-        if (!courante || courante.avancement.id !== id) return;
-        courante = { ...courante, avancement: a };
-        if (!ETATS_FINAUX.has(a.etat)) { suivre(id); return; }
-        await rafraichir(courante.session);
+        a = await lireAvancement(id);
       } catch (e) {
-        erreur = erreurDe('v2.room.errMeasure', e);
+        if (detruit) return;
+        const x = lireErreur(e);
+        if (perdue(e)) { abandonner(id, ERREUR_PERDUE(x.code)); return; }
+        if (x.premium || (x.status != null && x.status < 500) || echecs >= RELANCES_SUIVI) {
+          abandonner(id, erreurDe('v2.room.errMeasure', e));
+          return;
+        }
+        suivre(id, echecs + 1);
+        return;
       }
-    }, SUIVI.intervalleMs);
+      if (detruit || !courante || courante.avancement.id !== id) return;
+      courante = { ...courante, avancement: a };
+      if (!ETATS_FINAUX.has(a.etat)) { suivre(id); return; }
+      annulation = false;
+      await rafraichir(courante.session);
+    }, delai);
   }
-  onDestroy(arreterSuivi);
 
   async function annuler() {
-    if (!courante) return;
+    if (!courante || annulation) return;
     const c = courante;
+    annulation = true;
     try {
       await annulerMesure(c.avancement.id);
-      arreterSuivi();
-      courante = { ...c, avancement: { ...c.avancement, etat: 'annulee' } };
-      await rafraichir(c.session);
+      // M4 — le bouton « Mesurer » revient quand le serveur dit la mesure finie.
+      if (!minuterie && !detruit) suivre(c.avancement.id);
     } catch (e) {
+      if (perdue(e)) { abandonner(c.avancement.id, ERREUR_PERDUE('mesure_inconnue')); return; }
+      annulation = false;
       erreur = erreurDe('v2.room.errCancel', e);
     }
   }
@@ -186,9 +282,11 @@
     try {
       vue = await lireSession(id);
     } catch (e) {
-      erreur = erreurDe('v2.room.multiErrSession', e);
+      if (detruit) return;
+      erreur = perdue(e) ? ERREUR_PERDUE('session_inconnue') : erreurDe('v2.room.multiErrSession', e);
       return;
     }
+    if (detruit) return;
     if (session?.id === id) {
       session = vue;
       if (vue.moyenne) await proposer();
@@ -244,6 +342,12 @@
     const fichier = input.files?.[0];
     if (!fichier) return;
     erreur = null;
+    // M6 — la limite de la route (`IMPORT_MAX_OCTETS`), vérifiée avant de lire le fichier.
+    if (fichier.size > IMPORT_MAX_OCTETS) {
+      erreur = { cle: 'v2.room.multiErrImportTooBig', cause: null, code: 'trop_grand' };
+      input.value = '';
+      return;
+    }
     try {
       let doc: unknown;
       try {
@@ -255,6 +359,7 @@
       const vue = await importerSession(doc);
       nouvelle();
       session = vue;
+      memoriser();
       if (vue.moyenne) await proposer();
     } catch (err) {
       const x = lireErreur(err);
@@ -287,7 +392,7 @@
           </span>
           <span class="act">
             {#if ici && !ETATS_FINAUX.has(ici.avancement.etat)}
-              <button class="v2-btn danger" data-multi="annuler" onclick={annuler}>{tr('v2.room.cancel')}</button>
+              <button class="v2-btn danger" data-multi="annuler" disabled={annulation} onclick={annuler}>{tr('v2.room.cancel')}</button>
             {:else if !seule}
               <button class="v2-btn" class:primaire={!mesuree && i === prochaine} data-multi={mesuree ? 'refaire' : 'mesurer'}
                 disabled={verrouille || enCours || !demande} onclick={() => mesurer(s, i)}>
@@ -352,7 +457,7 @@
 <div class="multi" data-multi="parcours">
   {#if erreur}
     <div class="err" role="alert" data-room-erreur={erreur.code ?? ''}>
-      <b>{tr(erreur.cle)}</b>
+      <b>{tr(erreur.cle).replace('{mo}', String(IMPORT_MAX_OCTETS / (1024 * 1024)))}</b>
       {#if erreur.cause}<span data-room="cause">{erreur.cause}</span>{/if}
     </div>
   {/if}
@@ -399,7 +504,7 @@
       <PropositionCorrectionPiece {proposition} {cible} {verrouille} {application} onCible={changerCible} onAppliquer={appliquer} />
     {/if}
 
-    {#if session.moyenne && !lectureSeule(session)}
+    {#if session.moyenne && !lectureSeule(session) && session.positions_prevues >= POSITIONS_MIN}
       <div class="verif" data-multi="verification">
         <div class="titre">{tr('v2.room.multiCheckTitle')}</div>
         {#if !verification}

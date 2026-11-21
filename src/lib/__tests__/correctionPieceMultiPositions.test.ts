@@ -28,6 +28,7 @@ import {
   type VueSession,
 } from '../correctionPiece';
 import CorrectionPieceV2 from '../../components/v2/CorrectionPieceV2.svelte';
+import MesureMultiPositions from '../../components/v2/MesureMultiPositions.svelte';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -81,6 +82,8 @@ let compteur = 0;
 let compteurSessions = 0;
 /** Les états que parcourt une mesure lancée (réglable par test). */
 let etatsMesure: string[];
+/** Pannes réseau à simuler sur le suivi d'une mesure (`GET /mesures/{id}`). */
+let pannesReseau = 0;
 
 /** Position 4 (index 3), au PREMIER essai, est décalée de +9,2 dB : rejet par le niveau. */
 function vue(s: SessionSimulee): VueSession {
@@ -132,9 +135,13 @@ function simulerHote() {
         { nom: 'UMIK-1', id: 'umik', canaux: 1, frequence_courante: 48000, frequences: [48000], bits_servis: 24, virtuelle: false, mesurable: true },
       ] });
     }
-    if (u.endsWith(`${EXT}/mesures`) && method === 'GET') return reponse(200, { mesures: [] });
+    if (u.endsWith(`${EXT}/mesures`) && method === 'GET') {
+      const enCours = [...mesures.values()].filter((m) => !['terminee', 'annulee', 'erreur', 'refusee'].includes(m.etats[0]));
+      return reponse(200, { mesures: enCours.map((m) => ({ id: m.id, zone_id: ZONE, entree: 'umik', etat: m.etats[0], salves: [], depuis_s: 1, progression: 0.3, avertissements: [] })) });
+    }
+    // Serveur rc13 : aucune route de session (404 du routeur, sans code du greffon).
+    if (sessions404 && u.includes(`${EXT}/sessions`)) return reponse(404, undefined);
     if (u.endsWith(`${EXT}/sessions`) && method === 'GET') {
-      if (sessions404) return reponse(404, undefined);
       return reponse(200, { sessions: [...sessions.values()].map(vue) });
     }
     const cree = /\/ext\/calibration\/zones\/(\d+)\/sessions$/.exec(u);
@@ -166,6 +173,7 @@ function simulerHote() {
     }
     const mes = /\/ext\/calibration\/mesures\/([^/]+)$/.exec(u);
     if (mes) {
+      if (method === 'GET' && pannesReseau > 0) { pannesReseau--; throw new TypeError('Failed to fetch'); }
       const m = mesures.get(decodeURIComponent(mes[1]));
       if (!m) return reponse(404, { error: 'mesure_inconnue', message: 'aucune mesure' });
       if (method === 'DELETE') {
@@ -221,6 +229,7 @@ beforeEach(() => {
   importRefus = null;
   compteurSessions = 0;
   etatsMesure = ['salve', 'balayage', 'analyse', 'terminee'];
+  pannesReseau = 0;
   SUIVI.intervalleMs = 2;
   simulerHote();
   vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
@@ -264,7 +273,7 @@ async function ongletMicro() {
   await jusqua(() => appels.some((a) => a.url.endsWith('/api/v1/plugins')));
   await jusqua(() => !(q('fieldset[data-room]') as HTMLFieldSetElement | null)?.disabled);
   clic('[data-onglet="micro"]');
-  await jusqua(() => !!q('select[data-room="entree"]') && appels.some((a) => a.url.endsWith(`${EXT}/sessions`)));
+  await jusqua(() => !!q('select[data-room="entree"]') && appels.some((a) => a.url.endsWith(`${EXT}/sessions/sonde-capacite`)));
   flushSync();
 }
 
@@ -282,6 +291,9 @@ describe('TESS — mesure à plusieurs positions, parcours complet', () => {
     expect(q('[data-room="mode-micro"]')).toBeTruthy();
     expect(q('[data-mode-micro="plusieurs"]')!.classList.contains('on')).toBe(true);
     expect(q('[data-room="mesurer"]'), 'le bouton de la mesure à une position est remplacé').toBeNull();
+    // M1 — la sonde est légère : jamais la liste complète des sessions à l'ouverture.
+    expect(appels.filter((a) => a.url.endsWith(`${EXT}/sessions`))).toHaveLength(0);
+    expect(appels.filter((a) => a.url.endsWith(`${EXT}/sessions/sonde-capacite`))).toHaveLength(1);
 
     // 1. Préparation : 5 par défaut, consigne et schéma.
     const nombre = q('input[data-multi="nombre"]') as HTMLInputElement;
@@ -476,7 +488,7 @@ describe('TESS — Premium', () => {
     clic('[data-onglet="micro"]');
     await jusqua(() => !!q('[data-room-motif="premium"]'));
     expect((q('fieldset[data-room="micro"]') as HTMLFieldSetElement).disabled).toBe(true);
-    expect(appels.some((a) => a.url.endsWith(`${EXT}/sessions`))).toBe(false);
+    expect(appels.some((a) => a.url.includes(`${EXT}/sessions`))).toBe(false);
     expect(q('[data-multi="parcours"]')).toBeNull();
   });
 });
@@ -512,10 +524,131 @@ describe('TESS — textes dans les seize langues', () => {
     const fr = dictionnaire('fr');
     const d = dictionnaire(code);
     const cles = Object.keys(fr).filter((k) => k.startsWith('v2.room.multi'));
-    expect(cles.length).toBe(52);
+    expect(cles.length).toBe(54);
     for (const k of cles) {
       expect(d[k], `${code} : ${k}`).toBeTruthy();
       for (const ph of fr[k].match(/\{\w+\}/g) ?? []) expect(d[k], `${code} : ${k} ${ph}`).toContain(ph);
     }
+  });
+});
+
+describe('TESS — robustesse (relecture de #3322 : B1, B2, M2–M6)', () => {
+  async function lancerSansFin() {
+    await ongletMicro();
+    clic('[data-multi="commencer"]');
+    await jusqua(() => !!q('[data-multi-role="session"]'));
+    etatsMesure = ['balayage'];
+    clic(`${ligne('session', 0)} button[data-multi="mesurer"]`);
+    await jusqua(() => !!q('[data-multi="annuler"]'));
+    expect((q('select[data-room="entree"]') as HTMLSelectElement).disabled).toBe(true);
+    return [...mesures.values()].at(-1)!;
+  }
+
+  it('🔴 B1 — onglet quitté pendant une mesure puis repris : le parcours reprend, et l’écran se débloque à la fin', async () => {
+    const m = await lancerSansFin();
+    clic('[data-onglet="simulation"]');
+    clic('[data-onglet="micro"]');
+    // Repris dans le parcours à plusieurs positions, pas comme une mesure à une position.
+    await jusqua(() => !!q('[data-multi="avancement"]'));
+    expect(q('[data-mode-micro="plusieurs"]')!.classList.contains('on')).toBe(true);
+    expect(q('[data-room="avancement"]')).toBeNull();
+    m.etats = ['terminee'];
+    await jusqua(() => q(ligne('session', 0))?.getAttribute('data-etat') === 'terminee' && !q('[data-multi="annuler"]'));
+    expect((q('select[data-room="entree"]') as HTMLSelectElement).disabled).toBe(false);
+    expect((q(`${ligne('session', 1)} button[data-multi="mesurer"]`) as HTMLButtonElement).disabled).toBe(false);
+    expect((q('[data-mode-micro="une"]') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('🔴 B1 — le parcours démonté pendant une mesure rend la main (onOccupe(false)) et ne suit plus rien (M2)', async () => {
+    const occupe = vi.fn();
+    sessions.set('s7-1', { id: 's7-1', zone_id: ZONE, positions_prevues: 3, centrale: 0, positions: [] });
+    etatsMesure = ['balayage'];
+    const p = mount(MesureMultiPositions, { target: cible!, props: {
+      zoneId: ZONE, zoneNom: 'Salon', verrouille: false, demande: { entree: 'umik', voie_micro: 0, etalonnage: null },
+      application: 'repos', erreurDe: () => null, onAppliquer: vi.fn(), onOccupe: occupe, onReinitialiser: vi.fn(),
+      memoire: { a: 's7-1', b: null }, onMemoire: vi.fn(),
+    } });
+    await jusqua(() => !!q(`${ligne('session', 0)} button[data-multi="mesurer"]`));
+    clic(`${ligne('session', 0)} button[data-multi="mesurer"]`);
+    await jusqua(() => !!q('[data-multi="annuler"]'));
+    expect(occupe).toHaveBeenLastCalledWith(true);
+    unmount(p);
+    expect(occupe).toHaveBeenLastCalledWith(false);
+    const avant = appels.length;
+    await new Promise((r) => setTimeout(r, 30));
+    expect(appels.length, 'le suivi continue après le démontage').toBe(avant);
+  });
+
+  it('🔴 B2 — serveur redémarré pendant le suivi (404 mesure_inconnue) : message clair, écran débloqué', async () => {
+    await lancerSansFin();
+    mesures.clear();
+    sessions.clear();
+    await jusqua(() => !!q('[data-multi="parcours"] [role="alert"]'));
+    expect(q('[data-multi="parcours"] [role="alert"]')!.getAttribute('data-room-erreur')).toBe('mesure_inconnue');
+    expect(q('[data-multi="parcours"] [role="alert"]')!.textContent).toContain(texte('v2.room.multiErrLost'));
+    expect(texte('v2.room.multiErrLost')).toContain('export');
+    expect(q('[data-multi="annuler"]')).toBeNull();
+    expect((q('select[data-room="entree"]') as HTMLSelectElement).disabled).toBe(false);
+    expect((q('[data-multi="nouvelle"]') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('🔴 B2 — panne réseau passagère : le suivi se relance et la mesure aboutit', async () => {
+    await ongletMicro();
+    clic('[data-multi="commencer"]');
+    await jusqua(() => !!q('[data-multi-role="session"]'));
+    pannesReseau = 3;
+    await mesurerPosition('session', 0);
+    expect(pannesReseau).toBe(0);
+    expect(q('[data-multi="parcours"] [role="alert"]')).toBeNull();
+  });
+
+  it('B2 — panne réseau durable : abandon après les relances, écran débloqué', async () => {
+    await ongletMicro();
+    clic('[data-multi="commencer"]');
+    await jusqua(() => !!q('[data-multi-role="session"]'));
+    pannesReseau = 1000;
+    clic(`${ligne('session', 0)} button[data-multi="mesurer"]`);
+    await jusqua(() => !!q('[data-multi="parcours"] [role="alert"]'), 15000);
+    expect(q('[data-multi="parcours"] [role="alert"]')!.textContent).toContain(texte('v2.room.errMeasure'));
+    expect(1000 - pannesReseau).toBe(5);
+    expect((q('select[data-room="entree"]') as HTMLSelectElement).disabled).toBe(false);
+  });
+
+  it('M3 — « Mesurer » est verrouillé pendant le POST d’une position', async () => {
+    await ongletMicro();
+    clic('[data-multi="commencer"]');
+    await jusqua(() => !!q('[data-multi-role="session"]'));
+    let liberer!: () => void;
+    vi.mocked(dialogs.confirm).mockImplementationOnce(() => new Promise((r) => { liberer = () => r(true); }));
+    clic(`${ligne('session', 0)} button[data-multi="mesurer"]`);
+    expect((q(`${ligne('session', 1)} button[data-multi="mesurer"]`) as HTMLButtonElement).disabled).toBe(true);
+    liberer();
+    await jusqua(() => q(ligne('session', 0))?.getAttribute('data-etat') === 'terminee');
+  });
+
+  it('M6 — un fichier de plus de 4 Mio est refusé sans être lu', async () => {
+    await ongletMicro();
+    const lire = vi.fn(async () => '{}');
+    const input = q('input[data-multi="importer"]') as HTMLInputElement;
+    Object.defineProperty(input, 'files', { configurable: true, value: [{ name: 'gros.json', size: 5 * 1024 * 1024, text: lire }] });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await jusqua(() => !!q('[data-multi="parcours"] [role="alert"]'));
+    expect(q('[data-multi="parcours"] [role="alert"]')!.textContent).toContain(texte('v2.room.multiErrImportTooBig').replace('{mo}', '4'));
+    expect(lire).not.toHaveBeenCalled();
+    expect(appelsA(`${EXT}/sessions/import`)).toHaveLength(0);
+  });
+
+  it('M5 — un document v1 (une seule position) n’offre pas la vérification', async () => {
+    sessions.set('s8-1', { id: 's8-1', zone_id: ZONE, positions_prevues: 1, centrale: 0, positions: [],
+      importee: { version: 2, id: 's8-1', zone_id: ZONE, positions_prevues: 1, centrale: 0, positions: [{ index: 0, mesure_id: 'm0', resultat: resultat(-20) as any }],
+        etats: [{ index: 0, mesure_id: 'm0', etat: 'terminee' }],
+        moyenne: { positions_retenues: 1, seuil_rejet_db: 6, verdicts: [], freqs_hz: FREQS, db: FREQS.map(() => 0), avertissements: [] } } });
+    monte = mount(MesureMultiPositions, { target: cible!, props: {
+      zoneId: ZONE, zoneNom: 'Salon', verrouille: false, demande: { entree: 'umik', voie_micro: 0, etalonnage: null },
+      application: 'repos', erreurDe: () => null, onAppliquer: vi.fn(), onOccupe: vi.fn(), onReinitialiser: vi.fn(),
+      memoire: { a: 's8-1', b: null }, onMemoire: vi.fn(),
+    } });
+    await jusqua(() => !!q('[data-multi="moyenne"]'));
+    expect(q('[data-multi="verifier"]')).toBeNull();
   });
 });

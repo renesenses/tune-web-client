@@ -35,7 +35,7 @@
     ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
-    lireResultat, proposerMesure, enregistrerProfilMesure, lireSessions, capaciteSessions,
+    lireResultat, proposerMesure, enregistrerProfilMesure, lireSessions, sonderSessions, sessionDeLaMesure,
     type PresenceCalibration, type PresenceEgaliseur, type Piece, type Surfaces, type Simulation, type Proposition, type TypeCible,
     type Microphones, type Avancement, type ResultatMesure, type ProfilEnregistre,
     type Placement, type Position, type ReglageExpert,
@@ -306,11 +306,15 @@
   const enCoursUne = $derived(mesure != null && !ETATS_FINAUX.has(mesure.etat));
   /*
    * TESS (C4) — la mesure à plusieurs positions, seulement si le serveur
-   * connaît les sessions : `GET /sessions` rend `{ sessions: [] }`. Un 404
-   * (rc13 ou plus ancien), ou tout autre refus, la cache : l'écran reste
-   * celui à une position, inchangé.
+   * connaît les sessions (`sonderSessions` : `404 session_inconnue` sur un
+   * id factice). Un serveur rc13 ou plus ancien, ou tout autre refus, la
+   * cache : l'écran reste celui à une position, inchangé. Sondé UNE fois
+   * par montage de l'écran.
    */
   let capaciteMulti = $state(false);
+  let sonde: Promise<boolean> | null = null;
+  /** Les sessions en cours, gardées ici : l'onglet quitté démonte le parcours. */
+  let memoireMulti = $state<{ a: string | null; b: string | null }>({ a: null, b: null });
   let modeMicro = $state<'une' | 'plusieurs'>('plusieurs');
   let occupeMulti = $state(false);
   const multi = $derived(capaciteMulti && modeMicro === 'plusieurs');
@@ -339,17 +343,26 @@
     if (onglet !== 'micro' || !greffonPret || sansPremium) return;
     void chargerMicros();
     // Sondé à part : un 404 ici n'est pas un greffon à redémarrer (`erreurDe`).
-    lireSessions()
-      .then((r) => { capaciteMulti = capaciteSessions(r); })
-      .catch(() => { capaciteMulti = false; });
+    sonde ??= sonderSessions().then((ok) => (capaciteMulti = ok), () => (capaciteMulti = false));
     const zid = zoneId;
     if (zid == null) return;
     // L'écran rouvert pendant une mesure la retrouve et reprend le suivi.
+    const capacite = sonde;
     lireMesures()
-      .then((r) => {
+      .then(async (r) => {
         const m = mesureEnCours(r?.mesures, zid);
-        // Rouvert pendant une mesure : on la montre là où elle se suit.
-        if (m && !mesure) { mesure = m; modeMicro = 'une'; suivre(m.id); }
+        if (!m || mesure) return;
+        // Une mesure d'une SESSION se reprend dans le parcours à plusieurs
+        // positions, pas comme une mesure à une position (M8).
+        if (await capacite) {
+          const s = sessionDeLaMesure((await lireSessions().catch(() => null))?.sessions, m.id);
+          if (s) {
+            if (s.id !== memoireMulti.a && s.id !== memoireMulti.b) memoireMulti = { a: s.id, b: null };
+            modeMicro = 'plusieurs';
+            return;
+          }
+        }
+        mesure = m; modeMicro = 'une'; suivre(m.id);
       })
       .catch(() => {});
   });
@@ -739,7 +752,8 @@
 
         {#if multi && microphones && zoneId != null}
           <MesureMultiPositions zoneId={zoneId} zoneNom={zone?.name ?? ''} {verrouille} demande={demandeMulti} {application}
-            {erreurDe} onAppliquer={appliquer} onOccupe={(o) => (occupeMulti = o)} onReinitialiser={reinitialiserApplication} />
+            {erreurDe} onAppliquer={appliquer} onOccupe={(o) => (occupeMulti = o)} onReinitialiser={reinitialiserApplication}
+            memoire={memoireMulti} onMemoire={(m) => (memoireMulti = m)} />
           {@render appliqueeNote()}
         {:else}
         {#if mesure}

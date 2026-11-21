@@ -676,6 +676,32 @@ export interface Comparaison {
   amelioree: boolean;
 }
 
+/**
+ * La sonde de capacité, LÉGÈRE (M1) : `GET /sessions/{SONDE}`, un id qui
+ * n'existe pas. Le greffon C4 répond `404 session_inconnue` ; un serveur rc13
+ * ne connaît pas la route (404 sans ce code). `GET /sessions` rendrait les 32
+ * sessions complètes (courbes comprises) à chaque ouverture : trop lourd sur
+ * un Raspberry Pi. Aucune route plus légère n'existe côté serveur.
+ */
+export const SONDE_SESSIONS = 'sonde-capacite';
+export function capaciteDepuisSonde(e: unknown): boolean {
+  const x = lireErreur(e);
+  return x.status === 404 && x.code === 'session_inconnue';
+}
+export const sonderSessions = (): Promise<boolean> =>
+  appel<unknown>(`/sessions/${SONDE_SESSIONS}`).then(() => false, (e) => capaciteDepuisSonde(e));
+
+/** `session::IMPORT_MAX_OCTETS` : 4 Mio, la limite du corps de `POST /sessions/import`. */
+export const IMPORT_MAX_OCTETS = 4 * 1024 * 1024;
+/** Relances du suivi d'une mesure après une panne passagère (réseau, 5xx). */
+export const RELANCES_SUIVI = 4;
+/** L'attente avant la relance n° `k` (1, 2, …) : croissante, bornée à 8 s. */
+export const delaiRelance = (k: number, pas: number) => Math.min(8000, pas * 2 ** k);
+
+/** La session qui porte cette mesure, s'il y en a une. */
+export const sessionDeLaMesure = (liste: readonly VueSession[] | null | undefined, mesureId: string): VueSession | null =>
+  (liste ?? []).find((s) => s.positions.some((p) => p.mesure_id === mesureId)) ?? null;
+
 /** La capacité « plusieurs positions » : `GET /sessions` répond une liste. */
 export function capaciteSessions(r: unknown): boolean {
   return Array.isArray((r as { sessions?: unknown } | null | undefined)?.sessions);
