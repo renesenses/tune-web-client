@@ -1,4 +1,7 @@
 export default {
+  "v2.eq.retainedPreamp": "Güvenlik için ön yükselteç {db} dB seviyesinde tutuluyor",
+  "v2.eq.releasePreamp": "Seviyeyi geri getir",
+  "v2.eq.releasePreampFailed": "Seviye geri getirilemedi. Yeniden deneyin.",
   "v2.queue.waiting": "Bekleyen kuyruk",
   "classicalTags.title": "Klasik müzik etiketleri",
   "classicalTags.hint": "Her rol için okunan etiketler. CONDUCTOR, WORK ve MOVEMENTNAME tüm varyantlarını (ID3, MP4) kapsar; başka her ad özel bir etikettir: CHORUS, TXXX:CHORUS etiketini de okur.",

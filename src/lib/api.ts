@@ -13090,3 +13090,13 @@ export async function getTessPresets(): Promise<import('./tess').PreReglagesTess
     return null;
   }
 }
+
+/** #6524 — mesure du gain retenu ; lire ne modifie jamais le son. */
+export interface RetainedEqPreamp { db:number|null; returning:boolean }
+export function getRetainedEqPreamp(zoneId:number):Promise<RetainedEqPreamp> {
+  return fetchJSON<RetainedEqPreamp>(`${BASE}/zones/${zoneId}/eq/retained-preamp`, undefined, undefined, true);
+}
+/** Geste explicite : remonter progressivement au signal sans préampli. */
+export function releaseRetainedEqPreamp(zoneId:number):Promise<{released:boolean}> {
+  return apiPost(`/zones/${zoneId}/eq/retained-preamp/release`, {}) as Promise<{released:boolean}>;
+}
