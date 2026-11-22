@@ -64,7 +64,7 @@ const messageDeRevendication = () => messages().find((n) => n.action);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  localStorage.clear();
+  localStorage.clear(); sessionStorage.clear();
   oublierMessagesZoneAilleurs();
   for (const n of get(notifications)) notifications.dismiss(n.id);
   vi.stubGlobal('Audio', AudioTemoin);
@@ -80,7 +80,7 @@ beforeEach(() => {
 afterEach(() => {
   arreterTransport?.(); arreterTransport = undefined;
   tuneWS.disconnect(); browserAudioDestroy(); stopSeekTimer();
-  vi.unstubAllGlobals(); localStorage.clear();
+  vi.unstubAllGlobals(); localStorage.clear(); sessionStorage.clear();
 });
 
 describe('web#2144 : une zone navigateur renommée avant la rc4 n\'est plus muette en silence', () => {

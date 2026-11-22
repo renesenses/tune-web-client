@@ -12,6 +12,9 @@
  *   PUT    /me/location { label, country_code?, lat, lon } → 200 (arrondi 0,5°)
  *   DELETE /me/location                   → 204
  *   GET    /contacts/locations            → 200 [{ contact_id, label, country_code, lat, lon }]
+ *                                          puis (#3283, site-mozaiklabs#568) les membres
+ *                                          de mes cercles PARTAGÉS qui ont accepté, comme moi,
+ *                                          d'être vus : [{ member_id, name, circles, label, … }]
  *
  *   GET    /world/points                  → 200 [{ lat, lon }] (rc9, décision du 26/10)
  *   GET    /me/public-map-opt-out         → 200 { public_map_opt_out } (rc9)
@@ -70,19 +73,55 @@ export async function lireMonLieu(): Promise<{ relais: EtatRelais; lieu: Lieu | 
   }
 }
 
+/**
+ * #3283 — un membre d'un de mes cercles PARTAGÉS, qui n'est pas mon contact,
+ * et qui a accepté (comme moi) d'être vu : son nom public, les cercles par
+ * lesquels je le vois, son lieu. Rien d'autre n'est gardé.
+ */
+export interface MembreDeCercleLieu { id: number; nom: string; cercles: string[]; lieu: Lieu }
+
+/** Nombre de noms de cercles gardés par membre (le cloud en rend autant qu'il y en a). */
+const CERCLES_PAR_MEMBRE_MAX = 5;
+
+/** Les deux listes du globe, lues champ par champ : une entrée illisible est ignorée. */
+export function lieuxDuGlobeValides(b: unknown): { contacts: Map<number, Lieu>; membres: MembreDeCercleLieu[] } {
+  const contacts = new Map<number, Lieu>();
+  const membres: MembreDeCercleLieu[] = [];
+  const vus = new Set<number>();
+  const liste: any[] = Array.isArray(b) ? b : ((b as { data?: unknown[] } | null)?.data as any[] ?? []);
+  for (const x of liste) {
+    const l = lieuValide(x);
+    if (!l) continue;
+    if (x?.contact_id != null) {
+      const id = Number(x.contact_id);
+      if (Number.isInteger(id)) contacts.set(id, l);
+      continue;
+    }
+    const id = Number(x?.member_id);
+    const nom = typeof x?.name === 'string' ? x.name.trim() : '';
+    if (!Number.isInteger(id) || !nom || vus.has(id)) continue;
+    const cercles = Array.isArray(x.circles)
+      ? (x.circles as unknown[]).filter((c): c is string => typeof c === 'string' && c.trim() !== '').map((c) => c.trim()).slice(0, CERCLES_PAR_MEMBRE_MAX)
+      : [];
+    vus.add(id);
+    membres.push({ id, nom, cercles, lieu: l });
+  }
+  // Un contact direct n'est jamais montré deux fois, même si le cloud se trompait.
+  return { contacts, membres: membres.filter((m) => !contacts.has(m.id)) };
+}
+
+/** Mes contacts ET les membres de mes cercles partagés qui ont posé leur lieu. Panne : aucun. */
+export async function lireLieuxDuGlobe(): Promise<{ contacts: Map<number, Lieu>; membres: MembreDeCercleLieu[] }> {
+  try {
+    return lieuxDuGlobeValides(await lire<unknown>(`${BASE}/ext/circle/contacts/locations`));
+  } catch {
+    return { contacts: new Map(), membres: [] };
+  }
+}
+
 /** Les lieux de mes contacts acceptés qui ont posé le leur. Panne : aucun. */
 export async function lireLieuxContacts(): Promise<Map<number, Lieu>> {
-  const m = new Map<number, Lieu>();
-  try {
-    const b = await lire<unknown>(`${BASE}/ext/circle/contacts/locations`);
-    const liste: any[] = Array.isArray(b) ? b : ((b as { data?: unknown[] } | null)?.data as any[] ?? []);
-    for (const x of liste) {
-      const id = Number(x?.contact_id);
-      const l = lieuValide(x);
-      if (Number.isInteger(id) && l) m.set(id, l);
-    }
-  } catch { /* rien : le globe montre ce qu'il sait */ }
-  return m;
+  return (await lireLieuxDuGlobe()).contacts;
 }
 
 // ── Carte publique (rc9, décision de Bertrand du 26/10/2026) ─────────────

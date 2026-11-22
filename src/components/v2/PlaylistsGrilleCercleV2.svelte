@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle rc12 — l'onglet « Playlists partagées » des maquettes de
    * Levente (15/11/2026) : bandeau, filtres, tri, grille ou liste, « Vos
@@ -65,6 +66,13 @@
   function clicDehors(ev: MouseEvent) {
     if (menu && !(ev.target instanceof Element && ev.target.closest('.menu-ancre'))) menu = null;
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <svelte:window onkeydown={clavier} onclick={clicDehors} />
@@ -76,7 +84,7 @@
     <div class="actions-bandeau">
       {#if invitePar.length > 0}
         <div class="menu-ancre">
-          <button type="button" class="bouton-plein partager-une-playlist" aria-expanded={menu === 'partager'} disabled={occupe}
+          <button type="button" class="bouton-plein partager-une-playlist" aria-expanded={menu === 'partager'} disabled={occupe || lectureSeule}
             onclick={() => menu = menu === 'partager' ? null : 'partager'}>+ {tr('v2.circle.plx.share')}</button>
           {#if menu === 'partager'}
             <div class="menu-cercles" role="group" aria-label={tr('v2.circle.plx.share')}>
@@ -89,7 +97,7 @@
       {/if}
       {#if cercles.length > 0}
         <div class="menu-ancre">
-          <button type="button" class="bouton-contour creer-une-playlist" aria-expanded={menu === 'creer'} disabled={occupe}
+          <button type="button" class="bouton-contour creer-une-playlist" aria-expanded={menu === 'creer'} disabled={occupe || lectureSeule}
             onclick={() => menu = menu === 'creer' ? null : 'creer'}>{tr('v2.circle.plx.create')}</button>
           {#if menu === 'creer'}
             <div class="menu-cercles" role="group" aria-label={tr('v2.circle.plx.create')}>
@@ -142,7 +150,7 @@
           <div class="vignette teinte-{teinte(p)}">
             <span class="note-vignette" aria-hidden="true">♪</span>
             <VignettePochettesCercle id={p.id} version={p.version} count={p.count} />
-            <button type="button" class="lire-playlist-ligne" disabled={occupe || p.count === 0}
+            <button type="button" class="lire-playlist-ligne" disabled={occupe || distant || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)}
               onclick={() => onLire(p)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
@@ -174,7 +182,7 @@
               <strong use:bulleTexte>{p.name}</strong>
               <span class="note">{$tn('v2.common.trackCountN', p.count)}</span>
             </button>
-            <button type="button" class="lire-ma-playlist" disabled={occupe || p.count === 0}
+            <button type="button" class="lire-ma-playlist" disabled={occupe || distant || p.count === 0}
               aria-label={tr('v2.circle.pl.playNamed').replace('{name}', p.name)} onclick={() => onLire(p)}>
               <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
             </button>

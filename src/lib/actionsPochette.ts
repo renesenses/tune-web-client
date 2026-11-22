@@ -193,6 +193,14 @@ export interface GestesPochette {
   /** « Ajouter à la file » — à la fin. */
   enfiler?: () => void;
   ouvrir?: () => void;
+  /**
+   * web#3120 — « Aller à la playlist » / « Aller à l'album », fournis par
+   * l'accueil sur « Reprendre l'écoute ». Présents, ils REMPLACENT « Ouvrir » :
+   * la vignette ouvre déjà l'un d'eux, et deux entrées pour un même geste
+   * se liraient comme deux destinations.
+   */
+  allerPlaylist?: () => void;
+  allerAlbum?: () => void;
   allerArtiste?: () => void;
   /** « Ajouter aux raccourcis » — le formulaire du signet, sur CET objet (web#1922). */
   ajouterAuxRaccourcis?: () => void;
@@ -320,8 +328,12 @@ export function entreesPochette(
   pousser(lisible, 'queue.addToQueue', g.enfiler);
 
   // ── Aller ───────────────────────────────────────────────────────────────
-  pousser(true, 'common.open', g.ouvrir);
-  pousser(album && !!c.artisteConnu, 'library.goToArtist', g.allerArtiste);
+  pousser(!g.allerPlaylist && !g.allerAlbum, 'common.open', g.ouvrir);
+  pousser(true, 'v2.home.goToPlaylist', g.allerPlaylist);
+  pousser(true, 'library.goToAlbum', g.allerAlbum);
+  // L'artiste d'un album : quand on le connaît. Celui du dernier titre d'une
+  // PLAYLIST reprise (web#3120) : seulement à côté d'« Aller à la playlist ».
+  pousser(album ? !!c.artisteConnu || !!g.allerAlbum : !!g.allerPlaylist, 'library.goToArtist', g.allerArtiste);
   /**
    * « Ajouter aux raccourcis » — web#1922 (FabienM, fil 2143, point 2). Le
    * geste n'existe que si l'objet se DÉSIGNE (`lib/raccourciObjet`) : sans

@@ -27,7 +27,7 @@
   import { t, locale } from '../../lib/i18n';
   import { dateLisible } from '../../lib/ficheTechnique';
   import {
-    chargerFormeOnde, ErreurFormeOnde, graduationsOnde, cheminBande, colonnesEcretees, cheminEcretees, ANTI_REBOND_ZOOM_MS,
+    chargerFormeOnde, ErreurFormeOnde, graduationsOnde, cheminBande, cheminEchantillons, colonnesEcretees, cheminEcretees, ANTI_REBOND_ZOOM_MS,
     trancher, zoomer, nombreDb, tempsLisible,
     type FormeOnde, type SectionFormeOnde, type Echelle, type Plage, type GenreErreurFormeOnde,
   } from '../../lib/formeOnde';
@@ -254,8 +254,14 @@
             <line class={g.db === 0 ? 'zero' : 'grille'} x1="0" x2={LARGEUR} y1={HAUTEUR / 2 + g.y * HAUTEUR / 2} y2={HAUTEUR / 2 + g.y * HAUTEUR / 2} />
           {/each}
           <line class="centre" x1="0" x2={LARGEUR} y1={HAUTEUR / 2} y2={HAUTEUR / 2} />
-          <path class="crete" d={cheminBande(voie.max, voie.min, LARGEUR, HAUTEUR, echelle)} />
-          <path class="rms" d={cheminBande(voie.rms, voie.rms.map((r) => -r), LARGEUR, HAUTEUR, echelle)} />
+          {#if (voie.echantillons?.length ?? 0) >= 2}
+            <!-- Fil 2954 : au fort zoom, la courbe des échantillons eux-mêmes. -->
+            <path class="echantillons" data-echantillons={voie.echantillons!.length}
+              d={cheminEchantillons(voie.echantillons, LARGEUR, HAUTEUR, echelle)} />
+          {:else}
+            <path class="crete" d={cheminBande(voie.max, voie.min, LARGEUR, HAUTEUR, echelle)} />
+            <path class="rms" d={cheminBande(voie.rms, voie.rms.map((r) => -r), LARGEUR, HAUTEUR, echelle)} />
+          {/if}
           {#if ecretees.length}
             <path class="ecrete" d={cheminEcretees(ecretees, voie.max.length, LARGEUR, HAUTEUR)} />
           {/if}
@@ -335,6 +341,7 @@
   .crete{fill:var(--v2-acc1, var(--tune-accent, #6cc)); opacity:.45}
   .rms{fill:var(--v2-acc1, var(--tune-accent, #6cc)); opacity:.95}
   .ecrete{fill:var(--v2-danger, #e5484d); opacity:.85}
+  .echantillons{fill:none; stroke:var(--v2-acc1, var(--tune-accent, #6cc)); stroke-width:1.5; vector-effect:non-scaling-stroke; stroke-linejoin:round}
   .selection{fill:var(--v2-txt, #fff); opacity:.15}
   .temps{display:flex; justify-content:space-between; padding-left:30px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono, monospace); color:var(--v2-txt3, inherit)}
   .chiffres{width:100%; border-collapse:collapse; margin-top:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}

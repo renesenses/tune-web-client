@@ -324,6 +324,8 @@ export interface EntreeMicro {
   frequence_courante: number | null;
   virtuelle: boolean;
   mesurable: boolean;
+  /** tune-server-rust#9070 — type d'accès ALSA (`hw`, `plughw`, `dsnoop`…) ; absent hors ALSA. */
+  acces?: string | null;
 }
 export interface Microphones { pile: string; frequence_requise: number; entrees: EntreeMicro[]; etalonnages: string[] }
 
@@ -343,6 +345,10 @@ export interface Avancement {
   etat: EtatMesure;
   motif?: string;
   message?: string;
+  /** tune-server-rust#9070 — code stable d'une erreur que l'écran traduit (`micro_muet`). */
+  code?: string;
+  /** tune-server-rust#9070 — identifiant exact du micro ouvert (`alsa:hw:CARD=…`). */
+  peripherique?: string;
   progression: number;
   avertissements: string[];
 }
@@ -398,6 +404,57 @@ export function avertissementFrequenceMicro(
   if (!micro || micro.mesurable) return null;
   if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
   return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
+}
+
+/**
+ * tune-server-rust#9070 — le nom d'un micro dans la liste, suivi de son type
+ * d'accès ALSA quand le serveur le donne : plusieurs PCM d'une même carte
+ * portent le même nom.
+ */
+export const libelleMicro = (m: Pick<EntreeMicro, 'nom' | 'acces'> & { id?: string }): string =>
+  // Seulement pour un accès lié à une carte (`alsa:hw:CARD=…`) : pour
+  // `alsa:default` ou `alsa:pipewire`, le type répéterait le nom
+  // (« Default ALSA Device (default) »).
+  m.acces && (m.id === undefined || /^alsa:[^:]+:/.test(m.id)) ? `${m.nom} (${m.acces})` : m.nom;
+
+/**
+ * tune-server-rust#9070 — l'entrée matérielle d'un PCM ALSA
+ * (`alsa:dsnoop:CARD=U18dB,DEV=0` → `hw:CARD=U18dB,DEV=0`) ; `null` hors ALSA
+ * ou sans carte. Même règle que le serveur (`entree_materielle_alsa`).
+ */
+export function entreeMaterielleAlsa(peripherique: string | null | undefined): string | null {
+  const m = /^alsa:[^:]+:(.*)$/.exec(peripherique ?? '');
+  if (!m) return null;
+  const p = Object.fromEntries(m[1].split(',').map((kv) => kv.split('=') as [string, string]));
+  return p.CARD ? `hw:CARD=${p.CARD},DEV=${p.DEV ?? '0'}` : null;
+}
+
+/**
+ * tune-server-rust#9070 — la cause d'une mesure refusée ou en erreur. Un code
+ * connu se traduit, sinon le texte du greffon, tel quel :
+ * - `micro_muet` (le micro ouvert ne rend aucune trame) : le conseil dépend
+ *   du PCM ouvert, comme le message du serveur (`SansTrame`) — ALSA hors
+ *   `hw:` → choisir l'entrée matérielle ; déjà `hw:` → rapport de
+ *   diagnostic ; hors ALSA → vérifier le branchement ;
+ * - `micro_fige` (#9066, le micro cesse de capter pendant la mesure).
+ */
+export function causeMesure(
+  m: Pick<Avancement, 'motif' | 'message' | 'code' | 'peripherique'> & { entree?: string },
+  t: (k: string) => string,
+): string | null {
+  const p = m.peripherique ?? '?';
+  if (m.code === 'micro_muet') {
+    const hw = entreeMaterielleAlsa(m.peripherique);
+    if (hw && !p.startsWith('alsa:hw:')) {
+      return t('v2.room.errMicSilentChooseHw').replace('{peripherique}', p).replace('{hw}', hw);
+    }
+    if (hw) return t('v2.room.errMicSilentReport').replace('{peripherique}', p);
+    return t('v2.room.errMicSilent').replace('{peripherique}', p);
+  }
+  if (m.code === 'micro_fige') {
+    return t('v2.room.errMicFrozen').replace('{micro}', m.peripherique ?? m.entree ?? '?');
+  }
+  return m.motif ?? m.message ?? null;
 }
 
 /** Les vrais micros : une entrée virtuelle (Loopback, BlackHole) ne capte pas la pièce. */
@@ -508,3 +565,222 @@ export function tracerCourbes(series: readonly Serie[]) {
     })),
   };
 }
+
+// ─── Mesure à plusieurs positions (C4, lot TESS T10a) ──────────────────────
+
+/*
+ * tune-server-rust, `plugins/tune-calibration/src/routes.rs` et `session.rs`
+ * (lot `batch/tess-20261118`, commit c1965ced6) :
+ *
+ *   POST /zones/{zone}/sessions        { positions: 3..9, centrale, … } → 201 Vue
+ *                                      400 session_invalide
+ *   GET  /sessions                     { sessions: Vue[] }
+ *   GET  /sessions/{id}                Vue (positions, etats, moyenne dès 3
+ *                                      positions dont la centrale) ; 404 session_inconnue
+ *   POST /sessions/{id}/positions      corps de /zones/{z}/mesures + index,
+ *                                      etiquette → 202 { session, position, id, zone_id }
+ *                                      409 mesure_en_cours / session_sans_zone,
+ *                                      422 mesure_refusee
+ *   GET  /sessions/{id}/export         document v2 (Session)
+ *   POST /sessions/import              document v1 ou v2 → 201 Vue + version_lue ;
+ *                                      409 unsupported_version, 400 session_invalide
+ *   POST /sessions/{id}/correction     Proposition sur la moyenne ; 422 correction_refusee
+ *   POST /sessions/{id}/correction/profil   201 ProfilEnregistre ; 400 zone_requise
+ *   POST /comparaisons                 { avant, apres, cible? } → ComparaisonAB ;
+ *                                      404 inconnue, 422 comparaison_refusee
+ *
+ * L'avancement et l'annulation d'une position sont ceux d'une mesure
+ * ordinaire : `GET /mesures/{id}` et `DELETE /mesures/{id}`, avec l'`id`
+ * rendu par `POST /sessions/{id}/positions`.
+ *
+ * Un serveur rc13 ou plus ancien ne connaît pas ces routes : `GET /sessions`
+ * y répond 404, et l'écran garde sa mesure à une seule position.
+ */
+
+/** `tune_calibration::positions::{POSITIONS_MIN, POSITIONS_MAX}`. */
+export const POSITIONS_MIN = 3;
+export const POSITIONS_MAX = 9;
+export const POSITIONS_DEFAUT = 5;
+/** La position centrale (la place d'écoute) : la première mesurée. */
+export const POSITION_CENTRALE = 0;
+
+/** `VerdictPosition` : ce qu'il advient d'une position dans la moyenne. */
+export interface VerdictPosition {
+  index: number;
+  poids: number;
+  ecart_median_db: number;
+  decalage_niveau_db: number;
+  rejetee: boolean;
+  /** Le texte du greffon, en français : l'écran en traduit le sens (`causeRejet`). */
+  motif?: string;
+}
+
+/** `Resultat` d'une position (le même que `GET /mesures/{id}/resultat`). */
+export interface ResultatPosition {
+  niveau_joue_dbfs: number;
+  reponse: Courbe & { lissage?: string };
+  ri?: { rsb_db: number };
+  avertissements: string[];
+}
+export interface PositionSession {
+  index: number;
+  etiquette?: string;
+  mesure_id?: string;
+  entree?: string;
+  resultat?: ResultatPosition;
+}
+/** `EtatPosition` : l'état de la mesure de la position, aplati (`etat`, `motif`, `message`). */
+export interface EtatPosition { index: number; mesure_id?: string; etat: EtatMesure; motif?: string; message?: string }
+
+export interface MoyenneSession {
+  positions_retenues: number;
+  seuil_rejet_db: number;
+  verdicts: VerdictPosition[];
+  freqs_hz: number[];
+  db: number[];
+  avertissements: string[];
+}
+
+/** `session::Vue` : ce que rendent la création, la lecture et l'import. */
+export interface VueSession {
+  version: number;
+  id: string;
+  zone_id: number | null;
+  positions_prevues: number;
+  centrale: number;
+  config?: { rejet?: { seuil_db?: number; niveau_db?: number } };
+  positions: PositionSession[];
+  etats: EtatPosition[];
+  moyenne?: MoyenneSession;
+  moyenne_indisponible?: string;
+  /** Seulement à l'import. */
+  version_lue?: number;
+}
+
+export interface Indicateurs {
+  ecart_type_db: number;
+  ecart_type_creux_db: number;
+  creux_max_db: number;
+  pic_max_db: number;
+  ecart_cible_db?: number;
+}
+/** `positions::ComparaisonAB`. */
+export interface Comparaison {
+  bande_hz: [number, number];
+  avant: Indicateurs;
+  apres: Indicateurs;
+  freqs_hz: number[];
+  avant_db: number[];
+  apres_db: number[];
+  difference_db: number[];
+  amelioree: boolean;
+}
+
+/**
+ * La sonde de capacité, LÉGÈRE (M1) : `GET /sessions/{SONDE}`, un id qui
+ * n'existe pas. Le greffon C4 répond `404 session_inconnue` ; un serveur rc13
+ * ne connaît pas la route (404 sans ce code). `GET /sessions` rendrait les 32
+ * sessions complètes (courbes comprises) à chaque ouverture : trop lourd sur
+ * un Raspberry Pi. Aucune route plus légère n'existe côté serveur.
+ */
+export const SONDE_SESSIONS = 'sonde-capacite';
+export function capaciteDepuisSonde(e: unknown): boolean {
+  const x = lireErreur(e);
+  return x.status === 404 && x.code === 'session_inconnue';
+}
+export const sonderSessions = (): Promise<boolean> =>
+  appel<unknown>(`/sessions/${SONDE_SESSIONS}`).then(() => false, (e) => capaciteDepuisSonde(e));
+
+/** `session::IMPORT_MAX_OCTETS` : 4 Mio, la limite du corps de `POST /sessions/import`. */
+export const IMPORT_MAX_OCTETS = 4 * 1024 * 1024;
+/** Relances du suivi d'une mesure après une panne passagère (réseau, 5xx). */
+export const RELANCES_SUIVI = 4;
+/** L'attente avant la relance n° `k` (1, 2, …) : croissante, bornée à 8 s. */
+export const delaiRelance = (k: number, pas: number) => Math.min(8000, pas * 2 ** k);
+
+/** La session qui porte cette mesure, s'il y en a une. */
+export const sessionDeLaMesure = (liste: readonly VueSession[] | null | undefined, mesureId: string): VueSession | null =>
+  (liste ?? []).find((s) => s.positions.some((p) => p.mesure_id === mesureId)) ?? null;
+
+/** La capacité « plusieurs positions » : `GET /sessions` répond une liste. */
+export function capaciteSessions(r: unknown): boolean {
+  return Array.isArray((r as { sessions?: unknown } | null | undefined)?.sessions);
+}
+
+/** Le nombre de positions ramené dans 3 … 9 (5 par défaut). */
+export function positionsBornees(n: unknown): number {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v)) return POSITIONS_DEFAUT;
+  return Math.min(POSITIONS_MAX, Math.max(POSITIONS_MIN, v));
+}
+
+/** La position mesurée (résultat recopié dans la session). */
+export const positionMesuree = (s: VueSession, i: number): boolean =>
+  s.positions.some((p) => p.index === i && p.resultat != null);
+
+/** L'état de la mesure d'une position, ou `null` si elle n'a jamais été lancée. */
+export const etatPosition = (s: VueSession, i: number): EtatPosition | null =>
+  s.etats.find((e) => e.index === i) ?? null;
+
+/** Le verdict de la moyenne pour une position, s'il y a une moyenne. */
+export const verdictPosition = (s: VueSession, i: number): VerdictPosition | null =>
+  s.moyenne?.verdicts.find((v) => v.index === i) ?? null;
+
+/** La première position à mesurer (la règle du serveur : la première libre), ou `null`. */
+export function prochainePosition(s: VueSession): number | null {
+  for (let i = 0; i < s.positions_prevues; i++) {
+    if (positionMesuree(s, i)) continue;
+    const e = etatPosition(s, i);
+    if (e && !ETATS_FINAUX.has(e.etat)) continue;
+    return i;
+  }
+  return null;
+}
+
+/**
+ * Pourquoi une position est écartée, dans l'ordre du serveur
+ * (`positions::moyenne_positions`) : d'abord un NIVEAU décalé (au-delà de
+ * `rejet.niveau_db`, 6 dB par défaut), sinon une FORME trop différente des
+ * autres (écart à la médiane au-delà du seuil appliqué). Le `motif` du greffon
+ * est en français : l'écran en traduit le sens à partir de ces nombres.
+ */
+export type CauseRejet = 'niveau' | 'forme';
+export function causeRejet(v: VerdictPosition, s: VueSession): CauseRejet {
+  const tolerance = s.config?.rejet?.niveau_db ?? 6;
+  return Math.abs(v.decalage_niveau_db) > tolerance ? 'niveau' : 'forme';
+}
+
+/** Le nom du fichier d'export : zone et date, rien du serveur. */
+export function nomExportSession(s: Pick<VueSession, 'id' | 'zone_id'>, quand = new Date()): string {
+  const d = quand.toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
+  const id = s.id.replace(/[^A-Za-z0-9_-]/g, '');
+  return `tune-mesure-pieces-${s.zone_id ?? 'x'}-${d}-${id}.json`;
+}
+
+/** Télécharger un document JSON (l'export d'une session). */
+export function telechargerJson(nom: string, doc: unknown): void {
+  const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+}
+
+export const lireSessions = () => appel<{ sessions: VueSession[] }>('/sessions');
+export const creerSession = (zoneId: number, positions: number) =>
+  appel<VueSession>(`/zones/${zoneId}/sessions`, json({ positions, centrale: POSITION_CENTRALE }));
+export const lireSession = (id: string) => appel<VueSession>(`/sessions/${encodeURIComponent(id)}`);
+export const mesurerPosition = (id: string, d: DemandeMesure & { index: number }) =>
+  appel<{ session: string; position: number; id: string; zone_id: number }>(`/sessions/${encodeURIComponent(id)}/positions`, json(d));
+export const exporterSession = (id: string) => appel<unknown>(`/sessions/${encodeURIComponent(id)}/export`);
+export const importerSession = (doc: unknown) => appel<VueSession>('/sessions/import', json(doc));
+export const proposerSession = (id: string, cible: TypeCible) =>
+  appel<Proposition>(`/sessions/${encodeURIComponent(id)}/correction`, json(demandeCorrection(cible)));
+export const enregistrerProfilSession = (id: string, cible: TypeCible) =>
+  appel<ProfilEnregistre>(`/sessions/${encodeURIComponent(id)}/correction/profil`, json(demandeCorrection(cible)));
+export const comparer = (avant: string, apres: string, cible: TypeCible) =>
+  appel<Comparaison>('/comparaisons', json({ avant, apres, cible: { type: cible } }));

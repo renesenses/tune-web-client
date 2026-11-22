@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { verifierDroitsCercle } from '../../lib/circleDroits';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -40,6 +41,8 @@
   import SurechantillonnageV2 from './SurechantillonnageV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
   import CrosstalkV2 from './CrosstalkV2.svelte';
+  import TessV2 from './tess/TessV2.svelte';
+  import { capaciteTess, renvoyerHorsTessSansCapacite } from '../../lib/stores/tess';
   import CorrectionPieceV2 from './CorrectionPieceV2.svelte';
   import EqualizerV2 from './EqualizerV2.svelte';
   import TuneHealthV2 from './TuneHealthV2.svelte';
@@ -252,6 +255,7 @@
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille, revenirA } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
+  import FlechesNavigation from './FlechesNavigation.svelte';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
 
@@ -324,7 +328,7 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     bannedtracks: 'ban.title', ecouterplustard: 'v2.nav.later',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
-    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', roomcorrection: 'v2.zone.roomCorrection', surechantillonnage: 'upsampling.title', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
+    crossfeed: 'v2.nav.crossfeed', crossfeedpro: 'v2.nav.crossfeedPro', crosstalk: 'v2.nav.crosstalk', tess: 'v2.nav.tess', roomcorrection: 'v2.zone.roomCorrection', surechantillonnage: 'upsampling.title', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', collectionphysique: 'collectionPhysique.titre', statsbibliotheque: 'statsBibliotheque.titre', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager', 'smart-ai': 'smartai.title',
@@ -343,6 +347,9 @@
     appliquerMonTheme(mien);
   });
   onMount(() => { void chargerMonTheme(); });
+  // Tune Circle (19/11/2026) : la lecture seule (profil non administrateur,
+  // client distant) vaut aussi hors de l'écran du cercle — une fois au démarrage.
+  onMount(() => { void verifierDroitsCercle(); });
 
   /**
    * 🔴 LA LANGUE ENREGISTRÉE, que personne n'appliquait.
@@ -453,6 +460,8 @@
   // le calque mobile (`mobileNowPlayingOpen`) est mené à l'onglet Écouter.
   // Vue mini : changer d'écran referme les filtres de l'écran quitté.
   $effect(() => { void $activeView; filtresOuverts.set(false); });
+  // Lot TESS W1 : `#tess` sur un serveur sans TESS ramène à l'accueil.
+  $effect(() => renvoyerHorsTessSansCapacite());
   $effect(() => {
     if (vueMini && $mobileNowPlayingOpen) {
       mobileNowPlayingOpen.set(false);
@@ -691,6 +700,13 @@
       déjà (leur en-tête réserve `var(--v2-grappe-w)`). Posé à
       gauche, il se serait couché sur le titre de chaque écran.
     -->
+    <!--
+      web#3275 (alec_eiffel, fil 2953) — Précédent / Suivant de l'interface,
+      en TÊTE de la grappe : le premier geste qu'on cherche en haut d'un écran.
+      Dans la grappe, que les écrans réservent déjà (`--v2-grappe-w`, mesurée) :
+      aucun titre n'est recouvert.
+    -->
+    <FlechesNavigation />
     {#if $formatEcran === 'tiroir'}
       <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
         aria-expanded={$tiroirOuvert}
@@ -906,6 +922,8 @@
         <CrossfeedProV2 />
       {:else if $activeView === 'crosstalk'}
         <CrosstalkV2 />
+      {:else if $activeView === 'tess'}
+        {#if $capaciteTess !== 'non'}<TessV2 />{/if}
       {:else if $activeView === 'roomcorrection'}
         <CorrectionPieceV2 />
       {:else if $activeView === 'reaffectation'}

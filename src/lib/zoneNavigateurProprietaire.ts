@@ -19,8 +19,8 @@
  * `output_device_id: null`, et le seul indice qu'il pose est l'IP du client
  * accolée au nom à la création — qu'un renommage efface. C'est donc ce
  * navigateur qui retient les zones qu'il a créées ou revendiquées (bouton
- * « Créer une zone sur cet ordinateur »), dans son `localStorage` — propre à
- * l'origine, donc au serveur.
+ * « Créer une zone sur cet ordinateur »), dans son `sessionStorage` — propre à
+ * l'origine, donc au serveur, et à l'onglet (web#3180, plus bas).
  *
  * ## Les zones d'avant cette règle
  *
@@ -31,6 +31,12 @@
  * jour au lendemain. Dès que ce navigateur retient une zone, ce repli cesse.
  * La zone d'un téléphone ne porte jamais ce nom.
  */
+
+import { writable } from 'svelte/store';
+import {
+  ANCIENNE_CLE_ZONE_DE_CET_APPAREIL,
+  migrerAncienneZoneDeCetAppareil,
+} from './registreCetAppareil';
 
 const CLE = 'tune.zonesNavigateurDeCetAppareil';
 
@@ -55,10 +61,47 @@ interface ZoneLue {
   output_type?: string | null;
 }
 
+/**
+ * 🔴 web#3180 — LA PRISE NE VAUT QUE POUR L'ONGLET.
+ *
+ * FabienM, fil 2864 (rc12, Firefox + app Remote Android) : le Firefox du PC
+ * avait retenu, un jour, la zone « Z Fold8 de Fab » de son téléphone. Rangée
+ * dans `localStorage`, la prise durait pour toujours, sans rien pour la
+ * relâcher : chaque lecture de cette zone, d'où qu'elle vienne, était tirée
+ * par le PC, et le téléphone restait muet (flux à consommateur unique).
+ *
+ * Décision de Bertrand (20/11) : la prise vit dans `sessionStorage` — elle
+ * meurt avec l'onglet — et la carte de la zone offre « Ne plus jouer ici ».
+ * L'ancienne valeur persistée est oubliée, comme celle de « Ce téléphone »
+ * (`tune.zoneNavigateur.cetAppareil`), qui passe par la même clé — après
+ * que sa zone est entrée au registre de cet appareil (web#3314).
+ */
+const ANCIENNES_CLES_PERSISTEES = [CLE, ANCIENNE_CLE_ZONE_DE_CET_APPAREIL];
+let ancienneRetentionOubliee = false;
+
+function oublierAncienneRetention(): void {
+  if (ancienneRetentionOubliee) return;
+  ancienneRetentionOubliee = true;
+  // web#3314 — la zone de « Ce téléphone » passe au registre AVANT l'effacement.
+  migrerAncienneZoneDeCetAppareil();
+  try {
+    for (const cle of ANCIENNES_CLES_PERSISTEES) localStorage.removeItem(cle);
+  } catch {
+    /* stockage indisponible : rien à oublier */
+  }
+}
+
+/**
+ * Change à chaque prise ou relâchement : l'écran des zones s'y abonne pour
+ * montrer ou retirer « Ne plus jouer ici » sans attendre un autre rendu.
+ */
+export const versionZonesRetenues = writable(0);
+
 /** Les zones retenues — `null` : ce navigateur n'a encore rien retenu. */
 export function zonesRetenues(): number[] | null {
+  oublierAncienneRetention();
   try {
-    const brut = localStorage.getItem(CLE);
+    const brut = sessionStorage.getItem(CLE);
     if (brut == null) return null;
     const v = JSON.parse(brut);
     return Array.isArray(v) ? v.filter((x) => Number.isInteger(x)) : [];
@@ -67,16 +110,50 @@ export function zonesRetenues(): number[] | null {
   }
 }
 
-/** Retient `id` comme zone de cet appareil (création, revendication). */
+function ecrire(ids: number[]): void {
+  try {
+    sessionStorage.setItem(CLE, JSON.stringify(ids));
+  } catch {
+    /* stockage indisponible : la zone reste jouable par le repli du nom */
+  }
+  versionZonesRetenues.update((n) => n + 1);
+}
+
+/** Retient `id` comme zone de cet appareil (création, revendication), pour cet onglet. */
 export function retenirZoneDeCetAppareil(id: number): void {
   if (!Number.isInteger(id)) return;
   const deja = zonesRetenues() ?? [];
   if (deja.includes(id)) return;
-  try {
-    localStorage.setItem(CLE, JSON.stringify([...deja, id]));
-  } catch {
-    /* stockage indisponible : la zone reste jouable par le repli du nom */
+  ecrire([...deja, id]);
+}
+
+/**
+ * web#3180 — « Ne plus jouer ici » : cet onglet relâche la zone `id`.
+ *
+ * Quand plus rien n'est retenu, on rend la main au repli par le nom (les
+ * « Ce navigateur » de cet onglet redeviennent jouables), sauf si la zone
+ * relâchée porte elle-même ce nom : le repli la reprendrait aussitôt, on
+ * garde donc une liste vide.
+ */
+export function relacherZoneDeCetAppareil(id: number, nom?: string | null): void {
+  if (!Number.isInteger(id)) return;
+  const reste = (zonesRetenues() ?? []).filter((x) => x !== id);
+  if (reste.length === 0 && !porteLeNomDuWeb(nom)) {
+    try {
+      sessionStorage.removeItem(CLE);
+    } catch {
+      /* stockage indisponible */
+    }
+    versionZonesRetenues.update((n) => n + 1);
+    return;
   }
+  ecrire(reste);
+}
+
+/** La dernière zone retenue par cet onglet — celle de « Ce téléphone ». */
+export function derniereZoneRetenue(): number | null {
+  const ids = zonesRetenues();
+  return ids && ids.length ? ids[ids.length - 1] : null;
 }
 
 function porteLeNomDuWeb(nom: string | null | undefined): boolean {

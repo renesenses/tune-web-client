@@ -197,7 +197,10 @@ describe('encodeCanevas — la plus légère qui tienne', () => {
     const lourd = 'data:image/png;base64,' + 'A'.repeat(POIDS_ENCODE_MAX * 2);
     const { canevas, appels } = canevasFactice(() => lourd);
     expect(encodeCanevas(canevas)).toBe(lourd);
-    expect(appels, 'le repli PNG doit couper la recherche de qualité').toHaveLength(1);
+    // Depuis #3306, un PNG trop lourd déclenche le repli JPEG ; mais la
+    // recherche de qualité WebP, elle, doit toujours s'arrêter au premier tour.
+    const webp = appels.filter((a) => a.type === 'image/webp');
+    expect(webp, 'le repli PNG doit couper la recherche de qualité').toHaveLength(1);
   });
 
   it('un repli PNG léger est gardé tel quel', () => {

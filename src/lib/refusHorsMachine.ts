@@ -1,0 +1,71 @@
+/**
+ * Refus d'une action qui engage la machine (redémarrer, arrêter, installer un
+ * greffon…) quand l'authentification est désactivée et que l'appel ne vient
+ * pas de la machine qui fait tourner Tune (tune-server-rust#9029 : « Redémarrer »
+ * sans effet depuis un NAS).
+ *
+ * Le serveur répond `403 { error: "auth_required", reason: "not_local" }`
+ * (ou `reason: "port80_relay"` sur une appliance qui relaie le port 80). Son
+ * texte est en anglais et ne dit pas quoi faire depuis l'interface : on le
+ * remplace par une phrase traduite qui donne les deux issues.
+ */
+import type { InfoConteneur } from './conteneurServeur';
+import { errText } from './utils';
+
+export type MotifHorsMachine = 'not_local' | 'port80_relay';
+
+/** Le motif du refus « hors de cette machine », ou `null` pour toute autre erreur. */
+export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
+  if (!e || typeof e !== 'object') return null;
+  const err = e as { status?: unknown; corps?: unknown };
+  if (err.status !== 403 || !err.corps || typeof err.corps !== 'object') return null;
+  const corps = err.corps as { error?: unknown; reason?: unknown };
+  if (corps.error !== 'auth_required') return null;
+  return corps.reason === 'not_local' || corps.reason === 'port80_relay' ? corps.reason : null;
+}
+
+/** La commande citée quand le moteur du conteneur n'est pas connu. */
+export const COMMANDE_PAR_DEFAUT = 'docker restart <container>';
+
+/**
+ * La phrase à afficher pour ce refus, ou `null` si l'erreur n'en est pas un.
+ * `geste: 'restart'` cite la commande du conteneur (connue par
+ * `GET /system/env`, sinon celle de Docker).
+ */
+export function messageRefusHorsMachine(
+  e: unknown,
+  tr: (cle: string) => string,
+  geste: 'restart' | 'autre' = 'autre',
+  conteneur?: InfoConteneur | null,
+): string | null {
+  const motif = motifHorsMachine(e);
+  if (motif === null) return null;
+  // Où activer l'authentification : l'écran Réglages > Système >
+  // Authentification (code à usage unique du journal depuis un autre appareil).
+  const ou = tr('machineAction.whereToEnable');
+  if (motif === 'port80_relay') return `${tr('machineAction.port80Relay')} ${ou}`;
+  if (geste === 'restart') {
+    const phrase = tr('machineAction.notLocalRestart').replace('{command}', conteneur?.commande ?? COMMANDE_PAR_DEFAUT);
+    return `${phrase} ${ou}`;
+  }
+  return `${tr('machineAction.notLocal')} ${ou}`;
+}
+
+/**
+ * web#3195 — ce que « Éteindre » / « Redémarrer » la machine (Tune OS)
+ * affichent quand l'ordre échoue, ou `null` pour une coupure de transport
+ * (attendue : la machine s'arrête et peut couper avant de répondre).
+ *
+ * D'abord la phrase du refus « hors de cette machine », puis le texte de
+ * l'erreur (déjà traduit par `erreurAppliance`). Une réponse HTTP, même au
+ * message générique (que `errText` tait), prouve que l'ordre a été refusé :
+ * on la dit, sinon le bouton resterait grisé sans explication.
+ */
+export function messageEchecActionMachine(e: unknown, tr: (cle: string) => string): string | null {
+  const horsMachine = messageRefusHorsMachine(e, tr);
+  if (horsMachine !== null) return horsMachine;
+  const texte = errText(e);
+  if (texte !== null) return texte;
+  const status = e && typeof e === 'object' ? (e as { status?: unknown }).status : undefined;
+  return typeof status === 'number' && e instanceof Error && e.message ? e.message : null;
+}

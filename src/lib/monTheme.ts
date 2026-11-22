@@ -20,6 +20,7 @@
  * Rien en stockage navigateur : le thème vit sur le serveur.
  */
 import { V2_JETONS } from './v2Jetons';
+import { declarationsPuces } from './pucesSource';
 import { V2_THEME_DEFAULT, type V2Theme } from './v2Theme';
 
 export const FORMAT_THEME = 'tune-theme';
@@ -221,7 +222,10 @@ const ID_STYLE = 'tune-mon-theme';
  */
 export function cssDuTheme(t: Pick<ThemePerso, 'colors'>): string {
   const j = jetonsDuTheme(t.colors);
-  return `:root[data-v2-theme][${ATTRIBUT_MON_THEME}] .tune-v2{${declarations(j)}}`
+  // web#3232 — les puces de source suivent la famille du FOND choisi, pas
+  // celle de la palette de base (qui peut être sombre sous un thème clair).
+  const fondClair = contraste(j['--v2-bg'], '#000000') >= contraste(j['--v2-bg'], '#FFFFFF');
+  return `:root[data-v2-theme][${ATTRIBUT_MON_THEME}] .tune-v2{${declarations(j)}${declarationsPuces(fondClair)}}`
     + `:root[data-v2-theme][${ATTRIBUT_MON_THEME}]{--v2-body-bg:${j['--v2-bg']};}`;
 }
 

@@ -330,7 +330,9 @@ const ECRITURES_HORS_SELECTEUR = [
   'lib/ambianceExport.ts', // Ambiance, « Exporter vers… » (création ; web#2218, ex-AmbianceView)
   'components/v2-heritage/SmartAIView.svelte', // idem
   'components/v2/SearchV2.svelte', // « Créer une playlist des résultats »
+  'lib/playlistDepuisPistes.ts', // « Créer une playlist » d'une étiquette (web#3267) ; corps partagé de la fenêtre
   'lib/gestesObjet.ts', // duplication d'une playlist
+  'lib/parceQueVousAimez.ts', // web#3118, « Enregistrer comme playlist » (création)
   'lib/api.ts',
   'lib/circlePlaylists.ts',
 ];

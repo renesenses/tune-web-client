@@ -39,6 +39,7 @@ import {
 } from '../stores/playlists';
 import { currentProfileId } from '../stores/profile';
 import type { Track } from '../types';
+import { entreeMenuPiste, fermerMenu } from './aides/menuFiche';
 
 // Monter un écran de plus de quatre mille lignes compile beaucoup : 5 s
 // donneraient un rouge de CHARGE, pas de code.
@@ -141,15 +142,17 @@ afterEach(() => {
 });
 
 describe('Gestion des playlists — la liste commune', () => {
-  it('🔴 chaque piste porte la barre PisteActions : étiquettes ET « … »', async () => {
+  it('🔴 chaque piste porte la barre PisteActions : « … » (étiquettes au menu, web#3121)', async () => {
     const el = await monterLaFiche();
     const rangs = lignes(el);
     expect(rangs.length, 'aucune ligne de la liste commune peinte').toBe(PISTES.length);
     for (const ligne of rangs) {
       expect(ligne.querySelector('.pactions'), 'ligne sans barre PisteActions').not.toBeNull();
       const libelles = Array.from(ligne.querySelectorAll('button[aria-label]')).map((b) => b.getAttribute('aria-label'));
-      expect(libelles, 'pas de bouton Étiquettes').toContain(FR['v2.cover.tags']);
+      // web#3121 — « Étiquettes » est au menu « … » de la barre.
       expect(libelles, 'pas de menu « … »').toContain(FR['library.moreOptions']);
+      expect(entreeMenuPiste(ligne, FR['v2.cover.tags']), 'pas d’entrée Étiquettes au menu').not.toBeNull();
+      fermerMenu();
       expect(libelles, 'pas de bouton Retirer').toContain(FR['playlist.remove']);
     }
   });

@@ -7,7 +7,7 @@
    */
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { alertePareFeu, type AlertePareFeu } from '../../lib/alertePareFeu';
+  import { alertePareFeu, texteAlertePareFeu, type AlertePareFeu } from '../../lib/alertePareFeu';
 
   let alerte = $state<AlertePareFeu | null>(null);
 
@@ -24,12 +24,17 @@
     public: 'pareFeu.profilPublic',
   } as const;
 
-  const nomsDesProfils = (a: AlertePareFeu) =>
-    a.profils.map((p) => $t(CLES_DES_PROFILS[p] as any)).join(', ');
+  // #9083 — le texte dépend de la cause nommée par le serveur.
+  const texte = $derived(
+    alerte
+      ? texteAlertePareFeu(alerte, (cle) => $t(cle as any), (p) => $t(CLES_DES_PROFILS[p] as any))
+      : null,
+  );
 </script>
 
-{#if alerte}
-  <div class="alerte-pare-feu" role="status" data-alerte-pare-feu={alerte.profils.join(',')}>
+{#if alerte && texte}
+  <div class="alerte-pare-feu" role="status" data-alerte-pare-feu={alerte.profils.join(',')}
+    data-cause={alerte.cause ?? ''}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
@@ -37,12 +42,16 @@
     </svg>
     <div class="alerte-pare-feu-texte">
       <strong>{$t('pareFeu.titre' as any)}</strong>
-      <span>{$t('pareFeu.corps' as any).replace('{profils}', nomsDesProfils(alerte))}</span>
+      <span>{texte.corps}</span>
+      {#each texte.details as ligne}
+        <code class="chemin">{ligne}</code>
+      {/each}
       <ol>
-        <li>{$t('pareFeu.etapePrive' as any)}</li>
-        <li>{$t('pareFeu.etapeAutoriser' as any)}</li>
+        {#each texte.etapes.slice(0, -1) as etape}
+          <li>{etape}</li>
+        {/each}
       </ol>
-      <span>{$t('pareFeu.etapeRedemarrer' as any)}</span>
+      <span>{texte.etapes[texte.etapes.length - 1]}</span>
     </div>
   </div>
 {/if}
@@ -70,6 +79,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+  }
+  .alerte-pare-feu-texte .chemin {
+    font-size: 0.92em;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .alerte-pare-feu-texte ol {
     margin: 0.2rem 0 0.1rem 1.1rem;

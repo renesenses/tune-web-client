@@ -51,8 +51,10 @@
     SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
     pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices, raisonDuDisque, compteursDeRaison,
     peutAssocier, associeALaMain, dissocierDeLAlbum, remplacerDisque,
+    correspondanceACorriger, cleBoutonRecherche,
   } from '../../lib/collectionPhysique';
   import AssocierAlbumModale from './AssocierAlbumModale.svelte';
+  import CorrespondanceServicesModale from './CorrespondanceServicesModale.svelte';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -321,6 +323,16 @@
     vueDeRetour.set('collectionphysique');
     ficheAlbumService.set({ service: s.service as any, id: s.id, titre: s.titre, pochette: null, artiste: s.artiste || d.artiste });
     activeView.set('streamingalbum');
+  }
+
+  /** web#3270 : le disque dont « Changer la correspondance » est ouvert. */
+  let aCorriger = $state<Disque | null>(null);
+
+  /** web#3270 : la correspondance remplacée ou retirée — le disque relu
+   *  remplace l'ancien tout de suite, puis la liste est relue. */
+  function correspondanceChangee(d: Disque) {
+    if (collection) collection = remplacerDisque(collection, d);
+    void chargerCollection();
   }
 
   /** #8672 : le disque dont « Associer à un album » est ouvert. */
@@ -673,7 +685,11 @@
 {#snippet rechercheServices(d: Disque)}
   {@const rech = recherches[d.release_id]}
   <span class="recherche" data-recherche-services={d.release_id}>
-    {#if !rech}
+    {#if correspondanceACorriger(d)}
+      <!-- web#3270 : déjà rapproché (ou retiré à la main) — la recherche
+           s'ouvre dans la fenêtre qui montre la correspondance actuelle. -->
+      <button class="mini" onclick={() => (aCorriger = d)} data-changer-correspondance={d.release_id}>{$t(cleBoutonRecherche(d) as any)}</button>
+    {:else if !rech}
       <button class="mini" onclick={() => chercher(d)} data-chercher-services>{$t('collectionPhysique.recherche.bouton' as any)}</button>
     {:else if rech.enCours}
       <span class="q" data-recherche-en-cours>{$t('collectionPhysique.recherche.enCours' as any)}</span>
@@ -723,8 +739,12 @@
   {/if}
 {/snippet}
 
+{#if aCorriger}
+  <CorrespondanceServicesModale disque={aCorriger} onClose={() => (aCorriger = null)} onChange={correspondanceChangee} />
+{/if}
+
 {#if aAssocier}
-  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} />
+  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} onConflit={chargerCollection} />
 {/if}
 
 {#if albumOuvert}
