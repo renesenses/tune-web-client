@@ -107,10 +107,13 @@ describe('#1061 — les écrans qui ont une liste ordonnée', () => {
 describe('#1061 — la suite, c\'est l\'ordre AFFICHÉ', () => {
   it('la Bibliothèque part de `visibleTracks`, pas du catalogue', () => {
     const s = lire('src/components/v2/LibraryV2.svelte');
-    expect(s).toContain('lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))');
+    // tune-server-rust#8832 — via `lireTitresDepuis`, qui confie la liste
+    // locale à `lireListeDepuis` et joue un dépôt distant par ses URL.
+    expect(s).toContain('lireTitresDepuis(depot, visibleTracks as any, i, gestesDeZone(zid))');
     // Contre-épreuve : pas la liste complète, qui contiendrait des titres que
     // l'écran ne montre pas (filtres, tri, tranche).
     expect(s).not.toContain('lireListeDepuis(tracks as any');
+    expect(s).not.toContain('lireTitresDepuis(depot, tracks as any');
   });
 
   it('la Recherche part de la tranche rendue', () => {
