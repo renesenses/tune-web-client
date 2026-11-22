@@ -38,12 +38,11 @@
   import { lireListe, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { rangLireEnsuite } from '../../lib/stores/queue';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
     BORNES_TAILLE, bornerTaille, clePlaylistVue, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
     lireEnteteCompact, ecrireEnteteCompact, type VuePlaylist,
   } from '../../lib/vuePlaylist';
-  import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
+  import { LIBELLES_TRI_PISTES, trierPistes, criteresDisponibles, triApplicable, lireTriPlaylist, ecrireTriPlaylist, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -281,14 +280,34 @@
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   /**
-   * TRI des pistes — Bertrand, 17/09/2026 (voir `lib/trierPistes`). Mémorisé
-   * par écran. `ordre` = l'ordre de la playlist, le seul où déplacer une piste
-   * a un sens : hors de lui, les flèches de déplacement sont désactivées.
+   * TRI des pistes — Bertrand, 17/09/2026 (voir `lib/trierPistes`).
+   * `ordre` = l'ordre de la playlist, le seul où déplacer une piste a un
+   * sens : hors de lui, les flèches de déplacement sont désactivées.
+   *
+   * web#3333 (fil forum 3000) — retenu PAR PLAYLIST (`lireTriPlaylist`), écrit
+   * sur geste seulement (#1650). Une playlist jamais réglée reste sur l'ordre
+   * de la playlist. Le choix retenu ne s'APPLIQUE que si ses pistes portent la
+   * valeur (`triApplicable`) : compositeur, date d'ajout et fréquence se
+   * masquent quand le serveur ne les envoie pas.
    */
-  let triPistes = $state<CleTriPistes>(lireChoix<CleTriPistes>('v2.playlist.pistes.tri', CLES_TRI_PISTES, 'ordre'));
-  let sensPistes = $state<SensTriPistes>(lireChoix<SensTriPistes>('v2.playlist.pistes.sens', ['asc', 'desc'], 'asc'));
-  $effect(() => { ecrireChoix('v2.playlist.pistes.tri', triPistes); });
-  $effect(() => { ecrireChoix('v2.playlist.pistes.sens', sensPistes); });
+  const cleTri = $derived(clePlaylistVue(item));
+  let choixTri = $state(lireTriPlaylist(clePlaylistVue(untrack(() => item))));
+  // Une autre playlist dans le même écran : son tri à elle.
+  let cleTriLue = clePlaylistVue(untrack(() => item));
+  $effect(() => {
+    const c = cleTri;
+    if (c === cleTriLue) return;
+    cleTriLue = c;
+    choixTri = lireTriPlaylist(c);
+  });
+  const criteresTri = $derived(criteresDisponibles(tracks));
+  const triCourant = $derived(triApplicable(tracks, choixTri));
+  const triPistes = $derived(triCourant.cle);
+  const sensPistes = $derived(triCourant.sens);
+  function choisirTri(cle: CleTriPistes, sens: SensTriPistes) {
+    choixTri = { cle, sens };
+    ecrireTriPlaylist(cleTri, choixTri);
+  }
   /**
    * web#2601 — vue en liste ou en pochettes, taille des vignettes de CHAQUE
    * vue, en-tête compact. Retenus, mais écrits sur geste seulement (#1650).
@@ -761,10 +780,11 @@
         </div>
         <label class="tricol">
           <span>{$tr('v2.fav.sortBy' as any)}</span>
-          <select bind:value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)}>
-            {#each CLES_TRI_PISTES as k (k)}<option value={k}>{$tr(LIBELLES_TRI_PISTES[k] as any)}</option>{/each}
+          <select value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)} data-tri-pistes
+            onchange={(e) => choisirTri((e.currentTarget as HTMLSelectElement).value as CleTriPistes, sensPistes)}>
+            {#each criteresTri as k (k)}<option value={k} selected={k === triPistes}>{$tr(LIBELLES_TRI_PISTES[k] as any)}</option>{/each}
           </select>
-          <button class="sens" type="button" onclick={() => (sensPistes = sensPistes === 'asc' ? 'desc' : 'asc')}
+          <button class="sens" type="button" data-sens-pistes onclick={() => choisirTri(triPistes, sensPistes === 'asc' ? 'desc' : 'asc')}
             title={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}
             aria-label={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
             {#if sensPistes === 'asc'}
