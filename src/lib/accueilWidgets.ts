@@ -49,6 +49,15 @@ import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
 import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
+import {
+  chargerGenerees,
+  ID_PARCE_QUE_VOUS_AIMEZ,
+  lirePlaylistGeneree,
+  programmerRelance,
+  relanceTerminee,
+  texteVoisins,
+  type PlaylistGeneree,
+} from './parceQueVousAimez';
 import { chargerSas, sasEcouterPlusTard } from './ecouterPlusTard';
 import { elementsDuSas, trierSas, triParDefaut, type ElementSas } from './triEcouterPlusTard';
 
@@ -109,7 +118,14 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | 'generee' | null;
+  /**
+   * web#3118 — la playlist GÉNÉRÉE (« Parce que vous aimez <artiste> ») qu'ouvre
+   * `ouvrir: 'generee'` : sa liste, « Lire » et « Enregistrer comme playlist ».
+   * Elle n'existe nulle part ailleurs que dans cette réponse : pas d'identifiant
+   * de playlist à rouvrir, d'où un champ à part.
+   */
+  generee?: PlaylistGeneree | null;
   /**
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
@@ -2088,6 +2104,55 @@ export const WIDGETS: Widget[] = [
           .slice(0, limiteDe(ctx))
           .map((o, i) => suggere(versElement(o, i, 'rec'), o, champ(o, 'artist_name'))),
       ),
+  },
+  {
+    /**
+     * web#3118 — « Parce que vous aimez <artiste> » (FabienM, fil 2864 ; go de
+     * Bertrand le 16/11/2026). Jusqu'à cinq playlists de vingt titres
+     * composées par le serveur, refaites tous les trois jours (décision du
+     * 17/11/2026, « mix pour vous »). Le disque les lance ;
+     * un clic ailleurs ouvre la liste, d'où l'on peut l'enregistrer.
+     *
+     * Hors du défaut, comme tout widget ajouté depuis le 06/09 : il s'ajoute
+     * depuis « Modifier ». Vide (aucune écoute encore), il ne se montre pas.
+     */
+    id: ID_PARCE_QUE_VOUS_AIMEZ,
+    cleTitre: 'v2.home.wBecauseYouLike',
+    forme: 'bande',
+    masqueSiVide: true,
+    charger: async (ctx) => {
+      const tr = get(t) as (k: string) => string;
+      // #1763 — le délai du widget et le démontage de la page annulent la requête.
+      const { playlists, pending } = await chargerGenerees(undefined, ctx.signal);
+      // Premier calcul de la période encore en cours côté serveur : on le
+      // dit, et on relance UNE fois (`programmerRelance`).
+      //
+      // Cette carte « Préparation… » peut rester affichée toute la session,
+      // et c'est VOULU : si la relance unique (~60 s) trouve encore le calcul
+      // en cours, aucune autre relance n'est programmée (jamais de boucle qui
+      // interrogerait le serveur sans fin). La carte reste alors jusqu'au
+      // prochain chargement de l'accueil (navigation, « Actualiser », nouvelle
+      // session), qui lira les playlists calculées entre-temps.
+      if (pending && !playlists.length) {
+        programmerRelance();
+        return [{ id: 'pvaa-preparation', titre: tr('v2.home.becauseYouLikePending'), cover: null, source: null }];
+      }
+      relanceTerminee();
+      return utiles(
+        playlists.slice(0, limiteDe(ctx)).map((p, i) => ({
+          id: `pvaa${i}-${p.id}`,
+          titre: tr('v2.home.becauseYouLikeCard').replace('{artiste}', p.artist),
+          sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,
+          nbTitres: p.track_count,
+          cover: p.covers?.[0] ?? null,
+          pochettes: p.covers ?? [],
+          source: null,
+          jouer: (z: number) => lirePlaylistGeneree(z, p),
+          ouvrir: 'generee' as const,
+          generee: p,
+        })),
+      );
+    },
   },
   {
     // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit

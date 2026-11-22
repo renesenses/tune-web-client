@@ -137,6 +137,30 @@ export function contratCompris(r: ReponseTessZone): boolean {
   return r.contract_version === VERSION_CONTRAT_TESS;
 }
 
+/**
+ * Pourquoi un greffon DÉCOCHÉ l'a été par le serveur, et non par l'utilisateur
+ * (contrat § 8, marques de T02 tenues par le serveur) :
+ * - `inert_on_network` (D2) : repli mono décoché d'office sur une sortie
+ *   réseau, où l'ancien interrupteur n'agissait pas ;
+ * - `replaced_in_group` (décision B) : membre du groupe crossfeed décoché à la
+ *   migration au profit du gagnant nommé.
+ * Un greffon coché, ou sans marque reconnue, rend `null` : rien à expliquer.
+ */
+export type MarqueServeurTess =
+  | { genre: 'inert_on_network' }
+  | { genre: 'replaced_in_group'; par: string };
+
+export function marqueServeur(lien: LienGreffonTess): MarqueServeurTess | null {
+  if (lien.enabled) return null;
+  const s = estObjet(lien.settings) ? lien.settings : null;
+  if (!s) return null;
+  if (typeof s.replaced_in_group === 'string' && s.replaced_in_group !== '') {
+    return { genre: 'replaced_in_group', par: s.replaced_in_group };
+  }
+  if (s.inert_on_network === true) return { genre: 'inert_on_network' };
+  return null;
+}
+
 export function liensDe(chaine: ChaineTess): LienGreffonTess[] {
   return Array.isArray(chaine.plugins) ? chaine.plugins : [];
 }

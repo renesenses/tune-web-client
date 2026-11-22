@@ -14,7 +14,7 @@
   import { t } from '../../../lib/i18n';
   import {
     lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli,
-    liensDe, CATEGORIES_TESS,
+    liensDe, marqueServeur, CATEGORIES_TESS,
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
 
@@ -102,7 +102,16 @@
   }
 
   function resumeGreffon(lien: LienGreffonTess, e: EtapeTess | null): string {
-    if (!lien.enabled) return tr('tess.off');
+    if (!lien.enabled) {
+      // Décoché par le serveur (migration T02) : on dit pourquoi, sinon
+      // l'utilisateur croit à un réglage perdu (contrat § 8, D2 et décision B).
+      const m = marqueServeur(lien);
+      if (m?.genre === 'replaced_in_group') {
+        return `${tr('tess.off')} · ${tr('tess.reason.replaced_in_group').replace('{x}', nomGreffon(m.par))}`;
+      }
+      if (m?.genre === 'inert_on_network') return `${tr('tess.off')} · ${tr('tess.mark.inertOnNetwork')}`;
+      return tr('tess.off');
+    }
     if (e && !e.effective && e.reason) return motif(e);
     return tr('tess.on');
   }

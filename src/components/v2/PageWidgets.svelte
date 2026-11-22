@@ -65,6 +65,8 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
+  import PlaylistGenereeV2 from './PlaylistGenereeV2.svelte';
+  import { ID_PARCE_QUE_VOUS_AIMEZ, relanceDemandee, type PlaylistGeneree } from '../../lib/parceQueVousAimez';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -999,6 +1001,20 @@
     });
   });
 
+  /**
+   * web#3118 — « Parce que vous aimez » encore en préparation côté serveur :
+   * sa relance UNIQUE (`programmerRelance`) recharge le widget. Même
+   * souscription impérative que les zones ; la première émission est l'état
+   * initial.
+   */
+  onMount(() => {
+    let premier = true;
+    return relanceDemandee.subscribe(() => {
+      if (premier) { premier = false; return; }
+      rechargerWidget(ID_PARCE_QUE_VOUS_AIMEZ);
+    });
+  });
+
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
@@ -1052,6 +1068,8 @@
    * l'autre.
    */
   let playlistOuverte = $state<any | null>(null);
+  /** web#3118 — la playlist GÉNÉRÉE ouverte (« Parce que vous aimez »). */
+  let genereeOuverte = $state<PlaylistGeneree | null>(null);
   let servicePlaylistOuvert = $state<string | null>(null);
   function fermerCalquePlaylist() {
     playlistOuverte = null;
@@ -1148,7 +1166,7 @@
   }
 
   function objetElement(e: Element): ObjetMenu | null {
-    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire' || e.ouvrir === 'generee') return null;
     // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
     // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
     if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
@@ -1204,6 +1222,12 @@
     // écran, sous la clé de raccourci qui porte sa SORTE.
     if (e.ouvrir === 'lire') {
       jouer(e);
+      return;
+    }
+    // web#3118 — une playlist générée n'a pas d'écran : sa liste s'ouvre
+    // par-dessus la page, avec « Lire » et « Enregistrer comme playlist ».
+    if (e.ouvrir === 'generee' && e.generee) {
+      genereeOuverte = e.generee;
       return;
     }
     if (e.ouvrir === 'cible' && e.cible) {
@@ -1621,8 +1645,10 @@
         {#if el.pochettes || el.mosaique}
           <!-- Playlist ou collection : la MOSAÏQUE de son
                écran (`MosaiquePochettes`), pas une pochette. -->
+          <!-- web#3118 — sans pochette, l'initiale de l'ARTISTE d'une
+               playlist générée, pas le « P » de « Parce que vous aimez… ». -->
           <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
-            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+            initiales={(el.generee?.artist ?? el.titre)?.slice(0, 1)} alt={el.titre} />
         {:else}
           <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
             source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
@@ -2333,6 +2359,10 @@
     item={{ kind: 'streaming', service: servicePlaylistOuvert ?? '', pl: playlistOuverte }}
     onClose={retourCalquePlaylist}
   />
+{/if}
+
+{#if genereeOuverte}
+  <PlaylistGenereeV2 playlist={genereeOuverte} onClose={() => (genereeOuverte = null)} />
 {/if}
 
 {#if enEdition}

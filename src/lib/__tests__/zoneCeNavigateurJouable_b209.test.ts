@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // rc10 — le serveur renomme la zone par défaut « Cet ordinateur » en
-// « Ce navigateur » (#3067) ; un onglet sans clé localStorage doit la jouer.
+// « Ce navigateur » (#3067) ; un onglet sans clé de session doit la jouer.
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
 
@@ -8,11 +8,11 @@ const CLE = 'tune.zonesNavigateurDeCetAppareil';
 const zone = (name: string, id = 7) => ({ id, name, output_type: 'browser' });
 
 describe('zone « Ce navigateur » jouable ici', () => {
-  beforeEach(() => localStorage.clear());
-  afterEach(() => localStorage.clear());
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+  afterEach(() => { localStorage.clear(); sessionStorage.clear(); });
 
   it.each(['Ce navigateur', 'This browser', ' ce navigateur ', 'THIS BROWSER', 'Ce navigateur (192.168.1.20)'])(
-    'sans clé localStorage, « %s » est jouable', (nom) => {
+    'sans clé de session, « %s » est jouable', (nom) => {
       expect(estZoneJouableIci(zone(nom))).toBe(true);
     });
 
@@ -21,13 +21,13 @@ describe('zone « Ce navigateur » jouable ici', () => {
   });
 
   it('avec une clé qui ne contient pas son id, elle reste non jouable', () => {
-    localStorage.setItem(CLE, JSON.stringify([3]));
+    sessionStorage.setItem(CLE, JSON.stringify([3]));
     expect(estZoneJouableIci(zone('Ce navigateur', 7))).toBe(false);
     expect(estZoneJouableIci(zone('This browser', 7))).toBe(false);
   });
 
   it('avec une clé qui contient son id, elle est jouable', () => {
-    localStorage.setItem(CLE, JSON.stringify([7]));
+    sessionStorage.setItem(CLE, JSON.stringify([7]));
     expect(estZoneJouableIci(zone('Ce navigateur', 7))).toBe(true);
   });
 

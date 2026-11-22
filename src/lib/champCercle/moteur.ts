@@ -79,6 +79,8 @@ export interface Couleurs { or: string; orClair: string; vert: string; vertClair
 /** `public` (rc9) : les points anonymes de la carte publique, gris bleuté, en retrait de l'or du cercle. */
 /** `frontiere` (web#2657) : les frontières des pays au zoom ; l'écran la lit dans le thème. */
 const COULEURS: Couleurs = { or: '#deb268', orClair: '#f3cf86', vert: '#4cc79d', vertClair: '#7fe0bd', fil: '#9fb0b6', fond: 'rgba(15,24,28,.92)', public: '#a9c4cf', frontiere: '#9fb0b6', cote: '#8396a0', fleuve: '#5fa8d3' };
+/** rc13 : la teinte des anneaux anonymes des cercles du monde (l'or des cercles). */
+const TEINTE_CERCLE_ANONYME = 38;
 /** Appui long au toucher qui montre le nom du pays (web#2657). */
 const APPUI_LONG_MS = 500;
 
@@ -152,6 +154,8 @@ export class ChampCercle {
   private terre: [number, number][];
   /** rc9 : les points ANONYMES de la carte publique (lat, lon au degré), sous le cercle. */
   private publics: [number, number][] = [];
+  /** rc13 : les cercles du monde, ANONYMES (lat, lon en radians, niveau de tranche 0-4), sans nom. */
+  private cerclesAnonymes: [number, number, number][] = [];
   private terrePhase: Float32Array;
   /** Les frontières (web#2657), décodées au premier passage du seuil de zoom seulement. */
   private frontieres: Float32Array[] | null = null;
@@ -312,6 +316,12 @@ export class ChampCercle {
 
   majPointsPublics(points: readonly { lat: number; lon: number }[]) {
     this.publics = points.map((p) => [p.lat * DEG, p.lon * DEG]);
+    this.demander();
+  }
+
+  /** rc13 : les anneaux anonymes des cercles du monde. Rien que des coordonnées et une taille. */
+  majCerclesAnonymes(points: readonly { lat: number; lon: number; niveau: number }[]) {
+    this.cerclesAnonymes = points.map((p) => [p.lat * DEG, p.lon * DEG, Math.max(0, Math.min(4, p.niveau | 0))]);
     this.demander();
   }
 
@@ -563,6 +573,22 @@ export class ChampCercle {
         if (z < 0.02) continue;
         ctx.globalAlpha = a * (0.18 + 0.4 * z);
         ctx.beginPath(); ctx.arc(x, y, 1.4 + z * 1.6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // rc13 : les cercles du monde, au style des anneaux du cercle (halo doux,
+    // remplissage léger, trait à peine marqué), SANS nom ; la taille dit la tranche.
+    if (this.cerclesAnonymes.length) {
+      ctx.globalCompositeOperation = 'source-over';
+      for (const [la, lo, niv] of this.cerclesAnonymes) {
+        const [x, y, z] = projeter(la, lo, R, cx, cy, this.G);
+        if (z < 0.02) continue;
+        ctx.beginPath(); ctx.arc(x, y, 6 + niv * 3, 0, Math.PI * 2);
+        ctx.shadowColor = `hsl(${TEINTE_CERCLE_ANONYME} 55% 60% / 0.28)`; ctx.shadowBlur = 12;
+        ctx.globalAlpha = a * z * 0.08;
+        ctx.fillStyle = `hsl(${TEINTE_CERCLE_ANONYME} 48% 58%)`; ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = a * (0.25 + 0.35 * z);
+        ctx.strokeStyle = `hsl(${TEINTE_CERCLE_ANONYME} 55% 66%)`; ctx.lineWidth = 1; ctx.stroke();
       }
     }
     const pins = this.scene.noeuds.filter((n) => n.kind === 'pin');

@@ -10,6 +10,8 @@
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
   import VolumeControl from '../../partages/VolumeControl.svelte';
+  import OndeProgression from '../../partages/OndeProgression.svelte';
+  import { ondePisteEnCours } from '../../../lib/stores/ondePiste';
   import { currentZone } from '../../../lib/stores/zones';
   import { currentTrack, playbackState, seekPositionMs } from '../../../lib/stores/nowPlaying';
   import { audiophileEnabled } from '../../../lib/stores/audiophile';
@@ -29,6 +31,11 @@
   const enLecture = $derived($playbackState === 'playing');
   const duree = $derived(piste && piste.source !== 'radio' ? (piste.duration_ms ?? 0) : 0);
   const pourcent = $derived(duree ? Math.min(100, ($seekPositionMs / duree) * 100) : 0);
+  // Barre en forme d'onde (Discussion #8269), comme `SeekBar` de la vue
+  // complète : fil du forum 2968, la vue mini — l'écran par défaut de l'app de
+  // bureau Tune Client — gardait la barre classique, réglage coché ou non.
+  // `null` = la barre classique (réglage décoché, radio, calcul en cours…).
+  const onde = $derived(duree ? $ondePisteEnCours : null);
   const qualite = $derived(piste ? formatCompactQuality(piste) : '');
   const teinte = $derived(piste ? getQualityTierColor(getQualityTier(piste)) : 'neutre');
   const lienAlbum = $derived(destinationAlbum(piste) !== null);
@@ -72,10 +79,14 @@
 
   {#if !replie}
     <div class="progression">
-      <div class="barre" role="slider" tabindex="0" aria-valuemin={0} aria-valuemax={100}
+      <div class="barre" class:onde={!!onde} role="slider" tabindex="0" aria-valuemin={0} aria-valuemax={100}
         aria-valuenow={Math.round(pourcent)} onclick={chercherPosition}
         onkeydown={() => {}} data-progression>
-        <i style:width="{pourcent}%"></i>
+        {#if onde}
+          <OndeProgression points={onde} progress={pourcent} />
+        {:else}
+          <i style:width="{pourcent}%"></i>
+        {/if}
       </div>
       <div class="temps"><span>{formatTime($seekPositionMs)}</span><span>{duree ? formatTime(duree) : ''}</span></div>
     </div>
@@ -132,7 +143,10 @@
   .pure{font:700 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.12em; padding:3px 7px; border-radius:4px;
     color:var(--v2-acc1); border:1px solid var(--v2-acc1)}
   .progression{width:100%; display:flex; flex-direction:column; gap:5px}
-  .barre{height:6px; border-radius:3px; background:var(--v2-line2); cursor:pointer; overflow:hidden}
+  .barre{position:relative; height:6px; border-radius:3px; background:var(--v2-line2); cursor:pointer; overflow:hidden}
+  /* L'onde a besoin de hauteur pour se lire ; 36 px, la hauteur de la barre
+     en onde de la vue complète sur un petit écran (SeekBar). */
+  .barre.onde{height:36px; border-radius:0; background:transparent}
   .barre i{display:block; height:100%; background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
   .temps{display:flex; justify-content:space-between; font:500 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .transport{display:flex; align-items:center; justify-content:center; gap:22px}
