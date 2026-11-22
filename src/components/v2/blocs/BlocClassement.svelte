@@ -142,7 +142,7 @@
         ><span class="t">{el.titre}</span></button>
         {#if el.sous && artiste}
           <!-- web#3117 — le nombre de lectures : du texte, pas un lien. -->
-          <span class="art compte-texte" title={el.sous}>{el.sous}</span>
+          <span class="art compte" title={el.sous}>{el.sous}</span>
         {:else if el.sous}
           <button
             type="button"
@@ -214,8 +214,8 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .art:hover { color: var(--v2-acc1); }
-  .art.compte-texte { cursor: default; font-variant-numeric: tabular-nums; }
-  .art.compte-texte:hover { color: var(--v2-txt2); }
+  .art.compte { cursor: default; font-variant-numeric: tabular-nums; }
+  .art.compte:hover { color: var(--v2-txt2); }
   /* web#2770 — le ▶ d'une ligne qui OUVRE : la lecture ne se perd pas. */
   .lire {
     grid-area: lire; position: relative; z-index: 1; width: 28px; height: 28px; display: grid; place-items: center;

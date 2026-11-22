@@ -486,7 +486,10 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       hauteur: PETIT,
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        return { courante: d.streak?.current ?? 0, record: d.streak?.best ?? 0 };
+        // Design v3 : une série NULLE s'affiche (0). Sans `streak` dans la
+        // réponse (aucune écoute du tout), le bloc garde son message vide.
+        if (!d.streak) return null;
+        return { courante: d.streak.current ?? 0, record: d.streak.best ?? 0 };
       },
     },
   },
