@@ -119,3 +119,16 @@ describe('#8213 — Réglages › Système : « Redémarrer la machine »', () =
     expect(V2.lastIndexOf('{#if isAppliance === true}', b)).toBeGreaterThan(V2.lastIndexOf('{/if}', b));
   });
 });
+
+
+describe('#8912 — prochain arrêt RFC3339', () => {
+  it('conserve 23:00 avec un décalage +01:00, sans écriture au chargement', async () => {
+    await monter({ scheduled_stop: REGLAGE, next_stop_at: '2026-11-11T23:00:00+01:00', poweroff_available: true });
+    const prochain = hote.querySelector('[data-prochain-arret]');
+    expect(prochain).not.toBeNull();
+    expect(prochain!.textContent).toContain('23:00');
+    expect(prochain!.textContent).not.toContain('22:00');
+    expect(mocks.setArretProgramme).not.toHaveBeenCalled();
+    expect(mocks.supprimerArretProgramme).not.toHaveBeenCalled();
+  });
+});
