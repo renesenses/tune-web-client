@@ -86,7 +86,7 @@ describe('recette rc12 — menus et barre latérale', () => {
 describe('recette rc12 — textes', () => {
   it("l'aide du thème ne compte plus les palettes (il y en a neuf, elle en annonçait sept)", () => {
     const dossier = resolve(process.cwd(), 'src/lib/locales');
-    const locales = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
+    const locales = readdirSync(dossier).filter((f) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(f));
     expect(locales.length).toBeGreaterThanOrEqual(15);
     for (const f of locales) {
       const src = readFileSync(resolve(dossier, f), 'utf-8');
