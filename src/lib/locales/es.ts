@@ -8524,6 +8524,8 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizada con la reproducción",
   "nowplaying.upNextRemaining": "{n, plural, one {queda # pista} other {quedan # pistas}}",
   "nowplaying.viewQueue": "Ver la cola",
+  "settings.coverPlayButton": "Mostrar el botón de reproducción en las portadas",
+  "settings.coverPlayButtonHint": "Desactivado, el botón de reproducción desaparece de las portadas. Tocar una portada sigue abriéndola, y la reproducción sigue en el menú «…» y en la página de detalle.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

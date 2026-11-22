@@ -8524,6 +8524,8 @@ export default {
   "nowplaying.lyricsSynced": "与播放同步",
   "nowplaying.upNextRemaining": "{n, plural, other {还剩 # 首}}",
   "nowplaying.viewQueue": "查看队列",
+  "settings.coverPlayButton": "在封面上显示播放按钮",
+  "settings.coverPlayButtonHint": "关闭后，封面上的播放按钮将消失。点按封面仍会打开它，播放仍可在“…”菜单和详情页中进行。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

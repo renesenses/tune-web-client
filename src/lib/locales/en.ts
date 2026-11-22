@@ -8544,6 +8544,8 @@ export default {
   "nowplaying.lyricsSynced": "Synced to playback",
   "nowplaying.upNextRemaining": "{n, plural, one {# track remaining} other {# tracks remaining}}",
   "nowplaying.viewQueue": "View queue",
+  "settings.coverPlayButton": "Show the play button on covers",
+  "settings.coverPlayButtonHint": "When off, the play button disappears from covers. Tapping a cover still opens it, and playback stays in the “…” menu and on the detail page.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

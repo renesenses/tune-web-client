@@ -8369,5 +8369,7 @@ export default {
   "nowplaying.lyricsSynced": "Zsynchronizowane z odtwarzaniem",
   "nowplaying.upNextRemaining": "{n, plural, one {pozostał # utwór} few {pozostały # utwory} many {pozostało # utworów} other {pozostało utworów: #}}",
   "nowplaying.viewQueue": "Pokaż kolejkę",
+  "settings.coverPlayButton": "Pokazuj przycisk odtwarzania na okładkach",
+  "settings.coverPlayButtonHint": "Po wyłączeniu przycisk odtwarzania znika z okładek. Dotknięcie okładki nadal ją otwiera, a odtwarzanie pozostaje w menu „…” i na stronie szczegółów.",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

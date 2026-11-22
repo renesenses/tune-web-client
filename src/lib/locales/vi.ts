@@ -8376,5 +8376,7 @@ export default {
   "nowplaying.lyricsSynced": "Đồng bộ với phát nhạc",
   "nowplaying.upNextRemaining": "{n, plural, other {còn # bài hát}}",
   "nowplaying.viewQueue": "Xem hàng đợi",
+  "settings.coverPlayButton": "Hiện nút phát trên ảnh bìa",
+  "settings.coverPlayButtonHint": "Khi tắt, nút phát biến mất khỏi ảnh bìa. Chạm vào ảnh bìa vẫn mở nó, và vẫn phát được từ menu “…” và trang chi tiết.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

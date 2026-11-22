@@ -8524,6 +8524,8 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizate cu redarea",
   "nowplaying.upNextRemaining": "{n, plural, one {a rămas # piesă} few {au rămas # piese} other {au rămas # de piese}}",
   "nowplaying.viewQueue": "Vezi coada",
+  "settings.coverPlayButton": "Afișează butonul de redare pe coperți",
+  "settings.coverPlayButtonHint": "Dezactivat, butonul de redare dispare de pe coperți. Atingerea unei coperți o deschide în continuare, iar redarea rămâne în meniul „…” și pe pagina de detalii.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

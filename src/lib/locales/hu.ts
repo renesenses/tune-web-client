@@ -8483,6 +8483,8 @@ export default {
   "nowplaying.lyricsSynced": "Szinkronban a lejátszással",
   "nowplaying.upNextRemaining": "{n, plural, one {# szám van hátra} other {# szám van hátra}}",
   "nowplaying.viewQueue": "Lejátszási sor megtekintése",
+  "settings.coverPlayButton": "Lejátszás gomb megjelenítése a borítókon",
+  "settings.coverPlayButtonHint": "Kikapcsolva a lejátszás gomb eltűnik a borítókról. A borító megérintése továbbra is megnyitja, a lejátszás pedig a „…” menüben és a részletes oldalon marad.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
