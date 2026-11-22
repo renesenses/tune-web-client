@@ -33,6 +33,7 @@
 import type { Album, MediaServer, Track } from './types';
 import { retenirDepotTuneDistant } from './depotsTuneDistants';
 import { lireListeDepuis, type GestesLecture } from './lectureEnMasse';
+import { corpsDeFileListe } from './pisteFile';
 
 export interface DepotDistant {
   /** Racine de l'API du serveur distant, sans barre finale. */
@@ -173,6 +174,12 @@ export async function lireTitresDepuis(
   const suite = liste.slice(Math.max(0, index)).filter((t) => t.id != null);
   if (!suite.length) return 0;
   await g.lire(corpsLecture(depot, suite[0]));
-  for (let i = 1; i < suite.length; i++) await g.enfiler(corpsLecture(depot, suite[i]) as any);
+  // Relecture rc14 — la suite part en UNE requête (`corpsDeFileListe`, en
+  // `tracks[]`), comme « Lire » sur l'écran d'album d'un dépôt distant
+  // (`AlbumDetailV2`). Une requête par piste, en série, faisait jusqu'à
+  // 499 allers-retours (et autant de diffusions de la file) pour une liste
+  // de 500 titres : plusieurs minutes par l'accès à distance.
+  const reste = corpsDeFileListe(suite.slice(1).map((t) => corpsLecture(depot, t) as unknown as Track));
+  if (reste) await g.enfiler(reste);
   return suite.length;
 }

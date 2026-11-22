@@ -47,9 +47,34 @@ describe('#8832 — titres d’un serveur Tune distant', () => {
       source_id: 'http://192.168.1.29:8888/api/v1/library/tracks/12335/audio',
       title: 'B',
     });
-    expect(enfiles.map((c) => c.source_id)).toEqual([
+    expect(enfiles).toHaveLength(1);
+    expect((enfiles[0].tracks as any[]).map((c) => c.source_id)).toEqual([
       'http://192.168.1.29:8888/api/v1/library/tracks/12336/audio',
     ]);
+  });
+
+  // Relecture rc14 — la suite part en UNE requête, pas une par piste.
+  it('la suite de N titres part en une seule requête de file, dans l’ordre', async () => {
+    const { lus, enfiles, g } = gestes();
+    const liste = Array.from({ length: 500 }, (_, i) => piste(20000 + i, `T${i}`));
+    const n = await lireTitresDepuis(depot, liste, 0, g);
+    expect(n).toBe(500);
+    expect(lus).toHaveLength(1);
+    expect(enfiles).toHaveLength(1);
+    const suite = enfiles[0].tracks as any[];
+    expect(suite).toHaveLength(499);
+    expect(enfiles[0]).not.toHaveProperty('track_ids');
+    expect(suite.every((c) => c.source === 'upnp')).toBe(true);
+    expect(suite[0].source_id).toBe('http://192.168.1.29:8888/api/v1/library/tracks/20001/audio');
+    expect(suite[498].source_id).toBe('http://192.168.1.29:8888/api/v1/library/tracks/20499/audio');
+    expect(suite[0]).toMatchObject({ title: 'T1', artist_name: 'Artiste', duration_ms: 1000 });
+  });
+
+  it('une seule piste : rien n’est mis en file', async () => {
+    const { lus, enfiles, g } = gestes();
+    await lireTitresDepuis(depot, [piste(1, 'A')], 0, g);
+    expect(lus).toHaveLength(1);
+    expect(enfiles).toHaveLength(0);
   });
 
   it('sans dépôt, la bibliothèque locale garde sa lecture par identifiants', async () => {
