@@ -8348,5 +8348,11 @@ export default {
   "nowplaying.lyricsSynced": "Çalmayla eşzamanlı",
   "nowplaying.upNextRemaining": "{n, plural, one {# parça kaldı} other {# parça kaldı}}",
   "nowplaying.viewQueue": "Kuyruğu görüntüle",
+  "dashboard.eyebrow": "Tune · Dinlediklerim",
+  "dashboard.subtitle": "Kişisel müzik istatistiklerin ve dinleme alışkanlıkların",
+  "dashboard.section.sourcesZones": "Dinleme kaynakları ve bölgeler",
+  "dashboard.radioEmpty": "Bu dönem için kaydedilmiş radyo dinlemesi yok.",
+  "dashboard.peakListeningTime": "En yoğun dinleme saati",
+  "dashboard.showAll": "Tümünü göster",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

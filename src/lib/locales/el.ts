@@ -8369,5 +8369,11 @@ export default {
   "nowplaying.lyricsSynced": "Συγχρονισμένοι με την αναπαραγωγή",
   "nowplaying.upNextRemaining": "{n, plural, one {απομένει # κομμάτι} other {απομένουν # κομμάτια}}",
   "nowplaying.viewQueue": "Προβολή ουράς",
+  "dashboard.eyebrow": "Tune · Οι ακροάσεις μου",
+  "dashboard.subtitle": "Τα προσωπικά σας στατιστικά μουσικής και οι συνήθειες ακρόασης",
+  "dashboard.section.sourcesZones": "Πηγές ακρόασης και ζώνες",
+  "dashboard.radioEmpty": "Δεν καταγράφηκε ακρόαση ραδιοφώνου για αυτή την περίοδο.",
+  "dashboard.peakListeningTime": "Ώρα αιχμής ακρόασης",
+  "dashboard.showAll": "Εμφάνιση όλων",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

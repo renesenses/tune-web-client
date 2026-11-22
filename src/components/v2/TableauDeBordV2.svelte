@@ -38,7 +38,9 @@
     AJOUTS_TABLEAU_DE_BORD,
     BLOCS_TABLEAU_DE_BORD,
     DISPOSITION_DEFAUT_TABLEAU_DE_BORD,
+    GROUPES_TABLEAU_DE_BORD,
   } from '../../lib/tableauDeBordWidgets';
+  import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import type { DashboardPeriod } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import {
@@ -64,7 +66,7 @@
 
 {#snippet choixPeriode()}
   <label class="v2-btn periode" data-tdb-periode title={$t('dashboard.periodChoice' as any)}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <CalendarDays size={16} strokeWidth={1.8} aria-hidden="true" />
     <select
       aria-label={$t('dashboard.periodChoice' as any)}
       value={periode}
@@ -85,7 +87,10 @@
     cleChiffres="tableau_de_bord_stats"
     cleChiffresMigre="tableau_de_bord_stats_migre"
     ajoutsUniques={AJOUTS_TABLEAU_DE_BORD}
+    cleEyebrow="dashboard.eyebrow"
     cleTitre="dashboard.title"
+    cleSous="dashboard.subtitle"
+    groupes={GROUPES_TABLEAU_DE_BORD}
     grille
     grilleFluide
     delaiMs={delaiPour(periode)}
@@ -107,8 +112,20 @@
   /* Vérification du 15/11 sur le .18 : sur téléphone, la période et
      « Modifier » chevauchaient le titre ; ils passent dessous (cet écran seul). */
   /* Sans enveloppe : une boîte autour de PageWidgets la rétrécissait (.18). */
+  /* Design v3 (§9.2) — l'en-tête partage le bord de départ des bandes : le
+     cadre de contenu est centré à 1 100 px au plus (voir `.mosaique.fluide`
+     dans `PageWidgets`), l'en-tête s'y aligne. La réserve de droite reste
+     celle, mesurée, de la grappe (`--v2-grappe-w`). Le titre est le titre
+     standard des écrans v2 (Inter), pas le titre éditorial de l'Accueil. */
+  :global(.v2-top:has([data-tdb-periode])) {
+    padding-left: max(30px, calc((100% - 1100px) / 2));
+    flex-wrap: wrap;
+  }
+  /* Le sur-titre « Tune · Mes écoutes » en capitales — par la feuille, jamais
+     dans la chaîne traduite. */
+  :global(.v2-top:has([data-tdb-periode]) .v2-eyebrow) { text-transform: uppercase; }
   @media (max-width: 640px) {
-    :global(.v2-top:has([data-tdb-periode])) { flex-wrap: wrap; align-items: flex-start; }
+    :global(.v2-top:has([data-tdb-periode])) { flex-wrap: wrap; align-items: flex-start; padding-left: 12px; }
     :global(.v2-top:has([data-tdb-periode]) .v2-titres) { flex: 1 0 100%; }
     :global(.v2-top:has([data-tdb-periode]) .v2-actions) { flex: 1 0 100%; justify-content: flex-start; }
   }

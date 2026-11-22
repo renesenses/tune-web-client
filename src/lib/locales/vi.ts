@@ -8376,5 +8376,11 @@ export default {
   "nowplaying.lyricsSynced": "Đồng bộ với phát nhạc",
   "nowplaying.upNextRemaining": "{n, plural, other {còn # bài hát}}",
   "nowplaying.viewQueue": "Xem hàng đợi",
+  "dashboard.eyebrow": "Tune · Lượt nghe của tôi",
+  "dashboard.subtitle": "Thống kê âm nhạc cá nhân và thói quen nghe của bạn",
+  "dashboard.section.sourcesZones": "Nguồn nghe và vùng",
+  "dashboard.radioEmpty": "Không có lượt nghe radio nào được ghi nhận trong khoảng thời gian này.",
+  "dashboard.peakListeningTime": "Giờ nghe nhiều nhất",
+  "dashboard.showAll": "Hiện tất cả",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

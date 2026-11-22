@@ -8524,6 +8524,12 @@ export default {
   "nowplaying.lyricsSynced": "再生に同期",
   "nowplaying.upNextRemaining": "{n, plural, other {残り # 曲}}",
   "nowplaying.viewQueue": "キューを表示",
+  "dashboard.eyebrow": "Tune · マイリスニング",
+  "dashboard.subtitle": "あなたの音楽統計とリスニング習慣",
+  "dashboard.section.sourcesZones": "再生ソースとゾーン",
+  "dashboard.radioEmpty": "この期間のラジオ再生の記録はありません。",
+  "dashboard.peakListeningTime": "最も聴いた時間帯",
+  "dashboard.showAll": "すべて表示",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -8524,6 +8524,12 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizate cu redarea",
   "nowplaying.upNextRemaining": "{n, plural, one {a rămas # piesă} few {au rămas # piese} other {au rămas # de piese}}",
   "nowplaying.viewQueue": "Vezi coada",
+  "dashboard.eyebrow": "Tune · Ascultările mele",
+  "dashboard.subtitle": "Statisticile tale muzicale personale și obiceiurile de ascultare",
+  "dashboard.section.sourcesZones": "Surse de ascultare și zone",
+  "dashboard.radioEmpty": "Nicio ascultare radio înregistrată în această perioadă.",
+  "dashboard.peakListeningTime": "Ora de vârf a ascultării",
+  "dashboard.showAll": "Afișează tot",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

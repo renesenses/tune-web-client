@@ -8524,6 +8524,12 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizada con la reproducción",
   "nowplaying.upNextRemaining": "{n, plural, one {queda # pista} other {quedan # pistas}}",
   "nowplaying.viewQueue": "Ver la cola",
+  "dashboard.eyebrow": "Tune · Mis escuchas",
+  "dashboard.subtitle": "Tus estadísticas musicales personales y tus hábitos de escucha",
+  "dashboard.section.sourcesZones": "Fuentes de escucha y zonas",
+  "dashboard.radioEmpty": "No se ha registrado escucha de radio en este periodo.",
+  "dashboard.peakListeningTime": "Hora punta de escucha",
+  "dashboard.showAll": "Mostrar todo",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

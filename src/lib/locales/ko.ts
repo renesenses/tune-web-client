@@ -8524,6 +8524,12 @@ export default {
   "nowplaying.lyricsSynced": "재생과 동기화됨",
   "nowplaying.upNextRemaining": "{n, plural, other {#곡 남음}}",
   "nowplaying.viewQueue": "대기열 보기",
+  "dashboard.eyebrow": "Tune · 내 감상",
+  "dashboard.subtitle": "나의 음악 통계와 감상 습관",
+  "dashboard.section.sourcesZones": "감상 소스와 존",
+  "dashboard.radioEmpty": "이 기간에 기록된 라디오 감상이 없습니다.",
+  "dashboard.peakListeningTime": "가장 많이 듣는 시간",
+  "dashboard.showAll": "모두 보기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

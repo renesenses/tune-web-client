@@ -8369,5 +8369,11 @@ export default {
   "nowplaying.lyricsSynced": "Zsynchronizowane z odtwarzaniem",
   "nowplaying.upNextRemaining": "{n, plural, one {pozostał # utwór} few {pozostały # utwory} many {pozostało # utworów} other {pozostało utworów: #}}",
   "nowplaying.viewQueue": "Pokaż kolejkę",
+  "dashboard.eyebrow": "Tune · Moje słuchanie",
+  "dashboard.subtitle": "Twoje osobiste statystyki muzyczne i nawyki słuchania",
+  "dashboard.section.sourcesZones": "Źródła słuchania i strefy",
+  "dashboard.radioEmpty": "W tym okresie nie zarejestrowano słuchania radia.",
+  "dashboard.peakListeningTime": "Godzina najczęstszego słuchania",
+  "dashboard.showAll": "Pokaż wszystko",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

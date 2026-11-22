@@ -8524,6 +8524,12 @@ export default {
   "nowplaying.lyricsSynced": "与播放同步",
   "nowplaying.upNextRemaining": "{n, plural, other {还剩 # 首}}",
   "nowplaying.viewQueue": "查看队列",
+  "dashboard.eyebrow": "Tune · 我的收听",
+  "dashboard.subtitle": "你的个人音乐统计与收听习惯",
+  "dashboard.section.sourcesZones": "收听来源与区域",
+  "dashboard.radioEmpty": "此期间没有收听电台的记录。",
+  "dashboard.peakListeningTime": "收听高峰时段",
+  "dashboard.showAll": "显示全部",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

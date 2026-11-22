@@ -8483,6 +8483,12 @@ export default {
   "nowplaying.lyricsSynced": "Szinkronban a lejátszással",
   "nowplaying.upNextRemaining": "{n, plural, one {# szám van hátra} other {# szám van hátra}}",
   "nowplaying.viewQueue": "Lejátszási sor megtekintése",
+  "dashboard.eyebrow": "Tune · Saját hallgatás",
+  "dashboard.subtitle": "Személyes zenei statisztikáid és hallgatási szokásaid",
+  "dashboard.section.sourcesZones": "Hallgatási források és zónák",
+  "dashboard.radioEmpty": "Ebben az időszakban nem volt rögzített rádióhallgatás.",
+  "dashboard.peakListeningTime": "Legaktívabb hallgatási idő",
+  "dashboard.showAll": "Az összes megjelenítése",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

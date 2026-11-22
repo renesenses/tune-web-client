@@ -68,6 +68,12 @@ export interface Element {
   titre: string;
   sous?: string;
   /**
+   * Design v3 (§9.5) — le nombre de lectures d'un rang de classement du
+   * Tableau de bord, quand le serveur le donne (`plays` de `top_albums` /
+   * `top_tracks`). Absent ailleurs : rien n'est affiché.
+   */
+  compte?: number | null;
+  /**
    * POURQUOI le serveur propose cet élément (web#916) — la `raison` structurée
    * de `/home/*`, mise en phrase par `lib/raisonSuggestion`. Absente quand la
    * rangée ne sait pas le dire : jamais inventée ici.
@@ -369,8 +375,47 @@ export interface Bloc<D = any> {
    * d'avant.
    */
   icone?: string;
+  /**
+   * Design v3 de Levente (§3, §9.3) — l'icône d'en-tête comme COMPOSANT
+   * Lucide (`@lucide/svelte/icons/<nom>`). Prioritaire sur `icone` quand les
+   * deux sont donnés ; rendue à 16 px, couleur d'accent, cachée aux lecteurs
+   * d'écran.
+   */
+  iconeComposant?: Component<any>;
+  /**
+   * Design v3 (§9.2) — la BANDE du Tableau de bord où le bloc se range sur la
+   * grille fluide : `activite` (trois colonnes), `classements` (quatre),
+   * `historique` (trois). Un bloc qui ouvre une bande neuve commence une
+   * nouvelle rangée : un bloc absent ou court n'aspire jamais le voisin d'une
+   * autre bande. Sans bande, le bloc prend un tiers.
+   */
+  bande?: 'activite' | 'classements' | 'historique';
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
+}
+
+/**
+ * Design v3 de Levente (§9.5, §9.6) — plusieurs blocs PRÉSENTÉS en une seule
+ * carte, sans toucher à la configuration : chaque membre garde son
+ * identifiant, son chargeur, son interrupteur et sa place enregistrée.
+ *
+ * Hors « Modifier », la carte prend la place du PREMIER membre présent dans
+ * la disposition ; les autres membres n'y occupent plus de case. En
+ * « Modifier », les membres reviennent un par un : c'est là qu'on les retire,
+ * les ajoute et les déplace, et la disposition enregistrée fait l'aller-retour
+ * sans changement.
+ */
+export interface GroupeDeBlocs {
+  id: string;
+  cleTitre: string;
+  iconeComposant?: Component<any>;
+  bande?: Bloc['bande'];
+  /**
+   * Les membres, dans l'ORDRE FIXE des sous-sections. `cleVide` : la phrase à
+   * écrire quand ce membre est chargé et vide. Sans elle, un membre chargé et
+   * vide ne prend AUCUNE place.
+   */
+  membres: { id: string; cleVide?: string }[];
 }
 
 export interface Widget {

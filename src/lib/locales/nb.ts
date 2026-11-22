@@ -8369,5 +8369,11 @@ export default {
   "nowplaying.lyricsSynced": "Synkronisert med avspillingen",
   "nowplaying.upNextRemaining": "{n, plural, one {# spor igjen} other {# spor igjen}}",
   "nowplaying.viewQueue": "Vis køen",
+  "dashboard.eyebrow": "Tune · Min lytting",
+  "dashboard.subtitle": "Din personlige musikkstatistikk og dine lyttevaner",
+  "dashboard.section.sourcesZones": "Lyttekilder og soner",
+  "dashboard.radioEmpty": "Ingen radiolytting registrert i denne perioden.",
+  "dashboard.peakListeningTime": "Mest lyttet tidspunkt",
+  "dashboard.showAll": "Vis alle",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

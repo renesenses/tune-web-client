@@ -8523,4 +8523,10 @@ export default {
   "nowplaying.lyricsSynced": "Synkroniserade med uppspelningen",
   "nowplaying.upNextRemaining": "{n, plural, one {# spår kvar} other {# spår kvar}}",
   "nowplaying.viewQueue": "Visa kön",
+  "dashboard.eyebrow": "Tune · Min lyssning",
+  "dashboard.subtitle": "Din personliga musikstatistik och dina lyssningsvanor",
+  "dashboard.section.sourcesZones": "Lyssningskällor och zoner",
+  "dashboard.radioEmpty": "Ingen radiolyssning registrerad under perioden.",
+  "dashboard.peakListeningTime": "Mest lyssnade tid",
+  "dashboard.showAll": "Visa alla",
 } as const;
