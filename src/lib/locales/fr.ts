@@ -8543,6 +8543,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Ajout arrêté : {k} sur {n} ajoutés à la file",
   "bibliotheque.selection.playlistPartial": "Sur {total} albums, {n, plural, one {# n’a pas pu être lu : ses pistes manquent.} other {# n’ont pas pu être lus : leurs pistes manquent.}}",
   "bibliotheque.selection.editGenreScope": "Le genre est aussi recopié sur les pistes de l’album, sauf pour une compilation dont les pistes ont des genres différents.",
+  "cloud.reconnexionRequise": "Connexion à mozaiklabs.fr expirée : Tune Circle et la copie en ligne sont en pause. Reconnectez-vous, sans passer par « Se déconnecter », qui effacerait la copie en ligne et vos partages.",
+  "cloud.reconnexionRequiseDepuis": "Connexion à mozaiklabs.fr expirée depuis le {date} : Tune Circle et la copie en ligne sont en pause. Reconnectez-vous, sans passer par « Se déconnecter », qui effacerait la copie en ligne et vos partages.",
+  "cloud.seReconnecter": "Se reconnecter",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

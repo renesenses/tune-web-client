@@ -8345,5 +8345,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Durduruldu: {n} albümden {k} tanesi kuyruğa eklendi",
   "bibliotheque.selection.playlistPartial": "{total} albümden {n, plural, one {# tanesi okunamadı: parçaları eksik.} other {# tanesi okunamadı: parçaları eksik.}}",
   "bibliotheque.selection.editGenreScope": "Tür, parçalarının türleri farklı olan bir derleme dışında, albümün parçalarına da kopyalanır.",
+  "cloud.reconnexionRequise": "mozaiklabs.fr bağlantısının süresi doldu: Tune Circle ve çevrimiçi kopya duraklatıldı. Çevrimiçi kopyayı ve paylaşımlarınızı sileceği için “Oturumu kapat” seçeneğini kullanmadan yeniden bağlanın.",
+  "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr bağlantısının süresi {date} tarihinde doldu: Tune Circle ve çevrimiçi kopya duraklatıldı. Çevrimiçi kopyayı ve paylaşımlarınızı sileceği için “Oturumu kapat” seçeneğini kullanmadan yeniden bağlanın.",
+  "cloud.seReconnecter": "Yeniden bağlan",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

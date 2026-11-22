@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "중지됨: {n}장 중 {k}장을 대기열에 추가",
   "bibliotheque.selection.playlistPartial": "앨범 {total}장 중 {n, plural, other {#장을 읽지 못했습니다. 해당 트랙은 빠집니다.}}",
   "bibliotheque.selection.editGenreScope": "장르는 앨범의 트랙에도 복사됩니다(트랙마다 장르가 다른 컴필레이션은 제외).",
+  "cloud.reconnexionRequise": "mozaiklabs.fr 연결이 만료되었습니다. Tune Circle과 온라인 사본이 일시 중지되었습니다. '로그아웃'을 사용하지 말고 다시 연결하세요. 로그아웃하면 온라인 사본과 공유가 삭제됩니다.",
+  "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr 연결이 {date}에 만료되었습니다. Tune Circle과 온라인 사본이 일시 중지되었습니다. '로그아웃'을 사용하지 말고 다시 연결하세요. 로그아웃하면 온라인 사본과 공유가 삭제됩니다.",
+  "cloud.seReconnecter": "다시 연결",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -8373,5 +8373,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Đã dừng: đã thêm {k} / {n} vào hàng đợi",
   "bibliotheque.selection.playlistPartial": "Trong {total} album, {n, plural, other {# album không đọc được: thiếu các bài của chúng.}}",
   "bibliotheque.selection.editGenreScope": "Thể loại cũng được chép sang các bài của album, trừ tuyển tập có các bài khác thể loại.",
+  "cloud.reconnexionRequise": "Kết nối với mozaiklabs.fr đã hết hạn: Tune Circle và bản sao trực tuyến đang tạm dừng. Hãy kết nối lại, đừng dùng “Đăng xuất” vì thao tác đó sẽ xóa bản sao trực tuyến và các mục bạn chia sẻ.",
+  "cloud.reconnexionRequiseDepuis": "Kết nối với mozaiklabs.fr đã hết hạn từ {date}: Tune Circle và bản sao trực tuyến đang tạm dừng. Hãy kết nối lại, đừng dùng “Đăng xuất” vì thao tác đó sẽ xóa bản sao trực tuyến và các mục bạn chia sẻ.",
+  "cloud.seReconnecter": "Kết nối lại",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

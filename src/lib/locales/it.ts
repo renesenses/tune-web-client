@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Interrotto: {k} su {n} aggiunti alla coda",
   "bibliotheque.selection.playlistPartial": "Su {total} album, {n, plural, one {# non è stato letto: mancano le sue tracce.} other {# non sono stati letti: mancano le loro tracce.}}",
   "bibliotheque.selection.editGenreScope": "Il genere viene copiato anche sulle tracce dell’album, tranne per una compilation le cui tracce hanno generi diversi.",
+  "cloud.reconnexionRequise": "Connessione a mozaiklabs.fr scaduta: Tune Circle e la copia online sono in pausa. Riconnettiti senza usare «Disconnetti», che cancellerebbe la copia online e le tue condivisioni.",
+  "cloud.reconnexionRequiseDepuis": "Connessione a mozaiklabs.fr scaduta dal {date}: Tune Circle e la copia online sono in pausa. Riconnettiti senza usare «Disconnetti», che cancellerebbe la copia online e le tue condivisioni.",
+  "cloud.seReconnecter": "Riconnettiti",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

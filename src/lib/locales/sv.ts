@@ -8520,4 +8520,7 @@ export default {
   "bibliotheque.selection.queueStopped": "Stoppat: {k} av {n} tillagda i kön",
   "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunde # inte läsas: dess spår saknas.} other {kunde # inte läsas: deras spår saknas.}}",
   "bibliotheque.selection.editGenreScope": "Genren kopieras också till albumets spår, utom för ett samlingsalbum vars spår har olika genrer.",
+  "cloud.reconnexionRequise": "Anslutningen till mozaiklabs.fr har gått ut: Tune Circle och onlinekopian är pausade. Anslut igen utan att använda ”Logga ut”, som skulle radera onlinekopian och dina delningar.",
+  "cloud.reconnexionRequiseDepuis": "Anslutningen till mozaiklabs.fr gick ut {date}: Tune Circle och onlinekopian är pausade. Anslut igen utan att använda ”Logga ut”, som skulle radera onlinekopian och dina delningar.",
+  "cloud.seReconnecter": "Anslut igen",
 } as const;

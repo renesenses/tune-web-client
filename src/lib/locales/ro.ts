@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Oprit: {k} din {n} adăugate în coadă",
   "bibliotheque.selection.playlistPartial": "Din {total} albume, {n, plural, one {# nu a putut fi citit: lipsesc piesele sale.} few {# nu au putut fi citite: lipsesc piesele lor.} other {# nu au putut fi citite: lipsesc piesele lor.}}",
   "bibliotheque.selection.editGenreScope": "Genul este copiat și pe piesele albumului, cu excepția unei compilații ale cărei piese au genuri diferite.",
+  "cloud.reconnexionRequise": "Conexiunea la mozaiklabs.fr a expirat: Tune Circle și copia online sunt în pauză. Reconectează-te fără să folosești „Deconectează-te”, care ar șterge copia online și partajările tale.",
+  "cloud.reconnexionRequiseDepuis": "Conexiunea la mozaiklabs.fr a expirat pe {date}: Tune Circle și copia online sunt în pauză. Reconectează-te fără să folosești „Deconectează-te”, care ar șterge copia online și partajările tale.",
+  "cloud.seReconnecter": "Reconectează-te",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

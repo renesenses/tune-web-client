@@ -8366,5 +8366,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Stoppet: {k} av {n} lagt til i køen",
   "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunne # ikke leses: sporene mangler.} other {kunne # ikke leses: sporene mangler.}}",
   "bibliotheque.selection.editGenreScope": "Sjangeren kopieres også til albumets spor, unntatt for et samlealbum der sporene har ulike sjangre.",
+  "cloud.reconnexionRequise": "Tilkoblingen til mozaiklabs.fr er utløpt: Tune Circle og nettkopien er satt på pause. Koble til på nytt uten å bruke «Logg ut», som ville slette nettkopien og delingene dine.",
+  "cloud.reconnexionRequiseDepuis": "Tilkoblingen til mozaiklabs.fr utløp {date}: Tune Circle og nettkopien er satt på pause. Koble til på nytt uten å bruke «Logg ut», som ville slette nettkopien og delingene dine.",
+  "cloud.seReconnecter": "Koble til på nytt",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];
