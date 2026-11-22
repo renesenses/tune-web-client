@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Oprit: {k} din {n} adăugate în coadă",
   "bibliotheque.selection.playlistPartial": "Din {total} albume, {n, plural, one {# nu a putut fi citit: lipsesc piesele sale.} few {# nu au putut fi citite: lipsesc piesele lor.} other {# nu au putut fi citite: lipsesc piesele lor.}}",
   "bibliotheque.selection.editGenreScope": "Genul este copiat și pe piesele albumului, cu excepția unei compilații ale cărei piese au genuri diferite.",
+  "nowplaying.lyricsSynced": "Sincronizate cu redarea",
+  "nowplaying.upNextRemaining": "{n, plural, one {a rămas # piesă} few {au rămas # piese} other {au rămas # de piese}}",
+  "nowplaying.viewQueue": "Vezi coada",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

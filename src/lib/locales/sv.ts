@@ -8520,4 +8520,7 @@ export default {
   "bibliotheque.selection.queueStopped": "Stoppat: {k} av {n} tillagda i kön",
   "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunde # inte läsas: dess spår saknas.} other {kunde # inte läsas: deras spår saknas.}}",
   "bibliotheque.selection.editGenreScope": "Genren kopieras också till albumets spår, utom för ett samlingsalbum vars spår har olika genrer.",
+  "nowplaying.lyricsSynced": "Synkroniserade med uppspelningen",
+  "nowplaying.upNextRemaining": "{n, plural, one {# spår kvar} other {# spår kvar}}",
+  "nowplaying.viewQueue": "Visa kön",
 } as const;

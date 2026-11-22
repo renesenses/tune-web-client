@@ -8480,6 +8480,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Leállítva: {k} / {n} hozzáadva a sorhoz",
   "bibliotheque.selection.playlistPartial": "{total} albumból {n, plural, one {# nem olvasható: hiányoznak a számai.} other {# nem olvasható: hiányoznak a számaik.}}",
   "bibliotheque.selection.editGenreScope": "A műfaj az album számaira is átkerül, kivéve az olyan válogatást, amelynek számai különböző műfajúak.",
+  "nowplaying.lyricsSynced": "Szinkronban a lejátszással",
+  "nowplaying.upNextRemaining": "{n, plural, one {# szám van hátra} other {# szám van hátra}}",
+  "nowplaying.viewQueue": "Lejátszási sor megtekintése",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

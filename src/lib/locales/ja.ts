@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "停止しました：{n} 枚中 {k} 枚をキューに追加",
   "bibliotheque.selection.playlistPartial": "{total} 枚のアルバムのうち{n, plural, other { # 枚を読み込めませんでした。それらのトラックは含まれません。}}",
   "bibliotheque.selection.editGenreScope": "ジャンルはアルバムのトラックにもコピーされます（トラックのジャンルが異なるコンピレーションを除く）。",
+  "nowplaying.lyricsSynced": "再生に同期",
+  "nowplaying.upNextRemaining": "{n, plural, other {残り # 曲}}",
+  "nowplaying.viewQueue": "キューを表示",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

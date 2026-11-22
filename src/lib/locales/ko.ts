@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "중지됨: {n}장 중 {k}장을 대기열에 추가",
   "bibliotheque.selection.playlistPartial": "앨범 {total}장 중 {n, plural, other {#장을 읽지 못했습니다. 해당 트랙은 빠집니다.}}",
   "bibliotheque.selection.editGenreScope": "장르는 앨범의 트랙에도 복사됩니다(트랙마다 장르가 다른 컴필레이션은 제외).",
+  "nowplaying.lyricsSynced": "재생과 동기화됨",
+  "nowplaying.upNextRemaining": "{n, plural, other {#곡 남음}}",
+  "nowplaying.viewQueue": "대기열 보기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

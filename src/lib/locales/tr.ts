@@ -8345,5 +8345,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Durduruldu: {n} albümden {k} tanesi kuyruğa eklendi",
   "bibliotheque.selection.playlistPartial": "{total} albümden {n, plural, one {# tanesi okunamadı: parçaları eksik.} other {# tanesi okunamadı: parçaları eksik.}}",
   "bibliotheque.selection.editGenreScope": "Tür, parçalarının türleri farklı olan bir derleme dışında, albümün parçalarına da kopyalanır.",
+  "nowplaying.lyricsSynced": "Çalmayla eşzamanlı",
+  "nowplaying.upNextRemaining": "{n, plural, one {# parça kaldı} other {# parça kaldı}}",
+  "nowplaying.viewQueue": "Kuyruğu görüntüle",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

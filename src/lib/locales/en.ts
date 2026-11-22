@@ -8541,6 +8541,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Adding stopped: {k} of {n} added to the queue",
   "bibliotheque.selection.playlistPartial": "Of {total} albums, {n, plural, one {# could not be read: its tracks are missing.} other {# could not be read: their tracks are missing.}}",
   "bibliotheque.selection.editGenreScope": "The genre is also copied to the album’s tracks, except for a compilation whose tracks have different genres.",
+  "nowplaying.lyricsSynced": "Synced to playback",
+  "nowplaying.upNextRemaining": "{n, plural, one {# track remaining} other {# tracks remaining}}",
+  "nowplaying.viewQueue": "View queue",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

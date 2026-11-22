@@ -8366,5 +8366,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Stoppet: {k} av {n} lagt til i køen",
   "bibliotheque.selection.playlistPartial": "Av {total} album {n, plural, one {kunne # ikke leses: sporene mangler.} other {kunne # ikke leses: sporene mangler.}}",
   "bibliotheque.selection.editGenreScope": "Sjangeren kopieres også til albumets spor, unntatt for et samlealbum der sporene har ulike sjangre.",
+  "nowplaying.lyricsSynced": "Synkronisert med avspillingen",
+  "nowplaying.upNextRemaining": "{n, plural, one {# spor igjen} other {# spor igjen}}",
+  "nowplaying.viewQueue": "Vis køen",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

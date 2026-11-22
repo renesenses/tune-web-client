@@ -8366,5 +8366,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Zatrzymano: dodano {k} z {n} do kolejki",
   "bibliotheque.selection.playlistPartial": "Z {total} albumów {n, plural, one {# nie udało się odczytać: brakuje jego utworów.} few {# nie udało się odczytać: brakuje ich utworów.} many {# nie udało się odczytać: brakuje ich utworów.} other {# nie udało się odczytać: brakuje ich utworów.}}",
   "bibliotheque.selection.editGenreScope": "Gatunek jest też kopiowany do utworów albumu, z wyjątkiem składanki, której utwory mają różne gatunki.",
+  "nowplaying.lyricsSynced": "Zsynchronizowane z odtwarzaniem",
+  "nowplaying.upNextRemaining": "{n, plural, one {pozostał # utwór} few {pozostały # utwory} many {pozostało # utworów} other {pozostało utworów: #}}",
+  "nowplaying.viewQueue": "Pokaż kolejkę",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

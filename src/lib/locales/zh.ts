@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "已停止：已将 {k} / {n} 添加到队列",
   "bibliotheque.selection.playlistPartial": "{total} 张专辑中{n, plural, other {有 # 张无法读取：缺少其曲目。}}",
   "bibliotheque.selection.editGenreScope": "流派也会复制到专辑的曲目上，曲目流派各不相同的合辑除外。",
+  "nowplaying.lyricsSynced": "与播放同步",
+  "nowplaying.upNextRemaining": "{n, plural, other {还剩 # 首}}",
+  "nowplaying.viewQueue": "查看队列",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

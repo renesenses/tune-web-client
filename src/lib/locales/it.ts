@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Interrotto: {k} su {n} aggiunti alla coda",
   "bibliotheque.selection.playlistPartial": "Su {total} album, {n, plural, one {# non è stato letto: mancano le sue tracce.} other {# non sono stati letti: mancano le loro tracce.}}",
   "bibliotheque.selection.editGenreScope": "Il genere viene copiato anche sulle tracce dell’album, tranne per una compilation le cui tracce hanno generi diversi.",
+  "nowplaying.lyricsSynced": "Sincronizzati con la riproduzione",
+  "nowplaying.upNextRemaining": "{n, plural, one {# brano rimanente} other {# brani rimanenti}}",
+  "nowplaying.viewQueue": "Vedi la coda",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

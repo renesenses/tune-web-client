@@ -8366,5 +8366,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Διακόπηκε: {k} από {n} προστέθηκαν στην ουρά",
   "bibliotheque.selection.playlistPartial": "Από {total} άλμπουμ, {n, plural, one {# δεν διαβάστηκε: λείπουν τα κομμάτια του.} other {# δεν διαβάστηκαν: λείπουν τα κομμάτια τους.}}",
   "bibliotheque.selection.editGenreScope": "Το είδος αντιγράφεται και στα κομμάτια του άλμπουμ, εκτός από συλλογή με κομμάτια διαφορετικών ειδών.",
+  "nowplaying.lyricsSynced": "Συγχρονισμένοι με την αναπαραγωγή",
+  "nowplaying.upNextRemaining": "{n, plural, one {απομένει # κομμάτι} other {απομένουν # κομμάτια}}",
+  "nowplaying.viewQueue": "Προβολή ουράς",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

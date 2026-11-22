@@ -8373,5 +8373,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Đã dừng: đã thêm {k} / {n} vào hàng đợi",
   "bibliotheque.selection.playlistPartial": "Trong {total} album, {n, plural, other {# album không đọc được: thiếu các bài của chúng.}}",
   "bibliotheque.selection.editGenreScope": "Thể loại cũng được chép sang các bài của album, trừ tuyển tập có các bài khác thể loại.",
+  "nowplaying.lyricsSynced": "Đồng bộ với phát nhạc",
+  "nowplaying.upNextRemaining": "{n, plural, other {còn # bài hát}}",
+  "nowplaying.viewQueue": "Xem hàng đợi",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

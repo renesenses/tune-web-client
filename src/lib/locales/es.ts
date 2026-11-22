@@ -8521,6 +8521,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Detenido: {k} de {n} añadidos a la cola",
   "bibliotheque.selection.playlistPartial": "De {total} álbumes, {n, plural, one {# no se pudo leer: faltan sus pistas.} other {# no se pudieron leer: faltan sus pistas.}}",
   "bibliotheque.selection.editGenreScope": "El género también se copia a las pistas del álbum, salvo en un recopilatorio cuyas pistas tienen géneros distintos.",
+  "nowplaying.lyricsSynced": "Sincronizada con la reproducción",
+  "nowplaying.upNextRemaining": "{n, plural, one {queda # pista} other {quedan # pistas}}",
+  "nowplaying.viewQueue": "Ver la cola",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
