@@ -3800,6 +3800,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Enregistrer cette grille comme réglage par défaut de toute la zone ? La règle de zone actuelle sera remplacée ; celle de l'album ne change pas.",
   "v2.cr.reset": "Retirer la réaffectation",
   "v2.cr.nextTrack": "Enregistré : la réaffectation s'entendra à la prochaine lecture.",
+  "v2.cr.networkOutput": "La sortie de cette zone est un lecteur réseau (DLNA, Squeezebox, AirPlay…) : elle n'applique pas la réaffectation. Le réglage est enregistré mais ne s'entend pas ici ; réglez la balance sur le lecteur ou le DAC.",
+  "v2.cr.savedNotApplied": "Enregistré, mais la sortie réseau de cette zone n'applique pas la réaffectation.",
   "v2.cr.albumTitle": "Règle de l'album en cours",
   "v2.cr.albumHint": "Enregistre la matrice ci-dessus pour cet album : elle prime sur celle de la zone, sur toutes les zones.",
   "v2.cr.albumActive": "Une règle est enregistrée pour cet album.",

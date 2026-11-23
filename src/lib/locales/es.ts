@@ -3785,6 +3785,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "¿Guardar esta cuadrícula como ajuste predeterminado de toda la zona? La regla de zona actual se sustituirá; la del álbum no cambia.",
   "v2.cr.reset": "Quitar la reasignación",
   "v2.cr.nextTrack": "Guardado: la reasignación se oirá desde la próxima reproducción.",
+  "v2.cr.networkOutput": "Esta zona suena a través de un reproductor de red (DLNA, Squeezebox, AirPlay…), que no aplica la reasignación. El ajuste se guarda pero no se oye aquí; ajuste el balance en el reproductor o en el DAC.",
+  "v2.cr.savedNotApplied": "Guardado, pero la salida de red de esta zona no aplica la reasignación.",
   "v2.cr.albumTitle": "Regla del álbum en curso",
   "v2.cr.albumHint": "Guarda la matriz de arriba para este álbum: prevalece sobre la de la zona, en todas las zonas.",
   "v2.cr.albumActive": "Hay una regla guardada para este álbum.",

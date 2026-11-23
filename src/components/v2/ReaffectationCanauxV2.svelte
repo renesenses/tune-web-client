@@ -46,6 +46,14 @@
    *  `effective` décrit l'ancienne et ne s'affiche pas. */
   const etatAffiche = $derived(source === 'album' ? albumEtat : etat);
   const aJour = $derived(etatAffiche != null && JSON.stringify(reglage) === JSON.stringify(etatAffiche.settings));
+  /**
+   * tune-server-rust#8740 (balance sous GentooPlayer, écoute par DrUPnP) :
+   * seule une sortie locale applique la matrice. Sur un lecteur réseau, le
+   * serveur répond `applies_to_output: false` ; l'écran le dit au lieu
+   * d'annoncer « s'entendra à la prochaine lecture ». Absent (serveur
+   * antérieur) : rien n'est affirmé.
+   */
+  const sortieReseau = $derived(etat?.applies_to_output === false);
   /** La grille diffère de la règle enregistrée qu'elle montre (web#2146). */
   const nonEnregistre = $derived(etatAffiche != null && !aJour);
 
@@ -135,7 +143,8 @@
       source = 'zone';
       reglage = etat.settings;
       erreur = null;
-      if (!etat.applied_live) notifications.info($t('v2.cr.nextTrack' as any));
+      if (etat.applies_to_output === false) notifications.info($t('v2.cr.savedNotApplied' as any), 8000);
+      else if (!etat.applied_live) notifications.info($t('v2.cr.nextTrack' as any));
     } catch (e: any) {
       erreur = e?.message ?? String(e);
     } finally { occupe = false; }
@@ -184,6 +193,7 @@
       <div class="state">{$t('v2.cr.noZone' as any)}</div>
     {:else}
       <div class="warn" data-bit-perfect>{$t('v2.cr.bitPerfect' as any)}</div>
+      {#if sortieReseau}<div class="warn" data-sortie-reseau>{$t('v2.cr.networkOutput' as any)}</div>{/if}
 
       <div class="card">
         <div class="row" data-source={source}>

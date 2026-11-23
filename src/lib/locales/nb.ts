@@ -3664,6 +3664,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Lagre dette rutenettet som standardinnstilling for hele sonen? Den nåværende sonereglen erstattes; albumets regel endres ikke.",
   "v2.cr.reset": "Fjern omlegging",
   "v2.cr.nextTrack": "Lagret: omleggingen høres fra neste avspilling.",
+  "v2.cr.networkOutput": "Denne sonen spiller gjennom en nettverksspiller (DLNA, Squeezebox, AirPlay…), som ikke bruker kanaltilordningen. Innstillingen er lagret, men høres ikke her; juster balansen på spilleren eller DAC-en.",
+  "v2.cr.savedNotApplied": "Lagret, men nettverksutgangen til denne sonen bruker ikke kanaltilordningen.",
   "v2.cr.albumTitle": "Regel for gjeldende album",
   "v2.cr.albumHint": "Lagrer matrisen ovenfor for dette albumet: den går foran sonens, på alle soner.",
   "v2.cr.albumActive": "Det er lagret en regel for dette albumet.",

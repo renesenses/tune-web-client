@@ -3664,6 +3664,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Zapisać tę siatkę jako domyślne ustawienie całej strefy? Obecna reguła strefy zostanie zastąpiona; reguła albumu pozostanie bez zmian.",
   "v2.cr.reset": "Usuń przekierowanie",
   "v2.cr.nextTrack": "Zapisano: przekierowanie będzie słyszalne od następnego odtwarzania.",
+  "v2.cr.networkOutput": "Ta strefa gra przez odtwarzacz sieciowy (DLNA, Squeezebox, AirPlay…), który nie stosuje mapowania kanałów. Ustawienie jest zapisane, ale nie słychać go tutaj; ustaw balans w odtwarzaczu lub w przetworniku DAC.",
+  "v2.cr.savedNotApplied": "Zapisano, ale wyjście sieciowe tej strefy nie stosuje mapowania kanałów.",
   "v2.cr.albumTitle": "Reguła bieżącego albumu",
   "v2.cr.albumHint": "Zapisuje powyższą macierz dla tego albumu: ma ona pierwszeństwo przed macierzą strefy, w każdej strefie.",
   "v2.cr.albumActive": "Dla tego albumu zapisano regułę.",

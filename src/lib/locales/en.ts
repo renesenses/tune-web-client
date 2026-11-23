@@ -3798,6 +3798,8 @@ export default {
   "v2.cr.saveZoneFromAlbumConfirm": "Save this grid as the default setting of the whole zone? The current zone rule will be replaced; the album's rule does not change.",
   "v2.cr.reset": "Remove remapping",
   "v2.cr.nextTrack": "Saved: the remapping will be heard from the next playback.",
+  "v2.cr.networkOutput": "This zone plays through a network player (DLNA, Squeezebox, AirPlay…), which does not apply the remapping. The setting is saved but is not heard here; set the balance on the player or the DAC.",
+  "v2.cr.savedNotApplied": "Saved, but this zone's network output does not apply the remapping.",
   "v2.cr.albumTitle": "Rule for the current album",
   "v2.cr.albumHint": "Saves the matrix above for this album: it overrides the zone's, on every zone.",
   "v2.cr.albumActive": "A rule is saved for this album.",
