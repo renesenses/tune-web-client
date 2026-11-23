@@ -319,7 +319,11 @@ describe('Lecture en cours — le bouton TV', () => {
     const i = src.indexOf('class="np-tv-btn"');
     expect(i, 'le bouton TV a disparu').toBeGreaterThan(-1);
     const bloc = src.slice(i, i + 1400);
-    expect(bloc.includes('<rect x="2" y="4" width="20" height="13"'), 'l’écran a disparu de l’icône').toBe(true);
+    // Design v3 (§3) : le téléviseur est désormais l'icône Lucide `tv`.
+    expect(
+      bloc.includes('<Tv ') && src.includes("import Tv from '@lucide/svelte/icons/tv'"),
+      'l’écran a disparu de l’icône',
+    ).toBe(true);
     expect(
       bloc.includes('polyline points="15 3 21 3 21 9"'),
       'les flèches de plein écran sont revenues : elles se lisent « agrandir la fenêtre ».',

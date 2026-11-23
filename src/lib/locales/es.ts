@@ -2585,7 +2585,6 @@ export default {
   "settings.ingestMode": "Acción sobre los archivos de origen",
   "settings.ingestConflict": "En caso de conflicto",
   // Modo pantalla grande (TV) + letras
-  "nowplaying.tvMode": "Modo pantalla grande",
   "tv.lyrics": "Letras",
   "tv.vuInstrument": "Instrumento de nivel",
   "tv.vuInstrument.off": "Ninguno",
@@ -5261,7 +5260,7 @@ export default {
   "settings.sidebarMoved": "{x}: posición {p} de {n}",
   "settings.sidebarDrag": "Arrastrar para mover {x}",
   "settings.nowPlayingLinkToSource": "«Reproduciendo ahora» abre el álbum o la lista",
-  "settings.nowPlayingLinkToSourceHint": "La entrada «Reproduciendo ahora» de la barra lateral y la miniatura de la barra de reproducción abren la página del álbum que suena, o la de la lista de reproducción si la reproducción viene de ella. Para una radio, o si no existe ninguna página, abre la pantalla Reproduciendo ahora, como hasta ahora. El botón «Modo pantalla grande» sigue disponible: mientras suena una pista, aparece arriba a la derecha en todas las pantallas.",
+  "settings.nowPlayingLinkToSourceHint": "La entrada «Reproduciendo ahora» de la barra lateral y la miniatura de la barra de reproducción abren la página del álbum que suena, o la de la lista de reproducción si la reproducción viene de ella. Para una radio, o si no existe ninguna página, abre la pantalla Reproduciendo ahora, como hasta ahora. El botón «Modo pantalla completa» sigue disponible: mientras suena una pista, aparece arriba a la derecha en todas las pantallas.",
   "settings.animationRateSmooth": "Fluido: la vista actual",
   "settings.animationRateSaving": "Económico: alrededor de un 30 % menos de procesador",
   "settings.animationRateMinimal": "Mínimo: alrededor de un 40 % menos, los medidores se ven algo entrecortados",
@@ -8545,9 +8544,14 @@ export default {
   "bibliotheque.selection.queueStopped": "Detenido: {k} de {n} añadidos a la cola",
   "bibliotheque.selection.playlistPartial": "De {total} álbumes, {n, plural, one {# no se pudo leer: faltan sus pistas.} other {# no se pudieron leer: faltan sus pistas.}}",
   "bibliotheque.selection.editGenreScope": "El género también se copia a las pistas del álbum, salvo en un recopilatorio cuyas pistas tienen géneros distintos.",
+  "nowplaying.lyricsSynced": "Sincronizada con la reproducción",
+  "nowplaying.upNextRemaining": "{n, plural, one {queda # pista} other {quedan # pistas}}",
+  "nowplaying.viewQueue": "Ver la cola",
   "cloud.reconnexionRequise": "La conexión con mozaiklabs.fr ha caducado: Tune Circle y la copia en línea están en pausa. Vuelve a conectarte sin usar «Cerrar sesión», que borraría la copia en línea y lo que compartes.",
   "cloud.reconnexionRequiseDepuis": "La conexión con mozaiklabs.fr caducó el {date}: Tune Circle y la copia en línea están en pausa. Vuelve a conectarte sin usar «Cerrar sesión», que borraría la copia en línea y lo que compartes.",
   "cloud.seReconnecter": "Volver a conectarse",
+  "nowplaying.fullscreenMode": "Modo pantalla completa",
+  "nowplaying.lyricsWrittenBy": "Escrita por {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

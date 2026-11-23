@@ -2585,7 +2585,6 @@ export default {
   "settings.ingestMode": "对源文件的操作",
   "settings.ingestConflict": "冲突时",
   // 大屏模式（TV）+ 歌词
-  "nowplaying.tvMode": "大屏模式",
   "tv.lyrics": "歌词",
   "tv.vuInstrument": "电平表",
   "tv.vuInstrument.off": "无",
@@ -5261,7 +5260,7 @@ export default {
   "settings.sidebarMoved": "{x}：第 {p} 位，共 {n} 位",
   "settings.sidebarDrag": "拖动以移动 {x}",
   "settings.nowPlayingLinkToSource": "“正在播放”打开专辑或播放列表",
-  "settings.nowPlayingLinkToSourceHint": "侧边栏中的“正在播放”和播放栏中的缩略图会打开正在播放的专辑页面；如果是从播放列表开始播放，则打开该播放列表。对于电台，或没有对应页面时，会像现在一样打开“正在播放”界面。“大屏模式”按钮仍然可用：播放曲目时，它会显示在每个界面的右上角。",
+  "settings.nowPlayingLinkToSourceHint": "侧边栏中的“正在播放”和播放栏中的缩略图会打开正在播放的专辑页面；如果是从播放列表开始播放，则打开该播放列表。对于电台，或没有对应页面时，会像现在一样打开“正在播放”界面。“全屏模式”按钮仍然可用：播放曲目时，它会显示在每个界面的右上角。",
   "settings.animationRateSmooth": "流畅 — 当前的显示效果",
   "settings.animationRateSaving": "节能 — 处理器占用约减少 30%",
   "settings.animationRateMinimal": "最低 — 约减少 40%，电平表会略有顿挫",
@@ -8545,9 +8544,14 @@ export default {
   "bibliotheque.selection.queueStopped": "已停止：已将 {k} / {n} 添加到队列",
   "bibliotheque.selection.playlistPartial": "{total} 张专辑中{n, plural, other {有 # 张无法读取：缺少其曲目。}}",
   "bibliotheque.selection.editGenreScope": "流派也会复制到专辑的曲目上，曲目流派各不相同的合辑除外。",
+  "nowplaying.lyricsSynced": "与播放同步",
+  "nowplaying.upNextRemaining": "{n, plural, other {还剩 # 首}}",
+  "nowplaying.viewQueue": "查看队列",
   "cloud.reconnexionRequise": "与 mozaiklabs.fr 的连接已过期：Tune Circle 和在线副本已暂停。请重新连接，不要使用“退出登录”，否则会删除在线副本和您的共享。",
   "cloud.reconnexionRequiseDepuis": "与 mozaiklabs.fr 的连接已于 {date} 过期：Tune Circle 和在线副本已暂停。请重新连接，不要使用“退出登录”，否则会删除在线副本和您的共享。",
   "cloud.seReconnecter": "重新连接",
+  "nowplaying.fullscreenMode": "全屏模式",
+  "nowplaying.lyricsWrittenBy": "词曲：{noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

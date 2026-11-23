@@ -755,11 +755,14 @@
       chemin ne mène à l'écran Lecture en cours : le bouton suit alors ce qui
       joue, sur tous les écrans. La règle vit dans `boutonGrandEcranVisible`.
     -->
+    <!-- Design v3 de Levente (§10.2), 23/11/2026 : le bouton est RENOMMÉ
+         « Mode plein écran » (`nowplaying.fullscreenMode`) — il demande bien
+         le plein écran (`demanderPleinEcran`) avant d'ouvrir la vue. -->
     {#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}
       <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
-        aria-label={$t('nowplaying.tvMode' as any)} title={$t('nowplaying.tvMode' as any)}>
+        aria-label={$t('nowplaying.fullscreenMode' as any)} title={$t('nowplaying.fullscreenMode' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.tvMode' as any)}</span>{/if}
+        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>{/if}
       </button>
     {/if}
     <!--

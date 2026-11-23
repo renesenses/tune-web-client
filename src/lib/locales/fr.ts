@@ -3436,7 +3436,6 @@ export default {
   "settings.ingestMode": "Action sur les fichiers source",
   "settings.ingestConflict": "En cas de conflit",
   // Mode Grand écran (TV) + paroles
-  "nowplaying.tvMode": "Mode Grand écran",
   "tv.lyrics": "Paroles",
   "tv.vuInstrument": "Instrument de niveau",
   "tv.vuInstrument.off": "Aucun",
@@ -5283,7 +5282,7 @@ export default {
   "settings.sidebarMoved": "{x} : position {p} sur {n}",
   "settings.sidebarDrag": "Glisser pour déplacer {x}",
   "settings.nowPlayingLinkToSource": "« Lecture en cours » ouvre l'album ou la playlist",
-  "settings.nowPlayingLinkToSourceHint": "L'entrée « Lecture en cours » de la barre latérale et la vignette de la barre de lecture ouvrent la page de l'album qui joue, ou celle de la playlist si la lecture en vient. Pour une radio, ou si aucune page n'existe, elle ouvre l'écran Lecture en cours, comme aujourd'hui. Le bouton « Mode Grand écran » reste accessible : tant qu'une piste joue, il s'affiche en haut à droite sur tous les écrans.",
+  "settings.nowPlayingLinkToSourceHint": "L'entrée « Lecture en cours » de la barre latérale et la vignette de la barre de lecture ouvrent la page de l'album qui joue, ou celle de la playlist si la lecture en vient. Pour une radio, ou si aucune page n'existe, elle ouvre l'écran Lecture en cours, comme aujourd'hui. Le bouton « Mode plein écran » reste accessible : tant qu'une piste joue, il s'affiche en haut à droite sur tous les écrans.",
   "settings.animationRateSmooth": "Fluide — l'affichage d'aujourd'hui",
   "settings.animationRateSaving": "Économe — environ 30 % de processeur en moins",
   "settings.animationRateMinimal": "Minimal — environ 40 % en moins, les barres saccadent un peu",
@@ -8567,9 +8566,14 @@ export default {
   "bibliotheque.selection.queueStopped": "Ajout arrêté : {k} sur {n} ajoutés à la file",
   "bibliotheque.selection.playlistPartial": "Sur {total} albums, {n, plural, one {# n’a pas pu être lu : ses pistes manquent.} other {# n’ont pas pu être lus : leurs pistes manquent.}}",
   "bibliotheque.selection.editGenreScope": "Le genre est aussi recopié sur les pistes de l’album, sauf pour une compilation dont les pistes ont des genres différents.",
+  "nowplaying.lyricsSynced": "Synchronisées avec la lecture",
+  "nowplaying.upNextRemaining": "{n, plural, one {# titre restant} other {# titres restants}}",
+  "nowplaying.viewQueue": "Voir la file",
   "cloud.reconnexionRequise": "Connexion à mozaiklabs.fr expirée : Tune Circle et la copie en ligne sont en pause. Reconnectez-vous, sans passer par « Se déconnecter », qui effacerait la copie en ligne et vos partages.",
   "cloud.reconnexionRequiseDepuis": "Connexion à mozaiklabs.fr expirée depuis le {date} : Tune Circle et la copie en ligne sont en pause. Reconnectez-vous, sans passer par « Se déconnecter », qui effacerait la copie en ligne et vos partages.",
   "cloud.seReconnecter": "Se reconnecter",
+  "nowplaying.fullscreenMode": "Mode plein écran",
+  "nowplaying.lyricsWrittenBy": "Écrit par {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

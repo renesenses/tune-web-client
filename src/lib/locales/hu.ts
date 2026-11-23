@@ -2713,7 +2713,6 @@ export default {
   "settings.ingestMode": "Művelet a forrásfájlokon",
   "settings.ingestConflict": "Ütközés esetén",
   // Nagyképernyős (TV) mód + dalszöveg
-  "nowplaying.tvMode": "Nagyképernyős mód",
   "tv.lyrics": "Dalszöveg",
   "tv.vuInstrument": "Szintmérő",
   "tv.vuInstrument.off": "Nincs",
@@ -5215,7 +5214,7 @@ export default {
   "settings.sidebarMoved": "{x}: {p}. hely / {n}",
   "settings.sidebarDrag": "Húzza el {x} áthelyezéséhez",
   "settings.nowPlayingLinkToSource": "A „Most szól” az albumot vagy a lejátszási listát nyitja meg",
-  "settings.nowPlayingLinkToSourceHint": "Az oldalsáv „Most szól” bejegyzése és a lejátszósáv bélyegképe a szóló album oldalát nyitja meg, vagy a lejátszási listáét, ha a lejátszás onnan indult. Rádió esetén, vagy ha nincs ilyen oldal, a „Most szól” képernyőt nyitja meg, mint eddig. A „Nagyképernyős mód” gomb továbbra is elérhető: amíg egy szám szól, minden képernyőn megjelenik a jobb felső sarokban.",
+  "settings.nowPlayingLinkToSourceHint": "Az oldalsáv „Most szól” bejegyzése és a lejátszósáv bélyegképe a szóló album oldalát nyitja meg, vagy a lejátszási listáét, ha a lejátszás onnan indult. Rádió esetén, vagy ha nincs ilyen oldal, a „Most szól” képernyőt nyitja meg, mint eddig. A „Teljes képernyős mód” gomb továbbra is elérhető: amíg egy szám szól, minden képernyőn megjelenik a jobb felső sarokban.",
   "settings.animationRateSmooth": "Finom — a mai megjelenítés",
   "settings.animationRateSaving": "Takarékos — mintegy 30 %-kal kevesebb processzor",
   "settings.animationRateMinimal": "Minimális — mintegy 40 %-kal kevesebb, a jelzők kissé szaggatnak",
@@ -8504,9 +8503,14 @@ export default {
   "bibliotheque.selection.queueStopped": "Leállítva: {k} / {n} hozzáadva a sorhoz",
   "bibliotheque.selection.playlistPartial": "{total} albumból {n, plural, one {# nem olvasható: hiányoznak a számai.} other {# nem olvasható: hiányoznak a számaik.}}",
   "bibliotheque.selection.editGenreScope": "A műfaj az album számaira is átkerül, kivéve az olyan válogatást, amelynek számai különböző műfajúak.",
+  "nowplaying.lyricsSynced": "Szinkronban a lejátszással",
+  "nowplaying.upNextRemaining": "{n, plural, one {# szám van hátra} other {# szám van hátra}}",
+  "nowplaying.viewQueue": "Lejátszási sor megtekintése",
   "cloud.reconnexionRequise": "A mozaiklabs.fr kapcsolat lejárt: a Tune Circle és az online másolat szünetel. Jelentkezz be újra, de ne a „Kijelentkezés” gombbal, mert az törölné az online másolatot és a megosztásaidat.",
   "cloud.reconnexionRequiseDepuis": "A mozaiklabs.fr kapcsolat lejárt ({date}): a Tune Circle és az online másolat szünetel. Jelentkezz be újra, de ne a „Kijelentkezés” gombbal, mert az törölné az online másolatot és a megosztásaidat.",
   "cloud.seReconnecter": "Újbóli bejelentkezés",
+  "nowplaying.fullscreenMode": "Teljes képernyős mód",
+  "nowplaying.lyricsWrittenBy": "Szerző: {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
