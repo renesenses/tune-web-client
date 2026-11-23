@@ -2141,7 +2141,10 @@ export const WIDGETS: Widget[] = [
       return utiles(
         playlists.slice(0, limiteDe(ctx)).map((p, i) => ({
           id: `pvaa${i}-${p.id}`,
-          titre: tr('v2.home.becauseYouLikeCard').replace('{artiste}', p.artist),
+          // Fil forum 3009 (FabienM, point 5.1 ; go du 23/11/2026) — la
+          // playlist porte le NOM DE L'ARTISTE aimé, et lui seul : le titre
+          // du widget dit déjà « Parce que vous aimez… ».
+          titre: p.artist,
           sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,
           nbTitres: p.track_count,
           cover: p.covers?.[0] ?? null,
@@ -2314,12 +2317,23 @@ export const WIDGETS: Widget[] = [
     },
   },
   /**
-   * « ÉCOUTES FRÉQUENTES » — web#3119 (FabienM, fil 2864, point 7).
+   * « TITRES LES PLUS ÉCOUTÉS » — né « Écoutes fréquentes », web#3119
+   * (FabienM, fil 2864, point 7).
    *
-   * Les ALBUMS les plus écoutés, sur trente jours : ce qui tourne en ce
-   * moment, plus large que la semaine de « Vos tops ». Aucune route neuve —
-   * `top_albums` du tableau de bord, la réponse partagée de `tableauDeBord()`
-   * (mesuré le 25/09 : `top_n=50` en 0,2 s sur 30 jours comme sur 7).
+   * 🔄 Fil forum 3009 (FabienM, point 14 ; go de Bertrand du 23/11/2026) :
+   * « ce ne sont pas les albums mais les titres les plus fréquemment écoutés
+   * qu'il faut afficher et renommer le widget en "Titres les plus écoutés" ».
+   * Le widget lit donc `top_tracks` (il lisait `top_albums`) ; l'identifiant
+   * et la clé du libellé restent, pour les dispositions déjà enregistrées —
+   * seul le TEXTE de `v2.home.wFrequent` change.
+   *
+   * Toujours sur trente jours : ce qui tourne en ce moment, plus large que la
+   * semaine de « Vos tops ». Aucune route neuve — `top_tracks` du tableau de
+   * bord, la réponse partagée de `tableauDeBord()`. Un titre se joue (le
+   * sien : `gestePisteTop`) et, quand le serveur donne son album local,
+   * l'ouvre (`ficheDePisteTop`) — les mêmes gestes que la colonne « Titres »
+   * de « Vos tops ». Pas d'étiquette de nature : « pour les titres laissez
+   * tel quel » (web#3119).
    *
    * 🔴 Le compte est celui du FOYER, comme tous les classements : le serveur
    * ne remplit `listen_history.profile_id` que si la lecture portait un
@@ -2332,13 +2346,13 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        (await tableauDeBord(PERIODE_FREQUENTES, ctx.signal)).top_albums.slice(0, limiteDe(ctx)).map((a, i) => ({
-          id: `freq-${i}-${a.album_title}`,
-          titre: a.album_title || '—',
-          sous: a.artist_name || undefined,
-          cover: a.cover_path ?? null,
-          nature: 'album' as const,
-          ...gestesAlbumTop(a),
+        (await tableauDeBord(PERIODE_FREQUENTES, ctx.signal)).top_tracks.slice(0, limiteDe(ctx)).map((t, i) => ({
+          id: `freq-${i}-${t.title}`,
+          titre: t.title || '—',
+          sous: t.artist_name || undefined,
+          cover: t.cover_path ?? null,
+          jouer: gestePisteTop(t),
+          ...ficheDePisteTop(t),
         })),
       ),
   },
