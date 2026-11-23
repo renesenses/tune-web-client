@@ -8028,6 +8028,14 @@ export default {
   "v2.lib.periodNoYear": "Albume fără an excluse: {n}",
   "v2.lib.periodStart": "Începutul perioadei",
   "v2.lib.periodEnd": "Sfârșitul perioadei",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Alegeți un an sau o perioadă",
+  "v2.lib.periodAll": "Toți anii",
+  "v2.lib.periodWholeDecade": "Tot deceniul {start}–{end}",
+  "v2.lib.periodCustom": "Altă perioadă…",
+  "v2.lib.timeline": "Cronologie",
+  "v2.lib.timelineShow": "Afișează cronologia anilor",
+  "v2.lib.timelineHide": "Ascunde cronologia anilor",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Corecție aplicată egalizatorului din {zone}: {n} filtru/e.",
   "v2.room.appliedNextTrack": "Se va auzi de la următoarea piesă.",

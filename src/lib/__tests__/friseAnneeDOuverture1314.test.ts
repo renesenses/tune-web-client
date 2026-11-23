@@ -41,6 +41,8 @@ async function souffler() { for (let i = 0; i < 12; i++) await respirer(); flush
 
 async function ouvrir(): Promise<HTMLDivElement> {
   localStorage.setItem('tune_v2_ecran_lib.nav', 'years');
+  // Fil 3009, point 19 : la frise se déplie à la demande ; ce banc la lit dépliée.
+  localStorage.setItem('tune_v2_ecran_lib.frise', '1');
   activeView.set('library');
   albumsStore.set([...ALBUMS]);
   hote = document.createElement('div');

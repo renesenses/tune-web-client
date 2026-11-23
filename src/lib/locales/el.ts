@@ -7873,6 +7873,14 @@ export default {
   "v2.lib.periodNoYear": "Εξαιρούνται άλμπουμ χωρίς έτος: {n}",
   "v2.lib.periodStart": "Αρχή της περιόδου",
   "v2.lib.periodEnd": "Τέλος της περιόδου",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Επιλέξτε έτος ή περίοδο",
+  "v2.lib.periodAll": "Όλα τα έτη",
+  "v2.lib.periodWholeDecade": "Όλη η δεκαετία {start}–{end}",
+  "v2.lib.periodCustom": "Άλλη περίοδος…",
+  "v2.lib.timeline": "Χρονολόγιο",
+  "v2.lib.timelineShow": "Εμφάνιση του χρονολογίου ετών",
+  "v2.lib.timelineHide": "Απόκρυψη του χρονολογίου ετών",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Η διόρθωση εφαρμόστηκε στον ισοσταθμιστή της ζώνης {zone}: {n} φίλτρα.",
   "v2.room.appliedNextTrack": "Θα ακούγεται από το επόμενο κομμάτι.",

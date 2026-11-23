@@ -7880,6 +7880,14 @@ export default {
   "v2.lib.periodNoYear": "Đã loại album không có năm: {n}",
   "v2.lib.periodStart": "Bắt đầu khoảng thời gian",
   "v2.lib.periodEnd": "Kết thúc khoảng thời gian",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Chọn một năm hoặc một khoảng thời gian",
+  "v2.lib.periodAll": "Tất cả các năm",
+  "v2.lib.periodWholeDecade": "Cả thập niên {start}–{end}",
+  "v2.lib.periodCustom": "Khoảng thời gian khác…",
+  "v2.lib.timeline": "Dòng thời gian",
+  "v2.lib.timelineShow": "Hiện dòng thời gian theo năm",
+  "v2.lib.timelineHide": "Ẩn dòng thời gian theo năm",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Đã áp dụng hiệu chỉnh cho bộ cân bằng của {zone}: {n} bộ lọc.",
   "v2.room.appliedNextTrack": "Sẽ nghe thấy từ bài tiếp theo.",

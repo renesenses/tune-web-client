@@ -8027,6 +8027,14 @@ export default {
   "v2.lib.periodNoYear": "Album utan år uteslutna: {n}",
   "v2.lib.periodStart": "Periodens början",
   "v2.lib.periodEnd": "Periodens slut",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Välj ett år eller en period",
+  "v2.lib.periodAll": "Alla år",
+  "v2.lib.periodWholeDecade": "Hela decenniet {start}–{end}",
+  "v2.lib.periodCustom": "Annan period…",
+  "v2.lib.timeline": "Tidslinje",
+  "v2.lib.timelineShow": "Visa årstidslinjen",
+  "v2.lib.timelineHide": "Dölj årstidslinjen",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korrigering tillämpad på equalizern i {zone}: {n} filter.",
   "v2.room.appliedNextTrack": "Den hörs från nästa spår.",
