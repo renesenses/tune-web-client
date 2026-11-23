@@ -35,7 +35,7 @@ export type GenrePanneau =
   | 'crossfeed'
   | 'reaffectation'
   | 'convolution'
-  | 'sans-reglage'
+  | 'vide'
   | 'ancien-ecran';
 
 export function genrePanneau(id: string): GenrePanneau {
@@ -50,7 +50,7 @@ export function genrePanneau(id: string): GenrePanneau {
     case 'channel-remap': return 'reaffectation';
     case 'convolution': return 'convolution';
     case 'mono-downmix':
-    case 'declick-live': return 'sans-reglage';
+    case 'declick-live': return 'vide';
     // Paquets (natifs tiers) : leurs réglages restent dans leur écran.
     default: return 'ancien-ecran';
   }

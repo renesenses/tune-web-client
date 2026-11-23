@@ -192,7 +192,7 @@
                    }} />
           </label>
           <label class="champ">
-            <span class="lbl">{$t('tess.cf.slope' as any)} <b>{cf.slope_db_per_octave} dB/oct</b></span>
+            <span class="lbl">{$t('tess.cf.slope' as any)} <b>{cf.slope_db_per_octave} dB</b></span>
             <input type="range" min={CF_PENTE_MIN} max={CF_PENTE_MAX} step="0.5" value={cf.slope_db_per_octave} data-tess-cf="slope_db_per_octave"
                    onchange={(e) => poserCf('slope_db_per_octave', Number((e.currentTarget as HTMLInputElement).value))} />
           </label>
@@ -246,8 +246,8 @@
         {fichierConvolution ? $t('tess.conv.filter' as any).replace('{file}', fichierConvolution) : $t('tess.conv.none' as any)}
       </p>
 
-    {:else if genre === 'sans-reglage'}
-      <p class="note" data-tess-sans-reglage>{$t('tess.noSettings' as any)}</p>
+    {:else if genre === 'vide'}
+      <p class="note" data-tess-vide>{$t('tess.noSettings' as any)}</p>
 
     {:else}
       <p class="note" data-tess-ancien-ecran>{$t('tess.ownScreen' as any)}</p>

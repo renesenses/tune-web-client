@@ -167,7 +167,9 @@
   // dernière) : on ne propose pas un geste que le serveur refuserait.
   const peutDeplacer = (de: number, vers: number) => deplacerGreffon(chaine, catalogue, de, vers) != null;
   function fleche(index: number, vers: number, id: string) {
-    annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', String(vers + 1)).replace('{n}', String(nbGreffons));
+    const place = String(vers + 1);
+    const total = String(nbGreffons);
+    annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', place).replace('{n}', total);
     onMove(index, vers);
   }
 
