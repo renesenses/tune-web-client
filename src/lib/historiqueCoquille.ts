@@ -796,6 +796,12 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
       // Fil 2694 — l'écran remonté sait qu'il est atteint par l'historique.
       poserVue(etat.vue as View, 'historique');
       detailOuvert.set(etat.detail);
+      // Fil 3011 — la fiche de la vue QUITTÉE est vidée : son entrée en garde
+      // la copie (le Suivant la reposera), et une fiche restée garnie ferait
+      // passer pour tenable une vue qu'on vient de quitter.
+      if (vueQuittee && vueQuittee !== etat.vue && estVueAFiche(vueQuittee)) {
+        (FICHES_DE_VUE[vueQuittee] as any).set(null);
+      }
     } finally {
       enRestauration = false;
     }

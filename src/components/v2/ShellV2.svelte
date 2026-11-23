@@ -591,7 +591,9 @@
     // d'avant (vue, détail, fiche). La fiche n'est PAS vidée ici : la vider
     // avant le `popstate` montrait le repli « À venir » dans l'intervalle.
     if (history.state?.tune === 'v2' && history.state.vue === 'streamingalbum' && peutReculerDansTune()) {
-      reculerAvecIntention(() => {});
+      // Le dépôt de retour est consommé ; le `popstate` rend celui de l'écran
+      // d'en dessous (`retourSousLaFiche`).
+      reculerAvecIntention(() => vueDeRetour.set(null));
       return;
     }
     // #2459 : l'entrée précédente porte aussi le détail playlist, pas seulement sa vue.

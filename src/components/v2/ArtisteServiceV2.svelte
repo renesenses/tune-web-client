@@ -941,7 +941,9 @@
     // `popstate` le repose tel quel. Rouvrir à la main EMPILAIT une entrée de
     // plus, et le Retour suivant ne savait plus où il était.
     if (history.state?.tune === 'v2' && history.state.vue === 'streamingartist' && peutReculerDansTune()) {
-      reculerAvecIntention(() => {});
+      // Les dépôts sont consommés UNE fois (#3824) ; la fiche, elle, est
+      // vidée par le `popstate`, pour ne pas montrer une page vide entre-temps.
+      reculerAvecIntention(() => { vueDeRetour.set(null); ficheAlbumDeRetour.set(null); });
       return;
     }
     const ou = $vueDeRetour;
