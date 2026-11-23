@@ -1,5 +1,6 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
+  import { labelAffiche } from '../../lib/apportsQobuz';
   import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
   import { entiteAnnee, entiteGenre, entiteLabel, menePart, type ContexteLiensFiche } from '../../lib/liensFicheAlbum';
   import { anneeAlbum } from '../../lib/anneeAlbum';
@@ -1192,7 +1193,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    */
   const complementDetails = $derived({
     genres: genresDesPistes(tracks as any),
-    label: labelDe(albumAffiche) || labelQobuz?.nom || null,
+    // Fil 3009, point 12 — sans label dans ses fichiers, celui que Qobuz a
+    // apporté à l'album (`apports_qobuz` de la fiche) ; voir `labelAffiche`.
+    label: labelAffiche(albumAffiche, fiche as any, labelQobuz?.nom ?? null),
     format: qualite?.format ?? null,
     sample_rate: qualite?.sampleRate ?? null,
     bit_depth: qualite?.bitDepth ?? null,
