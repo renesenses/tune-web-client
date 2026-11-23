@@ -1483,8 +1483,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dinamik aralık (DR), Tune tarafından sesin kendisinden hesaplanır — bu parçada DYNAMIC RANGE etiketi yok, bu yüzden değeri analiz aşaması ölçtü. Değer ne kadar yüksekse mastering o kadar az sıkıştırılmıştır.",
   "library.writeTags": "Etiketleri yaz",
   "library.notesBio": "Notlar / Biyografi",
-  "library.noAlbumNote": "Bu albüm için not yok",
-  "library.bioLoadError": "Albüm notları yüklenemedi.",
   "library.playNext": "Sonra çal",
   "library.moreOptions": "Diğer seçenekler",
   "library.goToArtist": "Sanatçıya git",

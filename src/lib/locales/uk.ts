@@ -1480,8 +1480,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Динамічний діапазон (DR), обчислений Tune за самим аудіосигналом: цей трек не має тегу DYNAMIC RANGE, тому значення виміряно під час аналізу. Що вище значення, то менше стиснений мастеринг.",
   "library.writeTags": "Записати теги",
   "library.notesBio": "Нотатки / Біографія",
-  "library.noAlbumNote": "Для цього альбому немає опису",
-  "library.bioLoadError": "Не вдалося завантажити опис альбому.",
   "library.playNext": "Відтворити наступним",
   "library.moreOptions": "Інші дії",
   "library.goToArtist": "Перейти до виконавця",

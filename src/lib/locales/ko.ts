@@ -1428,8 +1428,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "다이내믹 레인지(DR). Tune이 오디오 신호에서 직접 계산한 값입니다. 이 트랙에는 DYNAMIC RANGE 태그가 없어 분석 과정이 값을 측정했습니다. 값이 클수록 마스터링 압축이 적습니다.",
   "library.writeTags": "태그 쓰기",
   "library.notesBio": "메모 / 약력",
-  "library.noAlbumNote": "이 앨범에 사용할 수 있는 메모 없음",
-  "library.bioLoadError": "앨범 소개를 불러올 수 없습니다.",
   "library.playNext": "다음에 재생",
   "library.moreOptions": "더 보기",
   "library.goToArtist": "아티스트로 이동",

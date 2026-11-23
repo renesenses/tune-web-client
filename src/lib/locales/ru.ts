@@ -1480,8 +1480,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Динамический диапазон (DR), вычисленный Tune по самому сигналу: у этого трека нет тега DYNAMIC RANGE, поэтому значение измерено при анализе. Чем выше значение, тем меньше сжат мастеринг.",
   "library.writeTags": "Записать теги",
   "library.notesBio": "Заметки / Биография",
-  "library.noAlbumNote": "Для этого альбома нет описания",
-  "library.bioLoadError": "Не удалось загрузить описание альбома.",
   "library.playNext": "Воспроизвести следующим",
   "library.moreOptions": "Другие действия",
   "library.goToArtist": "Перейти к исполнителю",

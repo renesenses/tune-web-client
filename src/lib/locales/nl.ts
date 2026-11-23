@@ -1480,8 +1480,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamisch bereik (DR), door Tune berekend uit de audio zelf — dit nummer heeft geen DYNAMIC RANGE-tag, dus de analyse heeft de waarde gemeten. Hoe hoger de waarde, hoe minder gecomprimeerd de mastering.",
   "library.writeTags": "Tags wegschrijven",
   "library.notesBio": "Notities / Bio",
-  "library.noAlbumNote": "Geen toelichting beschikbaar voor dit album",
-  "library.bioLoadError": "Kon de toelichting bij het album niet laden.",
   "library.playNext": "Hierna afspelen",
   "library.moreOptions": "Meer opties",
   "library.goToArtist": "Naar artiest",

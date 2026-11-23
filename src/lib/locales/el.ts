@@ -1460,8 +1460,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Δυναμικό εύρος (DR), υπολογισμένο από το Tune από τον ίδιο τον ήχο — αυτό το κομμάτι δεν έχει ετικέτα DYNAMIC RANGE, γι' αυτό η ανάλυση μέτρησε την τιμή. Όσο υψηλότερη η τιμή, τόσο λιγότερο συμπιεσμένο το mastering.",
   "library.writeTags": "Εγγραφή ετικετών",
   "library.notesBio": "Σημειώσεις / Βιογραφικό",
-  "library.noAlbumNote": "Δεν υπάρχει διαθέσιμη σημείωση για αυτό το άλμπουμ",
-  "library.bioLoadError": "Δεν ήταν δυνατή η φόρτωση των σημειώσεων του άλμπουμ.",
   "library.playNext": "Αναπαραγωγή μετά",
   "library.moreOptions": "Περισσότερες επιλογές",
   "library.goToArtist": "Μετάβαση στον καλλιτέχνη",

@@ -1460,8 +1460,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamisk område (DR), beregnet av Tune fra selve lyden — dette sporet har ingen DYNAMIC RANGE-tagg, så analysen målte verdien. Jo høyere verdi, desto mindre komprimert er masteringen.",
   "library.writeTags": "Skriv tagger",
   "library.notesBio": "Notater / Bio",
-  "library.noAlbumNote": "Ingen notat tilgjengelig for dette albumet",
-  "library.bioLoadError": "Kunne ikke laste albumnotatene.",
   "library.playNext": "Spill neste",
   "library.moreOptions": "Flere valg",
   "library.goToArtist": "Gå til artist",

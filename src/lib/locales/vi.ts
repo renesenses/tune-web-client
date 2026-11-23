@@ -1462,8 +1462,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dải động (DR), do Tune tính trực tiếp từ âm thanh — bài hát này không có thẻ DYNAMIC RANGE, nên lượt phân tích đã đo giá trị này. Giá trị càng cao, bản master càng ít bị nén.",
   "library.writeTags": "Ghi thẻ",
   "library.notesBio": "Ghi chú / Tiểu sử",
-  "library.noAlbumNote": "Không có ghi chú nào cho album này",
-  "library.bioLoadError": "Không thể tải ghi chú của album.",
   "library.playNext": "Phát tiếp theo",
   "library.moreOptions": "Thêm tùy chọn",
   "library.goToArtist": "Đến nghệ sĩ",

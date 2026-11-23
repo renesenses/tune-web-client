@@ -1480,8 +1480,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "動態範圍（DR），由 Tune 根據音訊本身計算 — 這首曲目沒有 DYNAMIC RANGE 標籤，因此由分析程序量測此數值。數值越高，母帶的壓縮程度越低。",
   "library.writeTags": "寫入標籤",
   "library.notesBio": "說明／簡介",
-  "library.noAlbumNote": "這張專輯沒有可用的說明",
-  "library.bioLoadError": "無法載入專輯說明。",
   "library.playNext": "下一首播放",
   "library.moreOptions": "更多選項",
   "library.goToArtist": "前往演出者",

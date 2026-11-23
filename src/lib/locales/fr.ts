@@ -1608,8 +1608,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamique (DR), calculée par Tune sur le signal — cette piste ne porte pas de tag DYNAMIC RANGE, la passe d'analyse a donc mesuré la valeur. Plus la valeur est élevée, moins le mastering est compressé.",
   "library.writeTags": "Graver tags",
   "library.notesBio": "Notes / Bio",
-  "library.noAlbumNote": "Aucune note disponible pour cet album",
-  "library.bioLoadError": "Impossible de charger la présentation de l'album.",
   "library.playNext": "Lire ensuite",
   "library.moreOptions": "Plus d'options",
   "library.goToArtist": "Aller à l'artiste",
