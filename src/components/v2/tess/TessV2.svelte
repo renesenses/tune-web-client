@@ -221,6 +221,7 @@
           <ReglagesGreffonTess
             lien={lienChoisi}
             nom={nom(lienChoisi.id)}
+            {zoneId}
             bloque={blocageChoisi}
             {occupe}
             onToggle={basculer}

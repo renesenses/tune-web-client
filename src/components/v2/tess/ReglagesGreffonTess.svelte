@@ -10,10 +10,12 @@
    */
   import { t } from '../../../lib/i18n';
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
+  import PanneauConvolution from './PanneauConvolution.svelte';
 
   let {
     lien,
     nom,
+    zoneId = null,
     bloque = null,
     occupe = false,
     onToggle,
@@ -21,6 +23,7 @@
   }: {
     lien: LienGreffonTess;
     nom: string;
+    zoneId?: number | null;
     bloque?: string | null;
     occupe?: boolean;
     onToggle: (id: string, actif: boolean) => void;
@@ -48,7 +51,11 @@
   {#if description}<p class="desc">{description}</p>{/if}
   {#if bloque}<p class="bloque" role="note">{bloque}</p>{/if}
 
-  <div class="panneau" data-tess-panneau={lien.id}>{$t('tess.pluginSettingsSoon' as any)}</div>
+  {#if lien.id === 'convolution' && zoneId != null}
+    <PanneauConvolution {zoneId} />
+  {:else}
+    <div class="panneau" data-tess-panneau={lien.id}>{$t('tess.pluginSettingsSoon' as any)}</div>
+  {/if}
 
   <div class="pied">
     <button class="retirer" disabled={occupe} onclick={() => onRemove(lien.id)}>× {$t('tess.removePlugin' as any)}</button>
