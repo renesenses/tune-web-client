@@ -973,9 +973,10 @@ export function setBibliothequeEtendue(profileId: number, enabled: boolean): Pro
 /**
  * tune-server-rust#8213 — arrêt programmé à heure fixe, certains jours.
  * `action` : `stop_playback` (défaut) arrête la musique ; `poweroff` arrête
- * la musique puis éteint la machine, sur Tune OS seulement — le serveur dit
- * si c'est possible par `poweroff_available` et refuse ailleurs (400
- * `poweroff_unavailable`).
+ * la musique puis éteint la machine — le serveur dit si c'est possible par
+ * `poweroff_available` et refuse ailleurs (400 `poweroff_unavailable`).
+ * Tune OS, et depuis #8909 un hôte Linux/macOS/Windows hors conteneur
+ * (`poweroff_mode`).
  */
 export type ActionArretProgramme = 'stop_playback' | 'poweroff';
 
@@ -996,6 +997,17 @@ export interface EtatArretProgramme {
   next_stop_at: string | null;
   /** Absent sur un serveur d'avant l'option : `false`. */
   poweroff_available?: boolean;
+  /**
+   * tune-server-rust#8909 — `tune_os` : l'appliance ; `host` : l'ordinateur
+   * entier (Linux, macOS, Windows) ; `null` : impossible (conteneur…).
+   * Absent sur un serveur d'avant #8909.
+   */
+  poweroff_mode?: 'tune_os' | 'host' | null;
+  /**
+   * Dernier échec d'extinction programmée (polkit qui refuse…), `null` sinon.
+   * `error` (détail) pour l'administrateur seulement ; `code` pour tous.
+   */
+  last_poweroff_error?: { at: string; code?: string; error?: string } | null;
 }
 
 export function getArretProgramme(): Promise<EtatArretProgramme> {
