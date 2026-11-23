@@ -34,7 +34,7 @@ let sondeEnCours: Promise<CapaciteTess | null> | null = null;
  * Lot W2 : la sonde lit d'abord `GET /tess/catalog`, qui ne dépend d'aucune
  * zone (T08 la sert avec `GET /zones/{id}/tess`). Sans elle, un serveur TESS
  * sans zone courante (première installation, zone supprimée) gardait l'écran
- * caché. Si le catalogue manque, on retombe sur la route de la zone.
+ * caché. Si le catalogue manque (404), la route de la zone décide.
  */
 export async function sonderTess(
   zoneId: number | null | undefined,
@@ -46,14 +46,20 @@ export async function sonderTess(
   sondeEnCours = (async () => {
     try {
       let c: CapaciteTess | null = null;
-      const version = await api.getTessCatalogueVersion();
-      if (version != null) c = version === VERSION_CONTRAT_TESS ? 'oui' : 'non';
-      else if (zoneId == null) c = 'non';
-      else {
-        const r = await api.getTessZone(zoneId);
+      // Les deux sondes partent ENSEMBLE : la capacité est connue au même
+      // moment qu'avant W2, sans un aller-retour de plus. Le catalogue, quand
+      // il répond, l'emporte ; une panne de l'une ne masque pas l'autre.
+      const [cat, zone] = await Promise.allSettled([
+        api.getTessCatalogueVersion(),
+        zoneId == null ? Promise.resolve(null) : api.getTessZone(zoneId),
+      ]);
+      const version = cat.status === 'fulfilled' ? cat.value : undefined;
+      if (typeof version === 'number') c = version === VERSION_CONTRAT_TESS ? 'oui' : 'non';
+      else if (zone.status === 'fulfilled' && zone.value) {
+        const r = zone.value;
         if (r.ok) c = contratCompris(r.reponse) ? 'oui' : 'non';
-        else if ('absent' in r) c = 'non';
-      }
+        else if ('absent' in r) c = version === null ? 'non' : null;
+      } else if (zoneId == null && version === null) c = 'non';
       if (c) capaciteTess.set(c);
       return c;
     } catch {
