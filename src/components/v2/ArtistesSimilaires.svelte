@@ -17,7 +17,8 @@
 
   interface Props {
     nom: string;
-    similaires: { name: string; reason: string }[];
+    /** `image` : le portrait que rend le service (fil 3009, point 7). */
+    similaires: { name: string; reason: string; image?: string | null }[];
     portraits?: Record<string, PortraitSimilaire>;
     onOuvrir: (nom: string) => void;
   }
@@ -32,7 +33,7 @@
       <li>
         <button type="button" class="carte" data-similaire={sa.name} onclick={() => onOuvrir(sa.name)}>
           <span class="portrait">
-            <AlbumArt coverPath={portraits[sa.name]?.image ?? null} albumId={null} size={0} recadrer
+            <AlbumArt coverPath={portraits[sa.name]?.image ?? sa.image ?? null} albumId={null} size={0} recadrer
               alt={sa.name} fallbackInitials={initialesArtiste(sa.name)} />
           </span>
           <span class="nom">{sa.name}</span>

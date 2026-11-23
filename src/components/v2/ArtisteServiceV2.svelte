@@ -286,6 +286,38 @@
   const artisteEditable = $derived.by<Artist | null>(() =>
     estLocal && artisteLocal?.id != null ? artisteLocal : null,
   );
+  /**
+   * Fil 3009 (FabienM), point 7 — « la page artiste Qobuz doit reprendre la
+   * présentation de la page artiste bibliothèque, avec l'onglet Crédits et le
+   * cartouche Artistes similaires ». Ce que la fiche LIT sans rien modifier —
+   * « À propos » (similaires, membres, instruments des crédits) et les liens
+   * externes — se montre désormais aussi sur la fiche d'un artiste de
+   * service, d'après l'artiste du MÊME nom que la bibliothèque connaît
+   * (`artisteLocal`, #1356). Les GESTES (édition, étiquettes, signalement,
+   * notes, albums manquants) restent à `artisteEditable` : ils écrivent sur
+   * un enregistrement de la bibliothèque qu'on n'a pas ouvert.
+   */
+  const artisteLu = $derived.by<Artist | null>(() =>
+    artisteEditable ?? (!estLocal && artisteLocal?.id != null ? artisteLocal : null),
+  );
+  /**
+   * Fil 3009, point 7 — les voisins que le SERVICE rapproche de cet artiste
+   * (`GET /streaming/{service}/artists/{id}/similar`, Qobuz
+   * `artist/getSimilarArtists`). Ils portent leur identifiant et leur portrait
+   * chez le service : un clic ouvre leur fiche là-bas. Vide devant un service
+   * qui n'en sait rien (501) ou un serveur antérieur (404) : l'encart retombe
+   * sur les similaires de l'homonyme de la bibliothèque, s'il y en a un.
+   */
+  let voisinsService = $state<{ id: string; name: string; image_path?: string | null }[]>([]);
+  async function chargerVoisinsService(mien: number, service: Source, id: string) {
+    try {
+      const v = await api.getStreamingArtistSimilar(service, id);
+      if (mien !== jeton) return;
+      voisinsService = Array.isArray(v) ? v.filter((x) => x?.id != null && !!x?.name?.trim()) : [];
+    } catch {
+      /* service sans similarité, serveur antérieur ou panne : pas de voisins du service */
+    }
+  }
 
   /*
    * Métadonnées (similaires, membres), crédits (instruments joués) et
@@ -496,6 +528,8 @@
     editionComplete = null;
     etiquettesArtiste = null;
     void chargerMetadonnees(null);
+    voisinsService = [];
+    void chargerVoisinsService(mien, service, id);
     // `allSettled` : un service qui refuse les titres phares ne doit pas
     // emporter les albums avec lui. Une fiche à moitié pleine vaut mieux
     // qu'un écran vide — c'est la règle du reste de l'application.
@@ -593,6 +627,7 @@
     etiquettesArtiste = null;
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
+    voisinsService = [];
     void chargerMetadonnees(id);
     dossierVerifie = null;
     let portee: string | null = null;
@@ -757,6 +792,8 @@
     if (!localDejaCharge && loc.status === 'fulfilled') {
       locaux = loc.value.albums;
       artisteLocal = loc.value.artiste;
+      // Fil 3009, point 7 — « À propos » de l'homonyme, sur la fiche de service.
+      if (artisteLocal?.id != null) void chargerMetadonnees(artisteLocal.id);
     }
     if (svc.status === 'fulfilled') autresServices = svc.value;
     complementsEnCharge = false;
@@ -847,7 +884,29 @@
   const chiffres = $derived(chiffresEnTete({ albums: albumsCompte, ecoutes: estLocal ? ecoutesDe(artiste) : null, compteurs: estLocal ? compteurs : null }, (k) => $tr(k as any)));
   const aDiscographie = $derived(!!(albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length
     || apparitions.length || collaborations.length || ecriture.length || reprises.length || joueAvec.length));
-  const similairesFiche = $derived(artisteEditable ? (metaFiche?.similar_artists ?? []) : []);
+  /**
+   * Les similaires de la fiche, d'où qu'ils viennent (fil 3009, point 7) :
+   * ceux des métadonnées de l'artiste de la bibliothèque, sinon — fiche de
+   * service — ceux que le service rend, sinon ceux de son homonyme local.
+   */
+  const similairesFiche = $derived.by<{ name: string; reason: string; image?: string | null; service?: Source | null; id?: string | null }[]>(() => {
+    if (!estLocal && voisinsService.length) {
+      return voisinsService.map((v) => ({ name: v.name, reason: '', image: v.image_path ?? null, service: cible?.service ?? null, id: String(v.id) }));
+    }
+    return artisteLu ? (metaFiche?.similar_artists ?? []) : [];
+  });
+  /** « À propos » ne s'ouvre que s'il a quelque chose à dire (#1356). */
+  const aPropos = $derived(similairesFiche.length > 0 || !!(artisteLu && (metaFiche?.members?.length || instrumentsFiche.length)));
+  /** Un voisin du SERVICE s'ouvre chez lui ; les autres, comme avant. */
+  function ouvrirVoisin(nomVoisin: string) {
+    const v = similairesFiche.find((x) => x.name === nomVoisin);
+    if (v?.service && v.id) {
+      ficheAlbumDeRetour.set(null);
+      ficheArtisteService.set({ service: v.service, id: v.id, nom: v.name, image: v.image ?? null });
+      return;
+    }
+    void ouvrirSimilaire(nomVoisin);
+  }
   const onglets = $derived(chargement ? [] : ongletsArtiste({ discographie: aDiscographie, similaires: similairesFiche.length }));
   let ongletDemande = $state<OngletArtiste>('apercu');
   const onglet = $derived(ongletValide(ongletDemande, onglets));
@@ -898,7 +957,7 @@
   let clePortraits = '';
   $effect(() => {
     if (onglet !== 'similaires') return;
-    const noms = similairesFiche.map((x) => x.name);
+    const noms = similairesFiche.filter((x) => !x.image).map((x) => x.name);
     const k = `${cible?.id ?? ''}|${noms.join('|')}`;
     if (!noms.length || k === clePortraits) return;
     clePortraits = k;
@@ -1359,7 +1418,7 @@
     {/if}
 
     {#if onglet === 'apercu'}
-    <div class="apercu-haut" class:avec-cote={!!(artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length))}>
+    <div class="apercu-haut" class:avec-cote={aPropos}>
       <div class="apercu-principal">
       <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
            fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
@@ -1371,9 +1430,9 @@
            Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
            sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
            les titres phares et la discographie. -->
-      {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length)}
+      {#if aPropos}
         <section class="apropos">
-          {#if metaFiche?.similar_artists?.length}
+          {#if similairesFiche.length}
             <div class="apropos-titre">
               <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
               {#if onglets.includes('similaires')}
@@ -1383,18 +1442,18 @@
               {/if}
             </div>
             <div class="puces">
-              {#each metaFiche.similar_artists as sa (sa.name)}
-                <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+              {#each similairesFiche as sa (sa.name)}
+                <button class="puce" title={sa.reason || null} onclick={() => ouvrirVoisin(sa.name)}>{sa.name}</button>
               {/each}
             </div>
           {/if}
-          {#if metaFiche?.members?.length}
+          {#if artisteLu && metaFiche?.members?.length}
             <h3>{$tr('artist.members' as any)}</h3>
             <ul class="membres">
               {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
             </ul>
           {/if}
-          {#if instrumentsFiche.length}
+          {#if artisteLu && instrumentsFiche.length}
             <h3>{$tr('artist.credits' as any)}</h3>
             <div class="puces">
               {#each instrumentsFiche as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
@@ -1406,8 +1465,8 @@
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
          un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
-    {#if artisteEditable?.id != null}
-      <LiensExternes cle={artisteEditable.id} charger={api.getArtistExternalLinks} />
+    {#if artisteLu?.id != null}
+      <LiensExternes cle={artisteLu.id} charger={api.getArtistExternalLinks} />
     {/if}
 
     <!-- web#2653 — « Mes notes » : artiste de la BIBLIOTHÈQUE seulement. -->
@@ -1432,7 +1491,7 @@
     {/if}
 
     {:else if onglet === 'similaires'}
-      <ArtistesSimilaires {nom} similaires={similairesFiche} {portraits} onOuvrir={(n) => void ouvrirSimilaire(n)} />
+      <ArtistesSimilaires {nom} similaires={similairesFiche} {portraits} onOuvrir={ouvrirVoisin} />
     {/if}
 
     {#if onglet !== 'similaires'}
