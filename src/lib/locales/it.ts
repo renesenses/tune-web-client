@@ -3978,6 +3978,7 @@ export default {
   "v2.zone.rightChannel": "canale destro",
   "v2.fav.allSources": "Tutte le sorgenti",
   "v2.fav.sourceLibrary": "Libreria",
+  "v2.fav.sourceOf": "Origine: {source}",
   "v2.fav.sortBy": "Ordina per",
   "v2.fav.sortRecent": "Aggiunta recente",
   "v2.fav.sortOldest": "Aggiunta remota",

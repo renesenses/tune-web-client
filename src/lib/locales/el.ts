@@ -3857,6 +3857,7 @@ export default {
   "v2.zone.rightChannel": "δεξί κανάλι",
   "v2.fav.allSources": "Όλες οι πηγές",
   "v2.fav.sourceLibrary": "Βιβλιοθήκη",
+  "v2.fav.sourceOf": "Πηγή: {source}",
   "v2.fav.sortBy": "Ταξινόμηση κατά",
   "v2.fav.sortRecent": "Προστέθηκαν πρόσφατα",
   "v2.fav.sortOldest": "Προστέθηκαν παλιά",

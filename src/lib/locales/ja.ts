@@ -3978,6 +3978,7 @@ export default {
   "v2.zone.rightChannel": "右チャンネル",
   "v2.fav.allSources": "すべてのソース",
   "v2.fav.sourceLibrary": "ライブラリ",
+  "v2.fav.sourceOf": "ソース: {source}",
   "v2.fav.sortBy": "並べ替え",
   "v2.fav.sortRecent": "追加が新しい順",
   "v2.fav.sortOldest": "追加が古い順",

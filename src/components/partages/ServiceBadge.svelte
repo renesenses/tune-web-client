@@ -1,3 +1,14 @@
+<script lang="ts" module>
+  /**
+   * Les services que ce badge sait dessiner. Un appelant qui veut un repli
+   * (web#3145 : un service inconnu laissait un repère VIDE) le demande ici
+   * plutôt que de recopier la liste.
+   */
+  export const SERVICES_BADGE: ReadonlySet<string> = new Set([
+    'tidal', 'qobuz', 'deezer', 'spotify', 'youtube', 'amazon', 'local', 'bandcamp', 'upnp',
+  ]);
+</script>
+
 <script lang="ts">
   interface Props {
     source?: string | null;

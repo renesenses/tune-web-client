@@ -3997,6 +3997,7 @@ export default {
   // v2 — Favoris : filtres par source et tris
   "v2.fav.allSources": "Toutes les sources",
   "v2.fav.sourceLibrary": "Bibliothèque",
+  "v2.fav.sourceOf": "Source : {source}",
   "v2.fav.sortBy": "Trier par",
   "v2.fav.sortRecent": "Ajout récent",
   "v2.fav.sortOldest": "Ajout ancien",
