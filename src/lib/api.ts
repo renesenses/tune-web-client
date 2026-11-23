@@ -3974,8 +3974,15 @@ export function getAcousticStatus() {
   );
 }
 
-export function searchAcoustic(query: string, limit = 50) {
-  return apiPost('/library/search/acoustic', { query, limit }) as Promise<AcousticSearchResult>;
+/** `vary` (tune-server-rust#9157) : par défaut le serveur TIRE la sélection
+ *  dans un vivier des pistes les plus proches, pondérée par la proximité ;
+ *  rappeler une ambiance donne donc d'autres titres. Une RECHERCHE veut au
+ *  contraire les plus proches, stables d'un appel à l'autre : `vary: false`.
+ *  Rien n'est envoyé quand l'option est absente (serveurs antérieurs). */
+export function searchAcoustic(query: string, limit = 50, options: { vary?: boolean } = {}) {
+  const corps: { query: string; limit: number; vary?: boolean } = { query, limit };
+  if (options.vary === false) corps.vary = false;
+  return apiPost('/library/search/acoustic', corps) as Promise<AcousticSearchResult>;
 }
 
 /** Une ambiance enregistrée : le NOM que l'utilisateur lui donne et la REQUÊTE
