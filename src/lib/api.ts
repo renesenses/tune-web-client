@@ -7155,6 +7155,20 @@ export function getStreamingArtistTopTracks(service: string, artistId: string) {
   );
 }
 
+/**
+ * Fil 3009 (FabienM), point 7 — les artistes que le SERVICE rapproche de
+ * celui-ci (`GET /streaming/{service}/artists/{id}/similar`), avec leur
+ * identifiant et leur portrait chez lui. 501 devant un service qui n'en sait
+ * rien, 404 devant un serveur antérieur : l'appelant retombe sur autre chose.
+ * `sansBandeau` : voir [`getStreamingArtist`] (#992).
+ */
+export function getStreamingArtistSimilar(service: string, artistId: string, limit = 24) {
+  return fetchJSON<{ id: string; name: string; image_path?: string | null }[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/similar?limit=${limit}`,
+    undefined, undefined, true,
+  );
+}
+
 /** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
   const p = offset > 0 ? `?offset=${offset}` : '';

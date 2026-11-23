@@ -17,9 +17,11 @@
 
   interface Props {
     nom: string;
-    similaires: { name: string; reason: string }[];
+    /** `image` : le portrait que rend le service (fil 3009, point 7). */
+    similaires: { name: string; reason: string; image?: string | null; id?: string | null }[];
     portraits?: Record<string, PortraitSimilaire>;
-    onOuvrir: (nom: string) => void;
+    /** Le voisin lui-même, pas son nom : deux homonymes ne se confondent pas. */
+    onOuvrir: (voisin: { name: string; reason: string; image?: string | null; id?: string | null }) => void;
   }
   let { nom, similaires, portraits = {}, onOuvrir }: Props = $props();
 </script>
@@ -28,11 +30,12 @@
   <h2>{$t('artist.similarArtists' as any)}</h2>
   <p class="intro">{$t('artist.page.similarIntro' as any).replace('{nom}', nom)}</p>
   <ul class="grille">
-    {#each similaires as sa (sa.name)}
+    <!-- Clé : l'identifiant, sinon le rang (deux homonymes, fil 3009). -->
+    {#each similaires as sa, i (sa.id ?? `rang-${i}`)}
       <li>
-        <button type="button" class="carte" data-similaire={sa.name} onclick={() => onOuvrir(sa.name)}>
+        <button type="button" class="carte" data-similaire={sa.name} onclick={() => onOuvrir(sa)}>
           <span class="portrait">
-            <AlbumArt coverPath={portraits[sa.name]?.image ?? null} albumId={null} size={0} recadrer
+            <AlbumArt coverPath={portraits[sa.name]?.image ?? sa.image ?? null} albumId={null} size={0} recadrer
               alt={sa.name} fallbackInitials={initialesArtiste(sa.name)} />
           </span>
           <span class="nom">{sa.name}</span>

@@ -45,7 +45,10 @@ describe('fiche artiste v2 : enrichissement, similaires, membres, crédits', () 
     expect(A).toContain('api.getArtistCredits(');
   });
   it('similaires, membres et instruments sont affichés', () => {
-    expect(A).toContain('{#each metaFiche.similar_artists as sa (sa.name)}');
+    // Fil 3009, point 7 : les similaires de la fiche (`similairesFiche`) sont
+    // ceux des métadonnées locales, ou ceux du service sur une fiche de service.
+    expect(A).toContain('metaFiche?.similar_artists ?? []');
+    expect(A).toContain('{#each similairesFiche as sa, i (sa.id ?? `rang-${i}`)}');
     expect(A).toContain('{#each metaFiche.members as m (m.name)}');
     expect(A).toContain('uniqueInstruments(creditsFiche)');
   });
