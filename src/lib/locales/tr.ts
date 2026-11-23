@@ -4277,6 +4277,7 @@ export default {
   "settings.deleteForgottenZone": "Bölgeyi sil",
   "settings.deleteForgottenZoneConfirm": "{zones} kalıcı olarak silinsin mi? Ayarları (ekolayzer, TESS, ses düzeyi…) da onunla birlikte silinir. Cihaz ağa geri dönerse yeni bir cihaz olarak görünür.",
   "settings.forgottenZoneDeleted": "{name} bölgesi silindi.",
+  "settings.forgetNeedsZoneDeletion": "Bu sunucu bir cihazı bölgesini koruyarak henüz unutamıyor. Tune'u güncelleyin veya bölgeyi cihazla birlikte silmek için onaylayın.",
   "v2.zone.badgeDeviceForgotten": "Cihaz unutuldu",
   "v2.zone.deviceForgottenLong": "Bu bölgenin cihazı artık ağda değil ve unutuldu. Geri dönerse bölge yeniden bağlanır. Silmek için: Ayarlar › Cihazlar › Ağda olmayan cihazlar.",
   "volume.dbEntry": "Desibel cinsinden ses düzeyi",

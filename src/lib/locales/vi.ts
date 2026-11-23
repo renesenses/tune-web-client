@@ -4280,6 +4280,7 @@ export default {
   "settings.deleteForgottenZone": "Xóa vùng",
   "settings.deleteForgottenZoneConfirm": "Xóa vĩnh viễn {zones}? Các cài đặt của vùng (bộ cân bằng, TESS, âm lượng…) sẽ bị xóa cùng. Nếu thiết bị quay lại mạng, nó sẽ xuất hiện như một thiết bị mới.",
   "settings.forgottenZoneDeleted": "Đã xóa vùng của {name}.",
+  "settings.forgetNeedsZoneDeletion": "Máy chủ này chưa thể quên một thiết bị mà vẫn giữ vùng của nó. Hãy cập nhật Tune, hoặc xác nhận để xóa vùng cùng với thiết bị.",
   "v2.zone.badgeDeviceForgotten": "Thiết bị đã quên",
   "v2.zone.deviceForgottenLong": "Thiết bị của vùng này không còn trên mạng và đã bị quên. Nếu nó quay lại, vùng sẽ kết nối lại. Để xóa vùng: Cài đặt › Thiết bị › Thiết bị vắng mặt.",
   "volume.dbEntry": "Âm lượng tính bằng decibel",

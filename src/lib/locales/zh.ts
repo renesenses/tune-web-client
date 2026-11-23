@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "删除区域",
   "settings.deleteForgottenZoneConfirm": "永久删除 {zones}？其设置（均衡器、TESS、音量等）将一并删除。设备回到网络后会作为新设备出现。",
   "settings.forgottenZoneDeleted": "已删除 {name} 的区域。",
+  "settings.forgetNeedsZoneDeletion": "此服务器尚不支持在保留区域的同时忘记设备。请更新 Tune，或确认将区域与设备一并删除。",
   "v2.zone.badgeDeviceForgotten": "设备已忘记",
   "v2.zone.deviceForgottenLong": "此区域的设备已不在网络上，已被忘记。设备回来后区域会重新连接。如需删除：设置 › 设备 › 不在线的设备。",
   "volume.dbEntry": "音量（分贝）",

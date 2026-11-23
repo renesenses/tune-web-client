@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "ゾーンを削除",
   "settings.deleteForgottenZoneConfirm": "{zones} を完全に削除しますか？設定（イコライザー、TESS、音量など）も一緒に削除されます。デバイスがネットワークに戻ると、新しいデバイスとして表示されます。",
   "settings.forgottenZoneDeleted": "{name} のゾーンを削除しました。",
+  "settings.forgetNeedsZoneDeletion": "このサーバーは、ゾーンを残したままデバイスを忘れることにまだ対応していません。Tune を更新するか、デバイスと一緒にゾーンを削除することを確認してください。",
   "v2.zone.badgeDeviceForgotten": "忘れたデバイス",
   "v2.zone.deviceForgottenLong": "このゾーンのデバイスはネットワーク上にいなくなり、忘れられました。戻ればゾーンは再接続します。削除するには：設定 › デバイス › 不在のデバイス。",
   "volume.dbEntry": "音量（デシベル）",

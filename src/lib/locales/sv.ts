@@ -4399,6 +4399,7 @@ export default {
   "settings.deleteForgottenZone": "Ta bort zonen",
   "settings.deleteForgottenZoneConfirm": "Ta bort {zones} permanent? Dess inställningar (equalizer, TESS, volym…) tas bort med den. Kommer enheten tillbaka till nätverket visas den som en ny enhet.",
   "settings.forgottenZoneDeleted": "Zonen för {name} borttagen.",
+  "settings.forgetNeedsZoneDeletion": "Den här servern kan ännu inte glömma en enhet och behålla dess zon. Uppdatera Tune, eller bekräfta för att ta bort zonen tillsammans med enheten.",
   "v2.zone.badgeDeviceForgotten": "Enhet glömd",
   "v2.zone.deviceForgottenLong": "Enheten för den här zonen finns inte längre i nätverket och har glömts. Kommer den tillbaka återansluter zonen. För att ta bort den: Inställningar › Enheter › Frånvarande enheter.",
   "volume.dbEntry": "Volym i decibel",

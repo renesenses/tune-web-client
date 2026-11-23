@@ -4354,6 +4354,7 @@ export default {
   "settings.deleteForgottenZone": "Zóna törlése",
   "settings.deleteForgottenZoneConfirm": "Véglegesen törli: {zones}? A beállításai (hangszínszabályzó, TESS, hangerő…) vele együtt törlődnek. Ha az eszköz visszatér a hálózatra, új eszközként jelenik meg.",
   "settings.forgottenZoneDeleted": "{name} zónája törölve.",
+  "settings.forgetNeedsZoneDeletion": "Ez a szerver még nem tud úgy elfelejteni egy eszközt, hogy a zónáját megtartsa. Frissítse a Tune-t, vagy erősítse meg a zóna törlését az eszközzel együtt.",
   "v2.zone.badgeDeviceForgotten": "Elfelejtett eszköz",
   "v2.zone.deviceForgottenLong": "A zóna eszköze már nincs a hálózaton, és elfelejtettük. Ha visszatér, a zóna újra csatlakozik. Törlés: Beállítások › Eszközök › Távol lévő eszközök.",
   "volume.dbEntry": "Hangerő decibelben",

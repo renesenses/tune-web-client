@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "Șterge zona",
   "settings.deleteForgottenZoneConfirm": "Ștergeți definitiv {zones}? Setările ei (egalizator, TESS, volum…) vor fi șterse odată cu ea. Dacă dispozitivul revine în rețea, va reapărea ca dispozitiv nou.",
   "settings.forgottenZoneDeleted": "Zona lui {name} a fost ștearsă.",
+  "settings.forgetNeedsZoneDeletion": "Acest server nu poate încă uita un dispozitiv păstrându-i zona. Actualizați Tune sau confirmați pentru a șterge zona împreună cu dispozitivul.",
   "v2.zone.badgeDeviceForgotten": "Dispozitiv uitat",
   "v2.zone.deviceForgottenLong": "Dispozitivul acestei zone nu mai este în rețea și a fost uitat. Dacă revine, zona se reconectează. Pentru a o șterge: Setări › Dispozitive › Dispozitive absente.",
   "volume.dbEntry": "Volum în decibeli",

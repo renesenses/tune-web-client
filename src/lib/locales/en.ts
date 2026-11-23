@@ -4420,6 +4420,7 @@ export default {
   "settings.deleteForgottenZone": "Delete zone",
   "settings.deleteForgottenZoneConfirm": "Permanently delete {zones}? Its settings (equalizer, TESS, volume…) will be deleted with it. If the device comes back on the network, it will reappear as a new device.",
   "settings.forgottenZoneDeleted": "Zone of {name} deleted.",
+  "settings.forgetNeedsZoneDeletion": "This server cannot yet forget a device while keeping its zone. Update Tune, or confirm to delete the zone along with the device.",
   "v2.zone.badgeDeviceForgotten": "Device forgotten",
   "v2.zone.deviceForgottenLong": "This zone's device is no longer on the network and has been forgotten. If it comes back, the zone reconnects. To delete the zone: Settings › Devices › Absent devices.",
   "volume.dbEntry": "Volume in decibels",

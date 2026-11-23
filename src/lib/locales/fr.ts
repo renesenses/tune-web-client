@@ -4422,6 +4422,7 @@ export default {
   "settings.deleteForgottenZone": "Supprimer la zone",
   "settings.deleteForgottenZoneConfirm": "Supprimer définitivement {zones} ? Ses réglages (égaliseur, TESS, volume…) seront supprimés avec elle. Si l'appareil revient sur le réseau, il réapparaîtra comme un nouvel appareil.",
   "settings.forgottenZoneDeleted": "Zone de {name} supprimée.",
+  "settings.forgetNeedsZoneDeletion": "Ce serveur ne sait pas encore oublier un appareil en gardant sa zone. Mettez Tune à jour, ou confirmez pour supprimer la zone avec l'appareil.",
   "v2.zone.badgeDeviceForgotten": "Appareil oublié",
   "v2.zone.deviceForgottenLong": "L'appareil de cette zone n'est plus sur le réseau et a été oublié. S'il revient, la zone se reconnecte. Pour la supprimer : Réglages › Appareils › Appareils absents.",
   "volume.dbEntry": "Volume en décibels",

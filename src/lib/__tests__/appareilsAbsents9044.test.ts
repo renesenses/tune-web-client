@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { V2_SETTINGS } from '../v2Settings';
-import { dureesProposees, joursDepuis, libelleAbsent, libelleAppareil, lireAbsents, lireRegle, separer, zonesNommees, zonesVisibles, type AppareilAbsent } from '../appareilsAbsents';
+import { oublierExigeLaZone, dureesProposees, joursDepuis, libelleAbsent, libelleAppareil, lireAbsents, lireRegle, separer, zonesNommees, zonesVisibles, type AppareilAbsent } from '../appareilsAbsents';
 import * as api from '../api';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 
@@ -190,6 +190,7 @@ describe('l’écran : Réglages › Appareils › Appareils absents', () => {
       'settings.forgetAfterDays', 'settings.forgetDeviceKeepZone', 'settings.forgetDeviceNoZone',
       'settings.forgottenDevicesIntro', 'settings.forgottenOn', 'settings.forgottenAutoOn',
       'settings.deleteForgottenZone', 'settings.deleteForgottenZoneConfirm', 'settings.forgottenZoneDeleted',
+      'settings.forgetNeedsZoneDeletion',
       'v2.zone.badgeDeviceForgotten', 'v2.zone.deviceForgottenLong'];
     const gabarits: Record<string, string[]> = {
       'settings.absentSinceDays': ['{n}'], 'settings.forgetAfterDays': ['{n}'],
@@ -207,6 +208,24 @@ describe('l’écran : Réglages › Appareils › Appareils absents', () => {
 });
 
 describe('rc14 : départ daté, règle, oubliés', () => {
+  it('relecture : un refus d’écriture remet la liste à la valeur du serveur', () => {
+    const debut = V2.indexOf('async function changerRegleOubli(');
+    const corps = V2.slice(debut, V2.indexOf('\n  }\n', debut));
+    expect(corps).toMatch(/catch \(e: any\) \{\s*liste\.value = String\(regleOubli\.after_days\);/);
+  });
+
+  it('relecture : serveur rc13 (409 zone_liee) → explication et confirmation de SUPPRESSION, sans appel', () => {
+    expect(oublierExigeLaZone({ status: 409, code: 'zone_liee' })).toBe(true);
+    expect(oublierExigeLaZone({ status: 409, code: 'zone_en_lecture' })).toBe(false);
+    expect(oublierExigeLaZone(null)).toBe(false);
+    const debut = V2.indexOf('async function oublierAppareil(');
+    const corps = V2.slice(debut, V2.indexOf('\n  }\n', debut));
+    const branche = corps.slice(corps.indexOf('if (oublierExigeLaZone(e))'));
+    expect(branche).toContain('suppressionAConfirmer = a.zone_id;');
+    expect(branche).toContain("'settings.forgetNeedsZoneDeletion'");
+    expect(branche.split('return;')[0]).not.toContain('deleteForgottenZones(');
+  });
+
   it('la carte de zone dit « Appareil oublié » seulement HORS LIGNE', () => {
     const zones = readFileSync('src/components/v2/ZonesV2.svelte', 'utf8');
     expect(zones).toContain("if (z.online === false && z.device_forgotten === true) return { cls: 'bad', txt: $t('v2.zone.badgeDeviceForgotten'");

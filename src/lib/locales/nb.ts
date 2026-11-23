@@ -4278,6 +4278,7 @@ export default {
   "settings.deleteForgottenZone": "Slett sonen",
   "settings.deleteForgottenZoneConfirm": "Slette {zones} permanent? Innstillingene (equalizer, TESS, volum…) slettes sammen med den. Kommer enheten tilbake på nettverket, vises den som en ny enhet.",
   "settings.forgottenZoneDeleted": "Sonen til {name} er slettet.",
+  "settings.forgetNeedsZoneDeletion": "Denne serveren kan ennå ikke glemme en enhet og beholde sonen. Oppdater Tune, eller bekreft for å slette sonen sammen med enheten.",
   "v2.zone.badgeDeviceForgotten": "Enhet glemt",
   "v2.zone.deviceForgottenLong": "Enheten for denne sonen er ikke lenger på nettverket og er glemt. Kommer den tilbake, kobler sonen seg til igjen. For å slette den: Innstillinger › Enheter › Fraværende enheter.",
   "volume.dbEntry": "Volum i desibel",

@@ -127,3 +127,11 @@ export function zonesNommees(i: AppareilAbsent, dejaSupprimee: string): string {
     .map((z) => `« ${(z.zone_name ?? '').trim() || `#${z.zone_id}`} »${z.zone_hidden ? ` (${dejaSupprimee})` : ''}`)
     .join(', ');
 }
+
+/** Un serveur rc13 répond `409 zone_liee` à un oubli sans `with_zone` : il
+ *  ne sait pas garder la zone. L'écran repasse alors par la confirmation qui
+ *  la supprime, avec un mot d'explication. */
+export function oublierExigeLaZone(e: unknown): boolean {
+  const x = e as { status?: number; code?: string } | null;
+  return x?.code === 'zone_liee' && (x.status === undefined || x.status === 409);
+}

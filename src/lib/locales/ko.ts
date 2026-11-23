@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "존 삭제",
   "settings.deleteForgottenZoneConfirm": "{zones}을(를) 영구 삭제할까요? 설정(이퀄라이저, TESS, 볼륨 등)도 함께 삭제됩니다. 기기가 네트워크에 돌아오면 새 기기로 나타납니다.",
   "settings.forgottenZoneDeleted": "{name}의 존을 삭제했습니다.",
+  "settings.forgetNeedsZoneDeletion": "이 서버는 아직 존을 유지한 채 기기를 잊을 수 없습니다. Tune을 업데이트하거나, 기기와 함께 존을 삭제하도록 확인하세요.",
   "v2.zone.badgeDeviceForgotten": "잊은 기기",
   "v2.zone.deviceForgottenLong": "이 존의 기기는 더 이상 네트워크에 없으며 잊혀졌습니다. 돌아오면 존이 다시 연결됩니다. 삭제하려면: 설정 › 기기 › 없는 기기.",
   "volume.dbEntry": "데시벨 단위 음량",

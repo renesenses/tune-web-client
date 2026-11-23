@@ -4278,6 +4278,7 @@ export default {
   "settings.deleteForgottenZone": "Usuń strefę",
   "settings.deleteForgottenZoneConfirm": "Trwale usunąć {zones}? Jej ustawienia (korektor, TESS, głośność…) zostaną usunięte razem z nią. Jeśli urządzenie wróci do sieci, pojawi się jako nowe urządzenie.",
   "settings.forgottenZoneDeleted": "Strefa {name} usunięta.",
+  "settings.forgetNeedsZoneDeletion": "Ten serwer nie potrafi jeszcze zapomnieć urządzenia z zachowaniem jego strefy. Zaktualizuj Tune albo potwierdź, aby usunąć strefę razem z urządzeniem.",
   "v2.zone.badgeDeviceForgotten": "Urządzenie zapomniane",
   "v2.zone.deviceForgottenLong": "Urządzenia tej strefy nie ma już w sieci i zostało zapomniane. Jeśli wróci, strefa połączy się ponownie. Aby ją usunąć: Ustawienia › Urządzenia › Nieobecne urządzenia.",
   "volume.dbEntry": "Głośność w decybelach",

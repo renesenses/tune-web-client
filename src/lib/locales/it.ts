@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "Elimina la zona",
   "settings.deleteForgottenZoneConfirm": "Eliminare definitivamente {zones}? Le sue impostazioni (equalizzatore, TESS, volume…) saranno eliminate con essa. Se il dispositivo torna in rete, ricomparirà come nuovo dispositivo.",
   "settings.forgottenZoneDeleted": "Zona di {name} eliminata.",
+  "settings.forgetNeedsZoneDeletion": "Questo server non sa ancora dimenticare un dispositivo mantenendone la zona. Aggiorna Tune, oppure conferma per eliminare la zona insieme al dispositivo.",
   "v2.zone.badgeDeviceForgotten": "Dispositivo dimenticato",
   "v2.zone.deviceForgottenLong": "Il dispositivo di questa zona non è più in rete ed è stato dimenticato. Se torna, la zona si riconnette. Per eliminarla: Impostazioni › Dispositivi › Dispositivi assenti.",
   "volume.dbEntry": "Volume in decibel",

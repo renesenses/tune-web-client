@@ -4274,6 +4274,7 @@ export default {
   "settings.deleteForgottenZone": "Zone verwijderen",
   "settings.deleteForgottenZoneConfirm": "{zones} definitief verwijderen? De instellingen (equalizer, TESS, volume…) worden mee verwijderd. Komt het apparaat terug op het netwerk, dan verschijnt het als nieuw apparaat.",
   "settings.forgottenZoneDeleted": "Zone van {name} verwijderd.",
+  "settings.forgetNeedsZoneDeletion": "Deze server kan een apparaat nog niet vergeten en tegelijk de zone bewaren. Werk Tune bij, of bevestig om de zone samen met het apparaat te verwijderen.",
   "v2.zone.badgeDeviceForgotten": "Apparaat vergeten",
   "v2.zone.deviceForgottenLong": "Het apparaat van deze zone is niet meer op het netwerk en is vergeten. Komt het terug, dan maakt de zone weer verbinding. Verwijderen: Instellingen › Apparaten › Afwezige apparaten.",
   "volume.dbEntry": "Volume in decibel",

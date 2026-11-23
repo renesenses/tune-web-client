@@ -4400,6 +4400,7 @@ export default {
   "settings.deleteForgottenZone": "Zone löschen",
   "settings.deleteForgottenZoneConfirm": "{zones} endgültig löschen? Ihre Einstellungen (Equalizer, TESS, Lautstärke…) werden mit ihr gelöscht. Kehrt das Gerät ins Netzwerk zurück, erscheint es als neues Gerät.",
   "settings.forgottenZoneDeleted": "Zone von {name} gelöscht.",
+  "settings.forgetNeedsZoneDeletion": "Dieser Server kann ein Gerät noch nicht vergessen und dabei seine Zone behalten. Aktualisieren Sie Tune oder bestätigen Sie, um die Zone mit dem Gerät zu löschen.",
   "v2.zone.badgeDeviceForgotten": "Gerät vergessen",
   "v2.zone.deviceForgottenLong": "Das Gerät dieser Zone ist nicht mehr im Netzwerk und wurde vergessen. Kehrt es zurück, verbindet sich die Zone wieder. Zum Löschen: Einstellungen › Geräte › Abwesende Geräte.",
   "volume.dbEntry": "Lautstärke in Dezibel",

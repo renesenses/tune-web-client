@@ -200,6 +200,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
   import {
+    oublierExigeLaZone,
     dureesProposees,
     joursDepuis,
     libelleAbsent,
@@ -1025,13 +1026,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   });
 
-  async function changerRegleOubli(jours: number) {
+  /** Écrit la durée choisie. Refusée (403 non administrateur, 500…), la
+   *  liste revient à la valeur du SERVEUR : elle ne doit pas afficher un
+   *  réglage qui n'a pas été pris. */
+  async function changerRegleOubli(liste: HTMLSelectElement) {
+    const jours = Number(liste.value);
     if (!regleOubli || jours === regleOubli.after_days) return;
     regleOccupee = true;
     try {
       const r = await api.setForgetPolicy(jours);
       regleOubli = { ...regleOubli, after_days: r.after_days };
     } catch (e: any) {
+      liste.value = String(regleOubli.after_days);
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       regleOccupee = false;
@@ -1076,6 +1082,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
       await chargerAbsents();
     } catch (e: any) {
+      // Serveur rc13 : il ne sait pas garder la zone et répond 409
+      // `zone_liee`. On le dit, et on repasse par la confirmation qui
+      // SUPPRIME la zone — jamais sans un second clic de l'utilisateur.
+      if (oublierExigeLaZone(e)) {
+        oubliAConfirmer = null;
+        suppressionAConfirmer = a.zone_id;
+        notifications.info($t('settings.forgetNeedsZoneDeletion' as any));
+        return;
+      }
       // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
       // la zone, dans la langue de l'interface.
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
@@ -6878,7 +6893,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="hint">{$t('settings.forgetAfterHint' as any)}</span>
                   </div>
                   <select class="sel" value={regleOubli.after_days} disabled={regleOccupee}
-                    onchange={(e) => changerRegleOubli(Number((e.currentTarget as HTMLSelectElement).value))}>
+                    onchange={(e) => changerRegleOubli(e.currentTarget as HTMLSelectElement)}>
                     {#each dureesProposees(regleOubli.after_days) as j (j)}
                       <option value={j}>{j === 0 ? $t('settings.forgetNever' as any) : $t('settings.forgetAfterDays' as any).replace('{n}', String(j))}</option>
                     {/each}

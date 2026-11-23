@@ -4274,6 +4274,7 @@ export default {
   "settings.deleteForgottenZone": "刪除區域",
   "settings.deleteForgottenZoneConfirm": "永久刪除 {zones}？其設定（等化器、TESS、音量等）將一併刪除。裝置回到網路後會以新裝置出現。",
   "settings.forgottenZoneDeleted": "已刪除 {name} 的區域。",
+  "settings.forgetNeedsZoneDeletion": "此伺服器尚不支援在保留區域的同時忘記裝置。請更新 Tune，或確認將區域與裝置一併刪除。",
   "v2.zone.badgeDeviceForgotten": "裝置已忘記",
   "v2.zone.deviceForgottenLong": "此區域的裝置已不在網路上，已被忘記。裝置回來後區域會重新連線。如需刪除：設定 › 裝置 › 不在線的裝置。",
   "volume.dbEntry": "音量（分貝）",
