@@ -126,7 +126,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { lireTotaux } from '../../lib/totauxBibliotheque';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourceCorrespond, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
   import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
@@ -437,29 +437,35 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .catch(() => { if (!perime) favorisArtistesService = []; });
     return () => { perime = true; };
   });
-  /** Onglet Titres, source d'un SERVICE choisie : ses titres favoris, pas la fenêtre de la bibliothèque. */
-  const titresDuServiceChoisi = $derived.by(() => etendueTitres && !fFavoris && estSourceDeService(fProvenance));
   /**
-   * Décision de Bertrand du 23/11 — sous « Toutes les sources » aussi, les
-   * titres favoris des services rejoignent la liste, SANS DOUBLON
+   * Décision de Bertrand du 23/11 — les titres favoris des services rejoignent
+   * la liste sous « Toutes les sources » comme sous le service choisi, en
+   * COMPLÉMENT de la bibliothèque (comme Albums et Artistes) et SANS DOUBLON
    * (`titresSansDoublon`). Liste paginée : la bibliothèque n'est pas en
-   * mémoire, chaque titre favori y est cherché une fois par le serveur
-   * (`titresAbsentsDeLaBibliotheque`, réponses retenues jusqu'au prochain
-   * scan), et les absents se rangent EN QUEUE de la fenêtre : la pagination de
-   * la bibliothèque ne bouge pas.
+   * mémoire ; chaque titre favori y est cherché une fois par le serveur, sous
+   * la provenance affichée (`titresAbsentsDeLaBibliotheque`, réponses retenues
+   * jusqu'au prochain scan), et les absents se rangent EN QUEUE de la
+   * fenêtre : la pagination de la bibliothèque ne bouge pas.
    */
-  const titresEnToutesSources = $derived.by(() => etendueTitres && !fFavoris && fProvenance == null);
+  const titresEtendus = $derived.by(() => etendueTitres && !fFavoris && (fProvenance == null || estSourceDeService(fProvenance)));
+  /** Les titres favoris de la provenance affichée (tous sous « Toutes les sources »). */
+  const favorisDeLaProvenance = $derived.by(() =>
+    titresEtendus ? favorisPistesService.filter(t => sourceCorrespond(String(t.source ?? ''), fProvenance)) : []);
   let favorisAbsentsPagine = $state.raw<Track[]>([]);
-  let presenceLocale = new Map<string, boolean>();
+  let presencesParProvenance = new Map<string, Map<string, boolean>>();
   let generationPresence: unknown = null;
   $effect(() => {
-    const favoris = favorisPistesService;
+    const favoris = favorisDeLaProvenance;
+    const provenance = fProvenance;
     const gen = $generationBibliotheque;
-    if (!titresEnToutesSources || !pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
-    if (gen !== generationPresence) { presenceLocale = new Map(); generationPresence = gen; }
+    if (!pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
+    if (gen !== generationPresence) { presencesParProvenance = new Map(); generationPresence = gen; }
+    const cle = provenance ?? '*';
+    const cache = presencesParProvenance.get(cle) ?? new Map<string, boolean>();
+    presencesParProvenance.set(cle, cache);
     let perime = false;
     void titresAbsentsDeLaBibliotheque(favoris, async (titre) =>
-      ((await api.getPagePistes({ search: titre, limit: 25, offset: 0 }))?.items ?? []) as any[], presenceLocale)
+      ((await api.getPagePistes({ search: titre, provenance, limit: 25, offset: 0 }))?.items ?? []) as any[], cache)
       .then((absents) => { if (!perime) favorisAbsentsPagine = absents; });
     return () => { perime = true; };
   });
@@ -2834,7 +2840,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // #7586 — « Uniquement favoris » sur les Pistes : les pistes favorites,
   // servies par les favoris du profil (`api.getFavorites`), pas la fenêtre
   // paginée de toute la bibliothèque.
-  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris && !titresDuServiceChoisi);
+  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris);
   //
   // Les requêtes sont comptées (relecture du 12/11) : `getFavorites` relit
   // chaque objet favori un par un. On ne demande donc QUE les pistes
@@ -2935,7 +2941,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   /** Décision du 23/11 — les favoris absents de la bibliothèque, en queue de la fenêtre paginée. */
   const favorisEnQueue = $derived.by(() => {
-    if (!titresEnToutesSources || !pagine) return [] as Track[];
+    if (!titresEtendus || !pagine) return [] as Track[];
     const needle = fold(qPistes);
     return favorisAbsentsPagine.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
@@ -3110,9 +3116,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : titresDuServiceChoisi ? favorisPistesService
-      // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris qu'elle n'a pas.
-      : titresEnToutesSources ? [...tracks, ...titresSansDoublon(tracks, favorisPistesService)] : tracks;
+    // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris
+    // de la provenance affichée qu'elle n'a pas.
+    const base = fFavoris ? pistesFavorites
+      : titresEtendus ? [...tracks, ...titresSansDoublon(tracks.filter(t => dansSource(t, fProvenance)), favorisDeLaProvenance)] : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3132,9 +3139,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       ? favorisPistesService.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle))
       : [];
     if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
-    if (titresDuServiceChoisi) return comptesAvecFavoris(new Map<string, number>(), favoris);
     // Les favoris déjà fusionnés à la liste entière ne se comptent qu'une fois.
-    const locales = pistesRecherche.filter(t => !estSourceDeService(t.source == null ? null : String(t.source)));
+    const locales = pistesRecherche.filter(t => t.id != null);
     return comptesAvecFavoris(compterSources(locales.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
@@ -4696,9 +4702,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {:else if tab === 'tracks'}
         <div class="tracklist">
-          {#if fFavoris ? pistesFavoritesEnCharge : titresDuServiceChoisi ? favorisPistesEnCharge : tracksLoading}
+          {#if fFavoris ? pistesFavoritesEnCharge : tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
-          {:else if fFavoris ? pistesFavoritesErreur : titresDuServiceChoisi ? null : tracksError}
+          {:else if fFavoris ? pistesFavoritesErreur : tracksError}
             <div class="state">{fFavoris ? pistesFavoritesErreur : tracksError}</div>
           {:else if !visibleTracks.length}
             <div class="state" data-favoris-vide={fFavoris || undefined}>{fFavoris ? $tr('v2.lib.onlyFavoritesNone' as any) : tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>

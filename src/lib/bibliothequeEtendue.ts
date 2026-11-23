@@ -264,7 +264,8 @@ export function artistesSansDoublon<T extends { name?: string | null }>(
 /**
  * Onglet Titres PAGINÉ : la bibliothèque n'est pas en mémoire, seule sa
  * fenêtre l'est. Pour savoir si un titre favori y est déjà, on la demande au
- * serveur par une recherche sur son titre (`chercher`), au plus `concurrence`
+ * serveur par une recherche sur son titre (`chercher`, sous la provenance
+ * affichée : toute ligne de la bibliothèque qu'elle rend compte), au plus `concurrence`
  * à la fois, et chaque réponse est retenue dans `cache` (clé de titre →
  * présent) : la liste des favoris n'est chargée qu'une fois, la bibliothèque
  * jamais en entier. Une recherche qui échoue compte comme « présent » : on
@@ -285,7 +286,7 @@ export async function titresAbsentsDeLaBibliotheque<T extends { title?: string |
       const k = cleDeTitre(f);
       try {
         const trouves = await chercher(String(f.title ?? ''));
-        cache.set(k, trouves.some((t) => t.id != null && !estSourceDeService(t.source == null ? null : String(t.source)) && cleDeTitre(t) === k));
+        cache.set(k, trouves.some((t) => t.id != null && cleDeTitre(t) === k));
       } catch {
         cache.set(k, true);
       }

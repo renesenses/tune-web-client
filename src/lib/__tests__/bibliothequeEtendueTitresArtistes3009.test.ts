@@ -52,6 +52,8 @@ const FAVORIS_ARTISTES = [
 ];
 const LOCALES = [
   { id: 1, title: 'Piste locale', album_id: 1, artist_id: 1, artist_name: 'A', source: 'local' },
+  // Une piste de la BIBLIOTHÈQUE venue de Qobuz : choisir QOBUZ la garde (la liste est COMPLÉTÉE, pas remplacée).
+  { id: 2, title: 'Importée Qobuz', album_id: 2, artist_id: 2, artist_name: 'B', source: 'qobuz' },
 ];
 
 let urls: string[] = [];
@@ -64,12 +66,12 @@ function corpsPour(u: string): unknown {
     const p = new URL(u, 'http://x').searchParams;
     const prov = p.get('provenance');
     const search = (p.get('search') ?? '').toLowerCase();
-    const items = (prov && prov !== 'local' ? [] : LOCALES).filter((t) => !search || t.title.toLowerCase().includes(search));
+    const items = LOCALES.filter((t) => (!prov || t.source === prov) && (!search || t.title.toLowerCase().includes(search)));
     // Un serveur qui PAGINE : il renvoie `sort` et `order` (sinon le client retombe sur la liste entière).
     const corps: Record<string, unknown> = {
       items, total: items.length, limit: Number(p.get('limit') ?? 50), offset: 0, sort: p.get('sort'), order: p.get('order') ?? 'asc',
     };
-    if (p.get('counts') === 'sources') { corps.source_counts = { local: LOCALES.length }; corps.total_all_sources = LOCALES.length; }
+    if (p.get('counts') === 'sources') { corps.source_counts = { local: 1, qobuz: 1 }; corps.total_all_sources = LOCALES.length; }
     return corps;
   }
   if (/\/library\/artists/.test(u)) {
@@ -166,11 +168,14 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     const entrees = await entreesSource(el);
     expect(entrees.some((e) => /^QOBUZ\b/.test(e)), `pas de QOBUZ dans le menu Source : ${JSON.stringify(entrees)}`).toBe(true);
     choisir(el, 'QOBUZ');
-    await jusqua(() => (el.querySelector('.tracklist')?.textContent ?? '').includes('Sugar Man'));
+    // La fenêtre précédente reste affichée tant que celle de QOBUZ n'est pas arrivée.
+    await jusqua(() => { const t = el.querySelector('.tracklist')?.textContent ?? ''; return t.includes('Sugar Man') && !t.includes('Piste locale'); });
     const liste = el.querySelector('.tracklist')?.textContent ?? '';
     expect(liste).toContain('Sugar Man');
     expect(liste).toContain("Ça c'est fait");
     expect(liste).not.toContain('Piste locale');
+    // Relecture du 23/11 : la bibliothèque de cette provenance reste, les favoris la complètent.
+    expect(liste).toContain('Importée Qobuz');
   });
 
   it('Titres, « Toutes les sources » (décision du 23/11) : la bibliothèque, puis ses favoris absents, sans doublon', async () => {
@@ -182,7 +187,8 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     expect(texte()).toContain("Ça c'est fait");
     // Le favori qui double la piste locale ne fait pas de seconde ligne.
     expect(texte().match(/piste locale/gi) ?? []).toHaveLength(1);
-    expect(el.querySelectorAll('.tracklist .trow')).toHaveLength(3);
+    expect(texte()).toContain('Importée Qobuz');
+    expect(el.querySelectorAll('.tracklist .trow')).toHaveLength(4);
     // La bibliothèque reste servie par pages : aucune liste entière demandée.
     expect(urls.filter((u) => /\/library\/tracks\?limit=5000/.test(u)), 'URLS').toEqual([]);
   });
