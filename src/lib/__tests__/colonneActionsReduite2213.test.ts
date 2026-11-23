@@ -94,13 +94,14 @@ afterEach(() => {
 
 // web#3121 (16/11/2026) — la barre réduite est devenue la SEULE forme : plus
 // d'option, quatre cases partout, et la colonne comme l'Historique les suivent.
-describe('web#2213 / web#3121 — la colonne d’actions vaut la barre de quatre cases', () => {
-  it('🔴 la colonne vaut la barre rendue, quatre cases, sans case vide', () => {
+// Fil forum 3009 (23/11/2026) — trois cases : « Lire à partir d'ici » passe au menu.
+describe('web#2213 / web#3121 / fil 3009 — la colonne d’actions vaut la barre de trois cases', () => {
+  it('🔴 la colonne vaut la barre rendue, trois cases, sans case vide', () => {
     const h = poserListe();
     const barre = h.querySelectorAll('.trow .pactions > *');
-    expect(barre.length).toBe(4);
-    expect(colonneActions(h), 'la colonne garde la place d’icônes absentes').toBe(`${largeurBarre(4)}px`);
-    expect(largeurBarre(4)).toBe(118);
+    expect(barre.length).toBe(3);
+    expect(colonneActions(h), 'la colonne garde la place d’icônes absentes').toBe(`${largeurBarre(3)}px`);
+    expect(largeurBarre(3)).toBe(88);
   });
 
   it('🔴 l’Historique compose sa ligne d’objet avec la MÊME largeur (#1149)', async () => {
@@ -108,6 +109,6 @@ describe('web#2213 / web#3121 — la colonne d’actions vaut la barre de quatre
     const h = await poserHistorique();
     const liste = h.querySelector<HTMLElement>('.list');
     expect(liste, 'Historique vide — témoin sans objet').not.toBeNull();
-    expect(liste!.style.getPropertyValue('--col-actions')).toBe(`${largeurBarre(4)}px`);
+    expect(liste!.style.getPropertyValue('--col-actions')).toBe(`${largeurBarre(3)}px`);
   });
 });

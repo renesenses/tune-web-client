@@ -18,6 +18,12 @@
    * pas ; seul, il n'affiche pas de rangée d'onglets. La forme reprend celle
    * des onglets de la fiche (maquette de Levente, Pistes | Crédits | …), en
    * plus petit. La place de la section dans la fiche ne change pas.
+   *
+   * 🔄 Fil forum 3009 (FabienM, point 11 ; go du 23/11/2026) — la fiche album
+   * la range dans un ONGLET « Compléments Qobuz », à côté de « Crédits »
+   * (`enOnglet`) : l'onglet nomme déjà la section, le titre repliable
+   * disparaît. `onPresence` dit à la fiche s'il y a quelque chose à montrer,
+   * pour que l'onglet n'existe pas sur un album jamais retrouvé chez Qobuz.
    */
   import { tick } from 'svelte';
   import { t as tr } from '../../lib/i18n';
@@ -37,8 +43,12 @@
 
   interface Props {
     albumId: number;
+    /** Fil 3009 — rendu dans un onglet de la fiche : ni titre, ni repli. */
+    enOnglet?: boolean;
+    /** Fil 3009 — appelé quand la section a (ou n'a plus) quelque chose à montrer. */
+    onPresence?: ((presente: boolean) => void) | null;
   }
-  let { albumId }: Props = $props();
+  let { albumId, enOnglet = false, onPresence = null }: Props = $props();
 
   let apports = $state.raw<ApportsQobuz | null>(null);
   let credits = $state.raw<ReturnType<typeof creditsQobuz>>([]);
@@ -72,6 +82,9 @@
   });
 
   const lignes = $derived(lignesApports(apports));
+  /** Ce qui décide d'afficher la section — et, dans la fiche, son onglet. */
+  const presente = $derived(!!(lignes.length || credits.length || confirmable(apports) || retire));
+  $effect(() => { onPresence?.(presente); });
 
   /** web#3123 — les sous-onglets présents, et celui qui est ouvert. */
   const onglets = $derived(ongletsApports(lignes, credits.length));
@@ -128,8 +141,11 @@
   }
 </script>
 
-{#if lignes.length || credits.length || confirmable(apports) || retire}
-  <section class="apports-qobuz" data-apports-qobuz aria-labelledby="apports-qobuz-titre-{albumId}">
+{#if presente}
+  <section class="apports-qobuz" class:en-onglet={enOnglet} data-apports-qobuz
+    aria-labelledby={enOnglet ? undefined : `apports-qobuz-titre-${albumId}`}
+    aria-label={enOnglet ? $tr('v2.album.qobuz.title' as any) : undefined}>
+    {#if !enOnglet}
     <h3 id="apports-qobuz-titre-{albumId}" class:replie>
       <!-- Motif « disclosure » : le nom du bouton reste le TITRE, l'état est
            porté par `aria-expanded` ; « Replier »/« Déplier » est l'infobulle. -->
@@ -140,7 +156,8 @@
         <span>{$tr('v2.album.qobuz.title' as any)}</span>
       </button>
     </h3>
-    <div class="corps" id="apports-qobuz-corps-{albumId}" hidden={replie}>
+    {/if}
+    <div class="corps" id="apports-qobuz-corps-{albumId}" hidden={!enOnglet && replie}>
     {#if confirmable(apports)}
       <p class="a-confirmer">{$tr('v2.album.qobuz.toConfirm' as any)}</p>
       <div class="gestes">
@@ -215,6 +232,8 @@
 
 <style>
   .apports-qobuz { margin: 1rem 0; padding: .75rem 1rem; border: 1px solid var(--tune-border, rgba(127,127,127,.25)); border-radius: 8px; }
+  /* Fil 3009 — dans l'onglet de la fiche, la rangée d'onglets la sépare déjà de l'en-tête. */
+  .apports-qobuz.en-onglet { margin-top: 0; }
   h3 { margin: 0 0 .5rem; font-size: calc(1rem * var(--v2-txt-echelle, 1)); display: flex; align-items: center; gap: .25rem; }
   h3.replie { margin-bottom: 0; }
   .pli { display: inline-flex; align-items: center; gap: .25rem; padding: 0; margin-left: -.25rem; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; text-align: left; }

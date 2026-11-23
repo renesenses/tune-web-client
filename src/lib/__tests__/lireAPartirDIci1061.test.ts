@@ -19,23 +19,17 @@ const lire = (p: string) => readFileSync(p, 'utf8');
 const sansCommentaires = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 
-describe('#1061 — le bouton, dans la barre partagée', () => {
+describe('#1061 / fil 3009 — le geste, au menu « … » de la barre partagée', () => {
   const barre = lire('src/components/v2/PisteActions.svelte');
+  const menu = lire('src/lib/menuPiste.ts');
 
-  it('il porte le libellé déjà traduit, et la barre le rend sur demande', () => {
-    expect(barre).toContain("$t('common.playFromHere'");
-    expect(barre).toContain('data-depuis');
+  it('la barre ne porte plus de bouton : elle passe le geste au menu', () => {
+    // Fil forum 3009 (FabienM, points 2 et 3) — le bouton quitte la ligne.
+    expect(sansCommentaires(barre)).not.toContain('data-depuis');
     expect(barre).toContain('onLireDepuis?: (() => void) | null;');
-    // 🔴 Contre-épreuve : sans la propriété, la barre est celle d'avant.
-    const i = barre.indexOf('data-depuis');
-    const garde = barre.lastIndexOf('{#if ', i);
-    expect(barre.slice(garde, i)).toContain('onLireDepuis');
-  });
-
-  it('il n\'avale pas le clic de la ligne', () => {
-    const i = barre.indexOf('data-depuis');
-    const bloc = barre.slice(i, i + 200);
-    expect(bloc).toContain('stop(e)');
+    expect(barre).toContain('lireDepuis: onLireDepuis ? () => onLireDepuis?.() : undefined');
+    // Le menu le pousse sous « Lire », avec le libellé déjà traduit.
+    expect(menu).toContain("pousser(c.jouable, 'common.playFromHere', ICONES.depuis, g.lireDepuis);");
   });
 
   it('la clé existe dans les ONZE langues', () => {
