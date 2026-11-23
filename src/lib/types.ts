@@ -454,6 +454,10 @@ export interface SignalPath {
   lossless?: boolean | null;
   steps: SignalPathStep[];
   summary: string;
+  /** TESS T16 — le bloc `tess` (maquette A4) : badge, étapes résolues et
+   *  rapprochées de ce qui tourne. Absent d'un serveur sans TESS. Lu par
+   *  `lib/tessBarre.ts`. */
+  tess?: import('./tessBarre').CheminTessBarre | null;
   decisions?: string[];
   checksum?: string | null;
   checksum_verified?: boolean | null;

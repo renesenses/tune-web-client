@@ -53,6 +53,8 @@ const flush = async () => { for (let i = 0; i < 10; i++) await new Promise((r) =
 
 beforeEach(() => {
   try { localStorage.clear(); } catch { /* stockage indisponible */ }
+  // Fil 3009, point 19 : la frise se déplie à la demande ; ce banc la lit dépliée.
+  try { localStorage.setItem('tune_v2_ecran_lib.frise', '1'); } catch { /* stockage indisponible */ }
   history.replaceState(null, '', '/#library');
   _remiseAZeroPourTests();
   locale.set('fr');

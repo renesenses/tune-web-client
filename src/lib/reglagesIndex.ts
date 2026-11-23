@@ -221,6 +221,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'retablir-largeurs', section: 'displayPrefs', labelKey: 'settings.colWidthsReset', descKey: 'settings.colWidthsResetHint' },
   { id: 'retablir-ordre-colonnes', section: 'displayPrefs', labelKey: 'settings.colOrderReset', descKey: 'settings.colOrderResetHint' },
   { id: 'collections-mosaique', section: 'displayPrefs', labelKey: 'settings.collectionsMosaic', descKey: 'settings.collectionsMosaicHint' },
+  { id: 'bouton-lecture-pochettes', section: 'displayPrefs', labelKey: 'settings.coverPlayButton', descKey: 'settings.coverPlayButtonHint' },
   { id: 'bouton-stop', section: 'displayPrefs', labelKey: 'settings.showStopButton', descKey: 'settings.showStopButtonHint', techniques: ['stop'] },
   { id: 'minuteur-sommeil', section: 'displayPrefs', labelKey: 'settings.showSleepTimer', descKey: 'settings.showSleepTimerHint', termesKey: 'reglages.termes.minuteurSommeil', techniques: ['sleep'] },
   { id: 'ordre-autres-versions', section: 'displayPrefs', labelKey: 'settings.versionsOrder', descKey: 'settings.versionsOrderHint', techniques: ['Qobuz', 'Bandcamp'] },

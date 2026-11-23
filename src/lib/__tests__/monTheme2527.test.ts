@@ -145,8 +145,10 @@ describe('#2527 — la feuille appliquée', () => {
     const css = cssDuTheme(lisible());
     expect(css.startsWith(`:root[data-v2-theme][${ATTRIBUT_MON_THEME}] .tune-v2{`)).toBe(true);
     expect(css).toContain('--v2-body-bg:#000000;');
-    // Que des #RRGGBB et des rgba() construits ici.
-    const valeurs = [...css.matchAll(/:([^;{}]+);/g)].map((m) => m[1]);
+    // Que des #RRGGBB et des rgba() construits ici — plus l'opacité du voile
+    // de Lecture en cours (design v3), une des deux constantes du module.
+    expect(css).toMatch(/--v2-voile-lecture:0\.9[24];/);
+    const valeurs = [...css.replace(/--v2-voile-lecture:0\.9[24];/, '').matchAll(/:([^;{}]+);/g)].map((m) => m[1]);
     for (const v of valeurs) expect(v).toMatch(/^(#[0-9A-F]{6}|rgba\(\d+,\d+,\d+,[\d.]+\))$/);
   });
 

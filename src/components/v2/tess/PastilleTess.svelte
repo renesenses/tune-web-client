@@ -3,7 +3,8 @@
    * La pastille « TESS » de la barre de lecture (maquettes A1 et A5).
    * Absente tant que le serveur n'annonce pas TESS (`capaciteTess`).
    * Un geste : ouvrir l'écran TESS. Le chemin du signal détaillé depuis la
-   * barre (maquette A4) est le lot W5.
+   * barre (maquette A4, lot W5) vit dans le panneau « Chemin du signal »
+   * (`CheminTessBarre`).
    */
   import { t } from '../../../lib/i18n';
   import { capaciteTess } from '../../../lib/stores/tess';

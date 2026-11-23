@@ -255,7 +255,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
-  import { brancherHistoriqueCoquille, revenirA } from '../../lib/historiqueCoquille';
+  import { brancherHistoriqueCoquille, reculerUneEtape, revenirA } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import FlechesNavigation from './FlechesNavigation.svelte';
   import { demarrerTransportV2 } from '../../lib/v2Live';
@@ -589,6 +589,12 @@
 
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
   function fermerAlbumService() {
+    // Fil 3011 — Retour = UNE entrée dépilée : le `popstate` repose l'écran
+    // d'avant (vue, détail, fiche). La fiche n'est PAS vidée ici : la vider
+    // avant le `popstate` montrait le repli « À venir » dans l'intervalle.
+    // Le dépôt de retour est consommé ; le `popstate` rend celui de l'écran
+    // d'en dessous (`retourSousLaFiche`).
+    if (reculerUneEtape('streamingalbum', () => vueDeRetour.set(null))) return;
     // #2459 : l'entrée précédente porte aussi le détail playlist, pas seulement sa vue.
     if (retourSousLaFiche && history.state?.tune === 'v2' && history.state.vue === 'streamingalbum') {
       reculerAvecIntention(() => {
@@ -755,11 +761,14 @@
       chemin ne mène à l'écran Lecture en cours : le bouton suit alors ce qui
       joue, sur tous les écrans. La règle vit dans `boutonGrandEcranVisible`.
     -->
+    <!-- Design v3 de Levente (§10.2), 23/11/2026 : le bouton est RENOMMÉ
+         « Mode plein écran » (`nowplaying.fullscreenMode`) — il demande bien
+         le plein écran (`demanderPleinEcran`) avant d'ouvrir la vue. -->
     {#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}
       <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
-        aria-label={$t('nowplaying.tvMode' as any)} title={$t('nowplaying.tvMode' as any)}>
+        aria-label={$t('nowplaying.fullscreenMode' as any)} title={$t('nowplaying.fullscreenMode' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.tvMode' as any)}</span>{/if}
+        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>{/if}
       </button>
     {/if}
     <!--

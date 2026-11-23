@@ -67,3 +67,28 @@ export function cleDeLaDemandeDeCode(r: { status?: string; error?: string } | nu
   if (r?.status) return 'authActivation.codeSent';
   return 'authActivation.error';
 }
+
+/**
+ * rc14 — le bouton « Désactiver l'authentification » est-il offert ?
+ *
+ * Seulement quand l'authentification est active, et pour une session
+ * ADMINISTRATRICE (`GET /auth/me`) ou depuis la machine qui fait tourner Tune
+ * (`from_this_machine`). Le serveur reste juge : il exige de toute façon un
+ * jeton administrateur (`POST /auth/config`, `ensure_admin_if_auth_enabled`).
+ */
+export function desactivationOfferte(
+  etat: { auth_enabled?: boolean; from_this_machine?: boolean } | null | undefined,
+  role: unknown,
+): boolean {
+  if (!etat || etat.auth_enabled !== true) return false;
+  return role === 'admin' || etat.from_this_machine === true;
+}
+
+/** La clé i18n du refus de désactivation, ou `null` si c'est fait. */
+export function cleDuRefusDesactivation(
+  r: { auth_enabled?: boolean; error?: string } | null | undefined,
+): string | null {
+  if (r && r.auth_enabled === false && !r.error) return null;
+  if (r?.error) return 'authActivation.disableAdminRequired';
+  return 'authActivation.disableError';
+}

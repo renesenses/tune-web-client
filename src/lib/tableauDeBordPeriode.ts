@@ -90,3 +90,22 @@ export const ICONES = {
   durees: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   barres: '<path d="M5 20V11M12 20V5M19 20v-6"/>',
 } as const;
+
+/** Les vingt-quatre comptes horaires (`hourly` du serveur), indexés par l'heure. */
+export function parHeureDe(cells: { hour: number; plays: number }[]): number[] {
+  const par = Array(24).fill(0);
+  for (const h of cells) {
+    if (h.hour >= 0 && h.hour < 24) par[h.hour] = h.plays;
+  }
+  return par;
+}
+
+/**
+ * L'heure de POINTE : la première heure qui porte le maximum ; `-1` quand rien
+ * n'a été écouté (une plage vide n'a pas de pointe). Règle unique de
+ * « Heure de la journée » et de la note de « Jour × heure ».
+ */
+export function heureDePointe(parHeure: readonly number[]): number {
+  const max = parHeure.length ? Math.max(...parHeure) : 0;
+  return max > 0 ? parHeure.indexOf(max) : -1;
+}

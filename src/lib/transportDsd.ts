@@ -82,3 +82,19 @@ export function diagnosticDsd(
   // Serveur antérieur à #7372 (pas de motif) ou motif inconnu : la mention #1876.
   return { cle: 'v2.set.dsdNativeServedAsDop', genre: 'dop' };
 }
+
+/**
+ * Les modes DSD qu'une zone peut régler, dans l'ordre du sélecteur.
+ *
+ * Devialet AIR (tune-server-rust#8920, puis TESS T12c, décision du 17/11) :
+ * le serveur n'accepte plus que la conversion en PCM — le DoP est débranché
+ * jusqu'à un essai sur un ampli réel, « natif » et « auto » étaient déjà
+ * refusés. Offrir un mode que le serveur refuse en 400, c'est un sélecteur
+ * qui ment : il n'est pas proposé.
+ */
+export type ModeDsd = 'auto' | 'native' | 'dop' | 'pcm';
+
+export function modesDsdOfferts(outputType: string | null | undefined): ModeDsd[] {
+  if (outputType === 'devialet_air') return ['pcm'];
+  return ['auto', 'native', 'dop', 'pcm'];
+}
