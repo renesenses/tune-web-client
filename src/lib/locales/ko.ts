@@ -3233,6 +3233,7 @@ export default {
   "v2.home.becauseYouLikeSave": "플레이리스트로 저장",
   "v2.home.becauseYouLikeDone": "저장됨",
   "v2.home.becauseYouLikeName": "플레이리스트 이름",
+  "v2.home.becauseYouLikeMixName": "{artiste} 믹스",
   "v2.home.becauseYouLikeSaved": "플레이리스트 “{nom}” 저장됨",
   "v2.home.becauseYouLikeNoZone": "먼저 재생 구역을 선택하세요",
   "v2.home.becauseYouLikeNothingPlayable": "이 재생목록의 곡은 여기서 재생할 수 없습니다. 아무것도 시작되지 않았습니다.",

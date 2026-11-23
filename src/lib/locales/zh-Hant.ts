@@ -1851,6 +1851,7 @@ export default {
   "v2.home.becauseYouLikeSave": "儲存為播放列表",
   "v2.home.becauseYouLikeDone": "已儲存播放列表",
   "v2.home.becauseYouLikeName": "播放列表名稱",
+  "v2.home.becauseYouLikeMixName": "{artiste} 混音",
   "v2.home.becauseYouLikeSaved": "已儲存播放列表「{nom}」",
   "v2.home.becauseYouLikeNoZone": "請先選擇聆聽區域",
   "v2.home.becauseYouLikeNothingPlayable": "此播放清單中沒有可在此播放的曲目：未開始播放任何內容。",

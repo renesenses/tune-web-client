@@ -3233,6 +3233,7 @@ export default {
   "v2.home.becauseYouLikeSave": "保存为播放列表",
   "v2.home.becauseYouLikeDone": "已保存",
   "v2.home.becauseYouLikeName": "播放列表名称",
+  "v2.home.becauseYouLikeMixName": "{artiste} 混音",
   "v2.home.becauseYouLikeSaved": "已保存播放列表「{nom}」",
   "v2.home.becauseYouLikeNoZone": "请先选择收听区域",
   "v2.home.becauseYouLikeNothingPlayable": "此播放列表中没有可在此播放的曲目：未开始播放任何内容。",

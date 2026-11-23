@@ -1851,6 +1851,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Opslaan als afspeellijst",
   "v2.home.becauseYouLikeDone": "Afspeellijst opgeslagen",
   "v2.home.becauseYouLikeName": "Naam van de afspeellijst",
+  "v2.home.becauseYouLikeMixName": "{artiste}-mix",
   "v2.home.becauseYouLikeSaved": "Afspeellijst “{nom}” opgeslagen",
   "v2.home.becauseYouLikeNoZone": "Kies eerst een luisterzone",
   "v2.home.becauseYouLikeNothingPlayable": "Geen enkel nummer uit deze afspeellijst kan hier worden afgespeeld: er is niets gestart.",

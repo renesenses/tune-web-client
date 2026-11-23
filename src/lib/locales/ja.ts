@@ -3233,6 +3233,7 @@ export default {
   "v2.home.becauseYouLikeSave": "プレイリストとして保存",
   "v2.home.becauseYouLikeDone": "保存しました",
   "v2.home.becauseYouLikeName": "プレイリスト名",
+  "v2.home.becauseYouLikeMixName": "{artiste} ミックス",
   "v2.home.becauseYouLikeSaved": "プレイリスト「{nom}」を保存しました",
   "v2.home.becauseYouLikeNoZone": "まず再生ゾーンを選択してください",
   "v2.home.becauseYouLikeNothingPlayable": "このプレイリストの曲はここでは再生できません。何も開始されていません。",

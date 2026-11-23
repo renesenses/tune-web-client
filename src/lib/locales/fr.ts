@@ -1980,6 +1980,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Enregistrer comme playlist",
   "v2.home.becauseYouLikeDone": "Playlist enregistrée",
   "v2.home.becauseYouLikeName": "Nom de la playlist",
+  "v2.home.becauseYouLikeMixName": "Mix {artiste}",
   "v2.home.becauseYouLikeSaved": "Playlist « {nom} » enregistrée",
   "v2.home.becauseYouLikeNoZone": "Choisissez d'abord une zone d'écoute",
   "v2.home.becauseYouLikeNothingPlayable": "Aucun titre de cette playlist n'est jouable ici : rien n'a été lancé.",

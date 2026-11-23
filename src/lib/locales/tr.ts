@@ -1854,6 +1854,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Çalma listesi olarak kaydet",
   "v2.home.becauseYouLikeDone": "Çalma listesi kaydedildi",
   "v2.home.becauseYouLikeName": "Çalma listesinin adı",
+  "v2.home.becauseYouLikeMixName": "{artiste} Mix",
   "v2.home.becauseYouLikeSaved": "“{nom}” çalma listesi kaydedildi",
   "v2.home.becauseYouLikeNoZone": "Önce bir dinleme bölgesi seçin",
   "v2.home.becauseYouLikeNothingPlayable": "Bu çalma listesindeki hiçbir parça burada çalınamıyor: hiçbir şey başlatılmadı.",

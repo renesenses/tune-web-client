@@ -3233,6 +3233,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Als Playlist speichern",
   "v2.home.becauseYouLikeDone": "Playlist gespeichert",
   "v2.home.becauseYouLikeName": "Name der Playlist",
+  "v2.home.becauseYouLikeMixName": "{artiste} Mix",
   "v2.home.becauseYouLikeSaved": "Playlist „{nom}“ gespeichert",
   "v2.home.becauseYouLikeNoZone": "Wähle zuerst eine Wiedergabezone",
   "v2.home.becauseYouLikeNothingPlayable": "Kein Titel dieser Playlist ist hier abspielbar: Es wurde nichts gestartet.",

@@ -1851,6 +1851,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Зберегти як плейлист",
   "v2.home.becauseYouLikeDone": "Плейлист збережено",
   "v2.home.becauseYouLikeName": "Назва плейлиста",
+  "v2.home.becauseYouLikeMixName": "Мікс {artiste}",
   "v2.home.becauseYouLikeSaved": "Плейлист «{nom}» збережено",
   "v2.home.becauseYouLikeNoZone": "Спершу виберіть зону прослуховування",
   "v2.home.becauseYouLikeNothingPlayable": "Жоден трек із цього плейлиста не можна відтворити тут: нічого не запущено.",

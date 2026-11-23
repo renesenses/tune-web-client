@@ -3187,6 +3187,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Mentés lejátszási listaként",
   "v2.home.becauseYouLikeDone": "Lista mentve",
   "v2.home.becauseYouLikeName": "Lista neve",
+  "v2.home.becauseYouLikeMixName": "{artiste} mix",
   "v2.home.becauseYouLikeSaved": "„{nom}” lista mentve",
   "v2.home.becauseYouLikeNoZone": "Először válassz hallgatási zónát",
   "v2.home.becauseYouLikeNothingPlayable": "A lejátszási lista egyetlen száma sem játszható le itt: semmi sem indult el.",

@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Lưu thành danh sách phát",
   "v2.home.becauseYouLikeDone": "Đã lưu danh sách phát",
   "v2.home.becauseYouLikeName": "Tên danh sách phát",
+  "v2.home.becauseYouLikeMixName": "Mix {artiste}",
   "v2.home.becauseYouLikeSaved": "Đã lưu danh sách phát “{nom}”",
   "v2.home.becauseYouLikeNoZone": "Hãy chọn vùng nghe trước",
   "v2.home.becauseYouLikeNothingPlayable": "Không có bài nào trong danh sách phát này phát được ở đây: chưa có gì được bắt đầu.",
