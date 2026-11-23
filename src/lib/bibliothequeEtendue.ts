@@ -18,7 +18,7 @@
  */
 import { get, writable } from 'svelte/store';
 import * as api from './api';
-import type { Album, Source } from './types';
+import type { Album, Artist, Source, Track } from './types';
 
 /** Ce que rend `GET /profiles/{id}/favorites/streaming?item_type=album`. */
 export interface FavoriAlbumDeService {
@@ -121,4 +121,94 @@ export async function changerReglageEtendue(profileId: number, actif: boolean): 
     bibliothequeEtendueActive.set(avant);
     throw e;
   }
+}
+
+/**
+ * Fil 3009, point 6 (FabienM, rc13) — « Menu bibliothèque : onglets Titres et
+ * Artistes : la source Qobuz est absente (alors que j'ai des titres et
+ * artistes favoris Qobuz). Le paramètre "Bibliothèque élargie aux favoris des
+ * services" est activé. »
+ *
+ * Le réglage n'élargissait que l'onglet ALBUMS (#6482, #7780). Les onglets
+ * Titres et Artistes reçoivent désormais, de la même façon, les titres et les
+ * artistes favoris des services (`GET /profiles/{id}/favorites/streaming?
+ * item_type=track|artist&pour=bibliotheque`), chacun sous sa provenance : le
+ * menu « Source » les propose, et choisir le service les montre.
+ */
+export interface FavoriDeService {
+  item_type: string;
+  service: string;
+  service_id: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  album_id_service?: string | null;
+  cover_url?: string | null;
+}
+
+/** La paire service + identifiant d'un favori de service, ou `null`. */
+function paireDeService(f: FavoriDeService | null | undefined, type: string): { service: string; sid: string } | null {
+  if (f?.item_type !== type) return null;
+  const service = (f.service ?? '').trim();
+  const sid = String(f.service_id ?? '').trim();
+  if (!service || !sid || SOURCES_DE_BIBLIOTHEQUE.has(service)) return null;
+  return { service, sid };
+}
+
+/** Les TITRES favoris des services, en forme de `Track`, dédoublonnés par paire. */
+export function pistesDesFavorisDeService(favoris: readonly FavoriDeService[] | null | undefined): Track[] {
+  const vus = new Set<string>();
+  const pistes: Track[] = [];
+  for (const f of favoris ?? []) {
+    const p = paireDeService(f, 'track');
+    if (!p || vus.has(`${p.service}:${p.sid}`)) continue;
+    vus.add(`${p.service}:${p.sid}`);
+    pistes.push({
+      id: null,
+      title: f.title ?? '',
+      artist_name: f.artist ?? null,
+      album_title: f.album ?? null,
+      cover_path: f.cover_url ?? null,
+      source: p.service as Source,
+      source_id: p.sid,
+      album_id_service: (f.album_id_service ?? '').toString().trim() || null,
+    } as Track);
+  }
+  return pistes;
+}
+
+/** Un artiste favori d'un service : pas d'`id` de bibliothèque, sa paire service + identifiant. */
+export type ArtisteDeService = Artist & { source: string; source_id: string };
+
+/** Les ARTISTES favoris des services, dédoublonnés par paire. */
+export function artistesDesFavorisDeService(favoris: readonly FavoriDeService[] | null | undefined): ArtisteDeService[] {
+  const vus = new Set<string>();
+  const artistes: ArtisteDeService[] = [];
+  for (const f of favoris ?? []) {
+    const p = paireDeService(f, 'artist');
+    if (!p || vus.has(`${p.service}:${p.sid}`)) continue;
+    vus.add(`${p.service}:${p.sid}`);
+    artistes.push({ id: null, name: (f.title ?? f.artist ?? '').trim(), image_path: f.cover_url ?? null, source: p.service, source_id: p.sid } as ArtisteDeService);
+  }
+  return artistes;
+}
+
+/** La source choisie désigne-t-elle un SERVICE (et non la bibliothèque) ? */
+export function estSourceDeService(source: string | null | undefined): boolean {
+  const s = (source ?? '').trim();
+  return !!s && !SOURCES_DE_BIBLIOTHEQUE.has(s) && !s.startsWith('upnp:');
+}
+
+/** Ajoute aux comptes du menu « Source » ceux des favoris de service (chacun sous son service). */
+export function comptesAvecFavoris(
+  comptes: ReadonlyMap<string, number>,
+  favoris: readonly { source?: string | null }[],
+): Map<string, number> {
+  const out = new Map(comptes);
+  for (const f of favoris) {
+    const s = (f.source ?? '').trim();
+    if (!estSourceDeService(s)) continue;
+    out.set(s, (out.get(s) ?? 0) + 1);
+  }
+  return out;
 }

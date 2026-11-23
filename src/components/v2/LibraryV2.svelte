@@ -129,7 +129,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -401,6 +402,43 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
+
+  /**
+   * Fil 3009, point 6 (FabienM, rc13) — le même réglage élargit aussi les
+   * onglets TITRES et ARTISTES : les titres et les artistes favoris des
+   * services y entrent sous leur provenance. Le menu « Source » les compte, et
+   * choisir le service les montre (`lib/bibliothequeEtendue`). Mêmes bornes
+   * que les albums : ni dépôt distant, ni portée de répertoire.
+   */
+  const etendueTitres = $derived.by(() => etendue && !depot && !porteeActive && tab === 'tracks');
+  const etendueArtistes = $derived.by(() => etendue && !depot && !porteeActive && tab === 'artists');
+  let favorisPistesService = $state.raw<Track[]>([]);
+  let favorisPistesEnCharge = $state(false);
+  let favorisArtistesService = $state.raw<ArtisteDeService[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueTitres || pid == null) return;
+    let perime = false;
+    favorisPistesEnCharge = untrack(() => favorisPistesService.length === 0);
+    api.getProfileStreamingFavorites(pid, 'track', 'bibliotheque')
+      .then((f) => { if (!perime) favorisPistesService = pistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisPistesService = []; })
+      .finally(() => { if (!perime) favorisPistesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueArtistes || pid == null) return;
+    let perime = false;
+    api.getProfileStreamingFavorites(pid, 'artist', 'bibliotheque')
+      .then((f) => { if (!perime) favorisArtistesService = artistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisArtistesService = []; });
+    return () => { perime = true; };
+  });
+  /** Onglet Titres, source d'un SERVICE choisie : ses titres favoris, pas la fenêtre de la bibliothèque. */
+  const titresDuServiceChoisi = $derived.by(() => etendueTitres && !fFavoris && estSourceDeService(fProvenance));
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -2772,7 +2810,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // #7586 — « Uniquement favoris » sur les Pistes : les pistes favorites,
   // servies par les favoris du profil (`api.getFavorites`), pas la fenêtre
   // paginée de toute la bibliothèque.
-  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris);
+  const pagine = $derived(tab === 'tracks' && !depot && modePistes !== 'entier' && !fFavoris && !titresDuServiceChoisi);
   //
   // Les requêtes sont comptées (relecture du 12/11) : `getFavorites` relit
   // chaque objet favori un par un. On ne demande donc QUE les pistes
@@ -3021,7 +3059,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : tracks;
+    const base = fFavoris ? pistesFavorites : titresDuServiceChoisi ? favorisPistesService : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3035,8 +3073,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived.by(() => {
     // #1716 — paginé, les comptes viennent du serveur, sous la recherche.
-    if (pagine) { void versionFenetre; return fenetrePistes?.comptes ?? new Map<string, number>(); }
-    return compterSources(pistesRecherche.map(t => [provenanceDe(t)]));
+    // Fil 3009, point 6 — les titres favoris des services comptent sous leur service.
+    const needle = fold(q);
+    const favoris = etendueTitres && !fFavoris
+      ? favorisPistesService.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle))
+      : [];
+    if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
+    if (titresDuServiceChoisi) return comptesAvecFavoris(new Map<string, number>(), favoris);
+    return comptesAvecFavoris(compterSources(pistesRecherche.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
@@ -3088,7 +3132,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   function playTrack(t: Track) {
     const zid = $currentZoneId;
-    if (zid == null || t.id == null) return;
+    if (zid == null) return;
+    // Fil 3009, point 6 — un titre favori d'un SERVICE (bibliothèque élargie)
+    // se joue par sa paire service + identifiant.
+    if (t.id == null) {
+      const corps = depot ? null : corpsDeLecture(t);
+      if (corps) playAndSync(zid, corps as any).catch(signalerEchecLecture);
+      return;
+    }
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
     // distant designerait un tout autre morceau ici. On passe donc par son URL
     // de flux, jouee en `source: upnp`.
@@ -4506,6 +4557,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
+        artistesDeService={etendueArtistes && !fFavoris ? favorisArtistesService : []}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
@@ -4588,9 +4640,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </div>
       {:else if tab === 'tracks'}
         <div class="tracklist">
-          {#if fFavoris ? pistesFavoritesEnCharge : tracksLoading}
+          {#if fFavoris ? pistesFavoritesEnCharge : titresDuServiceChoisi ? favorisPistesEnCharge : tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
-          {:else if fFavoris ? pistesFavoritesErreur : tracksError}
+          {:else if fFavoris ? pistesFavoritesErreur : titresDuServiceChoisi ? null : tracksError}
             <div class="state">{fFavoris ? pistesFavoritesErreur : tracksError}</div>
           {:else if !visibleTracks.length}
             <div class="state" data-favoris-vide={fFavoris || undefined}>{fFavoris ? $tr('v2.lib.onlyFavoritesNone' as any) : tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
