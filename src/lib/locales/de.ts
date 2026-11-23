@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "Keine abwesenden Geräte.",
   "settings.absentLabel": "Abwesend",
   "settings.absentDevicesLoadError": "Abwesende Geräte konnten nicht geladen werden.",
-  "settings.forgetDeviceConfirmZones": "Gerät {device} vergessen? Diese Zonen werden samt Einstellungen gelöscht: {zones}. Kehrt es ins Netzwerk zurück, erscheint es als neues Gerät.",
   "settings.zoneAlreadyDeleted": "bereits gelöscht",
   "settings.forgetDevice": "Dieses Gerät vergessen",
   "settings.deviceForgotten": "{name} wurde vergessen.",

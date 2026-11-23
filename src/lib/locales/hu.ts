@@ -4337,7 +4337,6 @@ export default {
   "settings.noAbsentDevices": "Nincs hiányzó eszköz.",
   "settings.absentLabel": "Hiányzik",
   "settings.absentDevicesLoadError": "A hiányzó eszközök nem tölthetők be.",
-  "settings.forgetDeviceConfirmZones": "Elfelejti a(z) {device} eszközt? Ezek a zónák a beállításaikkal együtt törlődnek: {zones}. Ha visszatér a hálózatra, új eszközként jelenik meg.",
   "settings.zoneAlreadyDeleted": "már törölve",
   "settings.forgetDevice": "Eszköz elfelejtése",
   "settings.deviceForgotten": "{name} elfelejtve.",

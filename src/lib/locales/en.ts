@@ -4403,7 +4403,6 @@ export default {
   "settings.noAbsentDevices": "No absent devices.",
   "settings.absentLabel": "Absent",
   "settings.absentDevicesLoadError": "Could not load absent devices.",
-  "settings.forgetDeviceConfirmZones": "Forget the device {device}? These zones will be deleted with their settings: {zones}. If it comes back on the network, it will reappear as a new device.",
   "settings.zoneAlreadyDeleted": "already deleted",
   "settings.forgetDevice": "Forget this device",
   "settings.deviceForgotten": "{name} has been forgotten.",

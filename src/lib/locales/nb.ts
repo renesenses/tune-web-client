@@ -4261,7 +4261,6 @@ export default {
   "settings.noAbsentDevices": "Ingen fraværende enheter.",
   "settings.absentLabel": "Fraværende",
   "settings.absentDevicesLoadError": "Kunne ikke laste inn fraværende enheter.",
-  "settings.forgetDeviceConfirmZones": "Glemme enheten {device}? Disse sonene slettes med innstillingene sine: {zones}. Hvis den kommer tilbake på nettverket, vises den som en ny enhet.",
   "settings.zoneAlreadyDeleted": "allerede slettet",
   "settings.forgetDevice": "Glem denne enheten",
   "settings.deviceForgotten": "{name} er glemt.",

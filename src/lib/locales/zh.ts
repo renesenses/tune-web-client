@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "没有离线设备。",
   "settings.absentLabel": "离线",
   "settings.absentDevicesLoadError": "无法加载离线设备。",
-  "settings.forgetDeviceConfirmZones": "忘记设备 {device}？以下区域及其设置将被删除：{zones}。如果它重新出现在网络上，将作为新设备显示。",
   "settings.zoneAlreadyDeleted": "已删除",
   "settings.forgetDevice": "忘记此设备",
   "settings.deviceForgotten": "已忘记 {name}。",

@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "Nessun dispositivo assente.",
   "settings.absentLabel": "Assente",
   "settings.absentDevicesLoadError": "Impossibile caricare i dispositivi assenti.",
-  "settings.forgetDeviceConfirmZones": "Dimenticare il dispositivo {device}? Queste zone saranno eliminate con le loro impostazioni: {zones}. Se torna in rete, ricomparirà come un nuovo dispositivo.",
   "settings.zoneAlreadyDeleted": "già eliminata",
   "settings.forgetDevice": "Dimentica questo dispositivo",
   "settings.deviceForgotten": "{name} è stato dimenticato.",

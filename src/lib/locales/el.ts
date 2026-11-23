@@ -4261,7 +4261,6 @@ export default {
   "settings.noAbsentDevices": "Καμία απούσα συσκευή.",
   "settings.absentLabel": "Απούσα",
   "settings.absentDevicesLoadError": "Δεν ήταν δυνατή η φόρτωση των απουσών συσκευών.",
-  "settings.forgetDeviceConfirmZones": "Να ξεχαστεί η συσκευή {device}; Αυτές οι ζώνες θα διαγραφούν μαζί με τις ρυθμίσεις τους: {zones}. Αν επιστρέψει στο δίκτυο, θα εμφανιστεί ως νέα συσκευή.",
   "settings.zoneAlreadyDeleted": "ήδη διαγραμμένη",
   "settings.forgetDevice": "Ξεχάστε αυτή τη συσκευή",
   "settings.deviceForgotten": "Η συσκευή {name} ξεχάστηκε.",

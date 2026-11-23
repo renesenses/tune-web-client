@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "不在のデバイスはありません。",
   "settings.absentLabel": "不在",
   "settings.absentDevicesLoadError": "不在のデバイスを読み込めませんでした。",
-  "settings.forgetDeviceConfirmZones": "デバイス {device} を削除しますか？次のゾーンが設定ごと削除されます：{zones}。ネットワークに戻った場合は新しいデバイスとして表示されます。",
   "settings.zoneAlreadyDeleted": "削除済み",
   "settings.forgetDevice": "このデバイスを削除",
   "settings.deviceForgotten": "{name} を削除しました。",

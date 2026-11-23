@@ -4257,7 +4257,6 @@ export default {
   "settings.noAbsentDevices": "Немає відсутніх пристроїв.",
   "settings.absentLabel": "Відсутній",
   "settings.absentDevicesLoadError": "Не вдалося завантажити відсутні пристрої.",
-  "settings.forgetDeviceConfirmZones": "Забути пристрій {device}? Ці зони буде видалено разом з їхніми налаштуваннями: {zones}. Якщо він повернеться в мережу, то з’явиться як новий пристрій.",
   "settings.zoneAlreadyDeleted": "уже видалено",
   "settings.forgetDevice": "Забути цей пристрій",
   "settings.deviceForgotten": "Пристрій {name} забуто.",

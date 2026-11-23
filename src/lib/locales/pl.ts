@@ -4261,7 +4261,6 @@ export default {
   "settings.noAbsentDevices": "Brak nieobecnych urządzeń.",
   "settings.absentLabel": "Nieobecne",
   "settings.absentDevicesLoadError": "Nie udało się wczytać nieobecnych urządzeń.",
-  "settings.forgetDeviceConfirmZones": "Zapomnieć urządzenie {device}? Te strefy zostaną usunięte wraz z ustawieniami: {zones}. Jeśli wróci do sieci, pojawi się jako nowe urządzenie.",
   "settings.zoneAlreadyDeleted": "już usunięta",
   "settings.forgetDevice": "Zapomnij to urządzenie",
   "settings.deviceForgotten": "Zapomniano {name}.",

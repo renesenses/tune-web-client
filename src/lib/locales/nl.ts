@@ -4257,7 +4257,6 @@ export default {
   "settings.noAbsentDevices": "Geen afwezige apparaten.",
   "settings.absentLabel": "Afwezig",
   "settings.absentDevicesLoadError": "Kon de afwezige apparaten niet laden.",
-  "settings.forgetDeviceConfirmZones": "Het apparaat {device} vergeten? Deze zones worden met hun instellingen verwijderd: {zones}. Komt het terug op het netwerk, dan verschijnt het als nieuw apparaat.",
   "settings.zoneAlreadyDeleted": "al verwijderd",
   "settings.forgetDevice": "Dit apparaat vergeten",
   "settings.deviceForgotten": "{name} is vergeten.",

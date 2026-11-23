@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "부재 중인 기기가 없습니다.",
   "settings.absentLabel": "부재",
   "settings.absentDevicesLoadError": "부재 중인 기기를 불러오지 못했습니다.",
-  "settings.forgetDeviceConfirmZones": "기기 {device}을(를) 삭제할까요? 다음 존이 설정과 함께 삭제됩니다: {zones}. 네트워크에 다시 나타나면 새 기기로 표시됩니다.",
   "settings.zoneAlreadyDeleted": "이미 삭제됨",
   "settings.forgetDevice": "이 기기 삭제",
   "settings.deviceForgotten": "{name}을(를) 삭제했습니다.",

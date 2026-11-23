@@ -4257,7 +4257,6 @@ export default {
   "settings.noAbsentDevices": "沒有缺席的裝置。",
   "settings.absentLabel": "缺席",
   "settings.absentDevicesLoadError": "無法載入缺席的裝置。",
-  "settings.forgetDeviceConfirmZones": "要忘記裝置 {device} 嗎？以下區域及其設定將被刪除：{zones}。若它重新出現在網路上，將被視為新裝置。",
   "settings.zoneAlreadyDeleted": "已刪除",
   "settings.forgetDevice": "忘記此裝置",
   "settings.deviceForgotten": "已忘記 {name}。",

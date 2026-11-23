@@ -4405,7 +4405,6 @@ export default {
   "settings.noAbsentDevices": "Aucun appareil absent.",
   "settings.absentLabel": "Absent",
   "settings.absentDevicesLoadError": "Impossible de charger les appareils absents.",
-  "settings.forgetDeviceConfirmZones": "Oublier l'appareil {device} ? Ces zones seront supprimées avec leurs réglages : {zones}. S'il revient sur le réseau, il réapparaîtra comme un nouvel appareil.",
   "settings.zoneAlreadyDeleted": "déjà supprimée",
   "settings.forgetDevice": "Oublier cet appareil",
   "settings.deviceForgotten": "{name} est oublié.",

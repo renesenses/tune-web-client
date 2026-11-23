@@ -4263,7 +4263,6 @@ export default {
   "settings.noAbsentDevices": "Không có thiết bị vắng mặt.",
   "settings.absentLabel": "Vắng mặt",
   "settings.absentDevicesLoadError": "Không thể tải các thiết bị vắng mặt.",
-  "settings.forgetDeviceConfirmZones": "Quên thiết bị {device}? Các vùng sau sẽ bị xóa cùng cài đặt: {zones}. Nếu quay lại mạng, nó sẽ xuất hiện như một thiết bị mới.",
   "settings.zoneAlreadyDeleted": "đã xóa",
   "settings.forgetDevice": "Quên thiết bị này",
   "settings.deviceForgotten": "Đã quên {name}.",

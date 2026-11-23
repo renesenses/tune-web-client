@@ -4260,7 +4260,6 @@ export default {
   "settings.noAbsentDevices": "Mevcut olmayan cihaz yok.",
   "settings.absentLabel": "Yok",
   "settings.absentDevicesLoadError": "Mevcut olmayan cihazlar yüklenemedi.",
-  "settings.forgetDeviceConfirmZones": "{device} cihazı unutulsun mu? Bu bölgeler ayarlarıyla birlikte silinecek: {zones}. Ağa geri dönerse yeni bir cihaz olarak görünecek.",
   "settings.zoneAlreadyDeleted": "zaten silindi",
   "settings.forgetDevice": "Bu cihazı unut",
   "settings.deviceForgotten": "{name} unutuldu.",

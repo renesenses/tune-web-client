@@ -4383,7 +4383,6 @@ export default {
   "settings.noAbsentDevices": "Niciun dispozitiv absent.",
   "settings.absentLabel": "Absent",
   "settings.absentDevicesLoadError": "Dispozitivele absente nu au putut fi încărcate.",
-  "settings.forgetDeviceConfirmZones": "Uitați dispozitivul {device}? Aceste zone vor fi șterse împreună cu setările lor: {zones}. Dacă revine în rețea, va reapărea ca dispozitiv nou.",
   "settings.zoneAlreadyDeleted": "deja ștearsă",
   "settings.forgetDevice": "Uită acest dispozitiv",
   "settings.deviceForgotten": "{name} a fost uitat.",

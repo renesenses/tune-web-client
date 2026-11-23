@@ -4382,7 +4382,6 @@ export default {
   "settings.noAbsentDevices": "Inga frånvarande enheter.",
   "settings.absentLabel": "Frånvarande",
   "settings.absentDevicesLoadError": "Det gick inte att läsa in frånvarande enheter.",
-  "settings.forgetDeviceConfirmZones": "Glömma enheten {device}? Dessa zoner tas bort med sina inställningar: {zones}. Om den kommer tillbaka till nätverket visas den som en ny enhet.",
   "settings.zoneAlreadyDeleted": "redan borttagen",
   "settings.forgetDevice": "Glöm den här enheten",
   "settings.deviceForgotten": "{name} har glömts.",
