@@ -5331,6 +5331,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- rc14 — un utilisateur sur iPad Pro : la flèche de lecture des
+                   pochettes est trop grande et ne se masque pas. Activé par
+                   défaut ; rangé avec les autres choix d'affichage. -->
+              <div class="row" data-reglage="bouton-lecture-pochettes">
+                <div class="lbl">
+                  <span>{$t('settings.coverPlayButton' as any)}</span>
+                  <span class="hint">{$t('settings.coverPlayButtonHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage-bouton-lecture-pochettes checked={$preferences.boutonLecturePochettes !== false}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, boutonLecturePochettes: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- #1428 — jfpaquet (fil 1879, 21/09/2026) : « ET LA
                    DISPARITION DU BOUTON STOP NE ME PLAÎT PAS DU TOUT ». Le
                    bouton a été retiré deux fois (05/09 puis 09/09) et la

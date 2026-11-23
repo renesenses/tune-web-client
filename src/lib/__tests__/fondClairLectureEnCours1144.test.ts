@@ -156,15 +156,18 @@ function reglesVisant(classe: string): { theme: Theme | null; corps: string }[] 
 const pourLeTheme = (classe: string, theme: Theme) =>
   reglesVisant(classe).filter((r) => r.theme === null || r.theme === theme);
 
-/** Le facteur `brightness()` de `.bg-blur` sous ce thème. */
+/** Le facteur `brightness()` de `.bg-blur` sous ce thème — 1 quand le
+ *  filtre n'en porte pas (design v3 : pochette à sa luminosité naturelle,
+ *  le contraste tient au voile — voir `fondLectureEnCoursV3.test.ts`). */
 function facteurPochette(theme: Theme): number {
-  let f: number | null = null;
+  let f = 1;
   for (const r of pourLeTheme('bg-blur', theme)) {
-    const m = r.corps.match(/filter:[^;]*brightness\(([\d.]+)\)/);
-    if (m) f = Number(m[1]);
+    const m = r.corps.match(/filter:([^;]*)/);
+    if (!m) continue;
+    const b = m[1].match(/brightness\(([\d.]+)\)/);
+    f = b ? Number(b[1]) : 1;
   }
-  expect(f, `.bg-blur sans brightness pour ${theme}`).not.toBeNull();
-  return f!;
+  return f;
 }
 
 /** L'opacité effective du voile `.bg-teinte` sous ce thème (0 = écarté). */

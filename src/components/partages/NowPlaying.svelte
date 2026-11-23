@@ -28,6 +28,21 @@ import { ICONES } from '../../lib/menuPiste';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
   import PartageEcouteMenu from './PartageEcouteMenu.svelte';
+  // Design v3 de Levente (§3, §10) : les pictogrammes de cet écran viennent de
+  // Lucide, un import PAR icône — jamais le catalogue entier.
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+  import Tv from '@lucide/svelte/icons/tv';
+  import ZoomIn from '@lucide/svelte/icons/zoom-in';
+  import Info from '@lucide/svelte/icons/info';
+  import MicVocal from '@lucide/svelte/icons/mic-vocal';
+  import ListPlus from '@lucide/svelte/icons/list-plus';
+  import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+  import Moon from '@lucide/svelte/icons/moon';
+  import Activity from '@lucide/svelte/icons/activity';
+  import AlarmClock from '@lucide/svelte/icons/alarm-clock';
+  import ListMusic from '@lucide/svelte/icons/list-music';
+  import ChevronUp from '@lucide/svelte/icons/chevron-up';
+  import SquareArrowOutUpRight from '@lucide/svelte/icons/square-arrow-out-up-right';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
@@ -45,6 +60,7 @@ import { ICONES } from '../../lib/menuPiste';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import BadgeMetadataPlus from './BadgeMetadataPlus.svelte';
+  import BadgeCoverPlus from './BadgeCoverPlus.svelte';
   import { fluxAjoutable, logoAuNomDeLaStation, oublierStationDeLecture, stationDeLectureRetenue, type StationDeLecture } from '../../lib/ficheStation';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { estGreffonEqAbsent } from '../../lib/greffonEqAbsent';
@@ -133,7 +149,12 @@ import { ICONES } from '../../lib/menuPiste';
   // '' = pas encore lu. Surtout PAS 'flat' : le panneau affichait alors Flat en
   // actif a chaque ouverture, quel que soit l'egaliseur reel (#2037).
   let currentEqPreset = $state('');
-  let karaokeMode = $state(false);
+  // Design v3 (§10.5), décision du 23/11/2026 : quand un LRC existe, les
+  // paroles s'ouvrent SYNCHRONISÉES. `NowPlayingLyrics` ne passe en karaoké
+  // que s'il a des lignes horodatées : un texte simple reste du texte. Le
+  // bouton « Karaoké » ramène au texte brut ; chaque nouvelle piste repart
+  // synchronisée.
+  let karaokeMode = $state(true);
   let syncedLines: { time: number; text: string }[] = $state([]);
 
   // Audio Visualizer
@@ -868,7 +889,7 @@ import { ICONES } from '../../lib/menuPiste';
       if (key !== npLyricsRadioKey) {
         npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
         syncedLines = [];
-        karaokeMode = false;
+        karaokeMode = true;
       }
       if (showLyrics) loadMetaLyrics(q);
       return;
@@ -881,7 +902,7 @@ import { ICONES } from '../../lib/menuPiste';
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
       npLyricsResetPourId = null;
-      karaokeMode = false;
+      karaokeMode = true;
       return;
     }
     // Vider d'abord l'ancienne piste : loadNpCredits/loadNpLyrics mémorisent
@@ -894,7 +915,7 @@ import { ICONES } from '../../lib/menuPiste';
       npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsRadioKey = null;
-      karaokeMode = false;
+      karaokeMode = true;
       // Referme la garde AVANT tout chargement : sans ce témoin elle restait
       // vraie à chaque passage tant que le panneau était fermé, et l'effet
       // réécrivait `syncedLines` — un tableau neuf — sans jamais converger.
@@ -922,6 +943,18 @@ import { ICONES } from '../../lib/menuPiste';
       parts.push({ role, membres: members.slice(0, 3), reste: members.length > 3 });
     }
     return parts;
+  });
+  /** Design v3 (§10.5) — « Écrit par… » sous les paroles : auteurs et
+   *  compositeurs tirés des crédits de la piste (ceux de l'onglet Crédits,
+   *  `getTrackCredits`). Rien quand aucun n'est connu. */
+  let ecritPar = $derived.by(() => {
+    const noms = auteursDesParoles(npCredits);
+    if (noms.length === 0) return null;
+    let liste = noms.join(', ');
+    try {
+      liste = new Intl.ListFormat($locale, { style: 'long', type: 'conjunction' }).format(noms);
+    } catch { /* langue inconnue d'Intl : la virgule suffit */ }
+    return $t('nowplaying.lyricsWrittenBy' as any).replace('{noms}', liste);
   });
   let inlineCredits = $derived(
     creditsEnLigne
@@ -1018,7 +1051,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
-  import { dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
+  import { auteursDesParoles, dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
+  import { disposition44_56 } from '../../lib/dispositionLectureEnCours';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
@@ -1039,6 +1073,11 @@ import { ICONES } from '../../lib/menuPiste';
 
   }
   let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
+  /** Design v3, §10.5 — la pilule Paroles est un DÉCLENCHEUR de panneau
+   *  (`aria-controls`) : l'identifiant doit rester unique quand l'écran est
+   *  monté deux fois (coquille + calque mobile). */
+  const uidEcran = $props.id();
+  const idParoles = `np-paroles-${uidEcran}`;
 
   /**
    * Ce que la coquille qui nous monte sait faire — voir
@@ -1927,14 +1966,17 @@ import { ICONES } from '../../lib/menuPiste';
        #2743 : quand on vient de cette vue, on RECULE (onglet et fiche
        reviennent avec l'entrée) — voir `lib/retourLectureEnCours`.
        #2761 : en CALQUE, Retour referme le calque (même module). -->
-  <button class="np-back-btn" onclick={() => retourDepuisLectureEnCours()} title={$t('nowplaying.back')}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+  <!-- Design v3 (§10.2) : un en-tête LOCAL — le retour, puis le titre de
+       l'écran. Le bouton garde sa classe et son geste ; le titre est nouveau. -->
+  <button class="np-back-btn" onclick={() => retourDepuisLectureEnCours()} title={$t('nowplaying.back')} aria-label={$t('nowplaying.back')}>
+    <ChevronLeft size={20} strokeWidth={2} aria-hidden="true" />
   </button>
+  <h1 class="np-titre-ecran" title={$t('nav.nowplaying' as any)}>{$t('nav.nowplaying' as any)}</h1>
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
        en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
   {#if displayTrack && !tvDansLaCoquille}
-    <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
+    <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.fullscreenMode' as any)} aria-label={$t('nowplaying.fullscreenMode' as any)}>
       <!--
         Un ÉCRAN, pas quatre flèches.
 
@@ -1945,12 +1987,16 @@ import { ICONES } from '../../lib/menuPiste';
 
         Un téléviseur — cadre posé sur un pied — dit ce que le mode est.
       -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <Tv size={16} strokeWidth={1.8} aria-hidden="true" />
+      <!-- Design v3 (§10.2), 23/11/2026 : « Mode plein écran », NOMMÉ. Le rond
+           muet ne disait son nom qu'au survol. -->
+      <span class="np-tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>
     </button>
   {/if}
   {#if resolvedCoverUrl}
-    <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
-    <!-- Teinte du THÈME par-dessus la pochette assombrie — voir `.bg-teinte`. -->
+    <!-- Design v3 (§10.4) : la pochette floutée derrière TOUT le panneau,
+         en-tête compris, puis le voile du thème — voir `.bg-teinte`. -->
+    <div class="bg-blur" aria-hidden="true" style="background-image: url({resolvedCoverUrl})"></div>
     <div class="bg-teinte" aria-hidden="true"></div>
   {/if}
 
@@ -1965,7 +2011,7 @@ import { ICONES } from '../../lib/menuPiste';
        d'appuyer sur Lecture, pas une fois la file remplie pour rien (#1499). -->
   <ZoneOutputBanner {zone} />
   {#if zone && displayTrack}
-    <div class="content-layout" class:wide={isWide} class:file-sous-barre={fileSousLaBarre}>
+    <div class="content-layout" class:wide={isWide} class:v3-44-56={isWide && disposition44_56(containerWidth)} class:file-sous-barre={fileSousLaBarre}>
       <div class="artwork-container" bind:this={artworkEl}>
         {#if ytShowVideo}
           <!-- Placeholder keeping layout while IFrame is rendered on top via position:fixed -->
@@ -1991,7 +2037,7 @@ import { ICONES } from '../../lib/menuPiste';
             {/if}
             {#if !ytActive}
               <div class="artwork-zoom-hint">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                <ZoomIn size={18} strokeWidth={2} aria-hidden="true" />
               </div>
             {/if}
           </div>
@@ -2121,6 +2167,8 @@ import { ICONES } from '../../lib/menuPiste';
               <button class="radio-station-name radio-station-lien truncate" title={displayTrack.album_title || zone?.name || 'Radio'}
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
+              <!-- tune-server-rust#8452 — la pochette vient de Cover+. -->
+              {#if track?.cover_plus}<BadgeCoverPlus source={track?.cover_plus_source ?? null} />{/if}
               {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}
@@ -2215,14 +2263,21 @@ import { ICONES } from '../../lib/menuPiste';
                disparaissait sur une radio et sur toute piste hors bibliothèque
                (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
                corriger son grave. Garde : src/lib/__tests__/npEqButton.test.ts -->
-          <div class="np-extra-btns">
+          <!-- Design v3 (§10.5) — l'ORDRE des actions : Crédits → Paroles →
+               Partager → Ajouter à une playlist → File → Plus, pour celles qui
+               existent ici. « File » vit dans l'en-tête « À suivre » (« Voir
+               la file ») et dans le bandeau de la file ; il n'y a pas de menu
+               « Plus » : les réglages de ZONE (EQ, sommeil, crossfeed, réveil,
+               bannir) suivent, dans leur ordre d'avant. Garde :
+               `lectureEnCoursV3.test.ts`. -->
+          <div class="np-extra-btns" data-np-actions>
             {#if !isRadio && normalizedTrack?.id != null}
-              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && normalizedTrack?.id != null) loadNpCredits(normalizedTrack.id); }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <button class="np-credits-btn" data-np-action="credits" class:active={showCredits} aria-pressed={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && normalizedTrack?.id != null) loadNpCredits(normalizedTrack.id); }}>
+                <Info size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('artist.credits')}
               </button>
-              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = true; if (showLyrics) loadLyricsFor(displayTrack); }}>
+                <MicVocal size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('nowplaying.lyrics')}
               </button>
             {:else if npMetaQuery}
@@ -2230,9 +2285,21 @@ import { ICONES } from '../../lib/menuPiste';
                    avec titre+artiste : paroles via /lyrics/by-meta. Karaoké
                    possible pour le streaming (position réelle), pas pour la
                    radio (position trop imprécise, donc texte simple). -->
-              <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showEq = false; if (!showLyrics) karaokeMode = true; if (showLyrics) loadLyricsFor(displayTrack); }}>
+                <MicVocal size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('nowplaying.lyrics')}
+              </button>
+            {/if}
+            <PartageEcouteMenu piste={displayTrack} />
+            <!-- Le garde lisait l'identifiant de la piste AFFICHÉE, absent du
+                 now-playing de la zone (le champ y est `track_id`) : le bouton
+                 n'apparaissait donc jamais pour une piste locale en plein
+                 écran ; il lit la piste normalisée. Design v3 : il quitte la
+                 rangée des réglages pour prendre sa place après « Partager ». -->
+            {#if onAddToPlaylist && normalizedTrack && rangeableEnPlaylist(normalizedTrack)}
+              <button class="np-credits-btn" data-np-action="playlist" onclick={() => onAddToPlaylist!(normalizedTrack!)}>
+                <ListPlus size={16} strokeWidth={1.8} aria-hidden="true" />
+                {$t('nowplaying.addToPlaylist')}
               </button>
             {/if}
             <!-- 🔴 L'ÉGALISEUR EST UN GREFFON FACULTATIF depuis la v0.9.156 :
@@ -2247,12 +2314,11 @@ import { ICONES } from '../../lib/menuPiste';
                  elle, toujours visible : c'est par là qu'on l'installe, et
                  l'écran propose le geste. -->
             {#if $egaliseurReglable}
-            <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
+            <button class="np-credits-btn" data-np-action="eq" class:active={showEq} aria-pressed={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = true; }}>
+              <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden="true" />
               EQ
             </button>
             {/if}
-            <PartageEcouteMenu piste={displayTrack} />
             <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
                  juste au-dessus (#534). Leurs trois gestionnaires ne prennent
                  que `zone.id` — `api.setSleepTimer`, `api.setDSP`,
@@ -2263,8 +2329,8 @@ import { ICONES } from '../../lib/menuPiste';
                  plus de sens pour lui : s'endormir dessus, et se réveiller
                  dessus. Garde : src/lib/__tests__/npReglagesDeZone.test.ts -->
             <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+              <button class="np-credits-btn" data-np-action="sleep" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                <Moon size={16} strokeWidth={1.8} aria-hidden="true" />
                 Sleep
               </button>
               {#if showSleepMenu}
@@ -2278,27 +2344,29 @@ import { ICONES } from '../../lib/menuPiste';
             </div>
             <button
               class="np-credits-btn"
+              data-np-action="crossfeed"
               class:active={cfBouton.actif}
               class:cf-pro={cfBouton.pro}
               title={cfBouton.voile && (cfEnabled || cfProTraite) ? $t(cfBouton.voile as any) : undefined}
               onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+              <Activity size={16} strokeWidth={1.8} aria-hidden="true" />
               {cfProTraite ? $t('v2.nav.crossfeedPro' as any) : $t('dsp.crossfeedTitle')}
             </button>
-            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+            <button class="np-credits-btn" data-np-action="alarm" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+              <AlarmClock size={16} strokeWidth={1.8} aria-hidden="true" />
               {$t('nowplaying.alarm')}
             </button>
             {#if pisteBannissable}
               <button
                 class="np-credits-btn"
+                data-np-action="ban"
                 data-bannir-en-cours
                 class:active={pisteEnCoursBannie}
                 disabled={bannissementEnCours}
                 onclick={basculerBannissement}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d={pisteEnCoursBannie ? ICONES.unban : ICONES.ban} /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16" aria-hidden="true"><path d={pisteEnCoursBannie ? ICONES.unban : ICONES.ban} /></svg>
                 {pisteEnCoursBannie ? $t('ban.unban' as any) : $t('ban.ban' as any)}
               </button>
             {/if}
@@ -2393,6 +2461,11 @@ import { ICONES } from '../../lib/menuPiste';
             </div>
           {/if}
           {#if showLyrics}
+            <!-- Design v3 (§10.5) : le panneau que la pilule Paroles déplie
+                 (`aria-controls`), titré ; « synchronisé » seulement quand
+                 les lignes suivent vraiment la lecture (mode karaoké). -->
+            <section class="np-paroles" id={idParoles} aria-labelledby="{idParoles}-titre">
+            <h3 class="np-paroles-titre" id="{idParoles}-titre">{$t('nowplaying.lyrics')}{#if karaokeMode && syncedLines.length > 0}<span class="np-paroles-synchro"> · {$t('nowplaying.lyricsSynced' as any)}</span>{/if}</h3>
             <NowPlayingLyrics
               loading={lyricsLoading}
               lyrics={npLyrics}
@@ -2405,6 +2478,8 @@ import { ICONES } from '../../lib/menuPiste';
               enLecture={isEffectivePlaying}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
+            {#if ecritPar}<p class="np-paroles-auteurs">{ecritPar}</p>{/if}
+            </section>
           {/if}
           {#if showEq}
             <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} greffonAbsent={eqGreffonAbsent} onOuvrirExtensions={ouvrirExtensionsEq} />
@@ -2643,16 +2718,8 @@ import { ICONES } from '../../lib/menuPiste';
 
           {/if}
 
-          <!-- Le garde testait `displayTrack?.id`, absent du now-playing de la zone
-               (le champ y est `track_id`) : le bouton n'apparaissait donc jamais
-               pour une piste locale en plein écran. -->
-          {#if onAddToPlaylist && normalizedTrack && rangeableEnPlaylist(normalizedTrack)}
-            <button class="setting-btn" onclick={() => onAddToPlaylist!(normalizedTrack!)} title={$t('nowplaying.addToPlaylist')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
-              </svg>
-            </button>
-          {/if}
+          <!-- « Ajouter à une playlist » est passé dans la rangée des actions
+               (design v3, §10.5), juste après « Partager ». -->
 
           {#if !isRadio}
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
@@ -2719,11 +2786,8 @@ import { ICONES } from '../../lib/menuPiste';
 
         <!-- Queue toggle button -->
         {#if !isRadio && $queueTracks.length > 0}
-          <button class="queue-sheet-toggle" onclick={toggleQueueSheet}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-              <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
+          <button class="queue-sheet-toggle" onclick={toggleQueueSheet} aria-expanded={queueSheetState !== 'collapsed'}>
+            <ListMusic size={16} strokeWidth={1.8} aria-hidden="true" />
             {$t('queue.title')}
             <span class="queue-sheet-count">{$queueTracks.length}</span>
             <!-- Le total ne bouge pas pendant qu'on ecoute. Dominique COMET a
@@ -2736,9 +2800,7 @@ import { ICONES } from '../../lib/menuPiste';
             {:else if $queueTracks.length > 0}
               <span class="queue-sheet-remaining">{$t('queue.nothingNext')}</span>
             {/if}
-            <svg class="queue-sheet-chevron" class:rotated={queueSheetState !== 'collapsed'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+            <ChevronUp class="queue-sheet-chevron{queueSheetState !== 'collapsed' ? ' rotated' : ''}" size={14} strokeWidth={2} aria-hidden="true" />
           </button>
           <!-- Porte vers la page File d'attente complete (AutoPlay, sauvegarde
                en playlist, reordonnancement). La barre ci-dessus deplie le
@@ -2750,10 +2812,7 @@ import { ICONES } from '../../lib/menuPiste';
             title={$t('queue.title')}
             aria-label={$t('queue.title')}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-              <path d="M15 3h6v6" /><path d="M10 14L21 3" />
-              <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
-            </svg>
+            <SquareArrowOutUpRight size={14} strokeWidth={2} aria-hidden="true" />
           </button>
         {/if}
 
@@ -2764,12 +2823,18 @@ import { ICONES } from '../../lib/menuPiste';
 
         <!-- Up Next (only when sheet is collapsed) -->
         {#if !isRadio && $upNextTracks.length > 0 && queueSheetState === 'collapsed'}
-          <div class="up-next">
-            <span class="up-next-label">{$t('nowplaying.upNext')}</span>
+          <!-- Design v3 (§10.6) : « À suivre · N restants » et « Voir la file »
+               au bout de l'en-tête ; des rangées SANS boîte, séparées d'un
+               filet, la durée alignée à droite. Le compte est celui de TOUTE
+               la file à venir (`upNextCount`), pas celui de l'aperçu. -->
+          <section class="up-next" aria-labelledby="{idParoles}-a-suivre">
+            <div class="up-next-tete">
+              <h3 class="up-next-label" id="{idParoles}-a-suivre">{$t('nowplaying.upNext')}<span class="up-next-reste"> · {$tn('nowplaying.upNextRemaining' as any, $upNextCount)}</span></h3>
+              <button class="up-next-voir-file" data-voir-file onclick={() => activeView.set('queue')}>{$t('nowplaying.viewQueue' as any)}</button>
+            </div>
             <div class="up-next-list">
               {#each $upNextTracks as nextTrack, i}
                 <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
-                  <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
                     <span class="up-next-title truncate" title={nextTrack.title}>{nextTrack.title}</span>
                     <span class="up-next-artist truncate" title={nextTrack.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: nextTrack.artist_name ?? '', artiste: artisteDePisteEcoutee(nextTrack) }} /></span>
@@ -2794,7 +2859,7 @@ import { ICONES } from '../../lib/menuPiste';
                 {$tn('queue.upNextMoreN', $upNextHiddenCount)}
               </button>
             {/if}
-          </div>
+          </section>
         {/if}
       </div>
     </div>
@@ -3094,6 +3159,9 @@ import { ICONES } from '../../lib/menuPiste';
     justify-content: center;
     height: 100%;
     padding: var(--space-xl);
+    /* Design v3 : l'en-tête (retour + titre, 16 + 36 px) ne recouvre jamais
+       le haut du contenu quand celui-ci défile. */
+    padding-top: 64px;
     position: relative;
     /* Root is NOT scrollable: the collapsed queue sheet is an absolutely
        positioned child parked below the box (translateY(100%)); if the root
@@ -3169,9 +3237,14 @@ import { ICONES } from '../../lib/menuPiste';
     z-index: 10;
     background: rgba(0, 0, 0, 0.3);
     border: none;
-    border-radius: 50%;
-    width: 36px;
+    /* Design v3 (§10.2) : une pilule nommée, plus un rond. Même hauteur
+       (36 px) ; la largeur suit le libellé dans chaque langue. */
+    border-radius: 18px;
     height: 36px;
+    padding: 0 14px 0 11px;
+    gap: 7px;
+    white-space: nowrap;
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-police-texte, var(--v2-sans, var(--font-body)));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3182,85 +3255,103 @@ import { ICONES } from '../../lib/menuPiste';
   }
   .np-tv-btn:hover { background: rgba(0, 0, 0, 0.5); }
 
-  /* #993 — FabienM (fil 1774, point 5) : « Fond d'écran délavé dans lecture
-     en cours. Pas assez de contraste. » Le fond reste la pochette floutée —
-     c'est ce que cet écran a de particulier — mais assombrie bien plus :
-     à 0.3, une pochette claire donnait un gris moyen sous du texte blanc ;
-     à 0.12, la pochette la plus blanche plafonne à un gris #1f1f1f, celui
-     d'un fond de thème sombre. Arbitré par Bertrand le 13/09/2026 :
-     assombrir, pas remplacer. */
+  /*
+    LE FOND — design v3 de Levente (§10.4), décision de Bertrand du 22/11/2026 :
+    « le ramener, bien visible derrière tout le panneau, en-tête compris ».
+
+    Histoire, pour ne pas la rejouer :
+    - #993 (13/09) : `brightness(0.3)` → `0.12`, « assombrir, pas remplacer »
+      — une pochette claire donnait un gris moyen sous du texte blanc ;
+    - 17/09 : la couche de teinte (couleur du thème, 78 %) ;
+    - #1144 (18/09) : sur les thèmes CLAIRS le texte est sombre, il faut
+      éclaircir et non noircir.
+    Résultat : une pochette multipliée par 0,12 puis recouverte à 78 % — elle
+    ne modulait plus le fond que de ~7 niveaux sur 255. Invisible.
+
+    La recette v3 : la pochette à sa luminosité NATURELLE, floutée, puis UN
+    voile issu du jeton `--v2-bg`. La pochette compte donc pour `1 − opacité
+    du voile` dans le fond — 8 % sur les thèmes sombres, trois fois plus
+    qu'avant (2,6 %) — et le voile est réglé, thème par thème, au plus fin
+    qui garde AA (4,5:1) au texte le PLUS FAIBLE de l'écran (`--v2-txt3`,
+    et l'accent `--v2-acc1` employé comme texte) sur une pochette BLANCHE
+    comme sur une pochette NOIRE, qui bornent toutes les autres. Mesuré par
+    `fondLectureEnCoursV3.test.ts`, sur les neuf thèmes.
+
+    La marge n'est pas un choix de goût : `--v2-txt3` ne tient qu'entre 5,0:1
+    et 5,8:1 sur le fond NU des thèmes, c'est tout ce que la pochette peut
+    entamer. D'où des voiles plus épais sur les thèmes clairs (texte sombre :
+    c'est la pochette NOIRE qui coûte) et plus fins sur `mozaiklabs-logo`
+    (fond noir pur, texte très contrasté).
+
+    Cet écran n'est plus monté que par `ShellV2`, dans `.tune-v2` : `--v2-bg`
+    y est toujours défini. Le kiosque garde son assombrissement propre
+    (`[data-kiosk] .bg-blur`), qui ne fait que rapprocher la pochette du noir
+    — un cas déjà borné par la mesure.
+  */
   .bg-blur {
     position: absolute;
-    inset: 0;
+    /* Déborde du panneau : le flou n'y laisse pas de liseré clair. */
+    inset: -60px;
     background-size: cover;
     background-position: center;
-    filter: blur(60px) brightness(0.12);
-    transform: scale(1.2);
+    filter: blur(60px);
+    transform: scale(1.1);
     z-index: 0;
+    pointer-events: none;
     transition: background-image 1s ease-in-out;
   }
 
-  /*
-    LA TEINTE DU THÈME — Bertrand, 17/09/2026 (point 5) : « Lecture en cours :
-    fond de la fenêtre principale n'est pas tout à fait en accord avec le
-    thème ».
-
-    `.bg-blur` assombrie à 0.12 (#993) donne un noir-gris NEUTRE ; les thèmes
-    sombres du nouveau client sont TEINTÉS (Midnight Orange #0B1020, Brown
-    #17110D, Black Blue #06111A…) : à côté de la barre latérale et du lecteur,
-    la fenêtre principale jurait. Une couche de la couleur du thème, à 78 %,
-    ramène le ton sans remplacer la pochette (arbitrage du 13/09 : assombrir,
-    pas remplacer) ni rendre du contraste — le fond reste aussi sombre.
-
-    `var(--v2-bg, transparent)` : hors du nouveau client le jeton n'existe
-    pas, la couche est transparente, rien ne change.
-  */
   .bg-teinte {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
     background: var(--v2-bg, transparent);
-    opacity: 0.78;
+    opacity: 0.92;
   }
 
-  /*
-    🔴 LES DEUX THÈMES CLAIRS — #1144.
-
-    Le voile du 17/09 avait été écarté d'eux avec ce motif : « un voile clair
-    sur la pochette noircie ferait un gris moyen sous du texte BLANC ». Le
-    motif est faux, et c'est tout le défaut : sur `clear-white` et
-    `clear-grey`, le texte n'est pas blanc. `tune-v2.css` y pose
-    `--v2-txt:#0C1620` et `#141C24` — quasi NOIR — et `ShellV2` monte cet
-    écran dans `.tune-v2`, qui ponte `--tune-text: var(--v2-txt)`.
-
-    Il ne restait donc sur ces deux thèmes que `.bg-blur` à `brightness(0.12)`,
-    un facteur MULTIPLICATIF : il plafonne toute pochette à `#1F1F1F` et rend
-    du NOIR sur une pochette noire. Mesuré par
-    `fondClairLectureEnCours1144.test.ts` : 1,15:1 sur `clear-white` et
-    1,22:1 sur `clear-grey` — du texte quasi noir sur un fond quasi noir,
-    très loin des 4,5:1 de WCAG AA. Le titre du ticket dit « texte
-    ILLISIBLE » ; ici il l'était au sens propre.
-
-    Le remède garde l'arbitrage du 13/09 — assombrir, pas remplacer — en le
-    RETOURNANT dans le bon sens : là où le texte est sombre, il faut ÉCLAIRCIR
-    le fond, pas le noircir. C'est déjà ce que fait `.light .tv-bg-blur` dans
-    `TvView.svelte`, à `brightness(1.15) saturate(0.7)` ; on reprend sa
-    recette plutôt que d'en inventer une seconde.
-
-    L'opacité monte de 0,78 à 0,88 : à 0,78 le fond le plus sombre tombait à
-    `#C7C7C7`, où `--v2-txt2` ne tenait plus que 3,60:1. À 0,88 il remonte à
-    4,63:1 (`clear-white`) et 4,52:1 (`clear-grey`), et le texte principal est
-    à 13,9:1 et 11,4:1. La pochette reste perceptible : elle module encore le
-    fond sur une trentaine de niveaux, contre sept sur les thèmes sombres.
-  */
-  :global(:root[data-v2-theme="clear-white"]) .bg-blur,
-  :global(:root[data-v2-theme="clear-grey"]) .bg-blur {
-    filter: blur(60px) brightness(1.05) saturate(0.7);
+  /* Fond FIXE sous `prefers-reduced-motion` : pas de fondu d'une pochette à
+     l'autre. */
+  @media (prefers-reduced-motion: reduce) {
+    .bg-blur { transition: none; }
   }
-  :global(:root[data-v2-theme="clear-white"]) .bg-teinte,
+
+  /* Le voile, thème par thème — calculé, pas choisi : voir l'en-tête. */
+  :global(:root[data-v2-theme="mozaiklabs-logo"]) .bg-teinte {
+    opacity: 0.86;
+  }
+  :global(:root[data-v2-theme="clear-white"]) .bg-teinte {
+    opacity: 0.94;
+  }
   :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
-    opacity: 0.88;
+    opacity: 0.96;
+  }
+  /* « Mon thème » : ses jetons recouvrent ceux du thème de BASE, que
+     `data-v2-theme` désigne encore. Le voile suit donc le côté du FOND perso,
+     que `cssDuTheme` écrit dans `--v2-voile-lecture` (0,94 clair, comme
+     clear-white ; 0,92 sombre). Deux attributs : l'emporte sur les règles
+     par thème ci-dessus. */
+  :global(:root[data-v2-theme][data-v2-mon-theme]) .bg-teinte {
+    opacity: var(--v2-voile-lecture, 0.92);
+  }
+
+  /* Design v3 (§10.2) — le titre de l'écran, à côté du retour, dans
+     l'en-tête que le fond couvre aussi. */
+  .np-titre-ecran {
+    position: absolute;
+    top: 16px;
+    left: 62px;
+    z-index: 10;
+    margin: 0;
+    max-width: calc(100% - 62px - var(--v2-grappe-w, 172px));
+    font-family: var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+    font-size: calc(20px * var(--v2-txt-echelle, 1));
+    font-weight: 600;
+    line-height: 36px;
+    color: var(--v2-txt, var(--tune-text));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .content-layout {
@@ -3413,6 +3504,28 @@ import { ICONES } from '../../lib/menuPiste';
 
   .content-layout.wide .info-column {
     max-width: 420px;
+  }
+
+  /* Design v3 (§10.3), décision du 23/11/2026 — grand écran : pochette 44 %,
+     détails 56 %, alignées en haut, pistes compressibles (`minmax(0, …)`) :
+     un long titre passe à la ligne au lieu d'élargir la grille. Le seuil
+     (`disposition44_56`, 900 px de largeur intérieure) laisse les tablettes en
+     portrait et les téléphones dans leur disposition actuelle. La pochette
+     garde ses bornes (`--np-art`, 62vh) : elle ne fait que remplir sa piste.
+     PLACEMENT : après les règles `.content-layout.wide` ci-dessus ; plus
+     spécifique qu'elles, il l'emporte aussi sur les paliers grands écrans
+     pour la colonne titres, que la grille borne désormais. */
+  .content-layout.wide.v3-44-56 {
+    display: grid;
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+    align-items: start;
+    gap: 44px;
+  }
+  .content-layout.wide.v3-44-56 .artwork-container {
+    justify-self: end;
+  }
+  .content-layout.wide.v3-44-56 .info-column {
+    max-width: none;
   }
 
   /* Très grands écrans — TV 4K utilisée comme écran de PC musique (Alain,
@@ -3937,87 +4050,131 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   /* Up Next */
+  /* Design v3 (§10.6) — « À suivre » : un en-tête, des rangées SANS boîte
+     séparées d'un filet de 1 px (`--v2-line`), la durée à droite en chiffres
+     tabulaires. Police : Inter (`--v2-police-texte`), comme tout l'écran. */
   .up-next {
-    margin-top: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--v2-line, var(--tune-border));
+    font-family: var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+  }
+
+  .up-next-tete {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
   }
 
   .up-next-label {
-    font-family: var(--font-label);
-    font-size: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-family: inherit;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--tune-text-muted);
-    display: block;
-    margin-bottom: var(--space-sm);
+    color: var(--v2-txt, var(--tune-text));
   }
+
+  .up-next-reste {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .up-next-voir-file {
+    flex: 0 0 auto;
+    border: 0;
+    background: none;
+    padding: 4px 2px;
+    font: 600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+    color: var(--v2-acc1, var(--tune-accent));
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .up-next-voir-file:hover { text-decoration: underline; }
+  .up-next-voir-file:focus-visible { outline: 2px solid var(--v2-acc1, var(--tune-accent)); outline-offset: 2px; }
 
   .up-next-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
   }
 
   .up-next-item {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.04);
+    min-height: 36px;
+    padding: 6px 0;
+    background: none;
     border: none;
-    border-radius: var(--radius-sm);
-    color: var(--tune-text);
+    border-bottom: 1px solid var(--v2-line, var(--tune-border));
+    border-radius: 0;
+    color: var(--v2-txt, var(--tune-text));
+    font-family: inherit;
     cursor: pointer;
     text-align: left;
     transition: background 0.12s;
   }
+  .up-next-item:last-child { border-bottom: 0; }
 
   .up-next-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--v2-hover, rgba(255, 255, 255, 0.06));
   }
+  .up-next-item:focus-visible { outline: 2px solid var(--v2-acc1, var(--tune-accent)); outline-offset: -2px; }
 
   .up-next-more {
     align-self: flex-start;
     margin-top: 4px;
-    padding: 4px 8px;
+    padding: 4px 0;
     background: none;
     border: none;
     border-radius: var(--radius-sm);
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text-secondary);
+    font-family: inherit;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--v2-txt2, var(--tune-text-secondary));
     cursor: pointer;
   }
 
   .up-next-more:hover {
-    color: var(--tune-text);
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--v2-txt, var(--tune-text));
+    text-decoration: underline;
   }
 
+  /* Titre puis artiste sur UNE ligne (« 02 • The Thin Ice • Pink Floyd ») ;
+     l'artiste se replie en premier quand la place manque. */
   .up-next-info {
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
   }
 
   .up-next-title {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
+    font-family: inherit;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    font-weight: 500;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 
   .up-next-artist {
-    font-family: var(--font-body);
-    font-size: 11px;
-    color: var(--tune-text-secondary);
+    font-family: inherit;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    color: var(--v2-txt2, var(--tune-text-secondary));
+    flex: 0 100 auto;
+    min-width: 0;
   }
+  .up-next-artist::before { content: '• '; color: var(--v2-txt3, var(--tune-text-muted)); }
 
   .up-next-duration {
-    font-family: var(--font-body);
-    font-size: 11px;
-    color: var(--tune-text-muted);
+    font-family: inherit;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--v2-txt3, var(--tune-text-muted));
     font-variant-numeric: tabular-nums;
+    margin-left: auto;
   }
 
   .up-next-quality {
@@ -4120,7 +4277,7 @@ import { ICONES } from '../../lib/menuPiste';
   @media (max-width: 768px) {
     .now-playing {
       padding: var(--space-md);
-      padding-top: calc(env(safe-area-inset-top, 0px) + 48px);
+      padding-top: calc(env(safe-area-inset-top, 0px) + 60px);
       padding-bottom: env(safe-area-inset-bottom, 0px);
       align-items: flex-start;
     }
@@ -4248,17 +4405,22 @@ import { ICONES } from '../../lib/menuPiste';
     color: var(--tune-accent);
   }
 
+  /* Design v3 (§10.5) — les actions sont des PILULES compactes du système :
+     hauteur 36 (44 de cible au doigt, plus bas), rayon `--v2-r-pill`, icône
+     Lucide de 16 px, texte 12,5 / 600 en Inter. */
   .np-credits-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     background: none;
-    border: 1px solid var(--tune-border);
-    border-radius: 14px;
-    padding: 3px 10px;
-    font-family: var(--font-body);
-    font-size: 11px;
-    color: var(--tune-text-muted);
+    border: 1px solid var(--v2-line2, var(--tune-border));
+    border-radius: var(--v2-r-pill, 20px);
+    min-height: 36px;
+    padding: 0 14px;
+    font-family: var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+    font-size: calc(12.5px * var(--v2-txt-echelle, 1));
+    font-weight: 600;
+    color: var(--v2-txt2, var(--tune-text-muted));
     cursor: pointer;
     transition: all 0.12s ease-out;
     margin-top: var(--space-xs);
@@ -4272,9 +4434,25 @@ import { ICONES } from '../../lib/menuPiste';
     flex-shrink: 0;
   }
 
-  .np-credits-btn:hover, .np-credits-btn.active, .np-credits-btn.cf-pro {
-    color: var(--tune-accent);
-    border-color: var(--tune-accent);
+  .np-credits-btn:hover {
+    color: var(--v2-txt, var(--tune-text));
+    border-color: var(--v2-acc2, var(--tune-accent));
+  }
+  /* Ouvert / actif : bordure d'accent et fond teinté du thème (Paroles
+     ouvertes, maquette « lyrics open »). Le texte reste `--v2-txt` : le
+     fond teinté ne descend pas sous AA. */
+  .np-credits-btn.active, .np-credits-btn.cf-pro {
+    color: var(--v2-txt, var(--tune-accent));
+    border-color: var(--v2-acc1, var(--tune-accent));
+    background: color-mix(in srgb, var(--v2-acc1, var(--tune-accent)) 12%, transparent);
+  }
+  .np-credits-btn:focus-visible {
+    outline: none;
+    border-color: var(--v2-acc2, var(--tune-accent));
+    box-shadow: 0 0 0 3px var(--v2-focus, rgba(255, 255, 255, 0.2));
+  }
+  @media (hover: none) and (pointer: coarse) {
+    .np-credits-btn { min-height: 44px; }
   }
 
   .np-credits {
@@ -4380,6 +4558,28 @@ import { ICONES } from '../../lib/menuPiste';
     flex-wrap: wrap; /* web#2019 — voir `.np-credits-btn` */
     gap: var(--space-sm);
     margin-top: var(--space-xs);
+    /* Design v3 : un filet sous la rangée, puis Paroles et À suivre. */
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--v2-line, var(--tune-border));
+  }
+
+  /* Design v3 (§10.5) — le panneau des paroles, sous le filet des actions. */
+  .np-paroles {
+    margin-top: var(--space-md);
+    font-family: var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+  }
+  .np-paroles-titre {
+    margin: 0 0 var(--space-sm);
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    font-weight: 600;
+    color: var(--v2-txt, var(--tune-text));
+  }
+  .np-paroles-synchro { font-weight: 600; }
+  /* « Écrit par… » : métadonnée d'appoint, en txt3 (mesuré AA sur le fond). */
+  .np-paroles-auteurs {
+    margin: var(--space-sm) 0 0;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--v2-txt3, var(--tune-text-muted));
   }
 
   .np-lyrics {
@@ -4911,6 +5111,14 @@ import { ICONES } from '../../lib/menuPiste';
     gap: 20px;
     max-width: 100%;
   }
+  /* Le kiosque garde SA disposition : pas de grille 44/56 (design v3). */
+  :global([data-kiosk]) .content-layout.wide.v3-44-56 {
+    display: flex;
+    gap: 20px;
+  }
+  :global([data-kiosk]) .content-layout.wide.v3-44-56 .info-column {
+    flex: 1;
+  }
 
   :global([data-kiosk]) .artwork-container {
     max-width: 280px;
@@ -4984,6 +5192,10 @@ import { ICONES } from '../../lib/menuPiste';
     align-items: center;
     width: 100%;
     margin-top: 4px;
+  }
+
+  :global([data-kiosk]) .np-titre-ecran {
+    display: none;
   }
 
   :global([data-kiosk]) .bg-blur {
@@ -5196,11 +5408,13 @@ import { ICONES } from '../../lib/menuPiste';
     text-align: center;
   }
 
-  .queue-sheet-chevron {
+  /* Le chevron est une icône Lucide : son `<svg>` vit dans un composant
+     enfant, d'où `:global` sous un parent de cet écran. */
+  .queue-sheet-toggle :global(.queue-sheet-chevron) {
     transition: transform 0.2s ease-out;
   }
 
-  .queue-sheet-chevron.rotated {
+  .queue-sheet-toggle :global(.queue-sheet-chevron.rotated) {
     transform: rotate(180deg);
   }
 

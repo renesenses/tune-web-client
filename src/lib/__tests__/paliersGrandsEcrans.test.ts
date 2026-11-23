@@ -73,6 +73,10 @@ const HORS_PERIMETRE: Record<string, string> = {
   // `.np-scroll`, pas une `max-width` sur l'îlot. Voir
   // `fileAttenteReserve.test.ts`.
   '.now-playing.queue-open .artwork-container': "file d'attente ouverte",
+  // Design v3 (23/11/2026) : en grille 44/56, la colonne titres est bornée
+  // par sa piste (`minmax(0, 56fr)` de l'îlot), plus par une max-width — qui
+  // ne suivrait plus les paliers ci-dessus. L'îlot, lui, garde ses paliers.
+  '.content-layout.wide.v3-44-56 .info-column': 'grille 44/56 : la piste borne la colonne',
   // web#1800 : file dépliée sous la barre, choix explicite de Réglages ▸
   // Affichage. La colonne titres y perd son plafond (`max-width: none`) pour
   // prendre la place que la colonne de droite n'occupe plus.

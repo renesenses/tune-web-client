@@ -59,12 +59,13 @@
 
   .tete { display: flex; align-items: baseline; gap: 12px; padding: 0 var(--bloc-marge, 30px) 12px; }
   .grand {
-    font: 700 calc(36px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -1.2px;
+    font: 700 calc(30px * var(--v2-txt-echelle, 1))/1 var(--v2-sans); letter-spacing: -0.5px;
     color: var(--v2-acc1); font-variant-numeric: tabular-nums;
   }
   .quoi { font: 600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt2); }
 
-  .barre { display: flex; height: 13px; margin: 0 var(--bloc-marge, 30px); border-radius: 7px; overflow: hidden; }
+  /* Design v3 (§9.3) : un rail de 8 px. */
+  .barre { display: flex; height: 8px; margin: 0 var(--bloc-marge, 30px); border-radius: 4px; overflow: hidden; }
   .fini { background: var(--v2-acc1); }
   .passe { background: color-mix(in srgb, var(--v2-acc1) 18%, transparent); }
 
@@ -81,6 +82,6 @@
   @media (max-width: 640px) {
     .tete, .legende { padding-left: var(--bloc-marge, 16px); padding-right: var(--bloc-marge, 16px); }
     .barre { margin-left: var(--bloc-marge, 16px); margin-right: var(--bloc-marge, 16px); }
-    .grand { font-size: calc(28px * var(--v2-txt-echelle, 1)); }
+    .grand { font-size: calc(26px * var(--v2-txt-echelle, 1)); }
   }
 </style>

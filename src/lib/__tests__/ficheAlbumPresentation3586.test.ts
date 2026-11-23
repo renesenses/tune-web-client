@@ -85,45 +85,33 @@ afterEach(() => {
   hote = null;
 });
 
+// 🔄 Fil forum 3009 (FabienM, point 9 ; go de Bertrand du 23/11/2026) — plus
+// d'onglet « Notes / Bio » : la notice s'affiche à côté de la vignette, lue à
+// l'ouverture (décision du 15/11), et « Lire la suite » la déplie sur place.
+// Le libellé `library.notesBio` ne doit plus apparaître dans la fiche.
 describe('la fiche album porte enfin une présentation', () => {
-  it('offre l’entrée « Notes / Bio » sur un album local', () => {
-    const el = poser();
-    expect(bouton(el), 'aucun bouton Notes / Bio dans la fiche').not.toBeNull();
-  });
-
-  it('affiche la notice après le clic', async () => {
+  it('🔴 fil 3009 — plus d’onglet « Notes / Bio » sur un album local', async () => {
     getAlbumBio.mockResolvedValue({ bio: 'Enregistré en 1959 chez Columbia.', source: null });
     const el = poser();
-    bouton(el)!.click();
+    await attendre();
+    expect(bouton(el), 'l’onglet Notes / Bio est encore là').toBeNull();
+    expect(el.querySelector('[role="tab"][data-onglet-album="bio"]')).toBeNull();
+    expect(el.querySelector('[data-panneau-bio]')).toBeNull();
+  });
+
+  it('affiche la notice dans l’en-tête, sans clic', async () => {
+    getAlbumBio.mockResolvedValue({ bio: 'Enregistré en 1959 chez Columbia.', source: null });
+    const el = poser();
     await attendre();
     expect(getAlbumBio).toHaveBeenCalledWith(12);
-    expect(el.textContent).toContain('Enregistré en 1959 chez Columbia.');
-  });
-
-  it('reprend l’état vide de l’interface actuelle quand il n’y a pas de notice', async () => {
-    getAlbumBio.mockResolvedValue({ bio: null, source: null });
-    const el = poser();
-    bouton(el)!.click();
-    await attendre();
-    expect(el.textContent).toContain(fr['library.noAlbumNote']);
-  });
-
-  it('dit que la récupération a échoué, au lieu de rendre un vide qui ment', async () => {
-    getAlbumBio.mockRejectedValue(new Error('500'));
-    const el = poser();
-    bouton(el)!.click();
-    await attendre();
-    expect(el.textContent).toContain(fr['library.bioLoadError']);
-    expect(el.textContent).not.toContain(fr['library.noAlbumNote']);
+    expect(el.querySelector('[data-description-album]')?.textContent).toContain('Enregistré en 1959 chez Columbia.');
   });
 
   /**
    * La route n'est PAS une lecture locale : `albums::album_bio` sort sur
    * `https://mozaiklabs.fr/api/v1/albums/bio` dès que la notice stockée est
-   * vide. Jusqu'au 15/11 elle n'était lue qu'au clic ; Bertrand a tranché le
-   * 15/11 (maquette de Levente) : la présentation s'affiche sous le titre dès
-   * l'ouverture. Ce témoin tient la nouvelle règle : UN appel à l'ouverture,
-   * partagé avec l'onglet, et la notice dans l'en-tête.
+   * vide. Bertrand a tranché le 15/11 (maquette de Levente) : la présentation
+   * s'affiche sous le titre dès l'ouverture. UN appel, pas davantage.
    */
   it('lit la présentation UNE fois à l’ouverture et la montre sous le titre (15/11)', async () => {
     getAlbumBio.mockResolvedValue({ bio: 'Enregistré en 1959.', source: null });
@@ -131,7 +119,10 @@ describe('la fiche album porte enfin une présentation', () => {
     await attendre();
     expect(getAlbumBio).toHaveBeenCalledTimes(1);
     expect(el.querySelector('[data-description-album]')?.textContent).toContain('Enregistré en 1959.');
-    bouton(el)!.click();
+    // Changer d'onglet ne la relit pas.
+    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="notes"]')?.click();
+    await attendre();
+    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')?.click();
     await attendre();
     expect(getAlbumBio).toHaveBeenCalledTimes(1);
   });
@@ -148,43 +139,36 @@ describe('la fiche album porte enfin une présentation', () => {
     expect(el2.querySelector('[data-description-album]')).toBeNull();
   });
 
-  it('ne redemande pas la même notice au second clic', async () => {
-    getAlbumBio.mockResolvedValue({ bio: 'Une notice.', source: null });
+  it('🔴 fil 3009 — « Lire la suite » déplie la notice SUR PLACE, puis « Réduire » la replie', async () => {
+    getAlbumBio.mockResolvedValue({ bio: 'Une très longue notice. '.repeat(40), source: null });
     const el = poser();
-    bouton(el)!.click();
     await attendre();
-    // Replié…
-    // web#2736 — « Notes / Bio » est un onglet : on le quitte pour « Pistes ».
-    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
-    await attendre();
-    // …puis rouvert.
-    bouton(el)!.click();
-    await attendre();
-    expect(getAlbumBio).toHaveBeenCalledTimes(1);
-    expect(el.textContent).toContain('Une notice.');
-  });
-
-  it('replie la notice et la cache au second clic', async () => {
-    getAlbumBio.mockResolvedValue({ bio: 'Une notice.', source: null });
-    const el = poser();
-    bouton(el)!.click();
-    await attendre();
-    expect(el.querySelector('[data-panneau-bio]')?.textContent).toContain('Une notice.');
-    // web#2736 — « Notes / Bio » est un onglet : on le quitte pour « Pistes ».
-    el.querySelector<HTMLButtonElement>('[role="tab"][data-onglet-album="pistes"]')!.click();
-    await attendre();
-    // Le panneau se replie ; la description d'en-tête (15/11) reste.
+    const tete = el.querySelector<HTMLElement>('[data-description-album]')!;
+    const texte = tete.querySelector<HTMLElement>('p')!;
+    const suite = tete.querySelector<HTMLButtonElement>('[data-lire-suite]');
+    expect(suite, 'pas de « Lire la suite »').not.toBeNull();
+    expect(suite!.textContent?.trim()).toBe(fr['v2.album.fiche.readMore']);
+    expect(texte.classList.contains('depliee')).toBe(false);
+    suite!.click();
+    flushSync();
+    expect(texte.classList.contains('depliee'), 'le texte n’est pas déplié').toBe(true);
+    expect(suite!.getAttribute('aria-expanded')).toBe('true');
+    expect(suite!.textContent?.trim()).toBe(fr['v2.art.bioReadLess']);
+    // Aucun onglet n'a pris la place des pistes.
     expect(el.querySelector('[data-panneau-bio]')).toBeNull();
+    suite!.click();
+    flushSync();
+    expect(texte.classList.contains('depliee')).toBe(false);
   });
 
   /**
    * Un album de service (Qobuz, Tidal), Bandcamp ou distant n'a pas d'`id`
-   * local : `GET /library/albums/{id}/bio` ne le désigne pas. Un bouton qui
-   * ne peut rien rendre ne doit pas exister.
+   * local : `GET /library/albums/{id}/bio` ne le désigne pas.
    */
-  it('n’offre pas l’entrée sur un album sans identifiant local', () => {
+  it('ne lit pas de notice de bibliothèque pour un album sans identifiant local', () => {
     const distant = { id: null, title: 'Ailleurs', artist_name: 'X' } as unknown as Album;
     const el = poser(distant);
     expect(bouton(el)).toBeNull();
+    expect(getAlbumBio).not.toHaveBeenCalled();
   });
 });

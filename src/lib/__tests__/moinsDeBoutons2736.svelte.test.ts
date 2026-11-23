@@ -245,14 +245,17 @@ describe('la fiche album : trois boutons et un menu', () => {
   });
 });
 
-describe('la fiche album : onglets Pistes | Crédits | Bio | Présentation', () => {
+// 🔄 Fil forum 3009 (FabienM, points 9, 11 et 13 ; go du 23/11/2026) — plus
+// d'onglet Bio ni Présentation (le texte est dans l'en-tête) ; « Mes notes »
+// et « Compléments Qobuz » ont leur onglet, à côté de « Crédits ».
+describe('la fiche album : onglets Pistes | Crédits | Mes notes (fil 3009)', () => {
   const onglet = (o: string) => hote!.querySelector<HTMLButtonElement>(`[role="tab"][data-onglet-album="${o}"]`);
   const panneau = () => hote!.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])');
 
-  it('album de la bibliothèque : Crédits et Bio affichent leur contenu, Pistes revient à la liste', async () => {
+  it('album de la bibliothèque : Crédits et Mes notes affichent leur contenu, la notice est en tête, Pistes revient à la liste', async () => {
     poser(AlbumDetailV2, { album: LOCAL });
     expect(Array.from(hote!.querySelectorAll('[role="tab"]')).map((x) => x.getAttribute('data-onglet-album')))
-      .toEqual(['pistes', 'credits', 'bio']);
+      .toEqual(['pistes', 'credits', 'notes']);
     expect(onglet('pistes')!.getAttribute('aria-selected')).toBe('true');
 
     onglet('credits')!.click();
@@ -263,23 +266,28 @@ describe('la fiche album : onglets Pistes | Crédits | Bio | Présentation', () 
     expect(panneau()!.textContent).toContain('Bill Evans');
     expect(appels.some((u) => u.includes(`/library/albums/${ALBUM_ID}/credits`))).toBe(true);
 
-    onglet('bio')!.click();
-    expect(await jusqua(() => !!panneau()?.textContent?.includes('studio de la 30e Rue'))).toBe(true);
-    expect(panneau()!.hasAttribute('data-panneau-bio')).toBe(true);
+    // Point 9 — la notice est dans l'en-tête, sans onglet.
+    expect(await jusqua(() => !!hote!.querySelector('[data-description-album]')?.textContent?.includes('studio de la 30e Rue'))).toBe(true);
+    expect(onglet('bio')).toBeNull();
+
+    // Point 11 — « Mes notes » dans son onglet.
+    onglet('notes')!.click();
+    flushSync();
+    expect(panneau()!.hasAttribute('data-panneau-notes')).toBe(true);
 
     // ← / → d'un onglet à l'autre, le focus suit.
-    touche(onglet('bio')!, 'ArrowRight');
+    touche(onglet('notes')!, 'ArrowRight');
     flushSync();
     expect(onglet('pistes')!.getAttribute('aria-selected')).toBe('true');
     expect(hote!.querySelector('.tracks')!.hasAttribute('hidden')).toBe(false);
   });
 
-  it('album Qobuz : l’onglet Présentation lit et affiche la présentation du service', async () => {
+  it('album Qobuz : la présentation du service est à côté de la vignette, sans onglet (point 13)', async () => {
     poser(AlbumDetailV2, { album: QOBUZ, service: 'qobuz' });
     expect(onglet('bio'), 'un album de service n’a pas de bio locale').toBeNull();
-    expect(onglet('presentation')).not.toBeNull();
-    onglet('presentation')!.click();
-    expect(await jusqua(() => !!panneau()?.textContent?.includes('Le disque de jazz le plus vendu.'))).toBe(true);
+    expect(onglet('presentation'), 'l’onglet Présentation est encore là').toBeNull();
+    expect(onglet('notes'), 'pas de « Mes notes » sur un album de service').toBeNull();
+    expect(await jusqua(() => !!hote!.querySelector('[data-description-album][data-presentation-album]')?.textContent?.includes('Le disque de jazz le plus vendu.'))).toBe(true);
     expect(appels.some((u) => /\/streaming\/qobuz\/albums\/0886443853839\/description/.test(u))).toBe(true);
   });
 });
