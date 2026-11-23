@@ -102,8 +102,7 @@
   import { apresDetachement, identiteDetachee, peutDetacherIdentite } from '../../lib/identiteArtiste';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { messageEchecFiche, motifEchecFiche, type MotifEchecFiche } from '../../lib/echecFicheArtiste';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, peutReculerDansTune, revenirA } from '../../lib/historiqueCoquille';
-  import { reculerAvecIntention } from '../../lib/historiqueNavigation';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, reculerUneEtape, revenirA } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
@@ -940,12 +939,9 @@
     // d'où l'on vient (la fiche album et sa fiche de service comprises), et le
     // `popstate` le repose tel quel. Rouvrir à la main EMPILAIT une entrée de
     // plus, et le Retour suivant ne savait plus où il était.
-    if (history.state?.tune === 'v2' && history.state.vue === 'streamingartist' && peutReculerDansTune()) {
-      // Les dépôts sont consommés UNE fois (#3824) ; la fiche, elle, est
-      // vidée par le `popstate`, pour ne pas montrer une page vide entre-temps.
-      reculerAvecIntention(() => { vueDeRetour.set(null); ficheAlbumDeRetour.set(null); });
-      return;
-    }
+    // Les dépôts sont consommés UNE fois (#3824) ; la fiche, elle, est vidée
+    // par le `popstate`, pour ne pas montrer une page vide entre-temps.
+    if (reculerUneEtape('streamingartist', () => { vueDeRetour.set(null); ficheAlbumDeRetour.set(null); })) return;
     const ou = $vueDeRetour;
     // 🔴 Lu AVANT de vider le magasin : `estLocal` en dérive, et le lire après
     // rendrait toujours faux — le repli d'un artiste local retomberait sur la

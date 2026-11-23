@@ -56,6 +56,7 @@ import {
   finDuRetourProgrammatique,
   opPourFiche,
   reculerAvecIntention,
+  retourProgrammatiqueEnCours,
 } from './historiqueNavigation';
 import { nomDeRoute, vueAuChargement } from './routeAuChargement';
 import { ficheAlbumService, ficheArtisteService, ficheLabelService } from './stores/streaming';
@@ -173,6 +174,24 @@ function reposerFiche(etat: EtatCoquille): void {
 export function peutReculerDansTune(): boolean {
   if (typeof window === 'undefined') return false;
   return rangDe(window.history.state) > 0;
+}
+
+/**
+ * Fil 3011 — le Retour d'une fiche de `vue`, en UNE entrée dépilée.
+ *
+ * Rend `false` quand on ne peut pas reculer dans Tune (l'appelant garde alors
+ * son repli). Un second clic pendant que le premier recul est EN VOL (avant
+ * son `popstate`) est ignoré : sans cette garde, un double clic reculait de
+ * deux entrées.
+ */
+export function reculerUneEtape(vue: string, mutations: () => void = () => {}): boolean {
+  if (typeof window === 'undefined') return false;
+  const etat = window.history.state;
+  if (!estEtatCoquille(etat) || etat.vue !== vue) return false;
+  if (retourProgrammatiqueEnCours()) return true;
+  if (!peutReculerDansTune()) return false;
+  reculerAvecIntention(mutations);
+  return true;
 }
 
 /** Fil 2694 — les vues dont les entrées portent un identifiant de page. */

@@ -129,7 +129,13 @@ async function retourEcran(selecteur: string) {
 const retourAlbum = () => retourEcran('.v2-detail button.close');
 const retourArtiste = () => retourEcran('.v2-fas .retour');
 
-function attendreAlbum(attendu: unknown, message: string) {
+async function attendreAlbum(attendu: unknown, message: string) {
+  // La fiche se rouvre APRÈS le `popstate` (une fiche locale recharge son
+  // album) : on attend qu'elle soit là, sans compter les tours — sous charge,
+  // trois tours ne suffisaient pas (relecture de web#3366).
+  await vi.waitFor(() => {
+    expect(hote.querySelector('.v2-detail')?.textContent ?? '', `${message} — la fiche album`).toContain(ALBUM.title);
+  }, { timeout: 8000, interval: 20 });
   expect(hote.textContent, `${message} — jamais le repli « À venir »`).not.toContain(get(t)('v2.shell.soon' as any));
   expect(hote.querySelector('.v2-detail'), `${message} — la fiche album`).not.toBeNull();
   expect(hote.querySelector('.v2-detail')?.textContent, `${message} — le bon album`).toContain(ALBUM.title);
@@ -165,7 +171,7 @@ for (const geste of ['bouton', 'navigateur'] as const) {
       expect(get(activeView), 'le lien mène à la page artiste').toBe('streamingartist');
       await reculerArtiste();
       expect(get(activeView)).toBe('streamingalbum');
-      attendreAlbum(album, 'le premier Retour rend l’album Qobuz');
+      await attendreAlbum(album, 'le premier Retour rend l’album Qobuz');
       await reculerAlbum();
       attendrePlaylist(depart, 'qobuz', 'le second Retour rend la playlist, pas « Lecture en cours »');
     });
@@ -176,7 +182,7 @@ for (const geste of ['bouton', 'navigateur'] as const) {
       expect(get(activeView), 'le lien mène à la page artiste').toBe('streamingartist');
       await reculerArtiste();
       expect(get(activeView)).toBe('library');
-      attendreAlbum(album, 'le Retour rend l’album local, pas la grille de la Bibliothèque');
+      await attendreAlbum(album, 'le Retour rend l’album local, pas la grille de la Bibliothèque');
       await reculerAlbum();
       attendrePlaylist(depart, 'local', 'le Retour suivant rend la playlist');
     });
@@ -184,6 +190,24 @@ for (const geste of ['bouton', 'navigateur'] as const) {
 }
 
 describe('fil 3011 — non-régression', () => {
+  it('un DOUBLE clic sur Retour ne recule que d’une étape', async () => {
+    const { album } = await ouvrirAlbumDepuisPlaylist('qobuz');
+    cliquer('.v2-detail .artist.lien'); await stabiliser();
+    expect(get(activeView)).toBe('streamingartist');
+    const vu = new Promise<void>((resolve) => window.addEventListener('popstate', () => resolve(), { once: true }));
+    const reculs = vi.spyOn(window.history, 'back');
+    cliquer('.v2-fas .retour');
+    cliquer('.v2-fas .retour');
+    // Mesuré sur l'appel lui-même : jsdom peut fondre deux reculs en vol, un
+    // navigateur non.
+    expect(reculs, 'deux clics pendant le recul ne demandent qu’UN recul').toHaveBeenCalledTimes(1);
+    await vu; await stabiliser();
+    // Un second `popstate` éventuel aurait le temps d'arriver.
+    await new Promise((r) => setTimeout(r, 100)); await stabiliser();
+    expect(get(activeView), 'le second clic, pendant le recul, est ignoré').toBe('streamingalbum');
+    await attendreAlbum(album, 'un double clic rend l’album, pas la playlist');
+  });
+
   // Régis, 10 h 53 : « depuis la bibliothèque locale, tout marche ». Son
   // parcours qui marche reste vert, par le bouton comme par le navigateur.
   for (const geste of ['bouton', 'navigateur'] as const) {
@@ -201,7 +225,7 @@ describe('fil 3011 — non-régression', () => {
       expect(get(activeView)).toBe('streamingartist');
       await reculerUn('.v2-fas .retour');
       expect(get(activeView)).toBe('library');
-      attendreAlbum(album, 'le Retour de l’artiste rend l’album de la Bibliothèque');
+      await attendreAlbum(album, 'le Retour de l’artiste rend l’album de la Bibliothèque');
       await reculerUn('.v2-detail button.close');
       expect(get(activeView)).toBe('library');
       expect(hote.querySelector('.v2-detail'), 'le Retour de l’album rend la grille').toBeNull();
@@ -234,6 +258,6 @@ describe('fil 3011 — non-régression', () => {
     ficheAlbumService.set(null); ficheArtisteService.set(null); vueDeRetour.set(null); ficheAlbumDeRetour.set(null);
     composant = mount(ShellV2, { target: hote }); flushSync(); await stabiliser();
     await reculer(); await stabiliser();
-    attendreAlbum(album, 'le Précédent après rechargement rend l’album Qobuz');
+    await attendreAlbum(album, 'le Précédent après rechargement rend l’album Qobuz');
   });
 });

@@ -253,7 +253,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
-  import { brancherHistoriqueCoquille, peutReculerDansTune, revenirA } from '../../lib/historiqueCoquille';
+  import { brancherHistoriqueCoquille, reculerUneEtape, revenirA } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import FlechesNavigation from './FlechesNavigation.svelte';
   import { demarrerTransportV2 } from '../../lib/v2Live';
@@ -590,12 +590,9 @@
     // Fil 3011 — Retour = UNE entrée dépilée : le `popstate` repose l'écran
     // d'avant (vue, détail, fiche). La fiche n'est PAS vidée ici : la vider
     // avant le `popstate` montrait le repli « À venir » dans l'intervalle.
-    if (history.state?.tune === 'v2' && history.state.vue === 'streamingalbum' && peutReculerDansTune()) {
-      // Le dépôt de retour est consommé ; le `popstate` rend celui de l'écran
-      // d'en dessous (`retourSousLaFiche`).
-      reculerAvecIntention(() => vueDeRetour.set(null));
-      return;
-    }
+    // Le dépôt de retour est consommé ; le `popstate` rend celui de l'écran
+    // d'en dessous (`retourSousLaFiche`).
+    if (reculerUneEtape('streamingalbum', () => vueDeRetour.set(null))) return;
     // #2459 : l'entrée précédente porte aussi le détail playlist, pas seulement sa vue.
     if (retourSousLaFiche && history.state?.tune === 'v2' && history.state.vue === 'streamingalbum') {
       reculerAvecIntention(() => {
