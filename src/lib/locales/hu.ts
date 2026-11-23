@@ -7983,7 +7983,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Válasszon évet vagy időszakot",
   "v2.lib.periodAll": "Minden év",
-  "v2.lib.periodWholeDecade": "Az egész évtized: {de}–{a}",
+  "v2.lib.periodWholeDecade": "Az egész évtized: {start}–{end}",
   "v2.lib.periodCustom": "Más időszak…",
   "v2.lib.timeline": "Idővonal",
   "v2.lib.timelineShow": "Az évek idővonalának megjelenítése",

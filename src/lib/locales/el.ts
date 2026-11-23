@@ -7869,7 +7869,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Επιλέξτε έτος ή περίοδο",
   "v2.lib.periodAll": "Όλα τα έτη",
-  "v2.lib.periodWholeDecade": "Όλη η δεκαετία {de}–{a}",
+  "v2.lib.periodWholeDecade": "Όλη η δεκαετία {start}–{end}",
   "v2.lib.periodCustom": "Άλλη περίοδος…",
   "v2.lib.timeline": "Χρονολόγιο",
   "v2.lib.timelineShow": "Εμφάνιση του χρονολογίου ετών",

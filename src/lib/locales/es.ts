@@ -8024,7 +8024,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Elegir un año o un periodo",
   "v2.lib.periodAll": "Todos los años",
-  "v2.lib.periodWholeDecade": "Toda la década {de}–{a}",
+  "v2.lib.periodWholeDecade": "Toda la década {start}–{end}",
   "v2.lib.periodCustom": "Otro periodo…",
   "v2.lib.timeline": "Cronología",
   "v2.lib.timelineShow": "Mostrar la cronología de años",

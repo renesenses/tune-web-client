@@ -8024,7 +8024,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "选择年份或时间段",
   "v2.lib.periodAll": "所有年份",
-  "v2.lib.periodWholeDecade": "{de}–{a} 整个十年",
+  "v2.lib.periodWholeDecade": "{start}–{end} 整个十年",
   "v2.lib.periodCustom": "其他时间段…",
   "v2.lib.timeline": "时间轴",
   "v2.lib.timelineShow": "显示年份时间轴",

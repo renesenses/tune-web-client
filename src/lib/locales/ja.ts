@@ -8024,7 +8024,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "年または期間を選択",
   "v2.lib.periodAll": "すべての年",
-  "v2.lib.periodWholeDecade": "{de}–{a} の10年間すべて",
+  "v2.lib.periodWholeDecade": "{start}–{end} の10年間すべて",
   "v2.lib.periodCustom": "その他の期間…",
   "v2.lib.timeline": "タイムライン",
   "v2.lib.timelineShow": "年のタイムラインを表示",

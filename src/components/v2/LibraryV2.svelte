@@ -4409,7 +4409,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {/if}
             {#each decenniesListe as d (d.decennie)}
               <optgroup label={`${d.decennie}–${d.decennie + 9}`}>
-                <option value={`d:${d.decennie}`}>{$tr('v2.lib.periodWholeDecade' as any).replace('{de}', String(d.decennie)).replace('{a}', String(d.decennie + 9))} ({$formatNombre(d.n)})</option>
+                <option value={`d:${d.decennie}`}>{$tr('v2.lib.periodWholeDecade' as any).replace('{start}', String(d.decennie)).replace('{end}', String(d.decennie + 9))} ({$formatNombre(d.n)})</option>
                 {#each d.annees as b (b.year)}
                   <option value={`a:${b.year}`}>{b.year} ({$formatNombre(b.n)})</option>
                 {/each}

@@ -7876,7 +7876,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Chọn một năm hoặc một khoảng thời gian",
   "v2.lib.periodAll": "Tất cả các năm",
-  "v2.lib.periodWholeDecade": "Cả thập niên {de}–{a}",
+  "v2.lib.periodWholeDecade": "Cả thập niên {start}–{end}",
   "v2.lib.periodCustom": "Khoảng thời gian khác…",
   "v2.lib.timeline": "Dòng thời gian",
   "v2.lib.timelineShow": "Hiện dòng thời gian theo năm",

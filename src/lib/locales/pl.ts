@@ -7869,7 +7869,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Wybierz rok lub okres",
   "v2.lib.periodAll": "Wszystkie lata",
-  "v2.lib.periodWholeDecade": "Cała dekada {de}–{a}",
+  "v2.lib.periodWholeDecade": "Cała dekada {start}–{end}",
   "v2.lib.periodCustom": "Inny okres…",
   "v2.lib.timeline": "Oś czasu",
   "v2.lib.timelineShow": "Pokaż oś czasu lat",

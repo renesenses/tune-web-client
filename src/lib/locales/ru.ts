@@ -7853,7 +7853,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Выберите год или период",
   "v2.lib.periodAll": "Все годы",
-  "v2.lib.periodWholeDecade": "Всё десятилетие {de}–{a}",
+  "v2.lib.periodWholeDecade": "Всё десятилетие {start}–{end}",
   "v2.lib.periodCustom": "Другой период…",
   "v2.lib.timeline": "Шкала",
   "v2.lib.timelineShow": "Показать шкалу годов",

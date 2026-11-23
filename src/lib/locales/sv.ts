@@ -8023,7 +8023,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Välj ett år eller en period",
   "v2.lib.periodAll": "Alla år",
-  "v2.lib.periodWholeDecade": "Hela decenniet {de}–{a}",
+  "v2.lib.periodWholeDecade": "Hela decenniet {start}–{end}",
   "v2.lib.periodCustom": "Annan period…",
   "v2.lib.timeline": "Tidslinje",
   "v2.lib.timelineShow": "Visa årstidslinjen",

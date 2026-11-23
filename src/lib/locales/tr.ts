@@ -7856,7 +7856,7 @@ export default {
   // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
   "v2.lib.periodChoose": "Bir yıl veya dönem seçin",
   "v2.lib.periodAll": "Tüm yıllar",
-  "v2.lib.periodWholeDecade": "{de}–{a} on yılının tamamı",
+  "v2.lib.periodWholeDecade": "{start}–{end} on yılının tamamı",
   "v2.lib.periodCustom": "Başka bir dönem…",
   "v2.lib.timeline": "Zaman çizelgesi",
   "v2.lib.timelineShow": "Yıl zaman çizelgesini göster",
