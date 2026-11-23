@@ -8049,6 +8049,7 @@ export default {
   "login.unexpectedResponse": "Uventet svar fra serveren.",
   "login.networkError": "Nettverksfeil.",
   "login.errorStatus": "Feil {status}",
+  "login.invalidCredentials": "Feil brukernavn eller passord.",
   "v2.ambiance.acousticEnableError": "Kunne ikke aktivere akustisk analyse",
   "v2.pl.transferFailed": "Overføringen mislyktes",
   "v2.menu.addTo": "Legg til i",

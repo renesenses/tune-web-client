@@ -1,6 +1,7 @@
 <script lang="ts">
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
+  import { messageErreurConnexion } from '../../lib/erreurConnexion';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { activeView } from '../../lib/stores/navigation';
   import { baseApi, entetesRelais, ssoDisponible, urlRessourcePublique } from '../../lib/bridge';
@@ -57,7 +58,7 @@
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        error = body.detail || body.message || $t('login.errorStatus' as any).replace('{status}', String(resp.status));
+        error = messageErreurConnexion(resp.status, body, (cle) => $t(cle as any));
         loading = false;
         return;
       }
@@ -93,7 +94,7 @@
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
-        error = body.detail || body.message || $t('login.errorStatus' as any).replace('{status}', String(resp.status));
+        error = messageErreurConnexion(resp.status, body, (cle) => $t(cle as any), false);
         loading = false;
         return;
       }
@@ -153,7 +154,7 @@
           class="login-input"
         />
         {#if error}
-          <div class="login-error">{error}</div>
+          <div class="login-error" data-login-erreur>{error}</div>
         {/if}
         <button type="submit" class="login-btn" disabled={loading}>
           {loading ? $t('login.signingIn' as any) : $t('login.signIn' as any)}

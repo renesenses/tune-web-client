@@ -8204,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "서버에서 예기치 않은 응답이 왔습니다.",
   "login.networkError": "네트워크 오류입니다.",
   "login.errorStatus": "오류 {status}",
+  "login.invalidCredentials": "사용자 이름 또는 비밀번호가 올바르지 않습니다.",
   "v2.ambiance.acousticEnableError": "음향 분석을 활성화할 수 없습니다",
   "v2.pl.transferFailed": "전송하지 못했습니다",
   "v2.menu.addTo": "추가 대상",

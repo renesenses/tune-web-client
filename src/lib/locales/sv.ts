@@ -8203,6 +8203,7 @@ export default {
   "login.unexpectedResponse": "Oväntat svar från servern.",
   "login.networkError": "Nätverksfel.",
   "login.errorStatus": "Fel {status}",
+  "login.invalidCredentials": "Fel användarnamn eller lösenord.",
   "v2.ambiance.acousticEnableError": "Det gick inte att aktivera akustisk analys",
   "v2.pl.transferFailed": "Överföringen misslyckades",
   "v2.menu.addTo": "Lägg till i",

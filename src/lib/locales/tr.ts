@@ -8035,6 +8035,7 @@ export default {
   "login.unexpectedResponse": "Sunucudan beklenmeyen yanıt.",
   "login.networkError": "Ağ hatası.",
   "login.errorStatus": "Hata {status}",
+  "login.invalidCredentials": "Kullanıcı adı veya şifre hatalı.",
   "v2.ambiance.acousticEnableError": "Akustik analiz etkinleştirilemedi",
   "v2.pl.transferFailed": "Aktarım başarısız oldu",
   "v2.menu.addTo": "Şuraya ekle",

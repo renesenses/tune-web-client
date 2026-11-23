@@ -8204,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "Răspuns neașteptat de la server.",
   "login.networkError": "Eroare de rețea.",
   "login.errorStatus": "Eroare {status}",
+  "login.invalidCredentials": "Nume de utilizator sau parolă incorecte.",
   "v2.ambiance.acousticEnableError": "Analiza acustică nu a putut fi activată",
   "v2.pl.transferFailed": "Transferul a eșuat",
   "v2.menu.addTo": "Adaugă la",
