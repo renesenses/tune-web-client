@@ -31,7 +31,7 @@ export async function redemarrerServeurConfirme(surRenoncement?: () => void): Pr
     // applicative arrête ici (même règle que Réglages).
     // tune-server-rust#9029 — refusé hors de la machine de Tune
     // (authentification coupée) : dire quoi faire.
-    const horsMachine = messageRefusHorsMachine(e, tr as (cle: string) => string, 'restart');
+    const horsMachine = messageRefusHorsMachine(e, tr as (cle: string) => string);
     const msg = horsMachine ?? errText(e);
     if (msg !== null) {
       notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr as (cle: string) => string) : undefined);

@@ -162,6 +162,7 @@
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
+  import { CLE_NOTE_ACTIONS_MACHINE, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3600,6 +3601,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let arretEnCours = $state(false);
 
   /**
+   * rc14 (capture d'Yves, rc13.1) — Redémarrer / Arrêter le serveur et
+   * Éteindre / Redémarrer la machine sont GRISÉS quand cet appareil ne peut
+   * pas les exécuter (authentification coupée hors de la machine du serveur,
+   * ou compte non administrateur), au lieu d'être refusés après le clic.
+   * `null` : offerts, ou inconnu (serveur ancien) — le serveur reste juge.
+   * La mise à jour n'est pas concernée : permise depuis le réseau local.
+   */
+  let refusMachine = $state<RefusActionsMachine | null>(null);
+  $effect(() => {
+    let vivant = true;
+    lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
+    return () => { vivant = false; };
+  });
+
+  /**
    * Redémarrer, puis recharger UNE FOIS que le serveur répond — jamais sur un
    * minuteur (#1209, Mika/Windows : le rechargement à délai fixe tombait sur un
    * serveur pas encore prêt).
@@ -3630,9 +3646,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
       // tune-server-rust#9029 — refusé hors de la machine de Tune
-      // (authentification coupée) : dire quoi faire, commande du conteneur
-      // comprise.
-      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      // (authentification coupée) : dire quoi faire, en une phrase courte.
+      const horsMachine = messageRefusHorsMachine(e, tr);
       const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
@@ -4953,6 +4968,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     tabId = r.tabId; sousEcran = r.sousEcran; ongletRetour = r.ongletRetour; zoneOuverte = r.zoneOuverte;
   }
 </script>
+
+<!-- rc14 — sous les boutons grisés des actions de la machine : une ligne
+     courte et le fil épinglé du forum, au lieu d'un refus après le clic. -->
+{#snippet noteActionsMachine()}
+  {#if refusMachine}
+    <p class="hint" data-actions-machine-indisponibles={refusMachine}>
+      {$t(CLE_NOTE_ACTIONS_MACHINE[refusMachine] as any)}
+      <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{$t('machineAction.howTo' as any)}</a>
+    </p>
+  {/if}
+{/snippet}
 
 <section class="v2-settings tune-v2">
   <header class="v2-top">
@@ -7984,7 +8010,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                          (#900) ; ce bouton ne la contourne pas — il redonne la
                          main quand le serveur, lui, ne se relève pas seul. -->
                     <b>{$t('settings.installed' as any)}</b>
-                    <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                    <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                       {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                     </button>
                   {:else if updateInfo.installable === false}
@@ -8269,17 +8295,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    se touchaient (testeur Alex, rc8). Flex + gap, comme le
                    reste des réglages. -->
               <div class="actions-serveur" data-actions-serveur data-reglage="actions-serveur">
-                <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
-                <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
+                <button class="lnk danger" disabled={arretEnCours || refusMachine !== null} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
                 {#if isAppliance === true}
-                  <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
+                  <button class="lnk danger" disabled={extinctionEnCours || refusMachine !== null} onclick={eteindreLaMachine}>
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
-                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours} onclick={redemarrerLaMachine}>
+                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours || refusMachine !== null} onclick={redemarrerLaMachine}>
                     {redemarrageMachineEnCours ? $t('diagnostics.rebooting' as any) : $t('diagnostics.reboot' as any)}
                   </button>
                 {/if}
@@ -8293,6 +8319,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
+              {@render noteActionsMachine()}
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
                    serveur, rapport d'analyse — portés de l'ancienne interface.

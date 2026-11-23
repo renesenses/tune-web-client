@@ -61,6 +61,8 @@ vi.mock('../api', async (importOriginal) => {
     getScanStatus: vi.fn(async () => ({ scanning: false })),
     getScanReport: vi.fn(async () => null),
     listServiceTokens: vi.fn(async () => []),
+    // rc14 — serveur sans `/auth/activation` : les gestes de service restent offerts.
+    getAuthActivation: vi.fn(async () => null),
   };
 });
 

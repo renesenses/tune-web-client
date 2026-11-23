@@ -781,7 +781,7 @@ export async function fetchJSON<T>(
       // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
       // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
       // que soit l'écran — certains n'affichent que leur propre libellé.
-      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // Redémarrer / Arrêter la disent eux-mêmes ; une
       // lecture refusée reste silencieuse.
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
@@ -6401,6 +6401,17 @@ export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
     `${BASE}/auth/activation`, undefined, (s) => s === 404,
   );
   return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
+}
+
+/**
+ * La session en cours (`GET /auth/me`) : son `role` dit si elle est
+ * administratrice. 401/403/404 (authentification coupée, serveur ancien)
+ * reviennent comme corps, sans bandeau.
+ */
+export function getAuthMe() {
+  return fetchJSON<{ role?: unknown; error?: string } | null>(
+    `${BASE}/auth/me`, undefined, (s) => s === 401 || s === 403 || s === 404, true,
+  );
 }
 
 /** Demande au serveur d'écrire un code à usage unique dans son journal. */
