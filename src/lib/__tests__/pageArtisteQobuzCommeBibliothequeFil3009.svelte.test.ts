@@ -202,4 +202,15 @@ describe('fil 3009 point 7 — la fiche Qobuz reprend la présentation de la fic
     await jusqua(() => get(ficheArtisteService)?.id === '701');
     expect(get(ficheArtisteService)?.id).toBe('701');
   });
+
+  it('🔴 le service rend DEUX FOIS le même voisin (même id) : une seule carte, pas de plantage', async () => {
+    voisins = [
+      { id: '700', name: 'Moonchild', image_path: null },
+      { id: '700', name: 'Moonchild', image_path: null },
+      { id: '702', name: 'Laura Marling', image_path: null },
+    ];
+    ouvrirQobuz();
+    await jusqua(() => !!apropos()?.textContent?.includes('Laura Marling'));
+    expect(apropos()!.querySelectorAll('.puce')).toHaveLength(2);
+  });
 });

@@ -323,7 +323,13 @@
     try {
       const v = await api.getStreamingArtistSimilar(service, id);
       if (mien !== jeton) return;
-      voisinsService = Array.isArray(v) ? v.filter((x) => x?.id != null && !!x?.name?.trim()) : [];
+      // Dédoublonnés par identifiant : la clé de la liste en est faite, et un
+      // service (ou un serveur antérieur à son propre dédoublonnage) peut
+      // rendre deux fois le même voisin — `each_key_duplicate`.
+      const vus = new Set<string>();
+      voisinsService = Array.isArray(v)
+        ? v.filter((x) => x?.id != null && !!x?.name?.trim() && !vus.has(String(x.id)) && !!vus.add(String(x.id)))
+        : [];
     } catch {
       /* service sans similarité, serveur antérieur ou panne : pas de voisins du service */
     }
