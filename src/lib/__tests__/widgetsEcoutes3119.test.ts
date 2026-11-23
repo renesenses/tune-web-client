@@ -36,7 +36,12 @@ const TABLEAU = {
     { album_title: 'La Fossette', artist_name: 'Dominique A', cover_path: 'c1', plays: 40, album_id: 12 },
     { album_title: 'Ambient 1', artist_name: 'Brian Eno', cover_path: 'c2', plays: 9, album_id: null, source: 'qobuz', source_id: '777' },
   ],
-  top_tracks: [],
+  // Fil forum 3009 (point 14) — le widget lit les TITRES : un titre local
+  // dont le serveur donne l'album, un titre Qobuz qui n'a que sa paire.
+  top_tracks: [
+    { track_id: 301, title: 'Le Courage des oiseaux', artist_name: 'Dominique A', cover_path: 'c1', plays: 25, listening_ms: 1, album_id: 12 },
+    { track_id: null, title: 'An Ending (Ascent)', artist_name: 'Brian Eno', cover_path: 'c2', plays: 7, listening_ms: 1, source: 'qobuz', source_id: 'q88' },
+  ],
   trend: [],
   hourly: [],
   by_zone: [],
@@ -121,7 +126,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('web#3119 — « Écoutes fréquentes »', () => {
+// 🔄 Fil forum 3009 (FabienM, point 14 ; go du 23/11/2026) — le widget montre
+// les TITRES les plus écoutés et s'appelle « Titres les plus écoutés ».
+// Contre-épreuve : `accueilWidgets.ts` remis à `origin/main`, les épreuves
+// « titres » et « sans étiquette » rougissent (il rendait les deux albums).
+describe('web#3119 / fil 3009 — « Titres les plus écoutés »', () => {
   it('existe, et ne s’impose pas sur l’accueil de tout le monde', () => {
     const w = widgetParId('ecoutes-frequentes');
     expect(w?.forme).toBe('bande');
@@ -129,26 +138,47 @@ describe('web#3119 — « Écoutes fréquentes »', () => {
     expect(DISPOSITION_DEFAUT).not.toContain('ecoutes-frequentes');
   });
 
-  it('🔴 lit les albums les plus écoutés sur TRENTE jours, étiquetés ALBUM', async () => {
+  it('🔴 fil 3009 — lit les TITRES les plus écoutés sur TRENTE jours, pas les albums', async () => {
     sasPeuple();
     const els = await widgetParId('ecoutes-frequentes')!.charger(ctx);
     const appel = requetes.find((r) => r.url.includes('/history/dashboard'));
     expect(appel?.url).toContain('period=30d');
-    expect(els.map((e) => e.titre)).toEqual(['La Fossette', 'Ambient 1']);
-    expect(els.every((e) => e.nature === 'album')).toBe(true);
-    // L'album de la bibliothèque s'OUVRE ; celui du service se joue.
+    expect(els.map((e) => e.titre)).toEqual(['Le Courage des oiseaux', 'An Ending (Ascent)']);
+    expect(els.map((e) => e.sous)).toEqual(['Dominique A', 'Brian Eno']);
+    // Aucun album du classement ne s'y glisse.
+    expect(els.map((e) => e.titre)).not.toContain('La Fossette');
+    // Chacun se joue : le titre LOCAL par son identifiant, et il ouvre son
+    // album quand le serveur le donne ; le titre Qobuz par sa paire.
+    expect(typeof els[0].jouer).toBe('function');
+    expect(typeof els[1].jouer).toBe('function');
     expect(els[0].ouvrir).toBe('album');
     expect(els[0].fiche?.id).toBe(12);
-    expect(typeof els[1].jouer).toBe('function');
+    expect(els[1].ouvrir).toBeUndefined();
   });
 
-  it('🔴 l’étiquette ALBUM est peinte sur la vignette', async () => {
+  it('🔴 fil 3009 — un titre ne porte pas d’étiquette ALBUM (« pour les titres laissez tel quel »)', async () => {
     sasPeuple();
     const page = await poser('ecoutes-frequentes');
-    const etiquettes = [...page.querySelectorAll('.carte .cn')];
-    expect(etiquettes).toHaveLength(2);
-    expect(etiquettes[0].getAttribute('data-nature')).toBe('album');
-    expect(etiquettes[0].textContent?.trim()).toBe('Album');
+    expect(page.querySelectorAll('.carte')).toHaveLength(2);
+    expect(page.querySelectorAll('.carte .cn')).toHaveLength(0);
+  });
+
+  it('🔴 fil 3009 — s’appelle « Titres les plus écoutés », et chaque langue a changé son libellé', async () => {
+    const { readFileSync, readdirSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const dossier = resolve(__dirname, '../locales');
+    const fr = readFileSync(resolve(dossier, 'fr.ts'), 'utf8');
+    expect(fr).toContain('"v2.home.wFrequent": "Titres les plus écoutés"');
+    // Les anciens libellés « albums » / « écoutes » ne survivent nulle part.
+    const ANCIENS = ['Écoutes fréquentes', 'Frequently played', 'Häufig gehört', 'Escuchas frecuentes',
+      'Ascolti frequenti', 'よく聴くアルバム', '자주 듣는 앨범', '常听专辑', '經常播放'];
+    const langues = readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
+    expect(langues.length).toBeGreaterThanOrEqual(20);
+    for (const f of langues) {
+      const m = /"v2\.home\.wFrequent": "([^"]+)"/.exec(readFileSync(resolve(dossier, f), 'utf8'));
+      expect(m, f).not.toBeNull();
+      expect(ANCIENS, `${f} garde l’ancien libellé`).not.toContain(m![1]);
+    }
   });
 });
 

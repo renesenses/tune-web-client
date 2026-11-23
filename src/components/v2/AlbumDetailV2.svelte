@@ -1,5 +1,6 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
+  import { labelAffiche } from '../../lib/apportsQobuz';
   import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
   import { entiteAnnee, entiteGenre, entiteLabel, menePart, type ContexteLiensFiche } from '../../lib/liensFicheAlbum';
   import { anneeAlbum } from '../../lib/anneeAlbum';
@@ -43,7 +44,6 @@ import MesNotes from '../partages/MesNotes.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
-  import ClampedText from '../partages/ClampedText.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import TexteDeBio from './TexteDeBio.svelte';
   import { segmentsAffichables } from '../../lib/library/bioSegments';
@@ -1192,7 +1192,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    */
   const complementDetails = $derived({
     genres: genresDesPistes(tracks as any),
-    label: labelDe(albumAffiche) || labelQobuz?.nom || null,
+    // Fil 3009, point 12 — sans label dans ses fichiers, celui que Qobuz a
+    // apporté à l'album (`apports_qobuz` de la fiche) ; voir `labelAffiche`.
+    label: labelAffiche(albumAffiche, fiche as any, labelQobuz?.nom ?? null),
     format: qualite?.format ?? null,
     sample_rate: qualite?.sampleRate ?? null,
     bit_depth: qualite?.bitDepth ?? null,
@@ -1606,15 +1608,21 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * album — sur une bibliothèque dont le taux de remplissage n'est pas établi.
    *
    * L'interface actuelle a tranché pareil : `loadAlbumBio` n'y est appelée que
-   * par le clic sur « Notes / Bio ». On reprend son bouton, son état vide
-   * (`library.noAlbumNote`) et ses trois clés — donc aucune nouvelle clé, et
-   * les onze langues sont déjà servies.
+   * par le clic sur « Notes / Bio ». (Fil forum 3009 : l'onglet a disparu,
+   * la notice est dans l'en-tête ; ses états vide et d'erreur, qui ne
+   * s'affichaient que dans l'onglet, ont disparu avec lui, et leurs clés
+   * `library.noAlbumNote` / `library.bioLoadError` aussi.)
    *
    * Un album de service, Bandcamp ou distant n'a pas d'`id` local : la route
    * ne le désigne pas, le bouton ne s'affiche pas. Un bouton absent ne promet
    * rien.
    */
-  let bioOuverte = $state(false);
+  /**
+   * Fil 3009, points 9 et 10 — « Lire la suite » déplie la notice (ou la
+   * présentation d'un album Qobuz, point 13) SUR PLACE, et « Réduire » la
+   * replie : il n'y a plus d'onglet « Notes / Bio » vers lequel basculer.
+   */
+  let descriptionDepliee = $state(false);
   let bio = $state<string | null>(null);
   /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
   let bioProvenance = $state<BioProvenance | null>(null);
@@ -1633,7 +1641,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     const id = album.id ?? null;
     if (id === bioAlbumId) return;
     bioAlbumId = id;
-    bioOuverte = false;
+    descriptionDepliee = false;
     bio = null;
     bioProvenance = null;
     bioSegments = null;
@@ -1646,11 +1654,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     // quand la notice manque) est accepté par lui.
     if (id != null) untrack(() => void chargerBio());
   });
-
-  async function basculerBio() {
-    bioOuverte = !bioOuverte;
-    if (bioOuverte) await chargerBio();
-  }
 
   /** Lit la présentation de l'album UNE fois (en-tête et onglet la partagent). */
   /** L'album dont la présentation est EN VOL : un changement d'album pendant
@@ -1687,7 +1690,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     depot || bandcamp || album.id != null ? null
       : presentationAlbumDeServiceDe(service, sidDistant, $servicesPresentationRefuses),
   );
-  let presentationOuverte = $state(false);
   let presentation = $state<EtatPresentation | null>(null);
   /** #8129 — les liens de la présentation Qobuz, rendus par `TexteDeBio`. */
   const segmentsPresentation = $derived(
@@ -1699,13 +1701,16 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     const cle = presentationCible ? `${presentationCible.service}:${presentationCible.albumId}` : null;
     if (cle === untrack(() => presentationCle)) return;
     presentationCle = cle;
-    presentationOuverte = false;
+    descriptionDepliee = false;
     presentation = null;
+    // Fil forum 3009 (FabienM, point 13 ; go du 23/11/2026) — la présentation
+    // d'un album Qobuz s'affiche à côté de la vignette DÈS l'ouverture, comme
+    // la notice d'un album de la bibliothèque. Plus d'onglet « Présentation ».
+    if (cle) untrack(() => void chargerPresentationService());
   });
-  async function basculerPresentation() {
-    presentationOuverte = !presentationOuverte;
+  async function chargerPresentationService() {
     const cible = presentationCible;
-    if (!presentationOuverte || !cible || presentation || presentationChargement) return;
+    if (!cible || presentation || presentationChargement) return;
     presentationChargement = true;
     const cle = `${cible.service}:${cible.albumId}`;
     const r = await chargerPresentation(cible, api.getStreamingAlbumDescription);
@@ -1715,35 +1720,49 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   }
 
   /**
-   * Les ONGLETS sous l'en-tête : Pistes | Crédits | Bio | Présentation. Chacun
-   * garde la garde de son ancien bouton ; le contenu se lit au premier choix
-   * de l'onglet, comme il se lisait au clic (la route de la bio sort sur le
-   * réseau, voir `basculerBio`).
+   * Les ONGLETS sous l'en-tête : Pistes | Crédits | Mes notes | Compléments
+   * Qobuz | Versions.
+   *
+   * 🔄 Fil forum 3009 (FabienM, points 9, 11 et 13 ; go de Bertrand du
+   * 23/11/2026) :
+   *  - 9  — plus d'onglet « Notes / Bio » : la notice s'affiche déjà à côté
+   *         de la vignette, et « Lire la suite » la déplie sur place ;
+   *  - 11 — « Mes notes » et « Compléments Qobuz » quittent le bas de
+   *         l'en-tête pour deux onglets, juste après « Crédits » ;
+   *  - 13 — plus d'onglet « Présentation » sur un album Qobuz : elle
+   *         s'affiche à côté de la vignette, comme la notice.
    */
-  type Onglet = 'pistes' | 'credits' | 'versions' | 'bio' | 'presentation';
+  type Onglet = 'pistes' | 'credits' | 'notes' | 'qobuz' | 'versions';
   let onglet = $state<Onglet>('pistes');
   const LIBELLES_ONGLETS: Record<Onglet, string> = {
     pistes: 'v2.menu.tabTracks',
     credits: 'artist.credits',
     // Maquette de Levente (rc12) — les versions de l'œuvre (#7617) en onglet.
     versions: 'v2.album.fiche.tabVersions',
-    bio: 'library.notesBio',
-    presentation: 'v2.album.presentation',
+    notes: 'mesNotes.titre',
+    qobuz: 'v2.album.qobuz.title',
   };
+  /** Album LOCAL (ni dépôt distant) : « Mes notes » et les compléments Qobuz s'y rattachent. */
+  const ficheLocale = $derived(album.id != null && !depot);
+  /**
+   * Point 11 — les compléments Qobuz n'ont d'onglet que s'il y a quelque chose
+   * à montrer : `ApportsQobuzAlbum` le dit (`onPresence`) une fois sa lecture
+   * faite, comme il se cachait jusqu'ici quand il n'avait rien.
+   */
+  let apportsQobuzPresents = $state(false);
+  $effect(() => { void album.id; untrack(() => (apportsQobuzPresents = false)); });
   const onglets = $derived<Onglet[]>([
     'pistes',
     ...(creditsPossibles || creditsDeService || onglet === 'credits' ? ['credits' as const] : []),
+    ...(ficheLocale ? ['notes' as const] : []),
+    ...(ficheLocale && (apportsQobuzPresents || onglet === 'qobuz') ? ['qobuz' as const] : []),
     ...(oeuvre ? ['versions' as const] : []),
-    ...(album.id != null ? ['bio' as const] : []),
-    ...(presentationCible || presentation?.etat === 'refus' ? ['presentation' as const] : []),
   ]);
   // Une autre fiche : on revient aux pistes.
   $effect(() => { void album; untrack(() => (onglet = 'pistes')); });
   function choisirOnglet(o: Onglet) {
     onglet = o;
     if (o === 'credits') creditsServiceOuvert = creditsPossibles ? null : creditsDeService;
-    if (o === 'bio' && !bioOuverte) void basculerBio();
-    if (o === 'presentation' && !presentationOuverte) void basculerPresentation();
   }
   /** ← / → / Début / Fin d'un onglet à l'autre (motif « tabs » de l'ARIA APG). */
   function clavierOnglets(e: KeyboardEvent) {
@@ -2042,12 +2061,33 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         <div class="artist">{nomArtiste}</div>
       {/if}
       <!-- Maquette de Levente (Figma 611:5805) — la présentation de l'album en
-           italique, trois lignes au plus, infobulle et « Lire la suite » vers
-           l'onglet Notes / Bio. Vide ou en erreur : rien. -->
+           italique, trois lignes au plus, et « Lire la suite ». Vide ou en
+           erreur : rien.
+           🔄 Fil forum 3009 (points 9, 10 et 13) — l'onglet « Notes / Bio » et
+           l'onglet « Présentation » disparaissent : « Lire la suite » DÉPLIE
+           le texte sur place (même contrat que le correctif du point 10 :
+           `data-lire-suite`, `aria-expanded`, `.depliee`), et un album Qobuz
+           y montre sa présentation, comme un album de la bibliothèque sa
+           notice. -->
       {#if bio && bio.trim()}
         <div class="description" data-description-album>
-          <p title={bio} lang={bioLangue.langue ?? undefined}>{bio}</p>
-          <button type="button" class="lire-suite" data-lire-suite onclick={() => choisirOnglet('bio')}>{$tr('v2.album.fiche.readMore' as any)}</button>
+          <p id="album-description-{album.id}" class:depliee={descriptionDepliee} title={descriptionDepliee ? undefined : bio}
+            lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
+          <button type="button" class="lire-suite" data-lire-suite aria-expanded={descriptionDepliee}
+            aria-controls="album-description-{album.id}"
+            onclick={() => (descriptionDepliee = !descriptionDepliee)}>{$tr((descriptionDepliee ? 'v2.art.bioReadLess' : 'v2.album.fiche.readMore') as any)}</button>
+          <!-- L'attribution et la mention de repli suivaient la notice dans
+               l'onglet « Notes / Bio » : elles la suivent ici. -->
+          <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
+          <AttributionBio provenance={bioProvenance} />
+        </div>
+      {:else if presentation?.etat === 'texte' && presentation.texte.trim()}
+        <div class="description" data-description-album data-presentation-album>
+          <p id="album-presentation-{sidDistant}" class:depliee={descriptionDepliee} title={descriptionDepliee ? undefined : presentation.texte}
+            lang={presentation.langue ?? undefined}>{#if segmentsPresentation}<TexteDeBio segments={segmentsPresentation} />{:else}{presentation.texte}{/if}</p>
+          <button type="button" class="lire-suite" data-lire-suite aria-expanded={descriptionDepliee}
+            aria-controls="album-presentation-{sidDistant}"
+            onclick={() => (descriptionDepliee = !descriptionDepliee)}>{$tr((descriptionDepliee ? 'v2.art.bioReadLess' : 'v2.album.fiche.readMore') as any)}</button>
         </div>
       {/if}
       <div class="facts">
@@ -2149,16 +2189,6 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     </div>
   </div>
 
-  <!-- web#2653 — « Mes notes » : album LOCAL seulement, comme la note sur 5. -->
-  {#if album.id != null && !depot}
-    <div class="mes-notes-album"><MesNotes type="album" id={album.id} /></div>
-  {/if}
-
-  <!-- tune-server-rust#8077 — ce que Qobuz complète, avec sa source, et le
-       geste qui le retire. Album LOCAL seulement. -->
-  {#if album.id != null && !depot}
-    <ApportsQobuzAlbum albumId={album.id} />
-  {/if}
 
   <!-- #4805 lot 1 (d'après MetaRust, de Xavier Joly) : complétude, BPM,
        instruments Wikidata, propositions Discogs. Album de la BIBLIOTHÈQUE
@@ -2180,7 +2210,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       onChange={() => (rechargement += 1)} />
   {/if}
 
-  <!-- web#2736 — Pistes | Crédits | Bio | Présentation. Un onglet n'existe
+  <!-- web#2736 — Pistes | Crédits | … (fil forum 3009 : Mes notes et
+       Compléments Qobuz à côté de Crédits ; plus de Bio ni de Présentation,
+       elles sont dans l'en-tête). Un onglet n'existe
        que si son ancien bouton existait : pas de « Présentation » sur un album
        de la bibliothèque, pas de « Bio » sur un album de service. Seul, l'onglet
        Pistes ne s'affiche pas. -->
@@ -2218,40 +2250,24 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     <div class="panneau" role="tabpanel" id="album-panneau-versions" aria-labelledby="album-onglet-versions" data-panneau-versions>
       <VersionsAlbumV2 {oeuvre} courante={album.id ?? null} onChoisir={changerVersion} onPreferer={preferer} />
     </div>
-  {:else if onglet === 'bio'}
-    <!-- Présentation de l'album (#3586) : lue au premier choix de l'onglet, la
-         route sort sur le réseau (voir `basculerBio`). -->
-    <div class="panneau bio" role="tabpanel" id="album-panneau-bio" aria-labelledby="album-onglet-bio" data-panneau-bio>
-      {#if bioChargement}
-        <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
-      {:else if bioErreur}
-        <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
-      {:else if bio}
-        <ClampedText lines={4} resetKey={bio}>
-          <p class="bio-text" lang={bioLangue.langue ?? undefined}>{#if segmentsBio}<TexteDeBio segments={segmentsBio} />{:else}{bio}{/if}</p>
-        </ClampedText>
-        <MentionRepliBio genre="notes" repliVers={bioLangue.repliVers} />
-        <AttributionBio provenance={bioProvenance} />
-      {:else if bio !== null}
-        <p class="bio-state">{$tr('library.noAlbumNote')}</p>
-      {/if}
+  {:else if onglet === 'notes' && album.id != null}
+    <!-- web#2653 — « Mes notes » : album LOCAL seulement, comme la note sur 5.
+         Fil forum 3009, point 11 : dans son onglet, à côté de « Crédits ». -->
+    <div class="panneau" role="tabpanel" id="album-panneau-notes" aria-labelledby="album-onglet-notes" data-panneau-notes>
+      <div class="mes-notes-album"><MesNotes type="album" id={album.id} /></div>
     </div>
-  {:else if onglet === 'presentation'}
-    <!-- #6480 — la présentation d'un album de SERVICE, en texte : jamais de
-         balisage interprété (`{@html}`), le serveur l'a déjà retiré. Un refus
-         (501) retire l'onglet des fiches suivantes ; celle-ci dit pourquoi. -->
-    <div class="panneau bio" role="tabpanel" id="album-panneau-presentation" aria-labelledby="album-onglet-presentation" data-panneau-presentation>
-      {#if presentationChargement}
-        <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
-      {:else if presentation?.etat === 'texte'}
-        <ClampedText lines={4} resetKey={presentation.texte}>
-          <p class="bio-text presentation" lang={presentation.langue ?? undefined}>{#if segmentsPresentation}<TexteDeBio segments={segmentsPresentation} />{:else}{presentation.texte}{/if}</p>
-        </ClampedText>
-      {:else if presentation?.etat === 'erreur'}
-        <p class="bio-state err">{$tr('v2.album.presentationError' as any)}</p>
-      {:else if presentation}
-        <p class="bio-state">{$tr('v2.album.noPresentation' as any)}</p>
-      {/if}
+  {/if}
+
+  <!-- tune-server-rust#8077 — ce que Qobuz complète, avec sa source, et le
+       geste qui le retire. Album LOCAL seulement.
+       Fil forum 3009, point 11 : dans son onglet. Le composant reste MONTÉ
+       (caché hors de l'onglet) : c'est sa lecture qui dit si l'onglet a lieu
+       d'être (`onPresence`). -->
+  {#if ficheLocale && album.id != null}
+    <div class="panneau" hidden={onglet !== 'qobuz'}
+      role={onglets.includes('qobuz') ? 'tabpanel' : undefined}
+      id="album-panneau-qobuz" aria-labelledby={onglets.includes('qobuz') ? 'album-onglet-qobuz' : undefined} data-panneau-qobuz-album>
+      <ApportsQobuzAlbum albumId={album.id} enOnglet onPresence={(v) => (apportsQobuzPresents = v)} />
     </div>
   {/if}
 
@@ -2519,6 +2535,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .description{display:flex; flex-direction:column; align-items:flex-start; gap:4px; max-width:70ch}
   .description p{margin:0; font-style:italic; color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1.45;
     display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .description p.depliee{display:block; -webkit-line-clamp:unset; line-clamp:none; overflow:visible}
   .lire-suite{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
   .lire-suite:hover{text-decoration:underline}
   .lire-suite:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
@@ -2612,13 +2629,9 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
      Svelte les signalait toutes les neuf en « Unused CSS selector » des que
      ce composant etait compile (#1957, garde de montage). */
 
-  /* Présentation de l'album (#3586) — repliée par défaut, comme dans
-     l'interface actuelle : la route sort sur le réseau quand la notice
-     manque, cf. `basculerBio`. */
+  /* Fil forum 3009 — « Mes notes » dans son onglet ; la notice et la
+     présentation Qobuz sont dans l'en-tête (`.description`), plus en onglet.
+     La présentation garde ses paragraphes. */
   .mes-notes-album{max-width:760px}
-  .bio{margin:0; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
-  .bio-text{margin:0; color:var(--v2-txt2); font-size:calc(14px * var(--v2-txt-echelle, 1)); line-height:1.65; max-width:70ch}
-  .bio-state{margin:0; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1)); font-style:italic}
-  .bio-state.err{color:var(--v2-danger)}
-  .bio-text.presentation{white-space:pre-line}
+  [data-presentation-album] p{white-space:pre-line}
 </style>
