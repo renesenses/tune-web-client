@@ -8119,7 +8119,7 @@ export default {
   "reglages.fiche.avanceResume": "подстройка усиления, смещение текстов песен, название радиотрека по DLNA, публикация в сети",
   "reglages.fiche.appareilResume": "марка, модель, фото, Tune tested",
   "login.signIn": "Войти",
-  "login.identifierPlaceholder": "E-mail или имя пользователя",
+  "login.identifierPlaceholder": "Имя пользователя",
   "login.passwordPlaceholder": "Пароль",
   "login.signingIn": "Вход…",
   "login.or": "или",

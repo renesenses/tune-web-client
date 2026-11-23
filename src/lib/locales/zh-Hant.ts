@@ -8119,7 +8119,7 @@ export default {
   "reglages.fiche.avanceResume": "增益微調、歌詞偏移、透過 DLNA 傳送電台曲名、在網路上發佈",
   "reglages.fiche.appareilResume": "品牌、型號、照片、Tune 實測認證",
   "login.signIn": "登入",
-  "login.identifierPlaceholder": "電子郵件或使用者名稱",
+  "login.identifierPlaceholder": "使用者名稱",
   "login.passwordPlaceholder": "密碼",
   "login.signingIn": "正在登入…",
   "login.or": "或",

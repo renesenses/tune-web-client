@@ -8119,7 +8119,7 @@ export default {
   "reglages.fiche.avanceResume": "versterkingscorrectie, verschuiving van songteksten, radiotitel via DLNA, publiceren op het netwerk",
   "reglages.fiche.appareilResume": "merk, model, foto, Tune tested",
   "login.signIn": "Inloggen",
-  "login.identifierPlaceholder": "E-mailadres of gebruikersnaam",
+  "login.identifierPlaceholder": "Gebruikersnaam",
   "login.passwordPlaceholder": "Wachtwoord",
   "login.signingIn": "Inloggen…",
   "login.or": "of",
