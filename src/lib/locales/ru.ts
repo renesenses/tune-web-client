@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Добавление остановлено: в очередь добавлено {k} из {n}",
   "bibliotheque.selection.playlistPartial": "Из {total} альбомов {n, plural, one {# не удалось прочитать: его треков не хватает.} few {# не удалось прочитать: их треков не хватает.} many {# не удалось прочитать: их треков не хватает.} other {# не удалось прочитать: их треков не хватает.}}",
   "bibliotheque.selection.editGenreScope": "Жанр также копируется в треки альбома, кроме сборников, треки которых относятся к разным жанрам.",
+  "cloud.reconnexionRequise": "Срок подключения к mozaiklabs.fr истек: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.reconnexionRequiseDepuis": "Срок подключения к mozaiklabs.fr истек {date}: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.seReconnecter": "Войти снова",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];

@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Toevoegen gestopt: {k} van {n} toegevoegd aan de wachtrij",
   "bibliotheque.selection.playlistPartial": "Van de {total} albums {n, plural, one {kon # niet worden gelezen: de nummers ervan ontbreken.} other {konden # niet worden gelezen: de nummers ervan ontbreken.}}",
   "bibliotheque.selection.editGenreScope": "Het genre wordt ook naar de nummers van het album gekopieerd, behalve bij een compilatie waarvan de nummers verschillende genres hebben.",
+  "cloud.reconnexionRequise": "Je verbinding met mozaiklabs.fr is verlopen: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.reconnexionRequiseDepuis": "Je verbinding met mozaiklabs.fr is verlopen sinds {date}: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.seReconnecter": "Opnieuw inloggen",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

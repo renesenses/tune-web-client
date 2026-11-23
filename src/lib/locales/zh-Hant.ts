@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "已停止加入：{n} 張中已有 {k} 張加入待播清單",
   "bibliotheque.selection.playlistPartial": "在 {total} 張專輯中，{n, plural, other {有 # 張無法讀取：缺少其曲目。}}",
   "bibliotheque.selection.editGenreScope": "類型也會拷貝至專輯的曲目，但曲目類型各不相同的合輯除外。",
+  "cloud.reconnexionRequise": "與 mozaiklabs.fr 的連線已過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.reconnexionRequiseDepuis": "與 mozaiklabs.fr 的連線已於 {date} 過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.seReconnecter": "重新連線",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];
