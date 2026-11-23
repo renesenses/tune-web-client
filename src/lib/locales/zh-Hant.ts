@@ -8368,5 +8368,8 @@ export default {
   "dashboard.radioEmpty": "此期間沒有電台收聽紀錄。",
   "dashboard.peakListeningTime": "聆聽尖峰時段",
   "dashboard.showAll": "全部顯示",
+  "cloud.reconnexionRequise": "與 mozaiklabs.fr 的連線已過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.reconnexionRequiseDepuis": "與 mozaiklabs.fr 的連線已於 {date} 過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.seReconnecter": "重新連線",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

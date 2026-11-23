@@ -86,9 +86,10 @@ afterEach(async () => {
 });
 
 describe('#2490 — menu des titres favoris du compte Qobuz', () => {
-  it('rend les mêmes treize gestes que le menu commun Qobuz, depuis la réponse des favoris', () => {
+  // Fil forum 3009 (23/11/2026) — « Lire à partir d'ici » est au menu, sous « Lire » : quatorze.
+  it('rend les mêmes quatorze gestes que le menu commun Qobuz, depuis la réponse des favoris', () => {
     expect(ouvrirMenu().map((b) => b.textContent?.trim())).toEqual([
-      'common.play', 'v2.pa.next', 'queue.addToQueue', 'library.playSimilar', 'library.otherVersions',
+      'common.play', 'common.playFromHere', 'v2.pa.next', 'queue.addToQueue', 'library.playSimilar', 'library.otherVersions',
       'nowplaying.addToPlaylist', 'library.goToArtist', 'library.goToAlbum', 'v2.later.add',
       'v2.cover.tags', 'trackTags.title', 'credits.see', 'ban.ban',
     ].map((c) => libelle(c as keyof typeof fr)));
@@ -114,8 +115,10 @@ describe('#2490 — menu des titres favoris du compte Qobuz', () => {
   });
 
   it('Lire à partir d’ici joue le rang choisi, enfile la suite puis remet les précédents', async () => {
-    const depuis = lignes()[1].querySelector<HTMLButtonElement>('button[data-depuis]');
-    expect(depuis).not.toBeNull(); depuis!.click(); flushSync();
+    // Fil forum 3009 — le geste vit au menu « … » de la ligne, plus dans sa barre.
+    expect(lignes()[1].querySelector('button[data-depuis]')).toBeNull();
+    const depuis = ouvrirMenu().find((b) => b.textContent?.trim() === libelle('common.playFromHere'));
+    expect(depuis).toBeDefined(); depuis!.click(); flushSync();
     await vi.waitFor(() => expect(posts()).toHaveLength(3));
     expect(posts().map((r) => r.chemin)).toEqual([
       '/api/v1/zones/37/play', '/api/v1/zones/37/queue/add', '/api/v1/zones/37/queue/add',

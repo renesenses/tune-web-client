@@ -8368,5 +8368,8 @@ export default {
   "dashboard.radioEmpty": "За этот период радио не прослушивалось.",
   "dashboard.peakListeningTime": "Пиковое время прослушивания",
   "dashboard.showAll": "Показать все",
+  "cloud.reconnexionRequise": "Срок подключения к mozaiklabs.fr истек: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.reconnexionRequiseDepuis": "Срок подключения к mozaiklabs.fr истек {date}: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.seReconnecter": "Войти снова",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];

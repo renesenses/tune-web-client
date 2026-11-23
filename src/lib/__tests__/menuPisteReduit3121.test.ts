@@ -63,10 +63,12 @@ const respirer = async () => { for (let i = 0; i < 5; i++) await new Promise((r)
 const lectures = () => requetes.filter((r) => r.method === 'POST' && /\/zones\/1\/play(\?|$)/.test(r.url));
 
 describe('web#3121 — la barre d’une ligne de piste', () => {
-  it('QUATRE cases : Lire, Lire à partir d’ici, le cœur, le « … »', () => {
+  // 🔄 Fil forum 3009 (FabienM, points 2 et 3 ; go du 23/11/2026) — « Lire à
+  // partir d'ici » quitte la barre pour le menu « … » : TROIS cases.
+  it('TROIS cases : Lire, le cœur, le « … » (fil 3009)', () => {
     const b = poser(PisteActions, { piste: LOCALE, onLireDepuis: () => {} }).querySelector<HTMLElement>('.pactions')!;
     expect(cases(b).map((el) => el.getAttribute('aria-label'))).toEqual([
-      tr('v2.pa.play'), tr('common.playFromHere'), tr('v2.pa.fav'), tr('library.moreOptions'),
+      tr('v2.pa.play'), tr('v2.pa.fav'), tr('library.moreOptions'),
     ]);
     expect(cases(b).some((el) => el.classList.contains('vide'))).toBe(false);
   });
@@ -88,11 +90,12 @@ describe('web#3121 — la barre d’une ligne de piste', () => {
     for (const k of ACTIONS_MASQUABLES) expect(cles, k).toContain(k);
   });
 
-  it('un geste absent garde sa case, vide (fil 1906) : quatre cases toujours', () => {
-    // Pas de « Lire à partir d'ici » fourni : sa case reste, vide.
-    const b = poser(PisteActions, { piste: LOCALE }).querySelector<HTMLElement>('.pactions')!;
-    expect(cases(b)).toHaveLength(4);
-    expect(cases(b)[1].classList.contains('vide')).toBe(true);
+  it('un geste absent garde sa case, vide (fil 1906) : trois cases toujours', () => {
+    // Une piste qu'on ne sait pas désigner : ses trois cases restent, vides.
+    const b = poser(PisteActions, { piste: { id: null, title: 'Sans rien', source: 'qobuz', source_id: null } })
+      .querySelector<HTMLElement>('.pactions')!;
+    expect(cases(b)).toHaveLength(3);
+    expect(cases(b).every((el) => el.classList.contains('vide'))).toBe(true);
   });
 });
 
@@ -147,7 +150,11 @@ describe('web#3121 — « Lire » ne joue que ce morceau', () => {
   it('« Lire à partir d’ici » garde le geste de l’écran', async () => {
     const onLireDepuis = vi.fn();
     const h = poser(ListePistesV2, { pistes: PISTES, contexte, onLire: () => {}, onLireDepuis });
-    h.querySelectorAll<HTMLElement>('.trow')[1].querySelector<HTMLButtonElement>('[data-depuis]')!.click();
+    // Fil forum 3009 — par le menu « … » de la ligne, plus par la barre.
+    h.querySelectorAll<HTMLElement>('.trow')[1].querySelector<HTMLButtonElement>('.pactions button[aria-haspopup="menu"]')!.click();
+    flushSync();
+    [...document.querySelectorAll<HTMLButtonElement>('.menu button.item')]
+      .find((b) => b.textContent?.trim() === tr('common.playFromHere'))!.click();
     await respirer();
     expect(onLireDepuis).toHaveBeenCalledTimes(1);
     expect(onLireDepuis.mock.calls[0][1]).toBe(1);
