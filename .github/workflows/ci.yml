@@ -42,6 +42,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Vérifier le catalogue avec la garde relue
+        env:
+          CATALOGUE_HMAC_KEY: ${{ secrets.CATALOGUE_HMAC_KEY }}
+        run: |
+          garde="$RUNNER_TEMP/verifier-catalogue.py"
+          cp scripts/verifier-catalogue.py "$garde"
+          echo "e1fc10a78e8f4c809ca6a64ec50d1acbbdf261c09f0230a9c8942de3f54afc95  $garde" | sha256sum --check --status
+          python3 -I "$garde"
+      - name: Éprouver les règles sur un catalogue fictif
+        run: python3 scripts/test-verifier-catalogue.py
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22

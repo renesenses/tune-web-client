@@ -26,6 +26,9 @@ export const RAPPORTS = [2, 4, 8, 16] as const;
 export type Rapport = (typeof RAPPORTS)[number];
 
 export interface ReglageSurechantillonnage {
+  mode?: 'manual' | 'auto';
+  profile?: string;
+  declarations?: Record<string, unknown>;
   enabled: boolean;
   filter: string;
   max_rate_hz: number | null;
@@ -56,6 +59,12 @@ export interface VerdictMachine {
 }
 
 export interface CatalogueSurechantillonnage {
+  auto_available?: boolean;
+  auto_choices?: {
+    profiles: { id: string; labels: Record<string, string> }[];
+    default_profile: string;
+    fields: { id: string; labels: Record<string, string>; choices: { id: string; name: string }[] }[];
+  } | null;
   premium: boolean;
   installed: boolean;
   machine_test: VerdictMachine | null;
@@ -81,7 +90,7 @@ export interface EtatSurechantillonnage {
   constraint: Contrainte | null;
   admitted_filters: string[] | null;
   /** Quand le réglage atteint le son (19/11/2026 : tout de suite). */
-  applies_at: 'now' | 'next_track' | 'never';
+  applies_at: 'now' | 'next_track' | 'pending' | 'never';
   /** Le flux qui jouait est relancé à la même position. Absent avant le 19/11. */
   restart?: boolean;
 }
@@ -94,6 +103,15 @@ export function getCatalogueSurechantillonnage(): Promise<CatalogueSurechantillo
 
 export function getSurechantillonnageZone(zoneId: number): Promise<EtatSurechantillonnage> {
   return fetchJSON<EtatSurechantillonnage>(`${RACINE()}/zones/${zoneId}`);
+}
+
+export interface DecisionAuto {
+  chosen: { design_name: string; filter_rate_hz: number; depth: number; shaper_name: string } | null;
+  trace: { code: string; params?: Record<string, unknown> }[];
+}
+
+export function getDecisionAuto(zoneId: number): Promise<{ zone_id: number; decision: DecisionAuto | null }> {
+  return fetchJSON(`${RACINE()}/zones/${zoneId}/auto`);
 }
 
 export function setSurechantillonnageZone(
@@ -171,7 +189,7 @@ export function cleContrainte(c: Contrainte | null): string | null {
  * (`next_track` toujours) garde son message.
  */
 export function clePortee(etat: Pick<EtatSurechantillonnage, 'applies_at' | 'restart'>): string {
-  if (etat.applies_at === 'never') return 'upsampling.saved';
+  if (etat.applies_at === 'never' || etat.applies_at === 'pending') return 'upsampling.saved';
   if (etat.applies_at !== 'now') return 'upsampling.nextTrack';
   return etat.restart ? 'upsampling.appliedRestart' : 'upsampling.applied';
 }
@@ -183,7 +201,7 @@ export function clePortee(etat: Pick<EtatSurechantillonnage, 'applies_at' | 'res
  */
 export function cleIndicationPortee(etat: Pick<EtatSurechantillonnage, 'applies_at'> | null): string | null {
   if (etat?.applies_at === 'now') return 'upsampling.appliesNow';
-  if (etat?.applies_at === 'never') return null;
+  if (etat?.applies_at === 'never' || etat?.applies_at === 'pending') return null;
   return 'upsampling.appliesLater';
 }
 

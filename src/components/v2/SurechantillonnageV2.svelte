@@ -18,7 +18,7 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import {
-    type CatalogueSurechantillonnage, type EtatSurechantillonnage, type ReglageSurechantillonnage,
+    type DecisionAuto, getDecisionAuto, type CatalogueSurechantillonnage, type EtatSurechantillonnage, type ReglageSurechantillonnage,
     getCatalogueSurechantillonnage, getSurechantillonnageZone, setSurechantillonnageZone,
     lancerLeTestDeLaMachine, reglageParDefaut, filtresProposes, filtreNonAdmis, reserveMaxDb,
     libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, cleIndicationPortee, RAPPORTS,
@@ -32,6 +32,29 @@
   let occupe = $state(false);
   let mesure = $state(false);
 
+  let decision = $state<DecisionAuto | null>(null);
+  let erreurDecision = $state<string | null>(null);
+  const choix = $derived(decision?.chosen ?? null);
+  $effect(() => {
+    const id = $currentZoneId;
+    decision = null;
+    erreurDecision = null;
+    if (id == null || !catalogue?.auto_available || etat?.zone_id !== id || etat.settings.mode !== 'auto') return;
+    let actif = true;
+    let enCours = false;
+    const lire = async () => {
+      if (enCours) return;
+      enCours = true;
+      try {
+        const resultat = await getDecisionAuto(id);
+        if (actif) { decision = resultat.decision; erreurDecision = null; }
+      } catch (e) { if (actif) erreurDecision = e instanceof Error ? e.message : String(e); }
+      finally { enCours = false; }
+    };
+    void lire();
+    const intervalle = setInterval(lire, 10000);
+    return () => { actif = false; clearInterval(intervalle); };
+  });
   const admis = $derived(etat?.admitted_filters ?? null);
   const proposes = $derived(catalogue ? filtresProposes(catalogue.filters, admis, reglage.filter) : []);
   const contrainte = $derived(cleContrainte(etat?.constraint ?? null));
@@ -49,7 +72,7 @@
     if (zid == null) { etat = null; return; }
     getSurechantillonnageZone(zid)
       .then((e) => { if ($currentZoneId !== zid) return; etat = e; reglage = { ...e.settings }; erreur = null; })
-      .catch((e) => { erreur = e?.message ?? String(e); });
+      .catch((e) => { if ($currentZoneId === zid) erreur = e?.message ?? String(e); });
   });
 
   async function enregistrer() {
@@ -57,7 +80,9 @@
     if (zid == null) return;
     occupe = true;
     try {
-      etat = await setSurechantillonnageZone(zid, reglage);
+      const resultat = await setSurechantillonnageZone(zid, reglage);
+      if ($currentZoneId !== zid) return;
+      etat = resultat;
       reglage = { ...etat.settings };
       erreur = null;
       chargerLeCatalogue();
@@ -75,7 +100,11 @@
       await lancerLeTestDeLaMachine();
       chargerLeCatalogue();
       const zid = $currentZoneId;
-      if (zid != null) etat = await getSurechantillonnageZone(zid);
+      if (zid != null) {
+        const resultat = await getSurechantillonnageZone(zid);
+        if ($currentZoneId !== zid) return;
+        etat = resultat;
+      }
       erreur = null;
     } catch (e: any) {
       erreur = e?.message ?? String(e);
@@ -118,6 +147,38 @@
           </label>
         </div>
 
+        {#if catalogue?.auto_available || reglage.mode === 'auto'}
+          <label class="row"><span class="lbl">{$t('upsampling.proName' as any)}</span>
+            <input type="checkbox" checked={reglage.mode === 'auto'} disabled={!catalogue?.auto_available && reglage.mode !== 'auto'}
+              onchange={(e) => { reglage = { ...reglage, mode: e.currentTarget.checked ? 'auto' : 'manual' }; }} />
+          </label>
+        {/if}
+        {#if reglage.mode === 'auto'}
+          <label class="row"><span>{$t('upsampling.autoProfile' as any)}</span>
+            <select class="sel" value={reglage.profile || catalogue?.auto_choices?.default_profile || ''} onchange={(e) => { reglage = { ...reglage, profile: e.currentTarget.value }; }}>
+              {#each catalogue?.auto_choices?.profiles ?? [] as profil}
+                <option value={profil.id}>{profil.labels?.[$locale] ?? profil.labels?.en ?? profil.id}</option>
+              {/each}
+            </select>
+          </label>
+          {#each catalogue?.auto_choices?.fields ?? [] as champ}
+            {#if champ.choices.length}
+              <label class="row">
+                <span>{champ.labels?.[$locale] ?? champ.labels?.en ?? champ.id}</span>
+                <select class="sel" value={reglage.declarations?.[champ.id] ?? ''} onchange={(e) => { reglage = { ...reglage, declarations: { ...reglage.declarations, [champ.id]: e.currentTarget.value || null } }; }}>
+                  <option value="">—</option>
+                  {#each champ.choices as valeur}
+                    <option value={valeur.id}>{valeur.name}</option>
+                  {/each}
+                </select>
+              </label>
+            {/if}
+          {/each}
+          {#if choix}
+            <div class="row"><span>{$t('upsampling.activePlan' as any)}</span><span class="val">{choix.design_name} · {new Intl.NumberFormat($locale).format(choix.filter_rate_hz)} Hz · {choix.depth} bit · {choix.shaper_name}</span></div>
+          {/if}
+          {#if erreurDecision}<div class="err">{erreurDecision}</div>{/if}
+        {:else}
         <div class="row">
           <div class="lbl"><span>{$t('upsampling.filter' as any)}</span><span class="hint">{$t('upsampling.filterHint' as any)}</span></div>
           <select class="sel" aria-label={$t('upsampling.filter' as any)} value={reglage.filter}
@@ -131,6 +192,7 @@
           <div class="warn" data-non-admis>{$t('upsampling.filterNotAdmitted' as any)}</div>
         {/if}
 
+        {/if}
         <div class="row">
           <div class="lbl"><span>{$t('upsampling.target' as any)}</span><span class="hint">{$t('upsampling.targetHint' as any)}</span></div>
           <select class="sel" aria-label={$t('upsampling.target' as any)} value={reglage.max_ratio == null ? '' : String(reglage.max_ratio)}
@@ -140,10 +202,12 @@
           </select>
         </div>
 
+        {#if reglage.mode !== 'auto'}
         <div class="row">
           <div class="lbl"><span>{$t('upsampling.dither' as any)}</span><span class="hint">{$t('upsampling.ditherHint' as any)}</span></div>
           <span class="val">{$t('upsampling.ditherValue' as any)}</span>
         </div>
+        {/if}
 
         <div class="row">
           <div class="lbl">
