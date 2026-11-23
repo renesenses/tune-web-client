@@ -67,6 +67,19 @@
   let opened = $state<any | null>(null);
   let episodes = $state<any[]>([]);
   let epLoading = $state(false);
+  /**
+   * L'échec de la liste d'épisodes, montré DANS la fiche avec « Réessayer »
+   * (forum, rc13 : la fiche restait sur « Chargement des épisodes… »).
+   */
+  let epErreur = $state<string | null>(null);
+  /**
+   * Chaque ouverture de fiche reçoit un numéro : une réponse tardive d'une
+   * fiche quittée ne vient plus écraser `episodes` de la fiche ouverte.
+   * (Un numéro plutôt que `opened === p` : `opened` est un `$state`, l'objet
+   * qu'on y range en ressort mandaté et n'est plus `===` à l'original.)
+   */
+  let ouverture = 0;
+  let demandeEpisodes: AbortController | null = null;
   let playingUrl = $state<string | null>(null);
 // Où en sont les épisodes commencés, et le recul de reprise réglé au serveur.
 let reprises = $state<LigneEpisode[]>([]);
@@ -466,7 +479,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     $listResetNonce;
     untrack(() => {
       if (opened == null) return;
-      opened = null;
+      fermerFiche();
       clearShortcutTarget();
     });
   });
@@ -518,15 +531,18 @@ let reculS = $state(RECUL_DEFAUT_S);
     // même lecture, même raccourci.
     if (show.rss_url) { void openPodcast({ feed_url: show.rss_url, title: show.title, cover_url: show.cover_url }); return; }
     opened = { title: show.title, author: show.station || 'Radio France', cover_url: show.cover_url ?? null };
+    const n = ++ouverture; demandeEpisodes?.abort(); demandeEpisodes = null; epErreur = null;
     episodes = []; epLoading = true;
     try {
       const d = await api.getRadioFranceEpisodes(show.url, 30);
+      if (n !== ouverture) return;
       episodes = (d.episodes ?? []).map((ep: any) => ({
         title: ep.title, description: ep.description, audio_url: ep.audio_url,
         duration_ms: (ep.duration_secs ?? 0) * 1000, published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
       }));
     } catch {
+      if (n !== ouverture) return;
       errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
     }
     epLoading = false;
@@ -536,7 +552,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     const feed = feedOf(p);
     const apple = feed ? null : appleIdOf(p);
     if (!feed && !apple) return;
-    opened = p; episodes = []; epLoading = true;
+    opened = p;
     void chargerReprises();
     // Un raccourci se rouvre par le flux : sans flux, il n'y a rien à poser.
     if (feed) {
@@ -546,19 +562,41 @@ let reculS = $state(RECUL_DEFAUT_S);
         label: p?.title ?? p?.name ?? undefined,
       });
     }
+    await chargerEpisodes(p);
+  }
+
+  /** Les épisodes de la fiche `p` ; rappelé tel quel par « Réessayer ». */
+  async function chargerEpisodes(p: any) {
+    const feed = feedOf(p);
+    const n = ++ouverture;
+    demandeEpisodes?.abort();
+    const ctrl = new AbortController();
+    demandeEpisodes = ctrl;
+    episodes = []; epErreur = null; epLoading = true;
     try {
-      episodes = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, p?.source_id, pays);
+      const liste = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, p?.source_id, pays, { signal: ctrl.signal });
+      if (n !== ouverture) return;
+      episodes = liste;
     } catch (e) {
+      // Fiche quittée, ou demande remplacée : rien à dire de celle-ci.
+      if (n !== ouverture) return;
       const cle = cleEchecResolution(e);
       if (cle) {
         // Rien à montrer : la fiche vide se referme, la raison reste.
-        if (opened === p) opened = null;
+        opened = null;
         errorDetail = ''; error = $t(cle as any);
       } else {
-        errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
+        epErreur = $t('v2.pod.episodesUnavail' as any);
       }
+    } finally {
+      if (n === ouverture) { epLoading = false; demandeEpisodes = null; }
     }
-    epLoading = false;
+  }
+
+  function fermerFiche() {
+    ouverture++; demandeEpisodes?.abort(); demandeEpisodes = null;
+    epLoading = false; epErreur = null;
+    opened = null;
   }
 
   /** Les reprises enregistrées ; sans elles, tout part du début comme avant. */
@@ -1002,7 +1040,7 @@ let reculS = $state(RECUL_DEFAUT_S);
 
   {#if opened}
     <div class="detail">
-      <button class="close" onclick={() => (opened = null)} aria-label="Fermer">
+      <button class="close" onclick={fermerFiche} aria-label="Fermer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       <div class="dhead">
@@ -1020,6 +1058,11 @@ let reculS = $state(RECUL_DEFAUT_S);
       <div class="eps">
         {#if epLoading}
           <div class="state">{$t('v2.pod.loadingEpisodes' as any)}</div>
+        {:else if epErreur}
+          <div class="state err-inline ep-erreur" role="alert">
+            <span>{epErreur}</span>
+            <button class="relancer" onclick={() => opened && chargerEpisodes(opened)}>{$t('v2.pod.retry' as any)}</button>
+          </div>
         {:else if !episodes.length}
           <div class="state">{$t('v2.pod.noEpisode' as any)}</div>
         {:else}

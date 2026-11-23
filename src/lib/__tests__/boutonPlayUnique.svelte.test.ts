@@ -129,8 +129,8 @@ describe('les vues : plus de bouton aléatoire à côté du bouton Play', () => 
 describe('i18n', () => {
   it('« Lecture aléatoire » du menu dans les quinze locales', () => {
     const dir = resolve(process.cwd(), 'src/lib/locales');
-    const fichiers = readdirSync(dir).filter((n) => /^[a-z]{2}\.ts$/.test(n));
-    expect(fichiers).toHaveLength(16);
+    const fichiers = readdirSync(dir).filter((n) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(n));
+    expect(fichiers).toHaveLength(20);
     for (const n of fichiers) expect(readFileSync(resolve(dir, n), 'utf-8'), n).toMatch(/"v2\.menu\.shufflePlay": "[^"]+"/);
   });
 });

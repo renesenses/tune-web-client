@@ -10,6 +10,7 @@ import { lireTableOui, type TableOuiAudio } from './plagesMac';
 import { etatMiroirFavoris, lireEtatMiroir } from './stores/favorisMiroir';
 import { getToken, clearToken } from './auth';
 import { messageRefusHorsMachine } from './refusHorsMachine';
+import { actionCadreAuthentification } from './cadreAuthentification';
 import { CLES_LECTURE_SEULE, noterRefusDeDroit } from './circleDroits';
 import { get } from 'svelte/store';
 import { gainDeLaZone, zonePourLeCurseur } from './courbeDeVolume';
@@ -785,7 +786,8 @@ export async function fetchJSON<T>(
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
       if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
-        notifications.error(horsMachine);
+        // Le bouton mène au cadre Authentification des Réglages.
+        notifications.error(horsMachine, 0, undefined, actionCadreAuthentification(get(t) as (cle: string) => string));
         err.dejaAnnonce = true;
       }
     }
@@ -9329,7 +9331,22 @@ export async function getRadioFranceEpisodes(showUrl: string, limit = 20): Promi
   return res.json();
 }
 
-export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: string, podcastId?: number | string, sourceId?: string, country?: string): Promise<any[]> {
+/**
+ * Délai au-delà duquel la liste d'épisodes est abandonnée (forum, rc13) : sans
+ * lui, la fiche restait sur « Chargement des épisodes… » sans fin quand le
+ * serveur ne répondait pas (flux d'éditeur lent, gros scan en cours).
+ */
+export const DELAI_EPISODES_PODCAST_MS = 20_000;
+
+export async function getPodcastEpisodes(
+  feedUrl: string,
+  limit = 30,
+  showUrl?: string,
+  podcastId?: number | string,
+  sourceId?: string,
+  country?: string,
+  opts: { signal?: AbortSignal; delaiMs?: number } = {},
+): Promise<any[]> {
   let url: string;
   if (podcastId != null && podcastId !== '') {
     // Prefer the by-id endpoint: the server resolves feed_url from the
@@ -9354,13 +9371,44 @@ export async function getPodcastEpisodes(feedUrl: string, limit = 30, showUrl?: 
     }
     if (showUrl) url += `&show_url=${encodeURIComponent(showUrl)}`;
   }
-  const res = await fetch(url);
-  // web#2322 — l'erreur garde le `code` stable du serveur
-  // (`podcast_sans_flux_public`, `podcast_introuvable`,
-  // `podcast_resolution_reseau`) : l'écran en tire la phrase à montrer.
-  if (!res.ok) throw await apiError(res);
-  const data = await res.json();
-  return data.episodes || data;
+  // Délai ET annulation : l'écran annule la demande d'une fiche qu'on vient
+  // de quitter, et une demande sans réponse finit en erreur au lieu de laisser
+  // la fiche sur « Chargement des épisodes… ».
+  const ctrl = new AbortController();
+  let expire = false;
+  const delai = setTimeout(() => { expire = true; ctrl.abort(); }, opts.delaiMs ?? DELAI_EPISODES_PODCAST_MS);
+  const relayer = () => ctrl.abort();
+  if (opts.signal?.aborted) ctrl.abort();
+  else opts.signal?.addEventListener('abort', relayer, { once: true });
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    // web#2322 — l'erreur garde le `code` stable du serveur
+    // (`podcast_sans_flux_public`, `podcast_introuvable`,
+    // `podcast_resolution_reseau`) : l'écran en tire la phrase à montrer.
+    // tune-server-rust#9317 — un flux d'éditeur en échec répond 502
+    // `podcast_episodes_indisponibles` : même voie.
+    if (!res.ok) throw await apiError(res);
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.episodes)) return data.episodes;
+    // Un serveur d'avant #9317 répondait 200 `{podcast_id, error}` : ce n'est
+    // pas une liste vide, c'est un échec.
+    const err = new Error(typeof data?.error === 'string' ? data.error : 'Invalid episodes response') as ApiError;
+    err.status = res.status;
+    err.code = 'podcast_episodes_indisponibles';
+    if (data && typeof data === 'object') err.corps = data;
+    throw err;
+  } catch (e) {
+    if (expire) {
+      const err = new Error(`podcast episodes timed out after ${opts.delaiMs ?? DELAI_EPISODES_PODCAST_MS}ms`) as ApiError;
+      err.code = 'podcast_episodes_delai';
+      throw err;
+    }
+    throw e;
+  } finally {
+    clearTimeout(delai);
+    opts.signal?.removeEventListener('abort', relayer);
+  }
 }
 
 export async function playPodcastEpisode(zoneId: number, episode: { audio_url: string; title?: string; podcast_name?: string; podcast_id?: string; cover_url?: string; duration_ms?: number; seek_ms?: number }): Promise<any> {
