@@ -307,6 +307,58 @@ export function cleEdition(titre: string | null | undefined): string {
     .trim();
 }
 
+/**
+ * Une parenthèse finale qui donne la RÉSOLUTION du fichier — « (192kHz/24bit) »,
+ * « [24bit-96kHz] » : la manière dont les boutiques nomment un téléchargement
+ * hi-res, recopiée dans les balises.
+ */
+const RESOLUTION_ENTRE_PARENTHESES =
+  /^\s*(?:\d{2,3}(?:[.,]\d{1,2})?\s*k?hz\s*[/\-–_,\s]\s*\d{2}\s*-?\s*bits?|\d{2}\s*-?\s*bits?\s*[/\-–_,\s]\s*\d{2,3}(?:[.,]\d{1,2})?\s*k?hz)\s*$/i;
+
+/**
+ * LA CLÉ QUI REGROUPE LES SOURCES D'UNE MÊME ÉDITION — fil 3009 (FabienM,
+ * 1.0.0-rc13), point 17 : « page artiste, toutes les sources activées :
+ * regrouper les albums qui ont plusieurs sources et afficher toutes les
+ * sources sous la vignette ».
+ *
+ * `cleEdition` regroupait déjà une même édition présente dans plusieurs
+ * sources (#4330), et la vignette dit déjà chaque plateforme (#2829). Restait
+ * ce que la mesure du 23/11 sur le .18 (Pink Floyd, Miles Davis, Keith
+ * Jarrett, Alela Diane ; bibliothèque, Qobuz et TIDAL) montre séparé alors
+ * qu'il s'agit du MÊME album : deux parenthèses finales qui ne nomment pas
+ * une autre édition.
+ *
+ *  - la RÉSOLUTION du fichier : « Wish You Were Here (192kHz/24bit) » dans la
+ *    bibliothèque, « Wish You Were Here » chez Qobuz. La résolution de chaque
+ *    source est écrite sous la vignette ; elle n'en fait pas une autre ;
+ *  - une parenthèse qui RÉPÈTE le titre : « Live at the Map Room (Live) »
+ *    chez Qobuz, « Live at the Map Room » chez TIDAL ; « Live at Knebworth
+ *    1990 (Live at Knebworth 1990) » ; « Standards, Vol. 2 (Vol. 2) ».
+ *
+ * Tout le reste ne bouge pas, et c'est la règle 1 de FabienM (17/09) :
+ * « Remastered », « Deluxe », « Mono Version », « Live » sur un titre qui ne
+ * le disait pas encore, restent des éditions à part entière, chacune sa
+ * vignette. Seules les parenthèses FINALES sont lues, de la dernière vers la
+ * première, et on s'arrête à la première qui nomme une édition.
+ */
+export function cleRegroupement(titre: string | null | undefined): string {
+  let t = (titre ?? '').trim();
+  for (;;) {
+    const m = t.match(/^(.*\S)\s*[([]([^()[\]]*)[)\]]\s*$/u);
+    if (!m) break;
+    const [, reste, dedans] = m;
+    const r = cleEdition(reste);
+    const d = cleEdition(dedans);
+    if (!r) break;
+    if (RESOLUTION_ENTRE_PARENTHESES.test(dedans) || (d && ` ${r} `.includes(` ${d} `))) {
+      t = reste;
+      continue;
+    }
+    break;
+  }
+  return cleEdition(t);
+}
+
 const RANG_INCONNU = ORDRE_SOURCES.length;
 const rang = (source: string) => {
   const i = ORDRE_SOURCES.indexOf(source);
@@ -502,7 +554,7 @@ export function fusionnerDiscographie(
   /** #8662 — les exemplaires d'un service écartés par la règle de #4652. */
   const autresParCle = new Map<string, Exemplaire[]>();
   const ajouterBibliotheque = (album: Album) => {
-    const cle = cleEdition(album?.title);
+    const cle = cleRegroupement(album?.title);
     if (!cle) return ajouter(BIBLIOTHEQUE, album);
     const p = provenanceDe(album);
     // La première vignette de ce titre qui n'a pas encore d'exemplaire de
@@ -518,7 +570,7 @@ export function fusionnerDiscographie(
     }
   };
   const ajouter = (source: string, album: Album) => {
-    const cle = cleEdition(album?.title);
+    const cle = cleRegroupement(album?.title);
     // Un album sans titre ne se rapproche de rien : il garde sa vignette, sous
     // une clé qui ne peut rencontrer aucune autre.
     const k = cle || `∅:${source}:${String(album?.id ?? album?.source_id ?? parCle.size)}`;
