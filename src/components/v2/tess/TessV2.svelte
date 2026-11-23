@@ -266,7 +266,7 @@
           <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
                   onclick={() => (panneauPreReglages = !panneauPreReglages)}>
             <span>{$t('tess.preset' as any)}</span>
-            <strong>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
+            <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
             <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
           </button>
         {/if}

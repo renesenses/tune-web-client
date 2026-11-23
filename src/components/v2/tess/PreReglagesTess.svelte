@@ -81,7 +81,7 @@
                   data-tess-prereglage-valider>{tr('tess.presets.save')}</button>
           <button class="bouton" onclick={() => (enRenommage = null)}>{tr('tess.presets.cancel')}</button>
         {:else}
-          <span class="nom">{nom(p)}</span>
+          <span class="nom" title={nom(p)}>{nom(p)}</span>
           {#if p.id === actif}
             <span class="badge" data-tess-prereglage-actif>{tr('tess.presets.active')}</span>
           {:else}
