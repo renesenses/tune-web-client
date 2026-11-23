@@ -202,8 +202,11 @@ describe('fil 2694 — TIDAL › un genre › un album › son artiste › retou
   it('bouton Retour : la fiche de l’album, puis la page du genre (pas la racine de TIDAL)', async () => {
     await jusquALArtiste();
     await retourDeLaPageArtiste();
-    expect(get(activeView), 'le « < » de la page artiste rouvre la fiche (web#1602)').toBe('streamingalbum');
-    expect(fiche()?.textContent).toContain('Album Tidal');
+    // Fil 3011 — le bouton recule d'une entrée, comme le Précédent : la fiche
+    // de l'album sur la page du genre (web#1602 : jamais la fiche sautée).
+    await laisserFaire(150, () => filDeGenre() === 'Pop' && !!fiche());
+    expect(get(activeView), 'le « < » de la page artiste rend l’écran de la fiche').toBe('streaming');
+    expect(fiche()?.textContent, 'le « < » de la page artiste rouvre la fiche (web#1602)').toContain('Album Tidal');
 
     await retourDeLaFiche();
     await laisserFaire(150, () => filDeGenre() === 'Pop');
@@ -262,7 +265,9 @@ describe('fil 2694 — l’artiste sans identifiant (résolu par une recherche)'
   it('bouton Retour › Retour : la page du genre', async () => {
     await jusquALArtiste();
     await retourDeLaPageArtiste();
-    expect(get(activeView)).toBe('streamingalbum');
+    // Fil 3011 — une entrée dépilée : la fiche sur la page du genre.
+    await laisserFaire(150, () => filDeGenre() === 'Rock' && !!fiche());
+    expect(fiche(), 'le « < » de la page artiste rouvre la fiche').not.toBeNull();
     await retourDeLaFiche();
     await laisserFaire(150, () => filDeGenre() === 'Rock');
     expect(filDeGenre()).toBe('Rock');
@@ -426,7 +431,9 @@ describe('fil 2694 — Qobuz › « Nouveautés » (Voir tout) › un album › 
     await ouvrirAlbum();
     await ouvrirArtisteDepuisLaFiche();
     await retourDeLaPageArtiste();
-    expect(get(activeView)).toBe('streamingalbum');
+    // Fil 3011 — une entrée dépilée : la fiche sur les nouveautés.
+    await laisserFaire(200, () => !!fiche());
+    expect(fiche(), 'le « < » de la page artiste rouvre la fiche').not.toBeNull();
     await retourDeLaFiche();
     await laisserFaire(200, () => !!pageNouveautes());
     expect(get(activeView)).toBe('streaming');
