@@ -8293,7 +8293,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Logga in",
-  "login.identifierPlaceholder": "E-post eller användarnamn",
+  "login.identifierPlaceholder": "Användarnamn",
   "login.passwordPlaceholder": "Lösenord",
   "login.signingIn": "Loggar in…",
   "login.or": "eller",

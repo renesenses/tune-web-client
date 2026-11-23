@@ -8294,7 +8294,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Iniciar sesión",
-  "login.identifierPlaceholder": "Correo o usuario",
+  "login.identifierPlaceholder": "Nombre de usuario",
   "login.passwordPlaceholder": "Contraseña",
   "login.signingIn": "Iniciando sesión…",
   "login.or": "o",

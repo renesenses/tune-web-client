@@ -8139,7 +8139,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Σύνδεση",
-  "login.identifierPlaceholder": "Email ή όνομα χρήστη",
+  "login.identifierPlaceholder": "Όνομα χρήστη",
   "login.passwordPlaceholder": "Κωδικός πρόσβασης",
   "login.signingIn": "Σύνδεση…",
   "login.or": "ή",

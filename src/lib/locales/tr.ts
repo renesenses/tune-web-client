@@ -8121,7 +8121,7 @@ export default {
   "reglages.fiche.avanceResume": "kazanç düzeltmesi, şarkı sözü kayması, DLNA’da radyo başlığı, ağda yayımla",
   "reglages.fiche.appareilResume": "marka, model, fotoğraf, Tune tested",
   "login.signIn": "Oturum aç",
-  "login.identifierPlaceholder": "E-posta veya kullanıcı adı",
+  "login.identifierPlaceholder": "Kullanıcı adı",
   "login.passwordPlaceholder": "Parola",
   "login.signingIn": "Oturum açılıyor…",
   "login.or": "veya",
