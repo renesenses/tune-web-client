@@ -7,16 +7,9 @@
    * widgets : chargement paresseux, mode édition, disposition rangée par
    * profil — rien de tout cela n'est écrit ici.
    *
-   * Ce qui le distingue des trois autres est son catalogue, et lui seul : onze
-   * widgets `forme: 'bloc'`, la seconde forme ouverte le 25/09. La règle
-   * « tous horizontaux » du 02/09 continue de tenir sur l'Accueil, Qobuz et
-   * Tidal — voir `__tests__/blocsHorsAccueilQobuzTidal.test.ts`.
-   *
-   * ## Les clés de rangement
-   *
-   * Trois clés qui n'appartiennent qu'à cet écran. Sans cela, composer le
-   * tableau de bord déferait l'accueil — c'est la raison d'être du paramètre
-   * `cle` depuis le premier jour.
+   * Ce qui le distingue est son catalogue de widgets `forme: 'bloc'` (la règle
+   * « tous horizontaux » tient ailleurs : `blocsHorsAccueilQobuzTidal.test.ts`)
+   * et ses trois clés de rangement, propres pour ne pas défaire l'accueil.
    *
    * ⚠️ `cleChiffres` est passée bien qu'aucun bloc ne soit `forme: 'chiffres'`
    * aujourd'hui : elle est lue AU CHARGEMENT par `PageWidgets`, avant même de
@@ -25,20 +18,18 @@
    * enregistrement de disposition. Le défaut est exactement celui de #1519,
    * pris à l'envers.
    *
-   * ## L'ancien écran n'est pas supprimé
-   *
-   * `v2-heritage/DashboardView.svelte` reste monté sur la vue `dashboard` et
-   * reste atteignable par son adresse `#dashboard` — il sert de référence, il
-   * garde le sélecteur de période et l'export CSV que cet écran-ci n'a pas
-   * encore, et c'est lui qui porte le rendu d'origine. Il était DÉJÀ hors du
-   * menu depuis la 0.9.161 (PR #1415) ; rien n'a été retiré pour ce lot.
+   * L'ancien écran (`v2-heritage/DashboardView.svelte`, `#dashboard`) reste
+   * monté : il garde l'export CSV. Design v3 (22/11/2026) : en-tête, bandes et
+   * carte groupée — voir `PageWidgets` (`groupes`) et `tableauDeBordWidgets`.
    */
   import PageWidgets from './PageWidgets.svelte';
   import {
     AJOUTS_TABLEAU_DE_BORD,
     BLOCS_TABLEAU_DE_BORD,
     DISPOSITION_DEFAUT_TABLEAU_DE_BORD,
+    GROUPES_TABLEAU_DE_BORD,
   } from '../../lib/tableauDeBordWidgets';
+  import CalendarDays from '@lucide/svelte/icons/calendar-days';
   import type { DashboardPeriod } from '../../lib/api';
   import { t } from '../../lib/i18n';
   import {
@@ -64,7 +55,7 @@
 
 {#snippet choixPeriode()}
   <label class="v2-btn periode" data-tdb-periode title={$t('dashboard.periodChoice' as any)}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+    <CalendarDays size={16} strokeWidth={1.8} aria-hidden="true" />
     <select
       aria-label={$t('dashboard.periodChoice' as any)}
       value={periode}
@@ -85,7 +76,10 @@
     cleChiffres="tableau_de_bord_stats"
     cleChiffresMigre="tableau_de_bord_stats_migre"
     ajoutsUniques={AJOUTS_TABLEAU_DE_BORD}
+    cleEyebrow="dashboard.eyebrow"
     cleTitre="dashboard.title"
+    cleSous="dashboard.subtitle"
+    groupes={GROUPES_TABLEAU_DE_BORD}
     grille
     grilleFluide
     delaiMs={delaiPour(periode)}
@@ -107,8 +101,16 @@
   /* Vérification du 15/11 sur le .18 : sur téléphone, la période et
      « Modifier » chevauchaient le titre ; ils passent dessous (cet écran seul). */
   /* Sans enveloppe : une boîte autour de PageWidgets la rétrécissait (.18). */
+  /* Design v3 (§9.2) : l'en-tête s'aligne sur le cadre centré de 1 100 px
+     des bandes ; la réserve de droite reste `--v2-grappe-w`. */
+  :global(.v2-top:has([data-tdb-periode])) {
+    padding-left: max(30px, calc((100% - 1100px) / 2));
+    flex-wrap: wrap;
+  }
+  /* Sur-titre en capitales par la feuille, jamais dans la chaîne. */
+  :global(.v2-top:has([data-tdb-periode]) .v2-eyebrow) { text-transform: uppercase; }
   @media (max-width: 640px) {
-    :global(.v2-top:has([data-tdb-periode])) { flex-wrap: wrap; align-items: flex-start; }
+    :global(.v2-top:has([data-tdb-periode])) { flex-wrap: wrap; align-items: flex-start; padding-left: 12px; }
     :global(.v2-top:has([data-tdb-periode]) .v2-titres) { flex: 1 0 100%; }
     :global(.v2-top:has([data-tdb-periode]) .v2-actions) { flex: 1 0 100%; justify-content: flex-start; }
   }

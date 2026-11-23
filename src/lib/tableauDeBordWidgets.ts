@@ -56,10 +56,10 @@
  * sur UN module et ses multiples — 132, 264, 396 px — et sur rien d'autre.
  * C'est ce qui fait une page plutôt qu'un empilement.
  */
-import type { Element, Widget } from './accueilWidgets';
+import type { Element, GroupeDeBlocs, Widget } from './accueilWidgets';
 import { elementsArtistesTop, tableauDeBord } from './accueilWidgets';
 import * as api from './api';
-import { ICONES, PERIODE_DEFAUT, joursTendance, periodeActive } from './tableauDeBordPeriode';
+import { ICONES, PERIODE_DEFAUT, heureDePointe, joursTendance, parHeureDe, periodeActive } from './tableauDeBordPeriode';
 import BlocBarres from '../components/v2/blocs/BlocBarres.svelte';
 import BlocCeJourLa from '../components/v2/blocs/BlocCeJourLa.svelte';
 import BlocClassement from '../components/v2/blocs/BlocClassement.svelte';
@@ -68,6 +68,22 @@ import BlocHeures from '../components/v2/blocs/BlocHeures.svelte';
 import BlocSemaineHeures from '../components/v2/blocs/BlocSemaineHeures.svelte';
 import BlocSerie from '../components/v2/blocs/BlocSerie.svelte';
 import BlocTendance from '../components/v2/blocs/BlocTendance.svelte';
+// Design v3 de Levente (§3, §9.3) : les icônes d'en-tête viennent de Lucide,
+// une importation par icône.
+import TrendingUp from '@lucide/svelte/icons/trending-up';
+import CalendarClock from '@lucide/svelte/icons/calendar-clock';
+import Clock from '@lucide/svelte/icons/clock';
+import Disc3 from '@lucide/svelte/icons/disc-3';
+import Music2 from '@lucide/svelte/icons/music-2';
+import ListTree from '@lucide/svelte/icons/list-tree';
+import Speaker from '@lucide/svelte/icons/speaker';
+import HardDrive from '@lucide/svelte/icons/hard-drive';
+import Radio from '@lucide/svelte/icons/radio';
+import CalendarDays from '@lucide/svelte/icons/calendar-days';
+import Flame from '@lucide/svelte/icons/flame';
+import Hourglass from '@lucide/svelte/icons/hourglass';
+import UserRound from '@lucide/svelte/icons/user-round';
+import AudioLines from '@lucide/svelte/icons/audio-lines';
 
 /**
  * LE MODULE DE HAUTEUR, en pixels — et les trois seules tailles permises.
@@ -219,6 +235,7 @@ function elementsAlbums(d: api.DashboardData): Element[] {
     id: `tdb-alb-${i}-${a.album_title}`,
     titre: a.album_title || '—',
     sous: a.artist_name || undefined,
+    compte: typeof a.plays === 'number' ? a.plays : null,
     cover: a.cover_path ?? null,
     jouer:
       typeof a.album_id === 'number' && a.album_id > 0
@@ -235,6 +252,7 @@ function elementsTitres(d: api.DashboardData): Element[] {
     id: `tdb-tit-${i}-${t.title}`,
     titre: t.title || '—',
     sous: t.artist_name || undefined,
+    compte: typeof t.plays === 'number' ? t.plays : null,
     cover: t.cover_path ?? null,
     jouer:
       typeof t.track_id === 'number' && t.track_id > 0
@@ -267,6 +285,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: TrendingUp,
+      bande: 'activite',
       colonnes: 2,
       composant: BlocTendance,
       hauteur: GRAND,
@@ -287,12 +307,21 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: CalendarClock,
+      bande: 'activite',
       colonnes: 2,
       composant: BlocSemaineHeures,
       hauteur: MOYEN,
+      // §9.4 — la même heure de pointe que « Heure de la journée » (même jeu
+      // `hourly`, même règle), en note dans l'en-tête.
+      noteTete: (m, tr) => (m.pointe >= 0 ? `${m.pointe}h · ${tr('dashboard.peakListeningTime')}` : null),
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        return { grille: grilleSemaine(d.weekday_hourly ?? []), periode: periode() };
+        return {
+          grille: grilleSemaine(d.weekday_hourly ?? []),
+          periode: periode(),
+          pointe: heureDePointe(parHeureDe(d.hourly ?? [])),
+        };
       },
     },
   },
@@ -302,16 +331,14 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Clock,
+      bande: 'activite',
       colonnes: 2,
       composant: BlocHeures,
       hauteur: PETIT,
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        const par = Array(24).fill(0);
-        for (const h of d.hourly ?? []) {
-          if (h.hour >= 0 && h.hour < 24) par[h.hour] = h.plays;
-        }
-        return { parHeure: par };
+        return { parHeure: parHeureDe(d.hourly ?? []) };
       },
     },
   },
@@ -321,6 +348,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Disc3,
+      bande: 'classements',
       icone: ICONES.albums,
       composant: BlocClassement,
       hauteur: GRAND,
@@ -333,6 +362,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Music2,
+      bande: 'classements',
       icone: ICONES.titres,
       composant: BlocClassement,
       hauteur: GRAND,
@@ -345,6 +376,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: ListTree,
+      bande: 'classements',
       icone: ICONES.genres,
       composant: BlocBarres,
       hauteur: GRAND,
@@ -356,7 +389,9 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
           tableauDeBord(periode(), ctx.signal),
           api.getGenreTree().then((r: any) => r?.tree ?? {}).catch(() => ({})),
         ]);
-        return { lignes: branches(d.by_genre ?? [], arbre), plafond: PLAFOND_GENRES };
+        // Design v3 (§9.5) : le libellé AU-DESSUS de sa barre, le compte
+        // exact au bout de la ligne.
+        return { lignes: branches(d.by_genre ?? [], arbre), plafond: PLAFOND_GENRES, empile: true };
       },
     },
   },
@@ -366,6 +401,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Speaker,
+      bande: 'classements',
       icone: ICONES.zones,
       composant: BlocBarres,
       hauteur: MOYEN,
@@ -386,6 +423,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: HardDrive,
+      bande: 'classements',
       icone: ICONES.sources,
       composant: BlocBarres,
       hauteur: MOYEN,
@@ -404,6 +443,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Radio,
+      bande: 'classements',
       icone: ICONES.radios,
       composant: BlocBarres,
       hauteur: MOYEN,
@@ -416,6 +457,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: CalendarDays,
+      bande: 'historique',
       icone: ICONES.ceJourLa,
       etendue: 2,
       composant: BlocCeJourLa,
@@ -438,13 +481,18 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Flame,
+      bande: 'historique',
       icone: ICONES.serie,
       etendue: 2,
       composant: BlocSerie,
       hauteur: PETIT,
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        return { courante: d.streak?.current ?? 0, record: d.streak?.best ?? 0 };
+        // Design v3 : une série NULLE s'affiche (0). Sans `streak` dans la
+        // réponse (aucune écoute du tout), le bloc garde son message vide.
+        if (!d.streak) return null;
+        return { courante: d.streak.current ?? 0, record: d.streak.best ?? 0 };
       },
     },
   },
@@ -454,6 +502,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: Hourglass,
+      bande: 'historique',
       icone: ICONES.durees,
       etendue: 2,
       composant: BlocCompletion,
@@ -479,6 +529,8 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
     forme: 'bloc',
     charger: VIDE,
     bloc: {
+      iconeComposant: UserRound,
+      bande: 'historique',
       icone: ICONES.artistes,
       etendue: 2,
       composant: BlocClassement,
@@ -528,4 +580,26 @@ export const DISPOSITION_DEFAUT_TABLEAU_DE_BORD = BLOCS_TABLEAU_DE_BORD.map((w) 
  */
 export const AJOUTS_TABLEAU_DE_BORD = [
   { id: 'tdb-top-artistes', cleMarqueur: 'tableau_de_bord_top_artistes_migre' },
+];
+
+/**
+ * Design v3 de Levente (§9.5, §9.6) — « Sources d'écoute et zones » : PAR
+ * ZONE, PAR SOURCE, puis RADIO — TEMPS D'ÉCOUTE, empilés dans UNE carte, à la
+ * place du premier des trois dans la disposition. Les trois widgets gardent
+ * leurs identifiants et leurs interrupteurs ; seule leur présentation change.
+ * Une zone ou une source chargée et vide ne prend aucune place ; la radio,
+ * chargée et vide, dit une ligne (elle compte une DURÉE, jamais des lectures).
+ */
+export const GROUPES_TABLEAU_DE_BORD: GroupeDeBlocs[] = [
+  {
+    id: 'tdb-sources-zones',
+    cleTitre: 'dashboard.section.sourcesZones',
+    iconeComposant: AudioLines,
+    bande: 'classements',
+    membres: [
+      { id: 'tdb-zones' },
+      { id: 'tdb-sources' },
+      { id: 'tdb-radios', cleVide: 'dashboard.radioEmpty' },
+    ],
+  },
 ];

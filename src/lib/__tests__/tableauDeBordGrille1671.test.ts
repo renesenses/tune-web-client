@@ -158,29 +158,32 @@ describe('#1671 — le Tableau de bord est une GRILLE aux cotes des maquettes', 
      le Tableau de bord passe sur la grille FLUIDE (`grilleFluide`) — six
      colonnes qui se partagent la page, des tiers et des tuiles. Les carrés
      de 315 px restent ceux de `PageWidgets` en `grille` seule. */
-  it('🔴 l’écran monté range ses blocs sur la grille fluide de la maquette (six colonnes)', async () => {
+  /* Design v3 de Levente (22/11/2026, §9.2) : la grille fluide passe à DOUZE
+     pistes et trois bandes (3 / 4 / 3) ; par zone, par source et radio sont
+     présentés en UNE carte — d'où 11 cartes pour 13 widgets. */
+  it('🔴 l’écran monté range ses blocs sur la grille fluide v3 (douze pistes)', async () => {
     const page = await poser(TableauDeBordV2);
     const grille = page.querySelector<HTMLElement>('.mosaique.fluide');
     expect(grille, 'aucun conteneur de grille fluide').toBeTruthy();
     const cs = getComputedStyle(grille!);
     expect(cs.display).toBe('grid');
-    expect(sansEspaces(cs.gridTemplateColumns)).toBe('repeat(6,minmax(0,1fr))');
+    expect(sansEspaces(cs.gridTemplateColumns)).toBe('repeat(12,minmax(0,1fr))');
     expect(cs.columnGap).toBe(`${GOUTTIERE_GRILLE}px`);
-    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(13);
-    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(13);
+    expect(grille!.querySelectorAll(':scope > section.bloc')).toHaveLength(11);
+    expect(grille!.querySelectorAll('.blocpropre')).toHaveLength(11);
   });
 
-  it('🔴 trois rangées comme la maquette : 3 tiers, 6 tuiles, 3 tiers — puis les artistes (web#3117)', async () => {
+  it('🔴 trois bandes comme la maquette v3 : 3 tiers, 4 quarts, 3 tiers — puis les artistes (web#3117)', async () => {
     const page = await poser(TableauDeBordV2);
     const sections = [...page.querySelectorAll<HTMLElement>('.mosaique > section.bloc')];
-    expect(sections).toHaveLength(13);
-    const spans = sections.map((el) => sansEspaces(getComputedStyle(el).gridColumn));
+    expect(sections).toHaveLength(11);
+    const spans = sections.map((el) => sansEspaces(getComputedStyle(el).gridColumn).replace(/^.*(span\d+).*$/, '$1'));
     expect(spans).toEqual([
-      'span2', 'span2', 'span2',
-      'span1', 'span1', 'span1', 'span1', 'span1', 'span1',
-      'span2', 'span2', 'span2',
+      'span4', 'span4', 'span4',
+      'span3', 'span3', 'span3', 'span3',
+      'span4', 'span4', 'span4',
       // web#3117 — « Top artistes », une quatrième rangée (un tiers).
-      'span2',
+      'span4',
     ]);
     for (const el of sections) expect(getComputedStyle(el).maxWidth).toBe('none');
   });

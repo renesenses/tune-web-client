@@ -43,8 +43,19 @@ function secondes(iso: string | null | undefined): number | null {
 
 /**
  * Les albums favoris des services, en forme d'`Album` de grille. Dédoublonnés
- * par paire service + identifiant ; la date d'ajout est celle où TUNE a vu le
- * favori (`first_seen_at`), à défaut celle du service (web#1060).
+ * par paire service + identifiant.
+ *
+ * tune-server-rust#8255 (fil 2600, décision de Bertrand du 22/11) — la date
+ * d'ajout est la date de MISE EN FAVORI chez le service (`created_at`, que le
+ * miroir remplit avec le `favorited_at` de Qobuz), à défaut celle où Tune a vu
+ * le favori (`first_seen_at`). Avec `first_seen_at` d'abord, tous les favoris
+ * importés d'un coup portaient la date de l'import et passaient AVANT les
+ * albums locaux dans « Derniers ajouts », quelle que soit leur ancienneté.
+ *
+ * La réserve de web#1060 tient toujours : une recopie des favoris chez le
+ * service peut recréer leurs dates, à quelques secondes d'écart. Ces favoris
+ * se rangent alors ensemble, à la date de la recopie ; c'est la date que le
+ * service donne, et non une date inventée.
  */
 export function albumsDesFavorisDeService(favoris: readonly FavoriAlbumDeService[] | null | undefined): Album[] {
   const vus = new Set<string>();
@@ -64,7 +75,7 @@ export function albumsDesFavorisDeService(favoris: readonly FavoriAlbumDeService
       cover_path: f.cover_url ?? null,
       source: service as Source,
       source_id: sid,
-      added_at: secondes(f.first_seen_at) ?? secondes(f.created_at),
+      added_at: secondes(f.created_at) ?? secondes(f.first_seen_at),
     });
   }
   return albums;
