@@ -8527,6 +8527,9 @@ export default {
   "bibliotheque.selection.queueStopped": "停止しました：{n} 枚中 {k} 枚をキューに追加",
   "bibliotheque.selection.playlistPartial": "{total} 枚のアルバムのうち{n, plural, other { # 枚を読み込めませんでした。それらのトラックは含まれません。}}",
   "bibliotheque.selection.editGenreScope": "ジャンルはアルバムのトラックにもコピーされます（トラックのジャンルが異なるコンピレーションを除く）。",
+  "cloud.reconnexionRequise": "mozaiklabs.fr との接続の有効期限が切れました。Tune Circle とオンラインコピーは一時停止中です。「サインアウト」は使わずに再接続してください。サインアウトするとオンラインコピーと共有が削除されます。",
+  "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr との接続の有効期限が {date} に切れました。Tune Circle とオンラインコピーは一時停止中です。「サインアウト」は使わずに再接続してください。サインアウトするとオンラインコピーと共有が削除されます。",
+  "cloud.seReconnecter": "再接続",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

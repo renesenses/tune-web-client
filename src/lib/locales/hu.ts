@@ -8486,6 +8486,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Leállítva: {k} / {n} hozzáadva a sorhoz",
   "bibliotheque.selection.playlistPartial": "{total} albumból {n, plural, one {# nem olvasható: hiányoznak a számai.} other {# nem olvasható: hiányoznak a számaik.}}",
   "bibliotheque.selection.editGenreScope": "A műfaj az album számaira is átkerül, kivéve az olyan válogatást, amelynek számai különböző műfajúak.",
+  "cloud.reconnexionRequise": "A mozaiklabs.fr kapcsolat lejárt: a Tune Circle és az online másolat szünetel. Jelentkezz be újra, de ne a „Kijelentkezés” gombbal, mert az törölné az online másolatot és a megosztásaidat.",
+  "cloud.reconnexionRequiseDepuis": "A mozaiklabs.fr kapcsolat lejárt ({date}): a Tune Circle és az online másolat szünetel. Jelentkezz be újra, de ne a „Kijelentkezés” gombbal, mert az törölné az online másolatot és a megosztásaidat.",
+  "cloud.seReconnecter": "Újbóli bejelentkezés",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

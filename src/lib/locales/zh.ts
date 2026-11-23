@@ -8527,6 +8527,9 @@ export default {
   "bibliotheque.selection.queueStopped": "已停止：已将 {k} / {n} 添加到队列",
   "bibliotheque.selection.playlistPartial": "{total} 张专辑中{n, plural, other {有 # 张无法读取：缺少其曲目。}}",
   "bibliotheque.selection.editGenreScope": "流派也会复制到专辑的曲目上，曲目流派各不相同的合辑除外。",
+  "cloud.reconnexionRequise": "与 mozaiklabs.fr 的连接已过期：Tune Circle 和在线副本已暂停。请重新连接，不要使用“退出登录”，否则会删除在线副本和您的共享。",
+  "cloud.reconnexionRequiseDepuis": "与 mozaiklabs.fr 的连接已于 {date} 过期：Tune Circle 和在线副本已暂停。请重新连接，不要使用“退出登录”，否则会删除在线副本和您的共享。",
+  "cloud.seReconnecter": "重新连接",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

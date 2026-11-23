@@ -8547,6 +8547,9 @@ export default {
   "bibliotheque.selection.queueStopped": "Adding stopped: {k} of {n} added to the queue",
   "bibliotheque.selection.playlistPartial": "Of {total} albums, {n, plural, one {# could not be read: its tracks are missing.} other {# could not be read: their tracks are missing.}}",
   "bibliotheque.selection.editGenreScope": "The genre is also copied to the album’s tracks, except for a compilation whose tracks have different genres.",
+  "cloud.reconnexionRequise": "Your mozaiklabs.fr connection has expired: Tune Circle and the online copy are paused. Sign in again, without using “Sign out”, which would erase the online copy and your shares.",
+  "cloud.reconnexionRequiseDepuis": "Your mozaiklabs.fr connection expired on {date}: Tune Circle and the online copy are paused. Sign in again, without using “Sign out”, which would erase the online copy and your shares.",
+  "cloud.seReconnecter": "Sign in again",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

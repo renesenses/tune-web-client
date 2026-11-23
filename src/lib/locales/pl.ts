@@ -8372,5 +8372,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Zatrzymano: dodano {k} z {n} do kolejki",
   "bibliotheque.selection.playlistPartial": "Z {total} albumów {n, plural, one {# nie udało się odczytać: brakuje jego utworów.} few {# nie udało się odczytać: brakuje ich utworów.} many {# nie udało się odczytać: brakuje ich utworów.} other {# nie udało się odczytać: brakuje ich utworów.}}",
   "bibliotheque.selection.editGenreScope": "Gatunek jest też kopiowany do utworów albumu, z wyjątkiem składanki, której utwory mają różne gatunki.",
+  "cloud.reconnexionRequise": "Połączenie z mozaiklabs.fr wygasło: Tune Circle i kopia online są wstrzymane. Połącz się ponownie, nie używając „Wyloguj się”, które usunęłoby kopię online i Twoje udostępnienia.",
+  "cloud.reconnexionRequiseDepuis": "Połączenie z mozaiklabs.fr wygasło {date}: Tune Circle i kopia online są wstrzymane. Połącz się ponownie, nie używając „Wyloguj się”, które usunęłoby kopię online i Twoje udostępnienia.",
+  "cloud.seReconnecter": "Połącz ponownie",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];

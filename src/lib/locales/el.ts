@@ -8372,5 +8372,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Διακόπηκε: {k} από {n} προστέθηκαν στην ουρά",
   "bibliotheque.selection.playlistPartial": "Από {total} άλμπουμ, {n, plural, one {# δεν διαβάστηκε: λείπουν τα κομμάτια του.} other {# δεν διαβάστηκαν: λείπουν τα κομμάτια τους.}}",
   "bibliotheque.selection.editGenreScope": "Το είδος αντιγράφεται και στα κομμάτια του άλμπουμ, εκτός από συλλογή με κομμάτια διαφορετικών ειδών.",
+  "cloud.reconnexionRequise": "Η σύνδεση με το mozaiklabs.fr έληξε: το Tune Circle και το διαδικτυακό αντίγραφο είναι σε παύση. Συνδεθείτε ξανά, χωρίς να χρησιμοποιήσετε την «Αποσύνδεση», που θα διέγραφε το διαδικτυακό αντίγραφο και τις κοινοποιήσεις σας.",
+  "cloud.reconnexionRequiseDepuis": "Η σύνδεση με το mozaiklabs.fr έληξε στις {date}: το Tune Circle και το διαδικτυακό αντίγραφο είναι σε παύση. Συνδεθείτε ξανά, χωρίς να χρησιμοποιήσετε την «Αποσύνδεση», που θα διέγραφε το διαδικτυακό αντίγραφο και τις κοινοποιήσεις σας.",
+  "cloud.seReconnecter": "Επανασύνδεση",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];
