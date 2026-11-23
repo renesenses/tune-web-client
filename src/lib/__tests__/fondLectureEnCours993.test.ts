@@ -6,6 +6,12 @@
  * par le fond du thème. La pochette floutée reste ; sa luminosité tombe
  * sous 0.15 — une pochette entièrement blanche plafonne alors à #262626,
  * le gris d'un fond sombre, et le texte blanc garde son contraste.
+ *
+ * ⚠️ Design v3 de Levente, décision de Bertrand du 22/11/2026 : le fond
+ * REVIENT, visible. L'assombrissement par `brightness()` est remplacé par un
+ * voile du jeton `--v2-bg` calculé thème par thème pour garder AA — la
+ * mesure vit dans `fondLectureEnCoursV3.test.ts`. Ce banc garde ce qui reste
+ * vrai : la pochette floutée est toujours là, et le kiosque reste assombri.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -24,14 +30,11 @@ function luminosite(selecteur: string): number {
 
 describe('#993 — le fond de Lecture en cours', () => {
   it('reste la pochette floutée (le parti pris est gardé)', () => {
-    expect(src).toContain('<div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>');
-    expect(luminosite('.bg-blur {')).toBeGreaterThan(0);
+    expect(src).toContain('<div class="bg-blur" aria-hidden="true" style="background-image: url({resolvedCoverUrl})"></div>');
   });
-  it('🔴 mais assombrie sous 0.15 — et le kiosque au moins autant', () => {
-    const normal = luminosite('.bg-blur {');
+  it('le kiosque reste assombri sous 0.15 (v3 : le contraste ailleurs tient au voile)', () => {
     const kiosque = luminosite(':global([data-kiosk]) .bg-blur {');
-    expect(normal).toBeLessThanOrEqual(0.15);
-    expect(kiosque).toBeLessThanOrEqual(normal);
+    expect(kiosque).toBeLessThanOrEqual(0.15);
   });
 });
 
@@ -47,7 +50,7 @@ describe('le fond de Lecture en cours suit la TEINTE du thème (17/09/2026)', ()
     expect(opacite).toBeLessThan(1); // la pochette reste perceptible
   });
 
-  it('écartée sur les deux thèmes clairs, pour garder le contraste de #993', () => {
+  it('réglée à part sur les deux thèmes clairs (#1144, puis v3)', () => {
     expect(src).toContain(':global(:root[data-v2-theme="clear-white"]) .bg-teinte');
     expect(src).toContain(':global(:root[data-v2-theme="clear-grey"]) .bg-teinte');
   });
