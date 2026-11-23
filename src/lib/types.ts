@@ -1211,6 +1211,14 @@ export interface StreamingServiceStatus {
    * comportement d'avant, recopie comprise. Lu par `favorisEnMiroirChez`.
    */
   favoris_miroir?: boolean;
+  /**
+   * La session enregistrée de ce service n'a pas pu être relue au démarrage
+   * (jetons chiffrés par la clé `tune-secrets.cle`) : `key_missing` (clé
+   * absente : base déplacée ou restaurée sans elle), `key_unreadable` (clé
+   * illisible : droits), `key_mismatch` (autre clé). Rien n'est effacé ; il
+   * faut se reconnecter. Absent ou `null` : rien à signaler.
+   */
+  session_unreadable?: 'key_missing' | 'key_unreadable' | 'key_mismatch' | null;
 }
 
 export interface StreamingAuthResponse {
