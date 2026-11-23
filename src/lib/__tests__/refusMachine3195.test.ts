@@ -108,9 +108,9 @@ describe('#3195 — Éteindre / Redémarrer : une phrase par raison du refus', (
   });
 });
 
-describe('#3195 — 16 langues', () => {
+describe('#3195 — 20 langues', () => {
   it('machineAction.adminRequired existe dans les 16 dictionnaires', () => {
-    expect(ONZE_LANGUES.length).toBe(16);
+    expect(ONZE_LANGUES.length).toBe(20);
     for (const l of ONZE_LANGUES) expect(dictionnaire(l)['machineAction.adminRequired'], l).toBeTruthy();
   });
 });

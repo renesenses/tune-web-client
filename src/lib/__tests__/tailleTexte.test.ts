@@ -116,8 +116,8 @@ describe('rc12 — Taille du texte', () => {
 
   it('les chaînes dans les quinze locales', () => {
     const dir = resolve(RACINE, 'src/lib/locales');
-    const fs = readdirSync(dir).filter((n) => /^[a-z]{2}\.ts$/.test(n));
-    expect(fs).toHaveLength(16);
+    const fs = readdirSync(dir).filter((n) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(n));
+    expect(fs).toHaveLength(20);
     for (const n of fs) {
       const src = readFileSync(resolve(dir, n), 'utf-8');
       for (const k of ['settings.textSize', 'settings.textSizeHint', 'settings.textSizeSmall', 'settings.textSizeNormal',
