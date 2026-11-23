@@ -25,7 +25,8 @@ const LOCAL_RECHERCHE = { id: 42, name: 'Alela Diane', image_path: null };
 let ficheLocale: Record<string, unknown> = { ...LOCAL_RECHERCHE, country: 'US' };
 let rechercheLocale: unknown[] = [LOCAL_RECHERCHE];
 /** Relecture du 23/11 : l'homonyme n'est retenu que si ses albums recoupent ceux du service. */
-const ALBUMS_QOBUZ = [{ id: null, title: 'Cusp', source: 'qobuz', source_id: 'a-1', year: 2018 }];
+const ALBUMS_QOBUZ_DEFAUT = [{ id: null, title: 'Cusp', source: 'qobuz', source_id: 'a-1', year: 2018 }];
+let ALBUMS_QOBUZ: unknown[] = ALBUMS_QOBUZ_DEFAUT;
 let albumsLocaux: unknown[] = [{ id: 7, title: 'Cusp', year: 2018 }];
 
 function corpsPour(url: string): unknown {
@@ -48,6 +49,7 @@ beforeEach(() => {
   ficheLocale = { ...LOCAL_RECHERCHE, country: 'US' };
   rechercheLocale = [LOCAL_RECHERCHE];
   albumsLocaux = [{ id: 7, title: 'Cusp', year: 2018 }];
+  ALBUMS_QOBUZ = ALBUMS_QOBUZ_DEFAUT;
   locale.set('fr');
   streamingServices.set({ qobuz: { enabled: true, authenticated: true } } as any);
   vi.stubGlobal('fetch', vi.fn(async (input: any) => {
@@ -131,6 +133,26 @@ describe('fil 3009 point 16 — le drapeau du pays sur la fiche d’un artiste Q
 
   it('🔴 homonyme dont aucun album ne recoupe ceux du service : un autre artiste, pas de drapeau', async () => {
     albumsLocaux = [{ id: 8, title: 'Un tout autre disque', year: 1999 }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(drapeau()).toBeNull();
+    expect(requetes.some((u) => /\/library\/artists\/42(\?|$)/.test(u))).toBe(false);
+  });
+
+  it('🔴 homonyme unique, seul album commun ÉPONYME : deux « Alela Diane » possibles, pas de drapeau', async () => {
+    ALBUMS_QOBUZ = [{ id: null, title: 'Alela Diane', source: 'qobuz', source_id: 'a-2', year: 2001 }, ...ALBUMS_QOBUZ_DEFAUT.map((a) => ({ ...a, title: 'Autre' }))];
+    albumsLocaux = [{ id: 9, title: 'Alela Diane', year: 2001 }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(drapeau()).toBeNull();
+    expect(requetes.some((u) => /\/library\/artists\/42(\?|$)/.test(u))).toBe(false);
+  });
+
+  it('🔴 seul titre commun GÉNÉRIQUE (« Greatest Hits ») : pas de drapeau', async () => {
+    ALBUMS_QOBUZ = [{ id: null, title: 'Greatest Hits', source: 'qobuz', source_id: 'a-3', year: 2010 }];
+    albumsLocaux = [{ id: 10, title: 'Greatest Hits', year: 2010 }];
     ouvrirQobuz();
     await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
     await jusqua(() => false, 200);
