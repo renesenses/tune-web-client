@@ -21,6 +21,7 @@ import { descriptionDePlaylist } from '../descriptionPlaylist';
 import { locale } from '../i18n';
 import { activeView } from '../stores/navigation';
 import { currentZoneId } from '../stores/zones';
+import { streamingServices } from '../stores/streaming';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -36,6 +37,7 @@ beforeEach(() => {
   locale.set('fr');
   currentZoneId.set(1);
   activeView.set('playlists');
+  streamingServices.set({ qobuz: { enabled: true, authenticated: true, username: 'fabien' } } as any);
   urls.length = 0;
   vi.stubGlobal('ResizeObserver', Inerte);
   vi.stubGlobal('IntersectionObserver', Inerte);
@@ -56,6 +58,7 @@ afterEach(() => {
   if (monte) unmount(monte);
   monte = null; hote?.remove(); hote = null;
   localStorage.clear();
+  streamingServices.set({});
   vi.unstubAllGlobals();
 });
 
@@ -87,6 +90,14 @@ describe('fil 3009, point 8 — la description d’une playlist ouverte depuis l
     await tourner();
     expect(urls.some((u) => /\/streaming\/qobuz\/playlists\/65607848(\?|$)/.test(u))).toBe(false);
     expect(hote!.querySelector('.desc')?.textContent?.trim()).toBe('Déjà là');
+  });
+
+  it('relecture du 23/11 : un service non connecté n’est pas interrogé', async () => {
+    streamingServices.set({ qobuz: { enabled: true, authenticated: false, username: 'fabien' } } as any);
+    monter({ source_id: '65607848', name: 'Dimanche R&B / Neo-Soul', track_count: 0, duration_ms: 0, cover_path: null, source: 'qobuz' });
+    await tourner();
+    expect(urls.some((u) => /\/streaming\/qobuz\/playlists\/65607848(\?|$)/.test(u))).toBe(false);
+    expect(hote!.querySelector('[data-description-playlist]')).toBeNull();
   });
 
   it('descriptionDePlaylist : une chaîne vide ou d’espaces n’est pas une description', () => {

@@ -15,6 +15,8 @@
    */
   import * as api from '../../lib/api';
   import { descriptionDePlaylist } from '../../lib/descriptionPlaylist';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { streamingServices } from '../../lib/stores/streaming';
   import { ligneBadgeCercles } from '../../lib/suiviCercle';
   import { creerRetraitPlaylist, aMoiChezLeService as estAMoi, retrouverEditable, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -114,7 +116,9 @@
     descriptionLue = null;
     if (it.kind !== 'streaming' || descriptionDePlaylist(it.pl)) return;
     const sid = String(it.pl.source_id ?? '').trim();
-    if (!sid) return;
+    // Relecture du 23/11 — rien n'est demandé à un service qui n'est pas
+    // connecté (activé ET authentifié) : il ne répondrait qu'une erreur.
+    if (!sid || !servicesConnectes($streamingServices as any).includes(it.service)) return;
     let vivant = true;
     api.getStreamingPlaylist(it.service, sid)
       .then((p) => { if (vivant) descriptionLue = descriptionDePlaylist(p); })
