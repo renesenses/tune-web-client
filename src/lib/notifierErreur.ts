@@ -84,6 +84,11 @@ export function messageEtDetail(phrase: string, e: unknown, opts: OptionsErreur 
 
 /** Affiche l'échec : phrase traduite, motif connu éventuel, brut replié. */
 export function notifierErreur(phrase: string, e: unknown, opts: OptionsErreur = {}): number {
+  // rc14 (Bertrand, rc13.2 : « Se déconnecter » refusé, DEUX toasts rouges
+  // identiques empilés) — `fetchJSON` a déjà posé son bandeau pour cet échec
+  // (`ApiError.dejaAnnonce`) : en poser un second, avec le même motif, ne dit
+  // rien de plus. -1 : aucun bandeau posé.
+  if (e && typeof e === 'object' && (e as { dejaAnnonce?: unknown }).dejaAnnonce === true) return -1;
   const { message, detail } = messageEtDetail(phrase, e, opts);
   // `undefined` laisse au bandeau sa durée par défaut (#2722 : une erreur
   // reste affichée jusqu'à ce qu'on la ferme).

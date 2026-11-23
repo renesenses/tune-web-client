@@ -190,6 +190,6 @@ describe('Menu de compte — serveur relié, compte non montré à cet appareil'
     expect(m.querySelector('.avname')?.textContent?.trim()).toBe(en['settings.accountLinkedNoDetails']);
     const libelles = Array.from(m.querySelectorAll('button')).map((b) => b.textContent?.trim());
     expect(libelles).not.toContain(en['settings.signIn']);
-    expect(libelles).not.toContain(en['settings.signOut']);
+    expect(libelles).not.toContain(en['settings.unlinkAccount']);
   });
 });

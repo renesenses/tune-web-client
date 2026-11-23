@@ -186,7 +186,7 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
     expect(ligne.textContent).toContain('yves@exemple.fr');
     expect(ligne.textContent).not.toContain(fr['settings.notConnected']);
     expect(bouton(el, fr['settings.signIn']), 'propose de se connecter alors qu’on l’est').toBeNull();
-    expect(bouton(el, fr['settings.signOut']), 'aucun moyen de délier le compte').not.toBeNull();
+    expect(bouton(el, fr['settings.unlinkAccount']), 'aucun moyen de délier le compte').not.toBeNull();
   });
 
   it('relié sans détails (autre appareil) : l’écran dit « relié », sans compte ni bouton', async () => {
@@ -198,7 +198,7 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
     expect(ligne.textContent).toContain(fr['settings.accountLinkedNoDetails']);
     expect(ligne.textContent).not.toContain(fr['settings.notConnected']);
     expect(bouton(el, fr['settings.signIn']), 'propose de relier un serveur déjà relié').toBeNull();
-    expect(bouton(el, fr['settings.signOut']), 'propose de délier sans pouvoir le faire d’ici').toBeNull();
+    expect(bouton(el, fr['settings.unlinkAccount']), 'propose de délier sans pouvoir le faire d’ici').toBeNull();
   });
 
   it('se déconnecter passe par la route de déconnexion et relit l’état', async () => {
@@ -212,7 +212,7 @@ describe('Réglages ▸ Système ▸ Cloud — relier son compte Mozaiklabs', ()
     // La déconnexion délie le serveur du compte : elle demande d'abord
     // confirmation (voir confirmerDeconnexionCompte.test.ts).
     vi.spyOn(dialogs, 'confirm').mockResolvedValue(true);
-    bouton(el, fr['settings.signOut'])!.click();
+    bouton(el, fr['settings.unlinkAccount'])!.click();
     await attendre(10);
     expect(
       appels.some((a) => a.method === 'POST' && /\/cloud\/sso\/disconnect$/.test(a.url)),

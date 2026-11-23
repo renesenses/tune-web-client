@@ -785,7 +785,10 @@ export async function fetchJSON<T>(
       // lecture refusée reste silencieuse.
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
-      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+      // rc14 — délier le compte dit sa propre phrase, courte, qui nomme
+      // l'action (`deliaisonCompte.annoncerEchecDeliaison`).
+      const deliaison = /\/cloud\/sso\/disconnect(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !deliaison && !err.dejaAnnonce) {
         // Le bouton mène au cadre Authentification des Réglages.
         notifications.error(horsMachine, 0, undefined, actionCadreAuthentification(get(t) as (cle: string) => string));
         err.dejaAnnonce = true;

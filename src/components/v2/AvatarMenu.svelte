@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { notifierErreur } from '../../lib/notifierErreur';
+  import { annoncerEchecDeliaison, deliaisonRefuseeIci } from '../../lib/deliaisonCompte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Menu avatar (coin haut-droit) du nouveau client.
@@ -55,8 +55,22 @@
   // `details_hidden` de `/cloud/sso/status`) : « relié », sans nom ni geste.
   let ssoRelieSansDetails = $state(false);
   let signingOut = $state(false);
+  // rc14 — la déliaison sera refusée depuis cet appareil (authentification
+  // coupée, pas la machine du serveur) : l'entrée est grisée, avec sa note,
+  // au lieu d'être refusée après le clic. Voir `deliaisonCompte`.
+  let deliaisonGrisee = $state(false);
+
+  async function lireDroitDeliaison() {
+    try {
+      deliaisonGrisee = deliaisonRefuseeIci(await api.getAuthActivation());
+    } catch {
+      // Illisible : l'entrée reste active, le serveur jugera.
+      deliaisonGrisee = false;
+    }
+  }
 
   async function loadSso() {
+    void lireDroitDeliaison();
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigured = !!sso?.configured;
@@ -113,7 +127,8 @@
   }
 
   async function signOut() {
-    // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
+    if (deliaisonGrisee) return;
+    // « Délier le compte mozaiklabs.fr » DÉLIE ce serveur du compte : sa copie de bibliothèque en
     // ligne et ses partages de cercle sont effacés chez le cloud, le premium
     // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
     // question dit ce qui sera perdu.
@@ -125,7 +140,9 @@
       notifications.success(get(t)('settings.cloudDisconnected'));
       close();
     } catch (e: any) {
-      notifierErreur(get(t)('common.error'), e, { motifSeul: true });
+      // Un seul bandeau, et la phrase courte si c'est le refus « hors de
+      // cette machine » (rc14, doublon constaté par Bertrand en rc13.2).
+      annoncerEchecDeliaison(e);
     }
     signingOut = false;
   }
@@ -471,10 +488,14 @@
         <div class="hint">{$t('settings.cloudComingSoon')}</div>
       {/if}
       {#if ssoConnected}
-        <button class="item" onclick={signOut} disabled={signingOut}>
+        <button class="item" onclick={signOut} disabled={signingOut || deliaisonGrisee}
+                aria-describedby={deliaisonGrisee ? 'note-deliaison-compte' : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" /></svg>
-          {signingOut ? $t('common.loading') : $t('settings.signOut')}
+          {signingOut ? $t('common.loading') : $t('settings.unlinkAccount' as any)}
         </button>
+        {#if deliaisonGrisee}
+          <div class="hint" id="note-deliaison-compte" data-testid="note-deliaison-compte">{$t('settings.unlinkAccountNote' as any)}</div>
+        {/if}
       {/if}
     </div>
   {/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { annoncerEchecDeliaison } from '../../lib/deliaisonCompte';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
@@ -1611,7 +1612,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await chargerSso();
       notifications.success(get(t)('settings.cloudDisconnected' as any));
     } catch (e: any) {
-      notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
+      annoncerEchecDeliaison(e);
     }
     ssoQuitte = false;
   }
@@ -6114,7 +6115,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 {#if ssoConnecte}
                   <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
-                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.unlinkAccount' as any)}</button>
                 {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
