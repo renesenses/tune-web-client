@@ -90,13 +90,20 @@
 
   let peutDesactiver = $derived(desactivationOfferte(etat, role));
 
+  /** Premier geste : montre la confirmation dans la page, n'envoie rien. */
+  function demanderDesactivation() {
+    if (enCours || !etat?.auth_enabled) return;
+    refusDesactivation = null;
+    confirmerDesactivation = true;
+  }
+
+  /**
+   * Second geste, sur un bouton DISTINCT placé dans l'avertissement : un
+   * double clic sur « Désactiver » ne peut pas valoir confirmation.
+   */
   async function desactiver() {
-    if (!etat?.auth_enabled) return;
-    // Jamais d'office : le premier clic montre la confirmation dans la page.
-    if (!confirmerDesactivation) {
-      confirmerDesactivation = true;
-      return;
-    }
+    if (enCours) return;
+    if (!etat?.auth_enabled || !confirmerDesactivation) return;
     enCours = true;
     refusDesactivation = null;
     try {
@@ -184,19 +191,23 @@
     {#if peutDesactiver}
       {#if confirmerDesactivation}
         <div class="bloc confirmer" data-desactivation-confirmation>
-          <p class="hint err">{$t('authActivation.disableConfirm' as any)}</p>
+          <p class="hint err" data-desactivation-avertissement>{$t('authActivation.disableConfirm' as any)}</p>
+          <div class="inline">
+            <button class="lnk danger" type="button" data-desactivation-confirmer onclick={desactiver} disabled={enCours}>
+              {$t('authActivation.confirmAndDisable' as any)}
+            </button>
+            <button class="lnk" type="button" data-desactivation-annuler onclick={() => (confirmerDesactivation = false)} disabled={enCours}>
+              {$t('authActivation.cancel' as any)}
+            </button>
+          </div>
+        </div>
+      {:else}
+        <div class="inline">
+          <button class="lnk" type="button" data-desactivation-desactiver onclick={demanderDesactivation} disabled={enCours}>
+            {$t('authActivation.disable' as any)}
+          </button>
         </div>
       {/if}
-      <div class="inline">
-        <button class="lnk" class:danger={confirmerDesactivation} type="button" data-desactivation-desactiver onclick={desactiver} disabled={enCours}>
-          {#if confirmerDesactivation}{$t('authActivation.confirmAndDisable' as any)}{:else}{$t('authActivation.disable' as any)}{/if}
-        </button>
-        {#if confirmerDesactivation}
-          <button class="lnk" type="button" data-desactivation-annuler onclick={() => (confirmerDesactivation = false)} disabled={enCours}>
-            {$t('authActivation.cancel' as any)}
-          </button>
-        {/if}
-      </div>
     {/if}
     {#if refusDesactivation}<p class="hint err" data-desactivation-refus>{$t(refusDesactivation as any)}</p>{/if}
   {:else}

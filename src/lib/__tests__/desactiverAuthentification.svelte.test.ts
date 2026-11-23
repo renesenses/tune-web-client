@@ -41,6 +41,7 @@ async function monter() {
 }
 
 const bouton = () => hote.querySelector<HTMLButtonElement>('[data-desactivation-desactiver]');
+const confirmer = () => hote.querySelector<HTMLButtonElement>('[data-desactivation-confirmer]');
 
 beforeEach(() => {
   for (const fn of Object.values(mocks)) fn.mockReset();
@@ -104,7 +105,24 @@ describe('rc14 — la confirmation est obligatoire', () => {
     expect(conf?.textContent?.trim()).toBe(
       'Tous les appareils du réseau pourront à nouveau piloter Tune sans mot de passe. Les remotes iPhone et Android se reconnectent.',
     );
-    expect(bouton()!.textContent?.trim()).toBe(fr['authActivation.confirmAndDisable']);
+    expect(confirmer()!.textContent?.trim()).toBe(fr['authActivation.confirmAndDisable']);
+    // Le bouton de confirmation est DISTINCT du premier, et placé dans l'avertissement.
+    expect(conf!.contains(confirmer())).toBe(true);
+  });
+
+  it('🔴 un double clic sur « Désactiver » n’envoie rien', async () => {
+    mocks.getAuthActivation.mockResolvedValue(ACTIVE_RESEAU);
+    mocks.getAuthMe.mockResolvedValue({ role: 'admin' });
+    mocks.disableAuth.mockResolvedValue({ auth_enabled: false });
+    await monter();
+    const premier = bouton()!;
+    premier.click();
+    flushSync();
+    premier.click();
+    premier.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await respirer();
+    expect(mocks.disableAuth).not.toHaveBeenCalled();
+    expect(hote.querySelector('[data-desactivation-confirmation]')).not.toBeNull();
   });
 
   it('« Annuler » referme la confirmation sans rien envoyer', async () => {
@@ -116,8 +134,7 @@ describe('rc14 — la confirmation est obligatoire', () => {
     hote.querySelector<HTMLButtonElement>('[data-desactivation-annuler]')!.click();
     await respirer();
     expect(hote.querySelector('[data-desactivation-confirmation]')).toBeNull();
-    bouton()!.click();
-    await respirer();
+    expect(confirmer()).toBeNull();
     expect(mocks.disableAuth).not.toHaveBeenCalled();
   });
 });
@@ -132,7 +149,7 @@ describe('rc14 — la désactivation', () => {
     await monter();
     bouton()!.click();
     await respirer();
-    bouton()!.click();
+    confirmer()!.click();
     await respirer();
     expect(mocks.disableAuth).toHaveBeenCalledTimes(1);
     expect(hote.querySelector('[data-activation-active]')).toBeNull();
@@ -148,7 +165,21 @@ describe('rc14 — la désactivation', () => {
     await monter();
     bouton()!.click();
     await respirer();
+    confirmer()!.click();
+    await respirer();
+    expect(hote.querySelector('[data-activation-active]')).not.toBeNull();
+    expect(hote.querySelector('[data-desactivation-refus]')?.textContent?.trim())
+      .toBe(fr['authActivation.disableAdminRequired']);
+  });
+
+  it('🔴 sans session (401) : l’écran dit qu’il faut un compte administrateur', async () => {
+    mocks.getAuthActivation.mockResolvedValue(ACTIVE_MACHINE);
+    mocks.getAuthMe.mockResolvedValue({ error: 'authentication required' });
+    mocks.disableAuth.mockResolvedValue({ error: 'authentication_required' });
+    await monter();
     bouton()!.click();
+    await respirer();
+    confirmer()!.click();
     await respirer();
     expect(hote.querySelector('[data-activation-active]')).not.toBeNull();
     expect(hote.querySelector('[data-desactivation-refus]')?.textContent?.trim())
@@ -182,6 +213,35 @@ describe('rc14 — `disableAuth` : la bonne requête', () => {
     } finally {
       vi.unstubAllGlobals();
       localStorage.removeItem('tune_jwt_token');
+    }
+  });
+});
+
+describe('rc14 — `disableAuth` : le 401 est un refus, pas une panne', () => {
+  for (const texte of ['authentication required', 'invalid token']) {
+    it(`🔴 401 en texte brut (« ${texte} ») → { error }, jeton gardé`, async () => {
+      const reel = await vi.importActual<typeof import('../api')>('../api');
+      localStorage.setItem('tune_jwt_token', 'jeton-perime');
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(texte, { status: 401 })));
+      try {
+        const r = await reel.disableAuth();
+        expect(r).toEqual({ error: 'authentication_required' });
+        expect(cleDuRefusDesactivation(r)).toBe('authActivation.disableAdminRequired');
+        expect(localStorage.getItem('tune_jwt_token')).toBe('jeton-perime');
+      } finally {
+        vi.unstubAllGlobals();
+        localStorage.removeItem('tune_jwt_token');
+      }
+    });
+  }
+
+  it('403 en JSON → le corps du serveur', async () => {
+    const reel = await vi.importActual<typeof import('../api')>('../api');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ error: 'admin role required' }), { status: 403 })));
+    try {
+      expect(await reel.disableAuth()).toEqual({ error: 'admin role required' });
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });

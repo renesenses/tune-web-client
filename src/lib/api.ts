@@ -6437,17 +6437,31 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
  * rc14 — coupe l'authentification (`POST /auth/config {"auth_enabled": false}`).
  * Authentification active, le serveur exige un jeton ADMINISTRATEUR
  * (`ensure_admin_if_auth_enabled`), y compris depuis sa propre machine ; le
- * jeton part avec la requête (`fetchJSON`). Le 403 d'un compte non
- * administrateur revient comme corps (`error`), l'écran le dit. La réponse
- * porte l'état réel : `{ auth_enabled }`.
+ * jeton part avec la requête (`fetchJSON`). La réponse porte l'état réel :
+ * `{ auth_enabled }`.
+ *
+ * Deux refus reviennent comme corps (`error`), sans bandeau ni fin de session :
+ *  - 403 `admin role required` : session d'un compte non administrateur ;
+ *  - 401 : aucune session (sur la machine du serveur, sans connexion) ou jeton
+ *    expiré. Le filtre d'authentification répond alors en TEXTE BRUT
+ *    (« authentication required », « invalid token ») : le statut est lu au
+ *    passage, et le refus rendu sous la forme `{ error }`.
  */
-export function disableAuth() {
-  return fetchJSON<{ auth_enabled?: boolean; error?: string }>(
-    `${BASE}/auth/config`,
-    { method: 'POST', body: JSON.stringify({ auth_enabled: false }) },
-    (s) => s === 403,
-    true,
-  );
+export async function disableAuth(): Promise<{ auth_enabled?: boolean; error?: string }> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<{ auth_enabled?: boolean; error?: string }>(
+      `${BASE}/auth/config`,
+      { method: 'POST', body: JSON.stringify({ auth_enabled: false }) },
+      (s) => { statut = s; return s === 401 || s === 403; },
+      true,
+    );
+    if (statut === 401 && !r?.error) return { error: 'authentication_required' };
+    return r;
+  } catch (e) {
+    if (statut === 401) return { error: 'authentication_required' };
+    throw e;
+  }
 }
 
 /** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
