@@ -83,7 +83,7 @@
   import RenommerModale from './RenommerModale.svelte';
   import { favoriteArtistIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { seulementFavoris as seulementFavorisDe } from '../../lib/uniquementFavoris';
-  import { estSourceDeService, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { artistesSansDoublon, estSourceDeService, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
   import { favoriExterneService } from '../../lib/streamingFavorites';
 
   interface Props {
@@ -213,8 +213,13 @@
   /** Fil 3009, point 6 — les artistes favoris des services sous la recherche. */
   const artistesDeServiceRecherche = $derived(artistesDeService.filter(a => plier(a.name).includes(plier(q))));
   /** La source choisie est un service : la grille montre aussi ses artistes favoris. */
+  // Décision de Bertrand du 23/11 — sous « Toutes les sources » aussi, SANS
+  // DOUBLON : un artiste déjà dans la bibliothèque (toute la liste, pas
+  // seulement la recherche) ou déjà apporté par un autre service n'y revient pas.
+  const deServiceEnToutesSources = $derived(provenance == null ? artistesSansDoublon(artistes, artistesDeServiceRecherche) : []);
   const deServiceAffiches = $derived(
-    estSourceDeService(provenance) ? artistesDeServiceRecherche.filter(a => sourceCorrespond(a.source, provenance)) : [],
+    estSourceDeService(provenance) ? artistesDeServiceRecherche.filter(a => sourceCorrespond(a.source, provenance))
+      : provenance == null ? deServiceEnToutesSources : [],
   );
   const affiches = $derived(([...artistesRecherche.filter(a => provenance == null ||
     [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance))), ...deServiceAffiches] as Artist[])
@@ -225,7 +230,7 @@
     .sort((a, b) => comparerArtistes(a, b, parNomDeTri)));
   $effect(() => {
     onComptesSources?.({
-      total: artistesRecherche.length,
+      total: artistesRecherche.length + artistesSansDoublon(artistes, artistesDeServiceRecherche).length,
       comptes: compterSources([
         ...artistesRecherche.map(a => sourcesEffectives.get(a.id!) ?? []),
         ...artistesDeServiceRecherche.map(a => [a.source]),

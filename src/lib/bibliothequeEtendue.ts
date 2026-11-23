@@ -212,3 +212,85 @@ export function comptesAvecFavoris(
   }
   return out;
 }
+
+/* ── Fil 3009, point 6, suite (décision de Bertrand du 23/11) ─────────────
+ * Les favoris des services s'affichent AUSSI sous « Toutes les sources »,
+ * dans Titres et dans Artistes, comme dans l'onglet Albums — SANS DOUBLON :
+ * un titre ou un artiste déjà présent dans la bibliothèque, ou déjà apporté
+ * par un autre service, n'apparaît qu'une fois. La bibliothèque l'emporte,
+ * puis le premier service rencontré. L'onglet Albums n'avait pas de règle de
+ * dédoublonnage à reprendre (`albumsEtendus` concatène) : celle-ci compare
+ * le titre et l'interprète (artiste : le nom), sans casse, accents ni
+ * espaces superflus. */
+
+/** Un texte comparable : sans casse, accents ni espaces superflus. */
+export function plierTexte(s: string | null | undefined): string {
+  return (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** La clé « même titre » : titre et interprète pliés. */
+export function cleDeTitre(t: { title?: string | null; artist_name?: string | null }): string {
+  return `${plierTexte(t.title)}|${plierTexte(t.artist_name)}`;
+}
+
+/** Les titres favoris qui n'existent ni dans `locaux`, ni plus tôt dans la liste (autre service). */
+export function titresSansDoublon<T extends { title?: string | null; artist_name?: string | null }>(
+  locaux: readonly { title?: string | null; artist_name?: string | null }[],
+  favoris: readonly T[],
+): T[] {
+  const vus = new Set(locaux.map(cleDeTitre));
+  return favoris.filter((f) => {
+    const k = cleDeTitre(f);
+    if (!plierTexte(f.title) || vus.has(k)) return false;
+    vus.add(k);
+    return true;
+  });
+}
+
+/** Les artistes favoris qui n'existent ni dans `locaux`, ni plus tôt dans la liste (autre service). */
+export function artistesSansDoublon<T extends { name?: string | null }>(
+  locaux: readonly { name?: string | null }[],
+  favoris: readonly T[],
+): T[] {
+  const vus = new Set(locaux.map((a) => plierTexte(a.name)));
+  return favoris.filter((f) => {
+    const k = plierTexte(f.name);
+    if (!k || vus.has(k)) return false;
+    vus.add(k);
+    return true;
+  });
+}
+
+/**
+ * Onglet Titres PAGINÉ : la bibliothèque n'est pas en mémoire, seule sa
+ * fenêtre l'est. Pour savoir si un titre favori y est déjà, on la demande au
+ * serveur par une recherche sur son titre (`chercher`), au plus `concurrence`
+ * à la fois, et chaque réponse est retenue dans `cache` (clé de titre →
+ * présent) : la liste des favoris n'est chargée qu'une fois, la bibliothèque
+ * jamais en entier. Une recherche qui échoue compte comme « présent » : on
+ * préfère taire un favori que montrer un doublon.
+ */
+export async function titresAbsentsDeLaBibliotheque<T extends { title?: string | null; artist_name?: string | null }>(
+  favoris: readonly T[],
+  chercher: (titre: string) => Promise<readonly { id?: unknown; source?: unknown; title?: string | null; artist_name?: string | null }[]>,
+  cache: Map<string, boolean>,
+  concurrence = 4,
+): Promise<T[]> {
+  const uniques = titresSansDoublon([], favoris);
+  const aVerifier = uniques.filter((f) => !cache.has(cleDeTitre(f)));
+  let i = 0;
+  const ouvrier = async () => {
+    while (i < aVerifier.length) {
+      const f = aVerifier[i++];
+      const k = cleDeTitre(f);
+      try {
+        const trouves = await chercher(String(f.title ?? ''));
+        cache.set(k, trouves.some((t) => t.id != null && !estSourceDeService(t.source == null ? null : String(t.source)) && cleDeTitre(t) === k));
+      } catch {
+        cache.set(k, true);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrence, aVerifier.length)) }, ouvrier));
+  return uniques.filter((f) => cache.get(cleDeTitre(f)) === false);
+}

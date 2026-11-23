@@ -129,7 +129,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
   import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -439,6 +439,30 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   /** Onglet Titres, source d'un SERVICE choisie : ses titres favoris, pas la fenêtre de la bibliothèque. */
   const titresDuServiceChoisi = $derived.by(() => etendueTitres && !fFavoris && estSourceDeService(fProvenance));
+  /**
+   * Décision de Bertrand du 23/11 — sous « Toutes les sources » aussi, les
+   * titres favoris des services rejoignent la liste, SANS DOUBLON
+   * (`titresSansDoublon`). Liste paginée : la bibliothèque n'est pas en
+   * mémoire, chaque titre favori y est cherché une fois par le serveur
+   * (`titresAbsentsDeLaBibliotheque`, réponses retenues jusqu'au prochain
+   * scan), et les absents se rangent EN QUEUE de la fenêtre : la pagination de
+   * la bibliothèque ne bouge pas.
+   */
+  const titresEnToutesSources = $derived.by(() => etendueTitres && !fFavoris && fProvenance == null);
+  let favorisAbsentsPagine = $state.raw<Track[]>([]);
+  let presenceLocale = new Map<string, boolean>();
+  let generationPresence: unknown = null;
+  $effect(() => {
+    const favoris = favorisPistesService;
+    const gen = $generationBibliotheque;
+    if (!titresEnToutesSources || !pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
+    if (gen !== generationPresence) { presenceLocale = new Map(); generationPresence = gen; }
+    let perime = false;
+    void titresAbsentsDeLaBibliotheque(favoris, async (titre) =>
+      ((await api.getPagePistes({ search: titre, limit: 25, offset: 0 }))?.items ?? []) as any[], presenceLocale)
+      .then((absents) => { if (!perime) favorisAbsentsPagine = absents; });
+    return () => { perime = true; };
+  });
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -2909,7 +2933,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
-  const totalPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Décision du 23/11 — les favoris absents de la bibliothèque, en queue de la fenêtre paginée. */
+  const favorisEnQueue = $derived.by(() => {
+    if (!titresEnToutesSources || !pagine) return [] as Track[];
+    const needle = fold(qPistes);
+    return favorisAbsentsPagine.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+  });
+  /** Le total de la BIBLIOTHÈQUE servi par pages. */
+  const totalServeurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Le total AFFICHÉ : la bibliothèque, puis les favoris en queue. */
+  const totalPagine = $derived(totalServeurPagine == null ? null : totalServeurPagine + favorisEnQueue.length);
   const erreurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.erreur ?? null; });
   /** La fenêtre de rangs voulue — débord compris — et la hauteur d'une
    *  ligne, MESURÉE entre les deux intercalaires (le mode Avancé rend des
@@ -2920,9 +2953,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const DEBORD_LIGNES = 40;
   const lignesPagine = $derived.by(() => {
     void versionFenetre;
-    return fenetrePistes ? fenetrePistes.contigues(debutVisible, finVisible) : [];
+    if (!fenetrePistes) return [];
+    const t = totalServeurPagine ?? 0;
+    const serveur = debutVisible < t ? fenetrePistes.contigues(debutVisible, Math.min(finVisible, t)) : [];
+    // Les favoris ne suivent que des lignes de la bibliothèque contiguës jusqu'à sa fin.
+    if (!favorisEnQueue.length || debutVisible + serveur.length < t) return serveur;
+    return [...serveur, ...favorisEnQueue.slice(Math.max(0, debutVisible - t), Math.max(0, finVisible - t))];
   });
-  $effect(() => { void versionFenetre; fenetrePistes?.assurer(debutVisible, finVisible); });
+  $effect(() => {
+    void versionFenetre;
+    const t = totalServeurPagine;
+    if (t != null && debutVisible >= t) return;
+    fenetrePistes?.assurer(debutVisible, t == null ? finVisible : Math.min(finVisible, t));
+  });
   let elPistes = $state<HTMLElement | null>(null);
   /** Le conteneur qui défile, en remontant depuis `el` : au mode tableau
    *  c'est `.tbl` (son `overflow-x:auto` le rend défilant dans les deux
@@ -2998,7 +3041,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const zid = zoneRequise();
     const f = fenetrePistes;
     if (zid == null || !f) return;
-    lireTitresDepuis(depot, f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+    // Décision du 23/11 — un rang au-delà de la bibliothèque désigne un favori en queue.
+    const t = totalServeurPagine ?? 0;
+    let suite: Track[];
+    if (rang >= t) suite = favorisEnQueue.slice(rang - t, rang - t + 500);
+    else {
+      const locales = f.aPartirDe(rang, 500);
+      suite = rang + locales.length >= t ? [...locales, ...favorisEnQueue.slice(0, 500 - locales.length)] : locales;
+    }
+    lireTitresDepuis(depot, suite as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   $effect(() => {
@@ -3059,7 +3110,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : titresDuServiceChoisi ? favorisPistesService : tracks;
+    const base = fFavoris ? pistesFavorites : titresDuServiceChoisi ? favorisPistesService
+      // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris qu'elle n'a pas.
+      : titresEnToutesSources ? [...tracks, ...titresSansDoublon(tracks, favorisPistesService)] : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3080,7 +3133,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       : [];
     if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
     if (titresDuServiceChoisi) return comptesAvecFavoris(new Map<string, number>(), favoris);
-    return comptesAvecFavoris(compterSources(pistesRecherche.map(t => [provenanceDe(t)])), favoris);
+    // Les favoris déjà fusionnés à la liste entière ne se comptent qu'une fois.
+    const locales = pistesRecherche.filter(t => !estSourceDeService(t.source == null ? null : String(t.source)));
+    return comptesAvecFavoris(compterSources(locales.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
@@ -3099,7 +3154,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
   const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
-    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) : pistesRecherche.length)
+    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) + favorisEnQueue.length : pistesRecherche.length)
     : comptesAlbums.reduce((n, [, c]) => n + c, 0));
   const comptesSourcesEnCharge = $derived(
     tab === 'tracks' && pagine ? (fenetrePistes == null || fenetreEnCharge || erreurPagine != null)

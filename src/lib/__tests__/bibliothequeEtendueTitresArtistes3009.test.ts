@@ -26,8 +26,8 @@ import { _remiseAZeroPourTests as remisePistes } from '../stores/pistesEntieres'
 import { _remiseAZeroPourTests as remisePagination } from '../pistesPaginees';
 import { sourcesArtistesServeur } from '../stores/sourcesArtistesServeur';
 import {
-  artistesDesFavorisDeService, bibliothequeEtendueActive, comptesAvecFavoris, estSourceDeService,
-  pistesDesFavorisDeService, reglageEtendueLu,
+  artistesDesFavorisDeService, artistesSansDoublon, bibliothequeEtendueActive, comptesAvecFavoris, estSourceDeService,
+  pistesDesFavorisDeService, reglageEtendueLu, titresAbsentsDeLaBibliotheque, titresSansDoublon,
 } from '../bibliothequeEtendue';
 import lFr from '../locales/fr';
 
@@ -41,9 +41,14 @@ const FAVORIS_TITRES = [
   { id: 2, profile_id: 1, item_type: 'track', service: 'qobuz', service_id: '82542200', title: "Ça c'est fait", artist: 'Sébastien Tellier' },
   // En double : écarté.
   { id: 3, profile_id: 1, item_type: 'track', service: 'qobuz', service_id: '59983347', title: 'Sugar Man' },
+  // Déjà dans la bibliothèque (même titre, même interprète, casse et accents près) : une seule ligne.
+  { id: 5, profile_id: 1, item_type: 'track', service: 'qobuz', service_id: '11111111', title: 'PISTE LOCALE', artist: 'A' },
 ];
 const FAVORIS_ARTISTES = [
   { id: 4, profile_id: 1, item_type: 'artist', service: 'qobuz', service_id: '453411', title: 'Alela Diane', cover_url: 'https://static.qobuz.com/a.jpg' },
+  // Déjà dans la bibliothèque, et déjà apporté par Qobuz : une seule carte chacun.
+  { id: 6, profile_id: 1, item_type: 'artist', service: 'qobuz', service_id: '777', title: 'Artiste LOCAL' },
+  { id: 7, profile_id: 1, item_type: 'artist', service: 'tidal', service_id: '888', title: 'Alela Diane' },
 ];
 const LOCALES = [
   { id: 1, title: 'Piste locale', album_id: 1, artist_id: 1, artist_name: 'A', source: 'local' },
@@ -58,8 +63,12 @@ function corpsPour(u: string): unknown {
   if (/\/library\/tracks\?/.test(u)) {
     const p = new URL(u, 'http://x').searchParams;
     const prov = p.get('provenance');
-    const items = prov && prov !== 'local' ? [] : LOCALES;
-    const corps: Record<string, unknown> = { items, total: items.length, limit: Number(p.get('limit') ?? 50), offset: 0 };
+    const search = (p.get('search') ?? '').toLowerCase();
+    const items = (prov && prov !== 'local' ? [] : LOCALES).filter((t) => !search || t.title.toLowerCase().includes(search));
+    // Un serveur qui PAGINE : il renvoie `sort` et `order` (sinon le client retombe sur la liste entière).
+    const corps: Record<string, unknown> = {
+      items, total: items.length, limit: Number(p.get('limit') ?? 50), offset: 0, sort: p.get('sort'), order: p.get('order') ?? 'asc',
+    };
     if (p.get('counts') === 'sources') { corps.source_counts = { local: LOCALES.length }; corps.total_all_sources = LOCALES.length; }
     return corps;
   }
@@ -164,6 +173,20 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     expect(liste).not.toContain('Piste locale');
   });
 
+  it('Titres, « Toutes les sources » (décision du 23/11) : la bibliothèque, puis ses favoris absents, sans doublon', async () => {
+    const el = await ouvrirOnglet('favorites.tracks');
+    const texte = () => el.querySelector('.tracklist')?.textContent ?? '';
+    await jusqua(() => texte().includes('Sugar Man'));
+    expect(texte()).toContain('Piste locale');
+    expect(texte()).toContain('Sugar Man');
+    expect(texte()).toContain("Ça c'est fait");
+    // Le favori qui double la piste locale ne fait pas de seconde ligne.
+    expect(texte().match(/piste locale/gi) ?? []).toHaveLength(1);
+    expect(el.querySelectorAll('.tracklist .trow')).toHaveLength(3);
+    // La bibliothèque reste servie par pages : aucune liste entière demandée.
+    expect(urls.filter((u) => /\/library\/tracks\?limit=5000/.test(u)), 'URLS').toEqual([]);
+  });
+
   it('Artistes : le menu Source propose QOBUZ, et le choisir montre les artistes favoris Qobuz', async () => {
     const el = await ouvrirOnglet('favorites.artists');
     expect(urls.some((u) => /favorites\/streaming\?item_type=artist&pour=bibliotheque/.test(u)), 'les artistes favoris des services ne sont pas demandés').toBe(true);
@@ -172,18 +195,61 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     choisir(el, 'QOBUZ');
     const noms = () => [...el.querySelectorAll('.grille.artistes .carte .ct')].map((e) => e.textContent?.trim());
     await jusqua(() => noms().includes('Alela Diane'));
-    expect(noms()).toEqual(['Alela Diane']);
+    expect(noms()).toEqual(['Alela Diane', 'Artiste LOCAL']);
+  });
+
+  it('Artistes, « Toutes les sources » (décision du 23/11) : bibliothèque et favoris réunis, chacun une fois', async () => {
+    const el = await ouvrirOnglet('favorites.artists');
+    const noms = () => [...el.querySelectorAll('.grille.artistes .carte .ct')].map((e) => e.textContent?.trim());
+    await jusqua(() => noms().includes('Alela Diane'));
+    expect(noms()).toEqual(['Alela Diane', 'Artiste local']);
+  });
+});
+
+describe('fil 3009, point 6 — dédoublonnage (décision du 23/11)', () => {
+  it('titres : la bibliothèque l’emporte, puis le premier service ; casse, accents et espaces ne comptent pas', () => {
+    const locaux = [{ title: 'Été indien', artist_name: 'Joe Dassin' }];
+    const favoris = [
+      { title: 'ete  INDIEN', artist_name: 'joe dassin', source: 'qobuz' },
+      { title: 'Sugar Man', artist_name: 'Rodriguez', source: 'qobuz' },
+      { title: 'Sugar man', artist_name: 'RODRIGUEZ', source: 'tidal' },
+      { title: 'Sugar Man', artist_name: 'Autre interprète', source: 'tidal' },
+    ];
+    expect(titresSansDoublon(locaux, favoris).map((f) => [f.title, f.source])).toEqual([['Sugar Man', 'qobuz'], ['Sugar Man', 'tidal']]);
+  });
+
+  it('artistes : même règle sur le nom', () => {
+    const r = artistesSansDoublon([{ name: 'Björk' }], [{ name: 'bjork' }, { name: 'Alela Diane' }, { name: ' alela  diane ' }, { name: '' }]);
+    expect(r.map((a) => a.name)).toEqual(['Alela Diane']);
+  });
+
+  it('liste paginée : un titre cherché une fois, réponse retenue, échec = présent (jamais de doublon)', async () => {
+    const cache = new Map<string, boolean>();
+    const demandes: string[] = [];
+    const chercher = async (t: string) => {
+      demandes.push(t);
+      if (t === 'Panne') throw new Error('réseau');
+      return t === 'Locale' ? [{ id: 9, source: 'local', title: 'Locale', artist_name: 'A' }, { id: null, source: 'qobuz', title: 'Absente', artist_name: 'A' }] : [];
+    };
+    const favoris = [
+      { title: 'Locale', artist_name: 'A' }, { title: 'Absente', artist_name: 'A' },
+      { title: 'Absente', artist_name: 'A' }, { title: 'Panne', artist_name: 'A' },
+    ];
+    expect((await titresAbsentsDeLaBibliotheque(favoris, chercher, cache)).map((f) => f.title)).toEqual(['Absente']);
+    expect(demandes.sort()).toEqual(['Absente', 'Locale', 'Panne']);
+    await titresAbsentsDeLaBibliotheque(favoris, chercher, cache);
+    expect(demandes).toHaveLength(3);
   });
 });
 
 describe('fil 3009, point 6 — conversions', () => {
   it('titres et artistes favoris : un seul type chacun, dédoublonnés, jamais une source de bibliothèque', () => {
     const pistes = pistesDesFavorisDeService([...FAVORIS_TITRES, ...FAVORIS_ARTISTES, { item_type: 'track', service: 'local', service_id: '9' }] as any);
-    expect(pistes.map((p) => [p.source, p.source_id, p.title])).toEqual([['qobuz', '59983347', 'Sugar Man'], ['qobuz', '82542200', "Ça c'est fait"]]);
+    expect(pistes.map((p) => [p.source, p.source_id, p.title])).toEqual([['qobuz', '59983347', 'Sugar Man'], ['qobuz', '82542200', "Ça c'est fait"], ['qobuz', '11111111', 'PISTE LOCALE']]);
     expect(pistes[0].id).toBeNull();
     expect((pistes[0] as any).album_id_service).toBe('0060253753283');
     const artistes = artistesDesFavorisDeService([...FAVORIS_TITRES, ...FAVORIS_ARTISTES] as any);
-    expect(artistes.map((a) => [a.source, a.source_id, a.name])).toEqual([['qobuz', '453411', 'Alela Diane']]);
+    expect(artistes.map((a) => [a.source, a.source_id, a.name])).toEqual([['qobuz', '453411', 'Alela Diane'], ['qobuz', '777', 'Artiste LOCAL'], ['tidal', '888', 'Alela Diane']]);
   });
 
   it('comptes : seuls les services s’ajoutent, la bibliothèque garde les siens', () => {
