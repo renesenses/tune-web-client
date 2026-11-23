@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { annoncerEchecDeliaison, cleNoteDeliaison, lireRefusDeliaison, type RefusDeliaison } from '../../lib/deliaisonCompte';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
@@ -1560,7 +1561,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ssoRelieSansDetails = $state(false);
   let ssoQuitte = $state(false);
 
+  // rc14 — même règle et même note que le menu de l'avatar : « Délier » est
+  // grisé quand la déliaison sera refusée d'ici (voir `deliaisonCompte`).
+  let refusDeliaison = $state<RefusDeliaison | null>(null);
   async function chargerSso() {
+    void lireRefusDeliaison().then((r) => { refusDeliaison = r; });
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
@@ -1600,6 +1605,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
 
   async function delierCompteCloud() {
+    if (refusDeliaison !== null) return;
     // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
     // ligne et ses partages de cercle sont effacés chez le cloud, le premium
     // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
@@ -1611,7 +1617,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await chargerSso();
       notifications.success(get(t)('settings.cloudDisconnected' as any));
     } catch (e: any) {
-      notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
+      annoncerEchecDeliaison(e);
     }
     ssoQuitte = false;
   }
@@ -6104,6 +6110,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
                     {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                    {#if refusDeliaison !== null}<span class="hint" id="note-deliaison-reglages" data-testid="note-deliaison-reglages">{$t(cleNoteDeliaison(refusDeliaison) as any)}</span>{/if}
                   {:else if ssoRelieSansDetails}
                     <span>{$t('settings.accountLinkedNoDetails' as any)}</span>
                     <span class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</span>
@@ -6113,8 +6120,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
                 {#if ssoConnecte}
-                  <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
-                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                  <button class="lnk" disabled={ssoQuitte || refusDeliaison !== null} onclick={delierCompteCloud}
+                    aria-describedby={refusDeliaison !== null ? 'note-deliaison-reglages' : undefined}
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.unlinkAccount' as any)}</button>
                 {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}

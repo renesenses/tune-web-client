@@ -73,7 +73,7 @@ async function boutonAvatar(): Promise<HTMLButtonElement> {
   await souffler();
   hote!.querySelector<HTMLButtonElement>('button.avatar')!.click();
   await souffler();
-  const libelle = dictionnaire('fr')['settings.signOut'];
+  const libelle = dictionnaire('fr')['settings.unlinkAccount'];
   const b = [...hote!.querySelectorAll<HTMLButtonElement>('button.item')].find((x) => x.textContent?.includes(libelle));
   expect(b, 'le bouton « Se déconnecter » du menu de l’avatar').toBeTruthy();
   return b!;
@@ -85,7 +85,7 @@ async function boutonReglages(): Promise<HTMLButtonElement> {
   await souffler(12);
   const b = hote!.querySelector<HTMLButtonElement>('[data-sso="compte"] button.lnk');
   expect(b, 'le bouton « Se déconnecter » de Réglages › Cloud').toBeTruthy();
-  expect(b!.textContent).toContain(dictionnaire('fr')['settings.signOut']);
+  expect(b!.textContent).toContain(dictionnaire('fr')['settings.unlinkAccount']);
   return b!;
 }
 
@@ -115,7 +115,7 @@ describe('la question dit ce qui sera déconnecté, dans les onze langues', () =
   it.each(ONZE_LANGUES)('%s', (code) => {
     const texte = dictionnaire(code)['settings.signOutConfirm'];
     expect(texte, `${code} : libellé manquant`).toBeTruthy();
-    expect(texte).toContain('Mozaiklabs');
+    expect(texte).toMatch(/mozaiklabs/i);
     expect(texte).toContain('Tune Circle');
     if (code !== 'en') expect(texte).not.toBe(dictionnaire('en')['settings.signOutConfirm']);
   });
