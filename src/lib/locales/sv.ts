@@ -1614,6 +1614,7 @@ export default {
   "machineAction.port80Relay": "Den här enheten vidarebefordrar port 80, så Tune kan inte skilja ett lokalt anrop från ett nätverksanrop. Aktivera autentisering och logga in med ett administratörskonto.",
   "machineAction.whereToEnable": "Så aktiverar du autentisering: Inställningar > System > Autentisering (från en annan enhet, med engångskoden som visas av docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Endast ett administratörskonto kan stänga av eller starta om maskinen. Logga in med ett administratörskonto.",
+  "machineAction.openAuthSettings": "Öppna inställningen Autentisering",
   "settings.updateStatusUnknown": "Går inte att avgöra om uppdateringen installerades: servern svarade inte. Ladda om sidan för att se vilken version som körs.",
   "settings.updateInstallFailed": "Uppdateringen misslyckades. Orsak enligt servern: {reason}",
   "settings.updateButton": "Uppdatera",

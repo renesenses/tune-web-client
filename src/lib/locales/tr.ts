@@ -2365,6 +2365,7 @@ export default {
   "machineAction.port80Relay": "Bu cihaz 80 numaralı bağlantı noktasını aktarıyor, bu yüzden Tune yerel bir çağrıyı ağ çağrısından ayırt edemez. Kimlik doğrulamayı açın ve bir yönetici hesabıyla oturum açın.",
   "machineAction.whereToEnable": "Kimlik doğrulamayı açmak için: Ayarlar > Sistem > Kimlik doğrulama (başka bir cihazdan, docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Makineyi yalnızca bir yönetici hesabı kapatabilir veya yeniden başlatabilir. Bir yönetici hesabıyla oturum açın.",
+  "machineAction.openAuthSettings": "Kimlik doğrulama ayarını aç",
   "settings.updateStatusUnknown": "Güncellemenin yüklenip yüklenmediği bilinmiyor: sunucu yanıt vermedi. Çalışan sürümü görmek için sayfayı yeniden yükleyin.",
   "settings.updateInstallFailed": "Güncelleme başarısız oldu. Sunucunun bildirdiği neden: {reason}",
   "settings.updateButton": "Güncelle",

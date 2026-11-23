@@ -1649,6 +1649,7 @@ export default {
   "machineAction.port80Relay": "이 어플라이언스는 포트 80을 중계하므로 Tune이 로컬 호출과 네트워크 호출을 구분할 수 없습니다. 인증을 켜고 관리자 계정으로 로그인하세요.",
   "machineAction.whereToEnable": "인증을 켜려면: 설정 > 시스템 > 인증(다른 기기에서는 docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "관리자 계정만 기기를 종료하거나 다시 시작할 수 있습니다. 관리자 계정으로 로그인하세요.",
+  "machineAction.openAuthSettings": "인증 설정 열기",
   "settings.updateStatusUnknown": "업데이트가 설치되었는지 알 수 없습니다. 서버가 응답하지 않았습니다. 페이지를 새로 고쳐 실행 중인 버전을 확인하세요.",
   "settings.updateInstallFailed": "업데이트에 실패했습니다. 서버가 알려 준 이유: {reason}",
   "settings.updateButton": "업데이트",

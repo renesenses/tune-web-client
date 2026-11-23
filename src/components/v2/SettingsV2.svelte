@@ -161,6 +161,7 @@
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3635,7 +3636,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
-        notifications.error(msg);
+        notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr) : undefined);
         return;
       }
     }
