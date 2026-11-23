@@ -936,7 +936,15 @@ import { ICONES } from '../../lib/menuPiste';
     const primary = unique.filter(c => primaryRoles.includes(c.role));
     const credits = primary.length > 0 ? primary : unique.slice(0, 6);
     // Group by role
-    const groups = Object.groupBy(credits, c => c.role);
+    //
+    // 🔴 Fil 3031 (Lio, rc13, iPad) — PAS `Object.groupBy` : il n'existe qu'à
+    // partir de Safari 17.4 (iPadOS 17.4), alors que la cible de build est
+    // Safari 14. Sur un iPad plus ancien, ce `$derived` levait un TypeError dès
+    // que les crédits de la piste arrivaient ; l'effet de rendu qui le lit
+    // mourait avec lui, et l'écran restait sur la piste d'avant — titre,
+    // pochette, crédits — pendant que la barre du bas, qui ne lit pas les
+    // crédits, suivait. `groupCreditsByRole` fait la même chose en ES2020.
+    const groups = groupCreditsByRole(credits);
     const parts: { role: string; membres: TrackCredit[]; reste: boolean }[] = [];
     for (const [role, members] of Object.entries(groups)) {
       if (!members) continue;
@@ -1051,7 +1059,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
-  import { auteursDesParoles, dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
+  import { auteursDesParoles, dedupCredits, groupCreditsByRole, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
   import { disposition44_56 } from '../../lib/dispositionLectureEnCours';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';

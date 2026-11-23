@@ -85,6 +85,9 @@ export function sortedRoleEntries(credits: TrackCredit[]): [string, TrackCredit[
  * le rôle brut, capitalisé.
  */
 export function libelleRole(role: string, traduire: (cle: string) => string): string {
+  // Un rôle absent ne doit rien faire lever : ce libellé est lu dans le rendu
+  // de « Lecture en cours », où une exception fige l'écran (fil 3031).
+  role = role || 'performer';
   const cle = `credits.${role}`;
   const traduit = traduire(cle);
   if (traduit && traduit !== cle) return traduit;
