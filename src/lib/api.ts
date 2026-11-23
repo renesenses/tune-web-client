@@ -13222,6 +13222,64 @@ export async function getTessPresets(): Promise<import('./tess').PreReglagesTess
   }
 }
 
+// ── TESS T17 : préréglages de chaîne et mode d'application ─────────────────
+// Routes de T17 (`docs/tess/contrat.md` § 5) : la liste est commune au
+// serveur, le chargement passe par la voie du `PUT` de la zone. Les refus
+// (400, 402, 404, 409) sont rendus à l'écran, sans bandeau.
+
+/** Résultat d'un appel sur les préréglages : le corps, un refus de chaîne du
+ *  contrat (402 compris), ou une erreur propre aux préréglages (`code`). */
+export type ResultatPreReglageTess<T> =
+  | { ok: true; corps: T }
+  | { ok: false; refus: import('./tess').RefusTess }
+  | { ok: false; code: string };
+
+async function appelPreReglage<T>(chemin: string, options?: RequestInit): Promise<ResultatPreReglageTess<T>> {
+  let statut = 200;
+  const corps = await fetchJSON<any>(`${BASE}${chemin}`, options, (s) => {
+    statut = s;
+    return s === 400 || s === 402 || s === 404 || s === 405 || s === 409;
+  }, true);
+  if (statut < 300) return { ok: true, corps: corps as T };
+  if (estRefusTess(corps)) return { ok: false, refus: corps };
+  const code = corps && typeof corps.error === 'string' ? corps.error : `http_${statut}`;
+  return { ok: false, code };
+}
+
+/** `POST /tess/presets` — enregistre la chaîne courante de la zone sous ce nom. */
+export function enregistrerPreReglageTess(zoneId: number, nom: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>('/tess/presets', {
+    method: 'POST', body: JSON.stringify({ name: nom, zone_id: zoneId }),
+  });
+}
+
+/** `PATCH /tess/presets/{id}` — renomme (l'identifiant ne change pas). */
+export function renommerPreReglageTess(id: string, nom: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>(`/tess/presets/${encodeURIComponent(id)}`, {
+    method: 'PATCH', body: JSON.stringify({ name: nom }),
+  });
+}
+
+/** `DELETE /tess/presets/{id}`. */
+export function supprimerPreReglageTess(id: string) {
+  return appelPreReglage<null>(`/tess/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** `PUT /tess/apply-mode` — « APPLY CHANGES » ; rend la liste à jour. */
+export function reglerModeApplicationTess(mode: 'immediately' | 'at_next_playback') {
+  return appelPreReglage<import('./tess').PreReglagesTess>('/tess/apply-mode', {
+    method: 'PUT', body: JSON.stringify({ apply_mode: mode }),
+  });
+}
+
+/** `POST /zones/{id}/tess/presets/{preset_id}/apply` — charge le préréglage
+ *  sur la zone (remplace sa chaîne). */
+export function appliquerPreReglageTess(zoneId: number, id: string) {
+  return appelPreReglage<import('./tess').ChargementPreReglageTess>(
+    `/zones/${zoneId}/tess/presets/${encodeURIComponent(id)}/apply`, { method: 'POST' },
+  );
+}
+
 /** #6524 — mesure du gain retenu ; lire ne modifie jamais le son. */
 export interface RetainedEqPreamp { db:number|null; returning:boolean }
 export function getRetainedEqPreamp(zoneId:number):Promise<RetainedEqPreamp> {
