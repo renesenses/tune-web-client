@@ -20,19 +20,62 @@
  * même règle que la garde du serveur). Même lecture que les actions de la
  * machine (web#3368, `droitActionsMachine`) ; tout ce qui ne se lit pas laisse
  * l'entrée active, et le serveur reste juge.
+ *
+ * Sur une appliance Tune OS qui relaie le port 80 (`port80_relay`), le serveur
+ * ne distingue pas la machine du réseau : `from_this_machine` est faux même
+ * sur la machine elle-même. Là, la note et la phrase ne proposent QUE
+ * l'administrateur (même distinction que `cleNoteActionsMachine`, web#3368).
  */
 import { get } from 'svelte/store';
-import type { EtatActivationAuth } from './api';
+import { getAuthActivation, getConfig, type EtatActivationAuth } from './api';
+import { actionCadreAuthentification } from './cadreAuthentification';
 import { t } from './i18n';
 import { notifierErreur } from './notifierErreur';
 import { motifHorsMachine } from './refusHorsMachine';
 import { notifications } from './stores/notifications';
 
-/** Vrai quand la déliaison sera refusée depuis cet appareil (entrée grisée). */
-export function deliaisonRefuseeIci(
+/**
+ * Pourquoi la déliaison sera refusée d'ici :
+ *  - `hors_machine` : authentification coupée, appareil autre que la machine ;
+ *  - `admin_seulement` : même chose sur une appliance qui relaie le port 80,
+ *    où seul l'administrateur peut le faire.
+ */
+export type RefusDeliaison = 'hors_machine' | 'admin_seulement';
+
+/** `null` : l'entrée est offerte (ou on ne sait pas, et le serveur jugera). */
+export function refusDeliaisonIci(
   etat: Pick<EtatActivationAuth, 'auth_enabled' | 'from_this_machine'> | null | undefined,
-): boolean {
-  return !!etat && etat.auth_enabled === false && etat.from_this_machine === false;
+  appliance: boolean | null = null,
+): RefusDeliaison | null {
+  if (!etat || etat.auth_enabled !== false || etat.from_this_machine !== false) return null;
+  return appliance === true ? 'admin_seulement' : 'hors_machine';
+}
+
+/** La note sous l'entrée grisée. */
+export function cleNoteDeliaison(refus: RefusDeliaison): string {
+  return refus === 'admin_seulement' ? 'settings.unlinkAccountNoteAdmin' : 'settings.unlinkAccountNote';
+}
+
+/** Lit l'état auprès du serveur ; toute erreur rend `null` (entrée active). */
+export async function lireRefusDeliaison(
+  lireEtat: () => Promise<EtatActivationAuth | null> = getAuthActivation,
+  lireConfig: () => Promise<{ appliance?: unknown } | null | undefined> = getConfig,
+): Promise<RefusDeliaison | null> {
+  let etat: EtatActivationAuth | null;
+  try {
+    etat = await lireEtat();
+  } catch {
+    return null;
+  }
+  if (refusDeliaisonIci(etat) === null) return null;
+  let appliance: boolean | null = null;
+  try {
+    const c = await lireConfig();
+    appliance = c && typeof c === 'object' ? c.appliance === true : null;
+  } catch {
+    appliance = null;
+  }
+  return refusDeliaisonIci(etat, appliance);
 }
 
 /**
@@ -40,13 +83,16 @@ export function deliaisonRefuseeIci(
  *
  * `fetchJSON` ne pose pas son bandeau générique « hors de cette machine » pour
  * cette route (voir `api.ts`) : la phrase est celle-ci, courte, qui nomme
- * l'action refusée. Tout autre échec passe par `notifierErreur`, qui se tait
- * si `fetchJSON` l'a déjà annoncé.
+ * l'action refusée, avec le bouton « Ouvrir le réglage Authentification »
+ * qu'avait ce bandeau. Tout autre échec passe par `notifierErreur`, qui se
+ * tait si `fetchJSON` l'a déjà annoncé.
  */
 export function annoncerEchecDeliaison(e: unknown): void {
   const tr = get(t) as (cle: string) => string;
-  if (motifHorsMachine(e) !== null) {
-    notifications.error(tr('settings.unlinkAccountRefused'));
+  const motif = motifHorsMachine(e);
+  if (motif !== null) {
+    const cle = motif === 'port80_relay' ? 'settings.unlinkAccountRefusedAdmin' : 'settings.unlinkAccountRefused';
+    notifications.error(tr(cle), 0, undefined, actionCadreAuthentification(tr));
     return;
   }
   notifierErreur(tr('common.error'), e, { motifSeul: true });

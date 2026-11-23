@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { annoncerEchecDeliaison, deliaisonRefuseeIci } from '../../lib/deliaisonCompte';
+  import { annoncerEchecDeliaison, cleNoteDeliaison, lireRefusDeliaison, type RefusDeliaison } from '../../lib/deliaisonCompte';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Menu avatar (coin haut-droit) du nouveau client.
@@ -58,15 +58,12 @@
   // rc14 — la déliaison sera refusée depuis cet appareil (authentification
   // coupée, pas la machine du serveur) : l'entrée est grisée, avec sa note,
   // au lieu d'être refusée après le clic. Voir `deliaisonCompte`.
-  let deliaisonGrisee = $state(false);
+  // Illisible : l'entrée reste active, le serveur jugera.
+  let refusDeliaison = $state<RefusDeliaison | null>(null);
+  const deliaisonGrisee = $derived(refusDeliaison !== null);
 
   async function lireDroitDeliaison() {
-    try {
-      deliaisonGrisee = deliaisonRefuseeIci(await api.getAuthActivation());
-    } catch {
-      // Illisible : l'entrée reste active, le serveur jugera.
-      deliaisonGrisee = false;
-    }
+    refusDeliaison = await lireRefusDeliaison();
   }
 
   async function loadSso() {
@@ -494,7 +491,7 @@
           {signingOut ? $t('common.loading') : $t('settings.unlinkAccount' as any)}
         </button>
         {#if deliaisonGrisee}
-          <div class="hint" id="note-deliaison-compte" data-testid="note-deliaison-compte">{$t('settings.unlinkAccountNote' as any)}</div>
+          <div class="hint" id="note-deliaison-compte" data-testid="note-deliaison-compte">{$t(cleNoteDeliaison(refusDeliaison!) as any)}</div>
         {/if}
       {/if}
     </div>
