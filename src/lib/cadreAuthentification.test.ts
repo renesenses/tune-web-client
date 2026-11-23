@@ -78,8 +78,8 @@ describe('bouton vers le cadre Authentification', () => {
     expect(masqueAuNiveau(r!, 'beginner')).toBe(false);
   });
 
-  it('le libellé du bouton existe dans les seize langues', () => {
-    expect(ONZE_LANGUES.length).toBe(16);
+  it('le libellé du bouton existe dans les vingt langues', () => {
+    expect(ONZE_LANGUES.length).toBe(20);
     for (const l of ONZE_LANGUES) {
       expect(String(dictionnaire(l)['machineAction.openAuthSettings'] ?? '').trim(), l).not.toBe('');
     }
