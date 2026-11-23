@@ -3131,15 +3131,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
 
   function playTrack(t: Track) {
-    const zid = $currentZoneId;
-    if (zid == null) return;
     // Fil 3009, point 6 — un titre favori d'un SERVICE (bibliothèque élargie)
     // se joue par sa paire service + identifiant.
     if (t.id == null) {
       const corps = depot ? null : corpsDeLecture(t);
-      if (corps) playAndSync(zid, corps as any).catch(signalerEchecLecture);
+      const zs = corps ? zoneRequise() : null;
+      if (corps && zs != null) playAndSync(zs, corps as any).catch(signalerEchecLecture);
       return;
     }
+    const zid = $currentZoneId;
+    if (zid == null || t.id == null) return;
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
     // distant designerait un tout autre morceau ici. On passe donc par son URL
     // de flux, jouee en `source: upnp`.
