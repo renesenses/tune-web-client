@@ -56,6 +56,8 @@ beforeEach(() => {
     if (url.includes(`/library/albums/${LOCAL.id}/bio`)) return repondre({ bio: 'Enregistré en 1959 au studio de la 30e Rue.', source: null });
     if (url.includes('/streaming/qobuz/albums/0886443853839/description')) return repondre({ description: 'Le disque de jazz le plus vendu.' });
     if (url.includes('/notes')) return repondre({ notes: [] });
+    // Les crédits de l'album sont une LISTE (`creditsQobuz` l'itère).
+    if (/\/library\/albums\/\d+\/credits/.test(url)) return repondre([]);
     if (/\/tracks(\?|$)/.test(url)) return repondre([]);
     return repondre({});
   }));
