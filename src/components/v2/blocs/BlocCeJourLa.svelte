@@ -15,6 +15,7 @@
    */
   import { t } from '../../../lib/i18n';
   import VideBloc from './VideBloc.svelte';
+  import { ICONES } from '../../../lib/tableauDeBordPeriode';
 
   export interface MatiereCeJourLa {
     lignes: { annee: number | null; titre: string; artiste: string | null }[];
@@ -29,7 +30,7 @@
   <!-- #1781 — une liste vide veut dire « rien à cette date les années
        d'avant », pas « aucun historique » : 108 écoutes récentes et ce bloc
        vide coexistent (Levente, fil 1994). -->
-  <VideBloc message={$t('dashboard.onThisDayEmpty' as any)} />
+  <VideBloc message={$t('dashboard.onThisDayEmpty' as any)} icone={ICONES.ceJourLa} />
 {:else}
   <ul class="liste">
     {#each lignes as l, i (`${i}-${l.titre}`)}

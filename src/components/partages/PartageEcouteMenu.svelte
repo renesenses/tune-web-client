@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Share2 from '@lucide/svelte/icons/share-2';
   import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { copyText } from '../../lib/utils';
@@ -29,7 +30,7 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape' && menu?.open) { menu.open = false; menu.querySelector('summary')?.focus(); } }} />
 <details bind:this={menu} class="partage-ecoute">
-  <summary aria-label={$t('nowplaying.share')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m9 11 6-4M9 14l6 4"/></svg>{$t('nowplaying.share')}</summary>
+  <summary aria-label={$t('nowplaying.share')} data-np-action="share"><Share2 size={16} strokeWidth={1.8} aria-hidden="true" />{$t('nowplaying.share')}</summary>
   <div class="choix">
     <button type="button" disabled={!partage.texte} onclick={copier}>{$t('nowplaying.publicShare.copy')}</button>
     <button type="button" disabled={!carte} onclick={message}>{$t('v2.circle.msg.share')}</button>
@@ -41,7 +42,12 @@
 </details>
 <style>
   .partage-ecoute{position:relative;font:inherit;color:inherit}
-  summary{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 10px;border:1px solid var(--v2-line,var(--tune-border));border-radius:6px;font-size:calc(12px * var(--v2-txt-echelle, 1));list-style:none}
+  /* Design v3 (§10.5) : la même pilule que les autres actions de Lecture en cours. */
+  summary{display:flex;align-items:center;gap:6px;cursor:pointer;min-height:36px;padding:0 14px;margin-top:var(--space-xs, 4px);border:1px solid var(--v2-line2,var(--tune-border));border-radius:var(--v2-r-pill,20px);font-family:var(--v2-police-texte,var(--v2-sans,inherit));font-weight:600;font-size:calc(12.5px * var(--v2-txt-echelle, 1));color:var(--v2-txt2,inherit);list-style:none;white-space:nowrap}
+  summary::-webkit-details-marker{display:none}
+  summary:hover{color:var(--v2-txt,inherit);border-color:var(--v2-acc2,var(--tune-accent))}
+  details[open] > summary{color:var(--v2-txt,inherit);border-color:var(--v2-acc1,var(--tune-accent));background:color-mix(in srgb, var(--v2-acc1, #888) 12%, transparent)}
+  @media (hover: none) and (pointer: coarse){ summary{min-height:44px} }
   .choix{position:absolute;z-index:100;bottom:100%;left:0;width:min(300px,80vw);padding:8px;display:grid;gap:6px;background:var(--v2-bg,var(--tune-bg));border:1px solid var(--v2-line,var(--tune-border));border-radius:8px;color:var(--v2-txt,var(--tune-text))}
   button,textarea{font:inherit;color:inherit;background:transparent;border:1px solid var(--v2-line,var(--tune-border));border-radius:4px;padding:8px;text-align:left}button{cursor:pointer}button:disabled{opacity:.5}textarea{width:100%;box-sizing:border-box;resize:vertical}label{font-size:calc(12px * var(--v2-txt-echelle, 1))}summary:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--v2-acc2,#cb8c32);outline-offset:2px}
 </style>

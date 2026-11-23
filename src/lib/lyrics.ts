@@ -308,3 +308,19 @@ export function ligneParolesActive(lignes: { time: number }[], positionMs: numbe
   }
   return idx;
 }
+
+/**
+ * Design v3 (§10.5) — où amener le panneau des paroles pour centrer la ligne
+ * en cours. Le défilement reste DANS le panneau : `scrollIntoView` faisait
+ * défiler toute la page et arrachait l'utilisateur à « À suivre ». Sous
+ * `prefers-reduced-motion`, saut direct (`auto`), sans animation.
+ * Les mesures sont relatives au panneau (`offsetTop` de la ligne dans le
+ * conteneur qui défile).
+ */
+export function defilementParoles(
+  m: { ligneHaut: number; ligneHauteur: number; panneauHauteur: number },
+  mouvementReduit: boolean,
+): { top: number; behavior: 'auto' | 'smooth' } {
+  const top = Math.max(0, Math.round(m.ligneHaut + m.ligneHauteur / 2 - m.panneauHauteur / 2));
+  return { top, behavior: mouvementReduit ? 'auto' : 'smooth' };
+}

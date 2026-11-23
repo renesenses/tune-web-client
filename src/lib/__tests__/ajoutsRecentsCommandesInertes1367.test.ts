@@ -124,6 +124,8 @@ beforeEach(() => {
   libraryFolderScope.set(null);
   albumsStore.set([]);
   localStorage.clear();
+  // Fil 3009, point 19 : la frise se déplie à la demande ; ce banc la lit dépliée.
+  localStorage.setItem('tune_v2_ecran_lib.frise', '1');
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
   vi.stubGlobal('fetch', vi.fn(async (entree: unknown) => {
     const url = String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree);
