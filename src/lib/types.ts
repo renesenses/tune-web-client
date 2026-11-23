@@ -309,6 +309,13 @@ export interface Track {
   year?: number | null;
   label?: string | null;
   composer?: string | null;
+  /**
+   * tune-server-rust#9362 — la date d'ajout de la ligne À LA PLAYLIST, en
+   * secondes Unix (`GET /playlists/{id}/tracks` seulement). `null` : ligne
+   * plus ancienne que la migration 158 ; absente d'un serveur antérieur.
+   * Pas `added_at` : ce nom porte la date d'ajout à la bibliothèque.
+   */
+  playlist_added_at?: number | null;
   isrc?: string | null;
   bpm?: number | null;
   /** Note de la piste lue dans ses balises, 0 à 5 (tune-server-rust#6123). */
