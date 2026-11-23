@@ -21,6 +21,24 @@ describe('refus hors de la machine de Tune (tune-server-rust#9029)', () => {
     expect(motifHorsMachine(erreur(403, { error: 'auth_required', reason: 'port80_relay' }))).toBe('port80_relay');
   });
 
+  it('reconnaît not_local_network (réseau local) et garde la phrase traduite du serveur', () => {
+    const corps = {
+      error: 'auth_required',
+      reason: 'not_local_network',
+      message: 'Install the update: without authentication, it is only accepted from the local network.',
+      message_key: 'api.machine.reservedOutsideLan',
+    };
+    const e = erreur(403, corps);
+    expect(motifHorsMachine(e)).toBe('not_local_network');
+    const m = messageRefusHorsMachine(e, tr)!;
+    expect(m).toBe(`${corps.message} ${en['machineAction.whereToEnable']}`);
+    expect(m).not.toContain(en['machineAction.notLocal']);
+    // Sans phrase traduite : le chemin du réglage seul, jamais le texte brut.
+    expect(messageRefusHorsMachine(erreur(403, { error: 'auth_required', reason: 'not_local_network', message: 'brut' }), tr)).toBe(
+      en['machineAction.whereToEnable'],
+    );
+  });
+
   it('ignore les autres refus', () => {
     expect(motifHorsMachine(erreur(403, { error: 'admin role required' }))).toBeNull();
     expect(motifHorsMachine(erreur(403, { error: 'auth_required', code: 'auth_required' }))).toBeNull();

@@ -64,21 +64,21 @@ describe('premier lancement : la langue du navigateur', () => {
     expect(auDemarrage.language).toBe('fr');
   });
 
-  it("navigateur nl → en (langue que l'interface ne parle pas)", async () => {
-    navigateurEn(['nl-NL', 'nl']);
+  it("navigateur pt → en (langue que l'interface ne parle pas)", async () => {
+    navigateurEn(['pt-BR', 'pt']);
     const { auDemarrage } = await demarrer();
     expect(auDemarrage.language).toBe('en');
   });
 
-  it('navigator.languages dans l’ordre : nl puis de → de', async () => {
-    navigateurEn(['nl-BE', 'de-DE', 'en']);
+  it('navigator.languages dans l’ordre : pt puis de → de', async () => {
+    navigateurEn(['pt-PT', 'de-DE', 'en']);
     const { auDemarrage } = await demarrer();
     expect(auDemarrage.language).toBe('de');
   });
 
   it('navigator.language quand languages est vide', () => {
     expect(langueDuNavigateur({ languages: [], language: 'ja-JP' })).toBe('ja');
-    expect(langueDuNavigateur({ languages: ['zh-TW'] })).toBe('zh');
+    expect(langueDuNavigateur({ languages: ['zh-TW'] })).toBe('zh-Hant');
     expect(langueDuNavigateur({})).toBe('en');
   });
 
@@ -161,6 +161,6 @@ describe("un 'fr' qui n'était que le défaut n'est pas un choix", () => {
 
   it('resoudreLangue normalise un choix en langueAuto: null', () => {
     expect(resoudreLangue([{ language: 'sv' }], { languages: ['en'] })).toEqual({ language: 'sv', langueAuto: null });
-    expect(resoudreLangue([{ language: 'fr' }], { languages: ['nl'] })).toEqual({ language: 'en', langueAuto: 'en' });
+    expect(resoudreLangue([{ language: 'fr' }], { languages: ['pt'] })).toEqual({ language: 'en', langueAuto: 'en' });
   });
 });

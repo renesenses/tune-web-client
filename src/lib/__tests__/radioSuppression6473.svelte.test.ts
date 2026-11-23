@@ -21,6 +21,8 @@ import { resolve } from 'node:path';
 const mocks = vi.hoisted(() => ({
   getRadios: vi.fn(), deleteRadio: vi.fn(), updateRadio: vi.fn(), createRadio: vi.fn(),
   playRadio: vi.fn(), importRadios: vi.fn(), exportRadiosUrl: vi.fn(() => '#'), uploadRadioCover: vi.fn(),
+  // tune-server-rust#8452 — la fiche « Modifier » lit le réglage Cover+.
+  getRadioCoverPlus: vi.fn(async () => ({ id: 7, enabled: true })),
 }));
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), getConfig: vi.fn(async () => ({ radios_country: '' })), ...mocks }));
 

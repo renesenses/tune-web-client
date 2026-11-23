@@ -84,6 +84,8 @@
   const vueMini = vueMiniActive();
   import EcouterMini from './mini/EcouterMini.svelte';
   import BandeauMini from './mini/BandeauMini.svelte';
+  import BandeauReconnexionCloud from './BandeauReconnexionCloud.svelte';
+  import { bandeauReconnexionVisible } from '../../lib/reconnexionCloud';
   import BarreOngletsMini from './mini/BarreOngletsMini.svelte';
   import MiniBarreLecture from './mini/MiniBarreLecture.svelte';
   import FeuilleMini from './mini/FeuilleMini.svelte';
@@ -666,7 +668,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:avec-reco={!vueMini && $bandeauReconnexionVisible} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -799,6 +801,13 @@
       </form>
     </div>
   {/if}
+
+  <!--
+    #8797 : « Connexion à mozaiklabs.fr expirée ». Dans le flux, au-dessus de
+    l'annonce de mise à jour : un service arrêté prime sur une nouveauté.
+    Absent de la vue mini, comme l'annonce.
+  -->
+  {#if !vueMini}<BandeauReconnexionCloud />{/if}
 
   {#if annonceMaj}
     <!--
@@ -1145,6 +1154,9 @@
      seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
   .avec-maj .av-tr{top:calc(20px + var(--maj-h))}
   .avec-maj-interface .av-tr{top:calc(20px + var(--maj-h))}
+  /* #8797 : le bandeau de reconnexion s'ajoute à l'annonce, s'il y en a une. */
+  .avec-reco .av-tr{top:calc(20px + var(--maj-h))}
+  .avec-reco.avec-maj .av-tr,.avec-reco.avec-maj-interface .av-tr{top:calc(20px + 2 * var(--maj-h))}
   /* Bannière de mise à jour. Les deux moitiés sont des BOUTONS : le texte mène
      aux Réglages, la croix masque l'annonce pour cette version-là. */
   .maj{flex:0 0 var(--maj-h); display:flex; align-items:center; gap:10px;

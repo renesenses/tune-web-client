@@ -132,8 +132,8 @@ function createStore() {
   return {
     subscribe,
     /** Une erreur reste affichée jusqu'à sa fermeture, sauf durée explicite. */
-    error: (msg: string, duration = 0, detail?: string) =>
-      push(msg, 'error', duration, undefined, undefined, detail),
+    error: (msg: string, duration = 0, detail?: string, action?: Notification['action']) =>
+      push(msg, 'error', duration, action, undefined, detail),
     success: (msg: string, duration = 4000) => push(msg, 'success', duration),
     info: (msg: string, duration = 3000, detail?: string) =>
       push(msg, 'info', duration, undefined, undefined, detail),
