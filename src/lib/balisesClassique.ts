@@ -42,7 +42,7 @@ export const MAX_LONGUEUR_NOM = 64;
 export function nomDeCle(nom: string): string {
   let nu = nom;
   if (nu.startsWith('TXXX:')) nu = nu.slice(5);
-  else if (nu.startsWith('----:')) nu = nu.slice(5).split(':').at(-1) ?? nu;
+  else if (nu.startsWith('----:')) { const morceaux = nu.slice(5).split(':'); nu = morceaux[morceaux.length - 1] ?? nu; }
   return nu.trim().toUpperCase();
 }
 

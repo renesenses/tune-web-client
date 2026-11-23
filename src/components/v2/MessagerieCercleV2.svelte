@@ -338,7 +338,7 @@
               {/each}
             </ol>
           </div>
-          <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques.at(-1)?.body ?? chronologiques.at(-1)?.card?.title ?? ''}</p>
+          <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques[chronologiques.length - 1]?.body ?? chronologiques[chronologiques.length - 1]?.card?.title ?? ''}</p>
           {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else if lectureSeule}<LectureSeuleCercleV2 />{:else}
           <form class="composeur" bind:this={formulaire} onsubmit={envoyer} onfocusout={(ev) => { if (emojis && ev.relatedTarget instanceof Node && !formulaire?.contains(ev.relatedTarget)) emojis = false; }}>
       <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
