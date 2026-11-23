@@ -3208,7 +3208,7 @@ export default {
   "v2.home.wTopAlbums": "Álbumes más escuchados",
   "v2.home.wTopTracks": "Canciones más escuchadas",
   "v2.home.wTopArtists": "Artistas más escuchados",
-  "v2.home.wFrequent": "Escuchas frecuentes",
+  "v2.home.wFrequent": "Canciones más escuchadas",
   "v2.home.wLater": "Escuchar más tarde",
   "v2.home.goToPlaylist": "Ir a la playlist",
   "v2.home.wTopRadios": "Radios más escuchadas",

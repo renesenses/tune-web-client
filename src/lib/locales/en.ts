@@ -1952,7 +1952,7 @@ export default {
   "v2.home.wTopAlbums": "Most played albums",
   "v2.home.wTopTracks": "Most played tracks",
   "v2.home.wTopArtists": "Most played artists",
-  "v2.home.wFrequent": "Frequently played",
+  "v2.home.wFrequent": "Most played tracks",
   "v2.home.wLater": "Listen later",
   "v2.home.goToPlaylist": "Go to playlist",
   "v2.home.wTopRadios": "Most played radios",

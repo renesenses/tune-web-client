@@ -1806,7 +1806,7 @@ export default {
   "v2.home.wTopAlbums": "Mest spilte album",
   "v2.home.wTopTracks": "Mest spilte spor",
   "v2.home.wTopArtists": "Mest spilte artister",
-  "v2.home.wFrequent": "Ofte spilt",
+  "v2.home.wFrequent": "Mest spilte spor",
   "v2.home.wLater": "Lytt senere",
   "v2.home.goToPlaylist": "Gå til spilleliste",
   "v2.home.wTopRadios": "Mest spilte radioer",

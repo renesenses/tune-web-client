@@ -1826,7 +1826,7 @@ export default {
   "v2.home.wTopAlbums": "Найчастіше прослухані альбоми",
   "v2.home.wTopTracks": "Найчастіше прослухані треки",
   "v2.home.wTopArtists": "Найчастіше прослухані виконавці",
-  "v2.home.wFrequent": "Часто прослухане",
+  "v2.home.wFrequent": "Найчастіше прослухані треки",
   "v2.home.wLater": "Послухати пізніше",
   "v2.home.goToPlaylist": "Перейти до плейлиста",
   "v2.home.wTopRadios": "Найчастіше прослухані радіостанції",
