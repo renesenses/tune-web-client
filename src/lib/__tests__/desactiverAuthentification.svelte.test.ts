@@ -102,7 +102,8 @@ describe('rc14 — la confirmation est obligatoire', () => {
     await respirer();
     expect(mocks.disableAuth).not.toHaveBeenCalled();
     const conf = hote.querySelector('[data-desactivation-confirmation]');
-    expect(conf?.textContent?.trim()).toBe(
+    expect(conf).not.toBeNull();
+    expect(hote.querySelector('[data-desactivation-avertissement]')?.textContent?.trim()).toBe(
       'Tous les appareils du réseau pourront à nouveau piloter Tune sans mot de passe. Les remotes iPhone et Android se reconnectent.',
     );
     expect(confirmer()!.textContent?.trim()).toBe(fr['authActivation.confirmAndDisable']);
