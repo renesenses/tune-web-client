@@ -19,6 +19,7 @@ const { v2SettingsTarget } = await import('./stores/v2SettingsNav');
 const { activeView } = await import('./stores/navigation');
 const { reglageParId, lieuDuReglage, masqueAuNiveau } = await import('./reglagesIndex');
 const { t } = await import('./i18n');
+const { ONZE_LANGUES, dictionnaire } = await import('./__tests__/onzeDictionnaires');
 
 function refus(reason: string) {
   const corps = JSON.stringify({ error: 'auth_required', reason, caller: '192.168.1.50' });
@@ -77,11 +78,10 @@ describe('bouton vers le cadre Authentification', () => {
     expect(masqueAuNiveau(r!, 'beginner')).toBe(false);
   });
 
-  it('le libellé du bouton existe dans les seize langues', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'el', 'hu', 'ja', 'ko', 'nb', 'pl', 'ro', 'sv', 'tr', 'vi', 'zh'];
-    for (const l of langues) {
-      const mod = await import(`./locales/${l}.ts`);
-      expect(String(mod.default['machineAction.openAuthSettings'] ?? '').trim(), l).not.toBe('');
+  it('le libellé du bouton existe dans les seize langues', () => {
+    expect(ONZE_LANGUES.length).toBe(16);
+    for (const l of ONZE_LANGUES) {
+      expect(String(dictionnaire(l)['machineAction.openAuthSettings'] ?? '').trim(), l).not.toBe('');
     }
   });
 });
