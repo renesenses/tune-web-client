@@ -111,6 +111,7 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import ArtistesSimilaires from './ArtistesSimilaires.svelte';
+  import { homonymeLocalConfirme } from '../../lib/homonymeLocal';
   import { ecoutesDe } from '../../lib/ecoutesCommunaute';
   import { chiffresEnTete, ongletsArtiste, ongletValide, portraitsSimilaires, type OngletArtiste, type PortraitSimilaire } from '../../lib/pageArtisteMaquette';
 
@@ -229,17 +230,26 @@
    */
   let artisteLocal = $state<Artist | null>(null);
   /**
+   * Fil 3009 (points 7 et 16, relecture du 23/11) — l'identifiant de
+   * l'homonyme de la bibliothèque, seulement si son identité est CONFIRMÉE :
+   * unique, et des albums en commun avec le service. Voir `lib/homonymeLocal`.
+   * `artisteLocal` reste celui de la discographie (#1356) ; ce qui DÉCRIT
+   * l'artiste (pays, membres, crédits, liens) ne lit que celui-ci.
+   */
+  let homonymeConfirme = $state<number | null>(null);
+  /**
    * Fil 3009 (FabienM), point 16 — le DRAPEAU du pays d'origine sur la fiche
    * d'un artiste de SERVICE. Qobuz ne dit pas d'où vient un artiste ; le pays
    * est celui que la bibliothèque a lu sur la fiche MusicBrainz de l'artiste
-   * du MÊME nom (tune-server-rust#8090), déjà résolu pour la discographie
-   * (`artisteLocal`, #1356). La recherche ne rend pas `country` : seule
-   * `GET /library/artists/{id}` le sert. Pas d'homonyme dans la bibliothèque,
-   * ou pas de MBID : pas de drapeau — rien n'est deviné d'après le nom.
+   * du MÊME nom (tune-server-rust#8090), et seulement si son identité est
+   * confirmée (`homonymeConfirme` : unique, albums en commun avec le service).
+   * La recherche ne rend pas `country` : seule `GET /library/artists/{id}` le
+   * sert. Homonyme absent, ambigu, sans album commun ou sans MBID : pas de
+   * drapeau — rien n'est deviné d'après le nom.
    */
   let paysHomonyme = $state<string | null>(null);
   $effect(() => {
-    const id = !estLocal ? (artisteLocal?.id ?? null) : null;
+    const id = !estLocal ? homonymeConfirme : null;
     paysHomonyme = null;
     if (id == null) return;
     let vivant = true;
@@ -739,6 +749,7 @@
     if (!localDejaCharge) {
       locaux = [];
       artisteLocal = null;
+      homonymeConfirme = null;
     }
     autresServices = [];
     if (!nomArtiste.trim()) return;
@@ -759,11 +770,11 @@
     const [loc, svc] = await Promise.allSettled([
       (async () => {
         // Déjà tenu par l'identifiant : on ne le recherche pas par le nom.
-        if (localDejaCharge) return { artiste: artisteLocal, albums: locaux };
-        const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
-          .find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
+        if (localDejaCharge) return { artiste: artisteLocal, trouves: [] as Artist[], albums: locaux };
+        const trouves = (await api.searchLibrary(nomArtiste, 20))?.artists ?? [];
+        const trouve = trouves.find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
         // L'artiste EN PLUS de ses albums : voir `artisteLocal` (#1356).
-        return { artiste: trouve ?? null, albums: trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [] };
+        return { artiste: trouve ?? null, trouves, albums: trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [] };
       })(),
       albumsDeStreamingPourArtiste(nomArtiste, autres, {
         resoudreArtiste: async (svc, nom) =>
@@ -777,6 +788,10 @@
     if (!localDejaCharge && loc.status === 'fulfilled') {
       locaux = loc.value.albums;
       artisteLocal = loc.value.artiste;
+      // Fil 3009 — l'homonyme n'est pris pour CET artiste que s'il est unique
+      // et que ses albums recoupent ceux du service (`homonymeLocalConfirme`).
+      homonymeConfirme = homonymeLocalConfirme(loc.value.trouves, nomArtiste,
+        locaux.map((a) => a.title), albums.map((a) => a.title));
     }
     if (svc.status === 'fulfilled') autresServices = svc.value;
     complementsEnCharge = false;

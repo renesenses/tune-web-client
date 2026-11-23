@@ -24,13 +24,17 @@ const LOCAL_RECHERCHE = { id: 42, name: 'Alela Diane', image_path: null };
 /** Le même, tel que sa fiche le rend : avec le pays MusicBrainz. */
 let ficheLocale: Record<string, unknown> = { ...LOCAL_RECHERCHE, country: 'US' };
 let rechercheLocale: unknown[] = [LOCAL_RECHERCHE];
+/** Relecture du 23/11 : l'homonyme n'est retenu que si ses albums recoupent ceux du service. */
+const ALBUMS_QOBUZ = [{ id: null, title: 'Cusp', source: 'qobuz', source_id: 'a-1', year: 2018 }];
+let albumsLocaux: unknown[] = [{ id: 7, title: 'Cusp', year: 2018 }];
 
 function corpsPour(url: string): unknown {
-  if (/\/streaming\/qobuz\/artists\/61592\/(albums|top-tracks)/.test(url)) return [];
+  if (/\/streaming\/qobuz\/artists\/61592\/albums/.test(url)) return ALBUMS_QOBUZ;
+  if (/\/streaming\/qobuz\/artists\/61592\/top-tracks/.test(url)) return [];
   if (/\/streaming\/qobuz\/artists\/61592/.test(url)) return QOBUZ;
   if (/\/streaming\/services/.test(url)) return { qobuz: { enabled: true, authenticated: true } };
   if (/\/library\/search\?/.test(url)) return { artists: rechercheLocale, albums: [], tracks: [] };
-  if (/\/library\/artists\/42\/albums/.test(url)) return [];
+  if (/\/library\/artists\/4[23]\/albums/.test(url)) return albumsLocaux;
   if (/\/library\/artists\/42(\?|$)/.test(url)) return ficheLocale;
   return /\/(profiles|zones|playlists|devices|favorites|history|artists|albums|tracks)(\?|\/|$)/.test(url) ? [] : {};
 }
@@ -43,6 +47,7 @@ beforeEach(() => {
   requetes = [];
   ficheLocale = { ...LOCAL_RECHERCHE, country: 'US' };
   rechercheLocale = [LOCAL_RECHERCHE];
+  albumsLocaux = [{ id: 7, title: 'Cusp', year: 2018 }];
   locale.set('fr');
   streamingServices.set({ qobuz: { enabled: true, authenticated: true } } as any);
   vi.stubGlobal('fetch', vi.fn(async (input: any) => {
@@ -113,5 +118,23 @@ describe('fil 3009 point 16 — le drapeau du pays sur la fiche d’un artiste Q
     await jusqua(() => false, 200);
     expect(drapeau()).toBeNull();
     expect(requetes.some((u) => /\/library\/artists\/43(\?|$)/.test(u))).toBe(false);
+  });
+
+  it('🔴 DEUX homonymes « Alela Diane » dans la bibliothèque : on ne sait pas lequel, pas de drapeau', async () => {
+    rechercheLocale = [LOCAL_RECHERCHE, { id: 43, name: 'Alela Diane', image_path: null }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(drapeau()).toBeNull();
+    expect(requetes.some((u) => /\/library\/artists\/4[23](\?|$)/.test(u))).toBe(false);
+  });
+
+  it('🔴 homonyme dont aucun album ne recoupe ceux du service : un autre artiste, pas de drapeau', async () => {
+    albumsLocaux = [{ id: 8, title: 'Un tout autre disque', year: 1999 }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(drapeau()).toBeNull();
+    expect(requetes.some((u) => /\/library\/artists\/42(\?|$)/.test(u))).toBe(false);
   });
 });
