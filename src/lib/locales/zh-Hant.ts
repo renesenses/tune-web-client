@@ -8362,5 +8362,11 @@ export default {
   "nowplaying.viewQueue": "檢視待播清單",
   "nowplaying.fullscreenMode": "全螢幕模式",
   "nowplaying.lyricsWrittenBy": "詞曲：{noms}",
+  "dashboard.eyebrow": "Tune · 我的聆聽",
+  "dashboard.subtitle": "您的個人音樂統計與聆聽習慣",
+  "dashboard.section.sourcesZones": "聆聽來源與區域",
+  "dashboard.radioEmpty": "此期間沒有電台收聽紀錄。",
+  "dashboard.peakListeningTime": "聆聽尖峰時段",
+  "dashboard.showAll": "全部顯示",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

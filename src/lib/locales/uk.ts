@@ -8362,5 +8362,11 @@ export default {
   "nowplaying.viewQueue": "Відкрити чергу",
   "nowplaying.fullscreenMode": "Повноекранний режим",
   "nowplaying.lyricsWrittenBy": "Автори: {noms}",
+  "dashboard.eyebrow": "Tune · Мої прослуховування",
+  "dashboard.subtitle": "Ваша особиста музична статистика та звички прослуховування",
+  "dashboard.section.sourcesZones": "Джерела прослуховування та зони",
+  "dashboard.radioEmpty": "За цей період радіо не прослуховувалося.",
+  "dashboard.peakListeningTime": "Пікова година прослуховування",
+  "dashboard.showAll": "Показати все",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];

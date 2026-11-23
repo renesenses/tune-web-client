@@ -8362,5 +8362,11 @@ export default {
   "nowplaying.viewQueue": "Wachtrij bekijken",
   "nowplaying.fullscreenMode": "Volledig scherm",
   "nowplaying.lyricsWrittenBy": "Geschreven door {noms}",
+  "dashboard.eyebrow": "Tune · Mijn luistergedrag",
+  "dashboard.subtitle": "Je persoonlijke muziekstatistieken en luistergewoonten",
+  "dashboard.section.sourcesZones": "Luisterbronnen en zones",
+  "dashboard.radioEmpty": "Geen radio beluisterd in deze periode.",
+  "dashboard.peakListeningTime": "Piekluistertijd",
+  "dashboard.showAll": "Alles tonen",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

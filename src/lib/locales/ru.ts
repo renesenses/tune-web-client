@@ -8362,5 +8362,11 @@ export default {
   "nowplaying.viewQueue": "Открыть очередь",
   "nowplaying.fullscreenMode": "Полноэкранный режим",
   "nowplaying.lyricsWrittenBy": "Авторы: {noms}",
+  "dashboard.eyebrow": "Tune · Мои прослушивания",
+  "dashboard.subtitle": "Ваша личная музыкальная статистика и привычки прослушивания",
+  "dashboard.section.sourcesZones": "Источники прослушивания и зоны",
+  "dashboard.radioEmpty": "За этот период радио не прослушивалось.",
+  "dashboard.peakListeningTime": "Пиковое время прослушивания",
+  "dashboard.showAll": "Показать все",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];
