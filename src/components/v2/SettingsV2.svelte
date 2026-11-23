@@ -161,6 +161,7 @@
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3635,7 +3636,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
-        notifications.error(msg);
+        notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr) : undefined);
         return;
       }
     }
@@ -4151,10 +4152,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // (tune-server-rust#6777), jamais par `deleteServiceToken('spotify')`, qui
   // emporte toutes les clés `spotify_*`. Voir `lib/clientIdSpotify`.
   let spotifyModifClientId = $state(false);
+  // Les mêmes gestes sur la carte Spotify de Services de streaming (fils
+  // 2384 et 2385) : Services & Jetons n'est offert qu'au niveau Avancé, deux
+  // testeurs n'y sont jamais arrivés. État d'édition distinct : les deux
+  // blocs peuvent être rendus ensemble, chacun garde son champ.
+  let carteModifClientId = $state(false);
   async function enregistrerClientIdDepuisJetons() {
     await enregistrerClientIdSpotify();
     if (clientIdEnPlace(clientIdRetour?.etat)) {
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     }
   }
@@ -4169,6 +4176,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success(msgOk);
       spotifyClientIdManque = r.manque;
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     } else {
       notifications.error(`${msgKo} : ${r.erreur ?? ''}`);
@@ -8522,6 +8530,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'spotify' && !spotifyClientIdManque}
+                        <!-- Fils 2384 et 2385 : « Changer » et « Effacer » du Client ID
+                             n'étaient offerts que dans Services & Jetons (niveau
+                             Avancé). Mêmes gestes, mêmes appels, ici. -->
+                        {@const gesteCarte = gestesClientIdSpotify(stk.find((x) => x?.id === 'spotify'))}
+                        {#if gesteCarte && (gesteCarte.modifier || gesteCarte.effacer)}
+                          <div class="inline" data-carte-client-id-spotify>
+                            {#if carteModifClientId && gesteCarte.modifier}
+                              <input class="txt" type="text" autocomplete="off" spellcheck="false"
+                                placeholder={$t('v2.set.spotifyClientIdLabel' as any)}
+                                aria-label={$t('v2.set.spotifyClientIdLabel' as any)}
+                                bind:value={clientIdSaisi} data-carte-saisie-client-id
+                                onkeydown={(e) => { if (e.key === 'Enter' && clientIdSaisi.trim()) enregistrerClientIdDepuisJetons(); }} />
+                              <button class="lnk" data-carte-enregistrer-client-id
+                                disabled={(svcBusy === 'spotify' && !deviceFlow.spotify) || !clientIdSaisi.trim()}
+                                onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <button class="lnk" onclick={() => { carteModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
+                            {:else}
+                              {#if gesteCarte.modifier}
+                                <button class="lnk" data-carte-modifier-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={() => { carteModifClientId = true; clientIdSaisi = ''; clientIdRetour = null; }}>{$t('v2.set.spotifyClientIdEdit' as any)}</button>
+                              {/if}
+                              {#if gesteCarte.effacer}
+                                <button class="lnk danger" data-carte-effacer-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={effacerClientIdSpotifyGeste}>{$t('v2.set.spotifyClientIdClear' as any)}</button>
+                              {/if}
+                            {/if}
+                          </div>
+                        {/if}
                       {/if}
 
                       {#if name === 'spotify' && clientIdRetour}

@@ -1269,6 +1269,20 @@ async function relireDuServeur() {
             // (`'home'`, jamais choisi) : `...local` la recouvrait donc à
             // chaque ouverture d'un navigateur dont la copie est ancienne.
             ...(estVueDeDemarrage(server.startupView) ? { startupView: server.startupView } : {}),
+            // web#3139 (ajm, Opera) — le niveau d'interface aussi est un
+            // réglage du PROFIL. Après un changement d'adresse IP du serveur,
+            // le navigateur repart sans copie locale : `loadPrefs` y range
+            // `'beginner'` (#2735) AVANT la relecture du serveur. Si cette
+            // relecture échoue (serveur encore en démarrage), le rechargement
+            // suivant passe par cette branche et le `'beginner'` local, qui
+            // n'est qu'un défaut jamais choisi, recouvrait l'Expert du profil.
+            // Seul ce niveau-là peut être un défaut jamais choisi : un Avancé ou
+            // un Expert local est un choix, et garde la main (#2735). Un
+            // Essentiel local cède donc au niveau valide du profil — chaque
+            // changement de niveau part au serveur, qui tient le bon.
+            ...(local.settingsLevel === NIVEAU_NOUVELLE_INSTALLATION && isSettingsLevel(server.settingsLevel)
+              ? { settingsLevel: server.settingsLevel }
+              : {}),
           };
         });
         if (reparationBarre) ecrireAuServeur(JSON.stringify(reparationBarre));

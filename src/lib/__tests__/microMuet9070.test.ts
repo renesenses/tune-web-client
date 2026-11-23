@@ -55,8 +55,8 @@ describe('#9070 — micro muet', () => {
     expect(entreeMaterielleAlsa('coreaudio:X')).toBeNull();
   });
 
-  it('les quatre clés existent dans les 16 langues, avec leurs paramètres', async () => {
-    expect(Object.keys(CHARGEURS).length).toBe(16);
+  it('les quatre clés existent dans les 20 langues, avec leurs paramètres', async () => {
+    expect(Object.keys(CHARGEURS).length).toBe(20);
     for (const [langue, charger] of Object.entries(CHARGEURS)) {
       const d = (await charger()).default as Record<string, string>;
       for (const k of CLES) expect(d[k], `${langue} ${k}`).toBeTruthy();

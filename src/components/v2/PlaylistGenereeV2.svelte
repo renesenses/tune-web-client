@@ -23,7 +23,7 @@
   import {
     EnregistrementPartiel,
     enregistrerPlaylistGeneree,
-    lirePlaylistGeneree,
+    lireDepuisLePanneau,
     type PlaylistGeneree,
   } from '../../lib/parceQueVousAimez';
 
@@ -34,10 +34,15 @@
   let { playlist, onClose }: Props = $props();
 
   const titre = $derived(($t('v2.home.becauseYouLikeCard' as any) as string).replace('{artiste}', playlist.artist));
+  /**
+   * Fil forum 3009 (FabienM, point 5.2 ; go du 23/11/2026) — le champ « Nom
+   * de la playlist » propose « Mix <artiste> », pas la phrase du titre.
+   */
+  const nomParDefaut = $derived(($t('v2.home.becauseYouLikeMixName' as any) as string).replace('{artiste}', playlist.artist));
   let nom = $state('');
   let nomTouche = $state(false);
   $effect(() => {
-    if (!nomTouche) nom = titre;
+    if (!nomTouche) nom = nomParDefaut;
   });
   let travail = $state(false);
   let enregistree = $state(false);
@@ -50,7 +55,11 @@
       notifications.error($t('v2.home.becauseYouLikeNoZone' as any));
       return;
     }
-    lirePlaylistGeneree(z, playlist).then(onClose, signalerEchecLecture);
+    // Rien de jouable : le panneau reste ouvert et le dit (forum, rc14).
+    lireDepuisLePanneau(z, playlist, {
+      fermer: onClose,
+      rienAJouer: () => notifications.error($t('v2.home.becauseYouLikeNothingPlayable' as any)),
+    }).catch(signalerEchecLecture);
   }
 
   async function enregistrer(e: Event) {
