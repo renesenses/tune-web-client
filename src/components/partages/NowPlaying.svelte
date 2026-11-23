@@ -149,7 +149,12 @@ import { ICONES } from '../../lib/menuPiste';
   // '' = pas encore lu. Surtout PAS 'flat' : le panneau affichait alors Flat en
   // actif a chaque ouverture, quel que soit l'egaliseur reel (#2037).
   let currentEqPreset = $state('');
-  let karaokeMode = $state(false);
+  // Design v3 (§10.5), décision du 23/11/2026 : quand un LRC existe, les
+  // paroles s'ouvrent SYNCHRONISÉES. `NowPlayingLyrics` ne passe en karaoké
+  // que s'il a des lignes horodatées : un texte simple reste du texte. Le
+  // bouton « Karaoké » ramène au texte brut ; chaque nouvelle piste repart
+  // synchronisée.
+  let karaokeMode = $state(true);
   let syncedLines: { time: number; text: string }[] = $state([]);
 
   // Audio Visualizer
@@ -884,7 +889,7 @@ import { ICONES } from '../../lib/menuPiste';
       if (key !== npLyricsRadioKey) {
         npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
         syncedLines = [];
-        karaokeMode = false;
+        karaokeMode = true;
       }
       if (showLyrics) loadMetaLyrics(q);
       return;
@@ -897,7 +902,7 @@ import { ICONES } from '../../lib/menuPiste';
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
       npLyricsResetPourId = null;
-      karaokeMode = false;
+      karaokeMode = true;
       return;
     }
     // Vider d'abord l'ancienne piste : loadNpCredits/loadNpLyrics mémorisent
@@ -910,7 +915,7 @@ import { ICONES } from '../../lib/menuPiste';
       npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsRadioKey = null;
-      karaokeMode = false;
+      karaokeMode = true;
       // Referme la garde AVANT tout chargement : sans ce témoin elle restait
       // vraie à chaque passage tant que le panneau était fermé, et l'effet
       // réécrivait `syncedLines` — un tableau neuf — sans jamais converger.
@@ -938,6 +943,18 @@ import { ICONES } from '../../lib/menuPiste';
       parts.push({ role, membres: members.slice(0, 3), reste: members.length > 3 });
     }
     return parts;
+  });
+  /** Design v3 (§10.5) — « Écrit par… » sous les paroles : auteurs et
+   *  compositeurs tirés des crédits de la piste (ceux de l'onglet Crédits,
+   *  `getTrackCredits`). Rien quand aucun n'est connu. */
+  let ecritPar = $derived.by(() => {
+    const noms = auteursDesParoles(npCredits);
+    if (noms.length === 0) return null;
+    let liste = noms.join(', ');
+    try {
+      liste = new Intl.ListFormat($locale, { style: 'long', type: 'conjunction' }).format(noms);
+    } catch { /* langue inconnue d'Intl : la virgule suffit */ }
+    return $t('nowplaying.lyricsWrittenBy' as any).replace('{noms}', liste);
   });
   let inlineCredits = $derived(
     creditsEnLigne
@@ -1034,7 +1051,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
-  import { dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
+  import { auteursDesParoles, dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
+  import { disposition44_56 } from '../../lib/dispositionLectureEnCours';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
@@ -1958,7 +1976,7 @@ import { ICONES } from '../../lib/menuPiste';
        en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
   {#if displayTrack && !tvDansLaCoquille}
-    <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')} aria-label={$t('nowplaying.tvMode')}>
+    <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.fullscreenMode' as any)} aria-label={$t('nowplaying.fullscreenMode' as any)}>
       <!--
         Un ÉCRAN, pas quatre flèches.
 
@@ -1969,7 +1987,10 @@ import { ICONES } from '../../lib/menuPiste';
 
         Un téléviseur — cadre posé sur un pied — dit ce que le mode est.
       -->
-      <Tv size={18} strokeWidth={1.8} aria-hidden="true" />
+      <Tv size={16} strokeWidth={1.8} aria-hidden="true" />
+      <!-- Design v3 (§10.2), 23/11/2026 : « Mode plein écran », NOMMÉ. Le rond
+           muet ne disait son nom qu'au survol. -->
+      <span class="np-tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>
     </button>
   {/if}
   {#if resolvedCoverUrl}
@@ -1990,7 +2011,7 @@ import { ICONES } from '../../lib/menuPiste';
        d'appuyer sur Lecture, pas une fois la file remplie pour rien (#1499). -->
   <ZoneOutputBanner {zone} />
   {#if zone && displayTrack}
-    <div class="content-layout" class:wide={isWide} class:file-sous-barre={fileSousLaBarre}>
+    <div class="content-layout" class:wide={isWide} class:v3-44-56={isWide && disposition44_56(containerWidth)} class:file-sous-barre={fileSousLaBarre}>
       <div class="artwork-container" bind:this={artworkEl}>
         {#if ytShowVideo}
           <!-- Placeholder keeping layout while IFrame is rendered on top via position:fixed -->
@@ -2255,7 +2276,7 @@ import { ICONES } from '../../lib/menuPiste';
                 <Info size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('artist.credits')}
               </button>
-              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
+              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = true; if (showLyrics) loadLyricsFor(displayTrack); }}>
                 <MicVocal size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('nowplaying.lyrics')}
               </button>
@@ -2264,7 +2285,7 @@ import { ICONES } from '../../lib/menuPiste';
                    avec titre+artiste : paroles via /lyrics/by-meta. Karaoké
                    possible pour le streaming (position réelle), pas pour la
                    radio (position trop imprécise, donc texte simple). -->
-              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
+              <button class="np-credits-btn" data-np-action="lyrics" class:active={showLyrics} aria-expanded={showLyrics} aria-controls={idParoles} onclick={() => { showLyrics = !showLyrics; showEq = false; if (!showLyrics) karaokeMode = true; if (showLyrics) loadLyricsFor(displayTrack); }}>
                 <MicVocal size={16} strokeWidth={1.8} aria-hidden="true" />
                 {$t('nowplaying.lyrics')}
               </button>
@@ -2293,7 +2314,7 @@ import { ICONES } from '../../lib/menuPiste';
                  elle, toujours visible : c'est par là qu'on l'installe, et
                  l'écran propose le geste. -->
             {#if $egaliseurReglable}
-            <button class="np-credits-btn" data-np-action="eq" class:active={showEq} aria-pressed={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
+            <button class="np-credits-btn" data-np-action="eq" class:active={showEq} aria-pressed={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = true; }}>
               <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden="true" />
               EQ
             </button>
@@ -2457,6 +2478,7 @@ import { ICONES } from '../../lib/menuPiste';
               enLecture={isEffectivePlaying}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
+            {#if ecritPar}<p class="np-paroles-auteurs">{ecritPar}</p>{/if}
             </section>
           {/if}
           {#if showEq}
@@ -3215,9 +3237,14 @@ import { ICONES } from '../../lib/menuPiste';
     z-index: 10;
     background: rgba(0, 0, 0, 0.3);
     border: none;
-    border-radius: 50%;
-    width: 36px;
+    /* Design v3 (§10.2) : une pilule nommée, plus un rond. Même hauteur
+       (36 px) ; la largeur suit le libellé dans chaque langue. */
+    border-radius: 18px;
     height: 36px;
+    padding: 0 14px 0 11px;
+    gap: 7px;
+    white-space: nowrap;
+    font: 600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-police-texte, var(--v2-sans, var(--font-body)));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3298,6 +3325,14 @@ import { ICONES } from '../../lib/menuPiste';
   }
   :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
     opacity: 0.96;
+  }
+  /* « Mon thème » : ses jetons recouvrent ceux du thème de BASE, que
+     `data-v2-theme` désigne encore. Le voile suit donc le côté du FOND perso,
+     que `cssDuTheme` écrit dans `--v2-voile-lecture` (0,94 clair, comme
+     clear-white ; 0,92 sombre). Deux attributs : l'emporte sur les règles
+     par thème ci-dessus. */
+  :global(:root[data-v2-theme][data-v2-mon-theme]) .bg-teinte {
+    opacity: var(--v2-voile-lecture, 0.92);
   }
 
   /* Design v3 (§10.2) — le titre de l'écran, à côté du retour, dans
@@ -3469,6 +3504,28 @@ import { ICONES } from '../../lib/menuPiste';
 
   .content-layout.wide .info-column {
     max-width: 420px;
+  }
+
+  /* Design v3 (§10.3), décision du 23/11/2026 — grand écran : pochette 44 %,
+     détails 56 %, alignées en haut, pistes compressibles (`minmax(0, …)`) :
+     un long titre passe à la ligne au lieu d'élargir la grille. Le seuil
+     (`disposition44_56`, 900 px de largeur intérieure) laisse les tablettes en
+     portrait et les téléphones dans leur disposition actuelle. La pochette
+     garde ses bornes (`--np-art`, 62vh) : elle ne fait que remplir sa piste.
+     PLACEMENT : après les règles `.content-layout.wide` ci-dessus ; plus
+     spécifique qu'elles, il l'emporte aussi sur les paliers grands écrans
+     pour la colonne titres, que la grille borne désormais. */
+  .content-layout.wide.v3-44-56 {
+    display: grid;
+    grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+    align-items: start;
+    gap: 44px;
+  }
+  .content-layout.wide.v3-44-56 .artwork-container {
+    justify-self: end;
+  }
+  .content-layout.wide.v3-44-56 .info-column {
+    max-width: none;
   }
 
   /* Très grands écrans — TV 4K utilisée comme écran de PC musique (Alain,
@@ -4518,6 +4575,12 @@ import { ICONES } from '../../lib/menuPiste';
     color: var(--v2-txt, var(--tune-text));
   }
   .np-paroles-synchro { font-weight: 600; }
+  /* « Écrit par… » : métadonnée d'appoint, en txt3 (mesuré AA sur le fond). */
+  .np-paroles-auteurs {
+    margin: var(--space-sm) 0 0;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--v2-txt3, var(--tune-text-muted));
+  }
 
   .np-lyrics {
     margin-top: var(--space-sm);
@@ -5047,6 +5110,14 @@ import { ICONES } from '../../lib/menuPiste';
     align-items: center;
     gap: 20px;
     max-width: 100%;
+  }
+  /* Le kiosque garde SA disposition : pas de grille 44/56 (design v3). */
+  :global([data-kiosk]) .content-layout.wide.v3-44-56 {
+    display: flex;
+    gap: 20px;
+  }
+  :global([data-kiosk]) .content-layout.wide.v3-44-56 .info-column {
+    flex: 1;
   }
 
   :global([data-kiosk]) .artwork-container {

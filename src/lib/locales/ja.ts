@@ -2581,7 +2581,6 @@ export default {
   "settings.ingestMode": "ソースファイルの扱い",
   "settings.ingestConflict": "衝突したとき",
   // 大画面モード（TV）+ 歌詞
-  "nowplaying.tvMode": "大画面モード",
   "tv.lyrics": "歌詞",
   "tv.vuInstrument": "レベル計",
   "tv.vuInstrument.off": "なし",
@@ -5263,7 +5262,7 @@ export default {
   "settings.sidebarMoved": "{x}：{n} 件中 {p} 番目",
   "settings.sidebarDrag": "ドラッグして {x} を移動",
   "settings.nowPlayingLinkToSource": "「再生中」でアルバムまたはプレイリストを開く",
-  "settings.nowPlayingLinkToSourceHint": "サイドバーの「再生中」と再生バーのサムネイルは、再生中のアルバムのページを開きます。プレイリストから再生した場合はそのプレイリストを開きます。ラジオの場合、またはページがない場合は、これまでどおり「再生中」画面を開きます。「大画面モード」ボタンは引き続き使えます。曲の再生中は、どの画面でも右上に表示されます。",
+  "settings.nowPlayingLinkToSourceHint": "サイドバーの「再生中」と再生バーのサムネイルは、再生中のアルバムのページを開きます。プレイリストから再生した場合はそのプレイリストを開きます。ラジオの場合、またはページがない場合は、これまでどおり「再生中」画面を開きます。「全画面モード」ボタンは引き続き使えます。曲の再生中は、どの画面でも右上に表示されます。",
   "settings.animationRateSmooth": "滑らか — 現在の表示",
   "settings.animationRateSaving": "省エネ — プロセッサ負荷が約 30 % 減",
   "settings.animationRateMinimal": "最小 — 約 40 % 減、メーターの動きは少しカクつきます",
@@ -8540,6 +8539,8 @@ export default {
   "cloud.reconnexionRequise": "mozaiklabs.fr との接続の有効期限が切れました。Tune Circle とオンラインコピーは一時停止中です。「サインアウト」は使わずに再接続してください。サインアウトするとオンラインコピーと共有が削除されます。",
   "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr との接続の有効期限が {date} に切れました。Tune Circle とオンラインコピーは一時停止中です。「サインアウト」は使わずに再接続してください。サインアウトするとオンラインコピーと共有が削除されます。",
   "cloud.seReconnecter": "再接続",
+  "nowplaying.fullscreenMode": "全画面モード",
+  "nowplaying.lyricsWrittenBy": "作詞・作曲：{noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

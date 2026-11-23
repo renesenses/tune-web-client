@@ -3305,7 +3305,6 @@ export default {
   "settings.ingest": "İçerik ekleme",
   "settings.ingestMode": "Kaynak dosyalarda yapılacak işlem",
   "settings.ingestConflict": "Çakışma durumunda",
-  "nowplaying.tvMode": "Büyük ekran modu",
   "tv.lyrics": "Şarkı sözleri",
   "tv.vuInstrument": "Seviye göstergesi",
   "tv.vuInstrument.off": "Yok",
@@ -5136,7 +5135,7 @@ export default {
   "settings.sidebarMoved": "{x}: konum {p} / {n}",
   "settings.sidebarDrag": "Taşımak için sürükleyin: {x}",
   "settings.nowPlayingLinkToSource": "“Şimdi çalıyor” albümü veya çalma listesini açar",
-  "settings.nowPlayingLinkToSourceHint": "Kenar çubuğundaki “Şimdi çalıyor” girişi ve çalma çubuğundaki küçük resim, çalan albümün sayfasını ya da çalma bir çalma listesinden başladıysa o listenin sayfasını açar. Bir radyo istasyonu için veya sayfa yoksa, bugün olduğu gibi Şimdi çalıyor ekranını açar. “Büyük ekran modu” düğmesi kullanılabilir kalır: bir parça çalarken her ekranda sağ üstte görünür.",
+  "settings.nowPlayingLinkToSourceHint": "Kenar çubuğundaki “Şimdi çalıyor” girişi ve çalma çubuğundaki küçük resim, çalan albümün sayfasını ya da çalma bir çalma listesinden başladıysa o listenin sayfasını açar. Bir radyo istasyonu için veya sayfa yoksa, bugün olduğu gibi Şimdi çalıyor ekranını açar. “Tam ekran modu” düğmesi kullanılabilir kalır: bir parça çalarken her ekranda sağ üstte görünür.",
   "settings.animationRateSmooth": "Akıcı — bugünkü görünüm",
   "settings.animationRateSaving": "Tasarruflu — yaklaşık %30 daha az işlemci",
   "settings.animationRateMinimal": "En az — yaklaşık %40 daha az, göstergeler biraz kesik kesik görünür",
@@ -8364,5 +8363,7 @@ export default {
   "cloud.reconnexionRequise": "mozaiklabs.fr bağlantısının süresi doldu: Tune Circle ve çevrimiçi kopya duraklatıldı. Çevrimiçi kopyayı ve paylaşımlarınızı sileceği için “Oturumu kapat” seçeneğini kullanmadan yeniden bağlanın.",
   "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr bağlantısının süresi {date} tarihinde doldu: Tune Circle ve çevrimiçi kopya duraklatıldı. Çevrimiçi kopyayı ve paylaşımlarınızı sileceği için “Oturumu kapat” seçeneğini kullanmadan yeniden bağlanın.",
   "cloud.seReconnecter": "Yeniden bağlan",
+  "nowplaying.fullscreenMode": "Tam ekran modu",
+  "nowplaying.lyricsWrittenBy": "Yazan: {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

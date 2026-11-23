@@ -2587,7 +2587,6 @@ export default {
   "settings.ingestMode": "Aktion für die Quelldateien",
   "settings.ingestConflict": "Bei Konflikt",
   // Großbildmodus (TV) + Songtexte
-  "nowplaying.tvMode": "Großbildmodus",
   "tv.lyrics": "Songtexte",
   "tv.vuInstrument": "Pegelanzeige",
   "tv.vuInstrument.off": "Keine",
@@ -5263,7 +5262,7 @@ export default {
   "settings.sidebarMoved": "{x}: Position {p} von {n}",
   "settings.sidebarDrag": "Ziehen, um {x} zu verschieben",
   "settings.nowPlayingLinkToSource": "„Wird gerade gespielt“ öffnet Album oder Playlist",
-  "settings.nowPlayingLinkToSourceHint": "Der Eintrag „Wird gerade gespielt“ in der Seitenleiste und das Vorschaubild in der Wiedergabeleiste öffnen die Seite des laufenden Albums oder der Playlist, aus der die Wiedergabe stammt. Bei einem Radiosender oder wenn keine Seite existiert, öffnet er wie bisher den Bildschirm „Wird gerade gespielt“. Die Schaltfläche „Großbildmodus“ bleibt erreichbar: Solange ein Titel läuft, erscheint sie auf jedem Bildschirm oben rechts.",
+  "settings.nowPlayingLinkToSourceHint": "Der Eintrag „Wird gerade gespielt“ in der Seitenleiste und das Vorschaubild in der Wiedergabeleiste öffnen die Seite des laufenden Albums oder der Playlist, aus der die Wiedergabe stammt. Bei einem Radiosender oder wenn keine Seite existiert, öffnet er wie bisher den Bildschirm „Wird gerade gespielt“. Die Schaltfläche „Vollbildmodus“ bleibt erreichbar: Solange ein Titel läuft, erscheint sie auf jedem Bildschirm oben rechts.",
   "settings.animationRateSmooth": "Flüssig — die heutige Darstellung",
   "settings.animationRateSaving": "Sparsam — etwa 30 % weniger Prozessorlast",
   "settings.animationRateMinimal": "Minimal — etwa 40 % weniger, die Anzeigen wirken leicht stufig",
@@ -8540,6 +8539,8 @@ export default {
   "cloud.reconnexionRequise": "Verbindung zu mozaiklabs.fr abgelaufen: Tune Circle und die Online-Kopie sind pausiert. Melden Sie sich erneut an, ohne „Abmelden“ zu verwenden, da dies die Online-Kopie und Ihre Freigaben löschen würde.",
   "cloud.reconnexionRequiseDepuis": "Verbindung zu mozaiklabs.fr seit {date} abgelaufen: Tune Circle und die Online-Kopie sind pausiert. Melden Sie sich erneut an, ohne „Abmelden“ zu verwenden, da dies die Online-Kopie und Ihre Freigaben löschen würde.",
   "cloud.seReconnecter": "Erneut anmelden",
+  "nowplaying.fullscreenMode": "Vollbildmodus",
+  "nowplaying.lyricsWrittenBy": "Geschrieben von {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

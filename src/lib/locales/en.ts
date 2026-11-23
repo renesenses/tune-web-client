@@ -3435,7 +3435,6 @@ export default {
   "settings.ingestMode": "Action on the source files",
   "settings.ingestConflict": "On conflict",
   // Big screen (TV) mode + lyrics
-  "nowplaying.tvMode": "Big screen mode",
   "tv.lyrics": "Lyrics",
   "tv.vuInstrument": "Level meter",
   "tv.vuInstrument.off": "None",
@@ -5283,7 +5282,7 @@ export default {
   "settings.sidebarMoved": "{x}: position {p} of {n}",
   "settings.sidebarDrag": "Drag to move {x}",
   "settings.nowPlayingLinkToSource": "“Now Playing” opens the album or playlist",
-  "settings.nowPlayingLinkToSourceHint": "The “Now Playing” entry in the sidebar and the thumbnail in the playback bar open the page of the album that is playing, or of the playlist if playback started from one. For a radio station, or when no page exists, it opens the Now Playing screen, as it does today. The “Big screen mode” button stays available: while a track is playing, it appears at the top right on every screen.",
+  "settings.nowPlayingLinkToSourceHint": "The “Now Playing” entry in the sidebar and the thumbnail in the playback bar open the page of the album that is playing, or of the playlist if playback started from one. For a radio station, or when no page exists, it opens the Now Playing screen, as it does today. The “Full screen mode” button stays available: while a track is playing, it appears at the top right on every screen.",
   "settings.animationRateSmooth": "Smooth — today's display",
   "settings.animationRateSaving": "Economical — about 30% less processor",
   "settings.animationRateMinimal": "Minimal — about 40% less, the meters look a little steppy",
@@ -8560,6 +8559,8 @@ export default {
   "cloud.reconnexionRequise": "Your mozaiklabs.fr connection has expired: Tune Circle and the online copy are paused. Sign in again, without using “Sign out”, which would erase the online copy and your shares.",
   "cloud.reconnexionRequiseDepuis": "Your mozaiklabs.fr connection expired on {date}: Tune Circle and the online copy are paused. Sign in again, without using “Sign out”, which would erase the online copy and your shares.",
   "cloud.seReconnecter": "Sign in again",
+  "nowplaying.fullscreenMode": "Full screen mode",
+  "nowplaying.lyricsWrittenBy": "Written by {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

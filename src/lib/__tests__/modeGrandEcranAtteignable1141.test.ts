@@ -65,7 +65,7 @@ describe('#1141 — le mode Grand écran PORTE SON NOM', () => {
     expect(
       bouton,
       "le nom ne vit que dans le `title` : c'est le défaut de #1141",
-    ).toContain('<span class="tv-nom">{$t(\'nowplaying.tvMode\' as any)}</span>');
+    ).toContain('<span class="tv-nom">{$t(\'nowplaying.fullscreenMode\' as any)}</span>');
   });
 
   /**
@@ -109,21 +109,23 @@ describe('#1141 — le mode Grand écran PORTE SON NOM', () => {
    */
   it("n'a PAS été inséré dans le menu du compte", () => {
     expect(MENU).not.toContain('nowplaying.tvMode');
+    expect(MENU).not.toContain('nowplaying.fullscreenMode');
     expect(MENU).not.toContain('modeGrandEcran');
   });
 
   it('le libellé est TRADUIT dans les onze langues', () => {
     for (const langue of LANGUES) {
       const dico = lire(`../locales/${langue}.ts`);
-      const m = dico.match(/"nowplaying\.tvMode":\s*"([^"]*)"/);
-      expect(m, `nowplaying.tvMode manque en ${langue}`).not.toBeNull();
-      expect((m as RegExpMatchArray)[1].trim(), `nowplaying.tvMode est vide en ${langue}`)
+      const m = dico.match(/"nowplaying\.fullscreenMode":\s*"([^"]*)"/);
+      expect(m, `nowplaying.fullscreenMode manque en ${langue}`).not.toBeNull();
+      expect((m as RegExpMatchArray)[1].trim(), `nowplaying.fullscreenMode est vide en ${langue}`)
         .not.toBe('');
     }
     // Les deux langues de référence, en clair : une clé peut exister et porter
     // le texte d'une AUTRE entrée.
-    expect((fr as Record<string, string>)['nowplaying.tvMode']).toBe('Mode Grand écran');
-    expect((en as Record<string, string>)['nowplaying.tvMode']).toBe('Big screen mode');
+    // Design v3 (§10.2), 23/11/2026 : le bouton est renommé « Mode plein écran ».
+    expect((fr as Record<string, string>)['nowplaying.fullscreenMode']).toBe('Mode plein écran');
+    expect((en as Record<string, string>)['nowplaying.fullscreenMode']).toBe('Full screen mode');
   });
 
   it('le geste passe par le module partagé', () => {
@@ -232,7 +234,7 @@ describe('fil 2116 — le Grand écran reste atteignable, réglage `lienLectureV
     for (const langue of LANGUES) {
       const dico = lire(`../locales/${langue}.ts`);
       const aide = dico.match(/"settings\.nowPlayingLinkToSourceHint":\s*"([^"]*)"/);
-      const nom = dico.match(/"nowplaying\.tvMode":\s*"([^"]*)"/);
+      const nom = dico.match(/"nowplaying\.fullscreenMode":\s*"([^"]*)"/);
       expect(aide, `aide absente en ${langue}`).not.toBeNull();
       expect((aide as RegExpMatchArray)[1], `l'aide ne nomme pas le Grand écran en ${langue}`)
         .toContain((nom as RegExpMatchArray)[1]);

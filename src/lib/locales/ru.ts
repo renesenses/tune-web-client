@@ -3302,7 +3302,6 @@ export default {
   "settings.ingest": "Добавление контента",
   "settings.ingestMode": "Действие с исходными файлами",
   "settings.ingestConflict": "При конфликте",
-  "nowplaying.tvMode": "Режим большого экрана",
   "tv.lyrics": "Текст песни",
   "tv.vuInstrument": "Индикатор уровня",
   "tv.vuInstrument.off": "Нет",
@@ -8361,5 +8360,7 @@ export default {
   "nowplaying.lyricsSynced": "Синхронизировано с воспроизведением",
   "nowplaying.upNextRemaining": "{n, plural, one {остался # трек} few {осталось # трека} many {осталось # треков} other {осталось # трека}}",
   "nowplaying.viewQueue": "Открыть очередь",
+  "nowplaying.fullscreenMode": "Полноэкранный режим",
+  "nowplaying.lyricsWrittenBy": "Авторы: {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];

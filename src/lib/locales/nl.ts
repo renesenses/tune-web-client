@@ -3302,7 +3302,6 @@ export default {
   "settings.ingest": "Inhoud toevoegen",
   "settings.ingestMode": "Actie op de bronbestanden",
   "settings.ingestConflict": "Bij een conflict",
-  "nowplaying.tvMode": "Groot-schermmodus",
   "tv.lyrics": "Songtekst",
   "tv.vuInstrument": "Niveaumeter",
   "tv.vuInstrument.off": "Geen",
@@ -5133,7 +5132,7 @@ export default {
   "settings.sidebarMoved": "{x}: positie {p} van {n}",
   "settings.sidebarDrag": "Slepen om {x} te verplaatsen",
   "settings.nowPlayingLinkToSource": "“Speelt nu” opent het album of de afspeellijst",
-  "settings.nowPlayingLinkToSourceHint": "Het item “Speelt nu” in de zijbalk en de miniatuur in de afspeelbalk openen de pagina van het album dat speelt, of van de afspeellijst als het afspelen daar begon. Voor een radiozender, of als er geen pagina bestaat, opent het scherm Speelt nu, zoals nu. De knop “Groot scherm” blijft beschikbaar: zolang er een nummer speelt, staat hij op elk scherm rechtsboven.",
+  "settings.nowPlayingLinkToSourceHint": "Het item “Speelt nu” in de zijbalk en de miniatuur in de afspeelbalk openen de pagina van het album dat speelt, of van de afspeellijst als het afspelen daar begon. Voor een radiozender, of als er geen pagina bestaat, opent het scherm Speelt nu, zoals nu. De knop “Volledig scherm” blijft beschikbaar: zolang er een nummer speelt, staat hij op elk scherm rechtsboven.",
   "settings.animationRateSmooth": "Vloeiend — de huidige weergave",
   "settings.animationRateSaving": "Zuinig — ongeveer 30% minder processorgebruik",
   "settings.animationRateMinimal": "Minimaal — ongeveer 40% minder, de meters bewegen iets schokkeriger",
@@ -8361,5 +8360,7 @@ export default {
   "nowplaying.lyricsSynced": "Gesynchroniseerd met het afspelen",
   "nowplaying.upNextRemaining": "{n, plural, one {nog # nummer} other {nog # nummers}}",
   "nowplaying.viewQueue": "Wachtrij bekijken",
+  "nowplaying.fullscreenMode": "Volledig scherm",
+  "nowplaying.lyricsWrittenBy": "Geschreven door {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

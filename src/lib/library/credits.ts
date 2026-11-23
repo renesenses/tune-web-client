@@ -250,3 +250,28 @@ export function libelleLigne(l: LigneCredits, traduire: (cle: string) => string)
   if (l.instrument) return l.instrument.charAt(0).toUpperCase() + l.instrument.slice(1);
   return libelleRole(l.role, traduire);
 }
+
+/**
+ * Design v3 (§10.5) — « Écrit par… » sous les paroles : les AUTEURS et
+ * COMPOSITEURS de la piste, tirés de ses crédits (rôles `composer`, `writer`
+ * — parolier côté serveur, #4862 — et `lyricist` — étiquette du fichier).
+ * Un nom une seule fois, dans l'ordre de `ORDRE_DES_ROLES` puis des crédits.
+ * Liste vide quand aucun n'est connu : l'écran n'affiche alors rien, il
+ * n'invente pas d'attribution.
+ */
+export function auteursDesParoles(credits: readonly TrackCredit[]): string[] {
+  const roles = ['composer', 'writer', 'lyricist'];
+  const auteurs = credits
+    .filter((c) => roles.includes(c.role) && c.artist_name?.trim())
+    .sort((a, b) => roles.indexOf(a.role) - roles.indexOf(b.role));
+  const vus = new Set<string>();
+  const out: string[] = [];
+  for (const c of auteurs) {
+    const nom = c.artist_name.trim();
+    const cle = nom.toLocaleLowerCase();
+    if (vus.has(cle)) continue;
+    vus.add(cle);
+    out.push(nom);
+  }
+  return out;
+}

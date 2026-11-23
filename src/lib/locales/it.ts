@@ -2587,7 +2587,6 @@ export default {
   "settings.ingestMode": "Azione sui file di origine",
   "settings.ingestConflict": "In caso di conflitto",
   // Modalità grande schermo (TV) + testi
-  "nowplaying.tvMode": "Modalità grande schermo",
   "tv.lyrics": "Testi",
   "tv.vuInstrument": "Strumento di livello",
   "tv.vuInstrument.off": "Nessuno",
@@ -5263,7 +5262,7 @@ export default {
   "settings.sidebarMoved": "{x}: posizione {p} di {n}",
   "settings.sidebarDrag": "Trascina per spostare {x}",
   "settings.nowPlayingLinkToSource": "«In riproduzione» apre l'album o la playlist",
-  "settings.nowPlayingLinkToSourceHint": "La voce «In riproduzione» della barra laterale e la miniatura della barra di riproduzione aprono la pagina dell'album in ascolto, o quella della playlist se la riproduzione parte da lì. Per una radio, o se non esiste alcuna pagina, apre la schermata In riproduzione, come oggi. Il pulsante «Modalità grande schermo» resta disponibile: finché un brano è in riproduzione, compare in alto a destra in ogni schermata.",
+  "settings.nowPlayingLinkToSourceHint": "La voce «In riproduzione» della barra laterale e la miniatura della barra di riproduzione aprono la pagina dell'album in ascolto, o quella della playlist se la riproduzione parte da lì. Per una radio, o se non esiste alcuna pagina, apre la schermata In riproduzione, come oggi. Il pulsante «Modalità schermo intero» resta disponibile: finché un brano è in riproduzione, compare in alto a destra in ogni schermata.",
   "settings.animationRateSmooth": "Fluido: la resa di oggi",
   "settings.animationRateSaving": "Economico: circa il 30 % di processore in meno",
   "settings.animationRateMinimal": "Minimo: circa il 40 % in meno, gli indicatori appaiono un po' a scatti",
@@ -8540,6 +8539,8 @@ export default {
   "cloud.reconnexionRequise": "Connessione a mozaiklabs.fr scaduta: Tune Circle e la copia online sono in pausa. Riconnettiti senza usare «Disconnetti», che cancellerebbe la copia online e le tue condivisioni.",
   "cloud.reconnexionRequiseDepuis": "Connessione a mozaiklabs.fr scaduta dal {date}: Tune Circle e la copia online sono in pausa. Riconnettiti senza usare «Disconnetti», che cancellerebbe la copia online e le tue condivisioni.",
   "cloud.seReconnecter": "Riconnettiti",
+  "nowplaying.fullscreenMode": "Modalità schermo intero",
+  "nowplaying.lyricsWrittenBy": "Scritto da {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

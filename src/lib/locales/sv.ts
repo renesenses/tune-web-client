@@ -2521,7 +2521,6 @@ export default {
   "settings.ingestMode": "Åtgärd på källfilerna",
   "settings.ingestConflict": "Vid konflikt",
   // Storbildsläge (TV) + sångtexter
-  "nowplaying.tvMode": "Storbildsläge",
   "tv.lyrics": "Sångtexter",
   "tv.vuInstrument": "Nivåinstrument",
   "tv.vuInstrument.off": "Ingen",
@@ -5262,7 +5261,7 @@ export default {
   "settings.sidebarMoved": "{x}: plats {p} av {n}",
   "settings.sidebarDrag": "Dra för att flytta {x}",
   "settings.nowPlayingLinkToSource": "”Spelas nu” öppnar albumet eller spellistan",
-  "settings.nowPlayingLinkToSourceHint": "Posten ”Spelas nu” i sidofältet och miniatyren i uppspelningsfältet öppnar sidan för albumet som spelas, eller för spellistan om uppspelningen startade därifrån. För en radiostation, eller om ingen sida finns, öppnas skärmen Spelas nu, som i dag. Knappen ”Storbildsläge” finns kvar: så länge ett spår spelas visas den uppe till höger på alla skärmar.",
+  "settings.nowPlayingLinkToSourceHint": "Posten ”Spelas nu” i sidofältet och miniatyren i uppspelningsfältet öppnar sidan för albumet som spelas, eller för spellistan om uppspelningen startade därifrån. För en radiostation, eller om ingen sida finns, öppnas skärmen Spelas nu, som i dag. Knappen ”Helskärmsläge” finns kvar: så länge ett spår spelas visas den uppe till höger på alla skärmar.",
   "settings.animationRateSmooth": "Mjuk — dagens visning",
   "settings.animationRateSaving": "Sparsam — omkring 30 % mindre processor",
   "settings.animationRateMinimal": "Minimal — omkring 40 % mindre, mätarna rör sig lite ryckigt",
@@ -8539,4 +8538,6 @@ export default {
   "cloud.reconnexionRequise": "Anslutningen till mozaiklabs.fr har gått ut: Tune Circle och onlinekopian är pausade. Anslut igen utan att använda ”Logga ut”, som skulle radera onlinekopian och dina delningar.",
   "cloud.reconnexionRequiseDepuis": "Anslutningen till mozaiklabs.fr gick ut {date}: Tune Circle och onlinekopian är pausade. Anslut igen utan att använda ”Logga ut”, som skulle radera onlinekopian och dina delningar.",
   "cloud.seReconnecter": "Anslut igen",
+  "nowplaying.fullscreenMode": "Helskärmsläge",
+  "nowplaying.lyricsWrittenBy": "Skriven av {noms}",
 } as const;

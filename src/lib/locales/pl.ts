@@ -3282,7 +3282,6 @@ export default {
   "settings.ingest": "Dodawanie zawartości",
   "settings.ingestMode": "Działanie na plikach źródłowych",
   "settings.ingestConflict": "W razie konfliktu",
-  "nowplaying.tvMode": "Tryb dużego ekranu",
   "tv.lyrics": "Tekst",
   "tv.vuInstrument": "Wskaźnik poziomu",
   "tv.vuInstrument.off": "Brak",
@@ -5135,7 +5134,7 @@ export default {
   "settings.sidebarMoved": "{x}: pozycja {p} z {n}",
   "settings.sidebarDrag": "Przeciągnij, aby przenieść {x}",
   "settings.nowPlayingLinkToSource": "„Teraz odtwarzane” otwiera album lub playlistę",
-  "settings.nowPlayingLinkToSourceHint": "Pozycja „Teraz odtwarzane” na pasku bocznym oraz miniatura na pasku odtwarzania otwierają stronę odtwarzanego albumu lub playlisty, jeśli odtwarzanie zaczęło się od niej. W przypadku stacji radiowej lub gdy strona nie istnieje, otwiera się ekran „Teraz odtwarzane”, tak jak dotychczas. Przycisk „Tryb dużego ekranu” pozostaje dostępny: gdy odtwarzany jest utwór, widać go w prawym górnym rogu na każdym ekranie.",
+  "settings.nowPlayingLinkToSourceHint": "Pozycja „Teraz odtwarzane” na pasku bocznym oraz miniatura na pasku odtwarzania otwierają stronę odtwarzanego albumu lub playlisty, jeśli odtwarzanie zaczęło się od niej. W przypadku stacji radiowej lub gdy strona nie istnieje, otwiera się ekran „Teraz odtwarzane”, tak jak dotychczas. Przycisk „Tryb pełnoekranowy” pozostaje dostępny: gdy odtwarzany jest utwór, widać go w prawym górnym rogu na każdym ekranie.",
   "settings.animationRateSmooth": "Płynnie — dzisiejszy wygląd",
   "settings.animationRateSaving": "Oszczędnie — około 30% mniej obciążenia procesora",
   "settings.animationRateMinimal": "Minimalnie — około 40% mniej, mierniki lekko się szarpią",
@@ -8385,5 +8384,7 @@ export default {
   "cloud.reconnexionRequise": "Połączenie z mozaiklabs.fr wygasło: Tune Circle i kopia online są wstrzymane. Połącz się ponownie, nie używając „Wyloguj się”, które usunęłoby kopię online i Twoje udostępnienia.",
   "cloud.reconnexionRequiseDepuis": "Połączenie z mozaiklabs.fr wygasło {date}: Tune Circle i kopia online są wstrzymane. Połącz się ponownie, nie używając „Wyloguj się”, które usunęłoby kopię online i Twoje udostępnienia.",
   "cloud.seReconnecter": "Połącz ponownie",
+  "nowplaying.fullscreenMode": "Tryb pełnoekranowy",
+  "nowplaying.lyricsWrittenBy": "Autorzy: {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./pl')['default'];
