@@ -141,7 +141,30 @@ export const DELAI_APRES_ECHEC_MAX_MS = 30_000;
  * est réservé aux demandes qui viennent d'un GESTE ou d'un événement (écran
  * ouvert, tri changé, fin de scan), jamais d'une écriture dans ce magasin.
  */
-const demandesEnVol = new Map<string, Promise<api.PageAlbums>>();
+const demandesEnVol = new Map<string, Promise<api.PageAlbums | null>>();
+
+/**
+ * Fil du forum 3013 — LES PAGES PARTENT DEUX PAR DEUX, la plus récente d'abord.
+ *
+ * Mesuré (banc `defilementGrandeBibliotheque3013`) : sur un serveur lent,
+ * huit gestes de défilement sous « R » laissaient neuf pages EN VOL à la
+ * fois, la plupart déjà dépassées. Le serveur n'a que trois connexions de
+ * lecture : la page regardée passait après les autres, et le reste de
+ * l'interface attendait derrière elles. Désormais, au plus `PAGES_EN_VOL_MAX` pages
+ * partent ensemble ; les suivantes attendent leur tour, la DERNIÈRE demandée
+ * passe la première (c'est celle que l'écran montre), et une demande dont la
+ * liste ou la génération a changé pendant l'attente ne part pas du tout : sa
+ * réponse n'aurait pas été écrite.
+ */
+export const PAGES_EN_VOL_MAX = 2;
+let placesPrises = 0;
+const fileDesPages: (() => void)[] = [];
+function rendrePlace(): void {
+  // La place passe à la demande la plus RÉCENTE.
+  const suivante = fileDesPages.pop();
+  if (suivante) suivante();
+  else placesPrises = Math.max(0, placesPrises - 1);
+}
 
 export async function demanderPage(
   c: ClefDeListe, index: number, options: { forcer?: boolean } = {},
@@ -164,11 +187,29 @@ export async function demanderPage(
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
   try {
-    const requete = api.getAlbumsPagines({
-      limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
-    });
+    const envoyer = (): Promise<api.PageAlbums | null> => {
+      const e = get(albumsPagines);
+      // Périmée pendant l'attente (autre tri, fin de scan) : elle ne part pas.
+      if (e.clef !== clef || e.generation !== gen) {
+        rendrePlace();
+        return Promise.resolve(null);
+      }
+      try {
+        return api.getAlbumsPagines({
+          limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
+        }).finally(rendrePlace);
+      } catch (err) {
+        rendrePlace();
+        return Promise.reject(err);
+      }
+    };
+    // Une place libre : la requête part TOUT DE SUITE, dans ce même appel.
+    const requete = placesPrises < PAGES_EN_VOL_MAX
+      ? (placesPrises++, envoyer())
+      : new Promise<void>((r) => fileDesPages.push(r)).then(envoyer);
     demandesEnVol.set(demande, requete);
     const page = await requete;
+    if (page == null) return;
     albumsPagines.update((e) => {
       const enVol = new Set(e.enVol); enVol.delete(index);
       // Une réponse d'une autre liste ou d'une génération passée ne s'écrit pas.
@@ -430,6 +471,8 @@ export function mettreAJourAlbums(ids: Iterable<number>, maj: Partial<Album>): v
 /** Pour les témoins : tout à zéro, comme au premier chargement du module. */
 export function _remiseAZeroPourTests(): void {
   demandesEnVol.clear();
+  placesPrises = 0;
+  fileDesPages.length = 0;
   albumsPagines.set(etatInitial());
   generation.set(0);
   listePerimee.set(false);
