@@ -168,6 +168,23 @@ export function lirePlaylistGeneree(zoneId: number, p: PlaylistGeneree): Promise
 }
 
 /**
+ * « Lire » depuis le panneau : la liste part, et le panneau se ferme. Quand
+ * AUCUN titre n'est jouable, rien n'est demandé au serveur, rien ne joue, et
+ * le panneau RESTE ouvert avec un message : il se fermait sans un mot (forum,
+ * relevé rc14 du 21/11), comme si la lecture était partie.
+ */
+export async function lireDepuisLePanneau(
+  zoneId: number,
+  p: PlaylistGeneree,
+  suite: { fermer: () => void; rienAJouer: () => void },
+): Promise<number> {
+  const n = await lirePlaylistGeneree(zoneId, p);
+  if (n > 0) suite.fermer();
+  else suite.rienAJouer();
+  return n;
+}
+
+/**
  * Les titres par SEGMENTS de même nature, dans l'ordre : une requête qui mêle
  * `track_ids` et `streaming_tracks` range les locaux d'abord, et l'ordre
  * composé par le serveur serait perdu.

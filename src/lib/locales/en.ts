@@ -1979,6 +1979,7 @@ export default {
   "v2.home.becauseYouLikeName": "Playlist name",
   "v2.home.becauseYouLikeSaved": "Playlist “{nom}” saved",
   "v2.home.becauseYouLikeNoZone": "Choose a listening zone first",
+  "v2.home.becauseYouLikeNothingPlayable": "None of the tracks in this playlist can be played here: nothing was started.",
   "v2.home.becauseYouLikeRefresh": "new mix every {n} days",
   "v2.home.becauseYouLikePartial": "Some tracks could not be added: the playlist “{nom}” is incomplete.",
   "v2.home.becauseYouLikeDeletePartial": "Delete the incomplete playlist",
@@ -2488,6 +2489,7 @@ export default {
   "machineAction.port80Relay": "This appliance relays port 80, so Tune cannot tell a local call from a network call. Enable authentication and sign in with an administrator account.",
   "machineAction.whereToEnable": "To enable authentication: Settings > System > Authentication (from another device, with the one-time code shown by docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Only an administrator account can shut down or restart the machine. Sign in with an administrator account.",
+  "machineAction.openAuthSettings": "Open the Authentication setting",
   "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
   "settings.updateInstallFailed": "The update failed. Reason given by the server: {reason}",
   "settings.updateButton": "Update",
@@ -8222,6 +8224,7 @@ export default {
   "login.unexpectedResponse": "Unexpected response from the server.",
   "login.networkError": "Network error.",
   "login.errorStatus": "Error {status}",
+  "login.invalidCredentials": "Incorrect username or password.",
   "v2.ambiance.acousticEnableError": "Could not enable acoustic analysis",
   "v2.pl.transferFailed": "Transfer failed",
   "v2.menu.addTo": "Add to",
@@ -8312,7 +8315,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Sign in",
-  "login.identifierPlaceholder": "Email or username",
+  "login.identifierPlaceholder": "Username",
   "login.passwordPlaceholder": "Password",
   "login.signingIn": "Signing in…",
   "login.or": "or",

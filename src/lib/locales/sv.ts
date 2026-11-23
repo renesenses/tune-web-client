@@ -1614,6 +1614,7 @@ export default {
   "machineAction.port80Relay": "Den här enheten vidarebefordrar port 80, så Tune kan inte skilja ett lokalt anrop från ett nätverksanrop. Aktivera autentisering och logga in med ett administratörskonto.",
   "machineAction.whereToEnable": "Så aktiverar du autentisering: Inställningar > System > Autentisering (från en annan enhet, med engångskoden som visas av docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Endast ett administratörskonto kan stänga av eller starta om maskinen. Logga in med ett administratörskonto.",
+  "machineAction.openAuthSettings": "Öppna inställningen Autentisering",
   "settings.updateStatusUnknown": "Går inte att avgöra om uppdateringen installerades: servern svarade inte. Ladda om sidan för att se vilken version som körs.",
   "settings.updateInstallFailed": "Uppdateringen misslyckades. Orsak enligt servern: {reason}",
   "settings.updateButton": "Uppdatera",
@@ -3233,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "Spellistans namn",
   "v2.home.becauseYouLikeSaved": "Spellistan ”{nom}” sparad",
   "v2.home.becauseYouLikeNoZone": "Välj en lyssningszon först",
+  "v2.home.becauseYouLikeNothingPlayable": "Inget spår i den här spellistan kan spelas här: ingenting startades.",
   "v2.home.becauseYouLikeRefresh": "ny mix var {n}:e dag",
   "v2.home.becauseYouLikePartial": "Vissa spår kunde inte läggas till: spellistan ”{nom}” är ofullständig.",
   "v2.home.becauseYouLikeDeletePartial": "Ta bort den ofullständiga spellistan",
@@ -8201,6 +8203,7 @@ export default {
   "login.unexpectedResponse": "Oväntat svar från servern.",
   "login.networkError": "Nätverksfel.",
   "login.errorStatus": "Fel {status}",
+  "login.invalidCredentials": "Fel användarnamn eller lösenord.",
   "v2.ambiance.acousticEnableError": "Det gick inte att aktivera akustisk analys",
   "v2.pl.transferFailed": "Överföringen misslyckades",
   "v2.menu.addTo": "Lägg till i",
@@ -8291,7 +8294,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Logga in",
-  "login.identifierPlaceholder": "E-post eller användarnamn",
+  "login.identifierPlaceholder": "Användarnamn",
   "login.passwordPlaceholder": "Lösenord",
   "login.signingIn": "Loggar in…",
   "login.or": "eller",

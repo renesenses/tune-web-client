@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeName": "Nazwa playlisty",
   "v2.home.becauseYouLikeSaved": "Playlista „{nom}” zapisana",
   "v2.home.becauseYouLikeNoZone": "Najpierw wybierz strefę odsłuchu",
+  "v2.home.becauseYouLikeNothingPlayable": "Żadnego utworu z tej playlisty nie można tu odtworzyć: nic nie zostało uruchomione.",
   "v2.home.becauseYouLikeRefresh": "nowy mix co {n} dni",
   "v2.home.becauseYouLikePartial": "Nie udało się dodać niektórych utworów: playlista „{nom}” jest niekompletna.",
   "v2.home.becauseYouLikeDeletePartial": "Usuń niekompletną playlistę",
@@ -2342,6 +2343,7 @@ export default {
   "machineAction.port80Relay": "To urządzenie przekierowuje port 80, więc Tune nie odróżni wywołania lokalnego od sieciowego. Włącz uwierzytelnianie i zaloguj się na konto administratora.",
   "machineAction.whereToEnable": "Aby włączyć uwierzytelnianie: Ustawienia > System > Uwierzytelnianie (z innego urządzenia, z kodem jednorazowym wyświetlanym przez docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Tylko konto administratora może wyłączyć lub ponownie uruchomić urządzenie. Zaloguj się na konto administratora.",
+  "machineAction.openAuthSettings": "Otwórz ustawienie Uwierzytelnianie",
   "settings.updateStatusUnknown": "Nie wiadomo, czy aktualizacja została zainstalowana: serwer nie odpowiedział. Odśwież stronę, aby zobaczyć działającą wersję.",
   "settings.updateInstallFailed": "Aktualizacja nie powiodła się. Przyczyna podana przez serwer: {reason}",
   "settings.updateButton": "Zaktualizuj",
@@ -8047,6 +8049,7 @@ export default {
   "login.unexpectedResponse": "Nieoczekiwana odpowiedź serwera.",
   "login.networkError": "Błąd sieci.",
   "login.errorStatus": "Błąd {status}",
+  "login.invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło.",
   "v2.ambiance.acousticEnableError": "Nie udało się włączyć analizy akustycznej",
   "v2.pl.transferFailed": "Przeniesienie nie powiodło się",
   "v2.menu.addTo": "Dodaj do",
@@ -8137,7 +8140,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Zaloguj się",
-  "login.identifierPlaceholder": "E-mail lub nazwa użytkownika",
+  "login.identifierPlaceholder": "Nazwa użytkownika",
   "login.passwordPlaceholder": "Hasło",
   "login.signingIn": "Logowanie…",
   "login.or": "lub",

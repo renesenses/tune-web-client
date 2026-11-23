@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "このアプライアンスはポート 80 を中継しているため、Tune はローカルからの呼び出しとネットワークからの呼び出しを区別できません。認証を有効にして管理者アカウントでサインインしてください。",
   "machineAction.whereToEnable": "認証を有効にするには：設定 > システム > 認証（別の端末からは、docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)）。",
   "machineAction.adminRequired": "マシンのシャットダウンや再起動は管理者アカウントのみ実行できます。管理者アカウントでサインインしてください。",
+  "machineAction.openAuthSettings": "認証の設定を開く",
   "settings.updateStatusUnknown": "更新がインストールされたか判断できません。サーバーが応答しませんでした。ページを再読み込みして実行中のバージョンを確認してください。",
   "settings.updateInstallFailed": "更新に失敗しました。サーバーが示した理由: {reason}",
   "settings.updateButton": "アップデート",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "プレイリスト名",
   "v2.home.becauseYouLikeSaved": "プレイリスト「{nom}」を保存しました",
   "v2.home.becauseYouLikeNoZone": "まず再生ゾーンを選択してください",
+  "v2.home.becauseYouLikeNothingPlayable": "このプレイリストの曲はここでは再生できません。何も開始されていません。",
   "v2.home.becauseYouLikeRefresh": "{n}日ごとに新しいミックス",
   "v2.home.becauseYouLikePartial": "一部の曲を追加できませんでした。プレイリスト「{nom}」は不完全です。",
   "v2.home.becauseYouLikeDeletePartial": "不完全なプレイリストを削除",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "サーバーから予期しない応答がありました。",
   "login.networkError": "ネットワークエラー。",
   "login.errorStatus": "エラー {status}",
+  "login.invalidCredentials": "ユーザー名またはパスワードが正しくありません。",
   "v2.ambiance.acousticEnableError": "音響解析を有効にできませんでした",
   "v2.pl.transferFailed": "転送できませんでした",
   "v2.menu.addTo": "追加先",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "サインイン",
-  "login.identifierPlaceholder": "メールアドレスまたはユーザー名",
+  "login.identifierPlaceholder": "ユーザー名",
   "login.passwordPlaceholder": "パスワード",
   "login.signingIn": "サインイン中…",
   "login.or": "または",

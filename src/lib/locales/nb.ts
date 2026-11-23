@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeName": "Navn på spillelisten",
   "v2.home.becauseYouLikeSaved": "Spillelisten «{nom}» er lagret",
   "v2.home.becauseYouLikeNoZone": "Velg en lyttesone først",
+  "v2.home.becauseYouLikeNothingPlayable": "Ingen spor i denne spillelisten kan spilles her: ingenting ble startet.",
   "v2.home.becauseYouLikeRefresh": "ny miks hver {n}. dag",
   "v2.home.becauseYouLikePartial": "Noen spor kunne ikke legges til: spillelisten «{nom}» er ufullstendig.",
   "v2.home.becauseYouLikeDeletePartial": "Slett den ufullstendige spillelisten",
@@ -2342,6 +2343,7 @@ export default {
   "machineAction.port80Relay": "Denne enheten videresender port 80, så Tune kan ikke skille et lokalt kall fra et nettverkskall. Slå på autentisering og logg inn med en administratorkonto.",
   "machineAction.whereToEnable": "Slik slår du på autentisering: Innstillinger > System > Autentisering (fra en annen enhet, med engangskoden som vises av docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Bare en administratorkonto kan slå av eller starte maskinen på nytt. Logg inn med en administratorkonto.",
+  "machineAction.openAuthSettings": "Åpne innstillingen Autentisering",
   "settings.updateStatusUnknown": "Kan ikke si om oppdateringen ble installert: serveren svarte ikke. Last siden på nytt for å se versjonen som kjører.",
   "settings.updateInstallFailed": "Oppdateringen mislyktes. Årsak oppgitt av serveren: {reason}",
   "settings.updateButton": "Oppdater",
@@ -8047,6 +8049,7 @@ export default {
   "login.unexpectedResponse": "Uventet svar fra serveren.",
   "login.networkError": "Nettverksfeil.",
   "login.errorStatus": "Feil {status}",
+  "login.invalidCredentials": "Feil brukernavn eller passord.",
   "v2.ambiance.acousticEnableError": "Kunne ikke aktivere akustisk analyse",
   "v2.pl.transferFailed": "Overføringen mislyktes",
   "v2.menu.addTo": "Legg til i",
@@ -8137,7 +8140,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Logg inn",
-  "login.identifierPlaceholder": "E-post eller brukernavn",
+  "login.identifierPlaceholder": "Brukernavn",
   "login.passwordPlaceholder": "Passord",
   "login.signingIn": "Logger inn…",
   "login.or": "eller",

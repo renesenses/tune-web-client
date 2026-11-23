@@ -1982,6 +1982,7 @@ export default {
   "v2.home.becauseYouLikeName": "Nom de la playlist",
   "v2.home.becauseYouLikeSaved": "Playlist « {nom} » enregistrée",
   "v2.home.becauseYouLikeNoZone": "Choisissez d'abord une zone d'écoute",
+  "v2.home.becauseYouLikeNothingPlayable": "Aucun titre de cette playlist n'est jouable ici : rien n'a été lancé.",
   "v2.home.becauseYouLikeRefresh": "nouveau mix tous les {n} jours",
   "v2.home.becauseYouLikePartial": "Certains titres n'ont pas pu être ajoutés : la playlist « {nom} » est incomplète.",
   "v2.home.becauseYouLikeDeletePartial": "Supprimer la playlist incomplète",
@@ -2491,6 +2492,7 @@ export default {
   "machineAction.port80Relay": "Cette appliance relaie le port 80 : Tune ne peut pas distinguer un appel local d’un appel du réseau. Activez l’authentification et connectez-vous avec un compte administrateur.",
   "machineAction.whereToEnable": "Pour activer l’authentification : Réglages > Système > Authentification (depuis un autre appareil, avec le code à usage unique affiché par docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Seul un compte administrateur peut éteindre ou redémarrer la machine. Connectez-vous avec un compte administrateur.",
+  "machineAction.openAuthSettings": "Ouvrir le réglage Authentification",
   "settings.updateStatusUnknown": "Impossible de savoir si la mise à jour s'est installée : le serveur n'a pas répondu. Rechargez la page pour voir la version en cours.",
   "settings.updateInstallFailed": "La mise à jour a échoué. Raison donnée par le serveur : {reason}",
   "settings.updateButton": "Mettre à jour",
@@ -8224,6 +8226,7 @@ export default {
   "login.unexpectedResponse": "Réponse inattendue du serveur.",
   "login.networkError": "Erreur réseau.",
   "login.errorStatus": "Erreur {status}",
+  "login.invalidCredentials": "Identifiant ou mot de passe incorrect.",
   "v2.ambiance.acousticEnableError": "Impossible d'activer l'analyse acoustique",
   "v2.pl.transferFailed": "Transfert impossible",
   "v2.menu.addTo": "Ajouter à",
@@ -8314,7 +8317,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Se connecter",
-  "login.identifierPlaceholder": "E-mail ou identifiant",
+  "login.identifierPlaceholder": "Identifiant",
   "login.passwordPlaceholder": "Mot de passe",
   "login.signingIn": "Connexion…",
   "login.or": "ou",

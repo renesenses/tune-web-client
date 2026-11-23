@@ -1649,6 +1649,7 @@ export default {
   "machineAction.port80Relay": "이 어플라이언스는 포트 80을 중계하므로 Tune이 로컬 호출과 네트워크 호출을 구분할 수 없습니다. 인증을 켜고 관리자 계정으로 로그인하세요.",
   "machineAction.whereToEnable": "인증을 켜려면: 설정 > 시스템 > 인증(다른 기기에서는 docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "관리자 계정만 기기를 종료하거나 다시 시작할 수 있습니다. 관리자 계정으로 로그인하세요.",
+  "machineAction.openAuthSettings": "인증 설정 열기",
   "settings.updateStatusUnknown": "업데이트가 설치되었는지 알 수 없습니다. 서버가 응답하지 않았습니다. 페이지를 새로 고쳐 실행 중인 버전을 확인하세요.",
   "settings.updateInstallFailed": "업데이트에 실패했습니다. 서버가 알려 준 이유: {reason}",
   "settings.updateButton": "업데이트",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "플레이리스트 이름",
   "v2.home.becauseYouLikeSaved": "플레이리스트 “{nom}” 저장됨",
   "v2.home.becauseYouLikeNoZone": "먼저 재생 구역을 선택하세요",
+  "v2.home.becauseYouLikeNothingPlayable": "이 재생목록의 곡은 여기서 재생할 수 없습니다. 아무것도 시작되지 않았습니다.",
   "v2.home.becauseYouLikeRefresh": "{n}일마다 새 믹스",
   "v2.home.becauseYouLikePartial": "일부 곡을 추가하지 못했습니다. 플레이리스트 “{nom}”이(가) 불완전합니다.",
   "v2.home.becauseYouLikeDeletePartial": "불완전한 플레이리스트 삭제",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "서버에서 예기치 않은 응답이 왔습니다.",
   "login.networkError": "네트워크 오류입니다.",
   "login.errorStatus": "오류 {status}",
+  "login.invalidCredentials": "사용자 이름 또는 비밀번호가 올바르지 않습니다.",
   "v2.ambiance.acousticEnableError": "음향 분석을 활성화할 수 없습니다",
   "v2.pl.transferFailed": "전송하지 못했습니다",
   "v2.menu.addTo": "추가 대상",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "로그인",
-  "login.identifierPlaceholder": "이메일 또는 사용자 이름",
+  "login.identifierPlaceholder": "사용자 이름",
   "login.passwordPlaceholder": "비밀번호",
   "login.signingIn": "로그인 중…",
   "login.or": "또는",

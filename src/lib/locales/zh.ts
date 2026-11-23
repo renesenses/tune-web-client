@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "此设备转发了 80 端口，Tune 无法区分本机调用和网络调用。请开启身份验证并使用管理员帐户登录。",
   "machineAction.whereToEnable": "开启身份验证：设置 > 系统 > 身份验证（从其他设备操作时，使用 docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)）。",
   "machineAction.adminRequired": "只有管理员账户才能关闭或重启这台机器。请使用管理员账户登录。",
+  "machineAction.openAuthSettings": "打开“身份验证”设置",
   "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
   "settings.updateInstallFailed": "更新失败。服务器给出的原因：{reason}",
   "settings.updateButton": "更新",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "播放列表名称",
   "v2.home.becauseYouLikeSaved": "已保存播放列表「{nom}」",
   "v2.home.becauseYouLikeNoZone": "请先选择收听区域",
+  "v2.home.becauseYouLikeNothingPlayable": "此播放列表中没有可在此播放的曲目：未开始播放任何内容。",
   "v2.home.becauseYouLikeRefresh": "每 {n} 天更新一次",
   "v2.home.becauseYouLikePartial": "部分曲目未能添加：播放列表「{nom}」不完整。",
   "v2.home.becauseYouLikeDeletePartial": "删除不完整的播放列表",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "服务器返回了意外的响应。",
   "login.networkError": "网络错误。",
   "login.errorStatus": "错误 {status}",
+  "login.invalidCredentials": "用户名或密码错误。",
   "v2.ambiance.acousticEnableError": "无法启用声学分析",
   "v2.pl.transferFailed": "传输失败",
   "v2.menu.addTo": "添加到",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "登录",
-  "login.identifierPlaceholder": "邮箱或用户名",
+  "login.identifierPlaceholder": "用户名",
   "login.passwordPlaceholder": "密码",
   "login.signingIn": "正在登录…",
   "login.or": "或",

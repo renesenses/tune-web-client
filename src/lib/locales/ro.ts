@@ -1679,6 +1679,7 @@ export default {
   "machineAction.port80Relay": "Acest echipament redirecționează portul 80, așa că Tune nu poate deosebi un apel local de unul din rețea. Activați autentificarea și conectați-vă cu un cont de administrator.",
   "machineAction.whereToEnable": "Pentru a activa autentificarea: Setări > Sistem > Autentificare (de pe alt dispozitiv, cu codul de unică folosință afișat de docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Doar un cont de administrator poate opri sau reporni mașina. Conectați-vă cu un cont de administrator.",
+  "machineAction.openAuthSettings": "Deschideți setarea Autentificare",
   "settings.updateStatusUnknown": "Nu se poate şti dacă actualizarea s-a instalat: serverul nu a răspuns. Reîncarcă pagina pentru a vedea versiunea curentă.",
   "settings.updateInstallFailed": "Actualizarea a eșuat. Motivul dat de server: {reason}",
   "settings.updateButton": "Actualizează",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "Numele playlistului",
   "v2.home.becauseYouLikeSaved": "Playlistul „{nom}” a fost salvat",
   "v2.home.becauseYouLikeNoZone": "Alege mai întâi o zonă de ascultare",
+  "v2.home.becauseYouLikeNothingPlayable": "Niciun titlu din această listă nu poate fi redat aici: nu a pornit nimic.",
   "v2.home.becauseYouLikeRefresh": "mix nou la fiecare {n} zile",
   "v2.home.becauseYouLikePartial": "Unele piese nu au putut fi adăugate: playlistul „{nom}” este incomplet.",
   "v2.home.becauseYouLikeDeletePartial": "Șterge playlistul incomplet",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "Răspuns neașteptat de la server.",
   "login.networkError": "Eroare de rețea.",
   "login.errorStatus": "Eroare {status}",
+  "login.invalidCredentials": "Nume de utilizator sau parolă incorecte.",
   "v2.ambiance.acousticEnableError": "Analiza acustică nu a putut fi activată",
   "v2.pl.transferFailed": "Transferul a eșuat",
   "v2.menu.addTo": "Adaugă la",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Conectare",
-  "login.identifierPlaceholder": "E-mail sau nume de utilizator",
+  "login.identifierPlaceholder": "Nume de utilizator",
   "login.passwordPlaceholder": "Parolă",
   "login.signingIn": "Se conectează…",
   "login.or": "sau",

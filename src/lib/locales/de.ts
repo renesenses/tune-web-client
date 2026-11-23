@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "Diese Appliance leitet Port 80 weiter, daher kann Tune einen lokalen Aufruf nicht von einem Netzwerkaufruf unterscheiden. Aktivieren Sie die Authentifizierung und melden Sie sich mit einem Administratorkonto an.",
   "machineAction.whereToEnable": "Authentifizierung aktivieren: Einstellungen > System > Authentifizierung (von einem anderen Gerät mit dem Einmalcode aus docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Nur ein Administratorkonto kann das Gerät herunterfahren oder neu starten. Melden Sie sich mit einem Administratorkonto an.",
+  "machineAction.openAuthSettings": "Einstellung Authentifizierung öffnen",
   "settings.updateStatusUnknown": "Es lässt sich nicht feststellen, ob die Aktualisierung installiert wurde: der Server hat nicht geantwortet. Laden Sie die Seite neu, um die laufende Version zu sehen.",
   "settings.updateInstallFailed": "Die Aktualisierung ist fehlgeschlagen. Vom Server genannter Grund: {reason}",
   "settings.updateButton": "Aktualisieren",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "Name der Playlist",
   "v2.home.becauseYouLikeSaved": "Playlist „{nom}“ gespeichert",
   "v2.home.becauseYouLikeNoZone": "Wähle zuerst eine Wiedergabezone",
+  "v2.home.becauseYouLikeNothingPlayable": "Kein Titel dieser Playlist ist hier abspielbar: Es wurde nichts gestartet.",
   "v2.home.becauseYouLikeRefresh": "neuer Mix alle {n} Tage",
   "v2.home.becauseYouLikePartial": "Einige Titel konnten nicht hinzugefügt werden: Die Playlist „{nom}“ ist unvollständig.",
   "v2.home.becauseYouLikeDeletePartial": "Unvollständige Playlist löschen",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "Unerwartete Antwort des Servers.",
   "login.networkError": "Netzwerkfehler.",
   "login.errorStatus": "Fehler {status}",
+  "login.invalidCredentials": "Benutzername oder Passwort falsch.",
   "v2.ambiance.acousticEnableError": "Akustische Analyse konnte nicht aktiviert werden",
   "v2.pl.transferFailed": "Übertragung fehlgeschlagen",
   "v2.menu.addTo": "Hinzufügen zu",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Anmelden",
-  "login.identifierPlaceholder": "E-Mail oder Benutzername",
+  "login.identifierPlaceholder": "Benutzername",
   "login.passwordPlaceholder": "Passwort",
   "login.signingIn": "Anmeldung…",
   "login.or": "oder",

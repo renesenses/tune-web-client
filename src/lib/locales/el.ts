@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeName": "Όνομα λίστας",
   "v2.home.becauseYouLikeSaved": "Η λίστα «{nom}» αποθηκεύτηκε",
   "v2.home.becauseYouLikeNoZone": "Επιλέξτε πρώτα μια ζώνη ακρόασης",
+  "v2.home.becauseYouLikeNothingPlayable": "Κανένα κομμάτι αυτής της λίστας δεν μπορεί να παιχτεί εδώ: δεν ξεκίνησε τίποτα.",
   "v2.home.becauseYouLikeRefresh": "νέο μείγμα κάθε {n} ημέρες",
   "v2.home.becauseYouLikePartial": "Ορισμένα κομμάτια δεν προστέθηκαν: η λίστα «{nom}» είναι ελλιπής.",
   "v2.home.becauseYouLikeDeletePartial": "Διαγραφή της ελλιπούς λίστας",
@@ -2342,6 +2343,7 @@ export default {
   "machineAction.port80Relay": "Αυτή η συσκευή αναμεταδίδει τη θύρα 80, οπότε το Tune δεν μπορεί να ξεχωρίσει μια τοπική κλήση από μια κλήση δικτύου. Ενεργοποιήστε τον έλεγχο ταυτότητας και συνδεθείτε με λογαριασμό διαχειριστή.",
   "machineAction.whereToEnable": "Για ενεργοποίηση του ελέγχου ταυτότητας: Ρυθμίσεις > Σύστημα > Έλεγχος ταυτότητας (από άλλη συσκευή, με τον κωδικό μίας χρήσης που εμφανίζουν τα docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Μόνο ένας λογαριασμός διαχειριστή μπορεί να τερματίσει ή να επανεκκινήσει το μηχάνημα. Συνδεθείτε με λογαριασμό διαχειριστή.",
+  "machineAction.openAuthSettings": "Άνοιγμα της ρύθμισης Έλεγχος ταυτότητας",
   "settings.updateStatusUnknown": "Δεν είναι γνωστό αν εγκαταστάθηκε η ενημέρωση: ο διακομιστής δεν απάντησε. Επαναφορτώστε τη σελίδα για να δείτε την έκδοση που εκτελείται.",
   "settings.updateInstallFailed": "Η ενημέρωση απέτυχε. Αιτία που δόθηκε από τον διακομιστή: {reason}",
   "settings.updateButton": "Ενημέρωση",
@@ -8047,6 +8049,7 @@ export default {
   "login.unexpectedResponse": "Μη αναμενόμενη απάντηση από τον διακομιστή.",
   "login.networkError": "Σφάλμα δικτύου.",
   "login.errorStatus": "Σφάλμα {status}",
+  "login.invalidCredentials": "Λάθος όνομα χρήστη ή κωδικός πρόσβασης.",
   "v2.ambiance.acousticEnableError": "Δεν ήταν δυνατή η ενεργοποίηση της ακουστικής ανάλυσης",
   "v2.pl.transferFailed": "Η μεταφορά απέτυχε",
   "v2.menu.addTo": "Προσθήκη σε",
@@ -8137,7 +8140,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Σύνδεση",
-  "login.identifierPlaceholder": "Email ή όνομα χρήστη",
+  "login.identifierPlaceholder": "Όνομα χρήστη",
   "login.passwordPlaceholder": "Κωδικός πρόσβασης",
   "login.signingIn": "Σύνδεση…",
   "login.or": "ή",

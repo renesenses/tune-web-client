@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "Este equipo redirige el puerto 80, así que Tune no puede distinguir una llamada local de una llamada de la red. Active la autenticación e inicie sesión con una cuenta de administrador.",
   "machineAction.whereToEnable": "Para activar la autenticación: Ajustes > Sistema > Autenticación (desde otro dispositivo, con el código de un solo uso que muestran docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Solo una cuenta de administrador puede apagar o reiniciar la máquina. Inicie sesión con una cuenta de administrador.",
+  "machineAction.openAuthSettings": "Abrir el ajuste Autenticación",
   "settings.updateStatusUnknown": "No se puede saber si la actualización se instaló: el servidor no respondió. Recarga la página para ver la versión en curso.",
   "settings.updateInstallFailed": "La actualización ha fallado. Motivo indicado por el servidor: {reason}",
   "settings.updateButton": "Actualizar",
@@ -3234,6 +3235,7 @@ export default {
   "v2.home.becauseYouLikeName": "Nombre de la playlist",
   "v2.home.becauseYouLikeSaved": "Playlist «{nom}» guardada",
   "v2.home.becauseYouLikeNoZone": "Elige primero una zona de escucha",
+  "v2.home.becauseYouLikeNothingPlayable": "Ningún título de esta lista se puede reproducir aquí: no se ha iniciado nada.",
   "v2.home.becauseYouLikeRefresh": "nuevo mix cada {n} días",
   "v2.home.becauseYouLikePartial": "No se pudieron añadir algunas canciones: la playlist «{nom}» está incompleta.",
   "v2.home.becauseYouLikeDeletePartial": "Eliminar la playlist incompleta",
@@ -8202,6 +8204,7 @@ export default {
   "login.unexpectedResponse": "Respuesta inesperada del servidor.",
   "login.networkError": "Error de red.",
   "login.errorStatus": "Error {status}",
+  "login.invalidCredentials": "Usuario o contraseña incorrectos.",
   "v2.ambiance.acousticEnableError": "No se pudo activar el análisis acústico",
   "v2.pl.transferFailed": "No se pudo transferir",
   "v2.menu.addTo": "Añadir a",
@@ -8292,7 +8295,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Iniciar sesión",
-  "login.identifierPlaceholder": "Correo o usuario",
+  "login.identifierPlaceholder": "Nombre de usuario",
   "login.passwordPlaceholder": "Contraseña",
   "login.signingIn": "Iniciando sesión…",
   "login.or": "o",

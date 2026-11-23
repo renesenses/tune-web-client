@@ -1770,6 +1770,7 @@ export default {
   "machineAction.port80Relay": "Ez az eszköz továbbítja a 80-as portot, ezért a Tune nem tudja megkülönböztetni a helyi hívást a hálózatitól. Kapcsolja be a hitelesítést, és jelentkezzen be rendszergazdai fiókkal.",
   "machineAction.whereToEnable": "A hitelesítés bekapcsolása: Beállítások > Rendszer > Hitelesítés (másik eszközről a docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Csak rendszergazdai fiók kapcsolhatja ki vagy indíthatja újra a gépet. Jelentkezzen be rendszergazdai fiókkal.",
+  "machineAction.openAuthSettings": "A Hitelesítés beállítás megnyitása",
   "settings.updateStatusUnknown": "Nem állapítható meg, hogy a frissítés települt-e: a kiszolgáló nem válaszolt. Töltse újra az oldalt a futó verzió megtekintéséhez.",
   "settings.updateInstallFailed": "A frissítés sikertelen. A kiszolgáló által megadott ok: {reason}",
   "settings.updateButton": "Frissítés",
@@ -3188,6 +3189,7 @@ export default {
   "v2.home.becauseYouLikeName": "Lista neve",
   "v2.home.becauseYouLikeSaved": "„{nom}” lista mentve",
   "v2.home.becauseYouLikeNoZone": "Először válassz hallgatási zónát",
+  "v2.home.becauseYouLikeNothingPlayable": "A lejátszási lista egyetlen száma sem játszható le itt: semmi sem indult el.",
   "v2.home.becauseYouLikeRefresh": "új mix {n} naponta",
   "v2.home.becauseYouLikePartial": "Néhány számot nem sikerült hozzáadni: a(z) „{nom}” lista hiányos.",
   "v2.home.becauseYouLikeDeletePartial": "Hiányos lista törlése",
@@ -8161,6 +8163,7 @@ export default {
   "login.unexpectedResponse": "Váratlan válasz a szervertől.",
   "login.networkError": "Hálózati hiba.",
   "login.errorStatus": "Hiba: {status}",
+  "login.invalidCredentials": "Hibás felhasználónév vagy jelszó.",
   "v2.ambiance.acousticEnableError": "Az akusztikai elemzés nem kapcsolható be",
   "v2.pl.transferFailed": "Az átvitel nem sikerült",
   "v2.menu.addTo": "Hozzáadás ehhez",
@@ -8251,7 +8254,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Bejelentkezés",
-  "login.identifierPlaceholder": "E-mail vagy felhasználónév",
+  "login.identifierPlaceholder": "Felhasználónév",
   "login.passwordPlaceholder": "Jelszó",
   "login.signingIn": "Bejelentkezés…",
   "login.or": "vagy",
