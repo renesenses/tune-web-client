@@ -232,6 +232,36 @@ describe('la liste entière, à la demande', () => {
     expect(get(listeEntierePerimee)).toBe(false);
   });
 
+  it("🔴 recette rc12 du .18 — une invalidation PENDANT le premier chargement : la liste s'écrit, PÉRIMÉE, au lieu de rester vide", async () => {
+    let repondre: (l: Album[]) => void = () => {};
+    vi.mocked(api.getAllAlbums).mockImplementationOnce(() => new Promise((r) => { repondre = r; }));
+    const p = demanderBibliothequeEntiere();
+    expect(get(libraryLoading)).toBe(true);
+    // `library.updated` (synchronisation UPnP) arrive pendant le chargement.
+    invaliderBibliotheque();
+    repondre(ALBUMS);
+    await p;
+    expect(get(albums).length, "la Bibliothèque n'est plus vide").toBe(TOTAL);
+    expect(get(listeEntierePerimee), "et l'écran la redemandera").toBe(true);
+    // La redemande part bien, de la génération courante, et la remplace.
+    await demanderBibliothequeEntiere();
+    expect(api.getAllAlbums).toHaveBeenCalledTimes(2);
+    expect(get(listeEntierePerimee)).toBe(false);
+  });
+
+  it("une invalidation pendant un RAFRAÎCHISSEMENT garde la liste à l'écran", async () => {
+    await demanderBibliothequeEntiere();
+    invaliderBibliotheque();
+    let repondre: (l: Album[]) => void = () => {};
+    vi.mocked(api.getAllAlbums).mockImplementationOnce(() => new Promise((r) => { repondre = r; }));
+    const p = demanderBibliothequeEntiere();
+    invaliderBibliotheque();
+    repondre(ALBUMS.slice(0, 3));
+    await p;
+    expect(get(albums).length, "l'ancienne liste reste jusqu'à la neuve").toBe(TOTAL);
+    expect(get(listeEntierePerimee)).toBe(true);
+  });
+
   it("un échec n'est pas mémorisé", async () => {
     vi.mocked(api.getAllAlbums).mockRejectedValueOnce(new Error('HTTP 500'));
     await expect(demanderBibliothequeEntiere()).rejects.toThrow('HTTP 500');

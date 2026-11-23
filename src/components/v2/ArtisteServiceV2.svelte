@@ -61,7 +61,8 @@
    * un second inventé pour l'occasion. C'est exactement la divergence v1/v2 qui
    * a produit ce chantier ; en créer une de plus serait le reproduire.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
@@ -71,13 +72,13 @@
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
-  import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFiltre, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
   import { departSimilaires, defilerVersSimilaires, retenirDepartSimilaires, retourAuxSimilairesVisible, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
-  import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
+  import { chargerTitresPhares, titresPharesJouables } from '../../lib/titresPharesArtiste';
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
@@ -109,6 +110,9 @@
   import { dansSource } from '../../lib/provenanceBibliotheque';
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
+  import ArtistesSimilaires from './ArtistesSimilaires.svelte';
+  import { ecoutesDe } from '../../lib/ecoutesCommunaute';
+  import { chiffresEnTete, ongletsArtiste, ongletValide, portraitsSimilaires, type OngletArtiste, type PortraitSimilaire } from '../../lib/pageArtisteMaquette';
 
   const cible = $derived($ficheArtisteService);
   /**
@@ -131,6 +135,17 @@
    * sans objet.
    */
   const provenance = $derived(estLocal ? (cible?.provenance ?? null) : null);
+  // Une portée demandée n'est effective que si CE serveur la prend en charge.
+  let dossierVerifie = $state<string | null>(null);
+  const dossier = $derived(estLocal ? dossierVerifie : null);
+  const nomDossier = $derived(dossier?.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dossier || '');
+  function retirerDossier() {
+    ficheArtisteService.update((c) => c && c.service == null ? { ...c, dossier: null } : c);
+  }
+  function chargerPistesLocales(id: number) {
+    return dossier ? api.getArtistTracks(id, dossier) : api.getArtistTracks(id);
+  }
+
   /**
    * rc12 — l'objet que « Lire ensuite » et « Ajouter à la file » du bouton
    * Lecture mettent en file : les gestes de la carte d'artiste (`gestesObjet`),
@@ -141,7 +156,7 @@
    */
   const objetFile = $derived.by((): ObjetMenu | null => {
     if (cible == null) return null;
-    if (estLocal) return artisteLocal?.id != null && provenance == null ? objetArtiste(artisteLocal) : null;
+    if (estLocal) return artisteLocal?.id != null && provenance == null && dossier == null ? objetArtiste(artisteLocal) : null;
     return titres.length ? objetArtiste({ source: cible.service, source_id: cible.id, name: artiste?.name || cible.nom }) : null;
   });
 
@@ -290,6 +305,11 @@
     try { titre.scrollIntoView({ block: 'start' }); } catch { /* jsdom, vieux moteur */ }
   });
   let creditsFiche = $state<TrackCredit[]>([]);
+  // Recette du 15/11 : des crédits SANS instrument laissaient « CRÉDITS » seul,
+  // sans rien dessous. Le titre ne s'ouvre que sur un instrument à montrer.
+  // Une réponse qui n'est pas une liste (serveur ancien, objet d'erreur) ne
+  // doit pas faire tomber la fiche : pas d'instrument, pas de titre.
+  const instrumentsFiche = $derived(Array.isArray(creditsFiche) ? uniqueInstruments(creditsFiche) : []);
   let enrichissement = $state(false);
   let jetonMeta = 0;
   /** L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…). */
@@ -308,7 +328,7 @@
     ]);
     if (jeton !== jetonMeta) return;
     metaFiche = m;
-    creditsFiche = c ?? [];
+    creditsFiche = Array.isArray(c) ? c : [];
   }
 
   /*
@@ -495,7 +515,10 @@
     // pose au chargement plutôt qu'à chaque geste : un seul endroit à ne pas
     // oublier, au lieu d'un par bouton.
     if (tt.status === 'fulfilled') {
-      titres = (tt.value ?? []).map((p) => ({ ...p, source: service })) as Track[];
+      // Recette rc12 (13/11) — `titresPharesJouables` garde la source que le
+      // serveur a posée (un fichier, un autre service) au lieu de l'écraser,
+      // et écarte un titre désigné par un appareil (CD sorti du lecteur).
+      titres = titresPharesJouables(tt.value as Track[], service);
       titresEnEchec = false;
     } else {
       // 🔴 #910 — UN REFUS N'EST PAS UNE ABSENCE.
@@ -543,7 +566,7 @@
    * sur un IDENTIFIANT, et chercher « M » dans la table qui porte « -M- » est
    * exactement l'échec que la prop `ouvrirId` d'`ArtistesV2` avait corrigé.
    */
-  async function chargerLocal(id: number) {
+  async function chargerLocal(id: number, dossierDemande: string | null) {
     const mien = ++jeton;
     chargement = true;
     artiste = null;
@@ -571,10 +594,22 @@
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
     void chargerMetadonnees(id);
+    dossierVerifie = null;
+    let portee: string | null = null;
+    if (dossierDemande) {
+      try {
+        const capacites = await api.fetchJSON<{ bibliotheque?: { artiste_par_dossier?: boolean } }>(`${api.BASE}/system/capabilities`);
+        if (capacites?.bibliotheque?.artiste_par_dossier === true) portee = dossierDemande;
+      } catch {
+        // Serveur ancien ou capacité indisponible : ne pas annoncer un filtre ignoré.
+      }
+      if (mien !== jeton) return;
+    }
+    dossierVerifie = portee;
     const [a, d] = await Promise.allSettled([
       api.getArtist(id),
       // #4767 — la discographie ET ses deux sections, en un aller-retour.
-      api.getArtistAlbumsSections(id),
+      portee ? api.getArtistAlbumsSections(id, portee) : api.getArtistAlbumsSections(id),
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled' && a.value) {
@@ -776,7 +811,7 @@
       const n = Number(c.id);
       // Un identifiant local qui n'est pas un nombre n'est pas une route : on
       // ne fabrique pas d'appel mort.
-      if (Number.isFinite(n)) void chargerLocal(n);
+      if (Number.isFinite(n)) void chargerLocal(n, c.dossier || null);
       return;
     }
     void charger(c.service, c.id);
@@ -803,6 +838,76 @@
           coverUrl: artiste?.image_path ?? undefined,
         }),
   );
+  /*
+   * ── Maquette de Levente (Figma 616:5810 / 616:5811, rc12) ────────────────
+   * Onglets, chiffres de l'en-tête, menu « … » et portraits des similaires.
+   * Les règles de forme sont dans `pageArtisteMaquette.ts`.
+   */
+  const albumsCompte = $derived(estLocal ? (dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)) : null);
+  const chiffres = $derived(chiffresEnTete({ albums: albumsCompte, ecoutes: estLocal ? ecoutesDe(artiste) : null, compteurs: estLocal ? compteurs : null }, (k) => $tr(k as any)));
+  const aDiscographie = $derived(!!(albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length
+    || apparitions.length || collaborations.length || ecriture.length || reprises.length || joueAvec.length));
+  const similairesFiche = $derived(artisteEditable ? (metaFiche?.similar_artists ?? []) : []);
+  const onglets = $derived(chargement ? [] : ongletsArtiste({ discographie: aDiscographie, similaires: similairesFiche.length }));
+  let ongletDemande = $state<OngletArtiste>('apercu');
+  const onglet = $derived(ongletValide(ongletDemande, onglets));
+  // Un autre artiste ouvert : retour à l'aperçu, et le menu « … » se referme.
+  let cleOnglet = '';
+  $effect(() => {
+    const k = `${cible?.service ?? ''}:${cible?.id ?? ''}`;
+    if (k === cleOnglet) return;
+    cleOnglet = k;
+    ongletDemande = 'apercu';
+    plusOuvert = false;
+  });
+  // web#2299 — « Retour aux similaires » vise la liste de l'aperçu.
+  $effect(() => { if ($defilerVersSimilaires) ongletDemande = 'apercu'; });
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — l'ONGLET de la page (Aperçu, Albums,
+   * Similaires), retrouvé par Précédent / Suivant sur la page du MÊME artiste.
+   * Rendu par un effet déclaré après celui qui remet l'aperçu à chaque
+   * artiste, dont le premier passage l'effacerait. Le défilement suit par la
+   * coquille (`lib/memoireNavigation`).
+   */
+  const memoirePageArtiste = memoireEcran<{ cle: string; onglet: OngletArtiste }>('streamingartist', () => ({
+    cle: `${cible?.service ?? ''}:${cible?.id ?? ''}`, onglet: String(ongletDemande) as OngletArtiste,
+  }));
+  $effect(() => memoirePageArtiste.arreter);
+  let repriseOngletFaite = false;
+  $effect(() => {
+    const r = memoirePageArtiste.reprise;
+    const k = `${cible?.service ?? ''}:${cible?.id ?? ''}`;
+    if (repriseOngletFaite || !r) return;
+    repriseOngletFaite = true;
+    if (r.cle === k) untrack(() => { ongletDemande = r.onglet; });
+  });
+  const libelleOnglet = (o: OngletArtiste) =>
+    $tr((o === 'apercu' ? 'artist.page.overview' : o === 'albums' ? 'v2.fas.albums' : 'artist.similarArtists') as any);
+
+  let plusOuvert = $state(false);
+  let zonePlus = $state<HTMLElement | null>(null);
+  function fermerPlusApresGeste(e: MouseEvent) {
+    const cible = e.target as Element | null;
+    if (cible?.closest('button') && !cible.closest('.report-wrap')) plusOuvert = false;
+  }
+  function fermerPlusDehors(e: MouseEvent) {
+    if (plusOuvert && zonePlus && !zonePlus.contains(e.target as Node)) plusOuvert = false;
+  }
+
+  let portraits = $state<Record<string, PortraitSimilaire>>({});
+  let clePortraits = '';
+  $effect(() => {
+    if (onglet !== 'similaires') return;
+    const noms = similairesFiche.map((x) => x.name);
+    const k = `${cible?.id ?? ''}|${noms.join('|')}`;
+    if (!noms.length || k === clePortraits) return;
+    clePortraits = k;
+    portraits = {};
+    void portraitsSimilaires(noms, (n) => api.searchLibrary(n, 5)).then((p) => {
+      if (k === clePortraits) portraits = p;
+    }).catch(() => { /* les initiales restent */ });
+  });
+
   let basculeCoeur = $state(false);
   async function basculerCoeurArtiste() {
     if (!coeurArtiste || basculeCoeur) return;
@@ -978,7 +1083,8 @@
       try {
         const n = await lireArtisteBibliotheque(idLocal, {
           lire: (c) => playAndSync(zid, c as any),
-          titres: (id) => api.getArtistTracks(id),
+          titres: async (id) => ((await chargerPistesLocales(id)) ?? []).filter((p) => provenance == null || dansSource(p, provenance)),
+          porteeRestreinte: dossier != null,
         });
         if (n === 0) notifications.error($tr('library.noTracks' as any));
       } catch (e: any) {
@@ -1012,8 +1118,8 @@
     }
     enMasseLocale = true;
     try {
-      if (provenance != null) {
-        const pistes = ((await api.getArtistTracks(a.id)) ?? []).filter((p) => dansSource(p, provenance));
+      if (provenance != null || dossier != null) {
+        const pistes = ((await chargerPistesLocales(a.id)) ?? []).filter((p) => provenance == null || dansSource(p, provenance));
         // #5284 — l'aléatoire rencontre le plafond de la file, comme partout.
         const n = await lirePistesSource(zid, a, aleatoire ? tirageAleatoire(pistes, await plafondFileAleatoire()) : pistes);
         if (!n) notifications.error($tr('library.noTracks' as any));
@@ -1055,6 +1161,8 @@
   </button>
 {/snippet}
 
+<!-- Le menu « … » de l'en-tête se referme au clic dehors et sur Échap. -->
+<svelte:window onclick={fermerPlusDehors} onkeydown={(e) => { if (e.key === 'Escape') plusOuvert = false; }} />
 {#if albumOuvert}
   <!-- `service` EN MÊME TEMPS que l'album : `AlbumDetailV2` n'apparie un album
        de streaming que sur la paire service + `source_id`, et l'ouvrir sans son
@@ -1079,11 +1187,20 @@
     provenance={estLocal ? $tr('library.title' as any) : (cible?.service ?? null)}
     imagePath={artiste?.image_path || cible?.image || null}
     initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
-    sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
+    sousTitre={estLocal ? `${dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
     compteurs={estLocal ? compteurs : null}
+    pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : null}
+    onPays={(code) => { pendingLibraryFiltre.set({ paysArtiste: code }); activeView.set('library'); }}
+    disposition="maquette" {chiffres}
     onRetour={retour}>
     {#snippet actions()}
+      {#if dossier}
+        <button class="v2-btn ghost" data-dossier-artiste title={$tr('v2.lib.scopedClear' as any)} onclick={retirerDossier}>
+          {$tr('v2.lib.scopedFolder' as any).replace('{d}', nomDossier)}
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8"/></svg>
+        </button>
+      {/if}
       <!-- tune-server-rust#6467 — « Lire » AVANT le best of (fil 2302, point
            12) : 50 titres de l'artiste au hasard, bibliothèque ou service. -->
       <!-- rc12 (Bertrand, 12/11/2026) : « un seul bouton Play pour Play /
@@ -1099,9 +1216,7 @@
           file={objetFile ? { faire: () => gestesObjet(objetFile!).enfiler?.() } : null} />
       {/if}
       {#if titres.length}
-        <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
-          {$tr('v2.fas.bestOf' as any)}
-        </button>
+        <!-- « Écouter le best of » est dans le menu « … » (maquette de Levente). -->
       {:else if titresEnEchec && !chargement}
         <!-- #910 — dire pourquoi le best of manque, et laisser réessayer. Il
              n'est PAS retiré : le service n'a pas répondu. -->
@@ -1110,13 +1225,35 @@
           {$tr('zone.retry' as any)}
         </button>
       {/if}
-      <!-- #2094 — le cœur de l'artiste de SERVICE, celui de sa vignette. -->
+      <!-- #2094 — le cœur de l'artiste de SERVICE, celui de sa vignette.
+           web#3122 (FabienM, fil 2864) : le cœur SEUL, sans « Ajouter aux
+           favoris » écrit à côté. Le geste se lit dans l'infobulle et dans le
+           libellé accessible ; `aria-pressed` dit l'état. -->
       {#if coeurArtiste}
-        <button class="v2-btn ghost coeur-artiste" class:on={coeurArtiste.actif} disabled={basculeCoeur}
+        {@const libelleCoeur = $tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+        <button type="button" class="v2-btn ghost coeur-artiste" class:on={coeurArtiste.actif} disabled={basculeCoeur}
           onclick={basculerCoeurArtiste} aria-pressed={coeurArtiste.actif}
-          title={$tr(coeurArtiste.actif ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          {$tr(coeurArtiste.actif ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          aria-label={libelleCoeur} title={libelleCoeur}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill={coeurArtiste.actif ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      {/if}
+      <!-- Maquette de Levente (Figma 616:5810, rc12) : Lire, le cœur, et « … ».
+           Les autres gestes passent dans le menu « … » — tous RESTENT dans la
+           rangée `.gestes` (rien de ce qui marche ne disparaît), repliés. -->
+      <div class="plus" bind:this={zonePlus}>
+        <button type="button" class="v2-btn ghost plus-bouton" data-plus-gestes-bouton
+          aria-expanded={plusOuvert}
+          aria-label={$tr('artist.page.moreActions' as any)} title={$tr('artist.page.moreActions' as any)}
+          onclick={() => (plusOuvert = !plusOuvert)}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        </button>
+        <!-- Un geste choisi referme le menu. Sauf « Signaler », qui ouvre son
+             propre menu de motifs DANS celui-ci. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <div class="plus-menu" data-plus-gestes hidden={!plusOuvert} onclick={fermerPlusApresGeste}>
+      {#if titres.length}
+        <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
+          {$tr('v2.fas.bestOf' as any)}
         </button>
       {/if}
       <!-- tune-server-rust#5395 — la radio est TOUJOURS proposée (Bertrand,
@@ -1127,7 +1264,7 @@
       <!-- PORTÉS de la fiche de bibliothèque, et seulement quand elle connaît
            cet artiste : voir `lireDiscographieLocale` (#1356). -->
       {#if artisteLocal?.id != null}
-        <button class="v2-btn" disabled={enMasseLocale} onclick={() => lireDiscographieLocale(false)}
+        <button class="v2-btn" data-toutes-pistes-artiste disabled={enMasseLocale} onclick={() => lireDiscographieLocale(false)}
           title={$tr('library.playAllArtist' as any)}>
           {$tr('library.playAllArtist' as any)}
         </button>
@@ -1174,6 +1311,8 @@
           <ReportButton {cibles} />
         {/if}
       {/if}
+        </div>
+      </div>
     {/snippet}
   </EnTeteArtiste>
   {#if retourAuxSimilairesVisible($departSimilaires, cible)}
@@ -1207,11 +1346,63 @@
       <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
     {/if}
   {:else}
-    <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
-         fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
-      titresRetiresPar={!estLocal && cible?.service && estRetiree(cible.service, 'titres-phares', $rubriquesRetirees) ? cible.service : null}
-      actionsBio={artisteEditable ? enrichirBio : undefined} />
+    <!-- Maquette de Levente (Figma 616:5810) — les onglets de la page. Seuls
+         ceux qui ont une donnée sont montrés (`ongletsArtiste`) ; l'aperçu
+         montre TOUT, comme la page d'avant. -->
+    {#if onglets.length}
+      <div class="onglets" role="tablist" aria-label={$tr('artist.page.tabs' as any)}>
+        {#each onglets as o (o)}
+          <button type="button" role="tab" class="onglet" class:actif={onglet === o} aria-selected={onglet === o}
+            data-onglet-artiste={o} onclick={() => (ongletDemande = o)}>{libelleOnglet(o)}</button>
+        {/each}
+      </div>
+    {/if}
+
+    {#if onglet === 'apercu'}
+    <div class="apercu-haut" class:avec-cote={!!(artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length))}>
+      <div class="apercu-principal">
+      <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
+           fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
+      <BioEtTitresPhares bio={bio} provenance={bioProvenance} segments={bioSegments} langueBio={bioLangue} titres={titres} {titresEnCharge} cle={cible?.id}
+        titresRetiresPar={!estLocal && cible?.service && estRetiree(cible.service, 'titres-phares', $rubriquesRetirees) ? cible.service : null}
+        actionsBio={artisteEditable ? enrichirBio : undefined} />
+      </div>
+      <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
+           Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
+           sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
+           les titres phares et la discographie. -->
+      {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || instrumentsFiche.length)}
+        <section class="apropos">
+          {#if metaFiche?.similar_artists?.length}
+            <div class="apropos-titre">
+              <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
+              {#if onglets.includes('similaires')}
+                <button type="button" class="voir-tout" data-voir-similaires onclick={() => (ongletDemande = 'similaires')}>
+                  {$tr('artist.page.seeAll' as any)} ›
+                </button>
+              {/if}
+            </div>
+            <div class="puces">
+              {#each metaFiche.similar_artists as sa (sa.name)}
+                <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+              {/each}
+            </div>
+          {/if}
+          {#if metaFiche?.members?.length}
+            <h3>{$tr('artist.members' as any)}</h3>
+            <ul class="membres">
+              {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
+            </ul>
+          {/if}
+          {#if instrumentsFiche.length}
+            <h3>{$tr('artist.credits' as any)}</h3>
+            <div class="puces">
+              {#each instrumentsFiche as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+            </div>
+          {/if}
+        </section>
+      {/if}
+    </div>
 
     <!-- tune-server-rust#6001 — ProgArchives / Metal Archives / AllMusic, pour
          un artiste de la bibliothèque (l'identifiant MusicBrainz est le sien). -->
@@ -1240,35 +1431,11 @@
       <AlbumsManquants artistId={artisteEditable.id} services={sectionsServices} />
     {/if}
 
-    <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
-         Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
-         sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
-         les titres phares et la discographie. -->
-    {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
-      <section class="apropos">
-        {#if metaFiche?.similar_artists?.length}
-          <h3 bind:this={titreSimilaires}>{$tr('artist.similarArtists' as any)}</h3>
-          <div class="puces">
-            {#each metaFiche.similar_artists as sa (sa.name)}
-              <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
-            {/each}
-          </div>
-        {/if}
-        {#if metaFiche?.members?.length}
-          <h3>{$tr('artist.members' as any)}</h3>
-          <ul class="membres">
-            {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
-          </ul>
-        {/if}
-        {#if creditsFiche.length}
-          <h3>{$tr('artist.credits' as any)}</h3>
-          <div class="puces">
-            {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
-          </div>
-        {/if}
-      </section>
+    {:else if onglet === 'similaires'}
+      <ArtistesSimilaires {nom} similaires={similairesFiche} {portraits} onOuvrir={(n) => void ouvrirSimilaire(n)} />
     {/if}
 
+    {#if onglet !== 'similaires'}
     <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
          sait rendre, sinon une section chargée reste invisible faute d'en-tête.
          `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
@@ -1284,6 +1451,7 @@
         onComptesProvenance={(c) => (comptesFiche = c)}
         {compilations} {apparitions} {collaborations} {ecriture} {reprises} {joueAvec}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
+    {/if}
     {/if}
   {/if}
 </section>
@@ -1345,8 +1513,40 @@
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .puce.fixe{cursor:default}
   .retour-similaires{margin:0 0 12px; align-self:flex-start}
+  /* ── Maquette de Levente (Figma 616:5810 / 616:5811, rc12) ── */
+  .plus{position:relative; display:inline-flex}
+  .plus-bouton{width:36px; height:36px; padding:0; border-radius:50%; display:inline-grid; place-items:center}
+  /* web#3122 — le cœur seul, rond comme « … » à côté de lui. */
+  .coeur-artiste{width:36px; height:36px; padding:0; border-radius:50%; display:inline-grid; place-items:center}
+  .coeur-artiste.on{color:#ef4444}
+  .plus-menu{position:absolute; top:calc(100% + 6px); left:0; z-index:20; min-width:220px; padding:8px;
+    display:flex; flex-direction:column; align-items:stretch; gap:6px; background:var(--v2-surface);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); box-shadow:var(--v2-sh-menu)}
+  .plus-menu[hidden]{display:none}
+  .plus-menu :global(.v2-btn){justify-content:flex-start; text-align:left}
+  .onglets{display:flex; gap:4px 26px; margin:0 0 20px; border-bottom:1px solid var(--v2-line);
+    overflow-x:auto; scrollbar-width:none}
+  .onglet{all:unset; cursor:pointer; padding:10px 2px 12px; white-space:nowrap; border-bottom:2px solid transparent;
+    margin-bottom:-1px; font:500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .onglet:hover{color:var(--v2-txt)}
+  .onglet.actif{color:var(--v2-acc1); border-bottom-color:var(--v2-acc1); font-weight:600}
+  .onglet:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .apercu-haut.avec-cote{display:grid; grid-template-columns:minmax(0, 1fr) minmax(260px, 340px); gap:28px; align-items:start}
+  .apercu-principal{min-width:0}
+  .avec-cote .apropos{margin:0 0 18px; padding:16px 18px; background:var(--v2-surface); border:1px solid var(--v2-line);
+    border-radius:var(--v2-r-card); align-items:stretch}
+  .apropos-titre{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .voir-tout{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc1)}
+  .voir-tout:hover{text-decoration:underline}
+  .voir-tout:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  @media (max-width: 1100px){
+    .apercu-haut.avec-cote{grid-template-columns:minmax(0, 1fr)}
+  }
   .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
+    /* Le « … » est au bord droit : le menu s'ouvre vers la gauche, sans
+       élargir la page. */
+    .plus-menu{left:auto; right:0; max-width:calc(100vw - 32px)}
   }
 </style>

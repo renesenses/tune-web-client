@@ -70,9 +70,10 @@ async function ouvrirAnnuaire() {
   instance = mount(RadiosV2, { target: hote, props: {} });
   flushSync();
   await respirer();
-  const onglets = hote.querySelectorAll<HTMLButtonElement>('.sections button');
-  // Trois depuis web#2400 : « Carte » rejoint Mes radios et Annuaire.
-  expect(onglets.length, 'les onglets Mes radios / Annuaire / Carte manquent').toBe(3);
+  const onglets = hote.querySelectorAll<HTMLButtonElement>('.sections [role=tab]');
+  // Trois depuis web#2400 (« Carte ») ; deux en rc12, la Carte étant masquée
+  // (retour de Rémi, point 32).
+  expect(onglets.length, 'les onglets Mes radios / Annuaire manquent').toBe(2);
   onglets[1].click();
   await respirer();
   await new Promise((r) => setTimeout(r, 10));
@@ -85,9 +86,10 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     expect(mocks.getAnnuaireRadios).toHaveBeenCalled();
     const noms = [...hote.querySelectorAll('.fiche .nm')].map((n) => n.textContent);
     expect(noms).toEqual(['FIP', 'Radio Paradise: Main Mix']);
-    // FIP est déjà dans « Mes radios » : pas de bouton d'ajout, une mention.
+    // FIP est déjà dans « Mes radios » : pas de bouton d'ajout. (La mention
+    // « Dans mes radios » a quitté la vignette : retour de Rémi sur la rc12.)
     const fiches = hote.querySelectorAll('.fiche');
-    expect(fiches[0].querySelector('.dedans')).not.toBeNull();
+    expect(fiches[0].querySelector('.dedans')).toBeNull();
     expect(fiches[0].querySelector('.tl2')).toBeNull();
     expect(fiches[1].querySelector('.tl2')).not.toBeNull();
   });
@@ -102,7 +104,10 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
   it('les filtres pays et genre viennent des facettes du serveur', async () => {
     await ouvrirAnnuaire();
     // #2397 : le pays reste une liste, le genre passe en BOUTONS.
-    const choix = hote.querySelectorAll<HTMLSelectElement>('.annuaire select');
+    // Hors critères de recherche (format, qualité), dépliés depuis la recette rc12 ;
+    // la liste du pays est rendue PAR eux depuis le 14/11 (`radio-pays`).
+    const choix = [...hote.querySelectorAll<HTMLSelectElement>('.annuaire select')]
+      .filter((s) => !s.closest('[data-testid="radio-filtres-corps"]') || s.getAttribute('data-testid') === 'radio-pays');
     expect(choix.length).toBe(1);
     expect(choix[0].options.length).toBe(3); // tous + FR + US
     const puces = [...hote.querySelectorAll('.annuaire .chip')].map((c) => c.textContent ?? '');
@@ -123,7 +128,8 @@ describe('#6516 — l’annuaire dans « Radio en direct »', () => {
     hote.querySelectorAll('.fiche')[1].querySelector<HTMLButtonElement>('.tl2')!.click();
     await respirer();
     expect(mocks.ajouterDepuisAnnuaire).toHaveBeenCalledWith('S002479', false);
-    expect(hote.querySelectorAll('.fiche')[1].querySelector('.dedans')).not.toBeNull();
+    // L'ajout se voit au bouton : « Ajouter » disparaît de la pochette.
+    expect(hote.querySelectorAll('.fiche')[1].querySelector('.tl2')).toBeNull();
     // Retour à « Mes radios » : la station y est, sans rechargement.
     hote.querySelectorAll<HTMLButtonElement>('.sections button')[0].click();
     await respirer();

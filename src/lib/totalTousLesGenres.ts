@@ -21,7 +21,17 @@
 export interface MemoTous { cle: string; n: number }
 
 /** Le mémo après une réponse : seul un chargement sans genre l'alimente. */
-export function memoriserTous(memo: MemoTous | null, cle: string, genre: string | null | undefined, total: number): MemoTous | null {
+/**
+ * Recette rc12 (14/11, Rémi) — un serveur qui rend `total_all_genres` donne
+ * le compte de « Tous les genres » dans CHAQUE réponse, genre choisi ou non :
+ * il fait foi. Sans lui (serveur plus ancien), seule une réponse sans genre
+ * l'alimente, comme avant.
+ */
+export function memoriserTous(
+  memo: MemoTous | null, cle: string, genre: string | null | undefined, total: number,
+  totalTousGenres?: number | null,
+): MemoTous | null {
+  if (typeof totalTousGenres === 'number' && Number.isFinite(totalTousGenres)) return { cle, n: totalTousGenres };
   return genre ? memo : { cle, n: total };
 }
 

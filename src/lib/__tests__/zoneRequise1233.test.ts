@@ -111,7 +111,10 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     // un réglage DE ZONE (le greffon de suréchantillonnage).
     // TRENTE-TROIS depuis tune-server-rust#7224 : `CatalogueContactV2` lance la
     // correspondance choisie par « Chercher dans mes sources », et réclame la zone.
-    expect(avec.length).toBe(33);
+    // TRENTE-QUATRE depuis web#3258 : `BarreSelectionAlbums` ajoute à la file
+    // les albums cochés dans la Bibliothèque, et réclame la zone.
+    expect(avec.length).toBe(34);
+    expect(avec).toContain('BarreSelectionAlbums.svelte');
     expect(avec).toContain('CatalogueContactV2.svelte');
     expect(avec).toContain('SurechantillonnageV2.svelte');
     expect(avec).toContain('CollectionPhysiqueV2.svelte');

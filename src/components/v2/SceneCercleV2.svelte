@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   /**
    * Tune Circle (rc8) — la scène de la maquette de Levente, au-dessus des
    * blocs de gestion de `CircleV2` (qui portent toujours le consentement).
@@ -36,10 +37,12 @@
    */
   import type { Snippet } from 'svelte';
   import { tick } from 'svelte';
-  import { t, locale } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import { nomDuPays } from '../../lib/paysAffichage';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import PaysMondeV2 from './PaysMondeV2.svelte';
+  import CerclesMondeV2 from './CerclesMondeV2.svelte';
+  import { lireCerclesDuMonde, niveauTranche, type PointCercles } from '../../lib/cerclesMonde';
   import { lirePaysMonde, type PaysMonde } from '../../lib/paysMonde';
   import { formatNombre } from '../../lib/formats';
   import { browserAudioPlaying } from '../../lib/stores/browserAudio';
@@ -52,10 +55,10 @@
   import { arrondiDemiDegre } from '../../lib/champCercle/tailles';
   import { couleurFrontiere, PAS_ZOOM, ZOOM_MAX, ZOOM_MIN } from '../../lib/champCercle/zoomGlobe';
   import {
-    lireMonLieu, lireLieuxContacts, poserMonLieu, retirerMonLieu, lireResumeContact,
+    lireMonLieu, lireLieuxDuGlobe, poserMonLieu, retirerMonLieu, lireResumeContact,
     lireMesChiffres, lireMonNom, corpsLieu, lireCoordonnee, LIBELLE_LIEU_MAX,
     lirePointsPublics, lireRetraitCarte, changerRetraitCarte,
-    type EtatRelais, type ResumeBibliotheque, type PointPublic,
+    type EtatRelais, type ResumeBibliotheque, type PointPublic, type MembreDeCercleLieu,
   } from '../../lib/circleMonde';
   import { chargerVilles, chercherVilles, villeExacte, type Ville } from '../../lib/champCercle/villes';
   import { motifCercle, type ContactCercle, type CercleNomme, type PartageRecu } from '../../lib/circle';
@@ -80,8 +83,17 @@
     onOuvrirPlaylist?: (id: IdOpaque) => void;
     /** La lire sur la zone courante. */
     onLirePlaylist?: (p: PlaylistCercleResume) => void;
+    /** rc12 — les lieux de mes contacts, lus ici, partagés avec l'écran (ville de Mon cercle, compteur Pays). */
+    onLieux?: (lieux: Map<number, Lieu>) => void;
+    /**
+     * #3283 — l'état de MES accords dans les cercles partagés (et de leur
+     * partage) : quand il change, le globe relit les lieux.
+     */
+    clePartageMembres?: string;
+    /** #3283 — ai-je posé ma ville ? `null` : on ne sait pas (pas encore lu, ou serveur sans globe). */
+    onMonLieuPose?: (pose: boolean | null) => void;
   }
-  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist }: Props = $props();
+  let { contacts, cercles, partages, enAttente, invitation, playlists = null, onOuvrirPlaylist, onLirePlaylist, onLieux, clePartageMembres = '', onMonLieuPose }: Props = $props();
   let paysMonde = $state<PaysMonde | null>(null);
   let montrerPays = $state(true);
   const paysDisponibles = $derived(paysMonde !== null && (Object.keys(paysMonde.pays).length > 0 || !!paysMonde.cases?.length));
@@ -94,13 +106,29 @@
   // ── Données ─────────────────────────────────────────────────────────────
   let relais = $state<EtatRelais | null>(null);
   let monLieu = $state<Lieu | null>(null);
+  $effect(() => { onMonLieuPose?.(relais === 'ok' ? monLieu !== null : null); });
   let lieux = $state.raw<Map<number, Lieu>>(new Map());
+  /** #3283 — les membres de mes cercles partagés (pas mes contacts), lus avec les lieux. */
+  let membresCercles = $state.raw<MembreDeCercleLieu[]>([]);
+  $effect(() => { onLieux?.(lieux); });
   let resumes = $state<Record<number, ResumeBibliotheque | null>>({});
   let mes = $state.raw<ResumeBibliotheque>({ albums: null, genres: [] });
   let monNom = $state<string | null>(null);
   /** rc9 : la carte publique (points anonymes) et mon retrait (`null` : route absente, interrupteur caché). */
   let pointsPublics = $state.raw<PointPublic[]>([]);
   let retraitCarte = $state<boolean | null>(null);
+  /**
+   * rc13 (décisions du 20/11/2026) : tous les cercles du monde, en anneaux
+   * anonymes sur le globe (un par lieu de propriétaire, une tranche, aucun nom).
+   * Mes cercles y sont aussi, en anonyme, et restent en plus nommés, comme
+   * avant. `routeCerclesMonde` : le serveur a la route.
+   */
+  let cerclesMonde = $state.raw<PointCercles[]>([]);
+  let routeCerclesMonde = $state(false);
+  /** L'interrupteur des anneaux anonymes (allumé par défaut). */
+  let montrerCercles = $state(true);
+  const CLE_AVIS_CERCLES = 'tune.circle.carte-cercles.avis-vu';
+  let avisCerclesVu = $state((() => { try { return localStorage.getItem(CLE_AVIS_CERCLES) === '1'; } catch { return false; } })());
   let occupeRetrait = $state(false);
   let retourRetrait = $state<{ texte: string; erreur: boolean } | null>(null);
   const CLE_AVIS = 'tune.circle.carte-publique.avis-vu';
@@ -172,6 +200,7 @@
     moi: { nom: nomAffiche, albums: mes.albums, genres: mes.genres, lieu: relais === 'ok' ? monLieu : null },
     contacts: contactsScene,
     cercles: cercles.map((c) => ({ id: c.id, nom: c.name, membres: c.member_ids })),
+    membresDeCercles: relais === 'ok' ? membresCercles : [],
     focus,
     // Grand écran : TOUS les contacts (jusqu'à 30, en deux couronnes) ; mobile : 8 puis « +N ».
     maxAutour: petit ? 8 : 30,
@@ -186,8 +215,7 @@
   const enCommun = $derived(grappes.some((g) => g.moi && g.membres.length > 0));
   /** Contacts qui n'ont pas posé leur ville : le globe le dit, au lieu de les taire. */
   const sansVille = $derived(relais === 'ok' ? contactsScene.filter((c) => !c.lieu).length : 0);
-  const texteSansVille = $derived(sansVille === 0 ? '' : sansVille === 1
-    ? tr('v2.circle.scene.world.unplacedOne') : tr('v2.circle.scene.world.unplacedMany', { n: sansVille }));
+  const texteSansVille = $derived(sansVille === 0 ? '' : $tn('v2.circle.scene.world.unplacedN', sansVille));
 
   // ── Lectures ────────────────────────────────────────────────────────────
   async function chargerFond() {
@@ -198,11 +226,14 @@
     mes = m;
     monNom = nom;
     if (l.relais === 'ok') {
-      const [lx, pp, rc] = await Promise.all([lireLieuxContacts(), lirePointsPublics(), lireRetraitCarte()]);
+      const [lx, pp, rc, cm] = await Promise.all([lireLieuxDuGlobe(), lirePointsPublics(), lireRetraitCarte(), lireCerclesDuMonde()]);
       if (fini) return;
-      lieux = lx;
+      lieux = lx.contacts;
+      membresCercles = lx.membres;
       pointsPublics = pp.points;
       retraitCarte = rc;
+      cerclesMonde = cm.points;
+      routeCerclesMonde = cm.relais === 'ok';
     }
     choisirVue();
   }
@@ -215,7 +246,7 @@
   function choisirVue() {
     if (vueChoisie) return;
     vueChoisie = true;
-    if (relais === 'ok' && (lieux.size > 0 || pointsPublics.length > 0)) vue = 'monde';
+    if (relais === 'ok' && (lieux.size > 0 || membresCercles.length > 0 || pointsPublics.length > 0 || cerclesMonde.length > 0)) vue = 'monde';
     else if (contacts.length > 0) vue = 'reseau';
     else if (grappes.length > 0) vue = 'genres';
     else vue = 'seul';
@@ -243,7 +274,18 @@
     const premiere = derniereCleContacts === '';
     derniereCleContacts = k;
     if (premiere) return;
-    void lireLieuxContacts().then((lx) => { if (!fini) lieux = lx; });
+    void lireLieuxDuGlobe().then((lx) => { if (!fini) { lieux = lx.contacts; membresCercles = lx.membres; } });
+  });
+
+  // #3283 : un accord donné ou retiré, un cercle partagé ou non — on relit.
+  let derniereClePartage: string | null = null;
+  $effect(() => {
+    const k = clePartageMembres;
+    if (relais !== 'ok') return;
+    if (derniereClePartage === null) { derniereClePartage = k; return; }
+    if (k === derniereClePartage) return;
+    derniereClePartage = k;
+    void lireLieuxDuGlobe().then((lx) => { if (!fini) { lieux = lx.contacts; membresCercles = lx.membres; } });
   });
 
   // Plus de globe sur ce serveur : on quitte la vue Monde.
@@ -434,6 +476,11 @@
 
   $effect(() => { const m = moteur; const s = scene; m?.majScene(s); });
   $effect(() => { const m = moteur; const p = pointsPublics; m?.majPointsPublics(p); });
+  // rc13 : les cercles du monde, en anneaux anonymes (lat, lon, taille de la tranche ; rien d'autre).
+  $effect(() => {
+    const m = moteur; const p = montrerCercles ? cerclesMonde : [];
+    m?.majCerclesAnonymes(p.map((x) => ({ lat: x.lat, lon: x.lon, niveau: niveauTranche(x.cercles) })));
+  });
   $effect(() => {
     const m = moteur; const donnees = montrerPays ? paysMonde?.pays ?? null : null;
     if (!m) return;
@@ -541,7 +588,11 @@
         return tr('v2.circle.scene.info.ring', { name: n.label, list: liste2([...noms, tr('v2.circle.scene.info.ringYou')]) });
       }
       case 'more': return n.plusDe === 'cercles' ? tr('v2.circle.scene.info.moreCircles', { n: n.members }) : tr('v2.circle.scene.info.more', { n: n.members });
-      case 'pin': return n.me ? `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMe')}` : `${n.place ?? ''} — ${tr('v2.circle.scene.info.pin', { name: n.label })}`;
+      case 'pin':
+        if (n.me) return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMe')}`;
+        // #3283 : un membre de cercle partagé, pas un contact — le dire, avec le cercle.
+        if (n.viaCercles) return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pinMember', { name: n.label, circles: liste2(n.viaCercles) })}`;
+        return `${n.place ?? ''} — ${tr('v2.circle.scene.info.pin', { name: n.label })}`;
     }
   }
 
@@ -555,7 +606,7 @@
   const resume = $derived.by(() => {
     const parts: string[] = [];
     const n = contacts.length;
-    parts.push(n === 0 ? tr('v2.circle.scene.summaryNone') : n === 1 ? tr('v2.circle.scene.summaryOne') : tr('v2.circle.scene.summaryMany', { n }));
+    parts.push($tn('v2.circle.scene.summaryN', n));
     const communs = grappes.filter((g) => g.membres.length > 0);
     if (communs.length) {
       parts.push(tr('v2.circle.scene.summaryGenres', {
@@ -688,6 +739,16 @@
     avisVu = true;
     try { localStorage.setItem(CLE_AVIS, '1'); } catch { /* l'avis reviendra : rien de grave */ }
   }
+  /**
+   * rc13 : l'avis aux propriétaires dont les cercles entrent dans la couche
+   * anonyme — ville posée, pas retirés de la carte publique.
+   */
+  const montrerAvisCercles = $derived(routeCerclesMonde && retraitCarte === false && monLieu !== null
+    && cercles.length > 0 && !avisCerclesVu);
+  function fermerAvisCercles() {
+    avisCerclesVu = true;
+    try { localStorage.setItem(CLE_AVIS_CERCLES, '1'); } catch { /* l'avis reviendra : rien de grave */ }
+  }
 
   /** « Me retirer de la carte publique » : effectif tout de suite, côté cloud. */
   async function basculerRetrait() {
@@ -704,6 +765,13 @@
   }
 
   const montrerListe = $derived(liste || sansToile);
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <section class="sc" aria-labelledby="sc-titre" bind:this={racine}>
@@ -738,7 +806,7 @@
               <span class="note">{$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}</span>
               <span class="sc-pl-gestes">
                 {#if onLirePlaylist}
-                  <button type="button" class="lnk sc-lire-playlist" disabled={p.count === 0}
+                  <button type="button" class="lnk sc-lire-playlist" disabled={distant || p.count === 0}
                     aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
                     onclick={() => onLirePlaylist?.(p)}>{$t('v2.circle.pl.play' as any)}</button>
                 {/if}
@@ -761,6 +829,9 @@
 
   {#if vue === 'monde' && paysMonde}
     <PaysMondeV2 donnees={paysMonde} afficher={montrerPays} onAfficher={(v) => (montrerPays = v)} liste={montrerListe} />
+  {/if}
+  {#if vue === 'monde' && routeCerclesMonde}
+    <CerclesMondeV2 points={cerclesMonde} afficher={montrerCercles} onAfficher={(v) => (montrerCercles = v)} />
   {/if}
 
   <p class="sr sc-resume" aria-live="polite">{resume}</p>
@@ -808,7 +879,7 @@
           {/if}
         {/each}
       </div>
-      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte)}
+      {#if vue === 'monde' && !(epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles && !poseOuverte)}
         <div class="sc-zoom" role="group" aria-label={$t('v2.circle.scene.zoom.label' as any)}>
           <button type="button" class="sc-zoom-btn sc-zoom-plus" disabled={zoom >= ZOOM_MAX}
             aria-label={$t('v2.circle.scene.zoom.in' as any)} title={$t('v2.circle.scene.zoom.in' as any)} onclick={() => zoomer(1)}>
@@ -825,10 +896,10 @@
           <span class="sr" aria-live="polite">{tr('v2.circle.scene.zoom.level', { n: zoomTexte })}</span>
         </div>
       {/if}
-      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles && !poseOuverte}
+      {#if vue === 'monde' && epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles && !poseOuverte}
         <div class="sc-vide">
           <p>{$t('v2.circle.scene.world.empty' as any)}</p>
-          {#if relais === 'ok'}<button type="button" class="go sc-poser" onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
+          {#if relais === 'ok'}<button type="button" class="go sc-poser" disabled={lectureSeule} onclick={() => ouvrirPose()}>{$t('v2.circle.scene.loc.toggle' as any)}</button>{/if}
         </div>
       {:else if vue === 'genres' && grappes.length === 0}
         <p class="sc-vide">{$t('v2.circle.scene.genres.empty' as any)}</p>
@@ -836,7 +907,7 @@
         <p class="sc-vide">{$t('v2.circle.scene.link.empty' as any)}</p>
       {/if}
     </div>
-    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && !paysDisponibles)}
+    {#if vue === 'monde' && !poseOuverte && !(epingles.length === 0 && pointsPublics.length === 0 && cerclesMonde.length === 0 && !paysDisponibles)}
       <!-- web#2697 : l'aide passe SOUS le globe, plus par-dessus son bas. -->
       <p class="sc-astuce sc-astuce-sous">{#if pointsPublics.length}<span class="sc-legende-publique">{$t('v2.circle.scene.world.publicLegend' as any)}</span> {/if}{#if texteSansVille}<span class="sc-sans-ville">{texteSansVille}</span> {/if}{$t('v2.circle.scene.world.rotate' as any)} <span class="sc-astuce-zoom">{$t('v2.circle.scene.zoom.hint' as any)}</span></p>
     {/if}
@@ -846,7 +917,7 @@
       {#if vue === 'monde' && texteSansVille}<p class="note sc-sans-ville">{texteSansVille}</p>{/if}
       {#if vue === 'monde' && pointsPublics.length}<p class="note sc-compte-public">{tr('v2.circle.scene.world.publicCount', { n: pointsPublics.length })}</p>{/if}
       {#if noeudsVue.length === 0}
-        {#if !(vue === 'monde' && (pointsPublics.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
+        {#if !(vue === 'monde' && (pointsPublics.length || cerclesMonde.length || paysDisponibles))}<p class="note">{$t((vue === 'monde' ? 'v2.circle.scene.world.empty' : vue === 'genres' ? 'v2.circle.scene.genres.empty' : 'v2.circle.scene.link.empty') as any)}</p>{/if}
       {:else}
         <ul class="sc-liste">
           {#each noeudsVue as n (n.id)}
@@ -865,7 +936,7 @@
   {#if relais === 'ok'}
     <div class="sc-lieu partage">
       <button type="button" class="interrupteur interrupteur-lieu" role="switch" aria-checked={monLieu !== null}
-        disabled={occupeLieu} onclick={basculerLieu}>
+        disabled={occupeLieu || lectureSeule} onclick={basculerLieu}>
         <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
         <span>{$t('v2.circle.scene.loc.toggle' as any)}</span>
       </button>
@@ -877,9 +948,16 @@
           <button type="button" class="lnk sc-avis-compris" onclick={fermerAvis}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
         </div>
       {/if}
+      {#if montrerAvisCercles}
+        <div class="sc-avis-public sc-avis-cercles" role="note" aria-labelledby="sc-avis-cercles-titre">
+          <p class="sc-avis-titre" id="sc-avis-cercles-titre">{$t('v2.circle.scene.circlesMap.noticeTitle' as any)}</p>
+          <p class="note">{$t('v2.circle.scene.circlesMap.notice' as any)}</p>
+          <button type="button" class="lnk sc-avis-compris" onclick={fermerAvisCercles}>{$t('v2.circle.scene.public.dismiss' as any)}</button>
+        </div>
+      {/if}
       {#if retraitCarte !== null}
         <button type="button" class="interrupteur interrupteur-retrait" role="switch" aria-checked={retraitCarte}
-          disabled={occupeRetrait} onclick={() => void basculerRetrait()}>
+          disabled={occupeRetrait || lectureSeule} onclick={() => void basculerRetrait()}>
           <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
           <span>{$t('v2.circle.scene.public.optOut' as any)}</span>
         </button>
@@ -890,9 +968,9 @@
         <p class="note sc-lieu-actuel">
           {tr('v2.circle.scene.loc.current', { label: monLieu.label })}
           {#if !poseOuverte}
-            <button type="button" class="lnk sc-changer-lieu" disabled={occupeLieu} onclick={() => ouvrirPose(monLieu)}>{$t('v2.circle.scene.loc.change' as any)}</button>
+            <button type="button" class="lnk sc-changer-lieu" disabled={occupeLieu || lectureSeule} onclick={() => ouvrirPose(monLieu)}>{$t('v2.circle.scene.loc.change' as any)}</button>
           {/if}
-          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
+          <button type="button" class="lnk danger sc-retirer-lieu" disabled={occupeLieu || lectureSeule} onclick={() => void retirerLieu()}>{$t('v2.circle.scene.loc.remove' as any)}</button>
         </p>
       {/if}
       {#if poseOuverte}
@@ -933,7 +1011,7 @@
             </div>
           </details>
           <div class="rangee">
-            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu}>{$t('v2.circle.scene.loc.save' as any)}</button>
+            <button type="submit" class="go sc-enregistrer-lieu" disabled={occupeLieu || lectureSeule}>{$t('v2.circle.scene.loc.save' as any)}</button>
             <button type="button" class="lnk sc-annuler-lieu" onclick={annulerPose}>{$t('v2.circle.scene.loc.cancel' as any)}</button>
           </div>
           <p class="note sc-source-villes">{$t('v2.circle.scene.loc.source' as any)}</p>

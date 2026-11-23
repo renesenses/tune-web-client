@@ -65,7 +65,10 @@ describe('Accueil — le registre', () => {
       // contenu côte à côte — des cartes de zone, puis trois panneaux — et
       // c'est aussi la plus stricte sur la hauteur : tout ce qu'elle porte
       // lit `--l1-h`, posé une seule fois.
-      expect(['bande', 'chiffres', 'zones-cartes', 'tops', 'premiere-ligne']).toContain(w.forme);
+      // 15/11/2026 — SIXIÈME forme, sur décision de Bertrand : « garde en
+      // widget le widget de la première ligne et crée-en un nouveau à partir
+      // du design de Levente ». La même ligne, dans une autre présentation.
+      expect(['bande', 'chiffres', 'zones-cartes', 'tops', 'premiere-ligne', 'premiere-ligne-levente']).toContain(w.forme);
     }
     expect(WIDGETS.filter((w) => w.forme === 'premiere-ligne').map((w) => w.id))
       .toEqual(['premiere-ligne']);
@@ -109,7 +112,8 @@ describe('Accueil — le registre', () => {
     // ENREGISTRÉE l'emporte sur ce défaut et ne bouge pas.
     expect(DISPOSITION_DEFAUT).toEqual([
       'premiere-ligne',
-      'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
+      // 15/11/2026 — maquette de Levente : les nouveautés sous la ligne d'en-tête.
+      'nouveautes-artistes', 'reprendre', 'recemment-ajoutes', 'statistiques',
       'top-artistes', 'stats-semaine',
     ]);
     for (const id of DISPOSITION_DEFAUT) {

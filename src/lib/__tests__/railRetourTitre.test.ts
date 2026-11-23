@@ -23,6 +23,7 @@ import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryFolderScope, libraryLoading } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { _remiseAZeroPourTests } from '../stores/albumsPagines';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 const TOTAL = 700;
 /** Rangés par titre, de A à Z ; ajoutés dans l'ordre INVERSE du titre. */
@@ -122,6 +123,7 @@ afterEach(() => {
 async function ecran(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   monte = mount(LibraryV2, { target: hote, props: {} });
   await poser();
   return hote;
@@ -156,7 +158,13 @@ describe('le rail A–Z sur « Derniers ajouts », liste entière', () => {
     await poser();
     await poser();
     expect(boutonAjouts(el)!.classList.contains('active'), 'le tri Titre n’a pas été repris').toBe(false);
-    expect(el.querySelector('.grid .card .ct')?.textContent, 'la grille n’est pas triée par titre').toBe(ALBUMS[0].title);
+    // Au-delà de 600 albums, la grille ne monte qu'une tranche autour du saut
+    // (web#3183 : elle suit la carte EN VUE) : la première carte montée n'est
+    // donc pas forcément l'album 0. Chaque case porte l'album de son rang
+    // dans l'ordre du TITRE.
+    const premiere = el.querySelector<HTMLElement>('.grid .card[data-i]')!;
+    expect(premiere.querySelector('.ct')?.textContent, 'la grille n’est pas triée par titre')
+      .toBe(ALBUMS[Number(premiere.dataset.i)].title);
     expect(defilementGrille(el), 'le saut n’a pas atteint le premier album en X').toBe(PREMIER_X * 10);
     expect(lettre(el, 'X')?.getAttribute('aria-label')).toBeNull();
   });

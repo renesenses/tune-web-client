@@ -9,6 +9,7 @@
   import AuditIntegrite from '../partages/AuditIntegrite.svelte';
   import DetectionFauxHiRes from '../partages/DetectionFauxHiRes.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
+  import { couperChemin } from '../../lib/couperChemin';
   /**
    * Réglages du nouveau client (direction Levente).
    *
@@ -25,7 +26,7 @@
    * l'écran actuel — jamais un cadre vide qui laisserait croire à un réglage
    * absent.
    */
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { cleTexteRefus, limiteDepuisPourcent, pourcentDeLimite, refusDeLimite, serveurConnaitLesLimites } from '../../lib/limitesVolume';
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
@@ -41,7 +42,8 @@
     lireApercu, compterReglages, compterZones, rienNeChange, reglagesQuiChangent,
     cleStatutZone, remplir, type ApercuRestauration,
   } from '../../lib/apercuRestauration';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
@@ -67,11 +69,13 @@
     modeWasapiPertinent,
     type ChoixBackend,
   } from '../../lib/audioBackends';
+  import { choixPeriodeWasapi, periodeWasapiVisible } from '../../lib/periodeWasapi';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
+  import { ecrireRetraitAuto, lireRetraitAuto } from '../../lib/ecouterPlusTard';
   import { bibliothequeEtendueActive, chargerReglageEtendue, changerReglageEtendue } from '../../lib/bibliothequeEtendue';
   import { enceintesSendspin, type EnceinteSendspin } from '../../lib/sendspinExclusions';
   import { ssoDisponible } from '../../lib/bridge';
@@ -112,6 +116,7 @@
   import { urlGuideSpotify } from '../../lib/guideSpotify';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { ligneModuleYoutube, type LigneModuleYoutube } from '../../lib/moduleYoutube';
+  import { proposerApresConnexion } from '../../lib/lectureYoutubeInactive';
   import { raisonEchecPhase } from '../../lib/phaseEchecMaj';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -152,8 +157,11 @@
   } from '../../lib/commandeVocale';
   import { expiredStreamingSession, streamingServices } from '../../lib/stores/streaming';
   import PaysDuCatalogueV2 from './PaysDuCatalogueV2.svelte';
+  import ActivationAuthV2 from './ActivationAuthV2.svelte';
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
+  import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -174,12 +182,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { devices } from '../../lib/stores/devices';
   import { appareilSansSortie } from '../../lib/raisonSortieReseau';
   import SmbWizard from '../partages/SmbWizard.svelte';
+  import BandeauDonneesNonPersistantes from '../partages/BandeauDonneesNonPersistantes.svelte';
+  import FolderBrowser from '../partages/FolderBrowser.svelte';
   import PlagesMacV2 from './PlagesMacV2.svelte';
   import SpotifyConnectInvite from './spotify/SpotifyConnectInvite.svelte';
   import { etapeLiaison, lireRefusLiaison } from '../../lib/spotifyLiaison';
   import BoutonAjouterDossier from '../partages/BoutonAjouterDossier.svelte';
+  import RemplacerCheminDossier from '../partages/RemplacerCheminDossier.svelte';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
-  import { etatPartage, oublierUnPartage, proposerAjout } from '../../lib/smbMountState';
+  import { etatPartage, oublierUnPartage, proposerAjout, sousDossierDuPartage } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -187,6 +198,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     transportAppareilIgnore,
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
+  import {
+    libelleAbsent,
+    libelleAppareil,
+    zonesNommees,
+    type AppareilAbsent,
+  } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
@@ -209,6 +226,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import ArretProgrammeV2 from './ArretProgrammeV2.svelte';
   import BalisesClassiqueV2 from './BalisesClassiqueV2.svelte';
+  import BalisesPersoV2 from './BalisesPersoV2.svelte';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel, ongletDeLaSection } from '../../lib/v2Settings';
   // #2735 — la recherche d'un réglage, un par un, et l'index qu'elle lit.
@@ -221,6 +239,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import VuMetreCanal from '../partages/VuMetreCanal.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
+  import { MODE_HISTORIQUE_DEFAUT, estModeHistorique } from '../../lib/modeHistorique';
   import {
     CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
   } from '../../lib/cadenceAnimations';
@@ -304,6 +323,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { cleZone } from '../../lib/listeAppareils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
+  import { modesReplayGain, type ModeReplayGain } from '../../lib/modesReplayGain';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -375,6 +395,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   let tabId = $state<V2SettingsTabId>('general');
   let highlight = $state<string | null>(null);
+  /**
+   * Maquette de Levente (Figma 620:5837, 15/11/2026) — l'ÉCRAN SECONDAIRE
+   * ouvert (section `sousEcran` de lib/v2Settings), ou null. Ouvert, le
+   * panneau ne montre que cette section, sous un bouton de retour.
+   */
+  let sousEcran = $state<string | null>(null);
+  /** L'onglet d'où l'écran secondaire a été ouvert (Affichage, par son renvoi) :
+   *  le retour y ramène. null : l'onglet qui porte la section. */
+  let ongletRetour = $state<V2SettingsTabId | null>(null);
+  function estSousEcran(id: string | null | undefined): boolean {
+    return !!id && V2_SETTINGS.some((t2) => t2.sections.some((x) => x.id === id && x.sousEcran));
+  }
   /** #1006 — la zone visée par la carte de l'écran Zones, mise en avant dans « Par zone ». */
   let cibleZone = $state<number | null>(null);
   // web#2451 — la zone dont la carte de détails est ouverte sous la liste
@@ -485,6 +517,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // une cible qui nomme encore son ancien onglet.
     tabId = ongletDeLaSection(target.tab, target.section);
     highlight = target.section ?? null;
+    sousEcran = estSousEcran(target.section) ? target.section! : null;
+    ongletRetour = null;
     cibleZone = target.zone ?? null;
     // web#2451 — une cible de zone (roue crantée, carte de zone, FIR) ouvre
     // d'office les détails de CETTE zone : sans cela, la carte visée n'existe
@@ -514,7 +548,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
-  const sections = $derived((tab?.sections ?? []).filter((s) => (atLeast(level, s.min) || s.id === sectionForcee) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  const sectionsDeLOnglet = $derived((tab?.sections ?? []).filter((s) => (atLeast(level, s.min) || s.id === sectionForcee) && (s.id !== 'aes67' || $presenceSortieAes67 !== 'absente')));
+  // Écran secondaire ouvert : sa section seule. Sinon, tout l'onglet — la
+  // section d'un écran secondaire y est une ligne qui l'ouvre.
+  const sections = $derived(sousEcran ? sectionsDeLOnglet.filter((s) => s.id === sousEcran) : sectionsDeLOnglet);
   // Le greffon absent n'est pas une section « masquée par le niveau » : on ne le compte pas.
   const hiddenCount = $derived((tab?.sections ?? []).filter((s) => !atLeast(level, s.min) && s.id !== sectionForcee).length);
 
@@ -654,6 +691,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let backendChoixLu = $state(false);
   let exclusiveMode = $state(false);
   let rgMode = $state('off');
+  // tune-server-rust#8968 — « Auto » seulement si le serveur l'annonce.
+  let rgModes = $state<ModeReplayGain[]>(['off', 'track', 'album']);
   let rgPreamp = $state(0);
   let rgAntiClip = $state(true);
   let rgAnalysis = $state(true);
@@ -677,6 +716,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         backendChoixLu = true;
         exclusiveMode = c?.local_exclusive_mode ?? false;
         rgMode = c?.replaygain_mode ?? 'off';
+        rgModes = modesReplayGain(c);
         rgPreamp = Number(c?.replaygain_preamp_db ?? 0);
         rgAntiClip = c?.replaygain_prevent_clipping ?? true;
         // Absent cote serveur vaut VRAI : d'ou le test sur !== false.
@@ -941,6 +981,72 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ignoreBusy = false;
     }
   }
+  /* --- Appareils absents : les OUBLIER (tune-server-rust#9044, rc13) ---
+   *
+   * Un appareil parti du réseau restait listé, grisé, à vie : supprimer sa
+   * zone ne faisait que la masquer. Oublier supprime l'appareil ET ses zones,
+   * définitivement — s'il revient, il revient comme neuf. Un appareil à la
+   * fois (l'oubli groupé est pour la rc14). La confirmation vit DANS la page
+   * (pas de `confirm()`), nomme l'appareil et chaque zone qui part, prend le
+   * focus à l'ouverture et le rend au bouton qui l'a ouverte.
+   */
+  let absents = $state<AppareilAbsent[]>([]);
+  let absentsLus = $state(false);
+  let absentsErreur = $state(false);
+  let oubliOccupe = $state(false);
+  /** La ligne (`zone_id`) dont la confirmation est ouverte, ou null. */
+  let oubliAConfirmer = $state<number | null>(null);
+  let declencheurOubli: HTMLElement | null = null;
+
+  async function chargerAbsents() {
+    const r = await api.listAbsentDevices();
+    absentsErreur = r === null;
+    absents = r ?? [];
+    absentsLus = true;
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
+  });
+
+  function ouvrirOubli(a: AppareilAbsent, ev: Event) {
+    declencheurOubli = ev.currentTarget as HTMLElement;
+    oubliAConfirmer = a.zone_id;
+  }
+  function fermerOubli() {
+    oubliAConfirmer = null;
+    const el = declencheurOubli;
+    declencheurOubli = null;
+    // Le bouton déclencheur réapparaît au rendu suivant : on le retrouve par
+    // sa ligne, l'élément d'origine a pu être remplacé.
+    void tick().then(() => {
+      if (el?.isConnected) el.focus();
+      else document.querySelector<HTMLElement>(`[data-oubli-ouvrir="${el?.dataset.oubliOuvrir ?? ''}"]`)?.focus();
+    });
+  }
+  /** Le focus va à la confirmation dès qu'elle s'affiche : un lecteur
+   *  d'écran lit la phrase qui nomme l'appareil et ses zones. PAS au bouton
+   *  qui confirme — Entrée ne doit pas supprimer par réflexe. */
+  function focusALaConfirmation(node: HTMLElement) {
+    node.focus();
+  }
+
+  async function oublierAppareil(a: AppareilAbsent) {
+    oubliOccupe = true;
+    try {
+      await api.forgetDevice(a.device_id);
+      oubliAConfirmer = null;
+      declencheurOubli = null;
+      notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
+      await chargerAbsents();
+    } catch (e: any) {
+      // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
+      // la zone, dans la langue de l'interface.
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
   async function clearDevices() {
     try {
       const r = await api.clearDevices();
@@ -1448,12 +1554,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ssoConfigure = $state(false);
   let ssoNom = $state('');
   let ssoCourriel = $state('');
+  // Serveur relié, mais le compte n'est pas montré à cet appareil : le serveur
+  // ne rend le détail du compte qu'à l'administrateur, ou à sa propre machine
+  // quand l'authentification est coupée. On dit « relié », sans détails.
+  let ssoRelieSansDetails = $state(false);
   let ssoQuitte = $state(false);
 
   async function chargerSso() {
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
+      ssoRelieSansDetails = !!sso?.connected && !!sso?.details_hidden && !sso?.user;
       if (sso?.connected && sso?.user) {
         ssoConnecte = true;
         ssoNom = sso.user.display_name || sso.user.email || '';
@@ -1464,6 +1575,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // Serveur muet ou hors ligne : on ne propose pas de relier un compte à
       // un nuage dont on ne sait même pas s'il existe sur ce serveur.
       ssoConfigure = false;
+      ssoRelieSansDetails = false;
     }
     ssoConnecte = false;
     ssoNom = '';
@@ -1895,6 +2007,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           deviceFlow = { ...deviceFlow, [name]: undefined };
           svcBusy = null;
           void refleterDansLeMagasin(name, true);
+          void proposerLectureApresConnexion(name);
         }
       } catch { /* le sondage peut echouer sans que ce soit une panne */ }
     }, 3000);
@@ -1917,6 +2030,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         svcs = { ...svcs, [name]: { ...svcs[name], authenticated: true } };
         svcBusy = null;
         void refleterDansLeMagasin(name, true);
+        void proposerLectureApresConnexion(name);
       } else if (res?.verification_url) {
         const raw = res.verification_url;
         const url = raw.startsWith('http') ? raw : `https://${raw}`;
@@ -1949,6 +2063,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         [name]:
           nature === 'application'
             ? get(t)('settings.errAppRefused' as any).replace('{service}', nomAffiche(name))
+          : nature === 'reseau'
+            ? get(t)('settings.errNetworkRefused' as any).replace('{service}', nomAffiche(name))
           : nature === 'identifiants'
             ? get(t)('settings.errCredentialsNotRecognised' as any).replace('{service}', nomAffiche(name))
             : nature === 'brut'
@@ -2254,8 +2370,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * refuse d'ailleurs tout « 14 » littéral dans les onze traductions.
    */
   function graceJours(n: number): string {
-    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
-      .replace('{days}', String(n));
+    return $tn('settings.licenseGraceDaysN', n);
   }
   async function activateLic() {
     const k = licKey.trim();
@@ -2326,6 +2441,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   // ── Bibliotheque : dossiers, analyse, planification ───────────────────
   let musicDirs = $state<string[]>([]);
+  /** #8676 — le message de fin du dernier « Remplacer le chemin ». */
+  let remplacementFait = $state<string | null>(null);
   // #1688 — null means the server does not expose the #4907 order route.
   let directoryOrder = $state<string[] | null>(null);
   let orderBusy = $state(false);
@@ -2468,15 +2585,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * sous deux adresses) ne pouvait pas être retiré. */
   let smbBusy = $state<number | null>(null);
   let smbErr = $state<string | null>(null);
-  async function ajouterPartage(m: api.SmbMount) {
-    if (!m.mount_path || smbBusy !== null) return;
+  async function ajouterPartage(m: api.SmbMount, chemin: string | null | undefined = m.mount_path) {
+    if (!m.mount_path || !chemin || smbBusy !== null) return;
     smbBusy = m.id; smbErr = null;
     try {
-      const r = await api.addMusicDir(m.mount_path);
-      musicDirs = r?.music_dirs ?? [...musicDirs, m.mount_path];
+      const r = await api.addMusicDir(chemin);
+      musicDirs = r?.music_dirs ?? [...musicDirs, chemin];
       await refreshDirectoryOrder();
     } catch (e: any) { smbErr = e?.message ?? get(t)('settings.errFolderRejected'); }
     smbBusy = null;
+  }
+
+  /* tune-server-rust#8746 (fil 2816), variante B : « Ajouter » garde la
+   * racine du partage ; « Choisir un sous-dossier… » ouvre l'explorateur sur
+   * le point de montage, et seul un dossier SOUS ce point est déclaré. */
+  let explorateurPartage = $state<api.SmbMount | null>(null);
+  async function sousDossierDuPartageChoisi(chemin: string) {
+    const m = explorateurPartage;
+    if (!m?.mount_path) return;
+    const retenu = sousDossierDuPartage(m.mount_path, chemin);
+    if (!retenu) {
+      smbErr = get(t)('smb.subfolderOutsideShare' as any).replace('{path}', m.mount_path);
+      return;
+    }
+    explorateurPartage = null;
+    await ajouterPartage(m, retenu);
   }
   async function oublierPartage(m: api.SmbMount) {
     if (smbBusy !== null) return;
@@ -2661,6 +2794,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     return phrase.replace(/\{(\w+)\}/g, (tout, k) => params[k] ?? tout);
   }
 
+  /**
+   * tune-server-rust#8913 — le compte YouTube vient d'être relié : sans
+   * yt-dlp, aucune piste ne se lira (Google refuse les voies natives). On le
+   * dit tout de suite, avec le bouton qui active la lecture sur place.
+   */
+  async function proposerLectureApresConnexion(name: string) {
+    if (name !== 'youtube') return;
+    await refreshYoutubePlayback();
+    proposerApresConnexion(name, ytInstalled || ytStatus === 'downloading', () => void enableYoutubePlayback());
+  }
+
   async function enableYoutubePlayback() {
     ytBusy = true;
     try {
@@ -2687,7 +2831,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       enrichExcludedDirs = dossiersDepuisConfig(c?.[CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT]);
       clapGenresInclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_INCLUS]);
       clapGenresExclus = genresDepuisConfig(c?.[CLE_GENRES_CLAP_EXCLUS]);
-      await refreshDirectoryOrder();
       // Absent vaut VRAI cote serveur, et les valeurs peuvent arriver en
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
@@ -2697,6 +2840,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       dedupMemeRacine = dedoublonnageParRacineDepuisConfig(c?.[CLE_DEDOUBLONNAGE_PAR_RACINE]);
       importPlaylistsScan = importPlaylistsScanDepuisConfig(c?.[CLE_IMPORT_PLAYLISTS_SCAN]);
       scanDemarrage = scanAuDemarrageDepuisConfig(c);
+      // #3103 — APRÈS tout ce que `/system/config` a rendu : les consentements
+      // attendaient la fin de ce second appel, et restaient « non lus » (donc
+      // éteints à l'œil) jusqu'à 40 s sur un serveur dont la base est tenue.
+      // `refreshDirectoryOrder` ne lève jamais (repli interne).
+      await refreshDirectoryOrder();
     } catch {
       libErr = get(t)('settings.errConfigUnavailable');
       relireConsentementsPlusTard();
@@ -3002,6 +3150,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       dedupMemeRacine = before;
       dedupMemeRacineErr = get(t)('settings.errSaveFailed');
     }
+  }
+  // tune-server-rust#9143 / web#3248 — « Écouter plus tard » : retirer un
+  // album écouté en entier. Rangé dans les réglages du profil, que le serveur
+  // lit à la fin de l'album. Un refus du serveur remet la case et le dit.
+  let retraitSas = $state(false);
+  let retraitSasErr = $state<string | null>(null);
+  $effect(() => {
+    const pid = $currentProfileId;
+    if (pid == null) return;
+    lireRetraitAuto(pid).then((v) => { retraitSas = v; }, () => { retraitSas = false; });
+  });
+  async function setRetraitSas(v: boolean) {
+    const pid = get(currentProfileId);
+    if (pid == null) return;
+    const before = retraitSas; retraitSas = v; retraitSasErr = null;
+    try { await ecrireRetraitAuto(pid, v); }
+    catch { retraitSas = before; retraitSasErr = get(t)('settings.errSaveFailed'); }
   }
   // tune-server-rust#7780 — « Bibliothèque élargie aux favoris des services »,
   // par profil, activé par défaut ; remplace le bouton de la Bibliothèque.
@@ -3464,10 +3629,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // a échoué. On ne s'arrête que sur une vraie erreur applicative — c'est
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
-      const msg = errText(e);
+      // tune-server-rust#9029 — refusé hors de la machine de Tune
+      // (authentification coupée) : dire quoi faire, commande du conteneur
+      // comprise.
+      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
-        notifications.error(msg);
+        notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr) : undefined);
         return;
       }
     }
@@ -3612,7 +3781,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // ⚠️ Le `catch` vide est VOULU, ce n'est pas une erreur avalée : le serveur
     // meurt avant d'avoir répondu, donc la requête échoue TOUJOURS — et cet
     // échec-là est le succès du geste.
-    try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
+    try {
+      await api.stopServer();
+    } catch (e) {
+      // Une coupure de transport est le succès du geste (`errText` → null).
+      // Un refus HTTP, lui, prouve que le serveur n'a PAS accepté l'ordre
+      // (tune-server-rust#9029 : refusé hors de la machine de Tune) : le
+      // bouton redevient utilisable et le refus est dit.
+      const msg = errText(e);
+      if (msg !== null) {
+        arretEnCours = false;
+        notifications.error(msg);
+      }
+    }
   }
 
   /**
@@ -3632,7 +3813,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceShutdown();
     } catch (e) {
-      const msg = errText(e);
+      // #3195 : la phrase traduite du refus, jamais le code brut.
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       // `null` : coupure de transport générique, attendue pendant l'extinction.
       if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
     }
@@ -3650,7 +3832,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       await api.applianceReboot();
     } catch (e) {
-      const msg = errText(e);
+      const msg = messageEchecActionMachine(e, get(t) as (cle: string) => string);
       if (msg !== null) { redemarrageMachineEnCours = false; notifications.error(msg); }
     }
   }
@@ -3970,10 +4152,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // (tune-server-rust#6777), jamais par `deleteServiceToken('spotify')`, qui
   // emporte toutes les clés `spotify_*`. Voir `lib/clientIdSpotify`.
   let spotifyModifClientId = $state(false);
+  // Les mêmes gestes sur la carte Spotify de Services de streaming (fils
+  // 2384 et 2385) : Services & Jetons n'est offert qu'au niveau Avancé, deux
+  // testeurs n'y sont jamais arrivés. État d'édition distinct : les deux
+  // blocs peuvent être rendus ensemble, chacun garde son champ.
+  let carteModifClientId = $state(false);
   async function enregistrerClientIdDepuisJetons() {
     await enregistrerClientIdSpotify();
     if (clientIdEnPlace(clientIdRetour?.etat)) {
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     }
   }
@@ -3988,6 +4176,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success(msgOk);
       spotifyClientIdManque = r.manque;
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     } else {
       notifications.error(`${msgKo} : ${r.erreur ?? ''}`);
@@ -4600,7 +4789,66 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; }
+  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
+  // Barre d'onglets qui déborde : quels bords sont coupés (fondu + flèche).
+  let navOnglets = $state<HTMLElement | null>(null);
+  let fonduG = $state(false);
+  let fonduD = $state(false);
+  function mesurerOnglets() {
+    const n = navOnglets;
+    if (!n) return;
+    fonduG = n.scrollLeft > 2;
+    fonduD = n.scrollLeft + n.clientWidth < n.scrollWidth - 2;
+  }
+  function defilerOnglets(sens: 1 | -1) {
+    const n = navOnglets;
+    if (!n) return;
+    const pas = Math.max(160, n.clientWidth * 0.6) * sens;
+    if (typeof n.scrollBy === 'function') n.scrollBy({ left: pas, behavior: 'smooth' });
+    else n.scrollLeft += pas;
+  }
+  $effect(() => {
+    const n = navOnglets;
+    void tabs.length;
+    if (!n) return;
+    mesurerOnglets();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => mesurerOnglets()) : null;
+    ro?.observe(n);
+    return () => ro?.disconnect();
+  });
+  // L'onglet actif reste visible quand on y arrive (recherche, renvoi).
+  $effect(() => {
+    void tabId;
+    tick().then(() => {
+      // Défilement HORIZONTAL de la seule barre : pas de « scroll into view »,
+      // qui ferait aussi bouger la page (garde amenerSousEntete).
+      const n = navOnglets;
+      const on = n?.querySelector<HTMLElement>('.tab.on');
+      if (n && on) {
+        const g = on.offsetLeft - 40, d = on.offsetLeft + on.offsetWidth + 40 - n.clientWidth;
+        if (n.scrollLeft > g) n.scrollLeft = Math.max(0, g);
+        else if (n.scrollLeft < d) n.scrollLeft = d;
+      }
+      mesurerOnglets();
+    });
+  });
+
+  /** Ouvre un écran secondaire (« Barre latérale »), depuis n'importe quel onglet. */
+  function ouvrirSousEcran(id: string) {
+    const porteur = ongletDeLaSection(tabId, id);
+    ongletRetour = porteur !== tabId ? tabId : null;
+    tabId = porteur;
+    highlight = null;
+    sousEcran = id;
+    tick().then(() => document.querySelector('.v2-settings .pane')?.scrollTo?.({ top: 0 }));
+  }
+  /** Retour à l'onglet : la ligne qui menait à l'écran secondaire revient sous les yeux. */
+  function fermerSousEcran() {
+    const quitte = sousEcran;
+    sousEcran = null;
+    if (ongletRetour) { tabId = ongletRetour; ongletRetour = null; }
+    if (quitte) tick().then(() => amenerSousEntete(document.querySelector(`[data-ouvre-sous-ecran="${quitte}"]`)));
+  }
 
   /**
    * #2735 — aller à UN réglage : ouvrir son onglet (et sa section, si le
@@ -4622,6 +4870,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function allerAuReglage(r: Reglage) {
     tabId = ongletDuReglage(r);
     highlight = null;
+    sousEcran = estSousEcran(r.section) ? r.section : null;
+    ongletRetour = null;
     const masque = masqueAuNiveau(r, level);
     sectionForcee = masque ? r.section : null;
     reglageForce = masque ? r : null;
@@ -4679,6 +4929,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       installationEntreeAudio = false;
     }
   }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉGLAGES RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * Onglet, écran secondaire et zone dépliée sont des `$state` locaux, perdus
+   * quand on quitte l'écran. Retenus à la sortie de l'entrée
+   * (`lib/memoireNavigation`), rendus au remontage par l'historique seulement,
+   * avant les effets de montage. Le défilement suit par la coquille.
+   */
+  interface MemoireReglages {
+    tabId: V2SettingsTabId; sousEcran: string | null; ongletRetour: V2SettingsTabId | null; zoneOuverte: string | null;
+  }
+  const memoireReglages = memoireEcran<MemoireReglages>('settings', () => ({
+    tabId: String(tabId) as V2SettingsTabId,
+    sousEcran: sousEcran == null ? null : String(sousEcran),
+    ongletRetour: ongletRetour == null ? null : (String(ongletRetour) as V2SettingsTabId),
+    zoneOuverte: zoneOuverte == null ? null : String(zoneOuverte),
+  }));
+  $effect(() => memoireReglages.arreter);
+  if (memoireReglages.reprise && !untrack(() => $v2SettingsTarget)) {
+    const r = memoireReglages.reprise;
+    tabId = r.tabId; sousEcran = r.sousEcran; ongletRetour = r.ongletRetour; zoneOuverte = r.zoneOuverte;
+  }
 </script>
 
 <section class="v2-settings tune-v2">
@@ -4692,7 +4965,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     <RechercheReglagesV2 niveau={level} onchoisir={allerAuReglage} />
   </header>
 
-  <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}">
+  <!-- tune-server-rust#8747 (fil 2798) — conteneur dont /data n'est sur aucun
+       volume persistant : la prochaine mise à jour de l'image repartirait
+       d'une base neuve. Rien hors conteneur ni sur un serveur ancien. -->
+  <BandeauDonneesNonPersistantes />
+
+  <!-- Recette du .18 (15/11) : la barre d'onglets coupée à droite ne disait
+       pas qu'elle défile. Un fondu au bord qui déborde, et une flèche qui
+       fait défiler (souris sans molette horizontale). -->
+  <div class="tabs-cadre" class:fondu-g={fonduG} class:fondu-d={fonduD}>
+  <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}" bind:this={navOnglets} onscroll={mesurerOnglets}>
     {#each tabs as x (x.id)}
       <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
@@ -4700,13 +4982,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       </button>
     {/each}
   </nav>
+  {#if fonduG}
+    <button type="button" class="defile-onglets g" data-defiler-onglets="g" aria-label={$t('reglages.onglets.precedents' as any)}
+      title={$t('reglages.onglets.precedents' as any)} onclick={() => defilerOnglets(-1)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+    </button>
+  {/if}
+  {#if fonduD}
+    <button type="button" class="defile-onglets d" data-defiler-onglets="d" aria-label={$t('reglages.onglets.suivants' as any)}
+      title={$t('reglages.onglets.suivants' as any)} onclick={() => defilerOnglets(1)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+    </button>
+  {/if}
+  </div>
 
   <div class="body">
     <div class="pane">
       {#if tab}
-        <div class="panehead">
+        {#if sousEcran && sections.length}
+          <!-- Maquette de Levente (15/11/2026) : écran secondaire, avec son
+               retour vers l'onglet qui le porte. -->
+          <div class="sous-ecran-tete" data-sous-ecran={sousEcran}>
+            <button type="button" class="retour-sous-ecran" data-retour-sous-ecran onclick={fermerSousEcran}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+              <span>{$t('settings.titleV2' as any)} · {tabLabel(V2_SETTINGS.find((x) => x.id === ongletRetour) ?? tab, (k) => $t(k as any))}</span>
+            </button>
+          </div>
+        {/if}
+        <div class="panehead" class:cache={!!sousEcran}>
           {#if hiddenCount > 0}
-            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
+            <span class="masked">{$tn('v2.set.hiddenSectionsN', hiddenCount)}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
@@ -4721,6 +5026,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {#if s.group && sections[i - 1]?.group !== s.group}
             <h2 class="groupe" data-groupe={s.group}>{$t('settings.libraryTools' as any)}</h2>
           {/if}
+          {#if s.sousEcran && sousEcran !== s.id}
+            <button type="button" class="card lien-sous-ecran" class:hl={highlight === s.id}
+              data-section={s.id} data-ouvre-sous-ecran={s.id} onclick={() => ouvrirSousEcran(s.id)}>
+              <span class="lbl">
+                <span>{title(s)}</span>
+                {#if s.resumeKey}<span class="hint">{$t(s.resumeKey as any)}</span>{/if}
+              </span>
+              <!-- Maquette (reglages-1) : « Manage Sidebar », une pastille à droite. -->
+              <span class="pastille-sous-ecran">{$t('reglages.barreLaterale.ouvrir' as any)}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg></span>
+            </button>
+          {:else}
           <section class="card" class:hl={highlight === s.id} class:zone-danger={s.danger}
             class:fin-groupe={!!s.group && sections[i + 1]?.group !== s.group}
             data-section={s.id} data-groupe={s.group ?? null}>
@@ -4767,6 +5084,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <label class="sw">
                   <input type="checkbox" bind:checked={$loopByDefault} onchange={() => { if (!$loopByDefault) void remettreRepetitionAOff(); }} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- tune-server-rust#9143 / web#3248 (fil 2934) — retrait du sas
+                   après écoute complète, par profil, éteint par défaut. -->
+              <div class="row" data-reglage="retrait-ecouter-plus-tard">
+                <div class="lbl">
+                  <span>{$t('settings.retraitEcouterPlusTard' as any)}</span>
+                  <span class="hint">{$t('settings.retraitEcouterPlusTardHint' as any)}</span>
+                  {#if retraitSasErr}<span class="hint err">{retraitSasErr}</span>{/if}
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={retraitSas} disabled={$currentProfileId == null}
+                    onchange={(e) => setRetraitSas((e.currentTarget as HTMLInputElement).checked)} />
                   <span class="slider"></span>
                 </label>
               </div>
@@ -4823,6 +5155,50 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'scheduledStop'}
               <ArretProgrammeV2 />
+            {:else if s.id === 'sidebar'}
+              <!-- Maquette de Levente (Figma 620:5837, 15/11/2026) : la barre
+                   latérale sur son écran secondaire — quelles sources elle
+                   montre, puis l'ordre de ses entrées (web#1827). -->
+              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
+                   toutes les sources connues dans la barre, grisées quand
+                   elles sont indisponibles, et une case par TYPE. Par défaut,
+                   seuls les types présents sur la machine sont cochés. -->
+              <div class="row" data-reglage="sources-barre">
+                <div class="lbl">
+                  <span>{$t('settings.sidebarSources' as any)}</span>
+                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                </div>
+              </div>
+              {#each TYPES_SOURCE_BARRE as type (type)}
+                <div class="row">
+                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
+                  <label class="sw">
+                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
+                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              {/each}
+              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
+                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
+                  <div class="lbl">
+                    <span>{greffonEntreeAudio === 'a_installer'
+                      ? $t('v2.sources.greffonManque' as any)
+                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
+                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
+                  </div>
+                  {#if greffonEntreeAudio === 'a_installer'}
+                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
+                      onclick={installerGreffonEntreeAudio}>
+                      {installationEntreeAudio
+                        ? $t('v2.sources.greffonInstallation' as any)
+                        : $t('v2.sources.greffonInstaller' as any)}
+                    </button>
+                  {/if}
+                </div>
+              {/if}
+
+              <OrdreBarreLateraleV2 />
             {:else if s.id === 'radiosCountry'}
               <div data-reglage="pays-ecoute-radios"><PaysEcouteRadios /></div>
 
@@ -4993,44 +5369,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
-              <!-- tune-server-rust#5065, étape 3 — Bertrand, 27/09/2026 :
-                   toutes les sources connues dans la barre, grisées quand
-                   elles sont indisponibles, et une case par TYPE. Par défaut,
-                   seuls les types présents sur la machine sont cochés. -->
-              <div class="row" data-reglage="sources-barre">
+              <!-- Maquette de Levente (15/11/2026) : les sources de la barre
+                   latérale vivent sur l'écran secondaire « Barre latérale ».
+                   Cette ligne y mène : qui les cherchait ici les retrouve. -->
+              <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.sidebarSources' as any)}</span>
-                  <span class="hint">{$t('settings.sidebarSourcesHint' as any)}</span>
+                  <span class="hint">{$t('reglages.barreLaterale.deplace' as any)}</span>
                 </div>
+                <button class="lnk" type="button" data-ouvre-sous-ecran="sidebar" onclick={() => ouvrirSousEcran('sidebar')}>
+                  {$t('reglages.barreLaterale.ouvrir' as any)}
+                </button>
               </div>
-              {#each TYPES_SOURCE_BARRE as type (type)}
-                <div class="row">
-                  <div class="lbl"><span>{$t(`v2.sources.type.${type}` as any)}</span></div>
-                  <label class="sw">
-                    <input type="checkbox" data-type-source={type} checked={$typesSourcesBarre[type]}
-                      onchange={(e) => basculerTypeSource(type, (e.currentTarget as HTMLInputElement).checked)} />
-                    <span class="slider"></span>
-                  </label>
-                </div>
-              {/each}
-              {#if propositionEntreeAudioVisible($typesSourcesBarre, greffonEntreeAudio)}
-                <div class="row" data-greffon-entree-audio={greffonEntreeAudio}>
-                  <div class="lbl">
-                    <span>{greffonEntreeAudio === 'a_installer'
-                      ? $t('v2.sources.greffonManque' as any)
-                      : $t('v2.sources.greffonRedemarrer' as any)}</span>
-                    {#if erreurEntreeAudio}<span class="hint">{erreurEntreeAudio}</span>{/if}
-                  </div>
-                  {#if greffonEntreeAudio === 'a_installer'}
-                    <button class="lnk installer-entree-audio" disabled={installationEntreeAudio}
-                      onclick={installerGreffonEntreeAudio}>
-                      {installationEntreeAudio
-                        ? $t('v2.sources.greffonInstallation' as any)
-                        : $t('v2.sources.greffonInstaller' as any)}
-                    </button>
-                  {/if}
-                </div>
-              {/if}
 
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
@@ -5052,6 +5402,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
                   <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
                   <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
+              <!-- web#3143 — l'Historique, une ligne par titre (Elie, le défaut)
+                   ou une ligne par écoute, avec son heure (FabienM, fil 2637,
+                   point 7). Décision de Bertrand, 17/11/2026 : au choix. -->
+              <div class="row" data-reglage="historique-lignes">
+                <div class="lbl">
+                  <span>{$t('settings.historyRows' as any)}</span>
+                  <span class="hint">{$t('settings.historyRowsHint' as any)}</span>
+                </div>
+                <select class="sel" value={$preferences.historiqueLignes ?? MODE_HISTORIQUE_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estModeHistorique(v)) preferences.update((pr) => ({ ...pr, historiqueLignes: v })); }}>
+                  <option value="titre">{$t('settings.historyRowsTrack' as any)}</option>
+                  <option value="ecoute">{$t('settings.historyRowsListen' as any)}</option>
                 </select>
               </div>
 
@@ -5119,6 +5485,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'parental'}
               <ControleParentalV2 />
             {:else if s.id === 'interface'}
+              <!-- Maquette de Levente (15/11/2026) : la longue carte Interface
+                   découpée en blocs titrés, pour la parcourir d'un coup d'œil. -->
+              <h4 class="sous-titre">{$t('reglages.interface.apparence' as any)}</h4>
               <div class="row" data-reglage="theme">
                 <div class="lbl">
                   <span>{$t('settings.theme' as any)}</span>
@@ -5189,6 +5558,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
+                   décoché par défaut, les menus montrent les gestes courants et
+                   rangent le reste sous « Plus… ». -->
+              <div class="row" data-reglage="menus-complets">
+                <div class="lbl">
+                  <span>{$t('settings.fullMenus' as any)}</span>
+                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
+                    aria-label={$t('settings.fullMenus' as any)}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <h4 class="sous-titre">{$t('reglages.interface.barreLecture' as any)}</h4>
               <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
                    choix. Trois visuels décrits par des mots ne se départagent
                    pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
@@ -5215,24 +5603,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               <!-- #2429 — le visualiseur à barres de la barre de lecture, retirable
                    comme les crêtes (testeur Alex, rc8). Affiché par défaut. -->
-              <!-- rc12 — « Menus « … » complets » (go de Bertrand du 12/11/2026) :
-                   décoché par défaut, les menus montrent les gestes courants et
-                   rangent le reste sous « Plus… ». -->
-              <div class="row" data-reglage="menus-complets">
-                <div class="lbl">
-                  <span>{$t('settings.fullMenus' as any)}</span>
-                  <span class="hint">{$t('settings.fullMenusHint' as any)}</span>
-                </div>
-                <label class="sw">
-                  <input type="checkbox" checked={menusCompletsEffectifs($preferences)}
-                    aria-label={$t('settings.fullMenus' as any)}
-                    onchange={(e) => preferences.update((pr) => ({
-                      ...pr, menusComplets: (e.currentTarget as HTMLInputElement).checked,
-                    }))} />
-                  <span class="slider"></span>
-                </label>
-              </div>
-
               <div class="row" data-visualiseur-barre data-reglage="visualiseur-barre">
                 <div class="lbl">
                   <span>{$t('v2.set.barViz' as any)}</span>
@@ -5291,6 +5661,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- Décision de Bertrand du 17/11/2026 (rc13, option C) — l'onde
+                   des pistes Qobuz et TIDAL : le serveur télécharge la piste
+                   pour l'analyser, après 30 s de lecture. Décochée par défaut ;
+                   sans effet tant que la barre en forme d'onde est décochée. -->
+              <div class="row" data-reglage="onde-streaming">
+                <div class="lbl">
+                  <span>{$t('v2.set.ondeStreaming' as any)}</span>
+                  <span class="hint">{$t('v2.set.ondeStreamingHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.ondeStreaming === true}
+                    disabled={$preferences.barreOnde !== true}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, ondeStreaming: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <h4 class="sous-titre">{$t('reglages.interface.navigation' as any)}</h4>
               <div class="row" data-reglage="langue">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'en'}
@@ -5334,12 +5724,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
-              <!-- web#1827 — Bertrand, 30/09/2026 : l'ordre de la barre
-                   latérale, glisser-déposer ou flèches au clavier, entrées
-                   masquables, « Rétablir l'ordre par défaut ». Rangé à côté
-                   des autres réglages de navigation. -->
-              <OrdreBarreLateraleV2 />
-
               <div class="row" data-reglage="zone-defaut">
                 <div class="lbl">
                     <span>{$t('settings.defaultZone' as any)}</span>
@@ -5356,6 +5740,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
               {#if voit('intermediate', s.id)}
+                <h4 class="sous-titre">{$t('reglages.interface.details' as any)}</h4>
                 <div class="row" data-reglage="affichage-volume">
                   <div class="lbl">
                     <span>{$t('settings.volumeDisplay' as any)}</span>
@@ -5396,18 +5781,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </label>
                   </div>
                 {/if}
-                <!-- #1892 — tous niveaux : les lignes de piste sont partout. -->
-                <div class="row" data-reglage="actions-piste-reduites">
-                  <div class="lbl">
-                    <span>{$t('settings.trackActionsReduced' as any)}</span>
-                    <span class="hint">{$t('settings.trackActionsReducedHint' as any)}</span>
-                  </div>
-                  <label class="sw">
-                    <input type="checkbox" checked={$preferences.v2ActionsReduites}
-                      onchange={(e) => preferences.update((pr) => ({ ...pr, v2ActionsReduites: (e.currentTarget as HTMLInputElement).checked }))} />
-                    <span class="slider"></span>
-                  </label>
-                </div>
                 <div class="row" data-reglage="infobulles">
                   <div class="lbl">
                     <span>{$t('settings.tooltips' as any)}</span>
@@ -5452,7 +5825,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.fileWrites' as any)}</span>
                   <span class="hint">{$t('settings.fileWritesHint' as any)}</span>
                 </div>
-                <label class="sw">
+                <label class="sw" class:non-lu={ecritureFichiersOn === null} aria-busy={ecritureFichiersOn === null && !consentementsIllisibles}>
                   <input type="checkbox" data-cle={CLE_ECRITURE_FICHIERS} checked={ecritureFichiersOn === true}
                     disabled={ecritureFichiersOn === null}
                     onchange={(e) => setEcritureFichiers((e.currentTarget as HTMLInputElement).checked)} />
@@ -5467,7 +5840,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.lyricsLrclib' as any)}</span>
                   <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
                 </div>
-                <label class="sw">
+                <label class="sw" class:non-lu={lrclibOn === null} aria-busy={lrclibOn === null && !consentementsIllisibles}>
                   <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn === true}
                     disabled={lrclibOn === null}
                     onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
@@ -5478,6 +5851,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- tune-server-rust#8521 — réglages pas encore lus : on le dit
                    ICI, pas seulement sous les dossiers de musique. -->
               {#if consentementsIllisibles}<div class="errline" data-temoin="consentements-illisibles">{$t('settings.errConfigUnavailable')}</div>{/if}
+              <!-- #3103 — lecture en cours : dit, et l'interrupteur « non lu » ne
+                   ressemble plus à un interrupteur éteint (voir `.sw.non-lu`). -->
+              {#if !consentementsIllisibles && (lrclibOn === null || ecritureFichiersOn === null)}<div class="hint" role="status" data-temoin="consentements-lecture">{$t('settings.consentsReading' as any)}</div>{/if}
               {#if voit('intermediate', s.id)}
                 <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
               {/if}
@@ -5659,6 +6035,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'classicalTags'}
               <BalisesClassiqueV2 />
 
+            {:else if s.id === 'personalTags'}
+              <BalisesPersoV2 />
+
             {:else if s.id === 'oxygen'}
               <div class="row" data-reglage="vue-oxygen">
                 <div class="lbl">
@@ -5708,6 +6087,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
                     {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                  {:else if ssoRelieSansDetails}
+                    <span>{$t('settings.accountLinkedNoDetails' as any)}</span>
+                    <span class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</span>
                   {:else}
                     <span>{$t('settings.notConnected' as any)}</span>
                     {#if !ssoConfigure}<span class="hint">{$t('settings.cloudComingSoon' as any)}</span>{/if}
@@ -5716,7 +6098,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {#if ssoConnecte}
                   <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
                     >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
-                {:else if ssoConfigure && ssoDisponible()}
+                {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
                     >{$t('settings.signIn' as any)}</button>
@@ -5870,7 +6252,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'import'}
               <!-- Phase 5 (web#1257) : import Roon / Plex, aperçu puis confirmation. -->
-              <div data-reglage="import-autre-lecteur"><ImportLecteurV2 /></div>
+              <div class="pleine-largeur" data-reglage="import-autre-lecteur"><ImportLecteurV2 /></div>
 
             {:else if s.id === 'database'}
               <div class="rows">
@@ -6151,6 +6533,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
+            {:else if s.id === 'authActivation'}
+              <div data-reglage="activation-authentification"><ActivationAuthV2 /></div>
+
             {:else if s.id === 'accessFrom'}
               <p class="hint" data-reglage="adresses-acces">
                 {$t('v2.hint.lanAddresses' as any)}
@@ -6396,6 +6781,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
+            {:else if s.id === 'absentDevices'}
+              <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
+              <div class="devlist" data-reglage="appareils-absents">
+                {#each absents as a (a.zone_id)}
+                  <div class="dev ign absent">
+                    <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
+                    <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
+                    <span class="dh" data-absent>{$t('settings.absentLabel' as any)}</span>
+                    {#if oubliAConfirmer === a.zone_id}
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.forgetDevice' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint">{$t('settings.forgetDeviceConfirmZones' as any)
+                          .replace('{device}', libelleAppareil(a, netLabel))
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                      </span>
+                    {:else}
+                      <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirOubli(a, ev)}>
+                        {$t('settings.forgetDevice' as any)}
+                      </button>
+                    {/if}
+                  </div>
+                {:else}
+                  <p class="hint">{absentsErreur ? $t('settings.absentDevicesLoadError' as any)
+                    : absentsLus ? $t('settings.noAbsentDevices' as any)
+                    : $t('v2.set.searchingDevices' as any)}</p>
+                {/each}
+              </div>
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
@@ -6633,6 +7048,55 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               {/each}
                             </select>
                             <small id={`fixed-sample-rate-hint-${z.id}`}>{$t('settings.fixedSampleRateHint' as any)}</small>
+                          </div>
+                        {/if}
+                        <!--
+                          MODE EXCLUSIF PAR ZONE — tune-server-rust#3245.
+                          Le serveur le règle par zone depuis la rc12 (PATCH
+                          `exclusive_mode`, `null` = suivre la machine) ; aucun
+                          écran ne l'exposait. Zone LOCALE seulement : c'est la
+                          sortie locale qui ouvre l'appareil en exclusif. Masqué
+                          quand la zone ne publie pas le champ (ancien serveur).
+                        -->
+                        {#if z.output_type === 'local' && z.exclusive_mode !== undefined}
+                          <div class="zf" data-reglage="zone-mode-exclusif">
+                            <label for={`exclusive-mode-${z.id}`}>{$t('settings.zoneExclusiveMode' as any)}</label>
+                            <select id={`exclusive-mode-${z.id}`} aria-describedby={`exclusive-mode-hint-${z.id}`} class="sel sm"
+                              value={z.exclusive_mode === true ? 'true' : z.exclusive_mode === false ? 'false' : ''}
+                              onchange={(e) => { const v = e.currentTarget.value;
+                                setZoneField(z, () => api.updateZoneExclusiveMode(z.id as number, v === '' ? null : v === 'true')); }}>
+                              <option value="">{$t('settings.zoneExclusiveFollow' as any)}</option>
+                              <option value="true">{$t('settings.zoneExclusiveOn' as any)}</option>
+                              <option value="false">{$t('settings.zoneExclusiveOff' as any)}</option>
+                            </select>
+                            <small id={`exclusive-mode-hint-${z.id}`}>{$t('settings.zoneExclusiveHint' as any)}</small>
+                            {#if typeof z.exclusive_mode === 'boolean' && typeof z.exclusive_mode_applique === 'boolean' && z.exclusive_mode_applique !== z.exclusive_mode}
+                              <small class="dsd-dop" data-exclusif-en-attente>{$t('settings.zoneExclusivePending' as any)}</small>
+                            {/if}
+                          </div>
+                        {/if}
+                        <!--
+                          PÉRIODE WASAPI EXCLUSIF — tune-server-rust#8696.
+                          Didier (SMSL SU-8 en USB) : des « sauts de vinyle »
+                          à 10 ms ; une période plus longue les absorbe. Zone
+                          LOCALE d'un serveur WINDOWS seulement (le serveur le
+                          dit : `wasapi_exclusive_period_applicable`), et pas
+                          quand la zone est réglée en partagé. Masqué sur un
+                          ancien serveur (champ absent).
+                        -->
+                        {#if periodeWasapiVisible(z)}
+                          <div class="zf" data-reglage="zone-periode-wasapi">
+                            <label for={`wasapi-period-${z.id}`}>{$t('settings.wasapiPeriod' as any)}</label>
+                            <select id={`wasapi-period-${z.id}`} aria-describedby={`wasapi-period-hint-${z.id}`} class="sel sm"
+                              value={String(z.wasapi_exclusive_period_ms ?? 0)}
+                              onchange={(e) => { const v = Number(e.currentTarget.value);
+                                setZoneField(z, () => api.updateZoneWasapiExclusivePeriod(z.id as number, v > 0 ? v : null)); }}>
+                              <option value="0">{$t('settings.wasapiPeriodAuto' as any)}</option>
+                              {#each choixPeriodeWasapi(z) as ms (ms)}
+                                <option value={String(ms)}>{ms} ms</option>
+                              {/each}
+                            </select>
+                            <small id={`wasapi-period-hint-${z.id}`}>{$t('settings.wasapiPeriodHint' as any)}</small>
                           </div>
                         {/if}
                         <!--
@@ -7039,7 +7503,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   ouvre quand on cherche, pas une alerte.
                 -->
                 {#if aDesEcarts(scanReport)}
-                  <details class="ecartes">
+                  <details class="ecartes pleine-largeur">
                     <summary>{$t('v2.scan.discarded' as any)}</summary>
                     {#if listeTronquee(scanReport)}
                       <!-- Le serveur plafonne ses listes et le DIT : une liste
@@ -7079,7 +7543,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="faux-hires"><DetectionFauxHiRes /></div>
               {#if libErr}<div class="errline">{libErr}</div>{/if}
               <!-- tune-server-rust#6286 : audit d'intégrité, APRÈS « Analyser la bibliothèque » (web#2324 la veut en tête). -->
-              <div data-reglage="audit-integrite"><AuditIntegrite /></div>
+              <div class="pleine-largeur" data-reglage="audit-integrite"><AuditIntegrite /></div>
               <!-- tune-server-rust#4201 — l'état de la bibliothèque UPnP
                    synchronisée (dernier bilan persisté de chaque source). -->
               <div data-reglage="etat-import-upnp"><EtatImportUpnp /></div>
@@ -7114,10 +7578,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
                 <div class="dirs" data-reglage="dossiers-declares">
                   {#each displayedMusicDirs as d, index (d)}
-                    <div class="dir" class:ordered={directoryOrder !== null && displayedMusicDirs.length > 1}
-                      class:avec-analyse={analysisExcluded !== null}>
+                    {@const coupe = couperChemin(d)}
+                    <!--
+                      web#3137 — le chemin d'abord, les commandes ensuite.
+                      La ligne était une grille où le chemin, seule colonne
+                      en `minmax(0,1fr)`, tombait à zéro dès que les cinq
+                      commandes (dont « Remplacer le chemin », rc12) prenaient
+                      la largeur : sous Windows, plus aucun chemin lisible.
+                      Désormais `.dir-tete` garde une largeur minimale ; si
+                      les commandes n'y tiennent pas à côté, elles passent
+                      dessous. Le chemin se tronque au milieu (le dernier
+                      dossier reste entier) et son infobulle le donne en
+                      entier.
+                    -->
+                    <div class="dir">
+                      <div class="dir-tete">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                      <span class="dp" use:bulleTexte>{d}</span>
+                      <span class="dp" title={d}><span class="dp-debut">{coupe.debut}</span><span class="dp-fin">{coupe.fin}</span></span>
+                      </div>
+                      <div class="dir-actions">
                       {#if directoryOrder !== null && displayedMusicDirs.length > 1}
                         <div class="dir-order">
                           <button class="lnk" disabled={dirBusy || orderBusy || index === 0}
@@ -7152,14 +7631,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>{$t('settings.backgroundAnalysisFolder' as any)}</span>
                         </label>
                       {/if}
+                      <!-- tune-server-rust#8676 — après une restauration venue
+                           d'une autre machine : réécrire l'ancien chemin. -->
+                      <RemplacerCheminDossier dossier={d} disabled={dirBusy}
+                        onRemplace={async (dirs, message) => { remplacementFait = message; musicDirs = dirs.length ? dirs : musicDirs; await refreshDirectoryOrder(); }} />
                       <button class="del avec-texte" disabled={dirBusy} onclick={() => removeDir(d)}
                         aria-label={$t('settings.removeFolderAria' as any)} title={$t('settings.removeFolderButton' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         <span>{$t('settings.removeFolderButton' as any)}</span>
                       </button>
+                      </div>
                     </div>
                   {/each}
                 </div>
+                <!-- tune-server-rust#8676 — le bilan de « Remplacer le chemin »,
+                     HORS de la ligne : celle-ci est démontée quand le chemin
+                     change (liste indexée par chemin). -->
+                {#if remplacementFait}<p class="hint" role="status" data-bilan-remplacement>{remplacementFait}</p>{/if}
                 {#if orderError}<p class="errline" role="alert">{orderError}</p>{/if}
                 {#if analysisExcluded !== null}
                   <p class="hint">{$t('settings.backgroundAnalysisFoldersHint' as any)}</p>
@@ -7263,6 +7751,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if proposerAjout(m, musicDirs)}
                           <button class="lnk" disabled={smbBusy !== null} onclick={() => ajouterPartage(m)}
                             title={$t('settings.smbNotDeclaredHint' as any)}>{$t('smb.addToLibrary' as any)}</button>
+                          <button class="lnk" data-sous-dossier-partage disabled={smbBusy !== null}
+                            onclick={() => { smbErr = null; explorateurPartage = m; }}>{$t('smb.chooseSubfolder' as any)}</button>
                         {/if}
                         <button class="lnk" disabled={smbBusy !== null} onclick={() => oublierPartage(m)}>{$t('settings.smbForget' as any)}</button>
                       </span>
@@ -8025,6 +8515,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                       {/if}
 
+                      {#if name === 'spotify' && !spotifyClientIdManque}
+                        <!-- Fils 2384 et 2385 : « Changer » et « Effacer » du Client ID
+                             n'étaient offerts que dans Services & Jetons (niveau
+                             Avancé). Mêmes gestes, mêmes appels, ici. -->
+                        {@const gesteCarte = gestesClientIdSpotify(stk.find((x) => x?.id === 'spotify'))}
+                        {#if gesteCarte && (gesteCarte.modifier || gesteCarte.effacer)}
+                          <div class="inline" data-carte-client-id-spotify>
+                            {#if carteModifClientId && gesteCarte.modifier}
+                              <input class="txt" type="text" autocomplete="off" spellcheck="false"
+                                placeholder={$t('v2.set.spotifyClientIdLabel' as any)}
+                                aria-label={$t('v2.set.spotifyClientIdLabel' as any)}
+                                bind:value={clientIdSaisi} data-carte-saisie-client-id
+                                onkeydown={(e) => { if (e.key === 'Enter' && clientIdSaisi.trim()) enregistrerClientIdDepuisJetons(); }} />
+                              <button class="lnk" data-carte-enregistrer-client-id
+                                disabled={(svcBusy === 'spotify' && !deviceFlow.spotify) || !clientIdSaisi.trim()}
+                                onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <button class="lnk" onclick={() => { carteModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
+                            {:else}
+                              {#if gesteCarte.modifier}
+                                <button class="lnk" data-carte-modifier-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={() => { carteModifClientId = true; clientIdSaisi = ''; clientIdRetour = null; }}>{$t('v2.set.spotifyClientIdEdit' as any)}</button>
+                              {/if}
+                              {#if gesteCarte.effacer}
+                                <button class="lnk danger" data-carte-effacer-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={effacerClientIdSpotifyGeste}>{$t('v2.set.spotifyClientIdClear' as any)}</button>
+                              {/if}
+                            {/if}
+                          </div>
+                        {/if}
+                      {/if}
+
                       {#if name === 'spotify' && clientIdRetour}
                         <div class={clientIdEnPlace(clientIdRetour.etat) ? 'hint' : 'serr'} data-client-id-retour={clientIdRetour.etat}>
                           {$t(cleDuRetourClientId(clientIdRetour.etat) as any)}{#if clientIdRetour.message} — {clientIdRetour.message}{/if}
@@ -8660,11 +9181,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="lbl">
                     <span>{$t('settings.replayGain' as any)}</span>
                     <span class="hint">{$t('settings.replayGainHint' as any)}</span>
+                    {#if rgMode === 'auto'}
+                      <!-- #8968 : ce que le mode Auto choisit, dit en clair. -->
+                      <span class="hint" data-testid="rg-auto-hint">{$t('settings.replayGainAutoHint' as any)}</span>
+                    {/if}
                   </div>
-                  <div class="seg4">
+                  <div class="seg4 seg-replaygain">
                     <button class:on={rgMode === 'off'} onclick={() => setRgMode('off')}>{$t('settings.replayGainOff' as any)}</button>
                     <button class:on={rgMode === 'track'} onclick={() => setRgMode('track')}>{$t('settings.replayGainTrack' as any)}</button>
                     <button class:on={rgMode === 'album'} onclick={() => setRgMode('album')}>{$t('settings.replayGainAlbum' as any)}</button>
+                    {#if rgModes.includes('auto')}
+                      <button class:on={rgMode === 'auto'} onclick={() => setRgMode('auto')} title={$t('settings.replayGainAutoHint' as any)}>{$t('settings.replayGainAuto' as any)}</button>
+                    {/if}
                   </div>
                 </div>
                 {#if rgMode !== 'off' && voit('expert', s.id)}
@@ -8828,6 +9356,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="plages-mac"><PlagesMacV2 appareils={$devices} /></div>
             {/if}
           </section>
+          {/if}
         {/each}
 
         {#if !sections.length}
@@ -8837,6 +9366,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
 </section>
+
+{#if explorateurPartage?.mount_path}
+  <FolderBrowser
+    initialPath={explorateurPartage.mount_path}
+    onSelect={sousDossierDuPartageChoisi}
+    onClose={() => (explorateurPartage = null)}
+  />
+{/if}
 
 {#if showSmbWizard}
   <SmbWizard
@@ -8893,6 +9430,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .tabs{display:flex; gap:4px; padding:4px 30px 0; overflow-x:auto; scrollbar-width:none;
     border-bottom:1px solid var(--v2-line); flex:0 0 auto}
   .tabs::-webkit-scrollbar{display:none}
+  /* Fondu au bord coupé (masque alpha, donc aucune couleur), flèche par-dessus. */
+  .tabs-cadre{position:relative; flex:0 0 auto}
+  .tabs-cadre.fondu-d .tabs{-webkit-mask-image:linear-gradient(to right, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to right, black calc(100% - 72px), transparent)}
+  .tabs-cadre.fondu-g .tabs{-webkit-mask-image:linear-gradient(to left, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to left, black calc(100% - 72px), transparent)}
+  .tabs-cadre.fondu-g.fondu-d .tabs{-webkit-mask-image:linear-gradient(to right, transparent, black 72px, black calc(100% - 72px), transparent);
+    mask-image:linear-gradient(to right, transparent, black 72px, black calc(100% - 72px), transparent)}
+  .defile-onglets{position:absolute; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border:1px solid var(--v2-line2); border-radius:50%; background:var(--v2-surface2);
+    color:var(--v2-txt2); cursor:pointer; z-index:1}
+  .defile-onglets.g{left:8px}
+  .defile-onglets.d{right:8px}
+  .defile-onglets svg{width:16px; height:16px}
+  .defile-onglets:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .defile-onglets:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
   /* Recette rc12 (13/11) — sous 720 px, la recherche des réglages prend toute
      la largeur (`RechercheReglagesV2`) : sans retour à la ligne, elle
      chevauchait le titre « Réglages ». Elle passe sous le titre ; seul le
@@ -8922,6 +9475,62 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .pane::-webkit-scrollbar{width:9px}.pane::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .panehead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap}
   .panehead:empty{display:none}
+  /* Maquette de Levente (Figma 620:5837, 15/11/2026) : « Settings section to
+     keep @720px wide so the users can easily read the text ». Le panneau
+     défile toujours sur toute la largeur ; la COLONNE des réglages, elle,
+     s'arrête à 720 px. */
+  .pane > *{width:100%; max-width:720px; box-sizing:border-box}
+  /* Recette du .18 (15/11, Bertrand : « Écran réglages Library pas bon !! »)
+     — les TABLEAUX et listes de résultats (audit d'intégrité, import d'un
+     autre lecteur, chemins écartés du scan) écrasés dans 720 px : une lettre
+     par ligne. Un bloc large porte la classe `pleine-largeur` : sa carte
+     prend toute la largeur du panneau, et le TEXTE des réglages de cette
+     carte reste, lui, à 720 px. */
+  .pane > .card:has(.pleine-largeur){max-width:none}
+  .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:720px}
+  .pane .pleine-largeur{max-width:none; min-width:0; overflow-x:auto}
+  /* web#3163 — GRAND ÉCRAN (Pierre, fil 2867, rc12 : la colonne « gaspille
+     un grand écran » ; décision de Bertrand, 17/11/2026). Au-delà de 1600 px
+     de fenêtre, la colonne s'élargit PROGRESSIVEMENT — la moitié de chaque
+     pixel gagné, jusqu'à 1200 px : 880 px à 1920, 1200 px à 2560. En deçà,
+     rien ne change : sur un 13 pouces (1440 px) la règle des 720 px
+     ci-dessus s'applique seule, au pixel près.
+     Ce que la largeur sert : les cartes, les listes (Emplacements), les
+     matrices et tableaux. Ce qu'elle ne sert PAS : la ligne de réglage
+     (libellé, aide, contrôle) et les paragraphes d'aide restent à une mesure
+     de lecture de 760 px — à peine plus que sur un 13 pouces — pour que le
+     texte ne s'étire pas et que le contrôle reste à côté de son aide. */
+  @media (min-width:1601px){
+    .pane{--reglages-colonne:min(1200px, calc(720px + (100vw - 1600px) / 2))}
+    .pane > *{max-width:var(--reglages-colonne)}
+    .pane > .card:has(.pleine-largeur) > :not(.pleine-largeur):not(:has(.pleine-largeur)){max-width:var(--reglages-colonne)}
+    .pane .card .row:not(.row-mon-theme):not(:has(.pleine-largeur)), .pane .card p{max-width:760px}
+  }
+  .panehead.cache{display:none}
+  /* Intertitres d'une longue carte (Interface) : des blocs titrés. */
+  .sous-titre{margin:20px 0 -2px; padding-top:14px; border-top:1px solid var(--v2-line);
+    font-size:calc(11.5px * var(--v2-txt-echelle, 1)); font-weight:700; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--v2-txt2)}
+  .cardhead + .sous-titre, .force-niveau + .sous-titre{margin-top:12px; padding-top:0; border-top:0}
+  /* Ligne qui ouvre un écran secondaire : une carte entière, cliquable. */
+  .lien-sous-ecran{display:flex; align-items:center; justify-content:space-between; gap:16px;
+    text-align:left; color:inherit; font:inherit; cursor:pointer}
+  .lien-sous-ecran .lbl span:first-child{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .pastille-sous-ecran{display:inline-flex; align-items:center; gap:4px; flex:0 0 auto; white-space:nowrap;
+    padding:6px 10px 6px 14px; border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill);
+    color:var(--v2-acc1); font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .pastille-sous-ecran svg{width:14px; height:14px}
+  .lien-sous-ecran:hover{border-color:var(--v2-line2); background:var(--v2-hover)}
+  .lien-sous-ecran:hover .pastille-sous-ecran{background:var(--v2-active1)}
+  @media (max-width:640px){ .lien-sous-ecran{flex-wrap:wrap} }
+  .lien-sous-ecran:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
+  .sous-ecran-tete{display:flex; align-items:center}
+  .retour-sous-ecran{display:inline-flex; align-items:center; gap:6px; padding:6px 10px 6px 4px;
+    border:0; border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
+  .retour-sous-ecran svg{width:16px; height:16px}
+  .retour-sous-ecran:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .retour-sous-ecran:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
   .masked{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px}
@@ -8971,6 +9580,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .sw input:checked + .slider{background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .sw input:checked + .slider::before{transform:translateX(19px)}
   .sw input:focus-visible + .slider{box-shadow:0 0 0 3px var(--v2-focus)}
+  /* #3103 — réglage pas encore lu : ni allumé ni éteint. Hachures, curseur au
+     milieu ; sans cette règle, la case grisée était identique à « éteint ». */
+  .sw.non-lu{cursor:progress}
+  .sw.non-lu .slider{opacity:.55; background:repeating-linear-gradient(135deg,var(--v2-line2) 0 4px,transparent 4px 8px)}
+  .sw.non-lu .slider::before{transform:translateX(9.5px); opacity:.6}
 
   .bar2{margin-top:12px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
   .bar2 span{display:block; height:100%; border-radius:4px;
@@ -8996,7 +9610,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
   .apercu{display:inline-block; min-width:150px}
-  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
+  .svcon{display:inline-flex; flex:none; white-space:nowrap; align-items:center; gap:6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   /* #2735 — fiche d'appareil, sur le modèle des fiches d'Apple : une ligne
      par réglage, le libellé à gauche en casse normale, le contrôle à droite,
@@ -9062,10 +9676,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px minmax(0,1fr) auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
-  .dir.ordered{grid-template-columns:20px minmax(0,1fr) auto auto auto}
-  .dir.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto}
-  .dir.ordered.avec-analyse{grid-template-columns:20px minmax(0,1fr) auto auto auto auto}
+  /* web#3137 — une ligne souple : le chemin garde au moins 26em (à l échelle
+     du texte) ; les commandes passent dessous quand elles ne tiennent pas à
+     côté, et vont elles-mêmes à la ligne sur une fenêtre étroite. */
+  .dir{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; padding:8px 10px; border-radius:8px}
+  .dir-tete{display:flex; align-items:center; gap:12px; flex:1 1 26em; min-width:0; font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .dir-tete svg{flex:none}
+  .dir-actions{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:6px 12px; flex:0 1 auto; max-width:100%; margin-left:auto}
+  /* Le panneau « Remplacer le chemin » ouvert prend toute la ligne. */
+  .dir:has(.remplacer-chemin-panneau) .dir-actions{flex-basis:100%}
+  /* Troncature au milieu : le début cède, le dernier dossier reste entier
+     tant qu il tient, puis se tronque à son tour. */
+  .dir .dp{display:flex; flex:1 1 auto; min-width:0}
+  .dp-debut{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dp-fin{flex:0 0 auto; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .dir-analyse{display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .clap-genres{display:flex; flex-direction:column; gap:6px; margin:10px 0}
   .clap-genres-titre{font-weight:600}
@@ -9130,11 +9754,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .svclist{display:flex; flex-direction:column; gap:2px; margin-top:12px}
   .svc{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 10px; border-radius:10px}
   .svc:hover{background:var(--v2-hover)}
-  .sname{display:flex; align-items:baseline; gap:10px; flex:1; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
+  .sname{display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; flex:1 1 14rem; min-width:0; font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600;
     text-transform:capitalize}
-  .sst{font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
+  .sst{flex:none; white-space:nowrap; font:calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-danger)}
   .sst.ok{color:var(--v2-acc1)} .sst.off{color:var(--v2-txt3)}
-  .sname em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
+  .sname em{min-width:0; overflow-wrap:anywhere; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); font-style:normal; color:var(--v2-txt3); text-transform:none}
   .sname em.sub{color:var(--v2-acc2)}
   .flow{display:flex; align-items:center; gap:11px; flex-wrap:wrap}
   .ucode{font:700 calc(15px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.22em; color:var(--v2-acc-tint);
@@ -9155,6 +9779,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .seg4 button:hover:not(:disabled){color:var(--v2-txt)}
   .seg4 button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .seg4 button:disabled{opacity:.5; cursor:default}
+  /* tune-server-rust#8968 — quatre choix ReplayGain dont un long libellé
+     (« Désactivé (niveau source) ») : sur écran étroit, la rangée passe à la
+     ligne au lieu de déborder de la fenêtre. */
+  @media (max-width:640px){
+    .seg4.seg-replaygain{flex-wrap:wrap; flex:1 1 100%; min-width:0}
+    .seg4.seg-replaygain button{flex:1 1 auto}
+  }
   .devlist{display:flex; flex-direction:column; gap:1px; margin-top:12px}
   .dev{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:11px; padding:8px 10px;
     border-radius:9px; cursor:pointer; color:var(--v2-txt2)}
@@ -9230,6 +9861,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .dev.net .del{margin-left:auto; flex:0 0 auto}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign.ko .dt{color:var(--v2-danger)}
+  .oubli-conf{display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; grid-column:1 / -1}
   .devlist.smb{margin-top:14px}
   .smb-actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
   .dev .dh{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}

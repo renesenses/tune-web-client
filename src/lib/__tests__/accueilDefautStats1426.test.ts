@@ -48,8 +48,13 @@ describe('#1426 — le remplacement du tableau de bord est visible sans rien dem
     // #1426 voulait tenir — les quatre sections, entières et dans l'ordre —
     // et non l'indice 0, qui n'en était que le moyen.
     expect(DISPOSITION_DEFAUT[0]).toBe('premiere-ligne');
+    //
+    // 🔴 15/11/2026 — maquette de Levente « Home Dashboard with Album Grid »,
+    // go de Bertrand : les NOUVEAUTÉS passent sous la ligne d'en-tête, devant
+    // « Reprendre l'écoute ». Les quatre sections restent entières ; c'est le
+    // seul échange d'ordre.
     expect(DISPOSITION_DEFAUT.slice(1, 5)).toEqual([
-      'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
+      'nouveautes-artistes', 'reprendre', 'recemment-ajoutes', 'statistiques',
     ]);
   });
 

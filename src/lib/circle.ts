@@ -58,6 +58,7 @@
 import { writable, derived } from 'svelte/store';
 import * as api from './api';
 import { BASE, fetchJSON, type ApiError } from './api';
+import { CLES_LECTURE_SEULE, CODE_ADMIN_REQUIS, CODE_LECTURE_SEULE_A_DISTANCE } from './circleDroits';
 import type { Track } from './types';
 
 export interface ContactCercle {
@@ -86,6 +87,8 @@ export interface CercleNomme {
   name: string;
   member_ids: number[];
   sharing?: PartageCercle | null;
+  /** #3283 : je partage CE cercle entre ses membres (globe). Absent : cloud plus ancien. */
+  members_see_each_other?: boolean;
 }
 
 /**
@@ -97,6 +100,12 @@ export interface CercleOuJeSuisInvite {
   owner_id: number;
   owner_name: string;
   circle_name: string;
+  /** #3283 : le propriétaire partage ce cercle entre ses membres. Absent : cloud plus ancien. */
+  members_see_each_other?: boolean;
+  /** #3283 : MON accord pour être montré aux autres membres. Faux par défaut. */
+  show_me?: boolean;
+  /** #3283 : combien d'AUTRES membres le cercle compte aujourd'hui (le propriétaire peut en ajouter). */
+  audience_count?: number;
 }
 
 export interface EtatCercleConnecte {
@@ -118,7 +127,14 @@ export function cerclesOuJeSuisInvite(e: EtatCercleConnecte | null | undefined):
     if (!b || typeof b !== 'object') continue;
     if (!Number.isFinite(b.circle_id) || !Number.isFinite(b.owner_id)) continue;
     if (typeof b.circle_name !== 'string' || b.circle_name === '' || typeof b.owner_name !== 'string') continue;
-    out.push({ circle_id: b.circle_id, owner_id: b.owner_id, owner_name: b.owner_name, circle_name: b.circle_name });
+    const m: CercleOuJeSuisInvite = { circle_id: b.circle_id, owner_id: b.owner_id, owner_name: b.owner_name, circle_name: b.circle_name };
+    // #3283 : les deux drapeaux, seulement s'ils sont lisibles ; un accord sans partage ne vaut rien.
+    if (typeof b.members_see_each_other === 'boolean') {
+      m.members_see_each_other = b.members_see_each_other;
+      m.show_me = b.members_see_each_other && b.show_me === true;
+      if (b.members_see_each_other && Number.isInteger(b.audience_count) && b.audience_count >= 0) m.audience_count = b.audience_count;
+    }
+    out.push(m);
   }
   return out;
 }
@@ -201,6 +217,40 @@ export function partagerBibliotheque(id: number): Promise<unknown> {
 
 export function arreterPartageBibliotheque(id: number): Promise<{ ok: boolean }> {
   return envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/library`, 'DELETE');
+}
+
+// ── #3283 (site-mozaiklabs#568) : le cercle partagé ─────────────────────────
+//
+//   PUT|DELETE /circles/{id}/sharing/members → le cercle (`members_see_each_other`)
+//     — propriétaire : « Partager ce cercle entre ses membres » ; couper efface
+//       les accords de tous les membres ;
+//   PUT|DELETE /member-of/{id}/show-me       → l'entrée `member_of` (`show_me`)
+//     — membre : « Me montrer aux autres membres », faux par défaut ;
+//       409 `circle_not_shared` si le propriétaire ne partage pas.
+//
+// Un 404 SANS code vient d'un greffon `circle` plus ancien, qui ne relaie pas
+// encore ces routes : l'écran le dit (« mettez à jour votre serveur Tune »)
+// au lieu de « introuvable ».
+
+/** Le code posé quand le greffon ne connaît pas la route (404 sans corps du cloud). */
+export const CODE_ROUTE_ABSENTE = 'circle.route_missing';
+
+async function geste404Nu<T>(appel: () => Promise<T>): Promise<T> {
+  try {
+    return await appel();
+  } catch (e) {
+    const err = e as ApiError | null;
+    if (err && err.status === 404 && !err.code) err.code = CODE_ROUTE_ABSENTE;
+    throw e;
+  }
+}
+
+export function partagerEntreMembres(id: number, oui: boolean): Promise<unknown> {
+  return geste404Nu(() => envoyer(`${BASE}/ext/circle/circles/${seg(id)}/sharing/members`, oui ? 'PUT' : 'DELETE'));
+}
+
+export function meMontrerDansCercle(circleId: number, oui: boolean): Promise<unknown> {
+  return geste404Nu(() => envoyer(`${BASE}/ext/circle/member-of/${seg(circleId)}/show-me`, oui ? 'PUT' : 'DELETE'));
 }
 
 /** L'état LOCAL de la copie en ligne : sans lui, on croirait partager un catalogue vide ou vieux. */
@@ -380,6 +430,88 @@ export function reprisePochetteAlbumContact(
   userId?: number | null,
 ): string | null {
   return pochettesAlbumContact(a, userId)[1] ?? null;
+}
+
+// ─── web#3001 : la pochette de MES sources quand la vignette manque ─────────
+
+/**
+ * Une pochette retrouvée dans MES sources pour un album de contact
+ * (`POST /ext/circle/my-sources/album-covers`) : `source` vaut `local` (ma
+ * bibliothèque) ou le service (`qobuz`, `tidal`) ; `cover_path` est une
+ * adresse servable telle quelle (`/api/v1/library/artwork/…` ou celle du
+ * service, que `artworkUrl` relaie).
+ */
+export interface PochetteDeMesSources {
+  source: string;
+  cover_path: string;
+  album_id?: number;
+}
+
+/** Une page d'écran fait 50 albums : jamais davantage en une demande. */
+export const POCHETTES_PAR_DEMANDE = 50;
+
+/** L'album a-t-il une vignette envoyée par le serveur du contact ? */
+export function aUneVignette(a: { thumbnail?: string | null }): boolean {
+  return typeof a.thumbnail === 'string' && SHA256.test(a.thumbnail);
+}
+
+/**
+ * Les albums d'une page à faire chercher dans mes sources : sans vignette,
+ * avec un titre et un artiste, pas déjà cherchés (`connus`), au plus
+ * [`POCHETTES_PAR_DEMANDE`].
+ */
+export function albumsSansVignette<A extends Pick<AlbumContact, 'id' | 'title' | 'artist_name'> & { thumbnail?: string | null }>(
+  page: A[],
+  connus: { has(id: number): boolean },
+): A[] {
+  return page
+    .filter((a) => !aUneVignette(a) && !connus.has(a.id) && (a.title ?? '').trim() !== '' && (a.artist_name ?? '').trim() !== '')
+    .slice(0, POCHETTES_PAR_DEMANDE);
+}
+
+/**
+ * UNE demande pour toute une page : la pochette de chaque album dans mes
+ * sources, dans l'ordre, `null` quand rien ne correspond. Un greffon plus
+ * ancien (404) rend une liste de `null`.
+ */
+export async function pochettesDeMesSources(
+  albums: Pick<AlbumContact, 'title' | 'artist_name'>[],
+): Promise<(PochetteDeMesSources | null)[]> {
+  if (albums.length === 0) return [];
+  let r: { covers?: unknown } | null = null;
+  try {
+    r = await envoyer<{ covers?: unknown }>(`${BASE}/ext/circle/my-sources/album-covers`, 'POST', {
+      albums: albums.slice(0, POCHETTES_PAR_DEMANDE).map((a) => ({ title: a.title, artist_name: a.artist_name })),
+    });
+  } catch (e) {
+    if (plusPartage(e)) return albums.map(() => null);
+    throw e;
+  }
+  const covers = Array.isArray(r?.covers) ? r.covers : [];
+  return albums.map((_, i) => {
+    const c = covers[i] as Partial<PochetteDeMesSources> | null | undefined;
+    return c && typeof c.cover_path === 'string' && c.cover_path !== '' && typeof c.source === 'string'
+      ? { source: c.source, cover_path: c.cover_path, ...(typeof c.album_id === 'number' ? { album_id: c.album_id } : {}) }
+      : null;
+  });
+}
+
+/**
+ * Les pochettes à essayer pour un album de contact, ma pochette comprise :
+ * la vignette du contact gagne toujours ; sans elle, la pochette de mes
+ * sources passe avant Cover Art Archive, et l'écran le signale
+ * (`deMesSources`).
+ */
+export function pochettesAvecMesSources(
+  a: Pick<AlbumContact, 'id' | 'musicbrainz_release_group_id'> & { thumbnail?: string | null },
+  userId: number | null | undefined,
+  mienne: PochetteDeMesSources | null | undefined,
+): { coverPath: string | null; repli: string | null; deMesSources: boolean } {
+  const sources = pochettesAlbumContact(a, userId);
+  if (!aUneVignette(a) && mienne) {
+    return { coverPath: mienne.cover_path, repli: sources[0] ?? null, deMesSources: true };
+  }
+  return { coverPath: sources[0] ?? null, repli: sources[1] ?? null, deMesSources: false };
 }
 
 // ─── #6521 : partager les pochettes avec mon cercle (réglage de CE serveur) ──
@@ -808,6 +940,12 @@ export function motifCercle(e: unknown, champ: 'email' | 'name' | 'pseudo' | nul
     case 'too_many_links': return { cle: 'v2.circle.link.err.tooMany' };
     case 'not_found':
     case 'circle.not_found': return { cle: 'v2.circle.err.notFound' };
+    // #3283 : le cercle partagé.
+    case 'circle_not_shared': return { cle: 'v2.circle.members.err.notShared' };
+    // 19/11/2026 : écritures réservées à l'administrateur, lecture seule à distance.
+    case CODE_ADMIN_REQUIS: return { cle: CLES_LECTURE_SEULE.admin };
+    case CODE_LECTURE_SEULE_A_DISTANCE: return { cle: CLES_LECTURE_SEULE.distant };
+    case CODE_ROUTE_ABSENTE: return { cle: 'v2.circle.members.err.updateServer' };
   }
   if (status === 422) {
     const erreurs = (err?.corps as { errors?: Record<string, unknown> } | undefined)?.errors;

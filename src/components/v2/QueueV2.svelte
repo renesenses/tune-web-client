@@ -1,12 +1,14 @@
 <script lang="ts">
+  import { tick } from 'svelte';
+  import { lignesDeFile, rangApresDepot, voisine, type LigneFile } from '../../lib/albumsFile';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * File d'attente — nouveau client (direction Levente).
    *
    * Niveau Avancé. Densité :
-   *   Avancé → ce qui joue, la suite, saut, retrait, vider.
-   *   Expert → réordonnancement (monter/descendre) et ligne technique.
+   *   Avancé → lecture, suite, retrait, réordonnancement et albums repliés.
+   *   Expert → ligne technique.
    *
    * La file est chargée ICI et rechargée à chaque changement de zone. Comme
    * pour les autres stores partagés, `fetchQueue()` vit dans App.svelte que
@@ -27,7 +29,7 @@
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
-  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne, estLaPisteEnLecture, nowPlayingToTrack }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
@@ -52,12 +54,15 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
   let busy = $state(false);
+  let blocsPermis = $state(false);
 
   async function reload() {
     const zid = $currentZoneId;
     if (zid == null) { loading = false; return; }
     try {
       const qs = await api.getQueue(zid);
+      if ($currentZoneId !== zid) return;
+      blocsPermis = qs.block_move_supported === true;
       queueTracks.set(qs.tracks ?? []);
       queuePosition.set(qs.position ?? 0);
       error = null;
@@ -186,8 +191,19 @@
   // correspondance rang ↔ ligne est conservée par `map`.
   const tracks = $derived($queueTracks.map(pisteDeFile));
   const pos = $derived($queuePosition);
-  const current = $derived(tracks[pos] ?? null);
-  const upNext = $derived(tracks.slice(pos + 1));
+  const pisteAuCurseur = $derived(tracks[pos] ?? null);
+  const horsFile = $derived($currentTrack != null &&
+    (!pisteAuCurseur || !estLaPisteEnLecture(pisteAuCurseur, $currentTrackId, $currentTrack)));
+  const current = $derived(horsFile && $currentTrack ? nowPlayingToTrack($currentTrack) : pisteAuCurseur);
+  const debutSuite = $derived(Math.max(0, horsFile ? pos : pos + 1));
+  const upNext = $derived(tracks.slice(debutSuite));
+  let albumsOuverts = $state(new Set<string>());
+  const lignes = $derived(lignesDeFile($queueTracks, debutSuite - 1, albumsOuverts));
+  function basculerAlbum(cle: string) {
+    const suivant = new Set(albumsOuverts);
+    if (suivant.has(cle)) suivant.delete(cle); else suivant.add(cle);
+    albumsOuverts = suivant;
+  }
   /**
    * L'état de la piste en tête de file (#1845).
    *
@@ -256,7 +272,7 @@
 
   $effect(() => {
     // `upNext.length` en dépendance : changer de file change la fenêtre.
-    void upNext.length;
+    void lignes.length;
     mesurer();
   });
 
@@ -266,8 +282,8 @@
     return () => window.removeEventListener('resize', auDefilement);
   });
 
-  const fenetre = $derived(fenetreListe(upNext.length, hauteurLigne, defilement, hauteurVue));
-  const visibles = $derived(upNext.slice(fenetre.debut, fenetre.fin));
+  const fenetre = $derived(fenetreListe(lignes.length, hauteurLigne, defilement, hauteurVue));
+  const visibles = $derived(lignes.slice(fenetre.debut, fenetre.fin));
 
   async function act(fn: () => Promise<unknown>) {
     if (busy) return;
@@ -289,7 +305,103 @@
     await jump(i);
   }
   const remove = (i: number) => act(() => api.removeFromQueue($currentZoneId!, i));
-  const move = (from: number, to: number) => act(() => api.moveInQueue($currentZoneId!, from, to));
+  type Saisie = { ligne: LigneFile; cible: LigneFile; ordre: number[]; zone: number; pointeur?: number };
+  let saisie = $state<Saisie | null>(null);
+  const ordreActuel = () => $queueTracks.map(t => t.id as number);
+  $effect(() => {
+    if (saisie && (saisie.zone !== $currentZoneId || saisie.ordre.length !== $queueTracks.length
+      || saisie.ordre.some((id,i) => id !== $queueTracks[i]?.id))) saisie = null;
+  });
+  const deplacable = (ligne: LigneFile) => !busy && (!ligne.album || blocsPermis);
+  const nomLigne = (l: LigneFile) => l.album ? (l.piste.album_title ?? '') : (l.piste.title ?? '');
+  async function deplacer(ligne: LigneFile, cible: LigneFile, ordre = ordreActuel()) {
+    const destination = rangApresDepot(ligne, cible);
+    if (destination === ligne.debut || !deplacable(ligne)) return;
+    await act(() => api.moveInQueue($currentZoneId!, ligne.debut, destination, { count:ligne.nombre, expected_order:ordre }));
+    await tick();
+    const deplacee = lignes.find(l => l.cle === ligne.cle);
+    if (deplacee) { montrer(deplacee); await tick(); }
+    const poignee = [...(listeEl?.querySelectorAll<HTMLButtonElement>('[data-queue-handle]') ?? [])].find(e => e.dataset.queueHandle === ligne.cle);
+    poignee?.focus();
+  }
+  function fleche(ligne: LigneFile, sens: -1 | 1) {
+    const cible = voisine(lignes, ligne, sens);
+    if (cible) void deplacer(ligne, cible);
+  }
+  function prendre(ligne: LigneFile, pointeur?: number) {
+    if (deplacable(ligne) && $currentZoneId != null) saisie = { ligne, cible:ligne, ordre:ordreActuel(), zone:$currentZoneId, pointeur };
+  }
+  function deposer() {
+    const geste = saisie; saisie = null;
+    if (geste) void deplacer(geste.ligne, geste.cible, geste.ordre);
+  }
+  function montrer(ligne: LigneFile) {
+    if (!scroller) return;
+    const rang = lignes.findIndex(l => l.cle === ligne.cle);
+    if (rang < 0) return;
+    const haut = (listeEl?.offsetTop ?? 0) + rang * hauteurLigne;
+    if (haut < scroller.scrollTop) scroller.scrollTop = haut;
+    else if (haut + hauteurLigne > scroller.scrollTop + scroller.clientHeight)
+      scroller.scrollTop = haut + hauteurLigne - scroller.clientHeight;
+    mesurer();
+  }
+  function clavier(e: KeyboardEvent, ligne: LigneFile) {
+    e.stopPropagation();
+    if (e.key === 'Escape') { saisie = null; return; }
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (saisie?.ligne.cle === ligne.cle) deposer();
+      else { prendre(ligne); scroller?.focus({ preventScroll:true }); }
+    } else if (saisie && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      const cible = voisine(lignes, saisie.cible, e.key === 'ArrowUp' ? -1 : 1, saisie.ligne);
+      if (cible) { saisie = { ...saisie, cible }; montrer(cible); }
+    }
+  }
+  // La capture et le focus restent sur le conteneur : une ligne peut sortir
+  // de la fenêtre virtualisée pendant le déplacement.
+  let positionPointeur: { x:number; y:number } | null = null;
+  function viserPointeur() {
+    if (!saisie || saisie.pointeur == null || !positionPointeur) return;
+    const element = document.elementFromPoint(positionPointeur.x, positionPointeur.y)?.closest<HTMLElement>('[data-queue-key]');
+    const cible = lignes.find(l => l.cle === element?.dataset.queueKey);
+    if (cible && cible.cle !== saisie.cible.cle) saisie = { ...saisie, cible };
+  }
+  const pointeurActif = $derived(saisie?.pointeur);
+  $effect(() => {
+    const id = pointeurActif;
+    if (id == null || typeof requestAnimationFrame !== 'function') return;
+    let image: number;
+    function avancer() {
+      const rect = scroller?.getBoundingClientRect();
+      if (scroller && rect && rect.height > 0 && positionPointeur) {
+        const y = positionPointeur.y;
+        const vitesse = y < rect.top + 40 ? -12 : y > rect.bottom - 40 ? 12 : 0;
+        if (vitesse) { scroller.scrollTop += vitesse; mesurer(); viserPointeur(); }
+      }
+      image = requestAnimationFrame(avancer);
+    }
+    image = requestAnimationFrame(avancer);
+    return () => {
+      cancelAnimationFrame(image);
+      positionPointeur = null;
+      if (scroller?.hasPointerCapture?.(id)) scroller.releasePointerCapture(id);
+    };
+  });
+  function debutPointeur(e: PointerEvent, ligne: LigneFile) {
+    if (e.button !== 0 || e.isPrimary === false || !deplacable(ligne)) return;
+    e.preventDefault(); prendre(ligne, e.pointerId);
+    positionPointeur = { x:e.clientX, y:e.clientY };
+    scroller?.setPointerCapture?.(e.pointerId);
+  }
+  function mouvementPointeur(e: PointerEvent) {
+    if (!saisie || saisie.pointeur !== e.pointerId) return;
+    positionPointeur = { x:e.clientX, y:e.clientY };
+    viserPointeur();
+  }
+  function finPointeur(e: PointerEvent) {
+    if (saisie?.pointeur === e.pointerId) deposer();
+  }
   /**
    * 🔴 UN SEUL geste, et il n'arrête pas la lecture.
    *
@@ -326,6 +438,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <section class="v2-queue tune-v2" class:depot={depotSurvol}
+  onpointermove={mouvementPointeur} onpointerup={finPointeur} onpointercancel={() => (saisie = null)}
   ondragover={survolDepot} ondragleave={() => (depotSurvol = false)} ondrop={deposerFichiers}>
   {#if depotSurvol}<div class="depot-voile">{$tr('queue.dropFilesHere')}</div>{/if}
   {#if televersement}<div class="depot-barre">{$tr('queue.uploading')}</div>{/if}
@@ -371,12 +484,14 @@
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$tr('v2.common.close' as any)}>×</button></div>{/if}
 
-  <div class="scroll" bind:this={scroller} onscroll={auDefilement}>
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_static_element_interactions -->
+  <div class="scroll" bind:this={scroller} onscroll={auDefilement} tabindex="-1"
+    onkeydown={(e) => { if (e.target === scroller && saisie) clavier(e, saisie.ligne); }}>
     {#if loading}
       <div class="state">{$tr('v2.queue.loading' as any)}</div>
     {:else if $currentZoneId == null}
       <div class="state">{$tr('v2.queue.noZone' as any)}</div>
-    {:else if !tracks.length}
+    {:else if !tracks.length && !current}
       <div class="state">{$tr('v2.queue.empty' as any)}</div>
     {:else}
       {#if current}
@@ -389,7 +504,7 @@
               <div class="na" use:bulleTexte>{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
-            <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
+            <span class="ndur">{current.source === 'radio' ? $tr('v2.pl.radioLive') : formatTime(current.duration_ms ?? 0)}</span>
             <!-- 🔴 #3780 — la piste EN COURS portait zéro action, alors que
                  chaque ligne « à suivre » en dessous porte la barre complète.
                  FabienM, fil 1739 point 6 : « Menu file d'attente : il manque
@@ -400,26 +515,47 @@
                  saut au rang courant, donc une reprise du titre depuis son
                  début. Le geste que la file sait faire, et le seul sens que
                  « la suite » ait ici. -->
-            <PisteActions piste={current} onLireDepuis={() => jump(pos)} />
+            {#if !horsFile}<PisteActions piste={current} onLire={() => jump(pos)} onLireDepuis={() => jump(pos)} />{/if}
           </div>
         </section>
       {/if}
 
       <section class="sec">
-        <h2>{$tr('v2.queue.upNext' as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
+        <h2>{$tr((horsFile ? 'v2.queue.waiting' : 'v2.queue.upNext') as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
+        <p class="aide-file" id="aide-deplacement-file">{$tr('v2.queue.moveHelp' as any)}</p>
+        {#if !blocsPermis && lignes.some(l => l.album)}<p class="aide-file">{$tr('v2.queue.blockUnavailable' as any)}</p>{/if}
+        <span class="annonce-file" role="status" aria-live="polite">{saisie ? $tr('v2.queue.movePosition' as any).replace('{n}', $formatNombre(rangApresDepot(saisie.ligne, saisie.cible) + 1)) : ''}</span>
         <div class="list" bind:this={listeEl}>
           <!-- Les cales portent la hauteur EXACTE de ce qui n'est pas
                construit : la barre de défilement reste celle de la file
                entière, et rien ne saute quand la fenêtre se déplace. -->
           {#if fenetre.avant > 0}<div class="cale" style:height="{fenetre.avant}px" aria-hidden="true"></div>{/if}
-          {#each visibles as t, k (String(t.id ?? '') + '@' + (pos + 1 + fenetre.debut + k))}
-            {@const i = fenetre.debut + k}
-            {@const idx = pos + 1 + i}
-            <div class="row" class:np={t.id != null && t.id === $currentTrackId} class:bannie={bannieDe(t)}>
+          {#each visibles as ligne (ligne.cle)}
+            {@const t = ligne.piste}
+            {@const idx = ligne.debut}
+            {@const i = idx - debutSuite}
+            <div class="row" data-queue-key={ligne.cle} data-queue-start={idx} data-queue-album={ligne.album ? '' : undefined}
+              class:cible-depot={saisie?.cible.cle === ligne.cle} class:np={!ligne.album && t.id != null && t.id === $currentTrackId} class:bannie={!ligne.album && bannieDe(t)}>
+              <button class="poignee-file" data-queue-handle={ligne.cle} disabled={!deplacable(ligne)}
+                aria-label={$tr('v2.queue.moveGrab' as any).replace('{t}', nomLigne(ligne))} aria-describedby="aide-deplacement-file"
+                aria-pressed={saisie?.ligne.cle === ligne.cle} onkeydown={(e) => clavier(e, ligne)} onpointerdown={(e) => debutPointeur(e, ligne)}>⠿</button>
+              {#if ligne.album}
+                <button class="play" onclick={() => basculerAlbum(ligne.cle)} aria-expanded={albumsOuverts.has(ligne.cle)}
+                  aria-label={`${$tr(albumsOuverts.has(ligne.cle) ? 'v2.rayons.collapse' : 'v2.rayons.expand')} ${t.album_title ?? ''}`}>
+                  <span class="n">{albumsOuverts.has(ligne.cle) ? '−' : '+'}</span>
+                  <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.album_title ?? ''} source={t.source} /></span>
+                  <span class="ti" use:bulleTexte>{t.album_title}<em>{$tr('v2.queue.upNextCount' as any).replace('{n}', $formatNombre(ligne.nombre))}</em></span>
+                </button>
+                <span class="dur">{formatTime(ligne.duree)}</span>
+                <span class="ord">
+                  <button data-queue-up onclick={() => fleche(ligne, -1)} disabled={!deplacable(ligne) || !voisine(lignes,ligne,-1)} aria-label={$tr('v2.queue.moveUp' as any)}>↑</button>
+                  <button data-queue-down onclick={() => fleche(ligne, 1)} disabled={!deplacable(ligne) || !voisine(lignes,ligne,1)} aria-label={$tr('v2.queue.moveDown' as any)}>↓</button>
+                </span>
+              {:else}
               <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} vignette alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti" use:bulleTexte>{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+                <span class="ti" use:bulleTexte>{t.title}<em>{#if t.added_by_radio}<span class="par-radio" title={$tr('queue.addedByRadioTip' as any)}>{$tr('queue.addedByRadio' as any)}</span>{/if}{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
@@ -432,20 +568,19 @@
                    grand bouton de la ligne fait déjà. Dans la file, « la
                    suite » n'est pas une liste à renvoyer au serveur : elle est
                    DÉJÀ la file, et `jumpInQueue` la reprend à ce rang. -->
-              <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
-              {#if showExpert}
+              <PisteActions piste={t} onLire={() => jump(idx)} onLireDepuis={() => jump(idx)} />
                 <span class="ord">
-                  <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label={$tr('v2.queue.moveUp' as any)}>
+                  <button data-queue-up onclick={() => fleche(ligne, -1)} disabled={!deplacable(ligne) || !voisine(lignes,ligne,-1)} aria-label={$tr('v2.queue.moveUp' as any)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 15l6-6 6 6"/></svg>
                   </button>
-                  <button onclick={() => move(idx, idx + 1)} disabled={busy || i === upNext.length - 1} aria-label={$tr('v2.queue.moveDown' as any)}>
+                  <button data-queue-down onclick={() => fleche(ligne, 1)} disabled={!deplacable(ligne) || !voisine(lignes,ligne,1)} aria-label={$tr('v2.queue.moveDown' as any)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
                 </span>
-              {/if}
               <button class="del" onclick={() => remove(idx)} disabled={busy} aria-label={$tr('v2.queue.remove' as any)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
+              {/if}
             </div>
           {/each}
           {#if fenetre.apres > 0}<div class="cale" style:height="{fenetre.apres}px" aria-hidden="true"></div>{/if}
@@ -487,8 +622,14 @@
   /* La place des lignes non construites. `flex:0 0 auto` : sans lui le
      conteneur flex les écraserait, et la file entière remonterait. */
   .cale{flex:0 0 auto}
-  .row{display:grid; grid-template-columns:1fr auto auto auto auto auto; align-items:center; gap:12px;
+  .row{display:grid; grid-template-columns:auto 1fr auto auto auto auto auto; align-items:center; gap:12px;
     padding:0 8px; border-radius:9px; color:var(--v2-txt2)}
+  .row[data-queue-album]{grid-template-columns:auto 1fr auto auto; min-height:54px}
+  .poignee-file{touch-action:none; cursor:grab; border:0; background:transparent; color:var(--v2-txt3); width:26px; height:40px; font:inherit}
+  .poignee-file[aria-pressed="true"]{cursor:grabbing; color:var(--v2-acc1)}
+  .row.cible-depot{outline:2px solid var(--v2-acc2); outline-offset:-2px}
+  .aide-file{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .annonce-file{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .row.np{color:var(--v2-acc1)}
   /* #4806 — la ligne bannie reste dans la file, grisée et barrée : le serveur
@@ -503,6 +644,10 @@
   .row .ti{min-width:0; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); font-weight:500; display:flex; flex-direction:column; gap:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .row .ti em{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
+  /* Fil 2694 — titre ajouté par la radio de fin de file. */
+  .row .ti em .par-radio{display:inline-block; margin-right:6px; padding:0 5px; border-radius:4px;
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.04em;
+    color:var(--v2-txt2); background:var(--v2-acc-soft)}
   .row .tk{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .row .dur{font:calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .ord{display:flex; gap:2px}

@@ -237,7 +237,7 @@ describe('#8066 — i18n dans les 15 langues', () => {
     'replaceNotEditable', 'replaceScore', 'replaceSure', 'replaceAction', 'repair', 'repairRunning', 'repairReport',
     'repairReplaced', 'repairToChoose', 'repairNoCandidate', 'repairErrors', 'repairNothing', 'repairChoose'];
   it('chaque langue porte chaque clé, et les variables restent', () => {
-    expect(ONZE_LANGUES.length).toBe(15);
+    expect(ONZE_LANGUES.length).toBe(20);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const c of CLES) {

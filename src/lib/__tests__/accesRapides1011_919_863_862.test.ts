@@ -65,18 +65,20 @@ describe('#919 — la file d’attente depuis la barre de lecture', () => {
     expect(file - repeter).toBeLessThan(1500);
     // web#2389 : le nom du bouton porte aussi le nombre de titres de la file
     // (`nav.queue` quand elle est vide) — voir medaillonFile2389.test.ts.
-    expect(barre).toContain('aria-label={libelleBoutonFile($t, $queueTracks.length)}');
+    expect(barre).toContain('aria-label={libelleBoutonFile($t, $queueTracks.length, $upNextCount, $locale)}');
     expect(barre).toContain("class:active={$activeView === 'queue'}");
   });
 });
 
-describe('#863 puis #5716 — le codec d’une radio se lit dès Essentiel, le pays dès Avancé', () => {
-  it('🔴 la pastille n’est plus conditionnée par un niveau ; seul le pays suit `showFilters` (intermediate)', () => {
+// #863 puis #5716 donnaient le codec sur la vignette. Retour de Rémi sur la
+// rc12 (go de Bertrand du 17/11) : la vignette n'a plus que deux lignes, le
+// nom puis « genre · pays », à tous les niveaux ; le format du flux la quitte.
+describe('#863 / #5716 puis rc12 — la vignette radio : genre et pays, sans codec', () => {
+  it('🔴 la deuxième ligne n’est conditionnée par aucun niveau, et ne porte pas le codec', () => {
     const src = lire('src/components/v2/RadiosV2.svelte');
-    expect(src).toContain('{#if tech(r, showFilters)}');
-    expect(src).not.toContain('{#if showFilters && tech(r');
-    expect(src).not.toContain('{#if showExpert && tech(r');
-    expect(src).toContain('avecPays ? pays(r) : null');
+    expect(src).toContain('{:else if sousTitre(r)}');
+    expect(src).not.toContain('tech(r');
+    expect(src).not.toContain('r.codec?.toUpperCase()');
     expect(src).toContain("const showFilters = $derived(atLeast(level, 'intermediate'));");
   });
 });

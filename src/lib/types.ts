@@ -91,6 +91,9 @@ export interface Artist {
    *  `pressage`, `manuel` (saisi ou détaché par l'utilisateur), `null` :
    *  inconnu. Absent d'un serveur ancien. */
   musicbrainz_id_source?: 'balise' | 'nom' | 'pressage' | 'manuel' | null;
+  /** tune-server-rust#8668 — pays de l'artiste (MusicBrainz, #8090), code ISO
+   *  en majuscules ; `null` inconnu ; absent d'un serveur antérieur. */
+  country?: string | null;
   discogs_id?: string | null;
   bio?: string | null;
   /** Provenance de `bio` (source, URL, licence, langue) — absente sur un serveur ancien. */
@@ -368,6 +371,12 @@ export interface Track {
    * `lib/pisteIntrouvable.ts` (`estIntrouvable`).
    */
   missing?: boolean;
+  /**
+   * Forum, fil 2694 — ligne de FILE ajoutée par la radio de fin de file
+   * (`GET /zones/{id}/queue`, tune-server-rust). Toujours posée par un
+   * serveur qui la connaît ; absente chez un plus ancien : pas de badge.
+   */
+  added_by_radio?: boolean;
   /** Secondes Unix : quand la piste a disparu (#6179). */
   missing_since?: number | null;
   /**
@@ -721,6 +730,23 @@ export interface Zone {
   /** Plafond de fréquence d'échantillonnage de la zone (null = pas de limite). */
   max_sample_rate?: number | null;
   fixed_sample_rate?: number | null;
+  /** tune-server-rust#3245 — mode exclusif réglé sur CETTE zone, pour son
+   *  appareil local. `null` = la zone suit le réglage de machine
+   *  `local_exclusive_mode` ; absent = serveur qui ne connaît pas le réglage. */
+  exclusive_mode?: boolean | null;
+  /** #3245 — le mode sous lequel la sortie locale ouvrira réellement
+   *  l'appareil (servi par `GET /zones/{id}`, donc par la réponse au PATCH).
+   *  Diffère de `exclusive_mode` tant qu'une lecture retient le changement,
+   *  ou quand le pilote impose sa règle (ASIO). `null` hors sortie locale. */
+  exclusive_mode_applique?: boolean | null;
+  /** tune-server-rust#8696 — période WASAPI exclusive réglée sur la zone, en
+   *  ms ; `null` = Auto ; absent = serveur qui ne connaît pas le réglage. */
+  wasapi_exclusive_period_ms?: number | null;
+  /** Les valeurs proposées (10 / 20 / 50 / 100 ms). */
+  wasapi_exclusive_period_choices_ms?: number[];
+  /** Vrai pour une zone locale d'un serveur Windows dont la sortie n'est
+   *  pas ASIO : seul cas où le réglage a un effet. */
+  wasapi_exclusive_period_applicable?: boolean;
   /** Lecture enchaînée sans blanc entre deux pistes. Le serveur le gère
    *  depuis toujours ; aucun écran ne l'exposait avant #920. */
   gapless_enabled?: boolean;
@@ -737,10 +763,13 @@ export interface Zone {
   aac_passthrough?: boolean;
   /**
    * AutoPlay : le serveur ajoute des morceaux similaires a la fin de la file.
-   * Porte par la ZONE, en base — c'est ce que lit le poller. Desactive par
-   * defaut (migration 46), donc explicitement optionnel.
+   * Porte par la ZONE, en base — c'est ce que lit le poller. Active par
+   * defaut depuis la rc12 (fil 2694, migration serveur 152 / PG 118) ;
+   * optionnel pour les serveurs anciens.
    */
   autoplay_enabled?: boolean;
+  /** Le mode precis (#2271) : `off`, `similar`, `random_album`… */
+  autoplay_mode?: string;
   dlna_lpcm?: boolean;
   dlna_cap_16bit?: boolean;
   dlna_wav24?: boolean;
@@ -1015,6 +1044,8 @@ export interface LocalAudioDevice {
 
 // Request/Response models
 export interface QueueStateResponse {
+  /** Serveur #8849 : déplacer un bloc atomiquement ; absent = ancien serveur. */
+  block_move_supported?: boolean;
   tracks: Track[];
   position: number;
   length: number;

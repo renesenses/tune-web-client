@@ -43,13 +43,13 @@ function constructeur(w: FenetreVocale | undefined): (new () => Reconnaissance) 
 
 /**
  * Pourquoi la dictée ne peut pas marcher ici, ou `null` si elle peut.
- * L'absence de reconnaissance passe d'abord : en https, Firefox n'en aurait
- * toujours pas, alors que Chrome en http local en a une à qui il ne manque
- * que le contexte sécurisé.
+ * Le contexte non sécurisé passe d'abord : Safari peut y masquer le
+ * constructeur lui-même. En HTTPS, son absence signale encore un navigateur
+ * sans reconnaissance vocale, comme Firefox.
  */
 export function raisonIndisponible(w: FenetreVocale | undefined = fenetre()): RaisonIndispo | null {
-  if (!constructeur(w)) return 'nonPrisEnCharge';
   if (w?.isSecureContext === false) return 'nonSecurise';
+  if (!constructeur(w)) return 'nonPrisEnCharge';
   return null;
 }
 
@@ -87,7 +87,8 @@ export function echecDepuisCode(code: string | undefined): EchecDictee {
 
 const LANGUES: Record<Locale, string> = {
   fr: 'fr-FR', en: 'en-US', de: 'de-DE', es: 'es-ES', it: 'it-IT', zh: 'zh-CN', ja: 'ja-JP',
-  ko: 'ko-KR', ro: 'ro-RO', sv: 'sv-SE', hu: 'hu-HU', vi: 'vi-VN', el: 'el-GR', nb: 'nb-NO', pl: 'pl-PL',
+  ko: 'ko-KR', ro: 'ro-RO', sv: 'sv-SE', hu: 'hu-HU', vi: 'vi-VN', el: 'el-GR', nb: 'nb-NO', pl: 'pl-PL', tr: 'tr-TR',
+  nl: 'nl-NL', 'zh-Hant': 'zh-TW', ru: 'ru-RU', uk: 'uk-UA',
 };
 
 /** La langue de reconnaissance (BCP 47) qui suit celle de l'interface. */

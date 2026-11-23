@@ -45,6 +45,8 @@
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
   import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
@@ -62,6 +64,7 @@
   import OutputModuleBanner from '../partages/OutputModuleBanner.svelte';
   import AlertePareFeu from './AlertePareFeu.svelte';
   import { cleRaisonSortieReseau } from '../../lib/raisonSortieReseau';
+  import { zoneExistanteDuRefus, avertissementDeRestauration, type ZoneExistante } from '../../lib/zoneExistante';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -134,12 +137,17 @@
     if (z.id == null || !d || d.id === z.output_device_id) return;
     const zid = z.id;
     sortieEnCours = zid;
+    const declencheur = elementActif();
     try {
       const maj = await api.changeZoneOutput(zid, d.type, d.id);
       zones.update((zs) => zs.map((x) => (x.id === zid ? maj : x)));
       notifications.success($t('zone.outputChanged' as any));
     } catch (err: any) {
-      notifierErreur($t('zone.changeOutputError' as any), err, { motifSeul: true });
+      // tune-server-rust#8987 — l'appareil est tenu par une autre zone : la
+      // nommer, avec de quoi l'ouvrir, plutôt qu'un échec anonyme.
+      const tenante = zoneExistanteDuRefus(err);
+      if (tenante) montrerZoneExistante(tenante, declencheur);
+      else notifierErreur($t('zone.changeOutputError' as any), err, { motifSeul: true });
     } finally {
       sortieEnCours = null;
     }
@@ -338,7 +346,80 @@
   $effect(() => { chargerAsioSansZone(); });
   const asioAAvertir = $derived(sortiesAsioAAvertir(asioSansZone, $zones));
   function creerZoneAsio(s: SortieAsioSansZone) {
-    act(() => api.createZone(s.name, 'local', s.device_id));
+    creerOuNommerLExistante(() => api.createZone(s.name, 'local', s.device_id));
+  }
+
+  /*
+   * tune-server-rust#8987 (fil 2708) — l'appareil a déjà une zone. Le serveur
+   * le dit (409, la zone nommée) au lieu de rendre l'existante en silence :
+   * l'écran montre sa phrase et propose d'ouvrir ou de renommer cette zone.
+   */
+  let zoneExistante = $state<ZoneExistante | null>(null);
+  /*
+   * Accessibilité : le bandeau prend le focus à son apparition (il porte la
+   * décision à prendre) et le rend, à sa fermeture, à l'élément qui avait
+   * déclenché le geste — s'il est encore dans la page.
+   */
+  let bandeauExistante = $state<HTMLElement | null>(null);
+  let declencheurExistante: HTMLElement | null = null;
+  function elementActif(): HTMLElement | null {
+    return document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+  function montrerZoneExistante(z: ZoneExistante, declencheur: HTMLElement | null) {
+    declencheurExistante = declencheur;
+    zoneExistante = z;
+  }
+  $effect(() => {
+    if (zoneExistante && bandeauExistante) bandeauExistante.focus();
+  });
+  function fermerZoneExistante() {
+    zoneExistante = null;
+    const d = declencheurExistante;
+    declencheurExistante = null;
+    if (d?.isConnected) d.focus();
+  }
+  async function creerOuNommerLExistante(fn: () => Promise<unknown>) {
+    if (busy) return;
+    busy = true;
+    zoneExistante = null;
+    const declencheur = elementActif();
+    try {
+      const rep = await fn();
+      // Une zone supprimée ressuscitée peut revenir muette (autre hôte
+      // audio, sortie reprise) : le serveur le dit, on le montre.
+      const avert = avertissementDeRestauration(rep);
+      if (avert) notifications.info(avert, 0);
+      await refresh();
+    }
+    catch (e: any) {
+      const z = zoneExistanteDuRefus(e);
+      if (z) montrerZoneExistante(z, declencheur);
+      else error = e?.message ?? $t('settings.errActionFailed' as any);
+    }
+    busy = false;
+  }
+  function zoneNommee(z: ZoneExistante): Zone | undefined {
+    return $zones.find((x) => x.id === z.id);
+  }
+  /*
+   * « Ouvrir » ouvre la FICHE de la zone (Réglages › Appareils › Par zone),
+   * comme l'entrée « Réglages » de son menu : on y change son appareil ou son
+   * nom. La zone de lecture active ne change pas — choisir où joue la musique
+   * reste le geste de la carte elle-même.
+   */
+  function ouvrirZoneExistante(z: ZoneExistante) {
+    zoneExistante = null;
+    declencheurExistante = null;
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id });
+    activeView.set('settings');
+  }
+  function renommerZoneExistante(z: ZoneExistante) {
+    const zone = zoneNommee(z);
+    zoneExistante = null;
+    declencheurExistante = null;
+    if (!zone) return;
+    document.querySelector(`[data-zone-carte="${z.id}"]`)?.scrollIntoView({ block: 'nearest' });
+    startRename(zone);
   }
 
   // DUP-1 : deux zones pour un même appareil. Le diagnostic les nomme (phase
@@ -435,7 +516,7 @@
     // interface depuis la liste des appareils.
     const name = newName.trim() || c.nom;
     fermerCreation();
-    act(() => api.createZone(name, c.outputType, c.deviceId));
+    creerOuNommerLExistante(() => api.createZone(name, c.outputType, c.deviceId));
   }
   /**
    * #1392 — une confirmation qui NOMME ce qui est perdu.
@@ -556,12 +637,15 @@
    */
   function entreesDe(z: Zone): EntreeMenuZone[] {
     const j = jumelle(z);
+    // web#3180 : relu à chaque prise ou relâchement de zone par cet onglet.
+    void $versionZonesRetenues;
     return entreesMenuZone(
       {
         expert: showExpert,
         appairable: estAirplay(z) && !!z.output_device_id,
         jumelle: j ? j.name : null,
         rattachable: z.sortie_absente === true,
+        tenueIci: estZoneDeCetAppareil(z),
       },
       {
         renommer: () => startRename(z),
@@ -573,6 +657,7 @@
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
         rattacher: () => { void rattacher(z); },
+        nePlusJouerIci: () => nePlusJouerZoneIci(z),
         supprimer: () => { void supprimerZone(z); },
       },
     );
@@ -650,6 +735,22 @@
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
+  {#if zoneExistante}
+    {@const ze = zoneExistante}
+    <div class="zone-existante" role="alert" tabindex="-1" bind:this={bandeauExistante}
+      data-zone-existante={ze.id} data-motif={ze.motif}>
+      <span>{ze.message ?? $t('v2.zone.existanteRepli' as any).replace('{name}', ze.nom)}</span>
+      <button class="v2-btn" onclick={() => ouvrirZoneExistante(ze)}>{$t('v2.zone.existanteOuvrir' as any)}</button>
+      <!-- « Renommer » n'a de sens que pour la zone que l'utilisateur voulait
+           recréer ; quand une AUTRE zone tient l'appareil, sa fiche (Ouvrir)
+           est le seul geste utile : y changer son appareil. -->
+      {#if ze.motif === 'existe' && zoneNommee(ze)}
+        <button class="v2-btn" onclick={() => renommerZoneExistante(ze)}>{$t('v2.zone.existanteRenommer' as any)}</button>
+      {/if}
+      <button class="fermer" onclick={fermerZoneExistante} aria-label={$t('common.close' as any)}>×</button>
+    </div>
+  {/if}
+
   <!-- Un module de sortie payant qui n'affiche aucun appareil, et pourquoi
        (#2392). Volontairement HORS du bloc « aucune zone » ci-dessous : un
        utilisateur qui a déjà un Sonos a une liste NON vide et reste pourtant
@@ -724,7 +825,7 @@
           {@const teste = tuneTestedDe(z)}
           {@const np = z.current_track}
           {@const vignette = vignetteDeZone(z)}
-          <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
+          <div class="carte" data-zone-carte={z.id} class:active={z.id === $currentZoneId} class:offline={z.online === false}>
             <div class="ctete">
 <!--
                 🔴 LA VIGNETTE A TOUJOURS QUELQUE CHOSE À MONTRER (#1394).
@@ -818,7 +919,7 @@
       <div class="list">
         {#each $zones as z (z.id)}
           {@const r = reach(z)}
-          <div class="zone" class:active={z.id === $currentZoneId}>
+          <div class="zone" data-zone-carte={z.id} class:active={z.id === $currentZoneId}>
             <button class="pick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
               <span class="dot" class:on={z.id === $currentZoneId}></span>
               <span class="zmeta">
@@ -1136,4 +1237,9 @@
     padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
     color:var(--v2-txt); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .asio-sans-zone span{flex:1 1 240px}
+  .zone-existante{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 12px;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--v2-acc2);
+    color:var(--v2-txt); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .zone-existante span{flex:1 1 240px}
+  .zone-existante .fermer{background:none; border:0; color:inherit; cursor:pointer; font-size:calc(16px * var(--v2-txt-echelle, 1))}
 </style>

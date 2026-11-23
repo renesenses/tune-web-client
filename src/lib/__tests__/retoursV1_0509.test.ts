@@ -106,8 +106,9 @@ describe('Playlists — la zone de recherche', () => {
   const src = sansCommentaires(lire('src/components/v2/PlaylistsV2.svelte'));
 
   it('un champ existe et porte une étiquette accessible', () => {
-    expect(src).toContain('bind:value={recherche}');
-    expect(src).toContain('aria-label={$t(\'v2.pl.searchPlaceholder\' as any)}');
+    // Recette rc12 (13/11) : le champ partagé, qui porte son aria-label.
+    expect(src).toContain('<ChampRecherche bind:valeur={recherche}');
+    expect(lire('src/components/v2/ChampRecherche.svelte')).toContain('aria-label={invite}');
   });
 
   it('elle filtre les QUATRE listes, pas une seule', () => {
@@ -188,7 +189,8 @@ describe('Étiquettes — une PISTE s étiquette aussi', () => {
   // sinon. Le comportement est prouvé en montant la barre
   // (`etiquettesStreaming1238.test.ts`).
   it('le geste suit une cible désignable — entier ou paire', () => {
-    expect(src).toContain('{#if cibleEtiquettes}');
+    // web#3121 — le geste vit au menu « … » : il suit la même cible.
+    expect(src).toContain('etiquetable: cibleEtiquettes != null');
     expect(src).toContain("cibleDeService('track', piste)");
   });
 

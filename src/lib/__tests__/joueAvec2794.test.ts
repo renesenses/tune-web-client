@@ -85,7 +85,7 @@ describe('web#2794 — le bloc « Joue avec »', () => {
     expect(bloc, 'le bloc « Joue avec » manque').not.toBeNull();
     expect(bloc!.querySelector('h3')!.textContent).toContain('Joue avec');
     expect(lignes(h).map((l) => l.dataset.joueAvec)).toEqual(['Nora Vidal Quartet', 'Nora Vidal', 'Sam Okafor', 'Tomas Reyes']);
-    expect(lignes(h)[0].textContent).toContain('10 pistes en commun');
+    expect(lignes(h)[0].textContent).toContain('10 titres');
   });
 
   it('le client ne retrie pas : un ordre inverse reste inverse', () => {
@@ -94,23 +94,27 @@ describe('web#2794 — le bloc « Joue avec »', () => {
     expect(lignes(h).map((l) => l.dataset.joueAvec)).toEqual(['Tomas Reyes', 'Sam Okafor', 'Nora Vidal', 'Nora Vidal Quartet']);
   });
 
-  it('lien seulement quand `artist_id` est un nombre ; un clic ouvre la fiche par son identifiant', () => {
+  it('chaque nom est un lien : par `artist_id` quand il existe, sinon par le nom (#2961)', () => {
     const h = poser(JAZZ);
     const [quartet, nora, sam] = lignes(h);
     expect(quartet.querySelector('[role="link"]')).not.toBeNull();
     expect(nora.querySelector('[role="link"]')).not.toBeNull();
-    expect(sam.querySelector('[role="link"]'), 'un musicien sans fiche ne doit pas être un lien').toBeNull();
-    expect(sam.querySelector('[data-sans-fiche]')!.textContent).toBe('Sam Okafor');
+    const lienSam = sam.querySelector<HTMLElement>('[role="link"]');
+    expect(lienSam, 'un musicien sans fiche est AUSSI un lien (#2961)').not.toBeNull();
+    expect(lienSam!.textContent).toBe('Sam Okafor');
     nora.querySelector<HTMLElement>('[role="link"]')!.click();
     expect(ouvertures).toHaveLength(1);
     expect(ouvertures[0]).toMatchObject({ id: 402, name: 'Nora Vidal' });
+    lienSam!.click();
+    expect(ouvertures).toHaveLength(2);
+    expect(ouvertures[1]).toEqual({ name: 'Sam Okafor' });
   });
 
   it('une piste partagée : le singulier', () => {
     const h = poser(CHEF);
     const okapi = lignes(h).find((l) => l.dataset.joueAvec === 'DJ Okapi')!;
-    expect(okapi.textContent).toContain('1 piste en commun');
-    expect(okapi.textContent).not.toContain('pistes');
+    expect(okapi.textContent).toContain('1 titre');
+    expect(okapi.textContent).not.toContain('titres');
   });
 
   it('clé absente (serveur rc11, ou personne) : pas de bloc, aucun message', () => {
@@ -128,10 +132,10 @@ describe('web#2794 — branchements', () => {
     expect(art).toContain('{joueAvec}');
   });
 
-  it('les trois clés existent dans les 15 langues', () => {
+  it('les cinq clés existent dans les 15 langues', () => {
     for (const l of ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu', 'vi', 'el', 'nb', 'pl']) {
       const src = readFileSync(`src/lib/locales/${l}.ts`, 'utf8');
-      for (const c of ['v2.disco.playedWith', 'v2.disco.sharedTracks', 'v2.disco.sharedTrackOne']) {
+      for (const c of ['v2.disco.playedWith', 'v2.disco.sharedTracks', 'v2.disco.sharedTrackOne', 'v2.disco.sharedAlbums', 'v2.disco.sharedAlbumOne']) {
         const m = src.match(new RegExp(`"${c.replace(/\./g, '\\.')}": "([^"]*)"`));
         expect(m, `${l} : ${c}`).not.toBeNull();
         if (c !== 'v2.disco.playedWith') expect(m![1], `${l} : ${c} sans {n}`).toContain('{n}');

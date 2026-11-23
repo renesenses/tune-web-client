@@ -52,6 +52,16 @@ export interface V2SettingsSection {
   group?: 'libraryTools';
   /** La section est une zone dangereuse : isolée et signalée à l'écran. */
   danger?: boolean;
+  /**
+   * Maquette de Levente (Figma 620:5837, 15/11/2026) : « Long settings, eg.
+   * Sidebar, moving to a second screen can also help the better overview ».
+   * La section ne s'affiche pas en carte dans son onglet : une ligne y mène
+   * à un ÉCRAN SECONDAIRE qui la montre seule, avec un retour. La recherche
+   * et les ancres l'ouvrent d'office.
+   */
+  sousEcran?: boolean;
+  /** Clé i18n de la ligne qui ouvre l'écran secondaire : ce qu'on y trouve. */
+  resumeKey?: string;
 }
 
 export interface V2SettingsTab {
@@ -88,6 +98,12 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
       // #2533 : le pays d'écoute des radios, réglé une fois pour toutes, vit ici ;
       // l'onglet Radios ne le propose que tant qu'il n'est pas renseigné.
+      // Maquette de Levente (15/11/2026) : la barre latérale — ses sources
+      // (venues d'Affichage) et son ordre (venu d'Interface) — sur un écran
+      // secondaire, ouvert depuis une ligne de l'onglet.
+      { id: 'sidebar', titleKey: 'reglages.barreLaterale.titre', from: 'general', min: 'beginner', sousEcran: true,
+        resumeKey: 'reglages.barreLaterale.resume',
+        keywords: ['barre latérale', 'sidebar', 'sources', 'ordre', 'menu', 'entrées', 'masquer', 'navigation'] },
       { id: 'radiosCountry', titleKey: 'v2.radio.listeningCountry', from: 'radios', min: 'beginner',
         keywords: ['radio', 'radios', 'pays', 'pays d\'écoute', 'listening country', 'flux', 'restriction', 'géographique'] },
       { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
@@ -205,6 +221,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
        */
       { id: 'classicalTags', titleKey: 'classicalTags.title', from: 'library', min: 'expert',
         keywords: ['classique', 'balises', 'tags', 'chef', 'orchestre', 'ensemble', 'chœur', 'choeur', 'œuvre', 'mouvement', 'band', 'choir', 'chorus', 'conductor', 'work', 'movement', 'classical'] },
+      /** tune-server-rust#9158 (Rob) — les balises personnelles des
+       * fichiers (TXXX libres, clés Vorbis, atomes MP4 libres) deviennent
+       * des tags Tune au scan. Expert, comme les balises du classique. */
+      { id: 'personalTags', titleKey: 'personalTags.title', from: 'library', min: 'expert',
+        keywords: ['balises', 'personnelles', 'tags', 'étiquettes', 'txxx', 'vorbis', 'mp4', 'mood', 'humeur', 'personal', 'custom', 'scan'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
@@ -246,6 +267,14 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo',
         // #1427 — la correction de pièce (FIR) vit ICI : on la cherche par son nom.
         'correction de pièce', 'correction acoustique', 'correction numérique', 'room correction', 'fir', 'convolution', 'réponse impulsionnelle', 'impulse response'] },
+      /**
+       * tune-server-rust#9044 — go de Bertrand le 18/11 pour la rc13 : les
+       * appareils partis du réseau restaient listés, grisés, à vie. Ici on
+       * les voit (« absent depuis… ») et on les OUBLIE, avec leur zone.
+       * Niveau débutant : c'est la question d'un testeur, pas d'un expert.
+       */
+      { id: 'absentDevices', titleKey: 'settings.absentDevices', from: 'devices', min: 'beginner',
+        keywords: ['absent', 'absents', 'oublier', 'supprimer', 'ancien', 'anciens', 'vieux', 'fantôme', 'hors ligne', 'disparu', 'old devices', 'forget', 'delete', 'remove', 'offline'] },
       /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
@@ -290,7 +319,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
           'versions', 'autres versions', 'ordre', 'source', 'qobuz', 'bandcamp',
           // #1428 : le réglage se cherche par le nom du BOUTON — « stop »,
           // « arrêt » — et par l'endroit où il manque, la barre de transport.
-          'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture'] },
+          'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture',
+          // web#3143 : une ligne par titre ou par écoute dans l'Historique.
+          'historique', 'écoutes', 'une ligne par écoute', 'history'] },
       // web#916 — le revers de « Pas pour moi » : revoir et rétablir, par
       // profil, ce qu'on a écarté des suggestions de l'accueil.
       { id: 'dismissedSuggestions', titleKey: 'v2.dismiss.settingsTitle', from: 'general', min: 'beginner',
@@ -326,6 +357,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1',
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
+      /* Activer l'authentification : compte administrateur et mot de passe.
+       * 'beginner' : c'est ce que les refus « depuis un autre appareil »
+       * renvoient faire. */
+      { id: 'authActivation', titleKey: 'authActivation.title', from: 'system', min: 'beginner', keywords: ['authentification', 'mot de passe', 'administrateur', 'connexion', 'sécurité', 'compte', 'authentication', 'password', 'admin', 'login', 'security'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
       /* Le Wi-Fi de l'appliance Tune OS relève du réseau de la MACHINE, pas de
        * la chaîne audio : il était rangé dans l'onglet Audio, où personne ne

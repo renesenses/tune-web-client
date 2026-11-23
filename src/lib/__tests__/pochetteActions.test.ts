@@ -42,10 +42,10 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
       ).toBe(true);
     }
     // web#2795 — le crayon est en haut à droite (`tr`) quand il est seul ; à
-    // côté de l'œil et de « retirer » (station de l'annuaire), il se range à
-    // leur gauche (`tr2`, `tr3`). Son coin est donc calculé, `tr` d'abord.
+    // côté de « retirer » (station de l'annuaire), il se range à sa gauche
+    // (`tr2`). Son coin est donc calculé. (L'œil « Voir » a disparu en rc12.)
     expect(/class="coin \{coinEditer\}"[\s\S]{0,600}?onEditer/.test(src), 'le crayon a disparu').toBe(true);
-    expect(src).toMatch(/coinEditer = \$derived\(\['tr', 'tr2', 'tr3'\]/);
+    expect(src).toMatch(/coinEditer = \$derived\(onRetirer \? 'tr2' : 'tr'\)/);
     // 🔴 Le coin bas-gauche ne porte plus `disabled` : depuis le 26/09/2026 il
     // est ABSENT quand le catalogue ne rend rien, pas grisé. Ce qu'il porte,
     // c'est l'ouverture du menu.
@@ -309,7 +309,9 @@ describe('Playlists — les cinq actions', () => {
     // date de mise en favori (#2001). Le seau des playlists est inchange.
     expect(src.includes("settle(lignes('playlist'), getPlaylist)"), 'les playlists ne sont plus relues').toBe(true);
     expect(
-      lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set((favs.playlists'),
+      // #3185 — le magasin se remplit des IDENTIFIANTS (`getFavoriteIds`),
+      // sans relire chaque playlist.
+      lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set(favs.playlistIds'),
       'le magasin n’est plus rempli au chargement du profil.',
     ).toBe(true);
   });

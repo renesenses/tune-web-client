@@ -31,6 +31,11 @@
   cases vides quand le cache du serveur avance. #7928 : « Chercher sur les
   services » sur un disque absent, qui ouvre ou lance le plus proche. #7929 :
   filtres par dossier Discogs, genre et style, avec leurs compteurs.
+
+  tune-server-rust#8672 (13/11/2026) : un disque « nulle part » s'associe à
+  la main à un album de la bibliothèque (« Associer à un album », recherche
+  préremplie, candidats de « plusieurs correspondants ») ; associé, il passe
+  « dans la bibliothèque » avec « Ouvrir l'album » et « Dissocier ».
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
@@ -45,7 +50,11 @@
     type Reglages, type SurUnService,
     SANS_NAVIGATION, chercherSurLesServices, messagePochettes, peutChercherSurLesServices,
     pochettesEnAttente, versSurUnService, type Navigation, type ResultatServices, raisonDuDisque, compteursDeRaison,
+    peutAssocier, associeALaMain, dissocierDeLAlbum, remplacerDisque,
+    correspondanceACorriger, cleBoutonRecherche,
   } from '../../lib/collectionPhysique';
+  import AssocierAlbumModale from './AssocierAlbumModale.svelte';
+  import CorrespondanceServicesModale from './CorrespondanceServicesModale.svelte';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheAlbumService } from '../../lib/stores/streaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -64,6 +73,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dateEtHeure } from '../../lib/dates';
   import { dialogs } from '../../lib/stores/dialogs';
+  import ChampRecherche from './ChampRecherche.svelte';
+  import { filtrerDisques } from '../../lib/rechercheCollectionPhysique';
 
   let reglages = $state<Reglages | null>(null);
   let etat = $state<EtatSynchro | null>(null);
@@ -71,6 +82,10 @@
   let nom = $state('');
   let format = $state<Famille | null>(null);
   let filtreEtat = $state<EtatDisque | null>(null);
+  /** Recette rc12 (13/11) — la zone de recherche : titre, artiste, label,
+   *  n° de catalogue, code-barres, filtrés ici (`rechercheCollectionPhysique`). */
+  let recherche = $state('');
+  const disquesAffiches = $derived(collection ? filtrerDisques(collection.disques, recherche) : []);
   let erreur = $state<unknown>(null);
   let erreurLecture = $state<unknown>(null);
   let compteEnregistre = $state(false);
@@ -310,6 +325,41 @@
     activeView.set('streamingalbum');
   }
 
+  /** web#3270 : le disque dont « Changer la correspondance » est ouvert. */
+  let aCorriger = $state<Disque | null>(null);
+
+  /** web#3270 : la correspondance remplacée ou retirée — le disque relu
+   *  remplace l'ancien tout de suite, puis la liste est relue. */
+  function correspondanceChangee(d: Disque) {
+    if (collection) collection = remplacerDisque(collection, d);
+    void chargerCollection();
+  }
+
+  /** #8672 : le disque dont « Associer à un album » est ouvert. */
+  let aAssocier = $state<Disque | null>(null);
+  let dissociation = $state<number | null>(null);
+
+  /** Le disque associé : remplacé tout de suite, puis la liste relue (les
+   *  compteurs et les filtres suivent). */
+  function associe(d: Disque) {
+    if (collection) collection = remplacerDisque(collection, d);
+    void chargerCollection();
+  }
+
+  async function dissocier(d: Disque) {
+    dissociation = d.release_id;
+    erreur = null;
+    try {
+      const r = await dissocierDeLAlbum(d.release_id);
+      if (collection) collection = remplacerDisque(collection, r.disque);
+      await chargerCollection();
+    } catch (e) {
+      erreur = e;
+    } finally {
+      dissociation = null;
+    }
+  }
+
   const toutFormat = () => filtrer(null, filtreEtat);
   const toutEtat = () => filtrer(format, null);
 
@@ -390,6 +440,7 @@
     </div>
     {#if collection?.statut === 'ok'}
       <div class="v2-actions">
+        <ChampRecherche bind:valeur={recherche} ecran={$t('collectionPhysique.titre' as any)} />
         <div class="meta">
           {#if revalidation && enCours}<span data-mise-a-jour>{$t('collectionPhysique.miseAJour' as any)}</span>{/if}
           <span>{texte('collectionPhysique.compteur', { n: collection.compteurs.total })}</span>
@@ -535,11 +586,15 @@
           {/if}
         </div>
       {/if}
-      {#if !collection.disques.length}
+      {#if !disquesAffiches.length && recherche.trim() && collection.disques.length}
+        <!-- Relecture de #3019 : une recherche sans résultat n'est pas une
+             collection vide. -->
+        <div class="state vide" data-recherche-vide>{$t('collectionPhysique.aucunResultat' as any).replace('{q}', recherche.trim())}</div>
+      {:else if !disquesAffiches.length}
         <div class="state vide">{$t('collectionPhysique.aucunDisque' as any)}</div>
       {:else if affichage === 'grid'}
         <div class="grid" data-grille-collection>
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <div class="card" data-disque={d.release_id} data-etat-disque={d.etat}>
               <button class="cover" onclick={() => ouvrir(d)} aria-label={d.titre} data-ouvrir-disque>
@@ -562,12 +617,13 @@
               {#if peutChercherSurLesServices(d)}
                 {@render rechercheServices(d)}
               {/if}
+              {@render association(d, true)}
             </div>
           {/each}
         </div>
       {:else}
         <ul class="list">
-          {#each collection.disques as d (d.instance_id)}
+          {#each disquesAffiches as d (d.instance_id)}
             {@const p = pochetteDuDisque(d, versionPochettes)}
             <li class="ligne" data-disque={d.release_id} data-etat-disque={d.etat}>
               <span class="lcv">
@@ -586,6 +642,7 @@
                   {#if qualiteDe(album)}<span class="q">{qualiteDe(album)}</span>{/if}
                   {#if d.copie === true}<span class="q">{$t('collectionPhysique.copie' as any)}</span>{/if}
                   <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+                  {@render association(d, false)}
                 {:else if d.streaming.length}
                   {#each d.streaming as s (s.service)}
                     {@const ref = refDe(d, s)}
@@ -604,6 +661,7 @@
                     {@const r = raisonDuDisque(d)!}
                     <span class="raison" data-raison-disque={d.raison}>{phraseRaison(r.cle, r.n)}</span>
                   {/if}
+                  {@render association(d, false)}
                 {/if}
                 {#if peutChercherSurLesServices(d)}
                   {@render rechercheServices(d)}
@@ -627,7 +685,11 @@
 {#snippet rechercheServices(d: Disque)}
   {@const rech = recherches[d.release_id]}
   <span class="recherche" data-recherche-services={d.release_id}>
-    {#if !rech}
+    {#if correspondanceACorriger(d)}
+      <!-- web#3270 : déjà rapproché (ou retiré à la main) — la recherche
+           s'ouvre dans la fenêtre qui montre la correspondance actuelle. -->
+      <button class="mini" onclick={() => (aCorriger = d)} data-changer-correspondance={d.release_id}>{$t(cleBoutonRecherche(d) as any)}</button>
+    {:else if !rech}
       <button class="mini" onclick={() => chercher(d)} data-chercher-services>{$t('collectionPhysique.recherche.bouton' as any)}</button>
     {:else if rech.enCours}
       <span class="q" data-recherche-en-cours>{$t('collectionPhysique.recherche.enCours' as any)}</span>
@@ -655,6 +717,35 @@
     {/if}
   </span>
 {/snippet}
+
+{#snippet association(d: Disque, grille: boolean)}
+  {#if peutAssocier(d)}
+    <span class="recherche">
+      <button class="mini" onclick={() => (aAssocier = d)} data-associer-disque={d.release_id}>
+        {$t('collectionPhysique.associer.bouton' as any)}
+      </button>
+    </span>
+  {:else if associeALaMain(d)}
+    {@const album = d.bibliotheque!}
+    <span class="recherche" data-associe-a-la-main={d.release_id}>
+      <span class="q">{$t('collectionPhysique.associer.manuel' as any)}</span>
+      {#if grille}
+        <button class="mini" onclick={() => ouvrirAlbum(album.album_id)} data-ouvrir-album>{$t('collectionPhysique.ouvrirAlbum' as any)}</button>
+      {/if}
+      <button class="mini" onclick={() => void dissocier(d)} disabled={dissociation === d.release_id} data-dissocier={d.release_id}>
+        {$t('collectionPhysique.associer.dissocier' as any)}
+      </button>
+    </span>
+  {/if}
+{/snippet}
+
+{#if aCorriger}
+  <CorrespondanceServicesModale disque={aCorriger} onClose={() => (aCorriger = null)} onChange={correspondanceChangee} />
+{/if}
+
+{#if aAssocier}
+  <AssocierAlbumModale disque={aAssocier} onClose={() => (aAssocier = null)} onAssocie={associe} onConflit={chargerCollection} />
+{/if}
 
 {#if albumOuvert}
   <AlbumDetailV2 album={albumOuvert} onClose={fermerAlbum} />

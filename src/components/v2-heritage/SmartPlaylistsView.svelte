@@ -20,6 +20,8 @@
   import { preferences } from '../../lib/stores/preferences';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import BasculeAffichage from '../v2/BasculeAffichage.svelte';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
+  import { filtrerParTexte } from '../../lib/filtreTexte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { get } from 'svelte/store';
   import { untrack } from 'svelte';
@@ -357,7 +359,10 @@
     return (sens === 'asc' ? ca - cb : cb - ca) || parNom(a, b);
   }
 
-  const visibles = $derived(smartPlaylists.slice().sort(comparer));
+  /** Décision de Bertrand, 14/11 — la zone de recherche (`ChampRecherche`) :
+   *  nom et description, sur la liste déjà chargée. */
+  let recherche = $state('');
+  const visibles = $derived(filtrerParTexte(smartPlaylists, recherche, (sp: any) => [sp.name, sp.description]).slice().sort(comparer));
 
   /**
    * Rail alphabétique de la liste, comme dans Collections (#1153).
@@ -784,6 +789,9 @@
     <!-- List view -->
     <div class="sp-list-header">
       <h2>{$tr('smartPlaylists.title')}</h2>
+      {#if smartPlaylists.length > 0}
+        <ChampRecherche bind:valeur={recherche} ecran={$tr('smartPlaylists.title')} />
+      {/if}
       <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [regleNeuve()]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         {$tr('smartPlaylists.new')}
@@ -1022,6 +1030,8 @@
         {/each}
         {#if smartPlaylists.length === 0 && !showCreate}
           <p class="sp-empty">{$tr('smartPlaylists.emptyList')}</p>
+        {:else if recherche.trim() && !visibles.length}
+          <p class="sp-empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</p>
         {/if}
       </div>
     </div>
@@ -1032,6 +1042,9 @@
   .sp-view { padding: var(--space-lg) 28px; overflow-y: auto; height: 100%; }
   /* L’écran est monté dans la coquille : son en-tête laisse la place à la grappe. */
   .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); padding-right: var(--v2-grappe-w, 172px); }
+  /* La recherche suit le titre et pousse « Nouvelle » à droite, comme la
+     grappe d'actions d'un en-tête v2. */
+  .sp-list-header :global(.v2-rech) { margin-left: auto; margin-right: var(--space-md); }
   .sp-list-header h2 { font-family: var(--font-label); font-size: calc(28px * var(--v2-txt-echelle, 1)); font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
   .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: calc(13px * var(--v2-txt-echelle, 1)); font-weight: 600; transition: opacity 0.12s; }
   .create-btn:hover { opacity: 0.85; }

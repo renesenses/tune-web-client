@@ -28,6 +28,7 @@
   import { refreshCollectionPhysiquePlugin } from '../../lib/collectionPhysique';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import EtatGreffonsV2 from './EtatGreffonsV2.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
 import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { sonderCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { sonderCrosstalk } from '../../lib/stores/crosstalk';
@@ -39,6 +40,8 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { licenseState, isPremium } from '../../lib/stores/license';
   import { dialogs } from '../../lib/stores/dialogs';
   import { redemarrerServeurConfirme } from '../../lib/redemarrerServeur';
+  import { ficheGreffonAOuvrir, selecteurDeLaFiche } from '../../lib/greffonsDuMenu';
+  import { tick } from 'svelte';
   import '../../styles/tune-v2.css';
 
   const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
@@ -198,6 +201,33 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   $effect(() => { reload(); });
   $effect(() => { void relireNatifs(); });
 
+  /**
+   * tune-server-rust#8866 — venue de Réglages › Général (« Installer le
+   * greffon »), la fiche visée est amenée à l'écran et éclairée un instant.
+   * Un greffon pas encore installé n'est que dans le Catalogue : on y passe,
+   * sinon la fiche n'existe pas dans la page. Consommée une seule fois, dès
+   * que la fiche est rendue (les natifs arrivent après les autres).
+   */
+  const DUREE_ECLAIRAGE_MS = 2200;
+  $effect(() => {
+    const cible = $ficheGreffonAOuvrir;
+    if (!cible || loading) return;
+    const sdk = cible.startsWith('sdk:') ? plugins.find((p) => p.name === cible.slice(4)) : null;
+    if (cible.startsWith('sdk:') && !sdk) return; // pas encore lue
+    if (cible.startsWith('natif:') && !natifsLus) return;
+    if (sdk && !sdk.installed) tab = 'all';
+    q = '';
+    const sel = selecteurDeLaFiche(cible);
+    void tick().then(() => {
+      const el = sel ? document.querySelector('.v2-plug')?.querySelector<HTMLElement>(sel) ?? null : null;
+      ficheGreffonAOuvrir.set(null);
+      if (!el) return;
+      el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      el.classList.add('fiche-visee');
+      setTimeout(() => el.classList.remove('fiche-visee'), DUREE_ECLAIRAGE_MS);
+    });
+  });
+
   const filtered = $derived(
     plugins
       .filter((p) => (tab === 'installed' ? p.installed : true))
@@ -276,10 +306,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
       <!-- La recherche AVANT les onglets, comme partout ailleurs. Et son invite
            était « Filtrer » en dur : du français dans une interface anglaise,
            exactement ce qu'Alex Campbell a signalé le 08/09/2026. -->
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
-      </div>
+      <ChampRecherche bind:valeur={q} ecran={$t('v2.nav.plugins' as any)} />
       <nav class="tabs">
         <button class:on={tab === 'installed'} onclick={() => (tab = 'installed')}>{$t('v2.plug.installedTab' as any)}<span>{installedCount}</span></button>
         <button class:on={tab === 'all'} onclick={() => (tab = 'all')}>{$t('v2.lbl.catalogue' as any)}<span>{plugins.length}</span></button>
@@ -530,6 +557,8 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   .why{margin-top:8px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .why.bad{color:var(--v2-danger)}
   .pl.grise{opacity:.55}
+  /* #8866 — la fiche visée depuis Réglages › Général. */
+  .pl:global(.fiche-visee){box-shadow:0 0 0 3px var(--v2-focus)}
 
   .pact{display:flex; align-items:center; gap:12px; flex:0 0 auto}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

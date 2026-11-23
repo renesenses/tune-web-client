@@ -39,6 +39,7 @@ import {
 } from '../stores/playlists';
 import { currentProfileId } from '../stores/profile';
 import type { Track } from '../types';
+import { entreeMenuPiste, fermerMenu } from './aides/menuFiche';
 
 // Monter un écran de plus de quatre mille lignes compile beaucoup : 5 s
 // donneraient un rouge de CHARGE, pas de code.
@@ -141,15 +142,17 @@ afterEach(() => {
 });
 
 describe('Gestion des playlists — la liste commune', () => {
-  it('🔴 chaque piste porte la barre PisteActions : étiquettes ET « … »', async () => {
+  it('🔴 chaque piste porte la barre PisteActions : « … » (étiquettes au menu, web#3121)', async () => {
     const el = await monterLaFiche();
     const rangs = lignes(el);
     expect(rangs.length, 'aucune ligne de la liste commune peinte').toBe(PISTES.length);
     for (const ligne of rangs) {
       expect(ligne.querySelector('.pactions'), 'ligne sans barre PisteActions').not.toBeNull();
       const libelles = Array.from(ligne.querySelectorAll('button[aria-label]')).map((b) => b.getAttribute('aria-label'));
-      expect(libelles, 'pas de bouton Étiquettes').toContain(FR['v2.cover.tags']);
+      // web#3121 — « Étiquettes » est au menu « … » de la barre.
       expect(libelles, 'pas de menu « … »').toContain(FR['library.moreOptions']);
+      expect(entreeMenuPiste(ligne, FR['v2.cover.tags']), 'pas d’entrée Étiquettes au menu').not.toBeNull();
+      fermerMenu();
       expect(libelles, 'pas de bouton Retirer').toContain(FR['playlist.remove']);
     }
   });
@@ -255,7 +258,9 @@ describe('garde de source', () => {
     expect(src).toMatch(/<ListePistesV2 pistes=\{detailTracks\}/);
     expect(src).toContain('reordonnable={!!selectedPlaylist}');
     expect(src).toContain('onReordonner={reorderTracks}');
-    expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : undefined\}/);
+    // web#3067 — playlist locale d'abord ; playlist du service à soi
+    // (`editable: true`) ensuite, retrait chez le service ; sinon rien.
+    expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : aMoiChezLeService\(selectedStreamingPl\) \? retirerService : undefined\}/);
     // #4889 — l'ordre part en RANGS actuels (`positions`), plus en identifiants.
     expect(src).toContain('api.reorderPlaylistTracks(selectedPlaylist.id, positions)');
     // web#2286 — la ligne par `entry_id`, un retrait à la fois, puis relecture.

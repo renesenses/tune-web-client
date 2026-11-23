@@ -98,6 +98,11 @@ import { positionFileAnnoncee } from './suiviPisteEnCours';
 import { ancrerPosition } from './positionsZones';
 import { doitRechargerLaFile } from './rechargementFile';
 import {
+  CODE_LECTURE_YOUTUBE_INACTIVE,
+  annoncerLectureYoutubeInactive,
+  estLectureYoutubeInactive,
+} from './lectureYoutubeInactive';
+import {
   appliquerPistesAnnoncees,
   retenirPisteAnnoncee,
   DELAI_RELECTURE_MS,
@@ -533,6 +538,13 @@ export function demarrerTransportV2(): () => void {
         void rechargerZones();
         return;
       }
+      // tune-server-rust#8913 — « Suivant » vers une piste YouTube sans
+      // yt-dlp : la phrase et le bouton du réglage, pas le texte brut.
+      if (estLectureYoutubeInactive(event?.data?.code)) {
+        if (!dejaAnnonce(CODE_LECTURE_YOUTUBE_INACTIVE)) annoncerLectureYoutubeInactive();
+        void rechargerZones();
+        return;
+      }
       const zoneId = event?.data?.zone_id as number | null | undefined;
       // La fenêtre de grâce, telle que la v1 la tient (#1146) : pendant les
       // trente secondes qui suivent un Lire, une erreur PASSAGÈRE est le
@@ -732,9 +744,11 @@ export function demarrerTransportV2(): () => void {
           (zz) => estZoneJouableIci(zz),
           (zz) => urlFlux((zz as any)?.stream_url, (zz as any)?.stream_url_remote) ?? undefined,
           {
-            jouer: (src, forcer) => browserPlay(src, forcer),
+            // web#3180 : l'élément sait quelle zone il joue (sans quoi
+            // `browserAudio` retombait sur la zone affichée).
+            jouer: (src, forcer) => browserPlay(src, forcer, zid),
             pause: () => browserPause(),
-            reprendre: (src) => browserResume(src),
+            reprendre: (src) => browserResume(src, zid),
             arreter: () => browserStop(),
           },
           // #7533 — un titre de radio ne recharge pas le flux.

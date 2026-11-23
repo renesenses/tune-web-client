@@ -50,7 +50,7 @@
     serviceDuCatalogue,
   } from '../../lib/sourcesRegle';
   import { manqueUneCible } from '../../lib/regleSourceAide';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import {
     champsSaisissables, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
@@ -508,7 +508,7 @@
       {:else}
         <!-- Le singulier a sa phrase : « 1 albums correspondent » se lit comme
              une erreur, et l'etait effectivement il y a cinq minutes. -->
-        {$t((apercu === 1 ? 'v2.smart.previewOne' : 'v2.smart.previewCount') as any).replace('{n}', String(apercu))}
+        {$tn('v2.smart.previewN', apercu)}
       {/if}
     </div>
   </div>

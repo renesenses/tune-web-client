@@ -106,8 +106,8 @@ describe('web#2837 — « Compléments Qobuz » se replie, et le repli est reten
 describe('web#2837 — libellés du triangle dans les 15 langues', () => {
   const dossier = resolve(process.cwd(), 'src/lib/locales') + '/';
   const langues = readdirSync(dossier).filter(f => f.endsWith('.ts') && f !== 'index.ts');
-  it('15 langues, chacune avec « replier » et « déplier »', () => {
-    expect(langues).toHaveLength(15);
+  it('20 langues, chacune avec « replier » et « déplier »', () => {
+    expect(langues).toHaveLength(20);
     for (const f of langues) {
       const s = readFileSync(dossier + f, 'utf-8');
       expect(s, f).toMatch(/"v2\.album\.qobuz\.collapse": "[^"]+"/);

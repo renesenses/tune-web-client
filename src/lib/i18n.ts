@@ -9,7 +9,7 @@ export const localeNames: Record<Locale, string> = {
   de: 'Deutsch',
   es: 'Español',
   it: 'Italiano',
-  zh: '中文',
+  zh: '简体中文',
   ja: '日本語',
   ko: '한국어',
   ro: 'Română',
@@ -19,6 +19,11 @@ export const localeNames: Record<Locale, string> = {
   el: 'Ελληνικά',
   nb: 'Norsk bokmål',
   pl: 'Polski',
+  tr: 'Türkçe',
+  nl: 'Nederlands',
+  'zh-Hant': '繁體中文',
+  ru: 'Русский',
+  uk: 'Українська',
 };
 /**
  * 🔴 LES DICTIONNAIRES ARRIVENT À LA DEMANDE (tune-server-rust#4800, cause 4).
@@ -33,7 +38,7 @@ export const localeNames: Record<Locale, string> = {
  * posé la fait avancer, pour que les écrans déjà montés se retraduisent.
  */
 const messages: Record<Locale, Dictionnaire> = {
-  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {}, nb: {}, pl: {},
+  fr: {}, en: {}, de: {}, es: {}, it: {}, zh: {}, ja: {}, ko: {}, ro: {}, sv: {}, hu: {}, vi: {}, el: {}, nb: {}, pl: {}, tr: {}, nl: {}, 'zh-Hant': {}, ru: {}, uk: {},
 };
 const chargees = new Set<Locale>();
 const enCours = new Map<Locale, Promise<void>>();

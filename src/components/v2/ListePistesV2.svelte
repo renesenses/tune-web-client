@@ -8,40 +8,22 @@
    * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
    * largeur-ci — pas avec une copie (#1149).
    *
-   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine
-   * de `PisteActions`. Depuis le fil forum 1906 (FabienM), la barre a TOUJOURS
-   * ses huit cases : un geste absent laisse une case vide de même largeur. Le chiffre a déjà changé deux fois (178 → 208 le
-   * 16/09/2026, quand le menu « … » a porté la barre à sept ; 208 → 238 le
-   * 20/09/2026, quand « Lire à partir d'ici » a cessé d'être optionnel) : un
-   * témoin le recalcule en comptant les boutons,
+   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px, la barre de
+   * `PisteActions` : Lire, Lire à partir d'ici, le cœur, le « … ». Un geste
+   * absent laisse une case vide de même largeur (fil forum 1906, FabienM). Un
+   * témoin recalcule ce chiffre en comptant les boutons,
    * `largeurActionsSuitLaBarre.test.ts`.
    *
-   * 🔴 IL N'Y A PLUS DEUX LARGEURS. Elles ont existé tant que « Lire à partir
-   * d'ici » était opt-in (#1061) : l'élargir partout aurait volé 30 px à la
-   * dernière colonne de données des écrans qui ne le posaient pas. Bertrand,
-   * 20/09/2026 : « Sur toutes les lignes où il y a une piste, ajoute le bouton
-   * lire à partir de après celui de Lire ». Le bouton est désormais sur
-   * TOUTES les lignes de cette liste, donc la colonne n'a qu'une largeur — et
-   * deux constantes pour une seule valeur seraient la prochaine divergence.
+   * Historique du chiffre : 178 → 208 px le 16/09/2026 (le menu « … »),
+   * 208 → 238 px le 20/09/2026 (« Lire à partir d'ici » partout), 118 px avec
+   * l'option « icônes réduites » (#1892, web#2213), puis 118 px pour tous le
+   * 16/11/2026 : web#3121 (FabienM, fil 2864) fait de la barre réduite la
+   * seule forme. Il n'y a donc plus qu'UNE largeur — deux constantes pour une
+   * seule valeur seraient la prochaine divergence.
    */
-  export const LARGEUR_ACTIONS = '238px';
+  export const LARGEUR_ACTIONS = '118px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
-  export const LARGEUR_ACTIONS_PX = 238;
-  /**
-   * web#2213 (Sandro, fil 2317) — icônes rapides masquées (#1892) : la barre
-   * n'a plus que QUATRE cases (lire, à partir d'ici, cœur, « … »), et la
-   * colonne les suit. Elle gardait ses 238 px, dont 120 vides : au zoom, le
-   * tableau débordait et le « … » sortait de l'écran à droite.
-   * 118 px = quatre boutons de 28 px + trois gouttières de 2 px.
-   */
-  export const LARGEUR_ACTIONS_REDUITE = '118px';
-  export const LARGEUR_ACTIONS_REDUITE_PX = 118;
-  /** La largeur de la colonne d'actions selon l'option « icônes réduites ». */
-  export function largeurActions(reduite: boolean): { css: string; px: number } {
-    return reduite
-      ? { css: LARGEUR_ACTIONS_REDUITE, px: LARGEUR_ACTIONS_REDUITE_PX }
-      : { css: LARGEUR_ACTIONS, px: LARGEUR_ACTIONS_PX };
-  }
+  export const LARGEUR_ACTIONS_PX = 118;
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -87,8 +69,8 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    cleEnTeteColonne, cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale,
-    valeurColonne, type CleColonne, type Colonne,
+    avecColonneAjout, cleEnTeteColonne, cleInfobulleColonne, colonnesRemplies, colonnesRetenues,
+    gabaritGrille, largeurMinimale, valeurColonne, type CleColonne, type Colonne,
   } from '../../lib/colonnesPistes';
   import {
     appliquerLargeurs, fixerLargeur, largeurMin, largeurNominale, largeursColonnes, largeursDe,
@@ -101,7 +83,6 @@
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
-  import { actionsReduites } from '../../lib/actionsRapides';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
@@ -111,6 +92,8 @@
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -237,6 +220,12 @@
      */
     ouvertureAlbum?: ((piste: Track, index: number) => (() => void) | null) | null;
     /**
+     * web#3315 — le lien d'une cellule (année, genre, label), fourni par
+     * l'écran qui en connaît la destination (la fiche album). `null` : la
+     * cellule reste du texte, comme avant.
+     */
+    lienCellule?: ((piste: Track, index: number, cle: CleColonne, valeur: string) => Entite | null) | null;
+    /**
      * Contenu propre à un écran, rendu APRÈS chaque ligne.
      *
      * La playlist y met son bouton « retirer », l'historique l'instant et le
@@ -255,6 +244,12 @@
      * garde son propre cœur.
      */
     coeurDe?: ((piste: Track, index: number) => CoeurExterne | null) | null;
+    /**
+     * rc12 (Bertrand, 15/11/2026) — l'écran d'une playlist MODIFIABLE fournit
+     * le retrait de la ligne : le menu « … » de la piste porte alors
+     * « Supprimer de cette playlist ». `null` : entrée absente.
+     */
+    retirerDe?: ((piste: Track, index: number) => void) | null;
     /**
      * 🔴 La clé de liste, quand `id` ne suffit pas.
      *
@@ -421,6 +416,21 @@
      * Absente, RIEN ne change : ni poignée, ni largeur retenue.
      */
     ecranColonnes?: EcranColonnes | null;
+    /**
+     * web#3043 — Favoris des services — OPT-IN.
+     *
+     * `colonnesVidesMasquees` : une colonne qui n'a AUCUNE valeur dans la
+     * liste n'est pas rendue (le titre reste toujours). Une liste venue d'un
+     * service n'a ni écoutes, ni BPM, ni genre : la grille Expert y montrait
+     * six colonnes vides sur douze.
+     *
+     * `colonneAjout` : la colonne « Date d'ajout » (`COLONNE_AJOUT`), pour une
+     * liste de FAVORIS — la date du cœur, que la route des favoris rend.
+     *
+     * Absentes, RIEN ne change.
+     */
+    colonnesVidesMasquees?: boolean;
+    colonneAjout?: boolean;
   }
   let {
     contexte = {},
@@ -428,7 +438,7 @@
     pochetteEnTableau = false,
     tailleVignette = 36,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres, coeurDe = null,
+    ouvertureAlbum = null, lienCellule = null, apres, coeurDe = null, retirerDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     onGesteDisque = null,
@@ -439,6 +449,7 @@
     virtuel = false, rangDepart = 0, espaceAvant = 0, espaceApres = 0,
     tri = null, triables = null, onTrier = null,
     ecranColonnes = null,
+    colonnesVidesMasquees = false, colonneAjout = false,
   }: Props = $props();
   const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
   const selectionnable = $derived(selection != null);
@@ -505,6 +516,23 @@
   }
 
   // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
+  // 🔴 web#3045 — une clé en DOUBLE fait lever `each_key_duplicate` à Svelte :
+  // la mise à jour s'interrompt et plus rien ne se rend jusqu'au rechargement
+  // (titres phares figés sur « Chargement », navigation morte ; précédent
+  // web#1856). Quelle que soit la donnée reçue, une clé déjà vue est repliée sur
+  // le rang ; la boucle garantit qu'aucune autre clé ne la rejoint.
+  const clesUniques = $derived.by(() => {
+    const vues = new Set<string | number>();
+    return pistes.map((p, i) => {
+      let k: string | number = clef(p, i);
+      if (vues.has(k)) {
+        k = `doublon:${i}`;
+        while (vues.has(k)) k = `${k}+`;
+      }
+      vues.add(k);
+      return k;
+    });
+  });
   const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
   // web#1862 — les sections GROUPING (#2130) À L'INTÉRIEUR d'un disque, sous
   // la même prop : seule la fiche d'album rend les pistes d'UN album dans
@@ -542,7 +570,13 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnesDuMode = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const colonnesBrutes = $derived(lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode);
+  const colonnesDeLEcran = $derived.by(() => {
+    const base = lectureSeule ? colonnesDuMode.filter((c) => c.cle !== 'path') : colonnesDuMode;
+    return colonneAjout ? avecColonneAjout(base) : base;
+  });
+  const colonnesBrutes = $derived(
+    colonnesVidesMasquees ? colonnesRemplies(colonnesDeLEcran, pistes, cellule) : colonnesDeLEcran,
+  );
   /**
    * web#2139 — la colonne Qualité prend la largeur de la pastille la plus
    * longue de CETTE liste (calculée en px, jamais `auto` : voir le gabarit) ;
@@ -745,20 +779,21 @@
    * L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
    * `grid-template-columns`. Une colonne dimensionnée par son contenu — `auto`,
    * `max-content` — se résout donc dans chacune indépendamment : à zéro dans
-   * l'en-tête, où la cellule d'actions est vide, et à ~238 px dans les lignes.
+   * l'en-tête, où la cellule d'actions est vide, et à la largeur de la barre dans les lignes.
    * Les colonnes en `fr` absorbent l'écart, et TOUS les en-têtes dérivent vers
    * la droite. Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME »
    * deux cents pixels à droite de « 5:24 ».
    *
-   * Pire : les actions sont CONDITIONNELLES — playlist et étiquettes ne sont
-   * offertes que sur une piste locale. En `auto`, deux lignes voisines
+   * Pire : les actions sont CONDITIONNELLES — « Lire à partir d'ici » ou le
+   * cœur peuvent manquer sur une ligne. En `auto`, deux lignes voisines
    * n'auraient donc pas la même largeur d'actions, et se désaligneraient entre
    * elles.
    *
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine.
+   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px (web#3121 :
+   * Lire, Lire à partir d'ici, le cœur, « … »).
    *
    * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
    * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :
@@ -773,11 +808,10 @@
   // d'objet avec la MÊME valeur (#1149).
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris — et
-  // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
-  // web#2213 — sauf icônes réduites (#1892) : quatre cases, pas huit.
-  const colonneActions = $derived(largeurActions(actionsReduites($preferences)));
-  const largeurDesActions = $derived(colonneActions.css);
-  const largeurDesActionsPx = $derived(colonneActions.px);
+  // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur
+  // (quatre cases depuis web#3121).
+  const largeurDesActions = LARGEUR_ACTIONS;
+  const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
   // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
   // comme dans les lignes : la même règle que le suffixe, pour la même raison.
   const colonnePoignee = $derived(
@@ -950,7 +984,7 @@
     </div>
     {@render intercalaire(espaceAvant, 'avant')}
 
-    {#each pistes as p, i (clef(p, i))}
+    {#each pistes as p, i (clesUniques[i])}
       {@const etat = etatDe(p)}
       {@render enTeteDisque(i)}
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
@@ -1051,6 +1085,8 @@
             {@const versAlbum = lectureSeule || c.cle !== 'album' || !v
               ? null
               : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
+            <!-- web#3315 — année, genre, label : la destination vient de l'écran. -->
+            {@const lienE = lectureSeule || !v || artiste || versAlbum || !lienCellule ? null : lienCellule(p, i, c.cle, v)}
             {#if artiste && v}
               <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste" title={v}
@@ -1061,14 +1097,18 @@
                 <button class="lien-artiste lien-album" title={v}
                   onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>
+            {:else if lienE}
+              <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+                role="cell" title={v} data-lien-cellule={c.cle}><LienEntite entite={lienE} titre={v} /></span>
             {:else}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
                 role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>
             {/if}
           {/if}
         {/each}
-        {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte} surLire={contexte.context_type ? () => onLire(p, i) : null}
-          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null} />{/if}</span>{/if}
+        {#if !lectureSeule}<span class="td act" role="cell">{#if !radio}<PisteActions piste={p} {contexte}
+          onLireDepuis={() => lireDepuis(p, i)} coeur={coeurDe?.(p, i) ?? null}
+          onRetirer={retirerDe ? () => retirerDe(p, i) : null} />{/if}</span>{/if}
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}

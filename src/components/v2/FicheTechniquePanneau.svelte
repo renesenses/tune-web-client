@@ -10,12 +10,15 @@
    * - Spectrogramme : l'image conservée par le serveur, chargée en `Blob`
    *   (l'en-tête d'authentification ne voyage pas par `<img src>`), avec son
    *   état (à jour, périmé, absent) et le bouton « Recalculer ».
-   * - Forme d'onde : place réservée à l'étude #8159, rien n'est calculé.
+   * - Forme d'onde (fil du forum 2793) : `FormeOnde`, crêtes, RMS et écrêtage
+   *   par canal, calculés par le serveur à la demande.
    * - Note personnelle : le composant `MesNotes`, éditable sur place.
    */
   import { portail } from '../../lib/portail';
   import { t, locale } from '../../lib/i18n';
+  import { badgeHiRes, infobulleHiRes } from '../../lib/badgeHiRes';
   import MesNotes from '../partages/MesNotes.svelte';
+  import FormeOnde from './FormeOnde.svelte';
   import { chargerSpectrogramme } from '../../lib/spectrogramme';
   import {
     chargerFicheTechnique, recalculerSpectrogramme, sectionsVisibles, ErreurFiche,
@@ -169,7 +172,9 @@
               <p class="date">{date('fiche.computedOn', spectro.calcule_le)}</p>
             {/if}
             {#if calcul === 'encours'}
-              <p class="etat" role="status" aria-live="polite">{$t('spectro.loading' as any)}</p>
+              <p class="etat" role="status" aria-live="polite" data-telechargement={spectro.service ? true : undefined}>
+                {$t((spectro.service ? 'analyse.downloading' : 'spectro.loading') as any)}
+              </p>
             {:else}
               {#if calcul === 'echec'}<p class="etat" role="alert">{$t('fiche.spectro.failed' as any)}</p>{/if}
               <button class="bouton" onclick={recalculer}>
@@ -177,9 +182,7 @@
               </button>
             {/if}
           {:else if cle === 'formeDOnde'}
-            <h3>{$t('fiche.section.waveform' as any)}</h3>
-            <div class="reserve" aria-hidden="true"></div>
-            <p class="date">{$t('fiche.waveform.soon' as any)}</p>
+            <FormeOnde {trackId} section={fiche.forme_d_onde} {titre} />
           {:else if cle === 'dynamicRange' && fiche.dynamic_range}
             <h3>{$t('fiche.section.dr' as any)}</h3>
             <p class="valeur">{$t('fiche.dr.value' as any).replace('{n}', String(fiche.dynamic_range.valeur))}</p>
@@ -188,6 +191,8 @@
           {:else if cle === 'fauxHires' && fiche.faux_hires}
             <h3>{$t('fiche.section.hires' as any)}</h3>
             <p class="valeur">{$t(cleVerdictHiRes(fiche.faux_hires.verdict) as any)}</p>
+            <!-- tune-server-rust#9035 — la raison d'un douteux, avec la coupure mesurée. -->
+            {#if fiche.faux_hires.verdict === 'douteux'}{@const raisonHiRes = infobulleHiRes(badgeHiRes(fiche.faux_hires), (c) => $t(c as any), langue)}{#if raisonHiRes}<p data-hires-raison>{raisonHiRes}</p>{/if}{/if}
             <dl>
               {#if fiche.faux_hires.bits_effectifs}<dt>{$t('fiche.hires.effectiveBits' as any)}</dt><dd>{$t('fiche.bits' as any).replace('{n}', String(fiche.faux_hires.bits_effectifs))}</dd>{/if}
               {#if fiche.faux_hires.coupure_hz}<dt>{$t('fiche.hires.cutoff' as any)}</dt><dd>{frequenceLisible(fiche.faux_hires.coupure_hz, langue)}</dd>{/if}
@@ -254,7 +259,6 @@
   .etat-section{margin-bottom:6px}
   .etat-section[data-etat="perime"]{color:var(--v2-warn, var(--tune-warning, inherit))}
   .image{display:block; width:100%; height:auto; border-radius:6px; background:#000; margin:6px 0}
-  .reserve{height:48px; border:1px dashed var(--v2-line2, var(--tune-border, #333)); border-radius:6px}
   .bouton{margin-top:8px; border:1px solid var(--v2-acc1, var(--tune-accent, currentColor)); background:transparent;
     color:var(--v2-acc1, var(--tune-accent, currentColor)); border-radius:999px; padding:6px 14px;
     font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); cursor:pointer}

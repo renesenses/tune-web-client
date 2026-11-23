@@ -36,9 +36,9 @@ concurrency:
 jobs:
   test:
     name: npm test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.RUNNER_LINUX || '"ubuntu-latest"') }}
     # 11 500+ tests puis le build : le plafond de15min coupait un job vert (#2481).
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 

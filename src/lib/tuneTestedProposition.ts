@@ -179,6 +179,10 @@ export function messageDeRefus(
     case 'tune_tested_preview_changed':
       return t('v2.tuneTestedPropose.err.previewChanged');
     case 'tune_tested_site_refused':
+      // tune-server-rust#8792 — 401 : le site a refusé TOUTES les identités
+      // du serveur (jeton de compte révoqué, et pas de licence acceptée).
+      // Réessayer plus tard n'y changerait rien : il faut se reconnecter.
+      if (statutDuSite === 401) return t('v2.tuneTestedPropose.err.siteSessionExpired');
       return statutDuSite === 429
         ? t('v2.tuneTestedPropose.err.tooMany')
         : t('v2.tuneTestedPropose.err.failed');

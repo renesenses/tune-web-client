@@ -2,11 +2,15 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
+  import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
 
   interface Props {
@@ -68,6 +72,14 @@
   let savingQueuePin = $state(false);
 
   let confirmDelete = $state(false);
+  /**
+   * web#3314 — « Ne plus jouer ici » dans la fenêtre de la zone aussi, pas
+   * seulement dans l'écran Zones (#3180). Relu à chaque prise ou relâchement.
+   */
+  const tenueIci = $derived.by(() => {
+    void $versionZonesRetenues;
+    return estZoneDeCetAppareil(zone);
+  });
   let loading = $state(false);
   let error = $state('');
 
@@ -128,6 +140,56 @@
       gaplessError = e?.message || get(t)('common.error');
     } finally {
       gaplessSaving = false;
+    }
+  }
+
+  /**
+   * Forum, fil 2694 (Ilan) ; décision de Bertrand du 13/11 — « Continuer
+   * avec des titres similaires à la fin de la file », comme Roon. Activé par
+   * défaut côté serveur (tune-server-rust, migration 152 / PG 118) ; c'est
+   * ici qu'on le coupe pour une zone. Même patron que le gapless : on
+   * affiche ce que le serveur rend, un échec remet l'interrupteur.
+   */
+  let radioFinDeFile = $state(zone.autoplay_enabled ?? false);
+  let radioFinDeFileSaving = $state(false);
+  let radioFinDeFileError = $state('');
+  /** Le mode NOMMÉ (album au hasard…) d'avant la coupure : recocher le rend
+   *  tel quel au lieu de le ramener à « titres similaires ». */
+  let modeAvantCoupure: string | null = modeNomme(zone.autoplay_mode);
+
+  function modeNomme(mode: string | undefined | null): string | null {
+    return mode && mode !== 'off' ? mode : null;
+  }
+
+  // La case suit le serveur quand la zone change sous le panneau (autre
+  // client, bouton de la file) — sauf pendant notre propre écriture.
+  $effect(() => {
+    const actif = zone.autoplay_enabled;
+    const mode = zone.autoplay_mode;
+    untrack(() => {
+      if (radioFinDeFileSaving) return;
+      radioFinDeFile = actif ?? false;
+      modeAvantCoupure = modeNomme(mode) ?? modeAvantCoupure;
+    });
+  });
+
+  async function setRadioFinDeFile(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = radioFinDeFile;
+    radioFinDeFile = enabled;
+    radioFinDeFileSaving = true;
+    radioFinDeFileError = '';
+    try {
+      const maj = enabled && modeAvantCoupure && modeAvantCoupure !== 'similar'
+        ? await api.updateZoneAutoplayMode(zone.id, modeAvantCoupure)
+        : await api.updateZoneAutoplay(zone.id, enabled);
+      radioFinDeFile = maj?.autoplay_enabled ?? enabled;
+      if (maj) syncZone(maj);
+    } catch (e: any) {
+      radioFinDeFile = avant;
+      radioFinDeFileError = e?.message || get(t)('common.error');
+    } finally {
+      radioFinDeFileSaving = false;
     }
   }
 
@@ -686,6 +748,14 @@
       </label>
       {#if gaplessError}<div class="ir-message ir-error">{gaplessError}</div>{/if}
 
+      <label class="zc-toggle" data-radio-fin-de-file title={$t('zoneConfig.radioFinDeFileTip')}>
+        <input type="checkbox" checked={radioFinDeFile}
+          disabled={radioFinDeFileSaving || zone.id === null}
+          onchange={(e) => setRadioFinDeFile((e.target as HTMLInputElement).checked)} />
+        <span>{$t('zoneConfig.radioFinDeFileLabel')}</span>
+      </label>
+      {#if radioFinDeFileError}<div class="ir-message ir-error">{radioFinDeFileError}</div>{/if}
+
       <div class="zc-ligne">
         <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>
         <select class="zc-select" value={dsdMode}
@@ -816,6 +886,11 @@
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
+      {#if tenueIci}
+        <button class="btn btn-secondary" data-ne-plus-jouer-ici onclick={() => nePlusJouerZoneIci(zone)}>
+          {$t('v2.zone.browserStopHere' as any)}
+        </button>
+      {/if}
       {#if !confirmDelete}
         <button class="btn btn-danger" onclick={() => confirmDelete = true}>
           {$t('zone.deleteZone')}

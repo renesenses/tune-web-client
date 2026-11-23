@@ -1,6 +1,9 @@
 <script lang="ts">
   import { labelDe, ouvrirLabelDansLaBibliotheque } from '../../lib/artistesDuLabel';
   import { labelQobuzDe, ouvrirLabelDeService } from '../../lib/labelDeService';
+  import { entiteAnnee, entiteGenre, entiteLabel, menePart, type ContexteLiensFiche } from '../../lib/liensFicheAlbum';
+  import { anneeAlbum } from '../../lib/anneeAlbum';
+  import LienEntite from '../partages/LienEntite.svelte';
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import ApportsQobuzAlbum from './ApportsQobuzAlbum.svelte';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -14,7 +17,7 @@
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
-  import { t as tr, tn } from '../../lib/i18n';
+  import { t as tr, tn, locale } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -52,6 +55,9 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   import BoutonMenuV2 from './BoutonMenuV2.svelte';
   import type { EntreeMenu } from '../../lib/menuPiste';
   import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import ColonneAlbumV2 from './ColonneAlbumV2.svelte';
+  import VersionsAlbumV2 from './VersionsAlbumV2.svelte';
+  import { genresDesPistes, listeDeGenres } from '../../lib/ficheAlbumMaquette';
   import SuggestionsIaAlbumV2 from './SuggestionsIaAlbumV2.svelte';
   import NotesPochetteIaV2 from './NotesPochetteIaV2.svelte';
   import { estReponseEdition, defaireCoffretManuelAnnonce, type EditionReponse } from '../../lib/editionAlbum';
@@ -63,7 +69,7 @@ import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbu
   } from '../../lib/selectionPistes';
   import { circleCharge } from '../../lib/circle';
   import { demandeCercle } from '../../lib/circlePlaylists';
-  import { badgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
+  import { badgeHiRes, compteBadgeHiRes, infobulleHiRes, libelleBadgeHiRes, type BadgeHiRes } from '../../lib/badgeHiRes';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe, corpsDeTeteDeListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -325,15 +331,20 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * Sans compte Qobuz, ni service, ni label rapproché : aucun lien.
    */
   let labelQobuz = $state<{ id: string; nom: string } | null>(null);
+  /** web#3315 — le genre de l'album chez Qobuz, lu sur la même réponse. */
+  let genreQobuz = $state<{ id: string; nom: string } | null>(null);
   let jetonLabelQobuz = 0;
   $effect(() => {
     const j = ++jetonLabelQobuz;
     labelQobuz = null;
+    genreQobuz = null;
     if (depot || bandcamp) return;
     if (service === 'qobuz' && sidDistant) {
       const sid = String(sidDistant);
       void api.getStreamingAlbumContext('qobuz', sid).then((c) => {
-        if (j === jetonLabelQobuz && c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+        if (j !== jetonLabelQobuz) return;
+        if (c?.label_id) labelQobuz = { id: c.label_id, nom: c.label_name ?? '' };
+        if (c?.genre_id) genreQobuz = { id: c.genre_id, nom: c.genre_name ?? '' };
       });
       return;
     }
@@ -778,7 +789,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     tracks = [];
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
-    if (id == null && !(svc && sid) && !bc) return;
+    // #3224 — et sans rester sur « Chargement… » : rien à charger, liste vide.
+    if (id == null && !(svc && sid) && !bc) { loading = false; return; }
     loading = true; error = null;
     let perime = false;
     const p = bc
@@ -1053,7 +1065,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     const n = lot.length;
     demandeCercle.set({
       mode: 'ajout',
-      nom: [album.title, $tr((n === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(n))]
+      nom: [album.title, $tn('v2.selection.countN', n)]
         .filter(Boolean).join(' · '),
       pistes: async () => lot,
     });
@@ -1171,6 +1183,57 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * `?? 'CD'` affirmait un format qu'il n'avait pas.
    */
   const qualite = $derived(qualiteEnTeteAlbum(album, tracks));
+  /**
+   * Recette du .18 (15/11, « Animals 50 » de Qobuz) : la colonne « Détails »
+   * n'affichait que la sortie, alors que l'en-tête montrait label, format,
+   * titres et durée. Ce que la fiche affiche déjà lui est passé tel quel —
+   * rien de plus : genre des pistes, label (album ou Qobuz), qualité de
+   * l'en-tête, disques, titres, durée.
+   */
+  const complementDetails = $derived({
+    genres: genresDesPistes(tracks as any),
+    label: labelDe(albumAffiche) || labelQobuz?.nom || null,
+    format: qualite?.format ?? null,
+    sample_rate: qualite?.sampleRate ?? null,
+    bit_depth: qualite?.bitDepth ?? null,
+    disques: new Set(tracks.map((t) => t.disc_number ?? 1)).size || null,
+    titres: tracks.length || null,
+    duree: totalMs ? formatDuration(totalMs) : null,
+  });
+  /** Blocs affichés par la colonne : sous deux, elle ne réserve pas sa largeur. */
+  let blocsColonne = $state(0);
+  /**
+   * Recette du .18 (15/11) : la colonne de droite RÉTRÉCISSAIT le tableau des
+   * pistes sous sa largeur minimale (`--tmin` de `ListePistesV2`) ; il
+   * défilait alors, et le « ⋮ » de chaque ligne sortait à moitié du cadre.
+   * Quand le tableau ne tient pas à côté de la colonne, la colonne passe SOUS
+   * les pistes : le tableau garde toute la largeur, comme avant la maquette.
+   */
+  let grilleFiche = $state<HTMLElement | null>(null);
+  let largeurFiche = $state(0);
+  let minTableau = $state(0);
+  // Pas de `bind:clientWidth` : il exige `ResizeObserver`, absent de jsdom —
+  // trente fiches montées par les tests tombaient. Mesure gardée.
+  $effect(() => {
+    const g = grilleFiche;
+    if (!g) return;
+    largeurFiche = g.clientWidth;
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => { largeurFiche = g.clientWidth; });
+    ro.observe(g);
+    return () => ro.disconnect();
+  });
+  $effect(() => {
+    // `loading` aussi : les pistes arrivent AVANT que le tableau soit rendu.
+    const g = grilleFiche; void tracks; void loading; void onglet; void largeurFiche; void $preferences;
+    if (!g) return;
+    void tick().then(() => {
+      const t = g.querySelector<HTMLElement>('.tracks [role="table"]');
+      minTableau = t ? parseFloat(t.style.getPropertyValue('--tmin')) || 0 : 0;
+    });
+  });
+  /** Colonne (340 px au plus) + gouttière (36) + marges des lignes (20). */
+  const colonneSousLesPistes = $derived(largeurFiche > 0 && minTableau > 0 && largeurFiche - 340 - 36 - 20 < minTableau);
   const tier = $derived(
     qualite
       ? getQualityTier({
@@ -1180,6 +1243,48 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         } as any)
       : getQualityTier(album),
   );
+  /** Maquette rc12 — le genre de la ligne de faits : `genre`, sinon le
+   *  premier de la liste `genres` (#1821, chaîne JSON côté serveur). Rien
+   *  quand aucun n'est connu. */
+  const genreAffiche = $derived(
+    listeDeGenres((albumAffiche as any).genre)[0] ?? listeDeGenres((albumAffiche as any).genres)[0] ?? '',
+  );
+  /**
+   * web#3315 — où mènent l'année, le genre et le label de la fiche (en-tête,
+   * « Album details », colonnes des pistes) : `lib/liensFicheAlbum`. Album de
+   * la bibliothèque → la Bibliothèque ; album Qobuz → ses pages Genre et
+   * Label ; sinon du texte.
+   */
+  const ctxLiens = $derived<ContexteLiensFiche>({
+    local: creditsPossibles,
+    service: service ?? null,
+    genreService: service === 'qobuz' ? genreQobuz : null,
+    labelService: service ? labelQobuz : null,
+    genresAffiches: [
+      ...new Set([
+        ...listeDeGenres((albumAffiche as any).genre),
+        ...listeDeGenres((albumAffiche as any).genres),
+        ...genresDesPistes(tracks as any),
+      ].map((g) => g.trim().toLocaleLowerCase())),
+    ],
+    fermer: onClose,
+  });
+  const entiteAnneeAlbum = $derived(entiteAnnee(ctxLiens, anneeAlbum(albumAffiche as any), $formatAnneeAlbum(albumAffiche)));
+  /** Le lien d'une cellule de piste : année, genre, label ; `null` ailleurs. */
+  function lienCellulePiste(p: any, cle: string, valeur: string) {
+    const e = cle === 'year' ? entiteAnnee(ctxLiens, typeof p?.year === 'number' ? p.year : Number(valeur) || null, valeur)
+      : cle === 'genre' ? (listeDeGenres(valeur).length === 1 ? entiteGenre(ctxLiens, valeur) : null)
+      : cle === 'label' ? entiteLabel(ctxLiens, valeur)
+      : null;
+    return menePart(e) ? e : null;
+  }
+  /** Le lien d'une ligne de « Album details » (Release, Genre, Label). */
+  function lienDetail(cle: string, valeur: string) {
+    if (cle === 'v2.album.fiche.release') return entiteAnneeAlbum ? { ...entiteAnneeAlbum, nom: valeur } : null;
+    if (cle === 'v2.album.fiche.genre') return entiteGenre(ctxLiens, valeur);
+    if (cle === 'v2.album.fiche.label') return entiteLabel(ctxLiens, valeur);
+    return null;
+  }
   const qLabel = $derived.by(() => {
     if (!qualite) return null;
     if (tier === 'dsd') return 'DSD';
@@ -1534,27 +1639,42 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     bioSegments = null;
     bioLangue = AUCUNE_LANGUE;
     bioErreur = false;
+    // Décision de Bertrand (15/11, maquette de Levente) : la présentation
+    // s'affiche sous le titre DÈS l'ouverture. C'est le MÊME appel que
+    // l'onglet « Notes / Bio » — chargé une fois, l'onglet le réutilise.
+    // L'inconvénient noté plus haut (requête sortante vers mozaiklabs.fr
+    // quand la notice manque) est accepté par lui.
+    if (id != null) untrack(() => void chargerBio());
   });
 
   async function basculerBio() {
     bioOuverte = !bioOuverte;
+    if (bioOuverte) await chargerBio();
+  }
+
+  /** Lit la présentation de l'album UNE fois (en-tête et onglet la partagent). */
+  /** L'album dont la présentation est EN VOL : un changement d'album pendant
+   *  la requête ne doit ni bloquer la suivante, ni recevoir l'ancienne. */
+  let bioEnVol: number | null = null;
+  async function chargerBio() {
     const id = album.id;
-    if (!bioOuverte || id == null || bio !== null || bioChargement) return;
+    if (id == null || bio !== null || bioEnVol === id) return;
+    bioEnVol = id;
     bioChargement = true;
     bioErreur = false;
     try {
       const r = await api.getAlbumBio(id);
       // Course : l'utilisateur a pu changer d'album pendant la requête.
       if (album.id === id) {
-        bio = r.bio ?? '';
+        bio = r?.bio ?? '';
         bioProvenance = provenanceDe(r);
-        bioSegments = r.bio_segments ?? null;
+        bioSegments = r?.bio_segments ?? null;
         bioLangue = langueBioDe(r);
       }
     } catch {
       if (album.id === id) bioErreur = true;
     }
-    bioChargement = false;
+    if (bioEnVol === id) { bioEnVol = null; bioChargement = false; }
   }
 
   /**
@@ -1600,17 +1720,20 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * de l'onglet, comme il se lisait au clic (la route de la bio sort sur le
    * réseau, voir `basculerBio`).
    */
-  type Onglet = 'pistes' | 'credits' | 'bio' | 'presentation';
+  type Onglet = 'pistes' | 'credits' | 'versions' | 'bio' | 'presentation';
   let onglet = $state<Onglet>('pistes');
   const LIBELLES_ONGLETS: Record<Onglet, string> = {
     pistes: 'v2.menu.tabTracks',
     credits: 'artist.credits',
+    // Maquette de Levente (rc12) — les versions de l'œuvre (#7617) en onglet.
+    versions: 'v2.album.fiche.tabVersions',
     bio: 'library.notesBio',
     presentation: 'v2.album.presentation',
   };
   const onglets = $derived<Onglet[]>([
     'pistes',
     ...(creditsPossibles || creditsDeService || onglet === 'credits' ? ['credits' as const] : []),
+    ...(oeuvre ? ['versions' as const] : []),
     ...(album.id != null ? ['bio' as const] : []),
     ...(presentationCible || presentation?.etat === 'refus' ? ['presentation' as const] : []),
   ]);
@@ -1851,6 +1974,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     <span>{$tr('common.back' as any)}</span>
   </button>
 
+  <div class="fiche-grille" class:colonne-maigre={blocsColonne < 2 || colonneSousLesPistes} bind:this={grilleFiche} data-tableau-min={minTableau || undefined} data-colonne-sous={colonneSousLesPistes ? '' : undefined}>
+  <div class="principal">
   <div class="head">
     <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
          vient du service, sinon la fiche reste un carré gris à l'initiale. -->
@@ -1868,8 +1993,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
         <!-- tune-server-rust#6285 — « hi-res vérifié / douteux » : rien tant que
              le serveur n'a pas mesuré l'album (lib/badgeHiRes). -->
-        {#if hiRes}<div class="qbadge cue" class:douteux={hiRes.genre === 'douteux'} data-hires={hiRes.genre}
-          title={$tr((hiRes.cleRaison ?? 'v2.album.hiresVerifiedTip') as any)}>{$tr(hiRes.cle as any)}</div>{/if}
+        <!-- tune-server-rust#9035 — la raison dit la coupure MESURÉE (« coupé
+             net vers 16,1 kHz ») et le badge combien de pistes sont en cause
+             (« 6/10 ») ; « codec avec perte » seulement sur signature mesurée.
+             Sous la moitié des pistes, l'album n'est pas douteux : « 2 pistes
+             douteuses » (décision du 18/11, fil 2902). -->
+        {#if hiRes}{@const infobulle = infobulleHiRes(hiRes, (c) => $tr(c as any), $locale ?? 'fr')}{@const libelle = libelleBadgeHiRes(hiRes, (c) => $tr(c as any))}<div class="qbadge cue" class:douteux={hiRes.genre !== 'verifie'} data-hires={hiRes.genre}
+          title={infobulle} aria-label={`${libelle}. ${infobulle}`}>{libelle}{#if compteBadgeHiRes(hiRes)}<span class="hires-compte" data-hires-compte> · {compteBadgeHiRes(hiRes)}</span>{/if}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
         <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
              qu'un album affiché est la résultante d'un fichier .CUE ». La
@@ -1885,6 +2015,8 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              (bibliothèque locale seulement : la règle porte un album_id local). -->
         {#if creditsPossibles}<BadgeReaffectation cible="album" id={album.id} />{/if}
       </div>
+      <!-- Maquette de Levente (Figma 611:5805, rc12) : le surtitre « Album ». -->
+      <p class="surtitre" data-surtitre-album>{$tr('v2.album.fiche.eyebrow' as any)}</p>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
            Pas d'`<a href>` non plus — cette coquille ne route rien par l'URL,
@@ -1896,25 +2028,20 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       {:else}
         <div class="artist">{nomArtiste}</div>
       {/if}
-      {#if oeuvre}
-        <div class="versions" data-versions={oeuvre.versions.length}>
-          <label>
-            <span>{$tr('v2.album.versions' as any).replace('{n}', String(oeuvre.versions.length))}</span>
-            <select value={album.id} onchange={(e) => changerVersion(Number(e.currentTarget.value))}>
-              {#each oeuvre.versions as v (v.id)}
-                <option value={v.id}>{libelleVersion(v)}{v.id === oeuvre.preferred_id ? ' ★' : ''}</option>
-              {/each}
-            </select>
-          </label>
-          {#if album.id === oeuvre.preferred_id}
-            <span class="vpref">★ {$tr('v2.album.preferredVersion' as any)}</span>
-          {:else}
-            <button type="button" class="vchoix" onclick={preferer}>{$tr('v2.album.setPreferredVersion' as any)}</button>
-          {/if}
+      <!-- Maquette de Levente (Figma 611:5805) — la présentation de l'album en
+           italique, trois lignes au plus, infobulle et « Lire la suite » vers
+           l'onglet Notes / Bio. Vide ou en erreur : rien. -->
+      {#if bio && bio.trim()}
+        <div class="description" data-description-album>
+          <p title={bio} lang={bioLangue.langue ?? undefined}>{bio}</p>
+          <button type="button" class="lire-suite" data-lire-suite onclick={() => choisirOnglet('bio')}>{$tr('v2.album.fiche.readMore' as any)}</button>
         </div>
       {/if}
       <div class="facts">
-        {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
+        <!-- web#3315 — l'année et le genre mènent à leur page (`lib/liensFicheAlbum`). -->
+        {#if $formatAnneeAlbum(albumAffiche)}<span data-annee-album><LienEntite entite={entiteAnneeAlbum} /></span>{/if}
+        <!-- Maquette rc12 : « 1959 · Jazz » — le genre, seulement s'il est connu. -->
+        {#if genreAffiche}<span data-genre-album><LienEntite entite={entiteGenre(ctxLiens, genreAffiche)} /></span>{/if}
         <span>{$tn('v2.common.trackCountN', tracks.length)}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,
@@ -2072,6 +2199,12 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         {/key}
       {/if}
     </div>
+  {:else if onglet === 'versions' && oeuvre}
+    <!-- Maquette de Levente (Figma 611:5807) — les versions de l'œuvre
+         (#7617) : une ligne ouvre la version dans cette fiche. -->
+    <div class="panneau" role="tabpanel" id="album-panneau-versions" aria-labelledby="album-onglet-versions" data-panneau-versions>
+      <VersionsAlbumV2 {oeuvre} courante={album.id ?? null} onChoisir={changerVersion} onPreferer={preferer} />
+    </div>
   {:else if onglet === 'bio'}
     <!-- Présentation de l'album (#3586) : lue au premier choix de l'onglet, la
          route sort sur le réseau (voir `basculerBio`). -->
@@ -2160,7 +2293,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
              ceux des boutons de l'album : ce sont les mêmes gestes. -->
         <div class="barre-selection" role="toolbar" aria-label={$tr('v2.selection.toolbar' as any)}>
           <span class="sel-compte" data-sel-compte aria-live="polite">
-            {$tr((choisies.length === 0 ? 'v2.selection.countNone' : choisies.length === 1 ? 'v2.selection.countOne' : 'v2.selection.countMany') as any).replace('{n}', String(choisies.length))}
+            {$tn('v2.selection.countN', choisies.length)}
           </span>
           <button class="sel-btn" data-sel-tout onclick={() => (sel = toutOuRien(sel, ordreSelection))}>
             {$tr((toutChoisi ? 'v2.selection.none' : 'v2.selection.all') as any)}
@@ -2208,8 +2341,27 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
         onGesteDisque={gesteDisque}
+        lienCellule={(p, _i, cle, v) => lienCellulePiste(p, cle, v)}
       />
     {/if}
+  </div>
+  </div>
+  <!-- Maquette de Levente (Figma 611:5805) — la colonne de droite : artiste,
+       interprètes, détails, autres albums. Chaque bloc sans donnée disparaît. -->
+  <ColonneAlbumV2 album={albumAffiche as Album} artistId={depot || service || bandcamp ? null : (albumAffiche.artist_id ?? null)}
+    {nomArtiste} annee={$formatAnneeAlbum(albumAffiche) || null} pistes={tracks}
+    exclus={oeuvre ? oeuvre.versions.map((v) => v.id) : []} avecCredits={creditsPossibles}
+    onArtiste={nomArtiste && (albumAffiche.artist_id != null || artisteDeService) ? allerArtiste : null}
+    onAlbum={changerVersion}
+    onCredits={onglets.includes('credits') ? () => choisirOnglet('credits') : null}
+    complement={complementDetails} onBlocs={(n) => (blocsColonne = n)} {lienDetail}
+    onOuvrirArtiste={(a) => {
+      // La fiche se referme AVANT de router (comme `allerArtiste`) ; par la
+      // fiche de bibliothèque quand l'id est connu, sinon par le nom exact.
+      const vue = get(activeView);
+      quitterLaFiche();
+      void ouvrirArtisteDepuis(a.id != null ? { id: a.id, name: a.nom, source: 'local' } : { name: a.nom }, vue);
+    }} />
   </div>
 </div>
 
@@ -2295,6 +2447,28 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .close:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .close svg{width:18px; height:18px; flex:none}
 
+  /* Maquette de Levente (Figma 611:5805, rc12) : la fiche en deux colonnes
+     quand la place le permet — en-tête, onglets et pistes à gauche, la
+     colonne de l'artiste et des détails à droite. En dessous de 1080 px de
+     fiche, la colonne passe sous les pistes. */
+  .v2-detail{container-type:inline-size}
+  .fiche-grille{display:grid; grid-template-columns:minmax(0,1fr); gap:28px}
+  .principal{min-width:0}
+  @container (min-width:1080px){
+    .fiche-grille{grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:36px}
+    /* Recette du .18 (15/11) : une colonne d'un seul bloc court laissait un
+       grand vide à droite des pistes. Elle passe alors SOUS les pistes, sans
+       réserver de largeur. */
+    .fiche-grille.colonne-maigre{grid-template-columns:minmax(0,1fr)}
+    .fiche-grille.colonne-maigre > :global([data-colonne-album]){position:static; max-height:none; border-left:0; padding-left:0; max-width:520px}
+    /* Recette du .18 (15/11) : au défilement, la colonne passait SOUS la
+       grappe fixe du coin haut-droit (recherche, signet, avatar). Elle reste
+       collée juste en dessous (`--v2-grappe-h`, la réserve commune) et défile
+       en elle-même quand elle dépasse la fenêtre. */
+    .fiche-grille > :global([data-colonne-album]){border-left:1px solid var(--v2-line2); padding-left:28px;
+      position:sticky; top:calc(var(--v2-grappe-h, 66px) + 8px); align-self:start;
+      max-height:calc(100dvh - var(--v2-grappe-h, 66px) - 120px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin}
+  }
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px; min-width:0}
@@ -2316,7 +2490,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .qbadge.cue.douteux{border-color:var(--v2-danger-bd)}
   .qbadge{font:700 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
-  .meta h1{font-size:calc(38px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; line-height:1.05}
+  /* Maquette de Levente (rc12) : surtitre « ALBUM » à l'accent, titre en
+     capitales de la police d'affichage (repli Georgia déjà déclaré). */
+  .surtitre{margin:0 0 -6px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--v2-acc1)}
+  .meta h1{font-family:var(--font-display, var(--v2-sans)); font-size:calc(46px * var(--v2-txt-echelle, 1)); font-weight:600; letter-spacing:0; line-height:1.05}
   .artist{font-size:calc(18px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   /* Le bouton doit se lire comme le texte qu'il remplace : même taille, même
      couleur, aligné à gauche. Ce qui l'annonce comme un lien, c'est le
@@ -2325,13 +2503,13 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     text-align:left; cursor:pointer}
   .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
   .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
+  .description{display:flex; flex-direction:column; align-items:flex-start; gap:4px; max-width:70ch}
+  .description p{margin:0; font-style:italic; color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1.45;
+    display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .lire-suite{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
+  .lire-suite:hover{text-decoration:underline}
+  .lire-suite:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  /* tune-server-rust#7617 — le choix de la version à lire. */
-  .versions{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 8px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  .versions label{display:flex; align-items:center; gap:8px}
-  .versions select{max-width:100%; font:inherit; color:var(--v2-txt); background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:6px; padding:3px 6px}
-  .vpref{color:var(--v2-acc2)}
-  .vchoix{font:inherit; color:var(--v2-acc2); background:transparent; border:1px solid var(--v2-line2); border-radius:6px; padding:3px 8px; cursor:pointer}
   .repertoire-lecture{display:flex; flex-direction:column; align-items:flex-start; gap:5px; max-width:min(100%, 520px)}
   .lien-label{all:unset; cursor:pointer; margin-top:6px; font:500 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--tune-accent)}
   .lien-label:hover{text-decoration:underline}

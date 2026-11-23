@@ -10,8 +10,10 @@
    * Densité par niveau :
    *   Essentiel → favoris en tête, puis toutes les stations. Lecture, favori.
    *   Avancé    → filtres par genre + recherche.
-   *   Avancé+   → pays affiché sur la vignette (#863 : Expert seul avant).
-   *   Le codec, lui, se lit dès Essentiel (#5716).
+   *   Vignette  → deux lignes sous le logo, à tous les niveaux : le nom,
+   *               puis « genre · pays » (retour de Rémi sur la rc12, go de
+   *               Bertrand du 17/11). Le format du flux n'y est plus : il se
+   *               lit dans la fiche et dans le chemin du signal.
    *
    * Subtilité reprise de l'écran actuel, à ne pas perdre : sur une zone
    * NAVIGATEUR, le serveur ne peut pas sortir le son — il renvoie l'URL du
@@ -45,7 +47,7 @@
   import RadioRecherche from './RadioRecherche.svelte';
   import RadioChipsGenres from './RadioChipsGenres.svelte';
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
-  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
+  import { normaliserFiltresRadio, parametresDesFiltres, trierLesPays } from '../../lib/radioFiltres';
   import RadioNouvelleStationModale from './RadioNouvelleStationModale.svelte';
   import RadioFicheModale from '../partages/RadioFicheModale.svelte';
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
@@ -126,8 +128,15 @@
    *
    * web#2400 — « Carte » : le même annuaire, à parcourir par genres, pays et
    * réseaux (`CarteRadios`), troisième onglet décidé par Bertrand le 26/10.
+   *
+   * Retour de Rémi sur la rc11 (point 32, décidé le 14/11) : l'onglet est
+   * MASQUÉ en rc12. Le code reste ; une vraie carte zoomable, avec les mêmes
+   * filtres, vient en rc13. Un retour mémorisé sur la Carte retombe sur
+   * « Mes radios ».
    */
-  let section = $state<'mes' | 'annuaire' | 'carte'>(contexte?.section ?? 'mes');
+  const CARTE_VISIBLE = false;
+  let section = $state<'mes' | 'annuaire' | 'carte'>(
+    contexte?.section === 'carte' && !CARTE_VISIBLE ? 'mes' : contexte?.section ?? 'mes');
   /** La fiche d'annuaire qui joue, pour sa pastille « en direct ». */
   let ficheJouee = $state<string | null>(null);
 
@@ -176,15 +185,15 @@
   }
 
   /*
-   * Importer / exporter une liste M3U — portés de l'ancien écran Radios, seul
-   * à les offrir. L'export est la route elle-même, téléchargée par le lien.
+   * Importer une liste M3U/PLS — porté de l'ancien écran Radios. Retour de
+   * Rémi sur la rc11 (points 2 et 3, décidés le 14/11) : l'import est le
+   * quatrième choix de « Nouvelle station », et « Exporter M3U » quitte
+   * l'écran (« on veut que les gens restent dans Tune »).
    */
   let importEnCours = $state(false);
-  async function importerM3u(e: Event) {
-    const input = e.currentTarget as HTMLInputElement;
-    const f = input.files?.[0];
-    input.value = '';
-    if (!f || importEnCours) return;
+  async function importerM3u(f: File) {
+    choixNouvelle = false;
+    if (importEnCours) return;
     importEnCours = true;
     try {
       const r = await api.importRadios(f);
@@ -291,7 +300,7 @@
   });
 
   /**
-   * tune-server-rust#7466 — « Plus de filtres » sur « Mes radios ». Format,
+   * tune-server-rust#7466 — les critères de recherche sur « Mes radios ». Format,
    * débit, sans perte, Hi-Res, Metadata+ et favoris se jugent au SERVEUR
    * (`GET /radios/search`, critères seuls) : la fréquence, la note et
    * Metadata+ ne sont connues que par la fiche d'annuaire de la station. Le
@@ -318,7 +327,8 @@
   const paysDeMesRadios = $derived.by(() => {
     const m = new Map<string, number>();
     for (const r of radios) if (r.country_code) m.set(r.country_code, (m.get(r.country_code) ?? 0) + 1);
-    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // Recette rc12 (14/11) : dans l'ordre alphabétique de la langue en cours.
+    return trierLesPays([...m.entries()], ([code]) => nomDuPays(code, $locale, code), $locale);
   });
 
   function matches(r: RadioStation): boolean {
@@ -343,9 +353,9 @@
   const others = $derived(shown.filter((r) => !r.favorite));
 
   /**
-   * web#2443 — la station de l'annuaire dont la fiche « Voir » est ouverte.
-   * Une entrée de l'annuaire se VOIT (œil) ; une station saisie à la main se
-   * modifie (crayon).
+   * web#2443 — la station dont la fiche est ouverte. Retour de Rémi sur la
+   * rc11 (point 17, décidé le 14/11) : plus d'œil, la fiche s'ouvre par un
+   * clic sur le logo (`onOuvrir`), hors de ▶ et des autres boutons.
    */
   let enFiche = $state<RadioStation | null>(null);
 
@@ -403,12 +413,29 @@
     } catch { /* le serveur signale déjà l'échec */ }
   }
 
-  /** La pastille technique : le codec à tous les niveaux (#5716), le pays
-   *  dès Avancé (#863). */
-  function tech(r: RadioStation, avecPays: boolean): string {
-    return [r.codec?.toUpperCase(), avecPays ? pays(r) : null].filter(Boolean).join(' · ');
+  /**
+   * La deuxième ligne de la vignette : « genre · pays ». Retour de Rémi sur
+   * la rc12 (go de Bertrand du 17/11) : deux lignes sous le logo, le nom puis
+   * genre et pays ; le format du flux (#863, #5716) quitte la vignette, c'est
+   * du « clutter » pour des stations qu'on connaît.
+   */
+  function sousTitre(r: RadioStation): string {
+    const rayon = radioGenreRayon(r);
+    return [rayon ? libelle(rayon) : null, pays(r) || null].filter(Boolean).join(' · ');
   }
 </script>
+
+<!-- Recette rc12 (14/11) : la liste « Pays », rendue par RadioFiltresAvances après ses boutons. -->
+{#snippet listePays()}
+  {#if paysDeMesRadios.length > 1}
+    <select class="choix" data-testid="radio-pays" bind:value={paysChoisi} aria-label={$t('v2.radio.country' as any)}>
+      <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+      {#each paysDeMesRadios as [code, n] (code)}
+        <option value={code}>{nomDuPays(code, $locale, code)} ({n})</option>
+      {/each}
+    </select>
+  {/if}
+{/snippet}
 
 <section class="v2-radios tune-v2">
   <!-- En-tête partagé (`styles/tune-v2.css`). L'ordre est le même sur tous les
@@ -419,72 +446,75 @@
       <div class="v2-eyebrow">{$t('v2.radio.eyebrow' as any)}</div>
       <h1>{$t('v2.radio.title' as any)}</h1>
     </div>
-    <div class="v2-actions">
-      <!-- Import et export M3U concernent « Mes radios » seulement. -->
-      {#if section === 'mes'}
-        <label class="v2-btn" class:occupe={importEnCours}>
-          {$t('radio.import' as any)}
-          <input type="file" accept=".m3u,.m3u8,.pls" onchange={importerM3u} disabled={importEnCours} hidden />
-        </label>
-        <a class="v2-btn" href={api.exportRadiosUrl()} download="radios.m3u">{$t('radio.export' as any)}</a>
-      {/if}
-      <button class="v2-btn primaire" onclick={() => (choixNouvelle = true)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+  </header>
+
+  <!-- Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : UN seul
+       ascenseur pour toute la page, « Dernières écoutées » comprises. Elles
+       restaient au-dessus de la zone qui défile, et sur un 13 pouces il ne
+       restait qu'une petite bande pour faire défiler « Mes radios ». -->
+  <div class="scroll" bind:this={defilement} onscroll={() => { if (section === 'annuaire') defilementAnnuaire = defilement?.scrollTop ?? defilementAnnuaire; }}>
+    <!-- Retour de Rémi sur la rc11 (point 1) : « Dernières écoutées » dans
+         « Mes radios » seulement, pas dans l'Annuaire. -->
+    {#if section === 'mes' && recentesUniques.length}
+      <section class="sec recentes" class:depliee={recentesDepliees}>
+        <div class="sec-tete">
+          <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
+          <button class="v2-btn plus" aria-expanded={recentesDepliees}
+            onclick={() => (recentesDepliees = !recentesDepliees)}>
+            {$t((recentesDepliees ? 'common.showLess' : 'common.showMore') as any)}
+          </button>
+        </div>
+        <div class="grid" class:rangee={!recentesDepliees}>
+          {#each recentesUniques as r (r.id)}
+            {@render tile(r)}
+          {/each}
+        </div>
+      </section>
+    {/if}
+
+    <!-- #6516 — la liste personnelle, ou l'annuaire complet. Retour de Rémi
+         sur la rc11 (point 4) : « Nouvelle station » quitte l'en-tête, réservé
+         aux recherches, et se range ici en quatrième case, discrète (sans fond
+         vert). C'est un bouton qui ouvre le choix, pas un onglet. -->
+    <div class="sections">
+      <div class="onglets" role="tablist">
+        <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
+          onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
+        <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
+          onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
+        {#if CARTE_VISIBLE}
+          <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
+            onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
+        {/if}
+      </div>
+      <button class="v2-btn nouvelle" class:occupe={importEnCours} aria-haspopup="dialog"
+        onclick={() => (choixNouvelle = true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.radio.create' as any)}
       </button>
     </div>
-  </header>
+    <PaysEcouteRadios mode="radios" />
 
-  {#if recentesUniques.length}
-    <section class="sec recentes" class:depliee={recentesDepliees}>
-      <div class="sec-tete">
-        <h2>{$t('v2.radio.lastPlayed' as any)}</h2>
-        <button class="v2-btn plus" aria-expanded={recentesDepliees}
-          onclick={() => (recentesDepliees = !recentesDepliees)}>
-          {$t((recentesDepliees ? 'common.showLess' : 'common.showMore') as any)}
-        </button>
-      </div>
-      <div class="grid" class:rangee={!recentesDepliees}>
-        {#each recentesUniques as r (r.id)}
-          {@render tile(r)}
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  <!-- #6516 — la liste personnelle, ou l'annuaire complet. -->
-  <div class="sections" role="tablist">
-    <button class="v2-btn" class:on={section === 'mes'} role="tab" aria-selected={section === 'mes'}
-      onclick={() => ouvrirSection('mes')}>{$t('v2.radio.tabMine' as any)}</button>
-    <button class="v2-btn" class:on={section === 'annuaire'} role="tab" aria-selected={section === 'annuaire'}
-      onclick={() => ouvrirSection('annuaire')}>{$t('v2.radio.tabDirectory' as any)}</button>
-    <button class="v2-btn" class:on={section === 'carte'} role="tab" aria-selected={section === 'carte'}
-      onclick={() => ouvrirSection('carte')}>{$t('v2.radio.tabMap' as any)}</button>
-  </div>
-  <PaysEcouteRadios mode="radios" />
-
-  <div class="scroll" bind:this={defilement} onscroll={() => { if (section === 'annuaire') defilementAnnuaire = defilement?.scrollTop ?? defilementAnnuaire; }}>
     <!-- La recherche et les genres, au MÊME endroit que dans « Annuaire ». -->
     {#if section === 'mes'}
-      <div class="filtres ligne">
-        <RadioRecherche bind:valeur={q} />
-        {#if paysDeMesRadios.length > 1}
-          <select class="choix" bind:value={paysChoisi} aria-label={$t('v2.radio.country' as any)}>
-            <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
-            {#each paysDeMesRadios as [code, n] (code)}
-              <option value={code}>{nomDuPays(code, $locale, code)} ({n})</option>
-            {/each}
-          </select>
+      <!-- web#3176 (Jean Valjean, fil 2881) — recherche, filtres et genres
+           restent en haut pendant le défilement des stations : en-tête
+           COLLANT dans `.scroll`, sur le fond de l'écran. -->
+      <div class="entete-collant" data-testid="radio-entete-collant">
+        <div class="filtres ligne">
+          <RadioRecherche bind:valeur={q} />
+          <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+               puis la liste « Pays », sur une seule ligne. -->
+          <RadioFiltresAvances total={shown.length} pays={listePays} />
+        </div>
+        {#if showFilters && rayons.length}
+          <div class="filtres genres">
+            <RadioChipsGenres
+              genres={rayons.map(({ rayon, n }) => ({ cle: rayon.key, libelle: libelle(rayon), n }))}
+              choisi={genre} total={shown.length} onChoisir={(c) => (genre = c)} />
+          </div>
         {/if}
       </div>
-      <div class="filtres"><RadioFiltresAvances total={shown.length} /></div>
-      {#if showFilters && rayons.length}
-        <div class="filtres">
-          <RadioChipsGenres
-            genres={rayons.map(({ rayon, n }) => ({ cle: rayon.key, libelle: libelle(rayon), n }))}
-            choisi={genre} total={shown.length} onChoisir={(c) => (genre = c)} />
-        </div>
-      {/if}
     {/if}
     {#if section === 'carte'}
       <CarteRadios
@@ -550,7 +580,8 @@
     <RadioNouvelleStationModale
       onClose={() => (choixNouvelle = false)}
       onAnnuaire={() => { choixNouvelle = false; ouvrirSection('annuaire'); }}
-      onSaisie={nouvelleStation} />
+      onSaisie={nouvelleStation}
+      onImporter={importerM3u} />
   {/if}
 
   {#if enFiche}
@@ -595,8 +626,6 @@
           ? { actif: !!r.favorite, basculer: () => toggleFav(r) }
           : null}
         onEditer={r.id != null ? () => (enEdition = r) : null}
-        onVoir={r.id != null && estDeLAnnuaire(r) ? () => (enFiche = r) : null}
-        libelleVoir={$t('v2.radio.view' as any)}
         onRetirer={r.id != null && estDeLAnnuaire(r) ? () => retirer(r) : null}
         libelleRetirer={$t('v2.radio.removeFromMine' as any)}
         onLire={() => play(r)}
@@ -618,13 +647,12 @@
            chez soi (nom, logo ou flux). -->
       {#if r.surcharge_locale}<span class="surch" role="img" aria-label={$t('v2.radio.overridden' as any)} title={$t('v2.radio.overridden' as any)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/></svg></span>{/if}
     </span>
-    {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>{/if}
-    {#if radioGenreRayon(r)}<span class="gn" use:bulleTexte>{libelle(radioGenreRayon(r)!)}</span>{/if}
-    <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
-         existait, réservé à Expert ; il s'est lu dès Avancé, comme les filtres.
-         #5716 (décision du 07/10) : il se lit dès Essentiel. Le pays reste
-         réservé à Avancé. -->
-    {#if tech(r, showFilters)}<span class="tk">{tech(r, showFilters)}</span>{/if}
+    <!-- Retour de Rémi sur la rc12 : la deuxième et dernière ligne, genre et
+         pays. Le format du flux (#863, #5716) n'est plus sur la vignette.
+         Pendant l'écoute, le titre qui passe prend cette ligne, comme dans
+         l'Annuaire : toujours deux lignes. -->
+    {#if playingId === r.id && titreEnCours}<span class="encours" use:bulleTexte>{titreEnCours}</span>
+    {:else if sousTitre(r)}<span class="gn" data-testid="radio-sous-titre" use:bulleTexte>{sousTitre(r)}</span>{/if}
   </div>
 {/snippet}
 
@@ -632,8 +660,12 @@
   /* #863 — les onglets Favoris / Toutes, et la vue en liste. */
   .ronglets{display:flex; gap:8px; padding:0 30px 12px}
   /* #6516 — Mes radios / Annuaire. */
-  .sections{display:flex; gap:8px; padding:0 30px 10px}
+  .sections{display:flex; flex-wrap:wrap; gap:8px; padding:0 30px 10px}
+  .onglets{display:flex; gap:8px}
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+  /* La quatrième case : discrète, sans fond, au même gabarit que les onglets. */
+  .nouvelle{display:inline-flex; align-items:center; gap:6px; background:transparent; color:var(--v2-txt2)}
+  .nouvelle svg{width:13px; height:13px}
   .surch{display:inline-flex; flex:none; color:var(--v2-txt3)}
   .surch svg{width:11px; height:11px}
   .encours{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -643,9 +675,19 @@
   .recentes{padding-bottom:4px; flex:none}
   .sec-tete{display:flex; align-items:baseline; gap:12px}
   .sec-tete .plus{margin-left:auto; padding:4px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1))}
-  /* Dépliée, la rangée ne prend jamais tout l'écran : la liste reste visible. */
-  .recentes.depliee .grid{max-height:45vh; overflow-y:auto}
+  /* Dépliée, la rangée défile avec la page (un seul ascenseur, rc12). */
   .filtres{padding:4px 30px 10px}
+  /* web#3176 — l'en-tête collant : au-dessus des vignettes (leurs gestes
+     montent à z-index 2), sur le fond de l'écran dans les deux thèmes. */
+  .entete-collant{position:sticky; top:0; z-index:5; background:var(--v2-bg); box-shadow:0 1px 0 var(--v2-line2)}
+  .entete-collant .genres{padding-top:0}
+  /* Mobile : les genres sur UNE rangée qui défile de côté, pour que l'en-tête
+     collant ne mange pas l'écran. */
+  @media (max-width: 640px){
+    .entete-collant .genres :global(.chips){flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .entete-collant .genres :global(.chips)::-webkit-scrollbar{display:none}
+    .entete-collant .genres :global(.chip){flex:none}
+  }
   .filtres.ligne{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
@@ -670,7 +712,6 @@
   .nm-ligne .nm{margin-top:0; min-width:0}
   .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .tk{margin-top:2px; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
   .fav{position:absolute; top:8px; right:8px; z-index:2; width:30px; height:30px; border-radius:50%; cursor:pointer;
     border:0; background:rgba(0,0,0,.45); color:#fff; display:grid; place-items:center; opacity:0; transition:.16s}
   .st:hover .fav, .fav.on{opacity:1}

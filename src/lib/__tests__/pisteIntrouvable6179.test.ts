@@ -109,6 +109,8 @@ describe('#6179 — ListePistesV2 montre la ligne introuvable, grisée, sans la 
 describe('#6179 — PlaylistDetailV2 garde « Retirer » à portée de la ligne introuvable', () => {
   it('le bouton Retirer existe hors du mode édition pour une ligne introuvable', () => {
     const src = readFileSync('src/components/v2/PlaylistDetailV2.svelte', 'utf8');
-    expect(src).toMatch(/\{#if !edition && isLocal && estIntrouvable\(_t\)\}\s*<button class="rm" onclick=\{\(\) => removeAt\(rangReel\(_t\)\)\}/);
+    // rc12 (15/11) : la croix « Retirer » vaut pour TOUTE ligne d'une playlist
+    // Tune, hors mode édition — la ligne introuvable comprise.
+    expect(src).toMatch(/\{#if isLocal\}\s*<button class="rm retrait-titre" data-retirer-titre onclick=\{async \(\) => \{ if \(await confirmerRetrait\(_t\)\) void removeAt\(rangReel\(_t\)\); \}\}/);
   });
 });

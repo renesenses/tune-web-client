@@ -161,7 +161,7 @@ describe('#8160 — les règles pures', () => {
   it('toutes les langues du client ont toutes les clés de la fiche', () => {
     const clesFr = Object.keys(fr).filter((k) => k.startsWith('fiche.'));
     expect(clesFr.length).toBeGreaterThan(50);
-    expect(ONZE_LANGUES).toHaveLength(15);
+    expect(ONZE_LANGUES).toHaveLength(20);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const k of clesFr) expect(d[k], `${l} : ${k}`).toBeTruthy();
@@ -225,7 +225,7 @@ describe('#8160 — le panneau', () => {
     expect(t).toContain(fr['fiche.hires.verifie']);
     expect(t).toContain(fr['fiche.integrity.sain']);
     expect(t).toContain(fr['fiche.spectro.absent']);
-    expect(t).toContain(fr['fiche.waveform.soon']);
+    expect(t).toContain(fr['fiche.waveform.compute']);
     // Dates : celle du DR, de l'audit et du fichier sont écrites.
     expect(t).toContain(fr['fiche.measuredOn'].split('{date}')[0].trim());
     expect(t).toContain(fr['fiche.auditedOn'].split('{date}')[0].trim());

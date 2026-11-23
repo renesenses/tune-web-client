@@ -25,8 +25,9 @@ import { BASE, fetchJSON, type ApiError } from './api';
 
 export const INTERVALLE_NOTIFS_MS = 60_000;
 
-export type GenreNotif = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact_request' | 'contact_accepted';
-export const GENRES_NOTIF: readonly GenreNotif[] = ['playlist_shared', 'circle_invitation', 'message', 'contact_request', 'contact_accepted'];
+// #3283 : `circle_shared` — un cercle où je suis est désormais partagé entre ses membres.
+export type GenreNotif = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact_request' | 'contact_accepted' | 'circle_shared';
+export const GENRES_NOTIF: readonly GenreNotif[] = ['playlist_shared', 'circle_invitation', 'message', 'contact_request', 'contact_accepted', 'circle_shared'];
 
 export type TypeReglage = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact';
 export const TYPES_REGLAGE: readonly TypeReglage[] = ['playlist_shared', 'circle_invitation', 'message', 'contact'];
@@ -110,15 +111,35 @@ function appliquerLue(ids: Set<number> | 'toutes', nonLues: number | null) {
   });
 }
 
-/** POST sans corps : rien d'autre ne part que l'identifiant. */
+/**
+ * POST sans corps : rien d'autre ne part que l'identifiant.
+ *
+ * web#2986 : la notification passe lue TOUT DE SUITE (elle quitte la liste,
+ * la pastille décompte), puis le cloud le retient — c'est lui qui le garde,
+ * d'un rechargement ou d'un appareil à l'autre. S'il refuse, la liste
+ * d'avant revient telle quelle : rien n'est caché que le cloud n'ait retenu.
+ */
 export async function marquerLue(id: number): Promise<void> {
-  const b = await fetchJSON<any>(`${URL_NOTIFS()}/${encodeURIComponent(String(id))}/read`, { method: 'POST' }, undefined, true);
-  appliquerLue(new Set([id]), entier(b?.unread_count));
+  const avant = get(notifsCercle);
+  appliquerLue(new Set([id]), null);
+  try {
+    const b = await fetchJSON<any>(`${URL_NOTIFS()}/${encodeURIComponent(String(id))}/read`, { method: 'POST' }, undefined, true);
+    appliquerLue(new Set([id]), entier(b?.unread_count));
+  } catch (e) {
+    notifsCercle.set(avant);
+    throw e;
+  }
 }
 
 export async function toutMarquerLu(): Promise<void> {
-  await fetchJSON<any>(`${URL_NOTIFS()}/read-all`, { method: 'POST' }, undefined, true);
+  const avant = get(notifsCercle);
   appliquerLue('toutes', 0);
+  try {
+    await fetchJSON<any>(`${URL_NOTIFS()}/read-all`, { method: 'POST' }, undefined, true);
+  } catch (e) {
+    notifsCercle.set(avant);
+    throw e;
+  }
 }
 
 function reglagesValides(b: any): Reglages {

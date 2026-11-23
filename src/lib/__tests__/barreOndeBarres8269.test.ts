@@ -21,6 +21,7 @@ const LOCALES_COMPLETES = Object.entries(LANGUES) as [string, Record<string, str
 vi.setConfig({ testTimeout: 60_000 });
 // Lu au chargement, avant tout `beforeEach` : le défaut d'un stockage vide.
 const DEFAUT_AU_CHARGEMENT = get(preferences).barreOnde;
+const DEFAUT_STREAMING_AU_CHARGEMENT = get(preferences).ondeStreaming;
 
 class Inerte { observe() {} unobserve() {} disconnect() {} }
 let hote: HTMLDivElement | null = null;
@@ -71,7 +72,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   currentZoneId.set(1);
   seekPositionMs.set(50_000);
-  preferences.update((p) => ({ ...p, barreOnde: true, barreVuMetres: false, settingsLevel: 'expert' }));
+  preferences.update((p) => ({ ...p, barreOnde: true, ondeStreaming: false, barreVuMetres: false, settingsLevel: 'expert' }));
   hote = document.createElement('div');
   document.body.appendChild(hote);
 });
@@ -114,13 +115,43 @@ describe('#8269 — le réglage', () => {
   });
 
   it('est traduit dans les 15 langues', () => {
-    expect(LOCALES_COMPLETES.length).toBe(15);
+    expect(LOCALES_COMPLETES.length).toBe(20);
     for (const [langue, d] of LOCALES_COMPLETES) {
       expect(d['v2.set.barOnde'], `${langue} : libellé`).toBeTruthy();
       expect(d['v2.set.barOndeHint'], `${langue} : aide`).toBeTruthy();
       expect(d['reglages.termes.barreOnde'], `${langue} : synonymes`).toBeTruthy();
     }
-    expect(new Set(LOCALES_COMPLETES.map(([, d]) => d['v2.set.barOnde'])).size).toBe(15);
+    expect(new Set(LOCALES_COMPLETES.map(([, d]) => d['v2.set.barOnde'])).size).toBe(20);
+  });
+
+  it('🔴 « Forme d’onde des pistes de streaming » : décochée par défaut, inactive sans la barre en onde, traduite', async () => {
+    expect(DEFAUT_STREAMING_AU_CHARGEMENT, 'décochée par défaut').toBe(false);
+    preferences.update((p) => ({ ...p, barreOnde: false, ondeStreaming: false }));
+    v2SettingsTarget.set({ tab: 'general' as V2SettingsTabId, section: 'interface' });
+    monte = mount(SettingsV2, { target: hote!, props: {} });
+    await souffler(14);
+    const ligne = hote!.querySelector('[data-reglage="onde-streaming"]');
+    expect(ligne, 'l’option est absente de Réglages ▸ Interface').not.toBeNull();
+    expect(ligne!.textContent).toContain('Waveform for streaming tracks');
+    const case_ = ligne!.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+    expect(case_.checked).toBe(false);
+    expect(case_.disabled, 'sans la barre en onde, rien à régler').toBe(true);
+    preferences.update((p) => ({ ...p, barreOnde: true }));
+    flushSync();
+    expect(case_.disabled).toBe(false);
+    case_.click();
+    flushSync();
+    expect(get(preferences).ondeStreaming).toBe(true);
+    // L'aide de la barre en onde ne dit plus « le streaming garde la barre
+    // habituelle » : avec cette option, Qobuz et TIDAL ont leur onde.
+    for (const [langue, d] of LOCALES_COMPLETES) {
+      expect(d['v2.set.barOndeHint'], `${langue} : l’aide nomme Qobuz et TIDAL`).toMatch(/Qobuz.*TIDAL/);
+    }
+    for (const [langue, d] of LOCALES_COMPLETES) {
+      expect(d['v2.set.ondeStreaming'], `${langue} : libellé`).toBeTruthy();
+      expect(d['v2.set.ondeStreamingHint'], `${langue} : aide`).toBeTruthy();
+      expect(d['reglages.termes.ondeStreaming'], `${langue} : synonymes`).toBeTruthy();
+    }
   });
 });
 
@@ -168,12 +199,73 @@ describe('#8269 — la barre de lecture du bas', () => {
     expect(seeks()).toEqual([60_000]);
   });
 
-  it('🔴 repli : piste Qobuz — barre classique, aucune requête d’onde', async () => {
-    zoneAvec({ source: 'qobuz', track_id: 105, source_id: '123' });
+  // Go du 17/11/2026 (rc13) : Qobuz et TIDAL ont leur onde. Le serveur
+  // répond d'abord « pas encore » : la barre classique, puis l'onde.
+  it('🔴 piste Qobuz : barre classique pendant le calcul, puis l’onde, sans changer d’élément', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let pret = false;
+      fetchMock.mockImplementation(async (url: string) => {
+        const u = String(url);
+        if (u.includes('/library/service-tracks/qobuz/48098083/waveform')) {
+          return pret
+            ? reponse({ waveform: Array.from({ length: 200 }, (_, i) => (i % 7) / 7 + 0.05) })
+            : reponse({ waveform: null, pending: true }, 202);
+        }
+        return reponse({});
+      });
+      preferences.update((p) => ({ ...p, ondeStreaming: true }));
+      zoneAvec({ source: 'qobuz', track_id: null, source_id: '48098083' });
+      monte = mount(TransportBar, { target: hote! });
+      const avancer = async (ms: number) => { await vi.advanceTimersByTimeAsync(ms); flushSync(); };
+      await avancer(0); await avancer(0);
+      const barre = hote!.querySelector('.progress-track')!;
+      expect(barre.querySelector('.onde'), 'en calcul : la barre classique').toBeNull();
+      expect(hote!.querySelector('.progress-fill')).not.toBeNull();
+      expect(urls().filter((u) => u.includes('/service-tracks/'))).toHaveLength(1);
+
+      pret = true;
+      await avancer(3000); await avancer(0); await avancer(0);
+      expect(hote!.querySelector('.progress-track'), 'le même curseur').toBe(barre);
+      expect(barre.classList.contains('onde')).toBe(true);
+      expect(barre.querySelector('.onde')).not.toBeNull();
+      expect(urls().filter((u) => u.includes('/service-tracks/'))).toHaveLength(2);
+      // Prête : plus rien n'est redemandé.
+      await avancer(10_000);
+      expect(urls().filter((u) => u.includes('/service-tracks/'))).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('🔴 repli : radio, podcast, Spotify — barre classique, aucune requête d’onde', async () => {
+    for (const [i, source] of (['radio', 'podcast', 'spotify', 'youtube'] as const).entries()) {
+      zoneAvec({ source, track_id: null, source_id: `x${i}` });
+      monte = mount(TransportBar, { target: hote! });
+      await souffler();
+      // Une radio n'a parfois pas de barre du tout : seule compte l'absence
+      // d'onde.
+      expect(hote!.querySelector('.progress-track .onde'), source).toBeNull();
+      unmount(monte); monte = null;
+    }
+    expect(urls().filter((u) => u.includes('/waveform'))).toEqual([]);
+  });
+
+  it('🔴 « Forme d’onde des pistes de streaming » décoché (défaut) : barre classique, aucune requête Qobuz', async () => {
+    preferences.update((p) => ({ ...p, ondeStreaming: false }));
+    zoneAvec({ source: 'qobuz', track_id: null, source_id: '778' });
     monte = mount(TransportBar, { target: hote! });
     await souffler();
     expect(hote!.querySelector('.progress-track .onde')).toBeNull();
-    expect(hote!.querySelector('.progress-fill')).not.toBeNull();
+    expect(urls().filter((u) => u.includes('/service-tracks/'))).toEqual([]);
+  });
+
+  it('réglage décoché : pas de requête pour une piste Qobuz', async () => {
+    preferences.update((p) => ({ ...p, barreOnde: false, ondeStreaming: true }));
+    zoneAvec({ source: 'qobuz', track_id: null, source_id: '777' });
+    monte = mount(TransportBar, { target: hote! });
+    await souffler();
+    expect(hote!.querySelector('.progress-track .onde')).toBeNull();
     expect(urls().filter((u) => u.includes('/waveform'))).toEqual([]);
   });
 

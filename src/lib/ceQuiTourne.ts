@@ -50,7 +50,9 @@ export const TRAITEMENTS_CONNUS = [
  */
 export const INSCRIPTIONS_DU_TRAITEMENT: Record<string, readonly string[]> = {
   enrichment: ['enrich_all', 'bios', 'credits_enrich_auto'],
-  artist_images: ['artist_artwork', 'artwork'],
+  // tune-server-rust rc12 : le renvoi unique des images d'artistes attend son
+  // tour sur la même tâche (`tache_suspendable`), une seule ligne à l'écran.
+  artist_images: ['artist_artwork', 'artwork', 'renvoi_images_artistes'],
   identification: ['identification_lot'],
 };
 
@@ -337,8 +339,7 @@ export function phraseLecture(
   const l = c?.lecture;
   if (!l) return null;
   if (!l.active) return { cle: 'v2.health.running.playbackIdle', params: {} };
-  if (l.zones > 1) return { cle: 'v2.health.running.playbackMany', params: { n: l.zones } };
-  return { cle: 'v2.health.running.playbackOne', params: {} };
+  return { cle: 'v2.health.running.playbackN', params: { n: Math.max(1, l.zones) } };
 }
 
 /** Remplacer `{nom}` par sa valeur, comme le reste de l'écran. */

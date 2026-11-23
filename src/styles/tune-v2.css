@@ -79,6 +79,16 @@
   --v2-r-card:4px; --v2-r-pill:20px; --v2-r-md:12px;
   --v2-mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --v2-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  /* #3277 (ticket 318) — les DEUX polices de l'interface, nommées par leur rôle.
+     Celles du titre « Tune Circle » et du texte « Des gens. De la musique. Un
+     monde plus connecté. » : Cormorant Garamond pour les titres, Inter pour le
+     texte. Un composant qui veut s'y tenir écrit ces jetons, jamais une famille.
+     Le titre passe par `--font-display` (tune-theme.css) : c'est elle que lisent
+     déjà les titres de Tune Circle, et son repli Georgia couvre le grec, que
+     Cormorant Garamond n'a pas. Le texte suit `--v2-sans` : Inter, puis la
+     police système — c'est elle qui porte le japonais, le chinois et le coréen. */
+  --v2-police-titre:var(--font-display, 'Cormorant Garamond', Georgia, serif);
+  --v2-police-texte:var(--v2-sans);
 }
 
 /* ── 2. Noir / Bleu ─────────────────────────────────────────────────── */
@@ -350,6 +360,18 @@
   --tune-grey2: var(--v2-surface2);
 }
 
+/* web#3232 (fil 2934) — les puces de source (`ServiceBadge`) sur fond CLAIR.
+   Leurs couleurs d'origine sont écrites pour un fond sombre : « LOCAL » en
+   #B4BCC8 tombait à 1,3:1 sur « Clair / Gris ». Mêmes teintes, assombries à
+   4,5:1 au moins ; valeurs tenues égales à `PUCES_CLAIR` (src/lib/pucesSource.ts)
+   par la garde `pucesSourceThemesClairs3232.svelte.test.ts`. */
+:root[data-v2-theme="clear-white"] .tune-v2,
+:root[data-v2-theme="clear-grey"] .tune-v2{
+  --v2-puce-tidal:#006A6E; --v2-puce-qobuz:#264E9C; --v2-puce-deezer:#7329B8;
+  --v2-puce-spotify:#0D6230; --v2-puce-youtube:#A3221B; --v2-puce-amazon:#005A7D;
+  --v2-puce-bandcamp:#0D5B70; --v2-puce-upnp:#7D4A00; --v2-puce-local:#434C57;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    EN-TÊTE D'ÉCRAN — une seule définition pour vingt-cinq écrans.
 
@@ -500,6 +522,8 @@
   padding:0 32px 0 37px; outline:none;
 }
 .tune-v2 .v2-rech input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+/* `type="search"` : la croix native ferait doublon avec `.clr`. */
+.tune-v2 .v2-rech input::-webkit-search-cancel-button{-webkit-appearance:none; display:none}
 .tune-v2 .v2-rech .clr{
   position:absolute; right:9px; width:19px; height:19px; border:0; border-radius:50%;
   background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;
@@ -510,4 +534,18 @@
 /* Fenêtre étroite : la recherche cède sa largeur fixe avant les boutons. */
 @media (max-width:1000px){
   .tune-v2 .v2-rech{width:auto; flex:1 1 160px; min-width:130px}
+}
+
+/* Recette rc12 (13/11) — « harmonise la localisation de la zone de
+   recherche » : sous 780 px, LA MÊME règle sur tous les écrans, vue mini
+   comprise — le champ prend toute la largeur, sur sa ligne, sous le titre ;
+   onglets et boutons passent dessous. `:root .v2-shell` en tête : ces règles
+   doivent l'emporter sur la rangée sans retour de `vue-mini.css`, chargée
+   APRÈS cette feuille (`ShellV2.svelte`) — à spécificité égale, elle
+   gagnerait. Garde : `champRechercheEmplacement.test.ts`. */
+@media (max-width:779px){
+  :root .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech){flex-wrap:wrap; row-gap:10px}
+  :root .v2-shell .tune-v2 .v2-top:has(> .v2-actions > .v2-rech) > .v2-titres{flex:1 0 100%; max-width:none}
+  :root .v2-shell .tune-v2 .v2-top > .v2-actions:has(> .v2-rech){flex:1 1 100%; flex-wrap:wrap; justify-content:flex-start}
+  :root .v2-shell .tune-v2 .v2-top > .v2-actions > .v2-rech{flex:1 1 100%; width:auto; min-width:0}
 }

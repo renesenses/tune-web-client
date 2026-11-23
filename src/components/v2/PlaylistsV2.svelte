@@ -1,8 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { get } from 'svelte/store';
-  import DetailsServeur from '../partages/DetailsServeur.svelte';
-  import { detailServeur } from '../../lib/messageServeur';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { PropositionIa } from '../../lib/assistantIa';
   /**
@@ -28,6 +26,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
   import ImportPlaylistFichier from './ImportPlaylistFichier.svelte';
+  import ChampRecherche from './ChampRecherche.svelte';
   import {
     copierTout,
     motifSauvegardeImpossible,
@@ -39,7 +38,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t, tn } from '../../lib/i18n';
-  import { quatreDistinctes } from '../../lib/mosaique';
+  import { quatreDistinctes, pochettesDePlaylist } from '../../lib/mosaique';
   import { compterParAuteur, filtrerParAuteur, filtreAuteurUtile, type FiltreAuteur } from '../../lib/filtreAuteurPlaylists';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -232,14 +231,9 @@
       liste.map(async (pl) => {
         if (pl.id == null) return;
         const pistes = await api.getPlaylistTracks(pl.id);
-        // DISTINCTES et dans l'ordre de la playlist : deux titres du même album
-        // ne doivent pas occuper deux cases.
-        const vues: string[] = [];
-        for (const t of pistes ?? []) {
-          const c = (t as any)?.cover_path;
-          if (c && !vues.includes(c)) vues.push(c);
-          if (vues.length === 4) break;
-        }
+        // DISTINCTES et dans l'ordre de la playlist — la même règle que l'en-tête
+        // de la fiche (`PlaylistDetailV2`), par la même fonction.
+        const vues = pochettesDePlaylist(pistes as any[]);
         if (vues.length) mosaiques = { ...mosaiques, [pl.id]: vues };
       }),
     );
@@ -262,35 +256,22 @@
    * authentifié. Il n'existe pas de route qui rende les deux d'un coup.
    */
   /**
-   * Les services AUTHENTIFIÉS qui ont répondu « je ne fournis pas de
-   * playlists » — nom du service → la phrase du serveur (#1148).
+   * Un service AUTHENTIFIÉ qui répond 501 (« je ne fournis pas de
+   * playlists », Bandcamp) n'apparaît tout simplement pas : ni pastille, ni
+   * phrase, ni « Détails ».
    *
-   * Fabien, fil 1778, point 4 : « Menu playlists : quand on rentre dans le
-   * menu : erreur bandcamp ». Mesuré sur la .18 :
-   *
-   *   GET /api/v1/streaming/bandcamp/playlists
-   *     → 501  « Bandcamp ne fournit pas de playlists »
-   *
-   * Le bandeau rouge, lui, est parti avec #1007 — `fetchJSON` n'annonce plus
-   * un 501 comme une panne. Mais ce qui l'a remplacé était RIEN : le `catch`
-   * ci-dessous range `[]`, `svcEntries` écarte les listes vides, et la
-   * pastille Bandcamp disparaît de l'écran. Quelqu'un qui a connecté Bandcamp
-   * et vient chercher ses playlists n'apprend ni qu'il n'y en a pas, ni
-   * pourquoi.
-   *
-   * Le serveur a déjà écrit la bonne phrase (#859 côté serveur) : on la
-   * montre, telle quelle, sans la déguiser en incident.
+   * #1148 avait ajouté une phrase (« Bandcamp ne propose pas de playlists. »)
+   * et #2417 le motif brut replié dessous. Recette du 14/11/2026 sur la .18 :
+   * au-dessus des pastilles « Sur cet appareil / tidal / qobuz », ces deux
+   * lignes mal alignées ne disaient rien d'utile — une fonction que le service
+   * n'offre pas n'est pas une information pour qui cherche ses playlists.
+   * Décision : le service se tait. Une VRAIE panne (réseau, 5xx autre que 501)
+   * garde son bandeau, levé par `fetchJSON`.
    */
-  let indisponibles = $state<Record<string, string>>({});
-  /** #2417 — le motif brut du serveur, replié sous la phrase traduite. */
-  let detailsIndisponibles = $state<Record<string, string>>({});
-  const sansPlaylists = $derived(Object.entries(indisponibles));
 
   function load() {
     loading = true;
     mosaiques = {};
-    indisponibles = {};
-    detailsIndisponibles = {};
     Promise.all([
       api.getPlaylists().catch(() => [] as Playlist[]),
       api.getStreamingServices().catch(() => ({}) as Record<string, any>),
@@ -305,31 +286,20 @@
           .filter(([, s]: [string, any]) => s?.authenticated)
           .map(([n]) => n);
         const par: Record<string, StreamingPlaylist[]> = {};
-        const refus: Record<string, string> = {};
-        const detailsRefus: Record<string, string> = {};
         await Promise.all(
           noms.map(async (n) => {
             try {
               par[n] = (await api.getStreamingPlaylists(n)) ?? [];
-            } catch (e: any) {
+            } catch {
               // Un service qui ne répond pas ne doit pas emporter les autres.
+              // 501 = « ce service n'offre pas cette fonction » : liste vide,
+              // donc aucune pastille (`svcEntries`), et rien d'autre à l'écran.
+              // Un 500 ou un 502 ont DÉJÀ levé leur bandeau dans `fetchJSON`.
               par[n] = [];
-              // 501 = « ce service n'offre pas cette fonction », pas une
-              // panne : on garde son motif pour le dire à l'écran. Un 500 ou
-              // un 502, eux, ont DÉJÀ levé leur bandeau dans `fetchJSON` — les
-              // rendre ici en plus ferait dire deux fois la même chose.
-              // #2417 — la phrase est celle du CLIENT, traduite ; le motif
-              // brut du serveur (« Bandcamp ne fournit pas… ») part replié.
-              if (e?.status === 501) {
-                refus[n] = get(t)('v2.pl.serviceNoPlaylists' as any).replace('{s}', n.charAt(0).toUpperCase() + n.slice(1));
-                detailsRefus[n] = detailServeur(e);
-              }
             }
           }),
         );
         services = par;
-        indisponibles = refus;
-        detailsIndisponibles = detailsRefus;
       })
       .catch(() => {
         local = [];
@@ -461,14 +431,31 @@
   let smart = $state<any[]>([]);
   let smartCharge = false;
   let smartMosaiques = $state<Record<number, string[]>>({});
+  /**
+   * #3167 — l'état de la LECTURE de la liste, distinct de son contenu.
+   *
+   * Fil 2880 (47 489 pistes, accès à distance) : la lecture échouait
+   * (« timed out ») et l'onglet disait « Aucune playlist intelligente » à un
+   * testeur qui en a plusieurs. Un échec n'est pas une liste vide : l'écran le
+   * dit, garde ce qu'il avait déjà lu, et propose de réessayer. Le même
+   * « aucune » s'affichait aussi PENDANT la lecture : il attend désormais la
+   * réponse.
+   */
+  let smartLecture = $state<'chargement' | 'lue' | 'echec'>('chargement');
 
   async function chargerSmart() {
     if (smartCharge) return;
     smartCharge = true;
+    smartLecture = 'chargement';
     try {
       smart = (await api.getSmartPlaylists()) ?? [];
+      smartLecture = 'lue';
     } catch {
-      smart = [];
+      // Ni vidée, ni marquée lue : revenir sur l'onglet, ou « Réessayer »,
+      // relance la lecture.
+      smartCharge = false;
+      smartLecture = 'echec';
+      return;
     }
     // Les pochettes APRÈS la grille : les cadres sont déjà à l'écran, les
     // mosaïques les rejoignent. Une règle peut viser des milliers de pistes,
@@ -704,15 +691,7 @@
       <h1>Playlists</h1>
     </div>
     <div class="v2-actions">
-    <label class="chercher">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="search" bind:value={recherche} placeholder={$t('v2.pl.searchPlaceholder' as any)}
-             aria-label={$t('v2.pl.searchPlaceholder' as any)} />
-      {#if recherche}
-        <button class="vider" onclick={() => (recherche = '')} aria-label={$t('common.clear' as any)}>×</button>
-      {/if}
-    </label>
+    <ChampRecherche bind:valeur={recherche} ecran="Playlists" />
     <!-- web#1719 — LE MÊME bouton que la Bibliothèque et les Favoris
          (`BasculeAffichage`). Hors de `showAdvanced` : choisir la forme de sa
          liste n'est pas une fonction avancée, et le niveau Essentiel a
@@ -761,14 +740,6 @@
     </nav>
   {/if}
 
-  <!-- Un service connecté dont la pastille N'EST PAS là : dire pourquoi, avec
-       la phrase du serveur (#1148). Discret, jamais rouge — ce n'est pas un
-       incident, c'est une fonction que le service n'offre pas. Pas de libellé
-       traduit à ajouter : le serveur écrit déjà la phrase. -->
-  {#each sansPlaylists as [nom, motif] (nom)}
-    <p class="sans-pl">{motif}</p>
-    <DetailsServeur detail={detailsIndisponibles[nom]} />
-  {/each}
 
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
        intelligente est une règle locale, un service n'en a pas. -->
@@ -897,8 +868,20 @@
         <button class="v2-btn primaire" onclick={() => ouvrirEditeurSmart(null)}>{$t('smartPlaylists.new')}</button>
         <button class="v2-btn" onclick={() => (parPhrase = true)} data-playlist-ia>{$t('assistantIa.playlist.button' as any)}</button>
       </div>
+      {#if smartLecture === 'echec'}
+        <!-- #3167 — un échec de lecture n'est pas « aucune playlist ». -->
+        <div class="state" role="alert" data-smart-echec>
+          {$t('v2.pl.smartLoadFailed' as any)}
+          <button class="v2-btn" onclick={rechargerSmart}>{$t('v2.pl.smartRetry' as any)}</button>
+        </div>
+      {/if}
       {#if !smart.length}
-        <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+        <!-- Échec sans rien de lu avant : le message ci-dessus suffit. -->
+        {#if smartLecture === 'chargement'}
+          <div class="state">{$t('v2.pl.loading' as any)}</div>
+        {:else if smartLecture === 'lue'}
+          <div class="state">{$t('v2.pl.noSmart' as any)}</div>
+        {/if}
       {:else}
         <section class="grp">
           <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
@@ -1023,19 +1006,6 @@
     font-family:var(--v2-sans); overflow:hidden}
 
   .newp{display:flex; gap:8px}
-  /* La recherche vit dans l'en-tete, a cote des outils : elle porte sur tout
-     l'ecran, pas sur une seule de ses quatre listes. */
-  .chercher{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px; margin-left:auto;
-    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
-    color:var(--v2-txt3); min-width:210px}
-  .chercher:focus-within{border-color:var(--v2-acc2); color:var(--v2-txt2)}
-  .chercher svg{width:15px; height:15px; flex-shrink:0}
-  .chercher input{flex:1; min-width:0; border:0; background:transparent; color:var(--v2-txt);
-    font:calc(13.5px * var(--v2-txt-echelle, 1))/1 inherit; outline:none}
-  .chercher input::-webkit-search-cancel-button{display:none}
-  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:calc(17px * var(--v2-txt-echelle, 1));
-    line-height:1; padding:0 2px}
-  .vider:hover{color:var(--v2-txt)}
 
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:0 16px; outline:none; width:240px}
@@ -1094,7 +1064,6 @@
   .auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
      pas celui d'une alerte : rien n'est en panne. */
-  .sans-pl{margin:6px 30px 0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}

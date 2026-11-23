@@ -78,6 +78,10 @@
     flex-direction: column;
     gap: 6px;
     min-width: min(360px, 80vw);
+    /* Borne la largeur : sans elle, le nom de dossier le plus long élargit le
+       menu jusqu'à sortir de l'écran (les miettes n'ont plus de plafond fixe
+       de 140 px depuis la colonne des facettes réglable d'Oxygen). */
+    max-width: min(420px, 90vw);
     max-height: 340px;
     overflow: auto;
   }

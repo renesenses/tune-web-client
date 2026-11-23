@@ -148,7 +148,8 @@ describe('Collections — l’écran', () => {
 
   it('sépare les deux sortes en DEUX onglets, smart en premier', () => {
     const src = ecran();
-    expect(src.includes("let onglet = $state<Onglet>('smart')"), 'l’onglet par défaut n’est plus smart').toBe(true);
+    // Fil 2809 : l'onglet retenu est relu, avec « smart » pour défaut.
+    expect(src.includes("lireChoix<Onglet>('v2.collections.onglet', ONGLETS, 'smart')"), 'l’onglet par défaut n’est plus smart').toBe(true);
     const iSmart = src.indexOf('v2.col.tabSmart');
     const iManuel = src.indexOf('v2.col.tabManual');
     expect(iSmart, 'l’onglet Smart a disparu').toBeGreaterThan(-1);

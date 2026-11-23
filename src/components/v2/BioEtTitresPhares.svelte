@@ -25,7 +25,7 @@
   import * as api from '../../lib/api';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { TITRES_PHARES_MAX } from '../../lib/titresPharesArtiste';
+  import { TITRES_PHARES_MAX, clefTitrePhare } from '../../lib/titresPharesArtiste';
   import AttributionBio from './AttributionBio.svelte';
   import type { BioProvenance } from '../../lib/library/attributionBio';
   import TexteDeBio from './TexteDeBio.svelte';
@@ -85,8 +85,10 @@
 </script>
 
 {#if bioPropre || actionsBio}
-  <section class="bloc bio-bloc">
-    <h2>{$t('v2.art.bio' as any)}</h2>
+  <!-- web#3122 (FabienM, fil 2864) : plus de titre BIOGRAPHIE au-dessus du
+       texte — il se lit de lui-même sous l'en-tête. Le nom de la section
+       reste pour les lecteurs d'écran (`aria-label`). -->
+  <section class="bloc bio-bloc" aria-label={$t('v2.art.bio' as any)}>
     {#if bioPropre}
       <ClampedText lines={4} resetKey={cle}
         moreLabel={$t('v2.art.bioReadMore' as any)} lessLabel={$t('v2.art.bioReadLess' as any)}>
@@ -106,7 +108,7 @@
     <h2>{$t('v2.fas.topTracks' as any)}</h2>
     <ListePistesV2 pistes={titres} numerotation="rang" pochetteEnTableau
       onLire={(_p, i) => lireDepuis(i)}
-      clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
+      clef={clefTitrePhare} />
   </section>
 {:else if titresRetiresPar && !titresEnCharge}
   <section class="bloc" data-rubrique-retiree>

@@ -65,6 +65,8 @@ export const ICONES_ZONE = {
   fusion: 'M5 4v7a4 4 0 0 0 4 4h10M15 11l4 4-4 4',
   // tune-server-rust#7922 — une coche dans un écusson.
   tuneTested: 'M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5zM8.5 12l2.5 2.5 4.5-5',
+  // web#3180 — un haut-parleur barré : cet onglet ne joue plus la zone.
+  nePlusJouerIci: 'M11 5L6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6',
   rattacher: 'M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1',
   supprimer: 'M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14',
 } as const;
@@ -80,6 +82,8 @@ export interface CapacitesZone {
   /** tune-server-rust#6120 — la sortie de la zone locale est absente
    *  (`sortie_absente`) : elle peut être rattachée à la main. */
   rattachable?: boolean;
+  /** web#3180 — CET onglet joue cette zone navigateur (prise ou repli du nom). */
+  tenueIci?: boolean;
 }
 
 /** Les gestes, déjà liés à leur zone par l'écran. */
@@ -115,6 +119,8 @@ export interface GestesZone {
    * et dit le temps restant, pas le menu.
    */
   tuneTested?: () => void;
+  /** web#3180 — « Ne plus jouer ici » : cet onglet relâche la zone navigateur. */
+  nePlusJouerIci?: () => void;
   supprimer: () => void;
 }
 
@@ -144,6 +150,9 @@ export function entreesMenuZone(c: CapacitesZone, g: GestesZone): EntreeMenuZone
   }
   if (c.rattachable && g.rattacher) {
     out.push({ cle: 'v2.zone.reattach', icone: ICONES_ZONE.rattacher, faire: g.rattacher });
+  }
+  if (c.tenueIci && g.nePlusJouerIci) {
+    out.push({ cle: 'v2.zone.browserStopHere', icone: ICONES_ZONE.nePlusJouerIci, faire: g.nePlusJouerIci });
   }
   out.push({ cle: 'zone.deleteZone', icone: ICONES_ZONE.supprimer, faire: g.supprimer, danger: true });
   return out;

@@ -30,7 +30,7 @@ const HORS_DU_MODE = new Set([
 
 describe('#2824 — un seul nom pour le mode : PURE', () => {
   it('les quinze langues sont toutes vérifiées', () => {
-    expect(ONZE_LANGUES).toHaveLength(15);
+    expect(ONZE_LANGUES).toHaveLength(20);
   });
 
   for (const lang of ONZE_LANGUES) {

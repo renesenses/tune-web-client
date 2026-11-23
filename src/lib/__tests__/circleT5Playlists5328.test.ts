@@ -333,7 +333,7 @@ describe('T5 — la liste des playlists de cercle', () => {
     expect(bloc).not.toBeNull();
     const lignes = [...bloc.querySelectorAll('li.playlist-cercle')].map(texte);
     expect(lignes[0]).toContain('Dimanche');
-    expect(lignes[0]).toContain('4 morceaux');
+    expect(lignes[0]).toContain('4 titres');
     expect(lignes[0]).toContain('de Élise');
     // La mienne : pas de « de Moi ».
     expect(lignes[1]).toContain('Famille en voiture');
@@ -417,6 +417,16 @@ describe('T5 — la vue d\'une playlist', () => {
     const el = await poser(CircleV2);
     await ouvrir(el, 'Dimanche');
     await viaMenu(el, 'Blue in Green', 'button.retirer-morceau');
+    const d = ecritures().find((a) => a.method === 'DELETE')!;
+    expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
+    expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);
+  });
+
+  it('🔴 rc12 — la croix « Retirer » est VISIBLE sur la ligne, sans ouvrir le menu ⋯', async () => {
+    const el = await poser(CircleV2);
+    await ouvrir(el, 'Dimanche');
+    for (const n of morceaux(el)) expect(n.querySelector('button[data-retirer-titre]'), 'croix absente').not.toBeNull();
+    await cliquer(ligne(el, 'Blue in Green'), 'button[data-retirer-titre]');
     const d = ecritures().find((a) => a.method === 'DELETE')!;
     expect(chemin(d)).toBe('/playlists/pl-a/items/it-2?version=3');
     expect(titres(el)).toEqual(['So What', 'Naima', 'Alabama']);

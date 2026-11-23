@@ -109,3 +109,23 @@ export function quatreDistinctes(source: AlbumPochette[], max = 4): string[] {
   }
   return vues;
 }
+
+/**
+ * Les pochettes de la mosaïque d'une PLAYLIST, à partir de ses pistes.
+ *
+ * Recette du 14/11/2026 (.18, « Ecoutes récentes Bertrand », 22 titres
+ * locaux et Qobuz) : la grille des Playlists montrait la mosaïque, la fiche
+ * de la même playlist le pictogramme orange. Les deux lisent désormais cette
+ * fonction : jusqu'à quatre `cover_path` DISTINCTS, dans l'ordre de la
+ * playlist — deux titres du même album n'occupent pas deux cases. Une piste
+ * locale porte un condensat, une piste de service une URL : les deux valent.
+ */
+export function pochettesDePlaylist(pistes: readonly { cover_path?: string | null }[] | null | undefined, max = 4): string[] {
+  const vues: string[] = [];
+  for (const t of pistes ?? []) {
+    const c = t?.cover_path;
+    if (c && !vues.includes(c)) vues.push(c);
+    if (vues.length === max) break;
+  }
+  return vues;
+}

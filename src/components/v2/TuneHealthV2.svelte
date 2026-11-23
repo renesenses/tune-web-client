@@ -62,7 +62,7 @@
   import { dureeLisible, avancementsParTraitement, fusionnerAvancements, ligneAvancement, type AnalyseDeFond } from '../../lib/analysesDeFond';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
-  import { t } from '../../lib/i18n';
+  import { tn, t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
@@ -76,6 +76,13 @@
   // passe en cours, dernière passe, bouton « Lancer la passe ».
   import { boutonPasseActif, carteLogosLabels, cartePochettesAlbums, estCarteImages, type OutilsCarte } from '../../lib/santeImages';
   import { dateEtHeure } from '../../lib/dates';
+  // 15/11/2026 — maquette de Levente (« image 5 ») : bandeau de tête et
+  // pictogrammes. Rien n'y est inventé : voir `lib/etatServeurEnTete.ts`.
+  import IconeEtatServeur from './IconeEtatServeur.svelte';
+  import { lireEnTete, tailleBibliotheque, type EnTeteEtatServeur } from '../../lib/etatServeurEnTete';
+  // tune-server-rust#9046 — l'état de la carte CLAP se lit sur le serveur.
+  import { etatCarteClap, etatServeurAcoustique } from '../../lib/santeClap';
+  import { RAISONS_DE_PAUSE } from '../../lib/stores/acoustic';
 
   type Card = {
     id: string;
@@ -99,6 +106,12 @@
      * nulle part ailleurs.
      */
     traitement?: string;
+    /**
+     * tune-server-rust#9046 — la raison, déjà traduite, pour laquelle le
+     * serveur dit que la passe ne travaille pas (`paused_reason`). La carte
+     * porte alors « en pause » et cette phrase, jamais « en cours ».
+     */
+    raisonPause?: string;
   };
 
   /** L'analyse ReplayGain est-elle armée ? Le DR dépend du même interrupteur
@@ -135,6 +148,8 @@
     }
   }
   let loading = $state(true);
+  /** Maquette de Levente — le bandeau : en ligne, albums, titres, taille. */
+  let enTete = $state<EnTeteEtatServeur>({ enLigne: null, version: null, albums: null, pistes: null, octets: null });
   let lastAt = $state<string | null>(null);
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
@@ -190,6 +205,7 @@
   /** #4681 — la section « Ce qui tourne » ; `null` face à un serveur qui ne
    *  publie ni `pausable` ni `playback_priority` : la section se tait. */
   let tourne = $state<CeQuiTourne | null>(null);
+  let auditIntegrite = $state<api.EtatIntegrite | null>(null);
   const lectureEnTete = $derived(phraseLecture(tourne));
   const calculEnTete = $derived(phraseCalcul(tourne));
   /** tune-server-rust#5868 — le bloc `acoustid` de l'instantané ; `null` face
@@ -377,16 +393,21 @@
     if (reseauOuvert) void lireReseau();
   }
 
-  const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
+  const anyRunning = $derived(cards.some((c) => c.etat === 'running')
+    || tourne?.lignes.some((l) => l.id === 'tache:integrity' && l.etat !== 'en_pause'));
 
   async function collect() {
     refreshing = true;
     const out: Card[] = [];
 
     // ── Analyse de la bibliothèque ────────────────────────────────────────
-    const [scan, report, stats] = await Promise.allSettled([
-      api.getScanStatus(), api.getScanReport(), api.getLibraryStats(),
+    const [scan, report, stats, sante] = await Promise.allSettled([
+      api.getScanStatus(), api.getScanReport(), api.getLibraryStats(), api.getHealth(),
     ]);
+    enTete = lireEnTete(
+      sante.status === 'fulfilled' ? { ok: true, valeur: sante.value } : { ok: false },
+      stats.status === 'fulfilled' ? stats.value : null,
+    );
     const totalTracks = stats.status === 'fulfilled' ? (stats.value?.tracks ?? 0) : 0;
     if (scan.status === 'fulfilled') {
       const scanning = !!scan.value?.scanning;
@@ -431,6 +452,15 @@
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
+    // ── Pause des traitements de fond (#1352) ─────────────────────────────
+    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
+    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
+    // L'instantané est lu AVANT la carte CLAP (tune-server-rust#9046) : son
+    // état « en cours » se lit dans `pausable[acoustic].state`, plus sur la
+    // jauge seule ; la carte « Plage dynamique » le lit aussi, plus bas.
+    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
+    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+
     // ── Analyse acoustique (CLAP) ─────────────────────────────────────────
     const ac = await Promise.allSettled([api.getAcousticStatus()]);
     if (ac[0].status === 'fulfilled') {
@@ -444,12 +474,20 @@
       const eligible = typeof s?.eligible_tracks === 'number' ? s.eligible_tracks : undefined;
       const processed = typeof s?.processed_tracks === 'number' ? s.processed_tracks : undefined;
       const reportees = typeof s?.deferred_tracks === 'number' ? s.deferred_tracks : 0;
-      const attendLesFichiers = s?.waiting_reason === 'unresolved_paths' && reportees > 0;
+      // tune-server-rust#9046 — parmi les reportées, celles en échec répété
+      // d'analyse (le modèle plante sur elles) : PAS un fichier qui ne répond
+      // pas. Absent d'un serveur plus ancien, donc 0.
+      const apresEchecs = typeof s?.retry_later_tracks === 'number'
+        ? Math.min(Math.max(0, s.retry_later_tracks), reportees) : 0;
+      const sansFichier = reportees - apresEchecs;
+      const attendLesFichiers = (s?.waiting_reason === 'unresolved_paths' || s?.waiting_reason === 'analysis_failures')
+        && reportees > 0;
       const fait = processed ?? done;
       const total = eligible ?? totalTracks;
-      const reporteesDetail = reportees > 0
-        ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
-        : undefined;
+      const reporteesDetail = [
+        sansFichier > 0 ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(sansFichier)) : undefined,
+        apresEchecs > 0 ? $t('v2.health.clapRetryLater' as any).replace('{n}', $formatNombre(apresEchecs)) : undefined,
+      ].filter(Boolean).join(' ') || undefined;
       if (!s?.available) {
         out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
@@ -458,12 +496,26 @@
           etat: 'off', ligne: $t('v2.health.clapDisabled' as any),
           detail: $t('v2.health.clapAnalysed' as any).replace('{n}', $formatNombre(done)) });
       } else {
+        // tune-server-rust#9046 (fil 2907) — « en cours » SEULEMENT quand le
+        // serveur dit que la passe travaille (`pausable[acoustic].state`) ;
+        // une raison de pause (`paused_reason`) se nomme ; sinon « au
+        // repos », jauge conservée. La jauge seule disait « en cours » à une
+        // passe immobile, sous un « Ce qui tourne » qui disait l'inverse.
+        // Il ne reste QUE des reports : « au repos », avec la cause en
+        // détail — pas « terminée », pas une jauge immobile sans un mot.
+        const clap = etatCarteClap({
+          fait, total, attendLesFichiers,
+          etatServeur: etatServeurAcoustique(tdf[0].status === 'fulfilled' ? tdf[0].value : null),
+          raisonPause: s.paused_reason,
+        });
+        const raisonPause = clap.raisonPause === null ? undefined
+          : (RAISONS_DE_PAUSE as readonly string[]).includes(clap.raisonPause)
+            ? $t(`acoustic.paused.${clap.raisonPause}` as any)
+            : $t('acoustic.pausedUnknown' as any).replace('{reason}', clap.raisonPause);
         out.push({
           id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
-          // Il ne reste QUE des reports : « au repos », avec la cause en
-          // détail — pas « terminée », pas une jauge immobile sans un mot.
-          etat: attendLesFichiers ? 'idle'
-            : total && fait >= total ? 'done' : fait > 0 ? 'running' : 'idle',
+          etat: clap.etat,
+          raisonPause,
           ligne: total
             ? $t('v2.health.clapProgress' as any).replace('{n}', $formatNombre(fait)).replace('{t}', $formatNombre(total))
             : $t('v2.health.clapDone' as any).replace('{n}', $formatNombre(fait)),
@@ -489,7 +541,8 @@
       const mode = c?.replaygain_mode ?? 'off';
       const analysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
       const modeLabel = mode === 'off' ? $t('v2.health.rgOff' as any)
-        : mode === 'track' ? $t('v2.health.rgTrack' as any) : $t('v2.health.rgAlbum' as any);
+        : mode === 'track' ? $t('v2.health.rgTrack' as any)
+        : mode === 'auto' ? $t('v2.health.rgAuto' as any) : $t('v2.health.rgAlbum' as any);
       // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
       // relire la config une seconde fois.
       cfgDrActive = analysis;
@@ -551,13 +604,16 @@
     // autres n'ont plus rien). Une jauge sans cette explication laisserait
     // l'utilisateur devant un chiffre sans prise : le levier est sur la carte
     // d'à côté.
-    // ── Pause des traitements de fond (#1352) ─────────────────────────────
-    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
-    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
-    // Lu AVANT la carte « Plage dynamique » : son détail dépend de l'ordre de
-    // passage réglé (tune-server-rust#5169).
-    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
-    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
+    // L'instantané des traitements de fond (#1352) est lu plus haut, avant la
+    // carte CLAP (tune-server-rust#9046) : le détail de la plage dynamique
+    // dépend de l'ordre de passage réglé (tune-server-rust#5169).
+    // Le registre nomme l’audit, son avancement persistant est sur cette route.
+    // Aucun sondage supplémentaire lorsqu’aucun audit n’est inscrit.
+    if (tourne?.lignes.some((l) => l.id === 'tache:integrity')) {
+      try { auditIntegrite = await api.getIntegrityStatus(); }
+      catch { auditIntegrite = null; }
+    } else auditIntegrite = null;
+
 
     // ── Empreintes audio (tune-server-rust#8346) ──────────────────────────
     // Deuxième rang de la cascade, entre ReplayGain et la plage dynamique.
@@ -914,7 +970,7 @@
 </script>
 
 <section class="v2-health tune-v2">
-  <header class="v2-top">
+  <header class="v2-top sante-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$t('v2.health.eyebrow' as any)}</div>
       <h1>{$t('v2.nav.processing' as any)}</h1>
@@ -943,7 +999,8 @@
           {$t((toutEnPause ? 'v2.health.resumeAll' : 'v2.health.pauseAll') as any)}
         </button>
       {/if}
-      <button class="v2-btn" onclick={() => collect()} disabled={refreshing}>
+      <button class="v2-btn rafraichir" onclick={() => collect()} disabled={refreshing}>
+        <IconeEtatServeur nom="actualiser" taille={16} />
         {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
       </button>
     </div>
@@ -953,6 +1010,39 @@
     {#if loading}
       <div class="state">{$t('v2.health.loading' as any)}</div>
     {:else}
+      <!-- Maquette de Levente (15/11/2026) — le bandeau. Chaque tuile ne
+           paraît que si le serveur a servi son chiffre (règle 1). -->
+      {#if enTete.enLigne !== null}
+        <section class="resume" data-testid="server-summary">
+          <div class="tuile etat {enTete.enLigne ? 'en-ligne' : 'hors-ligne'}" data-resume="etat">
+            <span class="pastille"><IconeEtatServeur nom={enTete.enLigne ? 'valide' : 'alerte'} taille={26} /></span>
+            <div>
+              <div class="tuile-titre">{$t((enTete.enLigne ? 'v2.health.summary.online' : 'v2.health.summary.offline') as any)}</div>
+              {#if enTete.enLigne && enTete.version}
+                <div class="tuile-sous">{$t('v2.health.summary.version' as any).replace('{v}', enTete.version)}</div>
+              {/if}
+            </div>
+          </div>
+          {#if enTete.albums !== null}
+            <div class="tuile" data-resume="albums">
+              <IconeEtatServeur nom="couches" taille={26} />
+              <div><div class="tuile-titre">{$formatNombre(enTete.albums)}</div><div class="tuile-sous">{$t('v2.health.summary.albums' as any)}</div></div>
+            </div>
+          {/if}
+          {#if enTete.pistes !== null}
+            <div class="tuile" data-resume="tracks">
+              <IconeEtatServeur nom="note" taille={26} />
+              <div><div class="tuile-titre">{$formatNombre(enTete.pistes)}</div><div class="tuile-sous">{$t('v2.health.summary.tracks' as any)}</div></div>
+            </div>
+          {/if}
+          {#if enTete.octets !== null}
+            <div class="tuile" data-resume="size">
+              <IconeEtatServeur nom="disque" taille={26} />
+              <div><div class="tuile-titre">{tailleBibliotheque(enTete.octets, $locale)}</div><div class="tuile-sous">{$t('v2.health.summary.size' as any)}</div></div>
+            </div>
+          {/if}
+        </section>
+      {/if}
       {#if tourne}
         <!-- tune-server-rust#4681 — ce qui tourne, et pourquoi. Rien n'y est
              inventé : chaque ligne vient d'un champ publié par le serveur. -->
@@ -960,7 +1050,7 @@
           <h2>{$t('v2.health.running.title' as any)}</h2>
           {#if lectureEnTete}
             <div class="sub">
-              {remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
+              {typeof lectureEnTete.params.n === 'number' ? $tn(lectureEnTete.cle, lectureEnTete.params.n) : remplir($t(lectureEnTete.cle as any), lectureEnTete.params)}
               {#if tourne.lecture?.active && tourne.lecture.depuisEpochS}
                 {remplir($t('v2.health.running.since' as any), { h: $heureSeule(tourne.lecture.depuisEpochS * 1000) })}
               {/if}
@@ -980,7 +1070,14 @@
                   {#if l.raisonCle}
                     <span class="tourne-pourquoi">{remplir($t(l.raisonCle as any), l.params)}</span>
                   {/if}
-                  {#if l.avancement}
+                  {#if l.id === 'tache:integrity' && auditIntegrite && auditIntegrite.total > 0}
+                    <span class="tourne-pourquoi" data-avancement-integrite aria-label={$t('integrity.progress' as any)}>
+                      {$formatNombre(auditIntegrite.traites)} / {$formatNombre(auditIntegrite.total)}
+                      {#if auditIntegrite.status === 'running' && !auditIntegrite.lecture_prioritaire && typeof auditIntegrite.eta_seconds === 'number' && Number.isFinite(auditIntegrite.eta_seconds) && auditIntegrite.eta_seconds > 0}
+                        · {$t('v2.nav.bgAnalysisEta' as any).replace('{d}', dureeLisible(auditIntegrite.eta_seconds, (k) => $t(k as any)))}
+                      {/if}
+                    </span>
+                  {:else if l.avancement}
                     <span class="tourne-pourquoi">{remplir($t('v2.health.running.progress' as any), { detail: libelleProgression(l.avancement, (k) => $t(k as any)), fait: $formatNombre(l.avancement.fait), total: $formatNombre(l.avancement.total) })}</span>
                   {/if}
                 </li>
@@ -1018,16 +1115,18 @@
         {#each cards as c (c.id)}
           {@const p = pct(c)}
           {@const enPause = !!(c.traitement && pauses[c.traitement])}
-          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
+          {@const cedee = !enPause && !!c.raisonPause}
+          <article class="card {enPause || cedee ? 'pause' : ETATS[c.etat].cls}" data-traitement={c.traitement} tabindex="-1">
             <div class="chead">
-              <div>
+              <span class="cicone"><IconeEtatServeur nom={c.id} /></span>
+              <div class="ctitres">
                 <h2>{c.titre}</h2>
                 <div class="sub">{c.sous}</div>
               </div>
               <!-- #1352 — « En pause » PRIME sur l'état propre de la carte : un
                    traitement suspendu dont la route d'avancement continue de
                    dire « en cours » afficherait sinon deux vérités à la fois. -->
-              {#if enPause}
+              {#if enPause || cedee}
                 <span class="badge pause">{$t('v2.health.stPaused' as any)}</span>
               {:else}
                 <span class="badge {ETATS[c.etat].cls}">{ETATS[c.etat].txt}</span>
@@ -1046,7 +1145,10 @@
             <!-- tune-server-rust#6330 — une carte figée pendant une écoute dit
                  POURQUOI : le serveur cède la place à la lecture. Pas sur une
                  carte suspendue, dont « en pause » dit déjà la raison. -->
-            {#if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
+            {#if cedee}
+              <!-- tune-server-rust#9046 — la raison que le serveur donne. -->
+              <div class="frein" role="note" data-raison-pause>{c.raisonPause}</div>
+            {:else if !enPause && freinDe(c) && freins.has(freinDe(c)!)}
               <div class="frein" role="note" data-frein-lecture>{$t('v2.health.throttledForPlayback' as any)}</div>
             {/if}
 
@@ -1145,26 +1247,45 @@
         {/each}
       </div>
 
-      <!-- tune-server-rust#5189 — une ligne, sans seuil ni alerte. Absente
-           face à un serveur qui ne publie pas `cpu_temp_c`. -->
-      {#if temperature !== null}
-        <section class="modules">
-          <h2>{$t('v2.health.cpuTemp' as any)}</h2>
-          <div class="sub">{temperature}</div>
-          <!-- tune-server-rust#8011 — sans température lisible, les analyses
-               de fond tournent à la vitesse réglée SANS surveillance de la
-               chaleur (#6450 : plus de bridage) : on le dit. -->
-          {#if avertissementChaleur}<div class="sub bridage" data-temperature="illisible">{avertissementChaleur}</div>{/if}
-        </section>
-      {/if}
+      <!-- Maquette de Levente — deux rangées : température et modules de
+           sortie, puis journaux et diagnostic réseau. Sous 640 px, tout
+           passe en une colonne. -->
+      <div class="rangee">
+        <!-- tune-server-rust#5189 — la température, sans seuil ni alerte.
+             Absente face à un serveur qui ne publie pas `cpu_temp_c`. Pas de
+             courbe : le serveur ne garde aucun historique de température. -->
+        {#if temperature !== null}
+          <section class="modules bloc-temp">
+            <div class="bloc-tete">
+              <IconeEtatServeur nom="thermometre" />
+              <h2>{$t('v2.health.cpuTemp' as any)}</h2>
+            </div>
+            {#if typeof tempCpu === 'number'}
+              <div class="temp-valeur" data-temperature="valeur">{temperature}</div>
+            {:else}
+              <div class="sub">{temperature}</div>
+            {/if}
+            <!-- tune-server-rust#8011 — sans température lisible, les analyses
+                 de fond tournent à la vitesse réglée SANS surveillance de la
+                 chaleur (#6450 : plus de bridage) : on le dit. -->
+            {#if avertissementChaleur}<div class="sub bridage" data-temperature="illisible">{avertissementChaleur}</div>{/if}
+          </section>
+        {/if}
 
-      {#if modulesSortie}
-        <section class="modules">
-          <h2>{$t('diagnostics.outputModules' as any)}</h2>
-          <div class="sub">{$t('diagnostics.outputModulesHint' as any)}</div>
-          <OutputModulesPanel tableau={modulesSortie} variante="v2" />
-        </section>
-      {/if}
+        {#if modulesSortie}
+          <section class="modules bloc-large">
+            <div class="bloc-tete">
+              <IconeEtatServeur nom="hautParleur" />
+              <div class="ctitres">
+                <h2>{$t('diagnostics.outputModules' as any)}</h2>
+                <div class="sub">{$t('diagnostics.outputModulesHint' as any)}</div>
+              </div>
+              <button class="lnk gerer" onclick={() => activeView.set('plugins')}>{$t('v2.health.summary.manageModules' as any)}</button>
+            </div>
+            <OutputModulesPanel tableau={modulesSortie} variante="v2" />
+          </section>
+        {/if}
+      </div>
 
       {#if asioBloque || asioRearme}
         <section class="modules" role={asioRearme ? undefined : 'alert'}>
@@ -1180,59 +1301,68 @@
         </section>
       {/if}
 
-      <section class="modules">
-        <button class="lnk" onclick={basculerReseau} aria-expanded={reseauOuvert}>{$t('diagnostics.network' as any)}</button>
-        {#if reseauOuvert}
-          {#if reseauChargement}
-            <div class="sub">{$t('common.loading' as any)}</div>
-          {:else if reseau}
-            {@const d = lireDiagnosticReseau(reseau)}
-            <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
-                 Un champ absent se lit « inconnu » (❔), jamais en échec. -->
-            <ul class="reseau" data-diag="reseau">
-              {#each d.ecoutes as e (e.cle)}
-                <li data-ecoute={e.cle} data-verdict={e.verdict}>
-                  {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
-                  {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
-                  {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
-                  {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
-                  {#if e.message}<div class="ind">{e.message}</div>{/if}
-                </li>
-              {/each}
-              <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
-              {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
-                <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
-              {/each}
-              <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
-              <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
-            </ul>
-          {:else}
-            <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
+      <div class="rangee">
+        <!-- #865 — les JOURNAUX. Le bloc ne dépend d'aucune route
+             facultative : il doit être là même — surtout — quand le serveur
+             va mal. -->
+        <section class="journaux">
+          <div class="bloc-tete">
+            <IconeEtatServeur nom="journal" />
+            <div class="ctitres">
+              <h2>{$t('v2.health.cardLogs' as any)}</h2>
+              <div class="sub">{$t('settings.downloadLogsTitle' as any)}</div>
+            </div>
+          </div>
+          <div class="jactions">
+            <button class="lnk" onclick={basculerJournaux} disabled={journauxEnCours}>
+              {$t((journauxOuverts ? 'diagnostics.hideLogs' : 'diagnostics.showLogs') as any)}
+            </button>
+            <button class="lnk" onclick={exporterJournaux} disabled={exportEnCours}>
+              {$t((exportEnCours ? 'diagnostics.exporting' : 'diagnostics.exportLogs') as any)}
+            </button>
+            {#if journauxSource && journauxOuverts}
+              <span class="jsrc">{journauxSource}</span>
+            {/if}
+          </div>
+          {#if journauxOuverts}
+            <pre class="jtexte">{journauxEnCours ? $t('common.loading' as any) : journaux}</pre>
           {/if}
-        {/if}
-      </section>
+        </section>
 
-      <!-- #865 — les JOURNAUX. Le bloc est en dehors du `{#if modulesSortie}`
-           et ne dépend d'aucune route facultative : il doit être là même —
-           surtout — quand le serveur va mal. -->
-      <section class="journaux">
-        <h2>{$t('v2.health.cardLogs' as any)}</h2>
-        <div class="sub">{$t('settings.downloadLogsTitle' as any)}</div>
-        <div class="jactions">
-          <button class="lnk" onclick={basculerJournaux} disabled={journauxEnCours}>
-            {$t((journauxOuverts ? 'diagnostics.hideLogs' : 'diagnostics.showLogs') as any)}
-          </button>
-          <button class="lnk" onclick={exporterJournaux} disabled={exportEnCours}>
-            {$t((exportEnCours ? 'diagnostics.exporting' : 'diagnostics.exportLogs') as any)}
-          </button>
-          {#if journauxSource && journauxOuverts}
-            <span class="jsrc">{journauxSource}</span>
+        <section class="modules bloc-large bloc-reseau">
+          <!-- Le diagnostic réseau se lit À LA DEMANDE : l'ouvrir lance la
+               lecture, comme avant la maquette. -->
+          <button class="bloc-bascule" onclick={basculerReseau} aria-expanded={reseauOuvert}><IconeEtatServeur nom="wifi" /><span class="bloc-bascule-titre">{$t('diagnostics.network' as any)}</span><svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+          {#if reseauOuvert}
+            {#if reseauChargement}
+              <div class="sub">{$t('common.loading' as any)}</div>
+            {:else if reseau}
+              {@const d = lireDiagnosticReseau(reseau)}
+              <!-- web#1867 — la forme RÉELLE de la réponse (`lib/diagnosticReseau`).
+                   Un champ absent se lit « inconnu » (❔), jamais en échec. -->
+              <ul class="reseau" data-diag="reseau">
+                {#each d.ecoutes as e (e.cle)}
+                  <li data-ecoute={e.cle} data-verdict={e.verdict}>
+                    {iconeVerdict(e.verdict)} {$t(LIBELLE_ECOUTE[e.cle] as any)}
+                    {#if e.port !== null}<code>{$t('diagnostics.netPort' as any).replace('{port}', String(e.port))}</code>{/if}
+                    {#if e.verdict === 'inconnu'} · {$t('diagnostics.netUnknown' as any)}{/if}
+                    {#if e.reponsesMsearch !== null} · {$t('diagnostics.netMsearch' as any).replace('{n}', String(e.reponsesMsearch))}{/if}
+                    {#if e.message}<div class="ind">{e.message}</div>{/if}
+                  </li>
+                {/each}
+                <li data-compte="devices">{$t('diagnostics.netDevices' as any)} <b>{d.appareilsDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+                {#each d.appareils as rd, i (rd.hote + rd.nom + i)}
+                  <li class="ind">{rd.nom} <code>{rd.hote}</code>{#if rd.type} · {rd.type}{/if}</li>
+                {/each}
+                <li data-compte="media_servers">{$t('diagnostics.netMediaServers' as any)} <b>{d.serveursDecouverts ?? $t('diagnostics.netUnknown' as any)}</b></li>
+                <li data-compte="outputs">{$t('diagnostics.netOutputs' as any)} <b>{d.sortiesEnregistrees ?? $t('diagnostics.netUnknown' as any)}</b></li>
+              </ul>
+            {:else}
+              <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
+            {/if}
           {/if}
-        </div>
-        {#if journauxOuverts}
-          <pre class="jtexte">{journauxEnCours ? $t('common.loading' as any) : journaux}</pre>
-        {/if}
-      </section>
+        </section>
+      </div>
 
       <p class="foot">
         {$t('v2.hint.processingFromSettings' as any)}
@@ -1254,19 +1384,79 @@
   .lnk.sm{padding:5px 12px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); margin-left:8px}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
+  .rafraichir{display:inline-flex; align-items:center; gap:7px}
+
+  /* Maquette de Levente — le bandeau de tête. */
+  .resume{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); margin-bottom:16px;
+    border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:14px 6px}
+  .tuile{display:flex; align-items:center; gap:14px; padding:4px 20px; min-width:0; color:var(--v2-acc-tint)}
+  .tuile + .tuile{border-left:1px solid var(--v2-line)}
+  .tuile-titre{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; color:var(--v2-txt); font-variant-numeric:tabular-nums}
+  .tuile-sous{margin-top:2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .pastille{display:grid; place-items:center; width:42px; height:42px; border-radius:50%; flex:none}
+  .en-ligne .pastille{color:var(--v2-crete-vert); background:color-mix(in srgb, var(--v2-crete-vert) 16%, transparent)}
+  .hors-ligne .pastille{color:var(--v2-danger); background:var(--v2-danger-soft)}
+
+  /* Maquette de Levente — les rangées du bas. */
+  .rangee{display:flex; flex-wrap:wrap; gap:16px; margin-top:16px}
+  .rangee > section{margin-top:0; flex:1 1 280px; min-width:0}
+  .rangee > .bloc-large{flex:2 1 420px}
+  .rangee:empty{display:none}
+  .bloc-tete{display:flex; align-items:flex-start; gap:12px; color:var(--v2-acc-tint)}
+  .bloc-tete h2{color:var(--v2-txt)}
+  .bloc-tete .gerer{margin-left:auto; flex:none}
+  .temp-valeur{margin-top:14px; font-size:calc(30px * var(--v2-txt-echelle, 1)); font-weight:700; font-variant-numeric:tabular-nums}
+  .bloc-bascule{display:flex; align-items:center; gap:12px; width:100%; border:0; background:transparent; padding:0;
+    cursor:pointer; color:var(--v2-acc-tint); text-align:left; font:inherit}
+  .bloc-bascule-titre{flex:1; color:var(--v2-txt); font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
+  .bloc-bascule:hover .bloc-bascule-titre{color:var(--v2-acc-tint)}
+  .bloc-bascule .chevron{color:var(--v2-txt2); transition:transform .2s ease}
+  .bloc-bascule[aria-expanded="true"] .chevron{transform:rotate(180deg)}
+  .bloc-bascule:focus-visible{outline:2px solid var(--v2-focus); outline-offset:4px; border-radius:6px}
+
+  @media (max-width: 640px){
+    .scroll{padding:6px 16px 32px}
+    .resume{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:12px}
+    .tuile{padding:4px 12px}
+    .tuile + .tuile{border-left:0}
+    /* « Tune 1.0.0-dev » se coupait : la tuile d'état prend la rangée. */
+    .tuile.etat{grid-column:1 / -1}
+    /* Variante LOCALE de l'en-tête partagé `.v2-top` (vérif .18, 15/11) :
+       sur téléphone, le surtitre, l'heure et les boutons passaient sur le
+       titre. Titres sur leur ligne (seuls à laisser la place à la grappe du
+       coin), puis l'heure, puis les boutons sur toute la largeur. La vue
+       mini a ses propres règles (`vue-mini.css`) : on n'y touche pas. */
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top{flex-wrap:wrap; align-items:flex-start; row-gap:10px;
+      padding-left:16px; padding-right:16px}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres{flex:1 0 100%; margin-right:0;
+      padding-right:var(--v2-grappe-w, 172px); box-sizing:border-box}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-titres h1{font-size:calc(24px * var(--v2-txt-echelle, 1))}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top > .v2-actions{flex:1 1 100%; justify-content:flex-start}
+    :global(.v2-shell:not(.mini)) .v2-top.sante-top .meta{flex-basis:100%; margin-left:0}
+    .rangee > section, .rangee > .bloc-large{flex-basis:100%}
+    .bloc-tete{flex-wrap:wrap}
+    /* Le bouton « Gérer les extensions » passe sous le titre. */
+    .bloc-tete .ctitres{flex-basis:calc(100% - 40px)}
+    .bloc-tete .gerer{margin-left:34px}
+  }
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 
-  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px}
+  .cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px}
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .card.run{border-color:var(--v2-acc2)}
-  .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:14px}
+  .chead{display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
+  /* Maquette de Levente — le pictogramme de la carte, à gauche du titre. */
+  .cicone{flex:none; margin-top:1px; color:var(--v2-acc-tint)}
+  .ctitres{flex:1; min-width:0}
   .chead h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .sub{margin-top:3px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .badge{flex:0 0 auto; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase;
     padding:3px 9px; border-radius:999px; border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .badge.run{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .badge.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
+  /* Maquette de Levente — « Terminée » en pastille verte (jeton des crêtes). */
+  .badge.ok{color:var(--v2-crete-vert); border-color:color-mix(in srgb, var(--v2-crete-vert) 45%, transparent);
+    background:color-mix(in srgb, var(--v2-crete-vert) 14%, transparent)}
   .badge.unk{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   /* #1352 — une carte suspendue se distingue d'une carte au repos SANS passer
      pour une erreur : c'est un état voulu, pas une panne. */
@@ -1314,6 +1504,7 @@
     background:var(--v2-surface2); padding:16px 18px 18px}
   .journaux h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700}
   .journaux .sub{margin-bottom:12px}
+  .modules .bloc-tete, .journaux .bloc-tete{margin-bottom:4px}
   .jactions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   .jsrc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   /* Le journal est long et ses lignes le sont aussi : il défile dans les deux

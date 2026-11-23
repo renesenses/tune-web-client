@@ -35,6 +35,7 @@
    * défiler à la souris, qui est son geste principal.
    */
   import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import type { Snippet } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
   import { CLE_RUBRIQUE_RETIREE, phraseRetrait } from '../../lib/rubriquesRetirees';
@@ -64,6 +65,8 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
+  import PlaylistGenereeV2 from './PlaylistGenereeV2.svelte';
+  import { ID_PARCE_QUE_VOUS_AIMEZ, relanceDemandee, type PlaylistGeneree } from '../../lib/parceQueVousAimez';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -77,6 +80,7 @@
     WIDGETS,
     DISPOSITION_DEFAUT,
     LIMITE_VOIR_TOUT,
+    ID_ECOUTER_PLUS_TARD,
     type Element,
     type Widget,
     type ChiffreAffiche,
@@ -84,7 +88,7 @@
   import { repartirWidgets } from '../../lib/ajoutWidgets';
   import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
   import { ecrireChoix, lireChoix } from '../../lib/preferencesEcran';
-  import { marqueurAEnregistrer, migrationPremiereLigne } from '../../lib/migrationPremiereLigne';
+  import { marqueurAEnregistrer, marqueursAjouts, migrationAjoutUnique, migrationPremiereLigne, type AjoutUnique } from '../../lib/migrationPremiereLigne';
   import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import LienEntite from '../partages/LienEntite.svelte';
@@ -112,7 +116,8 @@
   import PanneauGenres from './ligne1/PanneauGenres.svelte';
   import PanneauConcerts from './ligne1/PanneauConcerts.svelte';
   import PanneauStats from './ligne1/PanneauStats.svelte';
-  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, panneauxDeLaLigne } from '../../lib/premiereLigne';
+  import PanneauZones from './ligne1/PanneauZones.svelte';
+  import { COTE_L1, zonesDeLaLigne, PANNEAUX_L1, PANNEAUX_L1_LEVENTE, panneauxDeLaLigne } from '../../lib/premiereLigne';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import {
     objetAlbum,
@@ -122,6 +127,8 @@
     objetPlaylistIntelligente,
     type ObjetMenu,
   } from '../../lib/gestesObjet';
+  import type { GestesPochette } from '../../lib/actionsPochette';
+  import { sasEcouterPlusTard } from '../../lib/ecouterPlusTard';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -194,6 +201,12 @@
      * catalogue.
      */
     cleLigneMigre?: string;
+    /**
+     * web#3117 — des widgets NEUFS à faire entrer UNE fois, en queue, dans
+     * une disposition déjà rangée (`migrationAjoutUnique`). Chaque écran
+     * nomme les siens : le Tableau de bord, « Top artistes ».
+     */
+    ajoutsUniques?: AjoutUnique[];
     cleEyebrow?: string;
     cleTitre?: string;
     /**
@@ -212,6 +225,22 @@
      * règle « tous horizontaux » du 02/09 tient toujours.
      */
     grille?: boolean;
+    /**
+     * Maquette « My listening » de Levente (rc12, 15/11/2026) — la grille
+     * FLUIDE du Tableau de bord : six colonnes qui partagent la largeur de la
+     * page (tiers et tuiles), au lieu des carrés fixes de 315 px. Ne vaut
+     * qu'avec `grille` ; l'Accueil, Qobuz et Tidal ne la passent pas.
+     */
+    grilleFluide?: boolean;
+    /**
+     * Le délai de garde d'un chargement, en millisecondes. 8 s par défaut
+     * (voir `DELAI_MS`). Le Tableau de bord l'allonge quand on lui demande
+     * trente jours ou tout l'historique, plus lents côté serveur.
+     */
+    delaiMs?: number;
+    /** Des commandes propres à la page, dessinées dans l'en-tête avant
+     *  « Modifier » (le choix de la période du Tableau de bord). */
+    actionsEntete?: Snippet;
   }
   let {
     catalogue = WIDGETS,
@@ -222,10 +251,14 @@
     /** #1519 — le marqueur de migration, à côté de la ligne qu'il protège. */
     cleChiffresMigre: CLE_CHIFFRES_MIGRE = 'home_stats_migre',
     cleLigneMigre: CLE_LIGNE_MIGRE = 'home_l1_migre',
+    ajoutsUniques = [],
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
     grille = false,
+    grilleFluide = false,
+    delaiMs,
+    actionsEntete,
   }: Props = $props();
 
   /** Ce que le catalogue a appris après le montage — #987. */
@@ -236,6 +269,11 @@
 
   const clePanneaux = $derived(`${CLE}_panneaux`);
   let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
+  /** Les panneaux du widget « première ligne, présentation de Levente »
+   *  (15/11/2026) — une préférence À PART : cocher « Zones » dans l'un ne
+   *  touche pas l'autre. */
+  const clePanneauxLevente = $derived(`${CLE}_panneaux_levente`);
+  let panneauxLevente = $state<string[]>(panneauxDeLaLigne(undefined, PANNEAUX_L1_LEVENTE));
   let disposition = $state<string[]>([...dispositionDefaut]);
   /**
    * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
@@ -353,7 +391,7 @@
         minuteur = setTimeout(() => {
           rejeter(new Error('delai'));
           controle?.abort();
-        }, DELAI_MS);
+        }, delaiMs ?? DELAI_MS);
       }),
     ]).finally(() => clearTimeout(minuteur));
   }
@@ -470,6 +508,8 @@
     let migrationAFaire = false;
     /** 27/09/2026 — la première ligne doit-elle entrer dans cette disposition ? */
     let ligneAMigrer = false;
+    /** web#3117 — les ajouts uniques à écrire, avec leur marqueur. */
+    const ajoutsAMigrer: AjoutUnique[] = [];
     // 🔴 #6454 — `get()`, jamais `$currentProfileId` dans ce code ordinaire.
     // `$currentProfileId` est la copie que Svelte tient par SA souscription ;
     // sur l'accueil salué, elle naît tard (le `find` de `profil` ne lit le
@@ -499,6 +539,7 @@
       chiffresEnregistres = lu.enregistres;
       migrationAFaire = lu.aMigrer;
       panneaux = panneauxDeLaLigne(prefs?.[clePanneaux]);
+      panneauxLevente = panneauxDeLaLigne(prefs?.[clePanneauxLevente], PANNEAUX_L1_LEVENTE);
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -519,6 +560,13 @@
         );
         dispositionEnregistree = mig.disposition;
         ligneAMigrer = mig.aMigrer;
+        // web#3117 — les widgets neufs de cet écran, une fois, en queue.
+        for (const a of ajoutsUniques) {
+          const m = migrationAjoutUnique(dispositionEnregistree, prefs?.[a.cleMarqueur], a.id);
+          if (!m.aMigrer) continue;
+          dispositionEnregistree = m.disposition;
+          ajoutsAMigrer.push(a);
+        }
         disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {
@@ -539,7 +587,9 @@
     // un widget choisi avec une version plus récente — le défaut de #987, payé
     // une fois déjà.
     if (ligneAMigrer) void migrerPremiereLigne(pid, [...(dispositionEnregistree ?? [])]);
+    if (ajoutsAMigrer.length) void migrerAjouts(pid, [...(dispositionEnregistree ?? [])], ajoutsAMigrer);
   }
+
 
   /**
    * #1519 — L'ÉCRITURE DE LA MIGRATION, une fois par profil.
@@ -599,6 +649,22 @@
     }
   }
 
+  /**
+   * web#3117 — l'écriture des ajouts uniques : la disposition ET leurs
+   * marqueurs dans le MÊME appel, comme la première ligne.
+   */
+  const ajoutsMigres = new Set<number>();
+
+  async function migrerAjouts(pid: number, disp: string[], ajouts: AjoutUnique[]) {
+    if (ajoutsMigres.has(pid)) return;
+    ajoutsMigres.add(pid);
+    try {
+      await api.setProfilePreferences(pid, { [CLE]: disp, ...marqueursAjouts(ajouts) });
+    } catch {
+      // Silencieux, comme la première ligne : le prochain chargement réessaiera.
+    }
+  }
+
   async function enregistrer() {
     // #6454 — même raison que dans `charger()` : la valeur du magasin, pas la
     // copie de Svelte, qui peut retarder hors du cycle réactif.
@@ -612,11 +678,14 @@
       await api.setProfilePreferences(pid, {
         [CLE]: disposition,
         [clePanneaux]: panneaux,
+        [clePanneauxLevente]: panneauxLevente,
         [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
         // #2410 — SA disposition est une décision : le marqueur de la première
         // ligne part avec elle. Sans lui, retirer la ligne (donc « Genres » et
         // « My listening ») la faisait revenir au chargement suivant.
         ...marqueurAEnregistrer(CLE_LIGNE_MIGRE, dispositionDefaut),
+        // web#3117 — de même pour les ajouts uniques : retiré, il ne revient pas.
+        ...marqueursAjouts(ajoutsUniques),
       });
     } catch (e: any) {
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
@@ -915,6 +984,37 @@
     });
   });
 
+  /**
+   * web#3119 — « Écouter plus tard » suit le SAS : un dépôt ou un retrait
+   * (menu « … », ici ou ailleurs) recharge la bande. Même souscription
+   * impérative que les zones. On ne recharge que sur un CHANGEMENT d'un sas
+   * déjà lu : la première lecture est celle du chargement lui-même.
+   */
+  onMount(() => {
+    let vu: string | null = null;
+    return sasEcouterPlusTard.subscribe((etat) => {
+      if (!etat.charge) return;
+      const signature = `${etat.etiquette}:${[...etat.membres].sort().join('|')}`;
+      const avant = vu;
+      vu = signature;
+      if (avant != null && avant !== signature) rechargerWidget(ID_ECOUTER_PLUS_TARD);
+    });
+  });
+
+  /**
+   * web#3118 — « Parce que vous aimez » encore en préparation côté serveur :
+   * sa relance UNIQUE (`programmerRelance`) recharge le widget. Même
+   * souscription impérative que les zones ; la première émission est l'état
+   * initial.
+   */
+  onMount(() => {
+    let premier = true;
+    return relanceDemandee.subscribe(() => {
+      if (premier) { premier = false; return; }
+      rechargerWidget(ID_PARCE_QUE_VOUS_AIMEZ);
+    });
+  });
+
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
@@ -968,6 +1068,8 @@
    * l'autre.
    */
   let playlistOuverte = $state<any | null>(null);
+  /** web#3118 — la playlist GÉNÉRÉE ouverte (« Parce que vous aimez »). */
+  let genereeOuverte = $state<PlaylistGeneree | null>(null);
   let servicePlaylistOuvert = $state<string | null>(null);
   function fermerCalquePlaylist() {
     playlistOuverte = null;
@@ -1042,13 +1144,29 @@
     };
   }
 
+  /**
+   * web#3120 — « Aller à la playlist / l'album / l'artiste » : chaque cible
+   * est un morceau d'élément que `ouvrirElement` suit déjà, rien de plus.
+   */
+  function gestesAller(e: Element): GestesPochette {
+    const a = e.allerA;
+    if (!a) return {};
+    const vers = (p?: Partial<Element>) => (p ? () => ouvrirElement({ ...e, ...p } as Element) : undefined);
+    return { allerPlaylist: vers(a.playlist), allerAlbum: vers(a.album), allerArtiste: vers(a.artiste) };
+  }
+
+  /** Les gestes propres du menu « … » d'un élément. */
+  function gestesDuMenuElement(e: Element): GestesPochette {
+    return { ...(e.suggestion ? gestesSuggestion(e) : {}), ...gestesAller(e) };
+  }
+
   /** Les éléments que le profil n'a pas écartés. */
   function visibles(els: Element[], cles: Set<string>): Element[] {
     return cles.size ? els.filter((e) => !estEcartee(e, cles)) : els;
   }
 
   function objetElement(e: Element): ObjetMenu | null {
-    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire' || e.ouvrir === 'generee') return null;
     // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
     // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
     if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
@@ -1104,6 +1222,12 @@
     // écran, sous la clé de raccourci qui porte sa SORTE.
     if (e.ouvrir === 'lire') {
       jouer(e);
+      return;
+    }
+    // web#3118 — une playlist générée n'a pas d'écran : sa liste s'ouvre
+    // par-dessus la page, avec « Lire » et « Enregistrer comme playlist ».
+    if (e.ouvrir === 'generee' && e.generee) {
+      genereeOuverte = e.generee;
       return;
     }
     if (e.ouvrir === 'cible' && e.cible) {
@@ -1499,7 +1623,9 @@
               itemType: typeFavori,
               service: el.fiche?.source ?? el.source ?? '',
               serviceId: String(sidDistant),
-              title: el.titre,
+              // web#3234 — une écoute de piste ouvre et met en favori son
+              // ALBUM : le favori porte le titre de l'album, pas de la piste.
+              title: (typeFavori === 'album' && el.fiche?.title) || el.titre,
               artist: el.sous ?? undefined,
               coverUrl: el.cover ?? undefined,
             })
@@ -1513,14 +1639,16 @@
         onLire={el.jouer ? () => jouer(el) : null}
         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
         objet={objetElement(el)}
-        gestesMenu={el.suggestion ? gestesSuggestion(el) : {}}
+        gestesMenu={gestesDuMenuElement(el)}
         nom={el.titre}
       >
         {#if el.pochettes || el.mosaique}
           <!-- Playlist ou collection : la MOSAÏQUE de son
                écran (`MosaiquePochettes`), pas une pochette. -->
+          <!-- web#3118 — sans pochette, l'initiale de l'ARTISTE d'une
+               playlist générée, pas le « P » de « Parce que vous aimez… ». -->
           <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
-            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+            initiales={(el.generee?.artist ?? el.titre)?.slice(0, 1)} alt={el.titre} />
         {:else}
           <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
             source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
@@ -1533,7 +1661,12 @@
            (`artisteDuSous`) ; un sous-titre qui n'est pas un artiste reste
            texte. Jamais de lien dans un bouton DÉSACTIVÉ : le clic n'y est
            pas distribué, ce serait un lien mort. -->
-      {#if el.sous}<span class="ca" title={el.sous}>{#if el.artisteDuSous && el.ouvrir}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous}{/if}</span>{/if}
+      <!-- web#3119 / web#3120 — ALBUM ou PLAYLIST en tête de la ligne du
+           conteneur (sur « Reprendre », le titre est le dernier morceau, et
+           le nom de l'album ou de la playlist est sur cette ligne). Dans la
+           ligne, pas au-dessus : une bande mixte garde ses vignettes alignées.
+           Rien sur un titre isolé (FabienM, fil 2864). -->
+      {#if el.sous || el.nature}<span class="ca" title={el.sous}>{#if el.nature}<span class="cn" data-nature={el.nature}>{$t((el.nature === 'playlist' ? 'v2.later.kindPlaylist' : 'v2.later.kindAlbum') as any)}</span>{/if}{#if el.artisteDuSous && el.ouvrir && el.sous}<LienEntite entite={{ type: 'artiste', nom: el.sous, artiste: el.artisteDuSous }} />{:else}{el.sous ?? ''}{/if}</span>{/if}
       <!-- web#2750 points 6 et 7 — le nombre de titres d'une playlist, lu sur
            l'objet ou demandé une fois au service (`compterTitres`). -->
       {#if (el.nbTitres ?? titresLus[el.id]) != null || el.compterTitres}
@@ -1547,6 +1680,9 @@
         {@const pourquoi = texteRaison(el.raison, $t as any, $locale)}
         {#if pourquoi}<span class="cw" title={pourquoi}>{pourquoi}</span>{/if}
       {/if}
+      <!-- 15/11/2026, maquette de Levente — « 2026 · Jazz » sous l'artiste,
+           sur l'accueil seul, et seulement quand l'objet le porte. -->
+      {#if salut && el.details}<span class="ca cd" title={el.details}>{el.details}</span>{/if}
       {#if el.aParaitre}
         {@const d = dateDeParution({ released_at: el.parution })}
         <span class="cp">{d
@@ -1564,7 +1700,10 @@
   </div>
 {/snippet}
 
-<section class="v2-home tune-v2">
+<!-- 15/11/2026 — `accueil` : la variante de la maquette de Levente, posée
+     sur l'ACCUEIL seul (`salut`). Les pages éditoriales Qobuz / TIDAL qui
+     montent aussi cette page gardent leur apparence. -->
+<section class="v2-home tune-v2" class:accueil={salut}>
   <!-- C'est l'en-tête de l'ACCUEIL et de l'HISTORIQUE : celui dont Bertrand a
        dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
        rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
@@ -1582,6 +1721,7 @@
            taisent donc tant que « Voir tout » est ouvert ; la flèche de
            retour reste la seule sortie. -->
       {#if !voirTout}
+      {#if actionsEntete && !edition}{@render actionsEntete()}{/if}
       {#if edition}
         <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!catalogueComplet.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -1698,7 +1838,7 @@
            conteneur existe dans les deux cas : c'est lui, et non `.scroll`,
            qui porte la grille, parce qu'une requête de conteneur ne s'applique
            qu'aux DESCENDANTS du conteneur interrogé (`.scroll`). -->
-      <div class="pile" class:mosaique={grille}>
+      <div class="pile" class:mosaique={grille} class:fluide={grille && grilleFluide}>
       {#each disposition as id, i (id)}
         {@const w = parId(id)}
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
@@ -1710,6 +1850,7 @@
           <section
             class="bloc"
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
+            class:etendu={w.forme === 'bloc' && (w.bloc?.etendue ?? w.bloc?.colonnes) === 2}
             class:cible={survole === i && saisi !== null && saisi !== i}
             ondragover={(e) => { if (saisi !== null) { e.preventDefault(); survole = i; } }}
             ondrop={(e) => { e.preventDefault(); deposer(i); }}
@@ -1738,6 +1879,9 @@
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
                 </span>
+              {/if}
+              {#if w.forme === 'bloc' && w.bloc?.icone}
+                <svg class="icone-bloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html w.bloc.icone}</svg>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
               {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
@@ -1795,7 +1939,7 @@
                 {#each et.chiffres as c (c.id ?? c.cle)}
                   {#if c.vue}
                     <button class="stat" onclick={() => activeView.set(c.vue as any)}
-                            title={$t('v2.home.statOpen' as any)}>
+                            title={c.infobulle ?? $t('v2.home.statOpen' as any)}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1804,7 +1948,7 @@
                       <span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span>
                     </button>
                   {:else}
-                    <div class="stat">
+                    <div class="stat" title={c.infobulle}>
                       <span class="ico" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -1925,6 +2069,57 @@
                             panneaux = panneaux.includes(panneau.id)
                               ? panneaux.filter((id) => id !== panneau.id)
                               : [...panneaux, panneau.id];
+                            void enregistrer();
+                          }} />
+                        <span>{$t(panneau.cle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+            {:else if w.forme === 'premiere-ligne-levente'}
+              <!-- LA PREMIÈRE LIGNE, PRÉSENTATION DE LEVENTE — Bertrand,
+                   15/11/2026 : « garde en widget le widget de la première
+                   ligne et crée-en un nouveau à partir du design de Levente ».
+
+                   Les MÊMES composants que la ligne d'origine, avec `levente` :
+                   panneau « Zones » (toutes les zones), panneaux qui se
+                   partagent la largeur, titres à empattements, tuiles de
+                   genre. Même hauteur posée une fois (`--l1-h`), même
+                   défilement, même lecture du magasin vivant. Ses panneaux
+                   cochés ont leur PROPRE préférence (`_panneaux_levente`). -->
+              <!-- 🔴 UNE GRILLE, pas une bande qui défile (vérification du .18
+                   à 1440 px, 15/11) : les quatre panneaux tiennent TOUJOURS
+                   dans la largeur, quitte à passer sur deux rangées. Jamais
+                   un panneau coupé au bord. -->
+              <div class="l1 grille-levente"
+                   style:--l1-h="{COTE_L1}px"
+                   role="group" aria-label={$t(w.cleTitre as any)}>
+                <!-- Le panneau « Zones » remplace les cartes carrées ; décoché
+                     en mode « Modifier », les cartes reviennent. -->
+                {#if panneauxLevente.includes('zones')}
+                  <PanneauZones />
+                {:else}
+                  {#each zonesDeLaLigne($zones) as z (z.id)}
+                    <CarteZoneL1 zone={z} />
+                  {/each}
+                {/if}
+                {#if panneauxLevente.includes('genres')}<PanneauGenres levente />{/if}
+                {#if panneauxLevente.includes('concerts')}<PanneauConcerts levente />{/if}
+                {#if panneauxLevente.includes('stats')}<PanneauStats levente />{/if}
+              </div>
+
+              {#if edition}
+                <div class="choix-chiffres" role="group" aria-label={$t(w.cleTitre as any)}>
+                  <div class="opts">
+                    {#each PANNEAUX_L1_LEVENTE as panneau (panneau.id)}
+                      <label class="opt" class:on={panneauxLevente.includes(panneau.id)}>
+                        <input type="checkbox" checked={panneauxLevente.includes(panneau.id)}
+                          onchange={() => {
+                            panneauxLevente = panneauxLevente.includes(panneau.id)
+                              ? panneauxLevente.filter((id) => id !== panneau.id)
+                              : [...panneauxLevente, panneau.id];
                             void enregistrer();
                           }} />
                         <span>{$t(panneau.cle as any)}</span>
@@ -2166,6 +2361,10 @@
   />
 {/if}
 
+{#if genereeOuverte}
+  <PlaylistGenereeV2 playlist={genereeOuverte} onClose={() => (genereeOuverte = null)} />
+{/if}
+
 {#if enEdition}
   <AlbumEditModal
     album={enEdition}
@@ -2182,6 +2381,7 @@
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+
 
   /* Point 10 — la date d'un album annoncé, sous son titre. */
   .cp{display:block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
@@ -2251,6 +2451,14 @@
   .l1{display:flex; gap:16px; padding:0 30px 10px; overflow-x:auto;
       scrollbar-width:thin}
 
+  /* Le widget « nouvelle présentation » (Levente, 15/11/2026) : une GRILLE.
+     Quatre colonnes dès qu’il y a la place (≥ 260 px chacune, soit un écran de 1440 px avec la barre latérale), trois ou deux
+     sinon, une seule sur téléphone. Chaque case contient son panneau en
+     entier : rien ne déborde, rien n'est coupé. Une carte de zone (panneau
+     « Zones » décoché) prend la largeur de sa case. */
+  .l1.grille-levente{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); overflow-x:visible}
+  .grille-levente > :global(*){min-width:0; max-width:100%}
+  .grille-levente > :global(.carte){width:auto}
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}
@@ -2363,6 +2571,9 @@
   .ca{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* web#916 — la justification : plus petite et plus pâle que l'artiste, sur
      UNE ligne — elle accompagne la vignette, elle ne l'allonge pas. */
+  /* web#3119 / web#3120 — l'étiquette de nature : petite capitale, couleur
+     d'accent, comme les sur-titres (`v2-eyebrow`). */
+  .cn{font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-acc1); margin-right:6px}
   .cw{font:italic calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); opacity:.85; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
@@ -2482,6 +2693,37 @@
     .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
     .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
   }
+  /* Maquette « My listening » de Levente (rc12) — la grille FLUIDE : six
+     colonnes qui se partagent la page. Un bloc `etendu` en prend deux (un
+     tiers), les autres une (une tuile). La hauteur déclarée par le bloc
+     reste un plancher ; la rangée prend la hauteur de son plus grand bloc. */
+  .mosaique.fluide{grid-template-columns:repeat(6, minmax(0,1fr)); justify-content:stretch}
+  .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large{grid-column:span 1; max-width:none;
+    display:flex; flex-direction:column; padding:16px 0 14px}
+  .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  .mosaique.fluide > .bloc > .tete{padding-left:20px; padding-right:20px}
+  /* La hauteur déclarée (132 / 264 / 396) est celle des carrés de 315 px ;
+     sur la grille fluide, une rangée de tuiles vides en ferait 396 px de
+     vide. Le plancher descend à 150 px : la page saute moins qu'elle ne
+     respire, et une liste pleine prend toujours la hauteur qu'il lui faut. */
+  .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px !important;
+    --bloc-marge:20px}
+  .icone-bloc{width:20px; height:20px; flex:0 0 auto; color:var(--v2-acc1)}
+  /* Vérification sur le .18 (15/11) : sous ~1 500 px de contenu, six tuiles
+     par rangée coupent les chiffres et réduisent les titres à trois lettres.
+     Trois par rangée : chaque bloc, tuile ou tiers, prend un tiers. */
+  @container (max-width: 1500px){
+    .mosaique.fluide{grid-template-columns:repeat(3, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 1}
+  }
+  @container (max-width: 900px){
+    .mosaique.fluide{grid-template-columns:repeat(2, minmax(0,1fr))}
+    .mosaique.fluide > .bloc.etendu{grid-column:span 2}
+  }
+  @container (max-width: 460px){
+    .mosaique.fluide{grid-template-columns:minmax(0,1fr)}
+    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.etendu{grid-column:auto}
+  }
   /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
   .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;
     color:var(--v2-txt3); font:inherit; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); padding:3px 4px 3px 8px; border-radius:7px; cursor:pointer}
@@ -2518,5 +2760,27 @@
   @media (max-width: 640px){
     .vt-tete, .contenu{padding-left:16px; padding-right:16px}
     .contenu.grille{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:14px 12px}
+  }
+  /* ── L'ACCUEIL selon la maquette de Levente (« Home Dashboard with Album
+     Grid », 15/11/2026) ────────────────────────────────────────────────────
+     Variante posée par `class:accueil={salut}` : les autres pages montées sur
+     ce composant ne changent pas. Titres à empattements (`--font-display`,
+     jeton de la coquille, repli Georgia), vignettes plus grandes, sous-titres
+     en sans-serif. Aucune couleur écrite ici : tout vient des jetons `--v2-`. */
+  .accueil .v2-eyebrow{font-family:var(--v2-sans); font-size:calc(12px * var(--v2-txt-echelle, 1)); text-transform:uppercase; letter-spacing:.12em}
+  .accueil .v2-top h1{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(36px * var(--v2-txt-echelle, 1)); letter-spacing:0}
+  .accueil .tete h2{font-family:var(--font-display, Georgia, serif); font-weight:600; font-size:calc(22px * var(--v2-txt-echelle, 1))}
+  .accueil .bande{gap:20px}
+  .accueil .bande .carte{flex-basis:176px; max-width:176px; gap:8px; contain-intrinsic-size:auto 240px}
+  .accueil .pochette :global(img){border-radius:var(--v2-r-md)}
+  .accueil .ct{font-size:calc(14px * var(--v2-txt-echelle, 1))}
+  .accueil .ca{font-family:var(--v2-sans); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .accueil .ca.cd{color:var(--v2-txt3)}
+  /* Sous 640 px, la vignette reprend sa taille d'avant : deux colonnes et
+     demie restent visibles sur un téléphone. */
+  @media (max-width: 640px){
+    .accueil .bande .carte{flex-basis:140px; max-width:140px}
+    .accueil .v2-top h1{font-size:calc(28px * var(--v2-txt-echelle, 1))}
+    .accueil .tete h2{font-size:calc(18px * var(--v2-txt-echelle, 1))}
   }
 </style>

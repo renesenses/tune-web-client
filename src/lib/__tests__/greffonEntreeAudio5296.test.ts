@@ -103,6 +103,12 @@ async function ecranAffichage(): Promise<HTMLElement> {
   expect(onglet, 'onglet Affichage introuvable à l’écran').toBeDefined();
   (onglet as HTMLButtonElement).click();
   await attendre();
+  // Maquette de Levente (15/11/2026) : les sources de la barre vivent sur
+  // l'écran secondaire « Barre latérale » ; Affichage garde la ligne qui y mène.
+  const renvoi = el.querySelector<HTMLButtonElement>('[data-section="displayPrefs"] [data-ouvre-sous-ecran="sidebar"]');
+  expect(renvoi, 'pas de renvoi vers l’écran Barre latérale depuis Affichage').not.toBeNull();
+  renvoi!.click();
+  await attendre();
   return el;
 }
 

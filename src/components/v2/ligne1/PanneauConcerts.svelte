@@ -25,12 +25,15 @@
    * sans corps JSON (leçon de Bandcamp, #1768).
    */
   import * as api from '../../../lib/api';
-  import { t } from '../../../lib/i18n';
+  import { t, locale } from '../../../lib/i18n';
   import { concertsCharge } from '../../../lib/stores/concerts';
   import { refusConcerts } from '../../../lib/concertsRefus';
   import { activeView } from '../../../lib/stores/navigation';
   import { LARGEUR_PANNEAU } from '../../../lib/premiereLigne';
   import PanneauL1 from './PanneauL1.svelte';
+
+  /** La présentation de Levente (15/11/2026) : « Voir tout » en tête, date courte, lignes séparées. */
+  let { levente = false }: { levente?: boolean } = $props();
 
   let phase = $state<'attente' | 'charge' | 'echec' | 'refus'>('attente');
   let concerts = $state<api.Concert[]>([]);
@@ -59,7 +62,14 @@
    *  français y passerait inaperçu dans une interface anglaise. */
   function dateLisible(iso: string): string {
     const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
+    if (Number.isNaN(d.getTime())) return iso;
+    if (!levente) return d.toLocaleDateString();
+    // « 11 oct. 2026 » — le format court de la maquette, dans la langue de l'écran.
+    try {
+      return d.toLocaleDateString($locale, { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return d.toLocaleDateString();
+    }
   }
 
   /** « Salle, Ville » — sans virgule orpheline quand l'un des deux manque. */
@@ -70,10 +80,19 @@
 
 <!-- Le panneau n'existe pas quand le greffon n'est pas là ou refuse. -->
 {#if $concertsCharge && phase !== 'refus'}
-  <PanneauL1 titre={$t('concerts.titre' as any)} largeur={LARGEUR_PANNEAU}>
+  <PanneauL1 titre={$t('concerts.titre' as any)} largeur={LARGEUR_PANNEAU} {levente}>
     {#snippet icone()}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
            stroke-linecap="round"><path d="M21 10c0-5-4-8-9-8s-9 3-9 8c0 4.5 4.5 9 9 12 4.5-3 9-7.5 9-12z"/><circle cx="12" cy="10" r="3"/></svg>
+    {/snippet}
+    {#snippet entete()}
+      <!-- Présentation de Levente : « Voir tout » en tête du panneau. -->
+      {#if levente && phase === 'charge' && concerts.length}
+        <button class="tout tete" onclick={() => activeView.set('concerts')}>
+          {$t('v2.home.seeAll' as any)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </button>
+      {/if}
     {/snippet}
 
     {#if phase === 'attente'}
@@ -83,7 +102,7 @@
     {:else if !concerts.length}
       <p class="etat">{$t('concerts.aucun' as any)}</p>
     {:else}
-      <ul>
+      <ul class:levente>
         {#each concerts as c, i (`${c.artist_name}-${c.event_date}-${c.venue ?? ''}-${i}`)}
           <li>
             <div class="txt">
@@ -103,7 +122,9 @@
         {/each}
       </ul>
       <!-- Le panneau montre ; l'écran règle le périmètre et la commune. -->
-      <button class="tout" onclick={() => activeView.set('concerts')}>{$t('concerts.titre' as any)}</button>
+      {#if !levente}
+        <button class="tout" onclick={() => activeView.set('concerts')}>{$t('concerts.titre' as any)}</button>
+      {/if}
     {/if}
   </PanneauL1>
 {/if}
@@ -135,4 +156,20 @@
     background: none; color: var(--v2-txt2); font: 500 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor: pointer;
   }
   .tout:hover { border-color: var(--v2-acc1); color: var(--v2-txt); }
+
+  /* ── Présentation de Levente (15/11/2026) ── */
+  ul.levente { gap: 0; }
+  .levente li { padding: 9px 2px; border-radius: 0; background: none; border-bottom: 1px solid var(--v2-line2); }
+  .levente li:last-child { border-bottom: 0; }
+  .levente .txt { gap: 3px; }
+  .levente .art { font-weight: 600; font-size: calc(13px * var(--v2-txt-echelle, 1)); }
+  .levente .sous { font-size: calc(11.5px * var(--v2-txt-echelle, 1)); }
+  .levente a { color: var(--v2-txt2); }
+  .levente a svg { width: 16px; height: 16px; }
+  .tout.tete {
+    display: inline-flex; align-items: center; gap: 3px; margin: 0; padding: 0; border: 0; background: none;
+    font-size: calc(11.5px * var(--v2-txt-echelle, 1));
+  }
+  .tout.tete svg { width: 12px; height: 12px; }
+  .tout.tete:hover { color: var(--v2-acc1); }
 </style>

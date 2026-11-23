@@ -160,7 +160,7 @@ describe('texte d\'aide côté propriétaire', () => {
     const cles = ['v2.circle.circlesHint', 'v2.circle.newCircleHint', 'v2.circle.memberOf.title', 'v2.circle.memberOf.hint',
       'v2.circle.memberOf.by', 'v2.circle.memberOf.share', 'v2.circle.memberOf.shareNamed', 'v2.circle.memberOf.shareNote'];
     const fichiers = Object.entries(langues).filter(([p]) => !p.endsWith('/index.ts'));
-    expect(fichiers).toHaveLength(15);
+    expect(fichiers).toHaveLength(20);
     for (const [p, m] of fichiers) {
       for (const k of cles) expect(m.default[k], `${p} ${k}`).toBeTruthy();
       expect(m.default['v2.circle.memberOf.by'], p).toContain('{name}');

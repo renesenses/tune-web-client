@@ -31,7 +31,7 @@
   import PistesDouteuses from './PistesDouteuses.svelte';
   import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   import { chargerLesDoublons, DELAI_DOUBLONS_MS, type EchecDoublons } from '../../lib/doublonsChargement';
   import { titreDeCopie, titresDifferent } from '../../lib/doublonsCarte';
   import { grouperParAlbums, questionDeRetrait, type CoupleAlbums } from '../../lib/albumsEnDouble';
@@ -713,6 +713,8 @@
   let dRetenus = $state<Set<string>>(new Set());
   let dBusy = $state(false);
   let dBilan = $state<string | null>(null);
+  /** #8679 — le bilan de « Écrire l'artiste du dossier », tenu par le parent. */
+  let dDossierBilan = $state<string | null>(null);
   let dGroupes = $derived(grouperParArtisteDevine(doubtful));
   let dSansIndice = $derived(
     doubtful.filter((p) => p.reasons?.includes('missing_artist')).length
@@ -753,14 +755,17 @@
     dBusy = false;
   }
 
-  async function chargerDouteuses() {
+  /** `discret` : relue sans repasser par « Chargement… », qui démonterait
+   *  la liste et le bilan qu'elle affiche (#8679). */
+  async function chargerDouteuses(discret = false) {
     if (dLoaded) return;
     dLoaded = true;
-    dLoading = true;
+    dLoading = !discret;
     const tous: PisteDouteuse[] = [];
     try {
       for (let offset = 0; ; offset += 1000) {
         const r = await api.getDoubtfulTracks(1000, offset);
+        if (offset === 0) dPeutIgnorer = r.can_ignore !== false;
         tous.push(...r.items);
         if (r.items.length === 0 || tous.length >= r.total) break;
       }
@@ -774,6 +779,181 @@
   $effect(() => {
     if (tab !== 'doubtful' || dLoaded) return;
     void chargerDouteuses();
+  });
+
+  /*
+    renesenses/tune-server-rust#8958 — « C'est normal » (Didier, fil 2685).
+    Une alerte marquée normale ne revient plus ; le SERVEUR choisit où le
+    choix est mémorisé (la piste, ou tout l'album pour un artiste manquant)
+    et filtre la liste. On relit donc la liste plutôt que de la corriger de
+    mémoire. Les alertes ignorées se revoient et s'annulent plus bas.
+  */
+  let dIgnorees = $state<api.AlerteDouteuseIgnoree[]>([]);
+  let dIgnoreesOuvertes = $state(false);
+  /** Le serveur dit si l'appelant peut écrire le choix (administrateur). */
+  let dPeutIgnorer = $state(true);
+  /** Le dernier choix, et la liste telle qu'elle était juste avant : l'annuler
+   *  la rend telle quelle, sans tout relire. */
+  /*  tune-server-rust#9028 — `album` : le dernier choix est un geste groupé ;
+   *  l'annuler passe par « ne plus considérer comme normal » pour l'album. */
+  let dIgnoreeDerniere = $state<{ texte: string; alerte: api.CleAlerteIgnoree; album?: { keys: api.CleAlerteIgnoree[] }; avant: PisteDouteuse[]; apres: PisteDouteuse[] } | null>(null);
+  let dIgnoreOccupe = $state(false);
+  let dAOffrir = $derived(doubtful.some((p) => p.ignore_scopes && Object.keys(p.ignore_scopes).length));
+
+  function texteRaisonSimple(raison: string) {
+    switch (raison) {
+      case 'missing_artist': return $t('v2.meta.dReasonArtist' as any);
+      case 'missing_album': return $t('v2.meta.dReasonAlbum' as any);
+      case 'very_short': return $t('v2.meta.dReasonShort' as any);
+      default: return $t('v2.meta.dReasonOther' as any);
+    }
+  }
+
+  async function chargerIgnorees() {
+    try { dIgnorees = await api.getAlertesDouteusesIgnorees(); }
+    catch { dIgnorees = []; } // serveur sans la route : rien à revoir
+  }
+
+  function echecIgnore(e: any) {
+    if (e?.status === 403 || e?.status === 401) {
+      dPeutIgnorer = false;
+      error = $t('v2.meta.dIgnoreForbidden' as any);
+    } else {
+      error = $t('v2.meta.dIgnoreFailed' as any);
+    }
+  }
+
+  /**
+   * La liste corrigée SUR PLACE après un choix : la raison quitte la piste
+   * (ou toutes les pistes de l'album), une piste sans raison quitte la liste.
+   * Pas de relecture des pages : la position de défilement reste.
+   */
+  function sansLaRaison(liste: PisteDouteuse[], p: PisteDouteuse, raison: string, scope: 'track' | 'album') {
+    const vise = (x: PisteDouteuse) => (scope === 'album' && p.album_id != null ? x.album_id === p.album_id : x.id === p.id);
+    return liste
+      .map((x) => {
+        if (!vise(x) || !x.reasons?.includes(raison)) return x;
+        const scopes = { ...(x.ignore_scopes ?? {}) };
+        delete scopes[raison];
+        return { ...x, reasons: x.reasons.filter((r) => r !== raison), ignore_scopes: scopes };
+      })
+      .filter((x) => x.reasons?.length);
+  }
+
+  async function ignorerAlerte(p: PisteDouteuse, raison: string) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      const r = await api.ignorerAlerteDouteuse(p.id, raison);
+      const nom = r.scope === 'album' ? (p.album_title || p.title) : p.title;
+      const avant = doubtful;
+      doubtful = sansLaRaison(doubtful, p, raison, r.scope);
+      dIgnoreeDerniere = {
+        texte: $t('v2.meta.dIgnoredDone' as any)
+          .replace('{reason}', texteRaisonSimple(raison))
+          .replace('{name}', nom || '—'),
+        alerte: { scope: r.scope, key: r.key, title: r.title ?? '', reason: r.reason },
+        avant,
+        apres: doubtful,
+      };
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  /**
+   * tune-server-rust#9028 — « Normal pour les N pistes de cet album », après
+   * la confirmation dans la page. Le serveur vérifie la liste ; la liste
+   * affichée perd la raison sur ces pistes-là, sans relecture.
+   */
+  async function ignorerAlerteAlbum(albumId: number, raison: string, ids: number[], titre: string) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      const r = await api.ignorerAlerteAlbum(albumId, raison, ids);
+      // Mise à jour EXACTE : la raison quitte les pistes que le serveur dit
+      // couvertes, et elles seules.
+      const vises = new Set(r.track_ids ?? []);
+      const avant = doubtful;
+      doubtful = doubtful
+        .map((x) => {
+          if (!vises.has(x.id) || !x.reasons?.includes(raison)) return x;
+          const scopes = { ...(x.ignore_scopes ?? {}) };
+          delete scopes[raison];
+          return { ...x, reasons: x.reasons.filter((y) => y !== raison), ignore_scopes: scopes };
+        })
+        .filter((x) => x.reasons?.length);
+      dIgnoreeDerniere = {
+        texte: $t('v2.meta.dIgnoredAlbumDone' as any)
+          .replace('{reason}', texteRaisonSimple(raison))
+          .replace('{count}', $formatNombre(r.track_count ?? vises.size))
+          .replace('{name}', titre || '—'),
+        alerte: r.added_keys?.[0] ?? { scope: 'track', key: '', title: '', reason: raison },
+        album: { keys: r.added_keys ?? [] },
+        avant,
+        apres: doubtful,
+      };
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
+      throw e;
+    } finally {
+      dIgnoreOccupe = false;
+    }
+  }
+
+  /** « Annuler » le dernier choix : piste, ou les lignes exactes d'un geste
+   *  groupé ; la liste est alors RELUE du serveur. */
+  async function annulerDerniere() {
+    const derniere = dIgnoreeDerniere;
+    if (!derniere) return;
+    if (!derniere.album) return retablirAlerte(derniere.alerte);
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      if (derniere.album.keys.length) await api.retablirAlerteAlbum(derniere.album.keys);
+      dIgnoreeDerniere = null;
+      dLoaded = false;
+      await chargerDouteuses(true);
+      await chargerIgnorees();
+    } catch (e: any) {
+      echecIgnore(e);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  const memeAlerte = (a: api.CleAlerteIgnoree, b: api.CleAlerteIgnoree) =>
+    a.scope === b.scope && a.key === b.key && (a.title ?? '') === (b.title ?? '') && a.reason === b.reason;
+
+  async function retablirAlerte(a: api.CleAlerteIgnoree) {
+    if (dIgnoreOccupe) return;
+    dIgnoreOccupe = true;
+    try {
+      // Seuls les quatre champs de la clé partent au serveur.
+      await api.retablirAlerteDouteuse({ scope: a.scope, key: a.key, title: a.title ?? '', reason: a.reason });
+      const derniere = dIgnoreeDerniere;
+      if (derniere && !derniere.album && memeAlerte(derniere.alerte, a)) {
+        dIgnoreeDerniere = null;
+        // Rien n'a bougé depuis : la liste d'avant, sans relire.
+        if (doubtful === derniere.apres) doubtful = derniere.avant;
+        else { dLoaded = false; await chargerDouteuses(true); }
+      } else {
+        // Une alerte d'une autre séance : seul le serveur sait où elle revient.
+        dLoaded = false;
+        await chargerDouteuses(true);
+      }
+      dIgnorees = dIgnorees.filter((x) => !memeAlerte(x, a));
+    } catch (e: any) {
+      echecIgnore(e);
+    }
+    dIgnoreOccupe = false;
+  }
+
+  $effect(() => {
+    if (tab !== 'doubtful') return;
+    untrack(() => { void chargerIgnorees(); });
   });
 
 
@@ -857,7 +1037,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   <span class="new">{p.proposed ?? '—'}</span>
                 </div>
-                <div class="src">{$t((p.servers_count > 1 ? 'v2.meta.libsWithValueMany' : 'v2.meta.libsWithValueOne') as any).replace('{n}', $formatNombre(p.servers_count))}</div>
+                <div class="src">{$tn('v2.meta.libsWithValueN', p.servers_count)}</div>
               </div>
               <div class="pa">
                 <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>
@@ -1282,14 +1462,41 @@
         </div>
       {/if}
 
-    {:else if dLoading}
+    {:else}
+      <!-- tune-server-rust#8679 — le bilan de « Écrire l'artiste du dossier »
+           vit ICI, hors de la liste : après l'écriture, la liste relue peut
+           ne plus avoir de piste concernée, ou plus aucune piste du tout. -->
+      {#if dDossierBilan}<p class="note" data-bilan-dossier aria-live="polite">{dDossierBilan}</p>{/if}
+      <!-- tune-server-rust#8958 — le choix tout juste fait, et son annulation. -->
+      {#if dIgnoreeDerniere}
+        {@const derniere = dIgnoreeDerniere}
+        <p class="note ignoree" data-bilan-ignore aria-live="polite">
+          {derniere.texte}
+          {#if dPeutIgnorer}
+            <button class="lnk" disabled={dIgnoreOccupe} onclick={annulerDerniere}>{$t('v2.meta.dUndo' as any)}</button>
+          {/if}
+        </p>
+      {/if}
+    {#if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
-      <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+      <p class="note" data-intro-douteuses>{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+      <!-- web#3175 — la consigne de vérification ne vaut que s'il y a un
+           artiste à écrire : les groupes « Poser l'artiste » et le bouton
+           « Écrire l'artiste du dossier » n'existent que pour une piste sans
+           artiste dont le dossier donne un nom (`dGroupes`, qui couvre aussi
+           `folder_artist`). Sans eux, elle renvoyait à une action absente
+           (fil 2685). -->
+      {#if dGroupes.length}<p class="note" data-consigne-douteuses>{$t('v2.meta.dArtistVerify' as any)}</p>{/if}
 
-      <PistesDouteuses pistes={doubtful} />
+      {#if !dPeutIgnorer && dAOffrir}<p class="note" data-ignore-reserve>{$t('v2.meta.dIgnoreAdminOnly' as any)}</p>{/if}
+      <!-- tune-server-rust#8679 — « Écrire l'artiste du dossier » : la liste
+           vient du serveur, on la relit après l'écriture. -->
+      <PistesDouteuses pistes={doubtful} onEcrit={async (bilan) => { dDossierBilan = bilan; dLoaded = false; await chargerDouteuses(true); }}
+        onIgnorer={dPeutIgnorer ? ignorerAlerte : undefined}
+        onIgnorerAlbum={dPeutIgnorer ? ignorerAlerteAlbum : undefined} />
 
       {#if dGroupes.length}
         <div class="cpacts">
@@ -1327,6 +1534,41 @@
 
       {#if dSansIndice > 0}
         <p class="source">{$t('v2.meta.dArtistNoClue' as any).replace('{count}', $formatNombre(dSansIndice))}</p>
+      {/if}
+    {/if}
+
+      <!-- tune-server-rust#8958 — les alertes marquées normales : les revoir,
+           et en remettre une dans la liste. Visible même quand la liste des
+           douteuses est vide (c'est justement là qu'on les cherche). -->
+      {#if dIgnorees.length}
+        <section class="ignorees" data-alertes-ignorees>
+          <button class="lnk" aria-expanded={dIgnoreesOuvertes} onclick={() => (dIgnoreesOuvertes = !dIgnoreesOuvertes)}>
+            {$t('v2.meta.dIgnoredShow' as any).replace('{count}', $formatNombre(dIgnorees.length))}
+          </button>
+          {#if dIgnoreesOuvertes}
+            <p class="note">{$t('v2.meta.dIgnoredIntro' as any)}</p>
+            <ul>
+              {#each dIgnorees as a (`${a.scope}:${a.key}:${a.title}:${a.reason}`)}
+                <li data-portee={a.scope}>
+                  <span class="ig-txt">
+                    <strong>{(a.scope === 'album' ? (a.album_title || a.label) : (a.track_title || a.label)) || '—'}</strong>
+                    {#if a.found === false}<span class="ig-sub ig-absent">{$t('v2.meta.dIgnoredNotFound' as any)}</span>{/if}
+                    <span class="ig-sub">
+                      {a.scope === 'album'
+                        ? $t('v2.meta.dIgnoredScopeAlbum' as any).replace('{count}', $formatNombre(a.track_count ?? 0))
+                        : $t('v2.meta.dIgnoredScopeTrack' as any)}
+                      · {texteRaisonSimple(a.reason)}
+                    </span>
+                    {#if a.file_path}<span class="chemin" use:bulleTexte>{a.file_path}</span>{/if}
+                  </span>
+                  {#if dPeutIgnorer}
+                    <button class="lnk" disabled={dIgnoreOccupe} onclick={() => retablirAlerte(a)}>{$t('v2.meta.dRestore' as any)}</button>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
       {/if}
     {/if}
 
@@ -1410,6 +1652,16 @@
   .state{padding:30px 0; color:var(--v2-txt3)}
   .dbl-echec{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; color:var(--v2-txt2)}
   .note{padding:4px 0 16px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  /* tune-server-rust#8958 — « C'est normal » : le bilan et la liste des ignorées. */
+  .note.ignoree{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; color:var(--v2-txt2)}
+  .ignorees{margin:18px 0 8px; border-top:1px solid var(--v2-line2); padding-top:12px}
+  .ignorees ul{list-style:none; margin:0; padding:0}
+  .ignorees li{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; padding:9px 0; border-bottom:1px solid var(--v2-line2)}
+  .ignorees .ig-txt{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 240px}
+  .ignorees strong{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt); overflow-wrap:anywhere}
+  .ignorees .ig-sub{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  .ignorees .chemin{overflow-wrap:anywhere}
+  .ignorees .ig-absent{color:var(--v2-txt3); font-style:italic}
   .note b{color:var(--v2-txt2)}
 
   .auto{display:flex; align-items:center; justify-content:space-between; gap:22px; padding:14px 18px;

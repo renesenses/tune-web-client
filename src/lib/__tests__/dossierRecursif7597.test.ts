@@ -25,6 +25,7 @@ import { preferences } from '../stores/preferences';
 import { porteeAuMontage, choisirDossierBibliotheque, suivreLeRetraitDeLaPortee } from '../dossierBibliotheque';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -189,6 +190,7 @@ describe('#7597 — Bibliothèque : le bouton « Répertoire » et la mémoire p
 
   async function ouvrirBibliotheque() {
     activeView.set('library');
+    epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
     monte = mount(LibraryV2, { target: hote!, props: {} as any });
     for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
     flushSync();

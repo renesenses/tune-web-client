@@ -1,6 +1,6 @@
 <script lang="ts">
   import { bulleTexte } from '../../lib/infobulleTexte';
-  import { t } from '../../lib/i18n';
+  import { tn, t } from '../../lib/i18n';
   /**
    * Extensions → Tune Circle — renesenses/tune-server-rust#5018 (étape T1,
    * avenant « plusieurs cercles » du 25/09/2026).
@@ -58,10 +58,12 @@
   import { ssoDisponible } from '../../lib/bridge';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneRequise } from '../../lib/zoneRequise';
+import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '../../lib/circleDroits';
   import { notifications } from '../../lib/stores/notifications';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
     inviterAuCercle, accepterInvitation, cerclesOuJeSuisInvite, refuserInvitation, annulerInvitation,
+    partagerEntreMembres, meMontrerDansCercle,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
@@ -86,7 +88,12 @@
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
   import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
-  import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation } from '../../lib/circleMessagerie';
+  import PlaylistsGrilleCercleV2 from './PlaylistsGrilleCercleV2.svelte';
+  import DecouvrirCercleV2 from './DecouvrirCercleV2.svelte';
+  import { initiales } from '../../lib/circleHabillage';
+  import type { Lieu } from '../../lib/champCercle/scene';
+  import { demandeConversation, messagerieSupport, ecrireAuContact, ecrireAuCercle, erreurOuvertureConversation, nonLusMessagerie } from '../../lib/circleMessagerie';
+  import { ONGLETS_CIRCLE, ongletVoisin, type OngletCircle } from '../../lib/circleOnglets';
   import type { NotifCercle } from '../../lib/circleNotifications';
   import '../../styles/tune-v2.css';
 
@@ -142,6 +149,10 @@
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
   /** #2434 : les cercles des autres où je suis rangé (lien actif). */
   const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
+  /** #3283 — mes accords dans les cercles partagés : le globe relit quand ils changent. */
+  /** #3283 — ma ville posée ? (lue par la scène). Sans ville, on ne peut pas apparaître : l'interrupteur se grise. */
+  let monLieuPose = $state<boolean | null>(null);
+  const clePartageMembres = $derived(invitePar.map((m) => `${m.circle_id}:${m.members_see_each_other ? 1 : 0}${m.show_me ? 1 : 0}`).join(','));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
   /**
@@ -157,6 +168,11 @@
     const c = p.circle_id != null ? cercles.find((x) => x.id === p.circle_id) : undefined;
     return (c?.member_ids ?? []).map((uid) => nomDe.get(uid)).filter((n): n is string => !!n);
   }
+
+  // 19/11/2026 : profil non administrateur ou client distant — le cercle se
+  // consulte, ses gestes d'écriture sont désactivés avec une phrase claire.
+  void verifierDroitsCercle();
+  const lectureSeule = $derived($cercleLectureSeule !== null);
 
   function phrase(m: MotifCercle): string {
     const s = $t(m.cle as any);
@@ -327,15 +343,52 @@
   async function revenirAuxNotifications() {
     retourNotifs = false;
     playlistOuverte = null;
+    onglet = 'decouvrir';
     await tick();
     document.getElementById('circle-notifs')?.scrollIntoView?.({ block: 'start' });
   }
 
+  /**
+   * rc12 (maquettes de Levente, 15/11) — quatre onglets : Découvrir, Messages,
+   * Playlists partagées, Mon cercle. Les panneaux restent MONTÉS (`hidden`) :
+   * la messagerie garde son fil, et chaque bloc garde son état d'un onglet à
+   * l'autre. Une conversation demandée (Écrire, notification) mène à Messages.
+   */
+  let onglet = $state<OngletCircle>('decouvrir');
+  /** Les lieux de mes contacts, lus par la scène (`onLieux`) : vide tant qu'aucun n'est connu. */
+  let lieux = $state.raw<Map<number, Lieu>>(new Map());
+  const LIBELLES_ONGLETS: Record<OngletCircle, string> = {
+    decouvrir: 'v2.circle.tab.discover', messages: 'v2.circle.tab.messages',
+    playlists: 'v2.circle.tab.playlists', cercle: 'v2.circle.tab.myCircle',
+  };
+  async function choisirOnglet(o: OngletCircle, focus = false) {
+    onglet = o;
+    if (focus) { await tick(); document.getElementById(`circle-onglet-${o}`)?.focus(); }
+  }
+  function clavierOnglets(ev: KeyboardEvent) {
+    const o = ongletVoisin(onglet, ev.key);
+    if (o) { ev.preventDefault(); void choisirOnglet(o, true); }
+  }
+  /** « Inviter » de l'en-tête : Mon cercle, curseur dans l'adresse. */
+  async function allerInviter() {
+    onglet = 'cercle';
+    await tick();
+    const champ = document.getElementById('circle-email') as HTMLInputElement | null;
+    champ?.scrollIntoView?.({ block: 'center' });
+    champ?.focus();
+  }
+  // Abonnement direct, pas un `$effect` : la messagerie consomme la demande (remise à `null`)
+  // dans le même tour, avant qu'un effet ne la voie.
+  const finDemande = demandeConversation.subscribe((d) => { if (d) onglet = 'messages'; });
+  onDestroy(finDemande);
+
   /** rc9 (web#2437) : une notification ouverte mène à ce qu'elle désigne, quand l'écran le montre. */
   function ouvrirNotification(n: NotifCercle) {
     if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
-    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; demandeConversation.set({ conversation: n.conversation_id }); document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' }); return; }
-    if (n.kind === 'contact_request') { retourNotifs = true; document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' }); }
+    if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; onglet = 'messages'; demandeConversation.set({ conversation: n.conversation_id }); void tick().then(() => document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' })); return; }
+    if (n.kind === 'contact_request') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' })); }
+    // #3283 : un cercle où je suis devient partagé — l'interrupteur « Me montrer » est sous « Mes cercles ».
+    if (n.kind === 'circle_shared') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-invite')?.scrollIntoView?.({ block: 'start' })); }
   }
 
   function inviter(ev: SubmitEvent) {
@@ -516,6 +569,30 @@
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
   }
 
+  /**
+   * #3283 — propriétaire : « Partager ce cercle entre ses membres ». Couper
+   * efface les accords de tous les membres : on le dit avant.
+   */
+  async function basculerPartageMembres(c: CercleNomme) {
+    if (occupe !== null) return;
+    const voulu = c.members_see_each_other !== true;
+    if (!voulu && !(await dialogs.confirm($t('v2.circle.members.confirmStop' as any).replace('{circle}', c.name), { danger: true }))) return;
+    void geste(`membres-${c.id}`, () => partagerEntreMembres(c.id, voulu), {
+      succes: voulu ? 'v2.circle.members.started' : 'v2.circle.members.stopped',
+    });
+  }
+
+  /** #3283 — membre : « Me montrer aux autres membres de « X » », faux par défaut. */
+  function basculerMeMontrer(m: CercleOuJeSuisInvite) {
+    if (occupe !== null || m.members_see_each_other !== true) return;
+    const voulu = m.show_me !== true;
+    // Sans ville, apparaître est impossible (le cloud ne montre ni ne fait voir personne) : on le dit au lieu d'activer.
+    if (voulu && monLieuPose === false) return;
+    void geste(`montrer-${m.circle_id}`, () => meMontrerDansCercle(m.circle_id, voulu), {
+      succes: voulu ? 'v2.circle.members.shown' : 'v2.circle.members.hidden',
+    });
+  }
+
   /** #6521 — couper efface chez le cloud les vignettes déjà envoyées. */
   function basculerPochettes() {
     if (occupe !== null || pochettesPartagees === null) return;
@@ -534,8 +611,7 @@
       const d = await getRayonsCercle(c.id);
       const n = [...d.tags, ...d.smart_collections].filter((r) => r.shared).length;
       if (n === 0) return null;
-      return n === 1 ? $t('v2.circle.sel.confirmStopOne' as any)
-        : $t('v2.circle.sel.confirmStopMany' as any).replace('{n}', String(n));
+      return $tn('v2.circle.sel.confirmStopN', n);
     } catch (e) {
       return plusPartage(e) ? null : $t('v2.circle.sel.confirmStopUnknown' as any);
     }
@@ -647,12 +723,36 @@
 </script>
 
 <section class="v2-circle tune-v2">
-  <header class="v2-top">
+  <header class="v2-top tete-circle">
     <div class="v2-titres">
-      <div class="v2-eyebrow">{$t('v2.nav.plugins' as any)}</div>
-      <h1>{$t('v2.circle.title' as any)}</h1>
+      <h1 class="titre-circle">{$t('v2.circle.title' as any)}</h1>
+      <!-- Découvrir montre déjà le slogan dans la scène : un seul des deux, à toute largeur. -->
+      <p class="sous-titre" class:doublon-decouvrir={!!connecte && onglet === 'decouvrir' && playlistOuverte == null && !contactOuvert}>{$t('v2.circle.tagline' as any)}</p>
     </div>
+    {#if connecte && playlistOuverte == null && !contactOuvert && !lectureSeule}
+      <button type="button" class="inviter-entete" onclick={() => void allerInviter()}>
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M22 11h-6"/></svg>
+        {$t('v2.circle.invitePeople' as any)}
+      </button>
+    {/if}
   </header>
+  {#if connecte && playlistOuverte == null && !contactOuvert}
+    <div class="onglets-circle" role="tablist" aria-label={$t('v2.circle.title' as any)} tabindex="-1" onkeydown={clavierOnglets}>
+      {#each ONGLETS_CIRCLE as o (o)}
+        <button type="button" role="tab" class="onglet onglet-{o}" id="circle-onglet-{o}" aria-controls="circle-panneau-{o}"
+          aria-selected={onglet === o} tabindex={onglet === o ? 0 : -1} onclick={() => void choisirOnglet(o)}>
+          <span class="icone-onglet" aria-hidden="true">
+            {#if o === 'decouvrir'}<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+            {:else if o === 'messages'}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+            {:else if o === 'playlists'}<svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 6h12M4 11h12M4 16h7M17 18V9l4-1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="15" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+            {:else}<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="17" cy="9" r="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 19a6 6 0 0 1 12 0M15 15a5 5 0 0 1 6 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>{/if}
+          </span>
+          <span class="libelle-onglet">{$t(LIBELLES_ONGLETS[o] as any)}</span>
+          {#if o === 'messages' && $nonLusMessagerie > 0}<span class="pastille-onglet" aria-label={$tn('v2.circle.tab.unread', $nonLusMessagerie)}>{$nonLusMessagerie}</span>{/if}
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   <div class="scroll">
     {#if $circlePlugin === null}
@@ -685,15 +785,12 @@
         <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} premium={synchro?.premium ?? null} ouverte={ecouteOuverte(synchro)} />
       {/key}
     {:else}
-      <p class="intro">{$t('v2.circle.intro' as any)}</p>
+      {#if $cercleLectureSeule}
+        <p class="note lecture-seule" role="status" data-lecture-seule={$cercleLectureSeule}>{$t(CLES_LECTURE_SEULE[$cercleLectureSeule] as any)}</p>
+      {/if}
       {#if retourNotifs}
         <button type="button" class="lnk retour-notifs" onclick={() => void revenirAuxNotifications()}>← {$t('v2.circle.notif.back' as any)}</button>
       {/if}
-
-      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
-      <MessagerieCercleV2 />
-      <CerclesGenerauxV2 />
-
       {#if retour}
         <div class={retour.erreur ? 'err retour' : 'ok retour'} role={retour.erreur ? 'alert' : 'status'}>
           <span>{retour.texte}</span>
@@ -708,80 +805,116 @@
 
       <!-- #6935 : annonce d'un blocage ou d'un déblocage (région toujours présente). -->
       <p class="ok annonce-blocage" class:muette={!annonceBlocage} role="status" aria-live="polite">{annonceBlocage}</p>
+      <div class="panneau panneau-decouvrir" id="circle-panneau-decouvrir" role="tabpanel" aria-labelledby="circle-onglet-decouvrir" hidden={onglet !== 'decouvrir'}>
+      <p class="intro">{$t('v2.circle.intro' as any)}</p>
 
-      {#if blocage === true && bloquees.length > 0}
-        <details class="bloc bloquees">
-          <summary>{$t('v2.circle.block.list' as any).replace('{n}', String(bloquees.length))}</summary>
-          <p class="note">{$t('v2.circle.block.listHint' as any)}</p>
+      <DecouvrirCercleV2 {contacts} {lieux} playlists={t5 ? playlists : null} occupe={occupe !== null}
+        onOnglet={(o) => void choisirOnglet(o)} onInviter={() => void allerInviter()}
+        onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
+        {#snippet scene()}
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length} {clePartageMembres} onMonLieuPose={(v) => (monLieuPose = v)}
+        playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
+        {/snippet}
+      </DecouvrirCercleV2>
+      <NotificationsCercleV2 onOuvrir={ouvrirNotification} />
+      </div>
+      <div class="panneau panneau-messages" id="circle-panneau-messages" role="tabpanel" aria-labelledby="circle-onglet-messages" hidden={onglet !== 'messages'}>
+      <MessagerieCercleV2 />
+      <CerclesGenerauxV2 />
+      </div>
+      <div class="panneau panneau-playlists" id="circle-panneau-playlists" role="tabpanel" aria-labelledby="circle-onglet-playlists" hidden={onglet !== 'playlists'}>
+      {#if t5}
+        <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
+          {#if erreurPlaylists}
+            <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
+            <div class="err" role="alert"><span>{phrase(erreurPlaylists)}</span>
+              <button class="lnk reessayer" onclick={() => void relire()}>{$t('v2.circle.retry' as any)}</button></div>
+          {:else}
+            <!-- rc12 (maquettes de Levente) : bandeau, filtres, tri, grille ou liste, « Vos playlists ». -->
+            <PlaylistsGrilleCercleV2 {playlists} occupe={occupe !== null} {cercles} invitePar={invitePar}
+              onOuvrir={ouvrirPlaylistPartagee} onLire={(p) => void lirePlaylistPartagee(p)}
+              onCreer={(c) => void nouvellePlaylist(c)} onPartager={(m) => void partagerDansCercleInvite(m)} />
+            {#if playlists.length === 0}
+              <p class="note vide">{$t('v2.circle.pl.none' as any)}</p>
+            {/if}
+          {/if}
+        </section>
+      {/if}
+      {#if t5 && recuperables.length > 0}
+        <section class="bloc recuperables" aria-labelledby="circle-recuperables">
+          <h2 id="circle-recuperables">{$t('v2.circle.pl.rec.title' as any)}</h2>
+          <p class="note">{$t('v2.circle.pl.rec.hint' as any)}</p>
           <ul>
-            {#each bloquees as p (p.user_id)}
-              <li class="ligne personne-bloquee">
-                <span class="nom" use:bulleTexte>{p.name}</span>
-                <span class="note">{$t('v2.circle.block.since' as any).replace('{date}', $dateCourte(p.since))}</span>
+            {#each recuperables as r (String(r.id))}
+              <li class="ligne recuperable">
+                <span class="nom" use:bulleTexte>{r.name}</span>
+                <span class="note">
+                  {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}{#if r.expires_at} · <span class="echeance">{$t('v2.circle.pl.rec.until' as any).replace('{date}', $dateCourte(r.expires_at))}</span>{/if}
+                </span>
                 <span class="gestes">
-                  <button class="lnk debloquer" disabled={occupe !== null}
-                    aria-label={$t('v2.circle.block.unblockNamed' as any).split('{name}').join(p.name)}
-                    onclick={() => debloquer(p)}>
-                    {$t('v2.circle.block.unblock' as any)}
-                  </button>
+                  <button class="lnk recuperer-copie" disabled={lectureSeule || occupe !== null}
+                    aria-label={$t('v2.circle.pl.rec.copyNamed' as any).replace('{name}', r.name)}
+                    onclick={() => recuperer(r)}>{$t('v2.circle.pl.rec.copy' as any)}</button>
+                  <button class="lnk renoncer" disabled={lectureSeule || occupe !== null}
+                    onclick={() => void renoncer(r)}>{$t('v2.circle.pl.rec.decline' as any)}</button>
                 </span>
               </li>
             {/each}
           </ul>
-        </details>
+        </section>
       {/if}
-
-      <div class="hero">
-      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
-        playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
-        {#snippet invitation()}
-          <section class="bloc inviter" aria-labelledby="circle-inviter">
-            <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
-            <form class="rangee" onsubmit={inviter}>
-              <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
-              <input id="circle-email" class="champ email" type="email" autocomplete="email"
-                placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
-              {#if cercles.length > 0}
-                <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
-                <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
-                  <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
-                  {#each cercles as c (c.id)}
-                    <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
-                  {/each}
-                </select>
-              {/if}
-              <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
-            </form>
-            {#if retourInvitation}
-              <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
-                role={retourInvitation.erreur ? 'alert' : 'status'}>
-                <span>{retourInvitation.texte}</span>
-                {#if retourInvitation.reessayer}
-                  <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
-                {/if}
-              </div>
-            {/if}
-            <!-- #6935 : inviter sans e-mail (pseudo du forum, lien à usage unique). -->
-            <InviterSansEmailV2 circleId={cercleInvitation === '' ? null : cercleInvitation} onchange={() => void relire()} />
-          </section>
-        {/snippet}
-      </SceneCercleV2>
       </div>
-
+      <div class="panneau panneau-cercle" id="circle-panneau-cercle" role="tabpanel" aria-labelledby="circle-onglet-cercle" hidden={onglet !== 'cercle'}>
+      {#if !lectureSeule}
+      <section class="bloc inviter" aria-labelledby="circle-inviter">
+        <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
+        <form class="rangee" onsubmit={inviter}>
+          <label class="sr" for="circle-email">{$t('v2.circle.emailLabel' as any)}</label>
+          <input id="circle-email" class="champ email" type="email" autocomplete="email"
+            placeholder={$t('v2.circle.emailLabel' as any)} bind:value={email} />
+          {#if cercles.length > 0}
+            <label class="sr" for="circle-ranger">{$t('v2.circle.fileInto' as any)}</label>
+            <select id="circle-ranger" class="champ ranger-dans" bind:value={cercleInvitation}>
+              <option value="">{$t('v2.circle.fileIntoNone' as any)}</option>
+              {#each cercles as c (c.id)}
+                <option value={c.id}>{$t('v2.circle.fileIntoNamed' as any).replace('{name}', c.name)}</option>
+              {/each}
+            </select>
+          {/if}
+          <button class="go envoyer" type="submit" disabled={lectureSeule || occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
+        </form>
+        {#if retourInvitation}
+          <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
+            role={retourInvitation.erreur ? 'alert' : 'status'}>
+            <span>{retourInvitation.texte}</span>
+            {#if retourInvitation.reessayer}
+              <button class="lnk reessayer" onclick={retourInvitation.reessayer}>{$t('v2.circle.retry' as any)}</button>
+            {/if}
+          </div>
+        {/if}
+        <!-- #6935 : inviter sans e-mail (pseudo du forum, lien à usage unique). -->
+        <InviterSansEmailV2 circleId={cercleInvitation === '' ? null : cercleInvitation} onchange={() => void relire()} />
+      </section>
+      {/if}
       <section class="bloc contacts" aria-labelledby="circle-contacts">
         <h2 id="circle-contacts">{$t('v2.circle.contacts' as any)}</h2>
         {#if contacts.length === 0}
           <p class="note vide">{$t('v2.circle.noContacts' as any)}</p>
         {:else}
-          <ul>
+          <!-- rc12 (maquettes de Levente) : la grille des membres — avatar (initiales : le cloud ne rend
+               pas de photo), nom, ville si le contact a choisi de la montrer, et « Ajouter un membre ». -->
+          <ul class="grille-membres">
             {#each contacts as c (c.user_id)}
-              <li class="ligne contact">
+              {@const lieu = lieux.get(c.user_id)}
+              <li class="ligne contact carte-membre">
+                <span class="avatar-membre" aria-hidden="true">{initiales(c.name)}</span>
                 <span class="nom" use:bulleTexte>{c.name}</span>
+                {#if lieu}<span class="note ville-membre" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code.toUpperCase()}{/if}</span>{/if}
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
-                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $messagerieSupport === true}<button class="lnk ecrire-au-contact" disabled={lectureSeule} onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
                   {#if $erreurOuvertureConversation?.contact === c.user_id}<span role="alert">{$t($erreurOuvertureConversation.cle as any)}</span>{/if}
-                  <button class="lnk danger revoquer" disabled={occupe !== null}
+                  <button class="lnk danger revoquer" disabled={lectureSeule || occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
                     onclick={() => void revoquer(c)}>
                     {$t('v2.circle.revoke' as any)}
@@ -789,6 +922,14 @@
                 </span>
               </li>
             {/each}
+            {#if !lectureSeule}
+            <li class="ajouter-membre-case">
+              <button type="button" class="ajouter-membre" onclick={() => void allerInviter()}>
+                <span class="plus-membre" aria-hidden="true">+</span>
+                <span>{$t('v2.circle.addMember' as any)}</span>
+              </button>
+            </li>
+            {/if}
           </ul>
         {/if}
       </section>
@@ -807,16 +948,16 @@
                   <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                   <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                   <span class="gestes">
-                    <button class="go accepter" disabled={occupe !== null}
+                    <button class="go accepter" disabled={lectureSeule || occupe !== null}
                       onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
                       {$t('v2.circle.accept' as any)}
                     </button>
-                    <button class="lnk refuser" disabled={occupe !== null}
+                    <button class="lnk refuser" disabled={lectureSeule || occupe !== null}
                       onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
                       {$t('v2.circle.decline' as any)}
                     </button>
                     {#if blocage === true}
-                      <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
+                      <button class="lnk danger bloquer" disabled={lectureSeule || occupe !== null || aBloquer === inv.id}
                         data-bloquer={inv.id}
                         aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
                         aria-expanded={aBloquer === inv.id}
@@ -829,12 +970,12 @@
                     <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
                       <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
                       <span class="gestes">
-                        <button class="risque confirmer-bloquer" disabled={occupe !== null}
+                        <button class="risque confirmer-bloquer" disabled={lectureSeule || occupe !== null}
                           data-confirmer-blocage={inv.id}
                           onclick={() => bloquer(inv.id, inv.name_or_email)}>
                           {$t('v2.circle.block.confirmAction' as any)}
                         </button>
-                        <button class="lnk annuler-bloquer" disabled={occupe !== null}
+                        <button class="lnk annuler-bloquer" disabled={lectureSeule || occupe !== null}
                           onclick={() => annulerBlocage(inv.id)}>
                           {$t('v2.circle.block.cancel' as any)}
                         </button>
@@ -851,7 +992,7 @@
           <label class="sr" for="circle-nouveau">{$t('v2.circle.newCircleLabel' as any)}</label>
           <input id="circle-nouveau" class="champ" type="text" maxlength={NOM_CERCLE_MAX}
             placeholder={$t('v2.circle.newCirclePlaceholder' as any)} bind:value={nomNouveau} />
-          <button class="go creer" type="submit" disabled={occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
+          <button class="go creer" type="submit" disabled={lectureSeule || occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
         </form>
         <p class="note nom-visible">{$t('v2.circle.newCircleHint' as any)}</p>
         {#if cercles.length === 0}
@@ -861,20 +1002,31 @@
             <article class="cercle" aria-label={c.name}>
               <div class="cercle-tete">
                 <h3 class="cercle-nom">{c.name}</h3>
-                <button class="lnk renommer" disabled={occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
+                <button class="lnk renommer" disabled={lectureSeule || occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
                 {#if $messagerieSupport === true}
-                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
+                  <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
                     onclick={() => ecrireAuCercle(c.id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                 {/if}
                 {#if t5}
-                  <button class="lnk nouvelle-playlist" disabled={occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
+                  <button class="lnk nouvelle-playlist" disabled={lectureSeule || occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
                 {/if}
-                <button class="lnk danger supprimer" disabled={occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
+                <button class="lnk danger supprimer" disabled={lectureSeule || occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
               </div>
+              {#if typeof c.members_see_each_other === 'boolean'}
+                <div class="partage partage-membres">
+                  <button class="interrupteur interrupteur-membres" role="switch" aria-checked={c.members_see_each_other}
+                    aria-label={$t('v2.circle.members.toggleNamed' as any).replace('{circle}', c.name)}
+                    disabled={lectureSeule || occupe !== null} onclick={() => void basculerPartageMembres(c)}>
+                    <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                    <span>{$t('v2.circle.members.toggle' as any)}</span>
+                  </button>
+                  <p class="note membres-quoi">{$t('v2.circle.members.what' as any)}</p>
+                </div>
+              {/if}
               {#if t2}
                 <div class="partage">
                   <button class="interrupteur interrupteur-partage" role="switch" aria-checked={ou(c) === 'ici'}
-                    disabled={occupe !== null} onclick={() => void basculerPartage(c)}>
+                    disabled={lectureSeule || occupe !== null} onclick={() => void basculerPartage(c)}>
                     <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                     <span>{$t('v2.circle.share.toggle' as any)}</span>
                   </button>
@@ -913,7 +1065,7 @@
                               {#each groupe.liste as x (`${x.kind}-${x.source_id}`)}
                                 <label class="case-rayon">
                                   <input type="checkbox" class="coche-rayon" checked={x.shared}
-                                    disabled={occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
+                                    disabled={lectureSeule || occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
                                   <span class="nom-rayon" use:bulleTexte>{x.name}</span>
                                   {#if x.count != null}<span class="note compte-rayon">{compteRayon(x)}</span>{/if}
                                 </label>
@@ -934,7 +1086,7 @@
                     <li class="ligne membre-cercle">
                       <span class="nom" use:bulleTexte>{nomDe.get(uid) ?? ''}</span>
                       <span class="gestes">
-                        <button class="lnk retirer-du-cercle" disabled={occupe !== null}
+                        <button class="lnk retirer-du-cercle" disabled={lectureSeule || occupe !== null}
                           title={$t('v2.circle.removeFromCircleHint' as any)}
                           onclick={() => retirerDe(c, uid)}>
                           {$t('v2.circle.removeFromCircle' as any)}
@@ -953,7 +1105,7 @@
                       <option value={m.user_id}>{m.name}</option>
                     {/each}
                   </select>
-                  <button class="lnk ranger" disabled={occupe !== null || ajout[c.id] === '' || ajout[c.id] == null}
+                  <button class="lnk ranger" disabled={lectureSeule || occupe !== null || ajout[c.id] === '' || ajout[c.id] == null}
                     onclick={() => ranger(c)}>{$t('v2.circle.addContact' as any)}</button>
                 </div>
               {/if}
@@ -962,7 +1114,7 @@
           {#if t2 && pochettesPartagees !== null && cercles.some((c) => ou(c) === 'ici')}
             <div class="partage partage-pochettes">
               <button class="interrupteur interrupteur-pochettes" role="switch" aria-checked={pochettesPartagees}
-                disabled={occupe !== null} onclick={basculerPochettes}>
+                disabled={lectureSeule || occupe !== null} onclick={basculerPochettes}>
                 <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                 <span>{$t('v2.circle.share.artwork' as any)}</span>
               </button>
@@ -980,16 +1132,32 @@
                 <div class="cercle-tete">
                   <h4 class="cercle-nom" use:bulleTexte>{m.circle_name}</h4>
                   {#if $messagerieSupport === true}
-                    <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
+                    <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
                       onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                   {/if}
                   {#if t5}
-                    <button class="lnk partager-ici" disabled={occupe !== null}
+                    <button class="lnk partager-ici" disabled={lectureSeule || occupe !== null}
                       aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
                       onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
                   {/if}
                 </div>
                 <p class="note cercle-de">{$t('v2.circle.msg.circleOf' as any).replace('{name}', m.owner_name)}</p>
+                {#if m.members_see_each_other === true}
+                  <div class="partage montrer-moi">
+                    <button class="interrupteur interrupteur-montrer" role="switch" aria-checked={m.show_me === true}
+                      disabled={lectureSeule || occupe !== null || (m.show_me !== true && monLieuPose === false)} onclick={() => basculerMeMontrer(m)}>
+                      <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                      <span>{$t('v2.circle.members.showMe' as any).replace('{circle}', m.circle_name)}</span>
+                    </button>
+                    {#if monLieuPose === false}
+                      <p class="note montrer-sans-ville">{$t('v2.circle.members.needCity' as any)}</p>
+                    {/if}
+                    <p class="note montrer-quoi">{$t('v2.circle.members.showMeWhat' as any).replace('{circle}', m.circle_name)}</p>
+                    {#if m.audience_count != null}
+                      <p class="note montrer-audience">{$tn('v2.circle.members.audience', m.audience_count)}</p>
+                    {/if}
+                  </div>
+                {/if}
               </article>
             {/each}
           </div>
@@ -1024,68 +1192,27 @@
           {/if}
         </section>
       {/if}
-
-
-      {#if t5}
-        <section class="bloc playlists-cercle" aria-labelledby="circle-playlists">
-          <h2 id="circle-playlists">{$t('v2.circle.pl.title' as any)}</h2>
-          <p class="note">{$t('v2.circle.pl.hint' as any)}</p>
-          {#if erreurPlaylists}
-            <div class="err" role="alert"><span>{phrase(erreurPlaylists)}</span>
-              <button class="lnk reessayer" onclick={() => void relire()}>{$t('v2.circle.retry' as any)}</button></div>
-          {:else if playlists.length === 0}
-            <p class="note vide">{$t('v2.circle.pl.none' as any)}</p>
-          {:else}
-            <ul>
-              {#each playlists as p (String(p.id))}
-                <li class="ligne playlist-cercle">
-                  <span class="nom" use:bulleTexte>{p.name}</span>
-                  <span class="note">
-                    {$t('v2.circle.pl.count' as any).replace('{n}', String(p.count))}{#if !p.mine && p.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', p.owner.name)}{/if}{#if p.circle_name} · {p.circle_name}{/if}
-                  </span>
-                  <span class="gestes">
-                    <button class="lnk lire-playlist-ligne" disabled={occupe !== null || p.count === 0}
-                      aria-label={$t('v2.circle.pl.playNamed' as any).replace('{name}', p.name)}
-                      onclick={() => void lirePlaylistPartagee(p)}>
-                      {$t('v2.circle.pl.play' as any)}
-                    </button>
-                    <button class="lnk ouvrir-playlist"
-                      aria-label={$t('v2.circle.pl.openNamed' as any).replace('{name}', p.name)}
-                      onclick={() => ouvrirPlaylistPartagee(p.id)}>
-                      {$t('v2.circle.pl.open' as any)}
-                    </button>
-                  </span>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-        </section>
-      {/if}
-
-      {#if t5 && recuperables.length > 0}
-        <section class="bloc recuperables" aria-labelledby="circle-recuperables">
-          <h2 id="circle-recuperables">{$t('v2.circle.pl.rec.title' as any)}</h2>
-          <p class="note">{$t('v2.circle.pl.rec.hint' as any)}</p>
+      {#if blocage === true && bloquees.length > 0}
+        <details class="bloc bloquees">
+          <summary>{$t('v2.circle.block.list' as any).replace('{n}', String(bloquees.length))}</summary>
+          <p class="note">{$t('v2.circle.block.listHint' as any)}</p>
           <ul>
-            {#each recuperables as r (String(r.id))}
-              <li class="ligne recuperable">
-                <span class="nom" use:bulleTexte>{r.name}</span>
-                <span class="note">
-                  {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}{#if r.expires_at} · <span class="echeance">{$t('v2.circle.pl.rec.until' as any).replace('{date}', $dateCourte(r.expires_at))}</span>{/if}
-                </span>
+            {#each bloquees as p (p.user_id)}
+              <li class="ligne personne-bloquee">
+                <span class="nom" use:bulleTexte>{p.name}</span>
+                <span class="note">{$t('v2.circle.block.since' as any).replace('{date}', $dateCourte(p.since))}</span>
                 <span class="gestes">
-                  <button class="lnk recuperer-copie" disabled={occupe !== null}
-                    aria-label={$t('v2.circle.pl.rec.copyNamed' as any).replace('{name}', r.name)}
-                    onclick={() => recuperer(r)}>{$t('v2.circle.pl.rec.copy' as any)}</button>
-                  <button class="lnk renoncer" disabled={occupe !== null}
-                    onclick={() => void renoncer(r)}>{$t('v2.circle.pl.rec.decline' as any)}</button>
+                  <button class="lnk debloquer" disabled={lectureSeule || occupe !== null}
+                    aria-label={$t('v2.circle.block.unblockNamed' as any).split('{name}').join(p.name)}
+                    onclick={() => debloquer(p)}>
+                    {$t('v2.circle.block.unblock' as any)}
+                  </button>
                 </span>
               </li>
             {/each}
           </ul>
-        </section>
+        </details>
       {/if}
-
       <section class="bloc envoyees" aria-labelledby="circle-envoyees">
         <h2 id="circle-envoyees">{$t('v2.circle.sent' as any)}</h2>
         {#if connecte.sent.length === 0}
@@ -1097,7 +1224,7 @@
                 <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                 <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                 <span class="gestes">
-                  <button class="lnk annuler" disabled={occupe !== null}
+                  <button class="lnk annuler" disabled={lectureSeule || occupe !== null}
                     onclick={() => void geste(`annuler-${inv.id}`, () => annulerInvitation(inv.id))}>
                     {$t('v2.circle.cancelInvite' as any)}
                   </button>
@@ -1107,6 +1234,7 @@
           </ul>
         {/if}
       </section>
+      </div>
     {/if}
   </div>
 </section>
@@ -1114,9 +1242,36 @@
 <style>
   .v2-circle{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; display:flex; flex-direction:column; gap:16px}
+  /* Bas : de quoi faire défiler le dernier bloc au-dessus du bouton « Remonter en haut » (60 px). */
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 110px; display:flex; flex-direction:column; gap:16px}
   /* rc8 : la scène prend toute la largeur ; les blocs de gestion gardent leur colonne lisible. */
-  .scroll > :not(.hero){max-width:880px}
+  .scroll > :not(.panneau){max-width:880px}
+  .panneau{display:flex; flex-direction:column; gap:16px; min-width:0}
+  .panneau[hidden]{display:none}
+  .panneau-cercle > .bloc, .panneau-playlists > .recuperables{max-width:880px}
+  /* rc12 — en-tête et onglets des maquettes de Levente (15/11). */
+  .tete-circle{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  .titre-circle{font-family:var(--font-display, Georgia, serif); font-weight:600; letter-spacing:-.01em;
+    font-size:calc(34px * var(--v2-txt-echelle, 1)); line-height:1.1; margin:0}
+  .sous-titre.doublon-decouvrir{display:none}
+  .sous-titre{margin:4px 0 0; color:var(--v2-txt2); font-family:var(--font-display, Georgia, serif);
+    font-size:calc(15px * var(--v2-txt-echelle, 1))}
+  .inviter-entete{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 16px; border-radius:var(--v2-r-pill);
+    border:1px solid var(--v2-acc1); background:transparent; color:var(--v2-acc-tint); cursor:pointer;
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .inviter-entete:hover{background:var(--v2-acc-soft)}
+  .inviter-entete:focus-visible,.onglet:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .onglets-circle{display:flex; gap:4px; padding:0 30px; border-bottom:1px solid var(--v2-line); overflow-x:auto;
+    scrollbar-width:none; flex:none}
+  .onglets-circle::-webkit-scrollbar{display:none}
+  .onglet{display:inline-flex; align-items:center; gap:8px; padding:12px 16px; border:0; border-bottom:2px solid transparent;
+    background:transparent; color:var(--v2-txt2); cursor:pointer; white-space:nowrap; flex:none; margin-bottom:-1px;
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .onglet:hover{color:var(--v2-txt)}
+  .onglet[aria-selected="true"]{color:var(--v2-txt); border-bottom-color:var(--v2-acc1)}
+  .icone-onglet{display:inline-grid; place-items:center}
+  .pastille-onglet{min-width:18px; height:18px; padding:0 5px; border-radius:9px; display:inline-grid; place-items:center;
+    background:var(--v2-acc1); color:var(--v2-on-acc); font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700}
   .state{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .absent,.deconnecte{padding:14px 16px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     display:flex; flex-direction:column; gap:10px; align-items:flex-start}
@@ -1137,6 +1292,7 @@
     padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .lecture-seule{margin:0 0 12px; padding:8px 12px; border-radius:8px; border:1px solid var(--v2-border, rgba(127,127,127,.25)); color:var(--v2-txt2, inherit)}
   .vide{margin:0}
   .gestes{display:flex; gap:10px; align-items:center}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
@@ -1190,8 +1346,32 @@
   .case-rayon input:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
   .nom-rayon{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  /* rc12 — Mon cercle : la grille des membres. */
+  .bloc ul.grille-membres{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px}
+  .ligne.carte-membre{display:flex; flex-direction:column; align-items:center; text-align:center; gap:4px; padding:16px 10px 12px;
+    border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface2); min-width:0}
+  .carte-membre .nom{max-width:100%; font-weight:600}
+  .ville-membre{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .carte-membre .gestes{flex-wrap:wrap; justify-content:center; margin-top:4px}
+  .avatar-membre{width:64px; height:64px; border-radius:50%; display:grid; place-items:center; margin-bottom:6px;
+    background:linear-gradient(140deg, var(--v2-acc1), var(--v2-acc2)); color:var(--v2-on-acc); border:2px solid var(--v2-acc-tint);
+    font-weight:700; font-size:calc(20px * var(--v2-txt-echelle, 1))}
+  .ajouter-membre-case{display:flex}
+  .ajouter-membre{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:150px;
+    border:1px dashed var(--v2-line2); border-radius:var(--v2-r-card); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .ajouter-membre:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  .ajouter-membre:focus-visible{outline:2px solid var(--v2-focus); outline-offset:2px}
+  .plus-membre{width:56px; height:56px; border-radius:50%; border:1px dashed currentColor; display:grid; place-items:center;
+    font-size:calc(26px * var(--v2-txt-echelle, 1)); font-weight:300}
   @media (max-width: 640px){
+    .bloc ul.grille-membres{grid-template-columns:repeat(2, minmax(0, 1fr))}
     .scroll{padding:6px 16px 32px}
+    .onglets-circle{padding:0 16px;
+      /* La barre défile : un fondu au bord droit dit qu'il reste des onglets. */
+      -webkit-mask-image:linear-gradient(to right, #000 82%, transparent); mask-image:linear-gradient(to right, #000 82%, transparent)}
+    .onglet{padding:10px 12px}
+    .titre-circle{font-size:calc(26px * var(--v2-txt-echelle, 1))}
     .ligne{grid-template-columns:minmax(0,1fr) auto}
     .ligne .note{grid-column:1}
   }

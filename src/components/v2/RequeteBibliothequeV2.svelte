@@ -9,8 +9,7 @@
    * saisie partagée (`SaisieRequeteV2`) montre où.
    */
   import { untrack } from 'svelte';
-  import { t } from '../../lib/i18n';
-  import { formatNombre } from '../../lib/formats';
+  import { tn, t } from '../../lib/i18n';
   import { chercherParRequete, type ErreurDeRequete } from '../../lib/requeteAvancee';
   import { playAndSync } from '../../lib/stores/zones';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -108,7 +107,7 @@
       <p class="etat">{$t('common.error' as any)}</p>
     {:else if total != null}
       <p class="etat">
-        {#if total === 1}{$t('requeteAvancee.countOne' as any)}{:else}{$t('requeteAvancee.count' as any).replace('{n}', $formatNombre(total))}{/if}
+        {$tn('requeteAvancee.countN', total)}
       </p>
     {/if}
 

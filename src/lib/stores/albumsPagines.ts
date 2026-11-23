@@ -310,8 +310,22 @@ export function demanderBibliothequeEntiere(): Promise<Album[]> {
   const promesse = api.getAllAlbums(2000, null, null)
     .then((liste) => {
       // Un scan passé entre-temps : cette liste décrit une bibliothèque
-      // d'avant, on ne l'écrit pas.
-      if (get(generation) !== gen) return get(albums);
+      // d'avant. Une liste DÉJÀ À L'ÉCRAN la garde : l'invalidation l'a
+      // marquée périmée, l'écran qui la montre en redemande une neuve.
+      //
+      // 🔴 Recette rc12 du .18 (14/11, « Source · Local » → « Tout (0) ») —
+      // mais une liste VIDE ne doit pas le rester. Rien ne la redemandait :
+      // n'étant pas « périmée », l'effet de l'écran ne se rejouait pas, et
+      // la Bibliothèque restait sans albums tant qu'un `library.updated`
+      // (synchronisation UPnP, scan) tombait pendant le chargement. On
+      // l'écrit donc, marquée PÉRIMÉE : elle s'affiche, et l'écran la
+      // remplace par celle de la génération courante (fil 2134).
+      if (get(generation) !== gen) {
+        if (get(albums).length) return get(albums);
+        albums.set(liste);
+        listePerimee.set(true);
+        return liste;
+      }
       albums.set(liste);
       listePerimee.set(false);
       return liste;
@@ -386,6 +400,31 @@ export function mettreAJourAlbum(maj: Partial<Album> & { id: number | null }): v
     return touche ? { ...e, pages } : e;
   });
   if (get(albums).length) albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
+}
+
+/**
+ * web#3258 — la MÊME modification portée sur plusieurs fiches (« Modifier en
+ * lot » de la sélection), en UNE passe : une seule émission par magasin, et
+ * une recherche par ensemble — pas `mettreAJourAlbum` par identifiant, qui
+ * parcourrait toute la bibliothèque pour chacun et réveillerait la grille
+ * autant de fois.
+ */
+export function mettreAJourAlbums(ids: Iterable<number>, maj: Partial<Album>): void {
+  const cibles = new Set(ids);
+  if (!cibles.size) return;
+  const { id: _id, ...champs } = maj as Partial<Album> & { id?: unknown };
+  const appliquer = (a: Album) => (a.id != null && cibles.has(a.id) ? { ...a, ...champs } : a);
+  albumsPagines.update((e) => {
+    let touche = false;
+    const pages = new Map(e.pages);
+    for (const [index, page] of pages) {
+      if (!page.some((a) => a.id != null && cibles.has(a.id))) continue;
+      pages.set(index, page.map(appliquer));
+      touche = true;
+    }
+    return touche ? { ...e, pages } : e;
+  });
+  if (get(albums).length) albums.update((liste) => liste.map(appliquer));
 }
 
 /** Pour les témoins : tout à zéro, comme au premier chargement du module. */

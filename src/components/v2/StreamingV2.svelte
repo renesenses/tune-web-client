@@ -6,6 +6,7 @@
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import type { YtElementRayon } from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import { idAncre, limiteInitiale, rubriqueCourante, type AncreRubrique } from '../../lib/ancresGenre';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
    * Streaming — nouveau client (direction Levente).
@@ -73,9 +74,16 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant, entreeCourantePorte, ongletCourant, typeArrivee, pageCourante, pageQuittee, reposerDetail } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { COLONNES_TRIABLES_NAVIGATEUR, trierPistes, triSuivant, type Tri } from '../../lib/pistesPaginees';
+  import type { CleColonne } from '../../lib/colonnesPistes';
+  const colonnesFavorisTriables = new Set<CleColonne>([
+    ...COLONNES_TRIABLES_NAVIGATEUR, 'added', 'quality',
+  ]);
+  import ChampRecherche from './ChampRecherche.svelte';
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, compteBandcampARelier, telechargementDe } from '../../lib/bandcampAchats';
   import { chargerFavorisProgressifs } from '../../lib/favorisProgressifs';
+  import { ouvrirReconnexionSpotify } from '../../lib/spotifyReconnexionFavoris';
   import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -97,7 +105,7 @@
   import { untrack } from 'svelte';
   import { retourProgrammatiqueEnCours } from '../../lib/historiqueNavigation';
   import { get } from 'svelte/store';
-  import { activeStreamingService, ficheAlbumDeRetour } from '../../lib/stores/streaming';
+  import { activeStreamingService, ficheAlbumDeRetour, genreDeServiceDemande } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -399,8 +407,12 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  let triFavoris = $state<Tri | null>(null);
   /** tune-server-rust#8040 — la suite des favoris se charge encore, derrière la première page. */
   let favSuiteEnCours = $state(false);
+  /** #3307 — Spotify refuse les artistes suivis faute de `user-follow-read`
+   *  (tune-server-rust#9250) : inviter à reconnecter, pas « aucun favori ». */
+  let artistesPorteeManquante = $state(false);
   let seqFavoris = 0;
   /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
   function allerA(id: string) {
@@ -654,7 +666,7 @@
   const playlistsVues = $derived(filtrerParAuteur(playlistsSaisies, auteurOffert ? filtreAuteur : 'tous'));
   const favAlbumsVus = $derived(filtrerParSaisie(favAlbums, q));
   const favArtistsVus = $derived(filtrerParSaisie(favArtists, q));
-  const favTracksVus = $derived(filtrerParSaisie(favTracks, q));
+  const favTracksVus = $derived(trierPistes(filtrerParSaisie(favTracks, q), triFavoris));
   const genreAlbumsVus = $derived(filtrerParSaisie(genreAlbums, q));
   const bandesGenreVues = $derived(
     bandesGenre
@@ -662,6 +674,67 @@
       .filter((b) => b.albums.length > 0),
   );
   const bcCollectionVue = $derived(filtrerParSaisie(bcCollection, q));
+
+  /**
+   * 15/11 (Bertrand, rc12) — Qobuz › Genres › Pop/Rock : chaque rubrique était
+   * une longue grille complète, il fallait toute la faire défiler pour
+   * atteindre la suivante. Deux gestes : des puces d'ancrage figées en haut
+   * (une par rubrique PRÉSENTE) et, sous chaque grille, « Voir plus » — la
+   * grille ne montre d'abord que deux rangées. Rien n'est inventé ni retiré :
+   * la suite est déjà chargée, elle est seulement repliée. Voir `ancresGenre`.
+   */
+  let largeurGenre = $state(0);
+  let rubriquesOuvertes = $state<Record<string, boolean>>({});
+  let rubriqueActive = $state<string | null>(null);
+  let navAncres = $state<HTMLElement | null>(null);
+  const limiteGenre = $derived(limiteInitiale(largeurGenre));
+  const ancresGenre = $derived.by<AncreRubrique[]>(() => {
+    if (genreLoading || rechGenre.etat === 'catalogue' || rechGenre.etat === 'chargement') return [];
+    if (genreAlbumsVus.length || !bandesGenreVues.length) return [];
+    const a = bandesGenreVues.map((b) => ({ id: idAncre(b.id), libelle: b.cle ? $t(b.cle as any) : b.nom }));
+    if (genreId && genrePlaylists.length) a.push({ id: idAncre('playlists'), libelle: $t('streaming.genrePlaylists') });
+    return a.length > 1 ? a : [];
+  });
+  const cleRubrique = (id: string) => `${genreId}|${id}`;
+  /** Les pochettes montrées d'une rubrique : deux rangées, ou tout une fois ouverte. */
+  function montrees<T>(id: string, liste: readonly T[]): readonly T[] {
+    return rubriquesOuvertes[cleRubrique(id)] ? liste : liste.slice(0, limiteGenre);
+  }
+  function ouvrirRubrique(id: string) {
+    rubriquesOuvertes = { ...rubriquesOuvertes, [cleRubrique(id)]: true };
+  }
+  /** La largeur du volet, donc des grilles : le fil d'Ariane la porte toute. */
+  function mesurerLargeur(el: HTMLElement) {
+    const lire = () => { largeurGenre = el.clientWidth; };
+    lire();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(lire) : null;
+    ro?.observe(el);
+    return { destroy: () => ro?.disconnect() };
+  }
+  function allerARubrique(id: string) {
+    rubriqueActive = id;
+    allerA(id);
+  }
+  // La puce de la rubrique visible est mise en évidence au défilement.
+  $effect(() => {
+    const zone = zoneDefilante;
+    const ids = ancresGenre.map((a) => a.id);
+    if (!zone || ids.length < 2) { rubriqueActive = null; return; }
+    const suivre = () => {
+      if (zone.scrollTop > 0 && zone.scrollTop + zone.clientHeight >= zone.scrollHeight - 2) {
+        rubriqueActive = ids[ids.length - 1];
+        return;
+      }
+      const haut = zone.getBoundingClientRect().top;
+      const seuil = (navAncres?.getBoundingClientRect().bottom ?? haut) - haut + 16;
+      rubriqueActive = rubriqueCourante(ids.map((id) => ({
+        id, haut: (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) - haut,
+      })), seuil);
+    };
+    untrack(suivre);
+    zone.addEventListener('scroll', suivre, { passive: true });
+    return () => zone.removeEventListener('scroll', suivre);
+  });
   const bcItemsVus = $derived(filtrerParSaisie(bcItems, q));
 
   // Un raccourci (ou un Précédent) qui repose le sous-onglet, écran monté.
@@ -691,6 +764,27 @@
   $effect(() => {
     const cible = ongletApresDemande(services, bandcampLive, active, $activeStreamingService);
     if (cible) ouvrirOnglet(cible);
+  });
+
+  /**
+   * web#3315 — le GENRE demandé par la fiche d'un album de service (le genre
+   * d'un album Qobuz, cliqué dans l'en-tête, « Album details » ou la colonne
+   * Genre des pistes). Consommé UNE fois, quand l'onglet du service est
+   * ouvert : Genres › ce genre, ses albums. Déclaré APRÈS la remise à zéro des
+   * genres au changement de service, qui l'effacerait sinon.
+   */
+  $effect(() => {
+    const d = $genreDeServiceDemande;
+    const svc = active;
+    if (!d || !svc || cleServeur(svc) !== d.service) return;
+    untrack(() => {
+      genreDeServiceDemande.set(null);
+      if (fiche || ficheBc) fermerCalqueAlbum();
+      q = '';
+      results = null;
+      sub = 'genres';
+      void ouvrirGenre({ id: d.id, name: d.nom || d.id, has_children: false });
+    });
   });
 
   /**
@@ -728,6 +822,8 @@
     // web#2587 — rien à charger pour un service dont la session a expiré.
     if (ongletExpire) { paneLoading = false; return; }
     paneLoading = true;
+    triFavoris = null;
+    artistesPorteeManquante = false;
     featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
@@ -799,6 +895,8 @@
           else favTracks = items;
         },
         () => { if (mien === seqFavoris) done(); },
+        undefined,
+        (type) => { if (mien === seqFavoris && type === 'artists') artistesPorteeManquante = true; },
       ).finally(() => { if (mien === seqFavoris) favSuiteEnCours = false; });
     }
   });
@@ -1464,21 +1562,10 @@
     </div>
     <div class="v2-actions">
     {#if active}
-      <div class="v2-rech">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input bind:this={champRecherche} placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))}
-               aria-label={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q}
-               onkeydown={(e) => { if (e.key === 'Escape' && q) { e.preventDefault(); viderRecherche(); } }} />
-        <!-- Fil 2208 (Didier) — la croix de la Bibliothèque, ici aussi : sans
-             elle, il fallait sélectionner tout le texte pour sortir de la
-             recherche. Même place que le témoin d'attente, qu'elle remplace. -->
-        {#if searching}<span class="spin" aria-hidden="true"></span>
-        {:else if q}
-          <button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        {/if}
-      </div>
+      <!-- Fil 2208 (Didier) — la croix et Échap effacent ; le curseur reste
+           dans le champ (`viderRecherche`). -->
+      <ChampRecherche bind:valeur={q} bind:champ={champRecherche} ecran={label(active)}
+        enCours={searching} onvider={viderRecherche} />
     {/if}
     </div>
   </header>
@@ -1825,7 +1912,7 @@
         </div>
         <div class="state">{$t('streaming.pickGenre')}</div>
       {:else}
-        <div class="crumb">
+        <div class="crumb" use:mesurerLargeur>
           <button class="lnk" onclick={retourGenres}>← {$t('streaming.allGenres')}</button>
           <span class="cur">{genrePath[0].name}</span>
         </div>
@@ -1837,6 +1924,15 @@
                 onclick={() => (genreId = sg2.id)}>{sg2.name}</button>
             {/each}
           </div>
+        {/if}
+        {#if ancresGenre.length}
+          <!-- 15/11 — une puce par rubrique présente ; figée en haut au défilement. -->
+          <nav class="sommaire ancres-genre" bind:this={navAncres} aria-label={$t('v2.stream.genreSections' as any)}>
+            {#each ancresGenre as x (x.id)}
+              <button class="chip" class:active={rubriqueActive === x.id} aria-current={rubriqueActive === x.id ? 'true' : undefined}
+                onclick={() => allerARubrique(x.id)}>{x.libelle}</button>
+            {/each}
+          </nav>
         {/if}
         {#if rechGenre.etat === 'catalogue'}
           <!-- #6231 — les résultats de la recherche du service, dans le genre. -->
@@ -1862,15 +1958,17 @@
           <!-- La grille NUE : un serveur qui ignore `?section=` (0.9.156 et
                avant) n'a qu'une liste a donner, et l'ecran reste celui d'avant
                #1300 — pas de titre invente, pas de bande en double. -->
-          <div class="grid">{#each genreAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          <div class="grid">{#each montrees('', genreAlbumsVus) as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          {@render voirPlusRubrique('', genreAlbumsVus.length)}
         {:else if bandesGenreVues.length}
           <!-- #1300 — une bande par RUBRIQUE du genre. Les sept libelles
                existaient deja dans les onze langues ; seule l'ancienne
                coquille s'en servait. -->
           {#each bandesGenreVues as b (b.id)}
-            <section class="sec">
+            <section class="sec rubrique" id={idAncre(b.id)}>
               <h2>{b.cle ? $t(b.cle as any) : b.nom}</h2>
-              <div class="grid">{#each b.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              <div class="grid">{#each montrees(b.id, b.albums) as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+              {@render voirPlusRubrique(b.id, b.albums.length)}
             </section>
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
@@ -1883,9 +1981,10 @@
         {/if}
         {#if genreId && genrePlaylists.length}
           <!-- #5313 — Cyrille Moutia, fil 1685 : les playlists Qobuz du genre. -->
-          <section class="sec">
+          <section class="sec rubrique" id={idAncre('playlists')}>
             <h2>{$t('streaming.genrePlaylists')}</h2>
-            <div class="grid">{#each genrePlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            <div class="grid">{#each montrees('playlists', genrePlaylists) as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => ouvrirCalquePlaylist(p))}{/each}</div>
+            {@render voirPlusRubrique('playlists', genrePlaylists.length)}
           </section>
         {/if}
       {/if}
@@ -1930,6 +2029,15 @@
           {/each}
         </nav>
       {/if}
+      {#if artistesPorteeManquante}
+        <!-- #3307 — compte Spotify relié avant user-follow-read
+             (tune-server-rust#9250) : la liste des artistes arrive vide, en
+             200. Le dire, avec le geste qui règle. -->
+        <div class="state" data-reconnexion-artistes>
+          {$t('favorites.spotifyReconnectFollowed' as any)}
+          <button class="chip" onclick={ouvrirReconnexionSpotify}>{$t('favorites.spotifyReconnectAction' as any)}</button>
+        </div>
+      {/if}
       {#if favAlbumsVus.length}
         <section class="sec" id="fav-albums"><h2>{$t('v2.rech.albums' as any)}</h2>
           <div class="grid">{#each favAlbumsVus as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
@@ -1953,6 +2061,9 @@
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="liste">
             <ListePistesV2 pistes={favTracksVus as any} numerotation="aucune" pochetteEnTableau
+              colonnesVidesMasquees colonneAjout
+              tri={triFavoris} triables={colonnesFavorisTriables}
+              onTrier={(cle) => { triFavoris = triSuivant(triFavoris, cle); }}
               onLire={(_pi, i) => lireFavorisDepuis(i)}
               clef={(pi, i) => cleItem(pi as any, i)} />
           </div>
@@ -2084,6 +2195,15 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
+{#snippet voirPlusRubrique(id: string, total: number)}
+  {#if !rubriquesOuvertes[cleRubrique(id)] && total > limiteGenre}
+    <!-- 15/11 — la suite est DÉJÀ chargée : « Voir plus » la déplie, rien de plus. -->
+    <button class="voirplus" data-voir-plus={id} onclick={() => ouvrirRubrique(id)}>
+      {$t('v2.rech.seeMore' as any).replace('{n}', String(total - limiteGenre))}
+    </button>
+  {/if}
+{/snippet}
+
 {#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <!-- Point 10 (Yves Corbat, 17/09/2026) : un album ANNONCÉ porte sa date.
@@ -2196,9 +2316,6 @@
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);
-    border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
-  @keyframes sp{to{transform:rotate(360deg)}}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:calc(12.5px * var(--v2-txt-echelle, 1)); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
@@ -2288,6 +2405,18 @@
     border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
     font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  /* 15/11 — les puces d'ancrage d'un genre : même bande figée que le sommaire
+     des favoris (`.scroll` commence SOUS l'en-tête et sa grappe d'icônes),
+     la puce de la rubrique visible en évidence, et le titre d'une rubrique
+     atteinte par une puce n'est pas caché sous la bande. */
+  .sommaire .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .ancres-genre{z-index:3}
+  .sec.rubrique{scroll-margin-top:64px}
+  @media (max-width: 640px){
+    .ancres-genre{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .ancres-genre::-webkit-scrollbar{display:none}
+    .ancres-genre .chip{flex:0 0 auto; white-space:nowrap}
+  }
   .sommaire .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .chips.auteur .chip .n{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); opacity:.75}
   .sec h2{font-size:calc(17px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:14px}

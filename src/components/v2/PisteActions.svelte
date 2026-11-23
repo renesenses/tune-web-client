@@ -16,6 +16,11 @@
    * Aucun bouton n'est inventé : chacun correspond à une action que le client
    * sait déjà faire.
    *
+   * 🔄 web#3121 (16/11/2026) — la barre n'en garde plus que QUATRE : Lire
+   * (ce morceau seulement), Lire à partir d'ici, le cœur, le « … ». Les
+   * autres gestes décrits ci-dessous vivent au menu « … ». L'historique qui
+   * suit reste pour mémoire.
+   *
    * ## Cinq, comme sur les pochettes
    *
    * | Icône | Action |
@@ -68,7 +73,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { corpsDeFile, corpsDeLecture, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { corpsDeFile, corpsDeLecture, corpsDeLectureSeule, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import {
     bannir, bannissableDeService, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
@@ -90,9 +95,9 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
-  import { actionsReduites } from '../../lib/actionsRapides';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste, rangerMenuPiste } from '../../lib/menuPiste';
+  import { idAnalyseDe } from '../../lib/spectrogramme';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
@@ -111,8 +116,11 @@
 
   interface Props {
     piste: Track;
+    /**
+     * L'ORIGINE de la lecture (album, playlist…), jointe au corps envoyé —
+     * reprise de lecture #2467. Elle ne change pas CE qui est joué.
+     */
     contexte?: Record<string, string>;
-    surLire?: (() => void) | null;
     /**
      * « Lire à partir d'ici » — #1061, FabienM, fil 1812, point 9.
      *
@@ -145,8 +153,21 @@
      * pose dans la MÊME case que son propre cœur. `null` : rien ne change.
      */
     coeur?: CoeurExterne | null;
+    /**
+     * rc12 — « Supprimer de cette playlist » : fourni par l'écran d'une
+     * playlist MODIFIABLE (même geste que la croix de la ligne). `null` :
+     * l'entrée du menu est absente.
+     */
+    onRetirer?: (() => void) | null;
+    /**
+     * web#3121 — ce que fait « Lire » (bouton et entrée du menu) quand l'écran
+     * le sait mieux que la barre. Seul l'écran File le pose : il SAUTE au
+     * titre sans toucher la file (`jumpInQueue`). `null` : ce titre seul, à la
+     * place de la file.
+     */
+    onLire?: (() => void) | null;
   }
-  let { piste, onLireDepuis = null, coeur = null, contexte = {}, surLire = null }: Props = $props();
+  let { piste, onLireDepuis = null, coeur = null, contexte = {}, onRetirer = null, onLire = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -254,14 +275,23 @@
   async function lire(e: MouseEvent) {
     stop(e);
     const zid = $currentZoneId;
-    const corps = corpsDeLecture(piste);
+    // web#3121 — ce titre SEUL, à la place de la file : `corpsDeLectureSeule`
+    // (`track_ids` pour une piste locale, `queue_follows` pour un service).
+    // Voir `lib/pisteFile`.
+    const corps = corpsDeLectureSeule(piste);
     if (zid == null || !corps) return;
     // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
     if (!(await confirmerLectureBannie(piste))) return;
+    // web#3121 — l'écran File fournit son geste : SAUTER au titre, la file
+    // intacte. Un titre seul à la place de la file l'effacerait.
+    if (onLire) { onLire(); return; }
     // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
     // accole le message du serveur au lieu du seul « Impossible de lire ce
     // titre », et n'empile pas deux bandeaux identiques (#3732).
-    if (surLire) { surLire(); return; }
+    // 🔴 web#3121 (FabienM, fil 2864) — « Lire » ne joue QUE ce morceau, sur
+    // tous les écrans. Sur un album ou une playlist, il rejouait la liste à
+    // partir de la ligne (`surLire`, #2467) : c'est le geste du bouton voisin,
+    // « Lire à partir d'ici ». Le contexte reste joint, pour la reprise.
     playAndSync(zid, { ...corps, ...contexte } as any).catch(signalerEchecLecture);
   }
 
@@ -462,6 +492,8 @@
         // service n'a ni voisins acoustiques, ni versions. (Les étiquettes,
         // si : `etiquetable` ci-dessous, #1238.)
         idBibliotheque: local && piste.id != null ? piste.id : null,
+        // Go du 13/11 — spectrogramme et fiche d'une piste Qobuz / TIDAL.
+        idAnalyse: local ? null : idAnalyseDe(piste),
         artistId: piste.artist_id ?? null,
         albumId: typeof piste.album_id === 'number' ? piste.album_id : null,
         albumDeService,
@@ -495,6 +527,7 @@
         autresVersions: () => (panneauVersions = true),
         ajouterAPlaylist: () => (modalePlaylist = true),
         ajouterAPlaylistDeCercle: () => (modaleCercle = true),
+        retirerDeLaPlaylist: onRetirer ? () => onRetirer?.() : undefined,
         partagerMessage: () => { const c = carteDepuisPiste(piste); if (c) carteAPartager.set(c); },
         allerArtiste,
         allerAlbum,
@@ -520,30 +553,22 @@
     void chargerSas();
     ancreMenu = (e.currentTarget as HTMLElement).getBoundingClientRect();
   }
-  /** #1892 — l'option « icônes réduites » (Réglages › Affichage). */
-  const reduite = $derived(actionsReduites($preferences));
 </script>
 
-<span class="pactions" class:a-favori={coeurPlein} class:reduite>
-  <!-- #1892 — icônes réduites : les quatre raccourcis que le menu « … »
-       reprend disparaissent AVEC leurs cases. web#2213 (Sandro, fil 2317) :
-       des cases vides en tête gardaient la barre à huit cases, donc la
-       colonne à 238 px, dont 120 vides — au zoom, le tableau débordait et le
-       « … » sortait de l'écran. La barre réduite a QUATRE cases, toujours les
-       mêmes (lire, à partir d'ici, cœur, menu), et la colonne
-       (`largeurActions`, `ListePistesV2`) les suit : l'alignement d'une
-       ligne à l'autre tient, l'option valant pour tout l'écran. -->
-  <!-- 🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163).
+<span class="pactions" class:a-favori={coeurPlein}>
+  <!-- 🔴 web#3121 (FabienM, fil 2864 ; go de Bertrand du 16/11/2026) —
+       QUATRE cases, sur toutes les lignes de piste : Lire (ce morceau
+       seulement), Lire à partir d'ici, le cœur, et le « … ». Lire ensuite,
+       Ajouter à la file, Ajouter à une playlist et Étiquettes sont au menu
+       « … » (`ACTIONS_MASQUABLES`, `lib/actionsRapides`). C'était l'option
+       « icônes réduites » (#1892, Sandro, fil 2114) : elle devient la seule
+       forme, et le réglage disparaît.
 
-       Un geste qui n'a pas lieu d'être était ABSENT, et tout ce qui le suivait
-       glissait d'une case : dans l'Historique, une ligne Bandcamp (pas de
-       playlist de service en écriture, `playlistService.ts`) portait ses
-       étiquettes, son cœur et son « … » une colonne à gauche de ceux de la
-       ligne Qobuz du dessus. La règle « absent, pas grisé » tient toujours —
-       rien n'est proposé qui ne soit possible —, mais l'absence occupe
-       désormais sa place : une case VIDE de même largeur, ni focusable, ni
-       annoncée, ni cliquable. La barre a donc toujours huit cases, et
-       `LARGEUR_ACTIONS` (`ListePistesV2`) les compte. -->
+       🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163) :
+       un geste qui n'a pas lieu d'être laisse une case VIDE de même largeur,
+       ni focusable, ni annoncée, ni cliquable, pour que les icônes restent
+       en colonne d'une ligne à l'autre. `LARGEUR_ACTIONS` (`ListePistesV2`)
+       compte ces quatre cases. -->
   {#if jouable}
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
       <!-- lucide `play` — tracé officiel, sans retouche. -->
@@ -569,77 +594,6 @@
     </button>
   {:else}
     <span class="pa vide" aria-hidden="true"></span>
-  {/if}
-  {#if reduite}
-    <!-- #1892 — masqués : lire ensuite et ajouter à la file sont au menu. -->
-  {:else if jouable}
-    <!-- Une LISTE dont la lecture entre en TETE : lucide `list-start`, tracé
-         officiel. L'icone d'avant etait un dessin maison — une liste plus un
-         triangle — qui se confondait avec celle de « lire a partir d'ici » une
-         fois les deux boutons cote a cote. Avant elle, `skip-forward` : celle
-         de « piste suivante » de la barre de transport, deux gestes tres
-         differents sous le meme dessin. -->
-    <button class="pa" onclick={ensuite} disabled={occupe}
-            title={$t('v2.pa.next' as any)} aria-label={$t('v2.pa.next' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 5h6"/><path d="M3 12h13"/><path d="M3 19h13"/>
-        <path d="m16 8-3-3 3-3"/><path d="M21 19V7a2 2 0 0 0-2-2h-6"/>
-      </svg>
-    </button>
-    <button class="pa" onclick={aLaFile} disabled={occupe}
-            title={$t('v2.pa.queue' as any)} aria-label={$t('v2.pa.queue' as any)}>
-      <!-- lucide `list-plus`, tracé officiel. La MEME liste que « lire
-           ensuite », un plus en plus : c'est l'accent qui distingue les deux
-           gestes, pas le dessin. -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 5H3"/><path d="M11 12H3"/><path d="M16 19H3"/>
-        <path d="M18 9v6"/><path d="M21 12h-6"/>
-      </svg>
-    </button>
-  {:else}
-    <span class="pa vide" aria-hidden="true"></span>
-    <span class="pa vide" aria-hidden="true"></span>
-  {/if}
-  <!-- #1268 : une piste de SERVICE n'allait que dans une playlist de SON
-       service (`playlistService.ts`) : pour un service qui ne sait pas écrire,
-       le bouton ouvrait les playlists Tune et l'ajout s'y perdait en silence.
-       🔄 #4889 : le serveur ENREGISTRE désormais un titre de service dans une
-       playlist Tune. La case vaut donc pour tout titre désignable
-       (`rangeableEnPlaylist`) — Bandcamp et YouTube ne l'ont plus vide. -->
-  {#if reduite}
-    <!-- #1892 — masqué : « Ajouter à une playlist » est au menu. -->
-  {:else if jouable && rangeableEnPlaylist(piste)}
-    <button class="pa" onclick={(e) => { stop(e); modalePlaylist = true; }}
-            title={$t('v2.pa.playlist' as any)} aria-label={$t('v2.pa.playlist' as any)}>
-      <!-- 🔴 Le glyphe des PLAYLISTS, celui de la barre laterale — pas une
-           disquette. Bertrand, 05/09/2026 : « l'icone enregistrer pas
-           adaptee ». Une disquette dit « enregistrer un fichier », ce qui n'est
-           pas le geste : on range un titre dans une liste. Reprendre le dessin
-           que la barre laterale porte deja pour « Playlists » le rend lisible
-           sans legende. -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 5H3"/><path d="M11 12H3"/><path d="M11 19H3"/>
-        <path d="M21 16V5"/><circle cx="18" cy="16" r="3"/>
-      </svg>
-    </button>
-  {:else}
-    <span class="pa vide" aria-hidden="true"></span>
-  {/if}
-  <!-- #1892 — réduite : « Étiquettes » est au menu, la case passe en tête. -->
-  {#if !reduite}
-  {#if cibleEtiquettes}
-    <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
-            onclick={(e) => { e.stopPropagation(); panneauEtiquettes = !panneauEtiquettes; }}
-            title={$t('v2.cover.tags' as any)} aria-label={$t('v2.cover.tags' as any)}>
-      <!-- lucide `tag`, tracé officiel. -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>
-        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>
-      </svg>
-    </button>
-  {:else}
-    <span class="pa vide" aria-hidden="true"></span>
-  {/if}
   {/if}
   {#if coeurAffiche}
     <button class="pa coeur" class:on={coeurPlein} onclick={cliquerCoeur}
@@ -697,14 +651,14 @@
   {/await}
 {/if}
 
-{#if panneauSpectro && local && piste.id != null}
+{#if panneauSpectro && (local || idAnalyseDe(piste) != null) && piste.id != null}
   {#await import('./SpectrogrammePanneau.svelte') then m}
-    <m.default trackId={piste.id} titre={piste.title}
+    <m.default trackId={piste.id} titre={piste.title} source={local ? null : piste.source ?? null}
       onClose={() => (panneauSpectro = false)} />
   {/await}
 {/if}
 
-{#if panneauFiche && local && piste.id != null}
+{#if panneauFiche && (local || idAnalyseDe(piste) != null) && piste.id != null}
   {#await import('./FicheTechniquePanneau.svelte') then m}
     <m.default trackId={piste.id} titre={piste.title}
       onClose={() => (panneauFiche = false)} />

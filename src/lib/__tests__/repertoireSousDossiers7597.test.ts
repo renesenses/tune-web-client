@@ -27,6 +27,7 @@ import { activeView } from '../stores/navigation';
 import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { preferences } from '../stores/preferences';
 import { clicDansUnMenu } from '../clicDansUnMenu';
+import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -132,6 +133,7 @@ afterEach(() => {
 
 async function ouvrirBibliotheque() {
   activeView.set('library');
+  epinglerTousLesFiltres(); // maquette de Levente : toutes les puces dans la rangée
   monte = mount(LibraryV2, { target: hote!, props: {} as any });
   for (let i = 0; i < 10; i++) await new Promise((r) => setTimeout(r, 0));
   flushSync();

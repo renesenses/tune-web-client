@@ -4,11 +4,12 @@
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { confirmerRetraitTitre, confirmerSuppressionPlaylist } from '../../lib/confirmationsPlaylist';
   import { isPremium } from '../../lib/stores/license';
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
-  import { creerRetraitPlaylist } from '../../lib/retraitPlaylist';
+  import { creerRetraitPlaylist, aMoiChezLeService, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { shareLink } from '../../lib/playlistShare';
   import { formatTime, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
@@ -29,6 +30,7 @@
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import ImportPlaylistFichier from '../v2/ImportPlaylistFichier.svelte';
   import BasculeAffichage from '../v2/BasculeAffichage.svelte';
+  import ChampRecherche from '../v2/ChampRecherche.svelte';
   import { LISTE_ET_DEUX_GRILLES, type AffichageEtendu } from '../../lib/affichage';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   /**
@@ -1498,7 +1500,13 @@
     }
   }
 
-  async function deletePlaylist(id: number) {
+  /**
+   * web#3255 (reprend web#3090, fil 2849) — la corbeille de la carte ne
+   * demandait rien : un clic de trop effaçait la playlist et toutes ses
+   * lignes. La question nomme la playlist et son nombre de titres.
+   */
+  async function deletePlaylist(id: number, nom: string, nbTitres: number | null | undefined) {
+    if (!(await confirmerSuppressionPlaylist(nom, nbTitres))) return;
     try {
       await api.deletePlaylist(id);
       if (selectedPlaylist?.id === id) goBack();
@@ -1528,6 +1536,27 @@
     if (!issue || selectedPlaylist?.id !== pl.id) return;
     detailTracks = issue.pistes;
     if (!issue.ok) console.error('Remove track error: le serveur n’a rien retiré');
+  }
+
+  /**
+   * web#3067 — retirer un titre d'une playlist DU SERVICE dont l'utilisateur
+   * est propriétaire (`editable: true`), comme la fiche V2 (#2098) : toutes
+   * ses occurrences, par la même règle (`lib/retraitPlaylist`).
+   */
+  let retraitService = $state(false);
+  async function retirerDuService(t: Track) {
+    const pl = selectedStreamingPl;
+    const service = selectedService;
+    if (!pl || !aMoiChezLeService(pl) || !service || retraitService) return;
+    retraitService = true;
+    try {
+      const reste = await retirerTitreDuService(api.removeStreamingPlaylistTracks, service, String(pl.source_id), detailTracks, t);
+      if (reste && selectedStreamingPl?.source_id === pl.source_id) detailTracks = reste;
+    } catch {
+      notifications.error($tr('v2.pl.removeFromServiceError' as any).replace('{service}', service));
+    } finally {
+      retraitService = false;
+    }
   }
 
   /**
@@ -2036,7 +2065,9 @@
           onLire={(_p, i) => playFromIndex(i)} onLireDepuis={(_p, i) => playFromIndex(i)}
           clef={(_p, i) => i}
           reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}
-          apres={selectedPlaylist ? retirer : undefined} largeurApres="36px"
+          apres={selectedPlaylist ? retirer : aMoiChezLeService(selectedStreamingPl) ? retirerService : undefined} largeurApres="36px"
+          retirerDe={selectedPlaylist ? async (t, i) => { if (await confirmerRetraitTitre(t, selectedPlaylist?.name)) void removeTrack(i); }
+            : aMoiChezLeService(selectedStreamingPl) ? async (t) => { if (await confirmerRetraitTitre(t, selectedStreamingPl?.name)) void retirerDuService(t); } : null}
           etiquetteIndispo="playlist.unavailable" />
         <!-- Le rang pour clé : une playlist peut contenir DEUX fois la même
              piste, et deux clés identiques arrêtent Svelte
@@ -2047,6 +2078,15 @@
                n'a pas, parce qu'il n'a de sens que dans une playlist locale. -->
           <button class="remove-btn" onclick={() => removeTrack(index)} disabled={retraitEnCours}
             title={$tr('playlist.remove')} aria-label={$tr('playlist.remove')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/snippet}
+        {#snippet retirerService(t: Track)}
+          <!-- web#3067 — playlist du service à soi (`editable: true`) : le
+               retrait part chez le service. Suivie ou éditoriale : rien. -->
+          <button class="remove-btn retrait-service" onclick={() => retirerDuService(t)} disabled={retraitService}
+            title={$tr('v2.pl.removeFromService' as any).replace('{service}', selectedService)}
+            aria-label={$tr('v2.pl.removeFromService' as any).replace('{service}', selectedService)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         {/snippet}
@@ -2070,15 +2110,8 @@
         {/if}
       </div>
       <div class="pm-header-right">
-        <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder={$tr('playlist.searchPlaceholder')} bind:value={searchQuery} />
-          {#if searchQuery}
-            <button class="search-clear" onclick={() => searchQuery = ''}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          {/if}
-        </div>
+        <!-- Recette rc12 (13/11) — le champ partagé de tous les écrans. -->
+        <ChampRecherche bind:valeur={searchQuery} ecran={$tr('playlist.manager')} />
         <!--
           Le bouton vit dans l'en-tête COMMUN aux onglets du gestionnaire, mais
           le formulaire qu'il ouvre n'est rendu que dans la branche de l'onglet
@@ -2695,7 +2728,7 @@
                 <button onclick={(e) => { e.stopPropagation(); item.local?.id && handleSharePlaylist(item.local.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 </button>
-                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
+                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id, item.name, item.local.track_count ?? item.trackCount); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </button>
               {/if}
@@ -3271,55 +3304,6 @@
     font-weight: 700;
   }
 
-  /* Search */
-  .search-box {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--tune-grey2);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    padding: 4px 10px;
-    transition: border-color 0.12s;
-  }
-
-  .search-box:focus-within {
-    border-color: var(--tune-accent);
-  }
-
-  .search-icon {
-    color: var(--tune-text-muted);
-    flex-shrink: 0;
-  }
-
-  .search-box input {
-    background: none;
-    border: none;
-    outline: none;
-    color: var(--tune-text);
-    font-family: var(--font-body);
-    font-size: calc(13px * var(--v2-txt-echelle, 1));
-    width: 180px;
-  }
-
-  .search-box input::placeholder {
-    color: var(--tune-text-muted);
-  }
-
-  .search-clear {
-    background: none;
-    border: none;
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-  }
-
-  .search-clear:hover {
-    color: var(--tune-text);
-  }
-
   /* Source badge */
   .source-dot {
     display: inline-block;
@@ -3387,7 +3371,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3633,7 +3617,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3652,7 +3636,7 @@
     cursor: pointer;
     padding: 8px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
   }
 
@@ -3674,7 +3658,10 @@
   }
 
   /* « Retirer de la playlist » — le suffixe de la liste commune, compilé ici.
-     Discret au repos, visible au survol de la ligne ou au focus. */
+     rc12 (Bertrand, 15/11/2026, « Elle manque cette croix ! ») : la croix est
+     VISIBLE au repos — elle était à `opacity: 0` hors survol, donc introuvable
+     et jamais affichée sur un écran tactile. Couleur atténuée au repos,
+     pleine au survol de la ligne ou au focus. */
   .remove-btn {
     background: none;
     border: none;
@@ -3682,7 +3669,7 @@
     cursor: pointer;
     padding: 6px;
     border-radius: var(--radius-sm);
-    opacity: 0;
+    opacity: 0.75;
     transition: all 0.12s ease-out;
     display: flex;
     align-items: center;

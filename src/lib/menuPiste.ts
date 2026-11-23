@@ -84,9 +84,13 @@ export const ICONES = {
   /** rc12 — « Lecture aléatoire », le ⤮ de la fiche album (BoutonLectureV2). */
   shuffle: 'M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3',
   queue: 'M4 7h11M4 12h11M4 17h7M18 14.5v6M15 17.5h6',
+  /** web#3247 — « Lire en boucle » : les deux flèches du bouton Répéter. */
+  repeat: 'M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3',
   similar: 'M4 12a8 8 0 0 1 8-8M20 12a8 8 0 0 1-8 8M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5',
   versions: 'M7 7h14v14H7zM3 17V5a2 2 0 0 1 2-2h12',
   playlist: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6M16 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4',
+  /** rc12 — « Supprimer de cette playlist » : la croix de la ligne. */
+  retirer: 'M6 6l12 12M18 6L6 18',
   artist: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   album: 'M3 3h18v18H3zM9 9h6M9 13h4',
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
@@ -150,6 +154,12 @@ export interface CapacitesPiste {
   jouable: boolean;
   /** Piste de la BIBLIOTHÈQUE portant un identifiant numérique. */
   idBibliotheque: number | null;
+  /**
+   * Go du 13/11 — piste QOBUZ ou TIDAL de la bibliothèque (identifiant
+   * numérique) : son spectrogramme et sa fiche technique se calculent par
+   * téléchargement (`lib/spectrogramme`, `idAnalyseDe`).
+   */
+  idAnalyse?: number | null;
   artistId: number | null;
   albumId: number | null;
   /**
@@ -264,6 +274,12 @@ export interface GestesPiste {
   plusCommeCa?: () => void;
   autresVersions?: () => void;
   ajouterAPlaylist?: () => void;
+  /**
+   * rc12 (Bertrand, 15/11/2026) — « Supprimer de cette playlist » : CETTE
+   * occurrence, par la même fonction que la croix de la ligne. Fourni
+   * seulement par un écran de playlist MODIFIABLE ; absent ailleurs.
+   */
+  retirerDeLaPlaylist?: () => void;
   /** « Ajouter à une playlist de cercle » — Tune Circle T5. */
   ajouterAPlaylistDeCercle?: () => void;
   allerArtiste?: () => void;
@@ -377,6 +393,9 @@ export function entreesMenuPiste(
   );
   // Tune Circle T5 (#5328) : juste sous l'entrée des playlists, même icône —
   // c'est le même geste, vers une playlist commune à un cercle.
+  // rc12 — juste sous « Ajouter à une playlist » : l'écran de la playlist
+  // modifiable fournit le geste, sinon l'entrée est absente.
+  pousser(true, 'v2.pl.removeFromThisPlaylist', ICONES.retirer, g.retirerDeLaPlaylist);
   pousser(!!c.playlistDeCercle, 'v2.circle.pl.addToCircle', ICONES.playlist, g.ajouterAPlaylistDeCercle);
   pousser(!!c.playlistDeCercle, 'v2.circle.msg.share', ICONES.playlist, g.partagerMessage);
   /**
@@ -485,16 +504,18 @@ export function entreesMenuPiste(
   /**
    * « Spectrogramme » — tune-server-rust#7857 (PR #7897). Une piste de la
    * BIBLIOTHÈQUE seulement : la route prend un `i64` de `tracks` et lit le
-   * fichier local. Absente d'une piste de service, pas grisée.
+   * fichier local. Absente d'une piste de service, pas grisée — sauf une
+   * piste Qobuz / TIDAL de la bibliothèque (go du 13/11, `idAnalyse`), que
+   * le serveur télécharge pour le calcul.
    */
-  pousser(deLaBibliotheque, 'spectro.menu', ICONES.spectro, g.spectrogramme);
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'spectro.menu', ICONES.spectro, g.spectrogramme);
   /**
    * « Fiche technique » — tune-server-rust#8160 (go de Bertrand du 09/11).
    * Même règle que le spectrogramme : la route prend l'`i64` de `tracks`.
    * Une piste de la bibliothèque SANS fichier (service) l'a aussi : la fiche
    * n'y montre que ce qui existe.
    */
-  pousser(deLaBibliotheque, 'fiche.menu', ICONES.fiche, g.ficheTechnique);
+  pousser(deLaBibliotheque || c.idAnalyse != null, 'fiche.menu', ICONES.fiche, g.ficheTechnique);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *

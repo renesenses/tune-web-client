@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { ficheAlbumDeRetour, type CibleFicheAlbumService } from './streaming';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'crossfeedpro' | 'crosstalk' | 'roomcorrection' | 'reaffectation' | 'surechantillonnage' | 'plugins' | 'onboarding' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp' | 'concerts' | 'pontroon' | 'lecturecd' | 'circle' | 'source' | 'streamingartist' | 'streamingalbum' | 'streaminglabel' | 'bannedtracks' | 'ecouterplustard' | 'tableaudebord' | 'collectionphysique' | 'statsbibliotheque';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'crossfeedpro' | 'crosstalk' | 'tess' | 'roomcorrection' | 'reaffectation' | 'surechantillonnage' | 'plugins' | 'onboarding' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp' | 'concerts' | 'pontroon' | 'lecturecd' | 'circle' | 'source' | 'streamingartist' | 'streamingalbum' | 'streaminglabel' | 'bannedtracks' | 'ecouterplustard' | 'tableaudebord' | 'collectionphysique' | 'statsbibliotheque';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
@@ -286,7 +286,7 @@ export const pendingLibraryYear = writable<number | null>(null);
  * de l'écran des statistiques de la bibliothèque. Même contrat que
  * `pendingLibraryYear` : la Bibliothèque le consomme puis le remet à `null`.
  */
-export const pendingLibraryFiltre = writable<{ format: string } | { frequence: number } | null>(null);
+export const pendingLibraryFiltre = writable<{ format: string } | { frequence: number } | { paysArtiste: string } | null>(null);
 
 export interface NavContext {
   view: View;

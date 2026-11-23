@@ -39,6 +39,10 @@ export interface PageMessages { conversation: ConversationCercle; messages: Mess
 export const messagerieSupport = writable<boolean | null>(null);
 export const demandeConversation = writable<{ contact?: number; conversation?: number; cercle?: number; general?: number } | null>(null);
 export const erreurOuvertureConversation = writable<{ contact: number; cle: string } | null>(null);
+/** rc12 (maquettes de Levente) — les non-lus de la messagerie, pour la pastille de l'onglet Messages,
+ *  et ses conversations, pour la carte « Messages récents » de Découvrir. Tenus par `MessagerieCercleV2`. */
+export const nonLusMessagerie = writable(0);
+export const apercuConversations = writable<ConversationCercle[]>([]);
 export function ecrireAuContact(contact: number): void {
   erreurOuvertureConversation.set(null);
   demandeConversation.set({ contact });

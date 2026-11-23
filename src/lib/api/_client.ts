@@ -1,9 +1,7 @@
 // Internals partagés entre les sous-modules api/*.
 // Préfixe `_` = ne pas importer côté composants ; passer par `lib/api`.
 
-import { get } from 'svelte/store';
-import { notifications } from '../stores/notifications';
-import { t } from '../i18n';
+import { annoncerServeurInjoignable, serveurARepondu } from '../bandeauServeurInjoignable';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
 import { corpsJson, fusionnerEntetes } from '../fusionEntetes';
@@ -15,13 +13,6 @@ import { CODE_REFUS_PAYS_RADIO, messageRefusPaysRadio } from '../refusPaysRadio'
 // Même base que `api.ts` : `/api/v1` en local, `/api/relay/{id}` par le pont.
 export const BASE = baseApi();
 
-let _lastNetworkError = 0;
-function showNetworkError() {
-  const now = Date.now();
-  if (now - _lastNetworkError < 5000) return;
-  _lastNetworkError = now;
-  notifications.error(get(t)('common.serverUnreachable' as any));
-}
 
 async function apiError(response: Response): Promise<Error> {
   let detail = `${response.status} ${response.statusText}`;
@@ -65,9 +56,12 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       headers: fusionnerEntetes(headers, options?.headers),
     });
   } catch (e) {
-    showNetworkError();
+    // #3185 — une requête abandonnée par son appelant n'est pas une panne.
+    annoncerServeurInjoignable(options?.signal, 5000);
     throw e;
   }
+  // #3185 — le serveur a répondu : le bandeau persistant se retire.
+  serveurARepondu();
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();

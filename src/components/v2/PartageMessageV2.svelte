@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
+  import LectureSeuleCercleV2 from './LectureSeuleCercleV2.svelte';
   import { onMount, tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
   import { getCercle, estConnecte, motifCercle, type ContactCercle } from '../../lib/circle';
   import { carteAPartager, ouvrirConversation, cerclesGeneraux, ouvrirFilGeneral, consentirPseudo, type CercleGeneral, envoyerMessage, messageEnvoyable, longueurMessage, MESSAGE_MAX, type CarteCercle } from '../../lib/circleMessagerie';
   // #2853 — emojis : le même sélecteur que la messagerie, raccourcis « :) » à l'envoi.
+  import SuggestionEmojiV2 from './SuggestionEmojiV2.svelte';
   import SelecteurEmojiV2 from './SelecteurEmojiV2.svelte';
   import { insererEmoji, convertirRaccourcis, raccourcisActifs } from '../../lib/emojis';
   let { carte }: { carte: CarteCercle } = $props();
@@ -68,6 +71,10 @@
     catch (e) { erreur = tr(motifCercle(e).cle); }
     finally { occupe = false; }
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <svelte:window onkeydown={clavier} />
@@ -79,6 +86,7 @@
       <p class="nuancier" data-nuancier-theme>{#each ['--v2-bg', '--v2-surface', '--v2-txt', '--v2-acc1', '--v2-acc2'] as j (j)}<span style="background:{carte.colors[j]}"></span>{/each}</p>
     {/if}
     <p class="note">{tr('v2.circle.msg.privacy')}</p>
+    <LectureSeuleCercleV2 />
     {#if erreur}<p role="alert">{erreur}</p>{/if}
     {#if !contacts.length && !generaux.length}<p>{tr('v2.circle.msg.empty')}</p>{/if}
     <form onsubmit={envoyer}>
@@ -89,6 +97,7 @@
         {#each generaux as c (c.id)}<option value={`general:${c.id}`}>{tr('v2.circle.general.label')} · # {c.name}</option>{/each}
       </select>
       <label for="message-partage-texte">{tr('v2.circle.msg.write')}</label>
+      <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
       <textarea id="message-partage-texte" bind:this={saisie} bind:value={texte} rows="3" maxlength="8000" disabled={occupe}></textarea>
       <div class="ligne-saisie">
         <button class="bouton-emoji" type="button" bind:this={boutonEmoji} aria-label={tr('v2.circle.emoji.open')} title={tr('v2.circle.emoji.open')} aria-expanded={emojis} aria-controls={emojis ? 'partage-emojis' : undefined} disabled={occupe} onclick={() => emojis = !emojis}><span aria-hidden="true">🙂</span></button>
@@ -97,7 +106,7 @@
       {#if emojis}<SelecteurEmojiV2 id="partage-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { emojis = false; boutonEmoji?.focus(); }} />{/if}
       <div class="boutons">
         <button type="button" disabled={occupe} onclick={() => carteAPartager.set(null)}>{tr('common.cancel')}</button>
-        <button type="submit" disabled={occupe || !destinataire || !messageEnvoyable(texte, carte)}>{tr('v2.circle.msg.send')}</button>
+        <button type="submit" disabled={occupe || lectureSeule || !destinataire || !messageEnvoyable(texte, carte)}>{tr('v2.circle.msg.send')}</button>
       </div>
     </form>
   </section>

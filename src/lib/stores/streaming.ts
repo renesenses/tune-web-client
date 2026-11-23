@@ -104,6 +104,8 @@ export const ficheArtisteService =
     id: string;
     nom: string;
     provenance?: string | null;
+    /** #3021 : sous-arbre local demandé par la Bibliothèque. */
+    dossier?: string | null;
     /** tune-server-rust#6463 — la vignette que montrait la tuile cliquée, en
      *  repli pour l'en-tête quand la fiche ouverte n'a pas de portrait. */
     image?: string | null;
@@ -181,3 +183,15 @@ export interface CibleFicheLabelService {
   ficheAlbum: CibleFicheAlbumService | null;
 }
 export const ficheLabelService = writable<CibleFicheLabelService | null>(null);
+
+/**
+ * web#3315 — le GENRE d'un service demandé de l'extérieur (la fiche d'un album
+ * Qobuz) : l'écran Streaming le consomme UNE fois, quand l'onglet du service
+ * est ouvert, et montre ses albums (Streaming › service › Genres › genre).
+ */
+export interface DemandeGenreDeService {
+  service: string;
+  id: string;
+  nom: string;
+}
+export const genreDeServiceDemande = writable<DemandeGenreDeService | null>(null);

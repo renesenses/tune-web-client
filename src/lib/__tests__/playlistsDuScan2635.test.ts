@@ -173,8 +173,8 @@ describe('web#2635 — règles', () => {
       }
       expect(d['settings.removeScanPlaylistsConfirm'], `${code} : nombre`).toContain('{n}');
     }
-    const fichiers = fs.readdirSync(path.resolve(__dirname, '../locales')).filter((f) => /^[a-z]{2}\.ts$/.test(f));
-    expect(fichiers.length).toBe(15);
+    const fichiers = fs.readdirSync(path.resolve(__dirname, '../locales')).filter((f) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(f));
+    expect(fichiers.length).toBe(20);
     for (const f of fichiers) {
       const s = fs.readFileSync(path.resolve(__dirname, '../locales', f), 'utf8');
       expect(s, f).toContain('"settings.removeScanPlaylistsConfirm"');

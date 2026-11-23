@@ -34,6 +34,7 @@ import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import { entreeParLibelle } from './aides/menuFiche';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -120,15 +121,16 @@ const boutonEditer = () => entreeParLibelle(hote!, fr['v2.pl.edit']) ?? undefine
 const croix = () => [...hote!.querySelectorAll<HTMLButtonElement>('button.retrait-service')];
 
 describe('#2098 — retirer un titre d’une playlist Qobuz personnelle', () => {
-  it('🔴 playlist à soi : Éditer, une croix par titre, et le retrait part chez le service', async () => {
+  it('🔴 playlist à soi : une croix par titre SANS « Éditer », et le retrait part chez le service', async () => {
     await ouvrirFiche(true);
-    expect(boutonEditer(), 'le bouton Éditer manque sur une playlist Qobuz à soi').toBeTruthy();
-    boutonEditer()!.click();
-    await souffler();
+    // rc12 (15/11) — les croix sont visibles d'emblée ; « Éditer » (réordonner,
+    // renommer : playlists Tune seulement) n'a plus rien à montrer ici.
+    expect(boutonEditer(), '« Éditer » ne montrerait rien sur une playlist de service').toBeUndefined();
     expect(croix().length).toBe(2);
     expect(croix()[0].getAttribute('aria-label'))
       .toBe(fr['v2.pl.removeFromService'].replace('{service}', 'qobuz'));
     croix()[0].click();
+    await confirmerLaBoite();
     await souffler();
     const w = requetes.find((r) => r.method === 'POST');
     expect(w?.url).toMatch(/\/api\/v1\/streaming\/qobuz\/playlists\/11\/tracks\/remove$/);

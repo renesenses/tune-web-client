@@ -145,9 +145,10 @@ describe('« la barre de recherche ne fonctionne pas et fait doublon » (podcast
     // toute l'application (`styles/tune-v2.css`), au lieu de 300 px ici, 260 là
     // et 240 ailleurs. Ce qui est gardé n'a pas changé — la barre reste bornée
     // à l'onglet des abonnements —, seule la classe a bougé.
-    const bloc = /\{#if tab === 'subs'\}\s*<div class="v2-rech">[\s\S]*?<\/div>\s*\{\/if\}/.exec(src);
+    // Recette rc12 (13/11) : le champ partagé `ChampRecherche`.
+    const bloc = /\{#if tab === 'subs'\}\s*<ChampRecherche [^>]*\/>\s*\{\/if\}/.exec(src);
     expect(bloc, 'la barre de filtre n’est plus réservée à l’onglet des abonnements').not.toBeNull();
-    expect(bloc![0].includes('bind:value={q}'), 'ce n’est plus `q` qu’elle pilote').toBe(true);
+    expect(bloc![0].includes('bind:valeur={q}'), 'ce n’est plus `q` qu’elle pilote').toBe(true);
   });
 
   it('`q` ne filtre TOUJOURS que les abonnements — c’est ce qui justifie de la cacher ailleurs', () => {
@@ -164,6 +165,9 @@ describe('« la barre de recherche ne fonctionne pas et fait doublon » (podcast
   });
 
   it('son invite dit FILTRER, elle ne promet plus de chercher', () => {
-    expect(pod()).toContain("placeholder={$t('v2.pod.filterSubs' as any)}");
+    // Recette rc12 (13/11) : l'invite est commune (« Rechercher dans Mes
+    // abonnements… ») et BORNE le champ aux abonnements ; « filtrer » reste
+    // dit en infobulle.
+    expect(pod()).toContain("ecran={$t('v2.pod.tabSubs' as any)} aide={$t('v2.pod.filterSubs' as any)}");
   });
 });

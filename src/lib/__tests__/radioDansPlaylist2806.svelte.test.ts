@@ -25,6 +25,7 @@ import { locale } from '../i18n';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import { entreeDuMenu, MENU_LECTURE } from './aides/menuFiche';
+import { confirmerLaBoite } from './aides/confirmerLaBoite';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -184,7 +185,9 @@ describe('(b) les lignes radio dans la playlist', () => {
     // La piste voisine garde ses actions, la radio n'en a pas.
     const actionsPiste = ligne('Nightswimming').querySelectorAll('.td.act button').length;
     expect(actionsPiste).toBeGreaterThan(0);
-    expect(r.querySelectorAll('.td.act button').length).toBe(0);
+    // rc12 (15/11) : seule la croix « Retirer » de la playlist y figure.
+    expect(r.querySelectorAll('.td.act button:not([data-retirer-titre])').length).toBe(0);
+    expect(r.querySelectorAll('.td.act button[data-retirer-titre]').length).toBe(1);
   });
 
   it('🔴 une station retirée de « Mes radios » est grisée et ne se lance pas', async () => {
@@ -244,6 +247,7 @@ describe('(b) les lignes radio dans la playlist', () => {
     const rm = ligne('Radio Partie').querySelector<HTMLButtonElement>('button.rm')!;
     expect(rm, 'pas de bouton « Retirer » sur la station indisponible').toBeTruthy();
     rm.click();
+    await confirmerLaBoite();
     await attendreQue(() => requetes.some((r) => r.method === 'POST' && r.url.endsWith('/tracks/remove')), 'le retrait');
     expect(requetes.find((r) => r.url.endsWith('/tracks/remove'))!.body).toEqual({ entry_id: 346 });
   });

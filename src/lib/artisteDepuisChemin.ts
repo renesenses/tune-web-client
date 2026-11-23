@@ -30,6 +30,19 @@ export interface PisteDouteuse {
   reasons: string[];
   /** Le chemin sur le disque — c'est lui qui porte l'artiste manquant. */
   file_path?: string | null;
+  /**
+   * renesenses/tune-server-rust#8679 — l'artiste que le DOSSIER donne, par la
+   * règle même du scan (dossier de disque sauté, dossiers génériques, volumes
+   * et points de montage écartés). Absent d'un serveur plus ancien.
+   */
+  folder_artist?: string | null;
+  /**
+   * renesenses/tune-server-rust#8958 — pour chaque raison encore affichée,
+   * où « C'est normal » mémoriserait le choix : la piste, ou tout l'album.
+   * Absent d'un serveur plus ancien : l'écran n'offre alors pas le geste.
+   */
+  ignore_scopes?: Record<string, 'track' | 'album'>;
+  album_id?: number | null;
 }
 
 /** Le dossier parent d'un chemin, quel que soit le séparateur. */
@@ -88,7 +101,9 @@ export function grouperParArtisteDevine(pistes: PisteDouteuse[]): GroupeArtisteD
   const par = new Map<string, PisteDouteuse[]>();
   for (const p of pistes) {
     if (!p.reasons?.includes('missing_artist')) continue;
-    const nom = artisteDuChemin(p.file_path, p.album_title);
+    // #8679 — le nom du serveur (règle du scan) d'abord ; la devinette
+    // locale ne sert plus qu'à un serveur qui ne le donne pas.
+    const nom = p.folder_artist?.trim() || artisteDuChemin(p.file_path, p.album_title);
     if (!nom) continue;
     const l = par.get(nom);
     if (l) l.push(p); else par.set(nom, [p]);

@@ -3,7 +3,7 @@
 // vide, refus (403), masquage des chemins locaux, copie pour un rapport.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import { masquerLesCheminsLocaux, texteRapportGreffons } from '../etatGreffons';
+import { etatAffiche, masquerLesCheminsLocaux, texteRapportGreffons } from '../etatGreffons';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import EtatGreffonsV2 from '../../components/v2/EtatGreffonsV2.svelte';
 
@@ -88,11 +88,61 @@ describe('panneau État des greffons', () => {
   });
 });
 
+// tune-server-rust#9151 (fil 2945) : un intégré sans paquet natif tourne par
+// son moteur embarqué. Le serveur rend `engine` et `active` ; le panneau ne
+// doit plus dire « Not loaded » pour un suréchantillonneur qui marche.
+const REPONSE_9151 = {
+  abi: 1, target: 'x86_64-unknown-linux-gnu', trust_configured: true,
+  plugins: [
+    { id: 'upsampler', third_party: false, native_loaded: false, engine: 'bundled', active: true, error: null, version: null },
+    { id: 'declick', third_party: false, native_loaded: false, engine: 'bundled', active: false, error: null, version: null },
+    { id: 'crosstalk', third_party: true, native_loaded: false, engine: null, active: false, error: null, version: '1.2.0' },
+  ],
+};
+
+describe('intégrés actifs (#9151)', () => {
+  it('un intégré actif sans paquet natif est dit actif, pas non chargé', () => {
+    const [up, dc, ct] = REPONSE_9151.plugins as any[];
+    expect(etatAffiche(up)).toBe('active');
+    expect(etatAffiche(dc)).toBe('inactive');
+    // Un tiers sans bibliothèque chargée reste « non chargé » : c'est vrai.
+    expect(etatAffiche(ct)).toBe('not_loaded');
+    // Serveur ancien (sans `active`) : affichage d'avant, inchangé.
+    expect(etatAffiche({ id: 'equalizer', third_party: false, native_loaded: false, error: null })).toBe('not_loaded');
+    expect(etatAffiche({ id: 'equalizer', third_party: false, native_loaded: true, active: false, error: null })).toBe('loaded');
+  });
+  it('le panneau affiche Actif / Inactif et le rapport le dit', async () => {
+    await monter(200, REPONSE_9151);
+    const up = cible.querySelector('[data-etat-greffon="upsampler"] [data-etat]')!;
+    expect(up.getAttribute('data-etat')).toBe('active');
+    expect(up.classList.contains('ok')).toBe(true);
+    expect(cible.querySelector('[data-etat-greffon="declick"] [data-etat]')!.getAttribute('data-etat')).toBe('inactive');
+    const txt = texteRapportGreffons(REPONSE_9151.plugins as any, REPONSE_9151);
+    expect(txt).toContain('upsampler | builtin | active | version=-');
+    expect(txt).toContain('declick | builtin | inactive | version=-');
+  });
+});
+
+describe('redémarrage attendu (#9151, relecture de #9219)', () => {
+  it('un intégré installé en cours de session dit « Redémarrage requis », pas « Actif »', async () => {
+    const up = { id: 'upsampler', third_party: false, native_loaded: false, engine: 'bundled' as const,
+      active: false, restart_required: true, licensed: true, error: null, version: null };
+    expect(etatAffiche(up)).toBe('restart');
+    // Contre-épreuve : monté au démarrage, le même est actif.
+    expect(etatAffiche({ ...up, active: true, restart_required: false })).toBe('active');
+    await monter(200, { plugins: [up] });
+    const e = cible.querySelector('[data-etat-greffon="upsampler"] [data-etat]')!;
+    expect(e.getAttribute('data-etat')).toBe('restart');
+    expect(e.classList.contains('ok')).toBe(false);
+    expect(texteRapportGreffons([up])).toContain('upsampler | builtin | restart | version=-');
+  });
+});
+
 describe('i18n', () => {
   it('les libellés existent dans les 15 langues', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
-      for (const k of ['etatTitle','etatThirdParty','etatBuiltin','etatLoaded','etatNotLoaded','etatCopy','etatCopied'])
+      for (const k of ['etatTitle','etatThirdParty','etatBuiltin','etatLoaded','etatNotLoaded','etatActive','etatInactive','etatRestart','etatCopy','etatCopied'])
         expect(d[`v2.plug.${k}`], `${l} ${k}`).toBeTruthy();
     }
   });

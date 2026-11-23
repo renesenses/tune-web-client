@@ -11,6 +11,7 @@
    * Défaut : Essential (débutant) pour tous.
    */
   import { onMount } from 'svelte';
+  import IconeReglages from './IconeReglages.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
@@ -30,11 +31,6 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
-  import { visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
-  import { basculerVers } from '../../lib/basculeDeProfil';
-  import { basculeNecessaire } from '../../lib/basculeDeProfil';
-
-  import { estProfilDuCompte, formeDeLaSection } from '../../lib/profilDuCompte';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -55,12 +51,16 @@
   let ssoName = $state('');
   let ssoEmail = $state('');
   let ssoAvatar = $state('');
+  // Relié, mais le serveur ne montre pas le compte à cet appareil (voir
+  // `details_hidden` de `/cloud/sso/status`) : « relié », sans nom ni geste.
+  let ssoRelieSansDetails = $state(false);
   let signingOut = $state(false);
 
   async function loadSso() {
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigured = !!sso?.configured;
+      ssoRelieSansDetails = !!sso?.connected && !!sso?.details_hidden && !sso?.user;
       if (sso?.connected && sso?.user) {
         ssoConnected = true;
         ssoName = sso.user.display_name || sso.user.email || '';
@@ -74,6 +74,7 @@
       // ne propose pas de se connecter — on ne sait même pas si le nuage
       // existe sur ce serveur.
       ssoConfigured = false;
+      ssoRelieSansDetails = false;
     }
     ssoConnected = false;
     ssoName = '';
@@ -210,6 +211,32 @@
     champFichier?.click();
   }
 
+  /**
+   * Bertrand, 15/11/2026 (#3057) : avec une photo locale, le rond propose un
+   * petit choix — « Changer la photo » / « Retirer ». Sans photo locale, il
+   * n'y a rien à retirer : un menu à une seule entrée serait un clic de trop,
+   * le rond ouvre l'explorateur directement, comme avant.
+   */
+  let choixPhoto = $state(false);
+  function clicSurLeRond() {
+    if (photoLocale) { choixPhoto = !choixPhoto; return; }
+    ouvrirExplorateur();
+  }
+  function changerPhoto() {
+    choixPhoto = false;
+    ouvrirExplorateur();
+  }
+
+  /**
+   * Retirer la photo LOCALE. La photo et son propriétaire partent ensemble ;
+   * la bulle retombe sur la photo du compte (`ssoAvatar`), sinon sur le dégradé.
+   */
+  function retirerPhoto() {
+    choixPhoto = false;
+    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
+    notifications.success(get(t)('settings.avatarRemoved'));
+  }
+
   async function choisirPhoto(e: Event) {
     const champ = e.currentTarget as HTMLInputElement;
     const fichier = champ.files?.[0];
@@ -240,41 +267,6 @@
     envoiPhoto = false;
   }
 
-  function retirerPhoto() {
-    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
-    notifications.success(get(t)('settings.avatarRemoved'));
-  }
-
-  /**
-   * Le nom à écrire.
-   *
-   * `name` est l'IDENTIFIANT de connexion — le serveur y range l'adresse de
-   * courriel — et `display_name` le prénom. Afficher `name` mettrait
-   * « matteo@mozaiklabs.fr » dans une liste de personnes.
-   */
-  const compte = $derived({ connected: ssoConnected, name: ssoName, email: ssoEmail });
-  const forme = $derived(
-    formeDeLaSection(
-      $visibleProfiles.length,
-      $visibleProfiles.length === 1 && $visibleProfiles[0].id === $currentProfileId,
-    ),
-  );
-
-  function nomDuProfil(p: Profile): string {
-    return p.display_name?.trim() || p.name;
-  }
-
-  /**
-   * Basculer RECHARGE la page — voir `lib/basculeDeProfil` pour le pourquoi.
-   * On ne ferme donc pas le panneau : il n'y en aura plus.
-   */
-  function basculer(id: number) {
-    // tune-server-rust#5916 — le serveur retient le choix de cet appareil :
-    // un navigateur qui efface son stockage le retrouve au prochain chargement.
-    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
-    basculerVers(get(currentProfileId), id);
-  }
-
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
@@ -301,8 +293,8 @@
     close();
   }
 
-  function toggle() { open = !open; if (!open) q = ''; }
-  function close() { open = false; }
+  function toggle() { open = !open; if (!open) { q = ''; choixPhoto = false; } }
+  function close() { open = false; choixPhoto = false; }
   function onDocClick(e: MouseEvent) {
     const cible = e.target as HTMLElement | null;
     // 🔴 Un élément que le clic vient de FAIRE DISPARAÎTRE n'a plus d'ancêtre :
@@ -350,8 +342,9 @@
           Il est ici et non sur la bulle : la bulle ouvre le panneau, comme elle
           l'a toujours fait, et elle en est la seule porte.
         -->
-        <button class="avatar sm" onclick={ouvrirExplorateur} disabled={envoiPhoto}
-          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
+        <button class="avatar sm" onclick={clicSurLeRond} disabled={envoiPhoto}
+          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}
+          aria-haspopup={photoLocale ? 'menu' : undefined} aria-expanded={photoLocale ? choixPhoto : undefined}>
           {#if photo}
             <img class="avimg" src={photo} alt="" />
           {/if}
@@ -359,72 +352,29 @@
         <div class="avid">
           {#if ssoConnected}
             <div class="avname" use:bulleTexte>{ssoName}</div>
+            <!-- Bertrand, 15/11/2026 : l'adresse reste, discrète, en style secondaire. -->
             {#if ssoEmail && ssoEmail !== ssoName}<div class="avmail" use:bulleTexte>{ssoEmail}</div>{/if}
+          {:else if ssoRelieSansDetails}
+            <div class="avname" use:bulleTexte>{$t('settings.accountLinkedNoDetails' as any)}</div>
           {:else}
             <div class="avname" use:bulleTexte>{$t('settings.notConnected')}</div>
           {/if}
         </div>
       </div>
-      <!--
-        « Retirer » ne s'affiche que s'il y a une photo à retirer — sans lui, on
-        pourrait seulement REMPLACER, jamais revenir au dégradé. Il est bref et
-        discret : le geste courant est le rond ci-dessus.
-      -->
-      {#if photoLocale}
-        <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
-        <div class="hint">{$t('settings.avatarHint' as any)}</div>
-      {/if}
-
-      <!--
-        LA BASCULE DE PROFIL.
-
-        Elle n'existait NULLE PART dans cette interface : `ProfileSelector` n'est
-        monté que par `Sidebar.svelte`, donc par l'interface actuelle. Le profil
-        retenu (`localStorage['tune-profile-id']`) était pourtant déjà honoré —
-        il part en `X-Profile-Id` sur chaque appel — mais rien ne permettait
-        d'en changer sans repasser par l'ancienne interface.
-
-        Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
-        n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
-      -->
-      <!-- web#1672 : « Default » n'y figure plus dès qu'un profil personnel
-           existe (`visibleProfiles`). La section reste utile si l'on est
-           encore SUR Default : elle offre alors d'en sortir. -->
-      <!-- #2426 — LE COMPTE N'EST PAS LE PROFIL. L'intitulé le dit, une ligne
-           d'aide aussi ; le profil du compte connecté montre la PHOTO du compte
-           au lieu de la pastille ; et un profil seul n'est pas une liste à
-           choisir, c'est un geste. -->
-      {#if forme !== 'aucune'}
-        <div class="sep"></div>
-        <div class="sec" data-section-profils={forme}>{$t('profiles.sectionTitle' as any)}</div>
-        <div class="hint" data-profils-aide>{$t('profiles.sectionHelp' as any)}</div>
-        <div class="profils" class:unique={forme === 'unique'}>
-          {#each $visibleProfiles as p (p.id)}
-            <button
-              class="profil"
-              class:actif={forme === 'liste' && p.id === $currentProfileId}
-              onclick={() => basculer(p.id)}
-              aria-current={forme === 'liste' && p.id === $currentProfileId ? 'true' : undefined}
-              data-profil-du-compte={estProfilDuCompte(p, compte) ? 'oui' : undefined}
-            >
-              {#if estProfilDuCompte(p, compte) && photo}
-                <img class="pastille pphoto" src={photo} alt="" />
-              {:else}
-                <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
-                  >{nomDuProfil(p).charAt(0).toUpperCase()}</span
-                >
-              {/if}
-              <span class="pnom" use:bulleTexte>
-                {forme === 'unique'
-                  ? $t('profiles.useOne' as any).replace('{name}', nomDuProfil(p))
-                  : nomDuProfil(p)}
-              </span>
-            </button>
-          {/each}
+      {#if choixPhoto}
+        <div class="choixphoto" role="menu" data-choix-photo>
+          <button class="choix" role="menuitem" onclick={changerPhoto}>{$t('settings.avatarSetPhoto' as any)}</button>
+          {#if photoLocale}
+            <button class="choix" role="menuitem" data-retirer-photo onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
+          {/if}
         </div>
-        <div class="hint">{$t('profiles.switchHint' as any)}</div>
       {/if}
-
+      <!--
+        Levente, 15/11/2026 (rc12) : plus de texte sur la photo ; la liste des
+        profils d'écoute a quitté ce menu — on change de profil dans « Gérer les
+        profils » (`ProfilsV2`), qui porte la même bascule. Bertrand, même jour :
+        l'adresse reste sous le nom, et « Retirer » vit dans le choix du rond.
+      -->
       <div class="sep"></div>
 
       <div class="sfield">
@@ -443,7 +393,7 @@
             {#each hits as h (h.reglage.id)}
               <button class="hit" onclick={() => openSetting(h)} title={h.chemin.join(' › ')}>
                 <span class="hl" use:bulleTexte>{h.label}</span>
-                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · {$t(LEVEL_LABEL_KEYS[h.niveau] as any)}{/if}</span>
+                <span class="ht">{tabLabel(h.tab, (k) => $t(k as any))}{#if masqueAuNiveau(h.reglage, level)} · <span data-masque-niveau>{$t('reglages.recherche.masque' as any).replace('{niveau}', $t(LEVEL_LABEL_KEYS[h.niveau] as any))}</span>{/if}</span>
               </button>
             {/each}
           {:else}
@@ -501,12 +451,15 @@
         {$t('profiles.manage' as any)}
       </button>
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
       </button>
       {#if !ssoConnected && ssoConfigured}
-        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
-        {#if ssoDisponible()}
+        <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`.
+             Serveur déjà relié, compte non montré ici : rien à relier. -->
+        {#if ssoRelieSansDetails}
+          <div class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</div>
+        {:else if ssoDisponible()}
           <button class="item" onclick={signIn}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8" /></svg>
             {$t('settings.signIn')}
@@ -577,36 +530,20 @@
   /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
      longue pousse la largeur du menu au lieu de s'élider. */
   .avid{min-width:0}
-  .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .avmail{font-family:var(--v2-mono); font-size:calc(10px * var(--v2-txt-echelle, 1)); letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
+  .avmail{font-size:calc(11px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Le petit choix du rond : deux liens discrets sous l'en-tête. */
+  .choixphoto{display:flex; gap:4px; padding:0 6px 8px 55px}
+  .choix{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:4px 10px; font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1))}
+  .choix:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .avname{font-weight:700; font-size:calc(14px * var(--v2-txt-echelle, 1)); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
      L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une
      vignette, et personne ne clique une vignette. */
   .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
 
-  /* La liste des profils. Défilante : un foyer peut en compter plusieurs, et le
-     panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
-  .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
-  .profils::-webkit-scrollbar{width:7px}
-  .profils::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
-  .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
-    border-radius:9px; background:transparent; cursor:pointer; text-align:left;
-    color:var(--v2-txt2); font-family:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1))}
-  .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
-     lisible dans les six thèmes sans avoir à les vérifier un par un. */
-  .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
-  .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
-    align-items:center; justify-content:center; font-size:calc(11px * var(--v2-txt-echelle, 1)); font-weight:700; color:#fff}
-  .pphoto{object-fit:cover; display:block}
-  .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-
-  /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
-  .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
-    color:var(--v2-txt3); font-family:inherit; font-size:calc(11px * var(--v2-txt-echelle, 1)); cursor:pointer; text-decoration:underline}
-  .retirer:hover{color:var(--v2-txt)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
   .sec{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}

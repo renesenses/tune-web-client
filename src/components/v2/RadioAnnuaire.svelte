@@ -15,7 +15,7 @@
   import { onDestroy, tick } from 'svelte';
   import * as api from '../../lib/api';
   import { bulleTexte } from '../../lib/infobulleTexte';
-  import { genresDeLaFiche, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
+  import { genresDeLaFiche, refusDeLAnnuaire, type AnnuaireRadios, type FicheAnnuaireRadio } from '../../lib/api/annuaireRadios';
   import type { RadioStation } from '../../lib/types';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { ecouterFicheAnnuaire } from '../../lib/ecouteFicheAnnuaire';
@@ -34,7 +34,7 @@
   import BadgeMetadataPlus from '../partages/BadgeMetadataPlus.svelte';
   import RadioFiltresAvances from './RadioFiltresAvances.svelte';
   import { preferences } from '../../lib/stores/preferences';
-  import { normaliserFiltresRadio, parametresDesFiltres } from '../../lib/radioFiltres';
+  import { normaliserFiltresRadio, parametresDesFiltres, trierLesPays } from '../../lib/radioFiltres';
   import { dialogs } from '../../lib/stores/dialogs';
   import { questionRetraitMesRadios } from '../../lib/mesRadios';
 
@@ -60,13 +60,15 @@
   const PAGE = 120;
 
   let page = $state<AnnuaireRadios | null>(null);
+  /** #8156 — le refus du site au dernier relevé, ou `null`. */
+  const refus = $derived(refusDeLAnnuaire(page));
   let items = $state<FicheAnnuaireRadio[]>([]);
   let chargement = $state(true);
   let erreur = $state<string | null>(null);
   /** web#2443 — la fiche « Voir » ouverte (œil de la vignette). */
   let enFiche = $state<FicheAnnuaireRadio | null>(null);
 
-  /** tune-server-rust#7466 — les critères de « Plus de filtres ». */
+  /** tune-server-rust#7466 — les critères de recherche (RadioFiltresAvances). */
   const criteres = $derived(parametresDesFiltres(normaliserFiltresRadio($preferences.radioFiltres)));
   const cleCriteres = $derived(JSON.stringify(criteres));
   /** web#2693 — « Tous » suit les filtres actifs (genre mis à part). */
@@ -100,7 +102,7 @@
         nouvelles.push(...r.items);
       } while (nouvelles.length < cible && r.items.length > 0 && debut + nouvelles.length < r.total);
       page = r;
-      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total);
+      memoTous = memoriserTous(memoTous, cleDeLaRequete, genreDeLaRequete, r.total, r.total_all_genres);
       items = suite ? [...items, ...nouvelles] : nouvelles;
       premiereLecture = false;
       await tick();
@@ -135,6 +137,8 @@
     return genres;
   });
   const nomPays = (code: string | null | undefined) => nomDuPays(code, $locale, code);
+  /** Recette rc12 (14/11) : les pays dans l'ordre alphabétique de la langue en cours. */
+  const paysTries = $derived(trierLesPays(page?.countries ?? [], (c) => nomPays(c.code), $locale));
 
   async function ecouter(f: FicheAnnuaireRadio) {
     const zid = zoneRequise();
@@ -170,7 +174,8 @@
    * 12/11/2026) — retirer une station de « Mes radios » SANS quitter
    * l'annuaire. Le même appel (`deleteRadio`) et la même confirmation que
    * l'écran « Mes radios » (#7523 : elle dit que la station reste ici).
-   * La fiche perd son badge « Dans mes radios » et retrouve « Ajouter ».
+   * La fiche retrouve « Ajouter » (le badge « Dans mes radios » a quitté la
+   * vignette : retour de Rémi sur la rc12).
    */
   // Anti double clic : une station en cours de retrait (question ouverte ou
   // appel en vol) ne relance ni une seconde question ni un second DELETE.
@@ -209,36 +214,63 @@
   }
 </script>
 
+<!-- Recette rc12 (14/11) : la liste « Pays », rendue par RadioFiltresAvances après ses boutons. -->
+{#snippet listePays()}
+  <select class="choix" data-testid="radio-pays" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
+    <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
+    {#if pays && !page?.countries.some(c => c.code === pays)}
+      <option value={pays}>{nomPays(pays)}</option>
+    {/if}
+    {#each paysTries as c (c.code)}
+      <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
+    {/each}
+  </select>
+{/snippet}
+
 <div class="annuaire">
-  <div class="filtres">
-    <RadioRecherche bind:valeur={q} />
-    <select class="choix" bind:value={pays} aria-label={$t('v2.radio.country' as any)}>
-      <option value={null}>{$t('v2.radio.dir.allCountries' as any)}</option>
-      {#if pays && !page?.countries.some(c => c.code === pays)}
-        <option value={pays}>{nomPays(pays)}</option>
+  <!-- web#3176 (Jean Valjean, fil 2881) — recherche, filtres et genres
+       restent en haut pendant le défilement des stations : en-tête COLLANT,
+       le défilement étant celui de l'écran Radio (`.scroll`). -->
+  <div class="entete-collant" data-testid="radio-entete-collant">
+    <div class="filtres">
+      <RadioRecherche bind:valeur={q} />
+      <!-- Recette rc12 (13/11 puis 14/11) : les critères dépliés, en boutons,
+           puis la liste « Pays », sur une seule ligne. -->
+      <RadioFiltresAvances pays={listePays} />
+      {#if page}
+        <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
       {/if}
-      {#each page?.countries ?? [] as c (c.code)}
-        <option value={c.code}>{nomPays(c.code)} ({c.count})</option>
-      {/each}
-    </select>
-    {#if page}
-      <span class="total">{$t('v2.radio.dir.count' as any).replace('{n}', String(page.total))}</span>
+    </div>
+    {#if genresAffiches.length}
+      <div class="genres">
+        <RadioChipsGenres
+          genres={genresAffiches}
+          choisi={genre} total={totalTous} onChoisir={(c) => (genre = c)} />
+      </div>
     {/if}
   </div>
-  <RadioFiltresAvances />
-  {#if genresAffiches.length}
-    <RadioChipsGenres
-      genres={genresAffiches}
-      choisi={genre} total={totalTous} onChoisir={(c) => (genre = c)} />
-  {/if}
 
   {#if erreur}
     <div class="etat err">{erreur}</div>
   {/if}
+  <!-- tune-server-rust#8156 — mozaiklabs.fr refuse le relevé (401, 403) :
+       le serveur sert la copie d'avant, l'écran dit pourquoi elle n'est pas
+       rafraîchie. Sans copie du tout, c'est la raison de l'annuaire vide. -->
+  {#if refus && !(page && page.stations === 0)}
+    <div class="refus" role="status" data-annuaire-refus={refus.status}>
+      {$t('v2.radio.dir.refused' as any).replace('{status}', String(refus.status))}
+    </div>
+  {/if}
   {#if chargement && !items.length}
     <div class="etat">{$t('v2.radio.dir.loading' as any)}</div>
   {:else if page && page.stations === 0}
-    <div class="etat">{$t('v2.radio.dir.empty' as any)}</div>
+    {#if refus}
+      <div class="etat" role="status" data-annuaire-refus={refus.status}>
+        {$t('v2.radio.dir.refusedEmpty' as any).replace('{status}', String(refus.status))}
+      </div>
+    {:else}
+      <div class="etat">{$t('v2.radio.dir.empty' as any)}</div>
+    {/if}
   {:else if !items.length && !erreur}
     <div class="etat">{$t('v2.radio.dir.noMatch' as any)}</div>
   {:else}
@@ -250,8 +282,6 @@
               favoriExterne={{ actif: !!f.my_radio_favorite, basculer: () => basculerFavori(f) }}
               onAjouter={f.my_radio_id == null ? () => ajouter(f) : null}
               libelleAjouter={$t('v2.radio.dir.add' as any)}
-              onVoir={() => (enFiche = f)}
-              libelleVoir={$t('v2.radio.view' as any)}
               onRetirer={f.my_radio_id != null ? () => retirer(f) : null}
               libelleRetirer={$t('v2.radio.removeFromMine' as any)}
               onLire={() => ecouter(f)}
@@ -262,24 +292,22 @@
               <AlbumArt coverPath={f.logo_url ?? null} albumId={null} size={0} alt={f.name} fallbackInitials={f.name?.slice(0, 1)} />
             </PochetteActions>
           </span>
-          <!-- web#2770 (lot 4) — « ouvrir » et le nom OUVRENT la fiche ; la lecture reste sur ▶. -->
-          <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: f.name, ouvrir: () => (enFiche = f) }} /></span>
+          <!-- web#2770 (lot 4) — « ouvrir » et le nom OUVRENT la fiche ; la lecture reste sur ▶.
+               Retour de Rémi sur la rc12 (go de Bertrand du 17/11) : DEUX lignes
+               sous le logo, comme dans « Mes radios » — le nom (avec le badge
+               Metadata+, web#2443), puis genre et pays. Le format du flux et
+               le badge « Dans mes radios » (#7522), qui faisaient des sauts de
+               ligne, ne sont plus sur la vignette : le cœur et le menu de la
+               pochette disent déjà si la station est dans « Mes radios ». -->
+          <span class="nm-ligne">
+            <span class="nm" use:bulleTexte><LienEntite entite={{ type: 'radio', nom: f.name, ouvrir: () => (enFiche = f) }} /></span>
+            {#if f.radio_metadata_key || f.now_playing}<BadgeMetadataPlus />{/if}
+          </span>
           {#if enDirect === f.external_id && titreEnCours}
             <span class="encours" use:bulleTexte>{titreEnCours}</span>
           {:else}
-            <span class="gn" use:bulleTexte>{[genresDeLaFiche(f).map(libelleGenre).join(', ') || null, nomPays(f.country_code)].filter(Boolean).join(' · ')}</span>
+            <span class="gn" data-testid="radio-sous-titre" use:bulleTexte>{[genresDeLaFiche(f).map(libelleGenre).join(', ') || null, nomPays(f.country_code)].filter(Boolean).join(' · ')}</span>
           {/if}
-          <span class="pied">
-            <!-- web#2443 — « Metadata+ » : la fiche a une clé radio-metadata.fr,
-                 qui publie son titre en cours (c'est ce que disait le ♪). -->
-            {#if f.radio_metadata_key || f.now_playing}<BadgeMetadataPlus />{/if}
-            {#if f.codec}<span class="tk">{f.codec}{f.bitrate ? ` ${f.bitrate}` : ''}</span>{/if}
-            {#if f.my_radio_id != null}
-              <!-- #7522 — le badge passait inaperçu (texte gris de 9,5 px) :
-                   pastille à la couleur d'accent, avec une coche. -->
-              <span class="dedans"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>{$t('v2.radio.dir.inMine' as any)}</span>
-            {/if}
-          </span>
         </div>
       {/each}
     </div>
@@ -309,6 +337,11 @@
 <style>
   .annuaire{display:flex; flex-direction:column; gap:10px; padding:4px 30px 30px}
   .filtres{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  /* web#3176 — l'en-tête collant couvre toute la largeur (les 30 px de marge
+     de l'annuaire compris), au-dessus des vignettes (z-index 2), sur le fond
+     de l'écran dans les deux thèmes. */
+  .entete-collant{position:sticky; top:0; z-index:5; display:flex; flex-direction:column; gap:10px;
+    margin:0 -30px; padding:4px 30px 10px; background:var(--v2-bg); box-shadow:0 1px 0 var(--v2-line2)}
   .choix{background:var(--v2-surface2); color:var(--v2-txt); border:1px solid var(--v2-line2);
     border-radius:var(--v2-r-pill); padding:6px 12px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:220px}
   .total{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
@@ -318,17 +351,24 @@
   .vignette{position:relative; display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden;
     box-shadow:var(--v2-sh-card); transition:.18s}
   .fiche:hover .vignette{box-shadow:0 10px 24px var(--v2-glow)}
-  .nm{margin-top:9px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .nm-ligne{display:flex; align-items:center; gap:6px; min-width:0; margin-top:9px}
+  .nm{min-width:0; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .gn,.encours{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .encours{color:var(--v2-acc2)}
-  .pied{display:flex; align-items:center; gap:6px; margin-top:4px; min-height:22px}
-  .tk{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2)}
-  .dedans{margin-left:auto; display:inline-flex; align-items:center; gap:3px; padding:1px 6px; border:1px solid currentColor; border-radius:999px; font:600 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc2); white-space:nowrap}
-  .dedans svg{width:10px; height:10px; fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; stroke-linejoin:round}
   .suite{display:flex; justify-content:center; padding-top:8px}
   .source{margin-top:14px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .source a{color:var(--v2-acc2); text-decoration:none}
   .source a:hover{text-decoration:underline}
   .horsligne{color:var(--v2-txt2)}
-  @media (max-width: 640px){ .annuaire{padding:4px 16px 24px} .choix{max-width:none; flex:1} }
+  .refus{padding:8px 12px; border:1px solid var(--v2-line2); border-radius:9px; background:var(--v2-surface2);
+    font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2)}
+  @media (max-width: 640px){
+    .annuaire{padding:4px 16px 24px} .choix{max-width:none; flex:1}
+    .entete-collant{margin:0 -16px; padding:4px 16px 8px}
+    /* Les genres sur UNE rangée qui défile de côté : l'en-tête collant ne
+       mange pas l'écran du téléphone. */
+    .genres :global(.chips){flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+    .genres :global(.chips)::-webkit-scrollbar{display:none}
+    .genres :global(.chip){flex:none}
+  }
 </style>

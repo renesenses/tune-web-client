@@ -22,7 +22,8 @@ describe("Un identifiant de PISTE n'ouvre pas un album (Bertrand, 05/09/2026)", 
     // Un album LOCAL porte un vrai identifiant d'album : le neutraliser
     // priverait d'ouverture des tuiles qui marchent.
     const i = src.indexOf('const estUnePiste');
-    expect(src.slice(0, i)).toContain('if (idLocal == null) {');
+    // web#3234 — sauf quand le serveur nomme l'ALBUM du service (`albumSvc`).
+    expect(src.slice(0, i)).toContain('if (idLocal == null && !albumSvc) {');
   });
 
   it('la LECTURE, elle, reste offerte', () => {
@@ -63,7 +64,7 @@ describe("« Reprendre l'écoute » : identifiant distant et id zéro", () => {
     // Une entrée dont le contexte est une playlist ne se joue pas comme un
     // album, et n'ouvre pas une fiche d'album.
     expect(src).toContain("dist.genre === 'playlist' || genre === 'playlist' ? 'playlist'");
-    expect(src).toContain("if (idLocal == null && dist && dist.genre !== 'album') return {};");
+    expect(src).toContain("if (idLocal == null && !albumSvc && dist && dist.genre !== 'album') return {};");
   });
 
   it('une piste distante se joue par la PAIRE service + identifiant', () => {
