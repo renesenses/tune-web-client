@@ -1977,6 +1977,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Save as playlist",
   "v2.home.becauseYouLikeDone": "Playlist saved",
   "v2.home.becauseYouLikeName": "Playlist name",
+  "v2.home.becauseYouLikeMixName": "{artiste} Mix",
   "v2.home.becauseYouLikeSaved": "Playlist “{nom}” saved",
   "v2.home.becauseYouLikeNoZone": "Choose a listening zone first",
   "v2.home.becauseYouLikeNothingPlayable": "None of the tracks in this playlist can be played here: nothing was started.",

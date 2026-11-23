@@ -2141,7 +2141,10 @@ export const WIDGETS: Widget[] = [
       return utiles(
         playlists.slice(0, limiteDe(ctx)).map((p, i) => ({
           id: `pvaa${i}-${p.id}`,
-          titre: tr('v2.home.becauseYouLikeCard').replace('{artiste}', p.artist),
+          // Fil forum 3009 (FabienM, point 5.1 ; go du 23/11/2026) — la
+          // playlist porte le NOM DE L'ARTISTE aimé, et lui seul : le titre
+          // du widget dit déjà « Parce que vous aimez… ».
+          titre: p.artist,
           sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,
           nbTitres: p.track_count,
           cover: p.covers?.[0] ?? null,

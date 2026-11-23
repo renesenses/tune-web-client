@@ -3232,6 +3232,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Spara som spellista",
   "v2.home.becauseYouLikeDone": "Spellista sparad",
   "v2.home.becauseYouLikeName": "Spellistans namn",
+  "v2.home.becauseYouLikeMixName": "{artiste}-mix",
   "v2.home.becauseYouLikeSaved": "Spellistan ”{nom}” sparad",
   "v2.home.becauseYouLikeNoZone": "Välj en lyssningszon först",
   "v2.home.becauseYouLikeNothingPlayable": "Inget spår i den här spellistan kan spelas här: ingenting startades.",

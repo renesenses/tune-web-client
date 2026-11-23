@@ -1831,6 +1831,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Lagre som spilleliste",
   "v2.home.becauseYouLikeDone": "Spilleliste lagret",
   "v2.home.becauseYouLikeName": "Navn på spillelisten",
+  "v2.home.becauseYouLikeMixName": "{artiste}-miks",
   "v2.home.becauseYouLikeSaved": "Spillelisten «{nom}» er lagret",
   "v2.home.becauseYouLikeNoZone": "Velg en lyttesone først",
   "v2.home.becauseYouLikeNothingPlayable": "Ingen spor i denne spillelisten kan spilles her: ingenting ble startet.",

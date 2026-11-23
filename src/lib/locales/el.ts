@@ -1831,6 +1831,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Αποθήκευση ως λίστα",
   "v2.home.becauseYouLikeDone": "Η λίστα αποθηκεύτηκε",
   "v2.home.becauseYouLikeName": "Όνομα λίστας",
+  "v2.home.becauseYouLikeMixName": "Μίξη {artiste}",
   "v2.home.becauseYouLikeSaved": "Η λίστα «{nom}» αποθηκεύτηκε",
   "v2.home.becauseYouLikeNoZone": "Επιλέξτε πρώτα μια ζώνη ακρόασης",
   "v2.home.becauseYouLikeNothingPlayable": "Κανένα κομμάτι αυτής της λίστας δεν μπορεί να παιχτεί εδώ: δεν ξεκίνησε τίποτα.",

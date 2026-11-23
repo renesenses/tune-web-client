@@ -3233,6 +3233,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Salvează ca playlist",
   "v2.home.becauseYouLikeDone": "Playlist salvat",
   "v2.home.becauseYouLikeName": "Numele playlistului",
+  "v2.home.becauseYouLikeMixName": "Mix {artiste}",
   "v2.home.becauseYouLikeSaved": "Playlistul „{nom}” a fost salvat",
   "v2.home.becauseYouLikeNoZone": "Alege mai întâi o zonă de ascultare",
   "v2.home.becauseYouLikeNothingPlayable": "Niciun titlu din această listă nu poate fi redat aici: nu a pornit nimic.",

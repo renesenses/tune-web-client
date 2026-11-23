@@ -1831,6 +1831,7 @@ export default {
   "v2.home.becauseYouLikeSave": "Zapisz jako playlistę",
   "v2.home.becauseYouLikeDone": "Playlista zapisana",
   "v2.home.becauseYouLikeName": "Nazwa playlisty",
+  "v2.home.becauseYouLikeMixName": "Mix {artiste}",
   "v2.home.becauseYouLikeSaved": "Playlista „{nom}” zapisana",
   "v2.home.becauseYouLikeNoZone": "Najpierw wybierz strefę odsłuchu",
   "v2.home.becauseYouLikeNothingPlayable": "Żadnego utworu z tej playlisty nie można tu odtworzyć: nic nie zostało uruchomione.",
