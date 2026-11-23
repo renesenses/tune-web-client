@@ -127,10 +127,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { lireTotaux } from '../../lib/totauxBibliotheque';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourceCorrespond, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, presencesDeLaProvenance, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -402,6 +403,74 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
+
+  /**
+   * Fil 3009, point 6 (FabienM, rc13) — le même réglage élargit aussi les
+   * onglets TITRES et ARTISTES : les titres et les artistes favoris des
+   * services y entrent sous leur provenance. Le menu « Source » les compte, et
+   * choisir le service les montre (`lib/bibliothequeEtendue`). Mêmes bornes
+   * que les albums : ni dépôt distant, ni portée de répertoire.
+   */
+  const etendueTitres = $derived.by(() => etendue && !depot && !porteeActive && tab === 'tracks');
+  const etendueArtistes = $derived.by(() => etendue && !depot && !porteeActive && tab === 'artists');
+  let favorisPistesService = $state.raw<Track[]>([]);
+  let favorisPistesEnCharge = $state(false);
+  let favorisArtistesService = $state.raw<ArtisteDeService[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueTitres || pid == null) return;
+    let perime = false;
+    favorisPistesEnCharge = untrack(() => favorisPistesService.length === 0);
+    api.getProfileStreamingFavorites(pid, 'track', 'bibliotheque')
+      .then((f) => { if (!perime) favorisPistesService = pistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisPistesService = []; })
+      .finally(() => { if (!perime) favorisPistesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueArtistes || pid == null) return;
+    let perime = false;
+    api.getProfileStreamingFavorites(pid, 'artist', 'bibliotheque')
+      .then((f) => { if (!perime) favorisArtistesService = artistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisArtistesService = []; });
+    return () => { perime = true; };
+  });
+  /**
+   * Décision de Bertrand du 23/11 — les titres favoris des services rejoignent
+   * la liste sous « Toutes les sources » comme sous le service choisi, en
+   * COMPLÉMENT de la bibliothèque (comme Albums et Artistes) et SANS DOUBLON
+   * (`titresSansDoublon`). Liste paginée : la bibliothèque n'est pas en
+   * mémoire ; chaque titre favori y est cherché une fois par le serveur, sous
+   * la provenance affichée (`titresAbsentsDeLaBibliotheque`, réponses retenues
+   * jusqu'au prochain scan), et les absents se rangent EN QUEUE de la
+   * fenêtre : la pagination de la bibliothèque ne bouge pas.
+   */
+  const titresEtendus = $derived.by(() => etendueTitres && !fFavoris && (fProvenance == null || estSourceDeService(fProvenance)));
+  /** Les titres favoris de la provenance affichée (tous sous « Toutes les sources »). */
+  const favorisDeLaProvenance = $derived.by(() =>
+    titresEtendus ? favorisPistesService.filter(t => sourceCorrespond(String(t.source ?? ''), fProvenance)) : []);
+  let favorisAbsentsPagine = $state.raw<Track[]>([]);
+  // Relecture du 23/11 — les réponses vivent dans le MODULE
+  // (`presencesDeLaProvenance`), jusqu'au prochain scan : rouvrir la
+  // Bibliothèque ne relance pas les recherches. Une passe dépassée (autre
+  // provenance, autres favoris, écran quitté) est ANNULÉE, pas seulement
+  // ignorée.
+  $effect(() => {
+    const favoris = favorisDeLaProvenance;
+    const provenance = fProvenance;
+    const gen = $generationBibliotheque;
+    if (!pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
+    const cache = presencesDeLaProvenance(provenance, gen);
+    const annulation = new AbortController();
+    void titresAbsentsDeLaBibliotheque(favoris, async (titre, offset, limit, signal) =>
+      ((await api.getPagePistes({ search: titre, provenance, limit, offset, signal }))?.items ?? []) as any[],
+      cache, annulation.signal)
+      .then((absents) => { if (!annulation.signal.aborted) favorisAbsentsPagine = absents; });
+    return () => annulation.abort();
+  });
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -2889,7 +2958,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
-  const totalPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Décision du 23/11 — les favoris absents de la bibliothèque, en queue de la fenêtre paginée. */
+  const favorisEnQueue = $derived.by(() => {
+    if (!titresEtendus || !pagine) return [] as Track[];
+    const needle = fold(qPistes);
+    return favorisAbsentsPagine.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+  });
+  /** Le total de la BIBLIOTHÈQUE servi par pages. */
+  const totalServeurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Le total AFFICHÉ : la bibliothèque, puis les favoris en queue. */
+  const totalPagine = $derived(totalServeurPagine == null ? null : totalServeurPagine + favorisEnQueue.length);
   const erreurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.erreur ?? null; });
   /** La fenêtre de rangs voulue — débord compris — et la hauteur d'une
    *  ligne, MESURÉE entre les deux intercalaires (le mode Avancé rend des
@@ -2900,9 +2978,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const DEBORD_LIGNES = 40;
   const lignesPagine = $derived.by(() => {
     void versionFenetre;
-    return fenetrePistes ? fenetrePistes.contigues(debutVisible, finVisible) : [];
+    if (!fenetrePistes) return [];
+    const t = totalServeurPagine ?? 0;
+    const serveur = debutVisible < t ? fenetrePistes.contigues(debutVisible, Math.min(finVisible, t)) : [];
+    // Les favoris ne suivent que des lignes de la bibliothèque contiguës jusqu'à sa fin.
+    if (!favorisEnQueue.length || debutVisible + serveur.length < t) return serveur;
+    return [...serveur, ...favorisEnQueue.slice(Math.max(0, debutVisible - t), Math.max(0, finVisible - t))];
   });
-  $effect(() => { void versionFenetre; fenetrePistes?.assurer(debutVisible, finVisible); });
+  $effect(() => {
+    void versionFenetre;
+    const t = totalServeurPagine;
+    if (t != null && debutVisible >= t) return;
+    fenetrePistes?.assurer(debutVisible, t == null ? finVisible : Math.min(finVisible, t));
+  });
   let elPistes = $state<HTMLElement | null>(null);
   /** Le conteneur qui défile, en remontant depuis `el` : au mode tableau
    *  c'est `.tbl` (son `overflow-x:auto` le rend défilant dans les deux
@@ -2978,7 +3066,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const zid = zoneRequise();
     const f = fenetrePistes;
     if (zid == null || !f) return;
-    lireTitresDepuis(depot, f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+    // Décision du 23/11 — un rang au-delà de la bibliothèque désigne un favori en queue.
+    const t = totalServeurPagine ?? 0;
+    let suite: Track[];
+    if (rang >= t) suite = favorisEnQueue.slice(rang - t, rang - t + 500);
+    else {
+      const locales = f.aPartirDe(rang, 500);
+      suite = rang + locales.length >= t ? [...locales, ...favorisEnQueue.slice(0, 500 - locales.length)] : locales;
+    }
+    lireTitresDepuis(depot, suite as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   $effect(() => {
@@ -3039,7 +3135,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : tracks;
+    // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris
+    // de la provenance affichée qu'elle n'a pas.
+    const base = fFavoris ? pistesFavorites
+      : titresEtendus ? [...tracks, ...titresSansDoublon(tracks.filter(t => dansSource(t, fProvenance)), favorisDeLaProvenance)] : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3053,8 +3152,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived.by(() => {
     // #1716 — paginé, les comptes viennent du serveur, sous la recherche.
-    if (pagine) { void versionFenetre; return fenetrePistes?.comptes ?? new Map<string, number>(); }
-    return compterSources(pistesRecherche.map(t => [provenanceDe(t)]));
+    // Fil 3009, point 6 — les titres favoris des services comptent sous leur service.
+    const needle = fold(q);
+    const favoris = etendueTitres && !fFavoris
+      ? favorisPistesService.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle))
+      : [];
+    if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
+    // Les favoris déjà fusionnés à la liste entière ne se comptent qu'une fois.
+    const locales = pistesRecherche.filter(t => t.id != null);
+    return comptesAvecFavoris(compterSources(locales.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
@@ -3073,7 +3179,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
   const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
-    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) : pistesRecherche.length)
+    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) + favorisEnQueue.length : pistesRecherche.length)
     : comptesAlbums.reduce((n, [, c]) => n + c, 0));
   const comptesSourcesEnCharge = $derived(
     tab === 'tracks' && pagine ? (fenetrePistes == null || fenetreEnCharge || erreurPagine != null)
@@ -3105,6 +3211,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
 
   function playTrack(t: Track) {
+    // Fil 3009, point 6 — un titre favori d'un SERVICE (bibliothèque élargie)
+    // se joue par sa paire service + identifiant.
+    if (t.id == null) {
+      const corps = depot ? null : corpsDeLecture(t);
+      const zs = corps ? zoneRequise() : null;
+      if (corps && zs != null) playAndSync(zs, corps as any).catch(signalerEchecLecture);
+      return;
+    }
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
@@ -4563,6 +4677,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
+        artistesDeService={etendueArtistes && !fFavoris ? favorisArtistesService : []}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
