@@ -314,6 +314,15 @@ export interface Preferences {
    */
   v2CollectionsMosaique: boolean;
   /**
+   * rc14 — le bouton LECTURE posé sur les pochettes (`PochetteActions`).
+   * Demande d'un utilisateur sur iPad Pro : « trop grand, et on ne peut pas
+   * le masquer ». Validé par Bertrand le 22/11/2026 : un interrupteur, ACTIVÉ
+   * par défaut — l'écran de qui n'a rien demandé ne change pas. Décoché, le
+   * bouton n'est plus rendu (la pochette s'ouvre toujours, et la lecture
+   * reste dans le menu « … » et sur la fiche).
+   */
+  boutonLecturePochettes: boolean;
+  /**
    * Afficher le bouton Stop dans la barre de transport — #1428.
    *
    * Le bouton autonome a existé, a été retiré le 05/09/2026 au profit du
@@ -602,6 +611,9 @@ const defaults: Preferences = {
   // #6474 : l'ordre livré (nom de tri quand il existe) reste le défaut.
   trierArtistesParNomDeTri: true,
   v2CollectionsMosaique: true,
+  // rc14 : ACTIVÉ — le bouton lecture des pochettes reste là tant qu'on ne
+  // l'a pas retiré.
+  boutonLecturePochettes: true,
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
   afficherBoutonStop: false,
