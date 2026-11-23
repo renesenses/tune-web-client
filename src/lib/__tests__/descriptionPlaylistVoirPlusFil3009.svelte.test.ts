@@ -127,6 +127,24 @@ describe('fil 3009, point 18 — la description d’une playlist Qobuz se replie
     expect(src).toMatch(/\[data-description-playlist\]\{white-space:pre-line\}/);
   });
 
+  it('🔴 sans `ResizeObserver` (vieux moteur, banc jsdom), la fiche s’ouvre quand même et replie', async () => {
+    // Relevé sur la porte complète : une fiche playlist montée depuis
+    // l'accueil, sans `ResizeObserver`, levait « ResizeObserver is not
+    // defined » dans `ClampedText`.
+    vi.stubGlobal('ResizeObserver', undefined);
+    const erreurs: unknown[] = [];
+    const capter = (e: ErrorEvent) => erreurs.push(e.error);
+    window.addEventListener('error', capter);
+    try {
+      await ouvrir(LONGUE);
+      expect(erreurs).toEqual([]);
+      expect(bloc()!.classList.contains('clamped')).toBe(true);
+      expect(bouton(), 'la mesure au montage doit suffire au bouton').not.toBeNull();
+    } finally {
+      window.removeEventListener('error', capter);
+    }
+  });
+
   it('courte : rien à replier, aucun bouton', async () => {
     await ouvrir(COURTE);
     expect(bloc()).not.toBeNull();
