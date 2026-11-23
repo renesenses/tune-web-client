@@ -8364,5 +8364,8 @@ export default {
   "nowplaying.lyricsWrittenBy": "Авторы: {noms}",
   "settings.coverPlayButton": "Показывать кнопку воспроизведения на обложках",
   "settings.coverPlayButtonHint": "Если выключено, кнопка воспроизведения исчезает с обложек. Касание обложки по-прежнему открывает ее, а воспроизведение остается в меню «…» и на странице сведений.",
+  "cloud.reconnexionRequise": "Срок подключения к mozaiklabs.fr истек: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.reconnexionRequiseDepuis": "Срок подключения к mozaiklabs.fr истек {date}: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
+  "cloud.seReconnecter": "Войти снова",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];

@@ -8364,5 +8364,8 @@ export default {
   "nowplaying.lyricsWrittenBy": "Geschreven door {noms}",
   "settings.coverPlayButton": "Afspeelknop op hoezen tonen",
   "settings.coverPlayButtonHint": "Uitgeschakeld verdwijnt de afspeelknop van de hoezen. Een hoes aantikken opent hem nog steeds, en afspelen blijft beschikbaar in het menu “…” en op de detailpagina.",
+  "cloud.reconnexionRequise": "Je verbinding met mozaiklabs.fr is verlopen: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.reconnexionRequiseDepuis": "Je verbinding met mozaiklabs.fr is verlopen sinds {date}: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.seReconnecter": "Opnieuw inloggen",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];
