@@ -228,6 +228,26 @@
    * discographie d'un AUTRE artiste. C'est la même garde que celle des albums.
    */
   let artisteLocal = $state<Artist | null>(null);
+  /**
+   * Fil 3009 (FabienM), point 16 — le DRAPEAU du pays d'origine sur la fiche
+   * d'un artiste de SERVICE. Qobuz ne dit pas d'où vient un artiste ; le pays
+   * est celui que la bibliothèque a lu sur la fiche MusicBrainz de l'artiste
+   * du MÊME nom (tune-server-rust#8090), déjà résolu pour la discographie
+   * (`artisteLocal`, #1356). La recherche ne rend pas `country` : seule
+   * `GET /library/artists/{id}` le sert. Pas d'homonyme dans la bibliothèque,
+   * ou pas de MBID : pas de drapeau — rien n'est deviné d'après le nom.
+   */
+  let paysHomonyme = $state<string | null>(null);
+  $effect(() => {
+    const id = !estLocal ? (artisteLocal?.id ?? null) : null;
+    paysHomonyme = null;
+    if (id == null) return;
+    let vivant = true;
+    api.getArtist(id)
+      .then((a) => { if (vivant) paysHomonyme = a?.country?.trim() || null; })
+      .catch(() => { /* pas de pays rendu : pas de drapeau */ });
+    return () => { vivant = false; };
+  });
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
   /**
@@ -1190,7 +1210,7 @@
     sousTitre={estLocal ? `${dossier ? locaux.length : (comptesFiche?.total ?? locaux.length)} ${$tr('v2.art.albums' as any)}` : null}
     ecoutes={estLocal ? artiste : null}
     compteurs={estLocal ? compteurs : null}
-    pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : null}
+    pays={estLocal ? (artiste?.country ?? artisteLocal?.country ?? null) : paysHomonyme}
     onPays={(code) => { pendingLibraryFiltre.set({ paysArtiste: code }); activeView.set('library'); }}
     disposition="maquette" {chiffres}
     onRetour={retour}>
