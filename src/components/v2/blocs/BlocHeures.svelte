@@ -18,7 +18,7 @@
    */
   import { t } from '../../../lib/i18n';
   import VideBloc from './VideBloc.svelte';
-  import { cleVide, ICONES } from '../../../lib/tableauDeBordPeriode';
+  import { cleVide, heureDePointe, ICONES } from '../../../lib/tableauDeBordPeriode';
 
   export interface MatiereHeures {
     /** Vingt-quatre valeurs, indexées par l'heure. Une heure sans écoute vaut 0. */
@@ -30,7 +30,7 @@
   const parHeure = $derived(donnees?.parHeure ?? []);
   const max = $derived(parHeure.length ? Math.max(...parHeure) : 0);
   /** L'heure qui porte le maximum — `-1` quand rien n'a été écouté. */
-  const pointe = $derived(max > 0 ? parHeure.indexOf(max) : -1);
+  const pointe = $derived(heureDePointe(parHeure));
   const bulle = (h: number, plays: number) =>
     $t('dashboard.hour.tip' as any).replace('{hour}', String(h)).replace('{plays}', String(plays));
 </script>

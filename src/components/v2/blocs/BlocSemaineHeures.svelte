@@ -27,6 +27,9 @@
     grille: number[][];
     /** La période interrogée — le calque du créneau la rejoue telle quelle. */
     periode: DashboardPeriod;
+    /** L'heure de pointe de la période (`heureDePointe`), `-1` sans écoute.
+     *  Affichée par `PageWidgets` dans l'en-tête (`noteTete`). */
+    pointe: number;
   }
 
   let { donnees }: { donnees: MatiereSemaineHeures | null } = $props();

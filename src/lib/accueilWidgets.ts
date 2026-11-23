@@ -390,6 +390,12 @@ export interface Bloc<D = any> {
    * autre bande. Sans bande, le bloc prend un tiers.
    */
   bande?: 'activite' | 'classements' | 'historique';
+  /**
+   * Design v3 (§9.4) — une note COMPACTE dans l'en-tête de la carte, à droite
+   * du titre, tirée de la matière chargée (ex. l'heure de pointe de « Jour ×
+   * heure »). `null` : pas de note. Facultative.
+   */
+  noteTete?: (donnees: D, traduire: (cle: string) => string) => string | null;
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
 }

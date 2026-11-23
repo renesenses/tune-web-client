@@ -1996,6 +1996,10 @@
                 <svg class="icone-bloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html w.bloc.icone}</svg>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
+              {#if w.forme === 'bloc' && w.bloc?.noteTete && et?.phase === 'charge' && et.donnees != null}
+                {@const note = w.bloc.noteTete(et.donnees, (cle) => $t(cle as any))}
+                {#if note}<span class="note-tete">{note}</span>{/if}
+              {/if}
               {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
                 <!-- #51 — « Voir tout » : un chevron sobre, à côté du titre.
                      Hors du mode « Modifier », où la croix tient déjà la
@@ -2575,6 +2579,12 @@
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}
+  /* Design v3 (§9.4) — la note compacte d'en-tête (`Bloc.noteTete`), à droite
+     du titre. Elle se replie sur deux lignes plutôt que de pousser la carte
+     hors de son cadre à 390 px. */
+  .tete h2{min-width:0}
+  .note-tete{flex:0 1 auto; min-width:0; text-align:right; color:var(--v2-txt2);
+    font:500 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-variant-numeric:tabular-nums}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}
   .poignee:hover{color:var(--v2-txt)}

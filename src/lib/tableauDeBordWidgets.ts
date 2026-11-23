@@ -59,7 +59,7 @@
 import type { Element, GroupeDeBlocs, Widget } from './accueilWidgets';
 import { elementsArtistesTop, tableauDeBord } from './accueilWidgets';
 import * as api from './api';
-import { ICONES, PERIODE_DEFAUT, joursTendance, periodeActive } from './tableauDeBordPeriode';
+import { ICONES, PERIODE_DEFAUT, heureDePointe, joursTendance, parHeureDe, periodeActive } from './tableauDeBordPeriode';
 import BlocBarres from '../components/v2/blocs/BlocBarres.svelte';
 import BlocCeJourLa from '../components/v2/blocs/BlocCeJourLa.svelte';
 import BlocClassement from '../components/v2/blocs/BlocClassement.svelte';
@@ -312,9 +312,16 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       colonnes: 2,
       composant: BlocSemaineHeures,
       hauteur: MOYEN,
+      // §9.4 — la même heure de pointe que « Heure de la journée » (même jeu
+      // `hourly`, même règle), en note dans l'en-tête.
+      noteTete: (m, tr) => (m.pointe >= 0 ? `${m.pointe}h · ${tr('dashboard.peakListeningTime')}` : null),
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        return { grille: grilleSemaine(d.weekday_hourly ?? []), periode: periode() };
+        return {
+          grille: grilleSemaine(d.weekday_hourly ?? []),
+          periode: periode(),
+          pointe: heureDePointe(parHeureDe(d.hourly ?? [])),
+        };
       },
     },
   },
@@ -331,11 +338,7 @@ export const BLOCS_TABLEAU_DE_BORD: Widget[] = [
       hauteur: PETIT,
       donnees: async (ctx) => {
         const d = await tableauDeBord(periode(), ctx.signal);
-        const par = Array(24).fill(0);
-        for (const h of d.hourly ?? []) {
-          if (h.hour >= 0 && h.hour < 24) par[h.hour] = h.plays;
-        }
-        return { parHeure: par };
+        return { parHeure: parHeureDe(d.hourly ?? []) };
       },
     },
   },

@@ -110,7 +110,7 @@ describe('Tableau de bord v3 — le catalogue', () => {
     expect(classements).toHaveLength(4);
   });
 
-  it('les libellés neufs existent dans les seize langues', () => {
+  it('les libellés neufs existent dans les vingt langues', () => {
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l) as Record<string, string>;
       for (const k of ['dashboard.eyebrow', 'dashboard.subtitle', 'dashboard.section.sourcesZones',
@@ -210,6 +210,25 @@ describe('Tableau de bord v3 — l’écran monté', () => {
     expect(carte.querySelectorAll('.histo .barre')).toHaveLength(24);
     expect(carte.querySelector('.grand')?.textContent).toBe('13h');
     expect(carte.textContent).toContain(fr()['dashboard.peakListeningTime']);
+  });
+
+  // §9.4 (23/11/2026) — « Jour × heure » porte dans son EN-TÊTE la même
+  // heure de pointe que « Heure de la journée » (même jeu `hourly`, même
+  // règle d'égalité : la première heure au maximum).
+  it('🔴 « Jour × heure » : la note de l’heure de pointe dans l’en-tête', async () => {
+    const page = await poser();
+    const carte = sectionDe(page, 'dashboard.section.weekday_hourly')!;
+    expect(carte, 'carte Jour × heure absente').toBeTruthy();
+    const note = carte.querySelector(':scope > .tete .note-tete');
+    expect(note, 'pas de note d’heure de pointe dans l’en-tête').not.toBeNull();
+    expect(note!.textContent?.trim()).toBe(`13h · ${fr()['dashboard.peakListeningTime']}`);
+  });
+
+  it('« Jour × heure » : aucune écoute horaire → aucune note (pas de pointe inventée)', async () => {
+    vi.spyOn(api, 'getDashboard').mockResolvedValue({ ...PEUPLE, hourly: [{ hour: 3, plays: 0 }] });
+    const page = await poser();
+    const carte = sectionDe(page, 'dashboard.section.weekday_hourly')!;
+    expect(carte.querySelector('.note-tete')).toBeNull();
   });
 
   it('une série nulle s’affiche (0), le record en second', async () => {
