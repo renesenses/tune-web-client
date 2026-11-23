@@ -20,6 +20,7 @@
   import { t } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { zones, currentZoneId } from '../../../lib/stores/zones';
+  import { activeView, type View } from '../../../lib/stores/navigation';
   import { isPremium } from '../../../lib/stores/license';
   import { capaciteTess } from '../../../lib/stores/tess';
   import {
@@ -27,6 +28,7 @@
     conflitExclusif, descripteur, estPremium, liensDe, libelleOuRepli,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess,
   } from '../../../lib/tess';
+  import { avecReglages, vueHistorique } from '../../../lib/tessPanneaux';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
   import '../../../styles/tune-v2.css';
@@ -93,12 +95,15 @@
     return base.replace('{name}', r.plugin_id ? nom(r.plugin_id) : '');
   }
 
-  async function envoyer(chaine: ChaineTess | null) {
-    if (!chaine || zoneId == null || occupe) return;
+  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId) {
+    if (!chaine || zone == null || occupe) return;
     occupe = true;
     message = null;
     try {
-      const r = await api.putTessZone(zoneId, chaine);
+      const r = await api.putTessZone(zone, chaine);
+      // Réponse d'une zone quittée entre-temps : enregistrée, mais l'écran
+      // montre déjà une autre zone.
+      if (zone !== zoneId) return;
       if (r.ok) reponse = r.reponse;
       else if ('refus' in r) message = texteRefus(r.refus);
       else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
@@ -139,6 +144,31 @@
   function bypass(b: boolean) {
     if (reponse) void envoyer(avecBypassAll(reponse.chain, b));
   }
+  // ── Réglages d'un greffon (lot W2) ──────────────────────────────────────
+  // Un curseur ou un champ remonte des réglages complets ; on attend que la
+  // main s'arrête (350 ms) puis UN `PUT` part, avec la chaîne entière de la
+  // zone où le geste a eu lieu. Pendant un envoi, le suivant attend son tour :
+  // aucun geste n'est perdu, aucun n'est envoyé deux fois.
+  let reglagesEnAttente: { zone: number; id: string; reglages: Record<string, unknown> } | null = null;
+  let minuteurReglages: ReturnType<typeof setTimeout> | null = null;
+  function programmerReglages(id: string, reglages: Record<string, unknown>) {
+    if (zoneId == null) return;
+    reglagesEnAttente = { zone: zoneId, id, reglages };
+    if (minuteurReglages) clearTimeout(minuteurReglages);
+    minuteurReglages = setTimeout(viderReglages, 350);
+  }
+  function viderReglages() {
+    minuteurReglages = null;
+    const p = reglagesEnAttente;
+    if (!p || !reponse) return;
+    if (occupe) { minuteurReglages = setTimeout(viderReglages, 150); return; }
+    reglagesEnAttente = null;
+    // La base est la DERNIÈRE chaîne reçue de cette zone.
+    if (reponse.zone_id !== p.zone) return;
+    void envoyer(avecReglages(reponse.chain, p.id, p.reglages), p.zone);
+  }
+  $effect(() => () => { if (minuteurReglages) clearTimeout(minuteurReglages); });
+
   function chargerPreReglage(id: string) {
     const p = preReglages?.presets.find((x) => x.id === id);
     // Charger un préréglage REMPLACE la chaîne de la zone (contrat § 5).
@@ -155,6 +185,24 @@
     }
     return null;
   });
+  /** Greffon Premium sans licence : verrouillé, avec son motif (le serveur refuse en 402). */
+  const verrouChoisi = $derived(
+    reponse && lienChoisi && !$isPremium && estPremium(descripteur(reponse.catalog, lienChoisi.id))
+      ? tr('tess.premiumRequired').replace('{name}', nom(lienChoisi.id))
+      : null,
+  );
+  /**
+   * L'écran historique du greffon reste accessible (Égaliseur, Crossfeed…) ;
+   * il règle la zone COURANTE : le lien n'est offert que si c'est celle de
+   * l'écran TESS, sinon il ouvrirait les réglages d'une autre zone.
+   */
+  const vueDuChoisi = $derived(lienChoisi ? vueHistorique(lienChoisi.id) : null);
+  const ecranHistorique = $derived(
+    vueDuChoisi && zoneId != null && zoneId === $currentZoneId
+      ? libelleOuRepli(tr(`tess.screen.${vueDuChoisi}`), `tess.screen.${vueDuChoisi}`, '') || null
+      : null,
+  );
+  const badge = $derived(reponse?.badge ?? null);
   const horsTess = $derived(reponse?.applicability?.status === 'outside_tess' ? reponse.applicability : null);
 </script>
 
@@ -203,6 +251,9 @@
           {libelleOuRepli(tr(`tess.outside.${horsTess.reason}`), `tess.outside.${horsTess.reason}`, tr('tess.outside.generic'))}
         </div>
       {/if}
+      {#if badge && libelleOuRepli(tr(`tess.badge.${badge}`), `tess.badge.${badge}`, '')}
+        <div class="badge" data-tess-badge={badge}>{tr(`tess.badge.${badge}`)}</div>
+      {/if}
       {#if message}<div class="erreur" role="alert" data-tess-message>{message}</div>{/if}
       <div class="colonnes">
         <CheminTess
@@ -223,8 +274,12 @@
             nom={nom(lienChoisi.id)}
             bloque={blocageChoisi}
             {occupe}
+            verrou={verrouChoisi}
+            {ecranHistorique}
             onToggle={basculer}
             onRemove={retirer}
+            onChange={programmerReglages}
+            onOuvrirEcran={() => { if (vueDuChoisi) activeView.set(vueDuChoisi as View); }}
           />
         {:else}
           <div class="vide">{$t('tess.selectPlugin' as any)}</div>
@@ -247,6 +302,8 @@
   .avis,.erreur{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:14px}
   .avis{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .erreur{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .badge{display:inline-block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px; margin-bottom:12px}
   .colonnes{display:grid; grid-template-columns:minmax(300px, 520px) minmax(0, 1fr); gap:24px; align-items:start}
   .vide{border:1px dashed var(--v2-line2); border-radius:16px; padding:32px; color:var(--v2-txt3); text-align:center}
   @media (max-width: 900px){

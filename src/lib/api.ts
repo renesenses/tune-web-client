@@ -13146,6 +13146,24 @@ export function putTessZone(zoneId: number, chaine: import('./tess').ChaineTess)
 }
 
 /**
+ * `GET /tess/catalog` (T08) — la capacité TESS du SERVEUR, sans zone : un
+ * serveur sans TESS répond 404. Rend la version du contrat annoncée, `null`
+ * si la route n'existe pas (ou ne parle pas le contrat), et lève sur une
+ * panne (la capacité reste alors inconnue).
+ */
+export async function getTessCatalogueVersion(): Promise<number | null> {
+  let statut = 200;
+  const r = await fetchJSON<any>(`${BASE}/tess/catalog`, undefined, (s) => {
+    statut = s;
+    return s === 404 || s === 405;
+  }, true);
+  if (statut >= 300) return null;
+  const ok = r && typeof r === 'object' && typeof r.contract_version === 'number'
+    && r.catalog && Array.isArray(r.catalog.plugins);
+  return ok ? r.contract_version : null;
+}
+
+/**
  * `GET /tess/presets` — préréglages de chaîne, communs au serveur (contrat
  * § 5, routes de T17). `null` quand le serveur ne les sert pas encore : le
  * sélecteur ne s'affiche pas.
