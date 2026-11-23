@@ -157,7 +157,7 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     await ouvrirLePanneau();
     ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
     await laisserTourner();
-    expect(appels(/\/zones\/7\/tess\/presets\/headphones\/apply$/)).toHaveLength(1);
+    expect(appels(/\/zones\/7\/tess\/presets\/headphones\/apply(\?|$)/)).toHaveLength(1);
     expect(serveur.puts, 'aucun PUT de chaîne côté client').toHaveLength(0);
     expect(serveur.zones.get(ZONE)!.chain.plugins!.map((p) => p.id)).toEqual(['crossfeed']);
     expect(ligne('headphones')!.querySelector('[data-tess-prereglage-actif]')).not.toBeNull();
