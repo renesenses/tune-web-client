@@ -80,6 +80,12 @@ export interface EntreeMenu extends Omit<EntreeMenuPiste, 'icone'> {
 /** Les tracés, dans une boîte 24×24. */
 export const ICONES = {
   play: 'M8 5v14l11-7z',
+  /**
+   * Fil forum 3009 (FabienM, points 2 et 3) — « Lire à partir d'ici » : la
+   * barre puis le triangle (lucide `step-forward`), l'icône que la barre de
+   * ligne portait avant de passer au menu.
+   */
+  depuis: 'M4 4v16M8 5v14l11-7z',
   next: 'M4 7h9M4 12h9M4 17h6M16 5.6l4.8 2.9-4.8 2.9z',
   /** rc12 — « Lecture aléatoire », le ⤮ de la fiche album (BoutonLectureV2). */
   shuffle: 'M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3',
@@ -269,6 +275,13 @@ export interface CapacitesPiste {
 export interface GestesPiste {
   partagerMessage?: () => void;
   lire?: () => void;
+  /**
+   * « Lire à partir d'ici » — fil forum 3009 (FabienM, points 2 et 3 ; go de
+   * Bertrand du 23/11/2026). Le bouton quitte la barre de la ligne (le clic
+   * sur le titre fait déjà la même chose) et vient ici, juste sous « Lire ».
+   * Fourni seulement par un écran qui sait ce que « la suite » veut dire.
+   */
+  lireDepuis?: () => void;
   ensuite?: () => void;
   aLaFile?: () => void;
   plusCommeCa?: () => void;
@@ -317,6 +330,7 @@ export function entreesMenuPiste(
   };
   const deLaBibliotheque = c.idBibliotheque != null;
   pousser(c.jouable, 'common.play', ICONES.play, g.lire, true);
+  pousser(c.jouable, 'common.playFromHere', ICONES.depuis, g.lireDepuis);
   pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
   pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
   /**
