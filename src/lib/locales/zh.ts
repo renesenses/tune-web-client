@@ -8202,6 +8202,7 @@ export default {
   "login.unexpectedResponse": "服务器返回了意外的响应。",
   "login.networkError": "网络错误。",
   "login.errorStatus": "错误 {status}",
+  "login.invalidCredentials": "用户名或密码错误。",
   "v2.ambiance.acousticEnableError": "无法启用声学分析",
   "v2.pl.transferFailed": "传输失败",
   "v2.menu.addTo": "添加到",

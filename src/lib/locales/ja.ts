@@ -8202,6 +8202,7 @@ export default {
   "login.unexpectedResponse": "サーバーから予期しない応答がありました。",
   "login.networkError": "ネットワークエラー。",
   "login.errorStatus": "エラー {status}",
+  "login.invalidCredentials": "ユーザー名またはパスワードが正しくありません。",
   "v2.ambiance.acousticEnableError": "音響解析を有効にできませんでした",
   "v2.pl.transferFailed": "転送できませんでした",
   "v2.menu.addTo": "追加先",

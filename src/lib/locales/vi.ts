@@ -8054,6 +8054,7 @@ export default {
   "login.unexpectedResponse": "Phản hồi không mong đợi từ máy chủ.",
   "login.networkError": "Lỗi mạng.",
   "login.errorStatus": "Lỗi {status}",
+  "login.invalidCredentials": "Tên người dùng hoặc mật khẩu không đúng.",
   "v2.ambiance.acousticEnableError": "Không thể bật phân tích âm học",
   "v2.pl.transferFailed": "Chuyển không thành công",
   "v2.menu.addTo": "Thêm vào",

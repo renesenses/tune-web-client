@@ -8047,6 +8047,7 @@ export default {
   "login.unexpectedResponse": "Nieoczekiwana odpowiedź serwera.",
   "login.networkError": "Błąd sieci.",
   "login.errorStatus": "Błąd {status}",
+  "login.invalidCredentials": "Nieprawidłowa nazwa użytkownika lub hasło.",
   "v2.ambiance.acousticEnableError": "Nie udało się włączyć analizy akustycznej",
   "v2.pl.transferFailed": "Przeniesienie nie powiodło się",
   "v2.menu.addTo": "Dodaj do",

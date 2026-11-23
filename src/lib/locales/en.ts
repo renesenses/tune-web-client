@@ -8222,6 +8222,7 @@ export default {
   "login.unexpectedResponse": "Unexpected response from the server.",
   "login.networkError": "Network error.",
   "login.errorStatus": "Error {status}",
+  "login.invalidCredentials": "Incorrect username or password.",
   "v2.ambiance.acousticEnableError": "Could not enable acoustic analysis",
   "v2.pl.transferFailed": "Transfer failed",
   "v2.menu.addTo": "Add to",

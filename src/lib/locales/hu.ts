@@ -8161,6 +8161,7 @@ export default {
   "login.unexpectedResponse": "Váratlan válasz a szervertől.",
   "login.networkError": "Hálózati hiba.",
   "login.errorStatus": "Hiba: {status}",
+  "login.invalidCredentials": "Hibás felhasználónév vagy jelszó.",
   "v2.ambiance.acousticEnableError": "Az akusztikai elemzés nem kapcsolható be",
   "v2.pl.transferFailed": "Az átvitel nem sikerült",
   "v2.menu.addTo": "Hozzáadás ehhez",
