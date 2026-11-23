@@ -6403,6 +6403,17 @@ export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
   return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
 }
 
+/**
+ * La session en cours (`GET /auth/me`) : son `role` dit si elle est
+ * administratrice. 401/403/404 (authentification coupée, serveur ancien)
+ * reviennent comme corps, sans bandeau.
+ */
+export function getAuthMe() {
+  return fetchJSON<{ role?: unknown; error?: string } | null>(
+    `${BASE}/auth/me`, undefined, (s) => s === 401 || s === 403 || s === 404, true,
+  );
+}
+
 /** Demande au serveur d'écrire un code à usage unique dans son journal. */
 export function requestAuthActivationCode() {
   return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
@@ -6419,6 +6430,23 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
     `${BASE}/auth/activation`,
     { method: 'POST', body: JSON.stringify(corps) },
     (s) => s === 400 || s === 403 || s === 409 || s === 429,
+  );
+}
+
+/**
+ * rc14 — coupe l'authentification (`POST /auth/config {"auth_enabled": false}`).
+ * Authentification active, le serveur exige un jeton ADMINISTRATEUR
+ * (`ensure_admin_if_auth_enabled`), y compris depuis sa propre machine ; le
+ * jeton part avec la requête (`fetchJSON`). Le 403 d'un compte non
+ * administrateur revient comme corps (`error`), l'écran le dit. La réponse
+ * porte l'état réel : `{ auth_enabled }`.
+ */
+export function disableAuth() {
+  return fetchJSON<{ auth_enabled?: boolean; error?: string }>(
+    `${BASE}/auth/config`,
+    { method: 'POST', body: JSON.stringify({ auth_enabled: false }) },
+    (s) => s === 403,
+    true,
   );
 }
 

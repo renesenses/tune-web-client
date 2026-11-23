@@ -9,11 +9,19 @@
    *
    * Le serveur ne l'accepte que depuis cette machine, ou avec un code à usage
    * unique qu'il écrit dans son journal : celui qui active doit avoir accès à
-   * la machine. Une fois active, l'écran le dit et ne propose plus rien.
+   * la machine. Une fois active, l'écran le dit.
+   *
+   * rc14 — une fois active, un administrateur connecté (ou la machine de
+   * Tune) peut la DÉSACTIVER ici, après une confirmation dans la page : les
+   * remotes iPhone et Android, qui ne savent pas encore se connecter, se
+   * reconnectent. `POST /auth/config {"auth_enabled": false}`, jeton
+   * administrateur ; l'écran suit la réponse du serveur.
    */
   import { t } from '../../lib/i18n';
   import {
     activateAuth,
+    disableAuth,
+    getAuthMe,
     getAuthActivation,
     requestAuthActivationCode,
     type EtatActivationAuth,
@@ -22,6 +30,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import {
     activationPossible,
+    cleDuRefusDesactivation,
+    desactivationOfferte,
     cleDuRefusActivation,
     cleDeLaDemandeDeCode,
     comptesASupprimer,
@@ -51,9 +61,25 @@
   }
   let aSupprimer = $derived(comptesASupprimer(etat?.accounts, coches));
 
+  /** Rôle de la session (`GET /auth/me`), lu quand l'authentification est active. */
+  let role = $state<unknown>(undefined);
+  /** La confirmation de la désactivation, affichée dans la page. */
+  let confirmerDesactivation = $state(false);
+  let refusDesactivation = $state<string | null>(null);
+
+  async function lireRole() {
+    try {
+      const moi = await getAuthMe();
+      role = moi && typeof moi === 'object' ? moi.role : undefined;
+    } catch {
+      role = undefined;
+    }
+  }
+
   async function charger() {
     try {
       etat = await getAuthActivation();
+      if (etat?.auth_enabled) await lireRole();
     } catch {
       etat = null;
     } finally {
@@ -61,6 +87,36 @@
     }
   }
   $effect(() => { void charger(); });
+
+  let peutDesactiver = $derived(desactivationOfferte(etat, role));
+
+  async function desactiver() {
+    if (!etat?.auth_enabled) return;
+    // Jamais d'office : le premier clic montre la confirmation dans la page.
+    if (!confirmerDesactivation) {
+      confirmerDesactivation = true;
+      return;
+    }
+    enCours = true;
+    refusDesactivation = null;
+    try {
+      const r = await disableAuth();
+      const cle = cleDuRefusDesactivation(r);
+      if (cle) {
+        refusDesactivation = cle;
+        return;
+      }
+      // L'état affiché est celui que le serveur rend.
+      etat = { ...etat, auth_enabled: r.auth_enabled === true };
+      confirmerDesactivation = false;
+      notifications.success($t('authActivation.disabled' as any), 8000);
+      await charger();
+    } catch {
+      refusDesactivation = 'authActivation.disableError';
+    } finally {
+      enCours = false;
+    }
+  }
 
   let longueurMin = $derived(etat?.min_password_length ?? 8);
   let pret = $derived(
@@ -125,6 +181,24 @@
     <p class="hint" data-activation-indisponible>{$t('authActivation.unavailable' as any)}</p>
   {:else if etat.auth_enabled}
     <p class="hint" data-activation-active>{$t('authActivation.enabled' as any)}</p>
+    {#if peutDesactiver}
+      {#if confirmerDesactivation}
+        <div class="bloc confirmer" data-desactivation-confirmation>
+          <p class="hint err">{$t('authActivation.disableConfirm' as any)}</p>
+        </div>
+      {/if}
+      <div class="inline">
+        <button class="lnk" class:danger={confirmerDesactivation} type="button" data-desactivation-desactiver onclick={desactiver} disabled={enCours}>
+          {#if confirmerDesactivation}{$t('authActivation.confirmAndDisable' as any)}{:else}{$t('authActivation.disable' as any)}{/if}
+        </button>
+        {#if confirmerDesactivation}
+          <button class="lnk" type="button" data-desactivation-annuler onclick={() => (confirmerDesactivation = false)} disabled={enCours}>
+            {$t('authActivation.cancel' as any)}
+          </button>
+        {/if}
+      </div>
+    {/if}
+    {#if refusDesactivation}<p class="hint err" data-desactivation-refus>{$t(refusDesactivation as any)}</p>{/if}
   {:else}
     <p class="hint">{$t('authActivation.intro' as any)}</p>
     {#if etat.admin_username}
