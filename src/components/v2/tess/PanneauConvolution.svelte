@@ -114,12 +114,12 @@
     return tr('tess.conv.uploadError');
   }
 
-  function estUneArchive(fichier: File, octets: Uint8Array): boolean {
+  function estUneArchive(fichier: File, octets: Uint8Array<ArrayBuffer>): boolean {
     if (/\.zip$/i.test(fichier.name)) return true;
     return octets.length >= 4 && octets[0] === 0x50 && octets[1] === 0x4b && octets[2] === 0x03 && octets[3] === 0x04;
   }
 
-  async function poster(chemin: string, octets: Uint8Array): Promise<{ status: number; corps: any }> {
+  async function poster(chemin: string, octets: Uint8Array<ArrayBuffer>): Promise<{ status: number; corps: any }> {
     const res = await fetch(`${api.BASE}/room-correction/ir/${chemin}`, {
       method: 'POST',
       headers: api.authHeaders({ 'Content-Type': 'application/octet-stream' }),
