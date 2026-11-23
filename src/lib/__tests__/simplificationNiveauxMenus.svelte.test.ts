@@ -140,8 +140,8 @@ describe('rc12 — barre et réglages', () => {
 
   it('les chaînes dans les quinze locales', () => {
     const dir = resolve(process.cwd(), 'src/lib/locales');
-    const fs = readdirSync(dir).filter((n) => /^[a-z]{2}\.ts$/.test(n));
-    expect(fs).toHaveLength(16);
+    const fs = readdirSync(dir).filter((n) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(n));
+    expect(fs).toHaveLength(20);
     for (const n of fs) {
       const src = readFileSync(resolve(dir, n), 'utf-8');
       for (const k of ['v2.menu.moreActions', 'v2.nav.groupExpand', 'v2.nav.groupCollapse', 'settings.fullMenus',

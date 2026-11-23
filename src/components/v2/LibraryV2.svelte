@@ -137,7 +137,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { objetAlbum, objetLabel, type ObjetMenu } from '../../lib/gestesObjet';
-  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
   // `Maj`+molette, flèches ←/→, et surtout la règle « la page passe d'abord ».
@@ -185,7 +184,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant, estEtatCoquille,
   } from '../../lib/historiqueCoquille';
   import {
-    albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
+    albumsDistants, corpsLecture, lireTitresDepuis, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche';
   import { clicDansUnMenu } from '../../lib/clicDansUnMenu';
   import '../../styles/tune-v2.css';
@@ -2961,7 +2960,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const zid = zoneRequise();
     const f = fenetrePistes;
     if (zid == null || !f) return;
-    lireListeDepuis(f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+    lireTitresDepuis(depot, f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   $effect(() => {
@@ -3082,7 +3081,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function lireLesTitresDepuis(i: number) {
     const zid = zoneRequise();
     if (zid == null) return;
-    lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
+    // #8832 — un dépôt distant ne joue pas par identifiant : voir `lireTitresDepuis`.
+    lireTitresDepuis(depot, visibleTracks as any, i, gestesDeZone(zid))
       .catch(signalerEchecLecture);
   }
 
