@@ -2367,6 +2367,7 @@ export default {
   "machineAction.unavailableHere": "Доступно на комп’ютері сервера або після входу як адміністратор.",
   "machineAction.adminOnly": "Лише для облікового запису адміністратора.",
   "machineAction.howTo": "Як це зробити?",
+  "machineAction.signInAsAdmin": "Увійдіть як адміністратор, щоб виконати цю дію.",
   "settings.updateStatusUnknown": "Неможливо визначити, чи встановилося оновлення: сервер не відповів. Перезавантажте сторінку, щоб побачити поточну версію.",
   "settings.updateInstallFailed": "Не вдалося оновити. Причина, вказана сервером: {reason}",
   "settings.updateButton": "Оновити",

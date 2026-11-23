@@ -162,7 +162,8 @@
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
-  import { CLE_NOTE_ACTIONS_MACHINE, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { versionSession } from '../../lib/auth';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -3607,9 +3608,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * ou compte non administrateur), au lieu d'être refusés après le clic.
    * `null` : offerts, ou inconnu (serveur ancien) — le serveur reste juge.
    * La mise à jour n'est pas concernée : permise depuis le réseau local.
+   *
+   * Relu à chaque changement de session (`versionSession` : connexion,
+   * déconnexion, activation de l'authentification dans ce même écran), sans
+   * quoi les boutons resteraient grisés alors que le serveur accepterait.
    */
   let refusMachine = $state<RefusActionsMachine | null>(null);
   $effect(() => {
+    void $versionSession;
     let vivant = true;
     lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
     return () => { vivant = false; };
@@ -4974,7 +4980,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 {#snippet noteActionsMachine()}
   {#if refusMachine}
     <p class="hint" data-actions-machine-indisponibles={refusMachine}>
-      {$t(CLE_NOTE_ACTIONS_MACHINE[refusMachine] as any)}
+      {$t(cleNoteActionsMachine(refusMachine, isAppliance) as any)}
       <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{$t('machineAction.howTo' as any)}</a>
     </p>
   {/if}

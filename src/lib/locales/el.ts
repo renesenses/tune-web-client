@@ -2347,6 +2347,7 @@ export default {
   "machineAction.unavailableHere": "Διαθέσιμο στο μηχάνημα του διακομιστή ή αφού συνδεθείτε ως διαχειριστής.",
   "machineAction.adminOnly": "Μόνο για λογαριασμό διαχειριστή.",
   "machineAction.howTo": "Πώς γίνεται;",
+  "machineAction.signInAsAdmin": "Συνδεθείτε ως διαχειριστής για αυτή την ενέργεια.",
   "settings.updateStatusUnknown": "Δεν είναι γνωστό αν εγκαταστάθηκε η ενημέρωση: ο διακομιστής δεν απάντησε. Επαναφορτώστε τη σελίδα για να δείτε την έκδοση που εκτελείται.",
   "settings.updateInstallFailed": "Η ενημέρωση απέτυχε. Αιτία που δόθηκε από τον διακομιστή: {reason}",
   "settings.updateButton": "Ενημέρωση",

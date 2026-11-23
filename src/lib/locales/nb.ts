@@ -2347,6 +2347,7 @@ export default {
   "machineAction.unavailableHere": "Tilgjengelig på servermaskinen, eller når du er logget inn som administrator.",
   "machineAction.adminOnly": "Forbeholdt en administratorkonto.",
   "machineAction.howTo": "Hvordan gjør jeg det?",
+  "machineAction.signInAsAdmin": "Logg inn som administrator for denne handlingen.",
   "settings.updateStatusUnknown": "Kan ikke si om oppdateringen ble installert: serveren svarte ikke. Last siden på nytt for å se versjonen som kjører.",
   "settings.updateInstallFailed": "Oppdateringen mislyktes. Årsak oppgitt av serveren: {reason}",
   "settings.updateButton": "Oppdater",

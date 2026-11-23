@@ -1617,6 +1617,7 @@ export default {
   "machineAction.unavailableHere": "Tillgängligt på serverdatorn, eller när du är inloggad som administratör.",
   "machineAction.adminOnly": "Endast för ett administratörskonto.",
   "machineAction.howTo": "Hur gör jag?",
+  "machineAction.signInAsAdmin": "Logga in som administratör för den här åtgärden.",
   "settings.updateStatusUnknown": "Går inte att avgöra om uppdateringen installerades: servern svarade inte. Ladda om sidan för att se vilken version som körs.",
   "settings.updateInstallFailed": "Uppdateringen misslyckades. Orsak enligt servern: {reason}",
   "settings.updateButton": "Uppdatera",

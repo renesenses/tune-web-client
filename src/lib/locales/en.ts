@@ -2493,6 +2493,7 @@ export default {
   "machineAction.unavailableHere": "Available on the server machine, or once signed in as an administrator.",
   "machineAction.adminOnly": "Reserved for an administrator account.",
   "machineAction.howTo": "How do I do this?",
+  "machineAction.signInAsAdmin": "Sign in as an administrator for this action.",
   "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
   "settings.updateInstallFailed": "The update failed. Reason given by the server: {reason}",
   "settings.updateButton": "Update",

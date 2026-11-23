@@ -1676,6 +1676,7 @@ export default {
   "machineAction.unavailableHere": "Disponibile sulla macchina del server, oppure dopo l’accesso come amministratore.",
   "machineAction.adminOnly": "Riservato a un account amministratore.",
   "machineAction.howTo": "Come fare?",
+  "machineAction.signInAsAdmin": "Accedi come amministratore per questa azione.",
   "settings.updateStatusUnknown": "Impossibile sapere se l'aggiornamento è stato installato: il server non ha risposto. Ricarica la pagina per vedere la versione in esecuzione.",
   "settings.updateInstallFailed": "L'aggiornamento non è riuscito. Motivo indicato dal server: {reason}",
   "settings.updateButton": "Aggiorna",

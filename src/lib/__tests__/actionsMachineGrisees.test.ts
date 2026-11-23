@@ -22,6 +22,7 @@ const getAuthActivation = vi.fn();
 const getAuthMe = vi.fn();
 const restartServer = vi.fn();
 const stopServer = vi.fn();
+const getConfig = vi.fn();
 
 vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>();
@@ -33,7 +34,9 @@ vi.mock('../api', async (importOriginal) => {
     stopServer: () => stopServer(),
     apiFetch: vi.fn(async () => ({} as any)),
     getStats: vi.fn(async () => ({})),
-    getConfig: vi.fn(async () => ({ music_dirs: [] })),
+    getConfig: () => getConfig(),
+    getApplianceStatus: vi.fn(async () => ({ appliance: true })),
+    applianceWifiScan: vi.fn(async () => ({ networks: [] })),
     getScanSchedule: vi.fn(async () => ({ enabled: false, time: '03:00' })),
     getScanStatus: vi.fn(async () => ({ scanning: false })),
     getScanReport: vi.fn(async () => null),
@@ -44,6 +47,7 @@ vi.mock('../api', async (importOriginal) => {
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
 import { preferences } from '../stores/preferences';
 import { FIL_AIDE_ACTIONS_MACHINE, refusActionsMachine } from '../droitActionsMachine';
+import { clearToken, setToken } from '../auth';
 import lFr from '../locales/fr';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 const fr = lFr as unknown as Record<string, string>;
@@ -92,8 +96,9 @@ const note = (el: HTMLElement) => el.querySelector<HTMLElement>('[data-actions-m
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
-  for (const f of [getAuthActivation, getAuthMe, restartServer, stopServer]) f.mockReset();
+  for (const f of [getAuthActivation, getAuthMe, restartServer, stopServer, getConfig]) f.mockReset();
   getAuthMe.mockResolvedValue({ error: 'unauthorized' });
+  getConfig.mockResolvedValue({ music_dirs: [] });
 });
 
 afterEach(() => {
@@ -102,6 +107,7 @@ afterEach(() => {
   if (hote) hote.remove();
   hote = null;
   vi.unstubAllGlobals();
+  try { localStorage.removeItem('tune_jwt_token'); } catch { /* rien */ }
 });
 
 describe('rc14 — Réglages › Système : les actions de la machine sont grisées AVANT le clic', () => {
@@ -152,6 +158,56 @@ describe('rc14 — Réglages › Système : les actions de la machine sont gris�
     expect(note(el)).toBeNull();
   });
 
+  it('🔴 activation de l’authentification dans l’écran : les boutons se dégrisent SANS recharger', async () => {
+    getAuthActivation.mockResolvedValue({ auth_enabled: false, from_this_machine: false, code_required: true });
+    const el = await monterSysteme();
+    expect(bouton(el, fr['settings.restartServer']).disabled).toBe(true);
+
+    // Ce que fait `ActivationAuthV2` après une activation réussie : le serveur
+    // rend un jeton administrateur, l'écran le pose.
+    getAuthActivation.mockResolvedValue({ auth_enabled: true, from_this_machine: false, code_required: false });
+    getAuthMe.mockResolvedValue({ id: 1, username: 'admin', role: 'admin' });
+    setToken('jeton-admin');
+    await respirer();
+    expect(
+      bouton(el, fr['settings.restartServer']).disabled,
+      'authentification activée en administrateur, et le bouton reste grisé jusqu’au rechargement',
+    ).toBe(false);
+    expect(bouton(el, fr['settings.stopServer']).disabled).toBe(false);
+    expect(note(el)).toBeNull();
+
+    // Déconnexion : l'écran se relit encore.
+    getAuthMe.mockResolvedValue({ error: 'unauthorized' });
+    getAuthActivation.mockResolvedValue({ auth_enabled: true, from_this_machine: false, code_required: false });
+    getAuthMe.mockResolvedValue({ id: 2, username: 'yves', role: 'user' });
+    clearToken();
+    await respirer();
+    expect(bouton(el, fr['settings.restartServer']).disabled).toBe(true);
+  });
+
+  it('🔴 Tune OS : Éteindre / Redémarrer la machine grisés, texte neutre (relais du port 80)', async () => {
+    getConfig.mockResolvedValue({ music_dirs: [], appliance: true });
+    getAuthActivation.mockResolvedValue({ auth_enabled: false, from_this_machine: false, code_required: true });
+    const el = await monterSysteme();
+    expect(bouton(el, fr['diagnostics.shutdown']).disabled, '« Éteindre » reste cliquable').toBe(true);
+    expect(bouton(el, fr['diagnostics.reboot']).disabled, '« Redémarrer la machine » reste cliquable').toBe(true);
+    expect(bouton(el, fr['settings.restartServer']).disabled).toBe(true);
+    const n = note(el)!;
+    // Sur la machine elle-même, le relais du port 80 rend aussi
+    // `from_this_machine` faux : « disponible sur la machine du serveur » mentirait.
+    expect(n.textContent).toContain(fr['machineAction.signInAsAdmin']);
+    expect(n.textContent).not.toContain(fr['machineAction.unavailableHere']);
+  });
+
+  it('Tune OS, administrateur connecté : Éteindre / Redémarrer la machine actifs', async () => {
+    getConfig.mockResolvedValue({ music_dirs: [], appliance: true });
+    getAuthActivation.mockResolvedValue({ auth_enabled: true, from_this_machine: false, code_required: false });
+    getAuthMe.mockResolvedValue({ id: 1, username: 'admin', role: 'admin' });
+    const el = await monterSysteme();
+    expect(bouton(el, fr['diagnostics.shutdown']).disabled).toBe(false);
+    expect(bouton(el, fr['diagnostics.reboot']).disabled).toBe(false);
+  });
+
   it('serveur ancien (pas de /auth/activation) : actifs, le serveur reste juge', async () => {
     getAuthActivation.mockResolvedValue(null);
     const el = await monterSysteme();
@@ -171,9 +227,9 @@ describe('rc14 — refusActionsMachine', () => {
     expect(refusActionsMachine(null, 'user')).toBeNull();
   });
 
-  it('les trois libellés existent en 20 langues', () => {
+  it('les quatre libellés existent en 20 langues', () => {
     for (const l of ONZE_LANGUES) {
-      for (const cle of ['machineAction.unavailableHere', 'machineAction.adminOnly', 'machineAction.howTo']) {
+      for (const cle of ['machineAction.unavailableHere', 'machineAction.adminOnly', 'machineAction.howTo', 'machineAction.signInAsAdmin']) {
         expect(String(dictionnaire(l)[cle] ?? '').trim(), `${l} ${cle}`).not.toBe('');
       }
     }

@@ -2349,6 +2349,7 @@ export default {
   "machineAction.unavailableHere": "Khả dụng trên máy chủ, hoặc sau khi đăng nhập với tư cách quản trị viên.",
   "machineAction.adminOnly": "Chỉ dành cho tài khoản quản trị.",
   "machineAction.howTo": "Làm thế nào?",
+  "machineAction.signInAsAdmin": "Hãy đăng nhập với tư cách quản trị viên để thực hiện thao tác này.",
   "settings.updateStatusUnknown": "Không xác định được bản cập nhật đã cài hay chưa: máy chủ không phản hồi. Hãy tải lại trang để xem phiên bản đang chạy.",
   "settings.updateInstallFailed": "Cập nhật thất bại. Lý do máy chủ đưa ra: {reason}",
   "settings.updateButton": "Cập nhật",

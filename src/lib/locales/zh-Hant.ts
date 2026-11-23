@@ -2367,6 +2367,7 @@ export default {
   "machineAction.unavailableHere": "可在伺服器主機上使用，或以管理者身分登入後使用。",
   "machineAction.adminOnly": "僅限管理者帳號。",
   "machineAction.howTo": "如何操作？",
+  "machineAction.signInAsAdmin": "請以管理者身分登入以執行此操作。",
   "settings.updateStatusUnknown": "無法得知更新是否已安裝：伺服器沒有回應。請重新載入頁面，以查看目前執行的版本。",
   "settings.updateInstallFailed": "更新失敗。伺服器提供的原因：{reason}",
   "settings.updateButton": "更新",

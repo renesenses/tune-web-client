@@ -1676,6 +1676,7 @@ export default {
   "machineAction.unavailableHere": "可在服务器所在的机器上使用，或以管理员身份登录后使用。",
   "machineAction.adminOnly": "仅限管理员帐户。",
   "machineAction.howTo": "如何操作？",
+  "machineAction.signInAsAdmin": "请以管理员身份登录以执行此操作。",
   "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
   "settings.updateInstallFailed": "更新失败。服务器给出的原因：{reason}",
   "settings.updateButton": "更新",

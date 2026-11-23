@@ -2496,6 +2496,7 @@ export default {
   "machineAction.unavailableHere": "Disponible sur la machine du serveur, ou une fois connecté en administrateur.",
   "machineAction.adminOnly": "Réservé à un compte administrateur.",
   "machineAction.howTo": "Comment faire ?",
+  "machineAction.signInAsAdmin": "Connectez-vous en administrateur pour cette action.",
   "settings.updateStatusUnknown": "Impossible de savoir si la mise à jour s'est installée : le serveur n'a pas répondu. Rechargez la page pour voir la version en cours.",
   "settings.updateInstallFailed": "La mise à jour a échoué. Raison donnée par le serveur : {reason}",
   "settings.updateButton": "Mettre à jour",

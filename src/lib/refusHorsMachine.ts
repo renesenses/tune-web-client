@@ -37,8 +37,8 @@ export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
  * rc14 (capture d'Yves, rc13.1) — une phrase COURTE et juste : ce qui est
  * refusé et pourquoi, puis quoi faire (« sur la machine du serveur, ou en vous
  * connectant en administrateur »). Plus aucune commande (`docker restart`,
- * `journalctl`…) : elles étaient fausses pour Tune OS (SSH fermé, c'est
- * Cockpit) et illisibles pour un utilisateur ordinaire. Le lien d'aide vit
+ * `journalctl`…) : illisibles pour un utilisateur ordinaire, et pour Tune OS
+ * le chemin simple est Cockpit, pas SSH. Le lien d'aide vit
  * sous les boutons grisés (`droitActionsMachine`), et le bouton « Ouvrir le
  * réglage Authentification » accompagne le refus.
  */

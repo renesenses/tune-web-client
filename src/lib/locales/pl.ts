@@ -2347,6 +2347,7 @@ export default {
   "machineAction.unavailableHere": "Dostępne na komputerze serwera lub po zalogowaniu jako administrator.",
   "machineAction.adminOnly": "Tylko dla konta administratora.",
   "machineAction.howTo": "Jak to zrobić?",
+  "machineAction.signInAsAdmin": "Zaloguj się jako administrator, aby wykonać tę czynność.",
   "settings.updateStatusUnknown": "Nie wiadomo, czy aktualizacja została zainstalowana: serwer nie odpowiedział. Odśwież stronę, aby zobaczyć działającą wersję.",
   "settings.updateInstallFailed": "Aktualizacja nie powiodła się. Przyczyna podana przez serwer: {reason}",
   "settings.updateButton": "Zaktualizuj",

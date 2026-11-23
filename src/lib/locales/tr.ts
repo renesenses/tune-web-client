@@ -2370,6 +2370,7 @@ export default {
   "machineAction.unavailableHere": "Sunucu makinesinde veya yönetici olarak oturum açtıktan sonra kullanılabilir.",
   "machineAction.adminOnly": "Yalnızca yönetici hesabı içindir.",
   "machineAction.howTo": "Nasıl yapılır?",
+  "machineAction.signInAsAdmin": "Bu işlem için yönetici olarak oturum açın.",
   "settings.updateStatusUnknown": "Güncellemenin yüklenip yüklenmediği bilinmiyor: sunucu yanıt vermedi. Çalışan sürümü görmek için sayfayı yeniden yükleyin.",
   "settings.updateInstallFailed": "Güncelleme başarısız oldu. Sunucunun bildirdiği neden: {reason}",
   "settings.updateButton": "Güncelle",

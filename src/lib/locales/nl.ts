@@ -2367,6 +2367,7 @@ export default {
   "machineAction.unavailableHere": "Beschikbaar op de servercomputer, of na inloggen als beheerder.",
   "machineAction.adminOnly": "Alleen voor een beheerdersaccount.",
   "machineAction.howTo": "Hoe doe ik dat?",
+  "machineAction.signInAsAdmin": "Log in als beheerder voor deze actie.",
   "settings.updateStatusUnknown": "Onbekend of de update is geïnstalleerd: de server gaf geen antwoord. Laad de pagina opnieuw om de actieve versie te zien.",
   "settings.updateInstallFailed": "De update is mislukt. Reden opgegeven door de server: {reason}",
   "settings.updateButton": "Bijwerken",

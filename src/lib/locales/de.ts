@@ -1676,6 +1676,7 @@ export default {
   "machineAction.unavailableHere": "Verfügbar auf dem Server-Rechner oder nach der Anmeldung als Administrator.",
   "machineAction.adminOnly": "Nur für ein Administratorkonto.",
   "machineAction.howTo": "Wie geht das?",
+  "machineAction.signInAsAdmin": "Melden Sie sich für diese Aktion als Administrator an.",
   "settings.updateStatusUnknown": "Es lässt sich nicht feststellen, ob die Aktualisierung installiert wurde: der Server hat nicht geantwortet. Laden Sie die Seite neu, um die laufende Version zu sehen.",
   "settings.updateInstallFailed": "Die Aktualisierung ist fehlgeschlagen. Vom Server genannter Grund: {reason}",
   "settings.updateButton": "Aktualisieren",

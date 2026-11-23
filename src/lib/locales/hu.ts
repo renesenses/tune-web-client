@@ -1773,6 +1773,7 @@ export default {
   "machineAction.unavailableHere": "Elérhető a szerver gépén, vagy rendszergazdaként bejelentkezve.",
   "machineAction.adminOnly": "Csak rendszergazdai fiók számára.",
   "machineAction.howTo": "Hogyan csináljam?",
+  "machineAction.signInAsAdmin": "A művelethez jelentkezzen be rendszergazdaként.",
   "settings.updateStatusUnknown": "Nem állapítható meg, hogy a frissítés települt-e: a kiszolgáló nem válaszolt. Töltse újra az oldalt a futó verzió megtekintéséhez.",
   "settings.updateInstallFailed": "A frissítés sikertelen. A kiszolgáló által megadott ok: {reason}",
   "settings.updateButton": "Frissítés",

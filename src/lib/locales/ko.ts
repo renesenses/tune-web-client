@@ -1652,6 +1652,7 @@ export default {
   "machineAction.unavailableHere": "서버 기기에서, 또는 관리자로 로그인하면 사용할 수 있습니다.",
   "machineAction.adminOnly": "관리자 계정 전용입니다.",
   "machineAction.howTo": "방법 보기",
+  "machineAction.signInAsAdmin": "이 작업을 하려면 관리자로 로그인하세요.",
   "settings.updateStatusUnknown": "업데이트가 설치되었는지 알 수 없습니다. 서버가 응답하지 않았습니다. 페이지를 새로 고쳐 실행 중인 버전을 확인하세요.",
   "settings.updateInstallFailed": "업데이트에 실패했습니다. 서버가 알려 준 이유: {reason}",
   "settings.updateButton": "업데이트",

@@ -35,11 +35,17 @@ export const FIL_AIDE_ACTIONS_MACHINE =
  */
 export type RefusActionsMachine = 'hors_machine' | 'non_admin';
 
-/** La clé de la ligne affichée sous les boutons grisés. */
-export const CLE_NOTE_ACTIONS_MACHINE: Record<RefusActionsMachine, string> = {
-  hors_machine: 'machineAction.unavailableHere',
-  non_admin: 'machineAction.adminOnly',
-};
+/**
+ * La clé de la ligne affichée sous les boutons grisés.
+ *
+ * Sur un appareil Tune OS, `from_this_machine` est faux même sur la machine
+ * elle-même quand l'image relaie le port 80 : « Disponible sur la machine du
+ * serveur » serait faux. On y dit seulement de se connecter en administrateur.
+ */
+export function cleNoteActionsMachine(refus: RefusActionsMachine, appliance: boolean | null): string {
+  if (refus === 'non_admin') return 'machineAction.adminOnly';
+  return appliance === true ? 'machineAction.signInAsAdmin' : 'machineAction.unavailableHere';
+}
 
 /** `null` : les actions sont offertes (ou on ne sait pas, et le serveur jugera). */
 export function refusActionsMachine(

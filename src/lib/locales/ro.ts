@@ -1682,6 +1682,7 @@ export default {
   "machineAction.unavailableHere": "Disponibil pe mașina serverului sau după conectarea ca administrator.",
   "machineAction.adminOnly": "Rezervat unui cont de administrator.",
   "machineAction.howTo": "Cum procedez?",
+  "machineAction.signInAsAdmin": "Conectați-vă ca administrator pentru această acțiune.",
   "settings.updateStatusUnknown": "Nu se poate şti dacă actualizarea s-a instalat: serverul nu a răspuns. Reîncarcă pagina pentru a vedea versiunea curentă.",
   "settings.updateInstallFailed": "Actualizarea a eșuat. Motivul dat de server: {reason}",
   "settings.updateButton": "Actualizează",

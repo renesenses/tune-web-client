@@ -1676,6 +1676,7 @@ export default {
   "machineAction.unavailableHere": "サーバーのマシン上、または管理者としてサインインすると利用できます。",
   "machineAction.adminOnly": "管理者アカウント専用です。",
   "machineAction.howTo": "方法を見る",
+  "machineAction.signInAsAdmin": "この操作には管理者としてサインインしてください。",
   "settings.updateStatusUnknown": "更新がインストールされたか判断できません。サーバーが応答しませんでした。ページを再読み込みして実行中のバージョンを確認してください。",
   "settings.updateInstallFailed": "更新に失敗しました。サーバーが示した理由: {reason}",
   "settings.updateButton": "アップデート",
