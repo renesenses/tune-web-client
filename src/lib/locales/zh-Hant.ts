@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "已停止加入：{n} 張中已有 {k} 張加入待播清單",
   "bibliotheque.selection.playlistPartial": "在 {total} 張專輯中，{n, plural, other {有 # 張無法讀取：缺少其曲目。}}",
   "bibliotheque.selection.editGenreScope": "類型也會拷貝至專輯的曲目，但曲目類型各不相同的合輯除外。",
+  "nowplaying.lyricsSynced": "與播放同步",
+  "nowplaying.upNextRemaining": "{n, plural, other {還剩 # 首}}",
+  "nowplaying.viewQueue": "檢視待播清單",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

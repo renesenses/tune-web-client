@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Toevoegen gestopt: {k} van {n} toegevoegd aan de wachtrij",
   "bibliotheque.selection.playlistPartial": "Van de {total} albums {n, plural, one {kon # niet worden gelezen: de nummers ervan ontbreken.} other {konden # niet worden gelezen: de nummers ervan ontbreken.}}",
   "bibliotheque.selection.editGenreScope": "Het genre wordt ook naar de nummers van het album gekopieerd, behalve bij een compilatie waarvan de nummers verschillende genres hebben.",
+  "nowplaying.lyricsSynced": "Gesynchroniseerd met het afspelen",
+  "nowplaying.upNextRemaining": "{n, plural, one {nog # nummer} other {nog # nummers}}",
+  "nowplaying.viewQueue": "Wachtrij bekijken",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

@@ -8358,5 +8358,8 @@ export default {
   "bibliotheque.selection.queueStopped": "Додавання зупинено: додано до черги {k} із {n}",
   "bibliotheque.selection.playlistPartial": "Із {total} альбомів {n, plural, one {# не вдалося прочитати: його треків бракує.} few {# не вдалося прочитати: їхніх треків бракує.} many {# не вдалося прочитати: їхніх треків бракує.} other {# не вдалося прочитати: їхніх треків бракує.}}",
   "bibliotheque.selection.editGenreScope": "Жанр також копіюється до треків альбому, крім збірок, треки яких мають різні жанри.",
+  "nowplaying.lyricsSynced": "Синхронізовано з відтворенням",
+  "nowplaying.upNextRemaining": "{n, plural, one {залишився # трек} few {залишилося # треки} many {залишилося # треків} other {залишилося # треку}}",
+  "nowplaying.viewQueue": "Відкрити чергу",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];
