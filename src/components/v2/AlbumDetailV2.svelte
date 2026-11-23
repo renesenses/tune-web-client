@@ -1615,6 +1615,15 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * rien.
    */
   let bioOuverte = $state(false);
+  /**
+   * Fil 3009, point 10 (FabienM, rc13) — « le "Lire la suite" de la bio ne
+   * fonctionne pas, ça ne fait rien quand on clique dessus alors que ça
+   * devrait afficher la suite ». Le bouton ne dépliait rien : il basculait
+   * sur l'onglet « Notes / Bio », plus bas dans la page, qui remontrait la
+   * même notice coupée à quatre lignes au lieu de trois. Il déplie désormais
+   * la présentation SUR PLACE, et « Réduire » la replie.
+   */
+  let descriptionDepliee = $state(false);
   let bio = $state<string | null>(null);
   /** Provenance de la notice (`bio_provenance`) — attribution CC BY-SA. */
   let bioProvenance = $state<BioProvenance | null>(null);
@@ -1634,6 +1643,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     if (id === bioAlbumId) return;
     bioAlbumId = id;
     bioOuverte = false;
+    descriptionDepliee = false;
     bio = null;
     bioProvenance = null;
     bioSegments = null;
@@ -2033,8 +2043,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
            l'onglet Notes / Bio. Vide ou en erreur : rien. -->
       {#if bio && bio.trim()}
         <div class="description" data-description-album>
-          <p title={bio} lang={bioLangue.langue ?? undefined}>{bio}</p>
-          <button type="button" class="lire-suite" data-lire-suite onclick={() => choisirOnglet('bio')}>{$tr('v2.album.fiche.readMore' as any)}</button>
+          <p id="album-description-{album.id}" class:depliee={descriptionDepliee} title={descriptionDepliee ? undefined : bio}
+            lang={bioLangue.langue ?? undefined}>{bio}</p>
+          <button type="button" class="lire-suite" data-lire-suite aria-expanded={descriptionDepliee}
+            aria-controls="album-description-{album.id}"
+            onclick={() => (descriptionDepliee = !descriptionDepliee)}>{$tr((descriptionDepliee ? 'v2.art.bioReadLess' : 'v2.album.fiche.readMore') as any)}</button>
         </div>
       {/if}
       <div class="facts">
@@ -2506,6 +2519,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
   .description{display:flex; flex-direction:column; align-items:flex-start; gap:4px; max-width:70ch}
   .description p{margin:0; font-style:italic; color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1)); line-height:1.45;
     display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical; overflow:hidden}
+  .description p.depliee{display:block; -webkit-line-clamp:unset; line-clamp:none; overflow:visible}
   .lire-suite{all:unset; cursor:pointer; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-acc-tint)}
   .lire-suite:hover{text-decoration:underline}
   .lire-suite:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
