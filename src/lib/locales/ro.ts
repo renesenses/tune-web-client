@@ -1458,8 +1458,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Gama dinamică (DR), calculată de Tune din semnalul audio — această piesă nu are etichetă DYNAMIC RANGE, așa că etapa de analiză a măsurat valoarea. Cu cât valoarea e mai mare, cu atât masterizarea e mai puțin comprimată.",
   "library.writeTags": "Scrie etichete",
   "library.notesBio": "Note / Bio",
-  "library.noAlbumNote": "Nicio notă disponibilă pentru acest album",
-  "library.bioLoadError": "Nu s-au putut încărca notele albumului.",
   "library.playNext": "Redă următoarea",
   "library.moreOptions": "Mai multe opțiuni",
   "library.goToArtist": "Mergi la artist",

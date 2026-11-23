@@ -1393,8 +1393,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamiskt omfång (DR), beräknat av Tune ur ljudet – det här spåret saknar DYNAMIC RANGE-tagg, så analyssteget mätte värdet. Ju högre värde, desto mindre komprimerad mastring.",
   "library.writeTags": "Skriv taggar",
   "library.notesBio": "Anteckningar / Bio",
-  "library.noAlbumNote": "Ingen anteckning tillgänglig för det här albumet",
-  "library.bioLoadError": "Det gick inte att läsa in albumets noter.",
   "library.playNext": "Spela härnäst",
   "library.moreOptions": "Fler alternativ",
   "library.goToArtist": "Gå till artist",

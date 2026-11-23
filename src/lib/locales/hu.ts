@@ -1549,8 +1549,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dinamikatartomány (DR), amelyet a Tune a hangjelből számított ki — ennek a számnak nincs DYNAMIC RANGE címkéje, ezért az elemzési menet mérte meg az értéket. Minél nagyobb az érték, annál kevésbé tömörített a mastering.",
   "library.writeTags": "Címkék beírása",
   "library.notesBio": "Jegyzetek / Életrajz",
-  "library.noAlbumNote": "Nincs elérhető jegyzet ehhez az albumhoz",
-  "library.bioLoadError": "Az album ismertetője nem tölthető be.",
   "library.playNext": "Lejátszás következőként",
   "library.moreOptions": "További lehetőségek",
   "library.goToArtist": "Ugrás az előadóhoz",

@@ -1460,8 +1460,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamika (DR) obliczona przez Tune na podstawie samego dźwięku — ten utwór nie ma tagu DYNAMIC RANGE, więc wartość zmierzyło przejście analizy. Im wyższa wartość, tym mniej skompresowany mastering.",
   "library.writeTags": "Zapisz tagi",
   "library.notesBio": "Notatki / Bio",
-  "library.noAlbumNote": "Brak notatki do tego albumu",
-  "library.bioLoadError": "Nie udało się wczytać opisu albumu.",
   "library.playNext": "Odtwórz jako następny",
   "library.moreOptions": "Więcej opcji",
   "library.goToArtist": "Przejdź do wykonawcy",

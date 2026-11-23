@@ -1452,8 +1452,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "动态范围（DR），由 Tune 从音频信号计算得出——该音轨没有 DYNAMIC RANGE 标签，因此由分析过程测量得出。数值越高，母带压缩越少。",
   "library.writeTags": "写入标签",
   "library.notesBio": "笔记 / 简介",
-  "library.noAlbumNote": "此专辑没有可用的笔记",
-  "library.bioLoadError": "无法加载专辑简介。",
   "library.playNext": "下一首播放",
   "library.moreOptions": "更多选项",
   "library.goToArtist": "前往艺术家",

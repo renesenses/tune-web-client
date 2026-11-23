@@ -1605,8 +1605,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamic Range (DR), computed by Tune from the audio itself — this track carries no DYNAMIC RANGE tag, so the analysis pass measured the value. The higher the value, the less compressed the mastering.",
   "library.writeTags": "Write tags",
   "library.notesBio": "Notes / Bio",
-  "library.noAlbumNote": "No note available for this album",
-  "library.bioLoadError": "Could not load the album notes.",
   "library.playNext": "Play next",
   "library.moreOptions": "More options",
   "library.goToArtist": "Go to artist",

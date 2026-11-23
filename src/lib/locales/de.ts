@@ -1452,8 +1452,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "Dynamikumfang (DR), von Tune aus dem Signal berechnet — dieser Titel trägt kein DYNAMIC-RANGE-Tag, daher hat der Analysedurchlauf den Wert gemessen. Je höher, desto weniger komprimiert das Mastering.",
   "library.writeTags": "Tags schreiben",
   "library.notesBio": "Notizen / Bio",
-  "library.noAlbumNote": "Keine Notiz für dieses Album verfügbar",
-  "library.bioLoadError": "Die Albumnotizen konnten nicht geladen werden.",
   "library.playNext": "Als Nächstes abspielen",
   "library.moreOptions": "Weitere Optionen",
   "library.goToArtist": "Zum Interpreten",

@@ -1452,8 +1452,6 @@ export default {
   "library.dynamicRangeAnalysisTip": "ダイナミックレンジ（DR）。Tune が音声信号から算出した値です。このトラックには DYNAMIC RANGE タグがないため、解析処理が測定しました。値が大きいほどマスタリングの圧縮が少ないことを示します。",
   "library.writeTags": "タグを書き込む",
   "library.notesBio": "メモ／バイオ",
-  "library.noAlbumNote": "このアルバムのメモはありません",
-  "library.bioLoadError": "アルバムの紹介を読み込めませんでした。",
   "library.playNext": "次に再生",
   "library.moreOptions": "その他のオプション",
   "library.goToArtist": "アーティストへ移動",
