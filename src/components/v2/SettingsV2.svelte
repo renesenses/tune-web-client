@@ -31,7 +31,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { diagnosticDsd } from '../../lib/transportDsd';
+  import { diagnosticDsd, modesDsdOfferts } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -7015,8 +7015,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
-                            <option value="dop">DoP</option><option value="pcm">PCM</option>
+                            <!-- Devialet AIR : PCM seulement (DoP débranché, `modesDsdOfferts`). -->
+                            {#each modesDsdOfferts(z.output_type) as mode (mode)}
+                              {#if mode === 'auto'}<option value="auto">Auto</option>
+                              {:else if mode === 'native'}<option value="native">{$t('v2.lbl.native' as any)}</option>
+                              {:else if mode === 'dop'}<option value="dop">DoP</option>
+                              {:else}<option value="pcm">PCM</option>{/if}
+                            {/each}
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->
