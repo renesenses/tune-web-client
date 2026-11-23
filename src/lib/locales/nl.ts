@@ -8362,5 +8362,7 @@ export default {
   "nowplaying.viewQueue": "Wachtrij bekijken",
   "nowplaying.fullscreenMode": "Volledig scherm",
   "nowplaying.lyricsWrittenBy": "Geschreven door {noms}",
+  "settings.coverPlayButton": "Afspeelknop op hoezen tonen",
+  "settings.coverPlayButtonHint": "Uitgeschakeld verdwijnt de afspeelknop van de hoezen. Een hoes aantikken opent hem nog steeds, en afspelen blijft beschikbaar in het menu “…” en op de detailpagina.",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

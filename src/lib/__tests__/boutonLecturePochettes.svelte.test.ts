@@ -73,7 +73,7 @@ describe('le réglage « Afficher le bouton lecture sur les pochettes »', () =>
     expect(hote!.querySelector('button.centre')).toBeNull();
   });
 
-  it('est rangé avec les choix d’affichage, et traduit dans les seize langues', () => {
+  it('est rangé avec les choix d’affichage, et traduit dans les vingt langues', () => {
     const r = REGLAGES.find((x: any) => x.id === 'bouton-lecture-pochettes') as any;
     expect(r?.section).toBe('displayPrefs');
     const ecran = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');

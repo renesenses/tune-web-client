@@ -8362,5 +8362,7 @@ export default {
   "nowplaying.viewQueue": "檢視待播清單",
   "nowplaying.fullscreenMode": "全螢幕模式",
   "nowplaying.lyricsWrittenBy": "詞曲：{noms}",
+  "settings.coverPlayButton": "在封面上顯示播放按鈕",
+  "settings.coverPlayButtonHint": "關閉後，播放按鈕會從封面上消失。點按封面仍會開啟它，播放功能仍保留在「…」選單和詳細資料頁中。",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

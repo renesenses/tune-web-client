@@ -8362,5 +8362,7 @@ export default {
   "nowplaying.viewQueue": "Відкрити чергу",
   "nowplaying.fullscreenMode": "Повноекранний режим",
   "nowplaying.lyricsWrittenBy": "Автори: {noms}",
+  "settings.coverPlayButton": "Показувати кнопку відтворення на обкладинках",
+  "settings.coverPlayButtonHint": "Якщо вимкнено, кнопка відтворення зникає з обкладинок. Дотик до обкладинки, як і раніше, відкриває її, а відтворення залишається в меню «…» та на сторінці відомостей.",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];
