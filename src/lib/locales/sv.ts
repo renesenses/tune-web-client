@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "Spellistans namn",
   "v2.home.becauseYouLikeSaved": "Spellistan ”{nom}” sparad",
   "v2.home.becauseYouLikeNoZone": "Välj en lyssningszon först",
+  "v2.home.becauseYouLikeNothingPlayable": "Inget spår i den här spellistan kan spelas här: ingenting startades.",
   "v2.home.becauseYouLikeRefresh": "ny mix var {n}:e dag",
   "v2.home.becauseYouLikePartial": "Vissa spår kunde inte läggas till: spellistan ”{nom}” är ofullständig.",
   "v2.home.becauseYouLikeDeletePartial": "Ta bort den ofullständiga spellistan",

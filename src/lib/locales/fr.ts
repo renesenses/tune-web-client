@@ -1982,6 +1982,7 @@ export default {
   "v2.home.becauseYouLikeName": "Nom de la playlist",
   "v2.home.becauseYouLikeSaved": "Playlist « {nom} » enregistrée",
   "v2.home.becauseYouLikeNoZone": "Choisissez d'abord une zone d'écoute",
+  "v2.home.becauseYouLikeNothingPlayable": "Aucun titre de cette playlist n'est jouable ici : rien n'a été lancé.",
   "v2.home.becauseYouLikeRefresh": "nouveau mix tous les {n} jours",
   "v2.home.becauseYouLikePartial": "Certains titres n'ont pas pu être ajoutés : la playlist « {nom} » est incomplète.",
   "v2.home.becauseYouLikeDeletePartial": "Supprimer la playlist incomplète",

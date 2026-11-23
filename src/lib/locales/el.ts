@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeName": "Όνομα λίστας",
   "v2.home.becauseYouLikeSaved": "Η λίστα «{nom}» αποθηκεύτηκε",
   "v2.home.becauseYouLikeNoZone": "Επιλέξτε πρώτα μια ζώνη ακρόασης",
+  "v2.home.becauseYouLikeNothingPlayable": "Κανένα κομμάτι αυτής της λίστας δεν μπορεί να παιχτεί εδώ: δεν ξεκίνησε τίποτα.",
   "v2.home.becauseYouLikeRefresh": "νέο μείγμα κάθε {n} ημέρες",
   "v2.home.becauseYouLikePartial": "Ορισμένα κομμάτια δεν προστέθηκαν: η λίστα «{nom}» είναι ελλιπής.",
   "v2.home.becauseYouLikeDeletePartial": "Διαγραφή της ελλιπούς λίστας",

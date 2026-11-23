@@ -23,7 +23,7 @@
   import {
     EnregistrementPartiel,
     enregistrerPlaylistGeneree,
-    lirePlaylistGeneree,
+    lireDepuisLePanneau,
     type PlaylistGeneree,
   } from '../../lib/parceQueVousAimez';
 
@@ -50,7 +50,11 @@
       notifications.error($t('v2.home.becauseYouLikeNoZone' as any));
       return;
     }
-    lirePlaylistGeneree(z, playlist).then(onClose, signalerEchecLecture);
+    // Rien de jouable : le panneau reste ouvert et le dit (forum, rc14).
+    lireDepuisLePanneau(z, playlist, {
+      fermer: onClose,
+      rienAJouer: () => notifications.error($t('v2.home.becauseYouLikeNothingPlayable' as any)),
+    }).catch(signalerEchecLecture);
   }
 
   async function enregistrer(e: Event) {
