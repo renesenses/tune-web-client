@@ -7299,10 +7299,16 @@ export function getStreamingGenres(service: string, parentId?: string) {
  * Un serveur antérieur à tune-server-rust#4524 (0.9.156 et avant) ne rejette
  * pas `section`, il l'ignore et re-sert les nouveautés : c'est
  * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
+ *
+ * `sansBandeau` : l'échec a déjà où se voir — la vue du genre (message « aucun
+ * album » seulement si l'écran entier est vide) et la bande de l'accueil (phase
+ * `echec`). Un genre absent du catalogue du pays du compte (TIDAL, « Category
+ * not found ») levait sinon un bandeau rouge global sur un écran partiel.
  */
 export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
   const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`,
+    undefined, undefined, true);
 }
 
 /**

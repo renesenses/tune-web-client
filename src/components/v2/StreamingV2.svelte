@@ -1973,7 +1973,9 @@
           {/each}
         {:else if genreAlbums.length || bandesGenre.length}
           <div class="state">{$t('v2.common.noResult' as any)}</div>
-        {:else if genreId}
+        {:else if genreId && !genrePlaylists.length}
+          <!-- Message seulement si l'écran ENTIER est vide : un genre sans
+               albums dans le catalogue du pays garde sa bande de playlists. -->
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
           <div class="state">{$t('streaming.pickGenre')}</div>
