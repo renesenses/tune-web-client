@@ -3282,7 +3282,6 @@ export default {
   "settings.ingest": "Legge til innhold",
   "settings.ingestMode": "Handling på kildefilene",
   "settings.ingestConflict": "Ved konflikt",
-  "nowplaying.tvMode": "Storskjermmodus",
   "tv.lyrics": "Tekster",
   "tv.vuInstrument": "Nivåmåler",
   "tv.vuInstrument.off": "Ingen",
@@ -5137,7 +5136,7 @@ export default {
   "settings.sidebarMoved": "{x}: plass {p} av {n}",
   "settings.sidebarDrag": "Dra for å flytte {x}",
   "settings.nowPlayingLinkToSource": "«Spilles nå» åpner albumet eller spillelisten",
-  "settings.nowPlayingLinkToSourceHint": "Oppføringen «Spilles nå» i sidefeltet og miniatyrbildet i avspillingslinjen åpner siden til albumet som spilles, eller til spillelisten hvis avspillingen startet fra en. For en radiostasjon, eller når ingen side finnes, åpnes Spilles nå-skjermen, som i dag. Knappen «Storskjermmodus» er fortsatt tilgjengelig: mens et spor spilles, vises den øverst til høyre på alle skjermer.",
+  "settings.nowPlayingLinkToSourceHint": "Oppføringen «Spilles nå» i sidefeltet og miniatyrbildet i avspillingslinjen åpner siden til albumet som spilles, eller til spillelisten hvis avspillingen startet fra en. For en radiostasjon, eller når ingen side finnes, åpnes Spilles nå-skjermen, som i dag. Knappen «Fullskjermmodus» er fortsatt tilgjengelig: mens et spor spilles, vises den øverst til høyre på alle skjermer.",
   "settings.animationRateSmooth": "Jevn — dagens visning",
   "settings.animationRateSaving": "Økonomisk — omtrent 30 % mindre prosessorbruk",
   "settings.animationRateMinimal": "Minimal — omtrent 40 % mindre, målerne ser litt trinnvise ut",
@@ -8387,5 +8386,7 @@ export default {
   "cloud.reconnexionRequise": "Tilkoblingen til mozaiklabs.fr er utløpt: Tune Circle og nettkopien er satt på pause. Koble til på nytt uten å bruke «Logg ut», som ville slette nettkopien og delingene dine.",
   "cloud.reconnexionRequiseDepuis": "Tilkoblingen til mozaiklabs.fr utløp {date}: Tune Circle og nettkopien er satt på pause. Koble til på nytt uten å bruke «Logg ut», som ville slette nettkopien og delingene dine.",
   "cloud.seReconnecter": "Koble til på nytt",
+  "nowplaying.fullscreenMode": "Fullskjermmodus",
+  "nowplaying.lyricsWrittenBy": "Skrevet av {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

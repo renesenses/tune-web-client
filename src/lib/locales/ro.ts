@@ -2593,7 +2593,6 @@ export default {
   "settings.ingestMode": "Acțiunea asupra fișierelor sursă",
   "settings.ingestConflict": "În caz de conflict",
   // Mod ecran mare (TV) + versuri
-  "nowplaying.tvMode": "Mod ecran mare",
   "tv.lyrics": "Versuri",
   "tv.vuInstrument": "Instrument de nivel",
   "tv.vuInstrument.off": "Niciunul",
@@ -5263,7 +5262,7 @@ export default {
   "settings.sidebarMoved": "{x}: poziția {p} din {n}",
   "settings.sidebarDrag": "Trageți pentru a muta {x}",
   "settings.nowPlayingLinkToSource": "„Se redă acum” deschide albumul sau playlistul",
-  "settings.nowPlayingLinkToSourceHint": "Intrarea „Se redă acum” din bara laterală și miniatura din bara de redare deschid pagina albumului care se redă, sau pe cea a playlistului dacă redarea pornește de acolo. Pentru un post de radio, sau dacă nu există nicio pagină, deschide ecranul Se redă acum, ca până acum. Butonul „Mod ecran mare” rămâne disponibil: cât timp se redă o piesă, apare în dreapta sus pe toate ecranele.",
+  "settings.nowPlayingLinkToSourceHint": "Intrarea „Se redă acum” din bara laterală și miniatura din bara de redare deschid pagina albumului care se redă, sau pe cea a playlistului dacă redarea pornește de acolo. Pentru un post de radio, sau dacă nu există nicio pagină, deschide ecranul Se redă acum, ca până acum. Butonul „Mod ecran complet” rămâne disponibil: cât timp se redă o piesă, apare în dreapta sus pe toate ecranele.",
   "settings.animationRateSmooth": "Fluid — afișarea de astăzi",
   "settings.animationRateSaving": "Economic — cu circa 30 % mai puțin procesor",
   "settings.animationRateMinimal": "Minim — cu circa 40 % mai puțin, indicatoarele par ușor sacadate",
@@ -8542,6 +8541,8 @@ export default {
   "cloud.reconnexionRequise": "Conexiunea la mozaiklabs.fr a expirat: Tune Circle și copia online sunt în pauză. Reconectează-te fără să folosești „Deconectează-te”, care ar șterge copia online și partajările tale.",
   "cloud.reconnexionRequiseDepuis": "Conexiunea la mozaiklabs.fr a expirat pe {date}: Tune Circle și copia online sunt în pauză. Reconectează-te fără să folosești „Deconectează-te”, care ar șterge copia online și partajările tale.",
   "cloud.seReconnecter": "Reconectează-te",
+  "nowplaying.fullscreenMode": "Mod ecran complet",
+  "nowplaying.lyricsWrittenBy": "Scris de {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

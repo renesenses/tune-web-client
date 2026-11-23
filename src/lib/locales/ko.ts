@@ -2563,7 +2563,6 @@ export default {
   "settings.ingestMode": "원본 파일 처리",
   "settings.ingestConflict": "충돌 시",
   // 큰 화면 모드(TV) + 가사
-  "nowplaying.tvMode": "큰 화면 모드",
   "tv.lyrics": "가사",
   "tv.vuInstrument": "레벨 미터",
   "tv.vuInstrument.off": "없음",
@@ -5263,7 +5262,7 @@ export default {
   "settings.sidebarMoved": "{x}: {n}개 중 {p}번째",
   "settings.sidebarDrag": "끌어서 {x} 이동",
   "settings.nowPlayingLinkToSource": "「현재 재생」에서 앨범 또는 재생목록 열기",
-  "settings.nowPlayingLinkToSourceHint": "사이드바의 「현재 재생」 항목과 재생 바의 썸네일이 재생 중인 앨범 페이지를 엽니다. 재생목록에서 재생을 시작했다면 그 재생목록을 엽니다. 라디오이거나 페이지가 없으면 지금처럼 「현재 재생」 화면을 엽니다. 「큰 화면 모드」 버튼은 계속 사용할 수 있습니다. 곡이 재생되는 동안 모든 화면의 오른쪽 위에 표시됩니다.",
+  "settings.nowPlayingLinkToSourceHint": "사이드바의 「현재 재생」 항목과 재생 바의 썸네일이 재생 중인 앨범 페이지를 엽니다. 재생목록에서 재생을 시작했다면 그 재생목록을 엽니다. 라디오이거나 페이지가 없으면 지금처럼 「현재 재생」 화면을 엽니다. 「전체 화면 모드」 버튼은 계속 사용할 수 있습니다. 곡이 재생되는 동안 모든 화면의 오른쪽 위에 표시됩니다.",
   "settings.animationRateSmooth": "부드럽게 — 지금의 표시",
   "settings.animationRateSaving": "절약 — 프로세서 사용량 약 30 % 감소",
   "settings.animationRateMinimal": "최소 — 약 40 % 감소, 미터가 약간 끊겨 보입니다",
@@ -8542,6 +8541,8 @@ export default {
   "cloud.reconnexionRequise": "mozaiklabs.fr 연결이 만료되었습니다. Tune Circle과 온라인 사본이 일시 중지되었습니다. '로그아웃'을 사용하지 말고 다시 연결하세요. 로그아웃하면 온라인 사본과 공유가 삭제됩니다.",
   "cloud.reconnexionRequiseDepuis": "mozaiklabs.fr 연결이 {date}에 만료되었습니다. Tune Circle과 온라인 사본이 일시 중지되었습니다. '로그아웃'을 사용하지 말고 다시 연결하세요. 로그아웃하면 온라인 사본과 공유가 삭제됩니다.",
   "cloud.seReconnecter": "다시 연결",
+  "nowplaying.fullscreenMode": "전체 화면 모드",
+  "nowplaying.lyricsWrittenBy": "작사·작곡: {noms}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
