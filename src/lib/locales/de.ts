@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "Diese Appliance leitet Port 80 weiter, daher kann Tune einen lokalen Aufruf nicht von einem Netzwerkaufruf unterscheiden. Aktivieren Sie die Authentifizierung und melden Sie sich mit einem Administratorkonto an.",
   "machineAction.whereToEnable": "Authentifizierung aktivieren: Einstellungen > System > Authentifizierung (von einem anderen Gerät mit dem Einmalcode aus docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Nur ein Administratorkonto kann das Gerät herunterfahren oder neu starten. Melden Sie sich mit einem Administratorkonto an.",
+  "machineAction.openAuthSettings": "Einstellung Authentifizierung öffnen",
   "settings.updateStatusUnknown": "Es lässt sich nicht feststellen, ob die Aktualisierung installiert wurde: der Server hat nicht geantwortet. Laden Sie die Seite neu, um die laufende Version zu sehen.",
   "settings.updateInstallFailed": "Die Aktualisierung ist fehlgeschlagen. Vom Server genannter Grund: {reason}",
   "settings.updateButton": "Aktualisieren",

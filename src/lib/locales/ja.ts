@@ -1673,6 +1673,7 @@ export default {
   "machineAction.port80Relay": "このアプライアンスはポート 80 を中継しているため、Tune はローカルからの呼び出しとネットワークからの呼び出しを区別できません。認証を有効にして管理者アカウントでサインインしてください。",
   "machineAction.whereToEnable": "認証を有効にするには：設定 > システム > 認証（別の端末からは、docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)）。",
   "machineAction.adminRequired": "マシンのシャットダウンや再起動は管理者アカウントのみ実行できます。管理者アカウントでサインインしてください。",
+  "machineAction.openAuthSettings": "認証の設定を開く",
   "settings.updateStatusUnknown": "更新がインストールされたか判断できません。サーバーが応答しませんでした。ページを再読み込みして実行中のバージョンを確認してください。",
   "settings.updateInstallFailed": "更新に失敗しました。サーバーが示した理由: {reason}",
   "settings.updateButton": "アップデート",

@@ -2488,6 +2488,7 @@ export default {
   "machineAction.port80Relay": "This appliance relays port 80, so Tune cannot tell a local call from a network call. Enable authentication and sign in with an administrator account.",
   "machineAction.whereToEnable": "To enable authentication: Settings > System > Authentication (from another device, with the one-time code shown by docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Only an administrator account can shut down or restart the machine. Sign in with an administrator account.",
+  "machineAction.openAuthSettings": "Open the Authentication setting",
   "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
   "settings.updateInstallFailed": "The update failed. Reason given by the server: {reason}",
   "settings.updateButton": "Update",

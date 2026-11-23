@@ -2491,6 +2491,7 @@ export default {
   "machineAction.port80Relay": "Cette appliance relaie le port 80 : Tune ne peut pas distinguer un appel local d’un appel du réseau. Activez l’authentification et connectez-vous avec un compte administrateur.",
   "machineAction.whereToEnable": "Pour activer l’authentification : Réglages > Système > Authentification (depuis un autre appareil, avec le code à usage unique affiché par docker logs, journalctl -u tune (Tune OS: SSH), tune-server.log (Windows)).",
   "machineAction.adminRequired": "Seul un compte administrateur peut éteindre ou redémarrer la machine. Connectez-vous avec un compte administrateur.",
+  "machineAction.openAuthSettings": "Ouvrir le réglage Authentification",
   "settings.updateStatusUnknown": "Impossible de savoir si la mise à jour s'est installée : le serveur n'a pas répondu. Rechargez la page pour voir la version en cours.",
   "settings.updateInstallFailed": "La mise à jour a échoué. Raison donnée par le serveur : {reason}",
   "settings.updateButton": "Mettre à jour",
