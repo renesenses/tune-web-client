@@ -1,6 +1,6 @@
 <script lang="ts">
   import { seekPositionMs } from '../../lib/stores/nowPlaying';
-  import { avecDecalageParoles, ligneParolesActive, lyricsSourceKind, positionParolesTenue, type LyricsMiss } from '../../lib/lyrics';
+  import { avecDecalageParoles, defilementParoles, ligneParolesActive, lyricsSourceKind, positionParolesTenue, type LyricsMiss } from '../../lib/lyrics';
   import { parolesEnLigneActives } from '../../lib/lyricsOnline';
   import { t } from '../../lib/i18n';
 
@@ -37,6 +37,16 @@
     $props();
 
   let karaokePanel = $state<HTMLElement | null>(null);
+  /** Le conteneur qui DÉFILE (`.np-lyrics`, hauteur bornée). */
+  let conteneur = $state<HTMLElement | null>(null);
+  /** Défilement à la main : le suivi automatique se tait quelques secondes
+   *  (§10.5 : « respect manual scrolling »). Pas un `$state` : il ne doit
+   *  rien redéclencher. */
+  let mainJusqua = 0;
+  const PAUSE_MAIN_MS = 4000;
+  function defilementALaMain() {
+    mainJusqua = Date.now() + PAUSE_MAIN_MS;
+  }
 
   /**
    * L'état vide, et son motif.
@@ -91,18 +101,31 @@
     return ligneParolesActive(syncedLines, atteinte);
   });
 
-  // Auto-scroll to keep current line centered
+  // Design v3 (§10.5) — la ligne en cours reste centrée DANS le panneau.
+  // L'ancien appel de l'élément (« fais-moi voir ») faisait défiler toute la
+  // page (et l'ancêtre `.np-scroll`) jusqu'à la ligne : l'utilisateur perdait « À suivre » toutes les quelques
+  // secondes. On ne touche plus qu'au `scrollTop` du panneau. Sous
+  // `prefers-reduced-motion`, saut direct, sans animation.
   $effect(() => {
     const lineIdx = currentLine;
-    if (lineIdx < 0 || !karaokePanel) return;
+    const panneau = conteneur;
+    if (lineIdx < 0 || !karaokePanel || !panneau) return;
+    if (Date.now() < mainJusqua) return;
     const lineEl = karaokePanel.children[lineIdx] as HTMLElement | undefined;
-    if (lineEl) {
-      lineEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
+    if (!lineEl) return;
+    const reduit = typeof matchMedia === 'function'
+      && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ligneHaut = lineEl.getBoundingClientRect().top - panneau.getBoundingClientRect().top + panneau.scrollTop;
+    const cible = defilementParoles(
+      { ligneHaut, ligneHauteur: lineEl.offsetHeight, panneauHauteur: panneau.clientHeight },
+      reduit,
+    );
+    if (typeof panneau.scrollTo === 'function') panneau.scrollTo(cible);
+    else panneau.scrollTop = cible.top;
   });
 </script>
 
-<div class="np-lyrics">
+<div class="np-lyrics" bind:this={conteneur} onwheel={defilementALaMain} ontouchmove={defilementALaMain}>
   {#if loading}
     <div class="spinner-sm"></div>
   {:else if lyrics || syncedLines.length > 0}
@@ -168,6 +191,8 @@
     margin-top: 8px;
     max-height: 380px;
     overflow-y: auto;
+    /* Arrivé en butée, la molette ne passe pas la main à la page. */
+    overscroll-behavior: contain;
   }
   .lyrics-toolbar {
     display: flex;
@@ -230,33 +255,33 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Karaoke panel */
+  /* Design v3 (§10.5) : lignes à gauche, en Inter ; la ligne en cours dans
+     l'accent du thème (`--v2-acc1`, mesuré AA sur le fond de l'écran par
+     `fondLectureEnCoursV3.test.ts`) et en gras. Même corps pour toutes les
+     lignes : la ligne en cours ne pousse plus les autres à chaque pas. */
   .karaoke-panel {
     padding: 4px 0;
-    text-align: center;
-    scroll-behavior: smooth;
+    text-align: left;
   }
   .karaoke-line {
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 2;
+    font-family: var(--v2-police-texte, var(--v2-sans, var(--font-body)));
+    font-size: calc(17px * var(--v2-txt-echelle, 1));
+    line-height: 1.8;
     margin: 0;
     padding: 2px 0;
-    transition: all 0.35s ease-out;
-    color: var(--tune-text-muted);
-    opacity: 0.35;
+    transition: color 0.35s ease-out;
+    /* Pas d'opacité réduite : les lignes voisines restent du TEXTE, à AA
+       (txt3 et txt2 sont mesurés sur le fond de l'écran, pas leurs fondus). */
+    color: var(--v2-txt3, var(--tune-text-muted));
   }
   .karaoke-line.active {
-    font-size: 22px;
     font-weight: 700;
-    color: var(--tune-accent);
-    opacity: 1;
-    text-shadow: 0 0 24px rgba(var(--tune-accent-rgb, 99, 102, 241), 0.45);
+    color: var(--v2-acc1, var(--tune-accent));
   }
   .karaoke-line.past {
-    color: var(--tune-text-secondary);
-    opacity: 0.55;
+    color: var(--v2-txt2, var(--tune-text-secondary));
   }
-  .karaoke-line.future {
-    opacity: 0.35;
+  @media (prefers-reduced-motion: reduce) {
+    .karaoke-line { transition: none; }
   }
 </style>

@@ -39,11 +39,12 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(amb, 'deux cœurs sur la même ligne').not.toContain('HeartButton');
   });
 
-  it('web#3121 — la barre garde Lire, Lire à partir d’ici et le cœur ; le reste est au menu', () => {
-    for (const cle of ['v2.pa.play', 'common.playFromHere', 'v2.pa.fav', 'library.moreOptions']) {
+  it('web#3121 / fil 3009 — la barre garde Lire et le cœur ; le reste est au menu', () => {
+    for (const cle of ['v2.pa.play', 'v2.pa.fav', 'library.moreOptions']) {
       expect(src).toContain(cle);
     }
-    for (const cle of ['v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist']) {
+    // Fil forum 3009 (23/11/2026) — « Lire à partir d'ici » est passé au menu.
+    for (const cle of ['v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist', 'common.playFromHere']) {
       expect(src, `${cle} est revenu dans la barre`).not.toContain(`$t('${cle}' as any)`);
     }
   });
