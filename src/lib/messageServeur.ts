@@ -58,13 +58,31 @@ export function traductionDuCode(code: string | undefined, params?: unknown, rai
   if (!code) return null;
   // #2446 : les serveurs rc7 rendent encore ce refus en français.
   // Le bandeau de sortie possède déjà le même conseil dans toutes les langues.
+  const p = params && typeof params === 'object' ? (params as Record<string, unknown>) : {};
+  const interpoler = (traduit: string) =>
+    traduit.replace(/\{(\w+)\}/g, (tout, nom) => (nom in p ? String(p[nom]) : tout));
+  // rc14 — un refus de la famille `zone_output_unavailable` qui porte un motif
+  // se traduit par ce motif quand le dictionnaire le connaît
+  // (`erreursServeur.output_held_by_other_zone`, et `_<variant>` pour ses
+  // autres formes) : `zone.playback_error` n'a que la phrase française du
+  // serveur, le 409 la phrase de la langue de la requête ; les deux canaux
+  // disent ainsi la même chose, dans la langue de l'interface.
+  if (code === 'zone_output_unavailable' && estUnCode(raison)) {
+    const variante = estUnCode(p.variant) && p.variant !== 'other' ? `_${p.variant}` : '';
+    for (const cleMotif of [`erreursServeur.${raison}${variante}`, `erreursServeur.${raison}`]) {
+      const traduit = get(t)(cleMotif);
+      // Sans ses paramètres (serveur plus ancien), la phrase garderait ses
+      // `{zone}` : on retombe sur la règle d'avant.
+      const phrase = traduit && traduit !== cleMotif ? interpoler(traduit) : '';
+      if (phrase && !/\{\w+\}/.test(phrase)) return phrase;
+    }
+  }
   const cle = code === 'zone_output_unavailable' && !raison
     ? 'zone.outputMissingBanner'
     : `erreursServeur.${code}`;
   const traduit = get(t)(cle);
   if (!traduit || traduit === cle) return null;
-  const p = params && typeof params === 'object' ? (params as Record<string, unknown>) : {};
-  return traduit.replace(/\{(\w+)\}/g, (tout, nom) => (nom in p ? String(p[nom]) : tout));
+  return interpoler(traduit);
 }
 
 /**

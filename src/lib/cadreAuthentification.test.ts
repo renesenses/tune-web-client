@@ -43,7 +43,7 @@ beforeEach(() => {
 
 describe('bouton vers le cadre Authentification', () => {
   it('le message rouge du refus porte le bouton, et le bouton ouvre le cadre', async () => {
-    for (const reason of ['not_local', 'port80_relay']) {
+    for (const reason of ['not_local', 'port80_relay', 'not_local_network']) {
       error.mockReset();
       v2SettingsTarget.set(null);
       activeView.set('home');
