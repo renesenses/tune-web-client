@@ -584,6 +584,13 @@ export interface NowPlaying {
   /** tune-server-rust#2264 — quelle version joue et pourquoi (règle du
    *  profil, choix explicite, repli). Absent d'un serveur antérieur. */
   version?: import('./versionJouee').VersionJoueeServeur | null;
+  /** tune-server-rust#8452 — la pochette de cette webradio a été retrouvée
+   *  par Cover+ (titre ICY → iTunes), et non donnée par la station : l'écran
+   *  l'accompagne du label « Cover+ ». Absent d'un serveur antérieur. */
+  cover_plus?: boolean;
+  /** tune-server-rust#8452 — d'où vient l'image Cover+ : la pochette chez
+   *  iTunes, la photo de l'artiste (repli), ou la pochette du flux. */
+  cover_plus_source?: 'itunes' | 'artist_photo' | 'stream' | null;
 }
 
 /** État reçu de l'appareil, distinct de toute consigne (#2457 / serveur #6912). */
