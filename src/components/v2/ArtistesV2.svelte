@@ -218,7 +218,8 @@
   // seulement la recherche) ou déjà apporté par un autre service n'y revient pas.
   const deServiceEnToutesSources = $derived(provenance == null ? artistesSansDoublon(artistes, artistesDeServiceRecherche) : []);
   const deServiceAffiches = $derived(
-    estSourceDeService(provenance) ? artistesDeServiceRecherche.filter(a => sourceCorrespond(a.source, provenance))
+    // Relecture du 23/11 — sous un service précis aussi, sans doublon de la bibliothèque.
+    estSourceDeService(provenance) ? artistesSansDoublon(artistes, artistesDeServiceRecherche.filter(a => sourceCorrespond(a.source, provenance)))
       : provenance == null ? deServiceEnToutesSources : [],
   );
   const affiches = $derived(([...artistesRecherche.filter(a => provenance == null ||

@@ -28,6 +28,7 @@ import { sourcesArtistesServeur } from '../stores/sourcesArtistesServeur';
 import {
   artistesDesFavorisDeService, artistesSansDoublon, bibliothequeEtendueActive, comptesAvecFavoris, estSourceDeService,
   pistesDesFavorisDeService, reglageEtendueLu, titresAbsentsDeLaBibliotheque, titresSansDoublon,
+  presencesDeLaProvenance, _oublierPresencesPourTests, PAGE_PRESENCE,
 } from '../bibliothequeEtendue';
 import lFr from '../locales/fr';
 
@@ -94,6 +95,7 @@ async function jusqua(c: () => boolean, borne = 8000) {
 
 beforeEach(() => {
   urls = [];
+  _oublierPresencesPourTests();
   remiseAlbums(); remisePistes(); remisePagination();
   sourcesArtistesServeur.set(null);
   activeView.set('home');
@@ -193,6 +195,18 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     expect(urls.filter((u) => /\/library\/tracks\?limit=5000/.test(u)), 'URLS').toEqual([]);
   });
 
+  it('relecture du 23/11 : rouvrir Titres ne relance AUCUNE recherche de présence (cache du module)', async () => {
+    const recherches = () => urls.filter((u) => /\/library\/tracks\?/.test(u) && /search=/.test(u));
+    let el = await ouvrirOnglet('favorites.tracks');
+    await jusqua(() => (el.querySelector('.tracklist')?.textContent ?? '').includes('Sugar Man'));
+    expect(recherches().length, 'aucune recherche à la première ouverture').toBeGreaterThan(0);
+    unmount(monte!); monte = null; hote?.remove(); hote = null;
+    urls = [];
+    el = await ouvrirOnglet('favorites.tracks');
+    await jusqua(() => (el.querySelector('.tracklist')?.textContent ?? '').includes('Sugar Man'));
+    expect(recherches(), 'les favoris ont été recherchés de nouveau').toEqual([]);
+  });
+
   it('Artistes : le menu Source propose QOBUZ, et le choisir montre les artistes favoris Qobuz', async () => {
     const el = await ouvrirOnglet('favorites.artists');
     expect(urls.some((u) => /favorites\/streaming\?item_type=artist&pour=bibliotheque/.test(u)), 'les artistes favoris des services ne sont pas demandés').toBe(true);
@@ -201,7 +215,8 @@ describe('fil 3009, point 6 — Bibliothèque élargie : onglets Titres et Artis
     choisir(el, 'QOBUZ');
     const noms = () => [...el.querySelectorAll('.grille.artistes .carte .ct')].map((e) => e.textContent?.trim());
     await jusqua(() => noms().includes('Alela Diane'));
-    expect(noms()).toEqual(['Alela Diane', 'Artiste LOCAL']);
+    // Relecture du 23/11 : « Artiste LOCAL » (Qobuz) double l'artiste de la bibliothèque, même sous QOBUZ.
+    expect(noms()).toEqual(['Alela Diane']);
   });
 
   it('Artistes, « Toutes les sources » (décision du 23/11) : bibliothèque et favoris réunis, chacun une fois', async () => {
@@ -229,22 +244,65 @@ describe('fil 3009, point 6 — dédoublonnage (décision du 23/11)', () => {
     expect(r.map((a) => a.name)).toEqual(['Alela Diane']);
   });
 
-  it('liste paginée : un titre cherché une fois, réponse retenue, échec = présent (jamais de doublon)', async () => {
+  const piste = (title: string, artist_name: string, id: number | null = 1) => ({ id, source: id == null ? 'qobuz' : 'local', title, artist_name });
+
+  it('relecture du 23/11 : un ÉCHEC n’est pas retenu — le favori est écarté, puis recherché à la passe suivante', async () => {
     const cache = new Map<string, boolean>();
-    const demandes: string[] = [];
-    const chercher = async (t: string) => {
-      demandes.push(t);
-      if (t === 'Panne') throw new Error('réseau');
-      return t === 'Locale' ? [{ id: 9, source: 'local', title: 'Locale', artist_name: 'A' }, { id: null, source: 'qobuz', title: 'Absente', artist_name: 'A' }] : [];
-    };
-    const favoris = [
-      { title: 'Locale', artist_name: 'A' }, { title: 'Absente', artist_name: 'A' },
-      { title: 'Absente', artist_name: 'A' }, { title: 'Panne', artist_name: 'A' },
-    ];
-    expect((await titresAbsentsDeLaBibliotheque(favoris, chercher, cache)).map((f) => f.title)).toEqual(['Absente']);
-    expect(demandes.sort()).toEqual(['Absente', 'Locale', 'Panne']);
-    await titresAbsentsDeLaBibliotheque(favoris, chercher, cache);
-    expect(demandes).toHaveLength(3);
+    const favoris = [{ title: 'Absente', artist_name: 'A' }];
+    let panne = true;
+    const charger = async () => { if (panne) throw new Error('réseau'); return []; };
+    expect(await titresAbsentsDeLaBibliotheque(favoris, charger, cache)).toEqual([]);
+    expect(cache.size, 'un échec ne doit pas être retenu').toBe(0);
+    panne = false;
+    expect((await titresAbsentsDeLaBibliotheque(favoris, charger, cache)).map((f) => f.title)).toEqual(['Absente']);
+  });
+
+  it('relecture du 23/11 : une passe ANNULÉE coupe ses recherches et n’écrit rien ; la suivante repart', async () => {
+    const cache = new Map<string, boolean>();
+    const signaux: AbortSignal[] = [];
+    const charger = (_t: string, _o: number, _l: number, signal: AbortSignal) => new Promise<never[]>((ok, ko) => {
+      signaux.push(signal);
+      if (signal.aborted) { ko(new DOMException('Aborted', 'AbortError')); return; }
+      signal.addEventListener('abort', () => ko(new DOMException('Aborted', 'AbortError')));
+      setTimeout(() => ok([]), 20);
+    });
+    const annulation = new AbortController();
+    const passe = titresAbsentsDeLaBibliotheque([{ title: 'Absente', artist_name: 'A' }], charger as any, cache, annulation.signal);
+    await new Promise((r) => setTimeout(r, 0));
+    annulation.abort();
+    expect(await passe).toEqual([]);
+    expect(signaux[0]?.aborted, 'la requête en vol n’a pas été annulée').toBe(true);
+    expect(cache.size).toBe(0);
+    expect((await titresAbsentsDeLaBibliotheque([{ title: 'Absente', artist_name: 'A' }], charger as any, cache)).map((f) => f.title)).toEqual(['Absente']);
+  });
+
+  it('relecture du 23/11 : deux passes simultanées ne cherchent pas deux fois le même titre', async () => {
+    const cache = new Map<string, boolean>();
+    let appels = 0;
+    const charger = async () => { appels++; await new Promise((r) => setTimeout(r, 10)); return []; };
+    const favoris = [{ title: 'Absente', artist_name: 'A' }];
+    const [a, b] = await Promise.all([
+      titresAbsentsDeLaBibliotheque(favoris, charger, cache),
+      titresAbsentsDeLaBibliotheque(favoris, charger, cache),
+    ]);
+    expect(appels).toBe(1);
+    expect(a.map((f) => f.title)).toEqual(['Absente']);
+    expect(b.map((f) => f.title)).toEqual(['Absente']);
+  });
+
+  it('relecture du 23/11 : un titre courant (« Intro ») est cherché au-delà de la première page', async () => {
+    const autres = Array.from({ length: PAGE_PRESENCE }, (_, n) => piste('Intro', `Autre ${n}`, n + 10));
+    const charger = async (_t: string, offset = 0) => (offset === 0 ? autres : [piste('Intro', 'The xx', 999)]);
+    const absents = await titresAbsentsDeLaBibliotheque([{ title: 'Intro', artist_name: 'The xx' }], charger as any, new Map());
+    expect(absents, '« Intro » de The xx est dans la bibliothèque : pas de doublon').toEqual([]);
+  });
+
+  it('relecture du 23/11 : le cache vit dans le module jusqu’au prochain scan', () => {
+    const a = presencesDeLaProvenance('qobuz', 1);
+    a.set('x', true);
+    expect(presencesDeLaProvenance('qobuz', 1)).toBe(a);
+    expect(presencesDeLaProvenance(null, 1)).not.toBe(a);
+    expect(presencesDeLaProvenance('qobuz', 2).size).toBe(0);
   });
 });
 

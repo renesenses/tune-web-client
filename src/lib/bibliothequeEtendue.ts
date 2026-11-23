@@ -261,37 +261,127 @@ export function artistesSansDoublon<T extends { name?: string | null }>(
   });
 }
 
+/** Une page de pistes de la bibliothèque, pour un titre cherché (`getPagePistes`). */
+export type ChargeurDeRecherche = (
+  titre: string,
+  offset: number,
+  limit: number,
+  signal: AbortSignal,
+) => Promise<readonly { id?: unknown; source?: unknown; title?: string | null; artist_name?: string | null }[]>;
+
+/** Taille des pages du contrôle de présence, et nombre de pages au plus par titre. */
+export const PAGE_PRESENCE = 200;
+export const PAGES_PRESENCE_MAX = 10;
+
+/**
+ * Relecture du 23/11 — les réponses du contrôle de présence vivent au niveau
+ * du MODULE, par provenance, jusqu'au prochain scan (`generation`) : rouvrir
+ * la Bibliothèque ne relance pas une recherche par favori. Les recherches EN
+ * VOL y sont aussi, pour qu'un même titre ne soit jamais cherché deux fois à
+ * la fois.
+ */
+interface CachePresences { generation: unknown; parProvenance: Map<string, Map<string, boolean>> }
+const cachePresences: CachePresences = { generation: undefined, parProvenance: new Map() };
+/** Les recherches en vol, par cache : la promesse et le signal de qui l'a lancée. */
+const enVolParCache = new WeakMap<Map<string, boolean>, Map<string, { promesse: Promise<boolean>; signal: AbortSignal }>>();
+
+/** Le cache de présence d'une provenance (`null` : toutes), vidé quand la bibliothèque change. */
+export function presencesDeLaProvenance(provenance: string | null, generation: unknown): Map<string, boolean> {
+  if (cachePresences.generation !== generation) {
+    cachePresences.generation = generation;
+    cachePresences.parProvenance = new Map();
+  }
+  const cle = provenance ?? '*';
+  let m = cachePresences.parProvenance.get(cle);
+  if (!m) { m = new Map(); cachePresences.parProvenance.set(cle, m); }
+  return m;
+}
+
+/** Pour les tests : oublie toutes les réponses. */
+export function _oublierPresencesPourTests(): void {
+  cachePresences.generation = undefined;
+  cachePresences.parProvenance = new Map();
+}
+
+function annulee(signal: AbortSignal | undefined): boolean {
+  return !!signal?.aborted;
+}
+
+/** Le titre est-il dans la bibliothèque ? Page après page tant qu'il n'est pas trouvé. */
+async function presentDansLaBibliotheque(
+  f: { title?: string | null; artist_name?: string | null },
+  charger: ChargeurDeRecherche,
+  signal: AbortSignal,
+): Promise<boolean> {
+  const k = cleDeTitre(f);
+  for (let page = 0; page < PAGES_PRESENCE_MAX; page++) {
+    const lot = await charger(String(f.title ?? ''), page * PAGE_PRESENCE, PAGE_PRESENCE, signal);
+    if (lot.some((t) => t.id != null && cleDeTitre(t) === k)) return true;
+    // Une page incomplète est la dernière : un titre courant (« Intro ») ne
+    // s'arrête plus aux premiers résultats d'autres interprètes.
+    if (lot.length < PAGE_PRESENCE) return false;
+  }
+  // Au-delà, on ne conclut pas à l'absence : pas de doublon possible.
+  return true;
+}
+
 /**
  * Onglet Titres PAGINÉ : la bibliothèque n'est pas en mémoire, seule sa
  * fenêtre l'est. Pour savoir si un titre favori y est déjà, on la demande au
- * serveur par une recherche sur son titre (`chercher`, sous la provenance
- * affichée : toute ligne de la bibliothèque qu'elle rend compte), au plus `concurrence`
- * à la fois, et chaque réponse est retenue dans `cache` (clé de titre →
- * présent) : la liste des favoris n'est chargée qu'une fois, la bibliothèque
- * jamais en entier. Une recherche qui échoue compte comme « présent » : on
- * préfère taire un favori que montrer un doublon.
+ * serveur par une recherche sur son titre (`charger`, sous la provenance
+ * affichée : toute ligne de la bibliothèque qu'elle rend compte, sur toutes
+ * ses pages), au plus `concurrence` à la fois. Chaque réponse est retenue dans
+ * `cache` ; une recherche déjà en vol pour le même titre est partagée.
+ *
+ * Relecture du 23/11 : un ÉCHEC n'est pas retenu — le favori est écarté pour
+ * cette passe (jamais de doublon), et cherché de nouveau à la suivante. Une
+ * passe annulée (`signal`) n'écrit rien et rend une liste vide.
  */
 export async function titresAbsentsDeLaBibliotheque<T extends { title?: string | null; artist_name?: string | null }>(
   favoris: readonly T[],
-  chercher: (titre: string) => Promise<readonly { id?: unknown; source?: unknown; title?: string | null; artist_name?: string | null }[]>,
+  charger: ChargeurDeRecherche,
   cache: Map<string, boolean>,
+  signal: AbortSignal = new AbortController().signal,
   concurrence = 4,
 ): Promise<T[]> {
   const uniques = titresSansDoublon([], favoris);
   const aVerifier = uniques.filter((f) => !cache.has(cleDeTitre(f)));
+  let enVol = enVolParCache.get(cache);
+  if (!enVol) { enVol = new Map(); enVolParCache.set(cache, enVol); }
+  const vols = enVol;
+  /** La recherche de `f` : celle déjà en vol (d'une passe non annulée), sinon une nouvelle. */
+  const rechercher = (f: T, k: string): Promise<boolean> => {
+    const deja = vols.get(k);
+    if (deja && !deja.signal.aborted) return deja.promesse;
+    const promesse = presentDansLaBibliotheque(f, charger, signal);
+    const entree = { promesse, signal };
+    vols.set(k, entree);
+    const liberer = () => { if (vols.get(k) === entree) vols.delete(k); };
+    // Annulée, elle quitte la table tout de suite : la passe suivante relance la sienne.
+    signal.addEventListener('abort', liberer, { once: true });
+    promesse.then((present) => { if (!signal.aborted) cache.set(k, present); }, () => {}).finally(liberer);
+    return promesse;
+  };
   let i = 0;
   const ouvrier = async () => {
-    while (i < aVerifier.length) {
+    while (i < aVerifier.length && !annulee(signal)) {
       const f = aVerifier[i++];
       const k = cleDeTitre(f);
-      try {
-        const trouves = await chercher(String(f.title ?? ''));
-        cache.set(k, trouves.some((t) => t.id != null && cleDeTitre(t) === k));
-      } catch {
-        cache.set(k, true);
+      for (let essai = 0; essai < 2 && !annulee(signal); essai++) {
+        const vol = vols.get(k);
+        try {
+          const present = await rechercher(f, k);
+          if (!annulee(signal)) cache.set(k, present);
+          break;
+        } catch {
+          // La recherche partagée d'une passe ANNULÉE : on relance la nôtre une fois.
+          // Sinon (échec réel) : écarté pour cette passe, cherché à la suivante.
+          if (!(vol && vol.signal !== signal && vol.signal.aborted)) break;
+        }
       }
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrence, aVerifier.length)) }, ouvrier));
+  if (annulee(signal)) return [];
   return uniques.filter((f) => cache.get(cleDeTitre(f)) === false);
 }

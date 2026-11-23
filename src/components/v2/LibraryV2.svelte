@@ -129,7 +129,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { provenanceDe, dansSource, sourceCorrespond, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, presencesDeLaProvenance, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
   import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -452,22 +452,23 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const favorisDeLaProvenance = $derived.by(() =>
     titresEtendus ? favorisPistesService.filter(t => sourceCorrespond(String(t.source ?? ''), fProvenance)) : []);
   let favorisAbsentsPagine = $state.raw<Track[]>([]);
-  let presencesParProvenance = new Map<string, Map<string, boolean>>();
-  let generationPresence: unknown = null;
+  // Relecture du 23/11 — les réponses vivent dans le MODULE
+  // (`presencesDeLaProvenance`), jusqu'au prochain scan : rouvrir la
+  // Bibliothèque ne relance pas les recherches. Une passe dépassée (autre
+  // provenance, autres favoris, écran quitté) est ANNULÉE, pas seulement
+  // ignorée.
   $effect(() => {
     const favoris = favorisDeLaProvenance;
     const provenance = fProvenance;
     const gen = $generationBibliotheque;
     if (!pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
-    if (gen !== generationPresence) { presencesParProvenance = new Map(); generationPresence = gen; }
-    const cle = provenance ?? '*';
-    const cache = presencesParProvenance.get(cle) ?? new Map<string, boolean>();
-    presencesParProvenance.set(cle, cache);
-    let perime = false;
-    void titresAbsentsDeLaBibliotheque(favoris, async (titre) =>
-      ((await api.getPagePistes({ search: titre, provenance, limit: 25, offset: 0 }))?.items ?? []) as any[], cache)
-      .then((absents) => { if (!perime) favorisAbsentsPagine = absents; });
-    return () => { perime = true; };
+    const cache = presencesDeLaProvenance(provenance, gen);
+    const annulation = new AbortController();
+    void titresAbsentsDeLaBibliotheque(favoris, async (titre, offset, limit, signal) =>
+      ((await api.getPagePistes({ search: titre, provenance, limit, offset, signal }))?.items ?? []) as any[],
+      cache, annulation.signal)
+      .then((absents) => { if (!annulation.signal.aborted) favorisAbsentsPagine = absents; });
+    return () => annulation.abort();
   });
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
