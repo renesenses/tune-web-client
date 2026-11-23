@@ -8446,7 +8446,7 @@ export default {
   "tess.badge.processed_by_tess": "TESS által feldolgozva · 64 bit",
   "tess.badge.outside_tess": "TESS-en kívül",
   "tess.badge.altered_outside_tess": "TESS-en kívül módosítva",
-  "tess.bands": "{n, plural, other {# sáv}}",
+  "tess.bands": "{n, plural, one {# sáv} other {# sáv}}",
   "bibliotheque.selection.barre": "Műveletek a kijelöléssel",
   "bibliotheque.selection.select": "Kijelölés",
   "bibliotheque.selection.selectTip": "Jelöljön ki több albumot egy művelethez (Shift+kattintás: tartomány; Esc: kész)",

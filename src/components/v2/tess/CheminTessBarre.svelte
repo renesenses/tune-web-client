@@ -81,16 +81,16 @@
     border:1px solid var(--v2-line2, rgba(255,255,255,.12)); background:var(--v2-surface2, transparent);
     display:flex; flex-direction:column; gap:8px; color:var(--v2-acc1, currentColor)}
   .tete{display:flex; align-items:center; gap:8px}
-  .badge{font:700 12px var(--v2-sans, inherit); letter-spacing:.03em; padding:2px 10px; border-radius:999px;
+  .badge{font:700 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit); letter-spacing:.03em; padding:2px 10px; border-radius:999px;
     border:1px solid var(--v2-line2, rgba(255,255,255,.12)); color:var(--v2-txt, currentColor)}
   .badge.bp{border-color:var(--v2-ok, #3fb950); color:var(--v2-ok, #3fb950)}
   .encadre, .hors{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
   .encadre{padding:8px 10px; border-radius:8px; border:1px dashed var(--v2-acc2, currentColor)}
-  .etape{display:flex; justify-content:space-between; gap:12px; font-size:13px; color:var(--v2-txt, currentColor)}
+  .etape{display:flex; justify-content:space-between; gap:12px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt, currentColor)}
   .etape.eteinte{opacity:.55}
   .nom{font-weight:600}
   .param{color:var(--v2-txt2, inherit); text-align:right}
   .ouvrir{align-self:flex-start; height:28px; padding:0 12px; border-radius:999px; cursor:pointer;
     border:1px solid var(--v2-acc2, currentColor); background:transparent; color:var(--v2-acc1, currentColor);
-    font:600 12px var(--v2-sans, inherit)}
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans, inherit)}
 </style>

@@ -8332,7 +8332,7 @@ export default {
   "tess.badge.processed_by_tess": "Behandlet av TESS · 64 bit",
   "tess.badge.outside_tess": "Utenfor TESS",
   "tess.badge.altered_outside_tess": "Endret utenfor TESS",
-  "tess.bands": "{n, plural, other {# bånd}}",
+  "tess.bands": "{n, plural, one {# bånd} other {# bånd}}",
   "bibliotheque.selection.barre": "Handlinger for utvalget",
   "bibliotheque.selection.select": "Velg",
   "bibliotheque.selection.selectTip": "Kryss av flere album for å bruke en handling (Shift+klikk: et område; Esc: ferdig)",

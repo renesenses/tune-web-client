@@ -8486,7 +8486,7 @@ export default {
   "tess.badge.processed_by_tess": "Behandlat av TESS · 64 bitar",
   "tess.badge.outside_tess": "Utanför TESS",
   "tess.badge.altered_outside_tess": "Ändrat utanför TESS",
-  "tess.bands": "{n, plural, other {# band}}",
+  "tess.bands": "{n, plural, one {# band} other {# band}}",
   "bibliotheque.selection.barre": "Åtgärder för urvalet",
   "bibliotheque.selection.select": "Välj",
   "bibliotheque.selection.selectTip": "Bocka för flera album för att tillämpa en åtgärd (Skift+klick: ett intervall; Esc: klar)",

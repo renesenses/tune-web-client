@@ -8311,7 +8311,7 @@ export default {
   "tess.badge.processed_by_tess": "TESS ile işlendi · 64 bit",
   "tess.badge.outside_tess": "TESS dışında",
   "tess.badge.altered_outside_tess": "TESS dışında değiştirildi",
-  "tess.bands": "{n, plural, other {# bant}}",
+  "tess.bands": "{n, plural, one {# bant} other {# bant}}",
   "bibliotheque.selection.barre": "Seçim işlemleri",
   "bibliotheque.selection.select": "Seç",
   "bibliotheque.selection.selectTip": "Bir işlem uygulamak için birden çok albümü işaretleyin (Shift+tık: aralık; Esc: bitti)",
