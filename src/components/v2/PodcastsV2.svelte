@@ -1085,9 +1085,12 @@ let reculS = $state(RECUL_DEFAUT_S);
             {@const prog = progression(ep)}
             <div class="eprow">
               <!-- Fil 2972 — grisé, pas désactivé : le clic redemande le
-                   fichier à l'éditeur, qui a pu le republier. -->
+                   fichier à l'éditeur, qui a pu le republier. L'info-bulle
+                   ne parle qu'à la souris : `aria-description` dit la même
+                   chose aux lecteurs d'écran, sans retirer le bouton. -->
               <button class="ep" class:live={playingUrl === ep.audio_url} class:indisponible={ep.unavailable === true}
-                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip' as any) : undefined}
+                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip') : undefined}
+                aria-description={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip') : undefined}
                 onclick={() => playEpisode(ep)}>
                 <span class="ei">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>

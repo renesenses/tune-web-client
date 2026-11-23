@@ -162,8 +162,12 @@ describe('fil 2972 — épisode indisponible chez l’éditeur', () => {
     const [absent, present] = await ouvrirFiche();
     expect(absent.classList.contains('indisponible')).toBe(true);
     expect(absent.getAttribute('title')).toBe(fr['v2.pod.episodeUnavailableTip']);
+    // Les lecteurs d'écran l'entendent aussi ; le bouton reste utilisable.
+    expect(absent.getAttribute('aria-description')).toBe(fr['v2.pod.episodeUnavailableTip']);
+    expect(absent.disabled).toBe(false);
     expect(present.classList.contains('indisponible')).toBe(false);
     expect(present.getAttribute('title')).toBeNull();
+    expect(present.getAttribute('aria-description')).toBeNull();
     // Aucune lecture n'a été demandée : l'affichage ne sonde rien.
     expect(appelsLecture).toEqual([]);
   });
