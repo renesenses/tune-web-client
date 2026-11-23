@@ -34,7 +34,7 @@
     nomDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
-  import PreReglagesTess from './PreReglagesTess.svelte';
+  import PanneauPreReglages from './PreReglagesTess.svelte';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
   import '../../../styles/tune-v2.css';
@@ -291,7 +291,7 @@
       {#if avis}<div class="avis" role="status" data-tess-avis>{avis}</div>{/if}
       {#if panneauPreReglages && preReglages}
         <div class="panneau-prereglages">
-          <PreReglagesTess
+          <PanneauPreReglages
             liste={preReglages}
             actif={reponse.active_preset ?? null}
             {occupe}
